@@ -32,10 +32,12 @@ export const ParticleId = particleIdIso.set
 
 // --- Schema field types ---
 
-export const CountSchema = Schema.declare((u: unknown): u is Count => typeof u === 'number')
-export const MillisecondsSchema = Schema.declare((u: unknown): u is Milliseconds => typeof u === 'number')
-export const SecondsSchema = Schema.declare((u: unknown): u is Seconds => typeof u === 'number')
-export const HueSchema = Schema.declare((u: unknown): u is Hue => typeof u === 'number')
-export const PixelsSchema = Schema.declare((u: unknown): u is Pixels => typeof u === 'number')
-export const PixelsPerSecSchema = Schema.declare((u: unknown): u is PixelsPerSec => typeof u === 'number')
-export const ParticleIdSchema = Schema.declare((u: unknown): u is ParticleId => typeof u === 'number')
+const finite = (u: unknown): u is number => typeof u === 'number' && Number.isFinite(u)
+
+export const CountSchema       = Schema.declare((u: unknown): u is Count       => finite(u) && Number.isInteger(u))
+export const MillisecondsSchema = Schema.declare((u: unknown): u is Milliseconds => finite(u) && u >= 0)
+export const SecondsSchema     = Schema.declare((u: unknown): u is Seconds     => finite(u) && u >= 0)
+export const HueSchema         = Schema.declare((u: unknown): u is Hue         => finite(u) && u >= 0 && u < 360)
+export const PixelsSchema      = Schema.declare((u: unknown): u is Pixels      => finite(u))
+export const PixelsPerSecSchema = Schema.declare((u: unknown): u is PixelsPerSec => finite(u))
+export const ParticleIdSchema  = Schema.declare((u: unknown): u is ParticleId  => finite(u) && Number.isInteger(u) && u >= 0)

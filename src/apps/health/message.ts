@@ -8,7 +8,9 @@ export const FetchedHealth = m('FetchedHealth', {
   timestamp: Schema.String,
 })
 
+export const FetchFailed = m('FetchFailed', { error: Schema.String })
+
 export const TickedFrame = m('TickedFrame', { deltaTimeMs: Schema.Number })
 
-export const Message = Schema.Union([FetchedHealth, TickedFrame])
+export const Message = Schema.Union([FetchedHealth, FetchFailed, TickedFrame])
 export type Message = typeof Message.Type

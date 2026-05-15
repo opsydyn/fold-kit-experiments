@@ -9,7 +9,7 @@ export const subscriptions = Subscription.makeSubscriptions(
   Schema.Struct({ active: Schema.Boolean }),
 )<Model, Message>({
   active: Subscription.animationFrame({
-    isActive: model => model.data !== null,
+    isActive: model => model._tag === 'Loaded',
     toMessage: deltaTimeMs => TickedFrame({ deltaTimeMs }),
   }),
 })

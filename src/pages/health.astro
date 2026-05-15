@@ -1,8 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import * as layoutStyles from '../layouts/layout.css'
 import HealthApp from '../apps/health/app'
 ---
 
 <Layout title="Health — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Health</h1>
   <HealthApp client:load />
 </Layout>

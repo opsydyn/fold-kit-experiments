@@ -45,3 +45,9 @@ export const navLinkActive = style({
 export const main = style({
   padding: '2rem 1.5rem',
 })
+
+export const heading = style({
+  fontSize: '1.5rem',
+  fontWeight: 700,
+  marginBottom: '1.5rem',
+})

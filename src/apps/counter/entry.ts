@@ -1,13 +1,16 @@
-import { Runtime } from 'foldkit'
+import { Runtime } from "foldkit";
 
-import { Model, init, update, view } from './main'
+import { Model, init, update, view } from "./main";
 
 const program = Runtime.makeProgram({
-  Model,
-  init,
-  update,
-  view,
-  container: document.getElementById('root'),
-})
+	Model,
+	init,
+	update,
+	view,
+	container: document.getElementById("foldkit-counter"),
+	devTools: {
+		position: "BottomLeft",
+	},
+});
 
-Runtime.run(program)
+Runtime.run(program);

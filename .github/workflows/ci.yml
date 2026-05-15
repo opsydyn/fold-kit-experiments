@@ -37,3 +37,9 @@ jobs:
 
       - name: Typecheck package
         run: bun run --filter @opsydyn/astro-foldkit typecheck
+
+      - name: Run unit tests
+        run: bun run --filter @opsydyn/astro-foldkit test:unit
+
+      - name: Run integration tests
+        run: bun run --filter @opsydyn/astro-foldkit test:integration

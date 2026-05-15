@@ -1,6 +1,6 @@
 import type { NamedSSRLoadedRendererValue } from 'astro'
 
-async function check(Component: unknown): Promise<boolean> {
+export async function check(Component: unknown): Promise<boolean> {
   return (
     Component != null &&
     (typeof Component === 'object' || typeof Component === 'function') &&

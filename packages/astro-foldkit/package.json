@@ -33,7 +33,10 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:unit": "bun test test/unit",
+    "test:integration": "bun test test/integration"
   },
   "keywords": [
     "astro",
@@ -65,6 +68,8 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "astro": "^7.0.0-alpha.1",
+    "bun-types": "^1.3.14",
+    "fast-check": "^4.8.0",
     "foldkit": "^0.96.0",
     "tsdown": "^0.21.8",
     "typescript": "^6.0.3"

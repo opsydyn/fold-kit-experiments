@@ -1,5 +1,8 @@
 # build output
 dist/
+
+# test artifacts (packed tarballs, unpacked smoke dirs)
+packages/astro-foldkit/artifacts/
 # generated types
 .astro/
 

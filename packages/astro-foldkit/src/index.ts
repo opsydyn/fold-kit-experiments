@@ -10,8 +10,8 @@ export default function foldkit(): AstroIntegration {
       'astro:config:setup': ({ addRenderer, updateConfig }) => {
         addRenderer({
           name: 'astro-foldkit',
-          clientEntrypoint: fileURLToPath(new URL('./client.ts', import.meta.url)),
-          serverEntrypoint: fileURLToPath(new URL('./server.ts', import.meta.url)),
+          clientEntrypoint: fileURLToPath(new URL('./client.mjs', import.meta.url)),
+          serverEntrypoint: fileURLToPath(new URL('./server.mjs', import.meta.url)),
         })
         updateConfig({
           vite: {

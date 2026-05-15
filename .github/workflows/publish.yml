@@ -1,0 +1,53 @@
+name: publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to publish (tag, branch, or SHA). Leave empty to use the branch the workflow is dispatched from.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref != '' && inputs.ref || github.ref }}
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build and typecheck
+        run: bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/astro-foldkit typecheck
+
+      - name: Publish to npm
+        if: ${{ env.NPM_TOKEN != '' }}
+        working-directory: packages/astro-foldkit
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
+
+      - name: Note missing NPM token
+        if: ${{ env.NPM_TOKEN == '' }}
+        run: |
+          echo "::error::NPM_TOKEN secret is not configured. Add it as a repository secret to enable publishing."
+          exit 1

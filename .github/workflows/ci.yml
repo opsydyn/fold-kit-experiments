@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build package
+        run: bun run --filter @opsydyn/astro-foldkit build
+
+      - name: Typecheck package
+        run: bun run --filter @opsydyn/astro-foldkit typecheck

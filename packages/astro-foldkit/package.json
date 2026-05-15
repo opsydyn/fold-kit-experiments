@@ -1,0 +1,72 @@
+{
+  "name": "@opsydyn/astro-foldkit",
+  "version": "0.1.0",
+  "description": "Astro integration and renderer for FoldKit.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./define-app": {
+      "types": "./dist/define-app.d.mts",
+      "import": "./dist/define-app.mjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "define-app": [
+        "./dist/define-app.d.mts"
+      ]
+    }
+  },
+  "files": [
+    "CHANGELOG.md",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "foldkit",
+    "elm-architecture",
+    "effect"
+  ],
+  "author": "Alan P Currie",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opsydyn/astro-foldkit.git",
+    "directory": "packages/astro-foldkit"
+  },
+  "bugs": {
+    "url": "https://github.com/opsydyn/astro-foldkit/issues"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "peerDependencies": {
+    "astro": ">=5.0.0",
+    "foldkit": ">=0.96.0"
+  },
+  "dependencies": {
+    "@foldkit/vite-plugin": "^0.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "astro": "^7.0.0-alpha.1",
+    "foldkit": "^0.96.0",
+    "tsdown": "^0.21.8",
+    "typescript": "^6.0.3"
+  }
+}

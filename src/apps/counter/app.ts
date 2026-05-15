@@ -1,3 +1,3 @@
-import { defineApp } from '../../integration/define-app'
+import { defineApp } from "@opsydyn/astro-foldkit/define-app";
 
-export default defineApp(() => import('./main'))
+export default defineApp(() => import("./main"));

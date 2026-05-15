@@ -6,6 +6,7 @@ import { update } from './update'
 import { view } from './view'
 
 export { Model, Message, update, view }
+export { subscriptions } from './subscription'
 
 export const init: Runtime.ProgramInit<typeof Model.Type, typeof Message.Type> = () => [
   initialModel,

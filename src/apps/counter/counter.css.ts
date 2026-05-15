@@ -1,14 +1,31 @@
 import { style } from '@vanilla-extract/css'
 
-export const container = style({
+export const scene = style({
+  position: 'relative',
+  width: '100%',
+  height: '100vh',
+  overflow: 'hidden',
+  background: '#fafafa',
+  fontFamily: 'system-ui, sans-serif',
+})
+
+export const canvas = style({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  pointerEvents: 'none',
+})
+
+export const overlay = style({
+  position: 'absolute',
+  inset: 0,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  minHeight: '100vh',
   gap: '2rem',
-  background: '#fafafa',
-  fontFamily: 'system-ui, sans-serif',
 })
 
 export const count = style({

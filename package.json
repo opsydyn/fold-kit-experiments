@@ -17,6 +17,7 @@
     "typecheck": "bun run --filter '*' typecheck",
     "check": "biome check .",
     "check:fix": "biome check --write ."
+
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15"

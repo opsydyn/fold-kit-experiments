@@ -5,8 +5,8 @@ export type AppConfig = {
   readonly view: (model: any) => unknown;
 };
 
-export type FoldkitApp = {
-  (): void;
+export type FoldkitApp<Props extends Record<string, unknown> = Record<string, unknown>> = {
+  (props: Props): void;
   readonly __foldkit: true;
   readonly load: () => Promise<AppConfig>;
 };

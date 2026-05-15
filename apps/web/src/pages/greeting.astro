@@ -1,0 +1,17 @@
+---
+export const prerender = false;
+
+import { Schema } from 'effect';
+
+import GreetingApp from '../apps/greeting/app';
+import { Name } from '../apps/greeting/model';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+
+const name = Schema.decodeSync(Name)(Astro.url.searchParams.get('name') ?? 'astronaut');
+---
+
+<Layout title={`Hello, ${name}! — Astro + FoldKit`}>
+  <h1 class={layoutStyles.heading}>Props POC</h1>
+  <GreetingApp client:load name={name} />
+</Layout>

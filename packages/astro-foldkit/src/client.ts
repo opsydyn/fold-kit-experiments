@@ -5,7 +5,7 @@ import type { FoldkitApp } from './types';
 export default (element: HTMLElement) =>
   async (
     component: FoldkitApp,
-    _props: Record<string, unknown>,
+    props: Record<string, unknown>,
     _slots: Record<string, unknown>,
     _meta: { client: string },
   ): Promise<void> => {
@@ -15,6 +15,9 @@ export default (element: HTMLElement) =>
 
     const program = Runtime.makeProgram({
       ...(config as any),
+      // Forward Astro props into init so apps can seed their model from server data.
+      // Apps that declare no props simply receive an empty object and ignore it.
+      init: () => (config as any).init(props),
       container: element,
     });
 

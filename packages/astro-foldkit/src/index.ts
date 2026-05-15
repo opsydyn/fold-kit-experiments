@@ -1,7 +1,6 @@
-import { fileURLToPath } from 'node:url'
-
-import type { AstroIntegration } from 'astro'
-import { foldkit as foldkitVitePlugin } from '@foldkit/vite-plugin'
+import { fileURLToPath } from 'node:url';
+import { foldkit as foldkitVitePlugin } from '@foldkit/vite-plugin';
+import type { AstroIntegration } from 'astro';
 
 export default function foldkit(): AstroIntegration {
   return {
@@ -12,13 +11,13 @@ export default function foldkit(): AstroIntegration {
           name: 'astro-foldkit',
           clientEntrypoint: fileURLToPath(new URL('./client.mjs', import.meta.url)),
           serverEntrypoint: fileURLToPath(new URL('./server.mjs', import.meta.url)),
-        })
+        });
         updateConfig({
           vite: {
             plugins: [foldkitVitePlugin()],
           },
-        })
+        });
       },
     },
-  }
+  };
 }

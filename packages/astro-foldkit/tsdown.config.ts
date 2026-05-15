@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsdown'
+import { defineConfig } from 'tsdown';
 
 export default defineConfig({
   entry: {
@@ -15,4 +15,4 @@ export default defineConfig({
   deps: {
     neverBundle: ['astro', 'foldkit'],
   },
-})
+});

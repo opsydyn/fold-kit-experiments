@@ -1,0 +1,10 @@
+---
+import Counter from '../apps/counter/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Home — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Counter</h1>
+  <Counter client:load />
+</Layout>

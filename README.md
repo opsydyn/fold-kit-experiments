@@ -1,43 +1,47 @@
-# Astro Starter Kit: Minimal
+# astro-foldkit
 
-```sh
-bun create astro@latest -- --template minimal
-```
+Monorepo for [`@opsydyn/astro-foldkit`](packages/astro-foldkit/) — an Astro integration for [FoldKit](https://foldkit.dev) — and its demo app.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+FoldKit is an Elm Architecture runtime for the browser built on [Effect](https://effect.website). This repo wires it into Astro as a first-class renderer so FoldKit apps can be dropped into `.astro` pages as components with `client:load`.
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
+## Structure
 
 ```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+astro-foldkit/
+├── apps/
+│   └── web/               — demo Astro app (counter, health dashboard)
+└── packages/
+    └── astro-foldkit/     — @opsydyn/astro-foldkit (published to npm)
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Prerequisites
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+- [Bun](https://bun.sh) ≥ 1.3
+- Node ≥ 22 (for the smoke tests)
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Getting started
 
-## 🧞 Commands
+```sh
+bun install
+bun dev        # http://localhost:4321
+```
 
-All commands are run from the root of the project, from a terminal:
+## Commands
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `bun install`             | Installs dependencies                            |
-| `bun dev`             | Starts local dev server at `localhost:4321`      |
-| `bun build`           | Build your production site to `./dist/`          |
-| `bun preview`         | Preview your build locally, before deploying     |
-| `bun astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `bun astro -- --help` | Get help using the Astro CLI                     |
+| Command          | Action                                               |
+| :--------------- | :--------------------------------------------------- |
+| `bun dev`        | Start the demo app at `localhost:4321`               |
+| `bun build`      | Build the package, then build the demo app           |
+| `bun test`       | Run all tests across every workspace                 |
+| `bun typecheck`  | Typecheck all workspaces                             |
 
-## 👀 Want to learn more?
+To work within a single workspace, pass `--filter`:
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+```sh
+bun run --filter @opsydyn/astro-foldkit test
+bun run --filter @opsydyn/web dev
+```
+
+## Contributing
+
+See [`packages/astro-foldkit/`](packages/astro-foldkit/) for the integration source, tests, and changelog. The demo app in [`apps/web/`](apps/web/) is the primary integration test environment.

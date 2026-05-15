@@ -1,5 +1,5 @@
 ---
-import Counter from '../components/Counter.astro'
+import Counter from '../apps/counter/app'
 ---
 
 <html lang="en">
@@ -11,6 +11,6 @@ import Counter from '../components/Counter.astro'
     <title>Astro + Foldkit</title>
   </head>
   <body>
-    <Counter />
+    <Counter client:load />
   </body>
 </html>

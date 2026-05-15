@@ -1,6 +1,5 @@
 import { Array as Arr, Match as M, Newtype, Option, Result } from 'effect'
 import type { Command } from 'foldkit'
-import { evo } from 'foldkit/struct'
 
 import { SpawnParticle } from './command'
 import {
@@ -19,10 +18,12 @@ import {
   UP_ANGLE,
 } from './constant'
 import type { Message } from './message'
+import { _count, _elapsedSeconds, _nextId, _particles } from './model'
 import type { Model } from './model'
+import { _age, _lifespan, _px, _py, _trail, _vx, _vy } from './particle'
 import type { Particle } from './particle'
 import type { Hue } from './types'
-import { Count, Milliseconds, ParticleId, Pixels, PixelsPerSec, Seconds } from './types'
+import { Milliseconds, Pixels } from './types'
 
 type Return = readonly [Model, ReadonlyArray<Command.Command<Message>>]
 
@@ -32,18 +33,17 @@ const advanceParticle =
     Option.match(Arr.last(particle.trail), {
       onNone: () => Result.failVoid,
       onSome: pos => {
-        const nextAgeMs = Milliseconds(Newtype.value(particle.ageMs) + deltaSeconds * MS_PER_SECOND)
-        if (Newtype.value(nextAgeMs) >= Newtype.value(particle.lifespanMs)) return Result.failVoid
-        const nextX = Pixels(Newtype.value(pos.x) + Newtype.value(particle.vx) * deltaSeconds)
-        const nextY = Pixels(Newtype.value(pos.y) + Newtype.value(particle.vy) * deltaSeconds)
-        const nextVy = PixelsPerSec(Newtype.value(particle.vy) + GRAVITY * deltaSeconds)
-        const appended = Arr.append(particle.trail, { x: nextX, y: nextY })
+        const nextAge = _age.get(particle) + deltaSeconds * MS_PER_SECOND
+        if (nextAge >= _lifespan.get(particle)) return Result.failVoid
+        const nextPos = {
+          x: Pixels(_px.get(pos) + _vx.get(particle) * deltaSeconds),
+          y: Pixels(_py.get(pos) + _vy.get(particle) * deltaSeconds),
+        }
+        const newTrail = Arr.takeRight(Arr.append(particle.trail, nextPos), TRAIL_LENGTH)
         return Result.succeed(
-          evo(particle, {
-            trail: () => Arr.takeRight(appended, TRAIL_LENGTH),
-            ageMs: () => nextAgeMs,
-            vy: () => nextVy,
-          }),
+          _vy.modify(vy => vy + GRAVITY * deltaSeconds)(
+            _age.replace(nextAge, _trail.replace(newTrail, particle))
+          ),
         )
       },
     })
@@ -73,25 +73,15 @@ export const update = (model: Model, message: Message): Return =>
   M.value(message).pipe(
     M.withReturnType<Return>(),
     M.tagsExhaustive({
-      ClickedDecrement: () => [
-        evo(model, { count: c => Count(Newtype.value(c) - 1) }),
-        directionalBurst(DECREMENT_HUE, DOWN_ANGLE),
-      ],
-      ClickedIncrement: () => [
-        evo(model, { count: c => Count(Newtype.value(c) + 1) }),
-        directionalBurst(INCREMENT_HUE, UP_ANGLE),
-      ],
-      ClickedReset: () => [
-        evo(model, { count: () => Count(0), particles: () => [] }),
-        radialBurst(RESET_HUE),
-      ],
+      ClickedDecrement: () => [_count.modify(n => n - 1)(model), directionalBurst(DECREMENT_HUE, DOWN_ANGLE)],
+      ClickedIncrement: () => [_count.modify(n => n + 1)(model), directionalBurst(INCREMENT_HUE, UP_ANGLE)],
+      ClickedReset:     () => [_particles.replace([], _count.replace(0, model)), radialBurst(RESET_HUE)],
       TickedFrame: ({ deltaTimeMs }) => {
         const deltaSeconds = cappedDelta(deltaTimeMs)
         return [
-          evo(model, {
-            particles: ps => Arr.filterMap(ps, advanceParticle(deltaSeconds)),
-            elapsedSeconds: s => Seconds(Newtype.value(s) + deltaSeconds),
-          }),
+          _elapsedSeconds.modify(s => s + deltaSeconds)(
+            _particles.modify(ps => Arr.filterMap(ps, advanceParticle(deltaSeconds)))(model)
+          ),
           [],
         ]
       },
@@ -106,10 +96,7 @@ export const update = (model: Model, message: Message): Return =>
           vy,
         }
         return [
-          evo(model, {
-            particles: Arr.append(particle),
-            nextId: id => ParticleId(Newtype.value(id) + 1),
-          }),
+          _nextId.modify(id => id + 1)(_particles.modify(Arr.append(particle))(model)),
           [],
         ]
       },

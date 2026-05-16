@@ -1,0 +1,10 @@
+---
+import CarouselApp from '../apps/carousel/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Carousel — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Carousel</h1>
+  <CarouselApp client:load />
+</Layout>

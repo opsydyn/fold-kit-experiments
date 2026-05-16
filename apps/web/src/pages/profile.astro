@@ -1,0 +1,17 @@
+---
+import { Schema } from 'effect';
+
+import ProfileApp from '../apps/profile/app';
+import { Username } from '../apps/profile/model';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+
+const defaultName = Schema.decodeSync(Username)(
+  Astro.url.searchParams.get('name') ?? '',
+);
+---
+
+<Layout title="Profile — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Profile</h1>
+  <ProfileApp client:load defaultName={defaultName} />
+</Layout>

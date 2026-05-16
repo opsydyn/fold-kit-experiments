@@ -1,0 +1,15 @@
+---
+import { Schema } from 'effect';
+
+import { Username } from '../apps/profile/model';
+import WelcomeApp from '../apps/welcome/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+
+const fallback = Schema.decodeSync(Username)('friend');
+---
+
+<Layout title="Welcome — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Welcome</h1>
+  <WelcomeApp client:load fallback={fallback} />
+</Layout>

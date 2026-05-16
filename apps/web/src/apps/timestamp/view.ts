@@ -24,10 +24,13 @@ export const view = (model: Model): Document => {
 
   return {
     title: `Uptime: ${formatUptime(uptimeSeconds)}`,
-    body: div([Class(styles.card)], [
-      div([Class(styles.label)], ['Server uptime']),
-      div([Class(styles.value)], [formatUptime(uptimeSeconds)]),
-      div([Class(styles.sub)], [`started ${startedAtLabel}`]),
-    ]),
+    body: div(
+      [Class(styles.card)],
+      [
+        div([Class(styles.label)], ['Server uptime']),
+        div([Class(styles.value)], [formatUptime(uptimeSeconds)]),
+        div([Class(styles.sub)], [`started ${startedAtLabel}`]),
+      ],
+    ),
   };
 };

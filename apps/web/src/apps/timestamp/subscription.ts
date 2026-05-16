@@ -1,8 +1,7 @@
 import { Schema } from 'effect';
 import { Subscription } from 'foldkit';
-
-import { Ticked } from './message';
 import type { Message } from './message';
+import { Ticked } from './message';
 import type { Model } from './model';
 
 export const subscriptions = Subscription.makeSubscriptions(

@@ -42,6 +42,34 @@ export function linearTicks(
   return Array.from({ length: n }, (_, i) => parseFloat((t0 + i * step).toPrecision(12)));
 }
 
+// SQRT SCALE — D3 scaleSqrt parity (d3-scale pow.js transformSqrt)
+
+export type SqrtScaleConfig = Readonly<{
+  domain: readonly [number, number];
+  range: readonly [number, number];
+  clamp?: boolean;
+}>;
+
+export function sqrt(config: SqrtScaleConfig): (value: number) => number {
+  const [d0, d1] = config.domain;
+  const [r0, r1] = config.range;
+  const clamp = config.clamp ?? false;
+
+  return (value: number): number => {
+    const span = d1 - d0;
+    const t = span === 0 ? 0 : (value - d0) / span;
+    // D3: x < 0 ? -sqrt(-x) : sqrt(x)
+    const st = t < 0 ? -Math.sqrt(-t) : Math.sqrt(t);
+    let result = r0 + st * (r1 - r0);
+    if (clamp) {
+      const lo = Math.min(r0, r1);
+      const hi = Math.max(r0, r1);
+      result = Math.max(lo, Math.min(hi, result));
+    }
+    return result;
+  };
+}
+
 // BAND SCALE
 
 export type BandScaleConfig = Readonly<{

@@ -6,6 +6,7 @@ export default defineConfig({
     'math/scale': 'src/math/scale.ts',
     'shape/path': 'src/shape/path.ts',
     'shape/arc': 'src/shape/arc.ts',
+    'shape/area': 'src/shape/area.ts',
     'shape/line': 'src/shape/line.ts',
     'shape/pie': 'src/shape/pie.ts',
   },

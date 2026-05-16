@@ -290,15 +290,16 @@ export function line(
   let inSegment = false;
 
   for (let i = 0; i <= n; i++) {
+    const point = points[i];
     const isDefined =
-      i < n && (defined ? defined(points[i], i) : true);
+      point !== undefined && (defined ? defined(point, i) : true);
 
     if (isDefined !== inSegment) {
       inSegment = isDefined;
       if (inSegment) curveObj.lineStart();
       else curveObj.lineEnd();
     }
-    if (inSegment) curveObj.point(points[i][0], points[i][1]);
+    if (inSegment && point !== undefined) curveObj.point(point[0], point[1]);
   }
 
   const result = buf.toString();

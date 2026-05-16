@@ -26,6 +26,10 @@
       "types": "./dist/shape/arc.d.mts",
       "import": "./dist/shape/arc.mjs"
     },
+    "./shape/area": {
+      "types": "./dist/shape/area.d.mts",
+      "import": "./dist/shape/area.mjs"
+    },
     "./shape/line": {
       "types": "./dist/shape/line.d.mts",
       "import": "./dist/shape/line.mjs"
@@ -40,6 +44,7 @@
       "math/scale": ["./dist/math/scale.d.mts"],
       "shape/path": ["./dist/shape/path.d.mts"],
       "shape/arc": ["./dist/shape/arc.d.mts"],
+      "shape/area": ["./dist/shape/area.d.mts"],
       "shape/line": ["./dist/shape/line.d.mts"],
       "shape/pie": ["./dist/shape/pie.d.mts"]
     }

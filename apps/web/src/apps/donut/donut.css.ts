@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 export const page = style({
   display: 'flex',
@@ -28,13 +28,12 @@ export const card = style({
 export const chartWrapper = style({
   flexShrink: 0,
   width: '200px',
-  selectors: {
-    '& svg:focus-visible': {
-      outline: '2px solid #6366f1',
-      outlineOffset: '4px',
-      borderRadius: '50%',
-    },
-  },
+});
+
+globalStyle(`${chartWrapper} svg:focus-visible`, {
+  outline: '2px solid #6366f1',
+  outlineOffset: '4px',
+  borderRadius: '50%',
 });
 
 export const legend = style({

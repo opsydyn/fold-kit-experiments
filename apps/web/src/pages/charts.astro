@@ -1,0 +1,26 @@
+---
+import BarApp from '../apps/bar/app';
+import DonutApp from '../apps/donut/app';
+import LineApp from '../apps/line/app';
+import * as gridStyles from '../apps/charts/charts.css';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Charts — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Charts</h1>
+  <div class={gridStyles.grid}>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Budget breakdown</p>
+      <DonutApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Monthly figures</p>
+      <BarApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Monthly trend</p>
+      <LineApp client:load />
+    </div>
+  </div>
+</Layout>

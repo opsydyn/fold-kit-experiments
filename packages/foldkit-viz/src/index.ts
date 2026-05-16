@@ -1,0 +1,10 @@
+export { band, linear, linearTicks } from './math/scale';
+export type { BandScale, BandScaleConfig, LinearScaleConfig } from './math/scale';
+export { arc, arcCentroid } from './shape/arc';
+export type { ArcConfig } from './shape/arc';
+export { path } from './shape/path';
+export type { PathBuilder } from './shape/path';
+export { line } from './shape/line';
+export type { CurveType, LineConfig } from './shape/line';
+export { pie } from './shape/pie';
+export type { PieArcDatum, PieConfig } from './shape/pie';

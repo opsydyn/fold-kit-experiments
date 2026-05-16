@@ -1,0 +1,97 @@
+{
+  "name": "@opsydyn/foldkit-viz",
+  "version": "0.1.0",
+  "description": "D3-quality visualisation primitives for FoldKit — no D3 dependency.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./math/scale": {
+      "types": "./dist/math/scale.d.mts",
+      "import": "./dist/math/scale.mjs"
+    },
+    "./shape/path": {
+      "types": "./dist/shape/path.d.mts",
+      "import": "./dist/shape/path.mjs"
+    },
+    "./shape/arc": {
+      "types": "./dist/shape/arc.d.mts",
+      "import": "./dist/shape/arc.mjs"
+    },
+    "./shape/line": {
+      "types": "./dist/shape/line.d.mts",
+      "import": "./dist/shape/line.mjs"
+    },
+    "./shape/pie": {
+      "types": "./dist/shape/pie.d.mts",
+      "import": "./dist/shape/pie.mjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "math/scale": ["./dist/math/scale.d.mts"],
+      "shape/path": ["./dist/shape/path.d.mts"],
+      "shape/arc": ["./dist/shape/arc.d.mts"],
+      "shape/line": ["./dist/shape/line.d.mts"],
+      "shape/pie": ["./dist/shape/pie.d.mts"]
+    }
+  },
+  "files": [
+    "CHANGELOG.md",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "check": "biome check .",
+    "check:fix": "biome check --write ."
+  },
+  "keywords": [
+    "foldkit",
+    "d3",
+    "visualisation",
+    "charts",
+    "svg",
+    "elm-architecture",
+    "effect"
+  ],
+  "author": "Alan P Currie",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opsydyn/astro-foldkit.git",
+    "directory": "packages/foldkit-viz"
+  },
+  "bugs": {
+    "url": "https://github.com/opsydyn/astro-foldkit/issues"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "peerDependencies": {
+    "effect": ">=4.0.0-beta.64",
+    "foldkit": ">=0.96.0"
+  },
+  "peerDependenciesOptional": {
+    "effect": true,
+    "foldkit": true
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.3.14",
+    "effect": "4.0.0-beta.64",
+    "foldkit": "^0.96.0",
+    "tsdown": "^0.21.8",
+    "typescript": "^6.0.3"
+  }
+}

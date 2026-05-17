@@ -37,6 +37,10 @@
     "./shape/pie": {
       "types": "./dist/shape/pie.d.mts",
       "import": "./dist/shape/pie.mjs"
+    },
+    "./simulation": {
+      "types": "./dist/simulation.d.mts",
+      "import": "./dist/simulation.mjs"
     }
   },
   "typesVersions": {
@@ -46,7 +50,8 @@
       "shape/arc": ["./dist/shape/arc.d.mts"],
       "shape/area": ["./dist/shape/area.d.mts"],
       "shape/line": ["./dist/shape/line.d.mts"],
-      "shape/pie": ["./dist/shape/pie.d.mts"]
+      "shape/pie": ["./dist/shape/pie.d.mts"],
+      "simulation": ["./dist/simulation.d.mts"]
     }
   },
   "files": [
@@ -95,6 +100,7 @@
     "@types/node": "^22.0.0",
     "bun-types": "^1.3.14",
     "effect": "4.0.0-beta.64",
+    "fast-check": "^4.8.0",
     "foldkit": "^0.96.0",
     "tsdown": "^0.21.8",
     "typescript": "^6.0.3"

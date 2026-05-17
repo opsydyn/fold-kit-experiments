@@ -3,6 +3,7 @@ import AreaApp from '../apps/area/app';
 import BarApp from '../apps/bar/app';
 import BubbleApp from '../apps/bubble/app';
 import DonutApp from '../apps/donut/app';
+import ForceGraphApp from '../apps/force-graph/app';
 import LineApp from '../apps/line/app';
 import ScatterApp from '../apps/scatter/app';
 import * as gridStyles from '../apps/charts/charts.css';
@@ -36,6 +37,10 @@ import * as layoutStyles from '../layouts/layout.css';
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Price vs rating by sales</p>
       <BubbleApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>JS ecosystem</p>
+      <ForceGraphApp client:load />
     </div>
   </div>
 </Layout>

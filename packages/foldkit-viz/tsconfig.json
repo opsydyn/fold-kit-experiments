@@ -11,7 +11,7 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "noUncheckedIndexedAccess": true,
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
     "types": ["node", "bun-types"]
   },

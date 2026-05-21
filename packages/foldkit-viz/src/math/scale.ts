@@ -29,13 +29,10 @@ function tickStep(start: number, stop: number, count: number): number {
   return stop < start ? -step1 : step1;
 }
 
-export function linearTicks(
-  domain: readonly [number, number],
-  count = 5,
-): ReadonlyArray<number> {
+export function linearTicks(domain: readonly [number, number], count = 5): ReadonlyArray<number> {
   const [start, stop] = domain;
   const step = tickStep(start, stop, count);
-  if (!isFinite(step) || step === 0) return [];
+  if (!Number.isFinite(step) || step === 0) return [];
   const t0 = Math.ceil(start / step) * step;
   const t1 = Math.floor(stop / step) * step;
   const n = Math.round((t1 - t0) / step) + 1;
@@ -87,7 +84,12 @@ export type BandScale = Readonly<{
 }>;
 
 export function band(config: BandScaleConfig): BandScale {
-  const { domain, range: [r0, r1], paddingInner = 0.1, paddingOuter = 0.1 } = config;
+  const {
+    domain,
+    range: [r0, r1],
+    paddingInner = 0.1,
+    paddingOuter = 0.1,
+  } = config;
   const n = domain.length;
   const step = (r1 - r0) / Math.max(1, n - paddingInner + paddingOuter * 2);
   const bandwidth = step * (1 - paddingInner);

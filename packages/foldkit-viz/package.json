@@ -38,6 +38,30 @@
       "types": "./dist/shape/pie.d.mts",
       "import": "./dist/shape/pie.mjs"
     },
+    "./shape/lineRadial": {
+      "types": "./dist/shape/lineRadial.d.mts",
+      "import": "./dist/shape/lineRadial.mjs"
+    },
+    "./shape/stack": {
+      "types": "./dist/shape/stack.d.mts",
+      "import": "./dist/shape/stack.mjs"
+    },
+    "./shape/chord": {
+      "types": "./dist/shape/chord.d.mts",
+      "import": "./dist/shape/chord.mjs"
+    },
+    "./shape/sankey": {
+      "types": "./dist/shape/sankey.d.mts",
+      "import": "./dist/shape/sankey.mjs"
+    },
+    "./math/color": {
+      "types": "./dist/math/color.d.mts",
+      "import": "./dist/math/color.mjs"
+    },
+    "./hierarchy": {
+      "types": "./dist/hierarchy.d.mts",
+      "import": "./dist/hierarchy.mjs"
+    },
     "./simulation": {
       "types": "./dist/simulation.d.mts",
       "import": "./dist/simulation.mjs"
@@ -45,13 +69,45 @@
   },
   "typesVersions": {
     "*": {
-      "math/scale": ["./dist/math/scale.d.mts"],
-      "shape/path": ["./dist/shape/path.d.mts"],
-      "shape/arc": ["./dist/shape/arc.d.mts"],
-      "shape/area": ["./dist/shape/area.d.mts"],
-      "shape/line": ["./dist/shape/line.d.mts"],
-      "shape/pie": ["./dist/shape/pie.d.mts"],
-      "simulation": ["./dist/simulation.d.mts"]
+      "math/scale": [
+        "./dist/math/scale.d.mts"
+      ],
+      "shape/path": [
+        "./dist/shape/path.d.mts"
+      ],
+      "shape/arc": [
+        "./dist/shape/arc.d.mts"
+      ],
+      "shape/area": [
+        "./dist/shape/area.d.mts"
+      ],
+      "shape/line": [
+        "./dist/shape/line.d.mts"
+      ],
+      "shape/pie": [
+        "./dist/shape/pie.d.mts"
+      ],
+      "shape/lineRadial": [
+        "./dist/shape/lineRadial.d.mts"
+      ],
+      "shape/stack": [
+        "./dist/shape/stack.d.mts"
+      ],
+      "shape/chord": [
+        "./dist/shape/chord.d.mts"
+      ],
+      "shape/sankey": [
+        "./dist/shape/sankey.d.mts"
+      ],
+      "math/color": [
+        "./dist/math/color.d.mts"
+      ],
+      "hierarchy": [
+        "./dist/hierarchy.d.mts"
+      ],
+      "simulation": [
+        "./dist/simulation.d.mts"
+      ]
     }
   },
   "files": [

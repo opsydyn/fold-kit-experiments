@@ -8,7 +8,7 @@ function asin(x: number): number {
   return x >= 1 ? halfPi : x <= -1 ? -halfPi : Math.asin(x);
 }
 
-function intersect(
+function _intersect(
   x0: number,
   y0: number,
   x1: number,
@@ -70,8 +70,7 @@ function cornerTangents(
   const dy0 = cy0 - y00;
   const dx1 = cx1 - x00;
   const dy1 = cy1 - y00;
-  const [cx, cy] =
-    dx0 * dx0 + dy0 * dy0 > dx1 * dx1 + dy1 * dy1 ? [cx1, cy1] : [cx0, cy0];
+  const [cx, cy] = dx0 * dx0 + dy0 * dy0 > dx1 * dx1 + dy1 * dy1 ? [cx1, cy1] : [cx0, cy0];
   return {
     cx,
     cy,
@@ -106,8 +105,8 @@ export function arc(config: ArcConfig): string {
   const p = path(3);
 
   // angular span
-  let a0 = sa - halfPi;
-  let a1 = ea - halfPi;
+  const a0 = sa - halfPi;
+  const a1 = ea - halfPi;
   const da = Math.abs(a1 - a0);
   const cw = a1 > a0;
 
@@ -127,13 +126,12 @@ export function arc(config: ArcConfig): string {
   if (halfPad > halfDa - epsilon) ap = halfDa;
 
   const sinAp = Math.sin(ap);
-  const cosAp = Math.cos(ap);
+  const _cosAp = Math.cos(ap);
 
   // outer pad delta
   const roPad = ap > epsilon ? asin((padRadius * sinAp) / rOuter) : ap;
   // inner pad delta
-  const riPad =
-    rInner > epsilon && ap > epsilon ? asin((padRadius * sinAp) / rInner) : ap;
+  const riPad = rInner > epsilon && ap > epsilon ? asin((padRadius * sinAp) / rInner) : ap;
 
   // outer arc angles (after padding)
   const outerA0 = cw ? a0 + roPad : a0 - roPad;
@@ -161,9 +159,25 @@ export function arc(config: ArcConfig): string {
 
     if (rc > epsilon) {
       // outer corner at start
-      const t0 = cornerTangents(x01, y01, rOuter * Math.cos(a0), rOuter * Math.sin(a0), rOuter, rc, cw);
+      const t0 = cornerTangents(
+        x01,
+        y01,
+        rOuter * Math.cos(a0),
+        rOuter * Math.sin(a0),
+        rOuter,
+        rc,
+        cw,
+      );
       // outer corner at end
-      const t1 = cornerTangents(x10, y10, rOuter * Math.cos(a1), rOuter * Math.sin(a1), rOuter, rc, !cw);
+      const t1 = cornerTangents(
+        x10,
+        y10,
+        rOuter * Math.cos(a1),
+        rOuter * Math.sin(a1),
+        rOuter,
+        rc,
+        !cw,
+      );
 
       p.moveTo(t0.cx + t0.x01, t0.cy + t0.y01);
 
@@ -171,13 +185,22 @@ export function arc(config: ArcConfig): string {
       if (outerDa > epsilon) {
         if (rc < Math.abs(rOuter) * halfDa - epsilon) {
           p.arc(t0.cx, t0.cy, rc, Math.atan2(t0.y01, t0.x01), Math.atan2(t1.y01, t1.x01), !cw);
-          p.arc(0, 0, rOuter, Math.atan2(t0.cy + t0.y11, t0.cx + t0.x11), Math.atan2(t1.cy + t1.y11, t1.cx + t1.x11), !cw);
+          p.arc(
+            0,
+            0,
+            rOuter,
+            Math.atan2(t0.cy + t0.y11, t0.cx + t0.x11),
+            Math.atan2(t1.cy + t1.y11, t1.cx + t1.x11),
+            !cw,
+          );
           p.arc(t1.cx, t1.cy, rc, Math.atan2(t1.y11, t1.x11), Math.atan2(t1.y01, t1.x01), !cw);
         } else {
           const cx = (x01 + x10) / 2;
           const cy = (y01 + y10) / 2;
           const a = Math.atan2(cy, cx);
-          const rc2 = Math.sqrt(rOuter * rOuter - (cx * cx + cy * cy)) / Math.cos(Math.atan2(Math.abs(y01 - cy), Math.abs(x01 - cx)));
+          const rc2 =
+            Math.sqrt(rOuter * rOuter - (cx * cx + cy * cy)) /
+            Math.cos(Math.atan2(Math.abs(y01 - cy), Math.abs(x01 - cx)));
           p.arc(cx, cy, rc2, a - Math.PI, a, !cw);
         }
       } else {
@@ -204,15 +227,38 @@ export function arc(config: ArcConfig): string {
       const y00 = rInner * Math.sin(innerA1);
 
       if (rc > epsilon) {
-        const t0 = cornerTangents(x11, y11, rInner * Math.cos(a1), rInner * Math.sin(a1), rInner, -rc, cw);
-        const t1 = cornerTangents(x00, y00, rInner * Math.cos(a0), rInner * Math.sin(a0), rInner, -rc, !cw);
+        const t0 = cornerTangents(
+          x11,
+          y11,
+          rInner * Math.cos(a1),
+          rInner * Math.sin(a1),
+          rInner,
+          -rc,
+          cw,
+        );
+        const t1 = cornerTangents(
+          x00,
+          y00,
+          rInner * Math.cos(a0),
+          rInner * Math.sin(a0),
+          rInner,
+          -rc,
+          !cw,
+        );
 
         p.lineTo(t0.cx + t0.x01, t0.cy + t0.y01);
 
         if (innerDa > epsilon) {
           if (rc < Math.abs(rInner) * halfDa - epsilon) {
             p.arc(t0.cx, t0.cy, rc, Math.atan2(t0.y01, t0.x01), Math.atan2(t1.y01, t1.x01), !cw);
-            p.arc(0, 0, rInner, Math.atan2(t0.cy + t0.y11, t0.cx + t0.x11), Math.atan2(t1.cy + t1.y11, t1.cx + t1.x11), cw);
+            p.arc(
+              0,
+              0,
+              rInner,
+              Math.atan2(t0.cy + t0.y11, t0.cx + t0.x11),
+              Math.atan2(t1.cy + t1.y11, t1.cx + t1.x11),
+              cw,
+            );
             p.arc(t1.cx, t1.cy, rc, Math.atan2(t1.y11, t1.x11), Math.atan2(t1.y01, t1.x01), !cw);
           } else {
             p.arc(t0.cx, t0.cy, rc, Math.atan2(t0.y01, t0.x01), Math.atan2(t0.y11, t0.x11), !cw);

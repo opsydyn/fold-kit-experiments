@@ -54,13 +54,7 @@ class CatmullRomCurve implements Curve {
   ) {}
 
   lineStart() {
-    this._x0 =
-      this._x1 =
-      this._x2 =
-      this._y0 =
-      this._y1 =
-      this._y2 =
-        NaN;
+    this._x0 = this._x1 = this._x2 = this._y0 = this._y1 = this._y2 = NaN;
     this._l01_a =
       this._l12_a =
       this._l23_a =
@@ -82,9 +76,8 @@ class CatmullRomCurve implements Curve {
     if (this._point) {
       const x23 = this._x2 - x;
       const y23 = this._y2 - y;
-      this._l23_a = Math.sqrt(
-        (this._l23_2a = Math.pow(x23 * x23 + y23 * y23, this._alpha)),
-      );
+      this._l23_2a = (x23 * x23 + y23 * y23) ** this._alpha;
+      this._l23_a = Math.sqrt(this._l23_2a);
     }
 
     if (this._point >= 2) {
@@ -94,26 +87,16 @@ class CatmullRomCurve implements Curve {
       let cx2 = this._x2;
       let cy2 = this._y2;
       if (this._l01_a > epsilon) {
-        const a =
-          2 * this._l01_2a +
-          3 * this._l01_a * this._l12_a +
-          this._l12_2a;
+        const a = 2 * this._l01_2a + 3 * this._l01_a * this._l12_a + this._l12_2a;
         const n = 3 * this._l01_a * (this._l01_a + this._l12_a);
-        cx1 =
-          (cx1 * a - this._x0 * this._l12_2a + this._x2 * this._l01_2a) / n;
-        cy1 =
-          (cy1 * a - this._y0 * this._l12_2a + this._y2 * this._l01_2a) / n;
+        cx1 = (cx1 * a - this._x0 * this._l12_2a + this._x2 * this._l01_2a) / n;
+        cy1 = (cy1 * a - this._y0 * this._l12_2a + this._y2 * this._l01_2a) / n;
       }
       if (this._l23_a > epsilon) {
-        const b =
-          2 * this._l23_2a +
-          3 * this._l23_a * this._l12_a +
-          this._l12_2a;
+        const b = 2 * this._l23_2a + 3 * this._l23_a * this._l12_a + this._l12_2a;
         const m = 3 * this._l23_a * (this._l23_a + this._l12_a);
-        cx2 =
-          (cx2 * b + this._x1 * this._l23_2a - x * this._l12_2a) / m;
-        cy2 =
-          (cy2 * b + this._y1 * this._l23_2a - y * this._l12_2a) / m;
+        cx2 = (cx2 * b + this._x1 * this._l23_2a - x * this._l12_2a) / m;
+        cy2 = (cy2 * b + this._y1 * this._l23_2a - y * this._l12_2a) / m;
       }
       this._ctx.bezierCurveTo(cx1, cy1, cx2, cy2, this._x2, this._y2);
     } else if (this._point === 0) {
@@ -143,14 +126,7 @@ function msign(x: number): -1 | 1 {
 }
 
 // Faithful port of D3's slope3: handles zero-width segments via signed zero
-function mslope3(
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-): number {
+function mslope3(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number): number {
   const h0 = x1 - x0;
   const h1 = x2 - x1;
   const d0 = h0 !== 0 ? h0 : h1 < 0 ? -0 : 0;
@@ -158,19 +134,10 @@ function mslope3(
   const s0 = (y1 - y0) / d0;
   const s1 = (y2 - y1) / d1;
   const p = (s0 * h1 + s1 * h0) / (h0 + h1);
-  return (
-    (msign(s0) + msign(s1)) *
-      Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(p)) || 0
-  );
+  return (msign(s0) + msign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(p)) || 0;
 }
 
-function mslope2(
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  t: number,
-): number {
+function mslope2(x0: number, y0: number, x1: number, y1: number, t: number): number {
   const h = x1 - x0;
   return h ? (3 * (y1 - y0)) / h / 2 - t / 2 : t;
 }
@@ -291,8 +258,7 @@ export function line(
 
   for (let i = 0; i <= n; i++) {
     const point = points[i];
-    const isDefined =
-      point !== undefined && (defined ? defined(point, i) : true);
+    const isDefined = point !== undefined && (defined ? defined(point, i) : true);
 
     if (isDefined !== inSegment) {
       inSegment = isDefined;

@@ -333,17 +333,6 @@ const dragActivityFromModel = (model: Model): 'Idle' | 'Active' | 'Settling' => 
 const trackById = (id: string): HTMLElement | null =>
   document.querySelector<HTMLElement>(`[data-carousel-track-id="${id}"]`);
 
-export const SubscriptionDependencies = Schema.Struct({
-  dragPointer: Schema.Struct({
-    dragActivity: DragActivity,
-    id: Schema.String,
-    startX: Schema.Number,
-  }),
-  dragEscape: Schema.Struct({
-    dragActivity: DragActivity,
-  }),
-  settle: Schema.Boolean,
-});
 
 const documentDragStyles: Stream.Stream<never> = Stream.callback(() =>
   Effect.acquireRelease(
@@ -364,78 +353,81 @@ const documentDragStyles: Stream.Stream<never> = Stream.callback(() =>
   ).pipe(Effect.flatMap(() => Effect.never)),
 );
 
-export const subscriptions = Subscription.makeSubscriptions(SubscriptionDependencies)<
-  Model,
-  Message
->({
-  dragPointer: {
-    modelToDependencies: (model) => ({
-      dragActivity: dragActivityFromModel(model),
-      id: model.id,
-      startX: model.dragState._tag === 'Dragging' ? model.dragState.startX : 0,
-    }),
-    dependenciesToStream: ({ dragActivity, id, startX }) => {
-      let lastVelocityX = 0;
-      let lastClientX = startX;
-      let lastTime = performance.now();
+export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+  dragPointer: entry(
+    { dragActivity: DragActivity, id: Schema.String, startX: Schema.Number },
+    {
+      modelToDependencies: (model) => ({
+        dragActivity: dragActivityFromModel(model),
+        id: model.id,
+        startX: model.dragState._tag === 'Dragging' ? model.dragState.startX : 0,
+      }),
+      dependenciesToStream: ({ dragActivity, id, startX }) => {
+        let lastVelocityX = 0;
+        let lastClientX = startX;
+        let lastTime = performance.now();
 
-      const pointerEvents = Stream.merge(
-        Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
-          Stream.map((event) => {
-            const now = performance.now();
-            const dt = Math.max(now - lastTime, 1);
-            lastVelocityX = (event.clientX - lastClientX) / dt;
-            lastClientX = event.clientX;
-            lastTime = now;
-            return MovedDragPointer({
-              deltaX: event.clientX - startX,
-              velocityX: lastVelocityX,
-            });
-          }),
-        ),
-        Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
-          Stream.mapEffect((event) =>
-            Effect.sync(() => {
-              const el = trackById(id);
-              const trackWidth = el ? el.getBoundingClientRect().width : 300;
-              return Option.some(
-                ReleasedDragPointer({
-                  deltaX: event.clientX - startX,
-                  velocityX: lastVelocityX,
-                  trackWidth,
-                }),
-              );
+        const pointerEvents = Stream.merge(
+          Stream.fromEventListener<PointerEvent>(document, 'pointermove').pipe(
+            Stream.map((event) => {
+              const now = performance.now();
+              const dt = Math.max(now - lastTime, 1);
+              lastVelocityX = (event.clientX - lastClientX) / dt;
+              lastClientX = event.clientX;
+              lastTime = now;
+              return MovedDragPointer({
+                deltaX: event.clientX - startX,
+                velocityX: lastVelocityX,
+              });
             }),
           ),
-          Stream.filter(Option.isSome),
-          Stream.map((o) => o.value),
-        ),
-      );
+          Stream.fromEventListener<PointerEvent>(document, 'pointerup').pipe(
+            Stream.mapEffect((event) =>
+              Effect.sync(() => {
+                const el = trackById(id);
+                const trackWidth = el ? el.getBoundingClientRect().width : 300;
+                return Option.some(
+                  ReleasedDragPointer({
+                    deltaX: event.clientX - startX,
+                    velocityX: lastVelocityX,
+                    trackWidth,
+                  }),
+                );
+              }),
+            ),
+            Stream.filter(Option.isSome),
+            Stream.map((o) => o.value),
+          ),
+        );
 
-      return Stream.when(
-        Stream.merge(pointerEvents, documentDragStyles),
-        Effect.sync(() => dragActivity === 'Active'),
-      );
+        return Stream.when(
+          Stream.merge(pointerEvents, documentDragStyles),
+          Effect.sync(() => dragActivity === 'Active'),
+        );
+      },
     },
-  },
+  ),
 
-  dragEscape: {
-    modelToDependencies: (model) => ({ dragActivity: dragActivityFromModel(model) }),
-    dependenciesToStream: ({ dragActivity }) =>
-      Stream.when(
-        Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
-          Stream.filter(({ key }) => key === 'Escape'),
-          Stream.map(() => CancelledDrag({})),
+  dragEscape: entry(
+    { dragActivity: DragActivity },
+    {
+      modelToDependencies: (model) => ({ dragActivity: dragActivityFromModel(model) }),
+      dependenciesToStream: ({ dragActivity }) =>
+        Stream.when(
+          Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
+            Stream.filter(({ key }) => key === 'Escape'),
+            Stream.map(() => CancelledDrag({})),
+          ),
+          Effect.sync(() => dragActivity === 'Active'),
         ),
-        Effect.sync(() => dragActivity === 'Active'),
-      ),
-  },
+    },
+  ),
 
   settle: Subscription.animationFrame({
     isActive: (model) => model.dragState._tag === 'Settling',
     toMessage: (deltaTimeMs) => TickedSettle({ deltaTimeMs }),
   }),
-});
+}));
 
 // VIEW
 

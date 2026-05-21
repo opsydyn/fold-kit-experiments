@@ -1,4 +1,4 @@
-import { Effect, Queue, Schema, Stream } from 'effect';
+import { Effect, Queue, Stream } from 'effect';
 import { Subscription } from 'foldkit';
 
 import { usernameAtom } from '../../stores/username';
@@ -17,11 +17,6 @@ const usernameStream: Stream.Stream<Message> = Stream.callback((queue) =>
   ).pipe(Effect.flatMap(() => Effect.never)),
 );
 
-export const subscriptions = Subscription.makeSubscriptions(
-  Schema.Struct({ active: Schema.Boolean }),
-)<Model, Message>({
-  active: {
-    modelToDependencies: (_model) => true,
-    dependenciesToStream: (_active) => usernameStream,
-  },
-});
+export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
+  username: Subscription.persistent(usernameStream),
+}));

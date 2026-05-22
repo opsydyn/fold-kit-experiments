@@ -5,6 +5,7 @@ export default defineConfig({
     index: 'src/index.ts',
     'math/scale': 'src/math/scale.ts',
     'math/color': 'src/math/color.ts',
+    'math/stats': 'src/math/stats.ts',
     simulation: 'src/simulation/index.ts',
     'shape/path': 'src/shape/path.ts',
     'shape/arc': 'src/shape/arc.ts',

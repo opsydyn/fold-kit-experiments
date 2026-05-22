@@ -1,11 +1,18 @@
 ---
 import AreaApp from '../apps/area/app';
+import BoxPlotApp from '../apps/box-plot/app';
+import CandlestickApp from '../apps/candlestick/app';
+import GaugeApp from '../apps/gauge/app';
+import ParallelCoordsApp from '../apps/parallel-coords/app';
+import CalendarHeatmapApp from '../apps/calendar-heatmap/app';
+import WaterfallApp from '../apps/waterfall/app';
 import BarApp from '../apps/bar/app';
 import BubbleApp from '../apps/bubble/app';
 import DonutApp from '../apps/donut/app';
 import ForceGraphApp from '../apps/force-graph/app';
 import ChordApp from '../apps/chord/app';
 import SankeyApp from '../apps/sankey/app';
+import PackedCirclesApp from '../apps/packed-circles/app';
 import HeatmapApp from '../apps/heatmap/app';
 import RadarApp from '../apps/radar/app';
 import StreamgraphApp from '../apps/streamgraph/app';
@@ -76,6 +83,34 @@ import * as layoutStyles from '../layouts/layout.css';
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>UK energy flow</p>
       <SankeyApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Language families</p>
+      <PackedCirclesApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Salary by level</p>
+      <BoxPlotApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>NVDA Apr – May</p>
+      <CandlestickApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Annual P&amp;L</p>
+      <WaterfallApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>System metrics</p>
+      <GaugeApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Car comparison</p>
+      <ParallelCoordsApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>2025 commit activity</p>
+      <CalendarHeatmapApp client:load />
     </div>
   </div>
 </Layout>

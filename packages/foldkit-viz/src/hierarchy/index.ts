@@ -400,3 +400,361 @@ export function treemap<Datum>(
 
   return root;
 }
+
+// ── Pack layout ───────────────────────────────────────────────────────────────
+
+// D3 parity: d3-hierarchy/src/pack/index.js + enclose.js + siblings.js
+
+export interface PackConfig {
+  readonly width: number;
+  readonly height: number;
+  readonly padding?: number;
+}
+
+export interface PackNode<Datum> {
+  data: Datum;
+  depth: number;
+  height: number;
+  parent: PackNode<Datum> | null;
+  children?: Array<PackNode<Datum>>;
+  value: number;
+  x: number;
+  y: number;
+  r: number;
+}
+
+interface MCircle {
+  x: number;
+  y: number;
+  r: number;
+}
+
+interface PackChainNode {
+  c: MCircle;
+  next: PackChainNode;
+  prev: PackChainNode;
+}
+
+function enclosesWeak(a: MCircle, b: MCircle): boolean {
+  const dr = a.r - b.r + Math.max(a.r, b.r, 1) * 1e-9;
+  if (dr <= 0) return false;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return dr * dr > dx * dx + dy * dy;
+}
+
+function enclosesNot(a: MCircle, b: MCircle): boolean {
+  const dr = a.r - b.r;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return dr < 0 || dr * dr < dx * dx + dy * dy;
+}
+
+// Fixed-size Welzl basis (at most 3 support circles) — avoids array allocation per step
+interface Basis {
+  b0: MCircle;
+  b1: MCircle;
+  b2: MCircle;
+  n: number;
+}
+
+function makeBasis(): Basis {
+  const z: MCircle = { x: 0, y: 0, r: 0 };
+  return { b0: z, b1: z, b2: z, n: 0 };
+}
+
+function basisGet(b: Basis, i: number): MCircle {
+  return i === 0 ? b.b0 : i === 1 ? b.b1 : b.b2;
+}
+
+function basisContainsAll(enc: MCircle, b: Basis): boolean {
+  if (b.n >= 1 && !enclosesWeak(enc, b.b0)) return false;
+  if (b.n >= 2 && !enclosesWeak(enc, b.b1)) return false;
+  if (b.n >= 3 && !enclosesWeak(enc, b.b2)) return false;
+  return true;
+}
+
+function basisEnclose(b: Basis): MCircle {
+  if (b.n === 0) return { x: 0, y: 0, r: 0 };
+  if (b.n === 1) return { x: b.b0.x, y: b.b0.y, r: b.b0.r };
+  if (b.n === 2) return eb2(b.b0, b.b1);
+  return eb3(b.b0, b.b1, b.b2);
+}
+
+function eb2(a: MCircle, b: MCircle): MCircle {
+  const x21 = b.x - a.x;
+  const y21 = b.y - a.y;
+  const r21 = b.r - a.r;
+  const l = Math.sqrt(x21 * x21 + y21 * y21);
+  return {
+    x: (a.x + b.x + (x21 / l) * r21) / 2,
+    y: (a.y + b.y + (y21 / l) * r21) / 2,
+    r: (l + a.r + b.r) / 2,
+  };
+}
+
+function eb3(a: MCircle, b: MCircle, c: MCircle): MCircle {
+  const x1 = a.x,
+    y1 = a.y,
+    r1 = a.r;
+  const x2 = b.x,
+    y2 = b.y,
+    r2 = b.r;
+  const x3 = c.x,
+    y3 = c.y,
+    r3 = c.r;
+  const a2 = x1 - x2,
+    a3 = x1 - x3;
+  const b2 = y1 - y2,
+    b3 = y1 - y3;
+  const c2 = r2 - r1,
+    c3 = r3 - r1;
+  const d1 = x1 * x1 + y1 * y1 - r1 * r1;
+  const d2 = d1 - x2 * x2 - y2 * y2 + r2 * r2;
+  const d3 = d1 - x3 * x3 - y3 * y3 + r3 * r3;
+  const ab = a3 * b2 - a2 * b3;
+  const xa = (b2 * d3 - b3 * d2) / (ab * 2) - x1;
+  const xb = (b3 * c2 - b2 * c3) / ab;
+  const ya = (a3 * d2 - a2 * d3) / (ab * 2) - y1;
+  const yb = (a2 * c3 - a3 * c2) / ab;
+  const A = xb * xb + yb * yb - 1;
+  const B2 = 2 * (r1 + xa * xb + ya * yb);
+  const C = xa * xa + ya * ya - r1 * r1;
+  const rr = -(Math.abs(A) > 1e-6 ? (B2 + Math.sqrt(B2 * B2 - 4 * A * C)) / (2 * A) : C / B2);
+  return { x: x1 + xa + xb * rr, y: y1 + ya + yb * rr, r: rr };
+}
+
+// D3 parity: d3-hierarchy/src/pack/enclose.js extendBasis
+// Mutates b so p lies on the boundary of the new MEC.
+// Basis has ≤3 slots → all loops are O(1), no heap allocation.
+// Bug fix vs prior implementation: checks full basis b (not a slice) in enclosesWeakAll.
+function extendBasis(b: Basis, p: MCircle): void {
+  const n = b.n;
+
+  if (basisContainsAll(p, b)) {
+    b.b0 = p;
+    b.n = 1;
+    return;
+  }
+
+  for (let i = 0; i < n; i++) {
+    const bi = basisGet(b, i);
+    if (enclosesNot(p, bi) && basisContainsAll(eb2(bi, p), b)) {
+      b.b0 = bi;
+      b.b1 = p;
+      b.n = 2;
+      return;
+    }
+  }
+
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const bi = basisGet(b, i);
+      const bj = basisGet(b, j);
+      if (
+        enclosesNot(eb2(bi, bj), p) &&
+        enclosesNot(eb2(bi, p), bj) &&
+        enclosesNot(eb2(bj, p), bi) &&
+        basisContainsAll(eb3(bi, bj, p), b)
+      ) {
+        b.b0 = bi;
+        b.b1 = bj;
+        b.b2 = p;
+        b.n = 3;
+        return;
+      }
+    }
+  }
+}
+
+function packEnclose(circles: MCircle[]): MCircle {
+  const n = circles.length;
+  if (n === 0) return { x: 0, y: 0, r: 0 };
+
+  // Fisher-Yates shuffle for expected O(n) Welzl termination (D3 parity)
+  const cs = circles.slice();
+  for (let s = n - 1; s > 0; s--) {
+    const t = (Math.random() * (s + 1)) | 0;
+    const a = cs[s] as MCircle;
+    cs[s] = cs[t] as MCircle;
+    cs[t] = a;
+  }
+
+  const b = makeBasis();
+  let e: MCircle = { x: 0, y: 0, r: 0 };
+  let i = 0;
+
+  while (i < n) {
+    const p = cs[i] as MCircle;
+    if (b.n > 0 && enclosesWeak(e, p)) {
+      i++;
+    } else {
+      extendBasis(b, p);
+      e = basisEnclose(b);
+      i = 0;
+    }
+  }
+
+  return e;
+}
+
+function packPlace(a: MCircle, b: MCircle, c: MCircle): void {
+  const dx = b.x - a.x,
+    dy = b.y - a.y;
+  const d2 = dx * dx + dy * dy;
+  if (d2 === 0) {
+    c.x = a.x + a.r + c.r;
+    c.y = a.y;
+    return;
+  }
+  const dac = a.r + c.r,
+    dbc = b.r + c.r;
+  const cos = Math.max(-1, Math.min(1, (d2 + dac * dac - dbc * dbc) / (2 * dac * Math.sqrt(d2))));
+  const sin = Math.sqrt(Math.max(0, 1 - cos * cos));
+  const d = Math.sqrt(d2);
+  c.x = a.x + dac * (cos * (dx / d) - sin * (dy / d));
+  c.y = a.y + dac * (cos * (dy / d) + sin * (dx / d));
+}
+
+function chainIntersects(a: MCircle, b: MCircle): boolean {
+  const dx = a.x - b.x,
+    dy = a.y - b.y;
+  const dr = a.r + b.r - 1e-6;
+  return dr > 0 && dr * dr > dx * dx + dy * dy;
+}
+
+function chainScore(node: PackChainNode): number {
+  const a = node.c,
+    b = node.next.c;
+  const ab = a.r + b.r;
+  const dx = (a.x * b.r + b.x * a.r) / ab;
+  const dy = (a.y * b.r + b.y * a.r) / ab;
+  return dx * dx + dy * dy;
+}
+
+function makeChainNode(c: MCircle): PackChainNode {
+  const node = { c } as PackChainNode;
+  node.next = node;
+  node.prev = node;
+  return node;
+}
+
+function packSiblings(circles: MCircle[]): void {
+  const n = circles.length;
+  if (n === 0) return;
+  const c0 = circles[0];
+  if (!c0) return;
+  c0.x = 0;
+  c0.y = 0;
+  if (n === 1) return;
+  const c1 = circles[1];
+  if (!c1) return;
+  c0.x = -c1.r;
+  c1.x = c0.r;
+  c1.y = 0;
+  if (n === 2) return;
+  const c2 = circles[2];
+  if (!c2) return;
+  packPlace(c0, c1, c2);
+
+  let aa = makeChainNode(c0);
+  let bb = makeChainNode(c1);
+  const cc = makeChainNode(c2);
+  aa.next = cc.prev = bb;
+  bb.next = aa.prev = cc;
+  cc.next = bb.prev = aa;
+
+  outer: for (let i = 3; i < n; i++) {
+    const ci = circles[i];
+    if (!ci) continue;
+    packPlace(aa.c, bb.c, ci);
+
+    let j = bb.next;
+    let k = aa.prev;
+    let sj = bb.c.r;
+    let sk = aa.c.r;
+
+    do {
+      if (sj <= sk) {
+        if (chainIntersects(j.c, ci)) {
+          bb = j;
+          aa.next = bb;
+          bb.prev = aa;
+          i--;
+          continue outer;
+        }
+        sj += j.next.c.r;
+        j = j.next;
+      } else {
+        if (chainIntersects(k.c, ci)) {
+          aa = k;
+          aa.next = bb;
+          bb.prev = aa;
+          i--;
+          continue outer;
+        }
+        sk += k.prev.c.r;
+        k = k.prev;
+      }
+    } while (j !== k.next);
+
+    const newNode = makeChainNode(ci);
+    newNode.prev = aa;
+    newNode.next = bb;
+    aa.next = bb.prev = bb = newNode;
+
+    let minScore = chainScore(aa);
+    let cur = aa.next;
+    while (cur !== bb) {
+      const s = chainScore(cur);
+      if (s < minScore) {
+        aa = cur;
+        minScore = s;
+      }
+      cur = cur.next;
+    }
+    bb = aa.next;
+  }
+}
+
+// D3 parity: d3-hierarchy/src/pack/index.js
+export function pack<Datum>(root: HierarchyNode<Datum>, config: PackConfig): PackNode<Datum> {
+  const { width, height, padding = 0 } = config;
+  type N = HierarchyNode<Datum> & MCircle;
+
+  eachAfter(root, (node) => {
+    const n = node as N;
+    if (!node.children || node.children.length === 0) {
+      n.x = 0;
+      n.y = 0;
+      n.r = Math.sqrt(node.value);
+    } else {
+      const children = node.children.map((c) => c as N);
+      packSiblings(children);
+      const enc = packEnclose(children);
+      n.r = enc.r + padding;
+      for (const c of children) {
+        c.x -= enc.x;
+        c.y -= enc.y;
+      }
+    }
+  });
+
+  const rootN = root as N;
+  const k = Math.min(width, height) / 2 / rootN.r;
+  rootN.x = width / 2;
+  rootN.y = height / 2;
+  rootN.r *= k;
+
+  eachBefore(root, (node) => {
+    if (node.parent) {
+      const n = node as N;
+      const p = node.parent as N;
+      n.x = p.x + n.x * k;
+      n.y = p.y + n.y * k;
+      n.r *= k;
+    }
+  });
+
+  return root as unknown as PackNode<Datum>;
+}

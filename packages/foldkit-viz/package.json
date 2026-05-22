@@ -58,6 +58,10 @@
       "types": "./dist/math/color.d.mts",
       "import": "./dist/math/color.mjs"
     },
+    "./math/stats": {
+      "types": "./dist/math/stats.d.mts",
+      "import": "./dist/math/stats.mjs"
+    },
     "./hierarchy": {
       "types": "./dist/hierarchy.d.mts",
       "import": "./dist/hierarchy.mjs"
@@ -101,6 +105,9 @@
       ],
       "math/color": [
         "./dist/math/color.d.mts"
+      ],
+      "math/stats": [
+        "./dist/math/stats.d.mts"
       ],
       "hierarchy": [
         "./dist/hierarchy.d.mts"

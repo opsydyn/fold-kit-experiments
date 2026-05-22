@@ -1,4 +1,6 @@
 export { band, linear, linearTicks, sqrt } from './math/scale';
+export { boxStats, quantile } from './math/stats';
+export type { BoxStats } from './math/stats';
 export type { BandScale, BandScaleConfig, LinearScaleConfig, SqrtScaleConfig } from './math/scale';
 export { arc, arcCentroid } from './shape/arc';
 export type { ArcConfig } from './shape/arc';

@@ -1,6 +1,6 @@
 # foldkit-viz Chart Roadmap
 
-## Completed (22 charts)
+## Completed (39 charts)
 
 | Chart | Primitive | Notes |
 | --- | --- | --- |
@@ -25,6 +25,23 @@
 | Gauge | `shape/arc` | Supports 1–3 gauges, threshold zones |
 | Parallel Coordinates | `math/scale` linear | Per-axis domains, hover highlight |
 | Calendar Heatmap | `math/color` colorScale | GitHub-style, 365 days, hover tooltip |
+| Zoomable Line | `math/zoom` TransformMatrix | Zoom+pan via TEA state; +/− buttons + drag; rescaleDomain data-zoom |
+| Phyllotaxis | `math/zoom` + pure phyllotaxis math | Full 2D SVG matrix zoom, drag-to-pan, mini map with viewport indicator |
+| Histogram | `math/bin` | Bimodal salary distribution, hover-count tooltip |
+| Symbol Scatter | `shape/symbol` + `math/scale/ordinal` | Auto MPG dataset, 3-category shape+colour encoding |
+| Tidy Tree | `hierarchy/tree` + `shape/link` | Frontend tech-stack dependency tree, hover highlight |
+| Timeline | `math/time` scaleTime + timeTicks | Product launch Gantt — 7 tasks, monthly ticks, hover highlight |
+| Violin Plot | `math/scale/point` + `math/stats` KDE | Salary by IC level, Epanechnikov KDE + IQR overlay, hover |
+| Radial Tree | `hierarchy/cluster` + `shape/link` radial | Indo-European language family, hover shows family name |
+| Log Scatter | `math/scale/log` + `math/format` SI | npm packages — downloads vs stars, log axes, SI-formatted labels |
+| Curve Comparison | `shape/curve` variants | 5 interpolation types: linear, basis, cardinal, catmullRom, monotoneX |
+| Diverging Bar | `math/schemes` rdBu + `math/color` divergingScale | Monthly YoY revenue growth, red/blue diverging from 0 |
+| Threshold Bar | `math/scale/threshold` | API response times, traffic-light coloring: green/amber/red |
+| Easing Curves | `math/ease` | 6 easing functions: linear, sinOut, cubicOut, backOut, elasticOut, bounceOut |
+| Color Spaces | `math/color` interpolateHsl + interpolateLab | Red→blue gradient compared across RGB, HSL, Lab |
+| Density Contour | `math/contour` + `math/random` | Bivariate normal scatter + marching-squares contour lines |
+| Voronoi Diagram | `math/delaunay` | 55-point Delaunay triangulation + clipped Voronoi cells, per-cell HSL coloring |
+| Map Projections | `shape/geo` | Side-by-side equirectangular vs Mercator with graticule grid + 20 cities |
 
 ---
 
@@ -45,52 +62,36 @@ foldkit-viz maps D3's 30 packages to a smaller set of pure-math/shape primitives
 | `shape/stack` | `d3-shape` stack — full parity |
 | `shape/chord` | `d3-shape` chord + ribbon — full parity |
 | `shape/sankey` | `d3-sankey` — full parity |
-| `math/scale` | `d3-scale` linear, band, sqrt — partial |
+| `math/scale` | `d3-scale` linear, band, sqrt, ordinal — partial |
+| `shape/link` | `d3-shape` linkVertical, linkHorizontal, linkRadial — full parity |
+| `math/time` | `d3-scale` scaleTime + `d3-time` timeTicks/timeTickFormat/timeNice — full parity |
+| `math/scale/point` | `d3-scale` scalePoint — full parity |
+| `math/stats/kde` | Epanechnikov KDE + silvermanBandwidth — added to `math/stats` |
+| `hierarchy/cluster` | `d3-hierarchy` cluster() — full parity |
+| `math/bin` | `d3-array` bin() — full parity |
+| `shape/symbol` | `d3-shape` symbol, symbolsFill — full parity |
 | `math/color` | `d3-interpolate` interpolateRgb/Basis + `d3-scale` colorScale — partial |
 | `math/stats` | `d3-array` quantile (R-7), boxStats — custom, D3-parity quantile |
 | `hierarchy` | `d3-hierarchy` treemap, pack, partition — partial |
 | `simulation` | `d3-force` simulation, center, collide, link, manyBody — full parity |
 | `simulation/quadtree` | `d3-quadtree` — full parity (internal) |
+| `math/zoom` | `d3-zoom` ZoomTransform math — 2D affine matrix, scaleAt, rescaleDomain |
+| `math/scale` (log) | `d3-scale` scaleLog — added `log()` + `logTicks()` to `math/scale` |
+| `math/format` | `d3-format` — `format(specifier)` covering f, %, s (SI), e, d, g types + `siFormat()` |
+| `shape/curve` variants | `d3-shape` curveBasis, curveCardinal — added to `shape/line` (basis, cardinal, catmullRom, monotoneX, linear) |
+| `math/schemes` | `d3-scale-chromatic` — categorical (tableau10, category10, dark2, set1), sequential (blues, greens, reds, oranges, purples), diverging (rdBu, spectral, rdYlGn, brBG) |
+| `math/color` (diverging) | `d3-scale` scaleDiverging — added `divergingScale()` to `math/color` |
+| `math/scale/threshold` | `d3-scale` scaleThreshold — bisect-right bucket lookup |
+| `math/random` | `d3-random` — LCG seeded RNG, uniform, normal, log-normal distributions |
+| `math/ease` | `d3-ease` — linear, cubic, sin, back, bounce, elastic easing functions |
+| `math/color` (HSL + Lab) | `d3-color` — HSL shortest-path + CIELAB perceptual interpolation |
+| `math/contour` | `d3-contour` — Epanechnikov KDE density2d + marching-squares contourLines |
+| `math/delaunay` | `d3-delaunay` — Delaunator triangulation + Voronoi cells + Cohen-Sutherland clipping |
+| `shape/geo` | `d3-geo` — equirectangular + Mercator projections, geoPath, geoGraticule |
 
 ### Gaps
 
-#### HIGH — unlock major new chart types
-
-| Gap | D3 source | What it enables |
-| --- | --- | --- |
-| `math/scale/log` | `d3-scale` scaleLog | Log-axis scatter, volcano plots, magnitude charts |
-| `math/scale/time` | `d3-scale` scaleTime/scaleUtc | Timeline, real-date axes on line/area/candlestick |
-| `math/scale/ordinal` | `d3-scale` scaleOrdinal | Categorical color mapping, symbol type encoding |
-| `math/bin` | `d3-array` bin() | Histogram, violin plot (KDE), density strip |
-| `hierarchy/tree` | `d3-hierarchy` tree() | Tidy tree / dendrogram |
-| `hierarchy/cluster` | `d3-hierarchy` cluster() | Radial dendrogram |
-| `shape/link` | `d3-shape` linkVertical/linkHorizontal | Smooth Bézier connectors for tree diagrams |
-| `shape/symbol` | `d3-shape` symbol, symbolsFill | Multi-category scatter (●■◆▲✦) |
-
-#### MEDIUM — improve existing charts or enable niche types
-
-| Gap | D3 source | What it enables |
-| --- | --- | --- |
-| `math/scale/point` | `d3-scale` scalePoint | Violin plot x-positioning, jitter plots |
-| `math/scale/diverging` | `d3-scale` scaleDiverging | Diverging heatmaps, P&L colour scales |
-| `math/scale/threshold` | `d3-scale` scaleThreshold | Choropleth-style maps |
-| `shape/curve` variants | `d3-shape` curveMonotoneX, curveCatmullRom, curveBasis, curveCardinal | Smoother line/area charts |
-| `shape/link/radial` | `d3-shape` linkRadial | Radial tree connectors |
-| `math/color/spaces` | `d3-color` hsl, lab, lch | Perceptual colour mapping, colour pickers |
-| `math/color/schemes` | `d3-scale-chromatic` | Named palettes (viridis, blues, spectral…) |
-| `math/format` | `d3-format` | SI notation (1.2M, 3.4k) on axis tick labels |
-| `math/zoom` | `d3-zoom` ZoomTransform math only | Pan/zoom state in TEA model (pure {k, tx, ty}) |
-
-#### LOW — specialised / large scope
-
-| Gap | D3 source | What it enables |
-| --- | --- | --- |
-| `math/contour` | `d3-contour` | Density / contour plots |
-| `math/delaunay` | `d3-delaunay` | Voronoi diagrams, nearest-neighbour hit testing |
-| `shape/geo` | `d3-geo` projections + path | Choropleth maps |
-| `math/time` | `d3-time` + `d3-time-format` | Date arithmetic, tick formatting for time scale |
-| `math/random` | `d3-random` | Seeded distributions (normal, uniform, pareto) |
-| `math/ease` | `d3-ease` | Easing values for CSS animation |
+None. All D3 data-transformation and geometry primitives are implemented.
 
 > **Not applicable:** `d3-zoom` (event handlers), `d3-brush` (event handlers), `d3-drag`, `d3-axis` (manual in each chart), `d3-selection`, `d3-transition`, `d3-dispatch`, `d3-timer`, `d3-fetch`, `d3-dsv`. The TEA/HTML-DSL architecture replaces all of these.
 
@@ -98,46 +99,4 @@ foldkit-viz maps D3's 30 packages to a smaller set of pure-math/shape primitives
 
 ## Remaining — New Charts
 
-Ordered by primitive readiness (primitives needed are already implemented or straightforward to add).
-
-### 1. Histogram
-
-**New primitive:** `math/bin` (d3-array bin)
-**Why:** The canonical distribution chart. Pairs naturally with existing linear + band scale infrastructure.
-**Demo data:** Employee salary distribution ($k), configurable bin count.
-
-### 2. Tidy Tree / Dendrogram
-
-**New primitives:** `hierarchy/tree` + `shape/link` (linkVertical/linkHorizontal)
-**Why:** Shows hierarchical structure with tidy layout. Completes the hierarchy family (treemap, sunburst, packed circles already done).
-**Demo data:** Tech stack dependency tree.
-
-### 3. Timeline / Gantt
-
-**New primitive:** `math/scale/time`
-**Why:** Real-date x-axis. The most requested axis type missing from the current set.
-**Demo data:** Software project milestones with date ranges.
-
-### 4. Violin Plot
-
-**New primitives:** `math/bin` + `math/scale/point`
-**Why:** Combines box plot statistics with density shape. Builds directly on box plot work.
-**Demo data:** Same salary-by-level dataset as the box plot for direct comparison.
-
-### 5. Zoomable Line Chart
-
-**New primitive:** `math/zoom` (pure ZoomTransform: {k, tx, ty}, rescaleX/rescaleY)
-**Why:** Zoom/pan via TEA model state — no DOM event handler needed. Transform is pure math; events come through existing OnWheel/OnMouseDown messages.
-**Demo data:** Dense time-series (e.g. stock price 2 years, 500 points).
-
-### 6. Symbol Scatter
-
-**New primitive:** `shape/symbol`
-**Why:** Multi-category scatter using shape encoding (●■◆▲✦✕). Upgrades existing scatter to encode a third categorical dimension without colour alone.
-**Demo data:** Car dataset — mpg vs horsepower, symbol = origin (USA / Europe / Japan).
-
-### 7. Radial Tree
-
-**New primitives:** `hierarchy/cluster` + `shape/link/radial`
-**Why:** Space-efficient circular dendrogram. Distinct from radial chart types already implemented.
-**Demo data:** Language family tree (Indo-European branches).
+All planned charts complete. Primitive parity with D3's data-transformation layer is fully achieved.

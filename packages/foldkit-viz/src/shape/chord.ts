@@ -49,9 +49,9 @@ export function chord(
   // Compute group sums
   const groupSums = new Float64Array(n);
   for (let i = 0; i < n; ++i) {
-    for (let j = 0; j < n; ++j) {
-      groupSums[i] += matrix[i]?.[j] ?? 0;
-    }
+    let sum = 0;
+    for (let j = 0; j < n; ++j) sum += matrix[i]?.[j] ?? 0;
+    groupSums[i] = sum;
   }
 
   const totalSum = groupSums.reduce((s, v) => s + v, 0);

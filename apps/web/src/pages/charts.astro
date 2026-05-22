@@ -5,7 +5,24 @@ import CandlestickApp from '../apps/candlestick/app';
 import GaugeApp from '../apps/gauge/app';
 import ParallelCoordsApp from '../apps/parallel-coords/app';
 import CalendarHeatmapApp from '../apps/calendar-heatmap/app';
+import ZoomableLineApp from '../apps/zoomable-line/app';
+import PhyllotaxisApp from '../apps/phyllotaxis/app';
+import HistogramApp from '../apps/histogram/app';
+import SymbolScatterApp from '../apps/symbol-scatter/app';
+import TidyTreeApp from '../apps/tidy-tree/app';
+import TimelineApp from '../apps/timeline/app';
+import ViolinApp from '../apps/violin/app';
+import RadialTreeApp from '../apps/radial-tree/app';
 import WaterfallApp from '../apps/waterfall/app';
+import LogScatterApp from '../apps/log-scatter/app';
+import CurveComparisonApp from '../apps/curve-comparison/app';
+import DivergingBarApp from '../apps/diverging-bar/app';
+import ThresholdBarApp from '../apps/threshold-bar/app';
+import EasingCurvesApp from '../apps/easing-curves/app';
+import ColorSpacesApp from '../apps/color-spaces/app';
+import DensityContourApp from '../apps/density-contour/app';
+import VoronoiDiagramApp from '../apps/voronoi-diagram/app';
+import MapProjectionsApp from '../apps/map-projections/app';
 import BarApp from '../apps/bar/app';
 import BubbleApp from '../apps/bubble/app';
 import DonutApp from '../apps/donut/app';
@@ -111,6 +128,74 @@ import * as layoutStyles from '../layouts/layout.css';
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>2025 commit activity</p>
       <CalendarHeatmapApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Stock price — zoom &amp; pan</p>
+      <ZoomableLineApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Phyllotaxis — zoom &amp; mini map</p>
+      <PhyllotaxisApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Salary distribution</p>
+      <HistogramApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>MPG vs horsepower by origin</p>
+      <SymbolScatterApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Frontend tech stack</p>
+      <TidyTreeApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Product launch timeline</p>
+      <TimelineApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Salary by level</p>
+      <ViolinApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Indo-European language family</p>
+      <RadialTreeApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>npm packages — downloads vs stars</p>
+      <LogScatterApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Curve interpolation types</p>
+      <CurveComparisonApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Monthly revenue growth</p>
+      <DivergingBarApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>API response times</p>
+      <ThresholdBarApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Easing functions</p>
+      <EasingCurvesApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Color space interpolation</p>
+      <ColorSpacesApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Bivariate density contour</p>
+      <DensityContourApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Voronoi diagram</p>
+      <VoronoiDiagramApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Map projections</p>
+      <MapProjectionsApp client:load />
     </div>
   </div>
 </Layout>

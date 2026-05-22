@@ -758,3 +758,372 @@ export function pack<Datum>(root: HierarchyNode<Datum>, config: PackConfig): Pac
 
   return root as unknown as PackNode<Datum>;
 }
+
+// ── Public: treeLayout ────────────────────────────────────────────────────────
+
+// D3 parity: d3-hierarchy/src/tree.js — Reingold-Tilford "tidy" algorithm
+// (Buchheim et al. O(n) improvement).
+// Returns a flat array of TreeLayoutNode with x (0..width) and y (0..height).
+
+export type TreeLayoutNode<Datum> = Readonly<{
+  data: Datum;
+  depth: number;
+  height: number;
+  parent: TreeLayoutNode<Datum> | null;
+  children?: ReadonlyArray<TreeLayoutNode<Datum>>;
+  value: number;
+  x: number;
+  y: number;
+}>;
+
+export type TreeConfig = Readonly<{
+  width?: number;
+  height?: number;
+  nodeSize?: readonly [number, number] | null;
+  separation?: (a: HierarchyNode<unknown>, b: HierarchyNode<unknown>) => number;
+}>;
+
+// Internal wrapper node for the algorithm
+interface TN {
+  _: HierarchyNode<unknown>;
+  parent: TN;
+  children: TN[] | null;
+  A: TN | null;
+  a: TN;
+  z: number;
+  m: number;
+  c: number;
+  s: number;
+  t: TN | null;
+  i: number;
+}
+
+function defaultSep(a: HierarchyNode<unknown>, b: HierarchyNode<unknown>): number {
+  return a.parent === b.parent ? 1 : 2;
+}
+
+function tnNextLeft(v: TN): TN | null {
+  return v.children ? v.children[0] ?? null : v.t;
+}
+
+function tnNextRight(v: TN): TN | null {
+  return v.children ? v.children[v.children.length - 1] ?? null : v.t;
+}
+
+function tnMoveSubtree(wm: TN, wp: TN, shift: number): void {
+  const change = shift / (wp.i - wm.i);
+  wp.c -= change;
+  wp.s += shift;
+  wm.c += change;
+  wp.z += shift;
+  wp.m += shift;
+}
+
+function tnExecuteShifts(v: TN): void {
+  let shift = 0;
+  let change = 0;
+  const children = v.children;
+  if (!children) return;
+  for (let i = children.length - 1; i >= 0; --i) {
+    const w = children[i];
+    if (!w) continue;
+    w.z += shift;
+    w.m += shift;
+    change += w.c;
+    shift += w.s + change;
+  }
+}
+
+function tnNextAncestor(vim: TN, v: TN, ancestor: TN): TN {
+  return vim.a.parent === v.parent ? vim.a : ancestor;
+}
+
+function makeTN(node: HierarchyNode<unknown>, i: number, parent: TN): TN {
+  const tn: TN = {
+    _: node, parent, children: null,
+    A: null, a: null as unknown as TN,
+    z: 0, m: 0, c: 0, s: 0, t: null, i,
+  };
+  tn.a = tn;
+  return tn;
+}
+
+function buildTNTree(root: HierarchyNode<unknown>): TN {
+  const sentinel = makeTN(root, 0, null as unknown as TN);
+  const tree = makeTN(root, 0, sentinel);
+  sentinel.children = [tree];
+
+  const stack: TN[] = [tree];
+  while (stack.length > 0) {
+    const v = stack.pop();
+    if (!v) continue;
+    const kids = v._.children;
+    if (kids && kids.length > 0) {
+      v.children = new Array(kids.length);
+      for (let i = kids.length - 1; i >= 0; --i) {
+        const child = makeTN(kids[i] as HierarchyNode<unknown>, i, v);
+        (v.children as TN[])[i] = child;
+        stack.push(child);
+      }
+    }
+  }
+  return tree;
+}
+
+export function treeLayout<Datum>(
+  root: HierarchyNode<Datum>,
+  config: TreeConfig = {},
+): ReadonlyArray<TreeLayoutNode<Datum>> {
+  const {
+    width = 1,
+    height = 1,
+    nodeSize = null,
+    separation = defaultSep as (a: HierarchyNode<unknown>, b: HierarchyNode<unknown>) => number,
+  } = config;
+
+  const t = buildTNTree(root as unknown as HierarchyNode<unknown>);
+
+  // First walk (bottom-up): assign prelim x coords
+  function firstWalk(v: TN): void {
+    const children = v.children;
+    const siblings = v.parent.children;
+    const w: TN | null = v.i > 0 ? (siblings?.[v.i - 1] ?? null) : null;
+    if (children && children.length > 0) {
+      tnExecuteShifts(v);
+      const midpoint = ((children[0]?.z ?? 0) + (children[children.length - 1]?.z ?? 0)) / 2;
+      if (w) {
+        v.z = w.z + separation(v._, w._);
+        v.m = v.z - midpoint;
+      } else {
+        v.z = midpoint;
+      }
+    } else if (w) {
+      v.z = w.z + separation(v._, w._);
+    }
+    v.parent.A = apportion(v, w, v.parent.A ?? (siblings?.[0] ?? v));
+  }
+
+  function apportion(v: TN, w: TN | null, ancestor: TN): TN {
+    if (!w) return ancestor;
+    let vip: TN = v, vop: TN = v;
+    let vim: TN = w;
+    let vom: TN = (vip.parent.children?.[0]) ?? vip;
+    let sip = vip.m, sop = vop.m, sim = vim.m, som = vom.m;
+
+    let nr = tnNextRight(vim), nl = tnNextLeft(vip);
+    while (nr && nl) {
+      vim = nr; vip = nl;
+      vom = tnNextLeft(vom) ?? vom;
+      vop = tnNextRight(vop) ?? vop;
+      vop.a = v;
+      const shift = vim.z + sim - vip.z - sip + separation(vim._, vip._);
+      if (shift > 0) {
+        tnMoveSubtree(tnNextAncestor(vim, v, ancestor), v, shift);
+        sip += shift;
+        sop += shift;
+      }
+      sim += vim.m; sip += vip.m; som += vom.m; sop += vop.m;
+      nr = tnNextRight(vim); nl = tnNextLeft(vip);
+    }
+    if (nr && !tnNextRight(vop)) {
+      vop.t = nr;
+      vop.m += sim - sop;
+    }
+    if (nl && !tnNextLeft(vom)) {
+      vom.t = nl;
+      vom.m += sip - som;
+      ancestor = v;
+    }
+    return ancestor;
+  }
+
+  // Second walk (top-down): accumulate mods into final x
+  function secondWalk(v: TN): void {
+    v._.x0 = v.z + v.parent.m;
+    v.m += v.parent.m;
+  }
+
+  // Run both passes
+  eachAfter(t as unknown as HierarchyNode<Datum>, (n) => firstWalk(n as unknown as TN));
+  (t.parent as TN).m = -t.z;
+  eachBefore(t as unknown as HierarchyNode<Datum>, (n) => secondWalk(n as unknown as TN));
+
+  // x0 now holds unnormalized x; depth holds y index
+  if (nodeSize) {
+    const [dx, dy] = nodeSize;
+    eachBefore(root, (node) => {
+      node.x0 = node.x0 * dx;
+      node.y0 = node.depth * dy;
+    });
+  } else {
+    // Find extents and normalize to [0, width] x [0, height]
+    let left = root, right = root, bottom = root;
+    eachBefore(root, (node) => {
+      if (node.x0 < left.x0) left = node;
+      if (node.x0 > right.x0) right = node;
+      if (node.depth > bottom.depth) bottom = node;
+    });
+    const s = left === right ? 1 : separation(left as unknown as HierarchyNode<unknown>, right as unknown as HierarchyNode<unknown>) / 2;
+    const tx = s - left.x0;
+    const kx = width / (right.x0 + s + tx);
+    const ky = height / (bottom.depth || 1);
+    eachBefore(root, (node) => {
+      node.x0 = (node.x0 + tx) * kx;
+      node.y0 = node.depth * ky;
+    });
+  }
+
+  // Collect flat array of TreeLayoutNode
+  const result: TreeLayoutNode<Datum>[] = [];
+  eachBefore(root, (node) => {
+    (result as unknown as Array<{ data: Datum; depth: number; height: number; parent: unknown; children?: unknown[]; value: number; x: number; y: number }>)
+      .push({
+        data: node.data,
+        depth: node.depth,
+        height: node.height,
+        parent: null,
+        value: node.value,
+        x: node.x0,
+        y: node.y0,
+      });
+  });
+
+  // Wire up parent/children references
+  const nodeMap = new Map<HierarchyNode<Datum>, TreeLayoutNode<Datum>>();
+  eachBefore(root, (node) => {
+    const idx = result.findIndex((r) => r.data === node.data && r.depth === node.depth);
+    if (idx >= 0) nodeMap.set(node, result[idx] as TreeLayoutNode<Datum>);
+  });
+
+  eachBefore(root, (node) => {
+    const tln = nodeMap.get(node);
+    if (!tln) return;
+    const mut = tln as { parent: TreeLayoutNode<Datum> | null; children?: TreeLayoutNode<Datum>[] };
+    if (node.parent) mut.parent = nodeMap.get(node.parent as HierarchyNode<Datum>) ?? null;
+    if (node.children) {
+      mut.children = node.children
+        .map((c) => nodeMap.get(c as HierarchyNode<Datum>))
+        .filter((c): c is TreeLayoutNode<Datum> => c !== undefined);
+    }
+  });
+
+  return result;
+}
+
+// ── Public: clusterLayout ─────────────────────────────────────────────────────
+
+// D3 parity: d3-hierarchy/src/cluster.js
+// All leaves at the same radius; internal nodes at mean-x of their children.
+// Returns a flat array of ClusterLayoutNode with:
+//   x = angle in [0, width]   (default: 2π for full circle)
+//   y = radius in [0, height] (0 = root at center, height = leaves at edge)
+
+export type ClusterLayoutNode<Datum> = Readonly<{
+  data: Datum;
+  depth: number;
+  height: number;
+  parent: ClusterLayoutNode<Datum> | null;
+  children?: ReadonlyArray<ClusterLayoutNode<Datum>>;
+  value: number;
+  x: number;
+  y: number;
+}>;
+
+export type ClusterConfig = Readonly<{
+  width?: number;
+  height?: number;
+  separation?: (a: HierarchyNode<unknown>, b: HierarchyNode<unknown>) => number;
+}>;
+
+function clusterDefaultSep(a: HierarchyNode<unknown>, b: HierarchyNode<unknown>): number {
+  return a.parent === b.parent ? 1 : 2;
+}
+
+function clusterLeafLeft<D>(node: HierarchyNode<D>): HierarchyNode<D> {
+  let n = node;
+  while (n.children && n.children.length > 0) n = n.children[0] as HierarchyNode<D>;
+  return n;
+}
+
+function clusterLeafRight<D>(node: HierarchyNode<D>): HierarchyNode<D> {
+  let n = node;
+  while (n.children && n.children.length > 0) n = n.children[n.children.length - 1] as HierarchyNode<D>;
+  return n;
+}
+
+export function clusterLayout<Datum>(
+  root: HierarchyNode<Datum>,
+  config: ClusterConfig = {},
+): ReadonlyArray<ClusterLayoutNode<Datum>> {
+  const {
+    width = 2 * Math.PI,
+    height = 1,
+    separation = clusterDefaultSep as (a: HierarchyNode<unknown>, b: HierarchyNode<unknown>) => number,
+  } = config;
+
+  let previousLeaf: HierarchyNode<Datum> | null = null;
+  let leafX = 0;
+
+  eachAfter(root, (node) => {
+    const kids = node.children;
+    if (!kids || kids.length === 0) {
+      if (previousLeaf) {
+        leafX += separation(node as unknown as HierarchyNode<unknown>, previousLeaf as unknown as HierarchyNode<unknown>);
+      }
+      node.x0 = leafX;
+      node.y0 = 0;
+      previousLeaf = node;
+    } else {
+      let sumX = 0;
+      let maxY = 0;
+      for (const child of kids) {
+        sumX += child.x0;
+        if (child.y0 > maxY) maxY = child.y0;
+      }
+      node.x0 = sumX / kids.length;
+      node.y0 = maxY + 1;
+    }
+  });
+
+  const ll = clusterLeafLeft(root);
+  const lr = clusterLeafRight(root);
+  const x0 = ll.x0 - separation(ll as unknown as HierarchyNode<unknown>, lr as unknown as HierarchyNode<unknown>) / 2;
+  const x1 = lr.x0 + separation(lr as unknown as HierarchyNode<unknown>, ll as unknown as HierarchyNode<unknown>) / 2;
+  const rootY = root.y0;
+
+  eachAfter(root, (node) => {
+    node.x0 = (node.x0 - x0) / (x1 - x0) * width;
+    node.y0 = rootY > 0 ? (1 - node.y0 / rootY) * height : height;
+  });
+
+  const result: ClusterLayoutNode<Datum>[] = [];
+  const nodeMap = new Map<HierarchyNode<Datum>, ClusterLayoutNode<Datum>>();
+
+  eachBefore(root, (node) => {
+    const cln: ClusterLayoutNode<Datum> = {
+      data: node.data,
+      depth: node.depth,
+      height: node.height,
+      parent: null,
+      value: node.value,
+      x: node.x0,
+      y: node.y0,
+    };
+    result.push(cln);
+    nodeMap.set(node, cln);
+  });
+
+  eachBefore(root, (node) => {
+    const cln = nodeMap.get(node);
+    if (!cln) return;
+    const mut = cln as { parent: ClusterLayoutNode<Datum> | null; children?: ClusterLayoutNode<Datum>[] };
+    if (node.parent) mut.parent = nodeMap.get(node.parent as HierarchyNode<Datum>) ?? null;
+    if (node.children) {
+      mut.children = node.children
+        .map((c) => nodeMap.get(c as HierarchyNode<Datum>))
+        .filter((c): c is ClusterLayoutNode<Datum> => c !== undefined);
+    }
+  });
+
+  return result;
+}

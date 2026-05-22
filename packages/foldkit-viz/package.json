@@ -69,6 +69,54 @@
     "./simulation": {
       "types": "./dist/simulation.d.mts",
       "import": "./dist/simulation.mjs"
+    },
+    "./math/zoom": {
+      "types": "./dist/math/zoom.d.mts",
+      "import": "./dist/math/zoom.mjs"
+    },
+    "./math/bin": {
+      "types": "./dist/math/bin.d.mts",
+      "import": "./dist/math/bin.mjs"
+    },
+    "./shape/symbol": {
+      "types": "./dist/shape/symbol.d.mts",
+      "import": "./dist/shape/symbol.mjs"
+    },
+    "./shape/link": {
+      "types": "./dist/shape/link.d.mts",
+      "import": "./dist/shape/link.mjs"
+    },
+    "./math/time": {
+      "types": "./dist/math/time.d.mts",
+      "import": "./dist/math/time.mjs"
+    },
+    "./math/format": {
+      "types": "./dist/math/format.d.mts",
+      "import": "./dist/math/format.mjs"
+    },
+    "./math/schemes": {
+      "types": "./dist/math/schemes.d.mts",
+      "import": "./dist/math/schemes.mjs"
+    },
+    "./math/random": {
+      "types": "./dist/math/random.d.mts",
+      "import": "./dist/math/random.mjs"
+    },
+    "./math/ease": {
+      "types": "./dist/math/ease.d.mts",
+      "import": "./dist/math/ease.mjs"
+    },
+    "./math/contour": {
+      "types": "./dist/math/contour.d.mts",
+      "import": "./dist/math/contour.mjs"
+    },
+    "./math/delaunay": {
+      "types": "./dist/math/delaunay.d.mts",
+      "import": "./dist/math/delaunay.mjs"
+    },
+    "./shape/geo": {
+      "types": "./dist/shape/geo.d.mts",
+      "import": "./dist/shape/geo.mjs"
     }
   },
   "typesVersions": {
@@ -114,6 +162,42 @@
       ],
       "simulation": [
         "./dist/simulation.d.mts"
+      ],
+      "math/zoom": [
+        "./dist/math/zoom.d.mts"
+      ],
+      "math/bin": [
+        "./dist/math/bin.d.mts"
+      ],
+      "shape/symbol": [
+        "./dist/shape/symbol.d.mts"
+      ],
+      "shape/link": [
+        "./dist/shape/link.d.mts"
+      ],
+      "math/time": [
+        "./dist/math/time.d.mts"
+      ],
+      "math/format": [
+        "./dist/math/format.d.mts"
+      ],
+      "math/schemes": [
+        "./dist/math/schemes.d.mts"
+      ],
+      "math/random": [
+        "./dist/math/random.d.mts"
+      ],
+      "math/ease": [
+        "./dist/math/ease.d.mts"
+      ],
+      "math/contour": [
+        "./dist/math/contour.d.mts"
+      ],
+      "math/delaunay": [
+        "./dist/math/delaunay.d.mts"
+      ],
+      "shape/geo": [
+        "./dist/shape/geo.d.mts"
       ]
     }
   },

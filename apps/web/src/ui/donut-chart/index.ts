@@ -4,6 +4,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot } from '../shared';
 
 // MODEL
 
@@ -111,17 +112,7 @@ export const view = <M>(config: {
     return Option.none();
   };
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${SIZE} ${SIZE}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Tabindex(0),
-      h.OnKeyDownPreventDefault(handleKeyDown),
-      h.Style({ display: 'block', outline: 'none' }),
-    ],
-    [
+  return svgRoot(h, { width: SIZE, height: SIZE, ariaLabel, interactive: true }, handleKeyDown, [
       h.g(
         [h.Transform(`translate(${CENTER},${CENTER})`)],
         [

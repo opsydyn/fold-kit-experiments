@@ -5,6 +5,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -83,7 +84,6 @@ const H = 265;
 const CX = W / 2;
 const CY = H / 2;
 
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
 // Convert cluster node (angle, radius) to SVG Cartesian
 function cx(node: LayoutNode): number {
@@ -105,15 +105,7 @@ export function view<M>(config: {
   const activeNode = Option.isSome(activeId) ? activeId.value : null;
   const LABEL_R = outerRadius + 10;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       // Links — drawn in SVG coords (not angle/radius), shift to center
       h.g(
         [],

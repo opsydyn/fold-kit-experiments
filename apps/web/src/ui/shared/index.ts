@@ -1,0 +1,10 @@
+export { r3, extentWithPadding } from './math';
+export { makeLayout, DEFAULT_DIMS, DEFAULT_MARGINS } from './layout';
+export type { Dims, Margins, Layout } from './layout';
+export { svgRoot } from './svg-root';
+export type { SvgRootConfig } from './svg-root';
+export { yGridlines, xCategoryAxis, xLinearAxis, xLinearGridlines } from './axes';
+export type { AxisStyle } from './axes';
+export { valueTooltip } from './tooltip';
+export type { TooltipStyle } from './tooltip';
+export { arrowKeyNav, nextIndex } from './keyboard';

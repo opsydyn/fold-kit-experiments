@@ -3,6 +3,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -14,16 +16,23 @@ export type Endpoint = Readonly<{
 export type InitConfig = Readonly<{
   endpoints: ReadonlyArray<Endpoint>;
   title?: string;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 export type Model = Readonly<{
   endpoints: ReadonlyArray<Endpoint>;
   title: string;
   hovered: Option.Option<string>;
+  readonly layout: Layout;
 }>;
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [{ endpoints: cfg.endpoints, title: cfg.title ?? '', hovered: Option.none() }, []];
+  const layout = makeLayout(
+    { width: 480, height: 265, ...cfg.dims },
+    { top: 20, right: 56, bottom: 36, left: 140, ...cfg.margins },
+  );
+  return [{ endpoints: cfg.endpoints, title: cfg.title ?? '', hovered: Option.none(), layout }, []];
 }
 
 // MESSAGE
@@ -49,15 +58,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 265;
-const MT = 20;
-const MR = 56;
-const MB = 36;
-const ML = 140;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
 // Threshold scale: < 100ms green, 100–500ms amber, ≥ 500ms red
 const colorFn = threshold<string>([100, 500], ['#10b981', '#f59e0b', '#ef4444']);
 const LEGEND = [
@@ -73,6 +73,7 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Threshold bar chart' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { endpoints, title, hovered } = model;
 
   const active = Option.isSome(hovered) ? hovered.value : null;
@@ -81,15 +82,7 @@ export function view<M>(config: {
   const barH = Math.floor(PH / endpoints.length) - 4;
   const barStep = PH / endpoints.length;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

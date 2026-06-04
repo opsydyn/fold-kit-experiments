@@ -3,6 +3,7 @@ import { Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot } from '../shared';
 
 // MODEL
 
@@ -281,14 +282,7 @@ export function view<M>(config: {
 
   const layouts = gaugeLayout(entries.length);
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null,
     entries.map((entry, i) => {
       const layout = layouts[i] ?? layouts[0];
       return layout ? renderGauge(h, entry, layout, cfg) : h.g([], []);

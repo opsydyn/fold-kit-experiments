@@ -3,6 +3,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -33,6 +35,8 @@ export type Config = Readonly<{
 export type InitConfig = Readonly<{
   entries: ReadonlyArray<WaterfallEntry>;
   config?: Partial<Config>;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 const DEFAULT_CONFIG: Config = {
@@ -74,15 +78,21 @@ export type Model = Readonly<{
   bars: ReadonlyArray<ComputedBar>;
   activeIndex: Option.Option<number>;
   config: Config;
+  readonly layout: Layout;
 }>;
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
+  const layout = makeLayout(
+    { width: 480, height: 265, ...cfg.dims },
+    { top: 15, right: 20, bottom: 35, left: 48, ...cfg.margins },
+  );
   return [
     {
       entries: cfg.entries,
       bars: computeBars(cfg.entries),
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
+      layout,
     },
     [],
   ];
@@ -111,15 +121,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 265;
-const MT = 15;
-const MR = 20;
-const MB = 35;
-const ML = 48;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
 const p = (v: number) => String(Math.round(v * 100) / 100);
 
 export function view<M>(config: {
@@ -129,6 +130,7 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Waterfall chart' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { bars, activeIndex, config: cfg } = model;
 
   const allY = bars.flatMap((b) => [b.base, b.top, 0]);
@@ -233,15 +235,7 @@ export function view<M>(config: {
     },
   });
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

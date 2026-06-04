@@ -1,19 +1,22 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { area } from '@opsydyn/foldkit-viz/shape/area';
 import { stack } from '@opsydyn/foldkit-viz/shape/stack';
+import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot } from '../shared';
 
 // MODEL
 
-export type SeriesMeta = Readonly<{ key: string; label: string; color: string }>;
+export type SeriesMeta = Readonly<{ key: string; label: string; color?: string }>;
 
 export type InitConfig = Readonly<{
   data: ReadonlyArray<Readonly<Record<string, number>>>;
   xLabels: ReadonlyArray<string>;
   series: ReadonlyArray<SeriesMeta>;
+  scheme?: ReadonlyArray<string>;
 }>;
 
 // VIEW CONSTANTS (needed in both buildLayout and view)
@@ -96,7 +99,7 @@ function buildLayout(cfg: InitConfig): Layout {
     return {
       key: s.key,
       index: s.index,
-      color: meta?.color ?? '#94a3b8',
+      color: meta?.color ?? (cfg.scheme ?? tableau10)[s.index % (cfg.scheme ?? tableau10).length] ?? '#94a3b8',
       label: meta?.label ?? s.key,
       pathD,
       labelX,
@@ -160,15 +163,7 @@ export const view = <M>(config: {
   const isAnyActive = Option.isSome(activeKey);
   const activeValue = isAnyActive ? activeKey.value : null;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

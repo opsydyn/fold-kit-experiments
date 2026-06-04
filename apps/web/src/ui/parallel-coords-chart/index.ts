@@ -3,6 +3,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -66,7 +67,6 @@ const PLOT_R = 350;
 const PLOT_T = 38;
 const PLOT_B = 210;
 
-const r3 = (v: number) => Math.round(v * 1000) / 1000;
 
 function fmtDefault(v: number): string {
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
@@ -147,15 +147,7 @@ export function view<M>(config: {
     ];
   });
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       // Axes
       h.g(
         [],

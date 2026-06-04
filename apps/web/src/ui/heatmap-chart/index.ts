@@ -3,6 +3,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot } from '../shared';
 
 // MODEL
 
@@ -142,7 +143,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 export const HoveredCell = m('HoveredCell', { key: Schema.String });
 export const BlurredCell = m('BlurredCell', {});
 
-export const Message = Schema.Union([HoveredCell, BlurredCell]);
+export const UpdatedCells = m('UpdatedCells', { cells: Schema.Unknown });
+export const Message = Schema.Union([HoveredCell, BlurredCell, UpdatedCells]);
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -155,6 +157,7 @@ export const update = (model: Model, msg: Message): Return =>
     Match.tagsExhaustive({
       HoveredCell: ({ key }) => [{ ...model, activeKey: Option.some(key) }, []],
       BlurredCell: () => [{ ...model, activeKey: Option.none() }, []],
+      UpdatedCells: ({ cells }) => [{ ...model, cells: cells as ReadonlyArray<ComputedCell> }, []],
     }),
   );
 
@@ -185,15 +188,7 @@ export const view = <M>(config: {
 
   const activeCell = activeValue ? cells.find((c) => c.key === activeValue) : null;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

@@ -5,6 +5,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -19,6 +21,8 @@ export type InitConfig = Readonly<{
   height?: number;
   nodeRadius?: number;
   color?: string;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 export type LayoutNode = TreeLayoutNode<TreeDatum>;
@@ -31,6 +35,7 @@ export type Model = Readonly<{
   height: number;
   nodeRadius: number;
   color: string;
+  readonly layout: Layout;
 }>;
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
@@ -48,6 +53,11 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     }
   }
 
+  const layout = makeLayout(
+    { width: 480, height: 260, ...cfg.dims },
+    { top: 24, right: 20, bottom: 32, left: 20, ...cfg.margins },
+  );
+
   return [
     {
       nodes,
@@ -57,6 +67,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       height: h,
       nodeRadius: cfg.nodeRadius ?? 4,
       color: cfg.color ?? '#6366f1',
+      layout,
     },
     [],
   ];
@@ -85,15 +96,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 265;
-const MT = 24;
-const MR = 20;
-const MB = 24;
-const ML = 20;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
 export function view<M>(config: {
   model: Model;
   toParentMessage: (msg: Message) => M;
@@ -101,6 +103,7 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Tidy tree diagram' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { nodes, links, activeId, nodeRadius, color } = model;
 
   // Scale layout coords (0..model.width/height) → plot area
@@ -109,15 +112,7 @@ export function view<M>(config: {
 
   const activeNode = Option.isSome(activeId) ? activeId.value : null;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

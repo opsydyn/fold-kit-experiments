@@ -4,6 +4,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -71,7 +72,6 @@ const MAX_RADIUS = 110;
 const GRID_LEVELS = 4;
 const LABEL_OFFSET = 20;
 
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
 const TAU = 2 * Math.PI;
 
 // Regular n-gon polygon path at given radius, closed
@@ -102,15 +102,7 @@ export const view = <M>(config: {
   const toRadius = linear({ domain: [0, maxValue], range: [0, MAX_RADIUS] });
   const isAnyActive = Option.isSome(activeSeriesIndex);
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${CX},${CY})`)],
         [

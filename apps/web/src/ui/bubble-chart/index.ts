@@ -3,6 +3,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -23,11 +25,14 @@ export type Model = Readonly<{
   points: ReadonlyArray<Point>;
   activeIndex: Option.Option<number>;
   config: Config;
+  readonly layout: Layout;
 }>;
 
 export type InitConfig = Readonly<{
   points: ReadonlyArray<Point>;
   config?: Partial<Config>;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 const DEFAULT_CONFIG: Config = {
@@ -42,11 +47,16 @@ const DEFAULT_CONFIG: Config = {
 };
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
+  const layout = makeLayout(
+    { width: 480, height: 280, ...cfg.dims },
+    { top: 24, right: 36, bottom: 52, left: 52, ...cfg.margins },
+  );
   return [
     {
       points: cfg.points,
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
+      layout,
     },
     [],
   ];
@@ -82,17 +92,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 280;
-const MT = 24;
-const MR = 36;
-const MB = 52;
-const ML = 52;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
-
 export const view = <M>(config: {
   model: Model;
   toParentMessage: (msg: Message) => M;
@@ -100,6 +99,7 @@ export const view = <M>(config: {
 }): Html => {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Bubble chart' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { points, activeIndex, config: cfg } = model;
 
   const maxX = points.reduce((a, p) => Math.max(a, p.x), 0);
@@ -124,17 +124,7 @@ export const view = <M>(config: {
     return Option.none();
   };
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Tabindex(0),
-      h.OnKeyDownPreventDefault(handleKeyDown),
-      h.Style({ display: 'block', outline: 'none', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

@@ -1,15 +1,18 @@
 import { sankey } from '@opsydyn/foldkit-viz/shape/sankey';
+import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot } from '../shared';
 
 // MODEL
 
-export type NodeMeta = Readonly<{ id: string; label: string; color: string }>;
+export type NodeMeta = Readonly<{ id: string; label: string; color?: string }>;
 
 export type InitConfig = Readonly<{
   nodes: ReadonlyArray<NodeMeta>;
+  scheme?: ReadonlyArray<string>;
   links: ReadonlyArray<Readonly<{ source: string; target: string; value: number }>>;
   nodeWidth?: number;
   nodePadding?: number;
@@ -90,8 +93,11 @@ function buildLayout(cfg: InitConfig): Layout {
 
   const metaMap = new Map(cfg.nodes.map((n) => [n.id, n]));
 
-  const computedNodes: ComputedNode[] = sankeyNodes.map((sn) => {
-    const meta = metaMap.get(sn.id) ?? { id: sn.id, label: sn.id, color: '#94a3b8' };
+  const computedNodes: ComputedNode[] = sankeyNodes.map((sn, i) => {
+    const scheme = cfg.scheme ?? tableau10;
+    const metaEntry = metaMap.get(sn.id);
+    const color = metaEntry?.color ?? scheme[i % scheme.length] ?? '#94a3b8';
+    const meta = { id: sn.id, label: metaEntry?.label ?? sn.id, color };
     const nodeH = sn.y1 - sn.y0;
     const midY = r1(sn.y0 + nodeH / 2);
     const midX = r1((sn.x0 + sn.x1) / 2);
@@ -145,16 +151,17 @@ function buildLayout(cfg: InitConfig): Layout {
     };
   });
 
+  const nodeColorMap = new Map(computedNodes.map((n) => [n.id, n.color]));
   const computedLinks: ComputedLink[] = sankeyLinks.map((sl, i) => {
-    const srcMeta = metaMap.get(sl.sourceId) ?? { color: '#94a3b8' };
+    const srcColor = nodeColorMap.get(sl.sourceId) ?? '#94a3b8';
     return {
       key: `${sl.sourceId}-${sl.targetId}-${i}`,
       sourceId: sl.sourceId,
       targetId: sl.targetId,
       value: sl.value,
       width: sl.width,
-      fillColor: tint(srcMeta.color, 0.45),
-      strokeColor: tint(srcMeta.color, 0.2),
+      fillColor: tint(srcColor, 0.45),
+      strokeColor: tint(srcColor, 0.2),
       pathD: sl.pathD,
     };
   });
@@ -214,15 +221,7 @@ export const view = <M>(config: {
       ])
     : null;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

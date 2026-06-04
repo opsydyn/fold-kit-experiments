@@ -5,11 +5,15 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
 export type InitConfig = Readonly<{
   seed?: number;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 type ContourLevel = Readonly<{
@@ -38,6 +42,7 @@ export type PlotData = Readonly<{
 export type Model = Readonly<{
   data: PlotData;
   hovered: Option.Option<string>;
+  readonly layout: Layout;
 }>;
 
 function generateData(seed: number): PlotData {
@@ -64,7 +69,11 @@ function generateData(seed: number): PlotData {
 
 export function init(cfg: InitConfig = {}): readonly [Model, readonly []] {
   const data = generateData(cfg.seed ?? 42);
-  return [{ data, hovered: Option.none() }, []];
+  const layout = makeLayout(
+    { width: 420, height: 280, ...cfg.dims },
+    { top: 12, right: 16, bottom: 42, left: 20, ...cfg.margins },
+  );
+  return [{ data, hovered: Option.none(), layout }, []];
 }
 
 // MESSAGE
@@ -90,17 +99,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 420;
-const H = 280;
-const MT = 12;
-const MR = 16;
-const MB = 42;
-const ML = 20;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
-const xSvg = linear({ domain: [0, NX - 1], range: [0, PW] });
-const ySvg = linear({ domain: [0, NY - 1], range: [PH, 0] }); // inverted Y
 
 export function view<M>(config: {
   model: Model;
@@ -109,6 +107,9 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Density contour chart' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const xSvg = linear({ domain: [0, NX - 1], range: [0, PW] });
+  const ySvg = linear({ domain: [0, NY - 1], range: [PH, 0] }); // inverted Y
   const { data, hovered } = model;
 
   const active = Option.isSome(hovered) ? hovered.value : null;
@@ -117,15 +118,7 @@ export function view<M>(config: {
   const xData = linear({ domain: X_DOMAIN, range: [0, NX - 1] });
   const yData = linear({ domain: Y_DOMAIN, range: [0, NY - 1] });
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

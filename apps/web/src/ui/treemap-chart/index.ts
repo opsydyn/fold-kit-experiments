@@ -3,6 +3,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot } from '../shared';
 
 // MODEL
 
@@ -161,15 +162,7 @@ export const view = <M>(config: {
   const isAnyActive = Option.isSome(activeNode);
   const activeValue = isAnyActive ? activeNode.value : null;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       ...catNodes.map((cat) => {
         const w = r1(cat.x1 - cat.x0);
         const ch = r1(cat.y1 - cat.y0);

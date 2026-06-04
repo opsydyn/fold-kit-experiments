@@ -4,6 +4,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -19,6 +21,8 @@ export type InitConfig = Readonly<{
   categories: ReadonlyArray<Readonly<{ name: string; color: string }>>;
   xLabel?: string;
   yLabel?: string;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 export type Model = Readonly<{
@@ -27,9 +31,14 @@ export type Model = Readonly<{
   xLabel: string;
   yLabel: string;
   activeLabel: Option.Option<string>;
+  readonly layout: Layout;
 }>;
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
+  const layout = makeLayout(
+    { width: 480, height: 265, ...cfg.dims },
+    { top: 16, right: 24, bottom: 40, left: 56, ...cfg.margins },
+  );
   return [
     {
       points: cfg.points,
@@ -37,6 +46,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       xLabel: cfg.xLabel ?? 'Weekly downloads',
       yLabel: cfg.yLabel ?? 'GitHub stars',
       activeLabel: Option.none(),
+      layout,
     },
     [],
   ];
@@ -65,15 +75,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 265;
-const MT = 16;
-const MR = 24;
-const MB = 40;
-const ML = 56;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
 const fmtSI = format('~s');
 
 function categoryCols(
@@ -89,6 +90,7 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Log scatter chart' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { points, categories, xLabel, yLabel, activeLabel } = model;
 
   const colMap = categoryCols(categories);
@@ -112,15 +114,7 @@ export function view<M>(config: {
 
   const legendItemWidth = 100;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit', overflow: 'visible' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel, style: { overflow: 'visible' } }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

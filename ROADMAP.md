@@ -100,3 +100,61 @@ None. All D3 data-transformation and geometry primitives are implemented.
 ## Remaining — New Charts
 
 All planned charts complete. Primitive parity with D3's data-transformation layer is fully achieved.
+
+---
+
+## Chart Library Quality Refactor
+
+Goal: make foldkit-viz best-in-class — extensible, modular, reusable, low-coupling. Inspired by Airbnb visx.
+
+### P1 — Shared rendering primitives layer
+
+Extract duplicated inline logic across all 39 charts into `apps/web/src/ui/shared/`.
+
+- [x] `shared/axes.ts` — `yGridlines()`, `xCategoryAxis()`, `xLinearAxis()`, `xLinearGridlines()`
+- [x] `shared/svg-root.ts` — `svgRoot(h, config, handleKeyDown, children)` — accepts optional `style` override
+- [x] `shared/tooltip.ts` — `valueTooltip(h, x, y, text, style?)`
+- [x] `shared/keyboard.ts` — `arrowKeyNav(key, makeMessage)`, `nextIndex(n, current, direction)`
+- [x] `shared/math.ts` — `r3`, `extentWithPadding(values, pad)`
+- [x] `shared/layout.ts` — `Margins`, `Dims`, `Layout` types + `makeLayout()`, `DEFAULT_DIMS`, `DEFAULT_MARGINS`
+- [x] Migrate all 39 charts to use shared layer
+
+### P2 — Configurable layout (margins + dimensions)
+
+- [x] `dims?: Partial<Dims>` and `margins?: Partial<Margins>` added to 17 data charts (bar, line, area, scatter, histogram, box-plot, bubble, candlestick, waterfall, diverging-bar, threshold-bar, curve-comparison, density-contour, tidy-tree, timeline, violin, log-scatter)
+- [x] `layout: Layout` stored in `Model`, destructured in `view()` — module-level constants removed
+- [x] `makeLayout()` from `shared/layout.ts` used in all migrated `init()` functions; zero breaking changes
+
+### P3 — Tooltip slot
+
+- [x] `renderTooltip?: (datum, x, y) => Html` added to `view()` props on bar, line, area, scatter, histogram
+- [x] Default falls back to `valueTooltip()` from shared layer — no behaviour change without opt-in
+
+### P4 — `UpdatedData` message pattern
+
+- [x] `UpdatedBars` added to bar-chart
+- [x] `UpdatedPoints` added to line-chart, area-chart, scatter-chart
+- [x] `UpdatedCells` added to heatmap-chart
+- [x] All handlers use `Schema.Unknown` cast — no recompute of layout or interaction state
+
+### P5 — Connect `math/schemes` to multi-series chart defaults
+
+- [x] `tableau10` used as default color fallback in streamgraph, chord, sankey
+- [x] `scheme?: ReadonlyArray<string>` added to `InitConfig` of all three
+- [x] `color` made optional in `SeriesMeta`, `GroupMeta`, `NodeMeta` — explicit colors still take precedence
+
+### P6 — Bug fixes
+
+- [x] Fix `line-chart`: replaced manual area fill string with `area()` primitive call
+- [x] Fix `box-plot-chart`: replaced inline `tint()` with `interpolateRgb` from `math/color`
+- [x] `voronoi-chart` HSL: intentional continuous hue rotation for 55 cells — kept as-is
+
+### P7 — Root barrel completeness
+
+- [x] Added `ordinal`, `log`, `logTicks`, `threshold`, `point` to `math/scale` exports
+- [x] Added `colorScale`, `divergingScale`, `interpolateHsl`, `interpolateLab`, `interpolateRgb`, `interpolateRgbBasis` to `math/color` exports
+- [x] Added `kde`, `silvermanBandwidth` to `math/stats` exports
+- [x] Added `bin` to `math/bin` exports
+- [x] Added `stack` to `shape/stack` exports
+- [x] Added `SYMBOLS_FILL`, `symbolPath` to `shape/symbol` exports
+- [x] Added `format`, `siFormat`, `scaleTime`, `timeTicks`, `timeTickFormat`, `timeNice`, zoom exports

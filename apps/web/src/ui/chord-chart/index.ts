@@ -1,17 +1,20 @@
 import { arc, arcCentroid } from '@opsydyn/foldkit-viz/shape/arc';
 import { chord, ribbon } from '@opsydyn/foldkit-viz/shape/chord';
+import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot } from '../shared';
 
 // MODEL
 
-export type GroupMeta = Readonly<{ label: string; color: string }>;
+export type GroupMeta = Readonly<{ label: string; color?: string }>;
 
 export type InitConfig = Readonly<{
   matrix: ReadonlyArray<ReadonlyArray<number>>;
   groups: ReadonlyArray<GroupMeta>;
+  scheme?: ReadonlyArray<string>;
   padAngle?: number;
 }>;
 
@@ -74,7 +77,11 @@ function buildLayout(cfg: InitConfig): Layout {
   const layout = chord(matrix, { padAngle });
 
   const computedGroups: ComputedGroup[] = layout.groups.map((g) => {
-    const meta = groupMeta[g.index] ?? { label: String(g.index), color: '#94a3b8' };
+    const scheme = cfg.scheme ?? tableau10;
+    const groupEntry = groupMeta[g.index];
+    const color = groupEntry?.color ?? scheme[g.index % scheme.length] ?? '#94a3b8';
+    const label = groupEntry?.label ?? String(g.index);
+    const meta = { label, color };
     const pathD =
       arc({
         startAngle: g.startAngle,
@@ -117,16 +124,19 @@ function buildLayout(cfg: InitConfig): Layout {
   const computedRibbons: ComputedRibbon[] = layout.chords.map((c) => {
     const si = c.source.index;
     const ti = c.target.index;
-    const sMeta = groupMeta[si] ?? { label: '', color: '#94a3b8' };
-    const tMeta = groupMeta[ti] ?? { label: '', color: '#94a3b8' };
+    const scheme = cfg.scheme ?? tableau10;
+    const sMeta = groupMeta[si] ?? { label: '', color: scheme[si % scheme.length] ?? '#94a3b8' };
+    const tMeta = groupMeta[ti] ?? { label: '', color: scheme[ti % scheme.length] ?? '#94a3b8' };
+    const sColor = sMeta.color ?? scheme[si % scheme.length] ?? '#94a3b8';
+    const tColor = tMeta.color ?? scheme[ti % scheme.length] ?? '#94a3b8';
     const pathD = ribbon(c.source, c.target, { radius: RIBBON_R });
     return {
       key: `${si}-${ti}`,
       sourceIndex: si,
       targetIndex: ti,
-      sourceColor: sMeta.color,
-      targetColor: tMeta.color,
-      fillColor: tint(sMeta.color, 0.3),
+      sourceColor: sColor,
+      targetColor: tColor,
+      fillColor: tint(sColor, 0.3),
       pathD,
     };
   });
@@ -174,15 +184,7 @@ export const view = <M>(config: {
   const isAnyActive = Option.isSome(activeIndex);
   const activeIdx = isAnyActive ? activeIndex.value : null;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${CX},${CY})`)],
         [

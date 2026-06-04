@@ -4,6 +4,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -17,6 +19,8 @@ export type InitConfig = Readonly<{
   yLabel?: string;
   colors?: ReadonlyArray<string>;
   kdePoints?: number;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 type DensityPoint = Readonly<{ value: number; density: number }>;
@@ -37,6 +41,7 @@ export type Model = Readonly<{
   yLabel: string;
   activeLabel: Option.Option<string>;
   labels: ReadonlyArray<string>;
+  readonly layout: Layout;
 }>;
 
 const DEFAULT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
@@ -72,6 +77,11 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     };
   });
 
+  const layout = makeLayout(
+    { width: 480, height: 300, ...cfg.dims },
+    { top: 24, right: 20, bottom: 44, left: 52, ...cfg.margins },
+  );
+
   return [
     {
       violins,
@@ -79,6 +89,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       yLabel: cfg.yLabel ?? '',
       activeLabel: Option.none(),
       labels: cfg.series.map((s) => s.label),
+      layout,
     },
     [],
   ];
@@ -107,17 +118,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 265;
-const MT = 16;
-const MR = 16;
-const MB = 36;
-const ML = 44;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
-
 function violinPath(
   density: ReadonlyArray<DensityPoint>,
   maxDensity: number,
@@ -144,6 +144,7 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Violin plot' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { violins, yDomain, yLabel, activeLabel, labels } = model;
 
   const xScale = point({ domain: labels, range: [0, PW], padding: 0.5 });
@@ -152,15 +153,7 @@ export function view<M>(config: {
   const halfWidth = xScale.step * 0.38;
   const activeStr = Option.isSome(activeLabel) ? activeLabel.value : null;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

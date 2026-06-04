@@ -11,6 +11,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -115,7 +116,6 @@ const MB = 44;
 const ML = 52;
 const PH = H - MT - MB;
 
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
 export function view<M>(config: {
   model: Model;
@@ -216,15 +216,7 @@ export function view<M>(config: {
     'user-select': 'none',
   };
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       // Zoom controls
       h.g(
         [],

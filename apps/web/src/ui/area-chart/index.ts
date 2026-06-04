@@ -5,6 +5,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { arrowKeyNav, nextIndex, r3, svgRoot, valueTooltip, xLinearAxis, yGridlines, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -21,11 +23,14 @@ export type Model = Readonly<{
   points: ReadonlyArray<Point>;
   activeIndex: Option.Option<number>;
   config: Config;
+  readonly layout: Layout;
 }>;
 
 export type InitConfig = Readonly<{
   points: ReadonlyArray<Point>;
   config?: Partial<Config>;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 const DEFAULT_CONFIG: Config = {
@@ -36,11 +41,16 @@ const DEFAULT_CONFIG: Config = {
 };
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
+  const layout = makeLayout(
+    { width: 480, height: 260, ...cfg.dims },
+    { top: 24, right: 20, bottom: 44, left: 44, ...cfg.margins },
+  );
   return [
     {
       points: cfg.points,
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
+      layout,
     },
     [],
   ];
@@ -52,7 +62,8 @@ export const HoveredPoint = m('HoveredPoint', { index: Schema.Number });
 export const BlurredPoint = m('BlurredPoint', {});
 export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
 
-export const Message = Schema.Union([HoveredPoint, BlurredPoint, PressedKeyNav]);
+export const UpdatedPoints = m('UpdatedPoints', { points: Schema.Unknown });
+export const Message = Schema.Union([HoveredPoint, BlurredPoint, PressedKeyNav, UpdatedPoints]);
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -65,39 +76,30 @@ export const update = (model: Model, msg: Message): Return =>
     Match.tagsExhaustive({
       HoveredPoint: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
       BlurredPoint: () => [{ ...model, activeIndex: Option.none() }, []],
+      UpdatedPoints: ({ points }) => [{ ...model, points: points as ReadonlyArray<Point> }, []],
       PressedKeyNav: ({ direction }) => {
         const n = model.points.length;
         const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
-        const next = direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
-        return [{ ...model, activeIndex: Option.some(next) }, []];
+        return [{ ...model, activeIndex: Option.some(nextIndex(n, current, direction)) }, []];
       },
     }),
   );
 
 // VIEW
 
-const W = 480;
-const H = 260;
-const MT = 24;
-const MR = 20;
-const MB = 44;
-const ML = 44;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
-
 export const view = <M>(config: {
   model: Model;
   toParentMessage: (msg: Message) => M;
   ariaLabel?: string;
+  renderTooltip?: (datum: Point, x: number, y: number) => Html;
 }): Html => {
   const h = html<M>();
-  const { model, toParentMessage, ariaLabel = 'Area chart' } = config;
+  const { model, toParentMessage, ariaLabel = 'Area chart', renderTooltip } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { points, activeIndex, config: cfg } = model;
 
   const maxValue = points.reduce((acc, p) => Math.max(acc, p.value), 0);
-  const yDomain: readonly [number, number] = [0, maxValue * 1.15];
+  const yDomain: readonly [number, number] = [0, maxValue * 1.1];
   const xDomain: readonly [number, number] = [0, points.length - 1];
 
   const yScale = linear({ domain: yDomain, range: [PH, 0] });
@@ -111,177 +113,66 @@ export const view = <M>(config: {
   const areaPath = area(coords, PH, { curve: cfg.curve });
   const linePath = line(coords, { curve: cfg.curve });
 
-  const handleKeyDown = (key: string): Option.Option<M> => {
-    if (key === 'ArrowRight')
-      return Option.some(toParentMessage(PressedKeyNav({ direction: 'next' })));
-    if (key === 'ArrowLeft')
-      return Option.some(toParentMessage(PressedKeyNav({ direction: 'prev' })));
-    return Option.none();
-  };
+  const handleKeyDown = (key: string) =>
+    arrowKeyNav(key, (dir) => toParentMessage(PressedKeyNav({ direction: dir })));
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Tabindex(0),
-      h.OnKeyDownPreventDefault(handleKeyDown),
-      h.Style({ display: 'block', outline: 'none', 'font-family': 'inherit' }),
-    ],
-    [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // Y gridlines + tick labels
-          h.g(
-            [],
-            yTicks.map((tick) => {
-              const y = r3(yScale(tick));
-              return h.g(
-                [h.Transform(`translate(0,${y})`)],
-                [
-                  h.line(
-                    [
-                      h.X1('0'), h.Y1('0'),
-                      h.X2(String(PW)), h.Y2('0'),
-                      h.Stroke('#e5e5e5'), h.StrokeWidth('1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('-8'), h.Y('0'),
-                      h.Style({
-                        'text-anchor': 'end',
-                        'dominant-baseline': 'middle',
-                        'font-size': '0.7rem',
-                        fill: '#888',
-                      }),
-                    ],
-                    [String(tick)],
-                  ),
-                ],
-              );
-            }),
-          ),
+  return svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        yGridlines(h, yTicks, (v) => yScale(v), PW),
 
-          // Area fill
-          ...(areaPath
-            ? [h.path([h.D(areaPath), h.Fill(`${cfg.color}22`), h.Stroke('none')], [])]
-            : []),
+        ...(areaPath
+          ? [h.path([h.D(areaPath), h.Fill(`${cfg.color}22`), h.Stroke('none')], [])]
+          : []),
 
-          // Stroke line on top
-          ...(linePath
-            ? [
-                h.path(
-                  [
-                    h.D(linePath),
-                    h.Fill('none'),
-                    h.Stroke(cfg.color),
-                    h.StrokeWidth('2'),
-                    h.Style({ 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }),
-                  ],
-                  [],
-                ),
-              ]
-            : []),
+        ...(linePath
+          ? [h.path([h.D(linePath), h.Fill('none'), h.Stroke(cfg.color), h.StrokeWidth('2'),
+              h.Style({ 'stroke-linejoin': 'round', 'stroke-linecap': 'round' })], [])]
+          : []),
 
-          // Active point vertical crosshair + dot
-          ...(Option.isSome(activeIndex)
-            ? (() => {
-                const i = activeIndex.value;
-                const [cx, cy] = coords[i];
-                const p = points[i];
-                return [
-                  h.line(
-                    [
-                      h.X1(String(cx)), h.Y1(String(cy)),
-                      h.X2(String(cx)), h.Y2(String(PH)),
-                      h.Stroke(cfg.color), h.StrokeWidth('1'),
-                      h.Style({ 'stroke-dasharray': '3,3', opacity: '0.5' }),
-                    ],
-                    [],
-                  ),
-                  h.circle(
-                    [
-                      h.Cx(String(cx)), h.Cy(String(cy)), h.R('5'),
-                      h.Fill('#fff'),
-                      h.Stroke(cfg.activeColor), h.StrokeWidth('2'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X(String(cx)),
-                      h.Y(String(r3(cy - 10))),
-                      h.Style({
-                        'text-anchor': 'middle',
-                        'dominant-baseline': 'auto',
-                        'font-size': '0.75rem',
-                        'font-weight': '600',
-                        fill: cfg.activeColor,
-                      }),
-                    ],
-                    [String(p.value)],
-                  ),
-                ];
-              })()
-            : []),
+        // Active crosshair + dot
+        ...(Option.isSome(activeIndex)
+          ? (() => {
+              const i = activeIndex.value;
+              const pt = coords[i];
+              const cx = pt?.[0] ?? 0;
+              const cy = pt?.[1] ?? 0;
+              const p = points[i];
+              return [
+                h.line([h.X1(String(cx)), h.Y1(String(cy)), h.X2(String(cx)), h.Y2(String(PH)),
+                  h.Stroke(cfg.color), h.StrokeWidth('1'),
+                  h.Style({ 'stroke-dasharray': '3,3', opacity: '0.5' })], []),
+                h.circle([h.Cx(String(cx)), h.Cy(String(cy)), h.R('5'),
+                  h.Fill('#fff'), h.Stroke(cfg.activeColor), h.StrokeWidth('2')], []),
+                (renderTooltip ? renderTooltip(p, cx, cy) : valueTooltip(h, cx, cy, String(p?.value ?? ''), { color: cfg.activeColor, offsetY: 10 })),
+              ];
+            })()
+          : []),
 
-          // Invisible hit areas for each point
-          h.g(
-            [],
-            points.map((_, i) => {
-              const [cx] = coords[i];
-              return h.rect(
-                [
-                  h.X(String(r3(cx - 16))),
-                  h.Y('0'),
-                  h.Width('32'),
-                  h.Height(String(PH)),
-                  h.Fill('transparent'),
-                  h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
-                  h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
-                  h.Style({ cursor: 'crosshair' }),
-                  h.AriaLabel(`${points[i].label}: ${points[i].value}`),
-                ],
-                [],
-              );
-            }),
-          ),
+        // Invisible hit areas
+        h.g(
+          [],
+          points.map((p, i) => {
+            const pt = coords[i];
+            const cx = pt?.[0] ?? 0;
+            return h.rect(
+              [
+                h.X(String(r3(cx - 16))), h.Y('0'),
+                h.Width('32'), h.Height(String(PH)),
+                h.Fill('transparent'),
+                h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
+                h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
+                h.Style({ cursor: 'crosshair' }),
+                h.AriaLabel(`${p.label}: ${p.value}`),
+              ],
+              [],
+            );
+          }),
+        ),
 
-          // X axis line
-          h.line(
-            [
-              h.X1('0'), h.Y1(String(PH)),
-              h.X2(String(PW)), h.Y2(String(PH)),
-              h.Stroke('#d4d4d4'), h.StrokeWidth('1'),
-            ],
-            [],
-          ),
-
-          // X axis labels
-          h.g(
-            [h.Transform(`translate(0,${PH})`)],
-            points.map((p, i) =>
-              h.text(
-                [
-                  h.X(String(r3(xScale(i)))),
-                  h.Y('14'),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'hanging',
-                    'font-size': '0.7rem',
-                    fill: '#888',
-                  }),
-                ],
-                [p.label],
-              ),
-            ),
-          ),
-        ],
-      ),
-    ],
-  );
+        xLinearAxis(h, points.map((p) => p.label), (i) => xScale(i), PH, PW),
+      ],
+    ),
+  ]);
 };

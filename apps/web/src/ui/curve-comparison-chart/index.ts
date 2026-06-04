@@ -5,6 +5,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -12,6 +14,8 @@ export type InitConfig = Readonly<{
   data: ReadonlyArray<readonly [number, number]>;
   xLabel?: string;
   yLabel?: string;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 export type Model = Readonly<{
@@ -19,6 +23,7 @@ export type Model = Readonly<{
   xLabel: string;
   yLabel: string;
   activeCurve: Option.Option<CurveType>;
+  readonly layout: Layout;
 }>;
 
 const CURVES: ReadonlyArray<Readonly<{ curve: CurveType; color: string }>> = [
@@ -30,12 +35,17 @@ const CURVES: ReadonlyArray<Readonly<{ curve: CurveType; color: string }>> = [
 ];
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
+  const layout = makeLayout(
+    { width: 480, height: 265, ...cfg.dims },
+    { top: 16, right: 16, bottom: 48, left: 44, ...cfg.margins },
+  );
   return [
     {
       data: cfg.data,
       xLabel: cfg.xLabel ?? 'x',
       yLabel: cfg.yLabel ?? 'y',
       activeCurve: Option.none(),
+      layout,
     },
     [],
   ];
@@ -64,15 +74,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 265;
-const MT = 16;
-const MR = 16;
-const MB = 48;
-const ML = 44;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
 export function view<M>(config: {
   model: Model;
   toParentMessage: (msg: Message) => M;
@@ -80,6 +81,7 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Curve comparison chart' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { data, xLabel, yLabel, activeCurve } = model;
 
   const active = Option.isSome(activeCurve) ? activeCurve.value : null;
@@ -105,15 +107,7 @@ export function view<M>(config: {
   const legendCols = 3;
   const colW = 88;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

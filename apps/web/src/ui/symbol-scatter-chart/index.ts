@@ -4,6 +4,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -143,7 +144,6 @@ const PH = H - MT - MB;
 const LEGEND_X = W - MR + 12;
 const LEGEND_SYMBOL_SIZE = 48;
 
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
 export function view<M>(config: {
   model: Model;
@@ -162,15 +162,7 @@ export function view<M>(config: {
   const activeIdx = Option.isSome(activeIndex) ? activeIndex.value : -1;
   const isAnyActive = activeIdx !== -1;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

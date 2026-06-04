@@ -3,6 +3,7 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -96,7 +97,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
 export const view = <M>(config: {
   model: Model;
@@ -129,17 +129,7 @@ export const view = <M>(config: {
     return Option.none();
   };
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${cfg.width} ${cfg.height}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Tabindex(0),
-      h.OnKeyDownPreventDefault(handleKeyDown),
-      h.Style({ display: 'block', outline: 'none', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: cfg.width, height: cfg.height, ariaLabel, interactive: true }, handleKeyDown, [
       // Edges
       h.g(
         [],

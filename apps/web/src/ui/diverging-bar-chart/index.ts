@@ -6,6 +6,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -17,16 +19,23 @@ export type Bar = Readonly<{
 export type InitConfig = Readonly<{
   bars: ReadonlyArray<Bar>;
   xLabel?: string;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 export type Model = Readonly<{
   bars: ReadonlyArray<Bar>;
   xLabel: string;
   activeLabel: Option.Option<string>;
+  readonly layout: Layout;
 }>;
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [{ bars: cfg.bars, xLabel: cfg.xLabel ?? '', activeLabel: Option.none() }, []];
+  const layout = makeLayout(
+    { width: 480, height: 265, ...cfg.dims },
+    { top: 20, right: 16, bottom: 40, left: 48, ...cfg.margins },
+  );
+  return [{ bars: cfg.bars, xLabel: cfg.xLabel ?? '', activeLabel: Option.none(), layout }, []];
 }
 
 // MESSAGE
@@ -52,15 +61,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 265;
-const MT = 20;
-const MR = 16;
-const MB = 40;
-const ML = 48;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
 const fmtPct = format('.1~%');
 
 export function view<M>(config: {
@@ -70,6 +70,7 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Diverging bar chart' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { bars, xLabel, activeLabel } = model;
 
   const active = Option.isSome(activeLabel) ? activeLabel.value : null;
@@ -95,15 +96,7 @@ export function view<M>(config: {
     interpolator: interpolateRgbBasis([...rdBu]),
   });
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

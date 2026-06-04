@@ -4,6 +4,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+import { r3, svgRoot, makeLayout } from '../shared';
+import type { Dims, Layout, Margins } from '../shared';
 
 // MODEL
 
@@ -18,6 +20,8 @@ export type InitConfig = Readonly<{
   tasks: ReadonlyArray<TimelineTask>;
   colors?: ReadonlyArray<string>;
   tickCount?: number;
+  dims?: Partial<Dims>;
+  margins?: Partial<Margins>;
 }>;
 
 export type ComputedTask = Readonly<{
@@ -32,6 +36,7 @@ export type Model = Readonly<{
   domain: readonly [Date, Date];
   activeTask: Option.Option<string>;
   tickCount: number;
+  readonly layout: Layout;
 }>;
 
 const DEFAULT_COLORS = [
@@ -59,8 +64,12 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
   const rawMin = new Date(Math.min(...allDates.map((d) => +d)));
   const rawMax = new Date(Math.max(...allDates.map((d) => +d)));
   const domain = timeNice([rawMin, rawMax], tickCount);
+  const layout = makeLayout(
+    { width: 480, height: 265, ...cfg.dims },
+    { top: 16, right: 16, bottom: 36, left: 88, ...cfg.margins },
+  );
 
-  return [{ tasks, domain, activeTask: Option.none(), tickCount }, []];
+  return [{ tasks, domain, activeTask: Option.none(), tickCount, layout }, []];
 }
 
 // MESSAGE
@@ -86,17 +95,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const W = 480;
-const H = 265;
-const MT = 16;
-const MR = 16;
-const MB = 36;
-const ML = 88;
-const PW = W - ML - MR;
-const PH = H - MT - MB;
-
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
-
 export function view<M>(config: {
   model: Model;
   toParentMessage: (msg: Message) => M;
@@ -104,6 +102,7 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Timeline chart' } = config;
+  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
   const { tasks, domain, activeTask, tickCount } = model;
 
   const xScale = scaleTime({ domain, range: [0, PW] });
@@ -117,15 +116,7 @@ export function view<M>(config: {
   const activeTaskName = Option.isSome(activeTask) ? activeTask.value : null;
   const barHeight = yScale.bandwidth;
 
-  return h.svg(
-    [
-      h.ViewBox(`0 0 ${W} ${H}`),
-      h.Width('100%'),
-      h.Role('img'),
-      h.AriaLabel(ariaLabel),
-      h.Style({ display: 'block', 'font-family': 'inherit' }),
-    ],
-    [
+  return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
       h.g(
         [h.Transform(`translate(${ML},${MT})`)],
         [

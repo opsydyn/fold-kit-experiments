@@ -126,121 +126,120 @@ export function view<M>(config: {
   const legendX = ML + (53 * CELL_SLOT - legendTotalW) / 2;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      // Month labels
-      h.g(
-        [],
-        monthLabels.map((ml) =>
-          h.text(
-            [
-              h.X(String(ML + ml.weekIndex * CELL_SLOT)),
-              h.Y(String(MONTH_Y)),
-              h.Style({ 'font-size': '0.6rem', fill: '#64748b', 'font-weight': '500' }),
-            ],
-            [ml.label],
-          ),
+    // Month labels
+    h.g(
+      [],
+      monthLabels.map((ml) =>
+        h.text(
+          [
+            h.X(String(ML + ml.weekIndex * CELL_SLOT)),
+            h.Y(String(MONTH_Y)),
+            h.Style({ 'font-size': '0.6rem', fill: '#64748b', 'font-weight': '500' }),
+          ],
+          [ml.label],
         ),
       ),
+    ),
 
-      // Day-of-week labels (Mon, Wed, Fri)
-      h.g(
-        [],
-        DAY_LABELS.flatMap((label, i) =>
-          label
-            ? [
-                h.text(
-                  [
-                    h.X(String(ML - 4)),
-                    h.Y(String(GRID_TOP + i * CELL_SLOT + CELL_SIZE / 2 + 1)),
-                    h.Style({
-                      'text-anchor': 'end',
-                      'dominant-baseline': 'middle',
-                      'font-size': '0.55rem',
-                      fill: '#94a3b8',
-                    }),
-                  ],
-                  [label],
-                ),
-              ]
-            : [],
+    // Day-of-week labels (Mon, Wed, Fri)
+    h.g(
+      [],
+      DAY_LABELS.flatMap((label, i) =>
+        label
+          ? [
+              h.text(
+                [
+                  h.X(String(ML - 4)),
+                  h.Y(String(GRID_TOP + i * CELL_SLOT + CELL_SIZE / 2 + 1)),
+                  h.Style({
+                    'text-anchor': 'end',
+                    'dominant-baseline': 'middle',
+                    'font-size': '0.55rem',
+                    fill: '#94a3b8',
+                  }),
+                ],
+                [label],
+              ),
+            ]
+          : [],
+      ),
+    ),
+
+    // Cells
+    h.g(
+      [],
+      days.map((day) =>
+        h.rect(
+          [
+            h.X(String(ML + day.weekIndex * CELL_SLOT)),
+            h.Y(String(GRID_TOP + day.dayIndex * CELL_SLOT)),
+            h.Width(String(CELL_SIZE)),
+            h.Height(String(CELL_SIZE)),
+            h.Attribute('rx', '1'),
+            h.Fill(day.color),
+            h.Opacity(!isAnyActive ? '1' : day.date === activeDateVal ? '1' : '0.45'),
+            h.Style({ transition: 'opacity 80ms', cursor: 'pointer' }),
+            h.OnMouseEnter(toParentMessage(HoveredDay({ date: day.date }))),
+            h.OnMouseLeave(toParentMessage(BlurredDay({}))),
+          ],
+          [],
         ),
       ),
+    ),
 
-      // Cells
-      h.g(
-        [],
-        days.map((day) =>
+    // Legend: Less □□□□□ More
+    h.g(
+      [h.Transform(`translate(${legendX}, ${legendY})`)],
+      [
+        h.text(
+          [
+            h.X('0'),
+            h.Y(String(LEGEND_BOX / 2 + 1)),
+            h.Style({ 'dominant-baseline': 'middle', 'font-size': '0.6rem', fill: '#94a3b8' }),
+          ],
+          ['Less'],
+        ),
+        ...legendStops.map((stop, i) =>
           h.rect(
             [
-              h.X(String(ML + day.weekIndex * CELL_SLOT)),
-              h.Y(String(GRID_TOP + day.dayIndex * CELL_SLOT)),
-              h.Width(String(CELL_SIZE)),
-              h.Height(String(CELL_SIZE)),
+              h.X(String(LEGEND_LABEL_W + i * (LEGEND_BOX + LEGEND_GAP))),
+              h.Y('0'),
+              h.Width(String(LEGEND_BOX)),
+              h.Height(String(LEGEND_BOX)),
               h.Attribute('rx', '1'),
-              h.Fill(day.color),
-              h.Opacity(!isAnyActive ? '1' : day.date === activeDateVal ? '1' : '0.45'),
-              h.Style({ transition: 'opacity 80ms', cursor: 'pointer' }),
-              h.OnMouseEnter(toParentMessage(HoveredDay({ date: day.date }))),
-              h.OnMouseLeave(toParentMessage(BlurredDay({}))),
+              h.Fill(stop.color),
             ],
             [],
           ),
         ),
-      ),
+        h.text(
+          [
+            h.X(String(LEGEND_LABEL_W + LEGEND_STEPS * (LEGEND_BOX + LEGEND_GAP) + 4)),
+            h.Y(String(LEGEND_BOX / 2 + 1)),
+            h.Style({ 'dominant-baseline': 'middle', 'font-size': '0.6rem', fill: '#94a3b8' }),
+          ],
+          ['More'],
+        ),
+      ],
+    ),
 
-      // Legend: Less □□□□□ More
-      h.g(
-        [h.Transform(`translate(${legendX}, ${legendY})`)],
-        [
-          h.text(
-            [
-              h.X('0'),
-              h.Y(String(LEGEND_BOX / 2 + 1)),
-              h.Style({ 'dominant-baseline': 'middle', 'font-size': '0.6rem', fill: '#94a3b8' }),
-            ],
-            ['Less'],
-          ),
-          ...legendStops.map((stop, i) =>
-            h.rect(
-              [
-                h.X(String(LEGEND_LABEL_W + i * (LEGEND_BOX + LEGEND_GAP))),
-                h.Y('0'),
-                h.Width(String(LEGEND_BOX)),
-                h.Height(String(LEGEND_BOX)),
-                h.Attribute('rx', '1'),
-                h.Fill(stop.color),
-              ],
-              [],
-            ),
-          ),
-          h.text(
-            [
-              h.X(String(LEGEND_LABEL_W + LEGEND_STEPS * (LEGEND_BOX + LEGEND_GAP) + 4)),
-              h.Y(String(LEGEND_BOX / 2 + 1)),
-              h.Style({ 'dominant-baseline': 'middle', 'font-size': '0.6rem', fill: '#94a3b8' }),
-            ],
-            ['More'],
-          ),
-        ],
-      ),
-
-      // Hover tooltip
-      h.text(
-        [
-          h.X(String(ML + (53 * CELL_SLOT) / 2)),
-          h.Y(String(legendY + LEGEND_BOX + 16)),
-          h.Style({
-            'text-anchor': 'middle',
-            'font-size': '0.65rem',
-            'font-weight': '600',
-            fill: activeDay ? '#475569' : 'transparent',
-          }),
-        ],
-        [
-          activeDay
-            ? `${activeDay.count} commit${activeDay.count !== 1 ? 's' : ''} — ${activeDay.displayDate}`
-            : ' ',
-        ],
-      ),
-    ],
-  );
+    // Hover tooltip
+    h.text(
+      [
+        h.X(String(ML + (53 * CELL_SLOT) / 2)),
+        h.Y(String(legendY + LEGEND_BOX + 16)),
+        h.Style({
+          'text-anchor': 'middle',
+          'font-size': '0.65rem',
+          'font-weight': '600',
+          fill: activeDay ? '#475569' : 'transparent',
+        }),
+      ],
+      [
+        activeDay
+          ? `${activeDay.count} commit${activeDay.count !== 1 ? 's' : ''} — ${activeDay.displayDate}`
+          : ' ',
+      ],
+    ),
+  ]);
 }

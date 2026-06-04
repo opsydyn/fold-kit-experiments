@@ -15,6 +15,7 @@ globalStyle('body', {
 
 export const nav = style({
   display: 'flex',
+  alignItems: 'center',
   gap: '0.25rem',
   padding: '0.75rem 1.5rem',
   background: '#fff',
@@ -50,4 +51,22 @@ export const heading = style({
   fontSize: '1.5rem',
   fontWeight: 700,
   marginBottom: '1.5rem',
+});
+
+export const themeToggle = style({
+  marginInlineStart: 'auto',
+  display: 'grid',
+  placeItems: 'center',
+  width: '2rem',
+  height: '2rem',
+  border: '1px solid #e5e5e5',
+  borderRadius: '6px',
+  background: 'transparent',
+  cursor: 'pointer',
+  fontSize: '1rem',
+  color: '#555',
+  transition: 'background 120ms, color 120ms',
+  selectors: {
+    '&:hover': { background: '#f0f0f0', color: '#111' },
+  },
 });

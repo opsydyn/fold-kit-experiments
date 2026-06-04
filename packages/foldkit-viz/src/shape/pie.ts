@@ -29,8 +29,7 @@ export function pie<T>(
   const endAngle = config.endAngle ?? tau;
   const padAngle = config.padAngle ?? 0;
 
-  const sortValues =
-    'sortValues' in config ? config.sortValues : defaultSortValues;
+  const sortValues = 'sortValues' in config ? config.sortValues : defaultSortValues;
   const sort = 'sort' in config ? config.sort : null;
 
   const n = data.length;

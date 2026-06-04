@@ -1,0 +1,48 @@
+/*
+ * Chart design tokens — CSS custom properties consumed by SVG charts.
+ * Dark mode is the default; light mode is toggled via [data-theme="light"].
+ *
+ * Charts read these via `var(--chart-*)` in inline SVG styles.
+ * Gridlines, axes, labels, and tooltips all adapt automatically on theme switch.
+ */
+
+:root {
+  /* Grid lines (horizontal/vertical rule inside plot area) */
+  --chart-grid: #2d2d2d;
+
+  /* Axis lines (baseline / frame) */
+  --chart-axis: #3a3a3a;
+
+  /* Tick labels and categorical axis labels */
+  --chart-label: #888888;
+
+  /* Secondary/subdued labels (axis titles, legend captions) */
+  --chart-label-muted: #555555;
+
+  /* Tooltip text colour */
+  --chart-tooltip-text: #e2e2e2;
+
+  /* Tooltip background */
+  --chart-tooltip-bg: rgba(24, 24, 28, 0.92);
+
+  /* Accent — default active/hover color when no series color is set */
+  --chart-accent: #6366f1;
+
+  /* Surface — chart background (usually transparent, but useful for print) */
+  --chart-bg: transparent;
+
+  /* Crosshair / active selection line */
+  --chart-crosshair: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="light"] {
+  --chart-grid: #e5e5e5;
+  --chart-axis: #d4d4d4;
+  --chart-label: #555555;
+  --chart-label-muted: #aaaaaa;
+  --chart-tooltip-text: #1a1a1a;
+  --chart-tooltip-bg: rgba(255, 255, 255, 0.95);
+  --chart-accent: #4f46e5;
+  --chart-bg: transparent;
+  --chart-crosshair: rgba(0, 0, 0, 0.1);
+}

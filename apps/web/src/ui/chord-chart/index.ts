@@ -1,6 +1,6 @@
+import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { arc, arcCentroid } from '@opsydyn/foldkit-viz/shape/arc';
 import { chord, ribbon } from '@opsydyn/foldkit-viz/shape/chord';
-import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
@@ -185,71 +185,70 @@ export const view = <M>(config: {
   const activeIdx = isAnyActive ? activeIndex.value : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${CX},${CY})`)],
-        [
-          // Ribbons
-          ...ribbons.map((r) => {
-            const isActive =
-              isAnyActive && (r.sourceIndex === activeIdx || r.targetIndex === activeIdx);
-            const opacity = !isAnyActive ? '0.65' : isActive ? '0.85' : '0.1';
-            return h.path(
-              [
-                h.D(r.pathD),
-                h.Fill(isActive ? tint(r.sourceColor, 0.15) : r.fillColor),
-                h.Stroke(r.sourceColor),
-                h.StrokeWidth(isActive ? '1' : '0.3'),
-                h.Style({ opacity, transition: 'opacity 150ms' }),
-              ],
-              [],
-            );
-          }),
+    h.g(
+      [h.Transform(`translate(${CX},${CY})`)],
+      [
+        // Ribbons
+        ...ribbons.map((r) => {
+          const isActive =
+            isAnyActive && (r.sourceIndex === activeIdx || r.targetIndex === activeIdx);
+          const opacity = !isAnyActive ? '0.65' : isActive ? '0.85' : '0.1';
+          return h.path(
+            [
+              h.D(r.pathD),
+              h.Fill(isActive ? tint(r.sourceColor, 0.15) : r.fillColor),
+              h.Stroke(r.sourceColor),
+              h.StrokeWidth(isActive ? '1' : '0.3'),
+              h.Style({ opacity, transition: 'opacity 150ms' }),
+            ],
+            [],
+          );
+        }),
 
-          // Group arcs
-          ...groups.map((g) => {
-            const isActive = isAnyActive && g.index === activeIdx;
-            const opacity = !isAnyActive ? '1' : isActive ? '1' : '0.4';
-            return h.g(
-              [
-                h.Style({ cursor: 'pointer' }),
-                h.OnMouseEnter(toParentMessage(HoveredGroup({ index: g.index }))),
-                h.OnMouseLeave(toParentMessage(BlurredGroup({}))),
-                h.AriaLabel(g.label),
-              ],
-              [
-                h.path(
-                  [
-                    h.D(g.pathD),
-                    h.Fill(g.color),
-                    h.Stroke('#fff'),
-                    h.StrokeWidth('1'),
-                    h.Style({ opacity, transition: 'opacity 150ms' }),
-                  ],
-                  [],
-                ),
-                h.text(
-                  [
-                    h.X(String(g.labelX)),
-                    h.Y(String(g.labelY)),
-                    h.Style({
-                      'text-anchor': g.labelAnchor,
-                      'dominant-baseline': 'middle',
-                      'font-size': '0.6rem',
-                      'font-weight': isActive ? '700' : '500',
-                      fill: isActive ? g.color : '#475569',
-                      opacity: !isAnyActive ? '1' : isActive ? '1' : '0.5',
-                      transition: 'opacity 150ms',
-                      'pointer-events': 'none',
-                      'user-select': 'none',
-                    }),
-                  ],
-                  [g.label],
-                ),
-              ],
-            );
-          }),
-        ],
-      ),
-    ],
-  );
+        // Group arcs
+        ...groups.map((g) => {
+          const isActive = isAnyActive && g.index === activeIdx;
+          const opacity = !isAnyActive ? '1' : isActive ? '1' : '0.4';
+          return h.g(
+            [
+              h.Style({ cursor: 'pointer' }),
+              h.OnMouseEnter(toParentMessage(HoveredGroup({ index: g.index }))),
+              h.OnMouseLeave(toParentMessage(BlurredGroup({}))),
+              h.AriaLabel(g.label),
+            ],
+            [
+              h.path(
+                [
+                  h.D(g.pathD),
+                  h.Fill(g.color),
+                  h.Stroke('#fff'),
+                  h.StrokeWidth('1'),
+                  h.Style({ opacity, transition: 'opacity 150ms' }),
+                ],
+                [],
+              ),
+              h.text(
+                [
+                  h.X(String(g.labelX)),
+                  h.Y(String(g.labelY)),
+                  h.Style({
+                    'text-anchor': g.labelAnchor,
+                    'dominant-baseline': 'middle',
+                    'font-size': '0.6rem',
+                    'font-weight': isActive ? '700' : '500',
+                    fill: isActive ? g.color : '#475569',
+                    opacity: !isAnyActive ? '1' : isActive ? '1' : '0.5',
+                    transition: 'opacity 150ms',
+                    'pointer-events': 'none',
+                    'user-select': 'none',
+                  }),
+                ],
+                [g.label],
+              ),
+            ],
+          );
+        }),
+      ],
+    ),
+  ]);
 };

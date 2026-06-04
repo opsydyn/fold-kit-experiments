@@ -1,6 +1,5 @@
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
-import { Option } from 'effect';
+import type { Option } from 'effect';
+import type { Html, html } from 'foldkit/html';
 
 type H<M> = ReturnType<typeof html<M>>;
 
@@ -27,7 +26,13 @@ export function svgRoot<M>(
     h.Width('100%'),
     h.Role('img'),
     h.AriaLabel(ariaLabel),
-    h.Style({ display: 'block', outline: 'none', 'font-family': 'inherit', ...style }),
+    h.Style({
+      display: 'block',
+      outline: 'none',
+      'font-family': 'inherit',
+      color: 'var(--chart-label, #888)',
+      ...style,
+    }),
     ...(interactive ? [h.Tabindex(0)] : []),
     ...(interactive && handleKeyDown ? [h.OnKeyDownPreventDefault(handleKeyDown)] : []),
   ];

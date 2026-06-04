@@ -4,8 +4,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { r3, svgRoot, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -144,7 +144,12 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Violin plot' } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { violins, yDomain, yLabel, activeLabel, labels } = model;
 
   const xScale = point({ domain: labels, range: [0, PW], padding: 0.5 });
@@ -154,150 +159,149 @@ export function view<M>(config: {
   const activeStr = Option.isSome(activeLabel) ? activeLabel.value : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // Y gridlines + labels
-          h.g(
-            [],
-            yTicks.map((tick) => {
-              const y = r3(yScale(tick));
-              return h.g(
-                [h.Transform(`translate(0,${y})`)],
-                [
-                  h.line(
-                    [
-                      h.X1('0'),
-                      h.Y1('0'),
-                      h.X2(String(PW)),
-                      h.Y2('0'),
-                      h.Stroke('#e5e7eb'),
-                      h.StrokeWidth('1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('-8'),
-                      h.Y('0'),
-                      h.Style({
-                        'text-anchor': 'end',
-                        'dominant-baseline': 'middle',
-                        'font-size': '0.62rem',
-                        fill: '#94a3b8',
-                      }),
-                    ],
-                    [String(Math.round(tick))],
-                  ),
-                ],
-              );
-            }),
-          ),
-
-          // Y axis label
-          ...(yLabel
-            ? [
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // Y gridlines + labels
+        h.g(
+          [],
+          yTicks.map((tick) => {
+            const y = r3(yScale(tick));
+            return h.g(
+              [h.Transform(`translate(0,${y})`)],
+              [
+                h.line(
+                  [
+                    h.X1('0'),
+                    h.Y1('0'),
+                    h.X2(String(PW)),
+                    h.Y2('0'),
+                    h.Stroke('#e5e7eb'),
+                    h.StrokeWidth('1'),
+                  ],
+                  [],
+                ),
                 h.text(
                   [
-                    h.Transform(`rotate(-90) translate(${-(PH / 2)}, -34)`),
+                    h.X('-8'),
+                    h.Y('0'),
                     h.Style({
-                      'text-anchor': 'middle',
-                      'dominant-baseline': 'hanging',
-                      'font-size': '0.65rem',
-                      fill: '#64748b',
+                      'text-anchor': 'end',
+                      'dominant-baseline': 'middle',
+                      'font-size': '0.62rem',
+                      fill: '#94a3b8',
                     }),
                   ],
-                  [yLabel],
+                  [String(Math.round(tick))],
                 ),
-              ]
-            : []),
+              ],
+            );
+          }),
+        ),
 
-          // Violins
-          h.g(
-            [],
-            violins.map((v) => {
-              const cx = r3(xScale.position(v.label));
-              const isActive = v.label === activeStr;
-              const opacity = activeStr === null ? 0.8 : isActive ? 1 : 0.2;
-              const path = violinPath(v.density, v.maxDensity, cx, halfWidth, yScale);
-
-              const iqrTop = r3(yScale(v.q3));
-              const iqrBot = r3(yScale(v.q1));
-              const medY = r3(yScale(v.median));
-
-              return h.g(
+        // Y axis label
+        ...(yLabel
+          ? [
+              h.text(
                 [
-                  h.OnMouseEnter(toParentMessage(HoveredViolin({ label: v.label }))),
-                  h.OnMouseLeave(toParentMessage(BlurredViolin({}))),
-                  h.Style({ cursor: 'default' }),
-                ],
-                [
-                  // Violin shape
-                  h.path(
-                    [
-                      h.D(path),
-                      h.Fill(v.color),
-                      h.Opacity(String(opacity)),
-                      h.Style({ transition: 'opacity 80ms' }),
-                    ],
-                    [],
-                  ),
-                  // IQR bar
-                  h.line(
-                    [
-                      h.X1(String(cx)),
-                      h.Y1(String(iqrTop)),
-                      h.X2(String(cx)),
-                      h.Y2(String(iqrBot)),
-                      h.Stroke('#fff'),
-                      h.StrokeWidth('2'),
-                      h.Opacity(String(opacity)),
-                    ],
-                    [],
-                  ),
-                  // Median dot
-                  h.circle(
-                    [
-                      h.Cx(String(cx)),
-                      h.Cy(String(medY)),
-                      h.R('3'),
-                      h.Fill('#fff'),
-                      h.Stroke(v.color),
-                      h.StrokeWidth('1.5'),
-                      h.Opacity(String(opacity)),
-                    ],
-                    [],
-                  ),
-                ],
-              );
-            }),
-          ),
-
-          // X axis labels
-          h.g(
-            [h.Transform(`translate(0,${PH})`)],
-            violins.map((v) => {
-              const cx = r3(xScale.position(v.label));
-              const isActive = v.label === activeStr;
-              return h.text(
-                [
-                  h.X(String(cx)),
-                  h.Y('14'),
+                  h.Transform(`rotate(-90) translate(${-(PH / 2)}, -34)`),
                   h.Style({
                     'text-anchor': 'middle',
                     'dominant-baseline': 'hanging',
                     'font-size': '0.65rem',
-                    'font-weight': isActive ? '600' : '400',
-                    fill: isActive ? '#1e293b' : '#64748b',
-                    transition: 'font-weight 80ms',
+                    fill: '#64748b',
                   }),
                 ],
-                [v.label],
-              );
-            }),
-          ),
-        ],
-      ),
-    ],
-  );
+                [yLabel],
+              ),
+            ]
+          : []),
+
+        // Violins
+        h.g(
+          [],
+          violins.map((v) => {
+            const cx = r3(xScale.position(v.label));
+            const isActive = v.label === activeStr;
+            const opacity = activeStr === null ? 0.8 : isActive ? 1 : 0.2;
+            const path = violinPath(v.density, v.maxDensity, cx, halfWidth, yScale);
+
+            const iqrTop = r3(yScale(v.q3));
+            const iqrBot = r3(yScale(v.q1));
+            const medY = r3(yScale(v.median));
+
+            return h.g(
+              [
+                h.OnMouseEnter(toParentMessage(HoveredViolin({ label: v.label }))),
+                h.OnMouseLeave(toParentMessage(BlurredViolin({}))),
+                h.Style({ cursor: 'default' }),
+              ],
+              [
+                // Violin shape
+                h.path(
+                  [
+                    h.D(path),
+                    h.Fill(v.color),
+                    h.Opacity(String(opacity)),
+                    h.Style({ transition: 'opacity 80ms' }),
+                  ],
+                  [],
+                ),
+                // IQR bar
+                h.line(
+                  [
+                    h.X1(String(cx)),
+                    h.Y1(String(iqrTop)),
+                    h.X2(String(cx)),
+                    h.Y2(String(iqrBot)),
+                    h.Stroke('#fff'),
+                    h.StrokeWidth('2'),
+                    h.Opacity(String(opacity)),
+                  ],
+                  [],
+                ),
+                // Median dot
+                h.circle(
+                  [
+                    h.Cx(String(cx)),
+                    h.Cy(String(medY)),
+                    h.R('3'),
+                    h.Fill('#fff'),
+                    h.Stroke(v.color),
+                    h.StrokeWidth('1.5'),
+                    h.Opacity(String(opacity)),
+                  ],
+                  [],
+                ),
+              ],
+            );
+          }),
+        ),
+
+        // X axis labels
+        h.g(
+          [h.Transform(`translate(0,${PH})`)],
+          violins.map((v) => {
+            const cx = r3(xScale.position(v.label));
+            const isActive = v.label === activeStr;
+            return h.text(
+              [
+                h.X(String(cx)),
+                h.Y('14'),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'hanging',
+                  'font-size': '0.65rem',
+                  'font-weight': isActive ? '600' : '400',
+                  fill: isActive ? '#1e293b' : '#64748b',
+                  transition: 'font-weight 80ms',
+                }),
+              ],
+              [v.label],
+            );
+          }),
+        ),
+      ],
+    ),
+  ]);
 }

@@ -1,7 +1,7 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
+import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { area } from '@opsydyn/foldkit-viz/shape/area';
 import { stack } from '@opsydyn/foldkit-viz/shape/stack';
-import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
@@ -99,7 +99,10 @@ function buildLayout(cfg: InitConfig): Layout {
     return {
       key: s.key,
       index: s.index,
-      color: meta?.color ?? (cfg.scheme ?? tableau10)[s.index % (cfg.scheme ?? tableau10).length] ?? '#94a3b8',
+      color:
+        meta?.color ??
+        (cfg.scheme ?? tableau10)[s.index % (cfg.scheme ?? tableau10).length] ??
+        '#94a3b8',
       label: meta?.label ?? s.key,
       pathD,
       labelX,
@@ -164,66 +167,65 @@ export const view = <M>(config: {
   const activeValue = isAnyActive ? activeKey.value : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          ...series.map((s) => {
-            const isActive = isAnyActive && s.key === activeValue;
-            const opacity = !isAnyActive ? '0.85' : isActive ? '1' : '0.2';
-            return h.path(
-              [
-                h.D(s.pathD),
-                h.Fill(s.color),
-                h.Stroke(s.color),
-                h.StrokeWidth(isActive ? '1.5' : '0.5'),
-                h.Style({ opacity, transition: 'opacity 150ms', cursor: 'pointer' }),
-                h.OnMouseEnter(toParentMessage(HoveredSeries({ key: s.key }))),
-                h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
-              ],
-              [],
-            );
-          }),
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        ...series.map((s) => {
+          const isActive = isAnyActive && s.key === activeValue;
+          const opacity = !isAnyActive ? '0.85' : isActive ? '1' : '0.2';
+          return h.path(
+            [
+              h.D(s.pathD),
+              h.Fill(s.color),
+              h.Stroke(s.color),
+              h.StrokeWidth(isActive ? '1.5' : '0.5'),
+              h.Style({ opacity, transition: 'opacity 150ms', cursor: 'pointer' }),
+              h.OnMouseEnter(toParentMessage(HoveredSeries({ key: s.key }))),
+              h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
+            ],
+            [],
+          );
+        }),
 
-          ...series.map((s) => {
-            if (!s.showLabel) return h.g([], []);
-            const isActive = isAnyActive && s.key === activeValue;
-            return h.text(
+        ...series.map((s) => {
+          if (!s.showLabel) return h.g([], []);
+          const isActive = isAnyActive && s.key === activeValue;
+          return h.text(
+            [
+              h.X(String(s.labelX)),
+              h.Y(String(s.labelY)),
+              h.Style({
+                'text-anchor': 'middle',
+                'dominant-baseline': 'middle',
+                'font-size': '0.62rem',
+                'font-weight': '700',
+                fill: isActive ? '#fff' : 'rgba(255,255,255,0.75)',
+                'pointer-events': 'none',
+                'user-select': 'none',
+              }),
+            ],
+            [s.label],
+          );
+        }),
+
+        h.g(
+          [],
+          xLabels.map((xl) =>
+            h.text(
               [
-                h.X(String(s.labelX)),
-                h.Y(String(s.labelY)),
+                h.X(String(xl.x)),
+                h.Y(String(PH + 18)),
                 h.Style({
-                  'text-anchor': 'middle',
-                  'dominant-baseline': 'middle',
+                  'text-anchor': xl.anchor,
                   'font-size': '0.62rem',
-                  'font-weight': '700',
-                  fill: isActive ? '#fff' : 'rgba(255,255,255,0.75)',
-                  'pointer-events': 'none',
-                  'user-select': 'none',
+                  fill: '#94a3b8',
                 }),
               ],
-              [s.label],
-            );
-          }),
-
-          h.g(
-            [],
-            xLabels.map((xl) =>
-              h.text(
-                [
-                  h.X(String(xl.x)),
-                  h.Y(String(PH + 18)),
-                  h.Style({
-                    'text-anchor': xl.anchor,
-                    'font-size': '0.62rem',
-                    fill: '#94a3b8',
-                  }),
-                ],
-                [xl.label],
-              ),
+              [xl.label],
             ),
           ),
-        ],
-      ),
-    ],
-  );
+        ),
+      ],
+    ),
+  ]);
 };

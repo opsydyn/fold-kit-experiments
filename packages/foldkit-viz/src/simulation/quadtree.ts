@@ -37,24 +37,31 @@ export interface Quadtree {
   y1: number;
   root: QuadNode | undefined;
   addAll(nodes: ReadonlyArray<SimNode>): void;
-  visit(cb: (node: QuadNode, x0: number, y0: number, x1: number, y1: number) => boolean | void): void;
+  visit(
+    cb: (node: QuadNode, x0: number, y0: number, x1: number, y1: number) => boolean | undefined,
+  ): void;
   visitAfter(cb: (node: QuadNode, x0: number, y0: number, x1: number, y1: number) => void): void;
 }
 
 export function createQuadtree(): Quadtree {
-  let _x0 = NaN, _y0 = NaN, _x1 = NaN, _y1 = NaN;
+  let _x0 = NaN,
+    _y0 = NaN,
+    _x1 = NaN,
+    _y1 = NaN;
   let _root: QuadNode | undefined;
 
   // ── cover ──────────────────────────────────────────────────────────────────
   // Expand the tree bounds to include (x, y). D3 cover.js parity.
 
   function cover(x: number, y: number): void {
-    if (isNaN(x) || isNaN(y)) return;
+    if (Number.isNaN(x) || Number.isNaN(y)) return;
 
-    if (isNaN(_x0)) {
+    if (Number.isNaN(_x0)) {
       // First point initialises extent to a unit square around floor(x)
-      _x1 = (_x0 = Math.floor(x)) + 1;
-      _y1 = (_y0 = Math.floor(y)) + 1;
+      _x0 = Math.floor(x);
+      _x1 = _x0 + 1;
+      _y0 = Math.floor(y);
+      _y1 = _y0 + 1;
       return;
     }
 
@@ -66,16 +73,32 @@ export function createQuadtree(): Quadtree {
       // Which quadrant does the existing content live in relative to the expansion?
       // i = (existing content is south) << 1 | (existing content is east)
       // equivalently: new point is north/west → i where existing is opposite
-      const i = ((y < _y0) as unknown as number) << 1 | ((x < _x0) as unknown as number);
-      const parent: InternalQuad = Object.assign(new Array(4) as InternalQuad, { x: undefined, y: undefined, value: undefined });
+      const i = (((y < _y0) as unknown as number) << 1) | ((x < _x0) as unknown as number);
+      const parent: InternalQuad = Object.assign(new Array(4) as InternalQuad, {
+        x: undefined,
+        y: undefined,
+        value: undefined,
+      });
       parent[i ^ 3] = node;
       node = parent;
       z *= 2;
       switch (i) {
-        case 0: _x1 = _x0 + z; _y1 = _y0 + z; break;
-        case 1: _x0 = _x1 - z; _y1 = _y0 + z; break;
-        case 2: _x1 = _x0 + z; _y0 = _y1 - z; break;
-        case 3: _x0 = _x1 - z; _y0 = _y1 - z; break;
+        case 0:
+          _x1 = _x0 + z;
+          _y1 = _y0 + z;
+          break;
+        case 1:
+          _x0 = _x1 - z;
+          _y1 = _y0 + z;
+          break;
+        case 2:
+          _x1 = _x0 + z;
+          _y0 = _y1 - z;
+          break;
+        case 3:
+          _x0 = _x1 - z;
+          _y0 = _y1 - z;
+          break;
       }
     }
 
@@ -94,7 +117,10 @@ export function createQuadtree(): Quadtree {
       return;
     }
 
-    let x0 = _x0, y0 = _y0, x1 = _x1, y1 = _y1;
+    let x0 = _x0,
+      y0 = _y0,
+      x1 = _x1,
+      y1 = _y1;
     let parent: InternalQuad | undefined;
     let node = _root;
     let i = 0;
@@ -105,15 +131,17 @@ export function createQuadtree(): Quadtree {
       const ym = (y0 + y1) / 2;
       const right = px >= xm;
       const bottom = py >= ym;
-      i = (bottom ? 1 : 0) << 1 | (right ? 1 : 0);
+      i = ((bottom ? 1 : 0) << 1) | (right ? 1 : 0);
       parent = node;
       const child = node[i];
       if (!child) {
         node[i] = leaf;
         return;
       }
-      if (right) x0 = xm; else x1 = xm;
-      if (bottom) y0 = ym; else y1 = ym;
+      if (right) x0 = xm;
+      else x1 = xm;
+      if (bottom) y0 = ym;
+      else y1 = ym;
       node = child;
     }
 
@@ -130,15 +158,19 @@ export function createQuadtree(): Quadtree {
 
     // Not coincident: subdivide until new and existing leaf separate
     do {
-      const internal: InternalQuad = Object.assign(new Array(4) as InternalQuad, { x: undefined, y: undefined, value: undefined });
+      const internal: InternalQuad = Object.assign(new Array(4) as InternalQuad, {
+        x: undefined,
+        y: undefined,
+        value: undefined,
+      });
       if (parent) parent[i] = internal;
       else _root = internal;
       parent = internal;
 
       const xm = (x0 + x1) / 2;
       const ym = (y0 + y1) / 2;
-      const ri = ((py >= ym) ? 1 : 0) << 1 | ((px >= xm) ? 1 : 0);
-      const li2 = ((ly >= ym) ? 1 : 0) << 1 | ((lx >= xm) ? 1 : 0);
+      const ri = ((py >= ym ? 1 : 0) << 1) | (px >= xm ? 1 : 0);
+      const li2 = ((ly >= ym ? 1 : 0) << 1) | (lx >= xm ? 1 : 0);
       i = ri;
 
       if (ri !== li2) {
@@ -148,8 +180,10 @@ export function createQuadtree(): Quadtree {
       }
 
       // Still same quadrant — narrow bounds and repeat
-      if (ri & 1) x0 = xm; else x1 = xm;
-      if (ri >> 1) y0 = ym; else y1 = ym;
+      if (ri & 1) x0 = xm;
+      else x1 = xm;
+      if (ri >> 1) y0 = ym;
+      else y1 = ym;
     } while (true); // eslint-disable-line no-constant-condition
   }
 
@@ -159,14 +193,22 @@ export function createQuadtree(): Quadtree {
   function addAll(nodes: ReadonlyArray<SimNode>): void {
     if (nodes.length === 0) return;
 
-    let x0min = Infinity, y0min = Infinity, x1max = -Infinity, y1max = -Infinity;
+    let x0min = Infinity,
+      y0min = Infinity,
+      x1max = -Infinity,
+      y1max = -Infinity;
     const xs: number[] = [];
     const ys: number[] = [];
 
     for (let i = 0; i < nodes.length; i++) {
       const n = nodes[i]!;
-      const x = n.x, y = n.y;
-      if (isNaN(x) || isNaN(y)) { xs.push(NaN); ys.push(NaN); continue; }
+      const x = n.x,
+        y = n.y;
+      if (Number.isNaN(x) || Number.isNaN(y)) {
+        xs.push(NaN);
+        ys.push(NaN);
+        continue;
+      }
       xs.push(x);
       ys.push(y);
       if (x < x0min) x0min = x;
@@ -183,17 +225,25 @@ export function createQuadtree(): Quadtree {
     for (let i = 0; i < nodes.length; i++) {
       const xi = xs[i]!;
       const yi = ys[i]!;
-      if (!isNaN(xi) && !isNaN(yi)) add(nodes[i]!, xi, yi);
+      if (!Number.isNaN(xi) && !Number.isNaN(yi)) add(nodes[i]!, xi, yi);
     }
   }
 
   // ── visit ──────────────────────────────────────────────────────────────────
   // Top-down traversal. Callback returning true prunes the subtree.
 
-  function visit(cb: (node: QuadNode, x0: number, y0: number, x1: number, y1: number) => boolean | void): void {
+  function visit(
+    cb: (node: QuadNode, x0: number, y0: number, x1: number, y1: number) => boolean | undefined,
+  ): void {
     if (!_root) return;
 
-    interface Frame { node: QuadNode; x0: number; y0: number; x1: number; y1: number }
+    interface Frame {
+      node: QuadNode;
+      x0: number;
+      y0: number;
+      x1: number;
+      y1: number;
+    }
     const stack: Frame[] = [{ node: _root, x0: _x0, y0: _y0, x1: _x1, y1: _y1 }];
 
     while (stack.length > 0) {
@@ -215,10 +265,18 @@ export function createQuadtree(): Quadtree {
   // ── visitAfter ─────────────────────────────────────────────────────────────
   // Post-order traversal (children before parents). D3 visitAfter.js parity.
 
-  function visitAfter(cb: (node: QuadNode, x0: number, y0: number, x1: number, y1: number) => void): void {
+  function visitAfter(
+    cb: (node: QuadNode, x0: number, y0: number, x1: number, y1: number) => void,
+  ): void {
     if (!_root) return;
 
-    interface Frame { node: QuadNode; x0: number; y0: number; x1: number; y1: number }
+    interface Frame {
+      node: QuadNode;
+      x0: number;
+      y0: number;
+      x1: number;
+      y1: number;
+    }
     const quads: Frame[] = [];
     const next: Frame[] = [];
 
@@ -245,11 +303,21 @@ export function createQuadtree(): Quadtree {
   }
 
   return {
-    get x0() { return _x0; },
-    get y0() { return _y0; },
-    get x1() { return _x1; },
-    get y1() { return _y1; },
-    get root() { return _root; },
+    get x0() {
+      return _x0;
+    },
+    get y0() {
+      return _y0;
+    },
+    get x1() {
+      return _x1;
+    },
+    get y1() {
+      return _y1;
+    },
+    get root() {
+      return _root;
+    },
     addAll,
     visit,
     visitAfter,

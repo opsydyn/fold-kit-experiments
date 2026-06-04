@@ -1,6 +1,6 @@
 import { Schema } from 'effect';
-import * as SunburstChart from '../../ui/sunburst-chart';
 import { m } from 'foldkit/message';
+import * as SunburstChart from '../../ui/sunburst-chart';
 
 export const GotSunburstMessage = m('GotSunburstMessage', {
   inner: SunburstChart.Message,

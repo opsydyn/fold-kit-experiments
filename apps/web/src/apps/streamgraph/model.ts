@@ -29,11 +29,11 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     data: DATA,
     xLabels: MONTHS,
     series: [
-      { key: 'react',   label: 'React',   color: '#38bdf8' },
-      { key: 'vue',     label: 'Vue',     color: '#4ade80' },
+      { key: 'react', label: 'React', color: '#38bdf8' },
+      { key: 'vue', label: 'Vue', color: '#4ade80' },
       { key: 'angular', label: 'Angular', color: '#f87171' },
-      { key: 'svelte',  label: 'Svelte',  color: '#fb923c' },
-      { key: 'solid',   label: 'Solid',   color: '#c084fc' },
+      { key: 'svelte', label: 'Svelte', color: '#fb923c' },
+      { key: 'solid', label: 'Solid', color: '#c084fc' },
     ],
   });
   return [{ streamgraph }, []];

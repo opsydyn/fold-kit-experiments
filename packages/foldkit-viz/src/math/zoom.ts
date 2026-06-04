@@ -80,7 +80,11 @@ export function multiplyMatrices(a: TransformMatrix, b: TransformMatrix): Transf
 export function composeMatrices(...matrices: TransformMatrix[]): TransformMatrix {
   if (matrices.length === 0) throw new Error('composeMatrices requires at least one argument');
   if (matrices.length === 1) return matrices[0] as TransformMatrix;
-  const [first, second, ...rest] = matrices as [TransformMatrix, TransformMatrix, ...TransformMatrix[]];
+  const [first, second, ...rest] = matrices as [
+    TransformMatrix,
+    TransformMatrix,
+    ...TransformMatrix[],
+  ];
   const product = multiplyMatrices(first, second);
   return rest.length === 0 ? product : composeMatrices(product, ...rest);
 }
@@ -89,12 +93,7 @@ export function composeMatrices(...matrices: TransformMatrix[]): TransformMatrix
 // High-level helpers
 
 /** Scale around an arbitrary point (the key zoom-at-cursor operation). */
-export function scaleAt(
-  m: TransformMatrix,
-  sx: number,
-  sy: number,
-  point: Point,
-): TransformMatrix {
+export function scaleAt(m: TransformMatrix, sx: number, sy: number, point: Point): TransformMatrix {
   const local = applyInverseMatrixToPoint(m, point);
   return composeMatrices(
     m,
@@ -124,12 +123,7 @@ export function constrainScale(
   minScale: number,
   maxScale: number,
 ): TransformMatrix {
-  if (
-    m.scaleX < minScale ||
-    m.scaleX > maxScale ||
-    m.scaleY < minScale ||
-    m.scaleY > maxScale
-  ) {
+  if (m.scaleX < minScale || m.scaleX > maxScale || m.scaleY < minScale || m.scaleY > maxScale) {
     return prev;
   }
   return m;

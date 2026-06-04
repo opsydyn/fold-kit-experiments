@@ -15,8 +15,7 @@ export const easeSinInOut = (t: number): number => (1 - Math.cos(Math.PI * t)) /
 
 // Back (overshoot) — D3 default overshoot = 1.70158
 const OVERSHOOT = 1.70158;
-export const easeBackIn = (t: number): number =>
-  t * t * ((OVERSHOOT + 1) * t - OVERSHOOT);
+export const easeBackIn = (t: number): number => t * t * ((OVERSHOOT + 1) * t - OVERSHOOT);
 export const easeBackOut = (t: number): number =>
   1 + (t - 1) ** 2 * ((OVERSHOOT + 1) * (t - 1) + OVERSHOOT);
 export const easeBackInOut = (t: number): number => {
@@ -50,19 +49,13 @@ export const easeBounceInOut = (t: number): number =>
 
 // Elastic out — D3 default amplitude=1, period=0.3 (d3-ease/src/elastic.js)
 function tpmt(x: number): number {
-  return (Math.pow(2, -10 * x) - 0.0009765625) * 1.0009775171065494;
+  return (2 ** (-10 * x) - 0.0009765625) * 1.0009775171065494;
 }
 const ELASTIC_PERIOD = 0.3;
 export const easeElasticOut = (t: number): number => {
   if (t === 0 || t === 1) return t;
   const p = ELASTIC_PERIOD;
-  return (
-    tpmt(t) *
-      Math.sin(
-        ((t - (p / (2 * Math.PI)) * Math.asin(1)) * (2 * Math.PI)) / p,
-      ) +
-    1
-  );
+  return tpmt(t) * Math.sin(((t - (p / (2 * Math.PI)) * Math.asin(1)) * (2 * Math.PI)) / p) + 1;
 };
 export const easeElasticIn = (t: number): number => 1 - easeElasticOut(1 - t);
 export const easeElasticInOut = (t: number): number =>

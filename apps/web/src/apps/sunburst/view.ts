@@ -4,8 +4,7 @@ import type { Message } from './message';
 import { GotSunburstMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: SunburstChart.Message): Message =>
-  GotSunburstMessage({ inner: msg });
+const toParentMessage = (msg: SunburstChart.Message): Message => GotSunburstMessage({ inner: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Sunburst — foldkit-viz',

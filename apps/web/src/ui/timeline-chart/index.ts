@@ -4,8 +4,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { r3, svgRoot, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -102,7 +102,12 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Timeline chart' } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { tasks, domain, activeTask, tickCount } = model;
 
   const xScale = scaleTime({ domain, range: [0, PW] });
@@ -117,125 +122,124 @@ export function view<M>(config: {
   const barHeight = yScale.bandwidth;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // X gridlines + tick labels
-          h.g(
-            [],
-            ticks.map((tick) => {
-              const x = r3(xScale(tick));
-              return h.g(
-                [h.Transform(`translate(${x},0)`)],
-                [
-                  h.line(
-                    [
-                      h.X1('0'),
-                      h.Y1('0'),
-                      h.X2('0'),
-                      h.Y2(String(PH)),
-                      h.Stroke('#e5e7eb'),
-                      h.StrokeWidth('1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('0'),
-                      h.Y(String(PH + 14)),
-                      h.Style({
-                        'text-anchor': 'middle',
-                        'dominant-baseline': 'hanging',
-                        'font-size': '0.62rem',
-                        fill: '#94a3b8',
-                      }),
-                    ],
-                    [timeTickFormat(tick)],
-                  ),
-                ],
-              );
-            }),
-          ),
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // X gridlines + tick labels
+        h.g(
+          [],
+          ticks.map((tick) => {
+            const x = r3(xScale(tick));
+            return h.g(
+              [h.Transform(`translate(${x},0)`)],
+              [
+                h.line(
+                  [
+                    h.X1('0'),
+                    h.Y1('0'),
+                    h.X2('0'),
+                    h.Y2(String(PH)),
+                    h.Stroke('#e5e7eb'),
+                    h.StrokeWidth('1'),
+                  ],
+                  [],
+                ),
+                h.text(
+                  [
+                    h.X('0'),
+                    h.Y(String(PH + 14)),
+                    h.Style({
+                      'text-anchor': 'middle',
+                      'dominant-baseline': 'hanging',
+                      'font-size': '0.62rem',
+                      fill: '#94a3b8',
+                    }),
+                  ],
+                  [timeTickFormat(tick)],
+                ),
+              ],
+            );
+          }),
+        ),
 
-          // Task bars
-          h.g(
-            [],
-            tasks.map((task) => {
-              const x0 = r3(xScale(task.start));
-              const x1 = r3(xScale(task.end));
-              const barW = Math.max(2, x1 - x0);
-              const y = r3(yScale.position(task.name));
-              const isActive = task.name === activeTaskName;
-              const opacity = activeTaskName === null ? 0.85 : isActive ? 1 : 0.3;
+        // Task bars
+        h.g(
+          [],
+          tasks.map((task) => {
+            const x0 = r3(xScale(task.start));
+            const x1 = r3(xScale(task.end));
+            const barW = Math.max(2, x1 - x0);
+            const y = r3(yScale.position(task.name));
+            const isActive = task.name === activeTaskName;
+            const opacity = activeTaskName === null ? 0.85 : isActive ? 1 : 0.3;
 
-              return h.g(
-                [
-                  h.OnMouseEnter(toParentMessage(HoveredTask({ name: task.name }))),
-                  h.OnMouseLeave(toParentMessage(BlurredTask({}))),
-                  h.Style({ cursor: 'default' }),
-                ],
-                [
-                  h.rect(
-                    [
-                      h.X(String(x0)),
-                      h.Y(String(y)),
-                      h.Width(String(barW)),
-                      h.Height(String(barHeight)),
-                      h.Fill(task.color),
-                      h.Opacity(String(opacity)),
-                      h.Style({ transition: 'opacity 80ms' }),
-                    ],
-                    [],
-                  ),
-                  ...(isActive
-                    ? [
-                        h.text(
-                          [
-                            h.X(String(x0 + barW / 2)),
-                            h.Y(String(y + barHeight / 2)),
-                            h.Style({
-                              'text-anchor': 'middle',
-                              'dominant-baseline': 'middle',
-                              'font-size': '0.6rem',
-                              'font-weight': '600',
-                              fill: '#fff',
-                              'pointer-events': 'none',
-                            }),
-                          ],
-                          [task.name],
-                        ),
-                      ]
-                    : []),
-                ],
-              );
-            }),
-          ),
+            return h.g(
+              [
+                h.OnMouseEnter(toParentMessage(HoveredTask({ name: task.name }))),
+                h.OnMouseLeave(toParentMessage(BlurredTask({}))),
+                h.Style({ cursor: 'default' }),
+              ],
+              [
+                h.rect(
+                  [
+                    h.X(String(x0)),
+                    h.Y(String(y)),
+                    h.Width(String(barW)),
+                    h.Height(String(barHeight)),
+                    h.Fill(task.color),
+                    h.Opacity(String(opacity)),
+                    h.Style({ transition: 'opacity 80ms' }),
+                  ],
+                  [],
+                ),
+                ...(isActive
+                  ? [
+                      h.text(
+                        [
+                          h.X(String(x0 + barW / 2)),
+                          h.Y(String(y + barHeight / 2)),
+                          h.Style({
+                            'text-anchor': 'middle',
+                            'dominant-baseline': 'middle',
+                            'font-size': '0.6rem',
+                            'font-weight': '600',
+                            fill: '#fff',
+                            'pointer-events': 'none',
+                          }),
+                        ],
+                        [task.name],
+                      ),
+                    ]
+                  : []),
+              ],
+            );
+          }),
+        ),
 
-          // Y axis — task name labels
-          h.g(
-            [],
-            tasks.map((task) => {
-              const y = r3(yScale.position(task.name) + yScale.bandwidth / 2);
-              const isActive = task.name === activeTaskName;
-              return h.text(
-                [
-                  h.X('-8'),
-                  h.Y(String(y)),
-                  h.Style({
-                    'text-anchor': 'end',
-                    'dominant-baseline': 'middle',
-                    'font-size': '0.62rem',
-                    'font-weight': isActive ? '600' : '400',
-                    fill: isActive ? '#1e293b' : '#64748b',
-                    transition: 'font-weight 80ms, fill 80ms',
-                  }),
-                ],
-                [task.name],
-              );
-            }),
-          ),
-        ],
-      ),
-    ],
-  );
+        // Y axis — task name labels
+        h.g(
+          [],
+          tasks.map((task) => {
+            const y = r3(yScale.position(task.name) + yScale.bandwidth / 2);
+            const isActive = task.name === activeTaskName;
+            return h.text(
+              [
+                h.X('-8'),
+                h.Y(String(y)),
+                h.Style({
+                  'text-anchor': 'end',
+                  'dominant-baseline': 'middle',
+                  'font-size': '0.62rem',
+                  'font-weight': isActive ? '600' : '400',
+                  fill: isActive ? '#1e293b' : '#64748b',
+                  transition: 'font-weight 80ms, fill 80ms',
+                }),
+              ],
+              [task.name],
+            );
+          }),
+        ),
+      ],
+    ),
+  ]);
 }

@@ -6,8 +6,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { svgRoot, yGridlines, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, svgRoot, yGridlines } from '../shared';
 
 // MODEL
 
@@ -90,7 +90,12 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Box plot chart' } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { series, stats, activeIndex, config: cfg } = model;
 
   const allValues = stats.flatMap((st) => [st.fenceLow, st.fenceHigh, ...st.outliers]);
@@ -133,20 +138,75 @@ export function view<M>(config: {
         h.OnMouseLeave(toParentMessage(BlurredBox({}))),
       ],
       [
-        h.line([h.X1(n(cx)), h.Y1(n(yLow)), h.X2(n(cx)), h.Y2(n(yHigh)),
-          h.Stroke(strokeColor), h.StrokeWidth('1.5')], []),
-        h.line([h.X1(n(cx - capW / 2)), h.Y1(n(yLow)), h.X2(n(cx + capW / 2)), h.Y2(n(yLow)),
-          h.Stroke(strokeColor), h.StrokeWidth('1.5')], []),
-        h.line([h.X1(n(cx - capW / 2)), h.Y1(n(yHigh)), h.X2(n(cx + capW / 2)), h.Y2(n(yHigh)),
-          h.Stroke(strokeColor), h.StrokeWidth('1.5')], []),
-        h.rect([h.X(n(x1)), h.Y(n(yQ3)), h.Width(n(boxW)), h.Height(n(bh)),
-          h.Fill(boxFill), h.Stroke(strokeColor), h.StrokeWidth('1.5'),
-          h.Attribute('rx', '2')], []),
-        h.line([h.X1(n(x1)), h.Y1(n(yMed)), h.X2(n(x1 + boxW)), h.Y2(n(yMed)),
-          h.Stroke(strokeColor), h.StrokeWidth('2.5')], []),
+        h.line(
+          [
+            h.X1(n(cx)),
+            h.Y1(n(yLow)),
+            h.X2(n(cx)),
+            h.Y2(n(yHigh)),
+            h.Stroke(strokeColor),
+            h.StrokeWidth('1.5'),
+          ],
+          [],
+        ),
+        h.line(
+          [
+            h.X1(n(cx - capW / 2)),
+            h.Y1(n(yLow)),
+            h.X2(n(cx + capW / 2)),
+            h.Y2(n(yLow)),
+            h.Stroke(strokeColor),
+            h.StrokeWidth('1.5'),
+          ],
+          [],
+        ),
+        h.line(
+          [
+            h.X1(n(cx - capW / 2)),
+            h.Y1(n(yHigh)),
+            h.X2(n(cx + capW / 2)),
+            h.Y2(n(yHigh)),
+            h.Stroke(strokeColor),
+            h.StrokeWidth('1.5'),
+          ],
+          [],
+        ),
+        h.rect(
+          [
+            h.X(n(x1)),
+            h.Y(n(yQ3)),
+            h.Width(n(boxW)),
+            h.Height(n(bh)),
+            h.Fill(boxFill),
+            h.Stroke(strokeColor),
+            h.StrokeWidth('1.5'),
+            h.Attribute('rx', '2'),
+          ],
+          [],
+        ),
+        h.line(
+          [
+            h.X1(n(x1)),
+            h.Y1(n(yMed)),
+            h.X2(n(x1 + boxW)),
+            h.Y2(n(yMed)),
+            h.Stroke(strokeColor),
+            h.StrokeWidth('2.5'),
+          ],
+          [],
+        ),
         ...st.outliers.map((v) =>
-          h.circle([h.Cx(n(cx)), h.Cy(n(yScale(v))), h.R('3'),
-            h.Fill('none'), h.Stroke(strokeColor), h.StrokeWidth('1.5')], []),
+          h.circle(
+            [
+              h.Cx(n(cx)),
+              h.Cy(n(yScale(v))),
+              h.R('3'),
+              h.Fill('none'),
+              h.Stroke(strokeColor),
+              h.StrokeWidth('1.5'),
+            ],
+            [],
+          ),
         ),
       ],
     );
@@ -166,8 +226,12 @@ export function view<M>(config: {
         [h.Transform(`translate(${ML + 4},${MT + 2})`)],
         lines.map((line, li) =>
           h.text(
-            [h.X('0'), h.Y(String(li * 14)), h.Fill('#64748b'),
-              h.Style({ 'font-size': '10px', 'font-family': 'inherit' })],
+            [
+              h.X('0'),
+              h.Y(String(li * 14)),
+              h.Fill('#64748b'),
+              h.Style({ 'font-size': '10px', 'font-family': 'inherit' }),
+            ],
             [line],
           ),
         ),
@@ -180,7 +244,9 @@ export function view<M>(config: {
       [h.Transform(`translate(${ML},${MT})`)],
       [
         yGridlines(h, yTicks, (v) => yScale(v), PW, {
-          gridColor: '#e2e8f0', labelColor: '#94a3b8', labelSize: '10px',
+          gridColor: '#e2e8f0',
+          labelColor: '#94a3b8',
+          labelSize: '10px',
         }),
         h.g(
           [],
@@ -189,20 +255,33 @@ export function view<M>(config: {
               [
                 h.X(n(xScale.position(sr.label) + boxW / 2)),
                 h.Y(String(PH + 18)),
-                h.Style({ 'text-anchor': 'middle', 'dominant-baseline': 'hanging',
-                  'font-size': '11px', fill: '#64748b', 'font-family': 'inherit' }),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'hanging',
+                  'font-size': '11px',
+                  fill: '#64748b',
+                  'font-family': 'inherit',
+                }),
               ],
               [sr.label],
             ),
           ),
         ),
         ...(cfg.yLabel
-          ? [h.text(
-              [h.Transform(`translate(${-ML + 12},${PH / 2}) rotate(-90)`),
-                h.Style({ 'text-anchor': 'middle', 'font-size': '10px',
-                  fill: '#94a3b8', 'font-family': 'inherit' })],
-              [cfg.yLabel],
-            )]
+          ? [
+              h.text(
+                [
+                  h.Transform(`translate(${-ML + 12},${PH / 2}) rotate(-90)`),
+                  h.Style({
+                    'text-anchor': 'middle',
+                    'font-size': '10px',
+                    fill: '#94a3b8',
+                    'font-family': 'inherit',
+                  }),
+                ],
+                [cfg.yLabel],
+              ),
+            ]
           : []),
         h.g([], boxes),
       ],

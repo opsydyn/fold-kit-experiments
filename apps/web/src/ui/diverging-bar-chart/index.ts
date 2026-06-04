@@ -6,8 +6,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { svgRoot, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, svgRoot } from '../shared';
 
 // MODEL
 
@@ -70,7 +70,12 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Diverging bar chart' } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { bars, xLabel, activeLabel } = model;
 
   const active = Option.isSome(activeLabel) ? activeLabel.value : null;
@@ -97,137 +102,136 @@ export function view<M>(config: {
   });
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // X gridlines + tick labels
-          h.g(
-            [],
-            xTicks.map((t) => {
-              const px = xScale(t);
-              const isZero = t === 0;
-              return h.g(
-                [],
-                [
-                  h.line(
-                    [
-                      h.X1(String(px)),
-                      h.Y1('0'),
-                      h.X2(String(px)),
-                      h.Y2(String(PH)),
-                      h.Stroke(isZero ? '#94a3b8' : '#f1f5f9'),
-                      h.StrokeWidth(isZero ? '1.5' : '1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X(String(px)),
-                      h.Y(String(PH + 14)),
-                      h.Style({ 'text-anchor': 'middle', 'font-size': '0.6rem', fill: '#94a3b8' }),
-                    ],
-                    [fmtPct(t)],
-                  ),
-                ],
-              );
-            }),
-          ),
-
-          // Bars
-          h.g(
-            [],
-            bars.map((bar) => {
-              const py = yScale.position(bar.label);
-              const bh = yScale.bandwidth;
-              const px = xScale(bar.value);
-              const barX = Math.min(px, zeroX);
-              const barW = Math.abs(px - zeroX);
-              const isActive = bar.label === active;
-              const isInactive = active !== null && !isActive;
-              const color = colorFn(bar.value);
-
-              return h.g(
-                [
-                  h.OnMouseEnter(toParentMessage(HoveredBar({ label: bar.label }))),
-                  h.OnMouseLeave(toParentMessage(BlurredBar({}))),
-                  h.Style({ cursor: 'default' }),
-                ],
-                [
-                  h.rect(
-                    [
-                      h.X(String(barX)),
-                      h.Y(String(py)),
-                      h.Width(String(Math.max(1, barW))),
-                      h.Height(String(bh)),
-                      h.Fill(color),
-                      h.Opacity(isInactive ? '0.3' : '0.9'),
-                      h.Style({ transition: 'opacity 80ms' }),
-                    ],
-                    [],
-                  ),
-                  ...(isActive
-                    ? [
-                        h.text(
-                          [
-                            h.X(String(bar.value >= 0 ? px + 4 : px - 4)),
-                            h.Y(String(py + bh / 2)),
-                            h.Style({
-                              'text-anchor': bar.value >= 0 ? 'start' : 'end',
-                              'dominant-baseline': 'middle',
-                              'font-size': '0.62rem',
-                              'font-weight': '600',
-                              fill: '#1e293b',
-                              'pointer-events': 'none',
-                            }),
-                          ],
-                          [fmtPct(bar.value)],
-                        ),
-                      ]
-                    : []),
-                ],
-              );
-            }),
-          ),
-
-          // Y axis labels (bar names, left of axis)
-          h.g(
-            [],
-            bars.map((bar) => {
-              const py = yScale.position(bar.label);
-              const bh = yScale.bandwidth;
-              const isActive = bar.label === active;
-              return h.text(
-                [
-                  h.X(String(zeroX - 5)),
-                  h.Y(String(py + bh / 2)),
-                  h.Style({
-                    'text-anchor': 'end',
-                    'dominant-baseline': 'middle',
-                    'font-size': '0.6rem',
-                    'font-weight': isActive ? '600' : '400',
-                    fill: isActive ? '#1e293b' : '#64748b',
-                  }),
-                ],
-                [bar.label],
-              );
-            }),
-          ),
-
-          // X axis label
-          ...(xLabel
-            ? [
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // X gridlines + tick labels
+        h.g(
+          [],
+          xTicks.map((t) => {
+            const px = xScale(t);
+            const isZero = t === 0;
+            return h.g(
+              [],
+              [
+                h.line(
+                  [
+                    h.X1(String(px)),
+                    h.Y1('0'),
+                    h.X2(String(px)),
+                    h.Y2(String(PH)),
+                    h.Stroke(isZero ? '#94a3b8' : '#f1f5f9'),
+                    h.StrokeWidth(isZero ? '1.5' : '1'),
+                  ],
+                  [],
+                ),
                 h.text(
                   [
-                    h.X(String(PW / 2)),
-                    h.Y(String(PH + 30)),
-                    h.Style({ 'text-anchor': 'middle', 'font-size': '0.62rem', fill: '#64748b' }),
+                    h.X(String(px)),
+                    h.Y(String(PH + 14)),
+                    h.Style({ 'text-anchor': 'middle', 'font-size': '0.6rem', fill: '#94a3b8' }),
                   ],
-                  [xLabel],
+                  [fmtPct(t)],
                 ),
-              ]
-            : []),
-        ],
-      ),
-    ],
-  );
+              ],
+            );
+          }),
+        ),
+
+        // Bars
+        h.g(
+          [],
+          bars.map((bar) => {
+            const py = yScale.position(bar.label);
+            const bh = yScale.bandwidth;
+            const px = xScale(bar.value);
+            const barX = Math.min(px, zeroX);
+            const barW = Math.abs(px - zeroX);
+            const isActive = bar.label === active;
+            const isInactive = active !== null && !isActive;
+            const color = colorFn(bar.value);
+
+            return h.g(
+              [
+                h.OnMouseEnter(toParentMessage(HoveredBar({ label: bar.label }))),
+                h.OnMouseLeave(toParentMessage(BlurredBar({}))),
+                h.Style({ cursor: 'default' }),
+              ],
+              [
+                h.rect(
+                  [
+                    h.X(String(barX)),
+                    h.Y(String(py)),
+                    h.Width(String(Math.max(1, barW))),
+                    h.Height(String(bh)),
+                    h.Fill(color),
+                    h.Opacity(isInactive ? '0.3' : '0.9'),
+                    h.Style({ transition: 'opacity 80ms' }),
+                  ],
+                  [],
+                ),
+                ...(isActive
+                  ? [
+                      h.text(
+                        [
+                          h.X(String(bar.value >= 0 ? px + 4 : px - 4)),
+                          h.Y(String(py + bh / 2)),
+                          h.Style({
+                            'text-anchor': bar.value >= 0 ? 'start' : 'end',
+                            'dominant-baseline': 'middle',
+                            'font-size': '0.62rem',
+                            'font-weight': '600',
+                            fill: '#1e293b',
+                            'pointer-events': 'none',
+                          }),
+                        ],
+                        [fmtPct(bar.value)],
+                      ),
+                    ]
+                  : []),
+              ],
+            );
+          }),
+        ),
+
+        // Y axis labels (bar names, left of axis)
+        h.g(
+          [],
+          bars.map((bar) => {
+            const py = yScale.position(bar.label);
+            const bh = yScale.bandwidth;
+            const isActive = bar.label === active;
+            return h.text(
+              [
+                h.X(String(zeroX - 5)),
+                h.Y(String(py + bh / 2)),
+                h.Style({
+                  'text-anchor': 'end',
+                  'dominant-baseline': 'middle',
+                  'font-size': '0.6rem',
+                  'font-weight': isActive ? '600' : '400',
+                  fill: isActive ? '#1e293b' : '#64748b',
+                }),
+              ],
+              [bar.label],
+            );
+          }),
+        ),
+
+        // X axis label
+        ...(xLabel
+          ? [
+              h.text(
+                [
+                  h.X(String(PW / 2)),
+                  h.Y(String(PH + 30)),
+                  h.Style({ 'text-anchor': 'middle', 'font-size': '0.62rem', fill: '#64748b' }),
+                ],
+                [xLabel],
+              ),
+            ]
+          : []),
+      ],
+    ),
+  ]);
 }

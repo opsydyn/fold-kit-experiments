@@ -23,6 +23,12 @@ import ColorSpacesApp from '../apps/color-spaces/app';
 import DensityContourApp from '../apps/density-contour/app';
 import VoronoiDiagramApp from '../apps/voronoi-diagram/app';
 import MapProjectionsApp from '../apps/map-projections/app';
+import LinkedChartsApp from '../apps/linked-charts/app';
+import BulletApp from '../apps/bullet/app';
+import BumpApp from '../apps/bump/app';
+import ArcDiagramApp from '../apps/arc-diagram/app';
+import DivergingStackedBarApp from '../apps/diverging-stacked-bar/app';
+import CorrelationMatrixApp from '../apps/correlation-matrix/app';
 import BarApp from '../apps/bar/app';
 import BubbleApp from '../apps/bubble/app';
 import DonutApp from '../apps/donut/app';
@@ -196,6 +202,30 @@ import * as layoutStyles from '../layouts/layout.css';
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Map projections</p>
       <MapProjectionsApp client:load noMeta />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>KPI vs targets</p>
+      <BulletApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>JS framework rankings</p>
+      <BumpApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>JS tooling dependency network</p>
+      <ArcDiagramApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Experience vs salary — linked views</p>
+      <LinkedChartsApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Developer survey — Likert responses</p>
+      <DivergingStackedBarApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Tech stock return correlations</p>
+      <CorrelationMatrixApp client:load />
     </div>
   </div>
 </Layout>

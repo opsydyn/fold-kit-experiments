@@ -1,6 +1,6 @@
 # foldkit-viz Chart Roadmap
 
-## Completed (39 charts)
+## Completed (45 charts)
 
 | Chart | Primitive | Notes |
 | --- | --- | --- |
@@ -42,6 +42,12 @@
 | Density Contour | `math/contour` + `math/random` | Bivariate normal scatter + marching-squares contour lines |
 | Voronoi Diagram | `math/delaunay` | 55-point Delaunay triangulation + clipped Voronoi cells, per-cell HSL coloring |
 | Map Projections | `shape/geo` | Side-by-side equirectangular vs Mercator with graticule grid + 20 cities |
+| Bullet Chart | `math/scale` linear + `math/array` | KPI performance vs target with range bands — hover highlights row |
+| Bump Chart | `shape/line` curveNatural + `math/scale` | JS framework popularity rankings 2019–2024, smooth rank-order lines |
+| Arc Diagram | `shape/path` + `math/scale` linear | JS tooling dependency network, arcs above linear node axis |
+| Linked Views | `shared/dispatch` CrosshairState | Scatter + histogram, bidirectional hover sync via parent TEA update |
+| Diverging Stacked Bar | `math/array` cumsum + `math/scale` linear | Likert survey responses, stacked from centre, net score on hover |
+| Correlation Matrix | `math/color` interpolateLab + `scaleSequential` | Tech stock return correlations, colour-encoded [-1, +1] cells |
 
 ---
 
@@ -100,6 +106,162 @@ None. All D3 data-transformation and geometry primitives are implemented.
 ## Remaining — New Charts
 
 All planned charts complete. Primitive parity with D3's data-transformation layer is fully achieved.
+
+---
+
+## T0 — Chart theming (light / dark mode)
+
+Charts currently use hardcoded hex colors. Goal: CSS-variable-driven theming via nanostores, switchable at runtime with no chart rewrites.
+
+### Design
+
+- `apps/web/src/stores/theme.ts` — nanostores `atom<'light' | 'dark'>` persisted to localStorage
+- `apps/web/src/styles/chart-tokens.css` — CSS custom properties for chart colors, gridlines, axes, text
+- Each chart reads tokens via `var(--chart-*)` in SVG `fill`/`stroke` where possible, falling back to `currentColor`
+- Theme toggle in nav wires the store → sets `data-theme` on `<html>` (matches existing `custom.css` pattern)
+
+### Tasks
+
+- [x] `src/stores/theme.ts` — `persistentAtom<'light'|'dark'>` key `foldkit-theme`
+- [x] `src/styles/chart-tokens.css` — `--chart-grid`, `--chart-axis`, `--chart-label`, `--chart-accent`, `--chart-tooltip-text/bg`, `--chart-crosshair` for dark (default) + light
+- [x] `shared/axes.ts` — defaults use `var(--chart-grid, …)` / `var(--chart-label, …)` with hex fallbacks
+- [x] `shared/svg-root.ts` — `color: var(--chart-label, #888)` on root so `currentColor` propagates
+- [x] `shared/tooltip.ts` — `color: var(--chart-accent, …)` default
+- [x] Theme `◑` toggle in web nav wired to the nanostore via `themeAtom.subscribe(applyTheme)`
+- [x] All 39 charts adapt via shared layer — zero per-chart changes required
+
+---
+
+## Elite Library Roadmap — Phase 2
+
+Goal: match D3 + visx on primitives, scale family, curves, interactions, accessibility, and chart breadth.
+
+---
+
+### T1 — Quick wins (1–2 days each)
+
+#### T1-A `math/array.ts` — aggregation utilities
+
+- [x] `extent(values)` — `[min, max]` in one pass
+- [x] `sum`, `mean`, `median`, `deviation`, `variance`
+- [x] `group(data, key)` → `Map<K, T[]>` — categorical aggregation
+- [x] `rollup(data, reduce, key)` → `Map<K, R>` — aggregate by group
+- [x] `cumsum(values)` — running total
+- [x] `bisect` / `bisectLeft` — binary search (unblocks cursor-tracking tooltips)
+- [x] `pairs`, `zip`, `range` — combinatorial helpers
+
+#### T1-B `math/scale.ts` — missing scale family
+
+- [x] `linearInvertible()` — linear scale with `.invert()` reverse lookup
+- [x] `niceLinear(domain, count)` — expand domain to round tick boundary
+- [x] `scaleQuantile(data, range)` — quantile bucketing
+- [x] `scaleQuantize(domain, range)` — equal-width discrete range
+- [x] `scaleSequential(domain, interpolator)` — continuous domain → interpolator
+- [x] `scaleIdentity()` — 1:1 passthrough
+- [x] `scalePow(exponent)` — generalised power scale
+- [x] `scaleSymlog(constant)` — symmetric log (handles zero/negative)
+
+#### T1-C `shape/line.ts` — missing curve types
+
+- [x] `curveStep`, `curveStepBefore`, `curveStepAfter` — step interpolation
+- [x] `curveNatural` — cubic natural spline (D3 Thomas algorithm)
+- [x] `curveBasisOpen`, `curveBasisClosed`
+- [x] `curveCardinalOpen`, `curveCardinalClosed`
+- [x] `curveCatmullRomOpen`, `curveCatmullRomClosed`
+- [ ] `areaRadial()` — polar stacked area (deferred to T3 new chart types)
+
+#### T1-D `math/time.ts` — time formatting + parsing
+
+- [x] `timeFormat(specifier)` — format Date → string, full `%` directive set
+- [x] `timeParse(specifier)` — parse string → Date (inverse of format)
+- [x] Directives: `%Y %y %m %d %e %H %I %M %S %L %f %p %P %a %A %b %B %j %%`
+
+#### T1-E `math/schemes.ts` — colour-blind safe palettes
+
+- [x] `wong` — 8-colour colour-blind safe (Wong 2011)
+- [x] `ibmCarbon` — IBM Carbon Design System categorical
+- [x] `tolMuted` — Paul Tol muted qualitative
+- [x] `viridis`, `magma`, `inferno`, `plasma` — perceptual sequential
+- [x] `cividis` — deuteranopia/protanopia optimised
+
+---
+
+### T2 — Architecture gaps (3–5 days each)
+
+#### T2-A Brush primitive — `math/brush.ts`
+
+- [x] `BrushState = { anchor, extent, active }` + `BRUSH_IDLE`
+- [x] `BrushMessage` — `StartedBrush`, `MovedBrush`, `EndedBrush`, `ClearedBrush`
+- [x] `brushExtent(state)` → `[lo, hi]` | null (pixel space)
+- [x] `brushContains(state, x)` — point membership test
+- [x] `brushDomain(state, invert)` — maps pixel extent → domain values via `linearInvertible`
+- [x] `brushUpdate(state, msg)` — pure update function
+- [ ] Showcase: histogram brush filter chart (T3)
+
+#### T2-B Cursor-tracking tooltip — `shared/cursor-tooltip.ts`
+
+- [x] `nearestIndex(sortedX, pointerX)` — bisect-based 1D nearest point
+- [x] `nearestPoint(coords, px, py)` — Euclidean 2D nearest point (scatter charts)
+- [x] `cursorTooltip(h, x, y, lines[], style?)` — multi-line SVG tooltip with bg rect, CSS-variable colours
+- [ ] Migrate bar, line, area, scatter to cursor-tracking (replaces transparent hit rects) — T2-B-migrate
+
+#### T2-C Linked views — `shared/dispatch.ts`
+
+- [x] `CrosshairState`, `CROSSHAIR_IDLE` — shared cursor identity keyed by string
+- [x] `isHighlighted`, `isDimmed`, `crosshairActive` — helpers for per-datum opacity
+- [x] `apps/linked-charts/` showcase — scatter + histogram, bidirectional hover via parent update function
+- [x] Pattern documented: child emits normal messages → parent cross-wires sibling model update
+
+#### T2-D Animation / tween layer — `math/tween.ts`
+TEA-compatible geometry interpolation for smooth transitions.
+
+- [ ] `Tween<T> = { from: T; to: T; progress: number; ease: EaseFn }`
+- [ ] `tweenStep(tween, dt)` — advance by delta
+- [ ] `tweenValue(tween)` — interpolated current value
+- [ ] SVG path interpolation — morph between two `d=` strings
+- [ ] Tick subscription via foldkit's Effect runtime
+- [ ] Showcase: animated bar chart (bar height grows on init)
+
+---
+
+### T3 — New chart types
+
+- [x] **Bullet chart** — KPI vs target with range bands (`math/scale` linear + `math/array`)
+- [x] **Bump / rank chart** — temporal rankings, smooth `curveNatural` rank-order lines
+- [x] **Arc diagram** — network links as arcs above a linear node axis
+- [x] **Diverging stacked bar** — Likert survey, `cumsum` stacking, net score label on hover
+- [x] **Correlation matrix** — `scaleSequential` + `interpolateLab` colour encoding, hover highlights row/col
+- [ ] **Choropleth map** — geographic fill encoding via `shape/geo.ts` + `scaleSequential` (needs GeoJSON)
+- [ ] **Area radial / wind rose** — polar stacked area (uses `areaRadial` + `scaleRadial`)
+
+---
+
+### T4 — Accessibility + quality
+
+#### T4-A Accessible chart markup
+
+- [ ] `role="application"` + `aria-roledescription` on interactive charts
+- [ ] `aria-describedby` linking to hidden `<table>` with chart data
+- [ ] `aria-live="polite"` region for hover announcements (e.g. "Bar: Q3, value 142")
+- [ ] Axis labels exposed as `aria-label` on group elements
+- [ ] Screen reader test pass across all 45 charts
+
+#### T4-B Test harness — `packages/foldkit-viz/test/`
+
+- [x] `runChart(init, update, messages)` — runs TEA cycle, returns final model + history
+- [x] `assertScaleRange`, `assertMonotone`, `assertApprox` — scale assertion helpers
+- [x] 47 primitive tests: `math/array`, `math/scale` (new), `math/time` format+parse
+- [ ] `collectHtml(view output)` — walk rendered Html tree, extract text + attributes
+- [ ] Snapshot tests for chart `view()` outputs
+
+---
+
+### T5 — Developer experience
+
+- [ ] **TypeDoc** — auto-generate API docs from JSDoc on all exported primitives
+- [ ] **Storybook or standalone demo page** — interactive props explorer for each primitive
+- [ ] **`@opsydyn/foldkit-viz` npm publish** — versioned releases with changelog
+- [ ] **Migration guide** — v0 → v1 (for when P2 configurable layout becomes the standard API)
 
 ---
 

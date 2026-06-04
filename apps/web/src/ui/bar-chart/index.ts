@@ -3,8 +3,17 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { arrowKeyNav, nextIndex, r3, svgRoot, valueTooltip, xCategoryAxis, yGridlines, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import {
+  arrowKeyNav,
+  makeLayout,
+  nextIndex,
+  r3,
+  svgRoot,
+  valueTooltip,
+  xCategoryAxis,
+  yGridlines,
+} from '../shared';
 
 // MODEL
 
@@ -64,7 +73,13 @@ export const ClickedBar = m('ClickedBar', { index: Schema.Number });
 export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
 
 export const UpdatedBars = m('UpdatedBars', { bars: Schema.Unknown });
-export const Message = Schema.Union([HoveredBar, BlurredBar, ClickedBar, PressedKeyNav, UpdatedBars]);
+export const Message = Schema.Union([
+  HoveredBar,
+  BlurredBar,
+  ClickedBar,
+  PressedKeyNav,
+  UpdatedBars,
+]);
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -97,7 +112,12 @@ export const view = <M>(config: {
 }): Html => {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Bar chart', renderTooltip } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { bars, activeIndex, config: cfg } = model;
 
   const maxValue = bars.reduce((acc, b) => Math.max(acc, b.value), 0);
@@ -142,17 +162,23 @@ export const view = <M>(config: {
               [
                 h.rect(
                   [
-                    h.X(String(bx)), h.Y(String(by)),
-                    h.Width(String(bw)), h.Height(String(bh)),
+                    h.X(String(bx)),
+                    h.Y(String(by)),
+                    h.Width(String(bw)),
+                    h.Height(String(bh)),
                     h.Fill(isActive ? cfg.activeColor : cfg.color),
                     h.Style({ transition: 'fill 120ms' }),
                   ],
                   [],
                 ),
                 ...(isActive
-                  ? [(renderTooltip
-                      ? renderTooltip(bar, bx + bw / 2, by)
-                      : valueTooltip(h, bx + bw / 2, by, String(bar.value), { color: cfg.activeColor }))]
+                  ? [
+                      renderTooltip
+                        ? renderTooltip(bar, bx + bw / 2, by)
+                        : valueTooltip(h, bx + bw / 2, by, String(bar.value), {
+                            color: cfg.activeColor,
+                          }),
+                    ]
                   : []),
               ],
             );

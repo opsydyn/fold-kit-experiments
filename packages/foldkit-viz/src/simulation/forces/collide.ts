@@ -30,8 +30,8 @@ export function collideForce(config: CollideConfig = {}): Force {
             const b = nodes[j];
             if (!b) continue;
 
-            let dx = (b.x + b.vx) - ax;
-            let dy = (b.y + b.vy) - ay;
+            let dx = b.x + b.vx - ax;
+            let dy = b.y + b.vy - ay;
             // Jiggle coincident nodes so they always have a direction to separate
             if (dx === 0) dx = jiggle(random);
             if (dy === 0) dy = jiggle(random);
@@ -39,7 +39,7 @@ export function collideForce(config: CollideConfig = {}): Force {
             const minDist = radius * 2;
 
             if (l < minDist) {
-              const overlap = (minDist - l) / l * strength;
+              const overlap = ((minDist - l) / l) * strength;
               dx *= overlap;
               dy *= overlap;
               a.vx -= dx * 0.5;

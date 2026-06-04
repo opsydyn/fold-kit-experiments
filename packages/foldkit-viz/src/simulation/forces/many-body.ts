@@ -59,7 +59,14 @@ export function manyBodyForce(config: ManyBodyConfig = {}): Force {
   }
 
   // Top-down: apply repulsion from one quad to one node — D3 apply parity.
-  function applyToNode(node: SimNode, alpha: number, quad: QuadNode, x0: number, _y0: number, x1: number): boolean {
+  function applyToNode(
+    node: SimNode,
+    alpha: number,
+    quad: QuadNode,
+    x0: number,
+    _y0: number,
+    x1: number,
+  ): boolean {
     if ((quad.value ?? 0) === 0) return true;
 
     const dx = (quad.x ?? 0) - node.x;
@@ -68,14 +75,21 @@ export function manyBodyForce(config: ManyBodyConfig = {}): Force {
     let l = dx * dx + dy * dy;
 
     // Barnes-Hut: quad is far enough — treat as point mass and prune subtree
-    if (w * w / theta2 < l) {
+    if ((w * w) / theta2 < l) {
       if (l < distanceMax2) {
-        let ex = dx, ey = dy;
-        if (ex === 0) { ex = jiggle(random); l += ex * ex; }
-        if (ey === 0) { ey = jiggle(random); l += ey * ey; }
+        let ex = dx,
+          ey = dy;
+        if (ex === 0) {
+          ex = jiggle(random);
+          l += ex * ex;
+        }
+        if (ey === 0) {
+          ey = jiggle(random);
+          l += ey * ey;
+        }
         if (l < distanceMin2) l = Math.sqrt(distanceMin2 * l);
-        node.vx += ex * (quad.value ?? 0) * alpha / l;
-        node.vy += ey * (quad.value ?? 0) * alpha / l;
+        node.vx += (ex * (quad.value ?? 0) * alpha) / l;
+        node.vy += (ey * (quad.value ?? 0) * alpha) / l;
       }
       return true;
     }
@@ -88,10 +102,16 @@ export function manyBodyForce(config: ManyBodyConfig = {}): Force {
           let ex = leaf.data.x - node.x;
           let ey = leaf.data.y - node.y;
           let ll = ex * ex + ey * ey;
-          if (ex === 0) { ex = jiggle(random); ll += ex * ex; }
-          if (ey === 0) { ey = jiggle(random); ll += ey * ey; }
+          if (ex === 0) {
+            ex = jiggle(random);
+            ll += ex * ex;
+          }
+          if (ey === 0) {
+            ey = jiggle(random);
+            ll += ey * ey;
+          }
           if (ll < distanceMin2) ll = Math.sqrt(distanceMin2 * ll);
-          const w2 = (strengths[leaf.data.index] ?? 0) * alpha / ll;
+          const w2 = ((strengths[leaf.data.index] ?? 0) * alpha) / ll;
           node.vx += ex * w2;
           node.vy += ey * w2;
         }

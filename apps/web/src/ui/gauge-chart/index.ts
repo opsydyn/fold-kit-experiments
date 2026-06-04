@@ -99,12 +99,7 @@ function gaugeLayout(
 }
 
 // D3 angle convention (0 = top, clockwise): sin gives x, -cos gives y
-function arcCapPos(
-  cx: number,
-  cy: number,
-  midR: number,
-  angle: number,
-): readonly [number, number] {
+function arcCapPos(cx: number, cy: number, midR: number, angle: number): readonly [number, number] {
   return [cx + midR * Math.sin(angle), cy - midR * Math.cos(angle)];
 }
 
@@ -282,7 +277,10 @@ export function view<M>(config: {
 
   const layouts = gaugeLayout(entries.length);
 
-  return svgRoot(h, { width: W, height: H, ariaLabel }, null,
+  return svgRoot(
+    h,
+    { width: W, height: H, ariaLabel },
+    null,
     entries.map((entry, i) => {
       const layout = layouts[i] ?? layouts[0];
       return layout ? renderGauge(h, entry, layout, cfg) : h.g([], []);

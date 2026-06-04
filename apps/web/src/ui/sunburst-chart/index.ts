@@ -245,86 +245,88 @@ export const view = <M>(config: {
       ];
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${CX},${CY})`)],
+    h.g(
+      [h.Transform(`translate(${CX},${CY})`)],
+      [
+        ...leafArcs.map((a) => {
+          const isActive = isAnyActive && a.name === activeValue;
+          const isRelated = isAnyActive && !isActive && a.catName !== activeCatName;
+          const opacity = !isAnyActive ? '1' : isRelated ? '0.25' : '1';
+          return h.g(
+            [
+              h.Style({ cursor: 'pointer' }),
+              h.OnMouseEnter(toParentMessage(HoveredSegment({ name: a.name }))),
+              h.OnMouseLeave(toParentMessage(BlurredSegment({}))),
+              h.AriaLabel(`${a.name}: ${a.value}`),
+            ],
+            [
+              h.path(
+                [
+                  h.D(isActive ? a.pathDActive : a.pathD),
+                  h.Fill(isActive ? a.catColor : a.fillColor),
+                  h.Stroke(isActive ? a.catColor : a.strokeColor),
+                  h.StrokeWidth(isActive ? '1.5' : '0.5'),
+                  h.Style({ opacity, transition: 'opacity 120ms, d 80ms' }),
+                ],
+                [],
+              ),
+              ...(a.showLabel
+                ? [
+                    h.text(
+                      [
+                        h.X(String(a.labelX)),
+                        h.Y(String(a.labelY)),
+                        h.Style({
+                          'text-anchor': 'middle',
+                          'dominant-baseline': 'middle',
+                          'font-size': '0.58rem',
+                          'font-weight': '600',
+                          fill: isActive ? '#fff' : '#1e293b',
+                          'pointer-events': 'none',
+                          'user-select': 'none',
+                          opacity,
+                        }),
+                      ],
+                      [a.name],
+                    ),
+                  ]
+                : []),
+            ],
+          );
+        }),
+
+        h.path(
+          [h.D(layout.centerPath), h.Fill('#ffffff'), h.Stroke('#e2e8f0'), h.StrokeWidth('1')],
+          [],
+        ),
+
+        ...centerLabel,
+      ],
+    ),
+
+    // Legend — 2×2 grid below the chart
+    ...catArcs.map((cat, i) => {
+      const x = i % 2 === 0 ? LEG_X1 : LEG_X2;
+      const y = i < 2 ? LEG_Y1 : LEG_Y2;
+      const isDimmed = isAnyActive && !cat.childNames.some((cn) => cn === activeValue);
+      return h.text(
         [
-          ...leafArcs.map((a) => {
-            const isActive = isAnyActive && a.name === activeValue;
-            const isRelated = isAnyActive && !isActive && a.catName !== activeCatName;
-            const opacity = !isAnyActive ? '1' : isRelated ? '0.25' : '1';
-            return h.g(
-              [
-                h.Style({ cursor: 'pointer' }),
-                h.OnMouseEnter(toParentMessage(HoveredSegment({ name: a.name }))),
-                h.OnMouseLeave(toParentMessage(BlurredSegment({}))),
-                h.AriaLabel(`${a.name}: ${a.value}`),
-              ],
-              [
-                h.path(
-                  [
-                    h.D(isActive ? a.pathDActive : a.pathD),
-                    h.Fill(isActive ? a.catColor : a.fillColor),
-                    h.Stroke(isActive ? a.catColor : a.strokeColor),
-                    h.StrokeWidth(isActive ? '1.5' : '0.5'),
-                    h.Style({ opacity, transition: 'opacity 120ms, d 80ms' }),
-                  ],
-                  [],
-                ),
-                ...(a.showLabel
-                  ? [
-                      h.text(
-                        [
-                          h.X(String(a.labelX)),
-                          h.Y(String(a.labelY)),
-                          h.Style({
-                            'text-anchor': 'middle',
-                            'dominant-baseline': 'middle',
-                            'font-size': '0.58rem',
-                            'font-weight': '600',
-                            fill: isActive ? '#fff' : '#1e293b',
-                            'pointer-events': 'none',
-                            'user-select': 'none',
-                            opacity,
-                          }),
-                        ],
-                        [a.name],
-                      ),
-                    ]
-                  : []),
-              ],
-            );
+          h.X(String(x)),
+          h.Y(String(y)),
+          h.Style({
+            'text-anchor': 'middle',
+            'dominant-baseline': 'middle',
+            'font-size': '0.6rem',
+            'font-weight': '500',
+            fill: cat.color,
+            opacity: isDimmed ? '0.3' : '1',
+            transition: 'opacity 120ms',
+            'pointer-events': 'none',
+            'user-select': 'none',
           }),
-
-          h.path([h.D(layout.centerPath), h.Fill('#ffffff'), h.Stroke('#e2e8f0'), h.StrokeWidth('1')], []),
-
-          ...centerLabel,
         ],
-      ),
-
-      // Legend — 2×2 grid below the chart
-      ...catArcs.map((cat, i) => {
-        const x = i % 2 === 0 ? LEG_X1 : LEG_X2;
-        const y = i < 2 ? LEG_Y1 : LEG_Y2;
-        const isDimmed = isAnyActive && !cat.childNames.some((cn) => cn === activeValue);
-        return h.text(
-          [
-            h.X(String(x)),
-            h.Y(String(y)),
-            h.Style({
-              'text-anchor': 'middle',
-              'dominant-baseline': 'middle',
-              'font-size': '0.6rem',
-              'font-weight': '500',
-              fill: cat.color,
-              opacity: isDimmed ? '0.3' : '1',
-              transition: 'opacity 120ms',
-              'pointer-events': 'none',
-              'user-select': 'none',
-            }),
-          ],
-          [`● ${cat.name}`],
-        );
-      }),
-    ],
-  );
+        [`● ${cat.name}`],
+      );
+    }),
+  ]);
 };

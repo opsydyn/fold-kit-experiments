@@ -107,209 +107,218 @@ export function view<M>(config: {
   const active = Option.isSome(hovered) ? hovered.value : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      // Clip paths for each panel
-      h.defs(
-        [],
-        [
-          h.clipPath(
-            [h.Attribute('id', 'equi-clip')],
-            [
-              h.rect(
-                [
-                  h.X(String(EQUI_X0)),
-                  h.Y(String(MAP_Y0)),
-                  h.Width(String(INNER_W)),
-                  h.Height(String(MAP_Y1 - MAP_Y0)),
-                ],
-                [],
-              ),
-            ],
-          ),
-          h.clipPath(
-            [h.Attribute('id', 'merc-clip')],
-            [
-              h.rect(
-                [
-                  h.X(String(MERC_X0)),
-                  h.Y(String(MAP_Y0)),
-                  h.Width(String(INNER_W)),
-                  h.Height(String(MAP_Y1 - MAP_Y0)),
-                ],
-                [],
-              ),
-            ],
-          ),
-        ],
-      ),
+    // Clip paths for each panel
+    h.defs(
+      [],
+      [
+        h.clipPath(
+          [h.Attribute('id', 'equi-clip')],
+          [
+            h.rect(
+              [
+                h.X(String(EQUI_X0)),
+                h.Y(String(MAP_Y0)),
+                h.Width(String(INNER_W)),
+                h.Height(String(MAP_Y1 - MAP_Y0)),
+              ],
+              [],
+            ),
+          ],
+        ),
+        h.clipPath(
+          [h.Attribute('id', 'merc-clip')],
+          [
+            h.rect(
+              [
+                h.X(String(MERC_X0)),
+                h.Y(String(MAP_Y0)),
+                h.Width(String(INNER_W)),
+                h.Height(String(MAP_Y1 - MAP_Y0)),
+              ],
+              [],
+            ),
+          ],
+        ),
+      ],
+    ),
 
-      // Panel backgrounds
-      h.rect(
-        [
-          h.X(String(EQUI_X0)),
-          h.Y(String(MAP_Y0)),
-          h.Width(String(INNER_W)),
-          h.Height(String(MAP_Y1 - MAP_Y0)),
-          h.Fill('#f0f4f8'),
-        ],
-        [],
-      ),
-      h.rect(
-        [
-          h.X(String(MERC_X0)),
-          h.Y(String(MAP_Y0)),
-          h.Width(String(INNER_W)),
-          h.Height(String(MAP_Y1 - MAP_Y0)),
-          h.Fill('#f0f4f8'),
-        ],
-        [],
-      ),
+    // Panel backgrounds
+    h.rect(
+      [
+        h.X(String(EQUI_X0)),
+        h.Y(String(MAP_Y0)),
+        h.Width(String(INNER_W)),
+        h.Height(String(MAP_Y1 - MAP_Y0)),
+        h.Fill('#f0f4f8'),
+      ],
+      [],
+    ),
+    h.rect(
+      [
+        h.X(String(MERC_X0)),
+        h.Y(String(MAP_Y0)),
+        h.Width(String(INNER_W)),
+        h.Height(String(MAP_Y1 - MAP_Y0)),
+        h.Fill('#f0f4f8'),
+      ],
+      [],
+    ),
 
-      // Panel labels
-      h.text(
-        [
-          h.X(String((EQUI_X0 + EQUI_X1) / 2)),
-          h.Y(String(MAP_Y0 - 6)),
-          h.Style({ 'text-anchor': 'middle', 'font-size': '0.62rem', 'font-weight': '600', fill: '#475569' }),
-        ],
-        ['Equirectangular'],
-      ),
-      h.text(
-        [
-          h.X(String((MERC_X0 + MERC_X1) / 2)),
-          h.Y(String(MAP_Y0 - 6)),
-          h.Style({ 'text-anchor': 'middle', 'font-size': '0.62rem', 'font-weight': '600', fill: '#475569' }),
-        ],
-        ['Mercator'],
-      ),
-
-      // Graticule — Equirectangular
-      h.path(
-        [
-          h.D(graticuleEqui),
-          h.Fill('none'),
-          h.Stroke('#cbd5e1'),
-          h.StrokeWidth('0.5'),
-          h.Attribute('clip-path', 'url(#equi-clip)'),
-        ],
-        [],
-      ),
-
-      // Graticule — Mercator
-      h.path(
-        [
-          h.D(graticuleMerc),
-          h.Fill('none'),
-          h.Stroke('#cbd5e1'),
-          h.StrokeWidth('0.5'),
-          h.Attribute('clip-path', 'url(#merc-clip)'),
-        ],
-        [],
-      ),
-
-      // Cities — Equirectangular
-      h.g(
-        [h.Attribute('clip-path', 'url(#equi-clip)')],
-        CITIES.map(([lng, lat, name]) => {
-          const [cx, cy] = equiProj(lng, lat);
-          const isActive = name === active;
-          const isInactive = active !== null && !isActive;
-          return h.g(
-            [
-              h.OnMouseEnter(toParentMessage(HoveredCity({ name }))),
-              h.OnMouseLeave(toParentMessage(BlurredCity({}))),
-              h.Style({ cursor: 'default' }),
-            ],
-            [
-              h.circle(
-                [
-                  h.Cx(String(cx.toFixed(1))),
-                  h.Cy(String(cy.toFixed(1))),
-                  h.R(isActive ? '4' : '2.5'),
-                  h.Fill(isActive ? '#ef4444' : '#6366f1'),
-                  h.Opacity(isInactive ? '0.2' : '0.9'),
-                ],
-                [],
-              ),
-              ...(isActive
-                ? [
-                    h.text(
-                      [
-                        h.X(String((cx + 5).toFixed(1))),
-                        h.Y(String((cy - 4).toFixed(1))),
-                        h.Style({
-                          'font-size': '0.55rem',
-                          'font-weight': '600',
-                          fill: '#1e293b',
-                          'pointer-events': 'none',
-                        }),
-                      ],
-                      [name],
-                    ),
-                  ]
-                : []),
-            ],
-          );
+    // Panel labels
+    h.text(
+      [
+        h.X(String((EQUI_X0 + EQUI_X1) / 2)),
+        h.Y(String(MAP_Y0 - 6)),
+        h.Style({
+          'text-anchor': 'middle',
+          'font-size': '0.62rem',
+          'font-weight': '600',
+          fill: '#475569',
         }),
-      ),
-
-      // Cities — Mercator
-      h.g(
-        [h.Attribute('clip-path', 'url(#merc-clip)')],
-        CITIES.map(([lng, lat, name]) => {
-          const [cx, cy] = mercProj(lng, lat);
-          const isActive = name === active;
-          const isInactive = active !== null && !isActive;
-          return h.g(
-            [
-              h.OnMouseEnter(toParentMessage(HoveredCity({ name }))),
-              h.OnMouseLeave(toParentMessage(BlurredCity({}))),
-              h.Style({ cursor: 'default' }),
-            ],
-            [
-              h.circle(
-                [
-                  h.Cx(String(cx.toFixed(1))),
-                  h.Cy(String(cy.toFixed(1))),
-                  h.R(isActive ? '4' : '2.5'),
-                  h.Fill(isActive ? '#ef4444' : '#6366f1'),
-                  h.Opacity(isInactive ? '0.2' : '0.9'),
-                ],
-                [],
-              ),
-              ...(isActive
-                ? [
-                    h.text(
-                      [
-                        h.X(String((cx + 5).toFixed(1))),
-                        h.Y(String((cy - 4).toFixed(1))),
-                        h.Style({
-                          'font-size': '0.55rem',
-                          'font-weight': '600',
-                          fill: '#1e293b',
-                          'pointer-events': 'none',
-                        }),
-                      ],
-                      [name],
-                    ),
-                  ]
-                : []),
-            ],
-          );
+      ],
+      ['Equirectangular'],
+    ),
+    h.text(
+      [
+        h.X(String((MERC_X0 + MERC_X1) / 2)),
+        h.Y(String(MAP_Y0 - 6)),
+        h.Style({
+          'text-anchor': 'middle',
+          'font-size': '0.62rem',
+          'font-weight': '600',
+          fill: '#475569',
         }),
-      ),
+      ],
+      ['Mercator'],
+    ),
 
-      // Panel divider
-      h.line(
-        [
-          h.X1(String(MERC_X0)),
-          h.Y1(String(MAP_Y0)),
-          h.X2(String(MERC_X0)),
-          h.Y2(String(MAP_Y1)),
-          h.Stroke('#e2e8f0'),
-          h.StrokeWidth('1'),
-        ],
-        [],
-      ),
-    ],
-  );
+    // Graticule — Equirectangular
+    h.path(
+      [
+        h.D(graticuleEqui),
+        h.Fill('none'),
+        h.Stroke('#cbd5e1'),
+        h.StrokeWidth('0.5'),
+        h.Attribute('clip-path', 'url(#equi-clip)'),
+      ],
+      [],
+    ),
+
+    // Graticule — Mercator
+    h.path(
+      [
+        h.D(graticuleMerc),
+        h.Fill('none'),
+        h.Stroke('#cbd5e1'),
+        h.StrokeWidth('0.5'),
+        h.Attribute('clip-path', 'url(#merc-clip)'),
+      ],
+      [],
+    ),
+
+    // Cities — Equirectangular
+    h.g(
+      [h.Attribute('clip-path', 'url(#equi-clip)')],
+      CITIES.map(([lng, lat, name]) => {
+        const [cx, cy] = equiProj(lng, lat);
+        const isActive = name === active;
+        const isInactive = active !== null && !isActive;
+        return h.g(
+          [
+            h.OnMouseEnter(toParentMessage(HoveredCity({ name }))),
+            h.OnMouseLeave(toParentMessage(BlurredCity({}))),
+            h.Style({ cursor: 'default' }),
+          ],
+          [
+            h.circle(
+              [
+                h.Cx(String(cx.toFixed(1))),
+                h.Cy(String(cy.toFixed(1))),
+                h.R(isActive ? '4' : '2.5'),
+                h.Fill(isActive ? '#ef4444' : '#6366f1'),
+                h.Opacity(isInactive ? '0.2' : '0.9'),
+              ],
+              [],
+            ),
+            ...(isActive
+              ? [
+                  h.text(
+                    [
+                      h.X(String((cx + 5).toFixed(1))),
+                      h.Y(String((cy - 4).toFixed(1))),
+                      h.Style({
+                        'font-size': '0.55rem',
+                        'font-weight': '600',
+                        fill: '#1e293b',
+                        'pointer-events': 'none',
+                      }),
+                    ],
+                    [name],
+                  ),
+                ]
+              : []),
+          ],
+        );
+      }),
+    ),
+
+    // Cities — Mercator
+    h.g(
+      [h.Attribute('clip-path', 'url(#merc-clip)')],
+      CITIES.map(([lng, lat, name]) => {
+        const [cx, cy] = mercProj(lng, lat);
+        const isActive = name === active;
+        const isInactive = active !== null && !isActive;
+        return h.g(
+          [
+            h.OnMouseEnter(toParentMessage(HoveredCity({ name }))),
+            h.OnMouseLeave(toParentMessage(BlurredCity({}))),
+            h.Style({ cursor: 'default' }),
+          ],
+          [
+            h.circle(
+              [
+                h.Cx(String(cx.toFixed(1))),
+                h.Cy(String(cy.toFixed(1))),
+                h.R(isActive ? '4' : '2.5'),
+                h.Fill(isActive ? '#ef4444' : '#6366f1'),
+                h.Opacity(isInactive ? '0.2' : '0.9'),
+              ],
+              [],
+            ),
+            ...(isActive
+              ? [
+                  h.text(
+                    [
+                      h.X(String((cx + 5).toFixed(1))),
+                      h.Y(String((cy - 4).toFixed(1))),
+                      h.Style({
+                        'font-size': '0.55rem',
+                        'font-weight': '600',
+                        fill: '#1e293b',
+                        'pointer-events': 'none',
+                      }),
+                    ],
+                    [name],
+                  ),
+                ]
+              : []),
+          ],
+        );
+      }),
+    ),
+
+    // Panel divider
+    h.line(
+      [
+        h.X1(String(MERC_X0)),
+        h.Y1(String(MAP_Y0)),
+        h.X2(String(MERC_X0)),
+        h.Y2(String(MAP_Y1)),
+        h.Stroke('#e2e8f0'),
+        h.StrokeWidth('1'),
+      ],
+      [],
+    ),
+  ]);
 }

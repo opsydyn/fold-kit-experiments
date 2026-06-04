@@ -1,5 +1,5 @@
-import { sankey } from '@opsydyn/foldkit-viz/shape/sankey';
 import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
+import { sankey } from '@opsydyn/foldkit-viz/shape/sankey';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
@@ -222,87 +222,86 @@ export const view = <M>(config: {
     : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // Links (drawn first so nodes sit on top)
-          ...links.map((link) => {
-            const related = !isAnyActive || isLinkRelated(link);
-            const opacity = !isAnyActive ? '0.5' : related ? '0.75' : '0.06';
-            return h.path(
-              [
-                h.D(link.pathD),
-                h.Fill(related && isAnyActive ? link.strokeColor : link.fillColor),
-                h.Stroke(link.strokeColor),
-                h.StrokeWidth('0.5'),
-                h.Style({ opacity, transition: 'opacity 150ms' }),
-              ],
-              [],
-            );
-          }),
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // Links (drawn first so nodes sit on top)
+        ...links.map((link) => {
+          const related = !isAnyActive || isLinkRelated(link);
+          const opacity = !isAnyActive ? '0.5' : related ? '0.75' : '0.06';
+          return h.path(
+            [
+              h.D(link.pathD),
+              h.Fill(related && isAnyActive ? link.strokeColor : link.fillColor),
+              h.Stroke(link.strokeColor),
+              h.StrokeWidth('0.5'),
+              h.Style({ opacity, transition: 'opacity 150ms' }),
+            ],
+            [],
+          );
+        }),
 
-          // Nodes
-          ...nodes.map((node) => {
-            const related = !relatedNodeIds || relatedNodeIds.has(node.id);
-            const isActive = node.id === activeId;
-            const nodeOpacity = !isAnyActive ? '1' : related ? '1' : '0.3';
-            const nodeH = r1(node.y1 - node.y0);
+        // Nodes
+        ...nodes.map((node) => {
+          const related = !relatedNodeIds || relatedNodeIds.has(node.id);
+          const isActive = node.id === activeId;
+          const nodeOpacity = !isAnyActive ? '1' : related ? '1' : '0.3';
+          const nodeH = r1(node.y1 - node.y0);
 
-            return h.g(
-              [
-                h.OnMouseEnter(toParentMessage(HoveredNode({ id: node.id }))),
-                h.OnMouseLeave(toParentMessage(BlurredNode({}))),
-                h.Style({ cursor: 'pointer' }),
-                h.AriaLabel(node.label),
-              ],
-              [
-                h.rect(
-                  [
-                    h.X(String(node.x0)),
-                    h.Y(String(node.y0)),
-                    h.Width(String(r1(node.x1 - node.x0))),
-                    h.Height(String(nodeH)),
-                    h.Fill(node.color),
-                    h.Style({
-                      opacity: nodeOpacity,
-                      transition: 'opacity 150ms',
-                    }),
-                  ],
-                  [],
-                ),
-                // Label
-                ...(node.showLabel
-                  ? [
-                      h.text(
-                        [
-                          h.Transform(
-                            node.labelRotate !== 0
-                              ? `translate(${node.labelX},${node.labelY}) rotate(${node.labelRotate})`
-                              : `translate(0,0)`,
-                          ),
-                          h.X(node.labelRotate !== 0 ? '0' : String(node.labelX)),
-                          h.Y(node.labelRotate !== 0 ? '0' : String(node.labelY)),
-                          h.Style({
-                            'text-anchor': node.labelAnchor,
-                            'dominant-baseline': 'middle',
-                            'font-size': '0.6rem',
-                            'font-weight': isActive ? '700' : '500',
-                            fill: isActive ? node.color : '#475569',
-                            opacity: !isAnyActive ? '1' : related ? '1' : '0.3',
-                            transition: 'opacity 150ms, fill 150ms',
-                            'pointer-events': 'none',
-                            'user-select': 'none',
-                          }),
-                        ],
-                        [node.label],
-                      ),
-                    ]
-                  : []),
-              ],
-            );
-          }),
-        ],
-      ),
-    ],
-  );
+          return h.g(
+            [
+              h.OnMouseEnter(toParentMessage(HoveredNode({ id: node.id }))),
+              h.OnMouseLeave(toParentMessage(BlurredNode({}))),
+              h.Style({ cursor: 'pointer' }),
+              h.AriaLabel(node.label),
+            ],
+            [
+              h.rect(
+                [
+                  h.X(String(node.x0)),
+                  h.Y(String(node.y0)),
+                  h.Width(String(r1(node.x1 - node.x0))),
+                  h.Height(String(nodeH)),
+                  h.Fill(node.color),
+                  h.Style({
+                    opacity: nodeOpacity,
+                    transition: 'opacity 150ms',
+                  }),
+                ],
+                [],
+              ),
+              // Label
+              ...(node.showLabel
+                ? [
+                    h.text(
+                      [
+                        h.Transform(
+                          node.labelRotate !== 0
+                            ? `translate(${node.labelX},${node.labelY}) rotate(${node.labelRotate})`
+                            : `translate(0,0)`,
+                        ),
+                        h.X(node.labelRotate !== 0 ? '0' : String(node.labelX)),
+                        h.Y(node.labelRotate !== 0 ? '0' : String(node.labelY)),
+                        h.Style({
+                          'text-anchor': node.labelAnchor,
+                          'dominant-baseline': 'middle',
+                          'font-size': '0.6rem',
+                          'font-weight': isActive ? '700' : '500',
+                          fill: isActive ? node.color : '#475569',
+                          opacity: !isAnyActive ? '1' : related ? '1' : '0.3',
+                          transition: 'opacity 150ms, fill 150ms',
+                          'pointer-events': 'none',
+                          'user-select': 'none',
+                        }),
+                      ],
+                      [node.label],
+                    ),
+                  ]
+                : []),
+            ],
+          );
+        }),
+      ],
+    ),
+  ]);
 };

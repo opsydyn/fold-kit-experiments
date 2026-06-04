@@ -1,5 +1,4 @@
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, html } from 'foldkit/html';
 import { r3 } from './math';
 
 type H<M> = ReturnType<typeof html<M>>;
@@ -12,7 +11,7 @@ export type TooltipStyle = Readonly<{
 }>;
 
 const DEFAULTS: Required<TooltipStyle> = {
-  color: '#4338ca',
+  color: 'var(--chart-accent, #4338ca)',
   fontSize: '0.75rem',
   fontWeight: '600',
   offsetY: 10,

@@ -11,6 +11,7 @@ export const view = (model: Model): Document => ({
   body: EasingCurves.view({
     model: model.chart,
     toParentMessage,
-    ariaLabel: 'Comparison of 6 easing functions: linear, sinOut, cubicOut, backOut, elasticOut, bounceOut',
+    ariaLabel:
+      'Comparison of 6 easing functions: linear, sinOut, cubicOut, backOut, elasticOut, bounceOut',
   }),
 });

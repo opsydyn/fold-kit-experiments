@@ -328,129 +328,128 @@ export function view<M>(config: {
   const clearY = resetY + BTN_TEXT_H + 2;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.defs(
-        [],
-        [
-          h.clipPath(
-            [h.Attribute('id', 'ph-clip')],
-            [h.rect([h.X('0'), h.Y('0'), h.Width(String(W)), h.Height(String(H))], [])],
+    h.defs(
+      [],
+      [
+        h.clipPath(
+          [h.Attribute('id', 'ph-clip')],
+          [h.rect([h.X('0'), h.Y('0'), h.Width(String(W)), h.Height(String(H))], [])],
+        ),
+      ],
+    ),
+
+    // Background
+    h.rect(
+      [
+        h.X('0'),
+        h.Y('0'),
+        h.Width(String(W)),
+        h.Height(String(H)),
+        h.Attribute('rx', '14'),
+        h.Fill(BG),
+      ],
+      [],
+    ),
+
+    // Zoomed dots
+    h.g([h.Transform(matrixToString(matrix))], renderDots(h, dots)),
+
+    // Drag overlay
+    h.rect(
+      [
+        h.X('0'),
+        h.Y('0'),
+        h.Width(String(W)),
+        h.Height(String(H)),
+        h.Fill('transparent'),
+        h.Style({ cursor: isDragging ? 'grabbing' : 'grab', 'touch-action': 'none' }),
+        h.OnPointerDown(handlePointerDown),
+        h.OnPointerMove(handlePointerMove),
+        h.OnPointerUp(handlePointerUp),
+        h.OnPointerLeave(handlePointerLeave),
+      ],
+      [],
+    ),
+
+    // Mini map
+    ...(showMiniMap
+      ? [
+          h.g(
+            [
+              h.Attribute('clip-path', 'url(#ph-clip)'),
+              h.Transform(`scale(${MINI_SCALE}) translate(${MINI_TX}, ${MINI_TY})`),
+            ],
+            [
+              h.rect(
+                [h.X('0'), h.Y('0'), h.Width(String(W)), h.Height(String(H)), h.Fill('#1a1a1a')],
+                [],
+              ),
+              ...renderDots(h, dots),
+              // Viewport indicator
+              h.rect(
+                [
+                  h.X('0'),
+                  h.Y('0'),
+                  h.Width(String(W)),
+                  h.Height(String(H)),
+                  h.Fill('white'),
+                  h.Attribute('fill-opacity', '0.2'),
+                  h.Stroke('white'),
+                  h.StrokeWidth('4'),
+                  h.Transform(matrixToInverseString(matrix)),
+                ],
+                [],
+              ),
+            ],
           ),
-        ],
-      ),
+        ]
+      : []),
 
-      // Background
-      h.rect(
-        [
-          h.X('0'),
-          h.Y('0'),
-          h.Width(String(W)),
-          h.Height(String(H)),
-          h.Attribute('rx', '14'),
-          h.Fill(BG),
-        ],
-        [],
-      ),
+    // Controls (top-right)
+    iconBtn(h, '+', BTN_X, zoomInY, toParentMessage(ClickedZoomIn({}))),
+    iconBtn(h, '−', BTN_X, zoomOutY, toParentMessage(ClickedZoomOut({}))),
+    textBtn(
+      h,
+      'Center',
+      BTN_TEXT_X,
+      centerY,
+      BTN_TEXT_W,
+      '0.65rem',
+      toParentMessage(ClickedCenter({})),
+    ),
+    textBtn(
+      h,
+      'Reset',
+      BTN_TEXT_X,
+      resetY,
+      BTN_TEXT_W,
+      '0.65rem',
+      toParentMessage(ClickedReset({})),
+    ),
+    textBtn(
+      h,
+      'Clear',
+      BTN_TEXT_X,
+      clearY,
+      BTN_TEXT_W,
+      '0.65rem',
+      toParentMessage(ClickedClear({})),
+    ),
 
-      // Zoomed dots
-      h.g([h.Transform(matrixToString(matrix))], renderDots(h, dots)),
-
-      // Drag overlay
-      h.rect(
-        [
-          h.X('0'),
-          h.Y('0'),
-          h.Width(String(W)),
-          h.Height(String(H)),
-          h.Fill('transparent'),
-          h.Style({ cursor: isDragging ? 'grabbing' : 'grab', 'touch-action': 'none' }),
-          h.OnPointerDown(handlePointerDown),
-          h.OnPointerMove(handlePointerMove),
-          h.OnPointerUp(handlePointerUp),
-          h.OnPointerLeave(handlePointerLeave),
-        ],
-        [],
-      ),
-
-      // Mini map
-      ...(showMiniMap
-        ? [
-            h.g(
-              [
-                h.Attribute('clip-path', 'url(#ph-clip)'),
-                h.Transform(`scale(${MINI_SCALE}) translate(${MINI_TX}, ${MINI_TY})`),
-              ],
-              [
-                h.rect(
-                  [h.X('0'), h.Y('0'), h.Width(String(W)), h.Height(String(H)), h.Fill('#1a1a1a')],
-                  [],
-                ),
-                ...renderDots(h, dots),
-                // Viewport indicator
-                h.rect(
-                  [
-                    h.X('0'),
-                    h.Y('0'),
-                    h.Width(String(W)),
-                    h.Height(String(H)),
-                    h.Fill('white'),
-                    h.Attribute('fill-opacity', '0.2'),
-                    h.Stroke('white'),
-                    h.StrokeWidth('4'),
-                    h.Transform(matrixToInverseString(matrix)),
-                  ],
-                  [],
-                ),
-              ],
-            ),
-          ]
-        : []),
-
-      // Controls (top-right)
-      iconBtn(h, '+', BTN_X, zoomInY, toParentMessage(ClickedZoomIn({}))),
-      iconBtn(h, '−', BTN_X, zoomOutY, toParentMessage(ClickedZoomOut({}))),
-      textBtn(
-        h,
-        'Center',
-        BTN_TEXT_X,
-        centerY,
-        BTN_TEXT_W,
-        '0.65rem',
-        toParentMessage(ClickedCenter({})),
-      ),
-      textBtn(
-        h,
-        'Reset',
-        BTN_TEXT_X,
-        resetY,
-        BTN_TEXT_W,
-        '0.65rem',
-        toParentMessage(ClickedReset({})),
-      ),
-      textBtn(
-        h,
-        'Clear',
-        BTN_TEXT_X,
-        clearY,
-        BTN_TEXT_W,
-        '0.65rem',
-        toParentMessage(ClickedClear({})),
-      ),
-
-      // Mini map toggle (bottom-right, inside clip)
-      h.g(
-        [h.Attribute('clip-path', 'url(#ph-clip)')],
-        [
-          textBtn(
-            h,
-            miniMapLabel,
-            miniMapBtnX,
-            MINI_BTN_Y,
-            MINI_BTN_W,
-            '0.55rem',
-            toParentMessage(ToggledMiniMap({})),
-          ),
-        ],
-      ),
-    ],
-  );
+    // Mini map toggle (bottom-right, inside clip)
+    h.g(
+      [h.Attribute('clip-path', 'url(#ph-clip)')],
+      [
+        textBtn(
+          h,
+          miniMapLabel,
+          miniMapBtnX,
+          MINI_BTN_Y,
+          MINI_BTN_W,
+          '0.55rem',
+          toParentMessage(ToggledMiniMap({})),
+        ),
+      ],
+    ),
+  ]);
 }

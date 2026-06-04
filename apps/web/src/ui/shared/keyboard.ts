@@ -8,10 +8,8 @@ export function arrowKeyNav<M>(
   key: string,
   makeMessage: (direction: 'next' | 'prev') => M,
 ): Option.Option<M> {
-  if (key === 'ArrowRight' || key === 'ArrowDown')
-    return Option.some(makeMessage('next'));
-  if (key === 'ArrowLeft' || key === 'ArrowUp')
-    return Option.some(makeMessage('prev'));
+  if (key === 'ArrowRight' || key === 'ArrowDown') return Option.some(makeMessage('next'));
+  if (key === 'ArrowLeft' || key === 'ArrowUp') return Option.some(makeMessage('prev'));
   return Option.none();
 }
 

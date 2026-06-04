@@ -24,7 +24,7 @@ export function createSimulation(nodes: SimNode[]): Simulation {
 
   let alpha = 1;
   const alphaMin = 0.001;
-  const alphaDecay = 1 - Math.pow(alphaMin, 1 / 300);
+  const alphaDecay = 1 - alphaMin ** (1 / 300);
   const alphaTarget = 0;
   const velocityDecay = 0.6;
 
@@ -34,13 +34,13 @@ export function createSimulation(nodes: SimNode[]): Simulation {
       node.index = i;
       if (node.fx != null) node.x = node.fx;
       if (node.fy != null) node.y = node.fy;
-      if (isNaN(node.x) || isNaN(node.y)) {
+      if (Number.isNaN(node.x) || Number.isNaN(node.y)) {
         const radius = INITIAL_RADIUS * Math.sqrt(0.5 + i);
         const angle = i * INITIAL_ANGLE;
         node.x = radius * Math.cos(angle);
         node.y = radius * Math.sin(angle);
       }
-      if (isNaN(node.vx) || isNaN(node.vy)) {
+      if (Number.isNaN(node.vx) || Number.isNaN(node.vy)) {
         node.vx = node.vy = 0;
       }
     }
@@ -57,25 +57,45 @@ export function createSimulation(nodes: SimNode[]): Simulation {
     for (let k = 0; k < iterations; k++) {
       alpha += (alphaTarget - alpha) * alphaDecay;
 
-      forces.forEach((force) => force(alpha));
+      forces.forEach((force) => {
+        force(alpha);
+      });
 
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i]!;
         if (node.fx == null) node.x += node.vx *= velocityDecay;
-        else { node.x = node.fx; node.vx = 0; }
+        else {
+          node.x = node.fx;
+          node.vx = 0;
+        }
         if (node.fy == null) node.y += node.vy *= velocityDecay;
-        else { node.y = node.fy; node.vy = 0; }
+        else {
+          node.y = node.fy;
+          node.vy = 0;
+        }
       }
     }
   }
 
   return {
-    get nodes() { return nodes; },
-    get alpha() { return alpha; },
-    get alphaMin() { return alphaMin; },
-    get alphaDecay() { return alphaDecay; },
-    get alphaTarget() { return alphaTarget; },
-    get velocityDecay() { return velocityDecay; },
+    get nodes() {
+      return nodes;
+    },
+    get alpha() {
+      return alpha;
+    },
+    get alphaMin() {
+      return alphaMin;
+    },
+    get alphaDecay() {
+      return alphaDecay;
+    },
+    get alphaTarget() {
+      return alphaTarget;
+    },
+    get velocityDecay() {
+      return velocityDecay;
+    },
     addForce,
     tick,
   };

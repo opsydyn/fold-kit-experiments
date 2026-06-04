@@ -72,7 +72,10 @@ function orderAppearance(series: MutableSeries[]): number[] {
     let maxV = -Infinity;
     for (let i = 0; i < s.length; ++i) {
       const v = s[i]?.y1 ?? 0;
-      if (v > maxV) { maxV = v; maxJ = i; }
+      if (v > maxV) {
+        maxV = v;
+        maxJ = i;
+      }
     }
     return maxJ;
   });
@@ -103,10 +106,14 @@ function orderInsideOut(series: MutableSeries[]): number[] {
 
 function computeOrder(series: MutableSeries[], mode: StackOrder): number[] {
   switch (mode) {
-    case 'ascending': return orderAscending(series);
-    case 'descending': return orderAscending(series).reverse();
-    case 'insideOut': return orderInsideOut(series);
-    default: return orderIdentity(series);
+    case 'ascending':
+      return orderAscending(series);
+    case 'descending':
+      return orderAscending(series).reverse();
+    case 'insideOut':
+      return orderInsideOut(series);
+    default:
+      return orderIdentity(series);
   }
 }
 
@@ -211,10 +218,18 @@ function applyOffsetWiggle(series: MutableSeries[], order: number[]): void {
 
 function applyOffset(series: MutableSeries[], order: number[], mode: StackOffset): void {
   switch (mode) {
-    case 'expand': applyOffsetExpand(series, order); break;
-    case 'silhouette': applyOffsetSilhouette(series, order); break;
-    case 'wiggle': applyOffsetWiggle(series, order); break;
-    default: applyOffsetNone(series, order); break;
+    case 'expand':
+      applyOffsetExpand(series, order);
+      break;
+    case 'silhouette':
+      applyOffsetSilhouette(series, order);
+      break;
+    case 'wiggle':
+      applyOffsetWiggle(series, order);
+      break;
+    default:
+      applyOffsetNone(series, order);
+      break;
   }
 }
 

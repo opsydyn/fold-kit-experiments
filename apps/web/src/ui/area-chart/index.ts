@@ -5,8 +5,17 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { arrowKeyNav, nextIndex, r3, svgRoot, valueTooltip, xLinearAxis, yGridlines, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import {
+  arrowKeyNav,
+  makeLayout,
+  nextIndex,
+  r3,
+  svgRoot,
+  valueTooltip,
+  xLinearAxis,
+  yGridlines,
+} from '../shared';
 
 // MODEL
 
@@ -95,7 +104,12 @@ export const view = <M>(config: {
 }): Html => {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Area chart', renderTooltip } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { points, activeIndex, config: cfg } = model;
 
   const maxValue = points.reduce((acc, p) => Math.max(acc, p.value), 0);
@@ -106,9 +120,10 @@ export const view = <M>(config: {
   const xScale = linear({ domain: xDomain, range: [0, PW] });
   const yTicks = linearTicks(yDomain, cfg.tickCount);
 
-  const coords: ReadonlyArray<readonly [number, number]> = points.map(
-    (p, i) => [r3(xScale(i)), r3(yScale(p.value))],
-  );
+  const coords: ReadonlyArray<readonly [number, number]> = points.map((p, i) => [
+    r3(xScale(i)),
+    r3(yScale(p.value)),
+  ]);
 
   const areaPath = area(coords, PH, { curve: cfg.curve });
   const linePath = line(coords, { curve: cfg.curve });
@@ -127,8 +142,18 @@ export const view = <M>(config: {
           : []),
 
         ...(linePath
-          ? [h.path([h.D(linePath), h.Fill('none'), h.Stroke(cfg.color), h.StrokeWidth('2'),
-              h.Style({ 'stroke-linejoin': 'round', 'stroke-linecap': 'round' })], [])]
+          ? [
+              h.path(
+                [
+                  h.D(linePath),
+                  h.Fill('none'),
+                  h.Stroke(cfg.color),
+                  h.StrokeWidth('2'),
+                  h.Style({ 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }),
+                ],
+                [],
+              ),
+            ]
           : []),
 
         // Active crosshair + dot
@@ -140,12 +165,35 @@ export const view = <M>(config: {
               const cy = pt?.[1] ?? 0;
               const p = points[i];
               return [
-                h.line([h.X1(String(cx)), h.Y1(String(cy)), h.X2(String(cx)), h.Y2(String(PH)),
-                  h.Stroke(cfg.color), h.StrokeWidth('1'),
-                  h.Style({ 'stroke-dasharray': '3,3', opacity: '0.5' })], []),
-                h.circle([h.Cx(String(cx)), h.Cy(String(cy)), h.R('5'),
-                  h.Fill('#fff'), h.Stroke(cfg.activeColor), h.StrokeWidth('2')], []),
-                (renderTooltip ? renderTooltip(p, cx, cy) : valueTooltip(h, cx, cy, String(p?.value ?? ''), { color: cfg.activeColor, offsetY: 10 })),
+                h.line(
+                  [
+                    h.X1(String(cx)),
+                    h.Y1(String(cy)),
+                    h.X2(String(cx)),
+                    h.Y2(String(PH)),
+                    h.Stroke(cfg.color),
+                    h.StrokeWidth('1'),
+                    h.Style({ 'stroke-dasharray': '3,3', opacity: '0.5' }),
+                  ],
+                  [],
+                ),
+                h.circle(
+                  [
+                    h.Cx(String(cx)),
+                    h.Cy(String(cy)),
+                    h.R('5'),
+                    h.Fill('#fff'),
+                    h.Stroke(cfg.activeColor),
+                    h.StrokeWidth('2'),
+                  ],
+                  [],
+                ),
+                renderTooltip
+                  ? renderTooltip(p, cx, cy)
+                  : valueTooltip(h, cx, cy, String(p?.value ?? ''), {
+                      color: cfg.activeColor,
+                      offsetY: 10,
+                    }),
               ];
             })()
           : []),
@@ -158,8 +206,10 @@ export const view = <M>(config: {
             const cx = pt?.[0] ?? 0;
             return h.rect(
               [
-                h.X(String(r3(cx - 16))), h.Y('0'),
-                h.Width('32'), h.Height(String(PH)),
+                h.X(String(r3(cx - 16))),
+                h.Y('0'),
+                h.Width('32'),
+                h.Height(String(PH)),
                 h.Fill('transparent'),
                 h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
                 h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
@@ -171,7 +221,13 @@ export const view = <M>(config: {
           }),
         ),
 
-        xLinearAxis(h, points.map((p) => p.label), (i) => xScale(i), PH, PW),
+        xLinearAxis(
+          h,
+          points.map((p) => p.label),
+          (i) => xScale(i),
+          PH,
+          PW,
+        ),
       ],
     ),
   ]);

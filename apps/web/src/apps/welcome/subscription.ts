@@ -17,6 +17,6 @@ const usernameStream: Stream.Stream<Message> = Stream.callback((queue) =>
   ).pipe(Effect.flatMap(() => Effect.never)),
 );
 
-export const subscriptions = Subscription.make<Model, Message>()(_entry => ({
+export const subscriptions = Subscription.make<Model, Message>()((_entry) => ({
   username: Subscription.persistent(usernameStream),
 }));

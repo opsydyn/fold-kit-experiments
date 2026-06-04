@@ -189,171 +189,170 @@ export const view = <M>(config: {
   const activeCell = activeValue ? cells.find((c) => c.key === activeValue) : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // Row labels
-          ...rowLabels.map((rl) =>
-            h.text(
-              [
-                h.X('-8'),
-                h.Y(String(rl.y)),
-                h.Style({
-                  'text-anchor': 'end',
-                  'dominant-baseline': 'middle',
-                  'font-size': '0.58rem',
-                  fill: '#64748b',
-                  'pointer-events': 'none',
-                }),
-              ],
-              [rl.label],
-            ),
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // Row labels
+        ...rowLabels.map((rl) =>
+          h.text(
+            [
+              h.X('-8'),
+              h.Y(String(rl.y)),
+              h.Style({
+                'text-anchor': 'end',
+                'dominant-baseline': 'middle',
+                'font-size': '0.58rem',
+                fill: '#64748b',
+                'pointer-events': 'none',
+              }),
+            ],
+            [rl.label],
           ),
+        ),
 
-          // Column labels
-          ...colLabels.map((cl) =>
-            h.text(
-              [
-                h.X(String(cl.x)),
-                h.Y(String(PH + 14)),
-                h.Style({
-                  'text-anchor': 'middle',
-                  'font-size': '0.58rem',
-                  fill: '#64748b',
-                  'pointer-events': 'none',
-                }),
-              ],
-              [cl.label],
-            ),
+        // Column labels
+        ...colLabels.map((cl) =>
+          h.text(
+            [
+              h.X(String(cl.x)),
+              h.Y(String(PH + 14)),
+              h.Style({
+                'text-anchor': 'middle',
+                'font-size': '0.58rem',
+                fill: '#64748b',
+                'pointer-events': 'none',
+              }),
+            ],
+            [cl.label],
           ),
+        ),
 
-          // Cells
-          ...cells.map((cell) => {
-            const isActive = isAnyActive && cell.key === activeValue;
-            const opacity = !isAnyActive ? '1' : isActive ? '1' : '0.55';
-            return h.g(
-              [
-                h.OnMouseEnter(toParentMessage(HoveredCell({ key: cell.key }))),
-                h.OnMouseLeave(toParentMessage(BlurredCell({}))),
-                h.Style({ cursor: 'pointer' }),
-                h.AriaLabel(`${cell.value}`),
-              ],
-              [
-                h.rect(
-                  [
-                    h.X(String(cell.x)),
-                    h.Y(String(cell.y)),
-                    h.Width(String(cell.w - 2)),
-                    h.Height(String(cell.h - 2)),
-                    h.Attribute('rx', String(CELL_RX)),
-                    h.Fill(cell.color),
-                    h.Style({ opacity, transition: 'opacity 120ms' }),
-                  ],
-                  [],
-                ),
-                ...(isActive
-                  ? [
-                      h.text(
-                        [
-                          h.X(String(cell.cx)),
-                          h.Y(String(cell.cy)),
-                          h.Style({
-                            'text-anchor': 'middle',
-                            'dominant-baseline': 'middle',
-                            'font-size': '0.6rem',
-                            'font-weight': '700',
-                            fill: '#fff',
-                            'pointer-events': 'none',
-                            'user-select': 'none',
-                          }),
-                        ],
-                        [String(cell.value)],
-                      ),
-                    ]
-                  : []),
-              ],
-            );
-          }),
+        // Cells
+        ...cells.map((cell) => {
+          const isActive = isAnyActive && cell.key === activeValue;
+          const opacity = !isAnyActive ? '1' : isActive ? '1' : '0.55';
+          return h.g(
+            [
+              h.OnMouseEnter(toParentMessage(HoveredCell({ key: cell.key }))),
+              h.OnMouseLeave(toParentMessage(BlurredCell({}))),
+              h.Style({ cursor: 'pointer' }),
+              h.AriaLabel(`${cell.value}`),
+            ],
+            [
+              h.rect(
+                [
+                  h.X(String(cell.x)),
+                  h.Y(String(cell.y)),
+                  h.Width(String(cell.w - 2)),
+                  h.Height(String(cell.h - 2)),
+                  h.Attribute('rx', String(CELL_RX)),
+                  h.Fill(cell.color),
+                  h.Style({ opacity, transition: 'opacity 120ms' }),
+                ],
+                [],
+              ),
+              ...(isActive
+                ? [
+                    h.text(
+                      [
+                        h.X(String(cell.cx)),
+                        h.Y(String(cell.cy)),
+                        h.Style({
+                          'text-anchor': 'middle',
+                          'dominant-baseline': 'middle',
+                          'font-size': '0.6rem',
+                          'font-weight': '700',
+                          fill: '#fff',
+                          'pointer-events': 'none',
+                          'user-select': 'none',
+                        }),
+                      ],
+                      [String(cell.value)],
+                    ),
+                  ]
+                : []),
+            ],
+          );
+        }),
 
-          // Colour bar
-          ...colorStops.map((stop) =>
-            h.rect(
-              [
-                h.X(String(colorBarX + stop.x)),
-                h.Y(String(colorBarY)),
-                h.Width(String(stop.w)),
-                h.Height(String(COLOR_BAR_H)),
-                h.Fill(stop.color),
-              ],
-              [],
-            ),
-          ),
-
-          // Colour bar outline
+        // Colour bar
+        ...colorStops.map((stop) =>
           h.rect(
             [
-              h.X(String(colorBarX)),
+              h.X(String(colorBarX + stop.x)),
               h.Y(String(colorBarY)),
-              h.Width(String(colorBarW)),
+              h.Width(String(stop.w)),
               h.Height(String(COLOR_BAR_H)),
-              h.Fill('none'),
-              h.Stroke('#e2e8f0'),
-              h.StrokeWidth('0.5'),
+              h.Fill(stop.color),
             ],
             [],
           ),
+        ),
 
-          // Min label
-          h.text(
-            [
-              h.X(String(colorBarX)),
-              h.Y(String(colorBarY + COLOR_BAR_H + 10)),
-              h.Style({
-                'text-anchor': 'start',
-                'font-size': '0.58rem',
-                fill: '#94a3b8',
-                'pointer-events': 'none',
-              }),
-            ],
-            [minLabel],
-          ),
+        // Colour bar outline
+        h.rect(
+          [
+            h.X(String(colorBarX)),
+            h.Y(String(colorBarY)),
+            h.Width(String(colorBarW)),
+            h.Height(String(COLOR_BAR_H)),
+            h.Fill('none'),
+            h.Stroke('#e2e8f0'),
+            h.StrokeWidth('0.5'),
+          ],
+          [],
+        ),
 
-          // Max label
-          h.text(
-            [
-              h.X(String(colorBarX + colorBarW)),
-              h.Y(String(colorBarY + COLOR_BAR_H + 10)),
-              h.Style({
-                'text-anchor': 'end',
-                'font-size': '0.58rem',
-                fill: '#94a3b8',
-                'pointer-events': 'none',
-              }),
-            ],
-            [maxLabel],
-          ),
+        // Min label
+        h.text(
+          [
+            h.X(String(colorBarX)),
+            h.Y(String(colorBarY + COLOR_BAR_H + 10)),
+            h.Style({
+              'text-anchor': 'start',
+              'font-size': '0.58rem',
+              fill: '#94a3b8',
+              'pointer-events': 'none',
+            }),
+          ],
+          [minLabel],
+        ),
 
-          // Active tooltip
-          ...(activeCell
-            ? [
-                h.text(
-                  [
-                    h.X(String(colorBarW / 2)),
-                    h.Y(String(colorBarY + COLOR_BAR_H + 10)),
-                    h.Style({
-                      'text-anchor': 'middle',
-                      'font-size': '0.6rem',
-                      'font-weight': '600',
-                      fill: '#1e293b',
-                      'pointer-events': 'none',
-                    }),
-                  ],
-                  [String(activeCell.value)],
-                ),
-              ]
-            : []),
-        ],
-      ),
-    ],
-  );
+        // Max label
+        h.text(
+          [
+            h.X(String(colorBarX + colorBarW)),
+            h.Y(String(colorBarY + COLOR_BAR_H + 10)),
+            h.Style({
+              'text-anchor': 'end',
+              'font-size': '0.58rem',
+              fill: '#94a3b8',
+              'pointer-events': 'none',
+            }),
+          ],
+          [maxLabel],
+        ),
+
+        // Active tooltip
+        ...(activeCell
+          ? [
+              h.text(
+                [
+                  h.X(String(colorBarW / 2)),
+                  h.Y(String(colorBarY + COLOR_BAR_H + 10)),
+                  h.Style({
+                    'text-anchor': 'middle',
+                    'font-size': '0.6rem',
+                    'font-weight': '600',
+                    fill: '#1e293b',
+                    'pointer-events': 'none',
+                  }),
+                ],
+                [String(activeCell.value)],
+              ),
+            ]
+          : []),
+      ],
+    ),
+  ]);
 };

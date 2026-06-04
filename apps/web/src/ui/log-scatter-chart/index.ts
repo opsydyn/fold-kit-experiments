@@ -4,8 +4,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { svgRoot, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, svgRoot } from '../shared';
 
 // MODEL
 
@@ -90,7 +90,12 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Log scatter chart' } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { points, categories, xLabel, yLabel, activeLabel } = model;
 
   const colMap = categoryCols(categories);
@@ -115,190 +120,189 @@ export function view<M>(config: {
   const legendItemWidth = 100;
 
   return svgRoot(h, { width: W, height: H, ariaLabel, style: { overflow: 'visible' } }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // X grid lines + labels
-          h.g(
-            [],
-            xTicks.map((t) => {
-              const px = xScale(t);
-              return h.g(
-                [],
-                [
-                  h.line(
-                    [
-                      h.X1(String(px)),
-                      h.Y1('0'),
-                      h.X2(String(px)),
-                      h.Y2(String(PH)),
-                      h.Stroke('#e2e8f0'),
-                      h.StrokeWidth('1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X(String(px)),
-                      h.Y(String(PH + 14)),
-                      h.Style({ 'text-anchor': 'middle', 'font-size': '0.6rem', fill: '#94a3b8' }),
-                    ],
-                    [fmtSI(t)],
-                  ),
-                ],
-              );
-            }),
-          ),
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // X grid lines + labels
+        h.g(
+          [],
+          xTicks.map((t) => {
+            const px = xScale(t);
+            return h.g(
+              [],
+              [
+                h.line(
+                  [
+                    h.X1(String(px)),
+                    h.Y1('0'),
+                    h.X2(String(px)),
+                    h.Y2(String(PH)),
+                    h.Stroke('#e2e8f0'),
+                    h.StrokeWidth('1'),
+                  ],
+                  [],
+                ),
+                h.text(
+                  [
+                    h.X(String(px)),
+                    h.Y(String(PH + 14)),
+                    h.Style({ 'text-anchor': 'middle', 'font-size': '0.6rem', fill: '#94a3b8' }),
+                  ],
+                  [fmtSI(t)],
+                ),
+              ],
+            );
+          }),
+        ),
 
-          // Y grid lines + labels
-          h.g(
-            [],
-            yTicks.map((t) => {
-              const py = yScale(t);
-              return h.g(
-                [],
-                [
-                  h.line(
-                    [
-                      h.X1('0'),
-                      h.Y1(String(py)),
-                      h.X2(String(PW)),
-                      h.Y2(String(py)),
-                      h.Stroke('#e2e8f0'),
-                      h.StrokeWidth('1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('-6'),
-                      h.Y(String(py)),
-                      h.Style({
-                        'text-anchor': 'end',
-                        'dominant-baseline': 'middle',
-                        'font-size': '0.6rem',
-                        fill: '#94a3b8',
-                      }),
-                    ],
-                    [fmtSI(t)],
-                  ),
-                ],
-              );
-            }),
-          ),
+        // Y grid lines + labels
+        h.g(
+          [],
+          yTicks.map((t) => {
+            const py = yScale(t);
+            return h.g(
+              [],
+              [
+                h.line(
+                  [
+                    h.X1('0'),
+                    h.Y1(String(py)),
+                    h.X2(String(PW)),
+                    h.Y2(String(py)),
+                    h.Stroke('#e2e8f0'),
+                    h.StrokeWidth('1'),
+                  ],
+                  [],
+                ),
+                h.text(
+                  [
+                    h.X('-6'),
+                    h.Y(String(py)),
+                    h.Style({
+                      'text-anchor': 'end',
+                      'dominant-baseline': 'middle',
+                      'font-size': '0.6rem',
+                      fill: '#94a3b8',
+                    }),
+                  ],
+                  [fmtSI(t)],
+                ),
+              ],
+            );
+          }),
+        ),
 
-          // Axis labels
-          h.text(
-            [
-              h.X(String(PW / 2)),
-              h.Y(String(PH + 30)),
-              h.Style({ 'text-anchor': 'middle', 'font-size': '0.62rem', fill: '#64748b' }),
-            ],
-            [xLabel],
-          ),
-          h.text(
-            [
-              h.X('0'),
-              h.Y('0'),
-              h.Transform(`rotate(-90) translate(${-(PH / 2)}, -44)`),
-              h.Style({ 'text-anchor': 'middle', 'font-size': '0.62rem', fill: '#64748b' }),
-            ],
-            [yLabel],
-          ),
+        // Axis labels
+        h.text(
+          [
+            h.X(String(PW / 2)),
+            h.Y(String(PH + 30)),
+            h.Style({ 'text-anchor': 'middle', 'font-size': '0.62rem', fill: '#64748b' }),
+          ],
+          [xLabel],
+        ),
+        h.text(
+          [
+            h.X('0'),
+            h.Y('0'),
+            h.Transform(`rotate(-90) translate(${-(PH / 2)}, -44)`),
+            h.Style({ 'text-anchor': 'middle', 'font-size': '0.62rem', fill: '#64748b' }),
+          ],
+          [yLabel],
+        ),
 
-          // Plot frame
-          h.rect(
-            [
-              h.X('0'),
-              h.Y('0'),
-              h.Width(String(PW)),
-              h.Height(String(PH)),
-              h.Fill('none'),
-              h.Stroke('#e2e8f0'),
-              h.StrokeWidth('1'),
-            ],
-            [],
-          ),
+        // Plot frame
+        h.rect(
+          [
+            h.X('0'),
+            h.Y('0'),
+            h.Width(String(PW)),
+            h.Height(String(PH)),
+            h.Fill('none'),
+            h.Stroke('#e2e8f0'),
+            h.StrokeWidth('1'),
+          ],
+          [],
+        ),
 
-          // Points
-          h.g(
-            [],
-            points.map((pt) => {
-              const px = xScale(pt.x);
-              const py = yScale(pt.y);
-              const isActive = pt.label === active;
-              const isInactive = active !== null && !isActive;
-              const color = colMap.get(pt.category) ?? '#6366f1';
+        // Points
+        h.g(
+          [],
+          points.map((pt) => {
+            const px = xScale(pt.x);
+            const py = yScale(pt.y);
+            const isActive = pt.label === active;
+            const isInactive = active !== null && !isActive;
+            const color = colMap.get(pt.category) ?? '#6366f1';
 
-              return h.g(
-                [
-                  h.OnMouseEnter(toParentMessage(HoveredPoint({ label: pt.label }))),
-                  h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
-                  h.Style({ cursor: 'default' }),
-                ],
-                [
-                  h.circle(
-                    [
-                      h.Cx(String(px)),
-                      h.Cy(String(py)),
-                      h.R(isActive ? '6' : '4'),
-                      h.Fill(color),
-                      h.Opacity(isInactive ? '0.2' : '0.85'),
-                      h.Style({ transition: 'r 80ms, opacity 80ms' }),
-                    ],
-                    [],
-                  ),
-                  ...(isActive
-                    ? [
-                        h.text(
-                          [
-                            h.X(String(px + 8)),
-                            h.Y(String(py - 6)),
-                            h.Style({
-                              'font-size': '0.6rem',
-                              'font-weight': '600',
-                              fill: color,
-                              'pointer-events': 'none',
-                            }),
-                          ],
-                          [pt.label],
-                        ),
-                      ]
-                    : []),
-                ],
-              );
-            }),
-          ),
+            return h.g(
+              [
+                h.OnMouseEnter(toParentMessage(HoveredPoint({ label: pt.label }))),
+                h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
+                h.Style({ cursor: 'default' }),
+              ],
+              [
+                h.circle(
+                  [
+                    h.Cx(String(px)),
+                    h.Cy(String(py)),
+                    h.R(isActive ? '6' : '4'),
+                    h.Fill(color),
+                    h.Opacity(isInactive ? '0.2' : '0.85'),
+                    h.Style({ transition: 'r 80ms, opacity 80ms' }),
+                  ],
+                  [],
+                ),
+                ...(isActive
+                  ? [
+                      h.text(
+                        [
+                          h.X(String(px + 8)),
+                          h.Y(String(py - 6)),
+                          h.Style({
+                            'font-size': '0.6rem',
+                            'font-weight': '600',
+                            fill: color,
+                            'pointer-events': 'none',
+                          }),
+                        ],
+                        [pt.label],
+                      ),
+                    ]
+                  : []),
+              ],
+            );
+          }),
+        ),
 
-          // Legend
-          h.g(
-            [h.Transform(`translate(0, ${PH + 8})`)],
-            categories.map((cat, i) =>
-              h.g(
-                [h.Transform(`translate(${i * legendItemWidth}, 0)`)],
-                [
-                  h.circle(
-                    [h.Cx('5'), h.Cy('0'), h.R('3.5'), h.Fill(cat.color), h.Opacity('0.85')],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('13'),
-                      h.Y('0'),
-                      h.Style({
-                        'dominant-baseline': 'middle',
-                        'font-size': '0.58rem',
-                        fill: '#64748b',
-                      }),
-                    ],
-                    [cat.name],
-                  ),
-                ],
-              ),
+        // Legend
+        h.g(
+          [h.Transform(`translate(0, ${PH + 8})`)],
+          categories.map((cat, i) =>
+            h.g(
+              [h.Transform(`translate(${i * legendItemWidth}, 0)`)],
+              [
+                h.circle(
+                  [h.Cx('5'), h.Cy('0'), h.R('3.5'), h.Fill(cat.color), h.Opacity('0.85')],
+                  [],
+                ),
+                h.text(
+                  [
+                    h.X('13'),
+                    h.Y('0'),
+                    h.Style({
+                      'dominant-baseline': 'middle',
+                      'font-size': '0.58rem',
+                      fill: '#64748b',
+                    }),
+                  ],
+                  [cat.name],
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    ],
-  );
+        ),
+      ],
+    ),
+  ]);
 }

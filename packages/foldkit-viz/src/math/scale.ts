@@ -211,3 +211,157 @@ export function threshold<T>(
     return range[lo];
   };
 }
+
+// LINEAR INVERT + NICE ────────────────────────────────────────────────────────
+
+export type InvertibleScale = ((value: number) => number) & {
+  readonly invert: (rangeValue: number) => number;
+};
+
+/** Linear scale with `.invert()` for reverse lookup (range → domain). */
+export function linearInvertible(config: LinearScaleConfig): InvertibleScale {
+  const [d0, d1] = config.domain;
+  const [r0, r1] = config.range;
+  const clamp = config.clamp ?? false;
+  const k = (r1 - r0) / (d1 - d0);
+  const kInv = (d1 - d0) / (r1 - r0);
+
+  return Object.assign(
+    (value: number): number => {
+      let t = (value - d0) * k + r0;
+      if (clamp) t = r1 > r0 ? Math.max(r0, Math.min(r1, t)) : Math.max(r1, Math.min(r0, t));
+      return t;
+    },
+    { invert: (rangeValue: number): number => (rangeValue - r0) * kInv + d0 },
+  );
+}
+
+/** Expand a [min, max] domain to nice round tick boundaries. */
+export function niceLinear(
+  domain: readonly [number, number],
+  count = 5,
+): readonly [number, number] {
+  const [start, stop] = domain;
+  const step = tickStep(start, stop, count);
+  if (!Number.isFinite(step) || step === 0) return domain;
+  return [Math.floor(start / step) * step, Math.ceil(stop / step) * step];
+}
+
+// QUANTILE SCALE ──────────────────────────────────────────────────────────────
+
+/**
+ * Maps sorted input data to a discrete range by quantile thresholds.
+ * D3 scaleQuantile parity.
+ */
+export function scaleQuantile<T>(
+  data: ReadonlyArray<number>,
+  range: ReadonlyArray<T>,
+): (value: number) => T | undefined {
+  const sorted = [...data].sort((a, b) => a - b);
+  const n = sorted.length;
+  const k = range.length;
+  const quantiles: number[] = Array.from({ length: k - 1 }, (_, i) => {
+    const p = (i + 1) / k;
+    const idx = p * (n - 1);
+    const lo = Math.floor(idx);
+    const hi = Math.ceil(idx);
+    const frac = idx - lo;
+    return (sorted[lo] ?? 0) * (1 - frac) + (sorted[hi] ?? 0) * frac;
+  });
+  return threshold(quantiles, range);
+}
+
+// QUANTIZE SCALE ──────────────────────────────────────────────────────────────
+
+/**
+ * Maps a continuous domain to a discrete range by equal-width steps.
+ * D3 scaleQuantize parity.
+ */
+export function scaleQuantize<T>(
+  domain: readonly [number, number],
+  range: ReadonlyArray<T>,
+): (value: number) => T | undefined {
+  const [d0, d1] = domain;
+  const n = range.length;
+  const step = (d1 - d0) / n;
+  const thresholds = Array.from({ length: n - 1 }, (_, i) => d0 + (i + 1) * step);
+  return threshold(thresholds, range);
+}
+
+// SEQUENTIAL SCALE ────────────────────────────────────────────────────────────
+
+/**
+ * Maps a continuous domain to a continuous interpolator (e.g. color).
+ * D3 scaleSequential parity.
+ */
+export function scaleSequential(
+  domain: readonly [number, number],
+  interpolator: (t: number) => string,
+): (value: number) => string {
+  const [d0, d1] = domain;
+  const span = d1 - d0;
+  return (value: number): string => {
+    const t = span === 0 ? 0 : Math.max(0, Math.min(1, (value - d0) / span));
+    return interpolator(t);
+  };
+}
+
+// POWER / SYMLOG SCALES ───────────────────────────────────────────────────────
+
+/**
+ * Generalised power scale. exp=1 → linear, exp=0.5 → sqrt.
+ * D3 scalePow parity.
+ */
+export function scalePow(config: {
+  domain: readonly [number, number];
+  range: readonly [number, number];
+  exponent?: number;
+  clamp?: boolean;
+}): (value: number) => number {
+  const [d0, d1] = config.domain;
+  const [r0, r1] = config.range;
+  const exp = config.exponent ?? 1;
+  const clamp = config.clamp ?? false;
+  const sign = (x: number) => (x < 0 ? -1 : 1);
+  const pow = (x: number) => sign(x) * Math.abs(x) ** exp;
+  const pd0 = pow(d0);
+  const pd1 = pow(d1);
+  const k = (r1 - r0) / (pd1 - pd0);
+  return (value: number): number => {
+    let t = (pow(value) - pd0) * k + r0;
+    if (clamp) t = r1 > r0 ? Math.max(r0, Math.min(r1, t)) : Math.max(r1, Math.min(r0, t));
+    return t;
+  };
+}
+
+/**
+ * Symmetric log scale — handles zero and negative values.
+ * D3 scaleSymlog parity.
+ */
+export function scaleSymlog(config: {
+  domain: readonly [number, number];
+  range: readonly [number, number];
+  constant?: number;
+  clamp?: boolean;
+}): (value: number) => number {
+  const [d0, d1] = config.domain;
+  const [r0, r1] = config.range;
+  const c = config.constant ?? 1;
+  const clamp = config.clamp ?? false;
+  const symlog = (x: number) => Math.sign(x) * Math.log1p(Math.abs(x / c));
+  const s0 = symlog(d0);
+  const s1 = symlog(d1);
+  const k = (r1 - r0) / (s1 - s0);
+  return (value: number): number => {
+    let t = (symlog(value) - s0) * k + r0;
+    if (clamp) t = r1 > r0 ? Math.max(r0, Math.min(r1, t)) : Math.max(r1, Math.min(r0, t));
+    return t;
+  };
+}
+
+// IDENTITY SCALE ──────────────────────────────────────────────────────────────
+
+/** 1:1 passthrough — value and range are the same space (pixel coords). */
+export function scaleIdentity(): (value: number) => number {
+  return (value: number) => value;
+}

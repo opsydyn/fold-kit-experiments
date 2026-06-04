@@ -113,70 +113,69 @@ export const view = <M>(config: {
   };
 
   return svgRoot(h, { width: SIZE, height: SIZE, ariaLabel, interactive: true }, handleKeyDown, [
-      h.g(
-        [h.Transform(`translate(${CENTER},${CENTER})`)],
-        [
-          ...pieArcs.map((d, i) => {
-            const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
-            const outerR = isActive ? cfg.outerRadius + cfg.hoverGrow : cfg.outerRadius;
-            const pathD = arc({
-              innerRadius: cfg.innerRadius,
-              outerRadius: outerR,
-              startAngle: d.startAngle,
-              endAngle: d.endAngle,
-              padAngle: d.padAngle,
-              cornerRadius: cfg.cornerRadius,
-            });
-            return h.path(
-              [
-                h.D(pathD),
-                h.Fill(d.data.color),
-                h.Style({ cursor: 'pointer' }),
-                h.AriaLabel(`${d.data.label}: ${d.data.value}`),
-                h.OnMouseEnter(toParentMessage(HoveredSegment({ index: i }))),
-                h.OnMouseLeave(toParentMessage(BlurredSegment({}))),
-                h.OnClick(toParentMessage(ClickedSegment({ index: i }))),
-                ...(isActive ? [h.DataAttribute('active', '')] : []),
-              ],
-              [],
-            );
-          }),
-          h.g(
-            [h.Style({ 'pointer-events': 'none' })],
+    h.g(
+      [h.Transform(`translate(${CENTER},${CENTER})`)],
+      [
+        ...pieArcs.map((d, i) => {
+          const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
+          const outerR = isActive ? cfg.outerRadius + cfg.hoverGrow : cfg.outerRadius;
+          const pathD = arc({
+            innerRadius: cfg.innerRadius,
+            outerRadius: outerR,
+            startAngle: d.startAngle,
+            endAngle: d.endAngle,
+            padAngle: d.padAngle,
+            cornerRadius: cfg.cornerRadius,
+          });
+          return h.path(
             [
-              h.text(
-                [
-                  h.Transform('translate(0,-8)'),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'auto',
-                    'font-size': '1.5rem',
-                    'font-weight': '700',
-                    fill: '#111',
-                    'font-family': 'inherit',
-                  }),
-                ],
-                [centerValue],
-              ),
-              h.text(
-                [
-                  h.Transform('translate(0,12)'),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'hanging',
-                    'font-size': '0.7rem',
-                    fill: '#888',
-                    'letter-spacing': '0.06em',
-                    'text-transform': 'uppercase',
-                    'font-family': 'inherit',
-                  }),
-                ],
-                [centerLabel],
-              ),
+              h.D(pathD),
+              h.Fill(d.data.color),
+              h.Style({ cursor: 'pointer' }),
+              h.AriaLabel(`${d.data.label}: ${d.data.value}`),
+              h.OnMouseEnter(toParentMessage(HoveredSegment({ index: i }))),
+              h.OnMouseLeave(toParentMessage(BlurredSegment({}))),
+              h.OnClick(toParentMessage(ClickedSegment({ index: i }))),
+              ...(isActive ? [h.DataAttribute('active', '')] : []),
             ],
-          ),
-        ],
-      ),
-    ],
-  );
+            [],
+          );
+        }),
+        h.g(
+          [h.Style({ 'pointer-events': 'none' })],
+          [
+            h.text(
+              [
+                h.Transform('translate(0,-8)'),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'auto',
+                  'font-size': '1.5rem',
+                  'font-weight': '700',
+                  fill: '#111',
+                  'font-family': 'inherit',
+                }),
+              ],
+              [centerValue],
+            ),
+            h.text(
+              [
+                h.Transform('translate(0,12)'),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'hanging',
+                  'font-size': '0.7rem',
+                  fill: '#888',
+                  'letter-spacing': '0.06em',
+                  'text-transform': 'uppercase',
+                  'font-family': 'inherit',
+                }),
+              ],
+              [centerLabel],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ]);
 };

@@ -55,8 +55,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
   const links = cfg.links.flatMap((l) => {
     const ll =
-      layoutLinkMap.get(`${l.source}→${l.target}`) ??
-      layoutLinkMap.get(`${l.target}→${l.source}`);
+      layoutLinkMap.get(`${l.source}→${l.target}`) ?? layoutLinkMap.get(`${l.target}→${l.source}`);
     if (!ll) return [];
     return [{ ...l, ...ll, sourceId: l.source, targetId: l.target }];
   });
@@ -85,9 +84,7 @@ export const update = (model: Model, msg: Message): Return =>
       BlurredNode: () => [{ ...model, activeId: Option.none() }, []],
       PressedKeyNav: ({ direction }) => {
         const ids = model.nodes.map((n) => n.id);
-        const current = Option.isSome(model.activeId)
-          ? ids.indexOf(model.activeId.value)
-          : -1;
+        const current = Option.isSome(model.activeId) ? ids.indexOf(model.activeId.value) : -1;
         const n = ids.length;
         const next = direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
         return [{ ...model, activeId: Option.some(ids[next] ?? ids[0] ?? '') }, []];
@@ -96,7 +93,6 @@ export const update = (model: Model, msg: Message): Return =>
   );
 
 // VIEW
-
 
 export const view = <M>(config: {
   model: Model;
@@ -129,7 +125,11 @@ export const view = <M>(config: {
     return Option.none();
   };
 
-  return svgRoot(h, { width: cfg.width, height: cfg.height, ariaLabel, interactive: true }, handleKeyDown, [
+  return svgRoot(
+    h,
+    { width: cfg.width, height: cfg.height, ariaLabel, interactive: true },
+    handleKeyDown,
+    [
       // Edges
       h.g(
         [],
@@ -138,8 +138,10 @@ export const view = <M>(config: {
           const dimmed = activeIdVal && !connected;
           return h.line(
             [
-              h.X1(String(r3(l.x1))), h.Y1(String(r3(l.y1))),
-              h.X2(String(r3(l.x2))), h.Y2(String(r3(l.y2))),
+              h.X1(String(r3(l.x1))),
+              h.Y1(String(r3(l.y1))),
+              h.X2(String(r3(l.x2))),
+              h.Y2(String(r3(l.y2))),
               h.Stroke(connected ? cfg.activeColor : '#cbd5e1'),
               h.StrokeWidth(connected ? '2' : '1'),
               h.Style({
@@ -190,7 +192,9 @@ export const view = <M>(config: {
               // Hit area
               h.circle(
                 [
-                  h.Cx(String(r3(n.x))), h.Cy(String(r3(n.y))), h.R(String(r + 6)),
+                  h.Cx(String(r3(n.x))),
+                  h.Cy(String(r3(n.y))),
+                  h.R(String(r + 6)),
                   h.Fill('transparent'),
                 ],
                 [],
@@ -198,7 +202,9 @@ export const view = <M>(config: {
               // Visual node
               h.circle(
                 [
-                  h.Cx(String(r3(n.x))), h.Cy(String(r3(n.y))), h.R(String(r)),
+                  h.Cx(String(r3(n.x))),
+                  h.Cy(String(r3(n.y))),
+                  h.R(String(r)),
                   h.Fill(fillColor),
                   h.Stroke(strokeColor),
                   h.StrokeWidth('2'),
@@ -216,7 +222,11 @@ export const view = <M>(config: {
                     'dominant-baseline': 'hanging',
                     'font-size': isActive ? '0.72rem' : '0.6rem',
                     'font-weight': isActive ? '600' : '400',
-                    fill: isActive ? cfg.activeColor : hasFocus && !isNeighbor ? '#94a3b8' : '#475569',
+                    fill: isActive
+                      ? cfg.activeColor
+                      : hasFocus && !isNeighbor
+                        ? '#94a3b8'
+                        : '#475569',
                     opacity,
                     transition: 'font-size 120ms, fill 120ms, opacity 120ms',
                     'pointer-events': 'none',

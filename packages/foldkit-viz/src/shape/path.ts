@@ -7,14 +7,7 @@ export interface PathBuilder {
   closePath(): void;
   lineTo(x: number, y: number): void;
   quadraticCurveTo(cpx: number, cpy: number, x: number, y: number): void;
-  bezierCurveTo(
-    cpx1: number,
-    cpy1: number,
-    cpx2: number,
-    cpy2: number,
-    x: number,
-    y: number,
-  ): void;
+  bezierCurveTo(cpx1: number, cpy1: number, cpx2: number, cpy2: number, x: number, y: number): void;
   arcTo(x1: number, y1: number, x2: number, y2: number, r: number): void;
   arc(x: number, y: number, r: number, a0: number, a1: number, ccw?: boolean): void;
   rect(x: number, y: number, w: number, h: number): void;
@@ -23,9 +16,7 @@ export interface PathBuilder {
 
 export function path(digits?: number): PathBuilder {
   const r =
-    digits == null
-      ? (n: number) => n
-      : (n: number) => Math.round(n * 10 ** digits) / 10 ** digits;
+    digits == null ? (n: number) => n : (n: number) => Math.round(n * 10 ** digits) / 10 ** digits;
 
   // current point
   let x1 = NaN;
@@ -41,7 +32,7 @@ export function path(digits?: number): PathBuilder {
     },
 
     closePath() {
-      if (!isNaN(x1)) {
+      if (!Number.isNaN(x1)) {
         x1 = x0;
         y1 = y0;
         parts.push('Z');
@@ -57,9 +48,7 @@ export function path(digits?: number): PathBuilder {
     },
 
     bezierCurveTo(cpx1, cpy1, cpx2, cpy2, x, y) {
-      parts.push(
-        `C${r(cpx1)},${r(cpy1)},${r(cpx2)},${r(cpy2)},${r((x1 = x))},${r((y1 = y))}`,
-      );
+      parts.push(`C${r(cpx1)},${r(cpy1)},${r(cpx2)},${r(cpy2)},${r((x1 = x))},${r((y1 = y))}`);
     },
 
     arcTo(ax1, ay1, ax2, ay2, radius) {
@@ -74,7 +63,7 @@ export function path(digits?: number): PathBuilder {
       if (radius < 0) throw new Error(`negative radius: ${radius}`);
 
       // no current point — treat as moveTo
-      if (isNaN(x1)) {
+      if (Number.isNaN(x1)) {
         parts.push(`M${r((x1 = ax1))},${r((y1 = ay1))}`);
       } else if (l01sq > epsilon) {
         const l21sq = x21 * x21 + y21 * y21;
@@ -94,8 +83,7 @@ export function path(digits?: number): PathBuilder {
           const q21y = ay1 + t21 * y21;
           const cw = cross < 0 ? 0 : 1;
           parts.push(
-            `L${r(q01x)},${r(q01y)}` +
-              `A${r(radius)},${r(radius)},0,0,${cw},${r((x1 = q21x))},${r((y1 = q21y))}`,
+            `L${r(q01x)},${r(q01y)}A${r(radius)},${r(radius)},0,0,${cw},${r((x1 = q21x))},${r((y1 = q21y))}`,
           );
         }
       }
@@ -111,7 +99,7 @@ export function path(digits?: number): PathBuilder {
 
       if (radius < 0) throw new Error(`negative radius: ${radius}`);
 
-      if (isNaN(x1)) {
+      if (Number.isNaN(x1)) {
         parts.push(`M${r(sx)},${r(sy)}`);
       } else if (Math.abs(x1 - sx) > epsilon || Math.abs(y1 - sy) > epsilon) {
         parts.push(`L${r(sx)},${r(sy)}`);

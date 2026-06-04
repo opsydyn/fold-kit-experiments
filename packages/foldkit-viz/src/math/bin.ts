@@ -44,8 +44,8 @@ export function bin<T = number>(
   data: ReadonlyArray<T>,
   config: BinConfig<T> = {},
 ): ReadonlyArray<Bin<T>> {
-  const valueOf = config.value ?? ((d: T) => d as unknown as number);
-  const values = data.map((d, i) => valueOf(d, i));
+  const accessor = config.value ?? ((d: T) => d as unknown as number);
+  const values = data.map((d, i) => accessor(d, i));
 
   const [domainMin, domainMax] = config.domain ?? valuesExtent(values);
   if (!Number.isFinite(domainMin) || !Number.isFinite(domainMax)) return [];

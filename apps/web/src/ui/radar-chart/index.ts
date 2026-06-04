@@ -103,154 +103,145 @@ export const view = <M>(config: {
   const isAnyActive = Option.isSome(activeSeriesIndex);
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${CX},${CY})`)],
-        [
-          // Concentric grid polygons
-          ...Array.from({ length: GRID_LEVELS }, (_, i) => {
-            const level = (i + 1) / GRID_LEVELS;
-            return h.path(
-              [
-                h.D(gridPolygon(n, level * MAX_RADIUS)),
-                h.Fill('none'),
-                h.Stroke('#e2e8f0'),
-                h.StrokeWidth('1'),
-              ],
-              [],
-            );
-          }),
-
-          // Axis spokes
-          ...axes.map((_, i) => {
-            const [x, y] = radialXY(i, n, MAX_RADIUS);
-            return h.line(
-              [
-                h.X1('0'),
-                h.Y1('0'),
-                h.X2(String(x)),
-                h.Y2(String(y)),
-                h.Stroke('#cbd5e1'),
-                h.StrokeWidth('1'),
-              ],
-              [],
-            );
-          }),
-
-          // Grid level value labels along axis 0 (top)
-          ...Array.from({ length: GRID_LEVELS }, (_, i) => {
-            const level = (i + 1) / GRID_LEVELS;
-            const yPos = r3(-level * MAX_RADIUS);
-            return h.text(
-              [
-                h.X('4'),
-                h.Y(String(yPos)),
-                h.Style({
-                  'font-size': '0.58rem',
-                  fill: '#94a3b8',
-                  'dominant-baseline': 'middle',
-                }),
-              ],
-              [String(Math.round(level * maxValue))],
-            );
-          }),
-
-          // Series polygons — filled + stroked
-          ...series.map((s, si) => {
-            const pts: Array<readonly [number, number]> = s.values.map((v, i) => [
-              (i / n) * TAU,
-              toRadius(v),
-            ]);
-            const d = lineRadial(pts, { closed: true }) ?? '';
-            const isActive = isAnyActive && Option.isSome(activeSeriesIndex) && activeSeriesIndex.value === si;
-            const strokeOpacity = !isAnyActive ? '0.9' : isActive ? '1' : '0.2';
-            const fillOpacity = !isAnyActive ? '0.15' : isActive ? '0.25' : '0.04';
-            const strokeWidth = isActive ? '2.5' : '1.5';
-            return h.path(
-              [
-                h.D(d),
-                h.Fill(s.color),
-                h.Stroke(s.color),
-                h.StrokeWidth(strokeWidth),
-                h.Style({
-                  'fill-opacity': fillOpacity,
-                  'stroke-opacity': strokeOpacity,
-                  transition: 'fill-opacity 150ms, stroke-opacity 150ms',
-                  cursor: 'pointer',
-                }),
-                h.OnMouseEnter(toParentMessage(HoveredSeries({ index: si }))),
-                h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
-              ],
-              [],
-            );
-          }),
-
-          // Axis labels
-          ...axes.map((label, i) => {
-            const [x, y] = radialXY(i, n, MAX_RADIUS + LABEL_OFFSET);
-            const sinAngle = Math.sin((i / n) * TAU);
-            const anchor =
-              Math.abs(sinAngle) < 0.15 ? 'middle' : sinAngle > 0 ? 'start' : 'end';
-            return h.text(
-              [
-                h.X(String(x)),
-                h.Y(String(y)),
-                h.Style({
-                  'text-anchor': anchor,
-                  'dominant-baseline': 'middle',
-                  'font-size': '0.72rem',
-                  fill: '#475569',
-                  'font-weight': '500',
-                }),
-              ],
-              [label],
-            );
-          }),
-        ],
-      ),
-
-      // Legend
-      h.g(
-        [h.Transform(`translate(${W - 120}, 20)`)],
-        series.map((s, si) => {
-          const isActive =
-            isAnyActive &&
-            Option.isSome(activeSeriesIndex) &&
-            activeSeriesIndex.value === si;
-          return h.g(
+    h.g(
+      [h.Transform(`translate(${CX},${CY})`)],
+      [
+        // Concentric grid polygons
+        ...Array.from({ length: GRID_LEVELS }, (_, i) => {
+          const level = (i + 1) / GRID_LEVELS;
+          return h.path(
             [
-              h.Transform(`translate(0, ${si * 24})`),
-              h.OnMouseEnter(toParentMessage(HoveredSeries({ index: si }))),
-              h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
-              h.Style({ cursor: 'pointer' }),
+              h.D(gridPolygon(n, level * MAX_RADIUS)),
+              h.Fill('none'),
+              h.Stroke('#e2e8f0'),
+              h.StrokeWidth('1'),
             ],
-            [
-              h.circle(
-                [
-                  h.Cx('6'),
-                  h.Cy('6'),
-                  h.R('5'),
-                  h.Fill(s.color),
-                  h.Opacity(isActive ? '1' : '0.65'),
-                ],
-                [],
-              ),
-              h.text(
-                [
-                  h.X('16'),
-                  h.Y('6'),
-                  h.Style({
-                    'dominant-baseline': 'middle',
-                    'font-size': '0.7rem',
-                    fill: isActive ? '#1e293b' : '#64748b',
-                    'font-weight': isActive ? '600' : '400',
-                  }),
-                ],
-                [s.label],
-              ),
-            ],
+            [],
           );
         }),
-      ),
-    ],
-  );
+
+        // Axis spokes
+        ...axes.map((_, i) => {
+          const [x, y] = radialXY(i, n, MAX_RADIUS);
+          return h.line(
+            [
+              h.X1('0'),
+              h.Y1('0'),
+              h.X2(String(x)),
+              h.Y2(String(y)),
+              h.Stroke('#cbd5e1'),
+              h.StrokeWidth('1'),
+            ],
+            [],
+          );
+        }),
+
+        // Grid level value labels along axis 0 (top)
+        ...Array.from({ length: GRID_LEVELS }, (_, i) => {
+          const level = (i + 1) / GRID_LEVELS;
+          const yPos = r3(-level * MAX_RADIUS);
+          return h.text(
+            [
+              h.X('4'),
+              h.Y(String(yPos)),
+              h.Style({
+                'font-size': '0.58rem',
+                fill: '#94a3b8',
+                'dominant-baseline': 'middle',
+              }),
+            ],
+            [String(Math.round(level * maxValue))],
+          );
+        }),
+
+        // Series polygons — filled + stroked
+        ...series.map((s, si) => {
+          const pts: Array<readonly [number, number]> = s.values.map((v, i) => [
+            (i / n) * TAU,
+            toRadius(v),
+          ]);
+          const d = lineRadial(pts, { closed: true }) ?? '';
+          const isActive =
+            isAnyActive && Option.isSome(activeSeriesIndex) && activeSeriesIndex.value === si;
+          const strokeOpacity = !isAnyActive ? '0.9' : isActive ? '1' : '0.2';
+          const fillOpacity = !isAnyActive ? '0.15' : isActive ? '0.25' : '0.04';
+          const strokeWidth = isActive ? '2.5' : '1.5';
+          return h.path(
+            [
+              h.D(d),
+              h.Fill(s.color),
+              h.Stroke(s.color),
+              h.StrokeWidth(strokeWidth),
+              h.Style({
+                'fill-opacity': fillOpacity,
+                'stroke-opacity': strokeOpacity,
+                transition: 'fill-opacity 150ms, stroke-opacity 150ms',
+                cursor: 'pointer',
+              }),
+              h.OnMouseEnter(toParentMessage(HoveredSeries({ index: si }))),
+              h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
+            ],
+            [],
+          );
+        }),
+
+        // Axis labels
+        ...axes.map((label, i) => {
+          const [x, y] = radialXY(i, n, MAX_RADIUS + LABEL_OFFSET);
+          const sinAngle = Math.sin((i / n) * TAU);
+          const anchor = Math.abs(sinAngle) < 0.15 ? 'middle' : sinAngle > 0 ? 'start' : 'end';
+          return h.text(
+            [
+              h.X(String(x)),
+              h.Y(String(y)),
+              h.Style({
+                'text-anchor': anchor,
+                'dominant-baseline': 'middle',
+                'font-size': '0.72rem',
+                fill: '#475569',
+                'font-weight': '500',
+              }),
+            ],
+            [label],
+          );
+        }),
+      ],
+    ),
+
+    // Legend
+    h.g(
+      [h.Transform(`translate(${W - 120}, 20)`)],
+      series.map((s, si) => {
+        const isActive =
+          isAnyActive && Option.isSome(activeSeriesIndex) && activeSeriesIndex.value === si;
+        return h.g(
+          [
+            h.Transform(`translate(0, ${si * 24})`),
+            h.OnMouseEnter(toParentMessage(HoveredSeries({ index: si }))),
+            h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
+            h.Style({ cursor: 'pointer' }),
+          ],
+          [
+            h.circle(
+              [h.Cx('6'), h.Cy('6'), h.R('5'), h.Fill(s.color), h.Opacity(isActive ? '1' : '0.65')],
+              [],
+            ),
+            h.text(
+              [
+                h.X('16'),
+                h.Y('6'),
+                h.Style({
+                  'dominant-baseline': 'middle',
+                  'font-size': '0.7rem',
+                  fill: isActive ? '#1e293b' : '#64748b',
+                  'font-weight': isActive ? '600' : '400',
+                }),
+              ],
+              [s.label],
+            ),
+          ],
+        );
+      }),
+    ),
+  ]);
 };

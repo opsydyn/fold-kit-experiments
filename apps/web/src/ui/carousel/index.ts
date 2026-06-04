@@ -333,7 +333,6 @@ const dragActivityFromModel = (model: Model): 'Idle' | 'Active' | 'Settling' => 
 const trackById = (id: string): HTMLElement | null =>
   document.querySelector<HTMLElement>(`[data-carousel-track-id="${id}"]`);
 
-
 const documentDragStyles: Stream.Stream<never> = Stream.callback(() =>
   Effect.acquireRelease(
     Effect.sync(() => {
@@ -353,7 +352,7 @@ const documentDragStyles: Stream.Stream<never> = Stream.callback(() =>
   ).pipe(Effect.flatMap(() => Effect.never)),
 );
 
-export const subscriptions = Subscription.make<Model, Message>()(entry => ({
+export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
   dragPointer: entry(
     { dragActivity: DragActivity, id: Schema.String, startX: Schema.Number },
     {

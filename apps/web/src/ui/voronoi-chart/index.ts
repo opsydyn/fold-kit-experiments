@@ -98,58 +98,62 @@ export function view<M>(config: {
   const active = Option.isSome(hovered) ? hovered.value : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      // Clip region
-      h.defs(
-        [],
-        [
-          h.clipPath(
-            [h.Attribute('id', 'vor-clip')],
-            [h.rect([h.X(String(ML)), h.Y(String(MT)), h.Width(String(PW)), h.Height(String(PH))], [])],
-          ),
-        ],
-      ),
+    // Clip region
+    h.defs(
+      [],
+      [
+        h.clipPath(
+          [h.Attribute('id', 'vor-clip')],
+          [
+            h.rect(
+              [h.X(String(ML)), h.Y(String(MT)), h.Width(String(PW)), h.Height(String(PH))],
+              [],
+            ),
+          ],
+        ),
+      ],
+    ),
 
-      // Filled cells
-      h.g(
-        [h.Attribute('clip-path', 'url(#vor-clip)')],
-        data.cellPaths.map((d, idx) => {
-          if (!d) return h.g([], []);
-          const isActive = idx === active;
-          const isInactive = active !== null && !isActive;
-          return h.path(
-            [
-              h.D(d),
-              h.Fill(cellColor(idx, n, isActive, isInactive)),
-              h.Stroke('#fff'),
-              h.StrokeWidth(isActive ? '1.5' : '0.8'),
-              h.Style({ cursor: 'default', transition: 'fill 80ms' }),
-              h.OnMouseEnter(toParentMessage(HoveredCell({ idx }))),
-              h.OnMouseLeave(toParentMessage(BlurredCell({}))),
-            ],
-            [],
-          );
-        }),
-      ),
+    // Filled cells
+    h.g(
+      [h.Attribute('clip-path', 'url(#vor-clip)')],
+      data.cellPaths.map((d, idx) => {
+        if (!d) return h.g([], []);
+        const isActive = idx === active;
+        const isInactive = active !== null && !isActive;
+        return h.path(
+          [
+            h.D(d),
+            h.Fill(cellColor(idx, n, isActive, isInactive)),
+            h.Stroke('#fff'),
+            h.StrokeWidth(isActive ? '1.5' : '0.8'),
+            h.Style({ cursor: 'default', transition: 'fill 80ms' }),
+            h.OnMouseEnter(toParentMessage(HoveredCell({ idx }))),
+            h.OnMouseLeave(toParentMessage(BlurredCell({}))),
+          ],
+          [],
+        );
+      }),
+    ),
 
-      // Seed points
-      h.g(
-        [h.Attribute('clip-path', 'url(#vor-clip)')],
-        data.points.map(([px, py], idx) => {
-          const isActive = idx === active;
-          const isInactive = active !== null && !isActive;
-          return h.circle(
-            [
-              h.Cx(String(px.toFixed(1))),
-              h.Cy(String(py.toFixed(1))),
-              h.R(isActive ? '4' : '2.5'),
-              h.Fill('#1e293b'),
-              h.Opacity(isInactive ? '0.2' : '0.7'),
-              h.Style({ 'pointer-events': 'none', transition: 'r 80ms' }),
-            ],
-            [],
-          );
-        }),
-      ),
-    ],
-  );
+    // Seed points
+    h.g(
+      [h.Attribute('clip-path', 'url(#vor-clip)')],
+      data.points.map(([px, py], idx) => {
+        const isActive = idx === active;
+        const isInactive = active !== null && !isActive;
+        return h.circle(
+          [
+            h.Cx(String(px.toFixed(1))),
+            h.Cy(String(py.toFixed(1))),
+            h.R(isActive ? '4' : '2.5'),
+            h.Fill('#1e293b'),
+            h.Opacity(isInactive ? '0.2' : '0.7'),
+            h.Style({ 'pointer-events': 'none', transition: 'r 80ms' }),
+          ],
+          [],
+        );
+      }),
+    ),
+  ]);
 }

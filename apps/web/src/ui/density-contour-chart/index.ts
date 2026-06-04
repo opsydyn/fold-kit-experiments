@@ -5,8 +5,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { svgRoot, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, svgRoot } from '../shared';
 
 // MODEL
 
@@ -99,7 +99,6 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-
 export function view<M>(config: {
   model: Model;
   toParentMessage: (msg: Message) => M;
@@ -107,7 +106,12 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Density contour chart' } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const xSvg = linear({ domain: [0, NX - 1], range: [0, PW] });
   const ySvg = linear({ domain: [0, NY - 1], range: [PH, 0] }); // inverted Y
   const { data, hovered } = model;
@@ -119,117 +123,120 @@ export function view<M>(config: {
   const yData = linear({ domain: Y_DOMAIN, range: [0, NY - 1] });
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // Clip region definition
-          h.defs(
-            [],
-            [
-              h.clipPath(
-                [h.Attribute('id', 'dc-clip')],
-                [h.rect([h.X('0'), h.Y('0'), h.Width(String(PW)), h.Height(String(PH))], [])],
-              ),
-            ],
-          ),
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // Clip region definition
+        h.defs(
+          [],
+          [
+            h.clipPath(
+              [h.Attribute('id', 'dc-clip')],
+              [h.rect([h.X('0'), h.Y('0'), h.Width(String(PW)), h.Height(String(PH))], [])],
+            ),
+          ],
+        ),
 
-          // Plot area background
-          h.rect(
-            [
-              h.X('0'),
-              h.Y('0'),
-              h.Width(String(PW)),
-              h.Height(String(PH)),
-              h.Fill('#f8fafc'),
-              h.Stroke('#e2e8f0'),
-              h.StrokeWidth('1'),
-            ],
-            [],
-          ),
+        // Plot area background
+        h.rect(
+          [
+            h.X('0'),
+            h.Y('0'),
+            h.Width(String(PW)),
+            h.Height(String(PH)),
+            h.Fill('#f8fafc'),
+            h.Stroke('#e2e8f0'),
+            h.StrokeWidth('1'),
+          ],
+          [],
+        ),
 
-          // Scatter points
-          h.g(
-            [h.Attribute('clip-path', 'url(#dc-clip)')],
-            data.points.map(([px, py]) =>
-              h.circle(
-                [
-                  h.Cx(String(xSvg(xData(px)).toFixed(1))),
-                  h.Cy(String(ySvg(yData(py)).toFixed(1))),
-                  h.R('2.5'),
-                  h.Fill('#64748b'),
-                  h.Opacity('0.22'),
-                ],
-                [],
-              ),
+        // Scatter points
+        h.g(
+          [h.Attribute('clip-path', 'url(#dc-clip)')],
+          data.points.map(([px, py]) =>
+            h.circle(
+              [
+                h.Cx(String(xSvg(xData(px)).toFixed(1))),
+                h.Cy(String(ySvg(yData(py)).toFixed(1))),
+                h.R('2.5'),
+                h.Fill('#64748b'),
+                h.Opacity('0.22'),
+              ],
+              [],
             ),
           ),
+        ),
 
-          // Contour lines per level
-          h.g(
-            [h.Attribute('clip-path', 'url(#dc-clip)')],
-            LEVELS.map(({ thresh, color, label }) => {
-              const segs = contourLines(data.grid, NX, NY, thresh);
-              const d = segmentsToPath(segs, (gx) => xSvg(gx), (gy) => ySvg(gy));
-              const isActive = label === active;
-              const isInactive = active !== null && !isActive;
-              return h.path(
-                [
-                  h.D(d),
-                  h.Fill('none'),
-                  h.Stroke(color),
-                  h.StrokeWidth(isActive ? '2' : '1.5'),
-                  h.Opacity(isInactive ? '0.15' : '0.9'),
-                  h.Style({ transition: 'opacity 80ms' }),
-                ],
-                [],
-              );
-            }),
-          ),
+        // Contour lines per level
+        h.g(
+          [h.Attribute('clip-path', 'url(#dc-clip)')],
+          LEVELS.map(({ thresh, color, label }) => {
+            const segs = contourLines(data.grid, NX, NY, thresh);
+            const d = segmentsToPath(
+              segs,
+              (gx) => xSvg(gx),
+              (gy) => ySvg(gy),
+            );
+            const isActive = label === active;
+            const isInactive = active !== null && !isActive;
+            return h.path(
+              [
+                h.D(d),
+                h.Fill('none'),
+                h.Stroke(color),
+                h.StrokeWidth(isActive ? '2' : '1.5'),
+                h.Opacity(isInactive ? '0.15' : '0.9'),
+                h.Style({ transition: 'opacity 80ms' }),
+              ],
+              [],
+            );
+          }),
+        ),
 
-          // Legend
-          h.g(
-            [h.Transform(`translate(0,${PH + 18})`)],
-            LEVELS.map(({ color, label }, i) => {
-              const isActive = label === active;
-              const isInactive = active !== null && !isActive;
-              return h.g(
-                [
-                  h.Transform(`translate(${i * 110},0)`),
-                  h.OnMouseEnter(toParentMessage(HoveredLevel({ label }))),
-                  h.OnMouseLeave(toParentMessage(BlurredLevel({}))),
-                  h.Style({ cursor: 'default' }),
-                ],
-                [
-                  h.line(
-                    [
-                      h.X1('0'),
-                      h.Y1('-4'),
-                      h.X2('16'),
-                      h.Y2('-4'),
-                      h.Stroke(color),
-                      h.StrokeWidth('2.5'),
-                      h.Opacity(isInactive ? '0.25' : '1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('20'),
-                      h.Y('0'),
-                      h.Style({
-                        'font-size': '0.6rem',
-                        'font-weight': isActive ? '600' : '400',
-                        fill: isInactive ? '#cbd5e1' : '#64748b',
-                      }),
-                    ],
-                    [`density ${label}`],
-                  ),
-                ],
-              );
-            }),
-          ),
-        ],
-      ),
-    ],
-  );
+        // Legend
+        h.g(
+          [h.Transform(`translate(0,${PH + 18})`)],
+          LEVELS.map(({ color, label }, i) => {
+            const isActive = label === active;
+            const isInactive = active !== null && !isActive;
+            return h.g(
+              [
+                h.Transform(`translate(${i * 110},0)`),
+                h.OnMouseEnter(toParentMessage(HoveredLevel({ label }))),
+                h.OnMouseLeave(toParentMessage(BlurredLevel({}))),
+                h.Style({ cursor: 'default' }),
+              ],
+              [
+                h.line(
+                  [
+                    h.X1('0'),
+                    h.Y1('-4'),
+                    h.X2('16'),
+                    h.Y2('-4'),
+                    h.Stroke(color),
+                    h.StrokeWidth('2.5'),
+                    h.Opacity(isInactive ? '0.25' : '1'),
+                  ],
+                  [],
+                ),
+                h.text(
+                  [
+                    h.X('20'),
+                    h.Y('0'),
+                    h.Style({
+                      'font-size': '0.6rem',
+                      'font-weight': isActive ? '600' : '400',
+                      fill: isInactive ? '#cbd5e1' : '#64748b',
+                    }),
+                  ],
+                  [`density ${label}`],
+                ),
+              ],
+            );
+          }),
+        ),
+      ],
+    ),
+  ]);
 }

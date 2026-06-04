@@ -67,7 +67,6 @@ const PLOT_R = 350;
 const PLOT_T = 38;
 const PLOT_B = 210;
 
-
 function fmtDefault(v: number): string {
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
@@ -148,117 +147,116 @@ export function view<M>(config: {
   });
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      // Axes
-      h.g(
-        [],
-        axes.map((axis, i) => {
-          const x = axX(i);
-          const [mn, mx] = axisDomains[i] ?? [0, 1];
-          const fmt = axis.format ?? fmtDefault;
-          return h.g(
-            [],
-            [
-              h.line(
-                [
-                  h.X1(String(x)),
-                  h.Y1(String(PLOT_T)),
-                  h.X2(String(x)),
-                  h.Y2(String(PLOT_B)),
-                  h.Stroke('#cbd5e1'),
-                  h.StrokeWidth('1.5'),
-                ],
-                [],
-              ),
-              h.text(
-                [
-                  h.X(String(x)),
-                  h.Y(String(PLOT_T - 5)),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'auto',
-                    'font-size': '0.58rem',
-                    fill: '#94a3b8',
-                  }),
-                ],
-                [fmt(mx)],
-              ),
-              h.text(
-                [
-                  h.X(String(x)),
-                  h.Y(String(PLOT_B + 5)),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'hanging',
-                    'font-size': '0.58rem',
-                    fill: '#94a3b8',
-                  }),
-                ],
-                [fmt(mn)],
-              ),
-              h.text(
-                [
-                  h.X(String(x)),
-                  h.Y(String(PLOT_B + 20)),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'hanging',
-                    'font-size': '0.68rem',
-                    fill: '#475569',
-                    'font-weight': '600',
-                  }),
-                ],
-                [axis.label],
-              ),
-            ],
-          );
-        }),
-      ),
+    // Axes
+    h.g(
+      [],
+      axes.map((axis, i) => {
+        const x = axX(i);
+        const [mn, mx] = axisDomains[i] ?? [0, 1];
+        const fmt = axis.format ?? fmtDefault;
+        return h.g(
+          [],
+          [
+            h.line(
+              [
+                h.X1(String(x)),
+                h.Y1(String(PLOT_T)),
+                h.X2(String(x)),
+                h.Y2(String(PLOT_B)),
+                h.Stroke('#cbd5e1'),
+                h.StrokeWidth('1.5'),
+              ],
+              [],
+            ),
+            h.text(
+              [
+                h.X(String(x)),
+                h.Y(String(PLOT_T - 5)),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'auto',
+                  'font-size': '0.58rem',
+                  fill: '#94a3b8',
+                }),
+              ],
+              [fmt(mx)],
+            ),
+            h.text(
+              [
+                h.X(String(x)),
+                h.Y(String(PLOT_B + 5)),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'hanging',
+                  'font-size': '0.58rem',
+                  fill: '#94a3b8',
+                }),
+              ],
+              [fmt(mn)],
+            ),
+            h.text(
+              [
+                h.X(String(x)),
+                h.Y(String(PLOT_B + 20)),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'hanging',
+                  'font-size': '0.68rem',
+                  fill: '#475569',
+                  'font-weight': '600',
+                }),
+              ],
+              [axis.label],
+            ),
+          ],
+        );
+      }),
+    ),
 
-      // Lines — inactive behind, active on top
-      h.g([], [...inactiveLines, ...activeLines]),
+    // Lines — inactive behind, active on top
+    h.g([], [...inactiveLines, ...activeLines]),
 
-      // Legend
-      h.g(
-        [h.Transform(`translate(${PLOT_R + 16}, ${PLOT_T})`)],
-        records.map((record, ri) => {
-          const isActive = Option.isSome(activeIndex) && activeIndex.value === ri;
-          return h.g(
-            [
-              h.Transform(`translate(0, ${ri * 20})`),
-              h.OnMouseEnter(toParentMessage(HoveredRecord({ index: ri }))),
-              h.OnMouseLeave(toParentMessage(BlurredRecord({}))),
-              h.Style({ cursor: 'pointer' }),
-            ],
-            [
-              h.line(
-                [
-                  h.X1('0'),
-                  h.Y1('6'),
-                  h.X2('12'),
-                  h.Y2('6'),
-                  h.Stroke(record.color),
-                  h.StrokeWidth(isActive ? '2.5' : '1.5'),
-                  h.Opacity(isActive ? '1' : '0.65'),
-                ],
-                [],
-              ),
-              h.text(
-                [
-                  h.X('16'),
-                  h.Y('6'),
-                  h.Style({
-                    'dominant-baseline': 'middle',
-                    'font-size': '0.62rem',
-                    fill: isActive ? '#1e293b' : '#64748b',
-                    'font-weight': isActive ? '600' : '400',
-                  }),
-                ],
-                [record.label],
-              ),
-            ],
-          );
-        }),
-      ),
-    ],
-  );
+    // Legend
+    h.g(
+      [h.Transform(`translate(${PLOT_R + 16}, ${PLOT_T})`)],
+      records.map((record, ri) => {
+        const isActive = Option.isSome(activeIndex) && activeIndex.value === ri;
+        return h.g(
+          [
+            h.Transform(`translate(0, ${ri * 20})`),
+            h.OnMouseEnter(toParentMessage(HoveredRecord({ index: ri }))),
+            h.OnMouseLeave(toParentMessage(BlurredRecord({}))),
+            h.Style({ cursor: 'pointer' }),
+          ],
+          [
+            h.line(
+              [
+                h.X1('0'),
+                h.Y1('6'),
+                h.X2('12'),
+                h.Y2('6'),
+                h.Stroke(record.color),
+                h.StrokeWidth(isActive ? '2.5' : '1.5'),
+                h.Opacity(isActive ? '1' : '0.65'),
+              ],
+              [],
+            ),
+            h.text(
+              [
+                h.X('16'),
+                h.Y('6'),
+                h.Style({
+                  'dominant-baseline': 'middle',
+                  'font-size': '0.62rem',
+                  fill: isActive ? '#1e293b' : '#64748b',
+                  'font-weight': isActive ? '600' : '400',
+                }),
+              ],
+              [record.label],
+            ),
+          ],
+        );
+      }),
+    ),
+  ]);
 }

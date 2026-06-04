@@ -3,8 +3,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { r3, svgRoot, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -99,7 +99,12 @@ export const view = <M>(config: {
 }): Html => {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Bubble chart' } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { points, activeIndex, config: cfg } = model;
 
   const maxX = points.reduce((a, p) => Math.max(a, p.x), 0);
@@ -125,201 +130,214 @@ export const view = <M>(config: {
   };
 
   return svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // Y gridlines + tick labels
-          h.g(
-            [],
-            yTicks.map((tick) => {
-              const y = r3(yScale(tick));
-              return h.g(
-                [h.Transform(`translate(0,${y})`)],
-                [
-                  h.line(
-                    [
-                      h.X1('0'), h.Y1('0'),
-                      h.X2(String(PW)), h.Y2('0'),
-                      h.Stroke('#e5e5e5'), h.StrokeWidth('1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('-8'), h.Y('0'),
-                      h.Style({
-                        'text-anchor': 'end',
-                        'dominant-baseline': 'middle',
-                        'font-size': '0.7rem',
-                        fill: '#888',
-                      }),
-                    ],
-                    [String(tick)],
-                  ),
-                ],
-              );
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // Y gridlines + tick labels
+        h.g(
+          [],
+          yTicks.map((tick) => {
+            const y = r3(yScale(tick));
+            return h.g(
+              [h.Transform(`translate(0,${y})`)],
+              [
+                h.line(
+                  [
+                    h.X1('0'),
+                    h.Y1('0'),
+                    h.X2(String(PW)),
+                    h.Y2('0'),
+                    h.Stroke('#e5e5e5'),
+                    h.StrokeWidth('1'),
+                  ],
+                  [],
+                ),
+                h.text(
+                  [
+                    h.X('-8'),
+                    h.Y('0'),
+                    h.Style({
+                      'text-anchor': 'end',
+                      'dominant-baseline': 'middle',
+                      'font-size': '0.7rem',
+                      fill: '#888',
+                    }),
+                  ],
+                  [String(tick)],
+                ),
+              ],
+            );
+          }),
+        ),
+
+        // X gridlines + tick labels
+        h.g(
+          [],
+          xTicks.map((tick) => {
+            const x = r3(xScale(tick));
+            return h.g(
+              [h.Transform(`translate(${x},0)`)],
+              [
+                h.line(
+                  [
+                    h.X1('0'),
+                    h.Y1('0'),
+                    h.X2('0'),
+                    h.Y2(String(PH)),
+                    h.Stroke('#e5e5e5'),
+                    h.StrokeWidth('1'),
+                  ],
+                  [],
+                ),
+                h.text(
+                  [
+                    h.X('0'),
+                    h.Y(String(PH + 12)),
+                    h.Style({
+                      'text-anchor': 'middle',
+                      'dominant-baseline': 'hanging',
+                      'font-size': '0.7rem',
+                      fill: '#888',
+                    }),
+                  ],
+                  [String(tick)],
+                ),
+              ],
+            );
+          }),
+        ),
+
+        // Axis lines
+        h.line(
+          [
+            h.X1('0'),
+            h.Y1(String(PH)),
+            h.X2(String(PW)),
+            h.Y2(String(PH)),
+            h.Stroke('#d4d4d4'),
+            h.StrokeWidth('1'),
+          ],
+          [],
+        ),
+        h.line(
+          [
+            h.X1('0'),
+            h.Y1('0'),
+            h.X2('0'),
+            h.Y2(String(PH)),
+            h.Stroke('#d4d4d4'),
+            h.StrokeWidth('1'),
+          ],
+          [],
+        ),
+
+        // X axis label
+        h.text(
+          [
+            h.X(String(PW / 2)),
+            h.Y(String(PH + 38)),
+            h.Style({
+              'text-anchor': 'middle',
+              'dominant-baseline': 'auto',
+              'font-size': '0.7rem',
+              'font-weight': '600',
+              fill: '#aaa',
+              'letter-spacing': '0.05em',
+              'text-transform': 'uppercase',
             }),
-          ),
+          ],
+          [cfg.xLabel],
+        ),
 
-          // X gridlines + tick labels
-          h.g(
-            [],
-            xTicks.map((tick) => {
-              const x = r3(xScale(tick));
-              return h.g(
-                [h.Transform(`translate(${x},0)`)],
-                [
-                  h.line(
-                    [
-                      h.X1('0'), h.Y1('0'),
-                      h.X2('0'), h.Y2(String(PH)),
-                      h.Stroke('#e5e5e5'), h.StrokeWidth('1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('0'), h.Y(String(PH + 12)),
-                      h.Style({
-                        'text-anchor': 'middle',
-                        'dominant-baseline': 'hanging',
-                        'font-size': '0.7rem',
-                        fill: '#888',
-                      }),
-                    ],
-                    [String(tick)],
-                  ),
-                ],
-              );
+        // Y axis label (rotated)
+        h.text(
+          [
+            h.Transform(`translate(${-ML + 12},${PH / 2}) rotate(-90)`),
+            h.Style({
+              'text-anchor': 'middle',
+              'dominant-baseline': 'auto',
+              'font-size': '0.7rem',
+              'font-weight': '600',
+              fill: '#aaa',
+              'letter-spacing': '0.05em',
+              'text-transform': 'uppercase',
             }),
-          ),
+          ],
+          [cfg.yLabel],
+        ),
 
-          // Axis lines
-          h.line(
-            [
-              h.X1('0'), h.Y1(String(PH)),
-              h.X2(String(PW)), h.Y2(String(PH)),
-              h.Stroke('#d4d4d4'), h.StrokeWidth('1'),
-            ],
-            [],
-          ),
-          h.line(
-            [
-              h.X1('0'), h.Y1('0'),
-              h.X2('0'), h.Y2(String(PH)),
-              h.Stroke('#d4d4d4'), h.StrokeWidth('1'),
-            ],
-            [],
-          ),
-
-          // X axis label
-          h.text(
-            [
-              h.X(String(PW / 2)),
-              h.Y(String(PH + 38)),
-              h.Style({
-                'text-anchor': 'middle',
-                'dominant-baseline': 'auto',
-                'font-size': '0.7rem',
-                'font-weight': '600',
-                fill: '#aaa',
-                'letter-spacing': '0.05em',
-                'text-transform': 'uppercase',
-              }),
-            ],
-            [cfg.xLabel],
-          ),
-
-          // Y axis label (rotated)
-          h.text(
-            [
-              h.Transform(`translate(${-ML + 12},${PH / 2}) rotate(-90)`),
-              h.Style({
-                'text-anchor': 'middle',
-                'dominant-baseline': 'auto',
-                'font-size': '0.7rem',
-                'font-weight': '600',
-                fill: '#aaa',
-                'letter-spacing': '0.05em',
-                'text-transform': 'uppercase',
-              }),
-            ],
-            [cfg.yLabel],
-          ),
-
-          // Bubbles (fill layer first so hit areas render on top)
-          h.g(
-            [],
-            points.map((p, i) => {
-              const cx = r3(xScale(p.x));
-              const cy = r3(yScale(p.y));
-              const br = r3(rScale(p.value));
-              const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
-              return h.circle(
-                [
-                  h.Cx(String(cx)),
-                  h.Cy(String(cy)),
-                  h.R(String(br)),
-                  h.Fill(isActive ? `${cfg.activeColor}cc` : `${cfg.color}66`),
-                  h.Stroke(isActive ? cfg.activeColor : cfg.color),
-                  h.StrokeWidth(isActive ? '2' : '1.5'),
-                  h.Style({ transition: 'fill 120ms, stroke 120ms' }),
-                ],
-                [],
-              );
-            }),
-          ),
-
-          // Active label
-          ...points.flatMap((p, i) => {
+        // Bubbles (fill layer first so hit areas render on top)
+        h.g(
+          [],
+          points.map((p, i) => {
             const cx = r3(xScale(p.x));
             const cy = r3(yScale(p.y));
             const br = r3(rScale(p.value));
             const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
-            if (!isActive) return [];
-            return [
-              h.text(
-                [
-                  h.X(String(cx)),
-                  h.Y(String(r3(cy - br - 6))),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'auto',
-                    'font-size': '0.72rem',
-                    'font-weight': '600',
-                    fill: cfg.activeColor,
-                    'pointer-events': 'none',
-                  }),
-                ],
-                [`${p.label} (${p.x}, ${p.y})`],
-              ),
-            ];
+            return h.circle(
+              [
+                h.Cx(String(cx)),
+                h.Cy(String(cy)),
+                h.R(String(br)),
+                h.Fill(isActive ? `${cfg.activeColor}cc` : `${cfg.color}66`),
+                h.Stroke(isActive ? cfg.activeColor : cfg.color),
+                h.StrokeWidth(isActive ? '2' : '1.5'),
+                h.Style({ transition: 'fill 120ms, stroke 120ms' }),
+              ],
+              [],
+            );
           }),
+        ),
 
-          // Hit areas on top
-          h.g(
-            [],
-            points.map((p, i) => {
-              const cx = r3(xScale(p.x));
-              const cy = r3(yScale(p.y));
-              const br = r3(rScale(p.value));
-              return h.circle(
-                [
-                  h.Cx(String(cx)),
-                  h.Cy(String(cy)),
-                  h.R(String(br + 4)),
-                  h.Fill('transparent'),
-                  h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
-                  h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
-                  h.Style({ cursor: 'pointer' }),
-                  h.AriaLabel(`${p.label}: x ${p.x}, y ${p.y}, ${cfg.valueLabel} ${p.value}`),
-                ],
-                [],
-              );
-            }),
-          ),
-        ],
-      ),
-    ],
-  );
+        // Active label
+        ...points.flatMap((p, i) => {
+          const cx = r3(xScale(p.x));
+          const cy = r3(yScale(p.y));
+          const br = r3(rScale(p.value));
+          const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
+          if (!isActive) return [];
+          return [
+            h.text(
+              [
+                h.X(String(cx)),
+                h.Y(String(r3(cy - br - 6))),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'auto',
+                  'font-size': '0.72rem',
+                  'font-weight': '600',
+                  fill: cfg.activeColor,
+                  'pointer-events': 'none',
+                }),
+              ],
+              [`${p.label} (${p.x}, ${p.y})`],
+            ),
+          ];
+        }),
+
+        // Hit areas on top
+        h.g(
+          [],
+          points.map((p, i) => {
+            const cx = r3(xScale(p.x));
+            const cy = r3(yScale(p.y));
+            const br = r3(rScale(p.value));
+            return h.circle(
+              [
+                h.Cx(String(cx)),
+                h.Cy(String(cy)),
+                h.R(String(br + 4)),
+                h.Fill('transparent'),
+                h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
+                h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
+                h.Style({ cursor: 'pointer' }),
+                h.AriaLabel(`${p.label}: x ${p.x}, y ${p.y}, ${cfg.valueLabel} ${p.value}`),
+              ],
+              [],
+            );
+          }),
+        ),
+      ],
+    ),
+  ]);
 };

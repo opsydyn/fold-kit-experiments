@@ -1,11 +1,11 @@
-import { bin, type Bin } from '@opsydyn/foldkit-viz/math/bin';
+import { type Bin, bin } from '@opsydyn/foldkit-viz/math/bin';
 import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { r3, svgRoot, valueTooltip, yGridlines, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, r3, svgRoot, valueTooltip, yGridlines } from '../shared';
 
 // MODEL
 
@@ -96,7 +96,12 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Histogram', renderTooltip } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { bins, color, xLabel, activeBin } = model;
 
   if (bins.length === 0) return h.svg([h.ViewBox(`0 0 ${W} ${H}`), h.Width('100%')], []);
@@ -116,7 +121,9 @@ export function view<M>(config: {
       [h.Transform(`translate(${ML},${MT})`)],
       [
         yGridlines(h, yTicks, (v) => yScale(v), PW, {
-          gridColor: '#e5e7eb', labelColor: '#94a3b8', labelSize: '0.65rem',
+          gridColor: '#e5e7eb',
+          labelColor: '#94a3b8',
+          labelSize: '0.65rem',
           format: (v) => String(Math.round(v)),
         }),
 
@@ -139,8 +146,10 @@ export function view<M>(config: {
               [
                 h.rect(
                   [
-                    h.X(String(x)), h.Y(String(barY)),
-                    h.Width(String(barW)), h.Height(String(barH)),
+                    h.X(String(x)),
+                    h.Y(String(barY)),
+                    h.Width(String(barW)),
+                    h.Height(String(barH)),
                     h.Fill(color),
                     h.Opacity(isActive ? '1' : '0.75'),
                     h.Style({ transition: 'opacity 80ms' }),
@@ -148,7 +157,14 @@ export function view<M>(config: {
                   [],
                 ),
                 ...(isActive && b.count > 0
-                  ? [(renderTooltip ? renderTooltip(b, x + barW / 2, barY) : valueTooltip(h, x + barW / 2, barY, String(b.count), { color, offsetY: 5 }))]
+                  ? [
+                      renderTooltip
+                        ? renderTooltip(b, x + barW / 2, barY)
+                        : valueTooltip(h, x + barW / 2, barY, String(b.count), {
+                            color,
+                            offsetY: 5,
+                          }),
+                    ]
                   : []),
               ],
             );
@@ -157,8 +173,14 @@ export function view<M>(config: {
 
         // X axis
         h.line(
-          [h.X1('0'), h.Y1(String(PH)), h.X2(String(PW)), h.Y2(String(PH)),
-            h.Stroke('#d1d5db'), h.StrokeWidth('1')],
+          [
+            h.X1('0'),
+            h.Y1(String(PH)),
+            h.X2(String(PW)),
+            h.Y2(String(PH)),
+            h.Stroke('#d1d5db'),
+            h.StrokeWidth('1'),
+          ],
           [],
         ),
 
@@ -168,9 +190,14 @@ export function view<M>(config: {
           [domainMin, (domainMin + domainMax) / 2, domainMax].map((tick) =>
             h.text(
               [
-                h.X(String(r3(xScale(tick)))), h.Y('14'),
-                h.Style({ 'text-anchor': 'middle', 'dominant-baseline': 'hanging',
-                  'font-size': '0.65rem', fill: '#94a3b8' }),
+                h.X(String(r3(xScale(tick)))),
+                h.Y('14'),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'hanging',
+                  'font-size': '0.65rem',
+                  fill: '#94a3b8',
+                }),
               ],
               [String(Math.round(tick))],
             ),
@@ -178,12 +205,21 @@ export function view<M>(config: {
         ),
 
         ...(xLabel
-          ? [h.text(
-              [h.X(String(PW / 2)), h.Y(String(PH + 36)),
-                h.Style({ 'text-anchor': 'middle', 'dominant-baseline': 'hanging',
-                  'font-size': '0.65rem', fill: '#64748b' })],
-              [xLabel],
-            )]
+          ? [
+              h.text(
+                [
+                  h.X(String(PW / 2)),
+                  h.Y(String(PH + 36)),
+                  h.Style({
+                    'text-anchor': 'middle',
+                    'dominant-baseline': 'hanging',
+                    'font-size': '0.65rem',
+                    fill: '#64748b',
+                  }),
+                ],
+                [xLabel],
+              ),
+            ]
           : []),
       ],
     ),

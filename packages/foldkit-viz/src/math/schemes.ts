@@ -189,3 +189,124 @@ export const brBG: ReadonlyArray<string> = [
   '#01665e',
   '#003c30',
 ];
+
+// ---- COLOUR-BLIND SAFE CATEGORICAL ----
+
+/** Wong (2011) — 8-colour palette optimised for colour-blind viewers */
+export const wong: ReadonlyArray<string> = [
+  '#000000',
+  '#e69f00',
+  '#56b4e9',
+  '#009e73',
+  '#f0e442',
+  '#0072b2',
+  '#d55e00',
+  '#cc79a7',
+];
+
+/** IBM Carbon Design System categorical palette — colour-blind safe */
+export const ibmCarbon: ReadonlyArray<string> = [
+  '#648fff',
+  '#785ef0',
+  '#dc267f',
+  '#fe6100',
+  '#ffb000',
+  '#009d9a',
+  '#001141',
+];
+
+/**
+ * Tol muted — Paul Tol's muted qualitative palette (colour-blind safe, print-friendly).
+ * Ref: https://personal.sron.nl/~pault/
+ */
+export const tolMuted: ReadonlyArray<string> = [
+  '#332288',
+  '#117733',
+  '#44aa99',
+  '#88ccee',
+  '#ddcc77',
+  '#cc6677',
+  '#aa4499',
+  '#882255',
+];
+
+// ---- PERCEPTUAL SEQUENTIAL (for continuous data / choropleth) ----
+
+/**
+ * Viridis — perceptually uniform, colour-blind safe, print-safe.
+ * 11-stop sample from the full continuous palette.
+ */
+export const viridis: ReadonlyArray<string> = [
+  '#440154',
+  '#482878',
+  '#3e4989',
+  '#31688e',
+  '#26828e',
+  '#1f9e89',
+  '#35b779',
+  '#6ece58',
+  '#b5de2b',
+  '#fde725',
+];
+
+/** Magma — perceptually uniform, colour-blind safe */
+export const magma: ReadonlyArray<string> = [
+  '#000004',
+  '#180f3e',
+  '#451077',
+  '#721f81',
+  '#9f2f7f',
+  '#cd4071',
+  '#f1605d',
+  '#fd9668',
+  '#feca8d',
+  '#fcfdbf',
+];
+
+/** Inferno — perceptually uniform, colour-blind safe */
+export const inferno: ReadonlyArray<string> = [
+  '#000004',
+  '#1b0c41',
+  '#4a0c4e',
+  '#781c6d',
+  '#a52c60',
+  '#cf4446',
+  '#ed6925',
+  '#fb9b06',
+  '#f7d03c',
+  '#fcffa4',
+];
+
+/** Plasma — perceptually uniform, colour-blind safe */
+export const plasma: ReadonlyArray<string> = [
+  '#0d0887',
+  '#41049d',
+  '#6a00a8',
+  '#8f0da4',
+  '#b12a90',
+  '#cc4778',
+  '#e16462',
+  '#f2844b',
+  '#fca636',
+  '#fcce25',
+  '#f0f921',
+];
+
+/**
+ * Cividis — colour-blind optimised sequential (deuteranopia/protanopia safe).
+ * Designed to look identical to both colour-blind and non-colour-blind viewers.
+ */
+export const cividis: ReadonlyArray<string> = [
+  '#00204d',
+  '#002f6c',
+  '#1a3f6f',
+  '#31516e',
+  '#47636e',
+  '#5c7570',
+  '#728874',
+  '#8a9b79',
+  '#a4ae80',
+  '#c0c287',
+  '#ddd68e',
+  '#feea93',
+];

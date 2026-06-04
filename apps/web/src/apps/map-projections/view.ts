@@ -4,8 +4,7 @@ import type { Message } from './message';
 import { GotMapMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: MapProjections.Message): Message =>
-  GotMapMessage({ inner: msg });
+const toParentMessage = (msg: MapProjections.Message): Message => GotMapMessage({ inner: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Map projections — foldkit-viz',

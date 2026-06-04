@@ -3,8 +3,17 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { arrowKeyNav, nextIndex, r3, svgRoot, valueTooltip, xLinearGridlines, yGridlines, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import {
+  arrowKeyNav,
+  makeLayout,
+  nextIndex,
+  r3,
+  svgRoot,
+  valueTooltip,
+  xLinearGridlines,
+  yGridlines,
+} from '../shared';
 
 // MODEL
 
@@ -97,7 +106,12 @@ export const view = <M>(config: {
 }): Html => {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Scatter chart', renderTooltip } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { points, activeIndex, config: cfg } = model;
 
   const maxX = points.reduce((a, p) => Math.max(a, p.x), 0);
@@ -123,22 +137,61 @@ export const view = <M>(config: {
         xLinearGridlines(h, xTicks, (v) => xScale(v), PH),
 
         // Axis lines
-        h.line([h.X1('0'), h.Y1(String(PH)), h.X2(String(PW)), h.Y2(String(PH)),
-          h.Stroke('#d4d4d4'), h.StrokeWidth('1')], []),
-        h.line([h.X1('0'), h.Y1('0'), h.X2('0'), h.Y2(String(PH)),
-          h.Stroke('#d4d4d4'), h.StrokeWidth('1')], []),
+        h.line(
+          [
+            h.X1('0'),
+            h.Y1(String(PH)),
+            h.X2(String(PW)),
+            h.Y2(String(PH)),
+            h.Stroke('#d4d4d4'),
+            h.StrokeWidth('1'),
+          ],
+          [],
+        ),
+        h.line(
+          [
+            h.X1('0'),
+            h.Y1('0'),
+            h.X2('0'),
+            h.Y2(String(PH)),
+            h.Stroke('#d4d4d4'),
+            h.StrokeWidth('1'),
+          ],
+          [],
+        ),
 
         // Axis labels
-        h.text([h.X(String(PW / 2)), h.Y(String(PH + 38)),
-          h.Style({ 'text-anchor': 'middle', 'dominant-baseline': 'auto',
-            'font-size': '0.7rem', 'font-weight': '600', fill: '#aaa',
-            'letter-spacing': '0.05em', 'text-transform': 'uppercase' })],
-          [cfg.xLabel]),
-        h.text([h.Transform(`translate(${-ML + 12},${PH / 2}) rotate(-90)`),
-          h.Style({ 'text-anchor': 'middle', 'dominant-baseline': 'auto',
-            'font-size': '0.7rem', 'font-weight': '600', fill: '#aaa',
-            'letter-spacing': '0.05em', 'text-transform': 'uppercase' })],
-          [cfg.yLabel]),
+        h.text(
+          [
+            h.X(String(PW / 2)),
+            h.Y(String(PH + 38)),
+            h.Style({
+              'text-anchor': 'middle',
+              'dominant-baseline': 'auto',
+              'font-size': '0.7rem',
+              'font-weight': '600',
+              fill: '#aaa',
+              'letter-spacing': '0.05em',
+              'text-transform': 'uppercase',
+            }),
+          ],
+          [cfg.xLabel],
+        ),
+        h.text(
+          [
+            h.Transform(`translate(${-ML + 12},${PH / 2}) rotate(-90)`),
+            h.Style({
+              'text-anchor': 'middle',
+              'dominant-baseline': 'auto',
+              'font-size': '0.7rem',
+              'font-weight': '600',
+              fill: '#aaa',
+              'letter-spacing': '0.05em',
+              'text-transform': 'uppercase',
+            }),
+          ],
+          [cfg.yLabel],
+        ),
 
         // Data points
         h.g(
@@ -156,19 +209,32 @@ export const view = <M>(config: {
                 h.AriaLabel(`${p.label}: (${p.x}, ${p.y})`),
               ],
               [
-                h.circle([h.Cx(String(cx)), h.Cy(String(cy)), h.R('14'), h.Fill('transparent')], []),
-                h.circle([
-                  h.Cx(String(cx)), h.Cy(String(cy)), h.R(String(radius)),
-                  h.Fill(isActive ? cfg.activeColor : '#fff'),
-                  h.Stroke(isActive ? cfg.activeColor : cfg.color),
-                  h.StrokeWidth('2'),
-                  h.Style({ transition: 'r 120ms, fill 120ms' }),
-                ], []),
+                h.circle(
+                  [h.Cx(String(cx)), h.Cy(String(cy)), h.R('14'), h.Fill('transparent')],
+                  [],
+                ),
+                h.circle(
+                  [
+                    h.Cx(String(cx)),
+                    h.Cy(String(cy)),
+                    h.R(String(radius)),
+                    h.Fill(isActive ? cfg.activeColor : '#fff'),
+                    h.Stroke(isActive ? cfg.activeColor : cfg.color),
+                    h.StrokeWidth('2'),
+                    h.Style({ transition: 'r 120ms, fill 120ms' }),
+                  ],
+                  [],
+                ),
                 ...(isActive
-                  ? [(renderTooltip
-                      ? renderTooltip(p, cx, cy)
-                      : valueTooltip(h, cx, cy, `${p.label} (${p.x}, ${p.y})`,
-                          { color: cfg.activeColor, offsetY: radius + 5, fontSize: '0.72rem' }))]
+                  ? [
+                      renderTooltip
+                        ? renderTooltip(p, cx, cy)
+                        : valueTooltip(h, cx, cy, `${p.label} (${p.x}, ${p.y})`, {
+                            color: cfg.activeColor,
+                            offsetY: radius + 5,
+                            fontSize: '0.72rem',
+                          }),
+                    ]
                   : []),
               ],
             );

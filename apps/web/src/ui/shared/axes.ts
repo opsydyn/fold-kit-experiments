@@ -1,5 +1,4 @@
-import type { Html } from 'foldkit/html';
-import type { html } from 'foldkit/html';
+import type { Html, html } from 'foldkit/html';
 import { r3 } from './math';
 
 type H<M> = ReturnType<typeof html<M>>;
@@ -13,9 +12,9 @@ export type AxisStyle = Readonly<{
 }>;
 
 const DEFAULTS: Required<AxisStyle> = {
-  gridColor: '#e5e5e5',
-  axisColor: '#d4d4d4',
-  labelColor: '#888',
+  gridColor: 'var(--chart-grid, #e5e5e5)',
+  axisColor: 'var(--chart-axis, #d4d4d4)',
+  labelColor: 'var(--chart-label, #888)',
   labelSize: '0.7rem',
   format: String,
 };

@@ -1,5 +1,6 @@
 ---
 import * as styles from './layout.css';
+import '../styles/chart-tokens.css';
 
 interface Props {
   title: string;
@@ -19,6 +20,11 @@ const linkClass = (href: string) =>
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <script is:inline>
+      // Restore theme before first paint to avoid flash
+      const stored = localStorage.getItem('foldkit-theme');
+      if (stored === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    </script>
   </head>
   <body>
     <nav class={styles.nav}>
@@ -30,9 +36,22 @@ const linkClass = (href: string) =>
       <a href="/welcome" class={linkClass('/welcome')}>Welcome</a>
       <a href="/carousel" class={linkClass('/carousel')}>Carousel</a>
       <a href="/charts" class={linkClass('/charts')}>Charts</a>
+      <button id="theme-toggle" class={styles.themeToggle} aria-label="Toggle light/dark mode">◑</button>
     </nav>
     <main class={styles.main}>
       <slot />
     </main>
   </body>
 </html>
+
+<script>
+  import { themeAtom, applyTheme } from '../stores/theme';
+
+  // Sync store → DOM on every change
+  themeAtom.subscribe(applyTheme);
+
+  // Wire toggle button
+  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    themeAtom.set(themeAtom.get() === 'dark' ? 'light' : 'dark');
+  });
+</script>

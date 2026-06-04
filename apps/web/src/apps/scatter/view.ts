@@ -5,8 +5,7 @@ import type { Message } from './message';
 import { GotScatterMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: ScatterChart.Message): Message =>
-  GotScatterMessage({ inner: msg });
+const toParentMessage = (msg: ScatterChart.Message): Message => GotScatterMessage({ inner: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Scatter Chart — foldkit-viz',

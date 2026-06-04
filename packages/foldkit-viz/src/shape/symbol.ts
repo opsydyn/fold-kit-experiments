@@ -11,14 +11,7 @@ function r3(n: number): number {
 // ---------------------------------------------------------------------------
 // Types
 
-export type SymbolType =
-  | 'circle'
-  | 'cross'
-  | 'diamond'
-  | 'square'
-  | 'star'
-  | 'triangle'
-  | 'wye';
+export type SymbolType = 'circle' | 'cross' | 'diamond' | 'square' | 'star' | 'triangle' | 'wye';
 
 /** Ordered set of fill-optimised symbols matching D3's symbolsFill. */
 export const SYMBOLS_FILL: ReadonlyArray<SymbolType> = [
@@ -42,7 +35,7 @@ function circlePath(size: number): string {
 function crossPath(size: number): string {
   // Greek cross — arm length 3r, arm width 2r → area = 5 × (2r)² = 20r²
   const r = r3(Math.sqrt(size / 5) / 2);
-  const r3r = r3(3 * Math.sqrt(size / 5) / 2);
+  const r3r = r3((3 * Math.sqrt(size / 5)) / 2);
   return `M${-r3r},${-r}H${-r}V${-r3r}H${r}V${-r}H${r3r}V${r}H${r}V${r3r}H${-r}V${r}H${-r3r}Z`;
 }
 
@@ -70,9 +63,11 @@ function starPath(size: number): string {
   for (let i = 0; i < 10; i++) {
     const angle = (i * Math.PI) / 5 - Math.PI / 2;
     const radius = i % 2 === 0 ? outerR : innerR;
-    pts.push(`${i === 0 ? 'M' : 'L'}${r3(radius * Math.cos(angle))},${r3(radius * Math.sin(angle))}`);
+    pts.push(
+      `${i === 0 ? 'M' : 'L'}${r3(radius * Math.cos(angle))},${r3(radius * Math.sin(angle))}`,
+    );
   }
-  return pts.join('') + 'Z';
+  return `${pts.join('')}Z`;
 }
 
 function trianglePath(size: number): string {

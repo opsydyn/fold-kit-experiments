@@ -84,7 +84,6 @@ const H = 265;
 const CX = W / 2;
 const CY = H / 2;
 
-
 // Convert cluster node (angle, radius) to SVG Cartesian
 function cx(node: LayoutNode): number {
   return r3(CX + node.y * Math.sin(node.x));
@@ -106,88 +105,87 @@ export function view<M>(config: {
   const LABEL_R = outerRadius + 10;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      // Links — drawn in SVG coords (not angle/radius), shift to center
-      h.g(
-        [],
-        links.map(({ source, target }) =>
-          h.path(
-            [
-              h.D(
-                linkRadial(
-                  { angle: source.x, radius: source.y },
-                  { angle: target.x, radius: target.y },
-                ),
+    // Links — drawn in SVG coords (not angle/radius), shift to center
+    h.g(
+      [],
+      links.map(({ source, target }) =>
+        h.path(
+          [
+            h.D(
+              linkRadial(
+                { angle: source.x, radius: source.y },
+                { angle: target.x, radius: target.y },
               ),
-              h.Fill('none'),
-              h.Stroke('#cbd5e1'),
-              h.StrokeWidth('1.5'),
-              h.Transform(`translate(${CX},${CY})`),
-            ],
-            [],
-          ),
+            ),
+            h.Fill('none'),
+            h.Stroke('#cbd5e1'),
+            h.StrokeWidth('1.5'),
+            h.Transform(`translate(${CX},${CY})`),
+          ],
+          [],
         ),
       ),
+    ),
 
-      // Nodes + labels
-      h.g(
-        [],
-        nodes.map((node) => {
-          const x = cx(node);
-          const y = cy(node);
-          const isActive = node.data.name === activeNode;
-          const isLeaf = !node.children || node.children.length === 0;
-          const isRoot = node.depth === 0;
+    // Nodes + labels
+    h.g(
+      [],
+      nodes.map((node) => {
+        const x = cx(node);
+        const y = cy(node);
+        const isActive = node.data.name === activeNode;
+        const isLeaf = !node.children || node.children.length === 0;
+        const isRoot = node.depth === 0;
 
-          // label position
-          const lx = r3(CX + LABEL_R * Math.sin(node.x));
-          const ly = r3(CY - LABEL_R * Math.cos(node.x));
-          const rightHalf = Math.sin(node.x) >= 0;
-          const anchor = isRoot ? 'middle' : rightHalf ? 'start' : 'end';
+        // label position
+        const lx = r3(CX + LABEL_R * Math.sin(node.x));
+        const ly = r3(CY - LABEL_R * Math.cos(node.x));
+        const rightHalf = Math.sin(node.x) >= 0;
+        const anchor = isRoot ? 'middle' : rightHalf ? 'start' : 'end';
 
-          return h.g(
-            [
-              h.OnMouseEnter(toParentMessage(HoveredNode({ name: node.data.name }))),
-              h.OnMouseLeave(toParentMessage(BlurredNode({}))),
-              h.Style({ cursor: 'default' }),
-            ],
-            [
-              h.circle(
-                [
-                  h.Cx(String(x)),
-                  h.Cy(String(y)),
-                  h.R(isRoot ? '4' : isLeaf ? '3' : '3'),
-                  h.Fill(isLeaf ? '#fff' : color),
-                  h.Stroke(color),
-                  h.StrokeWidth('1.5'),
-                  h.Opacity(activeNode && !isActive ? '0.3' : '1'),
-                  h.Style({ transition: 'opacity 80ms' }),
-                ],
-                [],
-              ),
-              // Show label for leaves always, and for any active internal node
-              ...(isLeaf || isActive
-                ? [
-                    h.text(
-                      [
-                        h.X(String(isLeaf ? lx : x)),
-                        h.Y(String(isLeaf ? ly : y - 10)),
-                        h.Style({
-                          'text-anchor': isLeaf ? anchor : 'middle',
-                          'dominant-baseline': 'middle',
-                          'font-size': isActive && !isLeaf ? '0.65rem' : '0.58rem',
-                          'font-weight': isActive ? '600' : '400',
-                          fill: isActive ? color : '#64748b',
-                          'pointer-events': 'none',
-                        }),
-                      ],
-                      [node.data.name],
-                    ),
-                  ]
-                : []),
-            ],
-          );
-        }),
-      ),
-    ],
-  );
+        return h.g(
+          [
+            h.OnMouseEnter(toParentMessage(HoveredNode({ name: node.data.name }))),
+            h.OnMouseLeave(toParentMessage(BlurredNode({}))),
+            h.Style({ cursor: 'default' }),
+          ],
+          [
+            h.circle(
+              [
+                h.Cx(String(x)),
+                h.Cy(String(y)),
+                h.R(isRoot ? '4' : isLeaf ? '3' : '3'),
+                h.Fill(isLeaf ? '#fff' : color),
+                h.Stroke(color),
+                h.StrokeWidth('1.5'),
+                h.Opacity(activeNode && !isActive ? '0.3' : '1'),
+                h.Style({ transition: 'opacity 80ms' }),
+              ],
+              [],
+            ),
+            // Show label for leaves always, and for any active internal node
+            ...(isLeaf || isActive
+              ? [
+                  h.text(
+                    [
+                      h.X(String(isLeaf ? lx : x)),
+                      h.Y(String(isLeaf ? ly : y - 10)),
+                      h.Style({
+                        'text-anchor': isLeaf ? anchor : 'middle',
+                        'dominant-baseline': 'middle',
+                        'font-size': isActive && !isLeaf ? '0.65rem' : '0.58rem',
+                        'font-weight': isActive ? '600' : '400',
+                        fill: isActive ? color : '#64748b',
+                        'pointer-events': 'none',
+                      }),
+                    ],
+                    [node.data.name],
+                  ),
+                ]
+              : []),
+          ],
+        );
+      }),
+    ),
+  ]);
 }

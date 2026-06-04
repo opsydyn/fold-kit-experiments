@@ -5,8 +5,7 @@ import type { Message } from './message';
 import { GotAreaMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: AreaChart.Message): Message =>
-  GotAreaMessage({ inner: msg });
+const toParentMessage = (msg: AreaChart.Message): Message => GotAreaMessage({ inner: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Area Chart — foldkit-viz',

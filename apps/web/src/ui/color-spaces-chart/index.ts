@@ -92,72 +92,71 @@ export function view<M>(config: {
   const active = Option.isSome(hovered) ? hovered.value : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        STRIPS.map((strip, si) => {
-          const ty = si * BLOCK_H;
-          const isActive = strip.label === active;
-          const isInactive = active !== null && !isActive;
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      STRIPS.map((strip, si) => {
+        const ty = si * BLOCK_H;
+        const isActive = strip.label === active;
+        const isInactive = active !== null && !isActive;
 
-          return h.g(
-            [
-              h.Transform(`translate(0,${ty})`),
-              h.OnMouseEnter(toParentMessage(HoveredStrip({ label: strip.label }))),
-              h.OnMouseLeave(toParentMessage(BlurredStrip({}))),
-              h.Style({ cursor: 'default' }),
-            ],
-            [
-              // Strip label
-              h.text(
-                [
-                  h.X('-4'),
-                  h.Y(String(STRIP_H / 2)),
-                  h.Style({
-                    'text-anchor': 'end',
-                    'dominant-baseline': 'middle',
-                    'font-size': '0.65rem',
-                    'font-weight': isActive ? '700' : '600',
-                    fill: isActive ? '#1e293b' : '#475569',
-                  }),
-                ],
-                [strip.label],
-              ),
-
-              // Colour stops
-              h.g(
-                [h.Opacity(isInactive ? '0.35' : '1'), h.Style({ transition: 'opacity 80ms' })],
-                Array.from({ length: STOPS }, (_, i) => {
-                  const t = i / (STOPS - 1);
-                  return h.rect(
-                    [
-                      h.X(String((i * stopW).toFixed(1))),
-                      h.Y('0'),
-                      h.Width(String((stopW + 0.5).toFixed(1))),
-                      h.Height(String(STRIP_H)),
-                      h.Fill(strip.interp(t)),
-                    ],
-                    [],
-                  );
+        return h.g(
+          [
+            h.Transform(`translate(0,${ty})`),
+            h.OnMouseEnter(toParentMessage(HoveredStrip({ label: strip.label }))),
+            h.OnMouseLeave(toParentMessage(BlurredStrip({}))),
+            h.Style({ cursor: 'default' }),
+          ],
+          [
+            // Strip label
+            h.text(
+              [
+                h.X('-4'),
+                h.Y(String(STRIP_H / 2)),
+                h.Style({
+                  'text-anchor': 'end',
+                  'dominant-baseline': 'middle',
+                  'font-size': '0.65rem',
+                  'font-weight': isActive ? '700' : '600',
+                  fill: isActive ? '#1e293b' : '#475569',
                 }),
-              ),
+              ],
+              [strip.label],
+            ),
 
-              // Sub-label
-              h.text(
-                [
-                  h.X(String(PW / 2)),
-                  h.Y(String(STRIP_H + 13)),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'font-size': '0.57rem',
-                    fill: isActive ? '#475569' : '#94a3b8',
-                  }),
-                ],
-                [strip.sublabel],
-              ),
-            ],
-          );
-        }),
-      ),
-    ],
-  );
+            // Colour stops
+            h.g(
+              [h.Opacity(isInactive ? '0.35' : '1'), h.Style({ transition: 'opacity 80ms' })],
+              Array.from({ length: STOPS }, (_, i) => {
+                const t = i / (STOPS - 1);
+                return h.rect(
+                  [
+                    h.X(String((i * stopW).toFixed(1))),
+                    h.Y('0'),
+                    h.Width(String((stopW + 0.5).toFixed(1))),
+                    h.Height(String(STRIP_H)),
+                    h.Fill(strip.interp(t)),
+                  ],
+                  [],
+                );
+              }),
+            ),
+
+            // Sub-label
+            h.text(
+              [
+                h.X(String(PW / 2)),
+                h.Y(String(STRIP_H + 13)),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'font-size': '0.57rem',
+                  fill: isActive ? '#475569' : '#94a3b8',
+                }),
+              ],
+              [strip.sublabel],
+            ),
+          ],
+        );
+      }),
+    ),
+  ]);
 }

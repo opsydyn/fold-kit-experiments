@@ -3,8 +3,8 @@ import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { svgRoot, makeLayout } from '../shared';
 import type { Dims, Layout, Margins } from '../shared';
+import { makeLayout, svgRoot } from '../shared';
 
 // MODEL
 
@@ -130,7 +130,12 @@ export function view<M>(config: {
 }): Html {
   const h = html<M>();
   const { model, toParentMessage, ariaLabel = 'Waterfall chart' } = config;
-  const { dims: { width: W, height: H }, margins: { top: MT, left: ML }, pw: PW, ph: PH } = model.layout;
+  const {
+    dims: { width: W, height: H },
+    margins: { top: MT, left: ML },
+    pw: PW,
+    ph: PH,
+  } = model.layout;
   const { bars, activeIndex, config: cfg } = model;
 
   const allY = bars.flatMap((b) => [b.base, b.top, 0]);
@@ -236,83 +241,82 @@ export function view<M>(config: {
   });
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      h.g(
-        [h.Transform(`translate(${ML},${MT})`)],
-        [
-          // Y gridlines + tick labels
-          h.g(
-            [],
-            yTicks.map((tick) => {
-              const y = p(yScale(tick));
-              return h.g(
-                [],
-                [
-                  h.line(
-                    [
-                      h.X1('0'),
-                      h.Y1(y),
-                      h.X2(String(PW)),
-                      h.Y2(y),
-                      h.Stroke('#e2e8f0'),
-                      h.StrokeWidth('1'),
-                    ],
-                    [],
-                  ),
-                  h.text(
-                    [
-                      h.X('-6'),
-                      h.Y(y),
-                      h.Style({
-                        'text-anchor': 'end',
-                        'dominant-baseline': 'middle',
-                        'font-size': '10px',
-                        fill: '#94a3b8',
-                        'font-family': 'inherit',
-                      }),
-                    ],
-                    [String(tick)],
-                  ),
-                ],
-              );
-            }),
-          ),
-          // zero baseline
-          h.line(
-            [
-              h.X1('0'),
-              h.Y1(p(yScale(0))),
-              h.X2(String(PW)),
-              h.Y2(p(yScale(0))),
-              h.Stroke('#cbd5e1'),
-              h.StrokeWidth('1'),
-            ],
-            [],
-          ),
-          // X category labels
-          h.g(
-            [],
-            bars.map((b) =>
-              h.text(
-                [
-                  h.X(p(xScale.position(b.label) + bw / 2)),
-                  h.Y(String(PH + 16)),
-                  h.Style({
-                    'text-anchor': 'middle',
-                    'dominant-baseline': 'hanging',
-                    'font-size': '9.5px',
-                    fill: '#64748b',
-                    'font-family': 'inherit',
-                  }),
-                ],
-                [b.label],
-              ),
+    h.g(
+      [h.Transform(`translate(${ML},${MT})`)],
+      [
+        // Y gridlines + tick labels
+        h.g(
+          [],
+          yTicks.map((tick) => {
+            const y = p(yScale(tick));
+            return h.g(
+              [],
+              [
+                h.line(
+                  [
+                    h.X1('0'),
+                    h.Y1(y),
+                    h.X2(String(PW)),
+                    h.Y2(y),
+                    h.Stroke('#e2e8f0'),
+                    h.StrokeWidth('1'),
+                  ],
+                  [],
+                ),
+                h.text(
+                  [
+                    h.X('-6'),
+                    h.Y(y),
+                    h.Style({
+                      'text-anchor': 'end',
+                      'dominant-baseline': 'middle',
+                      'font-size': '10px',
+                      fill: '#94a3b8',
+                      'font-family': 'inherit',
+                    }),
+                  ],
+                  [String(tick)],
+                ),
+              ],
+            );
+          }),
+        ),
+        // zero baseline
+        h.line(
+          [
+            h.X1('0'),
+            h.Y1(p(yScale(0))),
+            h.X2(String(PW)),
+            h.Y2(p(yScale(0))),
+            h.Stroke('#cbd5e1'),
+            h.StrokeWidth('1'),
+          ],
+          [],
+        ),
+        // X category labels
+        h.g(
+          [],
+          bars.map((b) =>
+            h.text(
+              [
+                h.X(p(xScale.position(b.label) + bw / 2)),
+                h.Y(String(PH + 16)),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'hanging',
+                  'font-size': '9.5px',
+                  fill: '#64748b',
+                  'font-family': 'inherit',
+                }),
+              ],
+              [b.label],
             ),
           ),
-          // bars + connectors
-          h.g([], barElements),
-        ],
-      ),
-      tooltip,
-    ],
-  );
+        ),
+        // bars + connectors
+        h.g([], barElements),
+      ],
+    ),
+    tooltip,
+  ]);
 }

@@ -7,8 +7,7 @@ import type { Model } from './model';
 
 type LineMessage = LineChart.Message;
 
-const toParentMessage = (msg: LineMessage): Message =>
-  GotLineMessage({ inner: msg });
+const toParentMessage = (msg: LineMessage): Message => GotLineMessage({ inner: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Line Chart — foldkit-viz',

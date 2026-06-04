@@ -163,116 +163,115 @@ export const view = <M>(config: {
   const activeValue = isAnyActive ? activeNode.value : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      ...catNodes.map((cat) => {
-        const w = r1(cat.x1 - cat.x0);
-        const ch = r1(cat.y1 - cat.y0);
-        const isActive = isAnyActive && cat.leafNames.some((n) => n === activeValue);
-        return h.g(
-          [h.Transform(`translate(${r1(cat.x0)},${r1(cat.y0)})`)],
-          [
-            h.rect(
-              [
-                h.X('0'),
-                h.Y('0'),
-                h.Width(String(w)),
-                h.Height(String(ch)),
-                h.Fill(cat.bgColor),
-                h.Stroke(cat.color),
-                h.StrokeWidth('1'),
-                h.Style({ opacity: isAnyActive && !isActive ? '0.5' : '1' }),
-              ],
-              [],
-            ),
-            h.text(
-              [
-                h.X('5'),
-                h.Y('12'),
-                h.Style({
-                  'font-size': '0.62rem',
-                  'font-weight': '700',
-                  fill: cat.color,
-                  'letter-spacing': '0.04em',
-                  'text-transform': 'uppercase',
-                  'pointer-events': 'none',
-                }),
-              ],
-              [cat.name],
-            ),
-          ],
-        );
-      }),
+    ...catNodes.map((cat) => {
+      const w = r1(cat.x1 - cat.x0);
+      const ch = r1(cat.y1 - cat.y0);
+      const isActive = isAnyActive && cat.leafNames.some((n) => n === activeValue);
+      return h.g(
+        [h.Transform(`translate(${r1(cat.x0)},${r1(cat.y0)})`)],
+        [
+          h.rect(
+            [
+              h.X('0'),
+              h.Y('0'),
+              h.Width(String(w)),
+              h.Height(String(ch)),
+              h.Fill(cat.bgColor),
+              h.Stroke(cat.color),
+              h.StrokeWidth('1'),
+              h.Style({ opacity: isAnyActive && !isActive ? '0.5' : '1' }),
+            ],
+            [],
+          ),
+          h.text(
+            [
+              h.X('5'),
+              h.Y('12'),
+              h.Style({
+                'font-size': '0.62rem',
+                'font-weight': '700',
+                fill: cat.color,
+                'letter-spacing': '0.04em',
+                'text-transform': 'uppercase',
+                'pointer-events': 'none',
+              }),
+            ],
+            [cat.name],
+          ),
+        ],
+      );
+    }),
 
-      ...leafNodes.map((leaf) => {
-        const w = r1(leaf.x1 - leaf.x0);
-        const nodeH = r1(leaf.y1 - leaf.y0);
-        const isActive = isAnyActive && activeValue === leaf.name;
-        const opacity = !isAnyActive ? '1' : isActive ? '1' : '0.45';
-        const showLabel = w >= MIN_LABEL_W && nodeH >= MIN_LABEL_H;
+    ...leafNodes.map((leaf) => {
+      const w = r1(leaf.x1 - leaf.x0);
+      const nodeH = r1(leaf.y1 - leaf.y0);
+      const isActive = isAnyActive && activeValue === leaf.name;
+      const opacity = !isAnyActive ? '1' : isActive ? '1' : '0.45';
+      const showLabel = w >= MIN_LABEL_W && nodeH >= MIN_LABEL_H;
 
-        return h.g(
-          [
-            h.Transform(`translate(${r1(leaf.x0)},${r1(leaf.y0)})`),
-            h.OnMouseEnter(toParentMessage(HoveredNode({ name: leaf.name }))),
-            h.OnMouseLeave(toParentMessage(BlurredNode({}))),
-            h.Style({ cursor: 'pointer' }),
-            h.AriaLabel(`${leaf.name}: ${leaf.value}`),
-          ],
-          [
-            h.rect(
-              [
-                h.X('0'),
-                h.Y('0'),
-                h.Width(String(w)),
-                h.Height(String(nodeH)),
-                h.Fill(isActive ? leaf.catColor : leaf.tintedColor),
-                h.Stroke(leaf.catColor),
-                h.StrokeWidth(isActive ? '2' : '0.5'),
-                h.Style({ opacity, transition: 'opacity 120ms' }),
-              ],
-              [],
-            ),
-            ...(showLabel
-              ? [
-                  h.text(
-                    [
-                      h.X(String(r1(w / 2))),
-                      h.Y(String(r1(nodeH / 2))),
-                      h.Style({
-                        'text-anchor': 'middle',
-                        'dominant-baseline': 'middle',
-                        'font-size': '0.65rem',
-                        'font-weight': '600',
-                        fill: isActive ? '#fff' : '#1e293b',
-                        'pointer-events': 'none',
-                        'user-select': 'none',
-                      }),
-                    ],
-                    [leaf.name],
-                  ),
-                  ...(nodeH >= 30
-                    ? [
-                        h.text(
-                          [
-                            h.X(String(r1(w / 2))),
-                            h.Y(String(r1(nodeH / 2 + 12))),
-                            h.Style({
-                              'text-anchor': 'middle',
-                              'dominant-baseline': 'middle',
-                              'font-size': '0.6rem',
-                              fill: isActive ? 'rgba(255,255,255,0.8)' : '#64748b',
-                              'pointer-events': 'none',
-                              'user-select': 'none',
-                            }),
-                          ],
-                          [String(leaf.value)],
-                        ),
-                      ]
-                    : []),
-                ]
-              : []),
-          ],
-        );
-      }),
-    ],
-  );
+      return h.g(
+        [
+          h.Transform(`translate(${r1(leaf.x0)},${r1(leaf.y0)})`),
+          h.OnMouseEnter(toParentMessage(HoveredNode({ name: leaf.name }))),
+          h.OnMouseLeave(toParentMessage(BlurredNode({}))),
+          h.Style({ cursor: 'pointer' }),
+          h.AriaLabel(`${leaf.name}: ${leaf.value}`),
+        ],
+        [
+          h.rect(
+            [
+              h.X('0'),
+              h.Y('0'),
+              h.Width(String(w)),
+              h.Height(String(nodeH)),
+              h.Fill(isActive ? leaf.catColor : leaf.tintedColor),
+              h.Stroke(leaf.catColor),
+              h.StrokeWidth(isActive ? '2' : '0.5'),
+              h.Style({ opacity, transition: 'opacity 120ms' }),
+            ],
+            [],
+          ),
+          ...(showLabel
+            ? [
+                h.text(
+                  [
+                    h.X(String(r1(w / 2))),
+                    h.Y(String(r1(nodeH / 2))),
+                    h.Style({
+                      'text-anchor': 'middle',
+                      'dominant-baseline': 'middle',
+                      'font-size': '0.65rem',
+                      'font-weight': '600',
+                      fill: isActive ? '#fff' : '#1e293b',
+                      'pointer-events': 'none',
+                      'user-select': 'none',
+                    }),
+                  ],
+                  [leaf.name],
+                ),
+                ...(nodeH >= 30
+                  ? [
+                      h.text(
+                        [
+                          h.X(String(r1(w / 2))),
+                          h.Y(String(r1(nodeH / 2 + 12))),
+                          h.Style({
+                            'text-anchor': 'middle',
+                            'dominant-baseline': 'middle',
+                            'font-size': '0.6rem',
+                            fill: isActive ? 'rgba(255,255,255,0.8)' : '#64748b',
+                            'pointer-events': 'none',
+                            'user-select': 'none',
+                          }),
+                        ],
+                        [String(leaf.value)],
+                      ),
+                    ]
+                  : []),
+              ]
+            : []),
+        ],
+      );
+    }),
+  ]);
 };

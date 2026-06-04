@@ -31,13 +31,13 @@ export function linkForce(config: LinkConfig): Force {
           const t = nodes[link.target];
           if (!s || !t) continue;
 
-          let dx = (t.x + t.vx) - (s.x + s.vx);
-          let dy = (t.y + t.vy) - (s.y + s.vy);
+          let dx = t.x + t.vx - (s.x + s.vx);
+          let dy = t.y + t.vy - (s.y + s.vy);
           let l = Math.sqrt(dx * dx + dy * dy);
           if (l === 0) continue;
 
           // Spring: l = (actual - target) / actual * alpha * strength
-          l = (l - distance) / l * alpha * strengthVal;
+          l = ((l - distance) / l) * alpha * strengthVal;
           dx *= l;
           dy *= l;
 

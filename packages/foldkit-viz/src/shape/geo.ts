@@ -19,7 +19,7 @@ function makeProjectionFactory(
   rawY: (phi: number) => number,
   defaultScale: number,
 ) {
-  return function (config: ProjectionConfig = {}): Projection {
+  return (config: ProjectionConfig = {}): Projection => {
     const k = config.scale ?? defaultScale;
     const tx = config.translate?.[0] ?? 480;
     const ty = config.translate?.[1] ?? 250;
@@ -57,7 +57,10 @@ export type GeoGeometry =
   | Readonly<{ type: 'LineString'; coordinates: ReadonlyArray<GeoCoord> }>
   | Readonly<{ type: 'MultiLineString'; coordinates: ReadonlyArray<ReadonlyArray<GeoCoord>> }>
   | Readonly<{ type: 'Polygon'; coordinates: ReadonlyArray<ReadonlyArray<GeoCoord>> }>
-  | Readonly<{ type: 'MultiPolygon'; coordinates: ReadonlyArray<ReadonlyArray<ReadonlyArray<GeoCoord>>> }>
+  | Readonly<{
+      type: 'MultiPolygon';
+      coordinates: ReadonlyArray<ReadonlyArray<ReadonlyArray<GeoCoord>>>;
+    }>
   | Readonly<{ type: 'GeometryCollection'; geometries: ReadonlyArray<GeoGeometry> }>;
 
 export type GeoFeature = Readonly<{
@@ -77,10 +80,14 @@ export type GeoObject = GeoGeometry | GeoFeature | GeoFeatureCollection;
 
 function ringPath(proj: Projection, ring: ReadonlyArray<GeoCoord>): string {
   if (ring.length === 0) return '';
-  const [x0, y0] = proj(ring[0][0], ring[0][1]);
+  const first = ring[0];
+  if (!first) return '';
+  const [x0, y0] = proj(first[0], first[1]);
   let d = `M${x0.toFixed(1)},${y0.toFixed(1)}`;
   for (let i = 1; i < ring.length; i++) {
-    const [xi, yi] = proj(ring[i][0], ring[i][1]);
+    const coord = ring[i];
+    if (!coord) continue;
+    const [xi, yi] = proj(coord[0], coord[1]);
     d += `L${xi.toFixed(1)},${yi.toFixed(1)}`;
   }
   return d + 'Z';
@@ -88,10 +95,14 @@ function ringPath(proj: Projection, ring: ReadonlyArray<GeoCoord>): string {
 
 function linePath(proj: Projection, coords: ReadonlyArray<GeoCoord>): string {
   if (coords.length === 0) return '';
-  const [x0, y0] = proj(coords[0][0], coords[0][1]);
+  const first = coords[0];
+  if (!first) return '';
+  const [x0, y0] = proj(first[0], first[1]);
   let d = `M${x0.toFixed(1)},${y0.toFixed(1)}`;
   for (let i = 1; i < coords.length; i++) {
-    const [xi, yi] = proj(coords[i][0], coords[i][1]);
+    const coord = coords[i];
+    if (!coord) continue;
+    const [xi, yi] = proj(coord[0], coord[1]);
     d += `L${xi.toFixed(1)},${yi.toFixed(1)}`;
   }
   return d;
@@ -104,10 +115,12 @@ function geometryPath(proj: Projection, geom: GeoGeometry): string {
       return `M${x.toFixed(1)},${y.toFixed(1)}`;
     }
     case 'MultiPoint':
-      return geom.coordinates.map((c) => {
-        const [x, y] = proj(c[0], c[1]);
-        return `M${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join('');
+      return geom.coordinates
+        .map((c) => {
+          const [x, y] = proj(c[0], c[1]);
+          return `M${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join('');
     case 'LineString':
       return linePath(proj, geom.coordinates);
     case 'MultiLineString':
@@ -115,9 +128,7 @@ function geometryPath(proj: Projection, geom: GeoGeometry): string {
     case 'Polygon':
       return geom.coordinates.map((r) => ringPath(proj, r)).join('');
     case 'MultiPolygon':
-      return geom.coordinates
-        .flatMap((poly) => poly.map((r) => ringPath(proj, r)))
-        .join('');
+      return geom.coordinates.flatMap((poly) => poly.map((r) => ringPath(proj, r))).join('');
     case 'GeometryCollection':
       return geom.geometries.map((g) => geometryPath(proj, g)).join('');
   }

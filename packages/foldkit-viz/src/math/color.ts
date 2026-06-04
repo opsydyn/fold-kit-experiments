@@ -190,11 +190,7 @@ export function interpolateLab(c0: string, c1: string): (t: number) => string {
   const [L0, a0, b0] = hexToLab(c0);
   const [L1, a1, b1] = hexToLab(c1);
   return (t: number): string => {
-    const [r, g, b] = labToRgbTriplet(
-      L0 + (L1 - L0) * t,
-      a0 + (a1 - a0) * t,
-      b0 + (b1 - b0) * t,
-    );
+    const [r, g, b] = labToRgbTriplet(L0 + (L1 - L0) * t, a0 + (a1 - a0) * t, b0 + (b1 - b0) * t);
     return `rgb(${r},${g},${b})`;
   };
 }

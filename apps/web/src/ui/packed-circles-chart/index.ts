@@ -174,104 +174,103 @@ export const view = <M>(config: {
   };
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
-      // Group circles (drawn first — behind leaves)
-      ...groups.map((g) =>
-        h.g(
-          [
-            h.OnMouseEnter(toParentMessage(HoveredCircle({ id: g.id }))),
-            h.OnMouseLeave(toParentMessage(BlurredCircle({}))),
-            h.Style({ cursor: 'pointer' }),
-          ],
-          [
-            h.circle(
-              [
-                h.Attribute('cx', String(g.x)),
-                h.Attribute('cy', String(g.y)),
-                h.Attribute('r', String(g.r)),
-                h.Fill(tint(g.color, 0.85)),
-                h.Stroke(tint(g.color, 0.5)),
-                h.Attribute('stroke-width', '1'),
-                h.Style({ opacity: groupOpacity(g), transition: 'opacity 150ms' }),
-              ],
-              [],
-            ),
-            ...(g.r >= GROUP_LABEL_MIN_R
-              ? [
-                  h.text(
-                    [
-                      h.X(String(g.x)),
-                      h.Y(String(r1(g.y - g.r + 9))),
-                      h.Style({
-                        'text-anchor': 'middle',
-                        'dominant-baseline': 'middle',
-                        'font-size': '0.55rem',
-                        'font-weight': '600',
-                        fill: g.color,
-                        opacity: groupOpacity(g),
-                        transition: 'opacity 150ms',
-                        'pointer-events': 'none',
-                        'user-select': 'none',
-                      }),
-                    ],
-                    [g.label],
-                  ),
-                ]
-              : []),
-          ],
-        ),
+    // Group circles (drawn first — behind leaves)
+    ...groups.map((g) =>
+      h.g(
+        [
+          h.OnMouseEnter(toParentMessage(HoveredCircle({ id: g.id }))),
+          h.OnMouseLeave(toParentMessage(BlurredCircle({}))),
+          h.Style({ cursor: 'pointer' }),
+        ],
+        [
+          h.circle(
+            [
+              h.Attribute('cx', String(g.x)),
+              h.Attribute('cy', String(g.y)),
+              h.Attribute('r', String(g.r)),
+              h.Fill(tint(g.color, 0.85)),
+              h.Stroke(tint(g.color, 0.5)),
+              h.Attribute('stroke-width', '1'),
+              h.Style({ opacity: groupOpacity(g), transition: 'opacity 150ms' }),
+            ],
+            [],
+          ),
+          ...(g.r >= GROUP_LABEL_MIN_R
+            ? [
+                h.text(
+                  [
+                    h.X(String(g.x)),
+                    h.Y(String(r1(g.y - g.r + 9))),
+                    h.Style({
+                      'text-anchor': 'middle',
+                      'dominant-baseline': 'middle',
+                      'font-size': '0.55rem',
+                      'font-weight': '600',
+                      fill: g.color,
+                      opacity: groupOpacity(g),
+                      transition: 'opacity 150ms',
+                      'pointer-events': 'none',
+                      'user-select': 'none',
+                    }),
+                  ],
+                  [g.label],
+                ),
+              ]
+            : []),
+        ],
       ),
+    ),
 
-      // Leaf circles (drawn on top)
-      ...leaves.map((leaf) => {
-        const isActive = leaf.id === activeIdVal;
-        return h.g(
-          [
-            h.OnMouseEnter(toParentMessage(HoveredCircle({ id: leaf.id }))),
-            h.OnMouseLeave(toParentMessage(BlurredCircle({}))),
-            h.Style({ cursor: 'pointer' }),
-            h.AriaLabel(`${leaf.label}: ${leaf.value}`),
-          ],
-          [
-            h.circle(
-              [
-                h.Attribute('cx', String(leaf.x)),
-                h.Attribute('cy', String(leaf.y)),
-                h.Attribute('r', String(leaf.r)),
-                h.Fill(leaf.color),
-                h.Stroke(isActive ? '#fff' : 'none'),
-                h.Attribute('stroke-width', isActive ? '1.5' : '0'),
-                h.Style({
-                  opacity: leafOpacity(leaf),
-                  transition: 'opacity 150ms',
-                }),
-              ],
-              [],
-            ),
-            ...(leaf.showLabel
-              ? [
-                  h.text(
-                    [
-                      h.X(String(leaf.x)),
-                      h.Y(String(leaf.y)),
-                      h.Style({
-                        'text-anchor': 'middle',
-                        'dominant-baseline': 'middle',
-                        'font-size': '0.45rem',
-                        'font-weight': isActive ? '700' : '500',
-                        fill: '#fff',
-                        opacity: leafOpacity(leaf),
-                        transition: 'opacity 150ms, font-weight 0ms',
-                        'pointer-events': 'none',
-                        'user-select': 'none',
-                      }),
-                    ],
-                    [leaf.label],
-                  ),
-                ]
-              : []),
-          ],
-        );
-      }),
-    ],
-  );
+    // Leaf circles (drawn on top)
+    ...leaves.map((leaf) => {
+      const isActive = leaf.id === activeIdVal;
+      return h.g(
+        [
+          h.OnMouseEnter(toParentMessage(HoveredCircle({ id: leaf.id }))),
+          h.OnMouseLeave(toParentMessage(BlurredCircle({}))),
+          h.Style({ cursor: 'pointer' }),
+          h.AriaLabel(`${leaf.label}: ${leaf.value}`),
+        ],
+        [
+          h.circle(
+            [
+              h.Attribute('cx', String(leaf.x)),
+              h.Attribute('cy', String(leaf.y)),
+              h.Attribute('r', String(leaf.r)),
+              h.Fill(leaf.color),
+              h.Stroke(isActive ? '#fff' : 'none'),
+              h.Attribute('stroke-width', isActive ? '1.5' : '0'),
+              h.Style({
+                opacity: leafOpacity(leaf),
+                transition: 'opacity 150ms',
+              }),
+            ],
+            [],
+          ),
+          ...(leaf.showLabel
+            ? [
+                h.text(
+                  [
+                    h.X(String(leaf.x)),
+                    h.Y(String(leaf.y)),
+                    h.Style({
+                      'text-anchor': 'middle',
+                      'dominant-baseline': 'middle',
+                      'font-size': '0.45rem',
+                      'font-weight': isActive ? '700' : '500',
+                      fill: '#fff',
+                      opacity: leafOpacity(leaf),
+                      transition: 'opacity 150ms, font-weight 0ms',
+                      'pointer-events': 'none',
+                      'user-select': 'none',
+                    }),
+                  ],
+                  [leaf.label],
+                ),
+              ]
+            : []),
+        ],
+      );
+    }),
+  ]);
 };

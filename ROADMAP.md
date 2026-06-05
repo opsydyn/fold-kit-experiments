@@ -1,6 +1,6 @@
 # foldkit-viz Chart Roadmap
 
-## Completed (47 charts)
+## Completed (49 charts)
 
 | Chart | Primitive | Notes |
 | --- | --- | --- |
@@ -50,6 +50,7 @@
 | Correlation Matrix | `math/color` interpolateLab + `scaleSequential` | Tech stock return correlations, colour-encoded [-1, +1] cells |
 | Wind Rose | `shape/areaRadial` wedge + `math/scale` linear | 8-direction wind frequency, segmented polar bars with gap |
 | Animated Bar | `math/tween` + `Subscription.animationFrame` | Staggered bar entry animation, 6 easing functions |
+| Tile Grid Map | `math/array` extent + `scaleSequential` + `interpolateRgb` | US state GDP index on a 12×7 cartogram grid with legend |
 
 ---
 
@@ -234,7 +235,7 @@ Goal: match D3 + visx on primitives, scale family, curves, interactions, accessi
 - [x] **Arc diagram** — network links as arcs above a linear node axis
 - [x] **Diverging stacked bar** — Likert survey, `cumsum` stacking, net score label on hover
 - [x] **Correlation matrix** — `scaleSequential` + `interpolateLab` colour encoding, hover highlights row/col
-- [ ] **Choropleth map** — geographic fill encoding via `shape/geo.ts` + `scaleSequential` (needs GeoJSON)
+- [x] **Tile grid map** — choropleth-style with `scaleSequential` + `interpolateRgb`; US state GDP index on a 12×7 grid, no GeoJSON required
 - [x] **Area radial / wind rose** — `areaRadial` + `wedge` shapes, 8-direction frequency chart with gap segments
 
 ---
@@ -248,8 +249,8 @@ Goal: match D3 + visx on primitives, scale family, curves, interactions, accessi
 - [x] `aria-hidden="true"` on decorative gridlines/axes groups (`yGridlines`, `xLinearGridlines`)
 - [x] `withAccessibleTable(h, chart, caption, headers, rows)` — visually-hidden `<table>` companion
 - [x] `srOnly(h, text)` — screen-reader-only `<span>` helper
-- [ ] `aria-live="polite"` region for hover announcements — requires DOM element outside SVG (T4-A-live)
-- [ ] Screen reader test pass across all 46 charts
+- [x] `withAriaLive(h, chart, liveText)` — `<div aria-live="polite">` sibling wrapping the SVG; demonstrated in `bar-chart/index.ts`
+- [ ] Screen reader test pass across all 49 charts
 
 #### T4-B Test harness — `packages/foldkit-viz/test/`
 
@@ -265,8 +266,10 @@ Goal: match D3 + visx on primitives, scale family, curves, interactions, accessi
 ### T5 — Developer experience
 
 - [x] **TypeDoc** — `typedoc.json` config + `bun run docs` script; generates `docs/` from `src/index.ts`; `@category` tags added to `math/array.ts`
+- [x] **README.md** — module index, quick-start, animation example, design principles
+- [x] **CHANGELOG.md** — v0.1.0 and v0.2.0 documented; TypeDoc updated with `readme: "none"` pending README finalisation
 - [ ] **Storybook or standalone demo page** — interactive props explorer for each primitive
-- [ ] **`@opsydyn/foldkit-viz` npm publish** — versioned releases with changelog
+- [ ] **`@opsydyn/foldkit-viz` npm publish** — versioned releases (0.2.0 ready)
 - [ ] **Migration guide** — v0 → v1 (for when P2 configurable layout becomes the standard API)
 
 ---

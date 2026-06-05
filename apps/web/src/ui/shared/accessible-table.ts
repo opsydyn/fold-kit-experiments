@@ -76,3 +76,31 @@ export function withAccessibleTable<M>(
 export function srOnly<M>(h: H<M>, text: string): Html {
   return h.span([h.Style(SR_ONLY_STYLE)], [text]);
 }
+
+/**
+ * Wrap a chart SVG in a `<div style="position:relative">` that also contains
+ * an `aria-live="polite"` region. Screen readers announce `liveText` whenever
+ * it changes (e.g. on hover) without moving keyboard focus.
+ *
+ * `liveText` should be derived from the current hover state in `view()`:
+ * ```typescript
+ * const liveText = isActive ? `${bar.label}: ${bar.value}` : '';
+ * withAriaLive(h, svgEl, liveText);
+ * ```
+ */
+export function withAriaLive<M>(h: H<M>, chart: Html, liveText: string): Html {
+  return h.div(
+    [h.Style({ position: 'relative' })],
+    [
+      chart,
+      h.div(
+        [
+          h.Attribute('aria-live', 'polite'),
+          h.Attribute('aria-atomic', 'true'),
+          h.Style(SR_ONLY_STYLE),
+        ],
+        [liveText],
+      ),
+    ],
+  );
+}

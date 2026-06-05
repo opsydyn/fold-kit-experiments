@@ -11,6 +11,7 @@ import {
   r3,
   svgRoot,
   valueTooltip,
+  withAriaLive,
   xCategoryAxis,
   yGridlines,
 } from '../shared';
@@ -136,7 +137,10 @@ export const view = <M>(config: {
   const handleKeyDown = (key: string) =>
     arrowKeyNav(key, (dir) => toParentMessage(PressedKeyNav({ direction: dir })));
 
-  return svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
+  const activeBar = Option.isSome(activeIndex) ? bars[activeIndex.value] : undefined;
+  const liveText = activeBar ? `${activeBar.label}: ${activeBar.value}` : '';
+
+  return withAriaLive(h, svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
     h.g(
       [h.Transform(`translate(${ML},${MT})`)],
       [
@@ -188,5 +192,5 @@ export const view = <M>(config: {
         xCategoryAxis(h, xDomain, (l) => xScale.position(l), xScale.bandwidth, PH, PW),
       ],
     ),
-  ]);
+  ]), liveText);
 };

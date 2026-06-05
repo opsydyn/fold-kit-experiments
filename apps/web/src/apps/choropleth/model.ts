@@ -1,0 +1,231 @@
+import type { GeoFeature, GeoFeatureCollection } from '@opsydyn/foldkit-viz/shape/geo';
+import { Schema } from 'effect';
+import * as topojson from 'topojson-client';
+import countries110m from 'world-atlas/countries-110m.json';
+import * as Choropleth from '../../ui/choropleth-map';
+
+export const Model = Schema.Struct({ chart: Schema.Unknown });
+export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Choropleth.Model };
+
+// ISO 3166-1 numeric → label lookup (subset)
+const COUNTRY_NAMES: Record<string, string> = {
+  '4': 'Afghanistan',
+  '8': 'Albania',
+  '12': 'Algeria',
+  '24': 'Angola',
+  '32': 'Argentina',
+  '36': 'Australia',
+  '40': 'Austria',
+  '50': 'Bangladesh',
+  '56': 'Belgium',
+  '68': 'Bolivia',
+  '76': 'Brazil',
+  '100': 'Bulgaria',
+  '116': 'Cambodia',
+  '120': 'Cameroon',
+  '124': 'Canada',
+  '152': 'Chile',
+  '156': 'China',
+  '170': 'Colombia',
+  '180': 'DR Congo',
+  '188': 'Costa Rica',
+  '191': 'Croatia',
+  '192': 'Cuba',
+  '203': 'Czech Rep.',
+  '208': 'Denmark',
+  '218': 'Ecuador',
+  '818': 'Egypt',
+  '231': 'Ethiopia',
+  '246': 'Finland',
+  '250': 'France',
+  '276': 'Germany',
+  '288': 'Ghana',
+  '300': 'Greece',
+  '320': 'Guatemala',
+  '332': 'Haiti',
+  '340': 'Honduras',
+  '348': 'Hungary',
+  '356': 'India',
+  '360': 'Indonesia',
+  '364': 'Iran',
+  '368': 'Iraq',
+  '372': 'Ireland',
+  '376': 'Israel',
+  '380': 'Italy',
+  '388': 'Jamaica',
+  '392': 'Japan',
+  '400': 'Jordan',
+  '398': 'Kazakhstan',
+  '404': 'Kenya',
+  '408': 'North Korea',
+  '410': 'South Korea',
+  '422': 'Lebanon',
+  '430': 'Liberia',
+  '434': 'Libya',
+  '458': 'Malaysia',
+  '484': 'Mexico',
+  '504': 'Morocco',
+  '508': 'Mozambique',
+  '516': 'Namibia',
+  '524': 'Nepal',
+  '528': 'Netherlands',
+  '554': 'New Zealand',
+  '566': 'Nigeria',
+  '578': 'Norway',
+  '586': 'Pakistan',
+  '591': 'Panama',
+  '604': 'Peru',
+  '608': 'Philippines',
+  '616': 'Poland',
+  '620': 'Portugal',
+  '642': 'Romania',
+  '643': 'Russia',
+  '682': 'Saudi Arabia',
+  '686': 'Senegal',
+  '706': 'Somalia',
+  '710': 'South Africa',
+  '724': 'Spain',
+  '144': 'Sri Lanka',
+  '736': 'Sudan',
+  '752': 'Sweden',
+  '756': 'Switzerland',
+  '760': 'Syria',
+  '158': 'Taiwan',
+  '762': 'Tajikistan',
+  '764': 'Thailand',
+  '768': 'Togo',
+  '788': 'Tunisia',
+  '792': 'Turkey',
+  '800': 'Uganda',
+  '804': 'Ukraine',
+  '784': 'UAE',
+  '826': 'United Kingdom',
+  '840': 'United States',
+  '858': 'Uruguay',
+  '860': 'Uzbekistan',
+  '862': 'Venezuela',
+  '704': 'Vietnam',
+  '887': 'Yemen',
+  '894': 'Zambia',
+  '716': 'Zimbabwe',
+};
+
+// Illustrative internet penetration % by ISO numeric code (2023 estimates)
+const INTERNET_PCT: Record<string, number> = {
+  '840': 92,
+  '826': 96,
+  '276': 91,
+  '250': 86,
+  '392': 93,
+  '124': 93,
+  '36': 91,
+  '554': 93,
+  '752': 97,
+  '578': 99,
+  '246': 93,
+  '208': 99,
+  '528': 96,
+  '56': 88,
+  '756': 97,
+  '40': 89,
+  '380': 78,
+  '724': 94,
+  '620': 82,
+  '643': 85,
+  '792': 83,
+  '356': 52,
+  '156': 73,
+  '76': 81,
+  '484': 76,
+  '360': 62,
+  '704': 74,
+  '604': 67,
+  '170': 70,
+  '32': 88,
+  '858': 87,
+  '710': 72,
+  '566': 36,
+  '818': 72,
+  '716': 35,
+  '404': 43,
+  '231': 22,
+  '504': 88,
+  '764': 77,
+  '608': 73,
+  '458': 98,
+  '682': 100,
+  '784': 100,
+  '376': 90,
+  '586': 36,
+  '804': 75,
+  '300': 79,
+  '191': 82,
+  '203': 84,
+  '348': 89,
+  '100': 75,
+  '642': 78,
+  '616': 87,
+  '144': 45,
+  '116': 59,
+  '400': 89,
+  '760': 37,
+  '422': 84,
+  '368': 79,
+  '364': 79,
+  '288': 59,
+  '120': 31,
+  '180': 19,
+  '800': 26,
+  '508': 18,
+  '706': 20,
+  '894': 38,
+  '887': 30,
+  '686': 58,
+  '430': 30,
+  '332': 33,
+};
+
+// Convert world-atlas TopoJSON → foldkit GeoFeatureCollection
+// topojson.feature over a GeometryCollection always returns a FeatureCollection
+function buildFeatures(): GeoFeatureCollection {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const topo = countries110m as any;
+  const fc = topojson.feature(topo, topo.objects.countries) as unknown as {
+    type: 'FeatureCollection';
+    features: Array<{ id?: string | number; geometry: any; properties: any }>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  };
+
+  return {
+    type: 'FeatureCollection',
+    features: fc.features.map(
+      (f): GeoFeature => ({
+        type: 'Feature',
+        geometry: f.geometry,
+        properties: { id: String(f.id ?? '') },
+      }),
+    ),
+  };
+}
+
+export const init = (_: unknown): readonly [Model, readonly []] => {
+  const features = buildFeatures();
+
+  const data: ReadonlyArray<Choropleth.ChoroplethDatum> = Object.entries(INTERNET_PCT).map(
+    ([id, value]) => ({
+      id,
+      label: COUNTRY_NAMES[id] ?? id,
+      value,
+    }),
+  );
+
+  const [chart] = Choropleth.init({
+    features,
+    data,
+    colorLow: '#1e3a5f',
+    colorHigh: '#38bdf8',
+    noDataColor: '#1e1e2e',
+    legendLabel: 'Internet %',
+  });
+
+  return [{ chart }, []];
+};

@@ -125,7 +125,7 @@ export function view<M>(config: {
           [
             h.D(d),
             h.Fill(cellColor(idx, n, isActive, isInactive)),
-            h.Stroke('#fff'),
+            h.Stroke('var(--card-bg, #12121f)'),
             h.StrokeWidth(isActive ? '1.5' : '0.8'),
             h.Style({ cursor: 'default', transition: 'fill 80ms' }),
             h.OnMouseEnter(toParentMessage(HoveredCell({ idx }))),

@@ -28,7 +28,7 @@ export type InitConfig = Readonly<{
 }>;
 
 const DEFAULT_CONFIG: Config = {
-  trackColor: '#e2e8f0',
+  trackColor: 'var(--chart-axis, #3a3a3a)',
 };
 
 export type Model = Readonly<{
@@ -153,7 +153,7 @@ function renderGauge<M>(
         h.Y1(String(Math.round((cy - r0 * cos) * 10) / 10)),
         h.X2(String(Math.round((cx + r1 * sin) * 10) / 10)),
         h.Y2(String(Math.round((cy - r1 * cos) * 10) / 10)),
-        h.Stroke('#cbd5e1'),
+        h.Stroke('var(--chart-axis, #3a3a3a)'),
         h.StrokeWidth('1.5'),
         h.Attribute('stroke-linecap', 'round'),
       ],

@@ -182,7 +182,7 @@ export const view = <M>(config: {
                     h.Cx(String(cx)),
                     h.Cy(String(cy)),
                     h.R('5'),
-                    h.Fill('#fff'),
+                    h.Fill('var(--card-bg, #12121f)'),
                     h.Stroke(cfg.activeColor),
                     h.StrokeWidth('2'),
                   ],

@@ -12,9 +12,9 @@ export type AxisStyle = Readonly<{
 }>;
 
 const DEFAULTS: Required<AxisStyle> = {
-  gridColor: 'var(--chart-grid, #e5e5e5)',
-  axisColor: 'var(--chart-axis, #d4d4d4)',
-  labelColor: 'var(--chart-label, #888)',
+  gridColor: 'var(--chart-grid, #2d2d2d)',
+  axisColor: 'var(--chart-axis, #3a3a3a)',
+  labelColor: 'var(--chart-label, #888888)',
   labelSize: '0.7rem',
   format: String,
 };
@@ -106,7 +106,7 @@ export function xCategoryAxis<M>(
                 'text-anchor': 'middle',
                 'dominant-baseline': 'hanging',
                 'font-size': '0.75rem',
-                fill: '#555',
+                fill: s.labelColor,
               }),
             ],
             [label],

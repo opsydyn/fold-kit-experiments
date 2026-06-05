@@ -103,12 +103,22 @@ export { scaleTime, timeFormat, timeNice, timeParse, timeTickFormat, timeTicks }
 export type { EaseFn, Tween } from './math/tween';
 // math/tween
 export {
-  allTweensDone, easeInCubic, easeInOutCubic, easeLinear, easeOutBack,
-  easeOutCubic, easeOutElastic, tweenCreate, tweenDone, tweenPath, tweenStep, tweenValue,
+  allTweensDone,
+  easeInCubic,
+  easeInOutCubic,
+  easeLinear,
+  easeOutBack,
+  easeOutCubic,
+  easeOutElastic,
+  tweenCreate,
+  tweenDone,
+  tweenPath,
+  tweenStep,
+  tweenValue,
 } from './math/tween';
 export type { TransformMatrix } from './math/zoom';
 // math/zoom
-export { constrainScale, identityMatrix, rescaleDomain, scaleAt, translateBy } from './math/zoom';
+export { constrainScale, identityMatrix, matrixToString, rescaleDomain, scaleAt, translateBy } from './math/zoom';
 export type { ArcConfig } from './shape/arc';
 // shape/arc
 export { arc, arcCentroid } from './shape/arc';
@@ -118,6 +128,31 @@ export { area } from './shape/area';
 export type { AreaRadialConfig, AreaRadialPoint } from './shape/areaRadial';
 // shape/areaRadial
 export { areaRadial, wedge } from './shape/areaRadial';
+export type {
+  GeoBBox,
+  GeoCoord,
+  GeoFeature,
+  GeoFeatureCollection,
+  GeoGeometry,
+  GeoObject,
+  GeoPathFn,
+  GeoSphere,
+  Projection,
+  ProjectionObject,
+} from './shape/geo';
+// shape/geo
+export {
+  geoAlbers,
+  geoAlbersUsa,
+  geoBounds,
+  geoCentroid,
+  geoEquirectangular,
+  geoGraticule,
+  geoMercator,
+  geoNaturalEarth1,
+  geoOrthographic,
+  geoPath,
+} from './shape/geo';
 export type { CurveType, LineConfig } from './shape/line';
 // shape/line
 export { line } from './shape/line';

@@ -153,7 +153,7 @@ export function view<M>(config: {
                     h.Cy(String(cy)),
                     h.R(isActive ? '5' : '4'),
                     h.Fill(s.color),
-                    h.Stroke('#fff'),
+                    h.Stroke('var(--card-bg, #12121f)'),
                     h.StrokeWidth('2'),
                   ],
                   [],

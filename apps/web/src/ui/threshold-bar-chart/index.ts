@@ -177,7 +177,7 @@ export function view<M>(config: {
             h.Y1(String(PH)),
             h.X2(String(PW)),
             h.Y2(String(PH)),
-            h.Stroke('#e2e8f0'),
+            h.Stroke('var(--chart-grid, #2d2d2d)'),
             h.StrokeWidth('1'),
           ],
           [],

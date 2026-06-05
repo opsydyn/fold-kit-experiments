@@ -2,9 +2,12 @@
 import DonutApp from '../apps/donut/app';
 import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
+import * as donutStyles from '../apps/donut/donut.css';
 ---
 
 <Layout title="Donut Chart — Astro + FoldKit">
   <h1 class={layoutStyles.heading}>Donut Chart</h1>
-  <DonutApp client:load />
+  <div class={donutStyles.card}>
+    <DonutApp client:load />
+  </div>
 </Layout>

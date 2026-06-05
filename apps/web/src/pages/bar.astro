@@ -2,9 +2,12 @@
 import BarApp from '../apps/bar/app';
 import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
+import * as barStyles from '../apps/bar/bar.css';
 ---
 
 <Layout title="Bar Chart — Astro + FoldKit">
   <h1 class={layoutStyles.heading}>Bar Chart</h1>
-  <BarApp client:load />
+  <div class={barStyles.card}>
+    <BarApp client:load />
+  </div>
 </Layout>

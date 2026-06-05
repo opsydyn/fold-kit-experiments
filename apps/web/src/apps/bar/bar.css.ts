@@ -7,8 +7,9 @@ export const page = style({
 });
 
 export const card = style({
-  background: '#fff',
-  border: '1px solid #e5e5e5',
+  background: 'var(--card-bg, #12121f)',
+  border: '1px solid var(--card-border, #1e1e33)',
+  transition: 'background 180ms, border-color 180ms',
   borderRadius: '16px',
   padding: '1.5rem',
   width: '100%',

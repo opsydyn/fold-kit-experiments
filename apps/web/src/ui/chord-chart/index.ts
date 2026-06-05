@@ -221,7 +221,7 @@ export const view = <M>(config: {
                 [
                   h.D(g.pathD),
                   h.Fill(g.color),
-                  h.Stroke('#fff'),
+                  h.Stroke('var(--card-bg, #12121f)'),
                   h.StrokeWidth('1'),
                   h.Style({ opacity, transition: 'opacity 150ms' }),
                 ],

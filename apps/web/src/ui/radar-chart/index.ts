@@ -113,7 +113,7 @@ export const view = <M>(config: {
             [
               h.D(gridPolygon(n, level * MAX_RADIUS)),
               h.Fill('none'),
-              h.Stroke('#e2e8f0'),
+              h.Stroke('var(--chart-grid, #2d2d2d)'),
               h.StrokeWidth('1'),
             ],
             [],
@@ -129,7 +129,7 @@ export const view = <M>(config: {
               h.Y1('0'),
               h.X2(String(x)),
               h.Y2(String(y)),
-              h.Stroke('#cbd5e1'),
+              h.Stroke('var(--chart-axis, #3a3a3a)'),
               h.StrokeWidth('1'),
             ],
             [],

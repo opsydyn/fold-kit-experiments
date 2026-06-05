@@ -281,7 +281,7 @@ export const view = <M>(config: {
                           'dominant-baseline': 'middle',
                           'font-size': '0.58rem',
                           'font-weight': '600',
-                          fill: isActive ? '#fff' : '#1e293b',
+                          fill: isActive ? 'var(--page-text, #e8e8ff)' : 'var(--chart-label, #888)',
                           'pointer-events': 'none',
                           'user-select': 'none',
                           opacity,
@@ -296,7 +296,7 @@ export const view = <M>(config: {
         }),
 
         h.path(
-          [h.D(layout.centerPath), h.Fill('#ffffff'), h.Stroke('#e2e8f0'), h.StrokeWidth('1')],
+          [h.D(layout.centerPath), h.Fill('var(--card-bg, #12121f)'), h.Stroke('var(--card-border, #1e1e33)'), h.StrokeWidth('1')],
           [],
         ),
 

@@ -1,5 +1,6 @@
 # build output
 dist/
+storybook-static/
 
 # test artifacts (packed tarballs, unpacked smoke dirs)
 packages/astro-foldkit/artifacts/

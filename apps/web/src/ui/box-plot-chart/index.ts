@@ -120,7 +120,7 @@ export function view<M>(config: {
     const cx = xScale.position(label) + boxW / 2;
     const isActive = i === activeIdx;
     const fillColor = isActive ? cfg.activeColor : cfg.color;
-    const boxFill = interpolateRgb(fillColor, '#ffffff')(isActive ? 0 : 0.75);
+    const boxFill = interpolateRgb(fillColor, '#0a0a14')(isActive ? 0 : 0.75);
     const strokeColor = fillColor;
 
     const yQ1 = yScale(st.q1);
@@ -244,7 +244,7 @@ export function view<M>(config: {
       [h.Transform(`translate(${ML},${MT})`)],
       [
         yGridlines(h, yTicks, (v) => yScale(v), PW, {
-          gridColor: '#e2e8f0',
+          gridColor: 'var(--chart-grid, #2d2d2d)',
           labelColor: '#94a3b8',
           labelSize: '10px',
         }),

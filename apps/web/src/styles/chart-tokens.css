@@ -33,6 +33,29 @@
 
   /* Crosshair / active selection line */
   --chart-crosshair: rgba(255, 255, 255, 0.18);
+
+  /* Bullet chart range bands (poor → satisfactory → good) */
+  --chart-range-1: #1a1a2e;
+  --chart-range-2: #1e1e33;
+  --chart-range-3: #252540;
+
+  /* Page and card surface tokens */
+  --page-bg: #0a0a14;
+  --page-text: #e8e8ff;
+  --nav-bg: #0d0d1e;
+  --nav-border: #1a1a2e;
+  --nav-text: #a0a0c0;
+  --nav-text-hover-bg: #1a1a2e;
+  --nav-text-hover: #e8e8ff;
+  --nav-active-bg: #e8e8ff;
+  --nav-active-text: #0a0a14;
+  --card-bg: #12121f;
+  --card-border: #1e1e33;
+  --card-label: #7070a0;
+  --toggle-border: #2a2a3e;
+  --toggle-text: #a0a0c0;
+  --toggle-hover-bg: #1a1a2e;
+  --toggle-hover-text: #e8e8ff;
 }
 
 [data-theme="light"] {
@@ -45,4 +68,26 @@
   --chart-accent: #4f46e5;
   --chart-bg: transparent;
   --chart-crosshair: rgba(0, 0, 0, 0.1);
+
+  /* Bullet chart range bands */
+  --chart-range-1: #f3f4f6;
+  --chart-range-2: #e5e7eb;
+  --chart-range-3: #d1d5db;
+
+  --page-bg: #f5f5f8;
+  --page-text: #111111;
+  --nav-bg: #ffffff;
+  --nav-border: #e5e5e5;
+  --nav-text: #555555;
+  --nav-text-hover-bg: #f0f0f0;
+  --nav-text-hover: #111111;
+  --nav-active-bg: #111111;
+  --nav-active-text: #ffffff;
+  --card-bg: #ffffff;
+  --card-border: #e5e5e5;
+  --card-label: #767676;
+  --toggle-border: #e5e5e5;
+  --toggle-text: #555555;
+  --toggle-hover-bg: #f0f0f0;
+  --toggle-hover-text: #111111;
 }

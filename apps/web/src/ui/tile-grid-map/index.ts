@@ -164,7 +164,7 @@ export function view<M>(config: {
                     'dominant-baseline': 'middle',
                     'font-size': tileSize >= 36 ? '0.65rem' : '0.55rem',
                     'font-weight': isActive ? '700' : '500',
-                    fill: isActive ? '#fff' : '#1e293b',
+                    fill: isActive ? 'var(--page-text, #e8e8ff)' : 'var(--chart-label, #888)',
                     'pointer-events': 'none',
                   }),
                 ],

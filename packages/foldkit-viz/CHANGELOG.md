@@ -2,6 +2,23 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.3.0] — 2026-06-05
+
+### Added
+
+**`shape/geo` — major upgrade**
+- 4 new projections: `geoNaturalEarth1`, `geoOrthographic`, `geoAlbers`, `geoAlbersUsa`
+- `ProjectionObject` — rich callable with `fitSize(size, object)` / `fitExtent(extent, object)` / `withScale` / `withTranslate`; auto-scales projection to fill SVG (D3 `fitSize` algorithm, `REF_SCALE=150`)
+- `GeoPathFn` — path renderer with `.bounds(obj)` and `.centroid(obj)` methods for bounding box and label placement
+- `geoBounds(proj, obj)` / `geoCentroid(proj, obj)` — standalone helpers
+- New exported types: `GeoBBox`, `GeoCoord`, `GeoFeature`, `GeoFeatureCollection`, `GeoObject`, `GeoPathFn`, `Projection`, `ProjectionObject`
+
+**Choropleth chart** (in `apps/web`)
+- `ui/choropleth-map` — reusable chart primitive: TopoJSON-agnostic, data-driven color encoding, centroid-anchored hover tooltip, sequential color legend
+- `apps/choropleth` — TEA app: `world-atlas` 110m countries + `topojson-client` conversion, internet penetration dataset
+
+---
+
 ## [0.2.0] — 2026-06-05
 
 ### Added

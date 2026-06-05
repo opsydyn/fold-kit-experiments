@@ -7,15 +7,10 @@ export const page = style({
   gap: '2rem',
 });
 
-export const card = style({
+export const layout = style({
   display: 'flex',
   alignItems: 'center',
   gap: '3rem',
-  background: '#fff',
-  border: '1px solid #e5e5e5',
-  borderRadius: '16px',
-  padding: '2rem',
-  maxWidth: '520px',
   width: '100%',
   '@media': {
     '(max-width: 480px)': {
@@ -24,6 +19,18 @@ export const card = style({
     },
   },
 });
+
+export const card = style([
+  layout,
+  {
+    background: 'var(--card-bg, #12121f)',
+    border: '1px solid var(--card-border, #1e1e33)',
+    transition: 'background 180ms, border-color 180ms',
+    borderRadius: '16px',
+    padding: '2rem',
+    maxWidth: '520px',
+  },
+]);
 
 export const chartWrapper = style({
   flexShrink: 0,
@@ -63,7 +70,7 @@ export const swatch = style({
 
 export const legendLabel = style({
   fontSize: '0.875rem',
-  color: '#111',
+  color: 'var(--page-text, #e8e8ff)',
   flex: 1,
   minWidth: 0,
   overflow: 'hidden',
@@ -73,6 +80,6 @@ export const legendLabel = style({
 
 export const legendValue = style({
   fontSize: '0.875rem',
-  color: '#888',
+  color: 'var(--chart-label, #888)',
   fontVariantNumeric: 'tabular-nums',
 });

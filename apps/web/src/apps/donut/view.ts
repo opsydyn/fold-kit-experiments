@@ -17,7 +17,7 @@ const { div, span, Class, Style, DataAttribute } = html<Message>();
 export const view = (model: Model): Document => ({
   title: 'Donut Chart — foldkit-viz',
   body: div(
-    [Class(styles.card)],
+    [Class(styles.layout)],
     [
       div(
         [Class(styles.chartWrapper)],

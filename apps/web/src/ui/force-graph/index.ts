@@ -168,8 +168,8 @@ export const view = <M>(config: {
             : isNeighbor
               ? `${cfg.color}cc`
               : hasFocus
-                ? '#fff'
-                : '#fff';
+                ? 'var(--card-bg, #12121f)'
+                : 'var(--card-bg, #12121f)';
 
           const strokeColor = isActive
             ? cfg.activeColor

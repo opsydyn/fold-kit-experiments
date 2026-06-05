@@ -238,7 +238,7 @@ export const view = <M>(config: {
               h.Attribute('cy', String(leaf.y)),
               h.Attribute('r', String(leaf.r)),
               h.Fill(leaf.color),
-              h.Stroke(isActive ? '#fff' : 'none'),
+              h.Stroke(isActive ? 'var(--card-bg, #12121f)' : 'none'),
               h.Attribute('stroke-width', isActive ? '1.5' : '0'),
               h.Style({
                 opacity: leafOpacity(leaf),
@@ -258,7 +258,7 @@ export const view = <M>(config: {
                       'dominant-baseline': 'middle',
                       'font-size': '0.45rem',
                       'font-weight': isActive ? '700' : '500',
-                      fill: '#fff',
+                      fill: 'var(--page-text, #e8e8ff)',
                       opacity: leafOpacity(leaf),
                       transition: 'opacity 150ms, font-weight 0ms',
                       'pointer-events': 'none',

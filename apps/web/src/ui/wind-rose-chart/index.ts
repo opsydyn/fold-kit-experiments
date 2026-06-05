@@ -218,7 +218,7 @@ export function view<M>(config: {
                           'dominant-baseline': 'middle',
                           'font-size': '0.62rem',
                           'font-weight': '700',
-                          fill: '#fff',
+                          fill: 'var(--page-text, #e8e8ff)',
                           'pointer-events': 'none',
                         }),
                       ],

@@ -96,7 +96,7 @@ foldkit-viz maps D3's 30 packages to a smaller set of pure-math/shape primitives
 | `math/color` (HSL + Lab) | `d3-color` — HSL shortest-path + CIELAB perceptual interpolation |
 | `math/contour` | `d3-contour` — Epanechnikov KDE density2d + marching-squares contourLines |
 | `math/delaunay` | `d3-delaunay` — Delaunator triangulation + Voronoi cells + Cohen-Sutherland clipping |
-| `shape/geo` | `d3-geo` — equirectangular + Mercator projections, geoPath, geoGraticule |
+| `shape/geo` | `d3-geo` — 6 projections (equirectangular, Mercator, Natural Earth 1, Orthographic, Albers, Albers USA), `fitSize`/`fitExtent`, `geoPath` with `.bounds()`/`.centroid()`, `geoGraticule` |
 
 ### Gaps
 
@@ -237,6 +237,7 @@ Goal: match D3 + visx on primitives, scale family, curves, interactions, accessi
 - [x] **Correlation matrix** — `scaleSequential` + `interpolateLab` colour encoding, hover highlights row/col
 - [x] **Tile grid map** — choropleth-style with `scaleSequential` + `interpolateRgb`; US state GDP index on a 12×7 grid, no GeoJSON required
 - [x] **Area radial / wind rose** — `areaRadial` + `wedge` shapes, 8-direction frequency chart with gap segments
+- [x] **Choropleth world map** — real TopoJSON via `topojson-client` + `world-atlas`; `geoNaturalEarth1().fitSize()` auto-scaling; `scaleSequential` color encoding; internet penetration % dataset; hover tooltip via `geoPath().centroid()`
 
 ---
 

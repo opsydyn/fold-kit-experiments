@@ -242,7 +242,7 @@ export const view = <M>(config: {
                       'dominant-baseline': 'middle',
                       'font-size': '0.65rem',
                       'font-weight': '600',
-                      fill: isActive ? '#fff' : '#1e293b',
+                      fill: isActive ? 'var(--page-text, #e8e8ff)' : 'var(--chart-label, #888)',
                       'pointer-events': 'none',
                       'user-select': 'none',
                     }),

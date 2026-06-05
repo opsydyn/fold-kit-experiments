@@ -120,7 +120,7 @@ export function view<M>(config: {
                     h.Y1('0'),
                     h.X2(String(px)),
                     h.Y2(String(PH)),
-                    h.Stroke(isZero ? '#94a3b8' : '#f1f5f9'),
+                    h.Stroke(isZero ? 'var(--chart-axis, #3a3a3a)' : 'var(--chart-grid, #2d2d2d)'),
                     h.StrokeWidth(isZero ? '1.5' : '1'),
                   ],
                   [],

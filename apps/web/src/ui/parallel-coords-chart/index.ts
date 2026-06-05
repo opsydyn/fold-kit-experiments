@@ -163,7 +163,7 @@ export function view<M>(config: {
                 h.Y1(String(PLOT_T)),
                 h.X2(String(x)),
                 h.Y2(String(PLOT_B)),
-                h.Stroke('#cbd5e1'),
+                h.Stroke('var(--chart-axis, #3a3a3a)'),
                 h.StrokeWidth('1.5'),
               ],
               [],

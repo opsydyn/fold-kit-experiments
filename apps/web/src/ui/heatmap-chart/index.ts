@@ -297,7 +297,7 @@ export const view = <M>(config: {
             h.Width(String(colorBarW)),
             h.Height(String(COLOR_BAR_H)),
             h.Fill('none'),
-            h.Stroke('#e2e8f0'),
+            h.Stroke('var(--card-border, #1e1e33)'),
             h.StrokeWidth('0.5'),
           ],
           [],

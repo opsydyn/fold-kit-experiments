@@ -45,7 +45,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     {
       data: cfg.data,
       color: cfg.color ?? '#1e40af',
-      targetColor: cfg.targetColor ?? '#111827',
+      targetColor: cfg.targetColor ?? 'var(--page-text, #e8e8ff)',
       activeIndex: Option.none(),
       layout,
     },
@@ -76,8 +76,11 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-const RANGE_COLORS = ['#e5e7eb', '#d1d5db', '#9ca3af'] as const;
-const RANGE_COLORS_LIGHT = ['#f3f4f6', '#e5e7eb', '#d1d5db'] as const;
+const RANGE_VARS = [
+  'var(--chart-range-1, #1a1a2e)',
+  'var(--chart-range-2, #1e1e33)',
+  'var(--chart-range-3, #252540)',
+] as const;
 
 export function view<M>(config: {
   model: Model;
@@ -143,11 +146,7 @@ export function view<M>(config: {
                   h.Y(String(r3(y + rowH * 0.1))),
                   h.Width(String(bw)),
                   h.Height(String(r3(rowH * 0.8))),
-                  h.Fill(
-                    isActive
-                      ? (RANGE_COLORS[ri] ?? '#e5e7eb')
-                      : (RANGE_COLORS_LIGHT[ri] ?? '#f3f4f6'),
-                  ),
+                  h.Fill(RANGE_VARS[ri] ?? 'var(--chart-range-1, #1a1a2e)'),
                   h.Style({ transition: 'fill 120ms' }),
                 ],
                 [],

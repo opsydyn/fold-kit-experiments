@@ -170,7 +170,7 @@ export function view<M>(config: {
                     h.Cy(String(nodeY)),
                     h.R(String(isActive ? DOT_R + 2 : DOT_R)),
                     h.Fill(isActive ? color : hasLink ? color : 'var(--chart-axis, #3a3a3a)'),
-                    h.Stroke(isActive ? '#fff' : 'none'),
+                    h.Stroke(isActive ? 'var(--card-bg, #12121f)' : 'none'),
                     h.StrokeWidth('2'),
                     h.Opacity(hasLink ? '1' : '0.4'),
                     h.Style({ transition: 'r 120ms' }),

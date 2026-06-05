@@ -121,7 +121,7 @@ export function view<M>(config: {
       [h.Transform(`translate(${ML},${MT})`)],
       [
         yGridlines(h, yTicks, (v) => yScale(v), PW, {
-          gridColor: '#e5e7eb',
+          gridColor: 'var(--chart-grid, #2d2d2d)',
           labelColor: '#94a3b8',
           labelSize: '0.65rem',
           format: (v) => String(Math.round(v)),
@@ -178,7 +178,7 @@ export function view<M>(config: {
             h.Y1(String(PH)),
             h.X2(String(PW)),
             h.Y2(String(PH)),
-            h.Stroke('#d1d5db'),
+            h.Stroke('var(--chart-axis, #3a3a3a)'),
             h.StrokeWidth('1'),
           ],
           [],

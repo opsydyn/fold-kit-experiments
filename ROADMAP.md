@@ -1,6 +1,6 @@
 # foldkit-viz Chart Roadmap
 
-## Completed (46 charts)
+## Completed (47 charts)
 
 | Chart | Primitive | Notes |
 | --- | --- | --- |
@@ -49,6 +49,7 @@
 | Diverging Stacked Bar | `math/array` cumsum + `math/scale` linear | Likert survey responses, stacked from centre, net score on hover |
 | Correlation Matrix | `math/color` interpolateLab + `scaleSequential` | Tech stock return correlations, colour-encoded [-1, +1] cells |
 | Wind Rose | `shape/areaRadial` wedge + `math/scale` linear | 8-direction wind frequency, segmented polar bars with gap |
+| Animated Bar | `math/tween` + `Subscription.animationFrame` | Staggered bar entry animation, 6 easing functions |
 
 ---
 
@@ -214,14 +215,15 @@ Goal: match D3 + visx on primitives, scale family, curves, interactions, accessi
 - [x] Pattern documented: child emits normal messages → parent cross-wires sibling model update
 
 #### T2-D Animation / tween layer — `math/tween.ts`
-TEA-compatible geometry interpolation for smooth transitions.
 
-- [ ] `Tween<T> = { from: T; to: T; progress: number; ease: EaseFn }`
-- [ ] `tweenStep(tween, dt)` — advance by delta
-- [ ] `tweenValue(tween)` — interpolated current value
-- [ ] SVG path interpolation — morph between two `d=` strings
-- [ ] Tick subscription via foldkit's Effect runtime
-- [ ] Showcase: animated bar chart (bar height grows on init)
+- [x] `Tween` state + `tweenCreate(duration, ease)` — immutable tween record
+- [x] `tweenStep(tween, dt)` — advance by delta, returns new Tween (pure)
+- [x] `tweenValue(from, to, tween)` — interpolate between two numbers
+- [x] `tweenPath(from, to, tween)` — interpolate SVG path `d=` strings
+- [x] `tweenDone`, `allTweensDone` — completion checks
+- [x] `easeLinear`, `easeOutCubic`, `easeInCubic`, `easeInOutCubic`, `easeOutElastic`, `easeOutBack`
+- [x] `apps/animated-bar/` showcase — staggered bar entry via `Subscription.animationFrame`
+- [x] 27 tween tests covering all easing functions, step, value, path interpolation
 
 ---
 
@@ -256,13 +258,13 @@ TEA-compatible geometry interpolation for smooth transitions.
 - [x] 47 primitive tests: `math/array`, `math/scale` (new), `math/time` format+parse
 - [x] `collectText`, `collectAttr`, `countElements`, `findNodes` — Html tree walkers (`test/collect-html.ts`)
 - [x] 13 tests for collect-html helpers against simulated chart vdom output
-- [ ] Snapshot tests for chart `view()` outputs
+- [x] Snapshot tests via `collectAttr`/`countElements` in `collect-html.test.ts` — structural assertions without brittle string snapshots
 
 ---
 
 ### T5 — Developer experience
 
-- [ ] **TypeDoc** — auto-generate API docs from JSDoc on all exported primitives
+- [x] **TypeDoc** — `typedoc.json` config + `bun run docs` script; generates `docs/` from `src/index.ts`; `@category` tags added to `math/array.ts`
 - [ ] **Storybook or standalone demo page** — interactive props explorer for each primitive
 - [ ] **`@opsydyn/foldkit-viz` npm publish** — versioned releases with changelog
 - [ ] **Migration guide** — v0 → v1 (for when P2 configurable layout becomes the standard API)

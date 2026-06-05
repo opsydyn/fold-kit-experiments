@@ -129,6 +129,10 @@
     "./shape/areaRadial": {
       "types": "./dist/shape/areaRadial.d.mts",
       "import": "./dist/shape/areaRadial.mjs"
+    },
+    "./math/tween": {
+      "types": "./dist/math/tween.d.mts",
+      "import": "./dist/math/tween.mjs"
     }
   },
   "typesVersions": {
@@ -219,6 +223,9 @@
       ],
       "shape/areaRadial": [
         "./dist/shape/areaRadial.d.mts"
+      ],
+      "math/tween": [
+        "./dist/math/tween.d.mts"
       ]
     }
   },
@@ -232,7 +239,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "check": "biome check .",
-    "check:fix": "biome check --write ."
+    "check:fix": "biome check --write .",
+    "docs": "typedoc"
   },
   "keywords": [
     "foldkit",
@@ -271,6 +279,7 @@
     "fast-check": "^4.8.0",
     "foldkit": "^0.101.0",
     "tsdown": "^0.21.8",
+    "typedoc": "^0.28.19",
     "typescript": "^6.0.3"
   }
 }

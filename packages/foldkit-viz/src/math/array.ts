@@ -1,5 +1,17 @@
+/**
+ * @module math/array
+ * @description
+ * Aggregation, search, and transformation utilities — D3 `d3-array` parity.
+ * Works with plain `ReadonlyArray<T>` and optional accessor functions.
+ * @category Array
+ */
+
 // ── Reduction ─────────────────────────────────────────────────────────────────
 
+/**
+ * Returns `[min, max]` in a single pass, or `[undefined, undefined]` for an empty array.
+ * @category Array
+ */
 export function extent<T>(
   values: ReadonlyArray<T>,
   accessor?: (v: T) => number,

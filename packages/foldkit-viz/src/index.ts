@@ -100,6 +100,12 @@ export { boxStats, kde, quantile, silvermanBandwidth } from './math/stats';
 
 // math/time
 export { scaleTime, timeFormat, timeNice, timeParse, timeTickFormat, timeTicks } from './math/time';
+export type { EaseFn, Tween } from './math/tween';
+// math/tween
+export {
+  allTweensDone, easeInCubic, easeInOutCubic, easeLinear, easeOutBack,
+  easeOutCubic, easeOutElastic, tweenCreate, tweenDone, tweenPath, tweenStep, tweenValue,
+} from './math/tween';
 export type { TransformMatrix } from './math/zoom';
 // math/zoom
 export { constrainScale, identityMatrix, rescaleDomain, scaleAt, translateBy } from './math/zoom';

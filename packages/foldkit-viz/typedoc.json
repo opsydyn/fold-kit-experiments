@@ -1,0 +1,30 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "entryPointStrategy": "resolve",
+  "out": "docs",
+  "name": "foldkit-viz",
+  "includeVersion": true,
+  "readme": "none",
+  "navigationLinks": {
+    "GitHub": "https://github.com/opsydyn/astro-foldkit/tree/main/packages/foldkit-viz"
+  },
+  "categorizeByGroup": true,
+  "defaultCategory": "Other",
+  "categoryOrder": [
+    "Scale",
+    "Array",
+    "Color",
+    "Shape",
+    "Animation",
+    "Time",
+    "Statistics",
+    "Simulation",
+    "Other"
+  ],
+  "exclude": ["**/node_modules/**", "**/test/**", "src/math/delaunay.ts"],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "sort": ["source-order"],
+  "disableSources": false
+}

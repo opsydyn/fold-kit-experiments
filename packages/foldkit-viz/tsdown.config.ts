@@ -32,6 +32,7 @@ export default defineConfig({
     'math/array': 'src/math/array.ts',
     'math/brush': 'src/math/brush.ts',
     'shape/areaRadial': 'src/shape/areaRadial.ts',
+    'math/tween': 'src/math/tween.ts',
   },
   dts: true,
   format: 'esm',

@@ -31,6 +31,7 @@ export default defineConfig({
     'shape/geo': 'src/shape/geo.ts',
     'math/array': 'src/math/array.ts',
     'math/brush': 'src/math/brush.ts',
+    'shape/areaRadial': 'src/shape/areaRadial.ts',
   },
   dts: true,
   format: 'esm',

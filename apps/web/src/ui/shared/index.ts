@@ -1,3 +1,4 @@
+export { srOnly, withAccessibleTable } from './accessible-table';
 export type { AxisStyle } from './axes';
 export { xCategoryAxis, xLinearAxis, xLinearGridlines, yGridlines } from './axes';
 export type { CursorTooltipStyle } from './cursor-tooltip';

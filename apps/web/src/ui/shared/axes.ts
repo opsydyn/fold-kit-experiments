@@ -32,7 +32,7 @@ export function yGridlines<M>(
 ): Html {
   const s = { ...DEFAULTS, ...style };
   return h.g(
-    [],
+    [h.Attribute('aria-hidden', 'true')],
     ticks.map((tick) => {
       const y = r3(yScale(tick));
       return h.g(
@@ -178,7 +178,7 @@ export function xLinearGridlines<M>(
 ): Html {
   const s = { ...DEFAULTS, ...style };
   return h.g(
-    [],
+    [h.Attribute('aria-hidden', 'true')],
     ticks.map((tick) => {
       const x = r3(xScale(tick));
       return h.g(

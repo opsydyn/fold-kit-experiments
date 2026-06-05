@@ -1,6 +1,6 @@
 # foldkit-viz Chart Roadmap
 
-## Completed (45 charts)
+## Completed (46 charts)
 
 | Chart | Primitive | Notes |
 | --- | --- | --- |
@@ -48,6 +48,7 @@
 | Linked Views | `shared/dispatch` CrosshairState | Scatter + histogram, bidirectional hover sync via parent TEA update |
 | Diverging Stacked Bar | `math/array` cumsum + `math/scale` linear | Likert survey responses, stacked from centre, net score on hover |
 | Correlation Matrix | `math/color` interpolateLab + `scaleSequential` | Tech stock return correlations, colour-encoded [-1, +1] cells |
+| Wind Rose | `shape/areaRadial` wedge + `math/scale` linear | 8-direction wind frequency, segmented polar bars with gap |
 
 ---
 
@@ -168,7 +169,7 @@ Goal: match D3 + visx on primitives, scale family, curves, interactions, accessi
 - [x] `curveBasisOpen`, `curveBasisClosed`
 - [x] `curveCardinalOpen`, `curveCardinalClosed`
 - [x] `curveCatmullRomOpen`, `curveCatmullRomClosed`
-- [ ] `areaRadial()` — polar stacked area (deferred to T3 new chart types)
+- [x] `areaRadial()` + `wedge()` — polar stacked area + single wedge segment (`shape/areaRadial.ts`)
 
 #### T1-D `math/time.ts` — time formatting + parsing
 
@@ -232,7 +233,7 @@ TEA-compatible geometry interpolation for smooth transitions.
 - [x] **Diverging stacked bar** — Likert survey, `cumsum` stacking, net score label on hover
 - [x] **Correlation matrix** — `scaleSequential` + `interpolateLab` colour encoding, hover highlights row/col
 - [ ] **Choropleth map** — geographic fill encoding via `shape/geo.ts` + `scaleSequential` (needs GeoJSON)
-- [ ] **Area radial / wind rose** — polar stacked area (uses `areaRadial` + `scaleRadial`)
+- [x] **Area radial / wind rose** — `areaRadial` + `wedge` shapes, 8-direction frequency chart with gap segments
 
 ---
 
@@ -240,18 +241,21 @@ TEA-compatible geometry interpolation for smooth transitions.
 
 #### T4-A Accessible chart markup
 
-- [ ] `role="application"` + `aria-roledescription` on interactive charts
-- [ ] `aria-describedby` linking to hidden `<table>` with chart data
-- [ ] `aria-live="polite"` region for hover announcements (e.g. "Bar: Q3, value 142")
-- [ ] Axis labels exposed as `aria-label` on group elements
-- [ ] Screen reader test pass across all 45 charts
+- [x] `role="application"` + `aria-roledescription="interactive chart"` on interactive charts via `svgRoot`
+- [x] `<title>` + `<desc>` SVG children for reliable accessible name across all screen readers
+- [x] `aria-hidden="true"` on decorative gridlines/axes groups (`yGridlines`, `xLinearGridlines`)
+- [x] `withAccessibleTable(h, chart, caption, headers, rows)` — visually-hidden `<table>` companion
+- [x] `srOnly(h, text)` — screen-reader-only `<span>` helper
+- [ ] `aria-live="polite"` region for hover announcements — requires DOM element outside SVG (T4-A-live)
+- [ ] Screen reader test pass across all 46 charts
 
 #### T4-B Test harness — `packages/foldkit-viz/test/`
 
 - [x] `runChart(init, update, messages)` — runs TEA cycle, returns final model + history
 - [x] `assertScaleRange`, `assertMonotone`, `assertApprox` — scale assertion helpers
 - [x] 47 primitive tests: `math/array`, `math/scale` (new), `math/time` format+parse
-- [ ] `collectHtml(view output)` — walk rendered Html tree, extract text + attributes
+- [x] `collectText`, `collectAttr`, `countElements`, `findNodes` — Html tree walkers (`test/collect-html.ts`)
+- [x] 13 tests for collect-html helpers against simulated chart vdom output
 - [ ] Snapshot tests for chart `view()` outputs
 
 ---

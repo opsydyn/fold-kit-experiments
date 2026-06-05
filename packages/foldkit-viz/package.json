@@ -125,6 +125,10 @@
     "./math/brush": {
       "types": "./dist/math/brush.d.mts",
       "import": "./dist/math/brush.mjs"
+    },
+    "./shape/areaRadial": {
+      "types": "./dist/shape/areaRadial.d.mts",
+      "import": "./dist/shape/areaRadial.mjs"
     }
   },
   "typesVersions": {
@@ -212,6 +216,9 @@
       ],
       "math/brush": [
         "./dist/math/brush.d.mts"
+      ],
+      "shape/areaRadial": [
+        "./dist/shape/areaRadial.d.mts"
       ]
     }
   },

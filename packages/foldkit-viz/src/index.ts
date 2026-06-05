@@ -109,6 +109,9 @@ export { arc, arcCentroid } from './shape/arc';
 export type { AreaConfig } from './shape/area';
 // shape/area
 export { area } from './shape/area';
+export type { AreaRadialConfig, AreaRadialPoint } from './shape/areaRadial';
+// shape/areaRadial
+export { areaRadial, wedge } from './shape/areaRadial';
 export type { CurveType, LineConfig } from './shape/line';
 // shape/line
 export { line } from './shape/line';

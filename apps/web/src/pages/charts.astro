@@ -23,6 +23,7 @@ import ColorSpacesApp from '../apps/color-spaces/app';
 import DensityContourApp from '../apps/density-contour/app';
 import VoronoiDiagramApp from '../apps/voronoi-diagram/app';
 import MapProjectionsApp from '../apps/map-projections/app';
+import HistogramBrushApp from '../apps/histogram-brush/app';
 import LinkedChartsApp from '../apps/linked-charts/app';
 import BulletApp from '../apps/bullet/app';
 import BumpApp from '../apps/bump/app';
@@ -222,6 +223,10 @@ import * as layoutStyles from '../layouts/layout.css';
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Experience vs salary — linked views</p>
       <LinkedChartsApp client:load />
+    </div>
+    <div class={gridStyles.cell}>
+      <p class={gridStyles.cellLabel}>Response time — brush filter</p>
+      <HistogramBrushApp client:load />
     </div>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Developer survey — Likert responses</p>

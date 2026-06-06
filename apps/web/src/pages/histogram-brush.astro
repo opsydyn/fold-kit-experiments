@@ -1,0 +1,10 @@
+---
+import HistogramBrushApp from '../apps/histogram-brush/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Histogram Brush Filter — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Histogram Brush Filter</h1>
+  <HistogramBrushApp client:load />
+</Layout>

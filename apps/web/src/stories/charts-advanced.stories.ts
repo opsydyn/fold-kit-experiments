@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import * as AnimatedBarApp from '../apps/animated-bar/main';
+import * as HistogramBrushApp from '../apps/histogram-brush/main';
 import * as LinkedChartsApp from '../apps/linked-charts/main';
 import * as ZoomableLineApp from '../apps/zoomable-line/main';
 import * as PhyllotaxisApp from '../apps/phyllotaxis/main';
@@ -37,6 +38,19 @@ export const LinkedCharts: StoryObj = {
     docs: {
       description: {
         story: 'Scatter + bar sharing selection state — brush/click in one updates the other.',
+      },
+    },
+  },
+};
+
+export const HistogramBrush: StoryObj = {
+  name: 'Histogram brush filter',
+  render: () => mountFoldkit(HistogramBrushApp),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Drag to brush a response-time range on the histogram; scatter auto-filters and re-scales to show the correlation within that range.',
       },
     },
   },

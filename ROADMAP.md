@@ -199,14 +199,14 @@ Goal: match D3 + visx on primitives, scale family, curves, interactions, accessi
 - [x] `brushContains(state, x)` — point membership test
 - [x] `brushDomain(state, invert)` — maps pixel extent → domain values via `linearInvertible`
 - [x] `brushUpdate(state, msg)` — pure update function
-- [ ] Showcase: histogram brush filter chart (T3)
+- [x] Showcase: histogram brush filter chart — `apps/histogram-brush/` + brushable histogram + scatter cross-filter
 
 #### T2-B Cursor-tracking tooltip — `shared/cursor-tooltip.ts`
 
 - [x] `nearestIndex(sortedX, pointerX)` — bisect-based 1D nearest point
 - [x] `nearestPoint(coords, px, py)` — Euclidean 2D nearest point (scatter charts)
 - [x] `cursorTooltip(h, x, y, lines[], style?)` — multi-line SVG tooltip with bg rect, CSS-variable colours
-- [ ] Migrate bar, line, area, scatter to cursor-tracking (replaces transparent hit rects) — T2-B-migrate
+- [x] Migrate bar, line, area, scatter to cursor-tracking (replaces transparent hit rects) — T2-B-migrate
 
 #### T2-C Linked views — `shared/dispatch.ts`
 
@@ -269,9 +269,9 @@ Goal: match D3 + visx on primitives, scale family, curves, interactions, accessi
 - [x] **TypeDoc** — `typedoc.json` config + `bun run docs` script; generates `docs/` from `src/index.ts`; `@category` tags added to `math/array.ts`
 - [x] **README.md** — module index, quick-start, animation example, design principles
 - [x] **CHANGELOG.md** — v0.1.0 and v0.2.0 documented; TypeDoc updated with `readme: "none"` pending README finalisation
-- [ ] **Storybook or standalone demo page** — interactive props explorer for each primitive
+- [x] **Storybook props explorer** — `charts-primitives.stories.ts` — bar, line, area, scatter with live color/curve/spacing controls
 - [ ] **`@opsydyn/foldkit-viz` npm publish** — versioned releases (0.2.0 ready)
-- [ ] **Migration guide** — v0 → v1 (for when P2 configurable layout becomes the standard API)
+- [x] **Migration guide** — v0 → v1 — `apps/web/MIGRATION.md`
 
 ---
 

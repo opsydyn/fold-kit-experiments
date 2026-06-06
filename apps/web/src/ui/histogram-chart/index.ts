@@ -1,11 +1,21 @@
 import { type Bin, bin } from '@opsydyn/foldkit-viz/math/bin';
-import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import {
+  BRUSH_IDLE,
+  type BrushState,
+  brushDomain,
+  brushExtent,
+  brushUpdate,
+  ClearedBrush,
+  EndedBrush,
+  MovedBrush,
+  StartedBrush,
+} from '@opsydyn/foldkit-viz/math/brush';
+import { linear, linearInvertible, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
+import { Effect, Match, Option, Schema } from 'effect';
+import { Mount } from 'foldkit';
+import { type Html, html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot, valueTooltip, yGridlines } from '../shared';
+import { type Dims, type Layout, type Margins, makeLayout, r3, svgRoot, valueTooltip, yGridlines } from '../shared';
 
 // MODEL
 
@@ -18,6 +28,7 @@ export type InitConfig = Readonly<{
   xLabel?: string;
   dims?: Partial<Dims>;
   margins?: Partial<Margins>;
+  enableBrush?: boolean;
 }>;
 
 export type ComputedBin = Readonly<{
@@ -26,6 +37,8 @@ export type ComputedBin = Readonly<{
   count: number;
 }>;
 
+export type SvgBounds = Readonly<{ clientLeft: number; renderedPW: number }>;
+
 export type Model = Readonly<{
   bins: ReadonlyArray<ComputedBin>;
   totalCount: number;
@@ -33,6 +46,10 @@ export type Model = Readonly<{
   xLabel: string;
   activeBin: Option.Option<number>;
   readonly layout: Layout;
+  enableBrush: boolean;
+  brush: BrushState;
+  svgBounds: Option.Option<SvgBounds>;
+  brushDragStart: Option.Option<Readonly<{ anchorClientX: number; anchorScreenX: number }>>;
 }>;
 
 export function init(cfg: InitConfig): readonly [Model, readonly []] {
@@ -60,6 +77,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       xLabel: cfg.xLabel ?? '',
       activeBin: Option.none(),
       layout,
+      enableBrush: cfg.enableBrush ?? false,
+      brush: BRUSH_IDLE,
+      svgBounds: Option.none(),
+      brushDragStart: Option.none(),
     },
     [],
   ];
@@ -69,13 +90,64 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 export const HoveredBin = m('HoveredBin', { index: Schema.Number });
 export const BlurredBin = m('BlurredBin', {});
+export const RecordedSvgBounds = m('RecordedSvgBounds', {
+  clientLeft: Schema.Number,
+  renderedPW: Schema.Number,
+});
+export const StartedHistogramBrush = m('StartedHistogramBrush', {
+  screenX: Schema.Number,
+  clientX: Schema.Number,
+});
+export const MovedHistogramBrush = m('MovedHistogramBrush', { screenX: Schema.Number });
+export const EndedHistogramBrush = m('EndedHistogramBrush', { screenX: Schema.Number });
+export const ClearedHistogramBrush = m('ClearedHistogramBrush', {});
 
-export const Message = Schema.Union([HoveredBin, BlurredBin]);
+export const Message = Schema.Union([
+  HoveredBin,
+  BlurredBin,
+  RecordedSvgBounds,
+  StartedHistogramBrush,
+  MovedHistogramBrush,
+  EndedHistogramBrush,
+  ClearedHistogramBrush,
+]);
 export type Message = typeof Message.Type;
+
+// MOUNT
+
+export const CaptureSvgBounds = Mount.define(
+  'CaptureSvgBounds',
+  RecordedSvgBounds,
+)((element) =>
+  Effect.sync(() => {
+    const rect = element.getBoundingClientRect();
+    return RecordedSvgBounds({ clientLeft: rect.left, renderedPW: rect.width });
+  }),
+);
 
 // UPDATE
 
 type Return = readonly [Model, readonly []];
+
+function computePlotX(svgBounds: Option.Option<SvgBounds>, PW: number, clientX: number): number {
+  return Option.match(svgBounds, {
+    onNone: () => 0,
+    onSome: ({ clientLeft, renderedPW }) =>
+      Math.max(0, Math.min(PW, (clientX - clientLeft) * (PW / renderedPW))),
+  });
+}
+
+function computeMovePlotX(model: Model, screenX: number): number {
+  return Option.match(model.brushDragStart, {
+    onNone: () => model.brush.extent,
+    onSome: ({ anchorClientX, anchorScreenX }) =>
+      computePlotX(
+        model.svgBounds,
+        model.layout.pw,
+        anchorClientX + (screenX - anchorScreenX),
+      ),
+  });
+}
 
 export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
@@ -83,8 +155,56 @@ export const update = (model: Model, msg: Message): Return =>
     Match.tagsExhaustive({
       HoveredBin: ({ index }) => [{ ...model, activeBin: Option.some(index) }, []],
       BlurredBin: () => [{ ...model, activeBin: Option.none() }, []],
+      RecordedSvgBounds: ({ clientLeft, renderedPW }) => [
+        { ...model, svgBounds: Option.some({ clientLeft, renderedPW }) },
+        [],
+      ],
+      StartedHistogramBrush: ({ screenX, clientX }) => {
+        const plotX = computePlotX(model.svgBounds, model.layout.pw, clientX);
+        return [
+          {
+            ...model,
+            brush: brushUpdate(model.brush, StartedBrush(plotX)),
+            brushDragStart: Option.some({ anchorClientX: clientX, anchorScreenX: screenX }),
+          },
+          [],
+        ];
+      },
+      MovedHistogramBrush: ({ screenX }) => {
+        if (!model.brush.active) return [model, []];
+        const plotX = computeMovePlotX(model, screenX);
+        return [{ ...model, brush: brushUpdate(model.brush, MovedBrush(plotX)) }, []];
+      },
+      EndedHistogramBrush: ({ screenX }) => {
+        const plotX = computeMovePlotX(model, screenX);
+        return [
+          {
+            ...model,
+            brush: brushUpdate(model.brush, EndedBrush(plotX)),
+            brushDragStart: Option.none(),
+          },
+          [],
+        ];
+      },
+      ClearedHistogramBrush: () => [
+        { ...model, brush: brushUpdate(model.brush, ClearedBrush()), brushDragStart: Option.none() },
+        [],
+      ],
     }),
   );
+
+// QUERY
+
+/** Returns the brush selection as domain [lo, hi] values, or null if no selection. */
+export function getBrushDomain(model: Model): readonly [number, number] | null {
+  if (!model.enableBrush || model.bins.length === 0) return null;
+  const ext = brushExtent(model.brush);
+  if (ext === null) return null;
+  const domainMin = model.bins[0]?.x0 ?? 0;
+  const domainMax = model.bins[model.bins.length - 1]?.x1 ?? 1;
+  const xScale = linearInvertible({ domain: [domainMin, domainMax], range: [0, model.layout.pw] });
+  return brushDomain(model.brush, xScale.invert);
+}
 
 // VIEW
 
@@ -102,7 +222,7 @@ export function view<M>(config: {
     pw: PW,
     ph: PH,
   } = model.layout;
-  const { bins, color, xLabel, activeBin } = model;
+  const { bins, color, xLabel, activeBin, enableBrush } = model;
 
   if (bins.length === 0) return h.svg([h.ViewBox(`0 0 ${W} ${H}`), h.Width('100%')], []);
 
@@ -115,6 +235,7 @@ export function view<M>(config: {
   const yTicks = linearTicks([0, maxCount * 1.1], 5);
 
   const activeIdx = Option.isSome(activeBin) ? activeBin.value : -1;
+  const ext = enableBrush ? brushExtent(model.brush) : null;
 
   return svgRoot(h, { width: W, height: H, ariaLabel }, null, [
     h.g(
@@ -127,6 +248,25 @@ export function view<M>(config: {
           format: (v) => String(Math.round(v)),
         }),
 
+        // Brush selection background (rendered before bars so bars appear on top)
+        ...(ext !== null
+          ? [
+              h.rect(
+                [
+                  h.X(String(r3(ext[0]))),
+                  h.Y('0'),
+                  h.Width(String(r3(ext[1] - ext[0]))),
+                  h.Height(String(PH)),
+                  h.Fill('rgba(99, 102, 241, 0.15)'),
+                  h.Stroke('#6366f1'),
+                  h.StrokeWidth('1'),
+                  h.Style({ 'pointer-events': 'none' }),
+                ],
+                [],
+              ),
+            ]
+          : []),
+
         // Bars
         h.g(
           [],
@@ -137,10 +277,25 @@ export function view<M>(config: {
             const barY = r3(yScale(b.count));
             const isActive = i === activeIdx;
 
+            const isInBrush =
+              ext !== null ? xScale(b.x1) >= ext[0] && xScale(b.x0) <= ext[1] : null;
+            const opacity =
+              isInBrush !== null
+                ? isInBrush
+                  ? '1'
+                  : '0.25'
+                : isActive
+                  ? '1'
+                  : '0.75';
+
             return h.g(
               [
-                h.OnMouseEnter(toParentMessage(HoveredBin({ index: i }))),
-                h.OnMouseLeave(toParentMessage(BlurredBin({}))),
+                ...(!enableBrush
+                  ? [
+                      h.OnMouseEnter(toParentMessage(HoveredBin({ index: i }))),
+                      h.OnMouseLeave(toParentMessage(BlurredBin({}))),
+                    ]
+                  : []),
                 h.Style({ cursor: 'default' }),
               ],
               [
@@ -151,12 +306,12 @@ export function view<M>(config: {
                     h.Width(String(barW)),
                     h.Height(String(barH)),
                     h.Fill(color),
-                    h.Opacity(isActive ? '1' : '0.75'),
+                    h.Opacity(opacity),
                     h.Style({ transition: 'opacity 80ms' }),
                   ],
                   [],
                 ),
-                ...(isActive && b.count > 0
+                ...(!enableBrush && isActive && b.count > 0
                   ? [
                       renderTooltip
                         ? renderTooltip(b, x + barW / 2, barY)
@@ -218,6 +373,36 @@ export function view<M>(config: {
                   }),
                 ],
                 [xLabel],
+              ),
+            ]
+          : []),
+
+        // Brush pointer-capture overlay (on top to intercept all pointer events)
+        ...(enableBrush
+          ? [
+              h.rect(
+                [
+                  h.X('0'),
+                  h.Y('0'),
+                  h.Width(String(PW)),
+                  h.Height(String(PH)),
+                  h.Fill('transparent'),
+                  h.Style({ cursor: 'crosshair', 'user-select': 'none' }),
+                  h.OnMount(Mount.mapMessage(CaptureSvgBounds(), toParentMessage)),
+                  h.OnPointerDown(
+                    (_pointerType, _button, screenX, _screenY, _ts, clientX) =>
+                      Option.some(toParentMessage(StartedHistogramBrush({ screenX, clientX }))),
+                  ),
+                  h.OnPointerMove((screenX, _screenY, _pointerType) =>
+                    model.brush.active
+                      ? Option.some(toParentMessage(MovedHistogramBrush({ screenX })))
+                      : Option.none(),
+                  ),
+                  h.OnPointerUp((screenX, _screenY, _pointerType, _ts) =>
+                    Option.some(toParentMessage(EndedHistogramBrush({ screenX }))),
+                  ),
+                ],
+                [],
               ),
             ]
           : []),

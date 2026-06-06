@@ -1,5 +1,6 @@
 import { band, linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
+import { Effect, Match, Option, Schema } from 'effect';
+import { Mount } from 'foldkit';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
@@ -7,10 +8,12 @@ import type { Dims, Layout, Margins } from '../shared';
 import {
   arrowKeyNav,
   makeLayout,
+  nearestIndex,
   nextIndex,
   r3,
   svgRoot,
   valueTooltip,
+  withAccessibleTable,
   withAriaLive,
   xCategoryAxis,
   yGridlines,
@@ -28,11 +31,14 @@ export type Config = Readonly<{
   tickCount: number;
 }>;
 
+type ChartBounds = Readonly<{ screenLeft: number; renderedPW: number }>;
+
 export type Model = Readonly<{
   bars: ReadonlyArray<Bar>;
   activeIndex: Option.Option<number>;
   config: Config;
   readonly layout: Layout;
+  svgBounds: Option.Option<ChartBounds>;
 }>;
 
 export type InitConfig = Readonly<{
@@ -61,6 +67,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
       layout,
+      svgBounds: Option.none(),
     },
     [],
   ];
@@ -72,6 +79,10 @@ export const HoveredBar = m('HoveredBar', { index: Schema.Number });
 export const BlurredBar = m('BlurredBar', {});
 export const ClickedBar = m('ClickedBar', { index: Schema.Number });
 export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
+export const RecordedChartBounds = m('RecordedChartBounds', {
+  screenLeft: Schema.Number,
+  renderedPW: Schema.Number,
+});
 
 export const UpdatedBars = m('UpdatedBars', { bars: Schema.Unknown });
 export const Message = Schema.Union([
@@ -79,9 +90,22 @@ export const Message = Schema.Union([
   BlurredBar,
   ClickedBar,
   PressedKeyNav,
+  RecordedChartBounds,
   UpdatedBars,
 ]);
 export type Message = typeof Message.Type;
+
+// MOUNT
+
+export const CaptureChartBounds = Mount.define(
+  'CaptureChartBounds',
+  RecordedChartBounds,
+)((element) =>
+  Effect.sync(() => {
+    const rect = element.getBoundingClientRect();
+    return RecordedChartBounds({ screenLeft: rect.left + window.screenX, renderedPW: rect.width });
+  }),
+);
 
 // UPDATE
 
@@ -94,6 +118,10 @@ export const update = (model: Model, msg: Message): Return =>
       HoveredBar: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
       BlurredBar: () => [{ ...model, activeIndex: Option.none() }, []],
       ClickedBar: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
+      RecordedChartBounds: ({ screenLeft, renderedPW }) => [
+        { ...model, svgBounds: Option.some({ screenLeft, renderedPW }) },
+        [],
+      ],
       UpdatedBars: ({ bars }) => [{ ...model, bars: bars as ReadonlyArray<Bar> }, []],
       PressedKeyNav: ({ direction }) => {
         const n = model.bars.length;
@@ -139,14 +167,17 @@ export const view = <M>(config: {
 
   const activeBar = Option.isSome(activeIndex) ? bars[activeIndex.value] : undefined;
   const liveText = activeBar ? `${activeBar.label}: ${activeBar.value}` : '';
+  const barCenters = bars.map((bar) => r3(xScale.position(bar.label) + xScale.bandwidth / 2));
 
-  return withAriaLive(h, svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
+  return withAccessibleTable(
+    h,
+    withAriaLive(h, svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
     h.g(
       [h.Transform(`translate(${ML},${MT})`)],
       [
         yGridlines(h, ticks, (v) => yScale(v), PW),
 
-        // Bars
+        // Bars (visual only — pointer events handled by overlay)
         h.g(
           [],
           bars.map((bar, i) => {
@@ -156,13 +187,7 @@ export const view = <M>(config: {
             const by = r3(yScale(bar.value));
             const bh = r3(PH - yScale(bar.value));
             return h.g(
-              [
-                h.OnMouseEnter(toParentMessage(HoveredBar({ index: i }))),
-                h.OnMouseLeave(toParentMessage(BlurredBar({}))),
-                h.OnClick(toParentMessage(ClickedBar({ index: i }))),
-                h.Style({ cursor: 'pointer' }),
-                h.AriaLabel(`${bar.label}: ${bar.value}`),
-              ],
+              [h.Style({ cursor: 'pointer' }), h.AriaLabel(`${bar.label}: ${bar.value}`)],
               [
                 h.rect(
                   [
@@ -175,22 +200,63 @@ export const view = <M>(config: {
                   ],
                   [],
                 ),
-                ...(isActive
-                  ? [
-                      renderTooltip
-                        ? renderTooltip(bar, bx + bw / 2, by)
-                        : valueTooltip(h, bx + bw / 2, by, String(bar.value), {
-                            color: cfg.activeColor,
-                          }),
-                    ]
-                  : []),
               ],
             );
           }),
         ),
 
+        // Active bar tooltip
+        ...(Option.isSome(activeIndex) && bars[activeIndex.value] !== undefined
+          ? (() => {
+              const i = activeIndex.value;
+              const bar = bars[i];
+              if (bar === undefined) return [];
+              const bx = r3(xScale.position(bar.label));
+              const bw = r3(xScale.bandwidth);
+              const by = r3(yScale(bar.value));
+              return [
+                renderTooltip
+                  ? renderTooltip(bar, bx + bw / 2, by)
+                  : valueTooltip(h, bx + bw / 2, by, String(bar.value), { color: cfg.activeColor }),
+              ];
+            })()
+          : []),
+
+        // Cursor-tracking overlay — single hit rect, nearestIndex finds the active bar
+        h.rect(
+          [
+            h.X('0'),
+            h.Y('0'),
+            h.Width(String(PW)),
+            h.Height(String(PH)),
+            h.Fill('transparent'),
+            h.Style({ cursor: 'pointer' }),
+            h.OnMount(Mount.mapMessage(CaptureChartBounds(), toParentMessage)),
+            h.OnPointerMove((screenX, _screenY, _pointerType) => {
+              if (Option.isNone(model.svgBounds)) return Option.none();
+              const { screenLeft, renderedPW: rPW } = model.svgBounds.value;
+              const plotX = (screenX - screenLeft) * (PW / rPW);
+              const idx = nearestIndex(barCenters, plotX);
+              return idx >= 0
+                ? Option.some(toParentMessage(HoveredBar({ index: idx })))
+                : Option.none();
+            }),
+            h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredBar({})))),
+            h.OnClick(
+              Option.isSome(activeIndex)
+                ? toParentMessage(ClickedBar({ index: activeIndex.value }))
+                : toParentMessage(BlurredBar({})),
+            ),
+          ],
+          [],
+        ),
+
         xCategoryAxis(h, xDomain, (l) => xScale.position(l), xScale.bandwidth, PH, PW),
       ],
     ),
-  ]), liveText);
+  ]), liveText),
+    ariaLabel,
+    ['Label', 'Value'],
+    bars.map((b) => [b.label, String(b.value)]),
+  );
 };

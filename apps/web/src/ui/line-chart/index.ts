@@ -1,7 +1,8 @@
 import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { area } from '@opsydyn/foldkit-viz/shape/area';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
-import { Match, Option, Schema } from 'effect';
+import { Effect, Match, Option, Schema } from 'effect';
+import { Mount } from 'foldkit';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
@@ -9,10 +10,13 @@ import type { Dims, Layout, Margins } from '../shared';
 import {
   arrowKeyNav,
   makeLayout,
+  nearestIndex,
   nextIndex,
   r3,
   svgRoot,
   valueTooltip,
+  withAccessibleTable,
+  withAriaLive,
   xLinearAxis,
   yGridlines,
 } from '../shared';
@@ -29,11 +33,14 @@ export type Config = Readonly<{
   curve: 'linear' | 'catmullRom' | 'monotoneX';
 }>;
 
+type ChartBounds = Readonly<{ screenLeft: number; renderedPW: number }>;
+
 export type Model = Readonly<{
   points: ReadonlyArray<Point>;
   activeIndex: Option.Option<number>;
   config: Config;
   readonly layout: Layout;
+  svgBounds: Option.Option<ChartBounds>;
 }>;
 
 export type InitConfig = Readonly<{
@@ -62,6 +69,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
       layout,
+      svgBounds: Option.none(),
     },
     [],
   ];
@@ -72,10 +80,32 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 export const HoveredPoint = m('HoveredPoint', { index: Schema.Number });
 export const BlurredPoint = m('BlurredPoint', {});
 export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
+export const RecordedChartBounds = m('RecordedChartBounds', {
+  screenLeft: Schema.Number,
+  renderedPW: Schema.Number,
+});
 
 export const UpdatedPoints = m('UpdatedPoints', { points: Schema.Unknown });
-export const Message = Schema.Union([HoveredPoint, BlurredPoint, PressedKeyNav, UpdatedPoints]);
+export const Message = Schema.Union([
+  HoveredPoint,
+  BlurredPoint,
+  PressedKeyNav,
+  RecordedChartBounds,
+  UpdatedPoints,
+]);
 export type Message = typeof Message.Type;
+
+// MOUNT
+
+export const CaptureChartBounds = Mount.define(
+  'CaptureChartBounds',
+  RecordedChartBounds,
+)((element) =>
+  Effect.sync(() => {
+    const rect = element.getBoundingClientRect();
+    return RecordedChartBounds({ screenLeft: rect.left + window.screenX, renderedPW: rect.width });
+  }),
+);
 
 // UPDATE
 
@@ -87,6 +117,10 @@ export const update = (model: Model, msg: Message): Return =>
     Match.tagsExhaustive({
       HoveredPoint: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
       BlurredPoint: () => [{ ...model, activeIndex: Option.none() }, []],
+      RecordedChartBounds: ({ screenLeft, renderedPW }) => [
+        { ...model, svgBounds: Option.some({ screenLeft, renderedPW }) },
+        [],
+      ],
       UpdatedPoints: ({ points }) => [{ ...model, points: points as ReadonlyArray<Point> }, []],
       PressedKeyNav: ({ direction }) => {
         const n = model.points.length;
@@ -133,7 +167,12 @@ export const view = <M>(config: {
   const handleKeyDown = (key: string) =>
     arrowKeyNav(key, (dir) => toParentMessage(PressedKeyNav({ direction: dir })));
 
-  return svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
+  const activePoint = Option.isSome(activeIndex) ? points[activeIndex.value] : undefined;
+  const liveText = activePoint ? `${activePoint.label}: ${activePoint.value}` : '';
+
+  return withAccessibleTable(
+    h,
+    withAriaLive(h, svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
     h.g(
       [h.Transform(`translate(${ML},${MT})`)],
       [
@@ -158,50 +197,66 @@ export const view = <M>(config: {
             ]
           : []),
 
-        // Data points
+        // Data points (visual only — pointer events handled by overlay)
         h.g(
           [],
           points.map((p, i) => {
-            const cx = r3(xScale(i));
-            const cy = r3(yScale(p.value));
+            const [cx, cy] = coords[i] ?? [0, 0];
             const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
-            return h.g(
+            return h.circle(
               [
-                h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
-                h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
-                h.Style({ cursor: 'pointer' }),
+                h.Cx(String(cx)),
+                h.Cy(String(cy)),
+                h.R(isActive ? '5' : '3'),
+                h.Fill(isActive ? cfg.activeColor : cfg.color),
+                h.Stroke('var(--card-bg, #12121f)'),
+                h.StrokeWidth('2'),
+                h.Style({ transition: 'r 120ms' }),
                 h.AriaLabel(`${p.label}: ${p.value}`),
               ],
-              [
-                h.circle(
-                  [h.Cx(String(cx)), h.Cy(String(cy)), h.R('10'), h.Fill('transparent')],
-                  [],
-                ),
-                h.circle(
-                  [
-                    h.Cx(String(cx)),
-                    h.Cy(String(cy)),
-                    h.R(isActive ? '5' : '3'),
-                    h.Fill(isActive ? cfg.activeColor : cfg.color),
-                    h.Stroke('var(--card-bg, #12121f)'),
-                    h.StrokeWidth('2'),
-                    h.Style({ transition: 'r 120ms' }),
-                  ],
-                  [],
-                ),
-                ...(isActive
-                  ? [
-                      renderTooltip
-                        ? renderTooltip(p, cx, cy)
-                        : valueTooltip(h, cx, cy, String(p.value), {
-                            color: cfg.activeColor,
-                            offsetY: 12,
-                          }),
-                    ]
-                  : []),
-              ],
+              [],
             );
           }),
+        ),
+
+        // Active point tooltip
+        ...(Option.isSome(activeIndex) && points[activeIndex.value] !== undefined
+          ? (() => {
+              const i = activeIndex.value;
+              const p = points[i];
+              if (p === undefined) return [];
+              const [cx, cy] = coords[i] ?? [0, 0];
+              return [
+                renderTooltip
+                  ? renderTooltip(p, cx, cy)
+                  : valueTooltip(h, cx, cy, String(p.value), { color: cfg.activeColor, offsetY: 12 }),
+              ];
+            })()
+          : []),
+
+        // Cursor-tracking overlay — single hit rect, nearestIndex finds the active point
+        h.rect(
+          [
+            h.X('0'),
+            h.Y('0'),
+            h.Width(String(PW)),
+            h.Height(String(PH)),
+            h.Fill('transparent'),
+            h.Style({ cursor: 'pointer' }),
+            h.OnMount(Mount.mapMessage(CaptureChartBounds(), toParentMessage)),
+            h.OnPointerMove((screenX, _screenY, _pointerType) => {
+              if (Option.isNone(model.svgBounds)) return Option.none();
+              const { screenLeft, renderedPW: rPW } = model.svgBounds.value;
+              const plotX = (screenX - screenLeft) * (PW / rPW);
+              const xCoords = coords.map((c) => c[0]);
+              const idx = nearestIndex(xCoords, plotX);
+              return idx >= 0
+                ? Option.some(toParentMessage(HoveredPoint({ index: idx })))
+                : Option.none();
+            }),
+            h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredPoint({})))),
+          ],
+          [],
         ),
 
         xLinearAxis(
@@ -213,5 +268,9 @@ export const view = <M>(config: {
         ),
       ],
     ),
-  ]);
+  ]), liveText),
+    ariaLabel,
+    ['Label', 'Value'],
+    points.map((p) => [p.label, String(p.value)]),
+  );
 };

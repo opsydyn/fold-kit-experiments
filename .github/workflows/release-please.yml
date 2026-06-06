@@ -28,44 +28,90 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      - name: Check out release commit
+      # ── @opsydyn/astro-foldkit ──────────────────────────────────────────────
+
+      - name: Check out astro-foldkit release commit
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.release.outputs['packages/astro-foldkit--sha'] }}
 
-      - name: Set up Bun
+      - name: Set up Bun (astro-foldkit)
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         uses: oven-sh/setup-bun@v2
 
-      - name: Set up Node.js
+      - name: Set up Node.js (astro-foldkit)
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Install workspace dependencies
+      - name: Install workspace dependencies (astro-foldkit)
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         run: bun install --frozen-lockfile
 
-      - name: Build package
+      - name: Build package (astro-foldkit)
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         run: bun run --filter @opsydyn/astro-foldkit build
 
-      - name: Typecheck package
+      - name: Typecheck package (astro-foldkit)
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         run: bun run --filter @opsydyn/astro-foldkit typecheck
 
-      - name: Publish package to npm
+      - name: Publish @opsydyn/astro-foldkit to npm
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
         working-directory: packages/astro-foldkit
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
 
-      - name: Note missing NPM token
+      - name: Note missing NPM token (astro-foldkit)
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN == '' }}
         run: |
-          echo "Release was tagged, but npm publish was skipped because NPM_TOKEN is not configured."
+          echo "astro-foldkit release was tagged, but npm publish was skipped because NPM_TOKEN is not configured."
+          echo "Add an NPM_TOKEN repository secret to enable automated publication."
+
+      # ── @opsydyn/foldkit-viz ────────────────────────────────────────────────
+
+      - name: Check out foldkit-viz release commit
+        if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs['packages/foldkit-viz--sha'] }}
+
+      - name: Set up Bun (foldkit-viz)
+        if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Node.js (foldkit-viz)
+        if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install workspace dependencies (foldkit-viz)
+        if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
+        run: bun install --frozen-lockfile
+
+      - name: Build package (foldkit-viz)
+        if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
+        run: bun run --filter @opsydyn/foldkit-viz build
+
+      - name: Typecheck package (foldkit-viz)
+        if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
+        run: bun run --filter @opsydyn/foldkit-viz typecheck
+
+      - name: Publish @opsydyn/foldkit-viz to npm
+        if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
+        working-directory: packages/foldkit-viz
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
+
+      - name: Note missing NPM token (foldkit-viz)
+        if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN == '' }}
+        run: |
+          echo "foldkit-viz release was tagged, but npm publish was skipped because NPM_TOKEN is not configured."
           echo "Add an NPM_TOKEN repository secret to enable automated publication."

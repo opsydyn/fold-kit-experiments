@@ -129,11 +129,10 @@ describe('update', () => {
         update,
         Story.with(emptyModel),
         Story.message(ClickedIncrement()),
-        Story.Command.resolve(SpawnParticle, fakeParticle(INCREMENT_HUE)),
+        drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
           expect(model.particles[0]?.hue).toBe(INCREMENT_HUE);
         }),
-        drainSpawns(INCREMENT_HUE),
       );
     });
 
@@ -142,13 +141,11 @@ describe('update', () => {
         update,
         Story.with(emptyModel),
         Story.message(ClickedIncrement()),
-        Story.Command.resolve(SpawnParticle, fakeParticle(INCREMENT_HUE)),
-        Story.Command.resolve(SpawnParticle, fakeParticle(INCREMENT_HUE)),
+        drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
           expect(model.particles[0]?.id).toBe(0);
           expect(model.particles[1]?.id).toBe(1);
         }),
-        drainSpawns(INCREMENT_HUE),
       );
     });
 
@@ -157,12 +154,11 @@ describe('update', () => {
         update,
         Story.with(emptyModel),
         Story.message(ClickedIncrement()),
-        Story.Command.resolve(SpawnParticle, fakeParticle(INCREMENT_HUE)),
+        drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
           expect(model.particles[0]?.trail).toHaveLength(1);
           expect(model.particles[0]?.trail[0]).toEqual({ x: SPAWN_X, y: SPAWN_Y });
         }),
-        drainSpawns(INCREMENT_HUE),
       );
     });
   });

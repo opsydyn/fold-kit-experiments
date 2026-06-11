@@ -30,7 +30,7 @@ function mockEl(
 function mockRole(role: string) {
   return { _tag: 'Role', value: role };
 }
-function mockAriaLabel(label: string) {
+function _mockAriaLabel(label: string) {
   return { _tag: 'AriaLabel', value: label };
 }
 function mockAttr(name: string, value: string) {

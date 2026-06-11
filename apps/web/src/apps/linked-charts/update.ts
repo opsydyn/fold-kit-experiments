@@ -1,4 +1,4 @@
-import { Match, Option } from 'effect';
+import { Match } from 'effect';
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
 import type { Message } from './message';

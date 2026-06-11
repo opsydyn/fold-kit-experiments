@@ -198,46 +198,46 @@ export const view = <M>(config: {
               : []),
 
             // Active crosshair + dot
-            ...(Option.isSome(activeIndex)
-              ? (() => {
-                  const i = activeIndex.value;
-                  const pt = coords[i];
-                  const cx = pt?.[0] ?? 0;
-                  const cy = pt?.[1] ?? 0;
-                  const p = points[i];
-                  return [
-                    h.line(
-                      [
-                        h.X1(String(cx)),
-                        h.Y1(String(cy)),
-                        h.X2(String(cx)),
-                        h.Y2(String(PH)),
-                        h.Stroke(cfg.color),
-                        h.StrokeWidth('1'),
-                        h.Style({ 'stroke-dasharray': '3,3', opacity: '0.5' }),
-                      ],
-                      [],
-                    ),
-                    h.circle(
-                      [
-                        h.Cx(String(cx)),
-                        h.Cy(String(cy)),
-                        h.R('5'),
-                        h.Fill('var(--card-bg, #12121f)'),
-                        h.Stroke(cfg.activeColor),
-                        h.StrokeWidth('2'),
-                      ],
-                      [],
-                    ),
-                    renderTooltip
-                      ? renderTooltip(p, cx, cy)
-                      : valueTooltip(h, cx, cy, String(p?.value ?? ''), {
-                          color: cfg.activeColor,
-                          offsetY: 10,
-                        }),
-                  ];
-                })()
-              : []),
+            ...Option.match(activeIndex, {
+              onNone: () => [],
+              onSome: ({ value: i }) => {
+                const pt = coords[i];
+                const cx = pt?.[0] ?? 0;
+                const cy = pt?.[1] ?? 0;
+                const p = points[i];
+                return [
+                  h.line(
+                    [
+                      h.X1(String(cx)),
+                      h.Y1(String(cy)),
+                      h.X2(String(cx)),
+                      h.Y2(String(PH)),
+                      h.Stroke(cfg.color),
+                      h.StrokeWidth('1'),
+                      h.Style({ 'stroke-dasharray': '3,3', opacity: '0.5' }),
+                    ],
+                    [],
+                  ),
+                  h.circle(
+                    [
+                      h.Cx(String(cx)),
+                      h.Cy(String(cy)),
+                      h.R('5'),
+                      h.Fill('var(--card-bg, #12121f)'),
+                      h.Stroke(cfg.activeColor),
+                      h.StrokeWidth('2'),
+                    ],
+                    [],
+                  ),
+                  renderTooltip
+                    ? renderTooltip(p, cx, cy)
+                    : valueTooltip(h, cx, cy, String(p?.value ?? ''), {
+                        color: cfg.activeColor,
+                        offsetY: 10,
+                      }),
+                ];
+              },
+            }),
 
             // Cursor-tracking overlay — single hit rect, nearestIndex finds the active point
             h.rect(

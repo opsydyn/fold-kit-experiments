@@ -44,8 +44,8 @@ describe('manyBodyForce — repulsion', () => {
     const force = manyBodyForce({ strength: -30, distanceMin: 1 });
     force.initialize([a, b], lcg());
     expect(() => force(1)).not.toThrow();
-    expect(isFinite(a.vx)).toBe(true);
-    expect(isFinite(b.vx)).toBe(true);
+    expect(Number.isFinite(a.vx)).toBe(true);
+    expect(Number.isFinite(b.vx)).toBe(true);
   });
 
   it('stronger charge produces larger velocity change (property)', () => {

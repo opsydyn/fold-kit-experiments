@@ -48,12 +48,13 @@ function generate(seed: number): PlotData {
   const result = triangulate(pts);
   const cells = voronoiCells(result, [ML, MT, ML + PW, MT + PH]);
   const cellPaths = cells.map((cell) => {
+    // biome-ignore lint: null used as skip sentinel in array — downstream filters it out
     if (!cell || cell.length < 2) return null;
     let d = `M${cell[0][0].toFixed(1)},${cell[0][1].toFixed(1)}`;
     for (let i = 1; i < cell.length; i++) {
       d += `L${cell[i][0].toFixed(1)},${cell[i][1].toFixed(1)}`;
     }
-    return d + 'Z';
+    return `${d}Z`;
   });
   return { points: pts, cellPaths };
 }

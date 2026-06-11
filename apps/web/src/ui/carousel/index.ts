@@ -333,24 +333,28 @@ const dragActivityFromModel = (model: Model): 'Idle' | 'Active' | 'Settling' => 
 const trackById = (id: string): HTMLElement | null =>
   document.querySelector<HTMLElement>(`[data-carousel-track-id="${id}"]`);
 
-const documentDragStyles: Stream.Stream<never> = Stream.callback(() =>
-  Effect.acquireRelease(
+const documentDragStyles: Stream.Stream<never> = Stream.callback(() => {
+  const setup = Effect.sync(() => {
+    document.documentElement.style.setProperty('user-select', 'none');
+    document.documentElement.style.setProperty('-webkit-user-select', 'none');
+    const style = document.createElement('style');
+    style.textContent = '* { cursor: grabbing !important; }';
+    document.head.appendChild(style);
+    return style;
+  });
+  return Effect.acquireRelease(setup, (style) =>
     Effect.sync(() => {
-      document.documentElement.style.setProperty('user-select', 'none');
-      document.documentElement.style.setProperty('-webkit-user-select', 'none');
-      const style = document.createElement('style');
-      style.textContent = '* { cursor: grabbing !important; }';
-      document.head.appendChild(style);
-      return style;
+      document.documentElement.style.removeProperty('user-select');
+      document.documentElement.style.removeProperty('-webkit-user-select');
+      style.remove();
     }),
-    (style) =>
-      Effect.sync(() => {
-        document.documentElement.style.removeProperty('user-select');
-        document.documentElement.style.removeProperty('-webkit-user-select');
-        style.remove();
-      }),
-  ).pipe(Effect.flatMap(() => Effect.never)),
-);
+  ).pipe(
+    Effect.flatMap(() => {
+      // biome-ignore lint: FoldKit subscription — acquireRelease handles teardown, Effect.never holds scope open
+      return Effect.never;
+    }),
+  );
+});
 
 export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
   dragPointer: entry(

@@ -119,7 +119,7 @@ export function view<M>(config: {
         // Arc links
         h.g(
           [],
-          links.map((link, li) => {
+          links.map((link, _li) => {
             const si = nodeIndex.get(link.source) ?? 0;
             const ti = nodeIndex.get(link.target) ?? 0;
             const x1 = r3(xScale(si));

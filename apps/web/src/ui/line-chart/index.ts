@@ -222,22 +222,22 @@ export const view = <M>(config: {
             ),
 
             // Active point tooltip
-            ...(Option.isSome(activeIndex) && points[activeIndex.value] !== undefined
-              ? (() => {
-                  const i = activeIndex.value;
-                  const p = points[i];
-                  if (p === undefined) return [];
-                  const [cx, cy] = coords[i] ?? [0, 0];
-                  return [
-                    renderTooltip
-                      ? renderTooltip(p, cx, cy)
-                      : valueTooltip(h, cx, cy, String(p.value), {
-                          color: cfg.activeColor,
-                          offsetY: 12,
-                        }),
-                  ];
-                })()
-              : []),
+            ...Option.match(activeIndex, {
+              onNone: () => [],
+              onSome: ({ value: i }) => {
+                const p = points[i];
+                if (p === undefined) return [];
+                const [cx, cy] = coords[i] ?? [0, 0];
+                return [
+                  renderTooltip
+                    ? renderTooltip(p, cx, cy)
+                    : valueTooltip(h, cx, cy, String(p.value), {
+                        color: cfg.activeColor,
+                        offsetY: 12,
+                      }),
+                ];
+              },
+            }),
 
             // Cursor-tracking overlay — single hit rect, nearestIndex finds the active point
             h.rect(

@@ -39,11 +39,9 @@ describe('quadtree — structure', () => {
     const root = qt.root!;
     expect(isLeaf(root)).toBe(true);
     // The two nodes are chained
-    const head = root as ReturnType<typeof isLeaf extends (n: any) => n is infer L ? never : never>;
-    // Access via isLeaf guard
     if (isLeaf(root)) {
       expect(root.next).toBeDefined();
-      expect(root.next!.next).toBeUndefined();
+      expect(root.next?.next).toBeUndefined();
     }
   });
 

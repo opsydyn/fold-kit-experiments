@@ -1,5 +1,5 @@
 import { cumsum } from '@opsydyn/foldkit-viz/math/array';
-import { band, linear } from '@opsydyn/foldkit-viz/math/scale';
+import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
@@ -204,6 +204,9 @@ export function view<M>(config: {
           const posWidths = posCats.map((x) => x.pct);
           const negOffsets = cumsum([0, ...negWidths]).slice(0, negWidths.length);
           const posOffsets = cumsum([0, ...posWidths]).slice(0, posWidths.length);
+          const negTotal = negCats.reduce((s, x) => s + x.pct, 0);
+          const posTotal = posCats.reduce((s, x) => s + x.pct, 0);
+          const net = posTotal - negTotal;
 
           return h.g(
             [
@@ -271,27 +274,22 @@ export function view<M>(config: {
 
               // Net score label (right margin)
               ...(isActive
-                ? (() => {
-                    const negTotal = negCats.reduce((s, x) => s + x.pct, 0);
-                    const posTotal = posCats.reduce((s, x) => s + x.pct, 0);
-                    const net = posTotal - negTotal;
-                    return [
-                      h.text(
-                        [
-                          h.X(String(PW + MR - 4)),
-                          h.Y(String(r3(y + barH / 2))),
-                          h.Style({
-                            'text-anchor': 'end',
-                            'dominant-baseline': 'middle',
-                            'font-size': '0.65rem',
-                            'font-weight': '600',
-                            fill: net >= 0 ? '#22c55e' : '#ef4444',
-                          }),
-                        ],
-                        [`${net >= 0 ? '+' : ''}${Math.round(net * 100)}%`],
-                      ),
-                    ];
-                  })()
+                ? [
+                    h.text(
+                      [
+                        h.X(String(PW + MR - 4)),
+                        h.Y(String(r3(y + barH / 2))),
+                        h.Style({
+                          'text-anchor': 'end',
+                          'dominant-baseline': 'middle',
+                          'font-size': '0.65rem',
+                          'font-weight': '600',
+                          fill: net >= 0 ? '#22c55e' : '#ef4444',
+                        }),
+                      ],
+                      [`${net >= 0 ? '+' : ''}${Math.round(net * 100)}%`],
+                    ),
+                  ]
                 : []),
             ],
           );

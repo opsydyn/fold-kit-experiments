@@ -107,7 +107,7 @@ export function view<M>(config: {
   const { cells, tileSize, colorLow, colorHigh, legendLabel, valueExtent, activeId } = model;
   const {
     dims: { width: W, height: H },
-    margins: { top: MT, right: MR, left: ML },
+    margins: { top: MT, left: ML },
     pw: PW,
     ph: PH,
   } = model.layout;

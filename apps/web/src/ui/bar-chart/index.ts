@@ -208,23 +208,23 @@ export const view = <M>(config: {
             ),
 
             // Active bar tooltip
-            ...(Option.isSome(activeIndex) && bars[activeIndex.value] !== undefined
-              ? (() => {
-                  const i = activeIndex.value;
-                  const bar = bars[i];
-                  if (bar === undefined) return [];
-                  const bx = r3(xScale.position(bar.label));
-                  const bw = r3(xScale.bandwidth);
-                  const by = r3(yScale(bar.value));
-                  return [
-                    renderTooltip
-                      ? renderTooltip(bar, bx + bw / 2, by)
-                      : valueTooltip(h, bx + bw / 2, by, String(bar.value), {
-                          color: cfg.activeColor,
-                        }),
-                  ];
-                })()
-              : []),
+            ...Option.match(activeIndex, {
+              onNone: () => [],
+              onSome: ({ value: i }) => {
+                const bar = bars[i];
+                if (bar === undefined) return [];
+                const bx = r3(xScale.position(bar.label));
+                const bw = r3(xScale.bandwidth);
+                const by = r3(yScale(bar.value));
+                return [
+                  renderTooltip
+                    ? renderTooltip(bar, bx + bw / 2, by)
+                    : valueTooltip(h, bx + bw / 2, by, String(bar.value), {
+                        color: cfg.activeColor,
+                      }),
+                ];
+              },
+            }),
 
             // Cursor-tracking overlay — single hit rect, nearestIndex finds the active bar
             h.rect(

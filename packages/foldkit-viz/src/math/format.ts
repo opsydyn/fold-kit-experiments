@@ -81,7 +81,7 @@ export function format(specifier: string): (value: number) => string {
   const { comma, precision, trim, type } = parseSpec(specifier);
 
   return (value: number): string => {
-    if (!isFinite(value)) return String(value);
+    if (!Number.isFinite(value)) return String(value);
 
     switch (type) {
       case 'f': {
@@ -93,7 +93,7 @@ export function format(specifier: string): (value: number) => string {
       case '%': {
         const raw = (value * 100).toFixed(precision ?? 6);
         const num = trim ? trimZeros(raw) : raw;
-        return (comma ? addCommas(num) : num) + '%';
+        return `${comma ? addCommas(num) : num}%`;
       }
       case 's': {
         if (value === 0) return '0';

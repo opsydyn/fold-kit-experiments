@@ -42,9 +42,9 @@ describe('makeNoMetaView', () => {
     const result = wrapped({});
 
     expect(result.title).toBe('Page Title');
-    expect(result['canonical']).toBe('https://example.com/app');
-    expect(result['ogUrl']).toBe('https://example.com/og');
-    expect(result['body']).toBe('<svg />');
+    expect(result.canonical).toBe('https://example.com/app');
+    expect(result.ogUrl).toBe('https://example.com/og');
+    expect(result.body).toBe('<svg />');
   });
 
   it('passes the model through to the original view', () => {

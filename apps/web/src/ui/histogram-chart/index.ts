@@ -208,6 +208,7 @@ export const update = (model: Model, msg: Message): Return =>
 export function getBrushDomain(model: Model): readonly [number, number] | null {
   if (!model.enableBrush || model.bins.length === 0) return null;
   const ext = brushExtent(model.brush);
+  // biome-ignore lint: public API query — null is the absence sentinel, callers guard before use
   if (ext === null) return null;
   const domainMin = model.bins[0]?.x0 ?? 0;
   const domainMax = model.bins[model.bins.length - 1]?.x1 ?? 1;

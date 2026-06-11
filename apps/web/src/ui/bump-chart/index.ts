@@ -71,7 +71,7 @@ export function view<M>(config: {
   const { model, toParentMessage, ariaLabel = 'Bump chart' } = config;
   const {
     dims: { width: W, height: H },
-    margins: { top: MT, right: MR, left: ML },
+    margins: { top: MT, left: ML },
     pw: PW,
     ph: PH,
   } = model.layout;

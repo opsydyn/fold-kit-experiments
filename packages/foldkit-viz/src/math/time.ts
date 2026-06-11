@@ -422,7 +422,7 @@ export function timeFormat(specifier: string): (date: Date) => string {
           result += pad3(date.getMilliseconds());
           break;
         case 'f':
-          result += pad3(date.getMilliseconds()) + '000';
+          result += `${pad3(date.getMilliseconds())}000`;
           break;
         case 'p':
           result += date.getHours() < 12 ? 'AM' : 'PM';

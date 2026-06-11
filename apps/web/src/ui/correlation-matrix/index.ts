@@ -1,5 +1,4 @@
 import { interpolateLab } from '@opsydyn/foldkit-viz/math/color';
-import { scaleSequential } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';

@@ -13,7 +13,8 @@
       "**/*.mjs",
       "**/*.json",
       "!!**/dist",
-      "!!**/artifacts"
+      "!!**/artifacts",
+      "!!**/docs"
     ]
   },
   "formatter": {
@@ -23,9 +24,6 @@
     "lineWidth": 100
   },
   "plugins": [
-    "./node_modules/@catenarycloud/linteffect/rules/no-if-statement.grit",
-    "./node_modules/@catenarycloud/linteffect/rules/no-switch-statement.grit",
-    "./node_modules/@catenarycloud/linteffect/rules/no-ternary.grit",
     "./node_modules/@catenarycloud/linteffect/rules/no-return-null.grit",
     "./node_modules/@catenarycloud/linteffect/rules/no-pipe-ladder.grit",
     "./node_modules/@catenarycloud/linteffect/rules/no-flatmap-ladder.grit",

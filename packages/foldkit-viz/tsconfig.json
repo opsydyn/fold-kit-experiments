@@ -13,7 +13,8 @@
     "noUncheckedIndexedAccess": true,
     "rootDir": ".",
     "outDir": "dist",
-    "types": ["node", "bun-types"]
+    "types": ["node", "bun-types"],
+    "plugins": [{ "name": "@effect/language-service" }]
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist", "node_modules"]

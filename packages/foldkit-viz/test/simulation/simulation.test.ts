@@ -3,7 +3,11 @@ import { createSimulation } from '../../src/simulation/simulation';
 import type { SimNode } from '../../src/simulation/types';
 
 const node = (x: number, y: number, index = 0): SimNode => ({
-  x, y, vx: 0, vy: 0, index,
+  x,
+  y,
+  vx: 0,
+  vy: 0,
+  index,
 });
 
 describe('simulation — alpha', () => {
@@ -61,7 +65,10 @@ describe('simulation — forces', () => {
     const n = node(0, 0);
     const sim = createSimulation([n]);
     const pushForce = Object.assign(
-      (alpha: number) => { const first = sim.nodes[0]; if (first) first.vx += 1 * alpha; },
+      (alpha: number) => {
+        const first = sim.nodes[0];
+        if (first) first.vx += 1 * alpha;
+      },
       { initialize: () => {} },
     );
     sim.addForce('push', pushForce);

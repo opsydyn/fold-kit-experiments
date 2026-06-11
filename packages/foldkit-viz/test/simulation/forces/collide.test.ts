@@ -4,7 +4,11 @@ import { collideForce } from '../../../src/simulation/forces/collide';
 import type { SimNode } from '../../../src/simulation/types';
 
 const node = (x: number, y: number, index = 0): SimNode => ({
-  x, y, vx: 0, vy: 0, index,
+  x,
+  y,
+  vx: 0,
+  vy: 0,
+  index,
 });
 
 describe('collideForce', () => {

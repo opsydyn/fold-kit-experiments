@@ -170,108 +170,112 @@ export const view = <M>(config: {
 
   return withAccessibleTable(
     h,
-    withAriaLive(h, svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
-    h.g(
-      [h.Transform(`translate(${ML},${MT})`)],
-      [
-        yGridlines(h, yTicks, (v) => yScale(v), PW),
-
-        ...(areaPath
-          ? [h.path([h.D(areaPath), h.Fill(`${cfg.color}22`), h.Stroke('none')], [])]
-          : []),
-
-        ...(linePath
-          ? [
-              h.path(
-                [
-                  h.D(linePath),
-                  h.Fill('none'),
-                  h.Stroke(cfg.color),
-                  h.StrokeWidth('2'),
-                  h.Style({ 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }),
-                ],
-                [],
-              ),
-            ]
-          : []),
-
-        // Active crosshair + dot
-        ...(Option.isSome(activeIndex)
-          ? (() => {
-              const i = activeIndex.value;
-              const pt = coords[i];
-              const cx = pt?.[0] ?? 0;
-              const cy = pt?.[1] ?? 0;
-              const p = points[i];
-              return [
-                h.line(
-                  [
-                    h.X1(String(cx)),
-                    h.Y1(String(cy)),
-                    h.X2(String(cx)),
-                    h.Y2(String(PH)),
-                    h.Stroke(cfg.color),
-                    h.StrokeWidth('1'),
-                    h.Style({ 'stroke-dasharray': '3,3', opacity: '0.5' }),
-                  ],
-                  [],
-                ),
-                h.circle(
-                  [
-                    h.Cx(String(cx)),
-                    h.Cy(String(cy)),
-                    h.R('5'),
-                    h.Fill('var(--card-bg, #12121f)'),
-                    h.Stroke(cfg.activeColor),
-                    h.StrokeWidth('2'),
-                  ],
-                  [],
-                ),
-                renderTooltip
-                  ? renderTooltip(p, cx, cy)
-                  : valueTooltip(h, cx, cy, String(p?.value ?? ''), {
-                      color: cfg.activeColor,
-                      offsetY: 10,
-                    }),
-              ];
-            })()
-          : []),
-
-        // Cursor-tracking overlay — single hit rect, nearestIndex finds the active point
-        h.rect(
+    withAriaLive(
+      h,
+      svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
+        h.g(
+          [h.Transform(`translate(${ML},${MT})`)],
           [
-            h.X('0'),
-            h.Y('0'),
-            h.Width(String(PW)),
-            h.Height(String(PH)),
-            h.Fill('transparent'),
-            h.Style({ cursor: 'crosshair' }),
-            h.OnMount(Mount.mapMessage(CaptureChartBounds(), toParentMessage)),
-            h.OnPointerMove((screenX, _screenY, _pointerType) => {
-              if (Option.isNone(model.svgBounds)) return Option.none();
-              const { screenLeft, renderedPW: rPW } = model.svgBounds.value;
-              const plotX = (screenX - screenLeft) * (PW / rPW);
-              const xCoords = coords.map((c) => c[0]);
-              const idx = nearestIndex(xCoords, plotX);
-              return idx >= 0
-                ? Option.some(toParentMessage(HoveredPoint({ index: idx })))
-                : Option.none();
-            }),
-            h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredPoint({})))),
-          ],
-          [],
-        ),
+            yGridlines(h, yTicks, (v) => yScale(v), PW),
 
-        xLinearAxis(
-          h,
-          points.map((p) => p.label),
-          (i) => xScale(i),
-          PH,
-          PW,
+            ...(areaPath
+              ? [h.path([h.D(areaPath), h.Fill(`${cfg.color}22`), h.Stroke('none')], [])]
+              : []),
+
+            ...(linePath
+              ? [
+                  h.path(
+                    [
+                      h.D(linePath),
+                      h.Fill('none'),
+                      h.Stroke(cfg.color),
+                      h.StrokeWidth('2'),
+                      h.Style({ 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }),
+                    ],
+                    [],
+                  ),
+                ]
+              : []),
+
+            // Active crosshair + dot
+            ...(Option.isSome(activeIndex)
+              ? (() => {
+                  const i = activeIndex.value;
+                  const pt = coords[i];
+                  const cx = pt?.[0] ?? 0;
+                  const cy = pt?.[1] ?? 0;
+                  const p = points[i];
+                  return [
+                    h.line(
+                      [
+                        h.X1(String(cx)),
+                        h.Y1(String(cy)),
+                        h.X2(String(cx)),
+                        h.Y2(String(PH)),
+                        h.Stroke(cfg.color),
+                        h.StrokeWidth('1'),
+                        h.Style({ 'stroke-dasharray': '3,3', opacity: '0.5' }),
+                      ],
+                      [],
+                    ),
+                    h.circle(
+                      [
+                        h.Cx(String(cx)),
+                        h.Cy(String(cy)),
+                        h.R('5'),
+                        h.Fill('var(--card-bg, #12121f)'),
+                        h.Stroke(cfg.activeColor),
+                        h.StrokeWidth('2'),
+                      ],
+                      [],
+                    ),
+                    renderTooltip
+                      ? renderTooltip(p, cx, cy)
+                      : valueTooltip(h, cx, cy, String(p?.value ?? ''), {
+                          color: cfg.activeColor,
+                          offsetY: 10,
+                        }),
+                  ];
+                })()
+              : []),
+
+            // Cursor-tracking overlay — single hit rect, nearestIndex finds the active point
+            h.rect(
+              [
+                h.X('0'),
+                h.Y('0'),
+                h.Width(String(PW)),
+                h.Height(String(PH)),
+                h.Fill('transparent'),
+                h.Style({ cursor: 'crosshair' }),
+                h.OnMount(Mount.mapMessage(CaptureChartBounds(), toParentMessage)),
+                h.OnPointerMove((screenX, _screenY, _pointerType) => {
+                  if (Option.isNone(model.svgBounds)) return Option.none();
+                  const { screenLeft, renderedPW: rPW } = model.svgBounds.value;
+                  const plotX = (screenX - screenLeft) * (PW / rPW);
+                  const xCoords = coords.map((c) => c[0]);
+                  const idx = nearestIndex(xCoords, plotX);
+                  return idx >= 0
+                    ? Option.some(toParentMessage(HoveredPoint({ index: idx })))
+                    : Option.none();
+                }),
+                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredPoint({})))),
+              ],
+              [],
+            ),
+
+            xLinearAxis(
+              h,
+              points.map((p) => p.label),
+              (i) => xScale(i),
+              PH,
+              PW,
+            ),
+          ],
         ),
-      ],
+      ]),
+      liveText,
     ),
-  ]), liveText),
     ariaLabel,
     ['Label', 'Value'],
     points.map((p) => [p.label, String(p.value)]),

@@ -3,7 +3,11 @@ import { centerForce } from '../../../src/simulation/forces/center';
 import type { SimNode } from '../../../src/simulation/types';
 
 const node = (x: number, y: number, index = 0): SimNode => ({
-  x, y, vx: 0, vy: 0, index,
+  x,
+  y,
+  vx: 0,
+  vy: 0,
+  index,
 });
 
 describe('centerForce', () => {

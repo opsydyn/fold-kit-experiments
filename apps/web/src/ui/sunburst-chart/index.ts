@@ -296,7 +296,12 @@ export const view = <M>(config: {
         }),
 
         h.path(
-          [h.D(layout.centerPath), h.Fill('var(--card-bg, #12121f)'), h.Stroke('var(--card-border, #1e1e33)'), h.StrokeWidth('1')],
+          [
+            h.D(layout.centerPath),
+            h.Fill('var(--card-bg, #12121f)'),
+            h.Stroke('var(--card-border, #1e1e33)'),
+            h.StrokeWidth('1'),
+          ],
           [],
         ),
 

@@ -273,7 +273,10 @@ export function view<M>(config: {
                       'dominant-baseline': 'middle',
                       'font-size': '0.58rem',
                       'font-weight': curve === active ? '600' : '400',
-                      fill: active !== null && curve !== active ? 'var(--chart-label-muted, #555)' : 'var(--chart-label, #888)',
+                      fill:
+                        active !== null && curve !== active
+                          ? 'var(--chart-label-muted, #555)'
+                          : 'var(--chart-label, #888)',
                     }),
                   ],
                   [curve],

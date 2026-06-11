@@ -1,18 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import * as AnimatedBarApp from '../apps/animated-bar/main';
-import * as HistogramBrushApp from '../apps/histogram-brush/main';
-import * as LinkedChartsApp from '../apps/linked-charts/main';
-import * as ZoomableLineApp from '../apps/zoomable-line/main';
-import * as PhyllotaxisApp from '../apps/phyllotaxis/main';
-import * as CandlestickApp from '../apps/candlestick/main';
-import * as WaterfallApp from '../apps/waterfall/main';
 import * as BulletApp from '../apps/bullet/main';
 import * as BumpApp from '../apps/bump/main';
+import * as CandlestickApp from '../apps/candlestick/main';
 import * as CorrelationMatrixApp from '../apps/correlation-matrix/main';
 import * as DivergingStackedBarApp from '../apps/diverging-stacked-bar/main';
-import * as WindRoseApp from '../apps/wind-rose/main';
-import * as StreamgraphApp from '../apps/streamgraph/main';
+import * as HistogramBrushApp from '../apps/histogram-brush/main';
+import * as LinkedChartsApp from '../apps/linked-charts/main';
+import * as PhyllotaxisApp from '../apps/phyllotaxis/main';
 import * as RadarApp from '../apps/radar/main';
+import * as StreamgraphApp from '../apps/streamgraph/main';
+import * as WaterfallApp from '../apps/waterfall/main';
+import * as WindRoseApp from '../apps/wind-rose/main';
+import * as ZoomableLineApp from '../apps/zoomable-line/main';
 import { mountFoldkit } from './mount';
 
 export default {
@@ -112,7 +112,11 @@ export const CorrelationMatrix: StoryObj = {
   name: 'Correlation matrix',
   render: () => mountFoldkit(CorrelationMatrixApp),
   parameters: {
-    docs: { description: { story: 'Tech stock return correlations — scaleSequential Lab colour encoding.' } },
+    docs: {
+      description: {
+        story: 'Tech stock return correlations — scaleSequential Lab colour encoding.',
+      },
+    },
   },
 };
 
@@ -120,7 +124,9 @@ export const DivergingStackedBar: StoryObj = {
   name: 'Diverging stacked bar',
   render: () => mountFoldkit(DivergingStackedBarApp),
   parameters: {
-    docs: { description: { story: 'Likert survey responses — cumsum stacking, net score on hover.' } },
+    docs: {
+      description: { story: 'Likert survey responses — cumsum stacking, net score on hover.' },
+    },
   },
 };
 
@@ -128,7 +134,9 @@ export const WindRose: StoryObj = {
   name: 'Wind rose',
   render: () => mountFoldkit(WindRoseApp),
   parameters: {
-    docs: { description: { story: 'Wind frequency by direction — polar wedge segments with gap.' } },
+    docs: {
+      description: { story: 'Wind frequency by direction — polar wedge segments with gap.' },
+    },
   },
 };
 
@@ -136,7 +144,9 @@ export const Streamgraph: StoryObj = {
   name: 'Streamgraph',
   render: () => mountFoldkit(StreamgraphApp),
   parameters: {
-    docs: { description: { story: 'JS framework downloads — flowing stacked areas around a baseline.' } },
+    docs: {
+      description: { story: 'JS framework downloads — flowing stacked areas around a baseline.' },
+    },
   },
 };
 

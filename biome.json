@@ -22,6 +22,7 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
+  "extends": ["@catenarycloud/linteffect/core"],
   "linter": {
     "enabled": true,
     "rules": {

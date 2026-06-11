@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/html';
+import * as ArcDiagramApp from '../apps/arc-diagram/main';
 import * as ChordApp from '../apps/chord/main';
-import * as SankeyApp from '../apps/sankey/main';
 import * as ForceGraphApp from '../apps/force-graph/main';
 import * as PackedCirclesApp from '../apps/packed-circles/main';
-import * as TreemapApp from '../apps/treemap/main';
-import * as TidyTreeApp from '../apps/tidy-tree/main';
 import * as RadialTreeApp from '../apps/radial-tree/main';
+import * as SankeyApp from '../apps/sankey/main';
 import * as SunburstApp from '../apps/sunburst/main';
-import * as ArcDiagramApp from '../apps/arc-diagram/main';
+import * as TidyTreeApp from '../apps/tidy-tree/main';
+import * as TreemapApp from '../apps/treemap/main';
 import { mountFoldkit } from './mount';
 
 export default {
@@ -29,7 +29,9 @@ export const Sankey: StoryObj = {
 export const ForceGraph: StoryObj = {
   name: 'Force graph',
   render: () => mountFoldkit(ForceGraphApp),
-  parameters: { docs: { description: { story: 'JS ecosystem dependencies — N-body force simulation.' } } },
+  parameters: {
+    docs: { description: { story: 'JS ecosystem dependencies — N-body force simulation.' } },
+  },
 };
 
 export const PackedCircles: StoryObj = {
@@ -47,23 +49,31 @@ export const Treemap: StoryObj = {
 export const TidyTree: StoryObj = {
   name: 'Tidy tree',
   render: () => mountFoldkit(TidyTreeApp),
-  parameters: { docs: { description: { story: 'Frontend tech stack — Reingold-Tilford layout.' } } },
+  parameters: {
+    docs: { description: { story: 'Frontend tech stack — Reingold-Tilford layout.' } },
+  },
 };
 
 export const RadialTree: StoryObj = {
   name: 'Radial tree',
   render: () => mountFoldkit(RadialTreeApp),
-  parameters: { docs: { description: { story: 'Indo-European language family — radial dendrogram.' } } },
+  parameters: {
+    docs: { description: { story: 'Indo-European language family — radial dendrogram.' } },
+  },
 };
 
 export const Sunburst: StoryObj = {
   name: 'Sunburst',
   render: () => mountFoldkit(SunburstApp),
-  parameters: { docs: { description: { story: 'Tech market cap by sector — multi-ring sunburst.' } } },
+  parameters: {
+    docs: { description: { story: 'Tech market cap by sector — multi-ring sunburst.' } },
+  },
 };
 
 export const ArcDiagram: StoryObj = {
   name: 'Arc diagram',
   render: () => mountFoldkit(ArcDiagramApp),
-  parameters: { docs: { description: { story: 'JS tooling dependency network — arcs above a linear axis.' } } },
+  parameters: {
+    docs: { description: { story: 'JS tooling dependency network — arcs above a linear axis.' } },
+  },
 };

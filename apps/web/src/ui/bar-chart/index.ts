@@ -171,90 +171,96 @@ export const view = <M>(config: {
 
   return withAccessibleTable(
     h,
-    withAriaLive(h, svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
-    h.g(
-      [h.Transform(`translate(${ML},${MT})`)],
-      [
-        yGridlines(h, ticks, (v) => yScale(v), PW),
-
-        // Bars (visual only — pointer events handled by overlay)
+    withAriaLive(
+      h,
+      svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
         h.g(
-          [],
-          bars.map((bar, i) => {
-            const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
-            const bx = r3(xScale.position(bar.label));
-            const bw = r3(xScale.bandwidth);
-            const by = r3(yScale(bar.value));
-            const bh = r3(PH - yScale(bar.value));
-            return h.g(
-              [h.Style({ cursor: 'pointer' }), h.AriaLabel(`${bar.label}: ${bar.value}`)],
-              [
-                h.rect(
+          [h.Transform(`translate(${ML},${MT})`)],
+          [
+            yGridlines(h, ticks, (v) => yScale(v), PW),
+
+            // Bars (visual only — pointer events handled by overlay)
+            h.g(
+              [],
+              bars.map((bar, i) => {
+                const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
+                const bx = r3(xScale.position(bar.label));
+                const bw = r3(xScale.bandwidth);
+                const by = r3(yScale(bar.value));
+                const bh = r3(PH - yScale(bar.value));
+                return h.g(
+                  [h.Style({ cursor: 'pointer' }), h.AriaLabel(`${bar.label}: ${bar.value}`)],
                   [
-                    h.X(String(bx)),
-                    h.Y(String(by)),
-                    h.Width(String(bw)),
-                    h.Height(String(bh)),
-                    h.Fill(isActive ? cfg.activeColor : cfg.color),
-                    h.Style({ transition: 'fill 120ms' }),
+                    h.rect(
+                      [
+                        h.X(String(bx)),
+                        h.Y(String(by)),
+                        h.Width(String(bw)),
+                        h.Height(String(bh)),
+                        h.Fill(isActive ? cfg.activeColor : cfg.color),
+                        h.Style({ transition: 'fill 120ms' }),
+                      ],
+                      [],
+                    ),
                   ],
-                  [],
+                );
+              }),
+            ),
+
+            // Active bar tooltip
+            ...(Option.isSome(activeIndex) && bars[activeIndex.value] !== undefined
+              ? (() => {
+                  const i = activeIndex.value;
+                  const bar = bars[i];
+                  if (bar === undefined) return [];
+                  const bx = r3(xScale.position(bar.label));
+                  const bw = r3(xScale.bandwidth);
+                  const by = r3(yScale(bar.value));
+                  return [
+                    renderTooltip
+                      ? renderTooltip(bar, bx + bw / 2, by)
+                      : valueTooltip(h, bx + bw / 2, by, String(bar.value), {
+                          color: cfg.activeColor,
+                        }),
+                  ];
+                })()
+              : []),
+
+            // Cursor-tracking overlay — single hit rect, nearestIndex finds the active bar
+            h.rect(
+              [
+                h.X('0'),
+                h.Y('0'),
+                h.Width(String(PW)),
+                h.Height(String(PH)),
+                h.Fill('transparent'),
+                h.Style({ cursor: 'pointer' }),
+                h.OnMount(Mount.mapMessage(CaptureChartBounds(), toParentMessage)),
+                h.OnPointerMove((screenX, _screenY, _pointerType) => {
+                  if (Option.isNone(model.svgBounds)) return Option.none();
+                  const { screenLeft, renderedPW: rPW } = model.svgBounds.value;
+                  const plotX = (screenX - screenLeft) * (PW / rPW);
+                  const idx = nearestIndex(barCenters, plotX);
+                  return idx >= 0
+                    ? Option.some(toParentMessage(HoveredBar({ index: idx })))
+                    : Option.none();
+                }),
+                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredBar({})))),
+                h.OnClick(
+                  Option.isSome(activeIndex)
+                    ? toParentMessage(ClickedBar({ index: activeIndex.value }))
+                    : toParentMessage(BlurredBar({})),
                 ),
               ],
-            );
-          }),
-        ),
-
-        // Active bar tooltip
-        ...(Option.isSome(activeIndex) && bars[activeIndex.value] !== undefined
-          ? (() => {
-              const i = activeIndex.value;
-              const bar = bars[i];
-              if (bar === undefined) return [];
-              const bx = r3(xScale.position(bar.label));
-              const bw = r3(xScale.bandwidth);
-              const by = r3(yScale(bar.value));
-              return [
-                renderTooltip
-                  ? renderTooltip(bar, bx + bw / 2, by)
-                  : valueTooltip(h, bx + bw / 2, by, String(bar.value), { color: cfg.activeColor }),
-              ];
-            })()
-          : []),
-
-        // Cursor-tracking overlay — single hit rect, nearestIndex finds the active bar
-        h.rect(
-          [
-            h.X('0'),
-            h.Y('0'),
-            h.Width(String(PW)),
-            h.Height(String(PH)),
-            h.Fill('transparent'),
-            h.Style({ cursor: 'pointer' }),
-            h.OnMount(Mount.mapMessage(CaptureChartBounds(), toParentMessage)),
-            h.OnPointerMove((screenX, _screenY, _pointerType) => {
-              if (Option.isNone(model.svgBounds)) return Option.none();
-              const { screenLeft, renderedPW: rPW } = model.svgBounds.value;
-              const plotX = (screenX - screenLeft) * (PW / rPW);
-              const idx = nearestIndex(barCenters, plotX);
-              return idx >= 0
-                ? Option.some(toParentMessage(HoveredBar({ index: idx })))
-                : Option.none();
-            }),
-            h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredBar({})))),
-            h.OnClick(
-              Option.isSome(activeIndex)
-                ? toParentMessage(ClickedBar({ index: activeIndex.value }))
-                : toParentMessage(BlurredBar({})),
+              [],
             ),
-          ],
-          [],
-        ),
 
-        xCategoryAxis(h, xDomain, (l) => xScale.position(l), xScale.bandwidth, PH, PW),
-      ],
+            xCategoryAxis(h, xDomain, (l) => xScale.position(l), xScale.bandwidth, PH, PW),
+          ],
+        ),
+      ]),
+      liveText,
     ),
-  ]), liveText),
     ariaLabel,
     ['Label', 'Value'],
     bars.map((b) => [b.label, String(b.value)]),

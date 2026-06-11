@@ -218,7 +218,9 @@ export function view<M>(config: {
                     h.Style({
                       'font-size': '0.6rem',
                       'font-weight': isActive ? '600' : '400',
-                      fill: isInactive ? 'var(--chart-label-muted, #555)' : 'var(--chart-label, #888)',
+                      fill: isInactive
+                        ? 'var(--chart-label-muted, #555)'
+                        : 'var(--chart-label, #888)',
                       transition: 'fill 80ms',
                     }),
                   ],

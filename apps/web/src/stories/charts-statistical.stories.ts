@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import * as BoxPlotApp from '../apps/box-plot/main';
+import * as CalendarHeatmapApp from '../apps/calendar-heatmap/main';
+import * as DensityContourApp from '../apps/density-contour/main';
+import * as HeatmapApp from '../apps/heatmap/main';
 import * as HistogramApp from '../apps/histogram/main';
 import * as ViolinApp from '../apps/violin/main';
-import * as HeatmapApp from '../apps/heatmap/main';
-import * as DensityContourApp from '../apps/density-contour/main';
-import * as CalendarHeatmapApp from '../apps/calendar-heatmap/main';
 import { mountFoldkit } from './mount';
 
 export default {
@@ -14,13 +14,17 @@ export default {
 export const BoxPlot: StoryObj = {
   name: 'Box plot',
   render: () => mountFoldkit(BoxPlotApp),
-  parameters: { docs: { description: { story: 'Salary distribution by level — IQR, whiskers, outliers.' } } },
+  parameters: {
+    docs: { description: { story: 'Salary distribution by level — IQR, whiskers, outliers.' } },
+  },
 };
 
 export const Histogram: StoryObj = {
   name: 'Histogram',
   render: () => mountFoldkit(HistogramApp),
-  parameters: { docs: { description: { story: 'Salary distribution — bin-based frequency chart.' } } },
+  parameters: {
+    docs: { description: { story: 'Salary distribution — bin-based frequency chart.' } },
+  },
 };
 
 export const Violin: StoryObj = {
@@ -38,7 +42,9 @@ export const Heatmap: StoryObj = {
 export const DensityContour: StoryObj = {
   name: 'Density contour',
   render: () => mountFoldkit(DensityContourApp),
-  parameters: { docs: { description: { story: 'Bivariate density using marching-squares + KDE.' } } },
+  parameters: {
+    docs: { description: { story: 'Bivariate density using marching-squares + KDE.' } },
+  },
 };
 
 export const CalendarHeatmap: StoryObj = {

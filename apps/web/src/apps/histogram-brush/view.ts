@@ -47,9 +47,7 @@ export const view = (model: Model): Document => {
     ? `${Math.round(brushDomain[0])}ms – ${Math.round(brushDomain[1])}ms`
     : 'All requests';
 
-  const countLabel = hasBrush
-    ? `${filteredCount} of ${totalCount} points`
-    : `${totalCount} points`;
+  const countLabel = hasBrush ? `${filteredCount} of ${totalCount} points` : `${totalCount} points`;
 
   const clearButton = h.button(
     [

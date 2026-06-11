@@ -188,141 +188,149 @@ export const view = <M>(config: {
 
   return withAccessibleTable(
     h,
-    withAriaLive(h, svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
-    h.g(
-      [h.Transform(`translate(${ML},${MT})`)],
-      [
-        yGridlines(h, yTicks, (v) => yScale(v), PW),
-        xLinearGridlines(h, xTicks, (v) => xScale(v), PH),
-
-        // Axis lines
-        h.line(
-          [
-            h.X1('0'),
-            h.Y1(String(PH)),
-            h.X2(String(PW)),
-            h.Y2(String(PH)),
-            h.Stroke('var(--chart-axis, #3a3a3a)'),
-            h.StrokeWidth('1'),
-          ],
-          [],
-        ),
-        h.line(
-          [
-            h.X1('0'),
-            h.Y1('0'),
-            h.X2('0'),
-            h.Y2(String(PH)),
-            h.Stroke('var(--chart-axis, #3a3a3a)'),
-            h.StrokeWidth('1'),
-          ],
-          [],
-        ),
-
-        // Axis labels
-        h.text(
-          [
-            h.X(String(PW / 2)),
-            h.Y(String(PH + 38)),
-            h.Style({
-              'text-anchor': 'middle',
-              'dominant-baseline': 'auto',
-              'font-size': '0.7rem',
-              'font-weight': '600',
-              fill: '#aaa',
-              'letter-spacing': '0.05em',
-              'text-transform': 'uppercase',
-            }),
-          ],
-          [cfg.xLabel],
-        ),
-        h.text(
-          [
-            h.Transform(`translate(${-ML + 12},${PH / 2}) rotate(-90)`),
-            h.Style({
-              'text-anchor': 'middle',
-              'dominant-baseline': 'auto',
-              'font-size': '0.7rem',
-              'font-weight': '600',
-              fill: '#aaa',
-              'letter-spacing': '0.05em',
-              'text-transform': 'uppercase',
-            }),
-          ],
-          [cfg.yLabel],
-        ),
-
-        // Data points (visual only — pointer events handled by overlay)
+    withAriaLive(
+      h,
+      svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, [
         h.g(
-          [],
-          points.map((p, i) => {
-            const [cx, cy] = coords[i] ?? [0, 0];
-            const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
-            const radius = isActive ? cfg.radius + 3 : cfg.radius;
-            return h.circle(
+          [h.Transform(`translate(${ML},${MT})`)],
+          [
+            yGridlines(h, yTicks, (v) => yScale(v), PW),
+            xLinearGridlines(h, xTicks, (v) => xScale(v), PH),
+
+            // Axis lines
+            h.line(
               [
-                h.Cx(String(cx)),
-                h.Cy(String(cy)),
-                h.R(String(radius)),
-                h.Fill(isActive ? cfg.activeColor : 'var(--card-bg, #12121f)'),
-                h.Stroke(isActive ? cfg.activeColor : cfg.color),
-                h.StrokeWidth('2'),
-                h.Style({ transition: 'r 120ms, fill 120ms' }),
-                h.AriaLabel(`${p.label}: (${p.x}, ${p.y})`),
+                h.X1('0'),
+                h.Y1(String(PH)),
+                h.X2(String(PW)),
+                h.Y2(String(PH)),
+                h.Stroke('var(--chart-axis, #3a3a3a)'),
+                h.StrokeWidth('1'),
               ],
               [],
-            );
-          }),
-        ),
+            ),
+            h.line(
+              [
+                h.X1('0'),
+                h.Y1('0'),
+                h.X2('0'),
+                h.Y2(String(PH)),
+                h.Stroke('var(--chart-axis, #3a3a3a)'),
+                h.StrokeWidth('1'),
+              ],
+              [],
+            ),
 
-        // Active point tooltip
-        ...(Option.isSome(activeIndex) && points[activeIndex.value] !== undefined
-          ? (() => {
-              const i = activeIndex.value;
-              const p = points[i];
-              if (p === undefined) return [];
-              const [cx, cy] = coords[i] ?? [0, 0];
-              const radius = cfg.radius + 3;
-              return [
-                renderTooltip
-                  ? renderTooltip(p, cx, cy)
-                  : valueTooltip(h, cx, cy, `${p.label} (${p.x}, ${p.y})`, {
-                      color: cfg.activeColor,
-                      offsetY: radius + 5,
-                      fontSize: '0.72rem',
-                    }),
-              ];
-            })()
-          : []),
+            // Axis labels
+            h.text(
+              [
+                h.X(String(PW / 2)),
+                h.Y(String(PH + 38)),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'auto',
+                  'font-size': '0.7rem',
+                  'font-weight': '600',
+                  fill: '#aaa',
+                  'letter-spacing': '0.05em',
+                  'text-transform': 'uppercase',
+                }),
+              ],
+              [cfg.xLabel],
+            ),
+            h.text(
+              [
+                h.Transform(`translate(${-ML + 12},${PH / 2}) rotate(-90)`),
+                h.Style({
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'auto',
+                  'font-size': '0.7rem',
+                  'font-weight': '600',
+                  fill: '#aaa',
+                  'letter-spacing': '0.05em',
+                  'text-transform': 'uppercase',
+                }),
+              ],
+              [cfg.yLabel],
+            ),
 
-        // Cursor-tracking overlay — nearestPoint finds closest datum in 2D
-        h.rect(
-          [
-            h.X('0'),
-            h.Y('0'),
-            h.Width(String(PW)),
-            h.Height(String(PH)),
-            h.Fill('transparent'),
-            h.Style({ cursor: 'pointer' }),
-            h.OnMount(Mount.mapMessage(CaptureChartBounds(), toParentMessage)),
-            h.OnPointerMove((screenX, screenY, _pointerType) => {
-              if (Option.isNone(model.svgBounds)) return Option.none();
-              const { screenLeft, screenTop, renderedPW: rPW, renderedPH: rPH } =
-                model.svgBounds.value;
-              const plotX = (screenX - screenLeft) * (PW / rPW);
-              const plotY = (screenY - screenTop) * (PH / rPH);
-              const idx = nearestPoint(coords, plotX, plotY);
-              return idx >= 0
-                ? Option.some(toParentMessage(HoveredPoint({ index: idx })))
-                : Option.none();
-            }),
-            h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredPoint({})))),
+            // Data points (visual only — pointer events handled by overlay)
+            h.g(
+              [],
+              points.map((p, i) => {
+                const [cx, cy] = coords[i] ?? [0, 0];
+                const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
+                const radius = isActive ? cfg.radius + 3 : cfg.radius;
+                return h.circle(
+                  [
+                    h.Cx(String(cx)),
+                    h.Cy(String(cy)),
+                    h.R(String(radius)),
+                    h.Fill(isActive ? cfg.activeColor : 'var(--card-bg, #12121f)'),
+                    h.Stroke(isActive ? cfg.activeColor : cfg.color),
+                    h.StrokeWidth('2'),
+                    h.Style({ transition: 'r 120ms, fill 120ms' }),
+                    h.AriaLabel(`${p.label}: (${p.x}, ${p.y})`),
+                  ],
+                  [],
+                );
+              }),
+            ),
+
+            // Active point tooltip
+            ...(Option.isSome(activeIndex) && points[activeIndex.value] !== undefined
+              ? (() => {
+                  const i = activeIndex.value;
+                  const p = points[i];
+                  if (p === undefined) return [];
+                  const [cx, cy] = coords[i] ?? [0, 0];
+                  const radius = cfg.radius + 3;
+                  return [
+                    renderTooltip
+                      ? renderTooltip(p, cx, cy)
+                      : valueTooltip(h, cx, cy, `${p.label} (${p.x}, ${p.y})`, {
+                          color: cfg.activeColor,
+                          offsetY: radius + 5,
+                          fontSize: '0.72rem',
+                        }),
+                  ];
+                })()
+              : []),
+
+            // Cursor-tracking overlay — nearestPoint finds closest datum in 2D
+            h.rect(
+              [
+                h.X('0'),
+                h.Y('0'),
+                h.Width(String(PW)),
+                h.Height(String(PH)),
+                h.Fill('transparent'),
+                h.Style({ cursor: 'pointer' }),
+                h.OnMount(Mount.mapMessage(CaptureChartBounds(), toParentMessage)),
+                h.OnPointerMove((screenX, screenY, _pointerType) => {
+                  if (Option.isNone(model.svgBounds)) return Option.none();
+                  const {
+                    screenLeft,
+                    screenTop,
+                    renderedPW: rPW,
+                    renderedPH: rPH,
+                  } = model.svgBounds.value;
+                  const plotX = (screenX - screenLeft) * (PW / rPW);
+                  const plotY = (screenY - screenTop) * (PH / rPH);
+                  const idx = nearestPoint(coords, plotX, plotY);
+                  return idx >= 0
+                    ? Option.some(toParentMessage(HoveredPoint({ index: idx })))
+                    : Option.none();
+                }),
+                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredPoint({})))),
+              ],
+              [],
+            ),
           ],
-          [],
         ),
-      ],
+      ]),
+      liveText,
     ),
-  ]), liveText),
     ariaLabel,
     ['Label', cfg.xLabel, cfg.yLabel],
     points.map((p) => [p.label, String(p.x), String(p.y)]),

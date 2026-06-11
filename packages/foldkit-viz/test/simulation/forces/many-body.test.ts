@@ -4,7 +4,11 @@ import { manyBodyForce } from '../../../src/simulation/forces/many-body';
 import type { SimNode } from '../../../src/simulation/types';
 
 const node = (x: number, y: number, index = 0): SimNode => ({
-  x, y, vx: 0, vy: 0, index,
+  x,
+  y,
+  vx: 0,
+  vy: 0,
+  index,
 });
 
 const lcg = () => {

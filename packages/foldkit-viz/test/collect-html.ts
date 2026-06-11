@@ -60,13 +60,17 @@ export function collectAttr(root: unknown, attrName: string): ReadonlyArray<stri
       if (typeof val !== 'string') continue;
       // Match by _tag (e.g. 'Role' for role=, 'AriaLabel' for aria-label=)
       // or by attribute name for h.Attribute('name', val) calls
-      const normalised = typeof tag === 'string'
-        ? tag.toLowerCase().replace(/([A-Z])/g, '-$1').toLowerCase()
-        : '';
+      const normalised =
+        typeof tag === 'string'
+          ? tag
+              .toLowerCase()
+              .replace(/([A-Z])/g, '-$1')
+              .toLowerCase()
+          : '';
       if (
         normalised === attrName ||
         normalised === attrName.replace(/^aria-/, 'aria') ||
-        (a['name'] === attrName) // h.Attribute('name', 'value') pattern
+        a['name'] === attrName // h.Attribute('name', 'value') pattern
       ) {
         found.push(val);
       }
@@ -97,6 +101,8 @@ export function findNodes(
   predicate: (node: unknown) => boolean,
 ): ReadonlyArray<unknown> {
   const found: unknown[] = [];
-  walk(root, (node) => { if (predicate(node)) found.push(node); });
+  walk(root, (node) => {
+    if (predicate(node)) found.push(node);
+  });
   return found;
 }

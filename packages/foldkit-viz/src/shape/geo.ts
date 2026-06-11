@@ -133,14 +133,20 @@ function makeProjection(
       const h = ey1 - ey0;
 
       const k = Math.min(w / dx, h / dy) * REF_SCALE;
-      const newTx = ex0 + (w - k * (bx0 + bx1) / REF_SCALE) / 2;
-      const newTy = ey0 + (h - k * (by0 + by1) / REF_SCALE) / 2;
+      const newTx = ex0 + (w - (k * (bx0 + bx1)) / REF_SCALE) / 2;
+      const newTy = ey0 + (h - (k * (by0 + by1)) / REF_SCALE) / 2;
 
       return makeProjection(raw, k, [newTx, newTy]);
     },
 
     fitSize(size: readonly [number, number], object: GeoObject | GeoSphere): ProjectionObject {
-      return (proj as ProjectionObject).fitExtent([[0, 0], [size[0], size[1]]], object);
+      return (proj as ProjectionObject).fitExtent(
+        [
+          [0, 0],
+          [size[0], size[1]],
+        ],
+        object,
+      );
     },
   });
 
@@ -152,7 +158,9 @@ function makeProjectionFactory(
   defaultScale: number,
   defaultTranslate: readonly [number, number] = [480, 250],
 ) {
-  return (config: { scale?: number; translate?: readonly [number, number] } = {}): ProjectionObject =>
+  return (
+    config: { scale?: number; translate?: readonly [number, number] } = {},
+  ): ProjectionObject =>
     makeProjection(raw, config.scale ?? defaultScale, config.translate ?? defaultTranslate);
 }
 
@@ -176,17 +184,15 @@ export const geoMercator = makeProjectionFactory(
  * functions of latitude. Meridians converge toward the poles correctly.
  * Source: https://github.com/d3/d3-geo/blob/main/src/projection/naturalEarth1.js
  */
-export const geoNaturalEarth1 = makeProjectionFactory(
-  (lambda, phi) => {
-    const phi2 = phi * phi;
-    const phi4 = phi2 * phi2;
-    return [
-      lambda * (0.8707 - 0.131979 * phi2 + phi4 * (-0.013791 + phi4 * (0.003971 * phi2 - 0.001529 * phi4))),
-      phi * (1.007226 + phi2 * (0.015085 + phi4 * (-0.044475 + 0.028874 * phi2 - 0.005916 * phi4))),
-    ] as const;
-  },
-  175.295,
-);
+export const geoNaturalEarth1 = makeProjectionFactory((lambda, phi) => {
+  const phi2 = phi * phi;
+  const phi4 = phi2 * phi2;
+  return [
+    lambda *
+      (0.8707 - 0.131979 * phi2 + phi4 * (-0.013791 + phi4 * (0.003971 * phi2 - 0.001529 * phi4))),
+    phi * (1.007226 + phi2 * (0.015085 + phi4 * (-0.044475 + 0.028874 * phi2 - 0.005916 * phi4))),
+  ] as const;
+}, 175.295);
 
 /** Orthographic — globe perspective projection (centre at 0°,0°) */
 export const geoOrthographic = makeProjectionFactory(
@@ -290,8 +296,7 @@ function collectGeomCoords(
       break;
     case 'MultiPolygon':
       for (const poly of geom.coordinates)
-        for (const ring of poly)
-          for (const c of ring) out.push(proj(c[0], c[1]));
+        for (const ring of poly) for (const c of ring) out.push(proj(c[0], c[1]));
       break;
     case 'GeometryCollection':
       for (const g of geom.geometries) collectGeomCoords(proj, g, out);
@@ -305,14 +310,20 @@ function geoBoundsRaw(proj: Projection, obj: GeoObject | GeoSphere): GeoBBox | n
   collectCoords(proj, obj, pts);
   if (pts.length === 0) return null;
 
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
   for (const [x, y] of pts) {
     if (x < minX) minX = x;
     if (y < minY) minY = y;
     if (x > maxX) maxX = x;
     if (y > maxY) maxY = y;
   }
-  return [[minX, minY], [maxX, maxY]];
+  return [
+    [minX, minY],
+    [maxX, maxY],
+  ];
 }
 
 /**
@@ -327,12 +338,19 @@ export function geoBounds(proj: Projection, obj: GeoObject | GeoSphere): GeoBBox
  * Centroid of a GeoObject in projected pixel space.
  * Uses arithmetic mean of all coordinate positions.
  */
-export function geoCentroid(proj: Projection, obj: GeoObject | GeoSphere): readonly [number, number] | null {
+export function geoCentroid(
+  proj: Projection,
+  obj: GeoObject | GeoSphere,
+): readonly [number, number] | null {
   const pts: Array<readonly [number, number]> = [];
   collectCoords(proj, obj, pts);
   if (pts.length === 0) return null;
-  let sx = 0, sy = 0;
-  for (const [x, y] of pts) { sx += x; sy += y; }
+  let sx = 0,
+    sy = 0;
+  for (const [x, y] of pts) {
+    sx += x;
+    sy += y;
+  }
   return [sx / pts.length, sy / pts.length];
 }
 
@@ -375,10 +393,12 @@ function geometryPath(proj: Projection, geom: GeoGeometry): string {
       return `M${x.toFixed(1)},${y.toFixed(1)}`;
     }
     case 'MultiPoint':
-      return geom.coordinates.map((c) => {
-        const [x, y] = proj(c[0], c[1]);
-        return `M${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join('');
+      return geom.coordinates
+        .map((c) => {
+          const [x, y] = proj(c[0], c[1]);
+          return `M${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join('');
     case 'LineString':
       return linePath(proj, geom.coordinates);
     case 'MultiLineString':

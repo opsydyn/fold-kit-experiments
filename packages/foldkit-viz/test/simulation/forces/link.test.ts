@@ -3,7 +3,11 @@ import { linkForce } from '../../../src/simulation/forces/link';
 import type { SimNode } from '../../../src/simulation/types';
 
 const node = (x: number, y: number, index = 0): SimNode => ({
-  x, y, vx: 0, vy: 0, index,
+  x,
+  y,
+  vx: 0,
+  vy: 0,
+  index,
 });
 
 describe('linkForce', () => {
@@ -17,7 +21,7 @@ describe('linkForce', () => {
     force.initialize([a, b], Math.random);
     force(1);
     expect(a.vx).toBeGreaterThan(0); // a pulled right toward b
-    expect(b.vx).toBeLessThan(0);    // b pulled left toward a
+    expect(b.vx).toBeLessThan(0); // b pulled left toward a
   });
 
   it('pushes two nodes apart when they are closer than the target distance', () => {

@@ -28,8 +28,7 @@ export const easeOutCubic: EaseFn = (t) => 1 - (1 - t) ** 3;
 export const easeInCubic: EaseFn = (t) => t * t * t;
 
 /** Ease in-out cubic — smooth start and end */
-export const easeInOutCubic: EaseFn = (t) =>
-  t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+export const easeInOutCubic: EaseFn = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 /** Ease out elastic — overshoots slightly then settles */
 export const easeOutElastic: EaseFn = (t) => {

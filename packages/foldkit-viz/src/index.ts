@@ -118,7 +118,14 @@ export {
 } from './math/tween';
 export type { TransformMatrix } from './math/zoom';
 // math/zoom
-export { constrainScale, identityMatrix, matrixToString, rescaleDomain, scaleAt, translateBy } from './math/zoom';
+export {
+  constrainScale,
+  identityMatrix,
+  matrixToString,
+  rescaleDomain,
+  scaleAt,
+  translateBy,
+} from './math/zoom';
 export type { ArcConfig } from './shape/arc';
 // shape/arc
 export { arc, arcCentroid } from './shape/arc';

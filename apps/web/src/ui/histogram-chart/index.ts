@@ -15,7 +15,16 @@ import { Effect, Match, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import { type Html, html } from 'foldkit/html';
 import { m } from 'foldkit/message';
-import { type Dims, type Layout, type Margins, makeLayout, r3, svgRoot, valueTooltip, yGridlines } from '../shared';
+import {
+  type Dims,
+  type Layout,
+  type Margins,
+  makeLayout,
+  r3,
+  svgRoot,
+  valueTooltip,
+  yGridlines,
+} from '../shared';
 
 // MODEL
 
@@ -141,11 +150,7 @@ function computeMovePlotX(model: Model, screenX: number): number {
   return Option.match(model.brushDragStart, {
     onNone: () => model.brush.extent,
     onSome: ({ anchorClientX, anchorScreenX }) =>
-      computePlotX(
-        model.svgBounds,
-        model.layout.pw,
-        anchorClientX + (screenX - anchorScreenX),
-      ),
+      computePlotX(model.svgBounds, model.layout.pw, anchorClientX + (screenX - anchorScreenX)),
   });
 }
 
@@ -187,7 +192,11 @@ export const update = (model: Model, msg: Message): Return =>
         ];
       },
       ClearedHistogramBrush: () => [
-        { ...model, brush: brushUpdate(model.brush, ClearedBrush()), brushDragStart: Option.none() },
+        {
+          ...model,
+          brush: brushUpdate(model.brush, ClearedBrush()),
+          brushDragStart: Option.none(),
+        },
         [],
       ],
     }),
@@ -280,13 +289,7 @@ export function view<M>(config: {
             const isInBrush =
               ext !== null ? xScale(b.x1) >= ext[0] && xScale(b.x0) <= ext[1] : null;
             const opacity =
-              isInBrush !== null
-                ? isInBrush
-                  ? '1'
-                  : '0.25'
-                : isActive
-                  ? '1'
-                  : '0.75';
+              isInBrush !== null ? (isInBrush ? '1' : '0.25') : isActive ? '1' : '0.75';
 
             return h.g(
               [
@@ -389,9 +392,8 @@ export function view<M>(config: {
                   h.Fill('transparent'),
                   h.Style({ cursor: 'crosshair', 'user-select': 'none' }),
                   h.OnMount(Mount.mapMessage(CaptureSvgBounds(), toParentMessage)),
-                  h.OnPointerDown(
-                    (_pointerType, _button, screenX, _screenY, _ts, clientX) =>
-                      Option.some(toParentMessage(StartedHistogramBrush({ screenX, clientX }))),
+                  h.OnPointerDown((_pointerType, _button, screenX, _screenY, _ts, clientX) =>
+                    Option.some(toParentMessage(StartedHistogramBrush({ screenX, clientX }))),
                   ),
                   h.OnPointerMove((screenX, _screenY, _pointerType) =>
                     model.brush.active

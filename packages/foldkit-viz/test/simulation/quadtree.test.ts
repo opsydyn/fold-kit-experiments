@@ -4,7 +4,11 @@ import { createQuadtree, isInternal, isLeaf } from '../../src/simulation/quadtre
 import type { SimNode } from '../../src/simulation/types';
 
 const node = (x: number, y: number, index = 0): SimNode => ({
-  x, y, vx: 0, vy: 0, index,
+  x,
+  y,
+  vx: 0,
+  vy: 0,
+  index,
 });
 
 // ─── structure ────────────────────────────────────────────────────────────────
@@ -127,7 +131,10 @@ describe('quadtree — bounds', () => {
     fc.assert(
       fc.property(
         fc.array(
-          fc.record({ x: fc.float({ min: -100, max: 100, noNaN: true }), y: fc.float({ min: -100, max: 100, noNaN: true }) }),
+          fc.record({
+            x: fc.float({ min: -100, max: 100, noNaN: true }),
+            y: fc.float({ min: -100, max: 100, noNaN: true }),
+          }),
           { minLength: 1, maxLength: 20 },
         ),
         (pts) => {

@@ -122,11 +122,17 @@ export const update = (model: Model, msg: Message): Return =>
       BlurredFeature: () => [{ ...model, activeId: Option.none() }, []],
       ClickedZoomIn: () => {
         const zoomed = scaleAt(model.matrix, ZOOM_FACTOR, ZOOM_FACTOR, zoomCenter(model));
-        return [{ ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) }, []];
+        return [
+          { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
+          [],
+        ];
       },
       ClickedZoomOut: () => {
         const zoomed = scaleAt(model.matrix, 1 / ZOOM_FACTOR, 1 / ZOOM_FACTOR, zoomCenter(model));
-        return [{ ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) }, []];
+        return [
+          { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
+          [],
+        ];
       },
       ClickedReset: () => [{ ...model, matrix: identityMatrix() }, []],
       PointerDowned: ({ x, y }) => [{ ...model, isDragging: true, dragX: x, dragY: y }, []],
@@ -238,7 +244,9 @@ export function view<M>(config: {
                     h.D(d),
                     h.Fill(color),
                     h.Stroke('var(--chart-grid, #1a1a2e)'),
-                    h.StrokeWidth(isActive ? `${r3(1.5 / matrix.scaleX)}` : `${r3(0.4 / matrix.scaleX)}`),
+                    h.StrokeWidth(
+                      isActive ? `${r3(1.5 / matrix.scaleX)}` : `${r3(0.4 / matrix.scaleX)}`,
+                    ),
                     h.Opacity(isDimmed ? '0.35' : '1'),
                     h.Style({ cursor: datum ? 'pointer' : 'default', transition: 'opacity 120ms' }),
                     h.OnMouseEnter(toParentMessage(HoveredFeature({ id: fid }))),
@@ -300,7 +308,11 @@ export function view<M>(config: {
           [
             // Zoom Out
             h.g(
-              [h.OnClick(toParentMessage(ClickedZoomOut({}))), h.Style(btnStyle), h.AriaLabel('Zoom out')],
+              [
+                h.OnClick(toParentMessage(ClickedZoomOut({}))),
+                h.Style(btnStyle),
+                h.AriaLabel('Zoom out'),
+              ],
               [
                 h.rect(
                   [
@@ -333,7 +345,11 @@ export function view<M>(config: {
             ),
             // Reset
             h.g(
-              [h.OnClick(toParentMessage(ClickedReset({}))), h.Style(btnStyle), h.AriaLabel('Reset zoom')],
+              [
+                h.OnClick(toParentMessage(ClickedReset({}))),
+                h.Style(btnStyle),
+                h.AriaLabel('Reset zoom'),
+              ],
               [
                 h.rect(
                   [
@@ -366,7 +382,11 @@ export function view<M>(config: {
             ),
             // Zoom In
             h.g(
-              [h.OnClick(toParentMessage(ClickedZoomIn({}))), h.Style(btnStyle), h.AriaLabel('Zoom in')],
+              [
+                h.OnClick(toParentMessage(ClickedZoomIn({}))),
+                h.Style(btnStyle),
+                h.AriaLabel('Zoom in'),
+              ],
               [
                 h.rect(
                   [
@@ -410,23 +430,54 @@ export function view<M>(config: {
               const y = r3((1 - t) * legendH);
               const stepH = r3(legendH / legendSteps) + 1;
               return h.rect(
-                [h.X('0'), h.Y(String(y)), h.Width('10'), h.Height(String(stepH)), h.Fill(colorScale(v))],
+                [
+                  h.X('0'),
+                  h.Y(String(y)),
+                  h.Width('10'),
+                  h.Height(String(stepH)),
+                  h.Fill(colorScale(v)),
+                ],
                 [],
               );
             }),
             h.text(
-              [h.X('14'), h.Y(String(legendH)), h.Style({ 'font-size': '0.6rem', 'dominant-baseline': 'middle', fill: 'var(--chart-label, #888)' })],
+              [
+                h.X('14'),
+                h.Y(String(legendH)),
+                h.Style({
+                  'font-size': '0.6rem',
+                  'dominant-baseline': 'middle',
+                  fill: 'var(--chart-label, #888)',
+                }),
+              ],
               [String(valueExtent[0])],
             ),
             h.text(
-              [h.X('14'), h.Y('0'), h.Style({ 'font-size': '0.6rem', 'dominant-baseline': 'middle', fill: 'var(--chart-label, #888)' })],
+              [
+                h.X('14'),
+                h.Y('0'),
+                h.Style({
+                  'font-size': '0.6rem',
+                  'dominant-baseline': 'middle',
+                  fill: 'var(--chart-label, #888)',
+                }),
+              ],
               [String(valueExtent[1])],
             ),
             ...(legendLabel
-              ? [h.text(
-                  [h.Transform(`translate(-4,${r3(legendH / 2)}) rotate(-90)`), h.Style({ 'text-anchor': 'middle', 'font-size': '0.58rem', fill: 'var(--chart-label-muted, #555)' })],
-                  [legendLabel],
-                )]
+              ? [
+                  h.text(
+                    [
+                      h.Transform(`translate(-4,${r3(legendH / 2)}) rotate(-90)`),
+                      h.Style({
+                        'text-anchor': 'middle',
+                        'font-size': '0.58rem',
+                        fill: 'var(--chart-label-muted, #555)',
+                      }),
+                    ],
+                    [legendLabel],
+                  ),
+                ]
               : []),
           ],
         ),

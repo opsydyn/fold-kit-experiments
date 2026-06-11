@@ -15,9 +15,7 @@ export default (element: HTMLElement) =>
     element.id ||= element.getAttribute('uid') ?? crypto.randomUUID();
 
     const baseView = (config as any).view;
-    const view = shouldSkipMetadata(props)
-      ? makeNoMetaView(baseView, document.title)
-      : baseView;
+    const view = shouldSkipMetadata(props) ? makeNoMetaView(baseView, document.title) : baseView;
 
     const program = Runtime.makeApplication({
       ...(config as any),

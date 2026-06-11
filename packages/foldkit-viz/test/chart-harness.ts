@@ -48,9 +48,7 @@ export function assertScaleRange(
   for (const v of inputs) {
     const out = scale(v);
     if (out < lo - tolerance || out > hi + tolerance) {
-      throw new Error(
-        `Scale output ${out} is outside range [${lo}, ${hi}] for input ${v}`,
-      );
+      throw new Error(`Scale output ${out} is outside range [${lo}, ${hi}] for input ${v}`);
     }
   }
 }
@@ -58,10 +56,7 @@ export function assertScaleRange(
 /**
  * Assert that a scale is monotonically increasing over a sorted input array.
  */
-export function assertMonotone(
-  scale: (v: number) => number,
-  inputs: ReadonlyArray<number>,
-): void {
+export function assertMonotone(scale: (v: number) => number, inputs: ReadonlyArray<number>): void {
   for (let i = 1; i < inputs.length; i++) {
     const prev = scale(inputs[i - 1] as number);
     const curr = scale(inputs[i] as number);

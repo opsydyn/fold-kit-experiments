@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { Schema } from 'effect';
-import type { Document } from 'foldkit/html';
-import { makeProgram, run } from 'foldkit/runtime';
+import type { Html } from 'foldkit/html';
+import { makeElement, run } from 'foldkit/runtime';
 import * as AreaChart from '../ui/area-chart';
 import * as BarChart from '../ui/bar-chart';
 import * as LineChart from '../ui/line-chart';
@@ -84,12 +84,12 @@ const STORY_MODEL_SCHEMA = Schema.Any as Schema.Codec<never, never, never, never
 function mountChart<Mod, Msg extends { _tag: string }>(
   init: () => readonly [Mod, readonly []],
   update: (model: Mod, msg: Msg) => readonly [Mod, readonly []],
-  view: (model: Mod) => Document,
+  view: (model: Mod) => Html,
 ): HTMLElement {
   const container = document.createElement('div');
   container.id = nextId();
   container.style.cssText = 'display:inline-block;';
-  const program = makeProgram<Mod, Msg>({
+  const program = makeElement<Mod, Msg>({
     Model: STORY_MODEL_SCHEMA as Schema.Codec<Mod, any, unknown, unknown>,
     init,
     update,
@@ -150,7 +150,7 @@ export const Bar: StoryObj<BarArgs> = {
     return mountChart<BarChart.Model, BarChart.Message>(
       () => [model0, cmds0],
       BarChart.update,
-      (model) => ({ title: '', body: BarChart.view({ model, toParentMessage: (m) => m }) }),
+      (model) => BarChart.view({ model, toParentMessage: (m) => m }),
     );
   },
   parameters: {
@@ -203,7 +203,7 @@ export const Line: StoryObj<LineArgs> = {
     return mountChart<LineChart.Model, LineChart.Message>(
       () => [model0, cmds0],
       LineChart.update,
-      (model) => ({ title: '', body: LineChart.view({ model, toParentMessage: (m) => m }) }),
+      (model) => LineChart.view({ model, toParentMessage: (m) => m }),
     );
   },
   parameters: {
@@ -258,7 +258,7 @@ export const Area: StoryObj<AreaArgs> = {
     return mountChart<AreaChart.Model, AreaChart.Message>(
       () => [model0, cmds0],
       AreaChart.update,
-      (model) => ({ title: '', body: AreaChart.view({ model, toParentMessage: (m) => m }) }),
+      (model) => AreaChart.view({ model, toParentMessage: (m) => m }),
     );
   },
   parameters: {
@@ -313,7 +313,7 @@ export const Scatter: StoryObj<ScatterArgs> = {
     return mountChart<ScatterChart.Model, ScatterChart.Message>(
       () => [model0, cmds0],
       ScatterChart.update,
-      (model) => ({ title: '', body: ScatterChart.view({ model, toParentMessage: (m) => m }) }),
+      (model) => ScatterChart.view({ model, toParentMessage: (m) => m }),
     );
   },
   parameters: {

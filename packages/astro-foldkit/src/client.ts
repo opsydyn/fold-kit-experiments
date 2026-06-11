@@ -19,7 +19,7 @@ export default (element: HTMLElement) =>
       ? makeNoMetaView(baseView, document.title)
       : baseView;
 
-    const program = Runtime.makeProgram({
+    const program = Runtime.makeApplication({
       ...(config as any),
       // Forward Astro props into init so apps can seed their model from server data.
       // Apps that declare no props simply receive an empty object and ignore it.
@@ -28,7 +28,7 @@ export default (element: HTMLElement) =>
       container: element,
     });
 
-    Runtime.run(program);
+    const handle = Runtime.embed(program);
 
-    element.addEventListener('astro:unmount', () => {}, { once: true });
+    element.addEventListener('astro:unmount', () => handle.dispose(), { once: true });
   };

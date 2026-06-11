@@ -98,6 +98,20 @@ const name = Schema.decodeSync(Name)(Astro.url.searchParams.get('name') ?? 'Worl
 
 The TypeScript types flow end-to-end: the `Name` brand is required at the Astro call site, and `Schema.decodeUnknownSync` re-validates the serialised value at the client hydration boundary.
 
+## Built-in props
+
+The renderer intercepts one reserved prop before forwarding anything to your app. It is never seen by `init`, `update`, or `view`.
+
+### `noMeta`
+
+Prevents the FoldKit program from overwriting `document.title`. Use this whenever you embed an app as an island on a page that manages its own title — without it, the island's view tree will update the browser tab title on every render tick.
+
+```astro
+<DashboardChart client:load noMeta data={chartData} />
+```
+
+Both `noMeta` and `noMeta={true}` are accepted. The prop is stripped before `init` receives the rest of your props.
+
 ## Architecture
 
 ### Imperative shell, functional core
@@ -153,12 +167,78 @@ The module returned by your loader must export:
 | `@opsydyn/astro-foldkit`            | Default Astro integration (`foldkit()`) |
 | `@opsydyn/astro-foldkit/define-app` | `defineApp` helper and `AppConfig` type |
 
+## Embedding
+
+`Runtime.embed` gives you a typed handle to the running program so you can clean it up on unmount and push live data in without remounting. This integration uses `embed` internally — the `astro:unmount` event calls `handle.dispose()` to tear down subscriptions and animation-frame loops when Astro navigates away.
+
+### Declaring ports
+
+Ports are typed channels declared in your app's `main.ts`. Pass a `Schema` for each port so values are validated at the boundary.
+
+```ts
+// src/apps/dashboard/main.ts
+import { Port } from 'foldkit'
+import { Schema } from 'effect'
+
+export const ports = {
+  inbound: {
+    data: Port.inbound(Schema.Array(DataPointSchema)),
+  },
+  outbound: {
+    selection: Port.outbound(Schema.NullOr(Schema.String)),
+  },
+}
+```
+
+Pass the ports map to `makeApplication` alongside your `init`, `update`, and `view`:
+
+```ts
+import { Runtime } from 'foldkit'
+
+const program = Runtime.makeApplication({
+  Model,
+  init,
+  update,
+  view,
+  container,
+  devTools: false,
+  ports,
+})
+```
+
+### Live prop updates
+
+Once embedded, push new data through an inbound port instead of remounting the component. This is particularly useful in Astro View Transition flows where the page shell re-runs but the island should preserve its running state:
+
+```ts
+const handle = Runtime.embed(program)
+
+// Called when Astro soft-navigates back to this page with new data
+handle.ports.data.send(nextDataPoints)
+```
+
+### Outbound subscriptions
+
+Subscribe to outbound ports to react to events inside the program from the host page. Port names are flat on `handle.ports` regardless of whether they were declared under `inbound` or `outbound`:
+
+```ts
+const unsubscribe = handle.ports.selection.subscribe((id) => {
+  // sync selection state to the URL or another island
+  history.replaceState({}, '', `?selected=${id ?? ''}`)
+})
+
+element.addEventListener('astro:unmount', () => {
+  unsubscribe()
+  handle.dispose()
+}, { once: true })
+```
+
 ## Peer dependencies
 
-| Package   | Version  |
-| :-------- | :------- |
-| `astro`   | `≥ 5.0`  |
-| `foldkit` | `≥ 0.96` |
+| Package   | Version    |
+| :-------- | :--------- |
+| `astro`   | `≥ 5.0`    |
+| `foldkit` | `≥ 0.108`  |
 
 ## License
 

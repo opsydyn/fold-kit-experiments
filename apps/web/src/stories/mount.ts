@@ -1,4 +1,4 @@
-import { makeProgram, run } from 'foldkit/runtime';
+import { makeApplication, run } from 'foldkit/runtime';
 
 export type FoldkitAppConfig = {
   Model: any;
@@ -19,7 +19,7 @@ export function mountFoldkit(
   container.id = crypto.randomUUID();
   container.style.cssText = 'display:inline-block;';
 
-  const program = makeProgram({
+  const program = makeApplication({
     ...config,
     init: () => config.init(initProps),
     container,

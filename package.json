@@ -16,6 +16,7 @@
     "test": "bun run --filter '*' test",
     "typecheck": "bun run --filter '*' typecheck",
     "check": "biome check .",
+    "storybook": "bun run --filter @opsydyn/web storybook",
     "check:fix": "biome check --write ."
 
   },

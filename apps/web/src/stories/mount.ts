@@ -1,4 +1,4 @@
-import { makeApplication, run } from 'foldkit/runtime';
+import { embed, makeApplication } from 'foldkit/runtime';
 
 export type FoldkitAppConfig = {
   Model: any;
@@ -7,24 +7,25 @@ export type FoldkitAppConfig = {
   view: (model: any) => any;
 };
 
-/**
- * Mount a foldkit TEA app into a fresh div for use in Storybook stories.
- * Returns the container so Storybook can render it into its canvas.
- */
 export function mountFoldkit(
   config: FoldkitAppConfig,
   initProps: Record<string, unknown> = {},
 ): HTMLElement {
   const container = document.createElement('div');
   container.id = crypto.randomUUID();
-  container.style.cssText = 'display:inline-block;';
+  container.style.cssText = 'display:block;width:100%;';
 
   const program = makeApplication({
     ...config,
     init: () => config.init(initProps),
     container,
+    crash: {
+      report: ({ error }: { error: Error }) => {
+        console.error('[foldkit-viz] Chart crashed:', error);
+      },
+    },
   });
 
-  run(program);
+  embed(program);
   return container;
 }

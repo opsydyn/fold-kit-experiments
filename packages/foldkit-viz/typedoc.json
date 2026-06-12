@@ -7,7 +7,8 @@
   "includeVersion": true,
   "readme": "none",
   "navigationLinks": {
-    "GitHub": "https://github.com/opsydyn/astro-foldkit/tree/main/packages/foldkit-viz"
+    "Storybook": "../",
+    "GitHub": "https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-viz"
   },
   "categorizeByGroup": true,
   "defaultCategory": "Other",

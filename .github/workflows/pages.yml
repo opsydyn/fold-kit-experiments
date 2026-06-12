@@ -1,4 +1,4 @@
-name: Deploy Storybook to GitHub Pages
+name: Deploy Storybook + TypeDoc to GitHub Pages
 
 on:
   push:
@@ -39,10 +39,19 @@ jobs:
       - name: Build Storybook
         run: bun run --filter @opsydyn/web build-storybook
 
+      - name: Build TypeDoc
+        run: bun run --filter @opsydyn/foldkit-viz docs
+
+      - name: Assemble site
+        run: |
+          mkdir -p _site/api
+          cp -r apps/web/storybook-static/. _site/
+          cp -r packages/foldkit-viz/docs/. _site/api/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/web/storybook-static
+          path: _site
 
   deploy:
     needs: build

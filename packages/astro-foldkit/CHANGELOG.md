@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.2.0...astro-foldkit-v0.2.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* correct repository url for npm provenance ([723fc7f](https://github.com/opsydyn/fold-kit-experiments/commit/723fc7f932ab6bbfd077b2a49df4904624ff89d2))
+
 ## [0.2.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.1.0...astro-foldkit-v0.2.0) (2026-06-12)
 
 

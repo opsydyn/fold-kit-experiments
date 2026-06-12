@@ -1,4 +1,4 @@
-import node from '@astrojs/node';
+import cloudflare from '@astrojs/cloudflare';
 import foldkit from '@opsydyn/astro-foldkit';
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import { defineConfig } from 'astro/config';
@@ -12,7 +12,5 @@ export default defineConfig({
     plugins: [vanillaExtractPlugin()],
   },
 
-  adapter: node({
-    mode: 'standalone',
-  }),
+  adapter: cloudflare(),
 });

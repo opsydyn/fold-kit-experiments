@@ -1,6 +1,7 @@
 # build output
 dist/
 storybook-static/
+.wrangler/
 
 # test artifacts (packed tarballs, unpacked smoke dirs)
 packages/astro-foldkit/artifacts/

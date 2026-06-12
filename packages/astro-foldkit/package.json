@@ -51,11 +51,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/opsydyn/astro-foldkit.git",
+    "url": "git+https://github.com/opsydyn/fold-kit-experiments.git",
     "directory": "packages/astro-foldkit"
   },
   "bugs": {
-    "url": "https://github.com/opsydyn/astro-foldkit/issues"
+    "url": "https://github.com/opsydyn/fold-kit-experiments/issues"
   },
   "engines": {
     "node": ">=22.0.0"

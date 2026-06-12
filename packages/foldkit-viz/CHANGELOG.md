@@ -2,6 +2,33 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.3.0...foldkit-viz-v0.4.0) (2026-06-12)
+
+
+### Features
+
+* :arrow_up: bump foldkit to 0.108.0 and migrate runtime API ([7441538](https://github.com/opsydyn/fold-kit-experiments/commit/744153844de11b096e2434e7e678d1149238d1b0))
+* :rotating_light: add Effect language service and linteffect rules ([c2fad21](https://github.com/opsydyn/fold-kit-experiments/commit/c2fad2198616a0df333bb41e8fe0aaa9af9c433c))
+* :sparkles: a111y and tiled grid ([5d8bb60](https://github.com/opsydyn/fold-kit-experiments/commit/5d8bb603d662a937b07732ececf6c94bdb916b1b))
+* :sparkles: add data viz ([8992086](https://github.com/opsydyn/fold-kit-experiments/commit/89920867f65a5befa9f00089c025355f5ad23140))
+* :sparkles: add tween and type doc ([a37d6ee](https://github.com/opsydyn/fold-kit-experiments/commit/a37d6ee8ccafb5ee331172855b851c3ae10fc1e8))
+* :sparkles: charts update ([c0a71ac](https://github.com/opsydyn/fold-kit-experiments/commit/c0a71ac898a070840e68fab926debb72f2263ef0))
+* :sparkles: charts updates ([cd052d9](https://github.com/opsydyn/fold-kit-experiments/commit/cd052d9e0bccd7994ec2f4283fb3e2ccff9bc030))
+* :sparkles: foldkit upgrade ([cafc368](https://github.com/opsydyn/fold-kit-experiments/commit/cafc36852352e66c7446e06701eaa87103279ff0))
+* :sparkles: force graph ([044da69](https://github.com/opsydyn/fold-kit-experiments/commit/044da69eff603d097a5ef68ecc27f4bbbbe92135))
+* :sparkles: prop enhance for charts ([394c068](https://github.com/opsydyn/fold-kit-experiments/commit/394c06859c330a86bdd26b99c40681970d81b32e))
+* :sparkles: refaactor charts and bloom ([b139fba](https://github.com/opsydyn/fold-kit-experiments/commit/b139fbaf0df6c9b0b6b1a21142c48c50a514a5a3))
+* :sparkles: storybook primitives ([c8e81c7](https://github.com/opsydyn/fold-kit-experiments/commit/c8e81c7a2a31b4bc87e8d967dc59c10e918c5d6f))
+* :sparkles: theming and storybook ([00beadc](https://github.com/opsydyn/fold-kit-experiments/commit/00beadc87552b76b75c2f3a4fe87965404833d4b))
+* :sparkles: update charts lib ([3e848db](https://github.com/opsydyn/fold-kit-experiments/commit/3e848db975f6f492e99de966057953c3230b4806))
+* :sparkles: viz usability roadmap work ([dc082c3](https://github.com/opsydyn/fold-kit-experiments/commit/dc082c33583879a91d6d41b96a2e46468165edb9))
+* :white_check_mark: updated chrt lib ([ff99bc0](https://github.com/opsydyn/fold-kit-experiments/commit/ff99bc093ccfa8e05ad6ddc75456d728453d899d))
+
+
+### Bug Fixes
+
+* :white_check_mark: resolve all biome lint errors ([b09399d](https://github.com/opsydyn/fold-kit-experiments/commit/b09399dc0c9e68a2cca0fc53c0a1b59c2b517c90))
+
 ## [0.3.0] — 2026-06-05
 
 ### Added

@@ -9,6 +9,7 @@
   "navigationLinks": {
     "Storybook": "../",
     "Charts": "https://opsydyn-web.opsydyn.workers.dev/charts",
+    "npm": "https://www.npmjs.com/package/@opsydyn/foldkit-viz",
     "GitHub": "https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-viz"
   },
   "categorizeByGroup": true,

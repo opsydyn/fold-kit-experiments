@@ -11,7 +11,7 @@ const HealthResponseSchema = Schema.Struct({
 type HealthResponse = Schema.Schema.Type<typeof HealthResponseSchema>;
 const HealthResponseJson = Schema.fromJsonString(HealthResponseSchema);
 const encodeHealthResponse = Schema.encodeSync(HealthResponseJson);
-const startedAt = Effect.runSync(DateTime.now);
+export const startedAt = Effect.runSync(DateTime.now);
 
 const toHealthResponse = (startedAt: DateTime.Utc, now: DateTime.Utc): HealthResponse => ({
   status: 'ok',

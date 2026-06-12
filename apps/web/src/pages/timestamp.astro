@@ -1,13 +1,16 @@
 ---
-import { DateTime } from 'effect';
+import { DateTime, Schema } from 'effect';
 
 import TimestampApp from '../apps/timestamp/app';
+import { Iso8601 } from '../apps/timestamp/model';
 import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
 import { startedAt } from './api/health';
+
+const startedAtIso = Schema.decodeSync(Iso8601)(DateTime.formatIso(startedAt));
 ---
 
 <Layout title="Timestamp — Astro + FoldKit">
   <h1 class={layoutStyles.heading}>Timestamp</h1>
-  <TimestampApp client:load startedAt={DateTime.formatIso(startedAt)} />
+  <TimestampApp client:load startedAt={startedAtIso} />
 </Layout>

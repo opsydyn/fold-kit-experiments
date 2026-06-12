@@ -56,10 +56,9 @@ bun run --filter @opsydyn/web dev
 
 ## Published docs
 
-Deployed to GitHub Pages on every push to `main`:
-
-- **[Storybook](https://opsydyn.github.io/fold-kit-experiments/)** — interactive chart explorer
-- **[API reference](https://opsydyn.github.io/fold-kit-experiments/api/)** — foldkit-viz TypeDoc
+- **[Charts](https://opsydyn-web.opsydyn.workers.dev/charts)** — live demo app (Cloudflare Workers)
+- **[Storybook](https://opsydyn.github.io/fold-kit-experiments/)** — interactive chart explorer (GitHub Pages)
+- **[API reference](https://opsydyn.github.io/fold-kit-experiments/api/)** — foldkit-viz TypeDoc (GitHub Pages)
 
 ## Contributing
 

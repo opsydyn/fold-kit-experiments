@@ -8,6 +8,7 @@
   "readme": "none",
   "navigationLinks": {
     "Storybook": "../",
+    "Charts": "https://opsydyn-web.opsydyn.workers.dev/charts",
     "GitHub": "https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-viz"
   },
   "categorizeByGroup": true,

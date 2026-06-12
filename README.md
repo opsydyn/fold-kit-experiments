@@ -1,47 +1,71 @@
-# astro-foldkit
+# fold-kit-experiments
 
-Monorepo for [`@opsydyn/astro-foldkit`](packages/astro-foldkit/) — an Astro integration for [FoldKit](https://foldkit.dev) — and its demo app.
+A monorepo for ongoing [FoldKit](https://foldkit.dev) experiments — packages, integrations, and a growing library of data visualisation demos.
 
-FoldKit is an Elm Architecture runtime for the browser built on [Effect](https://effect.website). This repo wires it into Astro as a first-class renderer so FoldKit apps can be dropped into `.astro` pages as components with `client:load`.
+FoldKit is an Elm Architecture runtime for the browser built on [Effect](https://effect.website). This repo explores what it looks like to bring that model into Astro, build D3-quality charts without D3, and ship the results as reusable primitives.
+
+## Packages
+
+| Package | Description |
+| :------ | :---------- |
+| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/) | Astro integration — drop FoldKit apps into `.astro` pages with `client:load` |
+| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/) | D3-quality visualisation primitives for FoldKit — no D3 dependency |
 
 ## Structure
 
 ```text
-astro-foldkit/
+fold-kit-experiments/
 ├── apps/
-│   └── web/               — demo Astro app (counter, health dashboard)
+│   └── web/               — demo Astro app: 33 chart types, interactive storybook
 └── packages/
-    └── astro-foldkit/     — @opsydyn/astro-foldkit (published to npm)
+    ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm)
+    └── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
 ```
 
 ## Prerequisites
 
 - [Bun](https://bun.sh) ≥ 1.3
-- Node ≥ 22 (for the smoke tests)
+- Node ≥ 22 (for integration tests)
 
 ## Getting started
 
 ```sh
 bun install
-bun dev        # http://localhost:4321
+bun dev          # demo app at http://localhost:4321
+bun storybook    # chart storybook at http://localhost:6006
 ```
 
 ## Commands
 
-| Command          | Action                                               |
-| :--------------- | :--------------------------------------------------- |
-| `bun dev`        | Start the demo app at `localhost:4321`               |
-| `bun build`      | Build the package, then build the demo app           |
-| `bun test`       | Run all tests across every workspace                 |
-| `bun typecheck`  | Typecheck all workspaces                             |
+| Command             | Action                                                |
+| :------------------ | :---------------------------------------------------- |
+| `bun dev`           | Start the demo app at `localhost:4321`                |
+| `bun storybook`     | Start Storybook at `localhost:6006`                   |
+| `bun build`         | Build all packages, then build the demo app           |
+| `bun test`          | Run all tests across every workspace                  |
+| `bun typecheck`     | Typecheck all workspaces                              |
+| `bun check`         | Biome lint + format check                             |
 
 To work within a single workspace, pass `--filter`:
 
 ```sh
 bun run --filter @opsydyn/astro-foldkit test
+bun run --filter @opsydyn/foldkit-viz docs   # build TypeDoc API reference
 bun run --filter @opsydyn/web dev
 ```
 
+## Published docs
+
+Deployed to GitHub Pages on every push to `main`:
+
+- **[Storybook](https://opsydyn.github.io/fold-kit-experiments/)** — interactive chart explorer
+- **[API reference](https://opsydyn.github.io/fold-kit-experiments/api/)** — foldkit-viz TypeDoc
+
 ## Contributing
 
-See [`packages/astro-foldkit/`](packages/astro-foldkit/) for the integration source, tests, and changelog. The demo app in [`apps/web/`](apps/web/) is the primary integration test environment.
+See the individual package READMEs for usage and changelog:
+
+- [`packages/astro-foldkit/`](packages/astro-foldkit/) — integration source and tests
+- [`packages/foldkit-viz/`](packages/foldkit-viz/) — chart primitives source and tests
+
+The demo app in [`apps/web/`](apps/web/) is the primary integration test environment and serves as the reference implementation for both packages.

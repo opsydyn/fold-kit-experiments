@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { Schema } from 'effect';
 import type { Html } from 'foldkit/html';
-import { makeElement, run } from 'foldkit/runtime';
+import { makeElement } from 'foldkit/runtime';
 import * as AreaChart from '../ui/area-chart';
 import * as BarChart from '../ui/bar-chart';
 import * as LineChart from '../ui/line-chart';
 import * as ScatterChart from '../ui/scatter-chart';
+import { mountFoldkitProgram } from './mount';
 
 export default {
   title: 'Charts/Primitives',
@@ -86,19 +87,18 @@ function mountChart<Mod, Msg extends { _tag: string }>(
   update: (model: Mod, msg: Msg) => readonly [Mod, readonly []],
   view: (model: Mod) => Html,
 ): HTMLElement {
-  const container = document.createElement('div');
-  container.id = nextId();
-  container.style.cssText = 'display:inline-block;';
-  const program = makeElement<Mod, Msg>({
-    Model: STORY_MODEL_SCHEMA as Schema.Codec<Mod, any, unknown, unknown>,
-    init,
-    update,
-    view,
-    container,
-    devTools: false,
-  });
-  run(program);
-  return container;
+  return mountFoldkitProgram(
+    (container) =>
+      makeElement<Mod, Msg>({
+        Model: STORY_MODEL_SCHEMA as Schema.Codec<Mod, any, unknown, unknown>,
+        init,
+        update,
+        view,
+        container: Object.assign(container, { id: nextId() }),
+        devTools: false,
+      }),
+    'display:inline-block;',
+  );
 }
 
 // ── Bar chart ──────────────────────────────────────────────────────────────────

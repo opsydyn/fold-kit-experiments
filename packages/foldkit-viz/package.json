@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-viz",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "D3-quality visualisation primitives for FoldKit — no D3 dependency.",
   "publishConfig": {
     "access": "public"

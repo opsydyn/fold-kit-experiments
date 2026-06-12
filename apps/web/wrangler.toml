@@ -1,8 +1,0 @@
-name = "fold-kit-web"
-compatibility_date = "2025-06-01"
-compatibility_flags = ["nodejs_compat"]
-main = "dist/server/entry.mjs"
-
-[assets]
-directory = "dist/client"
-binding = "ASSETS"

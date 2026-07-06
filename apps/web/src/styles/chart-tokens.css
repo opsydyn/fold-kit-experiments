@@ -58,7 +58,7 @@
   --toggle-hover-text: #e8e8ff;
 }
 
-[data-theme="light"] {
+[data-theme='light'] {
   --chart-grid: #e5e5e5;
   --chart-axis: #d4d4d4;
   --chart-label: #555555;

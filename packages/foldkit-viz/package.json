@@ -2,13 +2,128 @@
   "name": "@opsydyn/foldkit-viz",
   "version": "0.4.1",
   "description": "D3-quality visualisation primitives for FoldKit — no D3 dependency.",
-  "publishConfig": {
-    "access": "public"
+  "keywords": [
+    "charts",
+    "d3",
+    "effect",
+    "elm-architecture",
+    "foldkit",
+    "svg",
+    "visualisation"
+  ],
+  "bugs": {
+    "url": "https://github.com/opsydyn/fold-kit-experiments/issues"
   },
-  "sideEffects": false,
+  "license": "MIT",
+  "author": "Alan P Currie",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opsydyn/fold-kit-experiments.git",
+    "directory": "packages/foldkit-viz"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "dist",
+    "README.md"
+  ],
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
+  "typesVersions": {
+    "*": {
+      "math/scale": [
+        "./dist/math/scale.d.mts"
+      ],
+      "shape/path": [
+        "./dist/shape/path.d.mts"
+      ],
+      "shape/arc": [
+        "./dist/shape/arc.d.mts"
+      ],
+      "shape/area": [
+        "./dist/shape/area.d.mts"
+      ],
+      "shape/line": [
+        "./dist/shape/line.d.mts"
+      ],
+      "shape/pie": [
+        "./dist/shape/pie.d.mts"
+      ],
+      "shape/lineRadial": [
+        "./dist/shape/lineRadial.d.mts"
+      ],
+      "shape/stack": [
+        "./dist/shape/stack.d.mts"
+      ],
+      "shape/chord": [
+        "./dist/shape/chord.d.mts"
+      ],
+      "shape/sankey": [
+        "./dist/shape/sankey.d.mts"
+      ],
+      "math/color": [
+        "./dist/math/color.d.mts"
+      ],
+      "math/stats": [
+        "./dist/math/stats.d.mts"
+      ],
+      "hierarchy": [
+        "./dist/hierarchy.d.mts"
+      ],
+      "simulation": [
+        "./dist/simulation.d.mts"
+      ],
+      "math/zoom": [
+        "./dist/math/zoom.d.mts"
+      ],
+      "math/bin": [
+        "./dist/math/bin.d.mts"
+      ],
+      "shape/symbol": [
+        "./dist/shape/symbol.d.mts"
+      ],
+      "shape/link": [
+        "./dist/shape/link.d.mts"
+      ],
+      "math/time": [
+        "./dist/math/time.d.mts"
+      ],
+      "math/format": [
+        "./dist/math/format.d.mts"
+      ],
+      "math/schemes": [
+        "./dist/math/schemes.d.mts"
+      ],
+      "math/random": [
+        "./dist/math/random.d.mts"
+      ],
+      "math/ease": [
+        "./dist/math/ease.d.mts"
+      ],
+      "math/contour": [
+        "./dist/math/contour.d.mts"
+      ],
+      "math/delaunay": [
+        "./dist/math/delaunay.d.mts"
+      ],
+      "shape/geo": [
+        "./dist/shape/geo.d.mts"
+      ],
+      "math/array": [
+        "./dist/math/array.d.mts"
+      ],
+      "math/brush": [
+        "./dist/math/brush.d.mts"
+      ],
+      "shape/areaRadial": [
+        "./dist/shape/areaRadial.d.mts"
+      ],
+      "math/tween": [
+        "./dist/math/tween.d.mts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -135,105 +250,9 @@
       "import": "./dist/math/tween.mjs"
     }
   },
-  "typesVersions": {
-    "*": {
-      "math/scale": [
-        "./dist/math/scale.d.mts"
-      ],
-      "shape/path": [
-        "./dist/shape/path.d.mts"
-      ],
-      "shape/arc": [
-        "./dist/shape/arc.d.mts"
-      ],
-      "shape/area": [
-        "./dist/shape/area.d.mts"
-      ],
-      "shape/line": [
-        "./dist/shape/line.d.mts"
-      ],
-      "shape/pie": [
-        "./dist/shape/pie.d.mts"
-      ],
-      "shape/lineRadial": [
-        "./dist/shape/lineRadial.d.mts"
-      ],
-      "shape/stack": [
-        "./dist/shape/stack.d.mts"
-      ],
-      "shape/chord": [
-        "./dist/shape/chord.d.mts"
-      ],
-      "shape/sankey": [
-        "./dist/shape/sankey.d.mts"
-      ],
-      "math/color": [
-        "./dist/math/color.d.mts"
-      ],
-      "math/stats": [
-        "./dist/math/stats.d.mts"
-      ],
-      "hierarchy": [
-        "./dist/hierarchy.d.mts"
-      ],
-      "simulation": [
-        "./dist/simulation.d.mts"
-      ],
-      "math/zoom": [
-        "./dist/math/zoom.d.mts"
-      ],
-      "math/bin": [
-        "./dist/math/bin.d.mts"
-      ],
-      "shape/symbol": [
-        "./dist/shape/symbol.d.mts"
-      ],
-      "shape/link": [
-        "./dist/shape/link.d.mts"
-      ],
-      "math/time": [
-        "./dist/math/time.d.mts"
-      ],
-      "math/format": [
-        "./dist/math/format.d.mts"
-      ],
-      "math/schemes": [
-        "./dist/math/schemes.d.mts"
-      ],
-      "math/random": [
-        "./dist/math/random.d.mts"
-      ],
-      "math/ease": [
-        "./dist/math/ease.d.mts"
-      ],
-      "math/contour": [
-        "./dist/math/contour.d.mts"
-      ],
-      "math/delaunay": [
-        "./dist/math/delaunay.d.mts"
-      ],
-      "shape/geo": [
-        "./dist/shape/geo.d.mts"
-      ],
-      "math/array": [
-        "./dist/math/array.d.mts"
-      ],
-      "math/brush": [
-        "./dist/math/brush.d.mts"
-      ],
-      "shape/areaRadial": [
-        "./dist/shape/areaRadial.d.mts"
-      ],
-      "math/tween": [
-        "./dist/math/tween.d.mts"
-      ]
-    }
+  "publishConfig": {
+    "access": "public"
   },
-  "files": [
-    "CHANGELOG.md",
-    "dist",
-    "README.md"
-  ],
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
@@ -241,36 +260,6 @@
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "docs": "typedoc"
-  },
-  "keywords": [
-    "foldkit",
-    "d3",
-    "visualisation",
-    "charts",
-    "svg",
-    "elm-architecture",
-    "effect"
-  ],
-  "author": "Alan P Currie",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/opsydyn/fold-kit-experiments.git",
-    "directory": "packages/foldkit-viz"
-  },
-  "bugs": {
-    "url": "https://github.com/opsydyn/fold-kit-experiments/issues"
-  },
-  "engines": {
-    "node": ">=22.0.0"
-  },
-  "peerDependencies": {
-    "effect": ">=4.0.0-beta.64",
-    "foldkit": ">=0.108.0"
-  },
-  "peerDependenciesOptional": {
-    "effect": true,
-    "foldkit": true
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -281,5 +270,16 @@
     "tsdown": "^0.21.8",
     "typedoc": "^0.28.19",
     "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "effect": ">=4.0.0-beta.64",
+    "foldkit": ">=0.108.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "peerDependenciesOptional": {
+    "effect": true,
+    "foldkit": true
   }
 }

@@ -6,10 +6,10 @@ FoldKit is an Elm Architecture runtime for the browser built on [Effect](https:/
 
 ## Packages
 
-| Package | Description |
-| :------ | :---------- |
+| Package                                             | Description                                                                  |
+| :-------------------------------------------------- | :--------------------------------------------------------------------------- |
 | [`@opsydyn/astro-foldkit`](packages/astro-foldkit/) | Astro integration — drop FoldKit apps into `.astro` pages with `client:load` |
-| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/) | D3-quality visualisation primitives for FoldKit — no D3 dependency |
+| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)     | D3-quality visualisation primitives for FoldKit — no D3 dependency           |
 
 ## Structure
 
@@ -37,14 +37,14 @@ bun storybook    # chart storybook at http://localhost:6006
 
 ## Commands
 
-| Command             | Action                                                |
-| :------------------ | :---------------------------------------------------- |
-| `bun dev`           | Start the demo app at `localhost:4321`                |
-| `bun storybook`     | Start Storybook at `localhost:6006`                   |
-| `bun build`         | Build all packages, then build the demo app           |
-| `bun test`          | Run all tests across every workspace                  |
-| `bun typecheck`     | Typecheck all workspaces                              |
-| `bun check`         | Biome lint + format check                             |
+| Command         | Action                                      |
+| :-------------- | :------------------------------------------ |
+| `bun dev`       | Start the demo app at `localhost:4321`      |
+| `bun storybook` | Start Storybook at `localhost:6006`         |
+| `bun build`     | Build all packages, then build the demo app |
+| `bun test`      | Run all tests across every workspace        |
+| `bun typecheck` | Typecheck all workspaces                    |
+| `bun check`     | Biome lint + format check                   |
 
 To work within a single workspace, pass `--filter`:
 

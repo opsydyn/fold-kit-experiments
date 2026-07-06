@@ -17,12 +17,12 @@ npm install astro foldkit
 Add the integration to `astro.config.ts`:
 
 ```ts
-import { defineConfig } from 'astro/config'
-import foldkit from '@opsydyn/astro-foldkit'
+import { defineConfig } from 'astro/config';
+import foldkit from '@opsydyn/astro-foldkit';
 
 export default defineConfig({
   integrations: [foldkit()],
-})
+});
 ```
 
 ## Defining an app
@@ -31,18 +31,20 @@ Use `defineApp` to register a FoldKit app for lazy loading. The loader returns y
 
 ```ts
 // src/apps/counter/app.ts
-import { defineApp } from '@opsydyn/astro-foldkit/define-app'
+import { defineApp } from '@opsydyn/astro-foldkit/define-app';
 
-export default defineApp(() => import('./main'))
+export default defineApp(() => import('./main'));
 ```
 
 ```ts
 // src/apps/counter/main.ts
-export const Model = null
-export const init = () => [0, []] as const
+export const Model = null;
+export const init = () => [0, []] as const;
 export const update = (model: number, message: 'Inc' | 'Dec') =>
-  [message === 'Inc' ? model + 1 : model - 1, []] as const
-export const view = (model: number) => ({ /* foldkit view tree */ })
+  [message === 'Inc' ? model + 1 : model - 1, []] as const;
+export const view = (model: number) => ({
+  /* foldkit view tree */
+});
 ```
 
 Use the app in an Astro page:
@@ -60,27 +62,27 @@ import Counter from '../apps/counter/app'
 
 ```ts
 // src/apps/greeting/app.ts
-import { defineApp } from '@opsydyn/astro-foldkit/define-app'
-import type { Name } from './model'
+import { defineApp } from '@opsydyn/astro-foldkit/define-app';
+import type { Name } from './model';
 
-export default defineApp<{ name: Name }>(() => import('./main'))
+export default defineApp<{ name: Name }>(() => import('./main'));
 ```
 
 Props are forwarded from Astro's `<astro-island>` serialisation into your `init` function. Declare `init` to accept `props: unknown` and validate at the boundary with Effect Schema:
 
 ```ts
 // src/apps/greeting/model.ts
-import { Schema } from 'effect'
+import { Schema } from 'effect';
 
-export const Name = Schema.String.pipe(Schema.brand('Name'))
-export type Name = typeof Name.Type
+export const Name = Schema.String.pipe(Schema.brand('Name'));
+export type Name = typeof Name.Type;
 
-const Props = Schema.Struct({ name: Name })
+const Props = Schema.Struct({ name: Name });
 
 export const init = (props: unknown): readonly [Model, readonly []] => {
-  const { name } = Schema.decodeUnknownSync(Props)(props)
-  return [name, []]
-}
+  const { name } = Schema.decodeUnknownSync(Props)(props);
+  return [name, []];
+};
 ```
 
 Pass the branded value from the Astro page:
@@ -177,8 +179,8 @@ Ports are typed channels declared in your app's `main.ts`. Pass a `Schema` for e
 
 ```ts
 // src/apps/dashboard/main.ts
-import { Port } from 'foldkit'
-import { Schema } from 'effect'
+import { Port } from 'foldkit';
+import { Schema } from 'effect';
 
 export const ports = {
   inbound: {
@@ -187,13 +189,13 @@ export const ports = {
   outbound: {
     selection: Port.outbound(Schema.NullOr(Schema.String)),
   },
-}
+};
 ```
 
 Pass the ports map to `makeApplication` alongside your `init`, `update`, and `view`:
 
 ```ts
-import { Runtime } from 'foldkit'
+import { Runtime } from 'foldkit';
 
 const program = Runtime.makeApplication({
   Model,
@@ -203,7 +205,7 @@ const program = Runtime.makeApplication({
   container,
   devTools: false,
   ports,
-})
+});
 ```
 
 ### Live prop updates
@@ -211,10 +213,10 @@ const program = Runtime.makeApplication({
 Once embedded, push new data through an inbound port instead of remounting the component. This is particularly useful in Astro View Transition flows where the page shell re-runs but the island should preserve its running state:
 
 ```ts
-const handle = Runtime.embed(program)
+const handle = Runtime.embed(program);
 
 // Called when Astro soft-navigates back to this page with new data
-handle.ports.data.send(nextDataPoints)
+handle.ports.data.send(nextDataPoints);
 ```
 
 ### Outbound subscriptions
@@ -224,21 +226,25 @@ Subscribe to outbound ports to react to events inside the program from the host 
 ```ts
 const unsubscribe = handle.ports.selection.subscribe((id) => {
   // sync selection state to the URL or another island
-  history.replaceState({}, '', `?selected=${id ?? ''}`)
-})
+  history.replaceState({}, '', `?selected=${id ?? ''}`);
+});
 
-element.addEventListener('astro:unmount', () => {
-  unsubscribe()
-  handle.dispose()
-}, { once: true })
+element.addEventListener(
+  'astro:unmount',
+  () => {
+    unsubscribe();
+    handle.dispose();
+  },
+  { once: true },
+);
 ```
 
 ## Peer dependencies
 
-| Package   | Version    |
-| :-------- | :--------- |
-| `astro`   | `≥ 5.0`    |
-| `foldkit` | `≥ 0.108`  |
+| Package   | Version   |
+| :-------- | :-------- |
+| `astro`   | `≥ 5.0`   |
+| `foldkit` | `≥ 0.108` |
 
 ## License
 

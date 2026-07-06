@@ -1,7 +1,7 @@
 # Chart component migration guide — v0 → v1
 
 This guide covers the breaking and additive API changes that happened during the
-P1–P7 refactor and the T2-B cursor-tracking migration.  If you were using any of
+P1–P7 refactor and the T2-B cursor-tracking migration. If you were using any of
 the chart primitives in `src/ui/` before these changes, read the relevant sections
 below.
 
@@ -10,7 +10,7 @@ below.
 ## 1. Shared rendering layer (P1)
 
 Previously every chart inlined its own axes, tooltip, SVG root, keyboard nav, and
-math helpers.  All of that now lives in `src/ui/shared/` and must be imported from
+math helpers. All of that now lives in `src/ui/shared/` and must be imported from
 there.
 
 **Before**
@@ -45,13 +45,18 @@ Full exports: `axes`, `cursor-tooltip`, `dispatch`, `keyboard`, `layout`,
 
 ## 2. Configurable layout (P2)
 
-`init()` now accepts optional `dims` and `margins` overrides.  The resolved
+`init()` now accepts optional `dims` and `margins` overrides. The resolved
 `Layout` is stored on the model rather than as module-level constants.
 
 **Before**
 
 ```ts
-const W = 480, H = 280, MT = 24, MR = 16, MB = 44, ML = 44;
+const W = 480,
+  H = 280,
+  MT = 24,
+  MR = 16,
+  MB = 44,
+  ML = 44;
 const PW = W - ML - MR;
 const PH = H - MT - MB;
 
@@ -96,8 +101,7 @@ can replace the default tooltip without forking the chart.
 BarChart.view({
   model,
   toParentMessage,
-  renderTooltip: (bar, x, y) =>
-    myTooltip(h, x, y, `${bar.label} — £${bar.value.toLocaleString()}`),
+  renderTooltip: (bar, x, y) => myTooltip(h, x, y, `${bar.label} — £${bar.value.toLocaleString()}`),
 });
 ```
 
@@ -113,13 +117,13 @@ Supported on: `bar-chart`, `line-chart`, `area-chart`, `scatter-chart`, `histogr
 Charts now expose a message for live data replacement so parent TEA apps can push
 new datasets without re-mounting.
 
-| Chart | Message | Payload |
-|---|---|---|
-| `bar-chart` | `UpdatedBars` | `{ bars: Schema.Unknown }` |
-| `line-chart` | `UpdatedPoints` | `{ points: Schema.Unknown }` |
-| `area-chart` | `UpdatedPoints` | `{ points: Schema.Unknown }` |
+| Chart           | Message         | Payload                      |
+| --------------- | --------------- | ---------------------------- |
+| `bar-chart`     | `UpdatedBars`   | `{ bars: Schema.Unknown }`   |
+| `line-chart`    | `UpdatedPoints` | `{ points: Schema.Unknown }` |
+| `area-chart`    | `UpdatedPoints` | `{ points: Schema.Unknown }` |
 | `scatter-chart` | `UpdatedPoints` | `{ points: Schema.Unknown }` |
-| `heatmap-chart` | `UpdatedCells` | `{ cells: Schema.Unknown }` |
+| `heatmap-chart` | `UpdatedCells`  | `{ cells: Schema.Unknown }`  |
 
 ```ts
 // Example: stream new bars from a parent update handler
@@ -136,10 +140,11 @@ single transparent `<rect>` overlay at `[0, 0, PW, PH]` that uses
 `OnPointerMove` + `nearestIndex` (1D) or `nearestPoint` (2D scatter).
 
 **Why this matters for custom charts:**
+
 - Bars and line/area points are now **visual only** — remove any `OnMouseEnter`
   handlers you added directly to data elements.
 - The overlay fires `OnPointerMove(screenX, screenY, pointerType)` — only screen
-  coordinates are available, not client coords.  Convert via the `CaptureChartBounds`
+  coordinates are available, not client coords. Convert via the `CaptureChartBounds`
   mount that records `rect.left + window.screenX` at mount time.
 
 **Coordinate conversion**
@@ -196,10 +201,10 @@ return withAccessibleTable(
 
 `svgRoot` now renders `<title>` and `<desc>` SVG children derived from
 `ariaLabel` and uses `role="application"` + `aria-roledescription="interactive
-chart"` on interactive charts.  Pass `interactive: true` in the config object:
+chart"` on interactive charts. Pass `interactive: true` in the config object:
 
 ```ts
-svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, children)
+svgRoot(h, { width: W, height: H, ariaLabel, interactive: true }, handleKeyDown, children);
 ```
 
 ---
@@ -212,7 +217,7 @@ override in `InitConfig`:
 ```ts
 StreamgraphChart.init({
   series,
-  scheme: ['#f00', '#0f0', '#00f'],  // optional — defaults to tableau10
+  scheme: ['#f00', '#0f0', '#00f'], // optional — defaults to tableau10
 });
 ```
 

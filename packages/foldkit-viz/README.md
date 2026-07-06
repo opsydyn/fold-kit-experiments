@@ -18,31 +18,31 @@ bun add @opsydyn/foldkit-viz
 
 ## Modules
 
-| Import path | Contents |
-|---|---|
-| `@opsydyn/foldkit-viz` | Root barrel — all exports |
-| `@opsydyn/foldkit-viz/math/scale` | `linear`, `log`, `band`, `point`, `sqrt`, `ordinal`, `scaleSequential`, `scaleQuantile`, `scaleQuantize`, `scalePow`, `scaleSymlog`, `linearInvertible`, `niceLinear` |
-| `@opsydyn/foldkit-viz/math/array` | `extent`, `sum`, `mean`, `median`, `variance`, `deviation`, `cumsum`, `group`, `rollup`, `bisect`, `pairs`, `zip`, `range` |
-| `@opsydyn/foldkit-viz/math/color` | `interpolateRgb`, `interpolateLab`, `interpolateHsl`, `interpolateRgbBasis`, `colorScale`, `divergingScale` |
-| `@opsydyn/foldkit-viz/math/schemes` | `tableau10`, `category10`, `wong`, `ibmCarbon`, `tolMuted`, `viridis`, `magma`, `inferno`, `plasma`, `cividis`, diverging + sequential palettes |
-| `@opsydyn/foldkit-viz/math/tween` | `tweenCreate`, `tweenStep`, `tweenValue`, `tweenPath`, `easeOutCubic`, `easeInOutCubic`, `easeOutElastic`, + 5 more easings |
-| `@opsydyn/foldkit-viz/math/time` | `scaleTime`, `timeTicks`, `timeFormat`, `timeParse`, `timeNice` |
-| `@opsydyn/foldkit-viz/math/stats` | `boxStats`, `kde`, `silvermanBandwidth`, `quantile` |
-| `@opsydyn/foldkit-viz/math/bin` | `bin` — histogram binning |
-| `@opsydyn/foldkit-viz/math/brush` | `BrushState`, `brushUpdate`, `brushExtent`, `brushContains`, `brushDomain` |
-| `@opsydyn/foldkit-viz/math/zoom` | `scaleAt`, `translateBy`, `constrainScale`, `rescaleDomain` |
-| `@opsydyn/foldkit-viz/shape/line` | `line` — 14 curve types: `linear`, `catmullRom`, `natural`, `basis`, `cardinal`, `step`, `stepBefore`, `stepAfter`, + open/closed variants |
-| `@opsydyn/foldkit-viz/shape/area` | `area` — filled area between two line generators |
-| `@opsydyn/foldkit-viz/shape/areaRadial` | `areaRadial`, `wedge` — polar area shapes |
-| `@opsydyn/foldkit-viz/shape/arc` | `arc`, `arcCentroid` — pie/donut arc paths |
-| `@opsydyn/foldkit-viz/shape/pie` | `pie` — compute arc angles from data |
-| `@opsydyn/foldkit-viz/shape/stack` | `stack` — stacked series (D3 `d3-shape` parity) |
-| `@opsydyn/foldkit-viz/shape/chord` | `chord`, `ribbon` — chord diagram layout |
-| `@opsydyn/foldkit-viz/shape/sankey` | `sankey` — Sankey flow diagram layout |
-| `@opsydyn/foldkit-viz/shape/geo` | `geoPath`, `geoEquirectangular`, `geoMercator`, `geoGraticule` |
-| `@opsydyn/foldkit-viz/shape/link` | `linkVertical`, `linkHorizontal` |
-| `@opsydyn/foldkit-viz/hierarchy` | `hierarchy`, `treeLayout`, `packLayout` |
-| `@opsydyn/foldkit-viz/simulation` | Barnes-Hut force simulation (N-body) |
+| Import path                             | Contents                                                                                                                                                              |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@opsydyn/foldkit-viz`                  | Root barrel — all exports                                                                                                                                             |
+| `@opsydyn/foldkit-viz/math/scale`       | `linear`, `log`, `band`, `point`, `sqrt`, `ordinal`, `scaleSequential`, `scaleQuantile`, `scaleQuantize`, `scalePow`, `scaleSymlog`, `linearInvertible`, `niceLinear` |
+| `@opsydyn/foldkit-viz/math/array`       | `extent`, `sum`, `mean`, `median`, `variance`, `deviation`, `cumsum`, `group`, `rollup`, `bisect`, `pairs`, `zip`, `range`                                            |
+| `@opsydyn/foldkit-viz/math/color`       | `interpolateRgb`, `interpolateLab`, `interpolateHsl`, `interpolateRgbBasis`, `colorScale`, `divergingScale`                                                           |
+| `@opsydyn/foldkit-viz/math/schemes`     | `tableau10`, `category10`, `wong`, `ibmCarbon`, `tolMuted`, `viridis`, `magma`, `inferno`, `plasma`, `cividis`, diverging + sequential palettes                       |
+| `@opsydyn/foldkit-viz/math/tween`       | `tweenCreate`, `tweenStep`, `tweenValue`, `tweenPath`, `easeOutCubic`, `easeInOutCubic`, `easeOutElastic`, + 5 more easings                                           |
+| `@opsydyn/foldkit-viz/math/time`        | `scaleTime`, `timeTicks`, `timeFormat`, `timeParse`, `timeNice`                                                                                                       |
+| `@opsydyn/foldkit-viz/math/stats`       | `boxStats`, `kde`, `silvermanBandwidth`, `quantile`                                                                                                                   |
+| `@opsydyn/foldkit-viz/math/bin`         | `bin` — histogram binning                                                                                                                                             |
+| `@opsydyn/foldkit-viz/math/brush`       | `BrushState`, `brushUpdate`, `brushExtent`, `brushContains`, `brushDomain`                                                                                            |
+| `@opsydyn/foldkit-viz/math/zoom`        | `scaleAt`, `translateBy`, `constrainScale`, `rescaleDomain`                                                                                                           |
+| `@opsydyn/foldkit-viz/shape/line`       | `line` — 14 curve types: `linear`, `catmullRom`, `natural`, `basis`, `cardinal`, `step`, `stepBefore`, `stepAfter`, + open/closed variants                            |
+| `@opsydyn/foldkit-viz/shape/area`       | `area` — filled area between two line generators                                                                                                                      |
+| `@opsydyn/foldkit-viz/shape/areaRadial` | `areaRadial`, `wedge` — polar area shapes                                                                                                                             |
+| `@opsydyn/foldkit-viz/shape/arc`        | `arc`, `arcCentroid` — pie/donut arc paths                                                                                                                            |
+| `@opsydyn/foldkit-viz/shape/pie`        | `pie` — compute arc angles from data                                                                                                                                  |
+| `@opsydyn/foldkit-viz/shape/stack`      | `stack` — stacked series (D3 `d3-shape` parity)                                                                                                                       |
+| `@opsydyn/foldkit-viz/shape/chord`      | `chord`, `ribbon` — chord diagram layout                                                                                                                              |
+| `@opsydyn/foldkit-viz/shape/sankey`     | `sankey` — Sankey flow diagram layout                                                                                                                                 |
+| `@opsydyn/foldkit-viz/shape/geo`        | `geoPath`, `geoEquirectangular`, `geoMercator`, `geoGraticule`                                                                                                        |
+| `@opsydyn/foldkit-viz/shape/link`       | `linkVertical`, `linkHorizontal`                                                                                                                                      |
+| `@opsydyn/foldkit-viz/hierarchy`        | `hierarchy`, `treeLayout`, `packLayout`                                                                                                                               |
+| `@opsydyn/foldkit-viz/simulation`       | Barnes-Hut force simulation (N-body)                                                                                                                                  |
 
 ---
 
@@ -80,13 +80,13 @@ const tween = tweenCreate(600 /* ms */, easeOutCubic);
 Subscription.animationFrame({
   isActive: (model) => !allTweensDone(model.tweens),
   toMessage: (dt) => Ticked({ dt }),
-})
+});
 
 // In update.ts — on Tick:
-tweenStep(model.tween, dt)
+tweenStep(model.tween, dt);
 
 // In view.ts — bar height:
-tweenValue(0, bar.value, model.tween)
+tweenValue(0, bar.value, model.tween);
 ```
 
 ---

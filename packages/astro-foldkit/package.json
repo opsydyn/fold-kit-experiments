@@ -2,13 +2,39 @@
   "name": "@opsydyn/astro-foldkit",
   "version": "0.2.1",
   "description": "Astro integration and renderer for FoldKit.",
-  "publishConfig": {
-    "access": "public"
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "effect",
+    "elm-architecture",
+    "foldkit"
+  ],
+  "bugs": {
+    "url": "https://github.com/opsydyn/fold-kit-experiments/issues"
   },
-  "sideEffects": false,
+  "license": "MIT",
+  "author": "Alan P Currie",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opsydyn/fold-kit-experiments.git",
+    "directory": "packages/astro-foldkit"
+  },
+  "files": [
+    "CHANGELOG.md",
+    "dist",
+    "README.md"
+  ],
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
+  "typesVersions": {
+    "*": {
+      "define-app": [
+        "./dist/define-app.d.mts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
@@ -19,18 +45,9 @@
       "import": "./dist/define-app.mjs"
     }
   },
-  "typesVersions": {
-    "*": {
-      "define-app": [
-        "./dist/define-app.d.mts"
-      ]
-    }
+  "publishConfig": {
+    "access": "public"
   },
-  "files": [
-    "CHANGELOG.md",
-    "dist",
-    "README.md"
-  ],
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
@@ -39,30 +56,6 @@
     "test:integration": "bun test test/integration",
     "check": "biome check .",
     "check:fix": "biome check --write ."
-  },
-  "keywords": [
-    "astro",
-    "astro-integration",
-    "foldkit",
-    "elm-architecture",
-    "effect"
-  ],
-  "author": "Alan P Currie",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/opsydyn/fold-kit-experiments.git",
-    "directory": "packages/astro-foldkit"
-  },
-  "bugs": {
-    "url": "https://github.com/opsydyn/fold-kit-experiments/issues"
-  },
-  "engines": {
-    "node": ">=22.0.0"
-  },
-  "peerDependencies": {
-    "astro": ">=5.0.0",
-    "foldkit": ">=0.108.0"
   },
   "dependencies": {
     "@foldkit/vite-plugin": "^0.5.1"
@@ -75,5 +68,12 @@
     "foldkit": "^0.108.0",
     "tsdown": "^0.21.8",
     "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "astro": ">=5.0.0",
+    "foldkit": ">=0.108.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }

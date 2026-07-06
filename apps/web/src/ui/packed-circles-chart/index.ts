@@ -179,7 +179,7 @@ export const view = <M>(config: {
       h.g(
         [
           h.OnMouseEnter(toParentMessage(HoveredCircle({ id: g.id }))),
-          h.OnMouseLeave(toParentMessage(BlurredCircle({}))),
+          h.OnMouseLeave(toParentMessage(BlurredCircle())),
           h.Style({ cursor: 'pointer' }),
         ],
         [
@@ -227,7 +227,7 @@ export const view = <M>(config: {
       return h.g(
         [
           h.OnMouseEnter(toParentMessage(HoveredCircle({ id: leaf.id }))),
-          h.OnMouseLeave(toParentMessage(BlurredCircle({}))),
+          h.OnMouseLeave(toParentMessage(BlurredCircle())),
           h.Style({ cursor: 'pointer' }),
           h.AriaLabel(`${leaf.label}: ${leaf.value}`),
         ],

@@ -211,7 +211,7 @@ export function view<M>(config: {
           return h.g(
             [
               h.OnMouseEnter(toParentMessage(HoveredRow({ label: row.label }))),
-              h.OnMouseLeave(toParentMessage(BlurredRow({}))),
+              h.OnMouseLeave(toParentMessage(BlurredRow())),
               h.Style({
                 cursor: 'default',
                 opacity: isDimmed ? '0.35' : '1',

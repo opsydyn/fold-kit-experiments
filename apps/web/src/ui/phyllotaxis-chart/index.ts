@@ -308,10 +308,10 @@ export function view<M>(config: {
     _screenY: number,
     _pointerType: string,
     _ts: number,
-  ): Option.Option<M> => Option.some(toParentMessage(EndedDrag({})));
+  ): Option.Option<M> => Option.some(toParentMessage(EndedDrag()));
 
   const handlePointerLeave = (_pointerType: string): Option.Option<M> =>
-    isDragging ? Option.some(toParentMessage(EndedDrag({}))) : Option.none();
+    isDragging ? Option.some(toParentMessage(EndedDrag())) : Option.none();
 
   const miniMapLabel = showMiniMap ? 'Hide Mini Map' : 'Show Mini Map';
 
@@ -406,8 +406,8 @@ export function view<M>(config: {
       : []),
 
     // Controls (top-right)
-    iconBtn(h, '+', BTN_X, zoomInY, toParentMessage(ClickedZoomIn({}))),
-    iconBtn(h, '−', BTN_X, zoomOutY, toParentMessage(ClickedZoomOut({}))),
+    iconBtn(h, '+', BTN_X, zoomInY, toParentMessage(ClickedZoomIn())),
+    iconBtn(h, '−', BTN_X, zoomOutY, toParentMessage(ClickedZoomOut())),
     textBtn(
       h,
       'Center',
@@ -415,7 +415,7 @@ export function view<M>(config: {
       centerY,
       BTN_TEXT_W,
       '0.65rem',
-      toParentMessage(ClickedCenter({})),
+      toParentMessage(ClickedCenter()),
     ),
     textBtn(
       h,
@@ -424,7 +424,7 @@ export function view<M>(config: {
       resetY,
       BTN_TEXT_W,
       '0.65rem',
-      toParentMessage(ClickedReset({})),
+      toParentMessage(ClickedReset()),
     ),
     textBtn(
       h,
@@ -433,7 +433,7 @@ export function view<M>(config: {
       clearY,
       BTN_TEXT_W,
       '0.65rem',
-      toParentMessage(ClickedClear({})),
+      toParentMessage(ClickedClear()),
     ),
 
     // Mini map toggle (bottom-right, inside clip)
@@ -447,7 +447,7 @@ export function view<M>(config: {
           MINI_BTN_Y,
           MINI_BTN_W,
           '0.55rem',
-          toParentMessage(ToggledMiniMap({})),
+          toParentMessage(ToggledMiniMap()),
         ),
       ],
     ),

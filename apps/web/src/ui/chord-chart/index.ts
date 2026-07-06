@@ -213,7 +213,7 @@ export const view = <M>(config: {
             [
               h.Style({ cursor: 'pointer' }),
               h.OnMouseEnter(toParentMessage(HoveredGroup({ index: g.index }))),
-              h.OnMouseLeave(toParentMessage(BlurredGroup({}))),
+              h.OnMouseLeave(toParentMessage(BlurredGroup())),
               h.AriaLabel(g.label),
             ],
             [

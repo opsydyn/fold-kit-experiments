@@ -221,7 +221,7 @@ export function view<M>(config: {
                 h.Opacity(isInactive ? '0.2' : '1'),
                 h.Style({ transition: 'stroke-width 80ms, opacity 80ms' }),
                 h.OnMouseEnter(toParentMessage(HoveredCurve({ curve }))),
-                h.OnMouseLeave(toParentMessage(BlurredCurve({}))),
+                h.OnMouseLeave(toParentMessage(BlurredCurve())),
               ],
               [],
             );
@@ -249,7 +249,7 @@ export function view<M>(config: {
               [
                 h.Transform(`translate(${col * colW}, ${row * 14})`),
                 h.OnMouseEnter(toParentMessage(HoveredCurve({ curve }))),
-                h.OnMouseLeave(toParentMessage(BlurredCurve({}))),
+                h.OnMouseLeave(toParentMessage(BlurredCurve())),
                 h.Style({ cursor: 'default' }),
               ],
               [

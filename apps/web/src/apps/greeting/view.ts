@@ -13,7 +13,7 @@ export const view = (model: Model): Document => ({
     [Class(styles.card)],
     [
       p([Class(styles.greeting)], [`Hello, ${model}!`]),
-      button([Class(styles.button), OnClick(Reset({}))], ['Reset']),
+      button([Class(styles.button), OnClick(Reset())], ['Reset']),
     ],
   ),
 });

@@ -156,7 +156,7 @@ export function view<M>(config: {
               [
                 h.Transform(`translate(${cx},${cy})`),
                 h.OnMouseEnter(toParentMessage(HoveredNode({ name: node.data.name }))),
-                h.OnMouseLeave(toParentMessage(BlurredNode({}))),
+                h.OnMouseLeave(toParentMessage(BlurredNode())),
                 h.Style({ cursor: 'default' }),
               ],
               [

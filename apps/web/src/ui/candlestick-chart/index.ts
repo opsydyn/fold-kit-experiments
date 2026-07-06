@@ -132,7 +132,7 @@ export function view<M>(config: {
       [
         h.Style({ cursor: 'pointer' }),
         h.OnMouseEnter(toParentMessage(HoveredCandle({ index: i }))),
-        h.OnMouseLeave(toParentMessage(BlurredCandle({}))),
+        h.OnMouseLeave(toParentMessage(BlurredCandle())),
       ],
       [
         // wick

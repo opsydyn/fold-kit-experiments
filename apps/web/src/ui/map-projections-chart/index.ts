@@ -226,7 +226,7 @@ export function view<M>(config: {
         return h.g(
           [
             h.OnMouseEnter(toParentMessage(HoveredCity({ name }))),
-            h.OnMouseLeave(toParentMessage(BlurredCity({}))),
+            h.OnMouseLeave(toParentMessage(BlurredCity())),
             h.Style({ cursor: 'default' }),
           ],
           [
@@ -272,7 +272,7 @@ export function view<M>(config: {
         return h.g(
           [
             h.OnMouseEnter(toParentMessage(HoveredCity({ name }))),
-            h.OnMouseLeave(toParentMessage(BlurredCity({}))),
+            h.OnMouseLeave(toParentMessage(BlurredCity())),
             h.Style({ cursor: 'default' }),
           ],
           [

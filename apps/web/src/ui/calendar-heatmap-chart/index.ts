@@ -180,7 +180,7 @@ export function view<M>(config: {
             h.Opacity(!isAnyActive ? '1' : day.date === activeDateVal ? '1' : '0.45'),
             h.Style({ transition: 'opacity 80ms', cursor: 'pointer' }),
             h.OnMouseEnter(toParentMessage(HoveredDay({ date: day.date }))),
-            h.OnMouseLeave(toParentMessage(BlurredDay({}))),
+            h.OnMouseLeave(toParentMessage(BlurredDay())),
           ],
           [],
         ),

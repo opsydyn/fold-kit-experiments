@@ -125,7 +125,7 @@ export function view<M>(config: {
             [
               h.Style({ cursor: 'pointer', opacity: String(opacity), transition: 'opacity 150ms' }),
               h.OnMouseEnter(toParentMessage(HoveredSeries({ label: s.label }))),
-              h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
+              h.OnMouseLeave(toParentMessage(BlurredSeries())),
               h.AriaLabel(`${s.label} rankings`),
             ],
             [

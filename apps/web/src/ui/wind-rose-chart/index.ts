@@ -174,7 +174,7 @@ export function view<M>(config: {
           return h.g(
             [
               h.OnMouseEnter(toParentMessage(HoveredSegment({ index: i }))),
-              h.OnMouseLeave(toParentMessage(BlurredSegment({}))),
+              h.OnMouseLeave(toParentMessage(BlurredSegment())),
               h.Style({ cursor: 'pointer' }),
               h.AriaLabel(`${seg.label}: ${seg.value}`),
             ],

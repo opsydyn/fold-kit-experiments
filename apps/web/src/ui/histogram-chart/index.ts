@@ -297,7 +297,7 @@ export function view<M>(config: {
                 ...(!enableBrush
                   ? [
                       h.OnMouseEnter(toParentMessage(HoveredBin({ index: i }))),
-                      h.OnMouseLeave(toParentMessage(BlurredBin({}))),
+                      h.OnMouseLeave(toParentMessage(BlurredBin())),
                     ]
                   : []),
                 h.Style({ cursor: 'default' }),

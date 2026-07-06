@@ -238,7 +238,7 @@ export function view<M>(config: {
             return h.g(
               [
                 h.OnMouseEnter(toParentMessage(HoveredPoint({ label: pt.label }))),
-                h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
+                h.OnMouseLeave(toParentMessage(BlurredPoint())),
                 h.Style({ cursor: 'default' }),
               ],
               [

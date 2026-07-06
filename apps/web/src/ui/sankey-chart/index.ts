@@ -251,7 +251,7 @@ export const view = <M>(config: {
           return h.g(
             [
               h.OnMouseEnter(toParentMessage(HoveredNode({ id: node.id }))),
-              h.OnMouseLeave(toParentMessage(BlurredNode({}))),
+              h.OnMouseLeave(toParentMessage(BlurredNode())),
               h.Style({ cursor: 'pointer' }),
               h.AriaLabel(node.label),
             ],

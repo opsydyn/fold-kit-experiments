@@ -181,7 +181,7 @@ export const view = <M>(config: {
               h.StrokeWidth(isActive ? '1.5' : '0.5'),
               h.Style({ opacity, transition: 'opacity 150ms', cursor: 'pointer' }),
               h.OnMouseEnter(toParentMessage(HoveredSeries({ key: s.key }))),
-              h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
+              h.OnMouseLeave(toParentMessage(BlurredSeries())),
             ],
             [],
           );

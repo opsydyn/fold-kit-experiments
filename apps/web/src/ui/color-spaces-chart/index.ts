@@ -103,7 +103,7 @@ export function view<M>(config: {
           [
             h.Transform(`translate(0,${ty})`),
             h.OnMouseEnter(toParentMessage(HoveredStrip({ label: strip.label }))),
-            h.OnMouseLeave(toParentMessage(BlurredStrip({}))),
+            h.OnMouseLeave(toParentMessage(BlurredStrip())),
             h.Style({ cursor: 'default' }),
           ],
           [

@@ -146,7 +146,7 @@ export function view<M>(config: {
         return h.g(
           [
             h.OnMouseEnter(toParentMessage(HoveredNode({ name: node.data.name }))),
-            h.OnMouseLeave(toParentMessage(BlurredNode({}))),
+            h.OnMouseLeave(toParentMessage(BlurredNode())),
             h.Style({ cursor: 'default' }),
           ],
           [

@@ -197,7 +197,7 @@ export function view<M>(config: {
     _screenY: number,
     _pointerType: string,
     _ts: number,
-  ): Option.Option<M> => Option.some(toParentMessage(EndedDrag({})));
+  ): Option.Option<M> => Option.some(toParentMessage(EndedDrag()));
 
   const btnY = 6;
   const btnH = 16;
@@ -222,7 +222,7 @@ export function view<M>(config: {
       [
         // Zoom out (−)
         h.g(
-          [h.OnClick(toParentMessage(ClickedZoomOut({}))), h.Style(btnStyle)],
+          [h.OnClick(toParentMessage(ClickedZoomOut())), h.Style(btnStyle)],
           [
             h.rect(
               [
@@ -255,7 +255,7 @@ export function view<M>(config: {
         ),
         // Reset (⟲)
         h.g(
-          [h.OnClick(toParentMessage(ClickedReset({}))), h.Style(btnStyle)],
+          [h.OnClick(toParentMessage(ClickedReset())), h.Style(btnStyle)],
           [
             h.rect(
               [
@@ -288,7 +288,7 @@ export function view<M>(config: {
         ),
         // Zoom in (+)
         h.g(
-          [h.OnClick(toParentMessage(ClickedZoomIn({}))), h.Style(btnStyle)],
+          [h.OnClick(toParentMessage(ClickedZoomIn())), h.Style(btnStyle)],
           [
             h.rect(
               [

@@ -211,7 +211,7 @@ export function view<M>(config: {
             return h.g(
               [
                 h.OnMouseEnter(toParentMessage(HoveredCell({ row: ri, col: ci }))),
-                h.OnMouseLeave(toParentMessage(BlurredCell({}))),
+                h.OnMouseLeave(toParentMessage(BlurredCell())),
                 h.Style({ cursor: 'default' }),
                 h.AriaLabel(`${matrix.labels[ri]} vs ${matrix.labels[ci]}: ${val.toFixed(2)}`),
               ],

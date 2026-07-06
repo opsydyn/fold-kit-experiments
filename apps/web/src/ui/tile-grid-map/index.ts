@@ -136,7 +136,7 @@ export function view<M>(config: {
           return h.g(
             [
               h.OnMouseEnter(toParentMessage(HoveredCell({ id: cell.id }))),
-              h.OnMouseLeave(toParentMessage(BlurredCell({}))),
+              h.OnMouseLeave(toParentMessage(BlurredCell())),
               h.Style({ cursor: 'default' }),
               h.AriaLabel(`${cell.label}: ${cell.value}`),
             ],

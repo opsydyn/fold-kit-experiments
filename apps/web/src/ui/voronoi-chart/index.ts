@@ -130,7 +130,7 @@ export function view<M>(config: {
             h.StrokeWidth(isActive ? '1.5' : '0.8'),
             h.Style({ cursor: 'default', transition: 'fill 80ms' }),
             h.OnMouseEnter(toParentMessage(HoveredCell({ idx }))),
-            h.OnMouseLeave(toParentMessage(BlurredCell({}))),
+            h.OnMouseLeave(toParentMessage(BlurredCell())),
           ],
           [],
         );

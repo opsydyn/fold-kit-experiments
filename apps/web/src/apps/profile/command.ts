@@ -11,6 +11,6 @@ export const SaveUsername = Command.define(
 )(({ username }) =>
   Effect.sync(() => {
     usernameAtom.set(username);
-    return CompletedSaveUsername({});
+    return CompletedSaveUsername();
   }),
 );

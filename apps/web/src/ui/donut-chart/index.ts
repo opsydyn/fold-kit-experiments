@@ -134,7 +134,7 @@ export const view = <M>(config: {
               h.Style({ cursor: 'pointer' }),
               h.AriaLabel(`${d.data.label}: ${d.data.value}`),
               h.OnMouseEnter(toParentMessage(HoveredSegment({ index: i }))),
-              h.OnMouseLeave(toParentMessage(BlurredSegment({}))),
+              h.OnMouseLeave(toParentMessage(BlurredSegment())),
               h.OnClick(toParentMessage(ClickedSegment({ index: i }))),
               ...(isActive ? [h.DataAttribute('active', '')] : []),
             ],

@@ -329,7 +329,7 @@ export const view = <M>(config: {
                 h.R(String(br + 4)),
                 h.Fill('transparent'),
                 h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
-                h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
+                h.OnMouseLeave(toParentMessage(BlurredPoint())),
                 h.Style({ cursor: 'pointer' }),
                 h.AriaLabel(`${p.label}: x ${p.x}, y ${p.y}, ${cfg.valueLabel} ${p.value}`),
               ],

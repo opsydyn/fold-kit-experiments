@@ -233,7 +233,7 @@ export function view<M>(config: {
             return h.g(
               [
                 h.OnMouseEnter(toParentMessage(HoveredViolin({ label: v.label }))),
-                h.OnMouseLeave(toParentMessage(BlurredViolin({}))),
+                h.OnMouseLeave(toParentMessage(BlurredViolin())),
                 h.Style({ cursor: 'default' }),
               ],
               [

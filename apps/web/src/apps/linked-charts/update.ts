@@ -33,7 +33,7 @@ export const update = (model: Model, msg: Message): Return =>
 
         // Blur clears histogram too
         if (scatterMsg._tag === 'BlurredPoint') {
-          const [histogram] = Histogram.update(model.histogram, Histogram.BlurredBin({}));
+          const [histogram] = Histogram.update(model.histogram, Histogram.BlurredBin());
           return [{ ...model, scatter, histogram }, []];
         }
 
@@ -58,7 +58,7 @@ export const update = (model: Model, msg: Message): Return =>
         }
 
         if (histMsg._tag === 'BlurredBin') {
-          const [scatter] = Scatter.update(model.scatter, Scatter.BlurredPoint({}));
+          const [scatter] = Scatter.update(model.scatter, Scatter.BlurredPoint());
           return [{ ...model, scatter, histogram }, []];
         }
 

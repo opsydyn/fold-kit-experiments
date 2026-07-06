@@ -115,7 +115,7 @@ export function view<M>(config: {
             'stroke-linejoin': 'round',
           }),
           h.OnMouseEnter(toParentMessage(HoveredRecord({ index: ri }))),
-          h.OnMouseLeave(toParentMessage(BlurredRecord({}))),
+          h.OnMouseLeave(toParentMessage(BlurredRecord())),
         ],
         [],
       ),
@@ -139,7 +139,7 @@ export function view<M>(config: {
             'stroke-linejoin': 'round',
           }),
           h.OnMouseEnter(toParentMessage(HoveredRecord({ index: ri }))),
-          h.OnMouseLeave(toParentMessage(BlurredRecord({}))),
+          h.OnMouseLeave(toParentMessage(BlurredRecord())),
         ],
         [],
       ),
@@ -225,7 +225,7 @@ export function view<M>(config: {
           [
             h.Transform(`translate(0, ${ri * 20})`),
             h.OnMouseEnter(toParentMessage(HoveredRecord({ index: ri }))),
-            h.OnMouseLeave(toParentMessage(BlurredRecord({}))),
+            h.OnMouseLeave(toParentMessage(BlurredRecord())),
             h.Style({ cursor: 'pointer' }),
           ],
           [

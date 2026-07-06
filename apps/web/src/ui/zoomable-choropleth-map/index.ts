@@ -218,8 +218,8 @@ export function view<M>(config: {
                 ? Option.some(toParentMessage(PointerMoved({ x: screenX, y: screenY })))
                 : Option.none(),
             ),
-            h.OnPointerUp(() => Option.some(toParentMessage(PointerUpped({})))),
-            h.OnPointerLeave(() => Option.some(toParentMessage(PointerUpped({})))),
+            h.OnPointerUp(() => Option.some(toParentMessage(PointerUpped()))),
+            h.OnPointerLeave(() => Option.some(toParentMessage(PointerUpped()))),
           ],
           [],
         ),
@@ -250,7 +250,7 @@ export function view<M>(config: {
                     h.Opacity(isDimmed ? '0.35' : '1'),
                     h.Style({ cursor: datum ? 'pointer' : 'default', transition: 'opacity 120ms' }),
                     h.OnMouseEnter(toParentMessage(HoveredFeature({ id: fid }))),
-                    h.OnMouseLeave(toParentMessage(BlurredFeature({}))),
+                    h.OnMouseLeave(toParentMessage(BlurredFeature())),
                     ...(datum ? [h.AriaLabel(`${datum.label}: ${datum.value}`)] : []),
                   ],
                   [],
@@ -309,7 +309,7 @@ export function view<M>(config: {
             // Zoom Out
             h.g(
               [
-                h.OnClick(toParentMessage(ClickedZoomOut({}))),
+                h.OnClick(toParentMessage(ClickedZoomOut())),
                 h.Style(btnStyle),
                 h.AriaLabel('Zoom out'),
               ],
@@ -346,7 +346,7 @@ export function view<M>(config: {
             // Reset
             h.g(
               [
-                h.OnClick(toParentMessage(ClickedReset({}))),
+                h.OnClick(toParentMessage(ClickedReset())),
                 h.Style(btnStyle),
                 h.AriaLabel('Reset zoom'),
               ],
@@ -383,7 +383,7 @@ export function view<M>(config: {
             // Zoom In
             h.g(
               [
-                h.OnClick(toParentMessage(ClickedZoomIn({}))),
+                h.OnClick(toParentMessage(ClickedZoomIn())),
                 h.Style(btnStyle),
                 h.AriaLabel('Zoom in'),
               ],

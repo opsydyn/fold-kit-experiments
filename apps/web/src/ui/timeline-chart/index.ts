@@ -176,7 +176,7 @@ export function view<M>(config: {
             return h.g(
               [
                 h.OnMouseEnter(toParentMessage(HoveredTask({ name: task.name }))),
-                h.OnMouseLeave(toParentMessage(BlurredTask({}))),
+                h.OnMouseLeave(toParentMessage(BlurredTask())),
                 h.Style({ cursor: 'default' }),
               ],
               [

@@ -195,7 +195,7 @@ export function view<M>(config: {
               [
                 h.Transform(`translate(${col * 112},${row * 18})`),
                 h.OnMouseEnter(toParentMessage(HoveredCurve({ name }))),
-                h.OnMouseLeave(toParentMessage(BlurredCurve({}))),
+                h.OnMouseLeave(toParentMessage(BlurredCurve())),
                 h.Style({ cursor: 'default' }),
               ],
               [

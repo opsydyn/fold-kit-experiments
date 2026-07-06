@@ -160,7 +160,7 @@ export function view<M>(config: {
                 h.Opacity(isDimmed ? '0.35' : '1'),
                 h.Style({ cursor: datum ? 'pointer' : 'default', transition: 'opacity 120ms' }),
                 h.OnMouseEnter(toParentMessage(HoveredFeature({ id: fid }))),
-                h.OnMouseLeave(toParentMessage(BlurredFeature({}))),
+                h.OnMouseLeave(toParentMessage(BlurredFeature())),
                 ...(datum ? [h.AriaLabel(`${datum.label}: ${datum.value}`)] : []),
               ],
               [],

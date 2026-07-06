@@ -190,7 +190,7 @@ export function view<M>(config: {
       [
         h.Style({ cursor: 'pointer' }),
         h.OnMouseEnter(toParentMessage(HoveredBar({ index: i }))),
-        h.OnMouseLeave(toParentMessage(BlurredBar({}))),
+        h.OnMouseLeave(toParentMessage(BlurredBar())),
       ],
       [
         connector,

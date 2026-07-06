@@ -262,7 +262,7 @@ export function view<M>(config: {
               [
                 h.Transform(`translate(${cx},${cy})`),
                 h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
-                h.OnMouseLeave(toParentMessage(BlurredPoint({}))),
+                h.OnMouseLeave(toParentMessage(BlurredPoint())),
                 h.Style({ cursor: 'pointer' }),
               ],
               [

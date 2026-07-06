@@ -245,11 +245,11 @@ export const view = <M>(config: {
                     ? Option.some(toParentMessage(HoveredBar({ index: idx })))
                     : Option.none();
                 }),
-                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredBar({})))),
+                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredBar()))),
                 h.OnClick(
                   Option.isSome(activeIndex)
                     ? toParentMessage(ClickedBar({ index: activeIndex.value }))
-                    : toParentMessage(BlurredBar({})),
+                    : toParentMessage(BlurredBar()),
                 ),
               ],
               [],

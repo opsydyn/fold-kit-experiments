@@ -154,7 +154,7 @@ export function view<M>(config: {
             return h.g(
               [
                 h.OnMouseEnter(toParentMessage(HoveredBar({ label: bar.label }))),
-                h.OnMouseLeave(toParentMessage(BlurredBar({}))),
+                h.OnMouseLeave(toParentMessage(BlurredBar())),
                 h.Style({ cursor: 'default' }),
               ],
               [

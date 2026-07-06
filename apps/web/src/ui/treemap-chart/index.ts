@@ -213,7 +213,7 @@ export const view = <M>(config: {
         [
           h.Transform(`translate(${r1(leaf.x0)},${r1(leaf.y0)})`),
           h.OnMouseEnter(toParentMessage(HoveredNode({ name: leaf.name }))),
-          h.OnMouseLeave(toParentMessage(BlurredNode({}))),
+          h.OnMouseLeave(toParentMessage(BlurredNode())),
           h.Style({ cursor: 'pointer' }),
           h.AriaLabel(`${leaf.name}: ${leaf.value}`),
         ],

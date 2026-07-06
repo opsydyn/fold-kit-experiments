@@ -62,7 +62,7 @@ export const view = (model: Model): Document => {
         opacity: hasBrush ? '1' : '0.4',
         transition: 'opacity 120ms',
       }),
-      h.OnClick(GotHistogramMessage({ inner: Histogram.ClearedHistogramBrush({}) })),
+      h.OnClick(GotHistogramMessage({ inner: Histogram.ClearedHistogramBrush() })),
       h.Attribute('aria-label', 'Clear brush selection'),
     ],
     ['Clear'],

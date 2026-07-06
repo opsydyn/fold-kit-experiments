@@ -27,7 +27,7 @@ export const view = (model: Model): Document => ({
           ]),
         ],
       ),
-      button([Class(styles.button), OnClick(ClickedSave({}))], ['Save']),
+      button([Class(styles.button), OnClick(ClickedSave())], ['Save']),
       ...(model.isSaved ? [p([Class(styles.saved)], ['Saved!'])] : []),
       a([Class(styles.link), Href('/welcome')], ['View welcome page →']),
     ],

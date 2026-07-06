@@ -259,7 +259,7 @@ export const view = <M>(config: {
                     ? Option.some(toParentMessage(HoveredPoint({ index: idx })))
                     : Option.none();
                 }),
-                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredPoint({})))),
+                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredPoint()))),
               ],
               [],
             ),

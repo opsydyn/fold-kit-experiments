@@ -234,7 +234,7 @@ export const view = <M>(config: {
           return h.g(
             [
               h.OnMouseEnter(toParentMessage(HoveredCell({ key: cell.key }))),
-              h.OnMouseLeave(toParentMessage(BlurredCell({}))),
+              h.OnMouseLeave(toParentMessage(BlurredCell())),
               h.Style({ cursor: 'pointer' }),
               h.AriaLabel(`${cell.value}`),
             ],

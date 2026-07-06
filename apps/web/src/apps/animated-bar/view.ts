@@ -93,7 +93,7 @@ export const view = (model: Model): Document => {
               return h.g(
                 [
                   h.OnMouseEnter(HoveredBar({ index: i })),
-                  h.OnMouseLeave(BlurredBar({})),
+                  h.OnMouseLeave(BlurredBar()),
                   h.Style({ cursor: 'default' }),
                   h.AriaLabel(`${bar.label}: ${bar.value}`),
                 ],

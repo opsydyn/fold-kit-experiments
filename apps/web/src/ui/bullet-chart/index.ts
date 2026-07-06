@@ -114,7 +114,7 @@ export function view<M>(config: {
         return h.g(
           [
             h.OnMouseEnter(toParentMessage(HoveredRow({ index: i }))),
-            h.OnMouseLeave(toParentMessage(BlurredRow({}))),
+            h.OnMouseLeave(toParentMessage(BlurredRow())),
             h.Style({ cursor: 'default' }),
             h.AriaLabel(`${d.label}: ${d.value} of ${d.target} target`),
           ],

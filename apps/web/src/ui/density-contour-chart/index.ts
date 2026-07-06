@@ -204,7 +204,7 @@ export function view<M>(config: {
               [
                 h.Transform(`translate(${i * 110},0)`),
                 h.OnMouseEnter(toParentMessage(HoveredLevel({ label }))),
-                h.OnMouseLeave(toParentMessage(BlurredLevel({}))),
+                h.OnMouseLeave(toParentMessage(BlurredLevel())),
                 h.Style({ cursor: 'default' }),
               ],
               [

@@ -179,7 +179,7 @@ export const view = <M>(config: {
                 cursor: 'pointer',
               }),
               h.OnMouseEnter(toParentMessage(HoveredSeries({ index: si }))),
-              h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
+              h.OnMouseLeave(toParentMessage(BlurredSeries())),
             ],
             [],
           );
@@ -218,7 +218,7 @@ export const view = <M>(config: {
           [
             h.Transform(`translate(0, ${si * 24})`),
             h.OnMouseEnter(toParentMessage(HoveredSeries({ index: si }))),
-            h.OnMouseLeave(toParentMessage(BlurredSeries({}))),
+            h.OnMouseLeave(toParentMessage(BlurredSeries())),
             h.Style({ cursor: 'pointer' }),
           ],
           [

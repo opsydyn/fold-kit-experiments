@@ -419,7 +419,7 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
         Stream.when(
           Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
             Stream.filter(({ key }) => key === 'Escape'),
-            Stream.map(() => CancelledDrag({})),
+            Stream.map(() => CancelledDrag()),
           ),
           Effect.sync(() => dragActivity === 'Active'),
         ),
@@ -517,13 +517,13 @@ export const view = <M>(config: ViewConfig<M>): Html => {
   ];
 
   const prevButton: ReadonlyArray<Attribute<M>> = [
-    h.OnClick(toParentMessage(ClickedPrev({}))),
+    h.OnClick(toParentMessage(ClickedPrev())),
     h.AriaLabel('Previous slide'),
     ...(model.loop || model.activeIndex > 0 ? [] : [h.AriaDisabled(true)]),
   ];
 
   const nextButton: ReadonlyArray<Attribute<M>> = [
-    h.OnClick(toParentMessage(ClickedNext({}))),
+    h.OnClick(toParentMessage(ClickedNext())),
     h.AriaLabel('Next slide'),
     ...(model.loop || model.activeIndex < model.slideCount - 1 ? [] : [h.AriaDisabled(true)]),
   ];

@@ -135,7 +135,7 @@ export function view<M>(config: {
       [
         h.Style({ cursor: 'pointer' }),
         h.OnMouseEnter(toParentMessage(HoveredBox({ index: i }))),
-        h.OnMouseLeave(toParentMessage(BlurredBox({}))),
+        h.OnMouseLeave(toParentMessage(BlurredBox())),
       ],
       [
         h.line(

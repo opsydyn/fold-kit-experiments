@@ -20,8 +20,10 @@
     "check:fix": "biome check --write ."
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
-    "@catenarycloud/linteffect": "^0.0.6",
-    "@effect/language-service": "^0.86.2"
+    "@effect/language-service": "^0.86.2",
+    "@foldkit/oxlint-plugin": "^0.2.0",
+    "@opsydyn/oxlint-effect": "^0.4.0",
+    "oxfmt": "^0.57.0",
+    "oxlint": "^1.72.0"
   }
 }

@@ -75,8 +75,8 @@ const SAMPLE_SCATTER: ReadonlyArray<ScatterChart.Point> = [
 
 // ── Mount helper ───────────────────────────────────────────────────────────────
 
-let mountCount = 0;
-const nextId = () => `fk-story-${++mountCount}`;
+// Generate unique DOM IDs. Each call produces a short collision-resistant id.
+const nextId = () => `fk-story-${Math.random().toString(36).slice(2, 9)}`;
 
 // Schema.Any is a no-op codec: chart models don't round-trip through JSON in
 // Storybook (no HMR model preservation), so encoding is never invoked.

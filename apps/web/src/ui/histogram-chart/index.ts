@@ -204,16 +204,16 @@ export const update = (model: Model, msg: Message): Return =>
 
 // QUERY
 
-/** Returns the brush selection as domain [lo, hi] values, or null if no selection. */
-export function getBrushDomain(model: Model): readonly [number, number] | null {
-  if (!model.enableBrush || model.bins.length === 0) return null;
+/** Returns the brush selection as domain [lo, hi] values, or Option.none() if no selection. */
+export function getBrushDomain(model: Model): Option.Option<readonly [number, number]> {
+  if (!model.enableBrush || model.bins.length === 0) return Option.none();
   const ext = brushExtent(model.brush);
-  // biome-ignore lint: public API query — null is the absence sentinel, callers guard before use
-  if (ext === null) return null;
+  if (ext === null) return Option.none();
   const domainMin = model.bins[0]?.x0 ?? 0;
   const domainMax = model.bins[model.bins.length - 1]?.x1 ?? 1;
   const xScale = linearInvertible({ domain: [domainMin, domainMax], range: [0, model.layout.pw] });
-  return brushDomain(model.brush, xScale.invert);
+  const domain = brushDomain(model.brush, xScale.invert);
+  return domain === null ? Option.none() : Option.some(domain);
 }
 
 // VIEW

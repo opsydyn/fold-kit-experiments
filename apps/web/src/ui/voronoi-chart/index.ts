@@ -30,7 +30,7 @@ function cellColor(idx: number, n: number, active: boolean, inactive: boolean): 
 
 export type PlotData = Readonly<{
   points: ReadonlyArray<readonly [number, number]>;
-  cellPaths: ReadonlyArray<string | null>;
+  cellPaths: ReadonlyArray<Option.Option<string>>;
 }>;
 
 export type Model = Readonly<{
@@ -48,13 +48,12 @@ function generate(seed: number): PlotData {
   const result = triangulate(pts);
   const cells = voronoiCells(result, [ML, MT, ML + PW, MT + PH]);
   const cellPaths = cells.map((cell) => {
-    // biome-ignore lint: null used as skip sentinel in array — downstream filters it out
-    if (!cell || cell.length < 2) return null;
+    if (!cell || cell.length < 2) return Option.none<string>();
     let d = `M${cell[0][0].toFixed(1)},${cell[0][1].toFixed(1)}`;
     for (let i = 1; i < cell.length; i++) {
       d += `L${cell[i][0].toFixed(1)},${cell[i][1].toFixed(1)}`;
     }
-    return `${d}Z`;
+    return Option.some(`${d}Z`);
   });
   return { points: pts, cellPaths };
 }
@@ -118,23 +117,27 @@ export function view<M>(config: {
     // Filled cells
     h.g(
       [h.Attribute('clip-path', 'url(#vor-clip)')],
-      data.cellPaths.map((d, idx) => {
-        if (!d) return h.g([], []);
-        const isActive = idx === active;
-        const isInactive = active !== null && !isActive;
-        return h.path(
-          [
-            h.D(d),
-            h.Fill(cellColor(idx, n, isActive, isInactive)),
-            h.Stroke('var(--card-bg, #12121f)'),
-            h.StrokeWidth(isActive ? '1.5' : '0.8'),
-            h.Style({ cursor: 'default', transition: 'fill 80ms' }),
-            h.OnMouseEnter(toParentMessage(HoveredCell({ idx }))),
-            h.OnMouseLeave(toParentMessage(BlurredCell())),
-          ],
-          [],
-        );
-      }),
+      data.cellPaths.map((dOpt, idx) =>
+        Option.match(dOpt, {
+          onNone: () => h.g([], []),
+          onSome: (d) => {
+            const isActive = idx === active;
+            const isInactive = active !== null && !isActive;
+            return h.path(
+              [
+                h.D(d),
+                h.Fill(cellColor(idx, n, isActive, isInactive)),
+                h.Stroke('var(--card-bg, #12121f)'),
+                h.StrokeWidth(isActive ? '1.5' : '0.8'),
+                h.Style({ cursor: 'default', transition: 'fill 80ms' }),
+                h.OnMouseEnter(toParentMessage(HoveredCell({ idx }))),
+                h.OnMouseLeave(toParentMessage(BlurredCell())),
+              ],
+              [],
+            );
+          },
+        }),
+      ),
     ),
 
     // Seed points

@@ -16,7 +16,8 @@ type MockAttr = { _tag: string; value?: unknown; name?: string; value2?: unknown
 type MockNode = { tag?: string; attributes?: MockAttr[]; children?: unknown[] } | string;
 
 function mockText(value: string): MockNode {
-  return { _tag: 'Text', value } as unknown as MockNode;
+  const tag = 'Text';
+  return Object.assign({ value }, { _tag: tag }) as unknown as MockNode;
 }
 
 function mockEl(

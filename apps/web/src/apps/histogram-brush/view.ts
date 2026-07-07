@@ -1,5 +1,6 @@
 import type { Document, Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
+import { Option } from 'effect';
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
 import type { Message } from './message';
@@ -26,10 +27,11 @@ const STATUS_STYLE = {
 export const view = (model: Model): Document => {
   const h = html<Message>();
 
-  const brushDomain = Histogram.getBrushDomain(model.histogram);
+  const brushDomainOpt = Histogram.getBrushDomain(model.histogram);
+  const brushDomain = Option.getOrNull(brushDomainOpt);
   const filteredCount = model.scatter.points.length;
   const totalCount = model.allPoints.length;
-  const hasBrush = brushDomain !== null;
+  const hasBrush = Option.isSome(brushDomainOpt);
 
   const histogram: Html = Histogram.view({
     model: model.histogram,
@@ -43,7 +45,7 @@ export const view = (model: Model): Document => {
     ariaLabel: 'Scatter — response time vs error rate',
   });
 
-  const rangeLabel = hasBrush
+  const rangeLabel = hasBrush && brushDomain !== null
     ? `${Math.round(brushDomain[0])}ms – ${Math.round(brushDomain[1])}ms`
     : 'All requests';
 

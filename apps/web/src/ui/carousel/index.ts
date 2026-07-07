@@ -350,7 +350,9 @@ const documentDragStyles: Stream.Stream<never> = Stream.callback(() => {
     }),
   ).pipe(
     Effect.flatMap(() => {
-      // biome-ignore lint: FoldKit subscription — acquireRelease handles teardown, Effect.never holds scope open
+      // FoldKit subscription — acquireRelease above handles teardown; Effect.never holds the scope
+      // open for the subscription's lifetime (this is the canonical Stream.callback pattern).
+      // oxlint-disable-next-line linteffect/no-effect-never
       return Effect.never;
     }),
   );

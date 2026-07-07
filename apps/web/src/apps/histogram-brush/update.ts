@@ -1,4 +1,4 @@
-import { Match } from 'effect';
+import { Match, Option } from 'effect';
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
 import type { Message } from './message';
@@ -14,6 +14,24 @@ const BRUSH_TAGS = new Set([
   'RecordedSvgBounds',
 ]);
 
+const applyBrushFilter = (
+  model: Model,
+  histogram: Histogram.Model,
+): Return => {
+  const brushedDomainOpt = Histogram.getBrushDomain(histogram);
+  const filteredPoints = Option.isSome(brushedDomainOpt)
+    ? model.allPoints.filter(
+        (point) =>
+          point.x >= brushedDomainOpt.value[0] && point.x <= brushedDomainOpt.value[1],
+      )
+    : model.allPoints;
+  const [scatter] = Scatter.update(
+    model.scatter,
+    Scatter.UpdatedPoints({ points: filteredPoints }),
+  );
+  return [{ ...model, histogram, scatter }, []];
+};
+
 export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
@@ -21,22 +39,9 @@ export const update = (model: Model, msg: Message): Return =>
       GotHistogramMessage: ({ message }) => {
         const histMsg = message as Histogram.Message;
         const [histogram] = Histogram.update(model.histogram, histMsg);
-
         if (BRUSH_TAGS.has(histMsg._tag)) {
-          const brushedDomain = Histogram.getBrushDomain(histogram);
-          const filteredPoints =
-            brushedDomain !== null
-              ? model.allPoints.filter(
-                  (point) => point.x >= brushedDomain[0] && point.x <= brushedDomain[1],
-                )
-              : model.allPoints;
-          const [scatter] = Scatter.update(
-            model.scatter,
-            Scatter.UpdatedPoints({ points: filteredPoints }),
-          );
-          return [{ ...model, histogram, scatter }, []];
+          return applyBrushFilter(model, histogram);
         }
-
         return [{ ...model, histogram }, []];
       },
 

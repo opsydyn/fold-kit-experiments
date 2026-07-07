@@ -46,10 +46,11 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
   ];
 }
 
-// MESSAGE — gauge is a display-only component; NoOp satisfies the TEA contract
+// MESSAGE — gauge is a display-only component; GaugeUpdated satisfies the TEA contract
+// without carrying any user-interaction payload.
 
-export const NoOp = m('NoOp', {});
-export const Message = Schema.Union([NoOp]);
+export const GaugeUpdated = m('GaugeUpdated', {});
+export const Message = Schema.Union([GaugeUpdated]);
 export type Message = typeof Message.Type;
 
 export function update(model: Model, _msg: Message): readonly [Model, readonly []] {

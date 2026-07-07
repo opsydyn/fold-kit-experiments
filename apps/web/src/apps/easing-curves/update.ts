@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotEasingMessage: ({ inner }) => {
-        const [chart] = EasingCurves.update(model.chart, inner as EasingCurves.Message);
+      GotEasingMessage: ({ message }) => {
+        const [chart] = EasingCurves.update(model.chart, message as EasingCurves.Message);
         return [{ ...model, chart }, []];
       },
     }),

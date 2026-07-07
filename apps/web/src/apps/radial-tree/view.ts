@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotRadialMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: RadialTree.Message): Message => GotRadialMessage({ inner: msg });
+const toParentMessage = (msg: RadialTree.Message): Message => GotRadialMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Indo-European language tree — foldkit-viz',

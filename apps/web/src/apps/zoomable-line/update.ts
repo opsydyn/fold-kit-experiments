@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotZoomableLineMessage: ({ inner }) => {
-        const [chart] = ZoomableLineChart.update(model.chart, inner as ZoomableLineChart.Message);
+      GotZoomableLineMessage: ({ message }) => {
+        const [chart] = ZoomableLineChart.update(model.chart, message as ZoomableLineChart.Message);
         return [{ ...model, chart }, []];
       },
     }),

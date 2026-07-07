@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotChordMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: ChordChart.Message): Message => GotChordMessage({ inner: msg });
+const toParentMessage = (msg: ChordChart.Message): Message => GotChordMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Chord — foldkit-viz',

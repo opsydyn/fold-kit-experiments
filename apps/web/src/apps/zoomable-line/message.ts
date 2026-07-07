@@ -2,9 +2,9 @@ import { Schema } from 'effect';
 import { m } from 'foldkit/message';
 import type { Message as ZoomableLineMessage } from '../../ui/zoomable-line-chart';
 
-export const GotZoomableLineMessage = m('GotZoomableLineMessage', { inner: Schema.Unknown });
-export type GotZoomableLineMessage = Omit<typeof GotZoomableLineMessage.Type, 'inner'> & {
-  readonly inner: ZoomableLineMessage;
+export const GotZoomableLineMessage = m('GotZoomableLineMessage', { message: Schema.Unknown });
+export type GotZoomableLineMessage = Omit<typeof GotZoomableLineMessage.Type, 'message'> & {
+  readonly message: ZoomableLineMessage;
 };
 
 export const Message = Schema.Union([GotZoomableLineMessage]);

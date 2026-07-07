@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotTreeMessage: ({ inner }) => {
-        const [chart] = TidyTree.update(model.chart, inner as TidyTree.Message);
+      GotTreeMessage: ({ message }) => {
+        const [chart] = TidyTree.update(model.chart, message as TidyTree.Message);
         return [{ ...model, chart }, []];
       },
     }),

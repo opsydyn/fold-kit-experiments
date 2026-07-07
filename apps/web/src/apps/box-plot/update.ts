@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotBoxMessage: ({ inner }) => {
-        const [box] = BoxChart.update(model.box, inner as BoxChart.Message);
+      GotBoxMessage: ({ message }) => {
+        const [box] = BoxChart.update(model.box, message as BoxChart.Message);
         return [{ ...model, box }, []];
       },
     }),

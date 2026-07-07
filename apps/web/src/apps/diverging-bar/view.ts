@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotDivBarMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: DivBar.Message): Message => GotDivBarMessage({ inner: msg });
+const toParentMessage = (msg: DivBar.Message): Message => GotDivBarMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Revenue growth — diverging bar — foldkit-viz',

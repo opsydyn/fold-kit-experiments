@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotTimelineMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: TimelineChart.Message): Message => GotTimelineMessage({ inner: msg });
+const toParentMessage = (msg: TimelineChart.Message): Message => GotTimelineMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Project timeline — foldkit-viz',

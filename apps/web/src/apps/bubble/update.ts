@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotBubbleMessage: ({ inner }) => {
-        const [bubble] = BubbleChart.update(model.bubble, inner as BubbleChart.Message);
+      GotBubbleMessage: ({ message }) => {
+        const [bubble] = BubbleChart.update(model.bubble, message as BubbleChart.Message);
         return [{ ...model, bubble }, []];
       },
     }),

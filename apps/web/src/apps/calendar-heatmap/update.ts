@@ -9,10 +9,10 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotCalendarMessage: ({ inner }) => {
+      GotCalendarMessage: ({ message }) => {
         const [calendar] = CalendarHeatmapChart.update(
           model.calendar,
-          inner as CalendarHeatmapChart.Message,
+          message as CalendarHeatmapChart.Message,
         );
         return [{ ...model, calendar }, []];
       },

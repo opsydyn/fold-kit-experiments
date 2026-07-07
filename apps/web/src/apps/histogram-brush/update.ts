@@ -18,8 +18,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotHistogramMessage: ({ inner }) => {
-        const histMsg = inner as Histogram.Message;
+      GotHistogramMessage: ({ message }) => {
+        const histMsg = message as Histogram.Message;
         const [histogram] = Histogram.update(model.histogram, histMsg);
 
         if (BRUSH_TAGS.has(histMsg._tag)) {
@@ -40,8 +40,8 @@ export const update = (model: Model, msg: Message): Return =>
         return [{ ...model, histogram }, []];
       },
 
-      GotScatterMessage: ({ inner }) => {
-        const scatterMsg = inner as Scatter.Message;
+      GotScatterMessage: ({ message }) => {
+        const scatterMsg = message as Scatter.Message;
         const [scatter] = Scatter.update(model.scatter, scatterMsg);
         return [{ ...model, scatter }, []];
       },

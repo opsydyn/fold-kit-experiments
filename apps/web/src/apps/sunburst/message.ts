@@ -3,7 +3,7 @@ import { m } from 'foldkit/message';
 import * as SunburstChart from '../../ui/sunburst-chart';
 
 export const GotSunburstMessage = m('GotSunburstMessage', {
-  inner: SunburstChart.Message,
+  message: SunburstChart.Message,
 });
 
 export const Message = Schema.Union([GotSunburstMessage]);

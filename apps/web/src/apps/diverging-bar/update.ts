@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotDivBarMessage: ({ inner }) => {
-        const [chart] = DivBar.update(model.chart, inner as DivBar.Message);
+      GotDivBarMessage: ({ message }) => {
+        const [chart] = DivBar.update(model.chart, message as DivBar.Message);
         return [{ ...model, chart }, []];
       },
     }),

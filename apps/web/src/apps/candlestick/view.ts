@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotCandleMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: CandleChart.Message): Message => GotCandleMessage({ inner: msg });
+const toParentMessage = (msg: CandleChart.Message): Message => GotCandleMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Candlestick — foldkit-viz',

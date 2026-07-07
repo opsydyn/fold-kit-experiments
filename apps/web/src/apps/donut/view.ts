@@ -10,7 +10,7 @@ import type { Model } from './model';
 
 type DonutMessage = DonutChart.Message;
 
-const toParentMessage = (msg: DonutMessage): Message => GotDonutMessage({ inner: msg });
+const toParentMessage = (msg: DonutMessage): Message => GotDonutMessage({ message: msg });
 
 const { div, span, Class, Style, DataAttribute } = html<Message>();
 

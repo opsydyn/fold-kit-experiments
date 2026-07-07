@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotTreemapMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: TreemapChart.Message): Message => GotTreemapMessage({ inner: msg });
+const toParentMessage = (msg: TreemapChart.Message): Message => GotTreemapMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Treemap — foldkit-viz',

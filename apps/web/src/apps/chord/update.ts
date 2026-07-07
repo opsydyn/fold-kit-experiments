@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotChordMessage: ({ inner }) => {
-        const [chord] = ChordChart.update(model.chord, inner as ChordChart.Message);
+      GotChordMessage: ({ message }) => {
+        const [chord] = ChordChart.update(model.chord, message as ChordChart.Message);
         return [{ ...model, chord }, []];
       },
     }),

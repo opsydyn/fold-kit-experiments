@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotBulletMessage: ({ inner }) => {
-        const [chart] = Bullet.update(model.chart, inner as Bullet.Message);
+      GotBulletMessage: ({ message }) => {
+        const [chart] = Bullet.update(model.chart, message as Bullet.Message);
         return [{ ...model, chart }, []];
       },
     }),

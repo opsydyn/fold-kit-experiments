@@ -6,5 +6,5 @@ import type { Model } from './model';
 
 export const subscriptions = Subscription.lift(Carousel.subscriptions)<Model, Message>({
   toChildModel: (model) => model.carousel,
-  toParentMessage: (inner) => GotCarouselMessage({ inner }),
+  toParentMessage: (message) => GotCarouselMessage({ message }),
 });

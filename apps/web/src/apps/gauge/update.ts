@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotGaugeMessage: ({ inner }) => {
-        const [gauge] = GaugeChart.update(model.gauge, inner as GaugeChart.Message);
+      GotGaugeMessage: ({ message }) => {
+        const [gauge] = GaugeChart.update(model.gauge, message as GaugeChart.Message);
         return [{ ...model, gauge }, []];
       },
     }),

@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotGraphMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: ForceGraph.Message): Message => GotGraphMessage({ inner: msg });
+const toParentMessage = (msg: ForceGraph.Message): Message => GotGraphMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Force Graph — foldkit-viz',

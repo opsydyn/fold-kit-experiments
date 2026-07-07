@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotSankeyMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: SankeyChart.Message): Message => GotSankeyMessage({ inner: msg });
+const toParentMessage = (msg: SankeyChart.Message): Message => GotSankeyMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Sankey — foldkit-viz',

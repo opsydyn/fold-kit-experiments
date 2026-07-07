@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotTreemapMessage: ({ inner }) => {
-        const [treemap] = TreemapChart.update(model.treemap, inner as TreemapChart.Message);
+      GotTreemapMessage: ({ message }) => {
+        const [treemap] = TreemapChart.update(model.treemap, message as TreemapChart.Message);
         return [{ ...model, treemap }, []];
       },
     }),

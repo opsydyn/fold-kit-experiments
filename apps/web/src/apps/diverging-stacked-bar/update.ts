@@ -8,8 +8,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotDSBMessage: ({ inner }) => {
-        const [chart] = DSB.update(model.chart, inner as DSB.Message);
+      GotDSBMessage: ({ message }) => {
+        const [chart] = DSB.update(model.chart, message as DSB.Message);
         return [{ ...model, chart }, []];
       },
     }),

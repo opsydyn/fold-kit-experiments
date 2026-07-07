@@ -2,9 +2,9 @@ import { Schema } from 'effect';
 import { m } from 'foldkit/message';
 import type { Message as ZChoroplethMessage } from '../../ui/zoomable-choropleth-map';
 
-export const GotZChoroplethMessage = m('GotZChoroplethMessage', { inner: Schema.Unknown });
-export type GotZChoroplethMessage = Omit<typeof GotZChoroplethMessage.Type, 'inner'> & {
-  readonly inner: ZChoroplethMessage;
+export const GotZChoroplethMessage = m('GotZChoroplethMessage', { message: Schema.Unknown });
+export type GotZChoroplethMessage = Omit<typeof GotZChoroplethMessage.Type, 'message'> & {
+  readonly message: ZChoroplethMessage;
 };
 
 export const Message = Schema.Union([GotZChoroplethMessage]);

@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotHeatmapMessage: ({ inner }) => {
-        const [heatmap] = HeatmapChart.update(model.heatmap, inner as HeatmapChart.Message);
+      GotHeatmapMessage: ({ message }) => {
+        const [heatmap] = HeatmapChart.update(model.heatmap, message as HeatmapChart.Message);
         return [{ ...model, heatmap }, []];
       },
     }),

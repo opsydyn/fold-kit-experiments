@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotViolinMessage: ({ inner }) => {
-        const [chart] = ViolinChart.update(model.chart, inner as ViolinChart.Message);
+      GotViolinMessage: ({ message }) => {
+        const [chart] = ViolinChart.update(model.chart, message as ViolinChart.Message);
         return [{ ...model, chart }, []];
       },
     }),

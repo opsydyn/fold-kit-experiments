@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotPackedMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: PackedChart.Message): Message => GotPackedMessage({ inner: msg });
+const toParentMessage = (msg: PackedChart.Message): Message => GotPackedMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Packed Circles — foldkit-viz',

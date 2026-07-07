@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotEasingMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: EasingCurves.Message): Message => GotEasingMessage({ inner: msg });
+const toParentMessage = (msg: EasingCurves.Message): Message => GotEasingMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Easing functions — foldkit-viz',

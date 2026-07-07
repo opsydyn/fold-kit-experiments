@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotRadarMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: RadarChart.Message): Message => GotRadarMessage({ inner: msg });
+const toParentMessage = (msg: RadarChart.Message): Message => GotRadarMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Radar Chart — foldkit-viz',

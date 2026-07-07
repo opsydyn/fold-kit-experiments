@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotGaugeMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: GaugeChart.Message): Message => GotGaugeMessage({ inner: msg });
+const toParentMessage = (msg: GaugeChart.Message): Message => GotGaugeMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Gauge — foldkit-viz',

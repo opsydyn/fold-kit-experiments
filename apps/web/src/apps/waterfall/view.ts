@@ -5,7 +5,7 @@ import { GotWaterfallMessage } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: WaterfallChart.Message): Message =>
-  GotWaterfallMessage({ inner: msg });
+  GotWaterfallMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Waterfall — foldkit-viz',

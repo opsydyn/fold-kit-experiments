@@ -11,13 +11,13 @@ export const view = (model: Model): Document => {
 
   const scatter: Html = Scatter.view({
     model: model.scatter,
-    toParentMessage: (msg) => GotScatterMessage({ inner: msg }),
+    toParentMessage: (msg) => GotScatterMessage({ message: msg }),
     ariaLabel: 'Scatter chart — experience vs salary',
   });
 
   const histogram: Html = Histogram.view({
     model: model.histogram,
-    toParentMessage: (msg) => GotHistogramMessage({ inner: msg }),
+    toParentMessage: (msg) => GotHistogramMessage({ message: msg }),
     ariaLabel: 'Histogram — salary distribution',
   });
 

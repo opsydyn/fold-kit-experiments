@@ -5,7 +5,7 @@ import { GotStreamgraphMessage } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: StreamgraphChart.Message): Message =>
-  GotStreamgraphMessage({ inner: msg });
+  GotStreamgraphMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Streamgraph — foldkit-viz',

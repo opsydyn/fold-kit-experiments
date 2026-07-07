@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotBumpMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: Bump.Message): Message => GotBumpMessage({ inner: msg });
+const toParentMessage = (msg: Bump.Message): Message => GotBumpMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Bump chart — foldkit-viz',

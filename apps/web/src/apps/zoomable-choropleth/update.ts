@@ -5,7 +5,7 @@ import type { Model } from './model';
 type Return = readonly [Model, readonly []];
 
 export const update = (model: Model, msg: Message): Return => {
-  const inner = (msg as GotZChoroplethMessage).inner;
-  const [chart] = ZChoropleth.update(model.chart, inner);
+  const message = (msg as GotZChoroplethMessage).message;
+  const [chart] = ZChoropleth.update(model.chart, message);
   return [{ ...model, chart }, []];
 };

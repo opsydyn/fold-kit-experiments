@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotVoronoiMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: Voronoi.Message): Message => GotVoronoiMessage({ inner: msg });
+const toParentMessage = (msg: Voronoi.Message): Message => GotVoronoiMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Voronoi diagram — foldkit-viz',

@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotBoxMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: BoxChart.Message): Message => GotBoxMessage({ inner: msg });
+const toParentMessage = (msg: BoxChart.Message): Message => GotBoxMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Box Plot — foldkit-viz',

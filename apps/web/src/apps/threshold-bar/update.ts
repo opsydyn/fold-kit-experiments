@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotThresholdBarMessage: ({ inner }) => {
-        const [chart] = ThresholdBar.update(model.chart, inner as ThresholdBar.Message);
+      GotThresholdBarMessage: ({ message }) => {
+        const [chart] = ThresholdBar.update(model.chart, message as ThresholdBar.Message);
         return [{ ...model, chart }, []];
       },
     }),

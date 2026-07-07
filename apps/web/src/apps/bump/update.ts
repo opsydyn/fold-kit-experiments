@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotBumpMessage: ({ inner }) => {
-        const [chart] = Bump.update(model.chart, inner as Bump.Message);
+      GotBumpMessage: ({ message }) => {
+        const [chart] = Bump.update(model.chart, message as Bump.Message);
         return [{ ...model, chart }, []];
       },
     }),

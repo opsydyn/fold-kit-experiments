@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotDensityContourMessage: ({ inner }) => {
-        const [chart] = DensityContour.update(model.chart, inner as DensityContour.Message);
+      GotDensityContourMessage: ({ message }) => {
+        const [chart] = DensityContour.update(model.chart, message as DensityContour.Message);
         return [{ ...model, chart }, []];
       },
     }),

@@ -48,6 +48,11 @@ export default defineConfig({
 
     // 4 violations: in test files where JS spread for object construction is intentional
     'linteffect/no-naked-object-state-update': 'warn',
+
+    // 191 violations: block-bodied arrow callbacks with local bindings before return are ubiquitous
+    // in D3 viz layout code and Effect subscription/stream callbacks — requires architectural
+    // refactoring to use Match/pipe/Option combinators; downgraded during migration
+    'linteffect/no-return-in-arrow': 'warn',
   },
   ignorePatterns: ['**/dist/**', '**/artifacts/**', '**/docs/**', '**/node_modules/**'],
 });

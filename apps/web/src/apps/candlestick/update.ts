@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotCandleMessage: ({ inner }) => {
-        const [candle] = CandleChart.update(model.candle, inner as CandleChart.Message);
+      GotCandleMessage: ({ message }) => {
+        const [candle] = CandleChart.update(model.candle, message as CandleChart.Message);
         return [{ ...model, candle }, []];
       },
     }),

@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotTimelineMessage: ({ inner }) => {
-        const [chart] = TimelineChart.update(model.chart, inner as TimelineChart.Message);
+      GotTimelineMessage: ({ message }) => {
+        const [chart] = TimelineChart.update(model.chart, message as TimelineChart.Message);
         return [{ ...model, chart }, []];
       },
     }),

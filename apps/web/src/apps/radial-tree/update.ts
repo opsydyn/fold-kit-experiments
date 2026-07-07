@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotRadialMessage: ({ inner }) => {
-        const [chart] = RadialTree.update(model.chart, inner as RadialTree.Message);
+      GotRadialMessage: ({ message }) => {
+        const [chart] = RadialTree.update(model.chart, message as RadialTree.Message);
         return [{ ...model, chart }, []];
       },
     }),

@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotSunburstMessage: ({ inner }) => {
-        const [sunburst] = SunburstChart.update(model.sunburst, inner);
+      GotSunburstMessage: ({ message }) => {
+        const [sunburst] = SunburstChart.update(model.sunburst, message);
         return [{ ...model, sunburst }, []];
       },
     }),

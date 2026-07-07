@@ -5,7 +5,7 @@ import { GotThresholdBarMessage } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: ThresholdBar.Message): Message =>
-  GotThresholdBarMessage({ inner: msg });
+  GotThresholdBarMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'API response times — threshold bar — foldkit-viz',

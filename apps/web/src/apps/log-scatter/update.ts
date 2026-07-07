@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotLogScatterMessage: ({ inner }) => {
-        const [chart] = LogScatter.update(model.chart, inner as LogScatter.Message);
+      GotLogScatterMessage: ({ message }) => {
+        const [chart] = LogScatter.update(model.chart, message as LogScatter.Message);
         return [{ ...model, chart }, []];
       },
     }),

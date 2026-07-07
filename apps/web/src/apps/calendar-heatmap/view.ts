@@ -5,7 +5,7 @@ import { GotCalendarMessage } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: CalendarHeatmapChart.Message): Message =>
-  GotCalendarMessage({ inner: msg });
+  GotCalendarMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Calendar Heatmap — foldkit-viz',

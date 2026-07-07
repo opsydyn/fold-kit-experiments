@@ -10,8 +10,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotScatterMessage: ({ inner }) => {
-        const scatterMsg = inner as Scatter.Message;
+      GotScatterMessage: ({ message }) => {
+        const scatterMsg = message as Scatter.Message;
         const [scatter] = Scatter.update(model.scatter, scatterMsg);
 
         // Cross-wire: hovering a scatter point highlights its salary bin
@@ -40,8 +40,8 @@ export const update = (model: Model, msg: Message): Return =>
         return [{ ...model, scatter }, []];
       },
 
-      GotHistogramMessage: ({ inner }) => {
-        const histMsg = inner as Histogram.Message;
+      GotHistogramMessage: ({ message }) => {
+        const histMsg = message as Histogram.Message;
         const [histogram] = Histogram.update(model.histogram, histMsg);
 
         // Cross-wire: hovering a histogram bin highlights scatter points in that range

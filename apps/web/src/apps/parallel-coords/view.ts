@@ -5,7 +5,7 @@ import { GotParallelCoordsMessage } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: ParallelCoordsChart.Message): Message =>
-  GotParallelCoordsMessage({ inner: msg });
+  GotParallelCoordsMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Parallel Coordinates — foldkit-viz',

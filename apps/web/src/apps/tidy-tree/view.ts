@@ -4,7 +4,7 @@ import type { Message } from './message';
 import { GotTreeMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: TidyTree.Message): Message => GotTreeMessage({ inner: msg });
+const toParentMessage = (msg: TidyTree.Message): Message => GotTreeMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Tech stack — foldkit-viz',

@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotAreaMessage: ({ inner }) => {
-        const [area] = AreaChart.update(model.area, inner as AreaChart.Message);
+      GotAreaMessage: ({ message }) => {
+        const [area] = AreaChart.update(model.area, message as AreaChart.Message);
         return [{ ...model, area }, []];
       },
     }),

@@ -8,7 +8,7 @@ import type { Model } from './model';
 
 type BarMessage = BarChart.Message;
 
-const toParentMessage = (msg: BarMessage): Message => GotBarMessage({ inner: msg });
+const toParentMessage = (msg: BarMessage): Message => GotBarMessage({ message: msg });
 
 const { div } = html<Message>();
 

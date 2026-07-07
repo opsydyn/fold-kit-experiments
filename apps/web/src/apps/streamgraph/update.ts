@@ -9,10 +9,10 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotStreamgraphMessage: ({ inner }) => {
+      GotStreamgraphMessage: ({ message }) => {
         const [streamgraph] = StreamgraphChart.update(
           model.streamgraph,
-          inner as StreamgraphChart.Message,
+          message as StreamgraphChart.Message,
         );
         return [{ ...model, streamgraph }, []];
       },

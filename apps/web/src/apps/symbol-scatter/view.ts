@@ -6,7 +6,7 @@ import type { Model } from './model';
 
 type ScatterMessage = ScatterChart.Message;
 
-const toParentMessage = (msg: ScatterMessage): Message => GotScatterMessage({ inner: msg });
+const toParentMessage = (msg: ScatterMessage): Message => GotScatterMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'MPG vs Horsepower — foldkit-viz',

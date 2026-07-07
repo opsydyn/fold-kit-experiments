@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotSankeyMessage: ({ inner }) => {
-        const [sankey] = SankeyChart.update(model.sankey, inner as SankeyChart.Message);
+      GotSankeyMessage: ({ message }) => {
+        const [sankey] = SankeyChart.update(model.sankey, message as SankeyChart.Message);
         return [{ ...model, sankey }, []];
       },
     }),

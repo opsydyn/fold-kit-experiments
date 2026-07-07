@@ -9,8 +9,8 @@ export const update = (model: Model, msg: Message): Return =>
   Match.value(msg).pipe(
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
-      GotColorSpacesMessage: ({ inner }) => {
-        const [chart] = ColorSpaces.update(model.chart, inner as ColorSpaces.Message);
+      GotColorSpacesMessage: ({ message }) => {
+        const [chart] = ColorSpaces.update(model.chart, message as ColorSpaces.Message);
         return [{ ...model, chart }, []];
       },
     }),

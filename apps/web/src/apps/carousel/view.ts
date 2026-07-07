@@ -30,7 +30,7 @@ const { div, button, Class, Style } = html<Message>();
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
-const toParentMessage = (msg: CarouselMessage): Message => GotCarouselMessage({ inner: msg });
+const toParentMessage = (msg: CarouselMessage): Message => GotCarouselMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: `Carousel — slide ${model.carousel.activeIndex + 1} of ${SLIDE_COUNT}`,

@@ -3,7 +3,11 @@ import { defineConfig } from 'oxlint';
 
 export default defineConfig({
   plugins: ['typescript', 'react'],
-  jsPlugins: [...recommended.jsPlugins, { name: 'foldkit', specifier: '@foldkit/oxlint-plugin' }],
+  jsPlugins: [
+    ...recommended.jsPlugins,
+    { name: 'foldkit', specifier: '@foldkit/oxlint-plugin' },
+    { name: 'vanilla-extract', specifier: '@antebudimir/eslint-plugin-vanilla-extract' },
+  ],
   rules: {
     ...recommended.rules,
 
@@ -16,6 +20,12 @@ export default defineConfig({
     'foldkit/prefer-callable-message-constructor': 'error',
     'foldkit/command-binding-matches-name': 'error',
     'foldkit/no-module-level-mutable-state': 'error',
+
+    // vanilla-extract CSS safety rules
+    'vanilla-extract/no-empty-style-blocks': 'error',
+    'vanilla-extract/no-unknown-unit': 'error',
+    'vanilla-extract/no-trailing-zero': 'warn',
+    'vanilla-extract/no-zero-unit': 'warn',
 
     // Biome rule equivalents — preserve the exact severities from biome.json
     '@typescript-eslint/no-explicit-any': 'off',

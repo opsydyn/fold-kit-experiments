@@ -6,11 +6,11 @@ Project conventions and agent guidance for this monorepo.
 
 Bun workspace monorepo. Three workspaces in active use:
 
-| Workspace | Path | Purpose |
-|---|---|---|
-| `@opsydyn/astro-foldkit` | `packages/astro-foldkit/` | Astro integration for Foldkit apps |
-| `@opsydyn/foldkit-viz` | `packages/foldkit-viz/` | D3-quality chart primitives (no D3 dep) |
-| `@opsydyn/web` | `apps/web/` | Demo app — 33 chart types, the integration test surface |
+| Workspace                | Path                      | Purpose                                                 |
+| ------------------------ | ------------------------- | ------------------------------------------------------- |
+| `@opsydyn/astro-foldkit` | `packages/astro-foldkit/` | Astro integration for Foldkit apps                      |
+| `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | D3-quality chart primitives (no D3 dep)                 |
+| `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types, the integration test surface |
 
 **Stack:** Foldkit (Elm Architecture on Effect-TS) · Astro · TypeScript · bun · oxlint · oxfmt
 
@@ -39,6 +39,7 @@ NODE_OPTIONS="--experimental-strip-types" bunx oxlint .
 The `bun run check` script already includes this flag — prefer `bun run check` over calling oxlint directly.
 
 Config files:
+
 - `oxlint.config.ts` — lint rules (recommended `@opsydyn/oxlint-effect` + `@foldkit/oxlint-plugin` + biome equivalents)
 - `.oxfmtrc.json` — formatter (100-char width, 2-space indent, single quotes, trailing commas, semicolons, import sorting)
 
@@ -67,13 +68,13 @@ type AppReturn = Return<Model, Message>;
 const myStep: Step<Model, Message> = (model) => [{ ...model, foo: 'bar' }, []];
 
 // combine — data-first (run now) or data-last (build a Step)
-combine(model, [stepA, stepB(args)])          // data-first: returns AppReturn
-combine([stepA, stepB(args)])                 // data-last: returns a Step
+combine(model, [stepA, stepB(args)]); // data-first: returns AppReturn
+combine([stepA, stepB(args)]); // data-last: returns a Step
 
 // refresh — builds a Step from a Refreshable descriptor
 const loadFoo: Step<Model, Message> = refresh<Model, Message, FooData, string>({
-  read: (model) => Option.some(model.foo),    // Option because keyed caches use HashMap.get
-  revalidate: revalidateOrLoad,               // Idle/Failure→Loading, Success→Refreshing
+  read: (model) => Option.some(model.foo), // Option because keyed caches use HashMap.get
+  revalidate: revalidateOrLoad, // Idle/Failure→Loading, Success→Refreshing
   write: (model, next) => ({ ...model, foo: next }),
   load: LoadFoo(),
 });
@@ -83,7 +84,15 @@ const loadFoo: Step<Model, Message> = refresh<Model, Message, FooData, string>({
 
 ```typescript
 // ✅ correct — named imports
-import { settle, revalidateOrLoad, revalidate, matchData, match, succeed, fail } from 'foldkit/asyncData';
+import {
+  settle,
+  revalidateOrLoad,
+  revalidate,
+  matchData,
+  match,
+  succeed,
+  fail,
+} from 'foldkit/asyncData';
 import type { AsyncData } from 'foldkit/asyncData';
 
 // ❌ wrong — AsyncData is not an exported value namespace
@@ -114,7 +123,7 @@ const current = fromOptionOrIdle(HashMap.get(model.cache, key));
 ### foldkit/html
 
 ```typescript
-import type { Document, Html } from 'foldkit/html';   // Html (not Html<Message>, not Node)
+import type { Document, Html } from 'foldkit/html'; // Html (not Html<Message>, not Node)
 import { html } from 'foldkit/html';
 ```
 
@@ -136,7 +145,7 @@ Inside the update handler, cast the field — the Schema type loses the override
 SettledSlides: ({ result: rawResult }) => {
   const result = rawResult as Result.Result<ReadonlyArray<Slide>, string>;
   // use result ...
-}
+};
 ```
 
 ## Imperative shell / functional core with Astro
@@ -163,7 +172,7 @@ export const init = (_props: unknown) => loadSlidesOnEntry(initModel);
 
 ```typescript
 import { Route } from 'foldkit';
-const isEntering = Route.isEntering<AppRoute>;  // pin your union once
+const isEntering = Route.isEntering<AppRoute>; // pin your union once
 
 // In ChangedUrl handler and init, same predicate:
 if (isEntering('DetailRoute')({ maybePreviousRoute, nextRoute })) {
@@ -175,13 +184,13 @@ if (isEntering('DetailRoute')({ maybePreviousRoute, nextRoute })) {
 
 From the Foldkit style guide (adapted):
 
-| Prefix | Use case | Example |
-|---|---|---|
-| `Clicked*` | Button/interactive press | `ClickedNext` |
-| `Got*` | Submodel result via Submodel pattern | `GotCarouselMessage` |
-| `Settled*` | AsyncData Command result (carries `Result`) | `SettledSlides` |
-| `Succeeded*` / `Failed*` | Two-message Command result | `SucceededFetchUser` |
-| `Completed*` | Fire-and-forget acknowledgment | `CompletedNavigate` |
+| Prefix                   | Use case                                    | Example              |
+| ------------------------ | ------------------------------------------- | -------------------- |
+| `Clicked*`               | Button/interactive press                    | `ClickedNext`        |
+| `Got*`                   | Submodel result via Submodel pattern        | `GotCarouselMessage` |
+| `Settled*`               | AsyncData Command result (carries `Result`) | `SettledSlides`      |
+| `Succeeded*` / `Failed*` | Two-message Command result                  | `SucceededFetchUser` |
+| `Completed*`             | Fire-and-forget acknowledgment              | `CompletedNavigate`  |
 
 `Settled*` messages always carry `result: Result.Result<A, E>` via `Schema.Unknown` + type override, settled with `AsyncData.settle` in the update arm.
 
@@ -192,6 +201,7 @@ From the Foldkit style guide (adapted):
 ## Foldkit version
 
 Currently on `foldkit@0.125.0`. New in this version:
+
 - `foldkit/update` — `combine`, `refresh`, `noOp`, `Step`, `Return`, `Refreshable` types
 - `foldkit/asyncData` — `fromOptionOrIdle`, `revalidateOrLoad`, `settle`, `matchData`
 - `Route.isEntering`, `RouteTransition` type

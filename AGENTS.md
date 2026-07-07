@@ -6,11 +6,11 @@ Agent guidance for this monorepo. Read this before writing any code.
 
 Bun workspace monorepo. Three active workspaces:
 
-| Workspace | Path | Purpose |
-|---|---|---|
-| `@opsydyn/astro-foldkit` | `packages/astro-foldkit/` | Astro integration for Foldkit |
-| `@opsydyn/foldkit-viz` | `packages/foldkit-viz/` | Chart primitives (no D3 dependency) |
-| `@opsydyn/web` | `apps/web/` | Demo app — 33 chart types |
+| Workspace                | Path                      | Purpose                             |
+| ------------------------ | ------------------------- | ----------------------------------- |
+| `@opsydyn/astro-foldkit` | `packages/astro-foldkit/` | Astro integration for Foldkit       |
+| `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | Chart primitives (no D3 dependency) |
+| `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types           |
 
 **Stack:** Foldkit 0.125.0 · Effect-TS · Astro · TypeScript · bun · oxlint · oxfmt
 
@@ -74,7 +74,7 @@ import { AsyncData } from 'foldkit/asyncData';
 ### foldkit/html
 
 ```typescript
-import type { Document, Html } from 'foldkit/html';  // Html, not Html<Message>, not Node
+import type { Document, Html } from 'foldkit/html'; // Html, not Html<Message>, not Node
 import { html } from 'foldkit/html';
 ```
 
@@ -141,18 +141,18 @@ Always cast inside the update handler — the union type carries the Schema type
 SettledFoo: ({ result: raw }) => {
   const result = raw as Result.Result<FooData, string>;
   // ...
-}
+};
 ```
 
 ## Message naming
 
-| Prefix | When | Example |
-|---|---|---|
-| `Clicked*` | User interaction | `ClickedNext` |
-| `Got*` | Submodel result | `GotCarouselMessage` |
-| `Settled*` | AsyncData result (Result-wrapped) | `SettledSlides` |
-| `Succeeded*` / `Failed*` | Two-branch Command result | `SucceededFetch` |
-| `Completed*` | Fire-and-forget | `CompletedNavigate` |
+| Prefix                   | When                              | Example              |
+| ------------------------ | --------------------------------- | -------------------- |
+| `Clicked*`               | User interaction                  | `ClickedNext`        |
+| `Got*`                   | Submodel result                   | `GotCarouselMessage` |
+| `Settled*`               | AsyncData result (Result-wrapped) | `SettledSlides`      |
+| `Succeeded*` / `Failed*` | Two-branch Command result         | `SucceededFetch`     |
+| `Completed*`             | Fire-and-forget                   | `CompletedNavigate`  |
 
 Messages are **past-tense facts** about what happened. Never imperative.
 

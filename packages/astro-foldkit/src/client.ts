@@ -24,6 +24,7 @@ export default (element: HTMLElement) =>
       init: () => (config as any).init(props),
       view,
       container: element,
+      preserveScroll: true,
     });
 
     const handle = Runtime.embed(program);

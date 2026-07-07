@@ -44,7 +44,7 @@ bun storybook    # chart storybook at http://localhost:6006
 | `bun build`     | Build all packages, then build the demo app |
 | `bun test`      | Run all tests across every workspace        |
 | `bun typecheck` | Typecheck all workspaces                    |
-| `bun check`     | Biome lint + format check                   |
+| `bun check`     | oxlint + oxfmt format check                 |
 
 To work within a single workspace, pass `--filter`:
 

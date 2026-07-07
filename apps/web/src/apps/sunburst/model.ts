@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as SunburstChart from '../../ui/sunburst-chart';
 
 export const Model = Schema.Struct({ sunburst: Schema.Unknown });

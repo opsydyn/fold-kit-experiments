@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as Bullet from '../../ui/bullet-chart';
 import type { Message } from './message';
 import { GotBulletMessage } from './message';

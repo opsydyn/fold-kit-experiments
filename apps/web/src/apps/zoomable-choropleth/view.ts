@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as ZChoropleth from '../../ui/zoomable-choropleth-map';
 import type { Message } from './message';
 import { GotZChoroplethMessage } from './message';

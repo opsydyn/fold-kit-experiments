@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import fc from 'fast-check';
+
 import { manyBodyForce } from '../../../src/simulation/forces/many-body';
 import type { SimNode } from '../../../src/simulation/types';
 

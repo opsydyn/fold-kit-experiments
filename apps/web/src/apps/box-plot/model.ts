@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as BoxChart from '../../ui/box-plot-chart';
 
 export const Model = Schema.Struct({ box: Schema.Unknown });

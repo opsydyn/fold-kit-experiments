@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as EasingMessage } from '../../ui/easing-curves-chart';
 
 export const GotEasingMessage = m('GotEasingMessage', { message: Schema.Unknown });

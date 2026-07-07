@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as Corr from '../../ui/correlation-matrix';
 import type { Message } from './message';
 import type { Model } from './model';

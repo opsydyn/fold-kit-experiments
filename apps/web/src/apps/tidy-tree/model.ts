@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as TidyTree from '../../ui/tidy-tree-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

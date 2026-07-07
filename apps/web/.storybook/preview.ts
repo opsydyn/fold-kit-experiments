@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/html';
+
 import '../src/styles/chart-tokens.css';
 
 const preview: Preview = {

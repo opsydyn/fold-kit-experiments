@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as TimelineChart from '../../ui/timeline-chart';
 import type { Message } from './message';
 import { GotTimelineMessage } from './message';

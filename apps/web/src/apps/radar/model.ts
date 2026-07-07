@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as RadarChart from '../../ui/radar-chart';
 
 export const Model = Schema.Struct({ radar: Schema.Unknown });

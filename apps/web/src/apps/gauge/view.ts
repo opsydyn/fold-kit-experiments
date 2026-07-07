@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as GaugeChart from '../../ui/gauge-chart';
 import type { Message } from './message';
 import { GotGaugeMessage } from './message';

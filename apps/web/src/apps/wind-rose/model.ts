@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as WR from '../../ui/wind-rose-chart';
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: WR.Model };

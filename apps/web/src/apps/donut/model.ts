@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as DonutChart from '../../ui/donut-chart';
 
 export const Model = Schema.Struct({ donut: Schema.Unknown });

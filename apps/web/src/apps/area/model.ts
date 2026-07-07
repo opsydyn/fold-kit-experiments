@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as AreaChart from '../../ui/area-chart';
 
 export const Model = Schema.Struct({ area: Schema.Unknown });

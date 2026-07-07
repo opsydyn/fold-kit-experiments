@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as Bullet from '../../ui/bullet-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

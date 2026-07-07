@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as TreemapChart from '../../ui/treemap-chart';
 
 export const Model = Schema.Struct({ treemap: Schema.Unknown });

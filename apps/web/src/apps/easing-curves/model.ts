@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as EasingCurves from '../../ui/easing-curves-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as ArcMessage } from '../../ui/arc-diagram';
 
 export const GotArcMessage = m('GotArcMessage', { message: Schema.Unknown });

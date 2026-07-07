@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as MapProjections from '../../ui/map-projections-chart';
 import type { Message } from './message';
 import { GotMapMessage } from './message';

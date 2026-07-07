@@ -2,6 +2,7 @@ import type { GeoFeature, GeoFeatureCollection } from '@opsydyn/foldkit-viz/shap
 import { Schema } from 'effect';
 import * as topojson from 'topojson-client';
 import countries110m from 'world-atlas/countries-110m.json';
+
 import * as ZChoropleth from '../../ui/zoomable-choropleth-map';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

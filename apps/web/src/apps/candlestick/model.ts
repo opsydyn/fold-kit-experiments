@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as CandleChart from '../../ui/candlestick-chart';
 
 export const Model = Schema.Struct({ candle: Schema.Unknown });

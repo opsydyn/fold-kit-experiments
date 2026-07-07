@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as CarouselMessage } from '../../ui/carousel';
 
 export const GotCarouselMessage = m('GotCarouselMessage', { message: Schema.Unknown });

@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as LineMessage } from '../../ui/line-chart';
 
 export const GotLineMessage = m('GotLineMessage', { message: Schema.Unknown });

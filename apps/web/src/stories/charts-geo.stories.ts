@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
+
 import * as ChoroplethApp from '../apps/choropleth/main';
 import * as MapProjectionsApp from '../apps/map-projections/main';
 import * as TileGridMapApp from '../apps/tile-grid-map/main';

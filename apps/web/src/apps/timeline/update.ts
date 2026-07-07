@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as TimelineChart from '../../ui/timeline-chart';
 import type { Message } from './message';
 import type { Model } from './model';

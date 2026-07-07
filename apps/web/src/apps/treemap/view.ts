@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as TreemapChart from '../../ui/treemap-chart';
 import type { Message } from './message';
 import { GotTreemapMessage } from './message';

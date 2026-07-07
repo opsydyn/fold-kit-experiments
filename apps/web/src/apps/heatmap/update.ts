@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as HeatmapChart from '../../ui/heatmap-chart';
 import type { Message } from './message';
 import type { Model } from './model';

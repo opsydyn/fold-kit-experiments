@@ -1,5 +1,6 @@
 import { allTweensDone, tweenStep } from '@opsydyn/foldkit-viz/math/tween';
 import { Match, Option } from 'effect';
+
 import type { Message } from './message';
 import type { Model } from './model';
 

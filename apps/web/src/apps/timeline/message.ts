@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as TimelineMessage } from '../../ui/timeline-chart';
 
 export const GotTimelineMessage = m('GotTimelineMessage', { message: Schema.Unknown });

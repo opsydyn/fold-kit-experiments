@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as DensityContour from '../../ui/density-contour-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

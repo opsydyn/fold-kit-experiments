@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as StreamgraphMessage } from '../../ui/streamgraph-chart';
 
 export const GotStreamgraphMessage = m('GotStreamgraphMessage', { message: Schema.Unknown });

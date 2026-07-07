@@ -1,4 +1,5 @@
 import type { Runtime } from 'foldkit';
+
 import { Message } from './message';
 import { init as initialModel, Model } from './model';
 import { update } from './update';

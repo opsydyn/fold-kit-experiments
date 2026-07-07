@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as TidyTree from '../../ui/tidy-tree-chart';
 import type { Message } from './message';
 import { GotTreeMessage } from './message';

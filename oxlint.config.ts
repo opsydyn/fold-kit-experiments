@@ -1,5 +1,5 @@
-import { defineConfig } from 'oxlint';
 import { recommended } from '@opsydyn/oxlint-effect';
+import { defineConfig } from 'oxlint';
 
 export default defineConfig({
   plugins: ['typescript'],

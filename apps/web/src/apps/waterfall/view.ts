@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as WaterfallChart from '../../ui/waterfall-chart';
 import type { Message } from './message';
 import { GotWaterfallMessage } from './message';

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as CandleChart from '../../ui/candlestick-chart';
 import type { Message } from './message';
 import { GotCandleMessage } from './message';

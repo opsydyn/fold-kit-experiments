@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as DensityContour from '../../ui/density-contour-chart';
 import type { Message } from './message';
 import type { Model } from './model';

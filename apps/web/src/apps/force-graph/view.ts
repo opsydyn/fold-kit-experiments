@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as ForceGraph from '../../ui/force-graph';
 import type { Message } from './message';
 import { GotGraphMessage } from './message';

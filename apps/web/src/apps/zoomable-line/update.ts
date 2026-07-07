@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as ZoomableLineChart from '../../ui/zoomable-line-chart';
 import type { Message } from './message';
 import type { Model } from './model';

@@ -1,4 +1,5 @@
 import { Subscription } from 'foldkit';
+
 import type { Message } from './message';
 import { TickedFrame } from './message';
 import type { Model } from './model';

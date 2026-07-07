@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as HistogramMessage } from '../../ui/histogram-chart';
 
 export const GotHistogramMessage = m('GotHistogramMessage', { message: Schema.Unknown });

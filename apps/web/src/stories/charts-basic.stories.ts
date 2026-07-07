@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
+
 import * as AreaApp from '../apps/area/main';
 import * as BarApp from '../apps/bar/main';
 import * as BubbleApp from '../apps/bubble/main';

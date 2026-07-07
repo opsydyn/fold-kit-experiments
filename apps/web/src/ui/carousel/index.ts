@@ -1,5 +1,4 @@
 import { Effect, Match, Option, pipe, Schema, Stream } from 'effect';
-
 import { Subscription } from 'foldkit';
 import type { Attribute, Html } from 'foldkit/html';
 import { html } from 'foldkit/html';

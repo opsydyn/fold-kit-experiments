@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as BoxChart from '../../ui/box-plot-chart';
 import type { Message } from './message';
 import { GotBoxMessage } from './message';

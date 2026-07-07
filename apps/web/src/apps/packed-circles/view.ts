@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as PackedChart from '../../ui/packed-circles-chart';
 import type { Message } from './message';
 import { GotPackedMessage } from './message';

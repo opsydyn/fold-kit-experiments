@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as Carousel from '../../ui/carousel';
 
 export const SLIDE_COUNT = 5;

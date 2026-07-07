@@ -1,5 +1,6 @@
 import type { Document, Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
+
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
 import type { Message } from './message';

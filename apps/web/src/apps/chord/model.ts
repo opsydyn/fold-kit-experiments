@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as ChordChart from '../../ui/chord-chart';
 
 export const Model = Schema.Struct({ chord: Schema.Unknown });

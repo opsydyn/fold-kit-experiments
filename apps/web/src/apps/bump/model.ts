@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as Bump from '../../ui/bump-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as WR from '../../ui/wind-rose-chart';
 import type { Message } from './message';
 import { GotWRMessage } from './message';

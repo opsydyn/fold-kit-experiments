@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as WaterfallChart from '../../ui/waterfall-chart';
 import type { Message } from './message';
 import type { Model } from './model';

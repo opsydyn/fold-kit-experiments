@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import fc from 'fast-check';
+
 import { collideForce } from '../../../src/simulation/forces/collide';
 import type { SimNode } from '../../../src/simulation/types';
 

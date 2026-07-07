@@ -1,5 +1,6 @@
 import { bisect } from '@opsydyn/foldkit-viz/math/array';
 import type { Html, html } from 'foldkit/html';
+
 import { r3 } from './math';
 
 type H<M> = ReturnType<typeof html<M>>;

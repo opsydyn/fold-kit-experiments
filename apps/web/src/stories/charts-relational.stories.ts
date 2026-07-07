@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
+
 import * as ArcDiagramApp from '../apps/arc-diagram/main';
 import * as ChordApp from '../apps/chord/main';
 import * as ForceGraphApp from '../apps/force-graph/main';

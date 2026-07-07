@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { makeElement } from 'foldkit/runtime';
+
 import * as AreaChart from '../ui/area-chart';
 import * as BarChart from '../ui/bar-chart';
 import * as LineChart from '../ui/line-chart';

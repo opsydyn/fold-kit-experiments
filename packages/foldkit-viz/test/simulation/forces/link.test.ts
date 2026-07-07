@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { linkForce } from '../../../src/simulation/forces/link';
 import type { SimNode } from '../../../src/simulation/types';
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { createSimulation } from '../../src/simulation/simulation';
 import type { SimNode } from '../../src/simulation/types';
 

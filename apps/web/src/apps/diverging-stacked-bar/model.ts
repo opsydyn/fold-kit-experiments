@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as DSB from '../../ui/diverging-stacked-bar';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

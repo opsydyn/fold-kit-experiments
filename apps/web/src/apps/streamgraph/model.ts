@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as StreamgraphChart from '../../ui/streamgraph-chart';
 
 export const Model = Schema.Struct({ streamgraph: Schema.Unknown });

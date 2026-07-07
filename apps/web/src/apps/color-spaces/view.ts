@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as ColorSpaces from '../../ui/color-spaces-chart';
 import type { Message } from './message';
 import { GotColorSpacesMessage } from './message';

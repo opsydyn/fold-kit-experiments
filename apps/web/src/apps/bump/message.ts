@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as BumpMessage } from '../../ui/bump-chart';
 
 export const GotBumpMessage = m('GotBumpMessage', { message: Schema.Unknown });

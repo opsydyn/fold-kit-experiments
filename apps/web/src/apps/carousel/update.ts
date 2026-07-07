@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as Carousel from '../../ui/carousel';
 import type { Message } from './message';
 import type { Model } from './model';

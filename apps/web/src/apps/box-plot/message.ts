@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as BoxMessage } from '../../ui/box-plot-chart';
 
 export const GotBoxMessage = m('GotBoxMessage', { message: Schema.Unknown });

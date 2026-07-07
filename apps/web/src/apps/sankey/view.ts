@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as SankeyChart from '../../ui/sankey-chart';
 import type { Message } from './message';
 import { GotSankeyMessage } from './message';

@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as ScatterChart from '../../ui/scatter-chart';
 
 export const Model = Schema.Struct({ scatter: Schema.Unknown });

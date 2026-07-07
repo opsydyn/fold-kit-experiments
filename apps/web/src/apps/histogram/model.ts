@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as HistogramChart from '../../ui/histogram-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

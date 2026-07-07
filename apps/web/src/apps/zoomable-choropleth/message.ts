@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as ZChoroplethMessage } from '../../ui/zoomable-choropleth-map';
 
 export const GotZChoroplethMessage = m('GotZChoroplethMessage', { message: Schema.Unknown });

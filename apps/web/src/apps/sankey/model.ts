@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as SankeyChart from '../../ui/sankey-chart';
 
 export const Model = Schema.Struct({ sankey: Schema.Unknown });

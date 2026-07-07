@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as ViolinMessage } from '../../ui/violin-chart';
 
 export const GotViolinMessage = m('GotViolinMessage', { message: Schema.Unknown });

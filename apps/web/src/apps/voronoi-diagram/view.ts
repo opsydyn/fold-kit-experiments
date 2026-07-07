@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as Voronoi from '../../ui/voronoi-chart';
 import type { Message } from './message';
 import { GotVoronoiMessage } from './message';

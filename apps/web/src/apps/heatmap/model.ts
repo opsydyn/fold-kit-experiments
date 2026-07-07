@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as HeatmapChart from '../../ui/heatmap-chart';
 
 export const Model = Schema.Struct({ heatmap: Schema.Unknown });

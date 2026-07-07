@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as LogScatter from '../../ui/log-scatter-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

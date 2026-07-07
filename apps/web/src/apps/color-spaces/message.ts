@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as ColorSpacesMessage } from '../../ui/color-spaces-chart';
 
 export const GotColorSpacesMessage = m('GotColorSpacesMessage', { message: Schema.Unknown });

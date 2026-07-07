@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as RadarChart from '../../ui/radar-chart';
 import type { Message } from './message';
 import { GotRadarMessage } from './message';

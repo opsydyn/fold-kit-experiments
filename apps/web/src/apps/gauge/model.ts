@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as GaugeChart from '../../ui/gauge-chart';
 
 export const Model = Schema.Struct({ gauge: Schema.Unknown });

@@ -3,6 +3,7 @@ import { tweenValue } from '@opsydyn/foldkit-viz/math/tween';
 import { Option } from 'effect';
 import type { Document, Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
+
 import type { Message } from './message';
 import { BlurredBar, HoveredBar } from './message';
 import type { Model } from './model';

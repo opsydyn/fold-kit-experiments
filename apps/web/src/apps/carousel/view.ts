@@ -2,11 +2,12 @@ import type { Document } from 'foldkit/html';
 import { html } from 'foldkit/html';
 
 import * as Carousel from '../../ui/carousel';
-import * as styles from './carousel.css';
 import type { Message } from './message';
 import { GotCarouselMessage } from './message';
 import type { Model } from './model';
 import { SLIDE_COUNT } from './model';
+
+import * as styles from './carousel.css';
 
 type CarouselMessage = Carousel.Message;
 

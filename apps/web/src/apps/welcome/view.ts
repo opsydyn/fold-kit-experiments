@@ -3,6 +3,7 @@ import { html } from 'foldkit/html';
 
 import type { Message } from './message';
 import type { Model } from './model';
+
 import * as styles from './welcome.css';
 
 const { div, p, a, Class, Href } = html<Message>();

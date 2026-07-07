@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
+
 import * as AnimatedBarApp from '../apps/animated-bar/main';
 import * as BulletApp from '../apps/bullet/main';
 import * as BumpApp from '../apps/bump/main';

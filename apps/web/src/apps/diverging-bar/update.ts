@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as DivBar from '../../ui/diverging-bar-chart';
 import type { Message } from './message';
 import type { Model } from './model';

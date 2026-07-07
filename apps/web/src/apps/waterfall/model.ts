@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as WaterfallChart from '../../ui/waterfall-chart';
 
 export const Model = Schema.Struct({ waterfall: Schema.Unknown });

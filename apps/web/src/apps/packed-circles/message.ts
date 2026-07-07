@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as PackedMessage } from '../../ui/packed-circles-chart';
 
 export const GotPackedMessage = m('GotPackedMessage', { message: Schema.Unknown });

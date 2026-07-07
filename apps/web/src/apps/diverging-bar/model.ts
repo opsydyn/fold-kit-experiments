@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as DivBar from '../../ui/diverging-bar-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

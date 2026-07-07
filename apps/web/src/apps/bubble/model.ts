@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as BubbleChart from '../../ui/bubble-chart';
 
 export const Model = Schema.Struct({ bubble: Schema.Unknown });

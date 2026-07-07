@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as Choropleth from '../../ui/choropleth-map';
 import type { Message } from './message';
 import { GotChoroplethMessage } from './message';

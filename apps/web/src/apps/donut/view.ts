@@ -3,10 +3,11 @@ import type { Document } from 'foldkit/html';
 import { html } from 'foldkit/html';
 
 import * as DonutChart from '../../ui/donut-chart';
-import * as styles from './donut.css';
 import type { Message } from './message';
 import { GotDonutMessage } from './message';
 import type { Model } from './model';
+
+import * as styles from './donut.css';
 
 type DonutMessage = DonutChart.Message;
 

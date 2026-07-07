@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as GaugeMessage } from '../../ui/gauge-chart';
 
 export const GotGaugeMessage = m('GotGaugeMessage', { message: Schema.Unknown });

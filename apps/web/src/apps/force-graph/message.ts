@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as GraphMessage } from '../../ui/force-graph';
 
 export const GotGraphMessage = m('GotGraphMessage', { message: Schema.Unknown });

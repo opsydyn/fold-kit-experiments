@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as Corr from '../../ui/correlation-matrix';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

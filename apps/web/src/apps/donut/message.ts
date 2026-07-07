@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as DonutMessage } from '../../ui/donut-chart';
 
 export const GotDonutMessage = m('GotDonutMessage', { message: Schema.Unknown });

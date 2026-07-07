@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as ChordMessage } from '../../ui/chord-chart';
 
 export const GotChordMessage = m('GotChordMessage', { message: Schema.Unknown });

@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as TreemapMessage } from '../../ui/treemap-chart';
 
 export const GotTreemapMessage = m('GotTreemapMessage', { message: Schema.Unknown });

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as EasingCurves from '../../ui/easing-curves-chart';
 import type { Message } from './message';
 import { GotEasingMessage } from './message';

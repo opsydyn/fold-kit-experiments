@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as ParallelCoordsChart from '../../ui/parallel-coords-chart';
 import type { Message } from './message';
 import { GotParallelCoordsMessage } from './message';

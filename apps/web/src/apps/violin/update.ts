@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as ViolinChart from '../../ui/violin-chart';
 import type { Message } from './message';
 import type { Model } from './model';

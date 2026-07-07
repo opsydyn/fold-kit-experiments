@@ -1,9 +1,11 @@
 import type { Document } from 'foldkit/html';
 import { html } from 'foldkit/html';
-import * as styles from './greeting.css';
+
 import type { Message } from './message';
 import { Reset } from './message';
 import type { Model } from './model';
+
+import * as styles from './greeting.css';
 
 const { div, p, button, Class, OnClick } = html<Message>();
 

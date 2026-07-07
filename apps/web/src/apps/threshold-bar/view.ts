@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as ThresholdBar from '../../ui/threshold-bar-chart';
 import type { Message } from './message';
 import { GotThresholdBarMessage } from './message';

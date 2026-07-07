@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as CalendarMessage } from '../../ui/calendar-heatmap-chart';
 
 export const GotCalendarMessage = m('GotCalendarMessage', { message: Schema.Unknown });

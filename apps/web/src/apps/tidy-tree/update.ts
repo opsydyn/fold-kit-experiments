@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as TidyTree from '../../ui/tidy-tree-chart';
 import type { Message } from './message';
 import type { Model } from './model';

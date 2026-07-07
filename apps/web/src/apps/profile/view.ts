@@ -4,6 +4,7 @@ import { html } from 'foldkit/html';
 import type { Message } from './message';
 import { ClickedSave, UpdatedDraft } from './message';
 import type { Model } from './model';
+
 import * as styles from './profile.css';
 
 const { div, p, input, button, label, a, Class, OnClick, OnInput, Value, Placeholder, Type, Href } =

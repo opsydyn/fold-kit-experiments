@@ -6,6 +6,7 @@
  * we also test with hand-crafted vdom shapes that match the expected format.
  */
 import { describe, expect, it } from 'bun:test';
+
 import { collectAttr, collectText, countElements, findNodes } from './collect-html';
 
 // ── Mock vdom helpers ─────────────────────────────────────────────────────────

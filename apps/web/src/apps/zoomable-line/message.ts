@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as ZoomableLineMessage } from '../../ui/zoomable-line-chart';
 
 export const GotZoomableLineMessage = m('GotZoomableLineMessage', { message: Schema.Unknown });

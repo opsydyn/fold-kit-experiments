@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as BarMessage } from '../../ui/bar-chart';
 
 export const GotBarMessage = m('GotBarMessage', { message: Schema.Unknown });

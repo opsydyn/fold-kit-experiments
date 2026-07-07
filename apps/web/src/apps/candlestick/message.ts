@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as CandleMessage } from '../../ui/candlestick-chart';
 
 export const GotCandleMessage = m('GotCandleMessage', { message: Schema.Unknown });

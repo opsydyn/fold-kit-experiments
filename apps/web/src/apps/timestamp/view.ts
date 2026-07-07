@@ -3,6 +3,7 @@ import { html } from 'foldkit/html';
 
 import type { Message } from './message';
 import type { Model } from './model';
+
 import * as styles from './timestamp.css';
 
 const { div, Class } = html<Message>();

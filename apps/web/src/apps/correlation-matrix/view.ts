@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as Corr from '../../ui/correlation-matrix';
 import type { Message } from './message';
 import { GotCorrMessage } from './message';

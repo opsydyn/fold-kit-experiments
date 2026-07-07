@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as TG from '../../ui/tile-grid-map';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

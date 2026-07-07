@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as CorrMessage } from '../../ui/correlation-matrix';
 
 export const GotCorrMessage = m('GotCorrMessage', { message: Schema.Unknown });

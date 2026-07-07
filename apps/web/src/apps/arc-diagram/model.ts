@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as Arc from '../../ui/arc-diagram';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

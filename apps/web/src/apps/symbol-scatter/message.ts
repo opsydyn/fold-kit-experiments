@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as ScatterMessage } from '../../ui/symbol-scatter-chart';
 
 export const GotScatterMessage = m('GotScatterMessage', { message: Schema.Unknown });

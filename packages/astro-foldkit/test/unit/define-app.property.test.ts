@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import fc from 'fast-check';
+
 import { defineApp } from '../../src/define-app';
 import { check } from '../../src/server';
 import type { AppConfig } from '../../src/types';

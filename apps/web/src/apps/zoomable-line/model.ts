@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as ZoomableLineChart from '../../ui/zoomable-line-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

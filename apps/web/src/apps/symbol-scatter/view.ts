@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as ScatterChart from '../../ui/symbol-scatter-chart';
 import type { Message } from './message';
 import { GotScatterMessage } from './message';

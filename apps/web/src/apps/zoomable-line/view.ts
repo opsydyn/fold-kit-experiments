@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as ZoomableLineChart from '../../ui/zoomable-line-chart';
 import type { Message } from './message';
 import { GotZoomableLineMessage } from './message';

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { makeNoMetaView, shouldSkipMetadata } from '../../src/client-helpers';
 
 describe('shouldSkipMetadata', () => {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import fc from 'fast-check';
+
 import { check } from '../../src/server';
 
 describe('check — properties', () => {

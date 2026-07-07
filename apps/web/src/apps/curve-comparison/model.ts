@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as CurveComparison from '../../ui/curve-comparison-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

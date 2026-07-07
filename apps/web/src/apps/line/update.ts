@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as LineChart from '../../ui/line-chart';
 import type { Message } from './message';
 import type { Model } from './model';

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as Arc from '../../ui/arc-diagram';
 import type { Message } from './message';
 import { GotArcMessage } from './message';

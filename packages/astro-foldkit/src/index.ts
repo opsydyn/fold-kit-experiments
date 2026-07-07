@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+
 import { foldkit as foldkitVitePlugin } from '@foldkit/vite-plugin';
 import type { AstroIntegration } from 'astro';
 

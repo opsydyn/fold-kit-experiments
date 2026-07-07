@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as DSBMessage } from '../../ui/diverging-stacked-bar';
 
 export const GotDSBMessage = m('GotDSBMessage', { message: Schema.Unknown });

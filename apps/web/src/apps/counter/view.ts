@@ -2,6 +2,7 @@ import { Array as Arr, Newtype, Option } from 'effect';
 import { Canvas } from 'foldkit';
 import type { Document } from 'foldkit/html';
 import { html } from 'foldkit/html';
+
 import {
   ALPHA_EPSILON,
   CANVAS_HEIGHT,
@@ -19,13 +20,14 @@ import {
   HEAD_RADIUS,
   SATURATION,
 } from './constant';
-import * as styles from './counter.css';
 import type { Message } from './message';
 import { ClickedDecrement, ClickedIncrement, ClickedReset } from './message';
 import type { Model } from './model';
 import { _count } from './model';
 import type { Particle, Point } from './particle';
 import { _age, _hue, _lifespan, _px, _py } from './particle';
+
+import * as styles from './counter.css';
 
 const { div, button, Class, OnClick } = html<Message>();
 

@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as TimelineChart from '../../ui/timeline-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

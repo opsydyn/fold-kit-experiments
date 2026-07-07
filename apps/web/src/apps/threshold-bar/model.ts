@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as ThresholdBar from '../../ui/threshold-bar-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

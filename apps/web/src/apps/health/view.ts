@@ -1,8 +1,10 @@
 import type { Document } from 'foldkit/html';
 import { html } from 'foldkit/html';
-import * as styles from './health.css';
+
 import type { Message } from './message';
 import type { Model } from './model';
+
+import * as styles from './health.css';
 
 const { div, Class } = html<Message>();
 

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as PhyllotaxisChart from '../../ui/phyllotaxis-chart';
 import type { Message } from './message';
 import { GotPhyllotaxisMessage } from './message';

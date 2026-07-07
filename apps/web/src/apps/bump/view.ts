@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as Bump from '../../ui/bump-chart';
 import type { Message } from './message';
 import { GotBumpMessage } from './message';

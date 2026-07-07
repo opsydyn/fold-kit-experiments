@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as RadialTree from '../../ui/radial-tree-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

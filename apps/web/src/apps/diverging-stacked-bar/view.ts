@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as DSB from '../../ui/diverging-stacked-bar';
 import type { Message } from './message';
 import { GotDSBMessage } from './message';

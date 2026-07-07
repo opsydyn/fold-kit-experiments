@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as ScatterChart from '../../ui/symbol-scatter-chart';
 import type { Message } from './message';
 import type { Model } from './model';

@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as MapMessage } from '../../ui/map-projections-chart';
 
 export const GotMapMessage = m('GotMapMessage', { message: Schema.Unknown });

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as HistogramChart from '../../ui/histogram-chart';
 import type { Message } from './message';
 import { GotHistogramMessage } from './message';

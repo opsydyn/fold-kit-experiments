@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as TG from '../../ui/tile-grid-map';
 import type { Message } from './message';
 import { GotTGMessage } from './message';

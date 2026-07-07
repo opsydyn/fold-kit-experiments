@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as Voronoi from '../../ui/voronoi-chart';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });

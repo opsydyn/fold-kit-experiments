@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import fc from 'fast-check';
+
 import { createQuadtree, isInternal, isLeaf } from '../../src/simulation/quadtree';
 import type { SimNode } from '../../src/simulation/types';
 

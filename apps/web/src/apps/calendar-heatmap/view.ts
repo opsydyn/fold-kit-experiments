@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as CalendarHeatmapChart from '../../ui/calendar-heatmap-chart';
 import type { Message } from './message';
 import { GotCalendarMessage } from './message';

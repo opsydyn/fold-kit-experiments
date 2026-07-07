@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as RadarMessage } from '../../ui/radar-chart';
 
 export const GotRadarMessage = m('GotRadarMessage', { message: Schema.Unknown });

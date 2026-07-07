@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as Bullet from '../../ui/bullet-chart';
 import type { Message } from './message';
 import type { Model } from './model';

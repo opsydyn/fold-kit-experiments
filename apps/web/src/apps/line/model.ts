@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as LineChart from '../../ui/line-chart';
 
 export const Model = Schema.Struct({ line: Schema.Unknown });

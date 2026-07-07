@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as DSB from '../../ui/diverging-stacked-bar';
 import type { Message } from './message';
 import type { Model } from './model';

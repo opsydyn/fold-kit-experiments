@@ -3,6 +3,7 @@ import { Schema } from 'effect';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+
 import { svgRoot } from '../shared';
 
 // MODEL

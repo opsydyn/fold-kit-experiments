@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as PackedChart from '../../ui/packed-circles-chart';
 
 export const Model = Schema.Struct({ packed: Schema.Unknown });

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as StreamgraphChart from '../../ui/streamgraph-chart';
 import type { Message } from './message';
 import { GotStreamgraphMessage } from './message';

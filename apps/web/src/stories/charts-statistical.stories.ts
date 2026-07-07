@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/html';
+
 import * as BoxPlotApp from '../apps/box-plot/main';
 import * as CalendarHeatmapApp from '../apps/calendar-heatmap/main';
 import * as DensityContourApp from '../apps/density-contour/main';

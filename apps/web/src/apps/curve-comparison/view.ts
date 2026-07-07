@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as CurveComparison from '../../ui/curve-comparison-chart';
 import type { Message } from './message';
 import { GotCurveMessage } from './message';

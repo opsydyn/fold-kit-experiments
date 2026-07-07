@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as HeatmapChart from '../../ui/heatmap-chart';
 import type { Message } from './message';
 import { GotHeatmapMessage } from './message';

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as ChordChart from '../../ui/chord-chart';
 import type { Message } from './message';
 import { GotChordMessage } from './message';

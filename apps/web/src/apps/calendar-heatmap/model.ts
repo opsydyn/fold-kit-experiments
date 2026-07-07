@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as CalendarHeatmapChart from '../../ui/calendar-heatmap-chart';
 
 export const Model = Schema.Struct({ calendar: Schema.Unknown });

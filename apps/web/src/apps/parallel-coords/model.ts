@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as ParallelCoordsChart from '../../ui/parallel-coords-chart';
 
 export const Model = Schema.Struct({ parallelCoords: Schema.Unknown });

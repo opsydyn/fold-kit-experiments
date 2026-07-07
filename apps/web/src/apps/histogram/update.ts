@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as HistogramChart from '../../ui/histogram-chart';
 import type { Message } from './message';
 import type { Model } from './model';

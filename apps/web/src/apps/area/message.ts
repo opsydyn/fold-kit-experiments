@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as AreaMessage } from '../../ui/area-chart';
 
 export const GotAreaMessage = m('GotAreaMessage', { message: Schema.Unknown });

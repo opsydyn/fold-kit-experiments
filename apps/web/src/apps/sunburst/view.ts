@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as SunburstChart from '../../ui/sunburst-chart';
 import type { Message } from './message';
 import { GotSunburstMessage } from './message';

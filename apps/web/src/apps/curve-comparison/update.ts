@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as CurveComparison from '../../ui/curve-comparison-chart';
 import type { Message } from './message';
 import type { Model } from './model';

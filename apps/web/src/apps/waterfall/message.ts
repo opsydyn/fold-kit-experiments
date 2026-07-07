@@ -1,5 +1,6 @@
 import { Schema } from 'effect';
 import { m } from 'foldkit/message';
+
 import type { Message as WaterfallMessage } from '../../ui/waterfall-chart';
 
 export const GotWaterfallMessage = m('GotWaterfallMessage', { message: Schema.Unknown });

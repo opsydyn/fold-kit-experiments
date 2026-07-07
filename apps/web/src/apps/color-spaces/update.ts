@@ -1,4 +1,5 @@
 import { Match } from 'effect';
+
 import * as ColorSpaces from '../../ui/color-spaces-chart';
 import type { Message } from './message';
 import type { Model } from './model';

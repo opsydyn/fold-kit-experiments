@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as LogScatter from '../../ui/log-scatter-chart';
 import type { Message } from './message';
 import { GotLogScatterMessage } from './message';

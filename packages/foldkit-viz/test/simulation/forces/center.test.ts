@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import { centerForce } from '../../../src/simulation/forces/center';
 import type { SimNode } from '../../../src/simulation/types';
 

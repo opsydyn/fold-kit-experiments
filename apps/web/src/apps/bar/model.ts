@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+
 import * as BarChart from '../../ui/bar-chart';
 
 export const Model = Schema.Struct({ bar: Schema.Unknown });

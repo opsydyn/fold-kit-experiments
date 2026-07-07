@@ -1,5 +1,6 @@
 import { runForceLayout } from '@opsydyn/foldkit-viz/simulation';
 import { Schema } from 'effect';
+
 import * as ForceGraph from '../../ui/force-graph';
 
 export const Model = Schema.Struct({ graph: Schema.Unknown });

@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as DivBar from '../../ui/diverging-bar-chart';
 import type { Message } from './message';
 import { GotDivBarMessage } from './message';

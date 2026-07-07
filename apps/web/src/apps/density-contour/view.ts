@@ -1,4 +1,5 @@
 import type { Document } from 'foldkit/html';
+
 import * as DensityContour from '../../ui/density-contour-chart';
 import type { Message } from './message';
 import { GotDensityContourMessage } from './message';

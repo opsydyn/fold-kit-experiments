@@ -4,6 +4,7 @@ import { Mount } from 'foldkit';
 import type { Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 import { m } from 'foldkit/message';
+
 import type { Dims, Layout, Margins } from '../shared';
 import {
   arrowKeyNav,

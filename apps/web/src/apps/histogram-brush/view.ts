@@ -45,9 +45,10 @@ export const view = (model: Model): Document => {
     ariaLabel: 'Scatter — response time vs error rate',
   });
 
-  const rangeLabel = hasBrush && brushDomain !== null
-    ? `${Math.round(brushDomain[0])}ms – ${Math.round(brushDomain[1])}ms`
-    : 'All requests';
+  const rangeLabel =
+    hasBrush && brushDomain !== null
+      ? `${Math.round(brushDomain[0])}ms – ${Math.round(brushDomain[1])}ms`
+      : 'All requests';
 
   const countLabel = hasBrush ? `${filteredCount} of ${totalCount} points` : `${totalCount} points`;
 

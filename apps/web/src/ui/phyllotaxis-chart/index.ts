@@ -417,24 +417,8 @@ export function view<M>(config: {
       '0.65rem',
       toParentMessage(ClickedCenter()),
     ),
-    textBtn(
-      h,
-      'Reset',
-      BTN_TEXT_X,
-      resetY,
-      BTN_TEXT_W,
-      '0.65rem',
-      toParentMessage(ClickedReset()),
-    ),
-    textBtn(
-      h,
-      'Clear',
-      BTN_TEXT_X,
-      clearY,
-      BTN_TEXT_W,
-      '0.65rem',
-      toParentMessage(ClickedClear()),
-    ),
+    textBtn(h, 'Reset', BTN_TEXT_X, resetY, BTN_TEXT_W, '0.65rem', toParentMessage(ClickedReset())),
+    textBtn(h, 'Clear', BTN_TEXT_X, clearY, BTN_TEXT_W, '0.65rem', toParentMessage(ClickedClear())),
 
     // Mini map toggle (bottom-right, inside clip)
     h.g(

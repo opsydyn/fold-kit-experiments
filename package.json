@@ -11,9 +11,9 @@
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build",
     "test": "bun run --filter '*' test",
     "typecheck": "bun run --filter '*' typecheck",
-    "check": "biome check .",
+    "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "storybook": "bun run --filter @opsydyn/web storybook",
-    "check:fix": "biome check --write ."
+    "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix ."
   },
   "devDependencies": {
     "@effect/language-service": "^0.86.2",

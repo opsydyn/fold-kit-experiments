@@ -4,7 +4,8 @@ import type { Message } from './message';
 import { GotCurveMessage } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: CurveComparison.Message): Message => GotCurveMessage({ message: msg });
+const toParentMessage = (msg: CurveComparison.Message): Message =>
+  GotCurveMessage({ message: msg });
 
 export const view = (model: Model): Document => ({
   title: 'Curve interpolation — foldkit-viz',

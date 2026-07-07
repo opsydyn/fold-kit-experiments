@@ -14,15 +14,11 @@ const BRUSH_TAGS = new Set([
   'RecordedSvgBounds',
 ]);
 
-const applyBrushFilter = (
-  model: Model,
-  histogram: Histogram.Model,
-): Return => {
+const applyBrushFilter = (model: Model, histogram: Histogram.Model): Return => {
   const brushedDomainOpt = Histogram.getBrushDomain(histogram);
   const filteredPoints = Option.isSome(brushedDomainOpt)
     ? model.allPoints.filter(
-        (point) =>
-          point.x >= brushedDomainOpt.value[0] && point.x <= brushedDomainOpt.value[1],
+        (point) => point.x >= brushedDomainOpt.value[0] && point.x <= brushedDomainOpt.value[1],
       )
     : model.allPoints;
   const [scatter] = Scatter.update(

@@ -131,14 +131,28 @@ export const update = (model: Model, msg: Message): Return =>
       HoveredPoint: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
       BlurredPoint: () => [{ ...model, activeIndex: Option.none() }, []],
       RecordedChartBounds: ({ screenLeft, screenTop, renderedPW, renderedPH }) => [
-        { ...model, svgBounds: Option.some({ screenLeft, screenTop, renderedPW, renderedPH }) },
+        {
+          ...model,
+          svgBounds: Option.some({
+            screenLeft,
+            screenTop,
+            renderedPW,
+            renderedPH,
+          }),
+        },
         [],
       ],
       UpdatedPoints: ({ points }) => [{ ...model, points: points as ReadonlyArray<Point> }, []],
       PressedKeyNav: ({ direction }) => {
         const n = model.points.length;
         const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
-        return [{ ...model, activeIndex: Option.some(nextIndex(n, current, direction)) }, []];
+        return [
+          {
+            ...model,
+            activeIndex: Option.some(nextIndex(n, current, direction)),
+          },
+          [],
+        ];
       },
     }),
   );

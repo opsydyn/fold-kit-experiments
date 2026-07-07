@@ -10,7 +10,10 @@ export const update = (model: Model, msg: Message): Return =>
     Match.withReturnType<Return>(),
     Match.tagsExhaustive({
       GotWaterfallMessage: ({ message }) => {
-        const [waterfall] = WaterfallChart.update(model.waterfall, message as WaterfallChart.Message);
+        const [waterfall] = WaterfallChart.update(
+          model.waterfall,
+          message as WaterfallChart.Message,
+        );
         return [{ ...model, waterfall }, []];
       },
     }),

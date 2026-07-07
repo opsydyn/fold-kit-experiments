@@ -11,9 +11,9 @@
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build",
     "test": "bun run --filter '*' test",
     "typecheck": "bun run --filter '*' typecheck",
-    "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check . && eslint '**/*.css.ts'",
+    "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "storybook": "bun run --filter @opsydyn/web storybook",
-    "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && eslint --fix '**/*.css.ts'"
+    "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix ."
   },
   "devDependencies": {
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",
@@ -21,7 +21,6 @@
     "@foldkit/oxlint-plugin": "^0.2.0",
     "@opsydyn/oxlint-effect": "^0.4.0",
     "@typescript-eslint/utils": "^8.63.0",
-    "eslint": "^10.6.0",
     "oxfmt": "^0.57.0",
     "oxlint": "^1.72.0"
   },

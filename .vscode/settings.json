@@ -1,4 +1,15 @@
 {
   "biome.enabled": false,
-  "oxc.path.node": "/Users/alan/.nvm/versions/node/v22.12.0/bin/node"
+  "oxc.enable": true,
+  // The oxc extension launches `node <oxlint> --lsp`. Loading oxlint.config.ts
+  // (a TypeScript config) requires native type stripping, which is on by default
+  // only in Node >= 22.18 / 23.6. Node 24 works; Node 22.12 / 23.3 fail with
+  // "Unknown file extension .ts" and the language server produces no diagnostics.
+  "oxc.path.node": "/Users/alan/.nvm/versions/node/v24.14.0/bin/node",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "editor.codeActionsOnSave": {
+    "source.format.oxc": "always"
+  }
 }

@@ -1,4 +1,4 @@
 {
   "biome.enabled": false,
-  "oxc.path.node": "/usr/local/bin/node"
+  "oxc.path.node": "/Users/alan/.nvm/versions/node/v22.12.0/bin/node"
 }

@@ -1,7 +1,12 @@
 import { Message } from './message';
-import { init, Model } from './model';
+import { initModel, Model } from './model';
 import { subscriptions } from './subscription';
-import { update } from './update';
+import { loadSlidesOnEntry, update } from './update';
 import { view } from './view';
 
-export { init, Message, Model, subscriptions, update, view };
+export { Message, Model, subscriptions, update, view };
+
+// init fires loadSlidesOnEntry as a Step: transitions slides Idle→Loading
+// and emits LoadSlides. Works identically for cold loads and future
+// navigation re-entries (Route.isEntering pattern).
+export const init = (_props: unknown) => loadSlidesOnEntry(initModel);

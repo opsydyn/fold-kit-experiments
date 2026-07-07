@@ -2,7 +2,7 @@ import { recommended } from '@opsydyn/oxlint-effect';
 import { defineConfig } from 'oxlint';
 
 export default defineConfig({
-  plugins: ['typescript'],
+  plugins: ['typescript', 'react'],
   jsPlugins: [...recommended.jsPlugins, { name: 'foldkit', specifier: '@foldkit/oxlint-plugin' }],
   rules: {
     ...recommended.rules,

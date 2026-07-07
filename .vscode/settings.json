@@ -1,5 +1,4 @@
 {
   "biome.enabled": false,
-  "eslint.useFlatConfig": true,
-  "eslint.validate": ["typescript"]
+  "oxc.path.node": "/usr/local/bin/node"
 }

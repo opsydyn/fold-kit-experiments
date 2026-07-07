@@ -1,4 +1,4 @@
 {
-  "recommendations": ["astro-build.astro-vscode", "oxc.oxc-vscode", "dbaeumer.vscode-eslint"],
+  "recommendations": ["astro-build.astro-vscode", "oxc.oxc-vscode"],
   "unwantedRecommendations": ["biomejs.biome"]
 }

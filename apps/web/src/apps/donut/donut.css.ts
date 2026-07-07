@@ -23,10 +23,10 @@ export const layout = style({
 export const card = style([
   layout,
   {
-    background: 'var(--card-bg, #12121f)',
-    border: '1px solid var(--card-border, #1e1e33)',
     transition: 'background 180ms, border-color 180ms',
+    border: '1px solid var(--card-border, #1e1e33)',
     borderRadius: '16px',
+    background: 'var(--card-bg, #12121f)',
     padding: '2rem',
     maxWidth: '520px',
   },
@@ -45,9 +45,9 @@ globalStyle(`${chartWrapper} svg:focus-visible`, {
 
 export const legend = style({
   display: 'flex',
+  flex: 1,
   flexDirection: 'column',
   gap: '0.6rem',
-  flex: 1,
   minWidth: 0,
 });
 
@@ -62,24 +62,24 @@ export const legendRow = style({
 });
 
 export const swatch = style({
+  flexShrink: 0,
+  borderRadius: '2px',
   width: '10px',
   height: '10px',
-  borderRadius: '2px',
-  flexShrink: 0,
 });
 
 export const legendLabel = style({
-  fontSize: '0.875rem',
-  color: 'var(--page-text, #e8e8ff)',
   flex: 1,
   minWidth: 0,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
+  color: 'var(--page-text, #e8e8ff)',
+  fontSize: '0.875rem',
 });
 
 export const legendValue = style({
-  fontSize: '0.875rem',
   color: 'var(--chart-label, #888)',
+  fontSize: '0.875rem',
   fontVariantNumeric: 'tabular-nums',
 });

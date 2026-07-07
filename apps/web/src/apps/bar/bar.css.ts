@@ -7,10 +7,10 @@ export const page = style({
 });
 
 export const card = style({
-  background: 'var(--card-bg, #12121f)',
-  border: '1px solid var(--card-border, #1e1e33)',
   transition: 'background 180ms, border-color 180ms',
+  border: '1px solid var(--card-border, #1e1e33)',
   borderRadius: '16px',
+  background: 'var(--card-bg, #12121f)',
   padding: '1.5rem',
   width: '100%',
   maxWidth: '560px',

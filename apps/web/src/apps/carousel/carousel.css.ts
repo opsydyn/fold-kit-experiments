@@ -18,36 +18,36 @@ export const slideContainer = style({
 });
 
 export const slide = style({
-  flex: '0 0 100%',
-  minWidth: 0,
-  height: '320px',
   display: 'flex',
+  flex: '0 0 100%',
   flexDirection: 'column',
   justifyContent: 'flex-end',
   padding: '2rem',
+  minWidth: 0,
+  height: '320px',
 });
 
 export const slideNumber = style({
+  opacity: 0.25,
+  lineHeight: 1,
+  color: '#111',
   fontSize: '4rem',
   fontWeight: 800,
-  lineHeight: 1,
-  opacity: 0.25,
-  color: '#111',
   fontVariantNumeric: 'tabular-nums',
 });
 
 export const slideTitle = style({
+  marginTop: '0.25rem',
+  lineHeight: 1.2,
+  color: '#111',
   fontSize: '1.75rem',
   fontWeight: 700,
-  color: '#111',
-  lineHeight: 1.2,
-  marginTop: '0.25rem',
 });
 
 export const slideCaption = style({
-  fontSize: '0.9rem',
-  color: '#555',
   marginTop: '0.5rem',
+  color: '#555',
+  fontSize: '0.9rem',
 });
 
 export const controls = style({
@@ -63,20 +63,20 @@ export const arrows = style({
 });
 
 export const arrowButton = style({
-  width: '2.25rem',
-  height: '2.25rem',
-  borderRadius: '50%',
-  border: '1px solid #e5e5e5',
-  background: '#fff',
-  cursor: 'pointer',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '1rem',
-  color: '#111',
   transition: 'background 120ms, border-color 120ms',
+  border: '1px solid #e5e5e5',
+  borderRadius: '50%',
+  background: '#fff',
+  cursor: 'pointer',
+  width: '2.25rem',
+  height: '2.25rem',
+  color: '#111',
+  fontSize: '1rem',
   selectors: {
-    '&:hover': { background: '#f5f5f5', borderColor: '#ccc' },
+    '&:hover': { borderColor: '#ccc', background: '#f5f5f5' },
     '&:active': { background: '#ebebeb' },
     '&[aria-disabled="true"]': { opacity: 0.3, cursor: 'default', pointerEvents: 'none' },
   },
@@ -84,20 +84,20 @@ export const arrowButton = style({
 
 export const dots = style({
   display: 'flex',
-  gap: '0.4rem',
   alignItems: 'center',
+  gap: '0.4rem',
 });
 
 export const dot = style({
-  width: '0.5rem',
-  height: '0.5rem',
+  transition: 'background 150ms, width 150ms',
+  border: 'none',
   borderRadius: '50%',
   background: '#d4d4d4',
-  border: 'none',
-  padding: 0,
   cursor: 'pointer',
-  transition: 'background 150ms, width 150ms',
+  padding: 0,
+  width: '0.5rem',
+  height: '0.5rem',
   selectors: {
-    '&[data-active]': { background: '#111', width: '1.25rem', borderRadius: '999px' },
+    '&[data-active]': { borderRadius: '999px', background: '#111', width: '1.25rem' },
   },
 });

@@ -21,11 +21,12 @@ export default defineConfig({
     'foldkit/command-binding-matches-name': 'error',
     'foldkit/no-module-level-mutable-state': 'error',
 
-    // vanilla-extract CSS safety rules
+    // vanilla-extract CSS rules
     'vanilla-extract/no-empty-style-blocks': 'error',
     'vanilla-extract/no-unknown-unit': 'error',
     'vanilla-extract/no-trailing-zero': 'warn',
     'vanilla-extract/no-zero-unit': 'warn',
+    'vanilla-extract/concentric-order': 'warn',
 
     // Biome rule equivalents — preserve the exact severities from biome.json
     '@typescript-eslint/no-explicit-any': 'off',

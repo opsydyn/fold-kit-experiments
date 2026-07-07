@@ -9,12 +9,12 @@ export const grid = style({
 });
 
 export const cell = style({
-  background: 'var(--card-bg, #12121f)',
+  transition: 'background 180ms, border-color 180ms',
   border: '1px solid var(--card-border, #1e1e33)',
   borderRadius: '16px',
+  background: 'var(--card-bg, #12121f)',
   padding: '1.25rem 1.5rem 1.5rem',
   minWidth: 0,
-  transition: 'background 180ms, border-color 180ms',
 });
 
 globalStyle(`${cell} svg:focus-visible`, {
@@ -24,10 +24,10 @@ globalStyle(`${cell} svg:focus-visible`, {
 });
 
 export const cellLabel = style({
+  marginBottom: '1rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: 'var(--card-label, #7070a0)',
   fontSize: '0.7rem',
   fontWeight: 600,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  color: 'var(--card-label, #7070a0)',
-  marginBottom: '1rem',
 });

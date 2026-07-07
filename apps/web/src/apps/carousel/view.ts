@@ -1,5 +1,5 @@
-import { AsyncData } from 'foldkit/asyncData';
-import type { Document, Node } from 'foldkit/html';
+import { matchData } from 'foldkit/asyncData';
+import type { Document, Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 
 import * as Carousel from '../../ui/carousel';
@@ -19,7 +19,7 @@ const toParentMessage = (msg: CarouselMessage): Message => GotCarouselMessage({ 
 
 const slideCount = (model: Model): number => model.carousel.slideCount;
 
-const slidesView = (slides: ReadonlyArray<Slide>, model: Model): Node =>
+const slidesView = (slides: ReadonlyArray<Slide>, model: Model): Html =>
   Carousel.view({
     model: model.carousel,
     toParentMessage,
@@ -70,7 +70,7 @@ const slidesView = (slides: ReadonlyArray<Slide>, model: Model): Node =>
 
 export const view = (model: Model): Document => ({
   title: `Carousel — slide ${model.carousel.activeIndex + 1} of ${slideCount(model)}`,
-  body: AsyncData.matchData(model.slides, {
+  body: matchData(model.slides, {
     onEmpty: () => div([Class(styles.root)], [div([], ['Loading slides…'])]),
     onFailure: (error) => div([Class(styles.root)], [div([], [`Failed to load slides: ${error}`])]),
     onData: (slides) => slidesView(slides, model),

@@ -10,14 +10,29 @@ type EventTargetLike = {
   readonly removeEventListener: (type: string, listener: EventListener) => void;
 };
 
+type IslandLike = EventTargetLike & {
+  readonly id: string;
+  readonly getAttribute: (name: string) => string | null;
+};
+
+type NavigationDocument = EventTargetLike & {
+  readonly title: string;
+  readonly querySelector: (selector: string) => unknown;
+};
+
 type EmbedHandle = {
   readonly ports?: Record<string, { readonly send: (value: unknown) => unknown }>;
   readonly dispose: () => void;
 };
 
 type ClientEnvironment = {
-  readonly document: EventTargetLike & { readonly title: string };
+  readonly document: NavigationDocument;
   readonly window: { readonly location: { readonly href: string } };
+};
+
+type BeforeSwapEvent = Event & {
+  readonly newDocument?: unknown;
+  readonly detail?: { readonly newDocument?: unknown };
 };
 
 export type ClientRuntime = {
@@ -45,14 +60,34 @@ const listenOnce = (
   };
 };
 
+const seenIslandIdentities = new Set<string>();
+
+const islandIdentity = (element: IslandLike): string => element.getAttribute('uid') ?? element.id;
+
+const newDocumentFrom = (event: Event): unknown => {
+  const beforeSwap = event as BeforeSwapEvent;
+  return beforeSwap.newDocument ?? beforeSwap.detail?.newDocument;
+};
+
+const containsIsland = (document: unknown, identity: string): boolean => {
+  if (!document || typeof (document as NavigationDocument).querySelector !== 'function')
+    return false;
+  return Boolean((document as NavigationDocument).querySelector(`astro-island[uid="${identity}"]`));
+};
+
 const attachNavigationBridge = (
-  element: EventTargetLike,
+  element: IslandLike,
   navigation: NavigationConfig<unknown>,
   send: (value: unknown) => void,
   environment: ClientEnvironment,
 ): (() => void) => {
   let active = true;
   let previousUrl: string | null = null;
+  let initialPageLoad = true;
+  let retainedThroughSwap = false;
+  const identity = islandIdentity(element);
+  const initialPhase = seenIslandIdentities.has(identity) ? 'entered' : 'coldLoad';
+  seenIslandIdentities.add(identity);
   const forward = (phase: NavigationPhase) => {
     if (!active) return;
     const url = environment.window.location.href;
@@ -61,13 +96,26 @@ const attachNavigationBridge = (
     send(navigation.map(event));
   };
 
-  forward('coldLoad');
+  forward(initialPhase);
   const removePageLoad = () =>
     environment.document.removeEventListener('astro:page-load', onPageLoad);
   const removeBeforeSwap = () =>
     environment.document.removeEventListener('astro:before-swap', onBeforeSwap);
-  const onPageLoad: EventListener = () => forward('entered');
-  const onBeforeSwap: EventListener = () => forward('stayed');
+  const onPageLoad: EventListener = () => {
+    if (initialPageLoad) {
+      initialPageLoad = false;
+      return;
+    }
+    if (retainedThroughSwap) {
+      retainedThroughSwap = false;
+      return;
+    }
+    forward('entered');
+  };
+  const onBeforeSwap: EventListener = (event) => {
+    retainedThroughSwap = containsIsland(newDocumentFrom(event), identity);
+    if (retainedThroughSwap) forward('stayed');
+  };
   environment.document.addEventListener('astro:page-load', onPageLoad);
   environment.document.addEventListener('astro:before-swap', onBeforeSwap);
   const removeUnmount = listenOnce(element, 'astro:unmount', () => {

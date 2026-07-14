@@ -30,19 +30,29 @@ const makeEventTarget = () => {
     removeEventListener: (type: string, listener: EventListener) => {
       listeners.get(type)?.delete(listener);
     },
-    dispatch: (type: string) => {
-      for (const listener of listeners.get(type) ?? []) listener(new Event(type));
+    dispatch: (type: string, eventProperties: Record<string, unknown> = {}) => {
+      const event = Object.assign(new Event(type), eventProperties);
+      for (const listener of listeners.get(type) ?? []) listener(event);
     },
   };
 };
 
-const makeElement = () => ({
+const makeElement = (uid = 'island-test') => ({
   id: '',
-  getAttribute: () => null,
+  getAttribute: (name: string) => (name === 'uid' ? uid : null),
   ...makeEventTarget(),
 });
 
-const makeDocument = () => ({ title: 'Test page', ...makeEventTarget() });
+const makeDocument = (uids: readonly string[] = []) => ({
+  title: 'Test page',
+  querySelector: (selector: string) => {
+    const uid = selector.match(/\[uid="([^"]+)"\]/)?.[1];
+    return uid && uids.includes(uid)
+      ? { getAttribute: (name: string) => (name === 'uid' ? uid : null) }
+      : null;
+  },
+  ...makeEventTarget(),
+});
 
 const renderWith = async (
   runtime: Parameters<typeof createClientRenderer>[0],
@@ -176,16 +186,106 @@ describe('astro-foldkit client renderer', () => {
     await renderWith(runtime, {
       navigation: { port: 'navigation', map: (event) => event },
       document,
+      element: makeElement('mapping-island'),
       window,
     });
     window.location.href = 'https://example.test/next';
-    document.dispatch('astro:before-swap');
+    document.dispatch('astro:before-swap', { newDocument: makeDocument(['mapping-island']) });
     document.dispatch('astro:page-load');
 
     expect(sent).toEqual([
       { phase: 'coldLoad', path: '/start', previousPath: null },
       { phase: 'stayed', path: '/next', previousPath: '/start' },
-      { phase: 'entered', path: '/next', previousPath: '/next' },
     ]);
+  });
+
+  it('forwards stayed only when the island is retained by the next document', async () => {
+    const sent: unknown[] = [];
+    const document = makeDocument();
+    const runtime = {
+      makeApplication: (input: unknown) => input,
+      embed: (_program: unknown) => ({
+        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+        dispose: () => {},
+      }),
+    };
+
+    await renderWith(runtime, {
+      navigation: { port: 'navigation', map: (event) => event },
+      document,
+      element: makeElement('removed-island'),
+    });
+    document.dispatch('astro:before-swap', { newDocument: makeDocument() });
+    document.dispatch('astro:page-load');
+
+    expect(sent).toEqual([{ phase: 'coldLoad', path: '/', previousPath: null }]);
+  });
+
+  it('sends exited for a removed island and entered for a subsequent remount', async () => {
+    const firstSent: unknown[] = [];
+    const firstElement = makeElement('remounted-island');
+    const firstDocument = makeDocument();
+    const runtime = {
+      makeApplication: (input: unknown) => input,
+      embed: (_program: unknown) => ({
+        ports: { navigation: { send: (value: unknown) => firstSent.push(value) } },
+        dispose: () => {},
+      }),
+    };
+
+    await renderWith(runtime, {
+      navigation: { port: 'navigation', map: (event) => event },
+      document: firstDocument,
+      element: firstElement,
+    });
+    firstDocument.dispatch('astro:before-swap', { newDocument: makeDocument() });
+    firstElement.dispatch('astro:unmount');
+
+    const remountSent: unknown[] = [];
+    await renderWith(
+      {
+        makeApplication: (input: unknown) => input,
+        embed: (_program: unknown) => ({
+          ports: { navigation: { send: (value: unknown) => remountSent.push(value) } },
+          dispose: () => {},
+        }),
+      },
+      {
+        navigation: { port: 'navigation', map: (event) => event },
+        element: makeElement('remounted-island'),
+      },
+    );
+
+    expect(firstSent).toEqual([
+      { phase: 'coldLoad', path: '/', previousPath: null },
+      { phase: 'exited', path: '/', previousPath: '/' },
+    ]);
+    expect(remountSent).toEqual([{ phase: 'entered', path: '/', previousPath: null }]);
+  });
+
+  it('warns once and still disposes when the navigation port is missing', async () => {
+    const sent: unknown[] = [];
+    let disposeCalls = 0;
+    const originalWarn = console.warn;
+    const warn = mock(() => {});
+    console.warn = warn;
+    const element = await renderWith(
+      {
+        makeApplication: (input: unknown) => input,
+        embed: (_program: unknown) => ({
+          ports: { other: { send: (value: unknown) => sent.push(value) } },
+          dispose: () => {
+            disposeCalls += 1;
+          },
+        }),
+      },
+      { navigation: { port: 'navigation', map: (event) => event } },
+    );
+    element.dispatch('astro:unmount');
+    console.warn = originalWarn;
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(sent).toEqual([]);
+    expect(disposeCalls).toBe(1);
   });
 });

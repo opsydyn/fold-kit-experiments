@@ -22,12 +22,14 @@
 ### Task 1: Lock the public type contract
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/src/types.ts`
 - Modify: `packages/astro-foldkit/src/define-app.ts`
 - Test: `packages/astro-foldkit/test/unit/define-app.test.ts`
 - Test: `packages/astro-foldkit/test/unit/define-app.property.test.ts`
 
 **Interfaces:**
+
 - Produces `AppConfig<Props, Model, Message>` with typed `init`, `update`, and `view` fields.
 - Produces `FoldkitApp<Props, Model, Message>` whose loader returns `Promise<AppConfig<Props, Model, Message>>`.
 
@@ -86,11 +88,13 @@ git commit -m "feat(astro-foldkit): type application contract"
 ### Task 2: Define deterministic server output
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/src/server.ts`
 - Create: `packages/astro-foldkit/test/unit/server.test.ts`
 - Modify: `packages/astro-foldkit/README.md`
 
 **Interfaces:**
+
 - Produces a deterministic `renderToStaticMarkup` result for a valid FoldKit app.
 - Preserves `check` rejection for non-FoldKit components.
 
@@ -133,11 +137,13 @@ git commit -m "feat(astro-foldkit): define stable ssr shell"
 ### Task 3: Make client embedding lifecycle-safe
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/src/client.ts`
 - Modify: `packages/astro-foldkit/src/types.ts`
 - Create: `packages/astro-foldkit/test/unit/client.test.ts`
 
 **Interfaces:**
+
 - Consumes the generic `FoldkitApp<Props, Model, Message>` contract from Task 1.
 - Produces one runtime handle per island and disposes it once on `astro:unmount`.
 
@@ -180,11 +186,13 @@ git commit -m "fix(astro-foldkit): make island disposal one-shot"
 ### Task 4: Verify the published-package boundary
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/test/integration/package-import-smoke.test.ts` only if coverage is missing
 - Modify: `packages/astro-foldkit/package.json` only if the package build or export contract requires it
 - Modify: `packages/astro-foldkit/README.md` if consumer instructions need correction
 
 **Interfaces:**
+
 - Produces a repeatable packed-consumer check for the public package export.
 
 - [ ] **Step 1: Run the existing packed import smoke test**

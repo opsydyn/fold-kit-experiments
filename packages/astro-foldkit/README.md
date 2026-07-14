@@ -56,6 +56,8 @@ import Counter from '../apps/counter/app'
 <Counter client:load />
 ```
 
+The server renderer emits a deterministic `<div data-foldkit-island="true">` mount shell. It does not load or execute the FoldKit application during SSR; the application is loaded and embedded only by the client renderer. Astro still owns the outer island serialisation and client directive behavior.
+
 The demo app's [`/request-diagnostics`](../../apps/web/src/pages/request-diagnostics.astro) page shows the integration boundary with a practical machine-driven chart workflow. The page uses `@opsydyn/astro-foldkit` for hydration, `@opsydyn/foldkit-viz` for chart primitives, and `foldkit/experimental/machine` in the application update layer.
 
 ## Passing props

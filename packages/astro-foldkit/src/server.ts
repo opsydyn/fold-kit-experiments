@@ -9,8 +9,12 @@ export async function check(Component: unknown): Promise<boolean> {
   );
 }
 
-async function renderToStaticMarkup(): Promise<{ html: string }> {
-  return { html: '' };
+export async function renderToStaticMarkup(
+  _component: unknown,
+  _props: Record<string, unknown>,
+  _slots: Record<string, string>,
+): Promise<{ html: string }> {
+  return { html: '<div data-foldkit-island="true"></div>' };
 }
 
 const renderer: NamedSSRLoadedRendererValue = {

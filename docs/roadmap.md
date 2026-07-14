@@ -14,12 +14,12 @@ Build the most useful Astro host and chart-primitives layer for FoldKit applicat
 
 **Outcome:** an Astro consumer can mount a typed FoldKit app with stable server output, predictable hydration, and verified teardown.
 
-- [ ] Define a typed `defineApp<Props, Model, Message>` contract without `any` at the public boundary.
-- [ ] Replace the empty Astro SSR renderer with a stable, documented server output contract.
-- [ ] Make client embedding idempotent and lifecycle-safe across `astro:unmount`.
-- [ ] Add focused tests for renderer recognition, app loading, SSR output, hydration setup, and disposal.
-- [ ] Add a package-consumer verification fixture that resolves the published package exports.
-- [ ] Document the server/client boundary and the supported Astro client directives.
+- [x] Define a typed `defineApp<Props, Model, Message>` contract without `any` at the public boundary.
+- [x] Replace the empty Astro SSR renderer with a stable, documented server output contract.
+- [x] Make client embedding idempotent and lifecycle-safe across `astro:unmount`.
+- [x] Add focused tests for renderer recognition, app loading, SSR output, hydration setup, and disposal.
+- [x] Add a package-consumer verification fixture that resolves the published package exports.
+- [x] Document the server/client boundary and the supported Astro client directives.
 
 **Exit criteria:** `@opsydyn/astro-foldkit` has typed public APIs, no empty undocumented SSR behavior, and a passing consumer-level package smoke test.
 

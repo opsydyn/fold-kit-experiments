@@ -1,33 +1,58 @@
 import { Runtime } from 'foldkit';
 
 import { makeNoMetaView, shouldSkipMetadata } from './client-helpers';
-import type { FoldkitApp } from './types';
+import type { AppConfig, FoldkitApp } from './types';
 
-export default (element: HTMLElement) =>
-  async (
-    component: FoldkitApp,
-    props: Record<string, unknown>,
-    _slots: Record<string, unknown>,
-    _meta: { client: string },
-  ): Promise<void> => {
-    const config = await component.load();
+type EmbedHandle = { readonly dispose: () => void };
 
-    element.id ||= element.getAttribute('uid') ?? crypto.randomUUID();
+export type ClientRuntime = {
+  readonly makeApplication: (config: unknown) => unknown;
+  readonly embed: (program: unknown) => EmbedHandle;
+};
 
-    const baseView = (config as any).view;
-    const view = shouldSkipMetadata(props) ? makeNoMetaView(baseView, document.title) : baseView;
+const defaultRuntime: ClientRuntime = {
+  makeApplication: (config) => Runtime.makeApplication(config as never),
+  embed: (program) => Runtime.embed(program as never),
+};
 
-    const program = Runtime.makeApplication({
-      ...(config as any),
-      // Forward Astro props into init so apps can seed their model from server data.
-      // Apps that declare no props simply receive an empty object and ignore it.
-      init: () => (config as any).init(props),
-      view,
-      container: element,
-      preserveScroll: true,
-    });
+export function createClientRenderer(runtime: ClientRuntime = defaultRuntime) {
+  return (element: HTMLElement) =>
+    async <Props extends Record<string, unknown>, Model, Message extends { readonly _tag: string }>(
+      component: FoldkitApp<Props, Model, Message>,
+      props: Props,
+      _slots: Record<string, unknown>,
+      _meta: { client: string },
+    ): Promise<void> => {
+      const config = await component.load();
 
-    const handle = Runtime.embed(program);
+      element.id ||= element.getAttribute('uid') ?? crypto.randomUUID();
 
-    element.addEventListener('astro:unmount', () => handle.dispose(), { once: true });
-  };
+      const baseView = config.view;
+      const view = shouldSkipMetadata(props) ? makeNoMetaView(baseView, document.title) : baseView;
+
+      const program = runtime.makeApplication({
+        ...(config as AppConfig<Props, Model, Message>),
+        // Forward Astro props into init so apps can seed their model from server data.
+        // Apps that declare no props simply receive an empty object and ignore it.
+        init: () => config.init(props),
+        view,
+        container: element,
+        preserveScroll: true,
+      });
+
+      const handle = runtime.embed(program);
+      let disposed = false;
+
+      element.addEventListener(
+        'astro:unmount',
+        () => {
+          if (disposed) return;
+          disposed = true;
+          handle.dispose();
+        },
+        { once: true },
+      );
+    };
+}
+
+export default createClientRenderer();

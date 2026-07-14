@@ -18,10 +18,10 @@ describe('defineApp', () => {
       view: (_model: Model) => ({}) as Document,
     } satisfies AppConfig<Props, Model, Message>;
 
-    const app = defineApp<Props, Model, Message>(() => Promise.resolve(config));
-    const [model] = (await app.load()).init({ initialCount: 3 });
+    const app = defineApp<Props>(() => Promise.resolve(config));
+    const loaded = await app.load();
 
-    expect(model.count).toBe(3);
+    expect(loaded).toBe(config);
   });
 
   it('sets __foldkit: true', () => {

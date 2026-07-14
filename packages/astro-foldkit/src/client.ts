@@ -1,7 +1,7 @@
 import { Runtime } from 'foldkit';
 
 import { makeNoMetaView, shouldSkipMetadata } from './client-helpers';
-import type { AppConfig, FoldkitApp } from './types';
+import type { AppConfigShape, FoldkitApp } from './types';
 
 type EmbedHandle = { readonly dispose: () => void };
 
@@ -17,8 +17,8 @@ const defaultRuntime: ClientRuntime = {
 
 export function createClientRenderer(runtime: ClientRuntime = defaultRuntime) {
   return (element: HTMLElement) =>
-    async <Props extends Record<string, unknown>, Model, Message extends { readonly _tag: string }>(
-      component: FoldkitApp<Props, Model, Message>,
+    async <Props extends Record<string, unknown>, Config extends AppConfigShape<Props>>(
+      component: FoldkitApp<Props, Config>,
       props: Props,
       _slots: Record<string, unknown>,
       _meta: { client: string },
@@ -31,7 +31,7 @@ export function createClientRenderer(runtime: ClientRuntime = defaultRuntime) {
       const view = shouldSkipMetadata(props) ? makeNoMetaView(baseView, document.title) : baseView;
 
       const program = runtime.makeApplication({
-        ...(config as AppConfig<Props, Model, Message>),
+        ...config,
         // Forward Astro props into init so apps can seed their model from server data.
         // Apps that declare no props simply receive an empty object and ignore it.
         init: () => config.init(props),

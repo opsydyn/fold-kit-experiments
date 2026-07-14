@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from 'bun:test';
 
 import type { Document } from 'foldkit/html';
 
-import type { AppConfig } from '../../src/types';
+import type { AppConfig, AppConfigShape } from '../../src/types';
 
 mock.module('foldkit', () => ({ Runtime: {} }));
 
@@ -12,11 +12,12 @@ type Model = { readonly count: number };
 type Message = { readonly _tag: 'Increment' };
 
 const config = {
-  Model: {} as AppConfig<Record<string, unknown>, Model, Message>['Model'],
+  Model: {},
   init: (props: Record<string, unknown>) => [{ count: Number(props.initialCount) }, []] as const,
   update: (model: Model, _message: Message) => [model, []] as const,
   view: (_model: Model) => ({}) as Document,
-} satisfies AppConfig<Record<string, unknown>, Model, Message>;
+} satisfies AppConfig<Record<string, unknown>, Model, Message> &
+  AppConfigShape<Record<string, unknown>>;
 
 const makeElement = () => {
   const listeners = new Map<string, EventListener>();

@@ -204,14 +204,21 @@ export const update = (model: Model, message: Message): Return =>
       StartedSelection: () => runMachine(model, message),
       ChangedSelection: () => runMachine(model, message),
       ClearedSelection: () => runMachine(model, message),
-      Navigated: (navigation) => [
-        {
-          ...model,
-          navigation,
-          route: parseDiagnosticsPath(navigation.path),
-          lastTransition: `${navigation.phase} ${navigation.path}`,
-        },
-        [],
-      ],
+      Navigated: (message) => {
+        const navigation = {
+          phase: message.phase,
+          path: message.path,
+          previousPath: message.previousPath,
+        };
+        return [
+          {
+            ...model,
+            navigation,
+            route: parseDiagnosticsPath(navigation.path),
+            lastTransition: `${navigation.phase} ${navigation.path}`,
+          },
+          [],
+        ];
+      },
     }),
   );

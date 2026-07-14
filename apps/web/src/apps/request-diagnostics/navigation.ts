@@ -1,4 +1,5 @@
 import { Schema, pipe } from 'effect';
+import { inbound } from 'foldkit/port';
 import { literal, mapTo, oneOf, parseUrlWithFallback, r, rest, slash } from 'foldkit/route';
 import { fromString } from 'foldkit/url';
 
@@ -13,6 +14,7 @@ export const NavigationValue = Schema.Struct({
   previousPath: Schema.NullOr(Schema.String),
 });
 export type NavigationValue = typeof NavigationValue.Type;
+export const NavigationPort = inbound(NavigationValue);
 
 export const IndexRoute = r('Index');
 const NotFoundRoute = r('NotFound', { path: Schema.String });

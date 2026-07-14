@@ -35,7 +35,7 @@ FoldKit 0.128's `rest` API returns a non-empty array of URL segments and is term
 
 ## Review Fixes
 
-Applied the Task 3 review fixes and committed them as `5412f40` (`fix(web): complete navigation diagnostics review fixes`).
+Applied the Task 3 review fixes in implementation commit `6f9740b` (`fix(web): complete navigation diagnostics review fixes`). This report update is committed separately.
 
 - Exported the named `NavigationPort` from `navigation.ts` and reused that exact value in `main.ts` and `subscription.ts`.
 - Added direct embedded-runtime coverage for `NavigationPort` -> `Port.subscription` -> `Navigated` in `main.scene.test.ts`.

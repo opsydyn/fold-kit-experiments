@@ -16,7 +16,7 @@ FoldKit is an Elm Architecture runtime for the browser built on [Effect](https:/
 ```text
 fold-kit-experiments/
 ├── apps/
-│   └── web/               — demo Astro app: 33 chart types, interactive storybook
+│   └── web/               — demo Astro app: 49 chart types, interactive storybook
 └── packages/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm)
     └── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)

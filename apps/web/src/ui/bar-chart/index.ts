@@ -211,7 +211,7 @@ export const view = <M>(config: {
             // Active bar tooltip
             ...Option.match(activeIndex, {
               onNone: () => [],
-              onSome: ({ value: i }) => {
+              onSome: (i) => {
                 const bar = bars[i];
                 if (bar === undefined) return [];
                 const bx = r3(xScale.position(bar.label));

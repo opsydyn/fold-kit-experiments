@@ -45,13 +45,13 @@ Config files:
 
 ## Foldkit import style guide
 
-Foldkit 0.125.0 exports submodule functions as **named exports**, not namespace objects.
+Foldkit 0.126.0 exports submodule functions as **named exports**, not namespace objects.
 
 ### foldkit/update
 
 ```typescript
 // ✅ correct — named imports
-import { combine, refresh, noOp } from 'foldkit/update';
+import { combine, refresh } from 'foldkit/update';
 import type { Return, Step, Refreshable, Commands } from 'foldkit/update';
 
 // ❌ wrong — Update is not an exported namespace
@@ -200,9 +200,10 @@ From the Foldkit style guide (adapted):
 
 ## Foldkit version
 
-Currently on `foldkit@0.125.0`. New in this version:
+Currently on `foldkit@0.126.0`. New in this version:
 
-- `foldkit/update` — `combine`, `refresh`, `noOp`, `Step`, `Return`, `Refreshable` types
+- `foldkit/update` — `combine`, `refresh`, `Step`, `Return`, `Refreshable` types
 - `foldkit/asyncData` — `fromOptionOrIdle`, `revalidateOrLoad`, `settle`, `matchData`
 - `Route.isEntering`, `RouteTransition` type
 - `preserveScroll: true` on `makeApplication` (already wired in `packages/astro-foldkit/src/client.ts`)
+- `foldkit/http` — browser-safe `Http.layer` for Commands using Effect `HttpClient`

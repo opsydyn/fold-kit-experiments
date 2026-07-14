@@ -1,12 +1,14 @@
 # @opsydyn/web
 
-Demo app for [`@opsydyn/astro-foldkit`](../../packages/astro-foldkit/). It shows two FoldKit apps running inside Astro pages with `client:load`.
+Demo app for [`@opsydyn/astro-foldkit`](../../packages/astro-foldkit/). It hosts the Astro integration reference apps and the `foldkit/http` example alongside the chart demos.
 
 ## Apps
 
 **Counter** (`/`) — increment/decrement with particle burst animations driven by `Subscription.animationFrame`.
 
-**Health dashboard** (`/health`) — polls `/api/health` via Effect `HttpClient`, renders a live uptime timer that ticks on every animation frame once data loads, and uses a shimmer skeleton during the initial fetch to prevent layout shift.
+**Health dashboard** (`/health`) — polls `/api/health` via `foldkit/http`, renders a live uptime timer that ticks on every animation frame once data loads, and uses a shimmer skeleton during the initial fetch to prevent layout shift.
+
+**Request diagnostics** (`/request-diagnostics`) — loads latency/error-rate points through `foldkit/http`, renders `@opsydyn/foldkit-viz` histogram and scatter primitives, and uses `foldkit/experimental/machine` for guarded brush filtering.
 
 ## Running
 

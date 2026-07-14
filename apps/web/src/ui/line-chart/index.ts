@@ -225,7 +225,7 @@ export const view = <M>(config: {
             // Active point tooltip
             ...Option.match(activeIndex, {
               onNone: () => [],
-              onSome: ({ value: i }) => {
+              onSome: (i) => {
                 const p = points[i];
                 if (p === undefined) return [];
                 const [cx, cy] = coords[i] ?? [0, 0];

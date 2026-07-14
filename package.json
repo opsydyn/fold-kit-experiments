@@ -7,7 +7,7 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "bun run --filter @opsydyn/web dev",
+    "dev": "cd apps/web && bun run dev",
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build",
     "test": "bun run --filter '*' test",
     "typecheck": "bun run --filter '*' typecheck",
@@ -18,7 +18,7 @@
   "devDependencies": {
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",
     "@effect/language-service": "^0.86.2",
-    "@foldkit/oxlint-plugin": "^0.2.0",
+    "@foldkit/oxlint-plugin": "^0.3.0",
     "@opsydyn/oxlint-effect": "^0.4.0",
     "@typescript-eslint/utils": "^8.63.0",
     "oxfmt": "^0.57.0",

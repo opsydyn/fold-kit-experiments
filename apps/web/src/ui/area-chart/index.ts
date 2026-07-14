@@ -201,7 +201,7 @@ export const view = <M>(config: {
             // Active crosshair + dot
             ...Option.match(activeIndex, {
               onNone: () => [],
-              onSome: ({ value: i }) => {
+              onSome: (i) => {
                 const pt = coords[i];
                 const cx = pt?.[0] ?? 0;
                 const cy = pt?.[1] ?? 0;

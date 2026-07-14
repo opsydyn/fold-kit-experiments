@@ -56,6 +56,8 @@ import Counter from '../apps/counter/app'
 <Counter client:load />
 ```
 
+The demo app's [`/request-diagnostics`](../../apps/web/src/pages/request-diagnostics.astro) page shows the integration boundary with a practical machine-driven chart workflow. The page uses `@opsydyn/astro-foldkit` for hydration, `@opsydyn/foldkit-viz` for chart primitives, and `foldkit/experimental/machine` in the application update layer.
+
 ## Passing props
 
 `defineApp` accepts a type parameter for the props your FoldKit app expects. This makes the component callable with typed attributes in `.astro` files.
@@ -244,7 +246,7 @@ element.addEventListener(
 | Package   | Version   |
 | :-------- | :-------- |
 | `astro`   | `≥ 5.0`   |
-| `foldkit` | `≥ 0.108` |
+| `foldkit` | `≥ 0.126` |
 
 ## License
 

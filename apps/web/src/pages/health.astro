@@ -6,5 +6,9 @@ import * as layoutStyles from '../layouts/layout.css';
 
 <Layout title="Health — Astro + FoldKit">
   <h1 class={layoutStyles.heading}>Health</h1>
+  <p>
+    This island fetches the Astro API route with a Foldkit command backed by
+    <code>foldkit/http</code>.
+  </p>
   <HealthApp client:load />
 </Layout>

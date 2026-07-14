@@ -12,7 +12,7 @@ Bun workspace monorepo. Three active workspaces:
 | `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | Chart primitives (no D3 dependency) |
 | `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types           |
 
-**Stack:** Foldkit 0.125.0 · Effect-TS · Astro · TypeScript · bun · oxlint · oxfmt
+**Stack:** Foldkit 0.126.0 · Effect-TS · Astro · TypeScript · bun · oxlint · oxfmt
 
 ## Before you write code
 

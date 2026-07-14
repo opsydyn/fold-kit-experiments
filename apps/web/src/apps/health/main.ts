@@ -9,7 +9,7 @@ import { view } from './view';
 export { subscriptions } from './subscription';
 export { Message, Model, update, view };
 
-export const init: Runtime.ProgramInit<typeof Model.Type, typeof Message.Type> = () => [
+export const init: Runtime.ApplicationInit<typeof Model.Type, typeof Message.Type> = () => [
   initialModel,
   [FetchHealth()],
 ];

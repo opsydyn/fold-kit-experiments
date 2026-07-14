@@ -1,0 +1,11 @@
+---
+import RequestDiagnosticsApp from '../apps/request-diagnostics/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Request Diagnostics — FoldKit Machine">
+  <h1 class={layoutStyles.heading}>Request Diagnostics</h1>
+  <p>Histogram selection drives a guarded FoldKit machine transition and filters the scatter plot.</p>
+  <RequestDiagnosticsApp client:load />
+</Layout>

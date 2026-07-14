@@ -257,23 +257,23 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "check": "biome check .",
-    "check:fix": "biome check --write .",
+    "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
+    "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
     "docs": "typedoc"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "bun-types": "^1.3.14",
-    "effect": "4.0.0-beta.64",
+    "effect": "4.0.0-beta.88",
     "fast-check": "^4.8.0",
-    "foldkit": "^0.125.0",
+    "foldkit": "^0.128.0",
     "tsdown": "^0.21.8",
     "typedoc": "^0.28.19",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "effect": ">=4.0.0-beta.64",
-    "foldkit": ">=0.125.0"
+    "effect": ">=4.0.0-beta.88",
+    "foldkit": ">=0.128.0"
   },
   "engines": {
     "node": ">=22.0.0"

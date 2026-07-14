@@ -3,6 +3,8 @@ import foldkit from '@opsydyn/astro-foldkit';
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import { defineConfig } from 'astro/config';
 
+const isDevCommand = process.argv.includes('dev');
+
 export default defineConfig({
   output: 'server',
   devToolbar: { enabled: false },
@@ -12,5 +14,5 @@ export default defineConfig({
     plugins: [vanillaExtractPlugin()],
   },
 
-  adapter: cloudflare(),
+  adapter: isDevCommand ? undefined : cloudflare(),
 });

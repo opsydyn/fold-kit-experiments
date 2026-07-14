@@ -7,4 +7,4 @@ import { view } from './view';
 
 export { init, Message, Model, update, view };
 
-export type Init = Runtime.ProgramInit<typeof Model.Type, typeof Message.Type>;
+export type Init = Runtime.ApplicationInit<typeof Model.Type, typeof Message.Type>;

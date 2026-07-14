@@ -6,6 +6,8 @@ A pure-TypeScript data-transformation and geometry layer designed for use with
 [FoldKit](https://github.com/opsydyn/foldkit)'s TEA (The Elm Architecture) rendering model.
 All functions are pure, immutable, and framework-agnostic.
 
+The runnable [`/request-diagnostics`](../../apps/web/src/apps/request-diagnostics/) example shows these primitives inside a FoldKit state machine. The machine belongs to the consuming application; this package remains focused on chart geometry and chart-local state.
+
 ---
 
 ## Installation

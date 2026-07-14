@@ -1,6 +1,15 @@
 import { Schema, pipe } from 'effect';
 import { inbound } from 'foldkit/port';
-import { literal, mapTo, oneOf, parseUrlWithFallback, r, rest, slash } from 'foldkit/route';
+import {
+  Transition,
+  literal,
+  mapTo,
+  oneOf,
+  parseUrlWithFallback,
+  r,
+  rest,
+  slash,
+} from 'foldkit/route';
 import { fromString } from 'foldkit/url';
 
 export const NavigationValue = Schema.Struct({
@@ -53,3 +62,14 @@ export const toNavigationValue = (event: {
   readonly path: string;
   readonly previousPath: string | null;
 }): NavigationValue => event;
+
+export const isEnteringDiagnostics = (
+  phase: NavigationValue['phase'],
+  previousRoute: DiagnosticsRoute,
+  nextRoute: DiagnosticsRoute,
+): boolean =>
+  phase === 'coldLoad'
+    ? Transition.isEntering(Transition.coldLoad(nextRoute), 'Document')
+    : phase === 'entered'
+      ? Transition.isEntering(Transition.make(previousRoute, nextRoute), 'Document')
+      : false;

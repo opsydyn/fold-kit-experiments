@@ -32,7 +32,10 @@ type ClientEnvironment = {
 
 type BeforeSwapEvent = Event & {
   readonly newDocument?: unknown;
-  readonly detail?: { readonly newDocument?: unknown };
+  readonly detail?: {
+    readonly newDocument?: unknown;
+    readonly to?: { readonly href?: unknown };
+  };
 };
 
 export type ClientRuntime = {
@@ -69,6 +72,12 @@ const newDocumentFrom = (event: Event): unknown => {
   return beforeSwap.newDocument ?? beforeSwap.detail?.newDocument;
 };
 
+const destinationHrefFrom = (event: Event, fallback: string): string => {
+  const beforeSwap = event as BeforeSwapEvent;
+  const href = beforeSwap.detail?.to?.href;
+  return typeof href === 'string' ? href : fallback;
+};
+
 const containsIsland = (document: unknown, identity: string): boolean => {
   if (!document || typeof (document as NavigationDocument).querySelector !== 'function')
     return false;
@@ -88,11 +97,10 @@ const attachNavigationBridge = (
   const identity = islandIdentity(element);
   const initialPhase = seenIslandIdentities.has(identity) ? 'entered' : 'coldLoad';
   seenIslandIdentities.add(identity);
-  const forward = (phase: NavigationPhase) => {
+  const forward = (phase: NavigationPhase, href = environment.window.location.href) => {
     if (!active) return;
-    const url = environment.window.location.href;
-    const event = normalizeNavigationEvent(phase, url, previousUrl);
-    previousUrl = url;
+    const event = normalizeNavigationEvent(phase, href, previousUrl);
+    previousUrl = href;
     send(navigation.map(event));
   };
 
@@ -114,7 +122,8 @@ const attachNavigationBridge = (
   };
   const onBeforeSwap: EventListener = (event) => {
     retainedThroughSwap = containsIsland(newDocumentFrom(event), identity);
-    if (retainedThroughSwap) forward('stayed');
+    if (retainedThroughSwap)
+      forward('stayed', destinationHrefFrom(event, environment.window.location.href));
   };
   environment.document.addEventListener('astro:page-load', onPageLoad);
   environment.document.addEventListener('astro:before-swap', onBeforeSwap);

@@ -189,14 +189,46 @@ describe('astro-foldkit client renderer', () => {
       element: makeElement('mapping-island'),
       window,
     });
-    window.location.href = 'https://example.test/next';
-    document.dispatch('astro:before-swap', { newDocument: makeDocument(['mapping-island']) });
+    document.dispatch('astro:before-swap', {
+      detail: {
+        newDocument: makeDocument(['mapping-island']),
+        to: { href: 'https://example.test/next' },
+      },
+    });
     document.dispatch('astro:page-load');
 
     expect(sent).toEqual([
       { phase: 'coldLoad', path: '/start', previousPath: null },
       { phase: 'stayed', path: '/next', previousPath: '/start' },
     ]);
+  });
+
+  it('uses the before-swap destination when window.location is still the old URL', async () => {
+    const sent: unknown[] = [];
+    const document = makeDocument();
+    const window = { location: { href: 'https://example.test/old' } };
+    const runtime = {
+      makeApplication: (input: unknown) => input,
+      embed: (_program: unknown) => ({
+        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+        dispose: () => {},
+      }),
+    };
+
+    await renderWith(runtime, {
+      navigation: { port: 'navigation', map: (event) => event },
+      document,
+      element: makeElement('destination-island'),
+      window,
+    });
+    document.dispatch('astro:before-swap', {
+      detail: {
+        newDocument: makeDocument(['destination-island']),
+        to: { href: 'https://example.test/new' },
+      },
+    });
+
+    expect(sent.at(-1)).toEqual({ phase: 'stayed', path: '/new', previousPath: '/old' });
   });
 
   it('forwards stayed only when the island is retained by the next document', async () => {

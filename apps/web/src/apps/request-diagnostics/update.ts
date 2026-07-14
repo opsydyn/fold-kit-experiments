@@ -12,7 +12,7 @@ import {
   type ExplorerState as ExplorerStateType,
   type Model,
 } from './model';
-import { parseDiagnosticsPath } from './navigation';
+import { isEnteringDiagnostics, parseDiagnosticsPath } from './navigation';
 
 type LoadedMetricsMessage = Extract<Message, { readonly _tag: 'LoadedMetrics' }>;
 
@@ -210,12 +210,14 @@ export const update = (model: Model, message: Message): Return =>
           path: message.path,
           previousPath: message.previousPath,
         };
+        const route = parseDiagnosticsPath(navigation.path);
+        const routeEntry = isEnteringDiagnostics(message.phase, model.route, route);
         return [
           {
             ...model,
             navigation,
-            route: parseDiagnosticsPath(navigation.path),
-            lastTransition: `${navigation.phase} ${navigation.path}`,
+            route,
+            lastTransition: `${navigation.phase} ${navigation.path}${routeEntry ? ' (route entry)' : ''}`,
           },
           [],
         ];

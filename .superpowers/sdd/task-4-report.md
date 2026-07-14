@@ -51,3 +51,24 @@ Follow-up verification:
 - `bun typecheck`: PASS, 0 diagnostics in web and all workspace typechecks successful.
 - `bun run check`: PASS with existing lint warnings; formatting clean.
 - `git diff --check`: PASS.
+
+## Final Review Fix Evidence
+
+- `packages/astro-foldkit/src/client.ts` now narrows `astro:before-swap` detail and uses `detail.to.href` for retained-island `stayed` events. The regression test keeps `window.location` on the old URL and verifies the sent pathname is the destination pathname.
+- `apps/web/package.json` now builds `@opsydyn/astro-foldkit` before `astro build`, ensuring the workspace package's emitted `dist` exists at the package import boundary. `apps/web/node_modules/@opsydyn/astro-foldkit` is the Bun workspace symlink; no source-path import was added.
+- `apps/web/src/apps/request-diagnostics/navigation.ts` now owns an entry predicate using `Transition.coldLoad`, `Transition.make`, and `Transition.isEntering` for the `Document` route. `update.ts` records the route-entry fact only for `coldLoad` and `entered` events.
+- The plan now identifies workspace-filtered `bun run test` as the gate and documents raw `bun test` as non-gating due to vendored `foldkit-main` missing dependencies and upstream failures.
+
+Final review-wave verification:
+
+- `bun test packages/astro-foldkit/test/unit/client.test.ts`: PASS, 8 tests including the old-window/new-destination regression.
+- `bunx vitest run src/apps/request-diagnostics/navigation.test.ts` from `apps/web`: PASS, 4 tests including entry predicate behavior.
+- `bun run test`: PASS, 119 FoldKit Viz tests, 47 Astro tests, and 42 web tests.
+- `bun run check`: PASS with existing lint warnings; formatting clean.
+- `bun typecheck`: PASS across all workspaces; web reports 0 errors, 0 warnings, and 0 hints.
+- `bun run --filter @opsydyn/astro-foldkit build`: PASS.
+- `bun run --filter @opsydyn/astro-foldkit test:integration`: PASS, 2 packed-consumer smoke tests.
+- `bun run --filter @opsydyn/web build`: PASS. The web script builds the workspace Astro package first, then resolves it through the package export boundary and completes the Cloudflare server build.
+- `git diff --check`: PASS.
+
+Known limitation: raw `bun test` is intentionally non-gating. It discovers vendored `foldkit-main` tests with unrelated missing dependencies and upstream failures; the workspace-filtered `bun run test` result above is the repository gate.

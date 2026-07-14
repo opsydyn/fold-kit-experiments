@@ -387,7 +387,7 @@ bun run --filter @opsydyn/web build
 git diff --check
 ```
 
-Expected: all commands exit 0; workspace-filtered tests pass; no generated build output is left as an untracked change. Raw `bun test ...` discovery is a known non-gating limitation because it reaches vendored FoldKit diagnostics fixtures that import the removed FoldKit 0.128 `Mount` export.
+Expected: all commands exit 0; workspace-filtered tests pass; no generated build output is left as an untracked change. The gating suite is the workspace-filtered `bun run test`; raw `bun test` is non-gating because it discovers vendored `foldkit-main` tests with unrelated missing dependencies and upstream failures, including the FoldKit 0.128 `Mount` export mismatch.
 
 - [x] **Step 6: Commit the verified slice**
 
@@ -402,7 +402,7 @@ git commit -m "docs: complete astro navigation slice"
 - Consumer documentation covers `ports.inbound`, the navigation mapper, the `NavigationEvent` shape, lifecycle phase semantics, fail-closed missing-port behavior, and app-owned route parsing and load policy.
 - Roadmap navigation slice is complete, including the route-aware request-diagnostics example.
 - Final verification commands are recorded in `.superpowers/sdd/task-4-report.md`.
-- Raw Bun test discovery is explicitly non-gating; the repository-valid test command uses workspace package scripts and web Vitest.
+- The gating suite is workspace-filtered `bun run test`; raw `bun test` discovery is explicitly non-gating because it includes vendored `foldkit-main` tests with unrelated missing dependencies and upstream failures.
 
 ## Plan Self-Review
 

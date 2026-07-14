@@ -1,8 +1,28 @@
 import { describe, expect, it } from 'bun:test';
+import type { Document } from 'foldkit/html';
 
 import { defineApp } from '../../src/define-app';
+import type { AppConfig } from '../../src/types';
 
 describe('defineApp', () => {
+  it('preserves typed props, model, and message contracts', async () => {
+    type Props = { readonly initialCount: number };
+    type Model = { readonly count: number };
+    type Message = { readonly _tag: 'Increment' };
+
+    const config = {
+      Model: {} as AppConfig<Props, Model, Message>['Model'],
+      init: (props: Props) => [{ count: props.initialCount }, []] as const,
+      update: (model: Model, _message: Message) => [model, []] as const,
+      view: (_model: Model) => ({}) as Document,
+    } satisfies AppConfig<Props, Model, Message>;
+
+    const app = defineApp<Props, Model, Message>(() => Promise.resolve(config));
+    const [model] = (await app.load()).init({ initialCount: 3 });
+
+    expect(model.count).toBe(3);
+  });
+
   it('sets __foldkit: true', () => {
     const app = defineApp(() => Promise.resolve({} as any));
     expect(app.__foldkit).toBe(true);
@@ -20,12 +40,7 @@ describe('defineApp', () => {
   });
 
   it('load returns the config the loader resolves to', async () => {
-    const config = {
-      Model: null,
-      init: () => [null, []] as any,
-      update: () => [null, []] as any,
-      view: () => ({}) as any,
-    };
+    const config = {} as AppConfig;
     const app = defineApp(() => Promise.resolve(config));
     expect(await app.load()).toBe(config);
   });

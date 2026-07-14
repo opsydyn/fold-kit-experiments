@@ -19,14 +19,55 @@ const config = {
 } satisfies AppConfig<Record<string, unknown>, Model, Message> &
   AppConfigShape<Record<string, unknown>>;
 
-const makeElement = () => {
-  const listeners = new Map<string, EventListener>();
+const makeEventTarget = () => {
+  const listeners = new Map<string, Set<EventListener>>();
   return {
-    id: '',
-    getAttribute: () => null,
-    addEventListener: (type: string, listener: EventListener) => listeners.set(type, listener),
-    dispatch: (type: string) => listeners.get(type)?.(new Event(type)),
+    addEventListener: (type: string, listener: EventListener) => {
+      const current = listeners.get(type) ?? new Set<EventListener>();
+      current.add(listener);
+      listeners.set(type, current);
+    },
+    removeEventListener: (type: string, listener: EventListener) => {
+      listeners.get(type)?.delete(listener);
+    },
+    dispatch: (type: string) => {
+      for (const listener of listeners.get(type) ?? []) listener(new Event(type));
+    },
   };
+};
+
+const makeElement = () => ({
+  id: '',
+  getAttribute: () => null,
+  ...makeEventTarget(),
+});
+
+const makeDocument = () => ({ title: 'Test page', ...makeEventTarget() });
+
+const renderWith = async (
+  runtime: Parameters<typeof createClientRenderer>[0],
+  options: {
+    readonly navigation?: AppConfigShape<Record<string, unknown>>['navigation'];
+    readonly element?: ReturnType<typeof makeElement>;
+    readonly document?: ReturnType<typeof makeDocument>;
+    readonly window?: { readonly location: { href: string } };
+  } = {},
+) => {
+  const element = options.element ?? makeElement();
+  const appConfig = {
+    ...config,
+    ...(options.navigation ? { navigation: options.navigation } : {}),
+  };
+  const app = Object.assign((_props?: Record<string, unknown>) => {}, {
+    __foldkit: true as const,
+    load: async () => appConfig,
+  });
+
+  await createClientRenderer(runtime, {
+    document: options.document ?? makeDocument(),
+    window: options.window ?? { location: { href: 'https://example.test/' } },
+  })(element as unknown as HTMLElement)(app, {}, {}, { client: 'load' });
+  return element;
 };
 
 describe('astro-foldkit client renderer', () => {
@@ -73,5 +114,78 @@ describe('astro-foldkit client renderer', () => {
     expect(initProps).toEqual([{ count: 3 }, []]);
     expect(embedCalls).toBe(1);
     expect(disposeCalls).toBe(1);
+  });
+
+  it('sends coldLoad through the configured inbound port', async () => {
+    const sent: unknown[] = [];
+    const runtime = {
+      makeApplication: (input: unknown) => input,
+      embed: (_program: unknown) => ({
+        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+        dispose: () => {},
+      }),
+    };
+
+    await renderWith(runtime, {
+      navigation: { port: 'navigation', map: (event) => event },
+    });
+
+    expect(sent).toEqual([{ phase: 'coldLoad', path: '/', previousPath: null }]);
+  });
+
+  it('stops forwarding and disposes once after unmount', async () => {
+    const sent: unknown[] = [];
+    let disposeCalls = 0;
+    const element = makeElement();
+    const document = makeDocument();
+    const runtime = {
+      makeApplication: (input: unknown) => input,
+      embed: (_program: unknown) => ({
+        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+        dispose: () => {
+          disposeCalls += 1;
+        },
+      }),
+    };
+
+    await renderWith(runtime, {
+      navigation: { port: 'navigation', map: (event) => event },
+      element,
+      document,
+    });
+    element.dispatch('astro:unmount');
+    document.dispatch('astro:page-load');
+
+    expect(sent).toHaveLength(2);
+    expect(sent.at(-1)).toEqual({ phase: 'exited', path: '/', previousPath: '/' });
+    expect(disposeCalls).toBe(1);
+  });
+
+  it('maps Astro swap and page-load events with the previous path', async () => {
+    const sent: unknown[] = [];
+    const document = makeDocument();
+    const window = { location: { href: 'https://example.test/start' } };
+    const runtime = {
+      makeApplication: (input: unknown) => input,
+      embed: (_program: unknown) => ({
+        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+        dispose: () => {},
+      }),
+    };
+
+    await renderWith(runtime, {
+      navigation: { port: 'navigation', map: (event) => event },
+      document,
+      window,
+    });
+    window.location.href = 'https://example.test/next';
+    document.dispatch('astro:before-swap');
+    document.dispatch('astro:page-load');
+
+    expect(sent).toEqual([
+      { phase: 'coldLoad', path: '/start', previousPath: null },
+      { phase: 'stayed', path: '/next', previousPath: '/start' },
+      { phase: 'entered', path: '/next', previousPath: '/next' },
+    ]);
   });
 });

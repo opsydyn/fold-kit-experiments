@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { foldkit as foldkitVitePlugin } from '@foldkit/vite-plugin';
 import type { AstroIntegration } from 'astro';
 
+export type { NavigationConfig, NavigationEvent, NavigationPhase } from './navigation';
+
 export default function foldkit(): AstroIntegration {
   return {
     name: 'astro-foldkit',

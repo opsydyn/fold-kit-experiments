@@ -173,6 +173,8 @@ The module returned by your loader must export:
 | `@opsydyn/astro-foldkit`            | Default Astro integration (`foldkit()`) |
 | `@opsydyn/astro-foldkit/define-app` | `defineApp` helper and `AppConfig` type |
 
+The root entry point also exports the `NavigationConfig`, `NavigationEvent`, and `NavigationPhase` types.
+
 ## Embedding
 
 `Runtime.embed` gives you a typed handle to the running program so you can clean it up on unmount and push live data in without remounting. This integration uses `embed` internally — the `astro:unmount` event calls `handle.dispose()` to tear down subscriptions and animation-frame loops when Astro navigates away.
@@ -195,6 +197,33 @@ export const ports = {
   },
 };
 ```
+
+### Navigation events
+
+To receive Astro View Transition lifecycle events, declare an inbound port and a mapper in the app configuration. Astro props remain the input to `init`; navigation events are runtime messages delivered through the configured port.
+
+```ts
+// src/apps/dashboard/main.ts
+import { Schema } from 'effect';
+import { Port } from 'foldkit';
+import type { NavigationEvent } from '@opsydyn/astro-foldkit';
+
+export const ports = {
+  inbound: {
+    navigation: Port.inbound(Schema.Unknown),
+  },
+};
+
+export const navigation = {
+  port: 'navigation',
+  map: (event: NavigationEvent) => ({
+    _tag: 'Navigated' as const,
+    ...event,
+  }),
+};
+```
+
+The bridge sends `coldLoad` immediately, `stayed` on `astro:before-swap`, `entered` on `astro:page-load`, and `exited` once on `astro:unmount`. Events contain normalized pathnames; route parsing and route-specific message decisions belong in the app mapper. If the configured inbound port is missing, the integration warns once and leaves the FoldKit runtime mounted without forwarding events.
 
 Pass the ports map to `makeApplication` alongside your `init`, `update`, and `view`:
 

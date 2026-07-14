@@ -12,7 +12,7 @@ export type AppConfigShape<Props extends Record<string, unknown>> = {
   readonly update: (model: never, message: never) => readonly [unknown, CommandBatch];
   readonly view: (model: never) => Document;
   readonly navigation?: NavigationConfig<unknown>;
-  readonly ports?: unknown;
+  readonly ports?: Record<string, unknown>;
 };
 
 export type AppConfig<

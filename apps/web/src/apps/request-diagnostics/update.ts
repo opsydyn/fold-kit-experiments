@@ -12,6 +12,7 @@ import {
   type ExplorerState as ExplorerStateType,
   type Model,
 } from './model';
+import { parseDiagnosticsPath } from './navigation';
 
 type LoadedMetricsMessage = Extract<Message, { readonly _tag: 'LoadedMetrics' }>;
 
@@ -203,5 +204,14 @@ export const update = (model: Model, message: Message): Return =>
       StartedSelection: () => runMachine(model, message),
       ChangedSelection: () => runMachine(model, message),
       ClearedSelection: () => runMachine(model, message),
+      Navigated: (navigation) => [
+        {
+          ...model,
+          navigation,
+          route: parseDiagnosticsPath(navigation.path),
+          lastTransition: `${navigation.phase} ${navigation.path}`,
+        },
+        [],
+      ],
     }),
   );

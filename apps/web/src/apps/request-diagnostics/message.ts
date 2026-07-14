@@ -4,6 +4,7 @@ import { m } from 'foldkit/message';
 import type { Message as HistogramMessage } from '../../ui/histogram-chart';
 import type { Message as ScatterMessage } from '../../ui/scatter-chart';
 import { Point } from './model';
+import { NavigationValue } from './navigation';
 
 export const ClickedReload = m('ClickedReload');
 export const StartedSelection = m('StartedSelection');
@@ -13,6 +14,7 @@ export const ChangedSelection = m('ChangedSelection', {
 export const ClearedSelection = m('ClearedSelection');
 export const LoadedMetrics = m('LoadedMetrics', { points: Schema.Array(Point) });
 export const FailedLoad = m('FailedLoad', { error: Schema.String });
+export const Navigated = m('Navigated', NavigationValue.fields);
 
 export const GotHistogramMessage = m('GotHistogramMessage', { message: Schema.Unknown });
 export type GotHistogramMessage = Omit<typeof GotHistogramMessage.Type, 'message'> & {
@@ -31,6 +33,7 @@ export const Message = Schema.Union([
   ClearedSelection,
   LoadedMetrics,
   FailedLoad,
+  Navigated,
   GotHistogramMessage,
   GotScatterMessage,
 ]);

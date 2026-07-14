@@ -10,6 +10,10 @@ import type { Model } from './model';
 import * as styles from './request-diagnostics.css';
 
 const stateLabel = (model: Model): string => `${model.explorer._tag}: ${model.lastTransition}`;
+const routeLabel = (model: Model): string =>
+  model.route._tag === 'Document'
+    ? `${model.route.repository} / ${model.route.document}`
+    : 'Diagnostics index';
 
 export const view = (model: Model): Document => {
   const h = html<Message>();
@@ -34,6 +38,16 @@ export const view = (model: Model): Document => {
           [
             h.button([h.Class(styles.button), h.OnClick(ClickedReload())], ['Reload metrics']),
             h.span([h.Class(styles.status)], [stateLabel(model)]),
+            h.span(
+              [h.Class(styles.status)],
+              [
+                `${model.navigation.phase} ${model.navigation.path} from ${model.navigation.previousPath ?? 'none'} · ${routeLabel(model)}`,
+              ],
+            ),
+            h.a(
+              [h.Class(styles.status), h.Href('/request-diagnostics/acme/platform/docs/intro.md')],
+              ['Open nested route'],
+            ),
           ],
         ),
         h.div(

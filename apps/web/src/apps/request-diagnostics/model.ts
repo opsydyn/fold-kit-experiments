@@ -3,6 +3,7 @@ import { ts } from 'foldkit/schema';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
+import { NavigationValue } from './navigation';
 
 export const Point = Schema.Struct({
   x: Schema.Number,
@@ -51,6 +52,8 @@ export type Model = Readonly<{
   histogram: Histogram.Model;
   scatter: Scatter.Model;
   lastTransition: string;
+  navigation: NavigationValue;
+  route: import('./navigation').DiagnosticsRoute;
 }>;
 
 export const Model = Schema.Struct({
@@ -58,6 +61,8 @@ export const Model = Schema.Struct({
   histogram: Schema.Unknown,
   scatter: Schema.Unknown,
   lastTransition: Schema.String,
+  navigation: NavigationValue,
+  route: Schema.Unknown,
 });
 
 const makeHistogram = (points: ReadonlyArray<Point>): Histogram.Model =>
@@ -87,6 +92,8 @@ export const initModel: Model = {
   histogram: makeHistogram(samplePoints),
   scatter: makeScatter(samplePoints),
   lastTransition: 'Loading -> waiting for metrics',
+  navigation: { phase: 'coldLoad', path: '/', previousPath: null },
+  route: { _tag: 'Index' },
 };
 
 export const chartsFor = (points: ReadonlyArray<Point>): Pick<Model, 'histogram' | 'scatter'> => ({

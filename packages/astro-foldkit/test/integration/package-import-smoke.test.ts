@@ -67,6 +67,40 @@ const setupFixture = async (): Promise<SmokeFixture> => {
   await rename(path.join(unpackDir, 'package'), path.join(scopeDir, 'astro-foldkit'));
 
   const pkgRoot = path.join(scopeDir, 'astro-foldkit');
+  const navigationConsumer = path.join(consumerDir, 'navigation-consumer.ts');
+  await writeFile(
+    navigationConsumer,
+    `import type { NavigationConfig, NavigationEvent, NavigationPhase } from '@opsydyn/astro-foldkit';
+
+const phase: NavigationPhase = 'entered';
+const event: NavigationEvent = { phase, path: '/request-diagnostics', previousPath: '/' };
+const config: NavigationConfig<NavigationEvent> = {
+  port: 'navigation',
+  map: (value) => value,
+};
+
+void config.map(event);
+`,
+  );
+  await execFileAsync(
+    'bun',
+    [
+      'x',
+      'tsc',
+      '--noEmit',
+      '--ignoreConfig',
+      '--strict',
+      '--skipLibCheck',
+      '--target',
+      'ES2022',
+      '--module',
+      'ESNext',
+      '--moduleResolution',
+      'Bundler',
+      navigationConsumer,
+    ],
+    { cwd: consumerDir, env, maxBuffer },
+  );
   const distIndex = (await import(
     pathToFileURL(path.join(pkgRoot, 'dist', 'index.mjs')).href
   )) as DistIndex;

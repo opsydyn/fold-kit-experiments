@@ -36,3 +36,18 @@ Commit: 83c30df docs: complete astro navigation slice (base slice commit; this r
 The required combined raw Bun test command is not a valid full-repo test runner for the current FoldKit 0.128 test setup: it attempts to load diagnostics tests that import the removed `Mount` export. The web workspace's Vitest command passes all 41 tests, and this Task 4 change does not alter those imports or runtime implementation behavior.
 
 The repo retains its pre-existing lint warnings; `bun run check` exits 0 after formatting the updated plan.
+
+## Review Follow-Up Evidence
+
+- Corrected `docs/roadmap.md` to describe the shipped app-owned `Route.isEntering` route policy instead of claiming `Transition.make` usage.
+- Replaced the non-gating combined raw Bun test command in the plan with workspace-valid package unit/integration scripts and the web Vitest script. The raw Bun `Mount` export failure remains documented as a known limitation.
+- Extended `package-import-smoke.test.ts` to compile a temporary packed consumer importing and using `NavigationConfig`, `NavigationEvent`, and `NavigationPhase`, while preserving Bun and Node runtime import checks.
+
+Follow-up verification:
+
+- `bun run --filter @opsydyn/astro-foldkit test:unit`: PASS, 44 tests.
+- `bun run --filter @opsydyn/astro-foldkit test:integration`: PASS, 2 packed-consumer tests; the emitted navigation types compile successfully under TypeScript, and Bun/Node imports pass.
+- `bun run --filter @opsydyn/web test`: PASS, 41 tests across 8 files.
+- `bun typecheck`: PASS, 0 diagnostics in web and all workspace typechecks successful.
+- `bun run check`: PASS with existing lint warnings; formatting clean.
+- `git diff --check`: PASS.

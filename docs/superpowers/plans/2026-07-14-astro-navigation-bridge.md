@@ -379,13 +379,15 @@ Run:
 ```bash
 bun run check
 bun typecheck
-bun test packages/astro-foldkit/test/unit packages/astro-foldkit/test/integration apps/web/src/apps/request-diagnostics
+bun run --filter @opsydyn/astro-foldkit test:unit
+bun run --filter @opsydyn/astro-foldkit test:integration
+bun run --filter @opsydyn/web test
 bun run --filter @opsydyn/astro-foldkit build
 bun run --filter @opsydyn/web build
 git diff --check
 ```
 
-Expected: all commands exit 0; workspace-filtered tests pass; no generated build output is left as an untracked change.
+Expected: all commands exit 0; workspace-filtered tests pass; no generated build output is left as an untracked change. Raw `bun test ...` discovery is a known non-gating limitation because it reaches vendored FoldKit diagnostics fixtures that import the removed FoldKit 0.128 `Mount` export.
 
 - [x] **Step 6: Commit the verified slice**
 
@@ -396,10 +398,11 @@ git commit -m "docs: complete astro navigation slice"
 
 ### Task 4 Evidence
 
-- Packed consumer smoke test imports `@opsydyn/astro-foldkit` under Bun and Node, checks the Astro integration and `defineApp` entry point, and asserts the packed `index.d.mts` contains `NavigationConfig`, `NavigationEvent`, and `NavigationPhase`.
+- Packed consumer smoke test compiles a consumer against the emitted `NavigationConfig`, `NavigationEvent`, and `NavigationPhase` types, then imports `@opsydyn/astro-foldkit` under Bun and Node and checks the Astro integration and `defineApp` entry point.
 - Consumer documentation covers `ports.inbound`, the navigation mapper, the `NavigationEvent` shape, lifecycle phase semantics, fail-closed missing-port behavior, and app-owned route parsing and load policy.
 - Roadmap navigation slice is complete, including the route-aware request-diagnostics example.
 - Final verification commands are recorded in `.superpowers/sdd/task-4-report.md`.
+- Raw Bun test discovery is explicitly non-gating; the repository-valid test command uses workspace package scripts and web Vitest.
 
 ## Plan Self-Review
 

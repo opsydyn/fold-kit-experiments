@@ -23,15 +23,17 @@
 ### Task 1: Add the Pure Navigation Contract
 
 **Files:**
+
 - Create: `packages/astro-foldkit/src/navigation.ts`
 - Create: `packages/astro-foldkit/test/unit/navigation.test.ts`
 - Modify: `packages/astro-foldkit/src/types.ts`
 
 **Interfaces:**
+
 - Produces `NavigationPhase`, `NavigationEvent`, `NavigationConfig<Value>`, and a pure `normalizeNavigationEvent` helper.
 - `AppConfigShape<Props>` gains optional `navigation?: NavigationConfig<unknown>` and `ports?: unknown` fields so typed app modules can expose the bridge configuration without leaking it into the runtime config.
 
-- [ ] **Step 1: Write failing normalization tests**
+- [x] **Step 1: Write failing normalization tests**
 
 Add tests covering the pure contract:
 
@@ -51,13 +53,13 @@ it('uses null when there is no previous URL', () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify the expected failure**
+- [x] **Step 2: Run the focused test and verify the expected failure**
 
 Run: `bun test packages/astro-foldkit/test/unit/navigation.test.ts`
 
 Expected: FAIL because `navigation.ts` and `normalizeNavigationEvent` do not exist yet.
 
-- [ ] **Step 3: Implement the minimal pure helper**
+- [x] **Step 3: Implement the minimal pure helper**
 
 Implement the exact contract:
 
@@ -82,21 +84,20 @@ export const normalizeNavigationEvent = (
 ): NavigationEvent => ({
   phase,
   path: new URL(currentUrl, 'https://astro-foldkit.invalid').pathname,
-  previousPath: previousUrl === null
-    ? null
-    : new URL(previousUrl, 'https://astro-foldkit.invalid').pathname,
+  previousPath:
+    previousUrl === null ? null : new URL(previousUrl, 'https://astro-foldkit.invalid').pathname,
 });
 ```
 
 Export the types and helper from the package entry point in Task 2.
 
-- [ ] **Step 4: Run the focused test and verify it passes**
+- [x] **Step 4: Run the focused test and verify it passes**
 
 Run: `bun test packages/astro-foldkit/test/unit/navigation.test.ts`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the pure contract**
+- [x] **Step 5: Commit the pure contract**
 
 ```bash
 git add packages/astro-foldkit/src/navigation.ts packages/astro-foldkit/test/unit/navigation.test.ts packages/astro-foldkit/src/types.ts
@@ -106,6 +107,7 @@ git commit -m "feat(astro-foldkit): add navigation event contract"
 ### Task 2: Forward Astro Lifecycle Events Through FoldKit Ports
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/src/client.ts`
 - Modify: `packages/astro-foldkit/src/types.ts`
 - Modify: `packages/astro-foldkit/src/index.ts`
@@ -113,11 +115,12 @@ git commit -m "feat(astro-foldkit): add navigation event contract"
 - Modify: `packages/astro-foldkit/README.md`
 
 **Interfaces:**
+
 - `ClientRuntime.embed` returns `{ ports: Record<string, { send(value: unknown): unknown }>; dispose(): void }` in the test seam.
 - `createClientRenderer` reads `config.navigation`, sends `config.navigation.map(event)` to `handle.ports[config.navigation.port]`, and leaves the runtime mounted if the port is absent.
 - The bridge listens on `document` for `astro:before-swap` and `astro:page-load`, and on the island element for `astro:unmount`.
 
-- [ ] **Step 1: Extend the client test seam and write failing tests**
+- [x] **Step 1: Extend the client test seam and write failing tests**
 
 Add tests for:
 
@@ -144,13 +147,13 @@ it('stops forwarding and disposes once after unmount', async () => {
 
 Use the existing `makeElement` pattern and add a minimal document event target seam so the tests do not require a browser.
 
-- [ ] **Step 2: Run the focused client tests and verify failure**
+- [x] **Step 2: Run the focused client tests and verify failure**
 
 Run: `bun test packages/astro-foldkit/test/unit/client.test.ts`
 
 Expected: FAIL because the runtime seam has no ports and the renderer does not yet create navigation listeners.
 
-- [ ] **Step 3: Implement lifecycle forwarding**
+- [x] **Step 3: Implement lifecycle forwarding**
 
 Add a focused `attachNavigationBridge` helper in `client.ts` with this behavior:
 
@@ -193,7 +196,7 @@ Adapt the exact event ordering to the tested Astro event seam. Do not send `exit
 
 Keep `astro:unmount` disposal idempotent and ensure bridge cleanup happens before or alongside `handle.dispose()`.
 
-- [ ] **Step 4: Export the public navigation types**
+- [x] **Step 4: Export the public navigation types**
 
 Update `packages/astro-foldkit/src/index.ts`:
 
@@ -203,17 +206,17 @@ export type { NavigationConfig, NavigationEvent, NavigationPhase } from './navig
 
 Keep the default Astro integration export unchanged.
 
-- [ ] **Step 5: Update README usage**
+- [x] **Step 5: Update README usage**
 
 Document an app module that declares an inbound port and navigation mapper, and show that Astro props and FoldKit runtime configuration remain separate. State that route parsing belongs in the app and that missing ports fail closed.
 
-- [ ] **Step 6: Run package tests and typecheck**
+- [x] **Step 6: Run package tests and typecheck**
 
 Run: `bun test packages/astro-foldkit/test/unit && bun run --filter @opsydyn/astro-foldkit typecheck`
 
 Expected: all Astro unit tests pass and package typecheck exits 0.
 
-- [ ] **Step 7: Commit the bridge**
+- [x] **Step 7: Commit the bridge**
 
 ```bash
 git add packages/astro-foldkit/src packages/astro-foldkit/test/unit/client.test.ts packages/astro-foldkit/README.md
@@ -223,6 +226,7 @@ git commit -m "feat(astro-foldkit): forward navigation through inbound ports"
 ### Task 3: Add the Route-Aware Diagnostics Example
 
 **Files:**
+
 - Create: `apps/web/src/apps/request-diagnostics/navigation.ts`
 - Create: `apps/web/src/apps/request-diagnostics/subscription.ts`
 - Modify: `apps/web/src/apps/request-diagnostics/message.ts`
@@ -238,11 +242,12 @@ git commit -m "feat(astro-foldkit): forward navigation through inbound ports"
 - Modify: `apps/web/src/apps/request-diagnostics/main.scene.test.ts` or create it if absent
 
 **Interfaces:**
+
 - `navigation.ts` exports `NavigationValue`, `NavigationPort`, `parseDiagnosticsPath`, and `toNavigationValue`.
 - The app declares `ports.inbound.navigation = Port.inbound(NavigationValue)` and `navigation = { port: 'navigation', map: toNavigationValue }`.
 - `subscription.ts` consumes `Port.subscription(NavigationPort, ...)` and emits `Navigated`.
 
-- [ ] **Step 1: Write failing route and message tests**
+- [x] **Step 1: Write failing route and message tests**
 
 Add tests with these concrete expectations:
 
@@ -256,7 +261,9 @@ it('preserves nested repository and document path segments', () => {
 });
 
 it('maps a navigation event to the port value', () => {
-  expect(toNavigationValue({ phase: 'entered', path: '/request-diagnostics', previousPath: '/' })).toEqual({
+  expect(
+    toNavigationValue({ phase: 'entered', path: '/request-diagnostics', previousPath: '/' }),
+  ).toEqual({
     phase: 'entered',
     path: '/request-diagnostics',
     previousPath: '/',
@@ -264,13 +271,13 @@ it('maps a navigation event to the port value', () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused web test and verify failure**
+- [x] **Step 2: Run the focused web test and verify failure**
 
 Run: `bun test apps/web/src/apps/request-diagnostics/navigation.test.ts`
 
 Expected: FAIL because the route module and navigation message do not exist.
 
-- [ ] **Step 3: Implement route parsing from the local FoldKit precedent**
+- [x] **Step 3: Implement route parsing from the local FoldKit precedent**
 
 Use the reference repo’s `foldkit/route` pattern. In FoldKit 0.128 the rest-segment helper is named `rest`:
 
@@ -294,11 +301,11 @@ const documentRouter = pipe(
 
 Use a small normalized value for the app display; preserve the complete pathname in the navigation event even when the route falls back to an index state.
 
-- [ ] **Step 4: Add the port, message, subscription, and update path**
+- [x] **Step 4: Add the port, message, subscription, and update path**
 
 Define `Navigated` as a past-tense message with the normalized fields. Add `Port.inbound(NavigationValue)` to `main.ts`, and use a port subscription to create `Navigated` messages. Update the model’s `lastTransition` and route display without rebuilding the chart models. On `entered`, use the app’s route predicate to decide whether any existing load step should run; do not put loading logic in the Astro bridge.
 
-- [ ] **Step 5: Update the view and pages**
+- [x] **Step 5: Update the view and pages**
 
 Display phase, current path, previous path, and parsed repository/document state in the existing diagnostics toolbar. Add the catch-all page using the package import:
 
@@ -315,13 +322,13 @@ import Layout from '../../layouts/Layout.astro';
 
 Keep the existing `/request-diagnostics` page working and add a link from the diagnostics view or shared layout to a nested path so the behavior is discoverable.
 
-- [ ] **Step 6: Run web tests and typecheck**
+- [x] **Step 6: Run web tests and typecheck**
 
 Run: `bun test apps/web/src/apps/request-diagnostics && bun run --filter @opsydyn/web typecheck`
 
 Expected: all request-diagnostics tests pass and web typecheck exits 0.
 
-- [ ] **Step 7: Commit the demo**
+- [x] **Step 7: Commit the demo**
 
 ```bash
 git add apps/web/src/apps/request-diagnostics apps/web/src/pages/request-diagnostics.astro 'apps/web/src/pages/request-diagnostics/[...path].astro'
@@ -331,24 +338,26 @@ git commit -m "feat(web): demonstrate navigation-aware foldkit app"
 ### Task 4: Documentation, Integration Smoke Test, and Full Verification
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/test/integration/package-import-smoke.test.ts`
 - Modify: `packages/astro-foldkit/README.md`
 - Modify: `docs/roadmap.md`
 - Modify: `docs/superpowers/plans/2026-07-14-astro-navigation-bridge.md`
 
 **Interfaces:**
+
 - The package import smoke test verifies the built public navigation type surface indirectly through the package build/import.
 - The roadmap marks the navigation bridge and route-aware example complete only after the runtime and web tests pass.
 
-- [ ] **Step 1: Add the package integration assertion**
+- [x] **Step 1: Add the package integration assertion**
 
 Extend the smoke test to import the package entry point and assert the existing integration shape remains valid after adding navigation exports. Keep the assertion compatible with ESM built output; do not import `src` paths.
 
-- [ ] **Step 2: Add consumer-facing lifecycle documentation**
+- [x] **Step 2: Add consumer-facing lifecycle documentation**
 
 Document the `ports.inbound` plus `navigation` configuration, the `NavigationEvent` shape, the missing-port fail-closed behavior, and the ownership rule for route parsing and load policy.
 
-- [ ] **Step 3: Mark the roadmap slice complete**
+- [x] **Step 3: Mark the roadmap slice complete**
 
 Change only the navigation slice checkboxes in `docs/roadmap.md` after the demo is verified:
 
@@ -359,11 +368,11 @@ Change only the navigation slice checkboxes in `docs/roadmap.md` after the demo 
 - [x] Verify state preservation and disposal across Astro View Transitions.
 ```
 
-- [ ] **Step 4: Update the plan checkboxes with evidence**
+- [x] **Step 4: Update the plan checkboxes with evidence**
 
 Mark completed steps and record the final package/web test commands in the verification section. Do not mark the slice complete if the dev server or integration smoke test is failing.
 
-- [ ] **Step 5: Run the complete verification set**
+- [x] **Step 5: Run the complete verification set**
 
 Run:
 
@@ -378,12 +387,19 @@ git diff --check
 
 Expected: all commands exit 0; workspace-filtered tests pass; no generated build output is left as an untracked change.
 
-- [ ] **Step 6: Commit the verified slice**
+- [x] **Step 6: Commit the verified slice**
 
 ```bash
 git add packages/astro-foldkit/test/integration/package-import-smoke.test.ts packages/astro-foldkit/README.md docs/roadmap.md docs/superpowers/plans/2026-07-14-astro-navigation-bridge.md
 git commit -m "docs: complete astro navigation slice"
 ```
+
+### Task 4 Evidence
+
+- Packed consumer smoke test imports `@opsydyn/astro-foldkit` under Bun and Node, checks the Astro integration and `defineApp` entry point, and asserts the packed `index.d.mts` contains `NavigationConfig`, `NavigationEvent`, and `NavigationPhase`.
+- Consumer documentation covers `ports.inbound`, the navigation mapper, the `NavigationEvent` shape, lifecycle phase semantics, fail-closed missing-port behavior, and app-owned route parsing and load policy.
+- Roadmap navigation slice is complete, including the route-aware request-diagnostics example.
+- Final verification commands are recorded in `.superpowers/sdd/task-4-report.md`.
 
 ## Plan Self-Review
 

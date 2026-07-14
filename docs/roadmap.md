@@ -27,13 +27,13 @@ Build the most useful Astro host and chart-primitives layer for FoldKit applicat
 
 **Outcome:** FoldKit apps can react to Astro navigation without owning a second router.
 
-- [ ] Define an adapter from Astro navigation lifecycle events to application Messages.
-- [ ] Use FoldKit `Transition.make`, `coldLoad`, `entered`, `exited`, and `stayed` at the application boundary.
-- [ ] Support normalized repository/document paths with `restString`.
-- [ ] Verify state preservation and disposal across Astro View Transitions.
-- [ ] Add a route-aware example to `apps/web`.
+- [x] Define an adapter from Astro navigation lifecycle events to application Messages.
+- [x] Use FoldKit `Transition.make`, `coldLoad`, `entered`, `exited`, and `stayed` at the application boundary.
+- [x] Support normalized repository/document paths with `rest`.
+- [x] Verify state preservation and disposal across Astro View Transitions.
+- [x] Add a route-aware example to `apps/web`.
 
-**Exit criteria:** a route-driven example can distinguish cold load, route entry, route exit, and within-route payload changes with typed tests.
+**Exit criteria:** a route-driven example can distinguish cold load, route entry, route exit, and within-route payload changes with typed tests. Verified by the request-diagnostics unit, Story, Scene, package smoke, and production build checks recorded in the navigation bridge plan.
 
 ## Next: FoldKit Viz Interaction Layer
 

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'bun:test';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -16,6 +16,7 @@ type DistDefineApp = { defineApp: unknown };
 type SmokeFixture = {
   distIndex: DistIndex;
   distDefineApp: DistDefineApp;
+  distIndexTypes: string;
   consumerDir: string;
   env: NodeJS.ProcessEnv;
   cleanup: () => Promise<void>;
@@ -72,10 +73,12 @@ const setupFixture = async (): Promise<SmokeFixture> => {
   const distDefineApp = (await import(
     pathToFileURL(path.join(pkgRoot, 'dist', 'define-app.mjs')).href
   )) as DistDefineApp;
+  const distIndexTypes = await readFile(path.join(pkgRoot, 'dist', 'index.d.mts'), 'utf8');
 
   return {
     distIndex,
     distDefineApp,
+    distIndexTypes,
     consumerDir,
     env,
     cleanup: async () => {
@@ -113,7 +116,7 @@ import('@opsydyn/astro-foldkit/define-app').then(m => {
 
 describe('packed import smoke', () => {
   it('dist exports resolve correctly (Bun import)', async () => {
-    const { distIndex, distDefineApp } = await fixturePromise;
+    const { distIndex, distDefineApp, distIndexTypes } = await fixturePromise;
     expect(typeof distIndex.default).toBe('function');
     const integration = (
       distIndex.default as () => { name: string; hooks: Record<string, unknown> }
@@ -121,6 +124,9 @@ describe('packed import smoke', () => {
     expect(integration.name).toBe('astro-foldkit');
     expect(typeof integration.hooks['astro:config:setup']).toBe('function');
     expect(typeof distDefineApp.defineApp).toBe('function');
+    expect(distIndexTypes).toContain('NavigationConfig');
+    expect(distIndexTypes).toContain('NavigationEvent');
+    expect(distIndexTypes).toContain('NavigationPhase');
   }, 60_000);
 
   it('imports correctly under Bun and Node via consumer script', async () => {

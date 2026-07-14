@@ -1,6 +1,8 @@
 import type { Runtime } from 'foldkit';
 import type { Document } from 'foldkit/html';
 
+import type { NavigationConfig } from './navigation';
+
 type TaggedMessage = { readonly _tag: string };
 type CommandBatch = ReadonlyArray<unknown>;
 
@@ -9,6 +11,8 @@ export type AppConfigShape<Props extends Record<string, unknown>> = {
   readonly init: (props: Props) => readonly [unknown, CommandBatch];
   readonly update: (model: never, message: never) => readonly [unknown, CommandBatch];
   readonly view: (model: never) => Document;
+  readonly navigation?: NavigationConfig<unknown>;
+  readonly ports?: unknown;
 };
 
 export type AppConfig<

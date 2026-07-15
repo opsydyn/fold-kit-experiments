@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.2.1...astro-foldkit-v0.3.0) (2026-07-15)
+
+
+### Features
+
+* **astro-foldkit:** add navigation event contract ([5d4678d](https://github.com/opsydyn/fold-kit-experiments/commit/5d4678d94eac9e5e9f6d6f15e9d4074f1e99df3d))
+* **astro-foldkit:** define stable ssr shell ([e325b89](https://github.com/opsydyn/fold-kit-experiments/commit/e325b89f63515194abf37a85f568dddef4d97855))
+* **astro-foldkit:** forward navigation through inbound ports ([da6ade5](https://github.com/opsydyn/fold-kit-experiments/commit/da6ade569a312b886a5732f1a401a47b065f4f20))
+* **astro-foldkit:** type application contract ([9fbc36d](https://github.com/opsydyn/fold-kit-experiments/commit/9fbc36de9fde1e17b2d29d791d620bc9eddf573a))
+
+
+### Bug Fixes
+
+* address astro navigation review findings ([ec6faad](https://github.com/opsydyn/fold-kit-experiments/commit/ec6faad38c05d9a1b5d5fe32a710215864fe8fb6))
+* align packages with foldkit 0.128.1 ([ebadeaa](https://github.com/opsydyn/fold-kit-experiments/commit/ebadeaaf29e854660aa2d5c9eba04c017269d075))
+* **astro-foldkit:** make island disposal one-shot ([694e17a](https://github.com/opsydyn/fold-kit-experiments/commit/694e17a32453c6f98561f6f2cb767d3c4c59ab8a))
+* **astro-foldkit:** preserve schema overlay compatibility ([4f4be0b](https://github.com/opsydyn/fold-kit-experiments/commit/4f4be0b5da7bebb7c40acb535727acd8f448a903))
+* **astro-foldkit:** scope navigation to island lifecycle ([e8627d8](https://github.com/opsydyn/fold-kit-experiments/commit/e8627d82cb7a76e4887b7e40121e2d6cf3906347))
+* resolve final astro navigation review findings ([baefd61](https://github.com/opsydyn/fold-kit-experiments/commit/baefd615231832ffca5dc10d18f4919e7672d3f9))
+
 ## [0.2.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.2.0...astro-foldkit-v0.2.1) (2026-06-12)
 
 ### Bug Fixes

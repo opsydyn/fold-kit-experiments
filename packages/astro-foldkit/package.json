@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/astro-foldkit",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Astro integration and renderer for FoldKit.",
   "keywords": [
     "astro",

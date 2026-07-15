@@ -1,4 +1,4 @@
 {
-  "packages/astro-foldkit": "0.2.1",
-  "packages/foldkit-viz": "0.4.1"
+  "packages/astro-foldkit": "0.3.0",
+  "packages/foldkit-viz": "0.4.2"
 }

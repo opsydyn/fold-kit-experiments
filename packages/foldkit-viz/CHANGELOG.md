@@ -2,6 +2,13 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.5.0...foldkit-viz-v0.6.0) (2026-07-18)
+
+
+### Features
+
+* **astro-foldkit:** add lazy app entry API ([9786bdd](https://github.com/opsydyn/fold-kit-experiments/commit/9786bdd226cfd2200b6e64d5b198a53a7aad6d13))
+
 ## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.4.2...foldkit-viz-v0.5.0) (2026-07-18)
 
 ### Features

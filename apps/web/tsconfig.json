@@ -4,5 +4,5 @@
     "plugins": [{ "name": "@effect/language-service" }]
   },
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "storybook-static", "node_modules"]
 }

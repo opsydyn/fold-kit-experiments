@@ -6,6 +6,13 @@ This roadmap turns the two packages into a coherent FoldKit data-application sta
 - `@opsydyn/foldkit-viz` owns pure chart math and FoldKit-compatible interaction primitives.
 - `apps/web` is the reference product and integration test surface.
 
+## Roadmap Ownership
+
+This file is the canonical cross-package product roadmap and release sequence.
+[`ROADMAP.md`](../ROADMAP.md) is the supporting `foldkit-viz` chart inventory,
+primitive-parity audit, and implementation history. It links here for product
+priorities rather than duplicating their status.
+
 ## Product Thesis
 
 Build the most useful Astro host and chart-primitives layer for FoldKit applications: server-compatible islands, route-aware application lifecycle, typed parent-owned state, and linked data visualizations that remain pure and testable.
@@ -35,6 +42,23 @@ Build the most useful Astro host and chart-primitives layer for FoldKit applicat
 
 **Exit criteria:** a route-driven example can distinguish cold load, route entry, route exit, and within-route payload changes with typed tests. Verified by the request-diagnostics unit, Story, Scene, package smoke, and production build checks recorded in the navigation bridge plan.
 
+## Now: Interruptible Application Lifecycle
+
+**Outcome:** an Astro-hosted FoldKit app can stop obsolete remote work while
+the application retains ownership of command keys and cancellation policy.
+
+- [x] Make request-diagnostics reloads interruptible with
+      `Command.Interruptible.define`.
+- [x] Sequence the replacement request through the interrupt outcome Message;
+      never return interruption and replacement commands in one update batch.
+- [ ] Cancel an active app-owned request on Astro route exit without starting a
+      replacement request.
+- [ ] Document keyed cancellation for remote filter, brush, and zoom loads;
+      keep `foldkit-viz` pure and synchronous.
+
+**Exit criteria:** the reference app proves reload and navigation cancellation,
+and the documented pattern has no Astro or Viz package API coupling.
+
 ## Next: FoldKit Viz Interaction Layer
 
 **Outcome:** chart consumers can compose selection and navigation interactions without rewriting event plumbing for every chart.
@@ -52,12 +76,12 @@ Build the most useful Astro host and chart-primitives layer for FoldKit applicat
 
 **Outcome:** the demo app proves the complete product boundary in one credible workflow.
 
-- [ ] Load data through `foldkit/http` with browser-safe tracing defaults.
-- [ ] Model request/loading/filtering/failure states with `experimental/machine`.
+- [x] Load data through `foldkit/http` with browser-safe tracing defaults.
+- [x] Model request/loading/filtering/failure states with `experimental/machine`.
 - [ ] Use `AsyncData.loadIfMissing` where cached data should not be revalidated on every revisit.
-- [ ] Render linked charts with `@opsydyn/foldkit-viz` interaction primitives.
-- [ ] Exercise command mappings with `Story` and mounted child mappings with `Scene` tests.
-- [ ] Add route entry/exit behavior through the Astro integration.
+- [x] Render linked histogram and scatter charts through parent-owned filtering.
+- [x] Exercise command mappings with `Story` and mounted child mappings with `Scene` tests.
+- [x] Add route entry/exit behavior through the Astro integration.
 
 **Exit criteria:** `/request-diagnostics` is a documented reference application, not only a demo page.
 

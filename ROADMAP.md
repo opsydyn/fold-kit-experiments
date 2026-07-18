@@ -110,16 +110,11 @@ None. All D3 data-transformation and geometry primitives are implemented.
 
 All planned charts complete. Primitive parity with D3's data-transformation layer is fully achieved.
 
-## FoldKit 0.129 Augmentation Slice
+## Product Roadmap
 
-FoldKit 0.129 adds keyed, explicitly interruptible Commands. This is the next product slice because it lets the demo app show cancellation without weakening the pure chart and Astro package boundaries.
-
-- [x] **P0 — Cancellable request diagnostics:** `apps/web/src/apps/request-diagnostics/` uses `Command.Interruptible.define` for the diagnostics dataset and starts a replacement HTTP load only from `CompletedCancelFetchMetrics`; interruption and replacement are never returned in the same update batch.
-- [ ] **P1 — Astro navigation cancellation example:** add a route-aware demo showing that `@opsydyn/astro-foldkit` can surface navigation lifecycle events while the FoldKit app owns the interrupt key and cancellation policy.
-- [ ] **P1 — Remote chart-data cancellation guidance:** document the consuming-app pattern for cancelling keyed filter, brush, or zoom loads while keeping `@opsydyn/foldkit-viz` primitives pure and synchronous.
-- [ ] **P2 — Typed Markdown showcase:** evaluate `@foldkit/markdown` for build-time typed Markdown documents with live FoldKit islands in the Astro demo.
-- [ ] **P2 — Runtime inspection:** evaluate `@foldkit/devtools` for command and model tracing once the cancellation example exists.
-- [ ] **P3 — UI package fit:** evaluate `@foldkit/ui` only where it complements, rather than duplicates, the repository's chart and application primitives.
+Cross-package priorities and FoldKit release augmentation work are tracked in
+[`docs/roadmap.md`](docs/roadmap.md). This document remains the `foldkit-viz`
+chart inventory, primitive-parity audit, and implementation record.
 
 ---
 

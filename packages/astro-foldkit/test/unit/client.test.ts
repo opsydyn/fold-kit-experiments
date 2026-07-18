@@ -144,17 +144,18 @@ describe('astro-foldkit client renderer', () => {
   });
 
   it('stops forwarding and disposes once after unmount', async () => {
-    const sent: unknown[] = [];
-    let disposeCalls = 0;
-    const element = makeElement();
+    const events: unknown[] = [];
+    const element = makeElement('lifecycle-order-island');
     const document = makeDocument();
     const runtime = {
       makeApplication: (input: unknown) => input,
       embed: (_program: unknown) => ({
-        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
-        dispose: () => {
-          disposeCalls += 1;
+        ports: {
+          navigation: {
+            send: (value: unknown) => events.push(['navigation', value]),
+          },
         },
+        dispose: () => events.push(['dispose']),
       }),
     };
 
@@ -166,9 +167,11 @@ describe('astro-foldkit client renderer', () => {
     element.dispatch('astro:unmount');
     document.dispatch('astro:page-load');
 
-    expect(sent).toHaveLength(2);
-    expect(sent.at(-1)).toEqual({ phase: 'exited', path: '/', previousPath: '/' });
-    expect(disposeCalls).toBe(1);
+    expect(events).toEqual([
+      ['navigation', { phase: 'coldLoad', path: '/', previousPath: null }],
+      ['navigation', { phase: 'exited', path: '/', previousPath: '/' }],
+      ['dispose'],
+    ]);
   });
 
   it('maps Astro swap and page-load events with the previous path', async () => {

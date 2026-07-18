@@ -6,9 +6,16 @@ import {
   ClickedReload,
   CompletedCancelFetchMetrics,
   LoadedMetrics,
+  Navigated,
 } from './message';
-import { initModel, samplePoints } from './model';
+import { Idle, initModel, samplePoints } from './model';
 import { diagnosticsMachine, update } from './update';
+
+const exited = Navigated({
+  phase: 'exited',
+  path: '/request-diagnostics',
+  previousPath: '/',
+});
 
 describe('request diagnostics machine', () => {
   test('loads data from the loading state', () => {
@@ -43,19 +50,61 @@ describe('request diagnostics machine', () => {
     expect(result).toMatchObject({
       _tag: 'Transitioned',
       target: 'Cancelling',
-      state: { _tag: 'Cancelling' },
+      state: { _tag: 'Cancelling', reason: 'Reload' },
+      commands: [{ name: 'FetchMetrics.Interrupt', interruptsKey: 'FetchMetrics' }],
+    });
+  });
+
+  test('interrupts active metrics work when the Astro island exits', () => {
+    const result = diagnosticsMachine.step({ _tag: 'Loading' }, exited);
+
+    expect(result).toMatchObject({
+      _tag: 'Transitioned',
+      target: 'Cancelling',
+      state: { _tag: 'Cancelling', reason: 'RouteExit' },
       commands: [{ name: 'FetchMetrics.Interrupt', interruptsKey: 'FetchMetrics' }],
     });
   });
 
   test('starts the replacement request from the interrupt outcome', () => {
     const [model, commands] = update(
-      { ...initModel, explorer: { _tag: 'Cancelling' } },
+      { ...initModel, explorer: { _tag: 'Cancelling', reason: 'Reload' } },
       CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
     );
 
     expect(model.explorer).toEqual({ _tag: 'Loading' });
     expect(commands).toMatchObject([{ name: 'FetchMetrics', key: 'FetchMetrics' }]);
+  });
+
+  test('does not replace metrics work after route-exit cancellation', () => {
+    const [model, commands] = update(
+      { ...initModel, explorer: { _tag: 'Cancelling', reason: 'RouteExit' } },
+      CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
+    );
+
+    expect(model.explorer).toEqual({ _tag: 'Idle' });
+    expect(commands).toEqual([]);
+  });
+
+  test('does not interrupt completed metrics work on route exit', () => {
+    const [model, commands] = update(
+      { ...initModel, explorer: { _tag: 'Ready', points: samplePoints } },
+      exited,
+    );
+
+    expect(model.explorer).toEqual({ _tag: 'Ready', points: samplePoints });
+    expect(commands).toEqual([]);
+  });
+
+  test('ignores a late successful load after route-exit cancellation', () => {
+    const model = { ...initModel, explorer: Idle() };
+    const [nextModel, commands] = update(model, LoadedMetrics({ points: samplePoints }));
+
+    expect(nextModel.explorer).toBe(model.explorer);
+    expect(nextModel.histogram).toBe(model.histogram);
+    expect(nextModel.scatter).toBe(model.scatter);
+    expect(nextModel.lastTransition).toBe('LoadedMetrics ignored in Idle');
+    expect(commands).toEqual([]);
   });
 
   test('restores all points when a filtered selection is cleared', () => {

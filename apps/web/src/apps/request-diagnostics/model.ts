@@ -14,7 +14,10 @@ export type Point = typeof Point.Type;
 
 export const Idle = ts('Idle');
 export const Loading = ts('Loading');
-export const Cancelling = ts('Cancelling');
+export const CancellationReason = Schema.Literals(['Reload', 'RouteExit']);
+export type CancellationReason = typeof CancellationReason.Type;
+
+export const Cancelling = ts('Cancelling', { reason: CancellationReason });
 export const Ready = ts('Ready', { points: Schema.Array(Point) });
 export const Selecting = ts('Selecting', {
   points: Schema.Array(Point),

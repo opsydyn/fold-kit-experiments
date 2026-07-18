@@ -15,6 +15,7 @@ import {
 import {
   Cancelling,
   ExplorerState,
+  Idle,
   Loading,
   type ExplorerState as ExplorerStateType,
   type Model,
@@ -22,6 +23,9 @@ import {
 import { isEnteringDiagnostics, parseDiagnosticsPath } from './navigation';
 
 type LoadedMetricsMessage = Extract<Message, { readonly _tag: 'LoadedMetrics' }>;
+type NavigationMessage = Extract<Message, { readonly _tag: 'Navigated' }>;
+
+const cancelling = (reason: import('./model').CancellationReason) => Cancelling({ reason });
 
 const interruptMetrics = () => [
   FetchMetrics.Interrupt((outcome) => CompletedCancelFetchMetrics({ outcome })),
@@ -41,7 +45,15 @@ export const diagnosticsMachine = Machine.define({
   states: {
     Loading: {
       on: {
-        ClickedReload: Machine.to('Cancelling', () => Cancelling(), interruptMetrics),
+        ClickedReload: Machine.to('Cancelling', () => cancelling('Reload'), interruptMetrics),
+        Navigated: [
+          Machine.when(
+            (_state, message) => message.phase === 'exited',
+            'Cancelling',
+            () => cancelling('RouteExit'),
+            interruptMetrics,
+          ),
+        ],
         LoadedMetrics: Machine.to('Ready', ({ message }) => ({
           _tag: 'Ready',
           points: message.points,
@@ -54,7 +66,7 @@ export const diagnosticsMachine = Machine.define({
     },
     Ready: {
       on: {
-        ClickedReload: Machine.to('Cancelling', () => Cancelling(), interruptMetrics),
+        ClickedReload: Machine.to('Cancelling', () => cancelling('Reload'), interruptMetrics),
         StartedSelection: Machine.to('Selecting', ({ state }) => ({
           _tag: 'Selecting',
           points: state.points,
@@ -106,21 +118,25 @@ export const diagnosticsMachine = Machine.define({
           _tag: 'Ready',
           points: state.allPoints,
         })),
-        ClickedReload: Machine.to('Cancelling', () => Cancelling(), interruptMetrics),
+        ClickedReload: Machine.to('Cancelling', () => cancelling('Reload'), interruptMetrics),
       },
     },
     Failed: {
       on: {
-        ClickedReload: Machine.to('Cancelling', () => Cancelling(), interruptMetrics),
+        ClickedReload: Machine.to('Cancelling', () => cancelling('Reload'), interruptMetrics),
       },
     },
     Cancelling: {
       on: {
-        CompletedCancelFetchMetrics: Machine.to(
-          'Loading',
-          () => Loading(),
-          () => [FetchMetrics()],
-        ),
+        CompletedCancelFetchMetrics: [
+          Machine.when(
+            (state) => state.reason === 'Reload',
+            'Loading',
+            () => Loading(),
+            () => [FetchMetrics()],
+          ),
+          Machine.otherwise(Machine.to('Idle', () => Idle())),
+        ],
       },
     },
     Idle: { on: {} },
@@ -185,6 +201,8 @@ const updateScatter = (model: Model, rawMessage: unknown): Return => {
 
 const updateLoadedMetrics = (model: Model, message: LoadedMetricsMessage): Return => {
   const [nextModel, commands] = runMachine(model, message);
+  if (model.explorer._tag !== 'Loading' || nextModel.explorer._tag !== 'Ready')
+    return [nextModel, commands];
   return [
     {
       ...nextModel,
@@ -196,6 +214,27 @@ const updateLoadedMetrics = (model: Model, message: LoadedMetricsMessage): Retur
         dims: { width: 480, height: 265 },
         enableBrush: true,
       })[0],
+    },
+    commands,
+  ];
+};
+
+const updateNavigation = (model: Model, message: NavigationMessage): Return => {
+  const [nextModel, commands] = runMachine(model, message);
+  const navigation = {
+    phase: message.phase,
+    path: message.path,
+    previousPath: message.previousPath,
+  };
+  const route = parseDiagnosticsPath(navigation.path);
+  const routeEntry = isEnteringDiagnostics(message.phase, model.route, route);
+
+  return [
+    {
+      ...nextModel,
+      navigation,
+      route,
+      lastTransition: `${navigation.phase} ${navigation.path}${routeEntry ? ' (route entry)' : ''}`,
     },
     commands,
   ];
@@ -214,23 +253,6 @@ export const update = (model: Model, message: Message): Return =>
       StartedSelection: () => runMachine(model, message),
       ChangedSelection: () => runMachine(model, message),
       ClearedSelection: () => runMachine(model, message),
-      Navigated: (message) => {
-        const navigation = {
-          phase: message.phase,
-          path: message.path,
-          previousPath: message.previousPath,
-        };
-        const route = parseDiagnosticsPath(navigation.path);
-        const routeEntry = isEnteringDiagnostics(message.phase, model.route, route);
-        return [
-          {
-            ...model,
-            navigation,
-            route,
-            lastTransition: `${navigation.phase} ${navigation.path}${routeEntry ? ' (route entry)' : ''}`,
-          },
-          [],
-        ];
-      },
+      Navigated: (navigationMessage) => updateNavigation(model, navigationMessage),
     }),
   );

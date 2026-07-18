@@ -16,4 +16,20 @@ describe('request diagnostics navigation lifecycle', () => {
     expect(model.navigation).toEqual({ phase, path, previousPath });
     expect(model.lastTransition).toBe(`${phase} ${path}`);
   });
+
+  it('keeps an active metrics request on retained-island navigation', () => {
+    const [nextModel, commands] = update(
+      initModel,
+      Navigated({
+        phase: 'stayed',
+        path: '/request-diagnostics/acme/platform/docs/intro.md',
+        previousPath: '/request-diagnostics',
+      }),
+    );
+
+    expect(nextModel.explorer).toBe(initModel.explorer);
+    expect(nextModel.histogram).toBe(initModel.histogram);
+    expect(nextModel.scatter).toBe(initModel.scatter);
+    expect(commands).toEqual([]);
+  });
 });

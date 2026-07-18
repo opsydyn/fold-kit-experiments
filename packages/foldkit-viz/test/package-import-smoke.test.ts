@@ -11,15 +11,17 @@ const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 
 type SmokeFixture = {
   runtimeOutput: string;
-  cleanup: () => Promise<void>;
 };
+
+const tempDir: { path: string | undefined } = { path: undefined };
+const tarball: { path: string | undefined } = { path: undefined };
 
 const setupFixture = async (): Promise<SmokeFixture> => {
   const artifactsDir = path.join(packageDir, 'artifacts', 'test');
   await mkdir(artifactsDir, { recursive: true });
-  const tempDir = await mkdtemp(path.join(artifactsDir, 'selection-smoke-'));
-  const unpackDir = path.join(tempDir, 'unpack');
-  const consumerDir = path.join(tempDir, 'consumer');
+  tempDir.path = await mkdtemp(path.join(artifactsDir, 'selection-smoke-'));
+  const unpackDir = path.join(tempDir.path, 'unpack');
+  const consumerDir = path.join(tempDir.path, 'consumer');
   const packageScopeDir = path.join(consumerDir, 'node_modules', '@opsydyn');
 
   await execFileAsync('bun', ['run', 'build'], { cwd: packageDir, maxBuffer });
@@ -28,7 +30,7 @@ const setupFixture = async (): Promise<SmokeFixture> => {
     maxBuffer,
   });
   const [{ filename }] = JSON.parse(stdout) as [{ filename: string }];
-  const tarball = path.join(packageDir, filename);
+  tarball.path = path.join(packageDir, filename);
 
   await mkdir(unpackDir, { recursive: true });
   await mkdir(packageScopeDir, { recursive: true });
@@ -36,7 +38,7 @@ const setupFixture = async (): Promise<SmokeFixture> => {
     path.join(consumerDir, 'package.json'),
     JSON.stringify({ name: 'foldkit-viz-selection-smoke', private: true, type: 'module' }),
   );
-  await execFileAsync('tar', ['-xzf', tarball, '-C', unpackDir], { maxBuffer });
+  await execFileAsync('tar', ['-xzf', tarball.path, '-C', unpackDir], { maxBuffer });
   await rename(path.join(unpackDir, 'package'), path.join(packageScopeDir, 'foldkit-viz'));
 
   const consumer = path.join(consumerDir, 'selection-consumer.ts');
@@ -76,18 +78,17 @@ void selection;
     { cwd: consumerDir, maxBuffer },
   );
 
-  return {
-    runtimeOutput,
-    cleanup: async () => {
-      await rm(tempDir, { recursive: true, force: true });
-      await rm(tarball, { force: true });
-    },
-  };
+  return { runtimeOutput };
 };
 
 const fixturePromise = setupFixture();
 
-afterAll(async () => (await fixturePromise).cleanup());
+afterAll(async () => {
+  const tempDirCleanup =
+    tempDir.path === undefined ? [] : [rm(tempDir.path, { recursive: true, force: true })];
+  const tarballCleanup = tarball.path === undefined ? [] : [rm(tarball.path, { force: true })];
+  await Promise.all([...tempDirCleanup, ...tarballCleanup]);
+});
 
 describe('packed selection import', () => {
   it('resolves at runtime and in TypeScript for a consumer', async () => {

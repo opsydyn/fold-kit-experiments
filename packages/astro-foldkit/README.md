@@ -12,6 +12,13 @@ npm install @opsydyn/astro-foldkit
 npm install astro foldkit
 ```
 
+## FoldKit compatibility
+
+`@opsydyn/astro-foldkit` requires FoldKit `0.129.0` or later. Applications can
+use `Command.Interruptible` for request cancellation inside their own update
+loop; this integration continues to own only Astro hydration and lifecycle
+event delivery.
+
 ## Setup
 
 Add the integration to `astro.config.ts`:

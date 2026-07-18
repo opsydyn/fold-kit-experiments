@@ -1,3 +1,14 @@
+// interaction/selection
+export type { Selection, SelectionAxis } from './interaction/selection';
+export {
+  clampSelection,
+  intervalSelection,
+  keySelection,
+  SELECTION_NONE,
+  selectionContainsKey,
+  selectionContainsValue,
+} from './interaction/selection';
+
 // math/array
 export {
   bisect,

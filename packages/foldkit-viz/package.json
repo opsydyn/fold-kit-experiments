@@ -32,6 +32,9 @@
   "types": "./dist/index.d.mts",
   "typesVersions": {
     "*": {
+      "interaction/selection": [
+        "./dist/interaction/selection.d.mts"
+      ],
       "math/scale": [
         "./dist/math/scale.d.mts"
       ],
@@ -128,6 +131,10 @@
     ".": {
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
+    },
+    "./interaction/selection": {
+      "types": "./dist/interaction/selection.d.mts",
+      "import": "./dist/interaction/selection.mjs"
     },
     "./math/scale": {
       "types": "./dist/math/scale.d.mts",

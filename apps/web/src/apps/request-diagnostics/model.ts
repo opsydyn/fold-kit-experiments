@@ -14,6 +14,7 @@ export type Point = typeof Point.Type;
 
 export const Idle = ts('Idle');
 export const Loading = ts('Loading');
+export const Cancelling = ts('Cancelling');
 export const Ready = ts('Ready', { points: Schema.Array(Point) });
 export const Selecting = ts('Selecting', {
   points: Schema.Array(Point),
@@ -26,7 +27,15 @@ export const Filtered = ts('Filtered', {
 });
 export const Failed = ts('Failed', { error: Schema.String });
 
-export const ExplorerState = Schema.Union([Idle, Loading, Ready, Selecting, Filtered, Failed]);
+export const ExplorerState = Schema.Union([
+  Idle,
+  Loading,
+  Cancelling,
+  Ready,
+  Selecting,
+  Filtered,
+  Failed,
+]);
 export type ExplorerState = typeof ExplorerState.Type;
 
 export const samplePoints: ReadonlyArray<Point> = [

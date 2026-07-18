@@ -1,8 +1,14 @@
 import { describe, expect, test } from 'vitest';
 
-import { ChangedSelection, ClearedSelection, ClickedReload, LoadedMetrics } from './message';
-import { samplePoints } from './model';
-import { diagnosticsMachine } from './update';
+import {
+  ChangedSelection,
+  ClearedSelection,
+  ClickedReload,
+  CompletedCancelFetchMetrics,
+  LoadedMetrics,
+} from './message';
+import { initModel, samplePoints } from './model';
+import { diagnosticsMachine, update } from './update';
 
 describe('request diagnostics machine', () => {
   test('loads data from the loading state', () => {
@@ -31,15 +37,25 @@ describe('request diagnostics machine', () => {
     });
   });
 
-  test('ignores a reload message while loading', () => {
+  test('interrupts an in-flight metrics request before reloading', () => {
     const result = diagnosticsMachine.step({ _tag: 'Loading' }, ClickedReload());
 
-    expect(result).toEqual({
-      _tag: 'Ignored',
-      stateTag: 'Loading',
-      messageTag: 'ClickedReload',
-      state: { _tag: 'Loading' },
+    expect(result).toMatchObject({
+      _tag: 'Transitioned',
+      target: 'Cancelling',
+      state: { _tag: 'Cancelling' },
+      commands: [{ name: 'FetchMetrics.Interrupt', interruptsKey: 'FetchMetrics' }],
     });
+  });
+
+  test('starts the replacement request from the interrupt outcome', () => {
+    const [model, commands] = update(
+      { ...initModel, explorer: { _tag: 'Cancelling' } },
+      CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
+    );
+
+    expect(model.explorer).toEqual({ _tag: 'Loading' });
+    expect(commands).toMatchObject([{ name: 'FetchMetrics', key: 'FetchMetrics' }]);
   });
 
   test('restores all points when a filtered selection is cleared', () => {

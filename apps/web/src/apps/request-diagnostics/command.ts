@@ -5,7 +5,7 @@ import { Command, Http } from 'foldkit';
 import { FailedLoad, LoadedMetrics } from './message';
 import { Point } from './model';
 
-export const FetchMetrics = Command.define(
+export const FetchMetrics = Command.Interruptible.define(
   'FetchMetrics',
   LoadedMetrics,
   FailedLoad,

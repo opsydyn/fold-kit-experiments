@@ -5,8 +5,15 @@ import { Machine } from 'foldkit/experimental';
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
 import { FetchMetrics } from './command';
-import { ChangedSelection, ClearedSelection, Message, StartedSelection } from './message';
 import {
+  ChangedSelection,
+  ClearedSelection,
+  CompletedCancelFetchMetrics,
+  Message,
+  StartedSelection,
+} from './message';
+import {
+  Cancelling,
   ExplorerState,
   Loading,
   type ExplorerState as ExplorerStateType,
@@ -15,6 +22,10 @@ import {
 import { isEnteringDiagnostics, parseDiagnosticsPath } from './navigation';
 
 type LoadedMetricsMessage = Extract<Message, { readonly _tag: 'LoadedMetrics' }>;
+
+const interruptMetrics = () => [
+  FetchMetrics.Interrupt((outcome) => CompletedCancelFetchMetrics({ outcome })),
+];
 
 const filterPoints = (
   points: ReadonlyArray<import('./model').Point>,
@@ -30,6 +41,7 @@ export const diagnosticsMachine = Machine.define({
   states: {
     Loading: {
       on: {
+        ClickedReload: Machine.to('Cancelling', () => Cancelling(), interruptMetrics),
         LoadedMetrics: Machine.to('Ready', ({ message }) => ({
           _tag: 'Ready',
           points: message.points,
@@ -42,11 +54,7 @@ export const diagnosticsMachine = Machine.define({
     },
     Ready: {
       on: {
-        ClickedReload: Machine.to(
-          'Loading',
-          () => Loading(),
-          () => [FetchMetrics()],
-        ),
+        ClickedReload: Machine.to('Cancelling', () => Cancelling(), interruptMetrics),
         StartedSelection: Machine.to('Selecting', ({ state }) => ({
           _tag: 'Selecting',
           points: state.points,
@@ -98,16 +106,17 @@ export const diagnosticsMachine = Machine.define({
           _tag: 'Ready',
           points: state.allPoints,
         })),
-        ClickedReload: Machine.to(
-          'Loading',
-          () => Loading(),
-          () => [FetchMetrics()],
-        ),
+        ClickedReload: Machine.to('Cancelling', () => Cancelling(), interruptMetrics),
       },
     },
     Failed: {
       on: {
-        ClickedReload: Machine.to(
+        ClickedReload: Machine.to('Cancelling', () => Cancelling(), interruptMetrics),
+      },
+    },
+    Cancelling: {
+      on: {
+        CompletedCancelFetchMetrics: Machine.to(
           'Loading',
           () => Loading(),
           () => [FetchMetrics()],
@@ -199,6 +208,7 @@ export const update = (model: Model, message: Message): Return =>
       GotHistogramMessage: ({ message: rawMessage }) => updateHistogram(model, rawMessage),
       GotScatterMessage: ({ message: rawMessage }) => updateScatter(model, rawMessage),
       LoadedMetrics: (loadedMessage) => updateLoadedMetrics(model, loadedMessage),
+      CompletedCancelFetchMetrics: () => runMachine(model, message),
       ClickedReload: () => runMachine(model, message),
       FailedLoad: () => runMachine(model, message),
       StartedSelection: () => runMachine(model, message),

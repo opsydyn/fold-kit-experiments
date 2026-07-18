@@ -1,4 +1,5 @@
 import { Schema } from 'effect';
+import { Command } from 'foldkit';
 import { m } from 'foldkit/message';
 
 import type { Message as HistogramMessage } from '../../ui/histogram-chart';
@@ -14,6 +15,9 @@ export const ChangedSelection = m('ChangedSelection', {
 export const ClearedSelection = m('ClearedSelection');
 export const LoadedMetrics = m('LoadedMetrics', { points: Schema.Array(Point) });
 export const FailedLoad = m('FailedLoad', { error: Schema.String });
+export const CompletedCancelFetchMetrics = m('CompletedCancelFetchMetrics', {
+  outcome: Command.Interruptible.Outcome,
+});
 export const Navigated = m('Navigated', NavigationValue.fields);
 
 export const GotHistogramMessage = m('GotHistogramMessage', { message: Schema.Unknown });
@@ -33,6 +37,7 @@ export const Message = Schema.Union([
   ClearedSelection,
   LoadedMetrics,
   FailedLoad,
+  CompletedCancelFetchMetrics,
   Navigated,
   GotHistogramMessage,
   GotScatterMessage,

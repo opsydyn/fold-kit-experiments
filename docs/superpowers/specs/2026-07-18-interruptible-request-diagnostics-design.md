@@ -17,16 +17,16 @@ The application owns interruption. `FetchMetrics.Interrupt` is dispatched from t
 ## Message Flow
 
 1. Initialisation dispatches `FetchMetrics()` and the runtime registers that invocation under the diagnostics key.
-2. A `ClickedReload` Message in `Loading`, `Ready`, `Filtered`, or `Failed` transitions the explorer to `Loading` and returns only `FetchMetrics.Interrupt`.
-3. The interrupt command dispatches a new past-tense fact carrying its outcome.
-4. The update handler for that fact dispatches `FetchMetrics()` as the replacement request.
+2. A `ClickedReload` Message in `Loading`, `Ready`, `Filtered`, or `Failed` transitions the explorer to `Cancelling` and returns only `FetchMetrics.Interrupt`.
+3. The interrupt command dispatches `CompletedCancelFetchMetrics`, a new past-tense fact carrying its outcome.
+4. The state-machine handler for that fact transitions to `Loading` and dispatches `FetchMetrics()` as the replacement request.
 5. A successfully interrupted request cannot dispatch `LoadedMetrics` or `FailedLoad`; the replacement result completes the usual state-machine transition.
 
 The update must never return the interrupt command and its replacement in the same batch because command execution order inside a batch is not guaranteed.
 
 ## State and UI
 
-No new explorer state is required. The existing `Loading` state represents both the cancellation window and the replacement request. The existing reload control stays enabled so a user can replace an in-flight request.
+`Cancelling` represents the interrupt window, and `Loading` represents the replacement request. A second reload is ignored while `Cancelling`, preventing repeated clicks from creating duplicate replacement requests. The existing reload control stays enabled so a user can replace an in-flight request.
 
 ## Error Handling
 

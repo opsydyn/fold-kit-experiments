@@ -16,6 +16,12 @@ The runnable [`/request-diagnostics`](../../apps/web/src/apps/request-diagnostic
 bun add @opsydyn/foldkit-viz
 ```
 
+## FoldKit compatibility
+
+`@opsydyn/foldkit-viz` requires FoldKit `0.129.0` or later. Consumers can use
+`Command.Interruptible` to replace remote chart-data loads while this package
+remains focused on pure geometry, chart-local state, and rendering helpers.
+
 ---
 
 ## Modules

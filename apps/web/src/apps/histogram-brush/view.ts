@@ -1,4 +1,3 @@
-import { Option } from 'effect';
 import type { Document, Html } from 'foldkit/html';
 import { html } from 'foldkit/html';
 
@@ -28,11 +27,12 @@ const STATUS_STYLE = {
 export const view = (model: Model): Document => {
   const h = html<Message>();
 
-  const brushDomainOpt = Histogram.getBrushDomain(model.histogram);
-  const brushDomain = Option.getOrNull(brushDomainOpt);
+  const selection = model.selection;
+  const brushDomain =
+    selection._tag === 'Interval' && selection.axis === 'x' ? selection.domain : null;
   const filteredCount = model.scatter.points.length;
   const totalCount = model.allPoints.length;
-  const hasBrush = Option.isSome(brushDomainOpt);
+  const hasBrush = brushDomain !== null;
 
   const histogram: Html = Histogram.view({
     model: model.histogram,

@@ -1,3 +1,5 @@
+import { SELECTION_NONE } from '@opsydyn/foldkit-viz/interaction/selection';
+import type { Selection } from '@opsydyn/foldkit-viz/interaction/selection';
 import { Schema } from 'effect';
 
 import * as Histogram from '../../ui/histogram-chart';
@@ -77,11 +79,13 @@ export const Model = Schema.Struct({
   histogram: Schema.Unknown,
   scatter: Schema.Unknown,
   allPoints: Schema.Unknown,
+  selection: Schema.Unknown,
 });
-export type Model = Omit<typeof Model.Type, 'histogram' | 'scatter' | 'allPoints'> & {
+export type Model = Omit<typeof Model.Type, 'histogram' | 'scatter' | 'allPoints' | 'selection'> & {
   readonly histogram: Histogram.Model;
   readonly scatter: Scatter.Model;
   readonly allPoints: ReadonlyArray<Scatter.Point>;
+  readonly selection: Selection;
 };
 
 export const init = (_props: unknown): readonly [Model, readonly []] => {
@@ -105,5 +109,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     dims: { width: 380, height: 260 },
   });
 
-  return [{ histogram, scatter, allPoints: ALL_POINTS }, []];
+  return [{ histogram, scatter, allPoints: ALL_POINTS, selection: SELECTION_NONE }, []];
 };

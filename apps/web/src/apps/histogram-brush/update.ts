@@ -1,3 +1,9 @@
+import {
+  intervalSelection,
+  SELECTION_NONE,
+  selectionContainsValue,
+  type Selection,
+} from '@opsydyn/foldkit-viz/interaction/selection';
 import { Match, Option } from 'effect';
 
 import * as Histogram from '../../ui/histogram-chart';
@@ -15,18 +21,33 @@ const BRUSH_TAGS = new Set([
   'RecordedSvgBounds',
 ]);
 
-const applyBrushFilter = (model: Model, histogram: Histogram.Model): Return => {
-  const brushedDomainOpt = Histogram.getBrushDomain(histogram);
-  const filteredPoints = Option.isSome(brushedDomainOpt)
-    ? model.allPoints.filter(
-        (point) => point.x >= brushedDomainOpt.value[0] && point.x <= brushedDomainOpt.value[1],
-      )
-    : model.allPoints;
+const selectionFromHistogram = (histogram: Histogram.Model): Selection =>
+  Option.match(Histogram.getBrushDomain(histogram), {
+    onNone: () => SELECTION_NONE,
+    onSome: (domain) => intervalSelection('x', domain),
+  });
+
+const pointsForSelection = (
+  allPoints: ReadonlyArray<Scatter.Point>,
+  selection: Selection,
+): ReadonlyArray<Scatter.Point> =>
+  Match.value(selection).pipe(
+    Match.tags({
+      Interval: (selection) =>
+        allPoints.filter((point) => selectionContainsValue(selection, 'x', point.x)),
+      Keys: () => allPoints,
+      None: () => allPoints,
+    }),
+    Match.exhaustive,
+  );
+
+const applyBrushSelection = (model: Model, histogram: Histogram.Model): Return => {
+  const selection = selectionFromHistogram(histogram);
   const [scatter] = Scatter.update(
     model.scatter,
-    Scatter.UpdatedPoints({ points: filteredPoints }),
+    Scatter.UpdatedPoints({ points: pointsForSelection(model.allPoints, selection) }),
   );
-  return [{ ...model, histogram, scatter }, []];
+  return [{ ...model, histogram, scatter, selection }, []];
 };
 
 export const update = (model: Model, msg: Message): Return =>
@@ -37,7 +58,7 @@ export const update = (model: Model, msg: Message): Return =>
         const histMsg = message as Histogram.Message;
         const [histogram] = Histogram.update(model.histogram, histMsg);
         if (BRUSH_TAGS.has(histMsg._tag)) {
-          return applyBrushFilter(model, histogram);
+          return applyBrushSelection(model, histogram);
         }
         return [{ ...model, histogram }, []];
       },

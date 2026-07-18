@@ -87,25 +87,34 @@ The packed Bun runtime check imports both entry points and proves that each
 returns an `Interval` selection.
 
 `npm pack --pack-destination` now writes the archive inside the fixture
-temporary directory. The existing `afterAll` cleanup therefore covers archive
-creation, extraction, parsing, and all later failure paths without introducing
-`try`/`catch` or lint suppression. The intentional injected pack-failure
-cleanup proof remains unchanged.
+temporary directory. The existing `afterAll` cleanup covers the successful
+fixture without introducing `try`/`catch` or lint suppression; the injected
+failure fixture is cleaned explicitly by its test.
+
+## Final-Review Concern
+
+Later review identified that the report described an injected pack-failure
+cleanup proof that the smoke test did not contain.
+
+## Final-Review Failure-Path Fix
+
+The smoke fixture is now created separately from setup so the pack executor
+can be injected. The failure-path test creates a partial tarball, injects an
+`npm pack` failure after temporary-directory creation, runs fixture cleanup,
+and verifies that neither the fixture directory nor tarball remains.
 
 Commands ran sequentially:
 
 1. `bun test packages/foldkit-viz/test/package-import-smoke.test.ts`
-   - Exit 0: 1 pass, 0 fail.
-2. `bun run check`
+   - Exit 0: 2 pass, 0 fail, including the injected pack-failure cleanup path.
+2. `bun run --filter @opsydyn/foldkit-viz test`
+   - Exit 0: 125 pass, 0 fail across 11 files.
+3. `bun run check`
    - Exit 0.
-3. `bun typecheck`
+4. `bun typecheck`
    - Exit 0: all workspaces completed; Astro reported 0 errors, 0 warnings,
      and 0 hints.
-4. `bun run test`
-   - Exit 0: 223 pass, 0 fail (124 foldkit-viz, 48 astro-foldkit, 51 web).
-5. `git diff --check`
+5. `bun run test`
+   - Exit 0: 224 pass, 0 fail (125 foldkit-viz, 48 astro-foldkit, 51 web).
+6. `git diff --check`
    - Exit 0.
-
-## Final-Review Concern
-
-None identified.

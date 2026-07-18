@@ -137,7 +137,7 @@ bun run docs   # generates docs/ using TypeDoc
 ## Testing
 
 ```bash
-bun test       # 119 tests across 9 files
+bun test       # 125 tests across 11 files
 ```
 
 ---

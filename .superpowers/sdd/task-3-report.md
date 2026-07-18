@@ -57,3 +57,24 @@ Committed as `docs: explain parent-owned chart selection`.
 The workspace does not meet the brief's expected all-green `bun run check`
 result because of the pre-existing, out-of-scope lint error above. Formatting
 is green and all typechecking, tests, and diff checks pass.
+
+## Addendum: Later Lint Cleanup
+
+The later lint cleanup changed
+`packages/foldkit-viz/test/package-import-smoke.test.ts` so module-level
+fixture handles remove any created temporary directory or tarball from
+`afterAll` without awaiting a rejected fixture promise. The packed TypeScript
+consumer and Bun runtime import proof remain in place.
+
+Commands ran sequentially after that change:
+
+1. `bun test packages/foldkit-viz/test/package-import-smoke.test.ts`
+   - Exit 0: 1 pass, 0 fail.
+2. `bun run check`
+   - Exit 0.
+3. `bun typecheck`
+   - Exit 0.
+4. `bun run test`
+   - Exit 0: 223 pass, 0 fail (124 foldkit-viz, 48 astro-foldkit, 51 web).
+5. `git diff --check`
+   - Exit 0.

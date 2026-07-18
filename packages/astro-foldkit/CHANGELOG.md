@@ -2,10 +2,9 @@
 
 ## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.4.0...astro-foldkit-v0.5.0) (2026-07-18)
 
-
 ### Features
 
-* **astro-foldkit:** add lazy app entry API ([9786bdd](https://github.com/opsydyn/fold-kit-experiments/commit/9786bdd226cfd2200b6e64d5b198a53a7aad6d13))
+- **astro-foldkit:** add lazy app entry API ([9786bdd](https://github.com/opsydyn/fold-kit-experiments/commit/9786bdd226cfd2200b6e64d5b198a53a7aad6d13))
 
 ## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.3.0...astro-foldkit-v0.4.0) (2026-07-18)
 

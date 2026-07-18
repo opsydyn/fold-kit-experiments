@@ -26,31 +26,48 @@ remains focused on pure geometry, chart-local state, and rendering helpers.
 
 ## Modules
 
-| Import path                             | Contents                                                                                                                                                              |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@opsydyn/foldkit-viz`                  | Root barrel — all exports                                                                                                                                             |
-| `@opsydyn/foldkit-viz/math/scale`       | `linear`, `log`, `band`, `point`, `sqrt`, `ordinal`, `scaleSequential`, `scaleQuantile`, `scaleQuantize`, `scalePow`, `scaleSymlog`, `linearInvertible`, `niceLinear` |
-| `@opsydyn/foldkit-viz/math/array`       | `extent`, `sum`, `mean`, `median`, `variance`, `deviation`, `cumsum`, `group`, `rollup`, `bisect`, `pairs`, `zip`, `range`                                            |
-| `@opsydyn/foldkit-viz/math/color`       | `interpolateRgb`, `interpolateLab`, `interpolateHsl`, `interpolateRgbBasis`, `colorScale`, `divergingScale`                                                           |
-| `@opsydyn/foldkit-viz/math/schemes`     | `tableau10`, `category10`, `wong`, `ibmCarbon`, `tolMuted`, `viridis`, `magma`, `inferno`, `plasma`, `cividis`, diverging + sequential palettes                       |
-| `@opsydyn/foldkit-viz/math/tween`       | `tweenCreate`, `tweenStep`, `tweenValue`, `tweenPath`, `easeOutCubic`, `easeInOutCubic`, `easeOutElastic`, + 5 more easings                                           |
-| `@opsydyn/foldkit-viz/math/time`        | `scaleTime`, `timeTicks`, `timeFormat`, `timeParse`, `timeNice`                                                                                                       |
-| `@opsydyn/foldkit-viz/math/stats`       | `boxStats`, `kde`, `silvermanBandwidth`, `quantile`                                                                                                                   |
-| `@opsydyn/foldkit-viz/math/bin`         | `bin` — histogram binning                                                                                                                                             |
-| `@opsydyn/foldkit-viz/math/brush`       | `BrushState`, `brushUpdate`, `brushExtent`, `brushContains`, `brushDomain`                                                                                            |
-| `@opsydyn/foldkit-viz/math/zoom`        | `scaleAt`, `translateBy`, `constrainScale`, `rescaleDomain`                                                                                                           |
-| `@opsydyn/foldkit-viz/shape/line`       | `line` — 14 curve types: `linear`, `catmullRom`, `natural`, `basis`, `cardinal`, `step`, `stepBefore`, `stepAfter`, + open/closed variants                            |
-| `@opsydyn/foldkit-viz/shape/area`       | `area` — filled area between two line generators                                                                                                                      |
-| `@opsydyn/foldkit-viz/shape/areaRadial` | `areaRadial`, `wedge` — polar area shapes                                                                                                                             |
-| `@opsydyn/foldkit-viz/shape/arc`        | `arc`, `arcCentroid` — pie/donut arc paths                                                                                                                            |
-| `@opsydyn/foldkit-viz/shape/pie`        | `pie` — compute arc angles from data                                                                                                                                  |
-| `@opsydyn/foldkit-viz/shape/stack`      | `stack` — stacked series (D3 `d3-shape` parity)                                                                                                                       |
-| `@opsydyn/foldkit-viz/shape/chord`      | `chord`, `ribbon` — chord diagram layout                                                                                                                              |
-| `@opsydyn/foldkit-viz/shape/sankey`     | `sankey` — Sankey flow diagram layout                                                                                                                                 |
-| `@opsydyn/foldkit-viz/shape/geo`        | `geoPath`, `geoEquirectangular`, `geoMercator`, `geoGraticule`                                                                                                        |
-| `@opsydyn/foldkit-viz/shape/link`       | `linkVertical`, `linkHorizontal`                                                                                                                                      |
-| `@opsydyn/foldkit-viz/hierarchy`        | `hierarchy`, `treeLayout`, `packLayout`                                                                                                                               |
-| `@opsydyn/foldkit-viz/simulation`       | Barnes-Hut force simulation (N-body)                                                                                                                                  |
+| Import path                                  | Contents                                                                                                                                                              |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@opsydyn/foldkit-viz`                       | Root barrel — all exports                                                                                                                                             |
+| `@opsydyn/foldkit-viz/math/scale`            | `linear`, `log`, `band`, `point`, `sqrt`, `ordinal`, `scaleSequential`, `scaleQuantile`, `scaleQuantize`, `scalePow`, `scaleSymlog`, `linearInvertible`, `niceLinear` |
+| `@opsydyn/foldkit-viz/math/array`            | `extent`, `sum`, `mean`, `median`, `variance`, `deviation`, `cumsum`, `group`, `rollup`, `bisect`, `pairs`, `zip`, `range`                                            |
+| `@opsydyn/foldkit-viz/math/color`            | `interpolateRgb`, `interpolateLab`, `interpolateHsl`, `interpolateRgbBasis`, `colorScale`, `divergingScale`                                                           |
+| `@opsydyn/foldkit-viz/math/schemes`          | `tableau10`, `category10`, `wong`, `ibmCarbon`, `tolMuted`, `viridis`, `magma`, `inferno`, `plasma`, `cividis`, diverging + sequential palettes                       |
+| `@opsydyn/foldkit-viz/math/tween`            | `tweenCreate`, `tweenStep`, `tweenValue`, `tweenPath`, `easeOutCubic`, `easeInOutCubic`, `easeOutElastic`, + 5 more easings                                           |
+| `@opsydyn/foldkit-viz/math/time`             | `scaleTime`, `timeTicks`, `timeFormat`, `timeParse`, `timeNice`                                                                                                       |
+| `@opsydyn/foldkit-viz/math/stats`            | `boxStats`, `kde`, `silvermanBandwidth`, `quantile`                                                                                                                   |
+| `@opsydyn/foldkit-viz/math/bin`              | `bin` — histogram binning                                                                                                                                             |
+| `@opsydyn/foldkit-viz/math/brush`            | `BrushState`, `brushUpdate`, `brushExtent`, `brushContains`, `brushDomain`                                                                                            |
+| `@opsydyn/foldkit-viz/math/zoom`             | `scaleAt`, `translateBy`, `constrainScale`, `rescaleDomain`                                                                                                           |
+| `@opsydyn/foldkit-viz/interaction/selection` | Selection, interval/key constructors, clamping, and membership helpers for parent-owned chart interaction state                                                       |
+| `@opsydyn/foldkit-viz/shape/line`            | `line` — 14 curve types: `linear`, `catmullRom`, `natural`, `basis`, `cardinal`, `step`, `stepBefore`, `stepAfter`, + open/closed variants                            |
+| `@opsydyn/foldkit-viz/shape/area`            | `area` — filled area between two line generators                                                                                                                      |
+| `@opsydyn/foldkit-viz/shape/areaRadial`      | `areaRadial`, `wedge` — polar area shapes                                                                                                                             |
+| `@opsydyn/foldkit-viz/shape/arc`             | `arc`, `arcCentroid` — pie/donut arc paths                                                                                                                            |
+| `@opsydyn/foldkit-viz/shape/pie`             | `pie` — compute arc angles from data                                                                                                                                  |
+| `@opsydyn/foldkit-viz/shape/stack`           | `stack` — stacked series (D3 `d3-shape` parity)                                                                                                                       |
+| `@opsydyn/foldkit-viz/shape/chord`           | `chord`, `ribbon` — chord diagram layout                                                                                                                              |
+| `@opsydyn/foldkit-viz/shape/sankey`          | `sankey` — Sankey flow diagram layout                                                                                                                                 |
+| `@opsydyn/foldkit-viz/shape/geo`             | `geoPath`, `geoEquirectangular`, `geoMercator`, `geoGraticule`                                                                                                        |
+| `@opsydyn/foldkit-viz/shape/link`            | `linkVertical`, `linkHorizontal`                                                                                                                                      |
+| `@opsydyn/foldkit-viz/hierarchy`             | `hierarchy`, `treeLayout`, `packLayout`                                                                                                                               |
+| `@opsydyn/foldkit-viz/simulation`            | Barnes-Hut force simulation (N-body)                                                                                                                                  |
+
+---
+
+## Parent-owned interaction state
+
+Viz owns pure interaction values. Individual charts own their local gesture
+mechanics, while the consuming parent owns shared selection state and
+child-message coordination.
+
+```ts
+const selection = intervalSelection('x', [100, 300]);
+const visible = allPoints.filter((point) => selectionContainsValue(selection, 'x', point.x));
+```
+
+`keySelection` is available for future hover or active-series interaction
+state. Hover and zoom are not implemented by this contract.
 
 ---
 

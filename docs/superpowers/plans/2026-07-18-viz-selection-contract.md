@@ -21,28 +21,30 @@
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
+| File                                                | Responsibility                                                             |
+| --------------------------------------------------- | -------------------------------------------------------------------------- |
 | `packages/foldkit-viz/src/interaction/selection.ts` | Pure union, constructors, normalisation, clamping, and membership helpers. |
-| `packages/foldkit-viz/test/selection.test.ts` | Contract unit tests. |
-| `packages/foldkit-viz/src/index.ts` | Root-barrel re-exports. |
-| `packages/foldkit-viz/package.json` | Subpath type/runtime exports. |
-| `apps/web/src/apps/histogram-brush/model.ts` | Parent-owned selection model field. |
-| `apps/web/src/apps/histogram-brush/update.ts` | Brush-domain conversion and scatter derivation. |
-| `apps/web/src/apps/histogram-brush/view.ts` | Parent-selection labels and clear state. |
-| `apps/web/src/apps/histogram-brush/update.test.ts` | Selection-ownership regression tests. |
-| `packages/foldkit-viz/README.md` | Consumer guidance. |
-| `docs/roadmap.md` | First interaction-layer item completion. |
+| `packages/foldkit-viz/test/selection.test.ts`       | Contract unit tests.                                                       |
+| `packages/foldkit-viz/src/index.ts`                 | Root-barrel re-exports.                                                    |
+| `packages/foldkit-viz/package.json`                 | Subpath type/runtime exports.                                              |
+| `apps/web/src/apps/histogram-brush/model.ts`        | Parent-owned selection model field.                                        |
+| `apps/web/src/apps/histogram-brush/update.ts`       | Brush-domain conversion and scatter derivation.                            |
+| `apps/web/src/apps/histogram-brush/view.ts`         | Parent-selection labels and clear state.                                   |
+| `apps/web/src/apps/histogram-brush/update.test.ts`  | Selection-ownership regression tests.                                      |
+| `packages/foldkit-viz/README.md`                    | Consumer guidance.                                                         |
+| `docs/roadmap.md`                                   | First interaction-layer item completion.                                   |
 
 ## Task 1: Build The Pure Selection Contract
 
 **Files:**
+
 - Create: `packages/foldkit-viz/src/interaction/selection.ts`
 - Create: `packages/foldkit-viz/test/selection.test.ts`
 - Modify: `packages/foldkit-viz/src/index.ts`
 - Modify: `packages/foldkit-viz/package.json`
 
 **Interfaces:**
+
 - Produces: `Selection`, `SelectionAxis`, `SELECTION_NONE`, `intervalSelection`, `keySelection`, `clampSelection`, `selectionContainsValue`, and `selectionContainsKey`.
 - Consumed by: histogram-brush parent model and reducer in Task 2.
 
@@ -64,14 +66,18 @@ import {
 describe('selection contract', () => {
   it('normalises an interval and clears an empty range', () => {
     expect(intervalSelection('x', [300, 100])).toEqual({
-      _tag: 'Interval', axis: 'x', domain: [100, 300],
+      _tag: 'Interval',
+      axis: 'x',
+      domain: [100, 300],
     });
     expect(intervalSelection('x', [100, 100])).toBe(SELECTION_NONE);
   });
 
   it('clamps an interval and clears one collapsed by bounds', () => {
     expect(clampSelection(intervalSelection('x', [50, 300]), [100, 200])).toEqual({
-      _tag: 'Interval', axis: 'x', domain: [100, 200],
+      _tag: 'Interval',
+      axis: 'x',
+      domain: [100, 200],
     });
     expect(clampSelection(intervalSelection('x', [10, 20]), [100, 200])).toBe(SELECTION_NONE);
   });
@@ -124,7 +130,10 @@ export const keySelection = (keys: ReadonlyArray<string>): Selection => {
   return unique.length === 0 ? SELECTION_NONE : { _tag: 'Keys', keys: unique };
 };
 
-export const clampSelection = (selection: Selection, bounds: readonly [number, number]): Selection => {
+export const clampSelection = (
+  selection: Selection,
+  bounds: readonly [number, number],
+): Selection => {
   if (selection._tag !== 'Interval') return selection;
   const [lower, upper] = [Math.min(...bounds), Math.max(...bounds)];
   return intervalSelection(selection.axis, [
@@ -188,12 +197,14 @@ git commit -m "feat(foldkit-viz): add selection contract"
 ## Task 2: Migrate Histogram Brush Filtering To Parent Selection
 
 **Files:**
+
 - Create: apps/web/src/apps/histogram-brush/update.test.ts
 - Modify: apps/web/src/apps/histogram-brush/model.ts
 - Modify: apps/web/src/apps/histogram-brush/update.ts
 - Modify: apps/web/src/apps/histogram-brush/view.ts
 
 **Interfaces:**
+
 - Consumes: Task 1 Selection, SELECTION_NONE, intervalSelection, and selectionContainsValue.
 - Produces: parent-owned model.selection and scatter points derived only from that field.
 
@@ -201,7 +212,7 @@ git commit -m "feat(foldkit-viz): add selection contract"
 
 Create apps/web/src/apps/histogram-brush/update.test.ts. Seed existing chart bounds, then route child facts through the parent reducer:
 
-~~~ts
+```ts
 import { describe, expect, it } from 'vitest';
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
@@ -263,15 +274,15 @@ describe('histogram brush selection', () => {
     expect(model.selection).toBe(selected.selection);
   });
 });
-~~~
+```
 
 - [ ] **Step 2: Verify RED**
 
 Run:
 
-~~~sh
+```sh
 bun run --filter @opsydyn/web test -- src/apps/histogram-brush/update.test.ts
-~~~
+```
 
 Expected: FAIL because the app model has no selection field.
 
@@ -279,7 +290,7 @@ Expected: FAIL because the app model has no selection field.
 
 In model.ts:
 
-~~~ts
+```ts
 import type { Selection } from '@opsydyn/foldkit-viz/interaction/selection';
 import { SELECTION_NONE } from '@opsydyn/foldkit-viz/interaction/selection';
 
@@ -289,14 +300,13 @@ export const Model = Schema.Struct({
   allPoints: Schema.Unknown,
   selection: Schema.Unknown,
 });
-
-~~~
+```
 
 Add readonly selection: Selection to the Model TypeScript override and initialise it with selection: SELECTION_NONE.
 
 In update.ts, replace the current applyBrushFilter with these helpers:
 
-~~~ts
+```ts
 import {
   intervalSelection,
   SELECTION_NONE,
@@ -326,7 +336,7 @@ const applyBrushSelection = (model: Model, histogram: Histogram.Model): Return =
   );
   return [{ ...model, histogram, scatter, selection }, []];
 };
-~~~
+```
 
 If the two conditional expressions produce new lint warnings, replace each with Match.value over the tagged Selection union while preserving exactly the same branches.
 
@@ -336,12 +346,12 @@ Keep BRUSH_TAGS as the only selection-changing child messages. Non-brush histogr
 
 In view.ts, replace Histogram.getBrushDomain(model.histogram) with:
 
-~~~ts
+```ts
 const selection = model.selection;
 const brushDomain =
   selection._tag === 'Interval' && selection.axis === 'x' ? selection.domain : null;
 const hasBrush = brushDomain !== null;
-~~~
+```
 
 Derive the range label, count label, status colour, empty state, and clear-button opacity from hasBrush and brushDomain. For None and Keys, retain the current all-requests label and inactive clear state.
 
@@ -351,27 +361,29 @@ Keep the clear action mapped to the existing Histogram.ClearedHistogramBrush fac
 
 Run:
 
-~~~sh
+```sh
 bun run --filter @opsydyn/web test -- src/apps/histogram-brush/update.test.ts
 bun run --filter @opsydyn/web typecheck
-~~~
+```
 
 Expected: both commands exit 0. The test proves brush filtering, clearing, and local scatter-message stability.
 
 - [ ] **Step 6: Commit**
 
-~~~sh
+```sh
 git add apps/web/src/apps/histogram-brush/model.ts apps/web/src/apps/histogram-brush/update.ts apps/web/src/apps/histogram-brush/view.ts apps/web/src/apps/histogram-brush/update.test.ts
 git commit -m "feat(web): own histogram brush selection"
-~~~
+```
 
 ## Task 3: Document The Contract And Verify The Workspace
 
 **Files:**
+
 - Modify: packages/foldkit-viz/README.md
 - Modify: docs/roadmap.md
 
 **Interfaces:**
+
 - Consumes: public imports and ownership behaviour delivered in Tasks 1 and 2.
 - Produces: consumer guidance that keeps Viz pure and places cross-chart state in the parent app.
 
@@ -379,18 +391,16 @@ git commit -m "feat(web): own histogram brush selection"
 
 In the Viz README module table, add:
 
-~~~markdown
+```markdown
 | @opsydyn/foldkit-viz/interaction/selection | Selection, interval/key constructors, clamping, and membership helpers for parent-owned chart interaction state |
-~~~
+```
 
 After the table, add a Parent-owned interaction state section:
 
-~~~ts
+```ts
 const selection = intervalSelection('x', [100, 300]);
-const visible = allPoints.filter((point) =>
-  selectionContainsValue(selection, 'x', point.x),
-);
-~~~
+const visible = allPoints.filter((point) => selectionContainsValue(selection, 'x', point.x));
+```
 
 State that Viz owns pure interaction values, individual charts own local gesture mechanics, and the consuming parent owns shared selection and child-message coordination. Mention keySelection only as the future hover/active-series form; do not imply hover or zoom are implemented in this slice.
 
@@ -398,9 +408,9 @@ State that Viz owns pure interaction values, individual charts own local gesture
 
 In docs/roadmap.md, mark this exact item complete:
 
-~~~markdown
+```markdown
 - [x] Define controlled parent-owned selection contracts for brush, zoom, hover, and active series.
-~~~
+```
 
 Do not change the remaining interaction-layer, reference-app, release-quality, or deliberate-non-goal checkboxes.
 
@@ -408,18 +418,18 @@ Do not change the remaining interaction-layer, reference-app, release-quality, o
 
 Run each command only after its predecessor completes:
 
-~~~sh
+```sh
 bun run check
 bun typecheck
 bun run test
 git diff --check
-~~~
+```
 
 Expected: every command exits 0. bun run check may print established warning-level lint findings, but Oxfmt must report that all matched files are correctly formatted. bun run test must report the full workspace suite green.
 
 - [ ] **Step 4: Commit**
 
-~~~sh
+```sh
 git add packages/foldkit-viz/README.md docs/roadmap.md
 git commit -m "docs: explain parent-owned chart selection"
-~~~
+```

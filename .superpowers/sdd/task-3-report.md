@@ -1,56 +1,59 @@
-# Task 3 Report: Route-Aware Diagnostics Example
+# Task 3 Report: Document The Contract And Verify The Workspace
 
-## Status
+## Scope
 
-Implemented and committed as `9cbf8c1` (`feat(web): demonstrate navigation-aware foldkit app`).
-
-## Files changed
-
-- Added `apps/web/src/apps/request-diagnostics/navigation.ts` with the typed navigation port value, `rest`-based FoldKit route parser, and normalized document route display.
-- Added `apps/web/src/apps/request-diagnostics/subscription.ts` with the inbound navigation `Port.subscription` that emits `Navigated` messages.
-- Added `apps/web/src/apps/request-diagnostics/navigation.test.ts` for nested repository/document parsing, event mapping, and index fallback.
-- Added `apps/web/src/apps/request-diagnostics/main.scene.test.ts` to verify navigation updates metadata without rebuilding chart models.
-- Updated `message.ts`, `model.ts`, `update.ts`, `view.ts`, and `main.ts` with the navigation message, model state, port/subscription configuration, update handling, and display.
-- Updated `apps/web/src/pages/request-diagnostics.astro` to persist the island across Astro transitions.
-- Added `apps/web/src/pages/request-diagnostics/[...path].astro` for nested route entry.
-
-## API decision
-
-FoldKit 0.128's `rest` API returns a non-empty array of URL segments and is terminal, so the route parser captures the complete post-prefix path with `rest('path')`. The app then splits that array at the `docs` marker to produce the requested `{ repository, document }` display shape. `Route.parseUrlWithFallback` is used with the local `Url.fromString` boundary; unmatched paths fall back to the index state. This resolves the plan snippet's `Schema.String` fields, which cannot be used directly with `rest`'s array output.
+- Added `@opsydyn/foldkit-viz/interaction/selection` to
+  `packages/foldkit-viz/README.md`.
+- Documented the parent-owned selection pattern, including
+  `intervalSelection` and `selectionContainsValue`, and clarified that Viz
+  owns pure values, charts own local gestures, and parents own shared state and
+  child-message coordination.
+- Limited `keySelection` to its future hover/active-series role and did not
+  claim hover or zoom implementation.
+- Marked only the completed parent-owned selection-contract item in
+  `docs/roadmap.md`.
+- Formatted `docs/superpowers/plans/2026-07-18-viz-selection-contract.md`
+  because the repository formatter identified it as the known full-check gate.
 
 ## Verification
 
-- `bun test apps/web/src/apps/request-diagnostics/navigation.test.ts`: 3 passed.
-- `bun run --filter @opsydyn/web test -- src/apps/request-diagnostics`: 4 test files, 9 tests passed.
-- `bun run --filter @opsydyn/web typecheck`: passed with 0 errors, 0 warnings, 0 hints across 471 files.
-- `bunx oxfmt --check apps/web/src/apps/request-diagnostics apps/web/src/pages/request-diagnostics.astro 'apps/web/src/pages/request-diagnostics/[...path].astro'`: passed.
-- `NODE_OPTIONS="--experimental-strip-types" bunx oxlint apps/web/src/apps/request-diagnostics apps/web/src/pages/request-diagnostics.astro 'apps/web/src/pages/request-diagnostics/[...path].astro'`: exited 0 with existing Effect/style warnings and new route-normalization conditional warnings.
-- `git diff --check`: passed.
+Commands ran sequentially:
 
-## Concerns
+1. `bun run check`
+   - Exit 1.
+   - `oxfmt --check .` passed after formatting the committed plan.
+   - The remaining failure is an existing `linteffect(no-try-catch)` error in
+     `packages/foldkit-viz/test/package-import-smoke.test.ts:22`. Task 3
+     forbids source and test changes, so it was left unchanged.
+2. `bun typecheck`
+   - Exit 0.
+   - All three workspaces completed successfully; Astro reported 0 errors,
+     0 warnings, and 0 hints.
+3. `bun run test`
+   - Exit 0.
+   - `@opsydyn/foldkit-viz`: 124 passed, 0 failed.
+   - `@opsydyn/astro-foldkit`: 48 passed, 0 failed.
+   - `@opsydyn/web`: 51 passed, 0 failed.
+   - Total: 223 passed, 0 failed.
+4. `git diff --check`
+   - Exit 0.
 
-- The direct command `bun test apps/web/src/apps/request-diagnostics` is not a reliable signal in this repo because Bun does not load the web Vitest `happy-dom` setup; existing diagnostics tests fail during import with `window is not defined`/`snabbdom` errors. The workspace Vitest command above is green and is the authoritative focused test run.
-- Task 2's Astro navigation bridge currently reports `stayed`/`entered` based on global Astro lifecycle events; the Task 2 review identified retained-island semantics as a concern. This task does not modify that bridge.
-- Existing lint warnings remain; no lint error was introduced by this slice.
+## Self-Review
 
-## Review Fixes
+- No source or test files were modified.
+- No remaining interaction-layer, reference-app, release-quality, or
+  deliberate-non-goal roadmap checkboxes changed.
+- The README describes the public selection import and preserves the
+  parent-owned contract without overstating future hover or zoom support.
+- The committed-plan formatting is limited to formatter-required Markdown
+  table, fence, and wrapping changes.
 
-Applied the Task 3 review fixes in implementation commit `6f9740b` (`fix(web): complete navigation diagnostics review fixes`). This report update is committed separately.
+## Commit
 
-- Exported the named `NavigationPort` from `navigation.ts` and reused that exact value in `main.ts` and `subscription.ts`.
-- Added direct embedded-runtime coverage for `NavigationPort` -> `Port.subscription` -> `Navigated` in `main.scene.test.ts`.
-- Added lifecycle coverage for `coldLoad`, `entered`, `stayed`, and `exited` in `main.story.test.ts`.
+Committed as `docs: explain parent-owned chart selection`.
 
-### Review-fix verification
+## Concern
 
-- `bun run --filter @opsydyn/web test -- src/apps/request-diagnostics`: 5 test files, 14 tests passed.
-- `bun test apps/web/src/apps/request-diagnostics/navigation.test.ts`: 3 passed.
-- `bun run --filter @opsydyn/web typecheck`: passed with 0 errors, 0 warnings, 0 hints across 473 files.
-- `bunx oxfmt --check apps/web/src/apps/request-diagnostics apps/web/src/pages/request-diagnostics.astro 'apps/web/src/pages/request-diagnostics/[...path].astro'`: passed.
-- Touched-file oxlint exited 0 with warnings only; the warnings are existing app Effect/style guidance plus one test callback warning.
-- `git diff --check`: passed.
-
-### Remaining concerns
-
-- The direct Bun runner is suitable for the route-only test. Runtime-backed diagnostics tests require the web Vitest `happy-dom` setup; the workspace Vitest command is the authoritative runtime test.
-- Existing lint warnings remain, but there are no touched-file lint errors.
+The workspace does not meet the brief's expected all-green `bun run check`
+result because of the pre-existing, out-of-scope lint error above. Formatting
+is green and all typechecking, tests, and diff checks pass.

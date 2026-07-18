@@ -63,7 +63,7 @@ and the documented pattern has no Astro or Viz package API coupling.
 
 **Outcome:** chart consumers can compose selection and navigation interactions without rewriting event plumbing for every chart.
 
-- [ ] Define controlled parent-owned selection contracts for brush, zoom, hover, and active series.
+- [x] Define controlled parent-owned selection contracts for brush, zoom, hover, and active series.
 - [ ] Add linked-view helpers for histogram-to-scatter and scatter-to-table workflows.
 - [ ] Keep all interaction state and math framework-agnostic with no runtime `foldkit` dependency.
 - [ ] Add keyboard/focus event contracts compatible with FoldKit `OnKeyDownFocus`.

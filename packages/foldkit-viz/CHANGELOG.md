@@ -2,6 +2,13 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.4.2...foldkit-viz-v0.5.0) (2026-07-18)
+
+
+### Features
+
+* **foldkit-viz:** support foldkit 0.129 ([3fe1a7a](https://github.com/opsydyn/fold-kit-experiments/commit/3fe1a7ab97f020be44b9bcaac53b524d4920db43))
+
 ## [0.4.2](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.4.1...foldkit-viz-v0.4.2) (2026-07-15)
 
 

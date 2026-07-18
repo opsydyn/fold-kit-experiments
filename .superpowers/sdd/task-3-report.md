@@ -78,3 +78,34 @@ Commands ran sequentially after that change:
    - Exit 0: 223 pass, 0 fail (124 foldkit-viz, 48 astro-foldkit, 51 web).
 5. `git diff --check`
    - Exit 0.
+
+## Final-Review Fixes
+
+The packed TypeScript consumer now imports `intervalSelection` from both
+`@opsydyn/foldkit-viz` and `@opsydyn/foldkit-viz/interaction/selection`.
+The packed Bun runtime check imports both entry points and proves that each
+returns an `Interval` selection.
+
+`npm pack --pack-destination` now writes the archive inside the fixture
+temporary directory. The existing `afterAll` cleanup therefore covers archive
+creation, extraction, parsing, and all later failure paths without introducing
+`try`/`catch` or lint suppression. The intentional injected pack-failure
+cleanup proof remains unchanged.
+
+Commands ran sequentially:
+
+1. `bun test packages/foldkit-viz/test/package-import-smoke.test.ts`
+   - Exit 0: 1 pass, 0 fail.
+2. `bun run check`
+   - Exit 0.
+3. `bun typecheck`
+   - Exit 0: all workspaces completed; Astro reported 0 errors, 0 warnings,
+     and 0 hints.
+4. `bun run test`
+   - Exit 0: 223 pass, 0 fail (124 foldkit-viz, 48 astro-foldkit, 51 web).
+5. `git diff --check`
+   - Exit 0.
+
+## Final-Review Concern
+
+None identified.

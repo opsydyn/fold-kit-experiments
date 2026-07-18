@@ -25,12 +25,16 @@ const setupFixture = async (): Promise<SmokeFixture> => {
   const packageScopeDir = path.join(consumerDir, 'node_modules', '@opsydyn');
 
   await execFileAsync('bun', ['run', 'build'], { cwd: packageDir, maxBuffer });
-  const { stdout } = await execFileAsync('npm', ['pack', '--json'], {
-    cwd: packageDir,
-    maxBuffer,
-  });
+  const { stdout } = await execFileAsync(
+    'npm',
+    ['pack', '--json', '--pack-destination', tempDir.path],
+    {
+      cwd: packageDir,
+      maxBuffer,
+    },
+  );
   const [{ filename }] = JSON.parse(stdout) as [{ filename: string }];
-  tarball.path = path.join(packageDir, filename);
+  tarball.path = path.join(tempDir.path, filename);
 
   await mkdir(unpackDir, { recursive: true });
   await mkdir(packageScopeDir, { recursive: true });
@@ -44,10 +48,13 @@ const setupFixture = async (): Promise<SmokeFixture> => {
   const consumer = path.join(consumerDir, 'selection-consumer.ts');
   await writeFile(
     consumer,
-    `import { intervalSelection } from '@opsydyn/foldkit-viz/interaction/selection';
+    `import { intervalSelection as intervalSelectionFromRoot } from '@opsydyn/foldkit-viz';
+import { intervalSelection as intervalSelectionFromSelection } from '@opsydyn/foldkit-viz/interaction/selection';
 
-const selection = intervalSelection('x', [0, 1]);
-void selection;
+const rootSelection = intervalSelectionFromRoot('x', [0, 1]);
+const selectionSelection = intervalSelectionFromSelection('x', [0, 1]);
+void rootSelection;
+void selectionSelection;
 `,
   );
   await execFileAsync(
@@ -73,7 +80,7 @@ void selection;
     'bun',
     [
       '-e',
-      "import('@opsydyn/foldkit-viz/interaction/selection').then(({ intervalSelection }) => console.log(intervalSelection('x', [0, 1])._tag))",
+      "Promise.all([import('@opsydyn/foldkit-viz'), import('@opsydyn/foldkit-viz/interaction/selection')]).then(([root, selection]) => console.log([root.intervalSelection('x', [0, 1])._tag, selection.intervalSelection('x', [0, 1])._tag].join('\\n')))",
     ],
     { cwd: consumerDir, maxBuffer },
   );
@@ -93,6 +100,6 @@ afterAll(async () => {
 describe('packed selection import', () => {
   it('resolves at runtime and in TypeScript for a consumer', async () => {
     const { runtimeOutput } = await fixturePromise;
-    expect(runtimeOutput.trim()).toBe('Interval');
+    expect(runtimeOutput.trim()).toBe('Interval\nInterval');
   }, 60_000);
 });

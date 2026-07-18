@@ -83,5 +83,14 @@ export default defineConfig({
     // before acquireRelease — the side effect is scoped within the acquire arm, which is correct
     'linteffect/warn-effect-sync-wrapper': 'warn',
   },
+  overrides: [
+    {
+      // Astro islands use literal module specifiers as explicit code-splitting boundaries.
+      files: ['apps/web/src/apps/**/app.ts'],
+      rules: {
+        'linteffect/prevent-dynamic-imports': 'off',
+      },
+    },
+  ],
   ignorePatterns: ['**/dist/**', '**/artifacts/**', '**/docs/**', '**/node_modules/**'],
 });

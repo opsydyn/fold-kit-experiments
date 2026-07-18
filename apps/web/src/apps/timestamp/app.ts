@@ -1,5 +1,5 @@
-import { defineApp } from '@opsydyn/astro-foldkit/define-app';
+import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
 
 import type { Iso8601 } from './model';
 
-export default defineApp<{ startedAt: Iso8601 }>(() => import('./main'));
+export default lazyApp<{ startedAt: Iso8601 }>(() => import('./main'));

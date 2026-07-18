@@ -32,17 +32,14 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
 
-      - name: Biome check
-        run: bun check
+      - name: Oxlint and Oxfmt
+        run: bun run check
 
-      - name: Build package
-        run: bun run --filter @opsydyn/astro-foldkit build
+      - name: Typecheck workspace
+        run: bun typecheck
 
-      - name: Typecheck package
-        run: bun run --filter @opsydyn/astro-foldkit typecheck
+      - name: Test workspace
+        run: bun run test
 
-      - name: Run unit tests
-        run: bun run --filter @opsydyn/astro-foldkit test:unit
-
-      - name: Run integration tests
-        run: bun run --filter @opsydyn/astro-foldkit test:integration
+      - name: Build workspace
+        run: bun run build

@@ -11,7 +11,7 @@ const maxBuffer = 10 * 1024 * 1024;
 const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 type DistIndex = { default: unknown };
-type DistDefineApp = { defineApp: unknown };
+type DistDefineApp = { defineApp: unknown; lazyApp: unknown };
 
 type SmokeFixture = {
   distIndex: DistIndex;
@@ -139,9 +139,11 @@ import('@opsydyn/astro-foldkit').then(m => {
 
 const defineAppScript = `
 import('@opsydyn/astro-foldkit/define-app').then(m => {
-  const app = m.defineApp(() => Promise.resolve({}))
+  const app = m.lazyApp(() => Promise.resolve({}))
   console.log(JSON.stringify({
     defineAppIsFunction: typeof m.defineApp === 'function',
+    lazyAppIsFunction: typeof m.lazyApp === 'function',
+    lazyAppIsDefineApp: m.lazyApp === m.defineApp,
     foldkitFlag: app.__foldkit,
     loadIsFunction: typeof app.load === 'function',
   }))
@@ -158,6 +160,7 @@ describe('packed import smoke', () => {
     expect(integration.name).toBe('astro-foldkit');
     expect(typeof integration.hooks['astro:config:setup']).toBe('function');
     expect(typeof distDefineApp.defineApp).toBe('function');
+    expect(typeof distDefineApp.lazyApp).toBe('function');
     expect(distIndexTypes).toContain('NavigationConfig');
     expect(distIndexTypes).toContain('NavigationEvent');
     expect(distIndexTypes).toContain('NavigationPhase');
@@ -188,10 +191,14 @@ describe('packed import smoke', () => {
       const { stdout } = await execFileAsync(runtime, args, { cwd: consumerDir, env, maxBuffer });
       const payload = JSON.parse(stdout.trim().split('\n').at(-1) ?? '') as {
         defineAppIsFunction: boolean;
+        lazyAppIsFunction: boolean;
+        lazyAppIsDefineApp: boolean;
         foldkitFlag: boolean;
         loadIsFunction: boolean;
       };
       expect(payload.defineAppIsFunction).toBe(true);
+      expect(payload.lazyAppIsFunction).toBe(true);
+      expect(payload.lazyAppIsDefineApp).toBe(true);
       expect(payload.foldkitFlag).toBe(true);
       expect(payload.loadIsFunction).toBe(true);
     }

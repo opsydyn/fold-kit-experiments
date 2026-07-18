@@ -2,10 +2,15 @@ import { describe, expect, it } from 'bun:test';
 
 import type { Document } from 'foldkit/html';
 
+import * as defineAppModule from '../../src/define-app';
 import { defineApp } from '../../src/define-app';
 import type { AppConfig } from '../../src/types';
 
 describe('defineApp', () => {
+  it('exports lazyApp as the preferred lazy-loader API', () => {
+    expect(defineAppModule).toHaveProperty('lazyApp', defineApp);
+  });
+
   it('preserves typed props, model, and message contracts', async () => {
     type Props = { readonly initialCount: number };
     type Model = { readonly count: number };

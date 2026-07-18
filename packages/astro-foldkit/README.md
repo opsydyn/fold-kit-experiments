@@ -34,13 +34,13 @@ export default defineConfig({
 
 ## Defining an app
 
-Use `defineApp` to register a FoldKit app for lazy loading. The loader returns your `main.ts` module which must export a value that satisfies `AppConfig`.
+Use `lazyApp` to register a FoldKit app for lazy loading. The literal loader keeps each Astro island as an explicit code-splitting boundary; it returns your `main.ts` module, which must export a value that satisfies `AppConfig`. `defineApp` remains available as a backwards-compatible alias.
 
 ```ts
 // src/apps/counter/app.ts
-import { defineApp } from '@opsydyn/astro-foldkit/define-app';
+import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
 
-export default defineApp(() => import('./main'));
+export default lazyApp(() => import('./main'));
 ```
 
 ```ts
@@ -69,14 +69,14 @@ The demo app's [`/request-diagnostics`](../../apps/web/src/pages/request-diagnos
 
 ## Passing props
 
-`defineApp` accepts a type parameter for the props your FoldKit app expects. This makes the component callable with typed attributes in `.astro` files.
+`lazyApp` accepts a type parameter for the props your FoldKit app expects. This makes the component callable with typed attributes in `.astro` files.
 
 ```ts
 // src/apps/greeting/app.ts
-import { defineApp } from '@opsydyn/astro-foldkit/define-app';
+import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
 import type { Name } from './model';
 
-export default defineApp<{ name: Name }>(() => import('./main'));
+export default lazyApp<{ name: Name }>(() => import('./main'));
 ```
 
 Props are forwarded from Astro's `<astro-island>` serialisation into your `init` function. Declare `init` to accept `props: unknown` and validate at the boundary with Effect Schema:
@@ -175,10 +175,10 @@ The module returned by your loader must export:
 
 ## Exports
 
-| Entry point                         | Description                             |
-| :---------------------------------- | :-------------------------------------- |
-| `@opsydyn/astro-foldkit`            | Default Astro integration (`foldkit()`) |
-| `@opsydyn/astro-foldkit/define-app` | `defineApp` helper and `AppConfig` type |
+| Entry point                         | Description                                               |
+| :---------------------------------- | :-------------------------------------------------------- |
+| `@opsydyn/astro-foldkit`            | Default Astro integration (`foldkit()`)                   |
+| `@opsydyn/astro-foldkit/define-app` | `lazyApp` helper (`defineApp` alias) and `AppConfig` type |
 
 The root entry point also exports the `NavigationConfig`, `NavigationEvent`, and `NavigationPhase` types.
 

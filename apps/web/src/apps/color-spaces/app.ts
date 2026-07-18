@@ -1,3 +1,3 @@
-import { defineApp } from '@opsydyn/astro-foldkit/define-app';
+import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
 
-export default defineApp(() => import('./main'));
+export default lazyApp(() => import('./main'));

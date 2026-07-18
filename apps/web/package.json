@@ -8,7 +8,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
-    "typecheck": "astro check",
+    "typecheck": "bun run --filter @opsydyn/astro-foldkit build && astro check",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
     "storybook": "storybook dev -p 6006",

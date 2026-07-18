@@ -51,9 +51,9 @@ the application retains ownership of command keys and cancellation policy.
       `Command.Interruptible.define`.
 - [x] Sequence the replacement request through the interrupt outcome Message;
       never return interruption and replacement commands in one update batch.
-- [ ] Cancel an active app-owned request on Astro route exit without starting a
+- [x] Cancel an active app-owned request on Astro route exit without starting a
       replacement request.
-- [ ] Document keyed cancellation for remote filter, brush, and zoom loads;
+- [x] Document keyed cancellation for remote filter, brush, and zoom loads;
       keep `foldkit-viz` pure and synchronous.
 
 **Exit criteria:** the reference app proves reload and navigation cancellation,

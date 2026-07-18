@@ -10,6 +10,17 @@ Demo app for [`@opsydyn/astro-foldkit`](../../packages/astro-foldkit/). It hosts
 
 **Request diagnostics** (`/request-diagnostics`) — loads latency/error-rate points through `foldkit/http`, renders `@opsydyn/foldkit-viz` histogram and scatter primitives, and uses `foldkit/experimental/machine` for guarded brush filtering.
 
+/request-diagnostics demonstrates app-owned interruption. Define an
+interruptible command with a key that identifies the remote resource, record
+why it is being cancelled in the model or machine state, then return only the
+interrupt command. Handle its outcome in a later update turn: a reload starts
+a replacement request, while Navigated({ phase: 'exited' }) finishes without
+one. Do not return interruption and replacement commands in the same batch.
+
+Use the same shape for remote filter, brush, or zoom loads. Keep their command
+keys, cancellation policy, and result handling in the consuming FoldKit app;
+@opsydyn/foldkit-viz receives only data and chart-local messages.
+
 ## Running
 
 From the repo root:

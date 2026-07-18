@@ -4,11 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev --force",
-    "build": "bun run --filter @opsydyn/astro-foldkit build && astro build",
+    "build": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
-    "typecheck": "bun run --filter @opsydyn/astro-foldkit build && astro check",
+    "typecheck": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && astro check",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
     "storybook": "storybook dev -p 6006",

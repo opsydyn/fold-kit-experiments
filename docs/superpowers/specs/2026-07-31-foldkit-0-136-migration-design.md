@@ -101,13 +101,13 @@ interrupt outcome behaviour.
 
 The existing standalone `/greeting` page is the demonstration surface. Its
 model changes from a scalar name to a record containing `name` and `locale`.
-It starts in English with `lang: "en"` and `dir: "ltr"`.
+It starts in English with `lang: "en"` and `dir: "Ltr"`.
 
 Two controls dispatch a past-tense `SelectedLocale` Message to choose English
 LTR or Arabic RTL. The root FoldKit view returns the corresponding Document
-`lang` and `dir` values with its body. The island does not use `noMeta`, because
-this page deliberately owns its document metadata after hydration. Embedded
-chart islands retain their existing `noMeta` policy.
+`lang` and `TextDirection` values (`"Ltr"` or `"Rtl"`) with its body. The island
+does not use `noMeta`, because this page deliberately owns its document metadata
+after hydration. Embedded chart islands retain their existing `noMeta` policy.
 
 The Astro page establishes English for SSR first paint. After `client:load`,
 the Greeting app updates the browser document root in response to its own

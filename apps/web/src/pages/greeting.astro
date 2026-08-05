@@ -12,6 +12,6 @@ const name = Schema.decodeSync(Name)(Astro.url.searchParams.get('name') ?? 'astr
 ---
 
 <Layout title={`Hello, ${name}! — Astro + FoldKit`}>
-  <h1 class={layoutStyles.heading}>Props POC</h1>
+  <h1 class={layoutStyles.heading}>Greeting</h1>
   <GreetingApp client:load name={name} />
 </Layout>

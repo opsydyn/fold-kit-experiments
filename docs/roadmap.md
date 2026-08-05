@@ -48,7 +48,7 @@ Build the most useful Astro host and chart-primitives layer for FoldKit applicat
 the application retains ownership of command keys and cancellation policy.
 
 - [x] Make request-diagnostics reloads interruptible with
-      `Command.Interruptible.define`.
+      `Command.define({ interrupt: true })`.
 - [x] Sequence the replacement request through the interrupt outcome Message;
       never return interruption and replacement commands in one update batch.
 - [x] Cancel an active app-owned request on Astro route exit without starting a
@@ -58,6 +58,25 @@ the application retains ownership of command keys and cancellation policy.
 
 **Exit criteria:** the reference app proves reload and navigation cancellation,
 and the documented pattern has no Astro or Viz package API coupling.
+
+## Completed: FoldKit 0.136 Compatibility
+
+**Outcome:** both packages and the reference app use FoldKit's current render,
+Command, and test contracts without weakening package ownership boundaries.
+
+- [x] Propagate one render-scoped `HtmlBuilder` through Astro, app, Storybook,
+      and chart view boundaries.
+- [x] Migrate interruptible work to object-form
+      `Command.define({ interrupt: true })` while preserving app-owned keys and
+      cancellation policy.
+- [x] Adopt `Scene.given` and `Story.given`, with subscription-origin coverage
+      for the health uptime tick.
+- [x] Add the locale-aware Astro Greeting showcase for FoldKit Document
+      language and direction metadata.
+
+**Exit criteria:** package builds, packed-consumer tests, application tests,
+Storybook, TypeDoc, and the hydrated Greeting interaction all pass against
+FoldKit 0.136.x.
 
 ## Next: FoldKit Viz Interaction Layer
 

@@ -8,6 +8,10 @@ Demo app for [`@opsydyn/astro-foldkit`](../../packages/astro-foldkit/). It hosts
 
 **Health dashboard** (`/health`) — polls `/api/health` via `foldkit/http`, renders a live uptime timer that ticks on every animation frame once data loads, and uses a shimmer skeleton during the initial fetch to prevent layout shift.
 
+**Greeting** (`/greeting`) — validates a branded name at the Astro boundary and
+uses FoldKit `Document.lang` and `Document.dir` to switch the hydrated page
+between English left-to-right and Arabic right-to-left presentation.
+
 **Request diagnostics** (`/request-diagnostics`) — loads latency/error-rate points through `foldkit/http`, renders `@opsydyn/foldkit-viz` histogram and scatter primitives, and uses `foldkit/experimental/machine` for guarded brush filtering.
 
 /request-diagnostics demonstrates app-owned interruption. Define an
@@ -20,6 +24,13 @@ one. Do not return interruption and replacement commands in the same batch.
 Use the same shape for remote filter, brush, or zoom loads. Keep their command
 keys, cancellation policy, and result handling in the consuming FoldKit app;
 @opsydyn/foldkit-viz receives only data and chart-local messages.
+
+The shared Astro layout serves `lang="en" dir="ltr"` on first paint. On the
+standalone Greeting route, `SelectedLocale` updates the FoldKit Document and
+the runtime applies the selected language and direction to the browser root.
+Greeting intentionally owns this metadata; embedded chart islands continue to
+use `noMeta`, which pins their title while preserving app-owned `lang` and
+`dir` values.
 
 ## Running
 
@@ -47,6 +58,7 @@ apps/web/
 ├── src/
 │   ├── apps/
 │   │   ├── counter/   — counter app (model, update, view, commands, subscriptions)
+│   │   ├── greeting/  — locale-aware Document metadata reference app
 │   │   └── health/    — health dashboard app
 │   ├── layouts/       — shared Astro layout
 │   └── pages/

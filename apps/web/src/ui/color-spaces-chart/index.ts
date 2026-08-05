@@ -1,7 +1,6 @@
 import { interpolateHsl, interpolateLab, interpolateRgb } from '@opsydyn/foldkit-viz/math/color';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
@@ -81,12 +80,14 @@ const BLOCK_H = STRIP_H + LABEL_ROW + STRIP_GAP;
 
 const stopW = PW / STOPS;
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Color space interpolation comparison' } = config;
   const { hovered } = model;
 

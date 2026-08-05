@@ -1,8 +1,7 @@
 import { arc } from '@opsydyn/foldkit-viz/shape/arc';
 import { pie } from '@opsydyn/foldkit-viz/shape/pie';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
@@ -89,12 +88,14 @@ export const update = (model: Model, msg: Message): Return =>
 const SIZE = 240;
 const CENTER = SIZE / 2;
 
-export const view = <M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html => {
-  const h = html<M>();
+export const view = <M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html => {
   const { model, toParentMessage, ariaLabel = 'Donut chart' } = config;
   const { segments, activeIndex, config: cfg } = model;
 

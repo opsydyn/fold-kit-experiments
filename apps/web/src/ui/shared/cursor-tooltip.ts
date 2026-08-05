@@ -1,9 +1,9 @@
 import { bisect } from '@opsydyn/foldkit-viz/math/array';
-import type { Html, html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { r3 } from './math';
 
-type H<M> = ReturnType<typeof html<M>>;
+type H<M> = HtmlBuilder<M>;
 
 /**
  * Find the index of the datum closest to a pointer x position.

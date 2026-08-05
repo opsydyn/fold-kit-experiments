@@ -1,8 +1,8 @@
-import type { Html, html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { r3 } from './math';
 
-type H<M> = ReturnType<typeof html<M>>;
+type H<M> = HtmlBuilder<M>;
 
 export type AxisStyle = Readonly<{
   gridColor?: string;

@@ -1,8 +1,7 @@
 import { linear, linearTicks, point } from '@opsydyn/foldkit-viz/math/scale';
 import { boxStats, kde, silvermanBandwidth } from '@opsydyn/foldkit-viz/math/stats';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
@@ -138,12 +137,14 @@ function violinPath(
   return `M${left[0]} L${left.slice(1).join(' L')} L${right[0]} L${right.slice(1).join(' L')}Z`;
 }
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Violin plot' } = config;
   const {
     dims: { width: W, height: H },

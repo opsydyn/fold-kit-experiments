@@ -10,8 +10,8 @@ import { describe, expect, it } from 'bun:test';
 import { collectAttr, collectText, countElements, findNodes } from './collect-html';
 
 // ── Mock vdom helpers ─────────────────────────────────────────────────────────
-// We simulate what foldkit's html<M>() builder produces, since foldkit itself
-// is not available in the test environment without a full app context.
+// We simulate what a supplied HtmlBuilder<M> produces, since foldkit itself is
+// not available in the test environment without a full app context.
 
 type MockAttr = { _tag: string; value?: unknown; name?: string; value2?: unknown };
 type MockNode = { tag?: string; attributes?: MockAttr[]; children?: unknown[] } | string;

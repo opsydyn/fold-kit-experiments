@@ -1,7 +1,6 @@
 import { colorScale, interpolateRgbBasis } from '@opsydyn/foldkit-viz/math/color';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
@@ -106,12 +105,14 @@ const MONTH_Y = 63; // y of month labels
 // Show Mon / Wed / Fri only (cells are 8px — all 7 would overlap)
 const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Commit activity calendar' } = config;
   const { days, monthLabels, legendStops, activeDate } = model;
 

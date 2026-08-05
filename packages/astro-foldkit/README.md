@@ -14,10 +14,10 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` requires FoldKit `0.129.0` or later. Applications can
-use `Command.Interruptible` for request cancellation inside their own update
-loop; this integration continues to own only Astro hydration and lifecycle
-event delivery.
+`@opsydyn/astro-foldkit` requires FoldKit `0.136.x`. Applications can define
+interruptible work with `Command.define(name, { interrupt: true, ... })` inside
+their own update loop; this integration continues to own only Astro hydration
+and lifecycle event delivery.
 
 ## Setup
 
@@ -45,12 +45,17 @@ export default lazyApp(() => import('./main'));
 
 ```ts
 // src/apps/counter/main.ts
+import type { Document, HtmlBuilder } from 'foldkit/html';
+
+type Message = 'Inc' | 'Dec';
+
 export const Model = null;
 export const init = () => [0, []] as const;
-export const update = (model: number, message: 'Inc' | 'Dec') =>
+export const update = (model: number, message: Message) =>
   [message === 'Inc' ? model + 1 : model - 1, []] as const;
-export const view = (model: number) => ({
-  /* foldkit view tree */
+export const view = (model: number, h: HtmlBuilder<Message>): Document => ({
+  title: `Counter: ${model}`,
+  body: h.button([h.OnClick('Inc')], [String(model)]),
 });
 ```
 
@@ -123,7 +128,9 @@ Prevents the FoldKit program from overwriting `document.title`. Use this wheneve
 <DashboardChart client:load noMeta data={chartData} />
 ```
 
-Both `noMeta` and `noMeta={true}` are accepted. The prop is stripped before `init` receives the rest of your props.
+Both `noMeta` and `noMeta={true}` are accepted. The wrapper pins only the
+Document `title`; FoldKit still applies `lang` and `dir` from the app's current
+Document.
 
 ## Architecture
 
@@ -166,12 +173,12 @@ The double-decode is intentional: `Schema.decodeSync` at the Astro boundary ensu
 
 The module returned by your loader must export:
 
-| Export   | Type                                                           | Description                                     |
-| :------- | :------------------------------------------------------------- | :---------------------------------------------- |
-| `Model`  | `unknown`                                                      | Initial model type marker                       |
-| `init`   | `(props: unknown) => readonly [Model, ReadonlyArray<Command>]` | Initial state from props and startup commands   |
-| `update` | `(model, message) => readonly [Model, ReadonlyArray<Command>]` | Pure state transition                           |
-| `view`   | `(model) => Document`                                          | Render the current model to a FoldKit view tree |
+| Export   | Type                                                           | Description                                   |
+| :------- | :------------------------------------------------------------- | :-------------------------------------------- |
+| `Model`  | `unknown`                                                      | Initial model type marker                     |
+| `init`   | `(props: unknown) => readonly [Model, ReadonlyArray<Command>]` | Initial state from props and startup commands |
+| `update` | `(model, message) => readonly [Model, ReadonlyArray<Command>]` | Pure state transition                         |
+| `view`   | `(model, h: HtmlBuilder<Message>) => Document`                 | Render with the current render-frame builder  |
 
 ## Exports
 
@@ -293,10 +300,10 @@ element.addEventListener(
 
 ## Peer dependencies
 
-| Package   | Version   |
-| :-------- | :-------- |
-| `astro`   | `≥ 5.0`   |
-| `foldkit` | `≥ 0.126` |
+| Package   | Version               |
+| :-------- | :-------------------- |
+| `astro`   | `≥ 5.0`               |
+| `foldkit` | `≥ 0.136.0 < 0.137.0` |
 
 ## License
 

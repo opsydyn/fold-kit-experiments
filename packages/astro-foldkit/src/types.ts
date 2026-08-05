@@ -10,7 +10,7 @@ export type AppConfigShape<Props extends Record<string, unknown>> = {
   readonly Model: unknown;
   readonly init: (props: Props) => readonly [unknown, CommandBatch];
   readonly update: (model: never, message: never) => readonly [unknown, CommandBatch];
-  readonly view: (model: never) => Document;
+  readonly view: (model: never, h: never) => Document;
   readonly navigation?: NavigationConfig<unknown>;
   readonly ports?: Record<string, unknown>;
 };
@@ -23,7 +23,7 @@ export type AppConfig<
   readonly Model: unknown;
   readonly init: (props: Props) => readonly [Model, CommandBatch];
   readonly update: Runtime.ApplicationConfig<Model, Message>['update'];
-  readonly view: (model: Model) => Document;
+  readonly view: Runtime.ApplicationConfig<Model, Message>['view'];
 };
 
 export type FoldkitApp<

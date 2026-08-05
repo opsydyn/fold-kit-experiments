@@ -1,7 +1,6 @@
 import { linear, linearTicks, sqrt } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
@@ -93,12 +92,14 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-export const view = <M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html => {
-  const h = html<M>();
+export const view = <M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html => {
   const { model, toParentMessage, ariaLabel = 'Bubble chart' } = config;
   const {
     dims: { width: W, height: H },

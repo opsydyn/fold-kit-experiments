@@ -1,3 +1,5 @@
+import type { Document, HtmlBuilder } from 'foldkit/html';
+
 /** Returns true when the `noMeta` prop should suppress document metadata writes. */
 export const shouldSkipMetadata = (props: Record<string, unknown>): boolean =>
   props.noMeta === true || props.noMeta === '';
@@ -9,11 +11,11 @@ export const shouldSkipMetadata = (props: Record<string, unknown>): boolean =>
  * owns its own title.
  */
 export const makeNoMetaView =
-  <Model>(
-    view: (model: Model) => { readonly title: string; readonly [key: string]: unknown },
+  <Model, Message>(
+    view: (model: Model, h: HtmlBuilder<Message>) => Document,
     initialTitle: string,
   ) =>
-  (model: Model): { readonly title: string; readonly [key: string]: unknown } => ({
-    ...view(model),
+  (model: Model, h: HtmlBuilder<Message>): Document => ({
+    ...view(model, h),
     title: initialTitle,
   });

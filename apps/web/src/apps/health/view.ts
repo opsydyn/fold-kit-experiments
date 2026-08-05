@@ -1,12 +1,9 @@
-import type { Document } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import type { Message } from './message';
 import type { Model } from './model';
 
 import * as styles from './health.css';
-
-const { div, Class } = html<Message>();
 
 const timeFormat = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'short' });
@@ -18,39 +15,43 @@ const formatUptime = (uptimeSeconds: number): string => {
   return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
 };
 
-const skeleton: Document = {
-  title: 'Health — Astro + FoldKit',
-  body: div(
-    [Class(styles.grid)],
-    [
-      div(
-        [Class(styles.card)],
-        [div([Class(styles.skeletonLabel)], []), div([Class(styles.skeletonValueLg)], [])],
-      ),
-      div(
-        [Class(styles.card)],
-        [
-          div([Class(styles.skeletonLabel)], []),
-          div([Class(styles.skeletonValueLg)], []),
-          div([Class(styles.skeletonSub)], []),
-        ],
-      ),
-      div(
-        [Class(styles.card)],
-        [
-          div([Class(styles.skeletonLabel)], []),
-          div([Class(styles.skeletonValueMd)], []),
-          div([Class(styles.skeletonSub)], []),
-        ],
-      ),
-    ],
-  ),
+const skeleton = (h: HtmlBuilder<Message>): Document => {
+  const { div, Class } = h;
+  return {
+    title: 'Health — Astro + FoldKit',
+    body: div(
+      [Class(styles.grid)],
+      [
+        div(
+          [Class(styles.card)],
+          [div([Class(styles.skeletonLabel)], []), div([Class(styles.skeletonValueLg)], [])],
+        ),
+        div(
+          [Class(styles.card)],
+          [
+            div([Class(styles.skeletonLabel)], []),
+            div([Class(styles.skeletonValueLg)], []),
+            div([Class(styles.skeletonSub)], []),
+          ],
+        ),
+        div(
+          [Class(styles.card)],
+          [
+            div([Class(styles.skeletonLabel)], []),
+            div([Class(styles.skeletonValueMd)], []),
+            div([Class(styles.skeletonSub)], []),
+          ],
+        ),
+      ],
+    ),
+  };
 };
 
-export const view = (model: Model): Document => {
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const { div, Class } = h;
   switch (model._tag) {
     case 'Loading':
-      return skeleton;
+      return skeleton(h);
 
     case 'Failed':
       return {

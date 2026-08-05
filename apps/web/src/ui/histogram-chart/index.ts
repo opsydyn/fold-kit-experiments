@@ -13,7 +13,7 @@ import {
 import { linear, linearInvertible, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { Effect, Match, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
-import { type Html, html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import {
@@ -219,13 +219,15 @@ export function getBrushDomain(model: Model): Option.Option<readonly [number, nu
 
 // VIEW
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-  renderTooltip?: (datum: ComputedBin, x: number, y: number) => Html;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+    renderTooltip?: (datum: ComputedBin, x: number, y: number) => Html;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Histogram', renderTooltip } = config;
   const {
     dims: { width: W, height: H },

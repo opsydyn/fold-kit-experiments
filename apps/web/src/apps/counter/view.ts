@@ -1,7 +1,6 @@
 import { Array as Arr, Newtype, Option } from 'effect';
 import { Canvas } from 'foldkit';
-import type { Document } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import {
   ALPHA_EPSILON,
@@ -28,8 +27,6 @@ import type { Particle, Point } from './particle';
 import { _age, _hue, _lifespan, _px, _py } from './particle';
 
 import * as styles from './counter.css';
-
-const { div, button, Class, OnClick } = html<Message>();
 
 const fadeAlpha = (particle: Particle): number => {
   const remaining = _lifespan.get(particle) - _age.get(particle);
@@ -87,31 +84,37 @@ const particleShapes = (particle: Particle): ReadonlyArray<Canvas.Shape> => {
 const sceneShapes = (model: Model): ReadonlyArray<Canvas.Shape> =>
   Arr.flatMap(model.particles, particleShapes);
 
-export const view = (model: Model): Document => ({
-  title: `Counter: ${_count.get(model)}`,
-  body: div(
-    [Class(styles.scene)],
-    [
-      Canvas.view<Message>({
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-        shapes: sceneShapes(model),
-        className: styles.canvas,
-      }),
-      div(
-        [Class(styles.overlay)],
-        [
-          div([Class(styles.count)], [String(_count.get(model))]),
-          div(
-            [Class(styles.controls)],
-            [
-              button([OnClick(ClickedDecrement()), Class(styles.button)], ['−']),
-              button([OnClick(ClickedReset()), Class(styles.button)], ['Reset']),
-              button([OnClick(ClickedIncrement()), Class(styles.button)], ['+']),
-            ],
-          ),
-        ],
-      ),
-    ],
-  ),
-});
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const { div, button, Class, OnClick } = h;
+  return {
+    title: `Counter: ${_count.get(model)}`,
+    body: div(
+      [Class(styles.scene)],
+      [
+        Canvas.view(
+          {
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
+            shapes: sceneShapes(model),
+            className: styles.canvas,
+          },
+          h,
+        ),
+        div(
+          [Class(styles.overlay)],
+          [
+            div([Class(styles.count)], [String(_count.get(model))]),
+            div(
+              [Class(styles.controls)],
+              [
+                button([OnClick(ClickedDecrement()), Class(styles.button)], ['−']),
+                button([OnClick(ClickedReset()), Class(styles.button)], ['Reset']),
+                button([OnClick(ClickedIncrement()), Class(styles.button)], ['+']),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  };
+};

@@ -1,8 +1,7 @@
 import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { Effect, Match, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
@@ -160,13 +159,15 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-export const view = <M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-  renderTooltip?: (datum: Point, x: number, y: number) => Html;
-}): Html => {
-  const h = html<M>();
+export const view = <M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+    renderTooltip?: (datum: Point, x: number, y: number) => Html;
+  },
+  h: HtmlBuilder<M>,
+): Html => {
   const { model, toParentMessage, ariaLabel = 'Scatter chart', renderTooltip } = config;
   const {
     dims: { width: W, height: H },

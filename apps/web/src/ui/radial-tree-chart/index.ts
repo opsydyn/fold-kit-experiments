@@ -2,8 +2,7 @@ import type { ClusterLayoutNode } from '@opsydyn/foldkit-viz/hierarchy';
 import { clusterLayout, hierarchy } from '@opsydyn/foldkit-viz/hierarchy';
 import { linkRadial } from '@opsydyn/foldkit-viz/shape/link';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { r3, svgRoot } from '../shared';
@@ -93,12 +92,14 @@ function cy(node: LayoutNode): number {
   return r3(CY - node.y * Math.cos(node.x));
 }
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Radial tree diagram' } = config;
   const { nodes, links, activeId, outerRadius, color } = model;
 

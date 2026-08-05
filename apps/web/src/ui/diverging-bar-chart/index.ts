@@ -3,8 +3,7 @@ import { format } from '@opsydyn/foldkit-viz/math/format';
 import { band, linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { rdBu } from '@opsydyn/foldkit-viz/math/schemes';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
@@ -64,12 +63,14 @@ export const update = (model: Model, msg: Message): Return =>
 
 const fmtPct = format('.1~%');
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Diverging bar chart' } = config;
   const {
     dims: { width: W, height: H },

@@ -1,5 +1,4 @@
-import type { Document } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as BarChart from '../../ui/bar-chart';
 import type { Message } from './message';
@@ -10,18 +9,19 @@ type BarMessage = BarChart.Message;
 
 const toParentMessage = (msg: BarMessage): Message => GotBarMessage({ message: msg });
 
-const { div } = html<Message>();
-
-export const view = (model: Model): Document => ({
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Bar Chart — foldkit-viz',
-  body: div(
+  body: h.div(
     [],
     [
-      BarChart.view({
-        model: model.bar,
-        toParentMessage,
-        ariaLabel: 'Monthly figures',
-      }),
+      BarChart.view(
+        {
+          model: model.bar,
+          toParentMessage,
+          ariaLabel: 'Monthly figures',
+        },
+        h,
+      ),
     ],
   ),
 });

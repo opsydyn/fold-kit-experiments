@@ -5,8 +5,7 @@ import {
   geoPath,
 } from '@opsydyn/foldkit-viz/shape/geo';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
@@ -96,12 +95,14 @@ const MERC_X1 = ML + 2 * INNER_W;
 const MAP_Y0 = MT;
 const MAP_Y1 = H - MB;
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Map projections comparison' } = config;
   const { hovered } = model;
 

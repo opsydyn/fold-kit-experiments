@@ -1,4 +1,4 @@
-import type { Document } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as Bump from '../../ui/bump-chart';
 import type { Message } from './message';
@@ -7,11 +7,14 @@ import type { Model } from './model';
 
 const toParentMessage = (msg: Bump.Message): Message => GotBumpMessage({ message: msg });
 
-export const view = (model: Model): Document => ({
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Bump chart — foldkit-viz',
-  body: Bump.view({
-    model: model.chart,
-    toParentMessage,
-    ariaLabel: 'Bump chart — JS framework popularity rankings 2019–2024',
-  }),
+  body: Bump.view(
+    {
+      model: model.chart,
+      toParentMessage,
+      ariaLabel: 'Bump chart — JS framework popularity rankings 2019–2024',
+    },
+    h,
+  ),
 });

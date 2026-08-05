@@ -3,8 +3,7 @@ import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { area } from '@opsydyn/foldkit-viz/shape/area';
 import { stack } from '@opsydyn/foldkit-viz/shape/stack';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
@@ -154,12 +153,14 @@ export const update = (model: Model, msg: Message): Return =>
 
 // VIEW
 
-export const view = <M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html => {
-  const h = html<M>();
+export const view = <M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html => {
   const { model, toParentMessage, ariaLabel = 'Streamgraph' } = config;
   const { layout, activeKey } = model;
   const { series, xLabels } = layout;

@@ -1,7 +1,6 @@
 import { arc } from '@opsydyn/foldkit-viz/shape/arc';
 import { Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
@@ -106,7 +105,7 @@ function arcCapPos(cx: number, cy: number, midR: number, angle: number): readonl
 }
 
 function renderGauge<M>(
-  h: ReturnType<typeof html<M>>,
+  h: HtmlBuilder<M>,
   entry: GaugeEntry,
   layout: { cx: number; cy: number; outerR: number; innerR: number },
   cfg: Config,
@@ -268,12 +267,14 @@ function renderGauge<M>(
   );
 }
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, ariaLabel = 'Gauge chart' } = config;
   const { entries, config: cfg } = model;
 

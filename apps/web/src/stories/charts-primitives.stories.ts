@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html';
 import { Schema } from 'effect';
-import type { Html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { makeElement } from 'foldkit/runtime';
 
 import * as AreaChart from '../ui/area-chart';
@@ -86,7 +86,7 @@ const STORY_MODEL_SCHEMA = Schema.Any as Schema.Codec<never, never, never, never
 function mountChart<Mod, Msg extends { _tag: string }>(
   init: () => readonly [Mod, readonly []],
   update: (model: Mod, msg: Msg) => readonly [Mod, readonly []],
-  view: (model: Mod) => Html,
+  view: (model: Mod, h: HtmlBuilder<Msg>) => Html,
 ): HTMLElement {
   return mountFoldkitProgram(
     (container) =>
@@ -151,7 +151,7 @@ export const Bar: StoryObj<BarArgs> = {
     return mountChart<BarChart.Model, BarChart.Message>(
       () => [model0, cmds0],
       BarChart.update,
-      (model) => BarChart.view({ model, toParentMessage: (m) => m }),
+      (model, h) => BarChart.view({ model, toParentMessage: (m) => m }, h),
     );
   },
   parameters: {
@@ -204,7 +204,7 @@ export const Line: StoryObj<LineArgs> = {
     return mountChart<LineChart.Model, LineChart.Message>(
       () => [model0, cmds0],
       LineChart.update,
-      (model) => LineChart.view({ model, toParentMessage: (m) => m }),
+      (model, h) => LineChart.view({ model, toParentMessage: (m) => m }, h),
     );
   },
   parameters: {
@@ -259,7 +259,7 @@ export const Area: StoryObj<AreaArgs> = {
     return mountChart<AreaChart.Model, AreaChart.Message>(
       () => [model0, cmds0],
       AreaChart.update,
-      (model) => AreaChart.view({ model, toParentMessage: (m) => m }),
+      (model, h) => AreaChart.view({ model, toParentMessage: (m) => m }, h),
     );
   },
   parameters: {
@@ -314,7 +314,7 @@ export const Scatter: StoryObj<ScatterArgs> = {
     return mountChart<ScatterChart.Model, ScatterChart.Message>(
       () => [model0, cmds0],
       ScatterChart.update,
-      (model) => ScatterChart.view({ model, toParentMessage: (m) => m }),
+      (model, h) => ScatterChart.view({ model, toParentMessage: (m) => m }, h),
     );
   },
   parameters: {

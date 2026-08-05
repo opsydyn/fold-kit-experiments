@@ -1,5 +1,4 @@
-import type { Document, Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
@@ -15,18 +14,23 @@ const routeLabel = (model: Model): string =>
     ? `${model.route.repository} / ${model.route.document}`
     : 'Diagnostics index';
 
-export const view = (model: Model): Document => {
-  const h = html<Message>();
-  const histogram: Html = Histogram.view({
-    model: model.histogram,
-    toParentMessage: (message) => GotHistogramMessage({ message }),
-    ariaLabel: 'Request latency distribution. Drag to filter the scatter plot.',
-  });
-  const scatter: Html = Scatter.view({
-    model: model.scatter,
-    toParentMessage: (message) => GotScatterMessage({ message }),
-    ariaLabel: 'Error rate by request latency.',
-  });
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const histogram: Html = Histogram.view(
+    {
+      model: model.histogram,
+      toParentMessage: (message) => GotHistogramMessage({ message }),
+      ariaLabel: 'Request latency distribution. Drag to filter the scatter plot.',
+    },
+    h,
+  );
+  const scatter: Html = Scatter.view(
+    {
+      model: model.scatter,
+      toParentMessage: (message) => GotScatterMessage({ message }),
+      ariaLabel: 'Error rate by request latency.',
+    },
+    h,
+  );
 
   return {
     title: 'Request Diagnostics — FoldKit Machine',

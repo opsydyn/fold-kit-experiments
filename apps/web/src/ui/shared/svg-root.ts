@@ -1,7 +1,7 @@
 import type { Option } from 'effect';
-import type { Html, html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 
-type H<M> = ReturnType<typeof html<M>>;
+type H<M> = HtmlBuilder<M>;
 
 export type SvgRootConfig = Readonly<{
   width: number;

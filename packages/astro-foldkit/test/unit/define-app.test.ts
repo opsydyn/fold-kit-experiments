@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 
-import type { Document } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as defineAppModule from '../../src/define-app';
 import { defineApp } from '../../src/define-app';
@@ -20,7 +20,7 @@ describe('defineApp', () => {
       Model: {} as AppConfig<Props, Model, Message>['Model'],
       init: (props: Props) => [{ count: props.initialCount }, []] as const,
       update: (model: Model, _message: Message) => [model, []] as const,
-      view: (_model: Model) => ({}) as Document,
+      view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
     } satisfies AppConfig<Props, Model, Message>;
 
     const app = defineApp<Props>(() => Promise.resolve(config));

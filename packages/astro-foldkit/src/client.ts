@@ -5,6 +5,21 @@ import { normalizeNavigationEvent } from './navigation';
 import type { NavigationConfig, NavigationPhase } from './navigation';
 import type { AppConfigShape, FoldkitApp } from './types';
 
+type ConfigModel<
+  Props extends Record<string, unknown>,
+  Config extends AppConfigShape<Props>,
+> = ReturnType<Config['init']>[0];
+
+type ConfigMessage<
+  Props extends Record<string, unknown>,
+  Config extends AppConfigShape<Props>,
+> = Parameters<Config['update']>[1];
+
+type RuntimeConfigOf<
+  Props extends Record<string, unknown>,
+  Config extends AppConfigShape<Props>,
+> = Runtime.ApplicationConfig<ConfigModel<Props, Config>, ConfigMessage<Props, Config>>;
+
 type EventTargetLike = {
   readonly addEventListener: (type: string, listener: EventListener) => void;
   readonly removeEventListener: (type: string, listener: EventListener) => void;
@@ -159,6 +174,7 @@ export function createClientRenderer(
       _meta: { client: string },
     ): Promise<void> => {
       const config = await component.load();
+      const runtimeConfig = config as unknown as RuntimeConfigOf<Props, Config>;
       const clientEnvironment = {
         document: environment.document ?? globalThis.document,
         window: environment.window ?? globalThis.window,
@@ -166,13 +182,13 @@ export function createClientRenderer(
 
       element.id ||= element.getAttribute('uid') ?? crypto.randomUUID();
 
-      const baseView = config.view;
+      const baseView = runtimeConfig.view;
       const view = shouldSkipMetadata(props)
         ? makeNoMetaView(baseView, clientEnvironment.document.title)
         : baseView;
 
       const program = runtime.makeApplication({
-        ...config,
+        ...runtimeConfig,
         // Forward Astro props into init so apps can seed their model from server data.
         // Apps that declare no props simply receive an empty object and ignore it.
         init: () => config.init(props),

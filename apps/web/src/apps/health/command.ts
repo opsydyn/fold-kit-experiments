@@ -5,12 +5,9 @@ import { Command, Http } from 'foldkit';
 import { FetchedHealth, FetchFailed } from './message';
 import { HealthData } from './model';
 
-export const FetchHealth = Command.define(
-  'FetchHealth',
-  FetchedHealth,
-  FetchFailed,
-)(
-  Effect.provide(
+export const FetchHealth = Command.define('FetchHealth', {
+  messages: [FetchedHealth, FetchFailed],
+  execute: Effect.provide(
     Effect.gen(function* () {
       const response = yield* HttpClient.get('/api/health');
       const data = yield* HttpClientResponse.schemaBodyJson(HealthData)(response);
@@ -18,4 +15,4 @@ export const FetchHealth = Command.define(
     }).pipe(Effect.catch((error) => Effect.succeed(FetchFailed({ error: String(error) })))),
     Http.layer,
   ),
-);
+});

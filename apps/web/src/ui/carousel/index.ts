@@ -1,7 +1,6 @@
 import { Effect, Match, Option, pipe, Schema, Stream } from 'effect';
 import { Subscription } from 'foldkit';
-import type { Attribute, Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Attribute, Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 // MODEL
@@ -454,8 +453,7 @@ export type ViewConfig<M> = Readonly<{
   ariaLabel?: string;
 }>;
 
-export const view = <M>(config: ViewConfig<M>): Html => {
-  const h = html<M>();
+export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
   const { model, toParentMessage, ariaLabel } = config;
   const isDragging = model.dragState._tag === 'Dragging';
 

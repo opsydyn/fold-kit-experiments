@@ -1,7 +1,6 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { r3, svgRoot } from '../shared';
@@ -72,12 +71,14 @@ function fmtDefault(v: number): string {
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Parallel coordinates chart' } = config;
   const { axes, records, axisDomains, activeIndex } = model;
   const numAxes = axes.length;

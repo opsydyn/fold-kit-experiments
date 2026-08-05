@@ -1,12 +1,9 @@
-import type { Document } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import type { Message } from './message';
 import type { Model } from './model';
 
 import * as styles from './timestamp.css';
-
-const { div, Class } = html<Message>();
 
 const timeFormat = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
 
@@ -19,7 +16,8 @@ const formatUptime = (seconds: number): string => {
     : `${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
 };
 
-export const view = (model: Model): Document => {
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const { div, Class } = h;
   const uptimeSeconds = model.elapsedMs / 1000;
   const startedAtLabel = timeFormat.format(new Date(model.startedAt));
 

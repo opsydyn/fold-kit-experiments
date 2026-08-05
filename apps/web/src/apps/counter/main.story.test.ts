@@ -38,7 +38,7 @@ describe('update', () => {
     test('ClickedIncrement increments count', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(ClickedIncrement()),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
@@ -50,7 +50,7 @@ describe('update', () => {
     test('ClickedDecrement decrements count', () => {
       Story.story(
         update,
-        Story.with({ ...emptyModel, count: 3 }),
+        Story.given({ ...emptyModel, count: 3 }),
         Story.message(ClickedDecrement()),
         drainSpawns(DECREMENT_HUE),
         Story.model((model) => {
@@ -62,7 +62,7 @@ describe('update', () => {
     test('ClickedReset resets count to zero', () => {
       Story.story(
         update,
-        Story.with({ ...emptyModel, count: 5 }),
+        Story.given({ ...emptyModel, count: 5 }),
         Story.message(ClickedReset()),
         drainSpawns(RESET_HUE),
         Story.model((model) => {
@@ -74,7 +74,7 @@ describe('update', () => {
     test('count can go below zero', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(ClickedDecrement()),
         drainSpawns(DECREMENT_HUE),
         Story.model((model) => {
@@ -88,7 +88,7 @@ describe('update', () => {
     test('ClickedIncrement spawns BURST_COUNT particles', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(ClickedIncrement()),
         Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
         drainSpawns(INCREMENT_HUE),
@@ -101,7 +101,7 @@ describe('update', () => {
     test('ClickedDecrement spawns BURST_COUNT particles', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(ClickedDecrement()),
         Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
         drainSpawns(DECREMENT_HUE),
@@ -114,7 +114,7 @@ describe('update', () => {
     test('ClickedReset spawns BURST_COUNT particles as scatter', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(ClickedReset()),
         Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
         drainSpawns(RESET_HUE),
@@ -127,7 +127,7 @@ describe('update', () => {
     test('SpawnedParticle appends a particle with the correct hue', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(ClickedIncrement()),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
@@ -139,7 +139,7 @@ describe('update', () => {
     test('SpawnedParticle assigns sequential ids', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(ClickedIncrement()),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
@@ -152,7 +152,7 @@ describe('update', () => {
     test('SpawnedParticle initialises trail at spawn position', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(ClickedIncrement()),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
@@ -179,7 +179,7 @@ describe('update', () => {
     test('TickedFrame advances particle age by delta', () => {
       Story.story(
         update,
-        Story.with(modelWithParticle),
+        Story.given(modelWithParticle),
         Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(model.particles[0]?.ageMs).toBe(16);
@@ -190,7 +190,7 @@ describe('update', () => {
     test('TickedFrame appends a trail point', () => {
       Story.story(
         update,
-        Story.with(modelWithParticle),
+        Story.given(modelWithParticle),
         Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(model.particles[0]?.trail).toHaveLength(2);
@@ -201,7 +201,7 @@ describe('update', () => {
     test('TickedFrame moves particle upward when vy is negative', () => {
       Story.story(
         update,
-        Story.with(modelWithParticle),
+        Story.given(modelWithParticle),
         Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           const tip = model.particles[0]?.trail[1];
@@ -213,7 +213,7 @@ describe('update', () => {
     test('TickedFrame applies gravity (vy increases toward positive)', () => {
       Story.story(
         update,
-        Story.with(modelWithParticle),
+        Story.given(modelWithParticle),
         Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(model.particles[0]?.vy).toBeGreaterThan(Newtype.value(aParticle.vy));
@@ -224,7 +224,7 @@ describe('update', () => {
     test('TickedFrame advances elapsedSeconds', () => {
       Story.story(
         update,
-        Story.with(emptyModel),
+        Story.given(emptyModel),
         Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(Newtype.value(model.elapsedSeconds)).toBeCloseTo(0.016);
@@ -235,7 +235,7 @@ describe('update', () => {
     test('TickedFrame removes particles that have expired', () => {
       Story.story(
         update,
-        Story.with({
+        Story.given({
           ...modelWithParticle,
           particles: [{ ...aParticle, ageMs: Milliseconds(990) }],
         }),
@@ -249,7 +249,7 @@ describe('update', () => {
     test('TickedFrame emits no commands', () => {
       Story.story(
         update,
-        Story.with(modelWithParticle),
+        Story.given(modelWithParticle),
         Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.Command.expectNone(),
       );
@@ -260,7 +260,7 @@ describe('update', () => {
     test('clears existing particles before spawning new ones', () => {
       Story.story(
         update,
-        Story.with({
+        Story.given({
           ...emptyModel,
           count: 3,
           particles: [

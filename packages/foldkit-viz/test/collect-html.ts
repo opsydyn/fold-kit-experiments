@@ -1,11 +1,11 @@
 /**
  * collectHtml — walk a foldkit Html tree and extract text + attribute values.
  *
- * Works against the virtual DOM node structure returned by foldkit's
- * `html<M>()` builder without requiring a real DOM.
+ * Works against the virtual DOM node structure returned by a supplied
+ * `HtmlBuilder<M>` without requiring a real DOM.
  *
  * Usage:
- *   const tree = BarChart.view({ model, toParentMessage: identity, ariaLabel: 'test' });
+ *   const tree = BarChart.view({ model, toParentMessage: identity, ariaLabel: 'test' }, h);
  *   const text  = collectText(tree);        // all text nodes joined
  *   const roles = collectAttr(tree, 'role'); // all role="" values
  *   const labels = collectAttr(tree, 'aria-label'); // all aria-label values

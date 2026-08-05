@@ -1,3 +1,4 @@
+import type { Document, HtmlBuilder } from 'foldkit/html';
 import type { EmbedHandle, MakeRuntimeReturn } from 'foldkit/runtime';
 import { embed, makeApplication } from 'foldkit/runtime';
 
@@ -5,7 +6,7 @@ export type FoldkitAppConfig = {
   Model: any;
   init: (...args: any[]) => readonly [any, ReadonlyArray<any>];
   update: (model: any, msg: any) => readonly [any, ReadonlyArray<any>];
-  view: (model: any) => any;
+  view: (model: any, h: HtmlBuilder<any>) => Document;
 };
 
 type RuntimeHandle = Pick<EmbedHandle, 'dispose'>;

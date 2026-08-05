@@ -1,4 +1,4 @@
-import type { Document } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as RadarChart from '../../ui/radar-chart';
 import type { Message } from './message';
@@ -7,11 +7,14 @@ import type { Model } from './model';
 
 const toParentMessage = (msg: RadarChart.Message): Message => GotRadarMessage({ message: msg });
 
-export const view = (model: Model): Document => ({
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Radar Chart — foldkit-viz',
-  body: RadarChart.view({
-    model: model.radar,
-    toParentMessage,
-    ariaLabel: 'Language comparison radar chart',
-  }),
+  body: RadarChart.view(
+    {
+      model: model.radar,
+      toParentMessage,
+      ariaLabel: 'Language comparison radar chart',
+    },
+    h,
+  ),
 });

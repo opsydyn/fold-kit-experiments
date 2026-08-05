@@ -11,8 +11,7 @@ import {
   translateBy,
 } from '@opsydyn/foldkit-viz/math/zoom';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
@@ -192,13 +191,7 @@ const MINI_BTN_W = 100;
 const MINI_BTN_H = 14;
 const MINI_BTN_Y = H - 12 - MINI_BTN_H;
 
-function iconBtn<M>(
-  h: ReturnType<typeof html<M>>,
-  label: string,
-  x: number,
-  y: number,
-  msg: M,
-): Html {
+function iconBtn<M>(h: HtmlBuilder<M>, label: string, x: number, y: number, msg: M): Html {
   return h.g(
     [h.OnClick(msg), h.Style({ cursor: 'pointer', 'user-select': 'none' })],
     [
@@ -231,7 +224,7 @@ function iconBtn<M>(
 }
 
 function textBtn<M>(
-  h: ReturnType<typeof html<M>>,
+  h: HtmlBuilder<M>,
   label: string,
   x: number,
   y: number,
@@ -271,7 +264,7 @@ function textBtn<M>(
 }
 
 function renderDots<M>(
-  h: ReturnType<typeof html<M>>,
+  h: HtmlBuilder<M>,
   dots: ReadonlyArray<PhyllotaxisDot>,
 ): ReadonlyArray<Html> {
   return dots.map((dot) =>
@@ -279,12 +272,14 @@ function renderDots<M>(
   );
 }
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Phyllotaxis zoom and pan' } = config;
   const { dots, matrix, isDragging, showMiniMap } = model;
 

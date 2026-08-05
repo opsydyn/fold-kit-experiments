@@ -1,5 +1,4 @@
-import type { Document, Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
@@ -7,20 +6,24 @@ import type { Message } from './message';
 import { GotHistogramMessage, GotScatterMessage } from './message';
 import type { Model } from './model';
 
-export const view = (model: Model): Document => {
-  const h = html<Message>();
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const scatter: Html = Scatter.view(
+    {
+      model: model.scatter,
+      toParentMessage: (msg) => GotScatterMessage({ message: msg }),
+      ariaLabel: 'Scatter chart — experience vs salary',
+    },
+    h,
+  );
 
-  const scatter: Html = Scatter.view({
-    model: model.scatter,
-    toParentMessage: (msg) => GotScatterMessage({ message: msg }),
-    ariaLabel: 'Scatter chart — experience vs salary',
-  });
-
-  const histogram: Html = Histogram.view({
-    model: model.histogram,
-    toParentMessage: (msg) => GotHistogramMessage({ message: msg }),
-    ariaLabel: 'Histogram — salary distribution',
-  });
+  const histogram: Html = Histogram.view(
+    {
+      model: model.histogram,
+      toParentMessage: (msg) => GotHistogramMessage({ message: msg }),
+      ariaLabel: 'Histogram — salary distribution',
+    },
+    h,
+  );
 
   return {
     title: 'Linked views — foldkit-viz',

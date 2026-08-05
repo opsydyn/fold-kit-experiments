@@ -1,5 +1,4 @@
-import type { Document, Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
@@ -24,9 +23,7 @@ const STATUS_STYLE = {
   flexWrap: 'wrap' as const,
 };
 
-export const view = (model: Model): Document => {
-  const h = html<Message>();
-
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const selection = model.selection;
   const brushDomain =
     selection._tag === 'Interval' && selection.axis === 'x' ? selection.domain : null;
@@ -34,17 +31,23 @@ export const view = (model: Model): Document => {
   const totalCount = model.allPoints.length;
   const hasBrush = brushDomain !== null;
 
-  const histogram: Html = Histogram.view({
-    model: model.histogram,
-    toParentMessage: (msg) => GotHistogramMessage({ message: msg }),
-    ariaLabel: 'Histogram — response time distribution, drag to brush-filter',
-  });
+  const histogram: Html = Histogram.view(
+    {
+      model: model.histogram,
+      toParentMessage: (msg) => GotHistogramMessage({ message: msg }),
+      ariaLabel: 'Histogram — response time distribution, drag to brush-filter',
+    },
+    h,
+  );
 
-  const scatter: Html = Scatter.view({
-    model: model.scatter,
-    toParentMessage: (msg) => GotScatterMessage({ message: msg }),
-    ariaLabel: 'Scatter — response time vs error rate',
-  });
+  const scatter: Html = Scatter.view(
+    {
+      model: model.scatter,
+      toParentMessage: (msg) => GotScatterMessage({ message: msg }),
+      ariaLabel: 'Scatter — response time vs error rate',
+    },
+    h,
+  );
 
   const rangeLabel =
     hasBrush && brushDomain !== null

@@ -1,8 +1,7 @@
 import { band, linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { tweenValue } from '@opsydyn/foldkit-viz/math/tween';
 import { Option } from 'effect';
-import type { Document, Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import type { Message } from './message';
 import { BlurredBar, HoveredBar } from './message';
@@ -17,8 +16,7 @@ const W = 480,
 const PW = W - ML - MR,
   PH = H - MT - MB;
 
-export const view = (model: Model): Document => {
-  const h = html<Message>();
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const { bars, tweens, activeIndex } = model;
 
   const maxValue = bars.reduce((m, b) => Math.max(m, b.value), 0);

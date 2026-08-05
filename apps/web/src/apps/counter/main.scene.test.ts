@@ -37,13 +37,13 @@ const resetButton = Scene.role('button', { name: 'Reset' });
 
 describe('scene', () => {
   test('renders the initial count', () => {
-    Scene.scene({ update, view }, Scene.with(emptyModel), Scene.expect(Scene.text('0')).toExist());
+    Scene.scene({ update, view }, Scene.given(emptyModel), Scene.expect(Scene.text('0')).toExist());
   });
 
   test('renders all three buttons', () => {
     Scene.scene(
       { update, view },
-      Scene.with(emptyModel),
+      Scene.given(emptyModel),
       Scene.expect(incrementButton).toExist(),
       Scene.expect(decrementButton).toExist(),
       Scene.expect(resetButton).toExist(),
@@ -53,7 +53,7 @@ describe('scene', () => {
   test('clicking + increments the displayed count', () => {
     Scene.scene(
       { update, view },
-      Scene.with(emptyModel),
+      Scene.given(emptyModel),
       Scene.click(incrementButton),
       drainSpawns(INCREMENT_HUE),
       Scene.expect(Scene.text('1')).toExist(),
@@ -63,7 +63,7 @@ describe('scene', () => {
   test('clicking − decrements the displayed count', () => {
     Scene.scene(
       { update, view },
-      Scene.with({ ...emptyModel, count: 3 }),
+      Scene.given({ ...emptyModel, count: 3 }),
       Scene.click(decrementButton),
       drainSpawns(DECREMENT_HUE),
       Scene.expect(Scene.text('2')).toExist(),
@@ -73,7 +73,7 @@ describe('scene', () => {
   test('clicking Reset resets count to 0', () => {
     Scene.scene(
       { update, view },
-      Scene.with({ ...emptyModel, count: 5 }),
+      Scene.given({ ...emptyModel, count: 5 }),
       Scene.click(resetButton),
       drainSpawns(RESET_HUE),
       Scene.expect(Scene.text('0')).toExist(),
@@ -83,7 +83,7 @@ describe('scene', () => {
   test('clicking + twice shows count of 2', () => {
     Scene.scene(
       { update, view },
-      Scene.with(emptyModel),
+      Scene.given(emptyModel),
       Scene.click(incrementButton),
       drainSpawns(INCREMENT_HUE),
       Scene.click(incrementButton),
@@ -95,7 +95,7 @@ describe('scene', () => {
   test('count goes below zero on decrement from 0', () => {
     Scene.scene(
       { update, view },
-      Scene.with(emptyModel),
+      Scene.given(emptyModel),
       Scene.click(decrementButton),
       drainSpawns(DECREMENT_HUE),
       Scene.expect(Scene.text('-1')).toExist(),
@@ -105,7 +105,7 @@ describe('scene', () => {
   test('Reset after increment shows 0', () => {
     Scene.scene(
       { update, view },
-      Scene.with(emptyModel),
+      Scene.given(emptyModel),
       Scene.click(incrementButton),
       drainSpawns(INCREMENT_HUE),
       Scene.click(resetButton),

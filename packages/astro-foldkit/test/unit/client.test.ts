@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
 
-import type { Document } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import type { AppConfig, AppConfigShape } from '../../src/types';
 
@@ -15,7 +15,7 @@ const config = {
   Model: {},
   init: (props: Record<string, unknown>) => [{ count: Number(props.initialCount) }, []] as const,
   update: (model: Model, _message: Message) => [model, []] as const,
-  view: (_model: Model) => ({}) as Document,
+  view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
 } satisfies AppConfig<Record<string, unknown>, Model, Message> &
   AppConfigShape<Record<string, unknown>>;
 

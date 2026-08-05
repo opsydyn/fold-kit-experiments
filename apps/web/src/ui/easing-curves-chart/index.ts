@@ -7,8 +7,7 @@ import {
   easeSinOut,
 } from '@opsydyn/foldkit-viz/math/ease';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
@@ -97,12 +96,14 @@ const CURVE_PATHS: ReadonlyArray<{ name: string; color: string; d: string }> = C
 const Y_ZERO = PH - ((0 - Y_MIN) / (Y_MAX - Y_MIN)) * PH;
 const Y_ONE = PH - ((1 - Y_MIN) / (Y_MAX - Y_MIN)) * PH;
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Easing curves comparison' } = config;
   const { hovered } = model;
 

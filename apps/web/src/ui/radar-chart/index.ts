@@ -1,8 +1,7 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { lineRadial } from '@opsydyn/foldkit-viz/shape/lineRadial';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { r3, svgRoot } from '../shared';
@@ -90,12 +89,14 @@ function radialXY(i: number, n: number, r: number): readonly [number, number] {
   return [r3(r * Math.sin(angle)), r3(-r * Math.cos(angle))];
 }
 
-export const view = <M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html => {
-  const h = html<M>();
+export const view = <M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html => {
   const { model, toParentMessage, ariaLabel = 'Radar chart' } = config;
   const { axes, series, activeSeriesIndex, maxValue } = model;
   const n = axes.length;

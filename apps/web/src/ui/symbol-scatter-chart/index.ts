@@ -1,8 +1,7 @@
 import { linear, linearTicks, ordinal } from '@opsydyn/foldkit-viz/math/scale';
 import { SYMBOLS_FILL, type SymbolType, symbolPath } from '@opsydyn/foldkit-viz/shape/symbol';
 import { Match, Option, Schema } from 'effect';
-import type { Html } from 'foldkit/html';
-import { html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 import { m } from 'foldkit/message';
 
 import { r3, svgRoot } from '../shared';
@@ -155,12 +154,14 @@ const PH = H - MT - MB;
 const LEGEND_X = W - MR + 12;
 const LEGEND_SYMBOL_SIZE = 48;
 
-export function view<M>(config: {
-  model: Model;
-  toParentMessage: (msg: Message) => M;
-  ariaLabel?: string;
-}): Html {
-  const h = html<M>();
+export function view<M>(
+  config: {
+    model: Model;
+    toParentMessage: (msg: Message) => M;
+    ariaLabel?: string;
+  },
+  h: HtmlBuilder<M>,
+): Html {
   const { model, toParentMessage, ariaLabel = 'Symbol scatter chart' } = config;
   const { points, categories, categoryStyles, xLabel, yLabel, activeIndex, xDomain, yDomain } =
     model;

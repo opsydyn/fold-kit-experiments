@@ -1,6 +1,5 @@
 import { Schema } from 'effect';
 import { Port, Runtime, Subscription } from 'foldkit';
-import { html } from 'foldkit/html';
 import { describe, expect, it, vi } from 'vitest';
 
 import { update } from './main';
@@ -32,7 +31,6 @@ describe('request diagnostics navigation scene', () => {
   });
 
   it('delivers an inbound port value through the subscription as Navigated', async () => {
-    const h = html<Message>();
     const TestModel = Schema.Struct({ navigation: NavigationValue });
     type TestModel = typeof TestModel.Type;
     const received: Message[] = [];
@@ -50,7 +48,7 @@ describe('request diagnostics navigation scene', () => {
           received.push(message);
           return [model, []];
         },
-        view: (model) => h.div([], [model.navigation.path]),
+        view: (model, h) => h.div([], [model.navigation.path]),
         subscriptions: testSubscriptions,
         ports: { inbound: { navigation: NavigationPort } },
         container,

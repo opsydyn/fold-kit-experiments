@@ -1,4 +1,4 @@
-import type { Document } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as PhyllotaxisChart from '../../ui/phyllotaxis-chart';
 import type { Message } from './message';
@@ -10,11 +10,14 @@ type PhyllotaxisMessage = PhyllotaxisChart.Message;
 const toParentMessage = (msg: PhyllotaxisMessage): Message =>
   GotPhyllotaxisMessage({ message: msg });
 
-export const view = (model: Model): Document => ({
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Phyllotaxis — foldkit-viz',
-  body: PhyllotaxisChart.view({
-    model: model.chart,
-    toParentMessage,
-    ariaLabel: 'Phyllotaxis zoom and pan',
-  }),
+  body: PhyllotaxisChart.view(
+    {
+      model: model.chart,
+      toParentMessage,
+      ariaLabel: 'Phyllotaxis zoom and pan',
+    },
+    h,
+  ),
 });

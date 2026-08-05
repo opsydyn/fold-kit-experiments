@@ -1,4 +1,4 @@
-import type { Document } from 'foldkit/html';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as HistogramChart from '../../ui/histogram-chart';
 import type { Message } from './message';
@@ -9,11 +9,14 @@ type HistogramMessage = HistogramChart.Message;
 
 const toParentMessage = (msg: HistogramMessage): Message => GotHistogramMessage({ message: msg });
 
-export const view = (model: Model): Document => ({
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Salary Distribution — foldkit-viz',
-  body: HistogramChart.view({
-    model: model.chart,
-    toParentMessage,
-    ariaLabel: 'Employee salary distribution histogram',
-  }),
+  body: HistogramChart.view(
+    {
+      model: model.chart,
+      toParentMessage,
+      ariaLabel: 'Employee salary distribution histogram',
+    },
+    h,
+  ),
 });

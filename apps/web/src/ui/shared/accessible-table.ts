@@ -1,6 +1,6 @@
-import type { Html, html } from 'foldkit/html';
+import type { Html, HtmlBuilder } from 'foldkit/html';
 
-type H<M> = ReturnType<typeof html<M>>;
+type H<M> = HtmlBuilder<M>;
 
 /**
  * CSS class applied to the wrapper — positions the element off-screen

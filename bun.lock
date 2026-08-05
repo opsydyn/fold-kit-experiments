@@ -17,16 +17,16 @@
       "name": "@opsydyn/web",
       "dependencies": {
         "@astrojs/cloudflare": "14.1.3",
-        "@effect/platform-browser": "4.0.0-beta.97",
-        "@foldkit/vite-plugin": "^0.10.1",
+        "@effect/platform-browser": "4.0.0-beta.102",
+        "@foldkit/vite-plugin": "^0.11.2",
         "@nanostores/persistent": "^1.3.4",
         "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/foldkit-viz": "workspace:*",
         "@types/topojson-client": "^3.1.5",
         "@vanilla-extract/css": "^1.21.1",
         "astro": "7.1.1",
-        "effect": "4.0.0-beta.97",
-        "foldkit": "^0.129.0",
+        "effect": "4.0.0-beta.102",
+        "foldkit": "^0.136.0",
         "nanostores": "^1.4.0",
         "topojson-client": "^3.1.0",
         "world-atlas": "^2.0.2",
@@ -47,40 +47,40 @@
     },
     "packages/astro-foldkit": {
       "name": "@opsydyn/astro-foldkit",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "dependencies": {
-        "@foldkit/vite-plugin": "^0.10.1",
+        "@foldkit/vite-plugin": "^0.11.2",
       },
       "devDependencies": {
         "@types/node": "^22.0.0",
         "astro": "7.1.1",
         "bun-types": "^1.3.14",
         "fast-check": "^4.8.0",
-        "foldkit": "^0.129.0",
+        "foldkit": "^0.136.0",
         "tsdown": "^0.21.8",
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
         "astro": ">=5.0.0",
-        "foldkit": ">=0.129.0",
+        "foldkit": ">=0.136.0 <0.137.0",
       },
     },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "devDependencies": {
         "@types/node": "^22.0.0",
         "bun-types": "^1.3.14",
-        "effect": "4.0.0-beta.97",
+        "effect": "4.0.0-beta.102",
         "fast-check": "^4.8.0",
-        "foldkit": "^0.129.0",
+        "foldkit": "^0.136.0",
         "tsdown": "^0.21.8",
         "typedoc": "^0.28.19",
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "effect": ">=4.0.0-beta.97",
-        "foldkit": ">=0.129.0",
+        "effect": ">=4.0.0-beta.102 <5.0.0",
+        "foldkit": ">=0.136.0 <0.137.0",
       },
     },
   },
@@ -213,7 +213,7 @@
 
     "@effect/language-service": ["@effect/language-service@0.86.2", "", { "bin": { "effect-language-service": "cli.js" } }, "sha512-SaPln+8srOqDJDUwNTDmP5e+IYpEDr9+1epGznnsLqu8xvo6VnxyWARdeLpqvZJlb0Pgy9ca7ppqvvdWbHPXAg=="],
 
-    "@effect/platform-browser": ["@effect/platform-browser@4.0.0-beta.97", "", { "dependencies": { "multipasta": "^0.2.8" }, "peerDependencies": { "effect": "^4.0.0-beta.97" } }, "sha512-CPF5Wk+OIR4/D6cvI1QEigL/f6cASTv5v8zBn7d2130KB3DFFsSgqplxaZB56vASb4WFBkQ1l8z+dbtosx5RxA=="],
+    "@effect/platform-browser": ["@effect/platform-browser@4.0.0-beta.102", "", { "dependencies": { "multipasta": "^0.2.8" }, "peerDependencies": { "effect": "^4.0.0-beta.102" } }, "sha512-DXXVt+oOpukqI3lEaGvvXQxSobzIy3lAsIQvlpVK+MuYBm1o4FHZrHKbrOFItDUvSR1t0kiTncFPRi01YaJUmA=="],
 
     "@emmetio/abbreviation": ["@emmetio/abbreviation@2.3.3", "", { "dependencies": { "@emmetio/scanner": "^1.0.4" } }, "sha512-mgv58UrU3rh4YgbE/TzgLQwJ3pFsHHhCLqY20aJq+9comytTXUDNGG/SMtSeMJdkpxgXSXunBGLD8Boka3JyVA=="],
 
@@ -305,7 +305,7 @@
 
     "@foldkit/oxlint-plugin": ["@foldkit/oxlint-plugin@0.3.0", "", { "dependencies": { "effect-oxlint": "^0.3.2" } }, "sha512-TDMklwPqkmEk0J04nGunkPftQgm7Ns4jihIZfmD4mXKA+pU6qo6CtDTUcGlWYQidJ4U73vz0qffdI5cdgVjixw=="],
 
-    "@foldkit/vite-plugin": ["@foldkit/vite-plugin@0.10.1", "", { "dependencies": { "ws": "^8.21.0" }, "peerDependencies": { "effect": "4.0.0-beta.97", "foldkit": "^0", "vite": "^7.0.0 || ^8.0.0" } }, "sha512-M6kg5dTniFCr6nqX4UrX+kYkLUi5GXPJisrpR5kIBzjyacWa6bebAJyk8bLyyq3pUs/Rjtn+Aq97V1GyF5fp9w=="],
+    "@foldkit/vite-plugin": ["@foldkit/vite-plugin@0.11.3", "", { "dependencies": { "magic-string": "^0.30.21", "ws": "^8.21.0" }, "peerDependencies": { "effect": "4.0.0-beta.102", "foldkit": "^0", "vite": "^7.0.0 || ^8.0.0" } }, "sha512-5kf542FTIejzcl3rjY+mxADUxHNd7HyFhipO73srBd/2cQpIRddlrjAlsFo8/3Ahinjzxe1ekzeUX+5GmRM15Q=="],
 
     "@gerrit0/mini-shiki": ["@gerrit0/mini-shiki@3.23.0", "", { "dependencies": { "@shikijs/engine-oniguruma": "^3.23.0", "@shikijs/langs": "^3.23.0", "@shikijs/themes": "^3.23.0", "@shikijs/types": "^3.23.0", "@shikijs/vscode-textmate": "^10.0.2" } }, "sha512-bEMORlG0cqdjVyCEuU0cDQbORWX+kYCeo0kV1lbxF5bt4r7SID2l9bqsxJEM0zndaxpOUT7riCyIVEuqq/Ynxg=="],
 
@@ -959,7 +959,7 @@
 
     "dts-resolver": ["dts-resolver@2.1.3", "", { "peerDependencies": { "oxc-resolver": ">=11.0.0" }, "optionalPeers": ["oxc-resolver"] }, "sha512-bihc7jPC90VrosXNzK0LTE2cuLP6jr0Ro8jk+kMugHReJVLIpHz/xadeq3MhuwyO4TD4OA3L1Q8pBBFRc08Tsw=="],
 
-    "effect": ["effect@4.0.0-beta.97", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "fast-check": "^4.9.0", "find-my-way-ts": "^0.1.6", "ini": "^7.0.0", "kubernetes-types": "^1.30.0", "msgpackr": "^2.0.4", "multipasta": "^0.2.8", "toml": "^4.1.2", "uuid": "^14.0.1", "yaml": "^2.9.0" } }, "sha512-pK03HpQVxGZOWdwDAy/iwvV8u3KYcUf2mOWyWqaut2zau8V2u6ejWP7b4BELjyUIiZWW1fl/s/VJpgZUcTjThg=="],
+    "effect": ["effect@4.0.0-beta.102", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "fast-check": "^4.9.0", "find-my-way-ts": "^0.1.6", "ini": "^7.0.0", "kubernetes-types": "^1.30.0", "msgpackr": "^2.0.4", "multipasta": "^0.2.8", "toml": "^4.1.2", "uuid": "^14.0.1", "yaml": "^2.9.0" } }, "sha512-z8Y+Q76Hh/kjLFZrXu8tGn6e+tDsg45R+UHhxd190pXxD53OGwf/G/zDxXTkse4HJ5mobNZfitLfUCp4fMvu6w=="],
 
     "effect-oxlint": ["effect-oxlint@0.3.2", "", { "dependencies": { "@oxlint/plugins": "^1.66.0" }, "peerDependencies": { "effect": "^4.0.0-beta.78" } }, "sha512-IBCRRtcwP9LQVxHNnA6n7LBcrIFnBcCsUyUWo1fHBJqBUQ/Tj2DcDgiPhf0DnE5ClhJYtXMAKh6Fc/EuaG49hQ=="],
 
@@ -1041,7 +1041,7 @@
 
     "flattie": ["flattie@1.1.1", "", {}, "sha512-9UbaD6XdAL97+k/n+N7JwX46K/M6Zc6KcFYskrYL8wbBV/Uyk0CTAMY0VT+qiK5PM7AIc9aTWYtq65U7T+aCNQ=="],
 
-    "foldkit": ["foldkit@0.129.0", "", { "dependencies": { "snabbdom": "^3.6.3" }, "peerDependencies": { "@effect/platform-browser": "4.0.0-beta.97", "effect": "4.0.0-beta.97" } }, "sha512-QsXIWR7lMed6xE/vPWvI8QiUmxd0zF22UC7HmB3VuV1lQ2QvkYXLj3EEkop1TwWLf0NyHP+WoeC8zSaC42EP1w=="],
+    "foldkit": ["foldkit@0.136.0", "", { "peerDependencies": { "@effect/platform-browser": "4.0.0-beta.102", "effect": "4.0.0-beta.102" } }, "sha512-+SrXDAR4RlLXuDzUcyHiO1VfwuUpnS5Aq1ftnduzlP7sg3tFeifRsI9M4bNYd/N6LVTTC1LmuX02YZdQ9bTQ6g=="],
 
     "fontace": ["fontace@0.4.1", "", { "dependencies": { "fontkitten": "^1.0.2" } }, "sha512-lDMvbAzSnHmbYMTEld5qdtvNH2/pWpICOqpean9IgC7vUbUJc3k+k5Dokp85CegamqQpFbXf0rAVkbzpyTA8aw=="],
 
@@ -1376,8 +1376,6 @@
     "sisteransi": ["sisteransi@1.0.5", "", {}, "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg=="],
 
     "smol-toml": ["smol-toml@1.6.1", "", {}, "sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg=="],
-
-    "snabbdom": ["snabbdom@3.6.3", "", {}, "sha512-W2lHLLw2qR2Vv0DcMmcxXqcfdBaIcoN+y/86SmHv8fn4DazEQSH6KN3TjZcWvwujW56OHiiirsbHWZb4vx/0fg=="],
 
     "source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
 

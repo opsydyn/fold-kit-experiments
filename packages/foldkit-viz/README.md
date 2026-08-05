@@ -18,9 +18,12 @@ bun add @opsydyn/foldkit-viz
 
 ## FoldKit compatibility
 
-`@opsydyn/foldkit-viz` requires FoldKit `0.129.0` or later. Consumers can use
-`Command.Interruptible` to replace remote chart-data loads while this package
-remains focused on pure geometry, chart-local state, and rendering helpers.
+`@opsydyn/foldkit-viz` requires FoldKit `0.136.x`. Consumers can use
+`Command.define(name, { interrupt: true, ... })` to replace remote chart-data
+loads while this package remains focused on pure geometry, chart-local state,
+and rendering helpers. Chart views consume the render-scoped `HtmlBuilder`
+supplied by their parent; the package does not own application effects or
+remote-data policy.
 
 ---
 

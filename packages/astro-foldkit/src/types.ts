@@ -34,3 +34,33 @@ export type FoldkitApp<
   readonly __foldkit: true;
   readonly load: () => Promise<Config>;
 };
+
+export type PageParams = Readonly<Record<string, string | undefined>>;
+
+export type PageContext<Props extends Record<string, unknown> = Record<string, unknown>> = {
+  readonly request: Request;
+  readonly url: URL;
+  readonly params: PageParams;
+  readonly props: Props;
+};
+
+export type PageConfigShape<Flags extends Record<string, unknown>> = AppConfigShape<Flags>;
+
+export type DefinePageOptions<
+  Props extends Record<string, unknown> = Record<string, unknown>,
+  Flags extends Record<string, unknown> = Record<string, unknown>,
+> = {
+  readonly flags: (context: PageContext<Props>) => Flags;
+};
+
+export type FoldkitPage<
+  Props extends Record<string, unknown> = Record<string, unknown>,
+  Flags extends Record<string, unknown> = Record<string, unknown>,
+  Config extends PageConfigShape<Flags> = PageConfigShape<Flags>,
+> = {
+  (props?: Props): void;
+  readonly __foldkit: true;
+  readonly __foldkitPage: true;
+  readonly load: () => Promise<Config>;
+  readonly flags: (context: PageContext<Props>) => Flags;
+};

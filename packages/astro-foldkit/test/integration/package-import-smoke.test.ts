@@ -12,11 +12,19 @@ const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 
 type DistIndex = { default: unknown };
 type DistDefineApp = { defineApp: unknown; lazyApp: unknown };
+type DistDefinePage = { definePage: unknown };
+type DistServer = { resolvePageDocument: unknown };
+type PackedPackageJson = {
+  exports: Record<string, { types?: string; import?: string }>;
+};
 
 type SmokeFixture = {
   distIndex: DistIndex;
   distDefineApp: DistDefineApp;
+  distDefinePage: DistDefinePage;
+  distServer: DistServer;
   distIndexTypes: string;
+  packedPackageJson: PackedPackageJson;
   consumerDir: string;
   env: NodeJS.ProcessEnv;
   cleanup: () => Promise<void>;
@@ -107,12 +115,24 @@ void config.map(event);
   const distDefineApp = (await import(
     pathToFileURL(path.join(pkgRoot, 'dist', 'define-app.mjs')).href
   )) as DistDefineApp;
+  const distDefinePage = (await import(
+    pathToFileURL(path.join(pkgRoot, 'dist', 'define-page.mjs')).href
+  )) as DistDefinePage;
+  const distServer = (await import(
+    pathToFileURL(path.join(pkgRoot, 'dist', 'server-public.mjs')).href
+  )) as DistServer;
   const distIndexTypes = await readFile(path.join(pkgRoot, 'dist', 'index.d.mts'), 'utf8');
+  const packedPackageJson = JSON.parse(
+    await readFile(path.join(pkgRoot, 'package.json'), 'utf8'),
+  ) as PackedPackageJson;
 
   return {
     distIndex,
     distDefineApp,
+    distDefinePage,
+    distServer,
     distIndexTypes,
+    packedPackageJson,
     consumerDir,
     env,
     cleanup: async () => {
@@ -150,9 +170,33 @@ import('@opsydyn/astro-foldkit/define-app').then(m => {
 }).catch(e => { console.error(e); process.exit(1) })
 `;
 
+const definePageScript = `
+import('@opsydyn/astro-foldkit/define-page').then(m => {
+  console.log(JSON.stringify({
+    definePageIsFunction: typeof m.definePage === 'function',
+  }))
+}).catch(e => { console.error(e); process.exit(1) })
+`;
+
+const serverScript = `
+import('@opsydyn/astro-foldkit/server').then(m => {
+  console.log(JSON.stringify({
+    resolvePageDocumentIsFunction: typeof m.resolvePageDocument === 'function',
+    hasDefaultExport: 'default' in m,
+  }))
+}).catch(e => { console.error(e); process.exit(1) })
+`;
+
 describe('packed import smoke', () => {
   it('dist exports resolve correctly (Bun import)', async () => {
-    const { distIndex, distDefineApp, distIndexTypes } = await fixturePromise;
+    const {
+      distIndex,
+      distDefineApp,
+      distDefinePage,
+      distServer,
+      distIndexTypes,
+      packedPackageJson,
+    } = await fixturePromise;
     expect(typeof distIndex.default).toBe('function');
     const integration = (
       distIndex.default as () => { name: string; hooks: Record<string, unknown> }
@@ -161,9 +205,13 @@ describe('packed import smoke', () => {
     expect(typeof integration.hooks['astro:config:setup']).toBe('function');
     expect(typeof distDefineApp.defineApp).toBe('function');
     expect(typeof distDefineApp.lazyApp).toBe('function');
+    expect(typeof distDefinePage.definePage).toBe('function');
+    expect(typeof distServer.resolvePageDocument).toBe('function');
     expect(distIndexTypes).toContain('NavigationConfig');
     expect(distIndexTypes).toContain('NavigationEvent');
     expect(distIndexTypes).toContain('NavigationPhase');
+    expect(packedPackageJson.exports['./server']?.import).toBe('./dist/server-public.mjs');
+    expect(packedPackageJson.exports['./define-page']?.import).toBe('./dist/define-page.mjs');
   }, 60_000);
 
   it('imports correctly under Bun and Node via consumer script', async () => {
@@ -201,6 +249,30 @@ describe('packed import smoke', () => {
       expect(payload.lazyAppIsDefineApp).toBe(true);
       expect(payload.foldkitFlag).toBe(true);
       expect(payload.loadIsFunction).toBe(true);
+    }
+
+    for (const [runtime, args] of [
+      ['bun', ['-e', definePageScript]],
+      ['node', ['-e', definePageScript]],
+    ] as const) {
+      const { stdout } = await execFileAsync(runtime, args, { cwd: consumerDir, env, maxBuffer });
+      const payload = JSON.parse(stdout.trim().split('\n').at(-1) ?? '') as {
+        definePageIsFunction: boolean;
+      };
+      expect(payload.definePageIsFunction).toBe(true);
+    }
+
+    for (const [runtime, args] of [
+      ['bun', ['-e', serverScript]],
+      ['node', ['-e', serverScript]],
+    ] as const) {
+      const { stdout } = await execFileAsync(runtime, args, { cwd: consumerDir, env, maxBuffer });
+      const payload = JSON.parse(stdout.trim().split('\n').at(-1) ?? '') as {
+        resolvePageDocumentIsFunction: boolean;
+        hasDefaultExport: boolean;
+      };
+      expect(payload.resolvePageDocumentIsFunction).toBe(true);
+      expect(payload.hasDefaultExport).toBe(false);
     }
   }, 30_000);
 });

@@ -90,27 +90,13 @@ describe('resolvePageDocument', () => {
     });
   });
 
-  it('uses the configured FoldKit build identity from the internal build-id reader', async () => {
+  it('returns only the public document metadata fields when a build identity is configured', async () => {
     process.env.FOLDKIT_BUILD_ID = 'resolver-build-123';
 
-    const resolved = await resolvePageDocument(
-      definePage<{ readonly locale: string }, Flags>(() => Promise.resolve(pageConfig), {
-        flags: ({ request, url, params, props }) => ({
-          locale: props.locale,
-          pathname: `${request.method}:${url.pathname}`,
-          routeLocale: params.locale,
-          noMeta: false,
-        }),
-      }),
-      {
-        request: new Request('https://example.com/en', { method: 'GET' }),
-        url: new URL('https://example.com/en'),
-        params: { locale: 'en' },
-        props: { locale: 'en' },
-      },
-    );
+    const resolved = await resolvePageDocument(makePage(), context);
 
-    expect(resolved.ogUrl).toBe('https://example.comGET:/en');
+    expect('buildId' in resolved).toBe(false);
+    expect(resolved.title).toBe('Server page ar');
   });
 
   it('preserves absent optional metadata fields instead of filling them in', async () => {
@@ -145,9 +131,10 @@ describe('resolvePageDocument', () => {
     expect('ogUrl' in resolved).toBe(false);
   });
 
-  it('does not let noMeta suppress the page document metadata returned by the resolver', async () => {
+  it('returns page document metadata even when client noMeta logic would suppress island metadata writes', async () => {
     process.env.FOLDKIT_BUILD_ID = 'resolver-build';
 
+    expect(shouldSkipMetadata(context.props)).toBe(true);
     const resolved = await resolvePageDocument(makePage(), context);
 
     expect(resolved.title).toBe('Server page ar');

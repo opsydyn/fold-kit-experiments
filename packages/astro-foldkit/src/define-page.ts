@@ -17,7 +17,6 @@ export function definePage<
   options: DefinePageOptions<Props, Flags>,
 ): FoldkitPage<Props, Flags, Config> {
   return Object.assign((_props?: Props) => {}, {
-    __foldkit: true as const,
     __foldkitPage: true as const,
     load,
     flags: options.flags,

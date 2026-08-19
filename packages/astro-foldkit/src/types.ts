@@ -59,7 +59,6 @@ export type FoldkitPage<
   Config extends PageConfigShape<Flags> = PageConfigShape<Flags>,
 > = {
   (props?: Props): void;
-  readonly __foldkit: true;
   readonly __foldkitPage: true;
   readonly load: () => Promise<Config>;
   readonly flags: (context: PageContext<Props>) => Flags;

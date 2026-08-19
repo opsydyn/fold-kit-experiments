@@ -14,17 +14,17 @@ type TestChild = {
   readonly attributes: Readonly<Record<string, string>>;
 };
 
-const makeFoldkitRoot = (buildId = 'client-test-build'): TestChild => ({
+const makeFoldkitRoot = (
+  attributes: Readonly<Record<string, string>> = { 'data-foldkit-build': 'client-test-build' },
+): TestChild => ({
   attributes: {
     'data-foldkit-app': 'app',
-    'data-foldkit-build': buildId,
+    ...attributes,
   },
 });
 
 const matchesSelector = (child: TestChild, selector: string): boolean =>
-  selector === '[data-foldkit-app][data-foldkit-build]' &&
-  child.attributes['data-foldkit-app'] !== undefined &&
-  child.attributes['data-foldkit-build'] !== undefined;
+  selector === '[data-foldkit-app]' && child.attributes['data-foldkit-app'] !== undefined;
 
 const makeRootContainer = (children: readonly TestChild[]) => ({
   querySelectorAll: (selector: string) =>
@@ -38,8 +38,16 @@ describe('findSingleFoldkitRoot', () => {
     expect(findSingleFoldkitRoot(makeRootContainer([root]))).toBe(root);
   });
 
+  it('allows Runtime.hydrate to handle absent or mismatched build stamps', () => {
+    const rootWithoutBuild = makeFoldkitRoot({});
+    const rootWithOtherBuild = makeFoldkitRoot({ 'data-foldkit-build': 'other-build' });
+
+    expect(findSingleFoldkitRoot(makeRootContainer([rootWithoutBuild]))).toBe(rootWithoutBuild);
+    expect(findSingleFoldkitRoot(makeRootContainer([rootWithOtherBuild]))).toBe(rootWithOtherBuild);
+  });
+
   it('rejects absent or duplicated stamped FoldKit roots', () => {
-    for (const children of [[], [makeFoldkitRoot(), makeFoldkitRoot('other-build')]]) {
+    for (const children of [[], [makeFoldkitRoot(), makeFoldkitRoot()]]) {
       expect(() => findSingleFoldkitRoot(makeRootContainer(children))).toThrow(
         'exactly one stamped FoldKit root',
       );

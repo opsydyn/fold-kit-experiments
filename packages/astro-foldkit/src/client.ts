@@ -202,8 +202,8 @@ export function createClientRenderer(
       element.id ||= element.getAttribute('uid') ?? crypto.randomUUID();
 
       if (isPageOwner(component)) {
-        const application = runtime.makeApplication(config);
-        findSingleFoldkitRoot(element);
+        const root = findSingleFoldkitRoot(element);
+        const application = runtime.makeApplication({ ...config, container: root });
         if (runtime.hydrate === undefined)
           throw new Error('FoldKit Runtime.hydrate is not available for page hydration.');
         runtime.hydrate(application, { buildId: readFoldkitBuildId() });

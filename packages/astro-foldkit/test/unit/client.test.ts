@@ -45,17 +45,17 @@ type TestChild = {
   readonly attributes: Readonly<Record<string, string>>;
 };
 
-const makeFoldkitRoot = (buildId = BUILD_ID): TestChild => ({
+const makeFoldkitRoot = (
+  attributes: Readonly<Record<string, string>> = { 'data-foldkit-build': BUILD_ID },
+): TestChild => ({
   attributes: {
     'data-foldkit-app': 'app',
-    'data-foldkit-build': buildId,
+    ...attributes,
   },
 });
 
 const matchesSelector = (child: TestChild, selector: string): boolean =>
-  selector === '[data-foldkit-app][data-foldkit-build]' &&
-  child.attributes['data-foldkit-app'] !== undefined &&
-  child.attributes['data-foldkit-build'] !== undefined;
+  selector === '[data-foldkit-app]' && child.attributes['data-foldkit-app'] !== undefined;
 
 const makeElement = (uid = 'island-test', children: readonly TestChild[] = []) => ({
   id: '',
@@ -104,11 +104,13 @@ const renderWith = async (
 
 describe('astro-foldkit client renderer', () => {
   it('hydrates page owners with the loaded config and build identity without embedding', async () => {
-    const element = makeElement('page-island', [makeFoldkitRoot()]);
+    const root = makeFoldkitRoot();
+    const element = makeElement('page-island', [root]);
     const application = { kind: 'application' };
     const pageConfig = {
       ...config,
       Flags: Schema.Struct({ initialCount: Schema.Number }),
+      customField: 'preserved',
     };
     const page = Object.assign((_props?: Record<string, unknown>) => {}, {
       __foldkitPage: true as const,
@@ -142,10 +144,55 @@ describe('astro-foldkit client renderer', () => {
     );
     element.dispatch('astro:unmount');
 
-    expect(makeApplicationInput).toBe(pageConfig);
+    expect(makeApplicationInput).toMatchObject({
+      Flags: pageConfig.Flags,
+      Model: pageConfig.Model,
+      customField: 'preserved',
+      init: pageConfig.init,
+      update: pageConfig.update,
+      view: pageConfig.view,
+      container: root,
+    });
     expect(hydrateArgs).toEqual([application, { buildId: BUILD_ID }]);
     expect(embedCalls).toBe(0);
     expect(disposeCalls).toBe(0);
+  });
+
+  it('lets Runtime.hydrate reject missing or mismatching page build stamps', async () => {
+    const pageConfig = {
+      ...config,
+      Flags: Schema.Struct({ initialCount: Schema.Number }),
+    };
+    const page = Object.assign((_props?: Record<string, unknown>) => {}, {
+      __foldkitPage: true as const,
+      load: async () => pageConfig,
+      flags: () => ({ initialCount: 9 }),
+    });
+
+    for (const root of [
+      makeFoldkitRoot({}),
+      makeFoldkitRoot({ 'data-foldkit-build': 'other-build' }),
+    ]) {
+      let hydrateArgs: unknown;
+      let embedCalls = 0;
+      const runtime = {
+        makeApplication: (input: unknown) => input,
+        embed: (_program: unknown) => {
+          embedCalls += 1;
+          return { dispose: () => {} };
+        },
+        hydrate: (program: unknown, options: unknown) => {
+          hydrateArgs = [program, options];
+        },
+      };
+
+      await createClientRenderer(runtime)(
+        makeElement('page-island', [root]) as unknown as HTMLElement,
+      )(page, { initialCount: 9 }, {}, { client: 'load' });
+
+      expect(hydrateArgs).toEqual([{ ...pageConfig, container: root }, { buildId: BUILD_ID }]);
+      expect(embedCalls).toBe(0);
+    }
   });
 
   it('refuses page hydration unless exactly one stamped FoldKit root is inside the island', async () => {
@@ -159,11 +206,18 @@ describe('astro-foldkit client renderer', () => {
       flags: () => ({ initialCount: 9 }),
     });
 
-    for (const children of [[], [makeFoldkitRoot(), makeFoldkitRoot('other-build')]]) {
+    for (const children of [
+      [],
+      [makeFoldkitRoot(), makeFoldkitRoot({ 'data-foldkit-build': 'other-build' })],
+    ]) {
+      let makeApplicationCalls = 0;
       let embedCalls = 0;
       let hydrateCalls = 0;
       const runtime = {
-        makeApplication: (input: unknown) => input,
+        makeApplication: (input: unknown) => {
+          makeApplicationCalls += 1;
+          return input;
+        },
         embed: (_program: unknown) => {
           embedCalls += 1;
           return { dispose: () => {} };
@@ -178,6 +232,7 @@ describe('astro-foldkit client renderer', () => {
           makeElement('page-island', children) as unknown as HTMLElement,
         )(page, { initialCount: 9 }, {}, { client: 'load' }),
       ).rejects.toThrow('exactly one stamped FoldKit root');
+      expect(makeApplicationCalls).toBe(0);
       expect(embedCalls).toBe(0);
       expect(hydrateCalls).toBe(0);
     }

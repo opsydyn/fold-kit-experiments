@@ -1,6 +1,6 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-const FOLDKIT_ROOT_SELECTOR = '[data-foldkit-app][data-foldkit-build]';
+const FOLDKIT_ROOT_SELECTOR = '[data-foldkit-app]';
 
 export type FoldkitRootContainer = {
   readonly querySelectorAll: (selector: string) => ArrayLike<unknown>;

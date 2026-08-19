@@ -1,5 +1,20 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
+const FOLDKIT_ROOT_SELECTOR = '[data-foldkit-app][data-foldkit-build]';
+
+export type FoldkitRootContainer = {
+  readonly querySelectorAll: (selector: string) => ArrayLike<unknown>;
+};
+
+export const findSingleFoldkitRoot = (container: FoldkitRootContainer): unknown => {
+  const roots = Array.from(container.querySelectorAll(FOLDKIT_ROOT_SELECTOR));
+  if (roots.length !== 1)
+    throw new Error(
+      `Expected exactly one stamped FoldKit root inside the Astro island, found ${roots.length}.`,
+    );
+  return roots[0];
+};
+
 /** Returns true when the `noMeta` prop should suppress document metadata writes. */
 export const shouldSkipMetadata = (props: Record<string, unknown>): boolean =>
   props.noMeta === true || props.noMeta === '';

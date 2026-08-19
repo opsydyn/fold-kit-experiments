@@ -1,9 +1,10 @@
 import { Runtime } from 'foldkit';
 
-import { makeNoMetaView, shouldSkipMetadata } from './client-helpers';
+import { readFoldkitBuildId } from './build-id';
+import { findSingleFoldkitRoot, makeNoMetaView, shouldSkipMetadata } from './client-helpers';
 import { normalizeNavigationEvent } from './navigation';
 import type { NavigationConfig, NavigationPhase } from './navigation';
-import type { AppConfigShape, FoldkitApp } from './types';
+import type { AppConfigShape, FoldkitApp, FoldkitPage, PageConfigShape } from './types';
 
 type ConfigModel<
   Props extends Record<string, unknown>,
@@ -28,6 +29,7 @@ type EventTargetLike = {
 type IslandLike = EventTargetLike & {
   readonly id: string;
   readonly getAttribute: (name: string) => string | null;
+  readonly querySelectorAll: (selector: string) => ArrayLike<unknown>;
 };
 
 type NavigationDocument = EventTargetLike & {
@@ -56,7 +58,18 @@ type BeforeSwapEvent = Event & {
 export type ClientRuntime = {
   readonly makeApplication: (config: unknown) => unknown;
   readonly embed: (program: unknown) => EmbedHandle;
+  readonly hydrate?: (program: unknown, options: { readonly buildId: string }) => unknown;
 };
+
+type ClientPage = FoldkitPage<
+  Record<string, unknown>,
+  Record<string, unknown>,
+  PageConfigShape<Record<string, unknown>>
+>;
+
+type ClientComponent<Props extends Record<string, unknown>, Config extends AppConfigShape<Props>> =
+  | FoldkitApp<Props, Config>
+  | ClientPage;
 
 const listenOnce = (
   target: EventTargetLike,
@@ -160,7 +173,13 @@ const attachNavigationBridge = (
 const defaultRuntime: ClientRuntime = {
   makeApplication: (config) => Runtime.makeApplication(config as never),
   embed: (program) => Runtime.embed(program as never) as EmbedHandle,
+  hydrate: (program, options) => Runtime.hydrate(program as never, options),
 };
+
+const isPageOwner = (component: unknown): component is ClientPage =>
+  typeof component === 'function' &&
+  '__foldkitPage' in component &&
+  component.__foldkitPage === true;
 
 export function createClientRenderer(
   runtime: ClientRuntime = defaultRuntime,
@@ -168,7 +187,7 @@ export function createClientRenderer(
 ) {
   return (element: HTMLElement) =>
     async <Props extends Record<string, unknown>, Config extends AppConfigShape<Props>>(
-      component: FoldkitApp<Props, Config>,
+      component: ClientComponent<Props, Config>,
       props: Props,
       _slots: Record<string, unknown>,
       _meta: { client: string },
@@ -181,6 +200,15 @@ export function createClientRenderer(
       } as ClientEnvironment;
 
       element.id ||= element.getAttribute('uid') ?? crypto.randomUUID();
+
+      if (isPageOwner(component)) {
+        const application = runtime.makeApplication(config);
+        findSingleFoldkitRoot(element);
+        if (runtime.hydrate === undefined)
+          throw new Error('FoldKit Runtime.hydrate is not available for page hydration.');
+        runtime.hydrate(application, { buildId: readFoldkitBuildId() });
+        return;
+      }
 
       const baseView = runtimeConfig.view;
       const view = shouldSkipMetadata(props)

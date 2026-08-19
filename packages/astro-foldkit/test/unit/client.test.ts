@@ -1,10 +1,14 @@
 import { describe, expect, it, mock } from 'bun:test';
 
+import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import type { AppConfig, AppConfigShape } from '../../src/types';
 
 mock.module('foldkit', () => ({ Runtime: {} }));
+
+const BUILD_ID = 'client-test-build';
+process.env.FOLDKIT_BUILD_ID = BUILD_ID;
 
 const { createClientRenderer } = await import('../../src/client');
 
@@ -37,9 +41,27 @@ const makeEventTarget = () => {
   };
 };
 
-const makeElement = (uid = 'island-test') => ({
+type TestChild = {
+  readonly attributes: Readonly<Record<string, string>>;
+};
+
+const makeFoldkitRoot = (buildId = BUILD_ID): TestChild => ({
+  attributes: {
+    'data-foldkit-app': 'app',
+    'data-foldkit-build': buildId,
+  },
+});
+
+const matchesSelector = (child: TestChild, selector: string): boolean =>
+  selector === '[data-foldkit-app][data-foldkit-build]' &&
+  child.attributes['data-foldkit-app'] !== undefined &&
+  child.attributes['data-foldkit-build'] !== undefined;
+
+const makeElement = (uid = 'island-test', children: readonly TestChild[] = []) => ({
   id: '',
   getAttribute: (name: string) => (name === 'uid' ? uid : null),
+  querySelectorAll: (selector: string) =>
+    children.filter((child) => matchesSelector(child, selector)),
   ...makeEventTarget(),
 });
 
@@ -81,6 +103,86 @@ const renderWith = async (
 };
 
 describe('astro-foldkit client renderer', () => {
+  it('hydrates page owners with the loaded config and build identity without embedding', async () => {
+    const element = makeElement('page-island', [makeFoldkitRoot()]);
+    const application = { kind: 'application' };
+    const pageConfig = {
+      ...config,
+      Flags: Schema.Struct({ initialCount: Schema.Number }),
+    };
+    const page = Object.assign((_props?: Record<string, unknown>) => {}, {
+      __foldkitPage: true as const,
+      load: async () => pageConfig,
+      flags: () => ({ initialCount: 9 }),
+    });
+    let makeApplicationInput: unknown;
+    let hydrateArgs: unknown;
+    let embedCalls = 0;
+    let disposeCalls = 0;
+
+    const runtime = {
+      makeApplication: (input: unknown) => {
+        makeApplicationInput = input;
+        return application;
+      },
+      embed: (_program: unknown) => {
+        embedCalls += 1;
+        return { dispose: () => (disposeCalls += 1) };
+      },
+      hydrate: (program: unknown, options: unknown) => {
+        hydrateArgs = [program, options];
+      },
+    };
+
+    await createClientRenderer(runtime)(element as unknown as HTMLElement)(
+      page,
+      { initialCount: 9 },
+      {},
+      { client: 'load' },
+    );
+    element.dispatch('astro:unmount');
+
+    expect(makeApplicationInput).toBe(pageConfig);
+    expect(hydrateArgs).toEqual([application, { buildId: BUILD_ID }]);
+    expect(embedCalls).toBe(0);
+    expect(disposeCalls).toBe(0);
+  });
+
+  it('refuses page hydration unless exactly one stamped FoldKit root is inside the island', async () => {
+    const pageConfig = {
+      ...config,
+      Flags: Schema.Struct({ initialCount: Schema.Number }),
+    };
+    const page = Object.assign((_props?: Record<string, unknown>) => {}, {
+      __foldkitPage: true as const,
+      load: async () => pageConfig,
+      flags: () => ({ initialCount: 9 }),
+    });
+
+    for (const children of [[], [makeFoldkitRoot(), makeFoldkitRoot('other-build')]]) {
+      let embedCalls = 0;
+      let hydrateCalls = 0;
+      const runtime = {
+        makeApplication: (input: unknown) => input,
+        embed: (_program: unknown) => {
+          embedCalls += 1;
+          return { dispose: () => {} };
+        },
+        hydrate: () => {
+          hydrateCalls += 1;
+        },
+      };
+
+      await expect(
+        createClientRenderer(runtime)(
+          makeElement('page-island', children) as unknown as HTMLElement,
+        )(page, { initialCount: 9 }, {}, { client: 'load' }),
+      ).rejects.toThrow('exactly one stamped FoldKit root');
+      expect(embedCalls).toBe(0);
+      expect(hydrateCalls).toBe(0);
+    }
+  });
+
   it('loads once, forwards props, embeds once, and disposes once', async () => {
     const element = makeElement();
     const props = { initialCount: 3 };

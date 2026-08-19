@@ -2,9 +2,50 @@ import { describe, expect, it } from 'bun:test';
 
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import { makeNoMetaView, shouldSkipMetadata } from '../../src/client-helpers';
+import {
+  findSingleFoldkitRoot,
+  makeNoMetaView,
+  shouldSkipMetadata,
+} from '../../src/client-helpers';
 
 const h = {} as unknown as HtmlBuilder<unknown>;
+
+type TestChild = {
+  readonly attributes: Readonly<Record<string, string>>;
+};
+
+const makeFoldkitRoot = (buildId = 'client-test-build'): TestChild => ({
+  attributes: {
+    'data-foldkit-app': 'app',
+    'data-foldkit-build': buildId,
+  },
+});
+
+const matchesSelector = (child: TestChild, selector: string): boolean =>
+  selector === '[data-foldkit-app][data-foldkit-build]' &&
+  child.attributes['data-foldkit-app'] !== undefined &&
+  child.attributes['data-foldkit-build'] !== undefined;
+
+const makeRootContainer = (children: readonly TestChild[]) => ({
+  querySelectorAll: (selector: string) =>
+    children.filter((child) => matchesSelector(child, selector)),
+});
+
+describe('findSingleFoldkitRoot', () => {
+  it('returns the one stamped FoldKit root inside the owner island', () => {
+    const root = makeFoldkitRoot();
+
+    expect(findSingleFoldkitRoot(makeRootContainer([root]))).toBe(root);
+  });
+
+  it('rejects absent or duplicated stamped FoldKit roots', () => {
+    for (const children of [[], [makeFoldkitRoot(), makeFoldkitRoot('other-build')]]) {
+      expect(() => findSingleFoldkitRoot(makeRootContainer(children))).toThrow(
+        'exactly one stamped FoldKit root',
+      );
+    }
+  });
+});
 
 describe('shouldSkipMetadata', () => {
   it('returns true for noMeta: true (JSX boolean prop)', () => {

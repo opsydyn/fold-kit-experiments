@@ -1,3 +1,4 @@
+import type { Schema } from 'effect';
 import type { Runtime } from 'foldkit';
 import type { Document } from 'foldkit/html';
 
@@ -37,20 +38,40 @@ export type FoldkitApp<
 
 export type PageParams = Readonly<Record<string, string | undefined>>;
 
-export type PageContext<Props extends Record<string, unknown> = Record<string, unknown>> = {
+export type PageFlagsContext<Props extends Record<string, unknown> = Record<string, unknown>> = {
   readonly request: Request;
   readonly url: URL;
   readonly params: PageParams;
   readonly props: Props;
 };
 
-export type PageConfigShape<Flags extends Record<string, unknown>> = AppConfigShape<Flags>;
+export type PageContext<Props extends Record<string, unknown> = Record<string, unknown>> =
+  PageFlagsContext<Props>;
+
+export type PageFlagsSchema<Flags extends Record<string, unknown>> = Schema.Codec<
+  Flags,
+  any,
+  never,
+  never
+>;
+
+export type PageConfig<
+  Flags extends Record<string, unknown> = Record<string, unknown>,
+  Model = unknown,
+  Message extends TaggedMessage = TaggedMessage,
+> = AppConfig<Flags, Model, Message> & {
+  readonly Flags: PageFlagsSchema<Flags>;
+};
+
+export type PageConfigShape<Flags extends Record<string, unknown>> = AppConfigShape<Flags> & {
+  readonly Flags: PageFlagsSchema<Flags>;
+};
 
 export type DefinePageOptions<
   Props extends Record<string, unknown> = Record<string, unknown>,
   Flags extends Record<string, unknown> = Record<string, unknown>,
 > = {
-  readonly flags: (context: PageContext<Props>) => Flags;
+  readonly flags: (context: PageFlagsContext<Props>) => Flags;
 };
 
 export type FoldkitPage<
@@ -61,5 +82,5 @@ export type FoldkitPage<
   (props?: Props): void;
   readonly __foldkitPage: true;
   readonly load: () => Promise<Config>;
-  readonly flags: (context: PageContext<Props>) => Flags;
+  readonly flags: (context: PageFlagsContext<Props>) => Flags;
 };

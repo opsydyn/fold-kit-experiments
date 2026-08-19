@@ -2,6 +2,9 @@ import type { DefinePageOptions, FoldkitPage, PageConfigShape } from './types';
 
 export type {
   DefinePageOptions,
+  PageConfig,
+  PageFlagsContext,
+  PageFlagsSchema,
   FoldkitPage,
   PageConfigShape,
   PageContext,

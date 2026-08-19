@@ -40,4 +40,8 @@ describe('foldkit integration', () => {
 
     expect(await configuredBuildId(integration)).toBe('"development"');
   });
+
+  it('rejects an explicitly empty server build identity', () => {
+    expect(() => foldkit({ server: { buildId: '  ' } })).toThrow('server.buildId');
+  });
 });

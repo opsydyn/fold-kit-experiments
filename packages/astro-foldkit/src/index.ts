@@ -12,7 +12,10 @@ export type FoldkitIntegrationOptions = Readonly<{
 }>;
 
 export default function foldkit(options: FoldkitIntegrationOptions = {}): AstroIntegration {
-  const buildId = options.server?.buildId ?? 'development';
+  const configuredBuildId = options.server?.buildId;
+  if (configuredBuildId !== undefined && configuredBuildId.trim() === '')
+    throw new Error('foldkit({ server: { buildId } }) requires a non-empty server.buildId.');
+  const buildId = configuredBuildId ?? 'development';
   return {
     name: 'astro-foldkit',
     hooks: {

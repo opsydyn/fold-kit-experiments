@@ -1,5 +1,5 @@
 ---
-export const prerender = false;
+export const prerender = true;
 
 import { Schema } from 'effect';
 
@@ -10,7 +10,7 @@ import { Name } from '../apps/greeting/model';
 import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
 
-const name = Schema.decodeSync(Name)(Astro.url.searchParams.get('name') ?? 'astronaut');
+const name = Schema.decodeSync(Name)('static astronaut');
 const document = await resolvePageDocument(GreetingPage, {
   request: Astro.request,
   url: Astro.url,

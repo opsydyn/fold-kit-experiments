@@ -12,9 +12,13 @@ export const Model = Schema.Struct({
 });
 export type Model = typeof Model.Type;
 
-const Props = Schema.Struct({ name: Name });
+export const Flags = Schema.Struct({
+  name: Name,
+  locale: Locale,
+});
+export type Flags = typeof Flags.Type;
 
-export const init = (props: unknown): readonly [Model, readonly []] => {
-  const { name } = Schema.decodeUnknownSync(Props)(props);
-  return [{ name, locale: 'en' }, []];
+export const init = (flags: Flags): readonly [Model, readonly []] => {
+  const { name, locale } = Schema.decodeSync(Flags)(flags);
+  return [{ name, locale }, []];
 };

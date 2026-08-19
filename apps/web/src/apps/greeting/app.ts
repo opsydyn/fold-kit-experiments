@@ -1,5 +1,5 @@
 import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
 
-import type { Name } from './model';
+import type { Flags } from './model';
 
-export default lazyApp<{ name: Name }>(() => import('./main'));
+export default lazyApp<Flags>(() => import('./main'));

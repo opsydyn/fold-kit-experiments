@@ -8,7 +8,7 @@ const isDevCommand = process.argv.includes('dev');
 export default defineConfig({
   output: 'server',
   devToolbar: { enabled: false },
-  integrations: [foldkit()],
+  integrations: [foldkit({ server: { buildId: process.env.FOLDKIT_BUILD_ID ?? 'development' } })],
 
   vite: {
     plugins: [vanillaExtractPlugin()],

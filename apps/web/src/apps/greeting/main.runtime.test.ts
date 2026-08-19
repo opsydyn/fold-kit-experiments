@@ -2,7 +2,7 @@ import { Option, Schema } from 'effect';
 import { Runtime } from 'foldkit';
 import { describe, expect, onTestFinished, test, vi } from 'vitest';
 
-import { Locale, Model, Name, init } from './model';
+import { Flags, Locale, Model, Name, init } from './model';
 import { update } from './update';
 import { view } from './view';
 
@@ -25,7 +25,7 @@ describe('greeting document metadata', () => {
     const handle = Runtime.embed(
       Runtime.makeApplication({
         Model,
-        init: () => init({ name }),
+        init: () => init(Flags.make({ name, locale: 'en' })),
         update,
         view,
         container,

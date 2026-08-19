@@ -4,8 +4,12 @@ import '../styles/chart-tokens.css';
 
 interface Props {
   title: string;
+  lang?: string;
+  dir?: 'ltr' | 'rtl' | 'auto';
+  canonical?: string;
+  ogUrl?: string;
 }
-const { title } = Astro.props;
+const { title, lang = 'en', dir = 'ltr', canonical, ogUrl } = Astro.props;
 const path = new URL(Astro.request.url).pathname;
 
 const linkClass = (href: string) =>
@@ -13,12 +17,14 @@ const linkClass = (href: string) =>
 ---
 
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang={lang} dir={dir}>
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
+    {canonical !== undefined && <link rel="canonical" href={canonical} />}
+    {ogUrl !== undefined && <meta property="og:url" content={ogUrl} />}
     <title>{title}</title>
     <script is:inline>
       // Restore theme before first paint to avoid flash

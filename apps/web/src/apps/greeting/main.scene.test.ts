@@ -1,11 +1,12 @@
+import { Schema } from 'effect';
 import { Scene } from 'foldkit';
 import { describe, test } from 'vitest';
 
-import { init } from './model';
+import { Flags, init } from './model';
 import { update } from './update';
 import { view } from './view';
 
-const initialModel = init({ name: 'astronaut' })[0];
+const initialModel = init(Schema.decodeSync(Flags)({ name: 'astronaut', locale: 'en' }))[0];
 
 describe('greeting scene', () => {
   test('switches the rendered greeting to Arabic', () => {

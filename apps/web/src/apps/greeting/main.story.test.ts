@@ -1,11 +1,12 @@
+import { Schema } from 'effect';
 import { Story } from 'foldkit';
 import { describe, expect, test } from 'vitest';
 
 import { Reset, SelectedLocale } from './message';
-import { init } from './model';
+import { Flags, init } from './model';
 import { update } from './update';
 
-const initialModel = init({ name: 'astronaut' })[0];
+const initialModel = init(Schema.decodeSync(Flags)({ name: 'astronaut', locale: 'en' }))[0];
 
 describe('greeting update', () => {
   test('selects Arabic and preserves it when the name resets', () => {

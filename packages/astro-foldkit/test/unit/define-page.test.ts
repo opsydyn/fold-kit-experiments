@@ -9,7 +9,7 @@ import { check } from '../../src/server';
 import type { AppConfig } from '../../src/types';
 
 describe('definePage', () => {
-  it('marks pages distinctly and keeps them inert for the current server renderer', async () => {
+  it('marks pages distinctly for the server renderer', async () => {
     type Flags = { readonly locale: string };
     type Model = { readonly locale: string };
     type Message = { readonly _tag: 'NoOp' };
@@ -50,7 +50,7 @@ describe('definePage', () => {
     expect(page.__foldkitPage).toBe(true);
     expect('__foldkit' in page).toBe(false);
     expect(page.flags(context)).toEqual({ locale: 'en' });
-    expect(await check(page)).toBe(false);
+    expect(await check(page)).toBe(true);
     expect((await page.load()).Flags).toBe(Flags);
   });
 });

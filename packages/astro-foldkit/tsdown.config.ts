@@ -5,6 +5,8 @@ export default defineConfig({
     index: 'src/index.ts',
     client: 'src/client.ts',
     server: 'src/server.ts',
+    'server-render': 'src/server-render.ts',
+    'build-id': 'src/build-id.ts',
     'server-public': 'src/server-public.ts',
     'define-app': 'src/define-app.ts',
     'define-page': 'src/define-page.ts',

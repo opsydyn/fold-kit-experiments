@@ -37,15 +37,12 @@ The first upgrade does not execute FoldKit Commands on the server or add a serve
 ```ts
 import { definePage } from '@opsydyn/astro-foldkit/define-page';
 
-export default definePage<Props, Flags>(
-  () => import('./main'),
-  {
-    flags: ({ request, url, params, props }) => ({
-      name: props.name,
-      locale: url.searchParams.get('locale') === 'ar' ? 'ar' : 'en',
-    }),
-  },
-);
+export default definePage<Props, Flags>(() => import('./main'), {
+  flags: ({ request, url, params, props }) => ({
+    name: props.name,
+    locale: url.searchParams.get('locale') === 'ar' ? 'ar' : 'en',
+  }),
+});
 ```
 
 The Astro usage remains explicit:

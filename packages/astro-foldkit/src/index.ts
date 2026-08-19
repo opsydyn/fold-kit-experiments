@@ -5,7 +5,14 @@ import type { AstroIntegration } from 'astro';
 
 export type { NavigationConfig, NavigationEvent, NavigationPhase } from './navigation';
 
-export default function foldkit(): AstroIntegration {
+export type FoldkitIntegrationOptions = Readonly<{
+  server?: Readonly<{
+    buildId: string;
+  }>;
+}>;
+
+export default function foldkit(options: FoldkitIntegrationOptions = {}): AstroIntegration {
+  const buildId = options.server?.buildId ?? 'development';
   return {
     name: 'astro-foldkit',
     hooks: {
@@ -17,7 +24,7 @@ export default function foldkit(): AstroIntegration {
         });
         updateConfig({
           vite: {
-            plugins: [foldkitVitePlugin()],
+            plugins: [foldkitVitePlugin({ buildId })],
           },
         });
       },

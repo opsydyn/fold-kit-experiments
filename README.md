@@ -6,10 +6,10 @@ FoldKit is an Elm Architecture runtime for the browser built on [Effect](https:/
 
 ## Packages
 
-| Package                                             | Description                                                                  |
-| :-------------------------------------------------- | :--------------------------------------------------------------------------- |
-| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/) | Astro integration — drop FoldKit apps into `.astro` pages with `client:load` |
-| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)     | D3-quality visualisation primitives for FoldKit — no D3 dependency           |
+| Package                                             | Description                                                                |
+| :-------------------------------------------------- | :------------------------------------------------------------------------- |
+| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/) | Astro integration — client islands plus opt-in FoldKit SSR/SSG page owners |
+| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)     | D3-quality visualisation primitives for FoldKit — no D3 dependency         |
 
 ## Structure
 
@@ -18,7 +18,7 @@ fold-kit-experiments/
 ├── apps/
 │   └── web/               — demo Astro app: 49 chart types, interactive storybook
 └── packages/
-    ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm)
+    ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     └── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
 ```
 
@@ -34,6 +34,10 @@ bun install
 bun dev          # demo app at http://localhost:4321
 bun storybook    # chart storybook at http://localhost:6006
 ```
+
+The demo's `/greeting` route proves request SSR and `/greeting-static` proves
+SSG through `definePage`. Existing chart routes remain `lazyApp` / `defineApp`
+client islands.
 
 ## Commands
 

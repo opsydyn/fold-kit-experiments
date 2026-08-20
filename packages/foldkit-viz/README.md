@@ -18,12 +18,19 @@ bun add @opsydyn/foldkit-viz
 
 ## FoldKit compatibility
 
-`@opsydyn/foldkit-viz` requires FoldKit `0.136.x`. Consumers can use
+`@opsydyn/foldkit-viz` is tested with FoldKit `0.148.x`. Consumers can use
 `Command.define(name, { interrupt: true, ... })` to replace remote chart-data
 loads while this package remains focused on pure geometry, chart-local state,
 and rendering helpers. Chart views consume the render-scoped `HtmlBuilder`
 supplied by their parent; the package does not own application effects or
 remote-data policy.
+
+This package remains framework-free and does not support server rendering. It
+does not import Astro, `Request`, `foldkit/experimental/server`, or
+`Runtime.hydrate`, and it does not own server Commands, request-derived Flags,
+or remote-data loading. Use `@opsydyn/astro-foldkit`'s opt-in `definePage` path
+for the Astro server handoff, then pass the resulting model data to these pure
+chart primitives.
 
 ---
 

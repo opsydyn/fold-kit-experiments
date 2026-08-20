@@ -1,8 +1,14 @@
 # @opsydyn/astro-foldkit
 
-Astro integration and renderer for [FoldKit](https://foldkit.dev).
+Astro integration and renderer for [FoldKit](https://foldkit.dev), with
+client-only islands and an opt-in server-rendered page path.
 
 FoldKit is an Elm Architecture runtime built on [Effect](https://effect.website). This package registers FoldKit as an Astro renderer so you can drop any FoldKit app into a `.astro` page as a component and hydrate it with `client:load`.
+
+There are two deliberately separate entry paths:
+
+- `lazyApp` / `defineApp` keeps the existing client-only island contract. Astro receives a deterministic mount shell and FoldKit starts in the browser.
+- `definePage` opts one FoldKit application into SSG or request SSR. The server emits FoldKit HTML and public Flags, and `client:load` hydrates that exact DOM.
 
 ## Installation
 
@@ -14,9 +20,10 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` requires FoldKit `0.136.x`. Applications can define
-interruptible work with `Command.define(name, { interrupt: true, ... })` inside
-their own update loop; this integration continues to own only Astro hydration
+`@opsydyn/astro-foldkit` is tested with FoldKit `0.148.x` and the matching
+`@foldkit/vite-plugin` `0.16.x` line. Applications can define interruptible
+work with `Command.define(name, { interrupt: true, ... })` inside their own
+update loop; this integration continues to own Astro rendering, hydration,
 and lifecycle event delivery.
 
 ## Setup
@@ -28,9 +35,21 @@ import { defineConfig } from 'astro/config';
 import foldkit from '@opsydyn/astro-foldkit';
 
 export default defineConfig({
-  integrations: [foldkit()],
+  integrations: [
+    foldkit({
+      server: {
+        buildId: process.env.FOLDKIT_BUILD_ID ?? 'development',
+      },
+    }),
+  ],
 });
 ```
+
+The build ID is an explicit server/client handoff identity. Use a stable
+deployment-specific value in production and the same value in every process
+that serves the build. The integration defaults to `development` for local
+use, rejects a blank value, and fails a `definePage` render closed rather than
+hydrating a mismatched document when no usable identity is available.
 
 ## Defining an app
 
@@ -68,9 +87,152 @@ import Counter from '../apps/counter/app'
 <Counter client:load />
 ```
 
-The server renderer emits a deterministic `<div data-foldkit-island="true">` mount shell. It does not load or execute the FoldKit application during SSR; the application is loaded and embedded only by the client renderer. Astro still owns the outer island serialisation and client directive behavior.
+For `lazyApp` / `defineApp`, the server renderer emits a deterministic
+`<div data-foldkit-island="true"></div>` mount shell. It does not load or
+execute the FoldKit application during SSR; the application is loaded and
+embedded only by the client renderer. Astro still owns the outer island
+serialisation and client directive behavior.
 
 The demo app's [`/request-diagnostics`](../../apps/web/src/pages/request-diagnostics.astro) page shows the integration boundary with a practical machine-driven chart workflow. The page uses `@opsydyn/astro-foldkit` for hydration, `@opsydyn/foldkit-viz` for chart primitives, and `foldkit/experimental/machine` in the application update layer.
+
+## Server-rendered pages (opt-in)
+
+Use `definePage` when one FoldKit application owns the document content for an
+Astro route. It is intentionally separate from `lazyApp`: existing apps and
+charts remain client-only islands unless they are explicitly migrated.
+
+The page loader has the same literal lazy-module shape as `lazyApp`, but its
+Flags factory is synchronous and receives request facts from Astro:
+
+```ts
+// src/apps/greeting/page.ts
+import { definePage } from '@opsydyn/astro-foldkit/define-page';
+import { Match, Schema } from 'effect';
+
+import { Flags, type Locale, type Name } from './model';
+
+type Props = { readonly name: Name };
+
+const localeFromUrl = (url: URL): Locale =>
+  Match.value(url.searchParams.get('locale')).pipe(
+    Match.when('ar', () => 'ar' as const),
+    Match.when('en', () => 'en' as const),
+    Match.orElse(() => 'en' as const),
+  );
+
+export default definePage<Props, Flags>(() => import('./main'), {
+  flags: ({ props, url }) =>
+    Schema.decodeSync(Flags)({
+      name: props.name,
+      locale: localeFromUrl(url),
+    }),
+});
+```
+
+The loaded `main` module exports the page configuration, including the runtime
+`Flags` Schema/value used by FoldKit to validate the serialized handoff:
+
+```ts
+// src/apps/greeting/main.ts
+import { Message } from './message';
+import { Flags, init, Model } from './model';
+import { update } from './update';
+import { view } from './view';
+
+export { Flags, init, Message, Model, update, view };
+```
+
+`Flags` must be public JSON-serializable data required to create the first
+Model. The factory may derive it from `request`, `url`, `params`, and validated
+component `props`, but it must not return secrets, credentials, request bodies,
+or runtime objects. It must not run Commands, Subscriptions, remote loads, or
+browser-only resources. Server rendering is a deterministic render handoff,
+not a server data-loading abstraction.
+
+### Request SSR
+
+Resolve the same page document in the Astro frontmatter so its FoldKit metadata
+can reach the outer layout. Keep the resolver import server-only:
+
+```astro
+---
+export const prerender = false;
+
+import { Schema } from 'effect';
+import { resolvePageDocument } from '@opsydyn/astro-foldkit/server';
+
+import GreetingPage from '../apps/greeting/page';
+import { Name } from '../apps/greeting/model';
+import Layout from '../layouts/Layout.astro';
+
+const name = Schema.decodeSync(Name)(Astro.url.searchParams.get('name') ?? 'astronaut');
+const document = await resolvePageDocument(GreetingPage, {
+  request: Astro.request,
+  url: Astro.url,
+  params: Astro.params,
+  props: { name },
+});
+---
+
+<Layout
+  title={document.title}
+  lang={document.lang}
+  dir={document.dir}
+  canonical={document.canonical}
+  ogUrl={document.ogUrl}
+>
+  <GreetingPage client:load name={name} />
+</Layout>
+```
+
+The layout owns the outer `<html>` structure and applies `title`, `lang`,
+`dir`, `canonical`, and `ogUrl` from the resolved FoldKit `Document`. The
+`client:load` directive is still required for an interactive page: the server
+HTML contains one stamped FoldKit root and the browser hydrates that exact root
+with the serialized Flags payload.
+
+### SSG
+
+The same page owner can be prerendered when its props and Flags are universal:
+
+```astro
+---
+export const prerender = true;
+
+import { Schema } from 'effect';
+import { resolvePageDocument } from '@opsydyn/astro-foldkit/server';
+
+import GreetingPage from '../apps/greeting/page';
+import { Name } from '../apps/greeting/model';
+import Layout from '../layouts/Layout.astro';
+
+const name = Schema.decodeSync(Name)('static astronaut');
+const document = await resolvePageDocument(GreetingPage, {
+  request: Astro.request,
+  url: Astro.url,
+  params: Astro.params,
+  props: { name },
+});
+---
+
+<Layout
+  title={document.title}
+  lang={document.lang}
+  dir={document.dir}
+  canonical={document.canonical}
+  ogUrl={document.ogUrl}
+>
+  <GreetingPage client:load name={name} />
+</Layout>
+```
+
+An SSG error fails the build. A request-SSR error reaches Astro's error
+response. The integration does not replace failed page rendering with the
+client-only shell. A document may have only one `definePage` owner; use
+`lazyApp` / `defineApp` for additional charts or embedded applications.
+
+`noMeta` remains an island-only option for `defineApp`. It does not change the
+page-owner metadata contract.
 
 ## Passing props
 
@@ -134,6 +296,11 @@ Document.
 
 ## Architecture
 
+`definePage` owns one server-rendered FoldKit application for a document;
+`lazyApp` / `defineApp` owns an independent client island. The integration does
+not infer page ownership from ordinary app markers, and adding `definePage`
+does not migrate existing chart routes.
+
 ### Imperative shell, functional core
 
 The Astro page is the **imperative shell**: it performs side effects (HTTP fetches, query-param reads, URL parsing) and validates raw values into branded types via `Schema.decodeSync`. The shell hands only clean, typed values into the component.
@@ -180,12 +347,18 @@ The module returned by your loader must export:
 | `update` | `(model, message) => readonly [Model, ReadonlyArray<Command>]` | Pure state transition                         |
 | `view`   | `(model, h: HtmlBuilder<Message>) => Document`                 | Render with the current render-frame builder  |
 
+For `definePage`, `init` receives the validated `Flags` value rather than raw
+Astro props, and the module must additionally export the runtime `Flags`
+Schema/value. `defineApp` keeps the existing props-based `init` contract.
+
 ## Exports
 
-| Entry point                         | Description                                               |
-| :---------------------------------- | :-------------------------------------------------------- |
-| `@opsydyn/astro-foldkit`            | Default Astro integration (`foldkit()`)                   |
-| `@opsydyn/astro-foldkit/define-app` | `lazyApp` helper (`defineApp` alias) and `AppConfig` type |
+| Entry point                          | Description                                               |
+| :----------------------------------- | :-------------------------------------------------------- |
+| `@opsydyn/astro-foldkit`             | Default Astro integration (`foldkit()`)                   |
+| `@opsydyn/astro-foldkit/define-app`  | `lazyApp` helper (`defineApp` alias) and `AppConfig` type |
+| `@opsydyn/astro-foldkit/define-page` | `definePage`, `PageConfig`, and page Flags context types  |
+| `@opsydyn/astro-foldkit/server`      | Server-only `resolvePageDocument` metadata resolver       |
 
 The root entry point also exports the `NavigationConfig`, `NavigationEvent`, and `NavigationPhase` types.
 
@@ -303,7 +476,7 @@ element.addEventListener(
 | Package   | Version               |
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
-| `foldkit` | `≥ 0.136.0 < 0.137.0` |
+| `foldkit` | `≥ 0.148.0 < 0.149.0` |
 
 ## License
 

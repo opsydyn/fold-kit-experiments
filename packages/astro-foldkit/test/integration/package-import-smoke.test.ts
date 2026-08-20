@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'bun:test';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -23,6 +23,7 @@ type SmokeFixture = {
   distDefineApp: DistDefineApp;
   distDefinePage: DistDefinePage;
   distServer: DistServer;
+  clientBundle: string;
   distIndexTypes: string;
   packedPackageJson: PackedPackageJson;
   consumerDir: string;
@@ -53,6 +54,7 @@ const setupFixture = async (): Promise<SmokeFixture> => {
   const unpackDir = path.join(tempDir, 'unpack');
   const consumerDir = path.join(tempDir, 'consumer');
   const scopeDir = path.join(consumerDir, 'node_modules', '@opsydyn');
+  const consumerNodeModules = path.join(consumerDir, 'node_modules');
   const env = await buildEnv();
 
   await execFileAsync('bun', ['run', 'build'], { cwd: packageDir, env, maxBuffer });
@@ -66,6 +68,7 @@ const setupFixture = async (): Promise<SmokeFixture> => {
   const tarball = path.resolve(packageDir, filename);
 
   await mkdir(unpackDir, { recursive: true });
+  await mkdir(consumerNodeModules, { recursive: true });
   await mkdir(scopeDir, { recursive: true });
   await writeFile(
     path.join(consumerDir, 'package.json'),
@@ -73,6 +76,14 @@ const setupFixture = async (): Promise<SmokeFixture> => {
   );
   await execFileAsync('tar', ['-xzf', tarball, '-C', unpackDir], { env, maxBuffer });
   await rename(path.join(unpackDir, 'package'), path.join(scopeDir, 'astro-foldkit'));
+
+  for (const dependency of ['effect', 'foldkit']) {
+    await symlink(
+      path.join(packageDir, 'node_modules', dependency),
+      path.join(consumerNodeModules, dependency),
+      'dir',
+    );
+  }
 
   const pkgRoot = path.join(scopeDir, 'astro-foldkit');
   const navigationConsumer = path.join(consumerDir, 'navigation-consumer.ts');
@@ -89,6 +100,65 @@ const config: NavigationConfig<NavigationEvent> = {
 
 void config.map(event);
 `,
+  );
+  const pageConsumer = path.join(consumerDir, 'page-consumer.ts');
+  await writeFile(
+    pageConsumer,
+    `import { definePage } from '@opsydyn/astro-foldkit/define-page';
+import type { PageConfig, PageFlagsContext } from '@opsydyn/astro-foldkit/define-page';
+import { resolvePageDocument } from '@opsydyn/astro-foldkit/server';
+import { Schema } from 'effect';
+import type { Document, HtmlBuilder } from 'foldkit/html';
+
+type Flags = { readonly name: string };
+type Model = Flags;
+type Message = { readonly _tag: 'NoOp' };
+type Props = { readonly name: string };
+
+const Flags = Schema.Struct({ name: Schema.String });
+const config = {
+  Flags,
+  Model: {},
+  init: (flags: Flags) => [flags, []] as const,
+  update: (model: Model, _message: Message) => [model, []] as const,
+  view: (model: Model, h: HtmlBuilder<Message>): Document => ({
+    title: model.name,
+    body: h.main([], [model.name]),
+  }),
+} satisfies PageConfig<Flags, Model, Message>;
+
+const page = definePage<Props, Flags>(() => Promise.resolve(config), {
+  flags: ({ props }: PageFlagsContext<Props>) => ({ name: props.name }),
+});
+const context: PageFlagsContext<Props> = {
+  request: new Request('https://example.com/page'),
+  url: new URL('https://example.com/page'),
+  params: {},
+  props: { name: 'Ada' },
+};
+const document = resolvePageDocument(page, context);
+const title: Promise<string> = document.then((value) => value.title);
+void title;
+`,
+  );
+  await execFileAsync(
+    'bun',
+    [
+      'x',
+      'tsc',
+      '--noEmit',
+      '--ignoreConfig',
+      '--strict',
+      '--skipLibCheck',
+      '--target',
+      'ES2022',
+      '--module',
+      'ESNext',
+      '--moduleResolution',
+      'Bundler',
+      pageConsumer,
+    ],
+    { cwd: consumerDir, env, maxBuffer },
   );
   await execFileAsync(
     'bun',
@@ -121,6 +191,7 @@ void config.map(event);
   const distServer = (await import(
     pathToFileURL(path.join(pkgRoot, 'dist', 'server-public.mjs')).href
   )) as DistServer;
+  const clientBundle = await readFile(path.join(pkgRoot, 'dist', 'client.mjs'), 'utf8');
   const distIndexTypes = await readFile(path.join(pkgRoot, 'dist', 'index.d.mts'), 'utf8');
   const packedPackageJson = JSON.parse(
     await readFile(path.join(pkgRoot, 'package.json'), 'utf8'),
@@ -131,6 +202,7 @@ void config.map(event);
     distDefineApp,
     distDefinePage,
     distServer,
+    clientBundle,
     distIndexTypes,
     packedPackageJson,
     consumerDir,
@@ -194,6 +266,7 @@ describe('packed import smoke', () => {
       distDefineApp,
       distDefinePage,
       distServer,
+      clientBundle,
       distIndexTypes,
       packedPackageJson,
     } = await fixturePromise;
@@ -207,6 +280,8 @@ describe('packed import smoke', () => {
     expect(typeof distDefineApp.lazyApp).toBe('function');
     expect(typeof distDefinePage.definePage).toBe('function');
     expect(typeof distServer.resolvePageDocument).toBe('function');
+    expect(clientBundle).not.toContain('resolvePageDocument');
+    expect(clientBundle).not.toContain('foldkit/experimental/server');
     expect(distIndexTypes).toContain('NavigationConfig');
     expect(distIndexTypes).toContain('NavigationEvent');
     expect(distIndexTypes).toContain('NavigationPhase');

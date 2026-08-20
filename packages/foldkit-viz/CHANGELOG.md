@@ -2,6 +2,19 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.8.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.7.0...foldkit-viz-v0.8.0) (2026-08-20)
+
+
+### Features
+
+* **astro-foldkit:** document opt-in server rendering ([53e9d00](https://github.com/opsydyn/fold-kit-experiments/commit/53e9d004c75c10245d0aa88fc4c412b96c7f2f4c))
+* support FoldKit 0.136 ([50f4134](https://github.com/opsydyn/fold-kit-experiments/commit/50f4134d7596926fed373408642816736907934f))
+
+
+### Bug Fixes
+
+* **astro-foldkit:** keep define-page markers inert ([0fb4e54](https://github.com/opsydyn/fold-kit-experiments/commit/0fb4e54dbd3a0b53f21de57f27f3948e13fcf80b))
+
 ## [0.7.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.6.0...foldkit-viz-v0.7.0) (2026-07-18)
 
 

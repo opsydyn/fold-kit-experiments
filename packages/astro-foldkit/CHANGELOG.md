@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.5.0...astro-foldkit-v0.6.0) (2026-08-20)
+
+
+### Features
+
+* **astro-foldkit:** add server render handoff ([9773a4d](https://github.com/opsydyn/fold-kit-experiments/commit/9773a4d1883c53fa60957368a0125d3b57b7cd24))
+* **astro-foldkit:** document opt-in server rendering ([53e9d00](https://github.com/opsydyn/fold-kit-experiments/commit/53e9d004c75c10245d0aa88fc4c412b96c7f2f4c))
+* **astro-foldkit:** expose server document resolver ([969dc2f](https://github.com/opsydyn/fold-kit-experiments/commit/969dc2f7e4a679df8b04d60c57783d6b8fb84bd1))
+* **astro-foldkit:** formalize define-page contract ([62863c5](https://github.com/opsydyn/fold-kit-experiments/commit/62863c58fa1462d2ecb04bd52cf3d5e0bb444601))
+* **astro-foldkit:** hydrate page owners on client ([9f8f76b](https://github.com/opsydyn/fold-kit-experiments/commit/9f8f76bef77ea734006c1faa90defdfdd115d09d))
+* support FoldKit 0.136 ([50f4134](https://github.com/opsydyn/fold-kit-experiments/commit/50f4134d7596926fed373408642816736907934f))
+
+
+### Bug Fixes
+
+* **astro-foldkit:** align server document tests ([f71c2c2](https://github.com/opsydyn/fold-kit-experiments/commit/f71c2c2ccea94f148e81126b00174375566fa5bb))
+* **astro-foldkit:** keep define-page markers inert ([0fb4e54](https://github.com/opsydyn/fold-kit-experiments/commit/0fb4e54dbd3a0b53f21de57f27f3948e13fcf80b))
+* **astro-foldkit:** pass stamped root to page hydration ([b3b3ba6](https://github.com/opsydyn/fold-kit-experiments/commit/b3b3ba65c4bb25bb9c2738f82d1148e5e6407679))
+* **astro-foldkit:** reject empty server build id ([320bc39](https://github.com/opsydyn/fold-kit-experiments/commit/320bc39a9ca8d610fe60480c0c399a71fc029b51))
+
 ## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.4.0...astro-foldkit-v0.5.0) (2026-07-18)
 
 ### Features

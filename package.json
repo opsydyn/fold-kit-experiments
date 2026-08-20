@@ -20,9 +20,10 @@
     "@effect/language-service": "^0.86.2",
     "@foldkit/oxlint-plugin": "^0.3.0",
     "@opsydyn/oxlint-effect": "^0.4.0",
+    "@oxlint/plugins": "1.79.0",
     "@typescript-eslint/utils": "^8.63.0",
     "oxfmt": "^0.57.0",
-    "oxlint": "^1.72.0"
+    "oxlint": "1.79.0"
   },
   "engines": {
     "node": ">=22.12.0"

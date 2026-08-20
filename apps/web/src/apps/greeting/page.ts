@@ -1,6 +1,7 @@
 import { definePage } from '@opsydyn/astro-foldkit/define-page';
 import { Match, Schema } from 'effect';
 
+import * as main from './main';
 import { Flags, type Locale, type Name } from './model';
 
 type Props = {
@@ -14,7 +15,7 @@ const localeFromUrl = (url: URL): Locale =>
     Match.orElse(() => 'en' as const),
   );
 
-export default definePage<Props, Flags>(() => import('./main'), {
+export default definePage<Props, Flags>(() => Promise.resolve(main), {
   flags: ({ props, url }) =>
     Schema.decodeSync(Flags)({
       name: props.name,

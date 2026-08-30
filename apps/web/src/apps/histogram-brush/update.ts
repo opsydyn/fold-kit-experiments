@@ -45,7 +45,7 @@ const applyBrushSelection = (model: Model, histogram: Histogram.Model): Return =
   const selection = selectionFromHistogram(histogram);
   const [scatter] = Scatter.update(
     model.scatter,
-    Scatter.UpdatedPoints({ points: pointsForSelection(model.allPoints, selection) }),
+    Scatter.Message.UpdatedPoints({ points: pointsForSelection(model.allPoints, selection) }),
   );
   return [{ ...model, histogram, scatter, selection }, []];
 };

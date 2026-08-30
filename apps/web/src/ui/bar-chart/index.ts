@@ -2,7 +2,7 @@ import { band, linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { Effect, Match, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import {
@@ -75,24 +75,17 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredBar = m('HoveredBar', { index: Schema.Number });
-export const BlurredBar = m('BlurredBar', {});
-export const ClickedBar = m('ClickedBar', { index: Schema.Number });
-export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
-export const RecordedChartBounds = m('RecordedChartBounds', {
-  screenLeft: Schema.Number,
-  renderedPW: Schema.Number,
+export const Message = defineMessageUnion({
+  HoveredBar: { index: Schema.Number },
+  BlurredBar: {},
+  ClickedBar: { index: Schema.Number },
+  PressedKeyNav: { direction: Schema.String },
+  RecordedChartBounds: {
+    screenLeft: Schema.Number,
+    renderedPW: Schema.Number,
+  },
+  UpdatedBars: { bars: Schema.Unknown },
 });
-
-export const UpdatedBars = m('UpdatedBars', { bars: Schema.Unknown });
-export const Message = Schema.Union([
-  HoveredBar,
-  BlurredBar,
-  ClickedBar,
-  PressedKeyNav,
-  RecordedChartBounds,
-  UpdatedBars,
-]);
 export type Message = typeof Message.Type;
 
 // MOUNT
@@ -103,7 +96,7 @@ export const CaptureChartBounds = Mount.define(
 )((element) =>
   Effect.sync(() => {
     const rect = element.getBoundingClientRect();
-    return RecordedChartBounds({ screenLeft: rect.left + window.screenX, renderedPW: rect.width });
+    return Message.RecordedChartBounds({ screenLeft: rect.left + window.screenX, renderedPW: rect.width });
   }),
 );
 
@@ -165,7 +158,7 @@ export const view = <M>(
   const ticks = linearTicks(yDomain, cfg.tickCount);
 
   const handleKeyDown = (key: string) =>
-    arrowKeyNav(key, (dir) => toParentMessage(PressedKeyNav({ direction: dir })));
+    arrowKeyNav(key, (dir) => toParentMessage(Message.PressedKeyNav({ direction: dir })));
 
   const activeBar = Option.isSome(activeIndex) ? bars[activeIndex.value] : undefined;
   const liveText = activeBar ? `${activeBar.label}: ${activeBar.value}` : '';
@@ -244,14 +237,14 @@ export const view = <M>(
                   const plotX = (screenX - screenLeft) * (PW / rPW);
                   const idx = nearestIndex(barCenters, plotX);
                   return idx >= 0
-                    ? Option.some(toParentMessage(HoveredBar({ index: idx })))
+                    ? Option.some(toParentMessage(Message.HoveredBar({ index: idx })))
                     : Option.none();
                 }),
-                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredBar()))),
+                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(Message.BlurredBar()))),
                 h.OnClick(
                   Option.isSome(activeIndex)
-                    ? toParentMessage(ClickedBar({ index: activeIndex.value }))
-                    : toParentMessage(BlurredBar()),
+                    ? toParentMessage(Message.ClickedBar({ index: activeIndex.value }))
+                    : toParentMessage(Message.BlurredBar()),
                 ),
               ],
               [],

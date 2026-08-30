@@ -4,7 +4,7 @@ import { line } from '@opsydyn/foldkit-viz/shape/line';
 import { Effect, Match, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import {
@@ -77,22 +77,16 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredPoint = m('HoveredPoint', { index: Schema.Number });
-export const BlurredPoint = m('BlurredPoint', {});
-export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
-export const RecordedChartBounds = m('RecordedChartBounds', {
-  screenLeft: Schema.Number,
-  renderedPW: Schema.Number,
+export const Message = defineMessageUnion({
+  HoveredPoint: { index: Schema.Number },
+  BlurredPoint: {},
+  PressedKeyNav: { direction: Schema.String },
+  RecordedChartBounds: {
+    screenLeft: Schema.Number,
+    renderedPW: Schema.Number,
+  },
+  UpdatedPoints: { points: Schema.Unknown },
 });
-
-export const UpdatedPoints = m('UpdatedPoints', { points: Schema.Unknown });
-export const Message = Schema.Union([
-  HoveredPoint,
-  BlurredPoint,
-  PressedKeyNav,
-  RecordedChartBounds,
-  UpdatedPoints,
-]);
 export type Message = typeof Message.Type;
 
 // MOUNT
@@ -103,7 +97,7 @@ export const CaptureChartBounds = Mount.define(
 )((element) =>
   Effect.sync(() => {
     const rect = element.getBoundingClientRect();
-    return RecordedChartBounds({ screenLeft: rect.left + window.screenX, renderedPW: rect.width });
+    return Message.RecordedChartBounds({ screenLeft: rect.left + window.screenX, renderedPW: rect.width });
   }),
 );
 
@@ -167,7 +161,7 @@ export const view = <M>(
   const areaPath = area(coords, PH, { curve: cfg.curve });
 
   const handleKeyDown = (key: string) =>
-    arrowKeyNav(key, (dir) => toParentMessage(PressedKeyNav({ direction: dir })));
+    arrowKeyNav(key, (dir) => toParentMessage(Message.PressedKeyNav({ direction: dir })));
 
   const activePoint = Option.isSome(activeIndex) ? points[activeIndex.value] : undefined;
   const liveText = activePoint ? `${activePoint.label}: ${activePoint.value}` : '';
@@ -258,10 +252,10 @@ export const view = <M>(
                   const xCoords = coords.map((c) => c[0]);
                   const idx = nearestIndex(xCoords, plotX);
                   return idx >= 0
-                    ? Option.some(toParentMessage(HoveredPoint({ index: idx })))
+                    ? Option.some(toParentMessage(Message.HoveredPoint({ index: idx })))
                     : Option.none();
                 }),
-                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(BlurredPoint()))),
+                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(Message.BlurredPoint()))),
               ],
               [],
             ),

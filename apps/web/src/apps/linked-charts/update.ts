@@ -25,7 +25,7 @@ export const update = (model: Model, msg: Message): Return =>
             if (binIndex >= 0) {
               const [histogram] = Histogram.update(
                 model.histogram,
-                Histogram.HoveredBin({ index: binIndex }),
+                Histogram.Message.HoveredBin({ index: binIndex }),
               );
               return [{ ...model, scatter, histogram }, []];
             }
@@ -34,7 +34,7 @@ export const update = (model: Model, msg: Message): Return =>
 
         // Blur clears histogram too
         if (scatterMsg._tag === 'BlurredPoint') {
-          const [histogram] = Histogram.update(model.histogram, Histogram.BlurredBin());
+          const [histogram] = Histogram.update(model.histogram, Histogram.Message.BlurredBin());
           return [{ ...model, scatter, histogram }, []];
         }
 
@@ -52,14 +52,14 @@ export const update = (model: Model, msg: Message): Return =>
             // Find first scatter point in this bin's salary range to set as active
             const idx = model.scatter.points.findIndex((p) => p.y >= bin.x0 && p.y < bin.x1);
             if (idx >= 0) {
-              const [scatter] = Scatter.update(model.scatter, Scatter.HoveredPoint({ index: idx }));
+              const [scatter] = Scatter.update(model.scatter, Scatter.Message.HoveredPoint({ index: idx }));
               return [{ ...model, scatter, histogram }, []];
             }
           }
         }
 
         if (histMsg._tag === 'BlurredBin') {
-          const [scatter] = Scatter.update(model.scatter, Scatter.BlurredPoint());
+          const [scatter] = Scatter.update(model.scatter, Scatter.Message.BlurredPoint());
           return [{ ...model, scatter, histogram }, []];
         }
 

@@ -8,7 +8,7 @@ import {
 } from '@opsydyn/foldkit-viz/math/ease';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -40,10 +40,10 @@ export function init(): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredCurve = m('HoveredCurve', { name: Schema.String });
-export const BlurredCurve = m('BlurredCurve', {});
-
-export const Message = Schema.Union([HoveredCurve, BlurredCurve]);
+export const Message = defineMessageUnion({
+  HoveredCurve: { name: Schema.String },
+  BlurredCurve: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -196,8 +196,8 @@ export function view<M>(
             return h.g(
               [
                 h.Transform(`translate(${col * 112},${row * 18})`),
-                h.OnMouseEnter(toParentMessage(HoveredCurve({ name }))),
-                h.OnMouseLeave(toParentMessage(BlurredCurve())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredCurve({ name }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredCurve())),
                 h.Style({ cursor: 'default' }),
               ],
               [

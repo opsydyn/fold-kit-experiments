@@ -1,7 +1,7 @@
 import { arc } from '@opsydyn/foldkit-viz/shape/arc';
 import { Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -49,8 +49,9 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 // MESSAGE — gauge is a display-only component; GaugeUpdated satisfies the TEA contract
 // without carrying any user-interaction payload.
 
-export const GaugeUpdated = m('GaugeUpdated', {});
-export const Message = Schema.Union([GaugeUpdated]);
+export const Message = defineMessageUnion({
+  GaugeUpdated: {},
+});
 export type Message = typeof Message.Type;
 
 export function update(model: Model, _msg: Message): readonly [Model, readonly []] {

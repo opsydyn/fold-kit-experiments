@@ -4,7 +4,7 @@ import type { BoxStats } from '@opsydyn/foldkit-viz/math/stats';
 import { boxStats } from '@opsydyn/foldkit-viz/math/stats';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot, yGridlines } from '../shared';
@@ -61,10 +61,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredBox = m('HoveredBox', { index: Schema.Number });
-export const BlurredBox = m('BlurredBox', {});
-
-export const Message = Schema.Union([HoveredBox, BlurredBox]);
+export const Message = defineMessageUnion({
+  HoveredBox: { index: Schema.Number },
+  BlurredBox: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -136,8 +136,8 @@ export function view<M>(
     return h.g(
       [
         h.Style({ cursor: 'pointer' }),
-        h.OnMouseEnter(toParentMessage(HoveredBox({ index: i }))),
-        h.OnMouseLeave(toParentMessage(BlurredBox())),
+        h.OnMouseEnter(toParentMessage(Message.HoveredBox({ index: i }))),
+        h.OnMouseLeave(toParentMessage(Message.BlurredBox())),
       ],
       [
         h.line(

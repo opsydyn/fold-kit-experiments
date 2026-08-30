@@ -154,7 +154,7 @@ const applyStateToScatter = (
   model: Model,
   points: ReadonlyArray<import('./model').Point>,
 ): Model => {
-  const [scatter] = Scatter.update(model.scatter, Scatter.UpdatedPoints({ points }));
+  const [scatter] = Scatter.update(model.scatter, Scatter.Message.UpdatedPoints({ points }));
   return { ...model, scatter };
 };
 

@@ -2,7 +2,7 @@ import { band } from '@opsydyn/foldkit-viz/math/scale';
 import { scaleTime, timeNice, timeTickFormat, timeTicks } from '@opsydyn/foldkit-viz/math/time';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -74,10 +74,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredTask = m('HoveredTask', { name: Schema.String });
-export const BlurredTask = m('BlurredTask', {});
-
-export const Message = Schema.Union([HoveredTask, BlurredTask]);
+export const Message = defineMessageUnion({
+  HoveredTask: { name: Schema.String },
+  BlurredTask: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -177,8 +177,8 @@ export function view<M>(
 
             return h.g(
               [
-                h.OnMouseEnter(toParentMessage(HoveredTask({ name: task.name }))),
-                h.OnMouseLeave(toParentMessage(BlurredTask())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredTask({ name: task.name }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredTask())),
                 h.Style({ cursor: 'default' }),
               ],
               [

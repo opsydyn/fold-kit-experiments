@@ -2,7 +2,7 @@ import { triangulate, voronoiCells } from '@opsydyn/foldkit-viz/math/delaunay';
 import { randomLcg } from '@opsydyn/foldkit-viz/math/random';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -65,10 +65,10 @@ export function init(seed = 7): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredCell = m('HoveredCell', { idx: Schema.Number });
-export const BlurredCell = m('BlurredCell', {});
-
-export const Message = Schema.Union([HoveredCell, BlurredCell]);
+export const Message = defineMessageUnion({
+  HoveredCell: { idx: Schema.Number },
+  BlurredCell: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -132,8 +132,8 @@ export function view<M>(
                 h.Stroke('var(--card-bg, #12121f)'),
                 h.StrokeWidth(isActive ? '1.5' : '0.8'),
                 h.Style({ cursor: 'default', transition: 'fill 80ms' }),
-                h.OnMouseEnter(toParentMessage(HoveredCell({ idx }))),
-                h.OnMouseLeave(toParentMessage(BlurredCell())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredCell({ idx }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredCell())),
               ],
               [],
             );

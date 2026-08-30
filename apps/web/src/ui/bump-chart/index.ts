@@ -2,7 +2,7 @@ import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -41,10 +41,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredSeries = m('HoveredSeries', { label: Schema.String });
-export const BlurredSeries = m('BlurredSeries', {});
-
-export const Message = Schema.Union([HoveredSeries, BlurredSeries]);
+export const Message = defineMessageUnion({
+  HoveredSeries: { label: Schema.String },
+  BlurredSeries: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -126,8 +126,8 @@ export function view<M>(
           return h.g(
             [
               h.Style({ cursor: 'pointer', opacity: String(opacity), transition: 'opacity 150ms' }),
-              h.OnMouseEnter(toParentMessage(HoveredSeries({ label: s.label }))),
-              h.OnMouseLeave(toParentMessage(BlurredSeries())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredSeries({ label: s.label }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredSeries())),
               h.AriaLabel(`${s.label} rankings`),
             ],
             [

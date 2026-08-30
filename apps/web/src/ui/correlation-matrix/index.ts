@@ -1,7 +1,7 @@
 import { interpolateLab } from '@opsydyn/foldkit-viz/math/color';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -92,10 +92,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredCell = m('HoveredCell', { row: Schema.Number, col: Schema.Number });
-export const BlurredCell = m('BlurredCell', {});
-
-export const Message = Schema.Union([HoveredCell, BlurredCell]);
+export const Message = defineMessageUnion({
+  HoveredCell: { row: Schema.Number, col: Schema.Number },
+  BlurredCell: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -212,8 +212,8 @@ export function view<M>(
 
             return h.g(
               [
-                h.OnMouseEnter(toParentMessage(HoveredCell({ row: ri, col: ci }))),
-                h.OnMouseLeave(toParentMessage(BlurredCell())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredCell({ row: ri, col: ci }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredCell())),
                 h.Style({ cursor: 'default' }),
                 h.AriaLabel(`${matrix.labels[ri]} vs ${matrix.labels[ci]}: ${val.toFixed(2)}`),
               ],

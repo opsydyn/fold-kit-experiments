@@ -2,7 +2,7 @@ import { linear, linearTicks, ordinal } from '@opsydyn/foldkit-viz/math/scale';
 import { SYMBOLS_FILL, type SymbolType, symbolPath } from '@opsydyn/foldkit-viz/shape/symbol';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { r3, svgRoot } from '../shared';
 
@@ -121,10 +121,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredPoint = m('HoveredPoint', { index: Schema.Number });
-export const BlurredPoint = m('BlurredPoint', {});
-
-export const Message = Schema.Union([HoveredPoint, BlurredPoint]);
+export const Message = defineMessageUnion({
+  HoveredPoint: { index: Schema.Number },
+  BlurredPoint: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -263,8 +263,8 @@ export function view<M>(
             return h.g(
               [
                 h.Transform(`translate(${cx},${cy})`),
-                h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
-                h.OnMouseLeave(toParentMessage(BlurredPoint())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredPoint({ index: i }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredPoint())),
                 h.Style({ cursor: 'pointer' }),
               ],
               [

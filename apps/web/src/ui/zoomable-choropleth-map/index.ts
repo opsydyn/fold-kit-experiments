@@ -12,7 +12,7 @@ import type { GeoFeatureCollection } from '@opsydyn/foldkit-viz/shape/geo';
 import { geoNaturalEarth1, geoPath } from '@opsydyn/foldkit-viz/shape/geo';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { ChoroplethDatum } from '../choropleth-map';
 import type { Dims, Layout, Margins } from '../shared';
@@ -81,25 +81,16 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredFeature = m('HoveredFeature', { id: Schema.String });
-export const BlurredFeature = m('BlurredFeature', {});
-export const ClickedZoomIn = m('ClickedZoomIn', {});
-export const ClickedZoomOut = m('ClickedZoomOut', {});
-export const ClickedReset = m('ClickedReset', {});
-export const PointerDowned = m('PointerDowned', { x: Schema.Number, y: Schema.Number });
-export const PointerMoved = m('PointerMoved', { x: Schema.Number, y: Schema.Number });
-export const PointerUpped = m('PointerUpped', {});
-
-export const Message = Schema.Union([
-  HoveredFeature,
-  BlurredFeature,
-  ClickedZoomIn,
-  ClickedZoomOut,
-  ClickedReset,
-  PointerDowned,
-  PointerMoved,
-  PointerUpped,
-]);
+export const Message = defineMessageUnion({
+  HoveredFeature: { id: Schema.String },
+  BlurredFeature: {},
+  ClickedZoomIn: {},
+  ClickedZoomOut: {},
+  ClickedReset: {},
+  PointerDowned: { x: Schema.Number, y: Schema.Number },
+  PointerMoved: { x: Schema.Number, y: Schema.Number },
+  PointerUpped: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -213,15 +204,15 @@ export function view<M>(
             h.Fill('transparent'),
             h.Style({ cursor: isDragging ? 'grabbing' : 'grab' }),
             h.OnPointerDown((_, _btn, screenX, screenY) =>
-              Option.some(toParentMessage(PointerDowned({ x: screenX, y: screenY }))),
+              Option.some(toParentMessage(Message.PointerDowned({ x: screenX, y: screenY }))),
             ),
             h.OnPointerMove((screenX, screenY) =>
               isDragging
-                ? Option.some(toParentMessage(PointerMoved({ x: screenX, y: screenY })))
+                ? Option.some(toParentMessage(Message.PointerMoved({ x: screenX, y: screenY })))
                 : Option.none(),
             ),
-            h.OnPointerUp(() => Option.some(toParentMessage(PointerUpped()))),
-            h.OnPointerLeave(() => Option.some(toParentMessage(PointerUpped()))),
+            h.OnPointerUp(() => Option.some(toParentMessage(Message.PointerUpped()))),
+            h.OnPointerLeave(() => Option.some(toParentMessage(Message.PointerUpped()))),
           ],
           [],
         ),
@@ -251,8 +242,8 @@ export function view<M>(
                     ),
                     h.Opacity(isDimmed ? '0.35' : '1'),
                     h.Style({ cursor: datum ? 'pointer' : 'default', transition: 'opacity 120ms' }),
-                    h.OnMouseEnter(toParentMessage(HoveredFeature({ id: fid }))),
-                    h.OnMouseLeave(toParentMessage(BlurredFeature())),
+                    h.OnMouseEnter(toParentMessage(Message.HoveredFeature({ id: fid }))),
+                    h.OnMouseLeave(toParentMessage(Message.BlurredFeature())),
                     ...(datum ? [h.AriaLabel(`${datum.label}: ${datum.value}`)] : []),
                   ],
                   [],
@@ -311,7 +302,7 @@ export function view<M>(
             // Zoom Out
             h.g(
               [
-                h.OnClick(toParentMessage(ClickedZoomOut())),
+                h.OnClick(toParentMessage(Message.ClickedZoomOut())),
                 h.Style(btnStyle),
                 h.AriaLabel('Zoom out'),
               ],
@@ -348,7 +339,7 @@ export function view<M>(
             // Reset
             h.g(
               [
-                h.OnClick(toParentMessage(ClickedReset())),
+                h.OnClick(toParentMessage(Message.ClickedReset())),
                 h.Style(btnStyle),
                 h.AriaLabel('Reset zoom'),
               ],
@@ -385,7 +376,7 @@ export function view<M>(
             // Zoom In
             h.g(
               [
-                h.OnClick(toParentMessage(ClickedZoomIn())),
+                h.OnClick(toParentMessage(Message.ClickedZoomIn())),
                 h.Style(btnStyle),
                 h.AriaLabel('Zoom in'),
               ],

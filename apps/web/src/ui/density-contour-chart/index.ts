@@ -3,7 +3,7 @@ import { randomLcg, randomNormal } from '@opsydyn/foldkit-viz/math/random';
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -78,10 +78,10 @@ export function init(cfg: InitConfig = {}): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredLevel = m('HoveredLevel', { label: Schema.String });
-export const BlurredLevel = m('BlurredLevel', {});
-
-export const Message = Schema.Union([HoveredLevel, BlurredLevel]);
+export const Message = defineMessageUnion({
+  HoveredLevel: { label: Schema.String },
+  BlurredLevel: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -205,8 +205,8 @@ export function view<M>(
             return h.g(
               [
                 h.Transform(`translate(${i * 110},0)`),
-                h.OnMouseEnter(toParentMessage(HoveredLevel({ label }))),
-                h.OnMouseLeave(toParentMessage(BlurredLevel())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredLevel({ label }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredLevel())),
                 h.Style({ cursor: 'default' }),
               ],
               [

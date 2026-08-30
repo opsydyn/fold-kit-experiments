@@ -1,7 +1,7 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -46,10 +46,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredNode = m('HoveredNode', { id: Schema.String });
-export const BlurredNode = m('BlurredNode', {});
-
-export const Message = Schema.Union([HoveredNode, BlurredNode]);
+export const Message = defineMessageUnion({
+  HoveredNode: { id: Schema.String },
+  BlurredNode: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -156,8 +156,8 @@ export function view<M>(
 
             return h.g(
               [
-                h.OnMouseEnter(toParentMessage(HoveredNode({ id: node.id }))),
-                h.OnMouseLeave(toParentMessage(BlurredNode())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredNode({ id: node.id }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredNode())),
                 h.Style({
                   cursor: 'pointer',
                   opacity: isDimmed ? '0.3' : '1',

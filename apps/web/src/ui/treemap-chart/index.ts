@@ -1,7 +1,7 @@
 import { descendants, hierarchy, leaves, sort, sum, treemap } from '@opsydyn/foldkit-viz/hierarchy';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -128,10 +128,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredNode = m('HoveredNode', { name: Schema.String });
-export const BlurredNode = m('BlurredNode', {});
-
-export const Message = Schema.Union([HoveredNode, BlurredNode]);
+export const Message = defineMessageUnion({
+  HoveredNode: { name: Schema.String },
+  BlurredNode: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -214,8 +214,8 @@ export const view = <M>(
       return h.g(
         [
           h.Transform(`translate(${r1(leaf.x0)},${r1(leaf.y0)})`),
-          h.OnMouseEnter(toParentMessage(HoveredNode({ name: leaf.name }))),
-          h.OnMouseLeave(toParentMessage(BlurredNode())),
+          h.OnMouseEnter(toParentMessage(Message.HoveredNode({ name: leaf.name }))),
+          h.OnMouseLeave(toParentMessage(Message.BlurredNode())),
           h.Style({ cursor: 'pointer' }),
           h.AriaLabel(`${leaf.name}: ${leaf.value}`),
         ],

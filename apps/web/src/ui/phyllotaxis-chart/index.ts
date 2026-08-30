@@ -12,7 +12,7 @@ import {
 } from '@opsydyn/foldkit-viz/math/zoom';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -91,27 +91,17 @@ export function init(): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const ClickedZoomIn = m('ClickedZoomIn', {});
-export const ClickedZoomOut = m('ClickedZoomOut', {});
-export const ClickedCenter = m('ClickedCenter', {});
-export const ClickedReset = m('ClickedReset', {});
-export const ClickedClear = m('ClickedClear', {});
-export const ToggledMiniMap = m('ToggledMiniMap', {});
-export const StartedDrag = m('StartedDrag', { screenX: Schema.Number, screenY: Schema.Number });
-export const MovedDrag = m('MovedDrag', { screenX: Schema.Number, screenY: Schema.Number });
-export const EndedDrag = m('EndedDrag', {});
-
-export const Message = Schema.Union([
-  ClickedZoomIn,
-  ClickedZoomOut,
-  ClickedCenter,
-  ClickedReset,
-  ClickedClear,
-  ToggledMiniMap,
-  StartedDrag,
-  MovedDrag,
-  EndedDrag,
-]);
+export const Message = defineMessageUnion({
+  ClickedZoomIn: {},
+  ClickedZoomOut: {},
+  ClickedCenter: {},
+  ClickedReset: {},
+  ClickedClear: {},
+  ToggledMiniMap: {},
+  StartedDrag: { screenX: Schema.Number, screenY: Schema.Number },
+  MovedDrag: { screenX: Schema.Number, screenY: Schema.Number },
+  EndedDrag: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -290,24 +280,24 @@ export function view<M>(
     screenY: number,
     _ts: number,
     _clientX: number,
-  ): Option.Option<M> => Option.some(toParentMessage(StartedDrag({ screenX, screenY })));
+  ): Option.Option<M> => Option.some(toParentMessage(Message.StartedDrag({ screenX, screenY })));
 
   const handlePointerMove = (
     screenX: number,
     screenY: number,
     _pointerType: string,
   ): Option.Option<M> =>
-    isDragging ? Option.some(toParentMessage(MovedDrag({ screenX, screenY }))) : Option.none();
+    isDragging ? Option.some(toParentMessage(Message.MovedDrag({ screenX, screenY }))) : Option.none();
 
   const handlePointerUp = (
     _screenX: number,
     _screenY: number,
     _pointerType: string,
     _ts: number,
-  ): Option.Option<M> => Option.some(toParentMessage(EndedDrag()));
+  ): Option.Option<M> => Option.some(toParentMessage(Message.EndedDrag()));
 
   const handlePointerLeave = (_pointerType: string): Option.Option<M> =>
-    isDragging ? Option.some(toParentMessage(EndedDrag())) : Option.none();
+    isDragging ? Option.some(toParentMessage(Message.EndedDrag())) : Option.none();
 
   const miniMapLabel = showMiniMap ? 'Hide Mini Map' : 'Show Mini Map';
 
@@ -402,8 +392,8 @@ export function view<M>(
       : []),
 
     // Controls (top-right)
-    iconBtn(h, '+', BTN_X, zoomInY, toParentMessage(ClickedZoomIn())),
-    iconBtn(h, '−', BTN_X, zoomOutY, toParentMessage(ClickedZoomOut())),
+    iconBtn(h, '+', BTN_X, zoomInY, toParentMessage(Message.ClickedZoomIn())),
+    iconBtn(h, '−', BTN_X, zoomOutY, toParentMessage(Message.ClickedZoomOut())),
     textBtn(
       h,
       'Center',
@@ -411,10 +401,10 @@ export function view<M>(
       centerY,
       BTN_TEXT_W,
       '0.65rem',
-      toParentMessage(ClickedCenter()),
+      toParentMessage(Message.ClickedCenter()),
     ),
-    textBtn(h, 'Reset', BTN_TEXT_X, resetY, BTN_TEXT_W, '0.65rem', toParentMessage(ClickedReset())),
-    textBtn(h, 'Clear', BTN_TEXT_X, clearY, BTN_TEXT_W, '0.65rem', toParentMessage(ClickedClear())),
+    textBtn(h, 'Reset', BTN_TEXT_X, resetY, BTN_TEXT_W, '0.65rem', toParentMessage(Message.ClickedReset())),
+    textBtn(h, 'Clear', BTN_TEXT_X, clearY, BTN_TEXT_W, '0.65rem', toParentMessage(Message.ClickedClear())),
 
     // Mini map toggle (bottom-right, inside clip)
     h.g(
@@ -427,7 +417,7 @@ export function view<M>(
           MINI_BTN_Y,
           MINI_BTN_W,
           '0.55rem',
-          toParentMessage(ToggledMiniMap()),
+          toParentMessage(Message.ToggledMiniMap()),
         ),
       ],
     ),

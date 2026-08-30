@@ -1,7 +1,7 @@
 import { threshold } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -37,10 +37,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredBar = m('HoveredBar', { label: Schema.String });
-export const BlurredBar = m('BlurredBar', {});
-
-export const Message = Schema.Union([HoveredBar, BlurredBar]);
+export const Message = defineMessageUnion({
+  HoveredBar: { label: Schema.String },
+  BlurredBar: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -119,8 +119,8 @@ export function view<M>(
 
             return h.g(
               [
-                h.OnMouseEnter(toParentMessage(HoveredBar({ label: ep.label }))),
-                h.OnMouseLeave(toParentMessage(BlurredBar())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredBar({ label: ep.label }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredBar())),
                 h.Style({ cursor: 'default' }),
               ],
               [

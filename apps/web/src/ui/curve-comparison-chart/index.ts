@@ -3,7 +3,7 @@ import type { CurveType } from '@opsydyn/foldkit-viz/shape/line';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -53,10 +53,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredCurve = m('HoveredCurve', { curve: Schema.String });
-export const BlurredCurve = m('BlurredCurve', {});
-
-export const Message = Schema.Union([HoveredCurve, BlurredCurve]);
+export const Message = defineMessageUnion({
+  HoveredCurve: { curve: Schema.String },
+  BlurredCurve: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -222,8 +222,8 @@ export function view<M>(
                 h.StrokeWidth(isActive ? '2.5' : '1.5'),
                 h.Opacity(isInactive ? '0.2' : '1'),
                 h.Style({ transition: 'stroke-width 80ms, opacity 80ms' }),
-                h.OnMouseEnter(toParentMessage(HoveredCurve({ curve }))),
-                h.OnMouseLeave(toParentMessage(BlurredCurve())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredCurve({ curve }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredCurve())),
               ],
               [],
             );
@@ -250,8 +250,8 @@ export function view<M>(
             return h.g(
               [
                 h.Transform(`translate(${col * colW}, ${row * 14})`),
-                h.OnMouseEnter(toParentMessage(HoveredCurve({ curve }))),
-                h.OnMouseLeave(toParentMessage(BlurredCurve())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredCurve({ curve }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredCurve())),
                 h.Style({ cursor: 'default' }),
               ],
               [

@@ -1,7 +1,7 @@
 import { colorScale, interpolateRgbBasis } from '@opsydyn/foldkit-viz/math/color';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -74,9 +74,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredDay = m('HoveredDay', { date: Schema.String });
-export const BlurredDay = m('BlurredDay', {});
-export const Message = Schema.Union([HoveredDay, BlurredDay]);
+export const Message = defineMessageUnion({
+  HoveredDay: { date: Schema.String },
+  BlurredDay: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -181,8 +182,8 @@ export function view<M>(
             h.Fill(day.color),
             h.Opacity(!isAnyActive ? '1' : day.date === activeDateVal ? '1' : '0.45'),
             h.Style({ transition: 'opacity 80ms', cursor: 'pointer' }),
-            h.OnMouseEnter(toParentMessage(HoveredDay({ date: day.date }))),
-            h.OnMouseLeave(toParentMessage(BlurredDay())),
+            h.OnMouseEnter(toParentMessage(Message.HoveredDay({ date: day.date }))),
+            h.OnMouseLeave(toParentMessage(Message.BlurredDay())),
           ],
           [],
         ),

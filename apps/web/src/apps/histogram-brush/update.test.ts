@@ -10,7 +10,7 @@ const seedBounds = (model: ReturnType<typeof init>[0]) =>
   update(
     model,
     Message.GotHistogramMessage({
-      message: Histogram.RecordedSvgBounds({
+      message: Histogram.Message.RecordedSvgBounds({
         clientLeft: 0,
         renderedPW: model.histogram.layout.pw,
       }),
@@ -22,16 +22,16 @@ const selectedModel = () => {
   const started = update(
     initial,
     Message.GotHistogramMessage({
-      message: Histogram.StartedHistogramBrush({ screenX: 40, clientX: 40 }),
+      message: Histogram.Message.StartedHistogramBrush({ screenX: 40, clientX: 40 }),
     }),
   )[0];
   const moved = update(
     started,
-    Message.GotHistogramMessage({ message: Histogram.MovedHistogramBrush({ screenX: 180 }) }),
+    Message.GotHistogramMessage({ message: Histogram.Message.MovedHistogramBrush({ screenX: 180 }) }),
   )[0];
   return update(
     moved,
-    Message.GotHistogramMessage({ message: Histogram.EndedHistogramBrush({ screenX: 180 }) }),
+    Message.GotHistogramMessage({ message: Histogram.Message.EndedHistogramBrush({ screenX: 180 }) }),
   )[0];
 };
 
@@ -45,7 +45,7 @@ describe('histogram brush selection', () => {
   it('clears the parent selection and restores every point', () => {
     const model = update(
       selectedModel(),
-      Message.GotHistogramMessage({ message: Histogram.ClearedHistogramBrush() }),
+      Message.GotHistogramMessage({ message: Histogram.Message.ClearedHistogramBrush() }),
     )[0];
     expect(model.selection).toEqual({ _tag: 'None' });
     expect(model.scatter.points).toEqual(model.allPoints);
@@ -55,7 +55,7 @@ describe('histogram brush selection', () => {
     const selected = selectedModel();
     const model = update(
       selected,
-      Message.GotScatterMessage({ message: Scatter.HoveredPoint({ index: 0 }) }),
+      Message.GotScatterMessage({ message: Scatter.Message.HoveredPoint({ index: 0 }) }),
     )[0];
     expect(model.selection).toBe(selected.selection);
   });

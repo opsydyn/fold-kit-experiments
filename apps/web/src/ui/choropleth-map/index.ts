@@ -4,7 +4,7 @@ import type { GeoFeatureCollection } from '@opsydyn/foldkit-viz/shape/geo';
 import { geoNaturalEarth1, geoPath } from '@opsydyn/foldkit-viz/shape/geo';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -71,10 +71,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredFeature = m('HoveredFeature', { id: Schema.String });
-export const BlurredFeature = m('BlurredFeature', {});
-
-export const Message = Schema.Union([HoveredFeature, BlurredFeature]);
+export const Message = defineMessageUnion({
+  HoveredFeature: { id: Schema.String },
+  BlurredFeature: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -161,8 +161,8 @@ export function view<M>(
                 h.StrokeWidth(isActive ? '1.5' : '0.4'),
                 h.Opacity(isDimmed ? '0.35' : '1'),
                 h.Style({ cursor: datum ? 'pointer' : 'default', transition: 'opacity 120ms' }),
-                h.OnMouseEnter(toParentMessage(HoveredFeature({ id: fid }))),
-                h.OnMouseLeave(toParentMessage(BlurredFeature())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredFeature({ id: fid }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredFeature())),
                 ...(datum ? [h.AriaLabel(`${datum.label}: ${datum.value}`)] : []),
               ],
               [],

@@ -1,7 +1,7 @@
 import { Effect, Match, Option, pipe, Schema, Stream } from 'effect';
 import { Subscription } from 'foldkit';
 import type { Attribute, Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 // MODEL
 
@@ -34,42 +34,33 @@ export type Model = Readonly<{
 
 // MESSAGE
 
-export const PressedSlide = m('PressedSlide', { clientX: Schema.Number, timestamp: Schema.Number });
-export const MovedDragPointer = m('MovedDragPointer', {
-  deltaX: Schema.Number,
-  velocityX: Schema.Number,
+export const Message = defineMessageUnion({
+  PressedSlide: { clientX: Schema.Number, timestamp: Schema.Number },
+  MovedDragPointer: {
+    deltaX: Schema.Number,
+    velocityX: Schema.Number,
+  },
+  ReleasedDragPointer: {
+    deltaX: Schema.Number,
+    velocityX: Schema.Number,
+    trackWidth: Schema.Number,
+  },
+  CancelledDrag: {},
+  TickedSettle: { deltaTimeMs: Schema.Number },
+  ClickedPrev: {},
+  ClickedNext: {},
+  ClickedDot: { index: Schema.Number },
+  PressedKeyboardNavigation: {
+    direction: Schema.String,
+  },
 });
-export const ReleasedDragPointer = m('ReleasedDragPointer', {
-  deltaX: Schema.Number,
-  velocityX: Schema.Number,
-  trackWidth: Schema.Number,
-});
-export const CancelledDrag = m('CancelledDrag', {});
-export const TickedSettle = m('TickedSettle', { deltaTimeMs: Schema.Number });
-export const ClickedPrev = m('ClickedPrev', {});
-export const ClickedNext = m('ClickedNext', {});
-export const ClickedDot = m('ClickedDot', { index: Schema.Number });
-export const PressedKeyboardNavigation = m('PressedKeyboardNavigation', {
-  direction: Schema.String,
-});
-
-export const Message = Schema.Union([
-  PressedSlide,
-  MovedDragPointer,
-  ReleasedDragPointer,
-  CancelledDrag,
-  TickedSettle,
-  ClickedPrev,
-  ClickedNext,
-  ClickedDot,
-  PressedKeyboardNavigation,
-]);
 export type Message = typeof Message.Type;
 
 // OUT MESSAGE
 
-export const ChangedSlide = m('ChangedSlide', { index: Schema.Number });
-export const OutMessage = ChangedSlide;
+export const OutMessage = defineMessageUnion({
+  ChangedSlide: { index: Schema.Number },
+});
 export type OutMessage = typeof OutMessage.Type;
 
 // INIT
@@ -154,7 +145,7 @@ const withChanged = (
 ): readonly [Model, readonly [], Option.Option<OutMessage>] => {
   const maybeOut =
     targetIndex !== model.activeIndex
-      ? Option.some(ChangedSlide({ index: targetIndex }))
+      ? Option.some(OutMessage.ChangedSlide({ index: targetIndex }))
       : Option.none();
   return [model, [], maybeOut];
 };
@@ -177,7 +168,7 @@ const navigateTo = (model: Model, targetIndex: number): Return => {
       },
     },
     [],
-    Option.some(ChangedSlide({ index: targetIndex })),
+    Option.some(OutMessage.ChangedSlide({ index: targetIndex })),
   ];
 };
 
@@ -378,7 +369,7 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
               lastVelocityX = (event.clientX - lastClientX) / dt;
               lastClientX = event.clientX;
               lastTime = now;
-              return MovedDragPointer({
+              return Message.MovedDragPointer({
                 deltaX: event.clientX - startX,
                 velocityX: lastVelocityX,
               });
@@ -390,7 +381,7 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
                 const el = trackById(id);
                 const trackWidth = el ? el.getBoundingClientRect().width : 300;
                 return Option.some(
-                  ReleasedDragPointer({
+                  Message.ReleasedDragPointer({
                     deltaX: event.clientX - startX,
                     velocityX: lastVelocityX,
                     trackWidth,
@@ -419,7 +410,7 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
         Stream.when(
           Stream.fromEventListener<KeyboardEvent>(document, 'keydown').pipe(
             Stream.filter(({ key }) => key === 'Escape'),
-            Stream.map(() => CancelledDrag()),
+            Stream.map(() => Message.CancelledDrag()),
           ),
           Effect.sync(() => dragActivity === 'Active'),
         ),
@@ -428,7 +419,7 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
 
   settle: Subscription.animationFrame({
     isActive: (model) => model.dragState._tag === 'Settling',
-    toMessage: (deltaTimeMs) => TickedSettle({ deltaTimeMs }),
+    toMessage: (deltaTimeMs) => Message.TickedSettle({ deltaTimeMs }),
   }),
 }));
 
@@ -459,10 +450,10 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
 
   const handleKeyDown = (key: string): Option.Option<M> => {
     if (key === 'ArrowLeft') {
-      return Option.some(toParentMessage(PressedKeyboardNavigation({ direction: 'Prev' })));
+      return Option.some(toParentMessage(Message.PressedKeyboardNavigation({ direction: 'Prev' })));
     }
     if (key === 'ArrowRight') {
-      return Option.some(toParentMessage(PressedKeyboardNavigation({ direction: 'Next' })));
+      return Option.some(toParentMessage(Message.PressedKeyboardNavigation({ direction: 'Next' })));
     }
     return Option.none();
   };
@@ -478,7 +469,7 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
     pipe(
       button,
       Option.liftPredicate((b) => b === LEFT_MOUSE_BUTTON),
-      Option.map(() => toParentMessage(PressedSlide({ clientX, timestamp: timeStamp }))),
+      Option.map(() => toParentMessage(Message.PressedSlide({ clientX, timestamp: timeStamp }))),
     );
 
   const rootAttributes: ReadonlyArray<Attribute<M>> = [
@@ -516,19 +507,19 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
   ];
 
   const prevButton: ReadonlyArray<Attribute<M>> = [
-    h.OnClick(toParentMessage(ClickedPrev())),
+    h.OnClick(toParentMessage(Message.ClickedPrev())),
     h.AriaLabel('Previous slide'),
     ...(model.loop || model.activeIndex > 0 ? [] : [h.AriaDisabled(true)]),
   ];
 
   const nextButton: ReadonlyArray<Attribute<M>> = [
-    h.OnClick(toParentMessage(ClickedNext())),
+    h.OnClick(toParentMessage(Message.ClickedNext())),
     h.AriaLabel('Next slide'),
     ...(model.loop || model.activeIndex < model.slideCount - 1 ? [] : [h.AriaDisabled(true)]),
   ];
 
   const dot = (index: number): ReadonlyArray<Attribute<M>> => [
-    h.OnClick(toParentMessage(ClickedDot({ index }))),
+    h.OnClick(toParentMessage(Message.ClickedDot({ index }))),
     h.AriaLabel(`Go to slide ${index + 1}`),
     h.AriaPressed(index === model.activeIndex ? 'true' : 'false'),
     ...(index === model.activeIndex ? [h.DataAttribute('active', '')] : []),

@@ -1,7 +1,7 @@
 import type { ForceLayout, LayoutLink, LayoutNode } from '@opsydyn/foldkit-viz/simulation';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { r3, svgRoot } from '../shared';
 
@@ -65,11 +65,11 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredNode = m('HoveredNode', { id: Schema.String });
-export const BlurredNode = m('BlurredNode', {});
-export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
-
-export const Message = Schema.Union([HoveredNode, BlurredNode, PressedKeyNav]);
+export const Message = defineMessageUnion({
+  HoveredNode: { id: Schema.String },
+  BlurredNode: {},
+  PressedKeyNav: { direction: Schema.String },
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -121,9 +121,9 @@ export const view = <M>(
 
   const handleKeyDown = (key: string): Option.Option<M> => {
     if (key === 'ArrowRight')
-      return Option.some(toParentMessage(PressedKeyNav({ direction: 'next' })));
+      return Option.some(toParentMessage(Message.PressedKeyNav({ direction: 'next' })));
     if (key === 'ArrowLeft')
-      return Option.some(toParentMessage(PressedKeyNav({ direction: 'prev' })));
+      return Option.some(toParentMessage(Message.PressedKeyNav({ direction: 'prev' })));
     return Option.none();
   };
 
@@ -185,8 +185,8 @@ export const view = <M>(
 
           return h.g(
             [
-              h.OnMouseEnter(toParentMessage(HoveredNode({ id: n.id }))),
-              h.OnMouseLeave(toParentMessage(BlurredNode())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredNode({ id: n.id }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredNode())),
               h.Style({ cursor: 'pointer' }),
               h.AriaLabel(`${n.label}`),
             ],

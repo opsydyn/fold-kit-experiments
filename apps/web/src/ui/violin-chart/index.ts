@@ -2,7 +2,7 @@ import { linear, linearTicks, point } from '@opsydyn/foldkit-viz/math/scale';
 import { boxStats, kde, silvermanBandwidth } from '@opsydyn/foldkit-viz/math/stats';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -97,10 +97,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredViolin = m('HoveredViolin', { label: Schema.String });
-export const BlurredViolin = m('BlurredViolin', {});
-
-export const Message = Schema.Union([HoveredViolin, BlurredViolin]);
+export const Message = defineMessageUnion({
+  HoveredViolin: { label: Schema.String },
+  BlurredViolin: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -234,8 +234,8 @@ export function view<M>(
 
             return h.g(
               [
-                h.OnMouseEnter(toParentMessage(HoveredViolin({ label: v.label }))),
-                h.OnMouseLeave(toParentMessage(BlurredViolin())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredViolin({ label: v.label }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredViolin())),
                 h.Style({ cursor: 'default' }),
               ],
               [

@@ -1,7 +1,7 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { r3, svgRoot } from '../shared';
 
@@ -40,9 +40,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredRecord = m('HoveredRecord', { index: Schema.Number });
-export const BlurredRecord = m('BlurredRecord', {});
-export const Message = Schema.Union([HoveredRecord, BlurredRecord]);
+export const Message = defineMessageUnion({
+  HoveredRecord: { index: Schema.Number },
+  BlurredRecord: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -116,8 +117,8 @@ export function view<M>(
             'stroke-linecap': 'round',
             'stroke-linejoin': 'round',
           }),
-          h.OnMouseEnter(toParentMessage(HoveredRecord({ index: ri }))),
-          h.OnMouseLeave(toParentMessage(BlurredRecord())),
+          h.OnMouseEnter(toParentMessage(Message.HoveredRecord({ index: ri }))),
+          h.OnMouseLeave(toParentMessage(Message.BlurredRecord())),
         ],
         [],
       ),
@@ -140,8 +141,8 @@ export function view<M>(
             'stroke-linecap': 'round',
             'stroke-linejoin': 'round',
           }),
-          h.OnMouseEnter(toParentMessage(HoveredRecord({ index: ri }))),
-          h.OnMouseLeave(toParentMessage(BlurredRecord())),
+          h.OnMouseEnter(toParentMessage(Message.HoveredRecord({ index: ri }))),
+          h.OnMouseLeave(toParentMessage(Message.BlurredRecord())),
         ],
         [],
       ),
@@ -226,8 +227,8 @@ export function view<M>(
         return h.g(
           [
             h.Transform(`translate(0, ${ri * 20})`),
-            h.OnMouseEnter(toParentMessage(HoveredRecord({ index: ri }))),
-            h.OnMouseLeave(toParentMessage(BlurredRecord())),
+            h.OnMouseEnter(toParentMessage(Message.HoveredRecord({ index: ri }))),
+            h.OnMouseLeave(toParentMessage(Message.BlurredRecord())),
             h.Style({ cursor: 'pointer' }),
           ],
           [

@@ -1,7 +1,7 @@
 import { linear, linearTicks, sqrt } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -64,11 +64,11 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredPoint = m('HoveredPoint', { index: Schema.Number });
-export const BlurredPoint = m('BlurredPoint', {});
-export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
-
-export const Message = Schema.Union([HoveredPoint, BlurredPoint, PressedKeyNav]);
+export const Message = defineMessageUnion({
+  HoveredPoint: { index: Schema.Number },
+  BlurredPoint: {},
+  PressedKeyNav: { direction: Schema.String },
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -125,9 +125,9 @@ export const view = <M>(
 
   const handleKeyDown = (key: string): Option.Option<M> => {
     if (key === 'ArrowRight')
-      return Option.some(toParentMessage(PressedKeyNav({ direction: 'next' })));
+      return Option.some(toParentMessage(Message.PressedKeyNav({ direction: 'next' })));
     if (key === 'ArrowLeft')
-      return Option.some(toParentMessage(PressedKeyNav({ direction: 'prev' })));
+      return Option.some(toParentMessage(Message.PressedKeyNav({ direction: 'prev' })));
     return Option.none();
   };
 
@@ -330,8 +330,8 @@ export const view = <M>(
                 h.Cy(String(cy)),
                 h.R(String(br + 4)),
                 h.Fill('transparent'),
-                h.OnMouseEnter(toParentMessage(HoveredPoint({ index: i }))),
-                h.OnMouseLeave(toParentMessage(BlurredPoint())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredPoint({ index: i }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredPoint())),
                 h.Style({ cursor: 'pointer' }),
                 h.AriaLabel(`${p.label}: x ${p.x}, y ${p.y}, ${cfg.valueLabel} ${p.value}`),
               ],

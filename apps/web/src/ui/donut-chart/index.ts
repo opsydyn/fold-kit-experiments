@@ -2,7 +2,7 @@ import { arc } from '@opsydyn/foldkit-viz/shape/arc';
 import { pie } from '@opsydyn/foldkit-viz/shape/pie';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -50,17 +50,12 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredSegment = m('HoveredSegment', { index: Schema.Number });
-export const BlurredSegment = m('BlurredSegment', {});
-export const ClickedSegment = m('ClickedSegment', { index: Schema.Number });
-export const PressedKeyNav = m('PressedKeyNav', { direction: Schema.String });
-
-export const Message = Schema.Union([
-  HoveredSegment,
-  BlurredSegment,
-  ClickedSegment,
-  PressedKeyNav,
-]);
+export const Message = defineMessageUnion({
+  HoveredSegment: { index: Schema.Number },
+  BlurredSegment: {},
+  ClickedSegment: { index: Schema.Number },
+  PressedKeyNav: { direction: Schema.String },
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -108,9 +103,9 @@ export const view = <M>(
 
   const handleKeyDown = (key: string): Option.Option<M> => {
     if (key === 'ArrowRight' || key === 'ArrowDown')
-      return Option.some(toParentMessage(PressedKeyNav({ direction: 'next' })));
+      return Option.some(toParentMessage(Message.PressedKeyNav({ direction: 'next' })));
     if (key === 'ArrowLeft' || key === 'ArrowUp')
-      return Option.some(toParentMessage(PressedKeyNav({ direction: 'prev' })));
+      return Option.some(toParentMessage(Message.PressedKeyNav({ direction: 'prev' })));
     return Option.none();
   };
 
@@ -135,9 +130,9 @@ export const view = <M>(
               h.Fill(d.data.color),
               h.Style({ cursor: 'pointer' }),
               h.AriaLabel(`${d.data.label}: ${d.data.value}`),
-              h.OnMouseEnter(toParentMessage(HoveredSegment({ index: i }))),
-              h.OnMouseLeave(toParentMessage(BlurredSegment())),
-              h.OnClick(toParentMessage(ClickedSegment({ index: i }))),
+              h.OnMouseEnter(toParentMessage(Message.HoveredSegment({ index: i }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredSegment())),
+              h.OnClick(toParentMessage(Message.ClickedSegment({ index: i }))),
               ...(isActive ? [h.DataAttribute('active', '')] : []),
             ],
             [],

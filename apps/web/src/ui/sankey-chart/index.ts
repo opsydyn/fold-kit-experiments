@@ -2,7 +2,7 @@ import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { sankey } from '@opsydyn/foldkit-viz/shape/sankey';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -175,10 +175,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredNode = m('HoveredNode', { id: Schema.String });
-export const BlurredNode = m('BlurredNode', {});
-
-export const Message = Schema.Union([HoveredNode, BlurredNode]);
+export const Message = defineMessageUnion({
+  HoveredNode: { id: Schema.String },
+  BlurredNode: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -252,8 +252,8 @@ export const view = <M>(
 
           return h.g(
             [
-              h.OnMouseEnter(toParentMessage(HoveredNode({ id: node.id }))),
-              h.OnMouseLeave(toParentMessage(BlurredNode())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredNode({ id: node.id }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredNode())),
               h.Style({ cursor: 'pointer' }),
               h.AriaLabel(node.label),
             ],

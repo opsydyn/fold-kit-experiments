@@ -2,7 +2,7 @@ import { cumsum } from '@opsydyn/foldkit-viz/math/array';
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot, yGridlines } from '../shared';
@@ -47,10 +47,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredRow = m('HoveredRow', { label: Schema.String });
-export const BlurredRow = m('BlurredRow', {});
-
-export const Message = Schema.Union([HoveredRow, BlurredRow]);
+export const Message = defineMessageUnion({
+  HoveredRow: { label: Schema.String },
+  BlurredRow: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -212,8 +212,8 @@ export function view<M>(
 
           return h.g(
             [
-              h.OnMouseEnter(toParentMessage(HoveredRow({ label: row.label }))),
-              h.OnMouseLeave(toParentMessage(BlurredRow())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredRow({ label: row.label }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredRow())),
               h.Style({
                 cursor: 'default',
                 opacity: isDimmed ? '0.35' : '1',

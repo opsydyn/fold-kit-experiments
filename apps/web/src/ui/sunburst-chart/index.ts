@@ -2,7 +2,7 @@ import { descendants, hierarchy, partition, sort, sum } from '@opsydyn/foldkit-v
 import { arc, arcCentroid } from '@opsydyn/foldkit-viz/shape/arc';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -153,10 +153,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredSegment = m('HoveredSegment', { name: Schema.String });
-export const BlurredSegment = m('BlurredSegment', {});
-
-export const Message = Schema.Union([HoveredSegment, BlurredSegment]);
+export const Message = defineMessageUnion({
+  HoveredSegment: { name: Schema.String },
+  BlurredSegment: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -257,8 +257,8 @@ export const view = <M>(
           return h.g(
             [
               h.Style({ cursor: 'pointer' }),
-              h.OnMouseEnter(toParentMessage(HoveredSegment({ name: a.name }))),
-              h.OnMouseLeave(toParentMessage(BlurredSegment())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredSegment({ name: a.name }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredSegment())),
               h.AriaLabel(`${a.name}: ${a.value}`),
             ],
             [

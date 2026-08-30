@@ -14,7 +14,7 @@ import { linear, linearInvertible, linearTicks } from '@opsydyn/foldkit-viz/math
 import { Effect, Match, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import {
   type Dims,
@@ -98,29 +98,21 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredBin = m('HoveredBin', { index: Schema.Number });
-export const BlurredBin = m('BlurredBin', {});
-export const RecordedSvgBounds = m('RecordedSvgBounds', {
-  clientLeft: Schema.Number,
-  renderedPW: Schema.Number,
+export const Message = defineMessageUnion({
+  HoveredBin: { index: Schema.Number },
+  BlurredBin: {},
+  RecordedSvgBounds: {
+    clientLeft: Schema.Number,
+    renderedPW: Schema.Number,
+  },
+  StartedHistogramBrush: {
+    screenX: Schema.Number,
+    clientX: Schema.Number,
+  },
+  MovedHistogramBrush: { screenX: Schema.Number },
+  EndedHistogramBrush: { screenX: Schema.Number },
+  ClearedHistogramBrush: {},
 });
-export const StartedHistogramBrush = m('StartedHistogramBrush', {
-  screenX: Schema.Number,
-  clientX: Schema.Number,
-});
-export const MovedHistogramBrush = m('MovedHistogramBrush', { screenX: Schema.Number });
-export const EndedHistogramBrush = m('EndedHistogramBrush', { screenX: Schema.Number });
-export const ClearedHistogramBrush = m('ClearedHistogramBrush', {});
-
-export const Message = Schema.Union([
-  HoveredBin,
-  BlurredBin,
-  RecordedSvgBounds,
-  StartedHistogramBrush,
-  MovedHistogramBrush,
-  EndedHistogramBrush,
-  ClearedHistogramBrush,
-]);
 export type Message = typeof Message.Type;
 
 // MOUNT
@@ -131,7 +123,7 @@ export const CaptureSvgBounds = Mount.define(
 )((element) =>
   Effect.sync(() => {
     const rect = element.getBoundingClientRect();
-    return RecordedSvgBounds({ clientLeft: rect.left, renderedPW: rect.width });
+    return Message.RecordedSvgBounds({ clientLeft: rect.left, renderedPW: rect.width });
   }),
 );
 
@@ -299,8 +291,8 @@ export function view<M>(
               [
                 ...(!enableBrush
                   ? [
-                      h.OnMouseEnter(toParentMessage(HoveredBin({ index: i }))),
-                      h.OnMouseLeave(toParentMessage(BlurredBin())),
+                      h.OnMouseEnter(toParentMessage(Message.HoveredBin({ index: i }))),
+                      h.OnMouseLeave(toParentMessage(Message.BlurredBin())),
                     ]
                   : []),
                 h.Style({ cursor: 'default' }),
@@ -397,15 +389,15 @@ export function view<M>(
                   h.Style({ cursor: 'crosshair', 'user-select': 'none' }),
                   h.OnMount(Mount.mapMessage(CaptureSvgBounds(), toParentMessage)),
                   h.OnPointerDown((_pointerType, _button, screenX, _screenY, _ts, clientX) =>
-                    Option.some(toParentMessage(StartedHistogramBrush({ screenX, clientX }))),
+                    Option.some(toParentMessage(Message.StartedHistogramBrush({ screenX, clientX }))),
                   ),
                   h.OnPointerMove((screenX, _screenY, _pointerType) =>
                     model.brush.active
-                      ? Option.some(toParentMessage(MovedHistogramBrush({ screenX })))
+                      ? Option.some(toParentMessage(Message.MovedHistogramBrush({ screenX })))
                       : Option.none(),
                   ),
                   h.OnPointerUp((screenX, _screenY, _pointerType, _ts) =>
-                    Option.some(toParentMessage(EndedHistogramBrush({ screenX }))),
+                    Option.some(toParentMessage(Message.EndedHistogramBrush({ screenX }))),
                   ),
                 ],
                 [],

@@ -1,7 +1,7 @@
 import { band, linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -100,10 +100,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredBar = m('HoveredBar', { index: Schema.Number });
-export const BlurredBar = m('BlurredBar', {});
-
-export const Message = Schema.Union([HoveredBar, BlurredBar]);
+export const Message = defineMessageUnion({
+  HoveredBar: { index: Schema.Number },
+  BlurredBar: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -191,8 +191,8 @@ export function view<M>(
     return h.g(
       [
         h.Style({ cursor: 'pointer' }),
-        h.OnMouseEnter(toParentMessage(HoveredBar({ index: i }))),
-        h.OnMouseLeave(toParentMessage(BlurredBar())),
+        h.OnMouseEnter(toParentMessage(Message.HoveredBar({ index: i }))),
+        h.OnMouseLeave(toParentMessage(Message.BlurredBar())),
       ],
       [
         connector,

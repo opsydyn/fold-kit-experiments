@@ -1,7 +1,7 @@
 import { hierarchy, pack, sort, sum } from '@opsydyn/foldkit-viz/hierarchy';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -124,10 +124,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredCircle = m('HoveredCircle', { id: Schema.String });
-export const BlurredCircle = m('BlurredCircle', {});
-
-export const Message = Schema.Union([HoveredCircle, BlurredCircle]);
+export const Message = defineMessageUnion({
+  HoveredCircle: { id: Schema.String },
+  BlurredCircle: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -180,8 +180,8 @@ export const view = <M>(
     ...groups.map((g) =>
       h.g(
         [
-          h.OnMouseEnter(toParentMessage(HoveredCircle({ id: g.id }))),
-          h.OnMouseLeave(toParentMessage(BlurredCircle())),
+          h.OnMouseEnter(toParentMessage(Message.HoveredCircle({ id: g.id }))),
+          h.OnMouseLeave(toParentMessage(Message.BlurredCircle())),
           h.Style({ cursor: 'pointer' }),
         ],
         [
@@ -228,8 +228,8 @@ export const view = <M>(
       const isActive = leaf.id === activeIdVal;
       return h.g(
         [
-          h.OnMouseEnter(toParentMessage(HoveredCircle({ id: leaf.id }))),
-          h.OnMouseLeave(toParentMessage(BlurredCircle())),
+          h.OnMouseEnter(toParentMessage(Message.HoveredCircle({ id: leaf.id }))),
+          h.OnMouseLeave(toParentMessage(Message.BlurredCircle())),
           h.Style({ cursor: 'pointer' }),
           h.AriaLabel(`${leaf.label}: ${leaf.value}`),
         ],

@@ -1,7 +1,7 @@
 import { interpolateHsl, interpolateLab, interpolateRgb } from '@opsydyn/foldkit-viz/math/color';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -45,10 +45,10 @@ export function init(): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredStrip = m('HoveredStrip', { label: Schema.String });
-export const BlurredStrip = m('BlurredStrip', {});
-
-export const Message = Schema.Union([HoveredStrip, BlurredStrip]);
+export const Message = defineMessageUnion({
+  HoveredStrip: { label: Schema.String },
+  BlurredStrip: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -104,8 +104,8 @@ export function view<M>(
         return h.g(
           [
             h.Transform(`translate(0,${ty})`),
-            h.OnMouseEnter(toParentMessage(HoveredStrip({ label: strip.label }))),
-            h.OnMouseLeave(toParentMessage(BlurredStrip())),
+            h.OnMouseEnter(toParentMessage(Message.HoveredStrip({ label: strip.label }))),
+            h.OnMouseLeave(toParentMessage(Message.BlurredStrip())),
             h.Style({ cursor: 'default' }),
           ],
           [

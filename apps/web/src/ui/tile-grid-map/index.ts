@@ -3,7 +3,7 @@ import { interpolateRgb } from '@opsydyn/foldkit-viz/math/color';
 import { scaleSequential } from '@opsydyn/foldkit-viz/math/scale';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -76,10 +76,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredCell = m('HoveredCell', { id: Schema.String });
-export const BlurredCell = m('BlurredCell', {});
-
-export const Message = Schema.Union([HoveredCell, BlurredCell]);
+export const Message = defineMessageUnion({
+  HoveredCell: { id: Schema.String },
+  BlurredCell: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -137,8 +137,8 @@ export function view<M>(
 
           return h.g(
             [
-              h.OnMouseEnter(toParentMessage(HoveredCell({ id: cell.id }))),
-              h.OnMouseLeave(toParentMessage(BlurredCell())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredCell({ id: cell.id }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredCell())),
               h.Style({ cursor: 'default' }),
               h.AriaLabel(`${cell.label}: ${cell.value}`),
             ],

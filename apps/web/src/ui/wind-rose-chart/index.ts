@@ -2,7 +2,7 @@ import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { wedge } from '@opsydyn/foldkit-viz/shape/areaRadial';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -55,10 +55,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredSegment = m('HoveredSegment', { index: Schema.Number });
-export const BlurredSegment = m('BlurredSegment', {});
-
-export const Message = Schema.Union([HoveredSegment, BlurredSegment]);
+export const Message = defineMessageUnion({
+  HoveredSegment: { index: Schema.Number },
+  BlurredSegment: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -175,8 +175,8 @@ export function view<M>(
 
           return h.g(
             [
-              h.OnMouseEnter(toParentMessage(HoveredSegment({ index: i }))),
-              h.OnMouseLeave(toParentMessage(BlurredSegment())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredSegment({ index: i }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredSegment())),
               h.Style({ cursor: 'pointer' }),
               h.AriaLabel(`${seg.label}: ${seg.value}`),
             ],

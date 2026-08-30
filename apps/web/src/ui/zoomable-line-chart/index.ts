@@ -9,7 +9,7 @@ import {
 } from '@opsydyn/foldkit-viz/math/zoom';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { r3, svgRoot } from '../shared';
 
@@ -48,21 +48,14 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const ClickedZoomIn = m('ClickedZoomIn', {});
-export const ClickedZoomOut = m('ClickedZoomOut', {});
-export const ClickedReset = m('ClickedReset', {});
-export const StartedDrag = m('StartedDrag', { clientX: Schema.Number });
-export const MovedDrag = m('MovedDrag', { clientX: Schema.Number });
-export const EndedDrag = m('EndedDrag', {});
-
-export const Message = Schema.Union([
-  ClickedZoomIn,
-  ClickedZoomOut,
-  ClickedReset,
-  StartedDrag,
-  MovedDrag,
-  EndedDrag,
-]);
+export const Message = defineMessageUnion({
+  ClickedZoomIn: {},
+  ClickedZoomOut: {},
+  ClickedReset: {},
+  StartedDrag: { clientX: Schema.Number },
+  MovedDrag: { clientX: Schema.Number },
+  EndedDrag: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -185,21 +178,21 @@ export function view<M>(
     _screenY: number,
     _ts: number,
     _clientX: number,
-  ): Option.Option<M> => Option.some(toParentMessage(StartedDrag({ clientX: screenX })));
+  ): Option.Option<M> => Option.some(toParentMessage(Message.StartedDrag({ clientX: screenX })));
 
   const handlePointerMove = (
     _screenX: number,
     _screenY: number,
     _pointerType: string,
   ): Option.Option<M> =>
-    isDragging ? Option.some(toParentMessage(MovedDrag({ clientX: _screenX }))) : Option.none();
+    isDragging ? Option.some(toParentMessage(Message.MovedDrag({ clientX: _screenX }))) : Option.none();
 
   const handlePointerUp = (
     _screenX: number,
     _screenY: number,
     _pointerType: string,
     _ts: number,
-  ): Option.Option<M> => Option.some(toParentMessage(EndedDrag()));
+  ): Option.Option<M> => Option.some(toParentMessage(Message.EndedDrag()));
 
   const btnY = 6;
   const btnH = 16;
@@ -224,7 +217,7 @@ export function view<M>(
       [
         // Zoom out (−)
         h.g(
-          [h.OnClick(toParentMessage(ClickedZoomOut())), h.Style(btnStyle)],
+          [h.OnClick(toParentMessage(Message.ClickedZoomOut())), h.Style(btnStyle)],
           [
             h.rect(
               [
@@ -257,7 +250,7 @@ export function view<M>(
         ),
         // Reset (⟲)
         h.g(
-          [h.OnClick(toParentMessage(ClickedReset())), h.Style(btnStyle)],
+          [h.OnClick(toParentMessage(Message.ClickedReset())), h.Style(btnStyle)],
           [
             h.rect(
               [
@@ -290,7 +283,7 @@ export function view<M>(
         ),
         // Zoom in (+)
         h.g(
-          [h.OnClick(toParentMessage(ClickedZoomIn())), h.Style(btnStyle)],
+          [h.OnClick(toParentMessage(Message.ClickedZoomIn())), h.Style(btnStyle)],
           [
             h.rect(
               [

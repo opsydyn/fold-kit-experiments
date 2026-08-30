@@ -3,7 +3,7 @@ import { hierarchy, treeLayout } from '@opsydyn/foldkit-viz/hierarchy';
 import { linkVertical } from '@opsydyn/foldkit-viz/shape/link';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -75,10 +75,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredNode = m('HoveredNode', { name: Schema.String });
-export const BlurredNode = m('BlurredNode', {});
-
-export const Message = Schema.Union([HoveredNode, BlurredNode]);
+export const Message = defineMessageUnion({
+  HoveredNode: { name: Schema.String },
+  BlurredNode: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -157,8 +157,8 @@ export function view<M>(
             return h.g(
               [
                 h.Transform(`translate(${cx},${cy})`),
-                h.OnMouseEnter(toParentMessage(HoveredNode({ name: node.data.name }))),
-                h.OnMouseLeave(toParentMessage(BlurredNode())),
+                h.OnMouseEnter(toParentMessage(Message.HoveredNode({ name: node.data.name }))),
+                h.OnMouseLeave(toParentMessage(Message.BlurredNode())),
                 h.Style({ cursor: 'default' }),
               ],
               [

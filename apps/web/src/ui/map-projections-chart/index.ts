@@ -6,7 +6,7 @@ import {
 } from '@opsydyn/foldkit-viz/shape/geo';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -68,10 +68,10 @@ export function init(): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredCity = m('HoveredCity', { name: Schema.String });
-export const BlurredCity = m('BlurredCity', {});
-
-export const Message = Schema.Union([HoveredCity, BlurredCity]);
+export const Message = defineMessageUnion({
+  HoveredCity: { name: Schema.String },
+  BlurredCity: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -227,8 +227,8 @@ export function view<M>(
         const isInactive = active !== null && !isActive;
         return h.g(
           [
-            h.OnMouseEnter(toParentMessage(HoveredCity({ name }))),
-            h.OnMouseLeave(toParentMessage(BlurredCity())),
+            h.OnMouseEnter(toParentMessage(Message.HoveredCity({ name }))),
+            h.OnMouseLeave(toParentMessage(Message.BlurredCity())),
             h.Style({ cursor: 'default' }),
           ],
           [
@@ -273,8 +273,8 @@ export function view<M>(
         const isInactive = active !== null && !isActive;
         return h.g(
           [
-            h.OnMouseEnter(toParentMessage(HoveredCity({ name }))),
-            h.OnMouseLeave(toParentMessage(BlurredCity())),
+            h.OnMouseEnter(toParentMessage(Message.HoveredCity({ name }))),
+            h.OnMouseLeave(toParentMessage(Message.BlurredCity())),
             h.Style({ cursor: 'default' }),
           ],
           [

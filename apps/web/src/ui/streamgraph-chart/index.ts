@@ -4,7 +4,7 @@ import { area } from '@opsydyn/foldkit-viz/shape/area';
 import { stack } from '@opsydyn/foldkit-viz/shape/stack';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -132,10 +132,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredSeries = m('HoveredSeries', { key: Schema.String });
-export const BlurredSeries = m('BlurredSeries', {});
-
-export const Message = Schema.Union([HoveredSeries, BlurredSeries]);
+export const Message = defineMessageUnion({
+  HoveredSeries: { key: Schema.String },
+  BlurredSeries: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -182,8 +182,8 @@ export const view = <M>(
               h.Stroke(s.color),
               h.StrokeWidth(isActive ? '1.5' : '0.5'),
               h.Style({ opacity, transition: 'opacity 150ms', cursor: 'pointer' }),
-              h.OnMouseEnter(toParentMessage(HoveredSeries({ key: s.key }))),
-              h.OnMouseLeave(toParentMessage(BlurredSeries())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredSeries({ key: s.key }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredSeries())),
             ],
             [],
           );

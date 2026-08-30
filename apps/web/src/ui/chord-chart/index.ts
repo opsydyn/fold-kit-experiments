@@ -3,7 +3,7 @@ import { arc, arcCentroid } from '@opsydyn/foldkit-viz/shape/arc';
 import { chord, ribbon } from '@opsydyn/foldkit-viz/shape/chord';
 import { Match, Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import { svgRoot } from '../shared';
 
@@ -150,10 +150,10 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
 
 // MESSAGE
 
-export const HoveredGroup = m('HoveredGroup', { index: Schema.Number });
-export const BlurredGroup = m('BlurredGroup', {});
-
-export const Message = Schema.Union([HoveredGroup, BlurredGroup]);
+export const Message = defineMessageUnion({
+  HoveredGroup: { index: Schema.Number },
+  BlurredGroup: {},
+});
 export type Message = typeof Message.Type;
 
 // UPDATE
@@ -214,8 +214,8 @@ export const view = <M>(
           return h.g(
             [
               h.Style({ cursor: 'pointer' }),
-              h.OnMouseEnter(toParentMessage(HoveredGroup({ index: g.index }))),
-              h.OnMouseLeave(toParentMessage(BlurredGroup())),
+              h.OnMouseEnter(toParentMessage(Message.HoveredGroup({ index: g.index }))),
+              h.OnMouseLeave(toParentMessage(Message.BlurredGroup())),
               h.AriaLabel(g.label),
             ],
             [

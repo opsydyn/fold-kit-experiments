@@ -1,12 +1,11 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as ZChoropleth from '../../ui/zoomable-choropleth-map';
-import type { Message } from './message';
-import { GotZChoroplethMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: ZChoropleth.Message): Message =>
-  GotZChoroplethMessage({ message: msg });
+  Message.GotZChoroplethMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'World internet penetration — zoomable choropleth map',

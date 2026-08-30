@@ -1,7 +1,6 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import type { Message } from './message';
-import { ClickedSave, UpdatedDraft } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 import * as styles from './profile.css';
@@ -36,11 +35,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               Type('text'),
               Value(model.draft),
               Placeholder('Enter your name'),
-              OnInput((value) => UpdatedDraft({ value })),
+              OnInput((value) => Message.UpdatedDraft({ value })),
             ]),
           ],
         ),
-        button([Class(styles.button), OnClick(ClickedSave())], ['Save']),
+        button([Class(styles.button), OnClick(Message.ClickedSave())], ['Save']),
         ...(model.isSaved ? [p([Class(styles.saved)], ['Saved!'])] : []),
         a([Class(styles.link), Href('/welcome')], ['View welcome page →']),
       ],

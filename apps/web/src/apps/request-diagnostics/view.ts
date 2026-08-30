@@ -2,8 +2,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
-import { ClickedReload, GotHistogramMessage, GotScatterMessage } from './message';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 import * as styles from './request-diagnostics.css';
@@ -18,7 +17,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const histogram: Html = Histogram.view(
     {
       model: model.histogram,
-      toParentMessage: (message) => GotHistogramMessage({ message }),
+      toParentMessage: (message) => Message.GotHistogramMessage({ message }),
       ariaLabel: 'Request latency distribution. Drag to filter the scatter plot.',
     },
     h,
@@ -26,7 +25,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scatter: Html = Scatter.view(
     {
       model: model.scatter,
-      toParentMessage: (message) => GotScatterMessage({ message }),
+      toParentMessage: (message) => Message.GotScatterMessage({ message }),
       ariaLabel: 'Error rate by request latency.',
     },
     h,
@@ -40,7 +39,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.div(
           [h.Class(styles.toolbar)],
           [
-            h.button([h.Class(styles.button), h.OnClick(ClickedReload())], ['Reload metrics']),
+            h.button(
+              [h.Class(styles.button), h.OnClick(Message.ClickedReload())],
+              ['Reload metrics'],
+            ),
             h.span([h.Class(styles.status)], [stateLabel(model)]),
             h.span(
               [h.Class(styles.status)],

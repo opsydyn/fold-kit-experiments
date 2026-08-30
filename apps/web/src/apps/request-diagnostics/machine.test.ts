@@ -1,17 +1,10 @@
 import { describe, expect, test } from 'vitest';
 
-import {
-  ChangedSelection,
-  ClearedSelection,
-  ClickedReload,
-  CompletedCancelFetchMetrics,
-  LoadedMetrics,
-  Navigated,
-} from './message';
+import { Message } from './message';
 import { Idle, initModel, samplePoints } from './model';
 import { diagnosticsMachine, update } from './update';
 
-const exited = Navigated({
+const exited = Message.Navigated({
   phase: 'exited',
   path: '/request-diagnostics',
   previousPath: '/',
@@ -21,7 +14,7 @@ describe('request diagnostics machine', () => {
   test('loads data from the loading state', () => {
     const result = diagnosticsMachine.step(
       { _tag: 'Loading' },
-      LoadedMetrics({ points: samplePoints }),
+      Message.LoadedMetrics({ points: samplePoints }),
     );
 
     expect(result).toMatchObject({
@@ -34,7 +27,7 @@ describe('request diagnostics machine', () => {
   test('accepts a non-empty selection and exposes its guard value', () => {
     const result = diagnosticsMachine.step(
       { _tag: 'Ready', points: samplePoints },
-      ChangedSelection({ domain: [100, 300] }),
+      Message.ChangedSelection({ domain: [100, 300] }),
     );
 
     expect(result).toMatchObject({
@@ -45,7 +38,7 @@ describe('request diagnostics machine', () => {
   });
 
   test('interrupts an in-flight metrics request before reloading', () => {
-    const result = diagnosticsMachine.step({ _tag: 'Loading' }, ClickedReload());
+    const result = diagnosticsMachine.step({ _tag: 'Loading' }, Message.ClickedReload());
 
     expect(result).toMatchObject({
       _tag: 'Transitioned',
@@ -69,7 +62,7 @@ describe('request diagnostics machine', () => {
   test('starts the replacement request from the interrupt outcome', () => {
     const [model, commands] = update(
       { ...initModel, explorer: { _tag: 'Cancelling', reason: 'Reload' } },
-      CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
+      Message.CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
     );
 
     expect(model.explorer).toEqual({ _tag: 'Loading' });
@@ -79,7 +72,7 @@ describe('request diagnostics machine', () => {
   test('does not replace metrics work after route-exit cancellation', () => {
     const [model, commands] = update(
       { ...initModel, explorer: { _tag: 'Cancelling', reason: 'RouteExit' } },
-      CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
+      Message.CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
     );
 
     expect(model.explorer).toEqual({ _tag: 'Idle' });
@@ -98,7 +91,10 @@ describe('request diagnostics machine', () => {
 
   test('ignores a late successful load after route-exit cancellation', () => {
     const model = { ...initModel, explorer: Idle() };
-    const [nextModel, commands] = update(model, LoadedMetrics({ points: samplePoints }));
+    const [nextModel, commands] = update(
+      model,
+      Message.LoadedMetrics({ points: samplePoints }),
+    );
 
     expect(nextModel.explorer).toBe(model.explorer);
     expect(nextModel.histogram).toBe(model.histogram);
@@ -115,7 +111,7 @@ describe('request diagnostics machine', () => {
         allPoints: samplePoints,
         domain: [100, 300],
       },
-      ClearedSelection(),
+      Message.ClearedSelection(),
     );
 
     expect(result).toMatchObject({

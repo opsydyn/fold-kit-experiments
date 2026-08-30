@@ -2,15 +2,14 @@ import { Option } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as DonutChart from '../../ui/donut-chart';
-import type { Message } from './message';
-import { GotDonutMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 import * as styles from './donut.css';
 
 type DonutMessage = DonutChart.Message;
 
-const toParentMessage = (msg: DonutMessage): Message => GotDonutMessage({ message: msg });
+const toParentMessage = (msg: DonutMessage): Message => Message.GotDonutMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const { div, span, Class, Style, DataAttribute } = h;

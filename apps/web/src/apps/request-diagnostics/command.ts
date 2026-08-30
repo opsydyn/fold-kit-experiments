@@ -2,18 +2,18 @@ import { Effect, Schema } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
 import { Command, Http } from 'foldkit';
 
-import { FailedLoad, LoadedMetrics } from './message';
+import { Message } from './message';
 import { Point } from './model';
 
 export const FetchMetrics = Command.define('FetchMetrics', {
-  messages: [LoadedMetrics, FailedLoad],
+  messages: [Message.LoadedMetrics, Message.FailedLoad],
   interrupt: true,
   execute: Effect.provide(
     Effect.gen(function* () {
       const response = yield* HttpClient.get('/api/request-diagnostics');
       const points = yield* HttpClientResponse.schemaBodyJson(Schema.Array(Point))(response);
-      return LoadedMetrics({ points });
-    }).pipe(Effect.catch((error) => Effect.succeed(FailedLoad({ error: String(error) })))),
+      return Message.LoadedMetrics({ points });
+    }).pipe(Effect.catch((error) => Effect.succeed(Message.FailedLoad({ error: String(error) })))),
     Http.layer,
   ),
 });

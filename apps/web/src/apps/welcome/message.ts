@@ -1,7 +1,7 @@
 import { Schema } from 'effect';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
-export const ReceivedUsername = m('ReceivedUsername', { username: Schema.String });
-
-export const Message = Schema.Union([ReceivedUsername]);
+export const Message = defineMessageUnion({
+  ReceivedUsername: { username: Schema.String },
+});
 export type Message = typeof Message.Type;

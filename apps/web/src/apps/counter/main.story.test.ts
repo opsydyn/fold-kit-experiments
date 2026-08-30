@@ -4,13 +4,7 @@ import { describe, expect, test } from 'vitest';
 
 import { SpawnParticle } from './command';
 import { BURST_COUNT, DECREMENT_HUE, INCREMENT_HUE, RESET_HUE, SPAWN_X, SPAWN_Y } from './constant';
-import {
-  ClickedDecrement,
-  ClickedIncrement,
-  ClickedReset,
-  SpawnedParticle,
-  TickedFrame,
-} from './message';
+import { Message } from './message';
 import { init } from './model';
 import type { Hue } from './types';
 import { Milliseconds, ParticleId, PixelsPerSec } from './types';
@@ -19,7 +13,7 @@ import { update } from './update';
 const emptyModel = init;
 
 const fakeParticle = (hue: Hue) =>
-  SpawnedParticle({
+  Message.SpawnedParticle({
     x: SPAWN_X,
     y: SPAWN_Y,
     vx: PixelsPerSec(0),
@@ -39,7 +33,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(ClickedIncrement()),
+        Story.message(Message.ClickedIncrement()),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
           expect(model.count).toBe(1);
@@ -51,7 +45,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given({ ...emptyModel, count: 3 }),
-        Story.message(ClickedDecrement()),
+        Story.message(Message.ClickedDecrement()),
         drainSpawns(DECREMENT_HUE),
         Story.model((model) => {
           expect(model.count).toBe(2);
@@ -63,7 +57,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given({ ...emptyModel, count: 5 }),
-        Story.message(ClickedReset()),
+        Story.message(Message.ClickedReset()),
         drainSpawns(RESET_HUE),
         Story.model((model) => {
           expect(model.count).toBe(0);
@@ -75,7 +69,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(ClickedDecrement()),
+        Story.message(Message.ClickedDecrement()),
         drainSpawns(DECREMENT_HUE),
         Story.model((model) => {
           expect(model.count).toBe(-1);
@@ -89,7 +83,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(ClickedIncrement()),
+        Story.message(Message.ClickedIncrement()),
         Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
@@ -102,7 +96,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(ClickedDecrement()),
+        Story.message(Message.ClickedDecrement()),
         Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
         drainSpawns(DECREMENT_HUE),
         Story.model((model) => {
@@ -115,7 +109,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(ClickedReset()),
+        Story.message(Message.ClickedReset()),
         Story.Command.expectExact(...Array.from({ length: BURST_COUNT }, () => SpawnParticle)),
         drainSpawns(RESET_HUE),
         Story.model((model) => {
@@ -128,7 +122,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(ClickedIncrement()),
+        Story.message(Message.ClickedIncrement()),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
           expect(model.particles[0]?.hue).toBe(INCREMENT_HUE);
@@ -140,7 +134,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(ClickedIncrement()),
+        Story.message(Message.ClickedIncrement()),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
           expect(model.particles[0]?.id).toBe(0);
@@ -153,7 +147,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(ClickedIncrement()),
+        Story.message(Message.ClickedIncrement()),
         drainSpawns(INCREMENT_HUE),
         Story.model((model) => {
           expect(model.particles[0]?.trail).toHaveLength(1);
@@ -180,7 +174,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(modelWithParticle),
-        Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
+        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(model.particles[0]?.ageMs).toBe(16);
         }),
@@ -191,7 +185,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(modelWithParticle),
-        Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
+        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(model.particles[0]?.trail).toHaveLength(2);
         }),
@@ -202,7 +196,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(modelWithParticle),
-        Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
+        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           const tip = model.particles[0]?.trail[1];
           expect(tip?.y).toBeLessThan(Newtype.value(SPAWN_Y));
@@ -214,7 +208,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(modelWithParticle),
-        Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
+        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(model.particles[0]?.vy).toBeGreaterThan(Newtype.value(aParticle.vy));
         }),
@@ -225,7 +219,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(emptyModel),
-        Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
+        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(Newtype.value(model.elapsedSeconds)).toBeCloseTo(0.016);
         }),
@@ -239,7 +233,7 @@ describe('update', () => {
           ...modelWithParticle,
           particles: [{ ...aParticle, ageMs: Milliseconds(990) }],
         }),
-        Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
+        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.model((model) => {
           expect(model.particles).toHaveLength(0);
         }),
@@ -250,7 +244,7 @@ describe('update', () => {
       Story.story(
         update,
         Story.given(modelWithParticle),
-        Story.message(TickedFrame({ deltaTimeMs: Milliseconds(16) })),
+        Story.message(Message.TickedFrame({ deltaTimeMs: Milliseconds(16) })),
         Story.Command.expectNone(),
       );
     });
@@ -275,7 +269,7 @@ describe('update', () => {
             },
           ],
         }),
-        Story.message(ClickedReset()),
+        Story.message(Message.ClickedReset()),
         Story.model((model) => {
           expect(model.count).toBe(0);
           expect(model.particles).toHaveLength(0);

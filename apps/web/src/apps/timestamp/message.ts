@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
-export const Ticked = m('Ticked', { deltaTimeMs: Schema.Number });
-export const Message = Schema.Union([Ticked]);
+export const Message = defineMessageUnion({
+  Ticked: { deltaTimeMs: Schema.Number },
+});
 export type Message = typeof Message.Type;

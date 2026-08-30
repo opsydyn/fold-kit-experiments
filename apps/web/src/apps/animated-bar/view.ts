@@ -3,8 +3,7 @@ import { tweenValue } from '@opsydyn/foldkit-viz/math/tween';
 import { Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import type { Message } from './message';
-import { BlurredBar, HoveredBar } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 const W = 480,
@@ -91,8 +90,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
               return h.g(
                 [
-                  h.OnMouseEnter(HoveredBar({ index: i })),
-                  h.OnMouseLeave(BlurredBar()),
+                  h.OnMouseEnter(Message.HoveredBar({ index: i })),
+                  h.OnMouseLeave(Message.BlurredBar()),
                   h.Style({ cursor: 'default' }),
                   h.AriaLabel(`${bar.label}: ${bar.value}`),
                 ],

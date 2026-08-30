@@ -1,18 +1,17 @@
 import { Result, Schema } from 'effect';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
 import type { Message as CarouselMessage } from '../../ui/carousel';
 import type { Slide } from './model';
 
-export const GotCarouselMessage = m('GotCarouselMessage', { message: Schema.Unknown });
-export type GotCarouselMessage = Omit<typeof GotCarouselMessage.Type, 'message'> & {
+export const Message = defineMessageUnion({
+  GotCarouselMessage: { message: Schema.Unknown },
+  SettledSlides: { result: Schema.Unknown },
+});
+export type GotCarouselMessage = Omit<typeof Message.GotCarouselMessage.Type, 'message'> & {
   readonly message: CarouselMessage;
 };
-
-export const SettledSlides = m('SettledSlides', { result: Schema.Unknown });
-export type SettledSlides = Omit<typeof SettledSlides.Type, 'result'> & {
+export type SettledSlides = Omit<typeof Message.SettledSlides.Type, 'result'> & {
   readonly result: Result.Result<ReadonlyArray<Slide>, string>;
 };
-
-export const Message = Schema.Union([GotCarouselMessage, SettledSlides]);
 export type Message = typeof Message.Type;

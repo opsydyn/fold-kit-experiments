@@ -1,12 +1,11 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as LogScatter from '../../ui/log-scatter-chart';
-import type { Message } from './message';
-import { GotLogScatterMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: LogScatter.Message): Message =>
-  GotLogScatterMessage({ message: msg });
+  Message.GotLogScatterMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'npm packages — log scatter — foldkit-viz',

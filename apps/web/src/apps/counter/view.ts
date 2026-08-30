@@ -19,8 +19,7 @@ import {
   HEAD_RADIUS,
   SATURATION,
 } from './constant';
-import type { Message } from './message';
-import { ClickedDecrement, ClickedIncrement, ClickedReset } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 import { _count } from './model';
 import type { Particle, Point } from './particle';
@@ -107,9 +106,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             div(
               [Class(styles.controls)],
               [
-                button([OnClick(ClickedDecrement()), Class(styles.button)], ['−']),
-                button([OnClick(ClickedReset()), Class(styles.button)], ['Reset']),
-                button([OnClick(ClickedIncrement()), Class(styles.button)], ['+']),
+                button([OnClick(Message.ClickedDecrement()), Class(styles.button)], ['−']),
+                button([OnClick(Message.ClickedReset()), Class(styles.button)], ['Reset']),
+                button([OnClick(Message.ClickedIncrement()), Class(styles.button)], ['+']),
               ],
             ),
           ],

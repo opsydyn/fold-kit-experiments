@@ -3,7 +3,7 @@ import { describe, test } from 'vitest';
 
 import { SpawnParticle } from './command';
 import { BURST_COUNT, DECREMENT_HUE, INCREMENT_HUE, RESET_HUE } from './constant';
-import { SpawnedParticle } from './message';
+import { Message } from './message';
 import { init } from './model';
 import type { Hue } from './types';
 import { Milliseconds, Pixels, PixelsPerSec } from './types';
@@ -19,7 +19,7 @@ const drainSpawns = (hue: Hue) =>
       () =>
         [
           SpawnParticle,
-          SpawnedParticle({
+        Message.SpawnedParticle({
             x: Pixels(400),
             y: Pixels(330),
             vx: PixelsPerSec(0),

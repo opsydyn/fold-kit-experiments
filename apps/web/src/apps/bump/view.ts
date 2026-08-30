@@ -1,11 +1,10 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as Bump from '../../ui/bump-chart';
-import type { Message } from './message';
-import { GotBumpMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: Bump.Message): Message => GotBumpMessage({ message: msg });
+const toParentMessage = (msg: Bump.Message): Message => Message.GotBumpMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Bump chart — foldkit-viz',

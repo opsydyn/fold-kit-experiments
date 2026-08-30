@@ -1,11 +1,10 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as Corr from '../../ui/correlation-matrix';
-import type { Message } from './message';
-import { GotCorrMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: Corr.Message): Message => GotCorrMessage({ message: msg });
+const toParentMessage = (msg: Corr.Message): Message => Message.GotCorrMessage({ message: msg });
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Correlation matrix — foldkit-viz',
   body: Corr.view(

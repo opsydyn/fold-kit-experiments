@@ -3,8 +3,8 @@ import { Port, Runtime, Subscription } from 'foldkit';
 import { describe, expect, it, vi } from 'vitest';
 
 import { update } from './main';
-import { Navigated } from './message';
-import type { Message } from './message';
+import { Message } from './message';
+import type { Message as AppMessage } from './message';
 import { initModel } from './model';
 import { NavigationPort, NavigationValue } from './navigation';
 
@@ -13,7 +13,7 @@ describe('request diagnostics navigation scene', () => {
     const model = initModel;
     const [nextModel, commands] = update(
       model,
-      Navigated({
+      Message.Navigated({
         phase: 'entered',
         path: '/request-diagnostics/acme/platform/docs/intro.md',
         previousPath: '/request-diagnostics',
@@ -33,9 +33,9 @@ describe('request diagnostics navigation scene', () => {
   it('delivers an inbound port value through the subscription as Navigated', async () => {
     const TestModel = Schema.Struct({ navigation: NavigationValue });
     type TestModel = typeof TestModel.Type;
-    const received: Message[] = [];
-    const testSubscriptions = Subscription.make<TestModel, Message>()(() => ({
-      navigation: Port.subscription(NavigationPort, (value) => Navigated(value)),
+    const received: AppMessage[] = [];
+    const testSubscriptions = Subscription.make<TestModel, AppMessage>()(() => ({
+      navigation: Port.subscription(NavigationPort, (value) => Message.Navigated(value)),
     }));
     const container = document.createElement('div');
     container.id = 'request-diagnostics-port-test';
@@ -63,7 +63,7 @@ describe('request diagnostics navigation scene', () => {
 
     await vi.waitFor(() => {
       expect(received).toEqual([
-        Navigated({
+        Message.Navigated({
           phase: 'stayed',
           path: '/request-diagnostics/acme/platform/docs/intro.md',
           previousPath: '/request-diagnostics',

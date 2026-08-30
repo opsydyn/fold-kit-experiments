@@ -1,12 +1,11 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as SunburstChart from '../../ui/sunburst-chart';
-import type { Message } from './message';
-import { GotSunburstMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: SunburstChart.Message): Message =>
-  GotSunburstMessage({ message: msg });
+  Message.GotSunburstMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Sunburst — foldkit-viz',

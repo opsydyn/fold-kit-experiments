@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
-import { GotHistogramMessage, GotScatterMessage } from './message';
+import { Message } from './message';
 import { init } from './model';
 import { update } from './update';
 
 const seedBounds = (model: ReturnType<typeof init>[0]) =>
   update(
     model,
-    GotHistogramMessage({
+    Message.GotHistogramMessage({
       message: Histogram.RecordedSvgBounds({
         clientLeft: 0,
         renderedPW: model.histogram.layout.pw,
@@ -21,17 +21,17 @@ const selectedModel = () => {
   const initial = seedBounds(init(undefined)[0]);
   const started = update(
     initial,
-    GotHistogramMessage({
+    Message.GotHistogramMessage({
       message: Histogram.StartedHistogramBrush({ screenX: 40, clientX: 40 }),
     }),
   )[0];
   const moved = update(
     started,
-    GotHistogramMessage({ message: Histogram.MovedHistogramBrush({ screenX: 180 }) }),
+    Message.GotHistogramMessage({ message: Histogram.MovedHistogramBrush({ screenX: 180 }) }),
   )[0];
   return update(
     moved,
-    GotHistogramMessage({ message: Histogram.EndedHistogramBrush({ screenX: 180 }) }),
+    Message.GotHistogramMessage({ message: Histogram.EndedHistogramBrush({ screenX: 180 }) }),
   )[0];
 };
 
@@ -45,7 +45,7 @@ describe('histogram brush selection', () => {
   it('clears the parent selection and restores every point', () => {
     const model = update(
       selectedModel(),
-      GotHistogramMessage({ message: Histogram.ClearedHistogramBrush() }),
+      Message.GotHistogramMessage({ message: Histogram.ClearedHistogramBrush() }),
     )[0];
     expect(model.selection).toEqual({ _tag: 'None' });
     expect(model.scatter.points).toEqual(model.allPoints);
@@ -55,7 +55,7 @@ describe('histogram brush selection', () => {
     const selected = selectedModel();
     const model = update(
       selected,
-      GotScatterMessage({ message: Scatter.HoveredPoint({ index: 0 }) }),
+      Message.GotScatterMessage({ message: Scatter.HoveredPoint({ index: 0 }) }),
     )[0];
     expect(model.selection).toBe(selected.selection);
   });

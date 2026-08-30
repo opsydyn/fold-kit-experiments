@@ -2,8 +2,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
-import type { Message } from './message';
-import { GotHistogramMessage, GotScatterMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 const LABEL_STYLE = {
@@ -34,7 +33,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const histogram: Html = Histogram.view(
     {
       model: model.histogram,
-      toParentMessage: (msg) => GotHistogramMessage({ message: msg }),
+      toParentMessage: (msg) => Message.GotHistogramMessage({ message: msg }),
       ariaLabel: 'Histogram — response time distribution, drag to brush-filter',
     },
     h,
@@ -43,7 +42,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scatter: Html = Scatter.view(
     {
       model: model.scatter,
-      toParentMessage: (msg) => GotScatterMessage({ message: msg }),
+      toParentMessage: (msg) => Message.GotScatterMessage({ message: msg }),
       ariaLabel: 'Scatter — response time vs error rate',
     },
     h,
@@ -69,7 +68,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         opacity: hasBrush ? '1' : '0.4',
         transition: 'opacity 120ms',
       }),
-      h.OnClick(GotHistogramMessage({ message: Histogram.ClearedHistogramBrush() })),
+      h.OnClick(Message.GotHistogramMessage({ message: Histogram.ClearedHistogramBrush() })),
       h.Attribute('aria-label', 'Clear brush selection'),
     ],
     ['Clear'],

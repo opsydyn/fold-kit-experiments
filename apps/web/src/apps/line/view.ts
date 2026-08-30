@@ -1,13 +1,12 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as LineChart from '../../ui/line-chart';
-import type { Message } from './message';
-import { GotLineMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 type LineMessage = LineChart.Message;
 
-const toParentMessage = (msg: LineMessage): Message => GotLineMessage({ message: msg });
+const toParentMessage = (msg: LineMessage): Message => Message.GotLineMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Line Chart — foldkit-viz',

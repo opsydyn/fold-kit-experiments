@@ -1,11 +1,10 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as AreaChart from '../../ui/area-chart';
-import type { Message } from './message';
-import { GotAreaMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: AreaChart.Message): Message => GotAreaMessage({ message: msg });
+const toParentMessage = (msg: AreaChart.Message): Message => Message.GotAreaMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Area Chart — foldkit-viz',

@@ -1,9 +1,9 @@
 import { Schema } from 'effect';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
-export const Ticked = m('Ticked', { dt: Schema.Number });
-export const HoveredBar = m('HoveredBar', { index: Schema.Number });
-export const BlurredBar = m('BlurredBar', {});
-
-export const Message = Schema.Union([Ticked, HoveredBar, BlurredBar]);
+export const Message = defineMessageUnion({
+  Ticked: { dt: Schema.Number },
+  HoveredBar: { index: Schema.Number },
+  BlurredBar: {},
+});
 export type Message = typeof Message.Type;

@@ -1,11 +1,10 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as ChordChart from '../../ui/chord-chart';
-import type { Message } from './message';
-import { GotChordMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: ChordChart.Message): Message => GotChordMessage({ message: msg });
+const toParentMessage = (msg: ChordChart.Message): Message => Message.GotChordMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Chord — foldkit-viz',

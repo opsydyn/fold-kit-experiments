@@ -2,8 +2,7 @@ import { matchData } from 'foldkit/asyncData';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import * as Carousel from '../../ui/carousel';
-import type { Message } from './message';
-import { GotCarouselMessage } from './message';
+import { Message } from './message';
 import type { Model, Slide } from './model';
 
 import * as styles from './carousel.css';
@@ -12,7 +11,8 @@ type CarouselMessage = Carousel.Message;
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
-const toParentMessage = (msg: CarouselMessage): Message => GotCarouselMessage({ message: msg });
+const toParentMessage = (msg: CarouselMessage): Message =>
+  Message.GotCarouselMessage({ message: msg });
 
 const slideCount = (model: Model): number => model.carousel.slideCount;
 

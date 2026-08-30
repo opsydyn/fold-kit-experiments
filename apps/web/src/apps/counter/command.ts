@@ -9,12 +9,12 @@ import {
   SPEED_MIN,
   SPREAD,
 } from './constant';
-import { SpawnedParticle } from './message';
+import { Message } from './message';
 import { Hue, HueSchema, Milliseconds, PixelsPerSec, PixelsSchema } from './types';
 
 export const SpawnParticle = Command.define('SpawnParticle', {
   args: { x: PixelsSchema, y: PixelsSchema, hue: HueSchema, angleBase: Schema.Number },
-  messages: [SpawnedParticle],
+  messages: [Message.SpawnedParticle],
   execute: ({ x, y, hue, angleBase }) =>
     Effect.gen(function* () {
       const jitter = yield* Random.nextBetween(-SPREAD, SPREAD);
@@ -25,7 +25,7 @@ export const SpawnParticle = Command.define('SpawnParticle', {
         Newtype.value(LIFESPAN_MAX_MS),
       );
       const hueJitter = yield* Random.nextBetween(-HUE_JITTER, HUE_JITTER);
-      return SpawnedParticle({
+      return Message.SpawnedParticle({
         x,
         y,
         vx: PixelsPerSec(Math.cos(angle) * speed),

@@ -1,11 +1,10 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as ViolinChart from '../../ui/violin-chart';
-import type { Message } from './message';
-import { GotViolinMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: ViolinChart.Message): Message => GotViolinMessage({ message: msg });
+const toParentMessage = (msg: ViolinChart.Message): Message => Message.GotViolinMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Salary distribution by level — foldkit-viz',

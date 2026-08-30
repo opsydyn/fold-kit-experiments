@@ -1,9 +1,9 @@
 import { Schema } from 'effect';
-import { m } from 'foldkit/message';
+import { defineMessageUnion } from 'foldkit/message';
 
-export const UpdatedDraft = m('UpdatedDraft', { value: Schema.String });
-export const ClickedSave = m('ClickedSave', {});
-export const CompletedSaveUsername = m('CompletedSaveUsername', {});
-
-export const Message = Schema.Union([UpdatedDraft, ClickedSave, CompletedSaveUsername]);
+export const Message = defineMessageUnion({
+  UpdatedDraft: { value: Schema.String },
+  ClickedSave: {},
+  CompletedSaveUsername: {},
+});
 export type Message = typeof Message.Type;

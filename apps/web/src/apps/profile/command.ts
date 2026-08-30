@@ -2,14 +2,14 @@ import { Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
 
 import { usernameAtom } from '../../stores/username';
-import { CompletedSaveUsername } from './message';
+import { Message } from './message';
 
 export const SaveUsername = Command.define('SaveUsername', {
   args: { username: Schema.String },
-  messages: [CompletedSaveUsername],
+  messages: [Message.CompletedSaveUsername],
   execute: ({ username }) =>
     Effect.sync(() => {
       usernameAtom.set(username);
-      return CompletedSaveUsername();
+      return Message.CompletedSaveUsername();
     }),
 });

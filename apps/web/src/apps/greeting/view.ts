@@ -1,7 +1,6 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import type { Message } from './message';
-import { Reset, SelectedLocale } from './message';
+import { Message } from './message';
 import type { Locale, Model } from './model';
 
 import * as styles from './greeting.css';
@@ -36,7 +35,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           selected ? `${styles.localeButton} ${styles.localeButtonSelected}` : styles.localeButton,
         ),
         AriaPressed(selected ? 'true' : 'false'),
-        OnClick(SelectedLocale({ locale })),
+        OnClick(Message.SelectedLocale({ locale })),
       ],
       [label],
     );
@@ -56,7 +55,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           [Class(styles.localeGroup), Role('group'), AriaLabel('Greeting language')],
           [localeButton('en', 'English'), localeButton('ar', 'Arabic')],
         ),
-        button([Class(styles.resetButton), OnClick(Reset())], ['Reset']),
+        button([Class(styles.resetButton), OnClick(Message.Reset())], ['Reset']),
       ],
     ),
   };

@@ -1,11 +1,10 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as MapProjections from '../../ui/map-projections-chart';
-import type { Message } from './message';
-import { GotMapMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: MapProjections.Message): Message => GotMapMessage({ message: msg });
+const toParentMessage = (msg: MapProjections.Message): Message => Message.GotMapMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Map projections — foldkit-viz',

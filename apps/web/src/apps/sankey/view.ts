@@ -1,11 +1,10 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as SankeyChart from '../../ui/sankey-chart';
-import type { Message } from './message';
-import { GotSankeyMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: SankeyChart.Message): Message => GotSankeyMessage({ message: msg });
+const toParentMessage = (msg: SankeyChart.Message): Message => Message.GotSankeyMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Sankey — foldkit-viz',

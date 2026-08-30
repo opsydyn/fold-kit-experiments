@@ -1,12 +1,11 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as CurveComparison from '../../ui/curve-comparison-chart';
-import type { Message } from './message';
-import { GotCurveMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: CurveComparison.Message): Message =>
-  GotCurveMessage({ message: msg });
+  Message.GotCurveMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Curve interpolation — foldkit-viz',

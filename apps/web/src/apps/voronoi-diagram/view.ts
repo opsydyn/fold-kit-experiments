@@ -1,11 +1,10 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import * as Voronoi from '../../ui/voronoi-chart';
-import type { Message } from './message';
-import { GotVoronoiMessage } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: Voronoi.Message): Message => GotVoronoiMessage({ message: msg });
+const toParentMessage = (msg: Voronoi.Message): Message => Message.GotVoronoiMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Voronoi diagram — foldkit-viz',

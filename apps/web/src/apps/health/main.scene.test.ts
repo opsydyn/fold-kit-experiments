@@ -1,7 +1,7 @@
 import { Scene } from 'foldkit';
 import { describe, test } from 'vitest';
 
-import { TickedFrame } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 import { update } from './update';
 import { view } from './view';
@@ -24,7 +24,7 @@ describe('health scene', () => {
       { update, view },
       Scene.given(loaded),
       Scene.expect(Scene.text('12.0s')).toExist(),
-      Scene.Subscription.emit(TickedFrame({ deltaTimeMs: 500 })),
+      Scene.Subscription.emit(Message.TickedFrame({ deltaTimeMs: 500 })),
       Scene.expect(Scene.text('12.5s')).toExist(),
     );
   });

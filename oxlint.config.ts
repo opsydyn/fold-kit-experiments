@@ -36,12 +36,12 @@ export default defineConfig({
     // Foldkit application conventions
     'foldkit/no-noop-message': 'error',
     'foldkit/got-submodel-message-name': 'error',
-    'foldkit/message-binding-matches-tag': 'error',
     'foldkit/got-prefix-requires-submodel-payload': 'error',
     'foldkit/no-empty-object-tagged-call': 'error',
     'foldkit/prefer-callable-message-constructor': 'error',
     'foldkit/command-binding-matches-name': 'error',
     'foldkit/no-module-level-mutable-state': 'error',
+    'foldkit/mount-factory-must-use-element': 'error',
 
     // vanilla-extract CSS rules
     'vanilla-extract/no-empty-style-blocks': 'error',

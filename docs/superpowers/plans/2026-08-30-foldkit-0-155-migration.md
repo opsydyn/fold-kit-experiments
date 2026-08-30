@@ -59,7 +59,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 - Consumes: the current workspace ranges (`foldkit ^0.148.0`, Effect `rc.109`, Vite plugin `0.16.x`, and Oxlint plugin `0.3.x`).
 - Produces: one installed FoldKit `0.155.0` line, Effect `rc.112` line, compatible Vite/Oxlint plugins, and package peer floors that reject older incompatible APIs.
 
-- [ ] **Step 1: Record the current baseline.** Run each command without modifying files:
+- [x] **Step 1: Record the current baseline.** Run each command without modifying files:
 
   ```sh
   bun typecheck
@@ -69,7 +69,9 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 
   Record each exit status and the current diagnostic counts in the implementation notes. Treat these results as baseline evidence; do not repair unrelated pre-existing diagnostics in this task.
 
-- [ ] **Step 2: Update direct dependencies.** Set the exact app/runtime versions and compatible tooling with the workspace package manager:
+  Baseline evidence: `bun typecheck` passed with 0 errors, 0 warnings, and 0 hints. `bun run check` failed on the existing anti-slop and linteffect diagnostics. `bun test` ran 1,155 tests with 641 passing, 514 failing, and 510 module-resolution errors from the vendored `foldkit-main` reference tree.
+
+- [x] **Step 2: Update direct dependencies.** Set the exact app/runtime versions and compatible tooling with the workspace package manager:
 
   ```sh
   bun add --cwd apps/web foldkit@0.155.0 effect@4.0.0-rc.112 @effect/platform-browser@4.0.0-rc.112 @foldkit/vite-plugin@^0.19.0
@@ -79,11 +81,11 @@ Generated `dist` output is produced by package builds and is not hand-edited.
   bun add --dev @foldkit/oxlint-plugin@^0.9.0
   ```
 
-- [ ] **Step 3: Raise peer ranges without changing package versions yet.** Set `packages/astro-foldkit` to `foldkit >=0.155.0 <0.156.0`, and set `packages/foldkit-viz` to the same FoldKit floor plus `effect >=4.0.0-rc.112 <5.0.0`. Leave the package versions for the release task.
+- [x] **Step 3: Raise peer ranges without changing package versions yet.** Set `packages/astro-foldkit` to `foldkit >=0.155.0 <0.156.0`, and set `packages/foldkit-viz` to the same FoldKit floor plus `effect >=4.0.0-rc.112 <5.0.0`. Leave the package versions for the release task.
 
-- [ ] **Step 4: Replace obsolete lint configuration.** Remove `foldkit/message-binding-matches-tag` from `oxlint.config.ts` and add `foldkit/mount-factory-must-use-element` at error severity. Keep the existing no-empty-constructor rule at error severity.
+- [x] **Step 4: Replace obsolete lint configuration.** Remove `foldkit/message-binding-matches-tag` from `oxlint.config.ts` and add `foldkit/mount-factory-must-use-element` at error severity. Keep the existing no-empty-constructor rule at error severity.
 
-- [ ] **Step 5: Install and verify metadata.** Run `bun install`, then inspect the resolved versions:
+- [x] **Step 5: Install and verify metadata.** Run `bun install`, then inspect the resolved versions:
 
   ```sh
   bun pm ls | rg 'foldkit@|effect@|@effect/platform-browser|@foldkit/vite-plugin|@foldkit/oxlint-plugin'
@@ -93,7 +95,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 
   Expected: FoldKit resolves to `0.155.0`, Effect packages resolve to `4.0.0-rc.112`, the Vite plugin peer metadata accepts both, and no old binding/tag rule is configured.
 
-- [ ] **Step 6: Commit the dependency boundary.**
+- [x] **Step 6: Commit the dependency boundary.**
 
   ```sh
   git add package.json apps/web/package.json packages/astro-foldkit/package.json packages/foldkit-viz/package.json oxlint.config.ts bun.lock

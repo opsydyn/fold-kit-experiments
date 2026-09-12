@@ -11,14 +11,14 @@ describe('request diagnostics navigation lifecycle', () => {
     ['stayed', '/request-diagnostics/acme/platform/docs/intro.md', '/request-diagnostics'],
     ['exited', '/request-diagnostics/acme/platform/docs/intro.md', '/request-diagnostics'],
   ] as const)('records %s navigation facts', (phase, path, previousPath) => {
-    const [model] = update(initModel, Message.Navigated({ phase, path, previousPath }));
+    const { model } = update(initModel, Message.Navigated({ phase, path, previousPath }));
 
     expect(model.navigation).toEqual({ phase, path, previousPath });
     expect(model.lastTransition).toBe(`${phase} ${path}`);
   });
 
   it('keeps an active metrics request on retained-island navigation', () => {
-    const [nextModel, commands] = update(
+    const { model: nextModel, commands } = update(
       initModel,
       Message.Navigated({
         phase: 'stayed',

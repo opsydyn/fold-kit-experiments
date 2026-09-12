@@ -23,7 +23,7 @@ const ROWS: ReadonlyArray<DSB.LikertRow> = [
   { label: 'Enjoyable to use', counts: [7, 11, 16, 40, 26] },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = DSB.init({ categories: CATEGORIES, rows: ROWS });
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = DSB.init({ categories: CATEGORIES, rows: ROWS });
+  return { model: { chart } };
 };

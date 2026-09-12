@@ -2,11 +2,11 @@ import { Schema, pipe } from 'effect';
 import { inbound } from 'foldkit/port';
 import {
   Transition,
+  defineRouteUnion,
   literal,
   mapTo,
   oneOf,
   parseUrlWithFallback,
-  r,
   rest,
   slash,
 } from 'foldkit/route';
@@ -25,35 +25,43 @@ export const NavigationValue = Schema.Struct({
 export type NavigationValue = typeof NavigationValue.Type;
 export const NavigationPort = inbound(NavigationValue);
 
-export const IndexRoute = r('Index');
-const NotFoundRoute = r('NotFound', { path: Schema.String });
-const PathRoute = r('Path', { path: Schema.NonEmptyArray(Schema.String) });
+export const ParsedRoute = defineRouteUnion({
+  Index: {},
+  NotFound: { path: Schema.String },
+  Path: { path: Schema.NonEmptyArray(Schema.String) },
+});
+export type ParsedRoute = typeof ParsedRoute.Type;
 
-const indexRouter = pipe(literal('request-diagnostics'), mapTo(IndexRoute));
-const pathRouter = pipe(literal('request-diagnostics'), slash(rest('path')), mapTo(PathRoute));
+export const DiagnosticsRoute = defineRouteUnion({
+  Index: {},
+  Document: { repository: Schema.String, document: Schema.String },
+});
+export type DiagnosticsRoute = typeof DiagnosticsRoute.Type;
+
+const indexRouter = pipe(literal('request-diagnostics'), mapTo(ParsedRoute.Index));
+const pathRouter = pipe(
+  literal('request-diagnostics'),
+  slash(rest('path')),
+  mapTo(ParsedRoute.Path),
+);
 const diagnosticsRouter = oneOf(pathRouter, indexRouter);
-
-export type DiagnosticsRoute =
-  | typeof IndexRoute.Type
-  | { readonly _tag: 'Document'; readonly repository: string; readonly document: string };
 
 const normalizePath = (path: ReadonlyArray<string>): DiagnosticsRoute => {
   const documentsIndex = path.indexOf('docs');
   if (documentsIndex > 0 && documentsIndex < path.length - 1) {
-    return {
-      _tag: 'Document',
+    return DiagnosticsRoute.Document({
       repository: path.slice(0, documentsIndex).join('/'),
       document: path.slice(documentsIndex).join('/'),
-    };
+    });
   }
-  return { _tag: 'Index' };
+  return DiagnosticsRoute.Index();
 };
 
 export const parseDiagnosticsPath = (pathname: string): DiagnosticsRoute => {
   const url = fromString(new URL(pathname, 'https://foldkit.invalid').href);
-  if (url._tag === 'None') return { _tag: 'Index' };
-  const route = parseUrlWithFallback(diagnosticsRouter, NotFoundRoute)(url.value);
-  if (route._tag === 'NotFound') return { _tag: 'Index' };
+  if (url._tag === 'None') return DiagnosticsRoute.Index();
+  const route = parseUrlWithFallback(diagnosticsRouter, ParsedRoute.NotFound)(url.value);
+  if (route._tag === 'NotFound') return DiagnosticsRoute.Index();
   return route._tag === 'Path' ? normalizePath(route.path) : route;
 };
 

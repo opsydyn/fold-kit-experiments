@@ -119,8 +119,8 @@ const Flags = Schema.Struct({ name: Schema.String });
 const config = {
   Flags,
   Model: {},
-  init: (flags: Flags) => [flags, []] as const,
-  update: (model: Model, _message: Message) => [model, []] as const,
+  init: (flags: Flags) => ({ model: flags }),
+  update: (model: Model, _message: Message) => ({ model }),
   view: (model: Model, h: HtmlBuilder<Message>): Document => ({
     title: model.name,
     body: h.main([], [model.name]),

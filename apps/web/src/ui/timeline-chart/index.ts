@@ -1,8 +1,9 @@
 import { band } from '@opsydyn/foldkit-viz/math/scale';
 import { scaleTime, timeNice, timeTickFormat, timeTicks } from '@opsydyn/foldkit-viz/math/time';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -49,7 +50,7 @@ const DEFAULT_COLORS = [
   '#f97316',
 ];
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const colors = cfg.colors ?? DEFAULT_COLORS;
   const tickCount = cfg.tickCount ?? 6;
 
@@ -69,7 +70,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     { top: 16, right: 16, bottom: 36, left: 88, ...cfg.margins },
   );
 
-  return [{ tasks, domain, activeTask: Option.none(), tickCount, layout }, []];
+  return { model: { tasks, domain, activeTask: Option.none(), tickCount, layout } };
 }
 
 // MESSAGE
@@ -82,16 +83,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredTask: ({ name }) => [{ ...model, activeTask: Option.some(name) }, []],
-      BlurredTask: () => [{ ...model, activeTask: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredTask: ({ name }) => ({ model: { ...model, activeTask: Option.some(name) } }),
+    BlurredTask: () => ({ model: { ...model, activeTask: Option.none() } }),
+  });
 
 // VIEW
 

@@ -12,7 +12,7 @@ Bun workspace monorepo. Three active workspaces:
 | `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | Chart primitives (no D3 dependency) |
 | `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types           |
 
-**Stack:** Foldkit 0.126.0 · Effect-TS · Astro · TypeScript · bun · oxlint · oxfmt
+**Stack:** FoldKit 0.155.0 · Effect 4.0.0-rc.112 · Astro 7.1 · TypeScript · bun · oxlint · oxfmt
 
 ## Before you write code
 
@@ -53,8 +53,8 @@ Foldkit exports functions as **named exports**, not namespace objects. Getting t
 
 ```typescript
 // ✅
-import { combine, refresh, noOp } from 'foldkit/update';
-import type { Return, Step, Refreshable } from 'foldkit/update';
+import { combine, foldChild, refresh, withOutMessage } from 'foldkit/update';
+import type { Return, ReturnWithOutMessage, Step, Refreshable } from 'foldkit/update';
 
 // ❌ — Update is not a namespace
 import { Update } from 'foldkit/update';
@@ -97,9 +97,41 @@ matchData(model.slides, {
 SettledSlides: ({ result: raw }) => {
   const result = raw as Result.Result<ReadonlyArray<Slide>, string>;
   return combine(model, [
-    (m) => [{ ...m, slides: settle(m.slides, result) }, []],
+    (m) => ({ model: { ...m, slides: settle(m.slides, result) } }),
   ]);
 }
+```
+
+FoldKit 0.151+ `init` and `update` functions return records. Omit `commands`
+when no commands are statically produced; retain computed command collections
+even when they are empty. Use `ReturnWithOutMessage` for a submodel that
+reports a typed event to its parent, and use `foldChild` so child models,
+commands, and out messages are composed explicitly.
+
+### foldkit/schema unions
+
+```typescript
+import { Schema } from 'effect';
+import { defineMessageUnion } from 'foldkit/message';
+import { defineTaggedUnion } from 'foldkit/schema';
+
+export const Message = defineMessageUnion({ ClickedReset: {} });
+export const Status = defineTaggedUnion({ Idle: {}, Ready: { value: Schema.String } });
+
+Message.ClickedReset();
+Status.Ready({ value: 'ok' });
+```
+
+Use a union's own `.match` for exhaustive handling. Effect `Match` remains for
+partial matches and non-FoldKit unions.
+
+### foldkit/mount
+
+```typescript
+Mount.define('Chart', {
+  messages: [Message.RecordedBounds],
+  execute: ({ element }) => Effect.sync(() => Message.RecordedBounds({ element })),
+});
 ```
 
 ## Update.combine + Update.refresh pattern
@@ -177,5 +209,5 @@ Always run before reporting work complete:
 ```sh
 bun run check      # lint + format — must exit 0
 bun typecheck      # must exit 0
-bun test           # 179 tests must pass (119 foldkit-viz + 34 astro-foldkit + 26 web)
+  bun test           # all workspace tests must pass
 ```

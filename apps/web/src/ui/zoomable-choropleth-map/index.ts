@@ -10,9 +10,10 @@ import {
 } from '@opsydyn/foldkit-viz/math/zoom';
 import type { GeoFeatureCollection } from '@opsydyn/foldkit-viz/shape/geo';
 import { geoNaturalEarth1, geoPath } from '@opsydyn/foldkit-viz/shape/geo';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { ChoroplethDatum } from '../choropleth-map';
 import type { Dims, Layout, Margins } from '../shared';
@@ -48,7 +49,7 @@ export type Model = Readonly<{
   dragY: number;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const values = cfg.data.map((d) => d.value);
   const lo = Math.min(...values);
   const hi = Math.max(...values);
@@ -59,8 +60,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     { top: 12, right: 80, bottom: 16, left: 12, ...cfg.margins },
   );
 
-  return [
-    {
+  return {
+    model: {
       features: cfg.features,
       dataById,
       colorLow: cfg.colorLow ?? '#dbeafe',
@@ -75,8 +76,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       dragX: 0,
       dragY: 0,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -103,38 +103,33 @@ function zoomCenter(model: Model): { x: number; y: number } {
   return { x: model.layout.pw / 2, y: model.layout.ph / 2 };
 }
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredFeature: ({ id }) => [{ ...model, activeId: Option.some(id) }, []],
-      BlurredFeature: () => [{ ...model, activeId: Option.none() }, []],
-      ClickedZoomIn: () => {
-        const zoomed = scaleAt(model.matrix, ZOOM_FACTOR, ZOOM_FACTOR, zoomCenter(model));
-        return [
-          { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
-          [],
-        ];
-      },
-      ClickedZoomOut: () => {
-        const zoomed = scaleAt(model.matrix, 1 / ZOOM_FACTOR, 1 / ZOOM_FACTOR, zoomCenter(model));
-        return [
-          { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
-          [],
-        ];
-      },
-      ClickedReset: () => [{ ...model, matrix: identityMatrix() }, []],
-      PointerDowned: ({ x, y }) => [{ ...model, isDragging: true, dragX: x, dragY: y }, []],
-      PointerMoved: ({ x, y }) => {
-        if (!model.isDragging) return [model, []];
-        const translated = translateBy(model.matrix, x - model.dragX, y - model.dragY);
-        return [{ ...model, matrix: translated, dragX: x, dragY: y }, []];
-      },
-      PointerUpped: () => [{ ...model, isDragging: false }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredFeature: ({ id }) => ({ model: { ...model, activeId: Option.some(id) } }),
+    BlurredFeature: () => ({ model: { ...model, activeId: Option.none() } }),
+    ClickedZoomIn: () => {
+      const zoomed = scaleAt(model.matrix, ZOOM_FACTOR, ZOOM_FACTOR, zoomCenter(model));
+      return {
+        model: { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
+      };
+    },
+    ClickedZoomOut: () => {
+      const zoomed = scaleAt(model.matrix, 1 / ZOOM_FACTOR, 1 / ZOOM_FACTOR, zoomCenter(model));
+      return {
+        model: { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
+      };
+    },
+    ClickedReset: () => ({ model: { ...model, matrix: identityMatrix() } }),
+    PointerDowned: ({ x, y }) => ({ model: { ...model, isDragging: true, dragX: x, dragY: y } }),
+    PointerMoved: ({ x, y }) => {
+      if (!model.isDragging) return { model: model };
+      const translated = translateBy(model.matrix, x - model.dragX, y - model.dragY);
+      return { model: { ...model, matrix: translated, dragX: x, dragY: y } };
+    },
+    PointerUpped: () => ({ model: { ...model, isDragging: false } }),
+  });
 
 // VIEW
 

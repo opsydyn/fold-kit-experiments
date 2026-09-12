@@ -1,8 +1,9 @@
 import { linear, linearTicks, point } from '@opsydyn/foldkit-viz/math/scale';
 import { boxStats, kde, silvermanBandwidth } from '@opsydyn/foldkit-viz/math/stats';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -46,7 +47,7 @@ export type Model = Readonly<{
 
 const DEFAULT_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const colors = cfg.colors ?? DEFAULT_COLORS;
   const kdePoints = cfg.kdePoints ?? 48;
 
@@ -82,8 +83,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     { top: 24, right: 20, bottom: 44, left: 52, ...cfg.margins },
   );
 
-  return [
-    {
+  return {
+    model: {
       violins,
       yDomain,
       yLabel: cfg.yLabel ?? '',
@@ -91,8 +92,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       labels: cfg.series.map((s) => s.label),
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -105,16 +105,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredViolin: ({ label }) => [{ ...model, activeLabel: Option.some(label) }, []],
-      BlurredViolin: () => [{ ...model, activeLabel: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredViolin: ({ label }) => ({ model: { ...model, activeLabel: Option.some(label) } }),
+    BlurredViolin: () => ({ model: { ...model, activeLabel: Option.none() } }),
+  });
 
 // VIEW
 

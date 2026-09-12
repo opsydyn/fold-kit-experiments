@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'box'> & {
   readonly box: BoxChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [box] = BoxChart.init({
+export const init = (_props: unknown) => {
+  const { model: box } = BoxChart.init({
     series: [
       { label: 'IC1', values: [42, 45, 47, 48, 50, 52, 55, 58, 60, 65] },
       { label: 'IC2', values: [65, 68, 70, 72, 75, 78, 80, 82, 88, 92] },
@@ -18,5 +18,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     ],
     config: { yLabel: '$k' },
   });
-  return [{ box }, []];
+  return { model: { box } };
 };

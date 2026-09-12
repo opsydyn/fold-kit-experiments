@@ -34,8 +34,8 @@ const textDirectionByLocale: Readonly<Record<string, 'Rtl' | 'Auto'>> = {
 const pageConfig = {
   Flags,
   Model: {},
-  init: (flags: Flags) => [flags, [{ _tag: 'IgnoredCommand' }]] as const,
-  update: (model: Model, _message: Message) => [model, []] as const,
+  init: (flags: Flags) => ({ model: flags, commands: [{ _tag: 'IgnoredCommand' }] }),
+  update: (model: Model, _message: Message) => ({ model }),
   view: (model: Model, h: HtmlBuilder<Message>): Document => ({
     title: `Server page ${model.locale}`,
     lang: model.locale,
@@ -107,8 +107,8 @@ describe('resolvePageDocument', () => {
         Promise.resolve({
           Flags: Schema.Struct({ locale: Schema.String }),
           Model: {},
-          init: (flags: { readonly locale: string }) => [flags, []] as const,
-          update: (model: { readonly locale: string }, _message: Message) => [model, []] as const,
+          init: (flags: { readonly locale: string }) => ({ model: flags }),
+          update: (model: { readonly locale: string }, _message: Message) => ({ model }),
           view: (model: { readonly locale: string }, h: HtmlBuilder<Message>): Document => ({
             title: `Only title ${model.locale}`,
             body: h.main([], [model.locale]),

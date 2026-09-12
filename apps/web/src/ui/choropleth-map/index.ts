@@ -2,9 +2,10 @@ import { interpolateRgb } from '@opsydyn/foldkit-viz/math/color';
 import { scaleSequential } from '@opsydyn/foldkit-viz/math/scale';
 import type { GeoFeatureCollection } from '@opsydyn/foldkit-viz/shape/geo';
 import { geoNaturalEarth1, geoPath } from '@opsydyn/foldkit-viz/shape/geo';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -42,7 +43,7 @@ export type Model = Readonly<{
   layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const values = cfg.data.map((d) => d.value);
   const lo = Math.min(...values);
   const hi = Math.max(...values);
@@ -53,8 +54,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     { top: 12, right: 80, bottom: 16, left: 12, ...cfg.margins },
   );
 
-  return [
-    {
+  return {
+    model: {
       features: cfg.features,
       dataById,
       colorLow: cfg.colorLow ?? '#dbeafe',
@@ -65,8 +66,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       activeId: Option.none(),
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -79,16 +79,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredFeature: ({ id }) => [{ ...model, activeId: Option.some(id) }, []],
-      BlurredFeature: () => [{ ...model, activeId: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredFeature: ({ id }) => ({ model: { ...model, activeId: Option.some(id) } }),
+    BlurredFeature: () => ({ model: { ...model, activeId: Option.none() } }),
+  });
 
 // VIEW
 

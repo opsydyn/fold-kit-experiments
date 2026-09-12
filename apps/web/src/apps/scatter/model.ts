@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'scatter'> & {
   readonly scatter: ScatterChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [scatter] = ScatterChart.init({
+export const init = (_props: unknown) => {
+  const { model: scatter } = ScatterChart.init({
     points: [
       { label: 'Alice', x: 2, y: 52 },
       { label: 'Bob', x: 5, y: 68 },
@@ -31,5 +31,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       yLabel: 'Salary ($k)',
     },
   });
-  return [{ scatter }, []];
+  return { model: { scatter } };
 };

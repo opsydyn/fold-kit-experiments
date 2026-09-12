@@ -1,8 +1,9 @@
 import { band, linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
-import { Effect, Match, Option, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import {
@@ -56,21 +57,20 @@ const DEFAULT_CONFIG: Config = {
   tickCount: 5,
 };
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: 280, ...cfg.dims },
     { top: 24, right: 16, bottom: 44, left: 44, ...cfg.margins },
   );
-  return [
-    {
+  return {
+    model: {
       bars: cfg.bars,
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
       layout,
       svgBounds: Option.none(),
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -90,39 +90,37 @@ export type Message = typeof Message.Type;
 
 // MOUNT
 
-export const CaptureChartBounds = Mount.define(
-  'CaptureChartBounds',
-  RecordedChartBounds,
-)((element) =>
-  Effect.sync(() => {
-    const rect = element.getBoundingClientRect();
-    return Message.RecordedChartBounds({ screenLeft: rect.left + window.screenX, renderedPW: rect.width });
-  }),
-);
+export const CaptureChartBounds = Mount.define('CaptureChartBounds', {
+  messages: [Message.RecordedChartBounds],
+  execute: ({ element }) =>
+    Effect.sync(() => {
+      const rect = element.getBoundingClientRect();
+      return Message.RecordedChartBounds({
+        screenLeft: rect.left + window.screenX,
+        renderedPW: rect.width,
+      });
+    }),
+});
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredBar: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      BlurredBar: () => [{ ...model, activeIndex: Option.none() }, []],
-      ClickedBar: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      RecordedChartBounds: ({ screenLeft, renderedPW }) => [
-        { ...model, svgBounds: Option.some({ screenLeft, renderedPW }) },
-        [],
-      ],
-      UpdatedBars: ({ bars }) => [{ ...model, bars: bars as ReadonlyArray<Bar> }, []],
-      PressedKeyNav: ({ direction }) => {
-        const n = model.bars.length;
-        const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
-        return [{ ...model, activeIndex: Option.some(nextIndex(n, current, direction)) }, []];
-      },
+  Message.match(msg, {
+    HoveredBar: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    BlurredBar: () => ({ model: { ...model, activeIndex: Option.none() } }),
+    ClickedBar: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    RecordedChartBounds: ({ screenLeft, renderedPW }) => ({
+      model: { ...model, svgBounds: Option.some({ screenLeft, renderedPW }) },
     }),
-  );
+    UpdatedBars: ({ bars }) => ({ model: { ...model, bars: bars as ReadonlyArray<Bar> } }),
+    PressedKeyNav: ({ direction }) => {
+      const n = model.bars.length;
+      const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
+      return { model: { ...model, activeIndex: Option.some(nextIndex(n, current, direction)) } };
+    },
+  });
 
 // VIEW
 
@@ -240,7 +238,9 @@ export const view = <M>(
                     ? Option.some(toParentMessage(Message.HoveredBar({ index: idx })))
                     : Option.none();
                 }),
-                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(Message.BlurredBar()))),
+                h.OnPointerLeave((_pointerType) =>
+                  Option.some(toParentMessage(Message.BlurredBar())),
+                ),
                 h.OnClick(
                   Option.isSome(activeIndex)
                     ? toParentMessage(Message.ClickedBar({ index: activeIndex.value }))

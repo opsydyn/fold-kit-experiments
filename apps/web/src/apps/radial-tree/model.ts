@@ -42,7 +42,7 @@ const IE_TREE: RadialTree.TreeDatum = {
   ],
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = RadialTree.init({ data: IE_TREE });
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = RadialTree.init({ data: IE_TREE });
+  return { model: { chart } };
 };

@@ -1,7 +1,8 @@
 import { hierarchy, pack, sort, sum } from '@opsydyn/foldkit-viz/hierarchy';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -118,8 +119,8 @@ function buildLayout(cfg: InitConfig): Layout {
   return { groups, leaves };
 }
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [{ layout: buildLayout(cfg), activeId: Option.none() }, []];
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
+  return { model: { layout: buildLayout(cfg), activeId: Option.none() } };
 }
 
 // MESSAGE
@@ -132,16 +133,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredCircle: ({ id }) => [{ ...model, activeId: Option.some(id) }, []],
-      BlurredCircle: () => [{ ...model, activeId: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredCircle: ({ id }) => ({ model: { ...model, activeId: Option.some(id) } }),
+    BlurredCircle: () => ({ model: { ...model, activeId: Option.none() } }),
+  });
 
 // VIEW
 

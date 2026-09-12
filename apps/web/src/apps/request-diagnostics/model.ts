@@ -1,5 +1,5 @@
 import { Schema } from 'effect';
-import { ts } from 'foldkit/schema';
+import { defineTaggedUnion } from 'foldkit/schema';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
@@ -12,33 +12,25 @@ export const Point = Schema.Struct({
 });
 export type Point = typeof Point.Type;
 
-export const Idle = ts('Idle');
-export const Loading = ts('Loading');
 export const CancellationReason = Schema.Literals(['Reload', 'RouteExit']);
 export type CancellationReason = typeof CancellationReason.Type;
 
-export const Cancelling = ts('Cancelling', { reason: CancellationReason });
-export const Ready = ts('Ready', { points: Schema.Array(Point) });
-export const Selecting = ts('Selecting', {
-  points: Schema.Array(Point),
-  allPoints: Schema.Array(Point),
+export const ExplorerState = defineTaggedUnion({
+  Idle: {},
+  Loading: {},
+  Cancelling: { reason: CancellationReason },
+  Ready: { points: Schema.Array(Point) },
+  Selecting: {
+    points: Schema.Array(Point),
+    allPoints: Schema.Array(Point),
+  },
+  Filtered: {
+    points: Schema.Array(Point),
+    allPoints: Schema.Array(Point),
+    domain: Schema.Tuple([Schema.Number, Schema.Number]),
+  },
+  Failed: { error: Schema.String },
 });
-export const Filtered = ts('Filtered', {
-  points: Schema.Array(Point),
-  allPoints: Schema.Array(Point),
-  domain: Schema.Tuple([Schema.Number, Schema.Number]),
-});
-export const Failed = ts('Failed', { error: Schema.String });
-
-export const ExplorerState = Schema.Union([
-  Idle,
-  Loading,
-  Cancelling,
-  Ready,
-  Selecting,
-  Filtered,
-  Failed,
-]);
 export type ExplorerState = typeof ExplorerState.Type;
 
 export const samplePoints: ReadonlyArray<Point> = [
@@ -85,7 +77,7 @@ const makeHistogram = (points: ReadonlyArray<Point>): Histogram.Model =>
     xLabel: 'Response time (ms)',
     dims: { width: 480, height: 265 },
     enableBrush: true,
-  })[0];
+  }).model;
 
 const makeScatter = (points: ReadonlyArray<Point>): Scatter.Model =>
   Scatter.init({
@@ -97,10 +89,10 @@ const makeScatter = (points: ReadonlyArray<Point>): Scatter.Model =>
       yLabel: 'Error rate (%)',
     },
     dims: { width: 380, height: 265 },
-  })[0];
+  }).model;
 
 export const initModel: Model = {
-  explorer: Loading(),
+  explorer: ExplorerState.Loading(),
   histogram: makeHistogram(samplePoints),
   scatter: makeScatter(samplePoints),
   lastTransition: 'Loading -> waiting for metrics',

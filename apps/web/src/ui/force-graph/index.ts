@@ -1,7 +1,8 @@
 import type { ForceLayout, LayoutLink, LayoutNode } from '@opsydyn/foldkit-viz/simulation';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { r3, svgRoot } from '../shared';
 
@@ -40,7 +41,7 @@ const DEFAULT_CONFIG: Config = {
   height: 280,
 };
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const conf = { ...DEFAULT_CONFIG, ...cfg.config };
   const metaMap = new Map(cfg.nodeMeta.map((n) => [n.id, n]));
 
@@ -60,7 +61,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     return [{ ...l, ...ll, sourceId: l.source, targetId: l.target }];
   });
 
-  return [{ nodes, links, activeId: Option.none(), config: conf }, []];
+  return { model: { nodes, links, activeId: Option.none(), config: conf } };
 }
 
 // MESSAGE
@@ -74,23 +75,20 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredNode: ({ id }) => [{ ...model, activeId: Option.some(id) }, []],
-      BlurredNode: () => [{ ...model, activeId: Option.none() }, []],
-      PressedKeyNav: ({ direction }) => {
-        const ids = model.nodes.map((n) => n.id);
-        const current = Option.isSome(model.activeId) ? ids.indexOf(model.activeId.value) : -1;
-        const n = ids.length;
-        const next = direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
-        return [{ ...model, activeId: Option.some(ids[next] ?? ids[0] ?? '') }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    HoveredNode: ({ id }) => ({ model: { ...model, activeId: Option.some(id) } }),
+    BlurredNode: () => ({ model: { ...model, activeId: Option.none() } }),
+    PressedKeyNav: ({ direction }) => {
+      const ids = model.nodes.map((n) => n.id);
+      const current = Option.isSome(model.activeId) ? ids.indexOf(model.activeId.value) : -1;
+      const n = ids.length;
+      const next = direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
+      return { model: { ...model, activeId: Option.some(ids[next] ?? ids[0] ?? '') } };
+    },
+  });
 
 // VIEW
 

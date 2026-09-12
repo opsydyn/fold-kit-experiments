@@ -1,18 +1,16 @@
-import { Match, Schema } from 'effect';
+import { Schema } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 import { Name } from './model';
 
 const defaultName = Schema.decodeSync(Name)('World');
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, message: Message): Return =>
-  Match.value(message).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      Reset: () => [{ ...model, name: defaultName }, []],
-      SelectedLocale: ({ locale }) => [{ ...model, locale }, []],
-    }),
-  );
+  Message.match(message, {
+    Reset: () => ({ model: { ...model, name: defaultName } }),
+    SelectedLocale: ({ locale }) => ({ model: { ...model, locale } }),
+  });

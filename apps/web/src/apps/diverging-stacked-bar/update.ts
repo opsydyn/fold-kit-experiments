@@ -1,17 +1,14 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as DSB from '../../ui/diverging-stacked-bar';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotDSBMessage: ({ message }) => {
-        const [chart] = DSB.update(model.chart, message as DSB.Message);
-        return [{ ...model, chart }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotDSBMessage: ({ message }) => {
+      const { model: chart } = DSB.update(model.chart, message as DSB.Message);
+      return { model: { ...model, chart } };
+    },
+  });

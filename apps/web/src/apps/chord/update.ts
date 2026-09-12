@@ -1,18 +1,15 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as ChordChart from '../../ui/chord-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotChordMessage: ({ message }) => {
-        const [chord] = ChordChart.update(model.chord, message as ChordChart.Message);
-        return [{ ...model, chord }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotChordMessage: ({ message }) => {
+      const { model: chord } = ChordChart.update(model.chord, message as ChordChart.Message);
+      return { model: { ...model, chord } };
+    },
+  });

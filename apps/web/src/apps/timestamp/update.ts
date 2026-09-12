@@ -1,14 +1,13 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, message: Message): Return =>
-  Match.value(message).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      Ticked: ({ deltaTimeMs }) => [{ ...model, elapsedMs: model.elapsedMs + deltaTimeMs }, []],
+  Message.match(message, {
+    Ticked: ({ deltaTimeMs }) => ({
+      model: { ...model, elapsedMs: model.elapsedMs + deltaTimeMs },
     }),
-  );
+  });

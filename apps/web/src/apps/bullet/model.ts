@@ -5,8 +5,8 @@ import * as Bullet from '../../ui/bullet-chart';
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Bullet.Model };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = Bullet.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = Bullet.init({
     data: [
       { label: 'Revenue', value: 270, target: 300, ranges: [200, 250, 350] },
       { label: 'Profit', value: 45, target: 50, ranges: [30, 40, 60] },
@@ -17,5 +17,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     color: '#1e40af',
     targetColor: '#111',
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

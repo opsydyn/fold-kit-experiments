@@ -1,21 +1,18 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as ParallelCoordsChart from '../../ui/parallel-coords-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotParallelCoordsMessage: ({ message }) => {
-        const [parallelCoords] = ParallelCoordsChart.update(
-          model.parallelCoords,
-          message as ParallelCoordsChart.Message,
-        );
-        return [{ ...model, parallelCoords }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotParallelCoordsMessage: ({ message }) => {
+      const { model: parallelCoords } = ParallelCoordsChart.update(
+        model.parallelCoords,
+        message as ParallelCoordsChart.Message,
+      );
+      return { model: { ...model, parallelCoords } };
+    },
+  });

@@ -1,9 +1,10 @@
 import { extent } from '@opsydyn/foldkit-viz/math/array';
 import { interpolateRgb } from '@opsydyn/foldkit-viz/math/color';
 import { scaleSequential } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -48,7 +49,7 @@ export type Model = Readonly<{
   readonly layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const tileSize = cfg.tileSize ?? 36;
   const cols = Math.max(...cfg.cells.map((c) => c.col)) + 1;
   const rows = Math.max(...cfg.cells.map((c) => c.row)) + 1;
@@ -59,8 +60,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     { top: 8, right: 72, bottom: 40, left: 8, ...cfg.margins },
   );
 
-  return [
-    {
+  return {
+    model: {
       cells: cfg.cells,
       tileSize,
       colorLow: cfg.colorLow ?? '#f0f9ff',
@@ -70,8 +71,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       activeId: Option.none(),
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -84,16 +84,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredCell: ({ id }) => [{ ...model, activeId: Option.some(id) }, []],
-      BlurredCell: () => [{ ...model, activeId: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredCell: ({ id }) => ({ model: { ...model, activeId: Option.some(id) } }),
+    BlurredCell: () => ({ model: { ...model, activeId: Option.none() } }),
+  });
 
 // VIEW
 

@@ -1,18 +1,18 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as HeatmapChart from '../../ui/heatmap-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotHeatmapMessage: ({ message }) => {
-        const [heatmap] = HeatmapChart.update(model.heatmap, message as HeatmapChart.Message);
-        return [{ ...model, heatmap }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotHeatmapMessage: ({ message }) => {
+      const { model: heatmap } = HeatmapChart.update(
+        model.heatmap,
+        message as HeatmapChart.Message,
+      );
+      return { model: { ...model, heatmap } };
+    },
+  });

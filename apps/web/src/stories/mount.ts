@@ -4,8 +4,8 @@ import { embed, makeApplication } from 'foldkit/runtime';
 
 export type FoldkitAppConfig = {
   Model: any;
-  init: (...args: any[]) => readonly [any, ReadonlyArray<any>];
-  update: (model: any, msg: any) => readonly [any, ReadonlyArray<any>];
+  init: (...args: any[]) => Readonly<{ model: any; commands?: ReadonlyArray<any> }>;
+  update: (model: any, msg: any) => Readonly<{ model: any; commands?: ReadonlyArray<any> }>;
   view: (model: any, h: HtmlBuilder<any>) => Document;
 };
 

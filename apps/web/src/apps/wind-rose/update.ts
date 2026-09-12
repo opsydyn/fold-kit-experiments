@@ -1,17 +1,14 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as WR from '../../ui/wind-rose-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotWRMessage: ({ message }) => {
-        const [chart] = WR.update(model.chart, message as WR.Message);
-        return [{ ...model, chart }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotWRMessage: ({ message }) => {
+      const { model: chart } = WR.update(model.chart, message as WR.Message);
+      return { model: { ...model, chart } };
+    },
+  });

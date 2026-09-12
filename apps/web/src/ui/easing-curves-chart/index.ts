@@ -6,9 +6,10 @@ import {
   easeLinear,
   easeSinOut,
 } from '@opsydyn/foldkit-viz/math/ease';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -34,8 +35,8 @@ export type Model = Readonly<{
   hovered: Option.Option<string>;
 }>;
 
-export function init(): readonly [Model, readonly []] {
-  return [{ curves: CURVES, hovered: Option.none() }, []];
+export function init(): UpdateReturn<Model, Message> {
+  return { model: { curves: CURVES, hovered: Option.none() } };
 }
 
 // MESSAGE
@@ -48,16 +49,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredCurve: ({ name }) => [{ ...model, hovered: Option.some(name) }, []],
-      BlurredCurve: () => [{ ...model, hovered: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredCurve: ({ name }) => ({ model: { ...model, hovered: Option.some(name) } }),
+    BlurredCurve: () => ({ model: { ...model, hovered: Option.none() } }),
+  });
 
 // VIEW
 

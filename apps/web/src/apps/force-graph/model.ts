@@ -39,7 +39,7 @@ const LINKS: ReadonlyArray<ForceGraph.Link> = [
   { source: 'vue', target: 'vite' },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
+export const init = (_props: unknown) => {
   const layout = runForceLayout({
     nodes: NODES,
     links: LINKS,
@@ -50,11 +50,11 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     collideRadius: 22,
   });
 
-  const [graph] = ForceGraph.init({
+  const { model: graph } = ForceGraph.init({
     layout,
     nodeMeta: NODES,
     links: LINKS,
   });
 
-  return [{ graph }, []];
+  return { model: { graph } };
 };

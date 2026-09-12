@@ -1,18 +1,15 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as Voronoi from '../../ui/voronoi-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotVoronoiMessage: ({ message }) => {
-        const [chart] = Voronoi.update(model.chart, message as Voronoi.Message);
-        return [{ ...model, chart }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotVoronoiMessage: ({ message }) => {
+      const { model: chart } = Voronoi.update(model.chart, message as Voronoi.Message);
+      return { model: { ...model, chart } };
+    },
+  });

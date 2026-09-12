@@ -15,6 +15,11 @@ export type ChartHarnessResult<Model> = {
   readonly history: ReadonlyArray<Model>;
 };
 
+type UpdateRecord<Model> = Readonly<{
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<unknown>;
+}>;
+
 /**
  * Run the TEA update loop for a chart.
  * @param initial - Result of `init()`
@@ -22,14 +27,14 @@ export type ChartHarnessResult<Model> = {
  * @param messages - Messages to dispatch in order
  */
 export function runChart<Model, Message>(
-  initial: readonly [Model, readonly unknown[]],
-  update: (model: Model, msg: Message) => readonly [Model, readonly unknown[]],
+  initial: UpdateRecord<Model>,
+  update: (model: Model, msg: Message) => UpdateRecord<Model>,
   messages: ReadonlyArray<Message>,
 ): ChartHarnessResult<Model> {
-  let model = initial[0];
+  let model = initial.model;
   const history: Model[] = [];
   for (const msg of messages) {
-    [model] = update(model, msg);
+    model = update(model, msg).model;
     history.push(model);
   }
   return { model, history };

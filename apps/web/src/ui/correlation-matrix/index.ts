@@ -1,7 +1,8 @@
 import { interpolateLab } from '@opsydyn/foldkit-viz/math/color';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -70,15 +71,15 @@ export function pearsonMatrix(
   return { labels, values };
 }
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const n = cfg.matrix.labels.length;
   const cellSize = Math.min(48, Math.floor(340 / n));
   const layout = makeLayout(
     { width: n * cellSize + 120, height: n * cellSize + 80, ...cfg.dims },
     { top: 80, right: 16, bottom: 16, left: 110, ...cfg.margins },
   );
-  return [
-    {
+  return {
+    model: {
       matrix: cfg.matrix,
       colorNeg: cfg.colorNeg ?? '#b91c1c',
       colorMid: cfg.colorMid ?? '#f8fafc',
@@ -86,8 +87,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       activeCell: Option.none(),
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -100,19 +100,15 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredCell: ({ row, col }) => [
-        { ...model, activeCell: Option.some([row, col] as const) },
-        [],
-      ],
-      BlurredCell: () => [{ ...model, activeCell: Option.none() }, []],
+  Message.match(msg, {
+    HoveredCell: ({ row, col }) => ({
+      model: { ...model, activeCell: Option.some([row, col] as const) },
     }),
-  );
+    BlurredCell: () => ({ model: { ...model, activeCell: Option.none() } }),
+  });
 
 // VIEW
 

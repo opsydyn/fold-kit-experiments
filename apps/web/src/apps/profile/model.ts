@@ -13,8 +13,8 @@ export type Model = typeof Model.Type;
 
 const Props = Schema.Struct({ defaultName: Username });
 
-export const init = (props: unknown): readonly [Model, readonly []] => {
+export const init = (props: unknown) => {
   const { defaultName } = Schema.decodeUnknownSync(Props)(props);
   const stored = usernameAtom.get();
-  return [{ draft: stored !== '' ? stored : defaultName, isSaved: false }, []];
+  return { model: { draft: stored !== '' ? stored : defaultName, isSaved: false } };
 };

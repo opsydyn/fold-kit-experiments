@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'area'> & {
   readonly area: AreaChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [area] = AreaChart.init({
+export const init = (_props: unknown) => {
+  const { model: area } = AreaChart.init({
     points: [
       { label: 'Jan', value: 28 },
       { label: 'Feb', value: 35 },
@@ -24,5 +24,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       { label: 'Dec', value: 118 },
     ],
   });
-  return [{ area }, []];
+  return { model: { area } };
 };

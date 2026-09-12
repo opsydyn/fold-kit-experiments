@@ -1,18 +1,15 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as DonutChart from '../../ui/donut-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, message: Message): Return =>
-  Match.value(message).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotDonutMessage: ({ message }) => {
-        const [nextDonut] = DonutChart.update(model.donut, message as DonutChart.Message);
-        return [{ ...model, donut: nextDonut }, []];
-      },
-    }),
-  );
+  Message.match(message, {
+    GotDonutMessage: ({ message }) => {
+      const { model: nextDonut } = DonutChart.update(model.donut, message as DonutChart.Message);
+      return { model: { ...model, donut: nextDonut } };
+    },
+  });

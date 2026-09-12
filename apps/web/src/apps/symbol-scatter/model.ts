@@ -45,12 +45,12 @@ const AUTO_DATA: ReadonlyArray<ScatterChart.ScatterDatum> = [
   { x: 100, y: 26, category: 'Japan' },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = ScatterChart.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = ScatterChart.init({
     data: AUTO_DATA,
     categories: ['USA', 'Europe', 'Japan'],
     xLabel: 'Horsepower',
     yLabel: 'MPG',
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

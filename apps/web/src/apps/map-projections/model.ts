@@ -7,7 +7,7 @@ export type Model = Omit<typeof Model.Type, 'chart'> & {
   readonly chart: MapProjections.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = MapProjections.init();
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = MapProjections.init();
+  return { model: { chart } };
 };

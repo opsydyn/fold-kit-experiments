@@ -18,7 +18,7 @@ bun add @opsydyn/foldkit-viz
 
 ## FoldKit compatibility
 
-`@opsydyn/foldkit-viz` is tested with FoldKit `0.148.x`. Consumers can use
+`@opsydyn/foldkit-viz` is tested with FoldKit `0.155.x`. Consumers can use
 `Command.define(name, { interrupt: true, ... })` to replace remote chart-data
 loads while this package remains focused on pure geometry, chart-local state,
 and rendering helpers. Chart views consume the render-scoped `HtmlBuilder`

@@ -16,7 +16,7 @@ const BARS: ReadonlyArray<BarChart.Bar> = [
   { label: 'Jun', value: 38 },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [bar] = BarChart.init({ bars: BARS });
-  return [{ bar }, []];
+export const init = (_props: unknown) => {
+  const { model: bar } = BarChart.init({ bars: BARS });
+  return { model: { bar } };
 };

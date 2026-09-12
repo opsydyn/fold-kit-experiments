@@ -2,9 +2,10 @@ import { divergingScale, interpolateRgbBasis } from '@opsydyn/foldkit-viz/math/c
 import { format } from '@opsydyn/foldkit-viz/math/format';
 import { band, linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { rdBu } from '@opsydyn/foldkit-viz/math/schemes';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -30,12 +31,14 @@ export type Model = Readonly<{
   readonly layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: 265, ...cfg.dims },
     { top: 20, right: 16, bottom: 40, left: 48, ...cfg.margins },
   );
-  return [{ bars: cfg.bars, xLabel: cfg.xLabel ?? '', activeLabel: Option.none(), layout }, []];
+  return {
+    model: { bars: cfg.bars, xLabel: cfg.xLabel ?? '', activeLabel: Option.none(), layout },
+  };
 }
 
 // MESSAGE
@@ -48,16 +51,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredBar: ({ label }) => [{ ...model, activeLabel: Option.some(label) }, []],
-      BlurredBar: () => [{ ...model, activeLabel: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredBar: ({ label }) => ({ model: { ...model, activeLabel: Option.some(label) } }),
+    BlurredBar: () => ({ model: { ...model, activeLabel: Option.none() } }),
+  });
 
 // VIEW
 

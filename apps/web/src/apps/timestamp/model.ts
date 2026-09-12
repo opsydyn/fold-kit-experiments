@@ -11,7 +11,7 @@ export type Model = typeof Model.Type;
 
 const Props = Schema.Struct({ startedAt: Iso8601 });
 
-export const init = (props: unknown): readonly [Model, readonly []] => {
+export const init = (props: unknown) => {
   const { startedAt } = Schema.decodeUnknownSync(Props)(props);
-  return [{ startedAt, elapsedMs: 0 }, []];
+  return { model: { startedAt, elapsedMs: 0 } };
 };

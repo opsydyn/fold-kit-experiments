@@ -1,18 +1,15 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as ViolinChart from '../../ui/violin-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotViolinMessage: ({ message }) => {
-        const [chart] = ViolinChart.update(model.chart, message as ViolinChart.Message);
-        return [{ ...model, chart }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotViolinMessage: ({ message }) => {
+      const { model: chart } = ViolinChart.update(model.chart, message as ViolinChart.Message);
+      return { model: { ...model, chart } };
+    },
+  });

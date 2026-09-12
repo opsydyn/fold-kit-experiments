@@ -38,7 +38,7 @@ const LINKS = [
   { source: 'Heating', target: 'Industrial', value: 10 },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [sankey] = SankeyChart.init({ nodes: NODES, links: LINKS });
-  return [{ sankey }, []];
+export const init = (_props: unknown) => {
+  const { model: sankey } = SankeyChart.init({ nodes: NODES, links: LINKS });
+  return { model: { sankey } };
 };

@@ -1,7 +1,9 @@
-import { Effect, Match, Option, pipe, Schema, Stream } from 'effect';
+import { Effect, Option, pipe, Schema, Stream } from 'effect';
 import { Subscription } from 'foldkit';
 import type { Attribute, Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn, ReturnWithOutMessage } from 'foldkit/update';
+import { withOutMessage } from 'foldkit/update';
 
 // MODEL
 
@@ -72,12 +74,14 @@ export type InitConfig = Readonly<{
   loop?: boolean;
 }>;
 
-export const init = (config: InitConfig): Model => ({
-  id: config.id,
-  slideCount: config.slideCount,
-  activeIndex: Math.max(0, Math.min(config.initialIndex ?? 0, config.slideCount - 1)),
-  loop: config.loop ?? false,
-  dragState: { _tag: 'Idle' },
+export const init = (config: InitConfig): UpdateReturn<Model, Message> => ({
+  model: {
+    id: config.id,
+    slideCount: config.slideCount,
+    activeIndex: Math.max(0, Math.min(config.initialIndex ?? 0, config.slideCount - 1)),
+    loop: config.loop ?? false,
+    dragState: { _tag: 'Idle' },
+  },
 });
 
 // HELPERS
@@ -137,25 +141,14 @@ const currentTransform = (model: Model): string => {
 
 // UPDATE
 
-type Return = readonly [Model, readonly [], Option.Option<OutMessage>];
-
-const withChanged = (
-  model: Model,
-  targetIndex: number,
-): readonly [Model, readonly [], Option.Option<OutMessage>] => {
-  const maybeOut =
-    targetIndex !== model.activeIndex
-      ? Option.some(OutMessage.ChangedSlide({ index: targetIndex }))
-      : Option.none();
-  return [model, [], maybeOut];
-};
+type Return = ReturnWithOutMessage<Model, Message, OutMessage>;
 
 const navigateTo = (model: Model, targetIndex: number): Return => {
   if (targetIndex === model.activeIndex) {
-    return [model, [], Option.none()];
+    return { model };
   }
-  return [
-    {
+  return {
+    model: {
       ...model,
       activeIndex: targetIndex,
       dragState: {
@@ -167,139 +160,121 @@ const navigateTo = (model: Model, targetIndex: number): Return => {
         duration: computeSettleDuration(model.activeIndex, targetIndex),
       },
     },
-    [],
-    Option.some(OutMessage.ChangedSlide({ index: targetIndex })),
-  ];
+    outMessage: OutMessage.ChangedSlide({ index: targetIndex }),
+  };
 };
 
 export const update = (model: Model, message: Message): Return =>
-  Match.value(message).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      PressedSlide: ({ clientX, timestamp }) => {
-        if (model.dragState._tag === 'Dragging') {
-          return [model, [], Option.none()];
-        }
-        return [
-          {
-            ...model,
-            dragState: {
-              _tag: 'Dragging',
-              originIndex: model.activeIndex,
-              startX: clientX,
-              deltaX: 0,
-              velocityX: 0,
-              lastTime: timestamp,
-            },
+  Message.match(message, {
+    PressedSlide: ({ clientX, timestamp }) => {
+      if (model.dragState._tag === 'Dragging') {
+        return { model };
+      }
+      return {
+        model: {
+          ...model,
+          dragState: {
+            _tag: 'Dragging',
+            originIndex: model.activeIndex,
+            startX: clientX,
+            deltaX: 0,
+            velocityX: 0,
+            lastTime: timestamp,
           },
-          [],
-          Option.none(),
-        ];
-      },
+        },
+      };
+    },
 
-      MovedDragPointer: ({ deltaX, velocityX }) => {
-        if (model.dragState._tag !== 'Dragging') {
-          return [model, [], Option.none()];
-        }
-        return [
-          { ...model, dragState: { ...model.dragState, deltaX, velocityX } },
-          [],
-          Option.none(),
-        ];
-      },
+    MovedDragPointer: ({ deltaX, velocityX }) => {
+      if (model.dragState._tag !== 'Dragging') {
+        return { model };
+      }
+      return { model: { ...model, dragState: { ...model.dragState, deltaX, velocityX } } };
+    },
 
-      ReleasedDragPointer: ({ deltaX, velocityX, trackWidth }) => {
-        if (model.dragState._tag !== 'Dragging') {
-          return [model, [], Option.none()];
-        }
-        const { originIndex } = model.dragState;
-        const targetIndex = computeTargetIndex(
-          originIndex,
-          deltaX,
-          velocityX,
-          trackWidth,
+    ReleasedDragPointer: ({ deltaX, velocityX, trackWidth }) => {
+      if (model.dragState._tag !== 'Dragging') {
+        return { model };
+      }
+      const { originIndex } = model.dragState;
+      const targetIndex = computeTargetIndex(
+        originIndex,
+        deltaX,
+        velocityX,
+        trackWidth,
+        model.slideCount,
+        model.loop,
+      );
+      const nextModel = {
+        ...model,
+        activeIndex: targetIndex,
+        dragState: {
+          _tag: 'Settling' as const,
+          fromIndex: originIndex,
+          targetIndex,
+          fromDeltaX: deltaX,
+          elapsed: 0,
+          duration: computeSettleDuration(originIndex, targetIndex),
+        },
+      };
+      return withOutMessage(
+        { model: nextModel },
+        targetIndex !== model.activeIndex
+          ? OutMessage.ChangedSlide({ index: targetIndex })
+          : undefined,
+      );
+    },
+
+    CancelledDrag: () => {
+      if (model.dragState._tag !== 'Dragging') {
+        return { model };
+      }
+      const { originIndex, deltaX } = model.dragState;
+      return {
+        model: {
+          ...model,
+          dragState: {
+            _tag: 'Settling',
+            fromIndex: originIndex,
+            targetIndex: originIndex,
+            fromDeltaX: deltaX,
+            elapsed: 0,
+            duration: 200,
+          },
+        },
+      };
+    },
+
+    TickedSettle: ({ deltaTimeMs }) => {
+      if (model.dragState._tag !== 'Settling') {
+        return { model };
+      }
+      const { elapsed, duration } = model.dragState;
+      const newElapsed = elapsed + deltaTimeMs;
+      if (newElapsed >= duration) {
+        return { model: { ...model, dragState: { _tag: 'Idle' } } };
+      }
+      return { model: { ...model, dragState: { ...model.dragState, elapsed: newElapsed } } };
+    },
+
+    ClickedPrev: () =>
+      navigateTo(model, clampOrLoop(model.activeIndex - 1, model.slideCount, model.loop)),
+
+    ClickedNext: () =>
+      navigateTo(model, clampOrLoop(model.activeIndex + 1, model.slideCount, model.loop)),
+
+    ClickedDot: ({ index }) => navigateTo(model, index),
+
+    PressedKeyboardNavigation: ({ direction }) =>
+      navigateTo(
+        model,
+        clampOrLoop(
+          model.activeIndex + (direction === 'Next' ? 1 : -1),
           model.slideCount,
           model.loop,
-        );
-        const [modelWithIndex, , maybeOut] = withChanged(
-          { ...model, activeIndex: targetIndex },
-          targetIndex,
-        );
-        return [
-          {
-            ...modelWithIndex,
-            activeIndex: targetIndex,
-            dragState: {
-              _tag: 'Settling',
-              fromIndex: originIndex,
-              targetIndex,
-              fromDeltaX: deltaX,
-              elapsed: 0,
-              duration: computeSettleDuration(originIndex, targetIndex),
-            },
-          },
-          [],
-          maybeOut,
-        ];
-      },
-
-      CancelledDrag: () => {
-        if (model.dragState._tag !== 'Dragging') {
-          return [model, [], Option.none()];
-        }
-        const { originIndex, deltaX } = model.dragState;
-        return [
-          {
-            ...model,
-            dragState: {
-              _tag: 'Settling',
-              fromIndex: originIndex,
-              targetIndex: originIndex,
-              fromDeltaX: deltaX,
-              elapsed: 0,
-              duration: 200,
-            },
-          },
-          [],
-          Option.none(),
-        ];
-      },
-
-      TickedSettle: ({ deltaTimeMs }) => {
-        if (model.dragState._tag !== 'Settling') {
-          return [model, [], Option.none()];
-        }
-        const { elapsed, duration } = model.dragState;
-        const newElapsed = elapsed + deltaTimeMs;
-        if (newElapsed >= duration) {
-          return [{ ...model, dragState: { _tag: 'Idle' } }, [], Option.none()];
-        }
-        return [
-          { ...model, dragState: { ...model.dragState, elapsed: newElapsed } },
-          [],
-          Option.none(),
-        ];
-      },
-
-      ClickedPrev: () =>
-        navigateTo(model, clampOrLoop(model.activeIndex - 1, model.slideCount, model.loop)),
-
-      ClickedNext: () =>
-        navigateTo(model, clampOrLoop(model.activeIndex + 1, model.slideCount, model.loop)),
-
-      ClickedDot: ({ index }) => navigateTo(model, index),
-
-      PressedKeyboardNavigation: ({ direction }) =>
-        navigateTo(
-          model,
-          clampOrLoop(
-            model.activeIndex + (direction === 'Next' ? 1 : -1),
-            model.slideCount,
-            model.loop,
-          ),
         ),
-    }),
-  );
+      ),
+  });
 
 // SUBSCRIPTION
 

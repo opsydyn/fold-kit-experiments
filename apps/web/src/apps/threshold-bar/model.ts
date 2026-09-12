@@ -18,7 +18,7 @@ const ENDPOINTS: ReadonlyArray<ThresholdBar.Endpoint> = [
   { label: 'GET /api/full-dump', ms: 1240 },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = ThresholdBar.init({ endpoints: ENDPOINTS });
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = ThresholdBar.init({ endpoints: ENDPOINTS });
+  return { model: { chart } };
 };

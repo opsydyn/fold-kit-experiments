@@ -18,8 +18,8 @@ describe('defineApp', () => {
 
     const config = {
       Model: {} as AppConfig<Props, Model, Message>['Model'],
-      init: (props: Props) => [{ count: props.initialCount }, []] as const,
-      update: (model: Model, _message: Message) => [model, []] as const,
+      init: (props: Props) => ({ model: { count: props.initialCount } }),
+      update: (model: Model, _message: Message) => ({ model }),
       view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
     } satisfies AppConfig<Props, Model, Message>;
 

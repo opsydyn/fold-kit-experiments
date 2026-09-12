@@ -20,15 +20,15 @@ describe('definePage', () => {
     const config = {
       Flags,
       Model: {} as AppConfig<Flags, Model, Message>['Model'],
-      init: (flags: Flags) => [{ locale: flags.locale }, []] as const,
-      update: (model: Model, _message: Message) => [model, []] as const,
+      init: (flags: Flags) => ({ model: { locale: flags.locale } }),
+      update: (model: Model, _message: Message) => ({ model }),
       view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
     } satisfies PageConfig<Flags, Model, Message>;
 
     const missingFlagsConfig = {
       Model: {} as AppConfig<Flags, Model, Message>['Model'],
-      init: (flags: Flags) => [{ locale: flags.locale }, []] as const,
-      update: (model: Model, _message: Message) => [model, []] as const,
+      init: (flags: Flags) => ({ model: { locale: flags.locale } }),
+      update: (model: Model, _message: Message) => ({ model }),
       view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
     };
     // @ts-expect-error Page configs must declare the FoldKit Flags codec.

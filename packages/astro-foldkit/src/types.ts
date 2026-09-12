@@ -5,12 +5,16 @@ import type { Document } from 'foldkit/html';
 import type { NavigationConfig } from './navigation';
 
 type TaggedMessage = { readonly _tag: string };
-type CommandBatch = ReadonlyArray<unknown>;
+
+export type AppReturn<Model = unknown> = Readonly<{
+  readonly model: Model;
+  readonly commands?: ReadonlyArray<unknown>;
+}>;
 
 export type AppConfigShape<Props extends Record<string, unknown>> = {
   readonly Model: unknown;
-  readonly init: (props: Props) => readonly [unknown, CommandBatch];
-  readonly update: (model: never, message: never) => readonly [unknown, CommandBatch];
+  readonly init: (props: Props) => AppReturn;
+  readonly update: (model: never, message: never) => AppReturn;
   readonly view: (model: never, h: never) => Document;
   readonly navigation?: NavigationConfig<unknown>;
   readonly ports?: Record<string, unknown>;
@@ -22,7 +26,7 @@ export type AppConfig<
   Message extends TaggedMessage = TaggedMessage,
 > = {
   readonly Model: unknown;
-  readonly init: (props: Props) => readonly [Model, CommandBatch];
+  readonly init: (props: Props) => AppReturn<Model>;
   readonly update: Runtime.ApplicationConfig<Model, Message>['update'];
   readonly view: Runtime.ApplicationConfig<Model, Message>['view'];
 };

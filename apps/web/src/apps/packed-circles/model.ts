@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'packed'> & {
   readonly packed: PackedChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [packed] = PackedChart.init({
+export const init = (_props: unknown) => {
+  const { model: packed } = PackedChart.init({
     root: {
       name: 'Languages',
       children: [
@@ -67,5 +67,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       ],
     },
   });
-  return [{ packed }, []];
+  return { model: { packed } };
 };

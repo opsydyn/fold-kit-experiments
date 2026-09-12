@@ -11,10 +11,11 @@ import {
   StartedBrush,
 } from '@opsydyn/foldkit-viz/math/brush';
 import { linear, linearInvertible, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
-import { Effect, Match, Option, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import {
   type Dims,
@@ -62,7 +63,7 @@ export type Model = Readonly<{
   brushDragStart: Option.Option<Readonly<{ anchorClientX: number; anchorScreenX: number }>>;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const binCount = cfg.binCount ?? 10;
   const rawBins: ReadonlyArray<Bin<HistogramDatum>> = bin(cfg.data, {
     value: (d) => d.value,
@@ -79,8 +80,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     { top: 24, right: 20, bottom: 48, left: 44, ...cfg.margins },
   );
 
-  return [
-    {
+  return {
+    model: {
       bins,
       totalCount: cfg.data.length,
       color: cfg.color ?? '#6366f1',
@@ -92,8 +93,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       svgBounds: Option.none(),
       brushDragStart: Option.none(),
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -117,19 +117,18 @@ export type Message = typeof Message.Type;
 
 // MOUNT
 
-export const CaptureSvgBounds = Mount.define(
-  'CaptureSvgBounds',
-  RecordedSvgBounds,
-)((element) =>
-  Effect.sync(() => {
-    const rect = element.getBoundingClientRect();
-    return Message.RecordedSvgBounds({ clientLeft: rect.left, renderedPW: rect.width });
-  }),
-);
+export const CaptureSvgBounds = Mount.define('CaptureSvgBounds', {
+  messages: [Message.RecordedSvgBounds],
+  execute: ({ element }) =>
+    Effect.sync(() => {
+      const rect = element.getBoundingClientRect();
+      return Message.RecordedSvgBounds({ clientLeft: rect.left, renderedPW: rect.width });
+    }),
+});
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 function computePlotX(svgBounds: Option.Option<SvgBounds>, PW: number, clientX: number): number {
   return Option.match(svgBounds, {
@@ -148,52 +147,45 @@ function computeMovePlotX(model: Model, screenX: number): number {
 }
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredBin: ({ index }) => [{ ...model, activeBin: Option.some(index) }, []],
-      BlurredBin: () => [{ ...model, activeBin: Option.none() }, []],
-      RecordedSvgBounds: ({ clientLeft, renderedPW }) => [
-        { ...model, svgBounds: Option.some({ clientLeft, renderedPW }) },
-        [],
-      ],
-      StartedHistogramBrush: ({ screenX, clientX }) => {
-        const plotX = computePlotX(model.svgBounds, model.layout.pw, clientX);
-        return [
-          {
-            ...model,
-            brush: brushUpdate(model.brush, StartedBrush(plotX)),
-            brushDragStart: Option.some({ anchorClientX: clientX, anchorScreenX: screenX }),
-          },
-          [],
-        ];
-      },
-      MovedHistogramBrush: ({ screenX }) => {
-        if (!model.brush.active) return [model, []];
-        const plotX = computeMovePlotX(model, screenX);
-        return [{ ...model, brush: brushUpdate(model.brush, MovedBrush(plotX)) }, []];
-      },
-      EndedHistogramBrush: ({ screenX }) => {
-        const plotX = computeMovePlotX(model, screenX);
-        return [
-          {
-            ...model,
-            brush: brushUpdate(model.brush, EndedBrush(plotX)),
-            brushDragStart: Option.none(),
-          },
-          [],
-        ];
-      },
-      ClearedHistogramBrush: () => [
-        {
+  Message.match(msg, {
+    HoveredBin: ({ index }) => ({ model: { ...model, activeBin: Option.some(index) } }),
+    BlurredBin: () => ({ model: { ...model, activeBin: Option.none() } }),
+    RecordedSvgBounds: ({ clientLeft, renderedPW }) => ({
+      model: { ...model, svgBounds: Option.some({ clientLeft, renderedPW }) },
+    }),
+    StartedHistogramBrush: ({ screenX, clientX }) => {
+      const plotX = computePlotX(model.svgBounds, model.layout.pw, clientX);
+      return {
+        model: {
           ...model,
-          brush: brushUpdate(model.brush, ClearedBrush()),
+          brush: brushUpdate(model.brush, StartedBrush(plotX)),
+          brushDragStart: Option.some({ anchorClientX: clientX, anchorScreenX: screenX }),
+        },
+      };
+    },
+    MovedHistogramBrush: ({ screenX }) => {
+      if (!model.brush.active) return { model: model };
+      const plotX = computeMovePlotX(model, screenX);
+      return { model: { ...model, brush: brushUpdate(model.brush, MovedBrush(plotX)) } };
+    },
+    EndedHistogramBrush: ({ screenX }) => {
+      const plotX = computeMovePlotX(model, screenX);
+      return {
+        model: {
+          ...model,
+          brush: brushUpdate(model.brush, EndedBrush(plotX)),
           brushDragStart: Option.none(),
         },
-        [],
-      ],
+      };
+    },
+    ClearedHistogramBrush: () => ({
+      model: {
+        ...model,
+        brush: brushUpdate(model.brush, ClearedBrush()),
+        brushDragStart: Option.none(),
+      },
     }),
-  );
+  });
 
 // QUERY
 
@@ -389,7 +381,9 @@ export function view<M>(
                   h.Style({ cursor: 'crosshair', 'user-select': 'none' }),
                   h.OnMount(Mount.mapMessage(CaptureSvgBounds(), toParentMessage)),
                   h.OnPointerDown((_pointerType, _button, screenX, _screenY, _ts, clientX) =>
-                    Option.some(toParentMessage(Message.StartedHistogramBrush({ screenX, clientX }))),
+                    Option.some(
+                      toParentMessage(Message.StartedHistogramBrush({ screenX, clientX })),
+                    ),
                   ),
                   h.OnPointerMove((screenX, _screenY, _pointerType) =>
                     model.brush.active

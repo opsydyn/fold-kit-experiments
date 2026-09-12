@@ -3,8 +3,8 @@ import { Schema } from 'effect';
 import * as WR from '../../ui/wind-rose-chart';
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: WR.Model };
-export const init = (_: unknown): readonly [Model, readonly []] => {
-  const [chart] = WR.init({
+export const init = (_: unknown) => {
+  const { model: chart } = WR.init({
     segments: [
       { label: 'N', value: 12, color: '#6366f1' },
       { label: 'NE', value: 8, color: '#818cf8' },
@@ -18,5 +18,5 @@ export const init = (_: unknown): readonly [Model, readonly []] => {
     centerLabel: 'Wind',
     dims: { width: 300, height: 300 },
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

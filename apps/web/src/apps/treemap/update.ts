@@ -1,18 +1,18 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as TreemapChart from '../../ui/treemap-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotTreemapMessage: ({ message }) => {
-        const [treemap] = TreemapChart.update(model.treemap, message as TreemapChart.Message);
-        return [{ ...model, treemap }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotTreemapMessage: ({ message }) => {
+      const { model: treemap } = TreemapChart.update(
+        model.treemap,
+        message as TreemapChart.Message,
+      );
+      return { model: { ...model, treemap } };
+    },
+  });

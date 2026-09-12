@@ -1,8 +1,9 @@
 import { arc } from '@opsydyn/foldkit-viz/shape/arc';
 import { pie } from '@opsydyn/foldkit-viz/shape/pie';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -37,15 +38,14 @@ const DEFAULT_CONFIG: Config = {
   hoverGrow: 8,
 };
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [
-    {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
+  return {
+    model: {
       segments: cfg.segments,
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -60,23 +60,20 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredSegment: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      BlurredSegment: () => [{ ...model, activeIndex: Option.none() }, []],
-      ClickedSegment: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      PressedKeyNav: ({ direction }) => {
-        const n = model.segments.length;
-        const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
-        const next = direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
-        return [{ ...model, activeIndex: Option.some(next) }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    HoveredSegment: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    BlurredSegment: () => ({ model: { ...model, activeIndex: Option.none() } }),
+    ClickedSegment: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    PressedKeyNav: ({ direction }) => {
+      const n = model.segments.length;
+      const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
+      const next = direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
+      return { model: { ...model, activeIndex: Option.some(next) } };
+    },
+  });
 
 // VIEW
 

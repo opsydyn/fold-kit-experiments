@@ -15,4 +15,4 @@ export const ports = {
 export const navigation = { port: 'navigation', map: toNavigationValue };
 export const subscriptions = makeSubscriptions();
 
-export const init = () => [initModel, [FetchMetrics()]] as const;
+export const init = () => ({ model: initModel, commands: [FetchMetrics()] });

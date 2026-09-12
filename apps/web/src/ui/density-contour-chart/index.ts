@@ -1,9 +1,10 @@
 import { contourLines, density2d, segmentsToPath } from '@opsydyn/foldkit-viz/math/contour';
 import { randomLcg, randomNormal } from '@opsydyn/foldkit-viz/math/random';
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -67,13 +68,13 @@ function generateData(seed: number): PlotData {
   return { points, grid };
 }
 
-export function init(cfg: InitConfig = {}): readonly [Model, readonly []] {
+export function init(cfg: InitConfig = {}): UpdateReturn<Model, Message> {
   const data = generateData(cfg.seed ?? 42);
   const layout = makeLayout(
     { width: 420, height: 280, ...cfg.dims },
     { top: 12, right: 16, bottom: 42, left: 20, ...cfg.margins },
   );
-  return [{ data, hovered: Option.none(), layout }, []];
+  return { model: { data, hovered: Option.none(), layout } };
 }
 
 // MESSAGE
@@ -86,16 +87,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredLevel: ({ label }) => [{ ...model, hovered: Option.some(label) }, []],
-      BlurredLevel: () => [{ ...model, hovered: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredLevel: ({ label }) => ({ model: { ...model, hovered: Option.some(label) } }),
+    BlurredLevel: () => ({ model: { ...model, hovered: Option.none() } }),
+  });
 
 // VIEW
 

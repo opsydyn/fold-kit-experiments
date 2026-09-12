@@ -13,8 +13,8 @@ const THRESHOLDS = [
   { at: 80, color: '#ef4444' },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [gauge] = GaugeChart.init({
+export const init = (_props: unknown) => {
+  const { model: gauge } = GaugeChart.init({
     entries: [
       {
         label: 'CPU',
@@ -46,5 +46,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       },
     ],
   });
-  return [{ gauge }, []];
+  return { model: { gauge } };
 };

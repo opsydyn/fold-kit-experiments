@@ -5,8 +5,8 @@ import * as Bump from '../../ui/bump-chart';
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Bump.Model };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = Bump.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = Bump.init({
     xLabels: ['2019', '2020', '2021', '2022', '2023', '2024'],
     series: [
       { label: 'React', color: '#61dafb', ranks: [1, 1, 1, 1, 1, 1] },
@@ -19,5 +19,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       { label: 'Lit', color: '#324fff', ranks: [4, 4, 5, 7, 8, 8] },
     ],
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

@@ -1,18 +1,18 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as ScatterChart from '../../ui/scatter-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotScatterMessage: ({ message }) => {
-        const [scatter] = ScatterChart.update(model.scatter, message as ScatterChart.Message);
-        return [{ ...model, scatter }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotScatterMessage: ({ message }) => {
+      const { model: scatter } = ScatterChart.update(
+        model.scatter,
+        message as ScatterChart.Message,
+      );
+      return { model: { ...model, scatter } };
+    },
+  });

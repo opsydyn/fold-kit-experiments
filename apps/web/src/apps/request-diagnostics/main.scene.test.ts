@@ -11,7 +11,7 @@ import { NavigationPort, NavigationValue } from './navigation';
 describe('request diagnostics navigation scene', () => {
   it('updates route metadata without rebuilding chart models', () => {
     const model = initModel;
-    const [nextModel, commands] = update(
+    const { model: nextModel, commands } = update(
       model,
       Message.Navigated({
         phase: 'entered',
@@ -43,10 +43,10 @@ describe('request diagnostics navigation scene', () => {
     const handle = Runtime.embed(
       Runtime.makeElement({
         Model: TestModel,
-        init: () => [{ navigation: initModel.navigation }, []],
+        init: () => ({ model: { navigation: initModel.navigation } }),
         update: (model, message) => {
           received.push(message);
-          return [model, []];
+          return { model };
         },
         view: (model, h) => h.div([], [model.navigation.path]),
         subscriptions: testSubscriptions,

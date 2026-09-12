@@ -4,9 +4,10 @@ import {
   geoMercator,
   geoPath,
 } from '@opsydyn/foldkit-viz/shape/geo';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -62,8 +63,8 @@ export type Model = Readonly<{
   hovered: Option.Option<string>;
 }>;
 
-export function init(): readonly [Model, readonly []] {
-  return [{ hovered: Option.none() }, []];
+export function init(): UpdateReturn<Model, Message> {
+  return { model: { hovered: Option.none() } };
 }
 
 // MESSAGE
@@ -76,16 +77,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredCity: ({ name }) => [{ ...model, hovered: Option.some(name) }, []],
-      BlurredCity: () => [{ ...model, hovered: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredCity: ({ name }) => ({ model: { ...model, hovered: Option.some(name) } }),
+    BlurredCity: () => ({ model: { ...model, hovered: Option.none() } }),
+  });
 
 // VIEW — bounding box for each map panel (for clipping)
 const EQUI_X0 = ML;

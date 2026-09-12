@@ -17,8 +17,8 @@ type Message = { readonly _tag: 'Increment' };
 
 const config = {
   Model: {},
-  init: (props: Record<string, unknown>) => [{ count: Number(props.initialCount) }, []] as const,
-  update: (model: Model, _message: Message) => [model, []] as const,
+  init: (props: Record<string, unknown>) => ({ model: { count: Number(props.initialCount) } }),
+  update: (model: Model, _message: Message) => ({ model }),
   view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
 } satisfies AppConfig<Record<string, unknown>, Model, Message> &
   AppConfigShape<Record<string, unknown>>;
@@ -250,7 +250,7 @@ describe('astro-foldkit client renderer', () => {
     const runtime = {
       makeApplication: (input: unknown) => {
         makeApplicationCalls += 1;
-        initProps = (input as { init: () => readonly [Model, ReadonlyArray<unknown>] }).init();
+        initProps = (input as { init: () => { readonly model: Model } }).init();
         return input;
       },
       embed: (_program: unknown) => {
@@ -278,7 +278,7 @@ describe('astro-foldkit client renderer', () => {
 
     expect(loadCalls).toBe(1);
     expect(makeApplicationCalls).toBe(1);
-    expect(initProps).toEqual([{ count: 3 }, []]);
+    expect(initProps).toEqual({ model: { count: 3 } });
     expect(embedCalls).toBe(1);
     expect(disposeCalls).toBe(1);
   });

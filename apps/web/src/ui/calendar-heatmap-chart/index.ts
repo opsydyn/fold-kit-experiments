@@ -1,7 +1,8 @@
 import { colorScale, interpolateRgbBasis } from '@opsydyn/foldkit-viz/math/color';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -43,7 +44,7 @@ export type Model = Readonly<{
 const GITHUB_COLORS = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
 const LEGEND_STEPS = 5;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const colors = cfg.colors ?? GITHUB_COLORS;
   const allCounts = cfg.days.map((d) => d.count);
   const maxCount = cfg.maxCount ?? Math.max(...allCounts, 1);
@@ -59,8 +60,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     color: i === 0 ? (colors[0] ?? '#ebedf0') : getColor((i / (LEGEND_STEPS - 1)) * maxCount),
   }));
 
-  return [
-    {
+  return {
+    model: {
       days,
       monthLabels: cfg.monthLabels,
       year: cfg.year,
@@ -68,8 +69,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       legendStops,
       activeDate: Option.none(),
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -82,16 +82,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredDay: ({ date }) => [{ ...model, activeDate: Option.some(date) }, []],
-      BlurredDay: () => [{ ...model, activeDate: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredDay: ({ date }) => ({ model: { ...model, activeDate: Option.some(date) } }),
+    BlurredDay: () => ({ model: { ...model, activeDate: Option.none() } }),
+  });
 
 // VIEW
 

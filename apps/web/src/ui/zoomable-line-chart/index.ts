@@ -7,9 +7,10 @@ import {
   type TransformMatrix,
   translateBy,
 } from '@opsydyn/foldkit-viz/math/zoom';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { r3, svgRoot } from '../shared';
 
@@ -33,17 +34,16 @@ export type Model = Readonly<{
   color: string;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [
-    {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
+  return {
+    model: {
       points: cfg.points,
       matrix: identityMatrix(),
       isDragging: false,
       dragStartX: 0,
       color: cfg.color ?? '#6366f1',
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -68,37 +68,33 @@ const ZOOM_FACTOR = 1.5;
 const ZOOM_CENTER = { x: PW / 2, y: 0 };
 const DRAG_SCALE = PW / W;
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      ClickedZoomIn: () => {
-        const zoomed = scaleAt(model.matrix, ZOOM_FACTOR, 1, ZOOM_CENTER);
-        const constrained = constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE);
-        return [{ ...model, matrix: constrained }, []];
-      },
-      ClickedZoomOut: () => {
-        const zoomed = scaleAt(model.matrix, 1 / ZOOM_FACTOR, 1, ZOOM_CENTER);
-        const constrained = constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE);
-        return [{ ...model, matrix: constrained }, []];
-      },
-      ClickedReset: () => [{ ...model, matrix: identityMatrix() }, []],
-      StartedDrag: ({ clientX }) => [{ ...model, isDragging: true, dragStartX: clientX }, []],
-      MovedDrag: ({ clientX }) => {
-        if (!model.isDragging) {
-          return [model, []];
-        }
-        const delta = (clientX - model.dragStartX) * DRAG_SCALE;
-        return [
-          { ...model, matrix: translateBy(model.matrix, -delta, 0), dragStartX: clientX },
-          [],
-        ];
-      },
-      EndedDrag: () => [{ ...model, isDragging: false }, []],
-    }),
-  );
+  Message.match(msg, {
+    ClickedZoomIn: () => {
+      const zoomed = scaleAt(model.matrix, ZOOM_FACTOR, 1, ZOOM_CENTER);
+      const constrained = constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE);
+      return { model: { ...model, matrix: constrained } };
+    },
+    ClickedZoomOut: () => {
+      const zoomed = scaleAt(model.matrix, 1 / ZOOM_FACTOR, 1, ZOOM_CENTER);
+      const constrained = constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE);
+      return { model: { ...model, matrix: constrained } };
+    },
+    ClickedReset: () => ({ model: { ...model, matrix: identityMatrix() } }),
+    StartedDrag: ({ clientX }) => ({ model: { ...model, isDragging: true, dragStartX: clientX } }),
+    MovedDrag: ({ clientX }) => {
+      if (!model.isDragging) {
+        return { model: model };
+      }
+      const delta = (clientX - model.dragStartX) * DRAG_SCALE;
+      return {
+        model: { ...model, matrix: translateBy(model.matrix, -delta, 0), dragStartX: clientX },
+      };
+    },
+    EndedDrag: () => ({ model: { ...model, isDragging: false } }),
+  });
 
 // VIEW
 
@@ -185,7 +181,9 @@ export function view<M>(
     _screenY: number,
     _pointerType: string,
   ): Option.Option<M> =>
-    isDragging ? Option.some(toParentMessage(Message.MovedDrag({ clientX: _screenX }))) : Option.none();
+    isDragging
+      ? Option.some(toParentMessage(Message.MovedDrag({ clientX: _screenX })))
+      : Option.none();
 
   const handlePointerUp = (
     _screenX: number,

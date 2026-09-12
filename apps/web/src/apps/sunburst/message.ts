@@ -1,4 +1,3 @@
-import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import * as SunburstChart from '../../ui/sunburst-chart';

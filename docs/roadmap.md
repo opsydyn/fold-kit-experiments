@@ -13,6 +13,11 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
+Current package compatibility targets FoldKit `0.155.x`, Effect
+`4.0.0-rc.112`, and the `@foldkit/vite-plugin` `0.19.x` line. The 0.155
+contract migration is not considered released until the packed-consumer and
+workspace verification gates pass.
+
 ## Product Thesis
 
 Build the most useful Astro host and chart-primitives layer for FoldKit applications: server-compatible islands, route-aware application lifecycle, typed parent-owned state, and linked data visualizations that remain pure and testable.

@@ -60,13 +60,13 @@ const US_STATES: ReadonlyArray<TG.TileCell> = [
   { id: 'FL', label: 'FL', col: 8, row: 6, value: 81 },
 ];
 
-export const init = (_: unknown): readonly [Model, readonly []] => {
-  const [chart] = TG.init({
+export const init = (_: unknown) => {
+  const { model: chart } = TG.init({
     cells: US_STATES,
     tileSize: 32,
     colorLow: '#dbeafe',
     colorHigh: '#1d4ed8',
     legendLabel: 'GDP index',
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

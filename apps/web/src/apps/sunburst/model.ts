@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'sunburst'> & {
   readonly sunburst: SunburstChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [sunburst] = SunburstChart.init({
+export const init = (_props: unknown) => {
+  const { model: sunburst } = SunburstChart.init({
     root: {
       name: 'Tech Market Cap',
       children: [
@@ -53,5 +53,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       ],
     },
   });
-  return [{ sunburst }, []];
+  return { model: { sunburst } };
 };

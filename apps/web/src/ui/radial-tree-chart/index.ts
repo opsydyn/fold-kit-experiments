@@ -1,9 +1,10 @@
 import type { ClusterLayoutNode } from '@opsydyn/foldkit-viz/hierarchy';
 import { clusterLayout, hierarchy } from '@opsydyn/foldkit-viz/hierarchy';
 import { linkRadial } from '@opsydyn/foldkit-viz/shape/link';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { r3, svgRoot } from '../shared';
 
@@ -30,7 +31,7 @@ export type Model = Readonly<{
   color: string;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const outerRadius = cfg.outerRadius ?? 108;
   const root = hierarchy(cfg.data as TreeDatum);
   const nodes = clusterLayout(root, { width: 2 * Math.PI, height: outerRadius });
@@ -44,16 +45,15 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     }
   }
 
-  return [
-    {
+  return {
+    model: {
       nodes,
       links,
       activeId: Option.none(),
       outerRadius,
       color: cfg.color ?? '#6366f1',
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -66,16 +66,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredNode: ({ name }) => [{ ...model, activeId: Option.some(name) }, []],
-      BlurredNode: () => [{ ...model, activeId: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredNode: ({ name }) => ({ model: { ...model, activeId: Option.some(name) } }),
+    BlurredNode: () => ({ model: { ...model, activeId: Option.none() } }),
+  });
 
 // VIEW
 

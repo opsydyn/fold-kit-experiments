@@ -1,7 +1,8 @@
 import { linear, linearTicks, sqrt } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -46,20 +47,19 @@ const DEFAULT_CONFIG: Config = {
   valueLabel: 'Value',
 };
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: 280, ...cfg.dims },
     { top: 24, right: 36, bottom: 52, left: 52, ...cfg.margins },
   );
-  return [
-    {
+  return {
+    model: {
       points: cfg.points,
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -73,22 +73,19 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredPoint: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      BlurredPoint: () => [{ ...model, activeIndex: Option.none() }, []],
-      PressedKeyNav: ({ direction }) => {
-        const n = model.points.length;
-        const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
-        const next = direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
-        return [{ ...model, activeIndex: Option.some(next) }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    HoveredPoint: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    BlurredPoint: () => ({ model: { ...model, activeIndex: Option.none() } }),
+    PressedKeyNav: ({ direction }) => {
+      const n = model.points.length;
+      const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
+      const next = direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
+      return { model: { ...model, activeIndex: Option.some(next) } };
+    },
+  });
 
 // VIEW
 

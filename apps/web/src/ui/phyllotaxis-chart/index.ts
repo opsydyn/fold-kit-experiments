@@ -10,9 +10,10 @@ import {
   type TransformMatrix,
   translateBy,
 } from '@opsydyn/foldkit-viz/math/zoom';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -63,7 +64,7 @@ function computeInitialMatrix(): TransformMatrix {
   return scaleAt(identityMatrix(), 1.27, 1.27, { x: CX, y: CY });
 }
 
-export function init(): readonly [Model, readonly []] {
+export function init(): UpdateReturn<Model, Message> {
   const colorInterp = interpolateRgbBasis(RAINBOW_STOPS);
   const sizeScale = linear({ domain: [0, 600], range: [0.5, 8], clamp: true });
 
@@ -77,16 +78,15 @@ export function init(): readonly [Model, readonly []] {
     return { x, y, color, r };
   });
 
-  return [
-    {
+  return {
+    model: {
       dots,
       matrix: computeInitialMatrix(),
       isDragging: false,
       dragStart: { x: 0, y: 0 },
       showMiniMap: true,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -106,58 +106,53 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      ClickedZoomIn: () => {
-        const zoomed = scaleAt(model.matrix, ZOOM_STEP, ZOOM_STEP, { x: CX, y: CY });
-        return [
-          { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
-          [],
-        ];
-      },
-      ClickedZoomOut: () => {
-        const zoomed = scaleAt(model.matrix, 1 / ZOOM_STEP, 1 / ZOOM_STEP, { x: CX, y: CY });
-        return [
-          { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
-          [],
-        ];
-      },
-      ClickedCenter: () => {
-        const { scaleX, scaleY } = model.matrix;
-        return [
-          { ...model, matrix: setTranslate(model.matrix, CX * (1 - scaleX), CY * (1 - scaleY)) },
-          [],
-        ];
-      },
-      ClickedReset: () => [{ ...model, matrix: computeInitialMatrix() }, []],
-      ClickedClear: () => [{ ...model, matrix: identityMatrix() }, []],
-      ToggledMiniMap: () => [{ ...model, showMiniMap: !model.showMiniMap }, []],
-      StartedDrag: ({ screenX, screenY }) => [
-        { ...model, isDragging: true, dragStart: { x: screenX, y: screenY } },
-        [],
-      ],
-      MovedDrag: ({ screenX, screenY }) => {
-        if (!model.isDragging) {
-          return [model, []];
-        }
-        const dx = screenX - model.dragStart.x;
-        const dy = screenY - model.dragStart.y;
-        return [
-          {
-            ...model,
-            matrix: translateBy(model.matrix, dx, dy),
-            dragStart: { x: screenX, y: screenY },
-          },
-          [],
-        ];
-      },
-      EndedDrag: () => [{ ...model, isDragging: false }, []],
+  Message.match(msg, {
+    ClickedZoomIn: () => {
+      const zoomed = scaleAt(model.matrix, ZOOM_STEP, ZOOM_STEP, { x: CX, y: CY });
+      return {
+        model: { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
+      };
+    },
+    ClickedZoomOut: () => {
+      const zoomed = scaleAt(model.matrix, 1 / ZOOM_STEP, 1 / ZOOM_STEP, { x: CX, y: CY });
+      return {
+        model: { ...model, matrix: constrainScale(zoomed, model.matrix, MIN_SCALE, MAX_SCALE) },
+      };
+    },
+    ClickedCenter: () => {
+      const { scaleX, scaleY } = model.matrix;
+      return {
+        model: {
+          ...model,
+          matrix: setTranslate(model.matrix, CX * (1 - scaleX), CY * (1 - scaleY)),
+        },
+      };
+    },
+    ClickedReset: () => ({ model: { ...model, matrix: computeInitialMatrix() } }),
+    ClickedClear: () => ({ model: { ...model, matrix: identityMatrix() } }),
+    ToggledMiniMap: () => ({ model: { ...model, showMiniMap: !model.showMiniMap } }),
+    StartedDrag: ({ screenX, screenY }) => ({
+      model: { ...model, isDragging: true, dragStart: { x: screenX, y: screenY } },
     }),
-  );
+    MovedDrag: ({ screenX, screenY }) => {
+      if (!model.isDragging) {
+        return { model: model };
+      }
+      const dx = screenX - model.dragStart.x;
+      const dy = screenY - model.dragStart.y;
+      return {
+        model: {
+          ...model,
+          matrix: translateBy(model.matrix, dx, dy),
+          dragStart: { x: screenX, y: screenY },
+        },
+      };
+    },
+    EndedDrag: () => ({ model: { ...model, isDragging: false } }),
+  });
 
 // VIEW
 
@@ -287,7 +282,9 @@ export function view<M>(
     screenY: number,
     _pointerType: string,
   ): Option.Option<M> =>
-    isDragging ? Option.some(toParentMessage(Message.MovedDrag({ screenX, screenY }))) : Option.none();
+    isDragging
+      ? Option.some(toParentMessage(Message.MovedDrag({ screenX, screenY })))
+      : Option.none();
 
   const handlePointerUp = (
     _screenX: number,
@@ -403,8 +400,24 @@ export function view<M>(
       '0.65rem',
       toParentMessage(Message.ClickedCenter()),
     ),
-    textBtn(h, 'Reset', BTN_TEXT_X, resetY, BTN_TEXT_W, '0.65rem', toParentMessage(Message.ClickedReset())),
-    textBtn(h, 'Clear', BTN_TEXT_X, clearY, BTN_TEXT_W, '0.65rem', toParentMessage(Message.ClickedClear())),
+    textBtn(
+      h,
+      'Reset',
+      BTN_TEXT_X,
+      resetY,
+      BTN_TEXT_W,
+      '0.65rem',
+      toParentMessage(Message.ClickedReset()),
+    ),
+    textBtn(
+      h,
+      'Clear',
+      BTN_TEXT_X,
+      clearY,
+      BTN_TEXT_W,
+      '0.65rem',
+      toParentMessage(Message.ClickedClear()),
+    ),
 
     // Mini map toggle (bottom-right, inside clip)
     h.g(

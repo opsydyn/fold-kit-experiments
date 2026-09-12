@@ -52,8 +52,8 @@ function generateStockData(): ReadonlyArray<ZoomableLineChart.StockPoint> {
   return points;
 }
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
+export const init = (_props: unknown) => {
   const points = generateStockData();
-  const [chart] = ZoomableLineChart.init({ points, color: '#6366f1' });
-  return [{ chart }, []];
+  const { model: chart } = ZoomableLineChart.init({ points, color: '#6366f1' });
+  return { model: { chart } };
 };

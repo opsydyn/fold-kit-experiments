@@ -1,4 +1,3 @@
-import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import { HueSchema, MillisecondsSchema, PixelsPerSecSchema, PixelsSchema } from './types';

@@ -1,8 +1,9 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -30,13 +31,15 @@ export type Model = Readonly<{
   readonly layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const n = cfg.series.length;
   const layout = makeLayout(
     { width: 480, height: n * 36 + 48, ...cfg.dims },
     { top: 24, right: 80, bottom: 24, left: 80, ...cfg.margins },
   );
-  return [{ series: cfg.series, xLabels: cfg.xLabels, activeLabel: Option.none(), layout }, []];
+  return {
+    model: { series: cfg.series, xLabels: cfg.xLabels, activeLabel: Option.none(), layout },
+  };
 }
 
 // MESSAGE
@@ -49,16 +52,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredSeries: ({ label }) => [{ ...model, activeLabel: Option.some(label) }, []],
-      BlurredSeries: () => [{ ...model, activeLabel: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredSeries: ({ label }) => ({ model: { ...model, activeLabel: Option.some(label) } }),
+    BlurredSeries: () => ({ model: { ...model, activeLabel: Option.none() } }),
+  });
 
 // VIEW
 

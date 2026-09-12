@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'waterfall'> & {
   readonly waterfall: WaterfallChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [waterfall] = WaterfallChart.init({
+export const init = (_props: unknown) => {
+  const { model: waterfall } = WaterfallChart.init({
     entries: [
       { label: 'Revenue', value: 850, type: 'total' },
       { label: 'COGS', value: -320, type: 'delta' },
@@ -24,5 +24,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       { label: 'Net', value: 212, type: 'total' },
     ],
   });
-  return [{ waterfall }, []];
+  return { model: { waterfall } };
 };

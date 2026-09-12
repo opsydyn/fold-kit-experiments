@@ -43,7 +43,7 @@ describe('GreetingPage', () => {
   test('initialises directly from Flags instead of rebuilding request defaults', () => {
     const flags = Schema.decodeSync(Flags)({ name: 'Ada', locale: 'ar' });
 
-    expect(init(flags)[0]).toEqual({
+    expect(init(flags).model).toEqual({
       name: Schema.decodeSync(Name)('Ada'),
       locale: 'ar',
     });

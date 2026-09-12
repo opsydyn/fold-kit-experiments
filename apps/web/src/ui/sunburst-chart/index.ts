@@ -1,8 +1,9 @@
 import { descendants, hierarchy, partition, sort, sum } from '@opsydyn/foldkit-viz/hierarchy';
 import { arc, arcCentroid } from '@opsydyn/foldkit-viz/shape/arc';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -147,8 +148,8 @@ function buildLayout(root: RootDatum): Layout {
   return { catArcs, leafArcs, rootName: root.name, centerPath };
 }
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [{ layout: buildLayout(cfg.root), activeNode: Option.none() }, []];
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
+  return { model: { layout: buildLayout(cfg.root), activeNode: Option.none() } };
 }
 
 // MESSAGE
@@ -161,16 +162,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredSegment: ({ name }) => [{ ...model, activeNode: Option.some(name) }, []],
-      BlurredSegment: () => [{ ...model, activeNode: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredSegment: ({ name }) => ({ model: { ...model, activeNode: Option.some(name) } }),
+    BlurredSegment: () => ({ model: { ...model, activeNode: Option.none() } }),
+  });
 
 // VIEW
 

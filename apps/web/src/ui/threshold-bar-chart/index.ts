@@ -1,7 +1,8 @@
 import { threshold } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -27,12 +28,14 @@ export type Model = Readonly<{
   readonly layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: 265, ...cfg.dims },
     { top: 20, right: 56, bottom: 36, left: 140, ...cfg.margins },
   );
-  return [{ endpoints: cfg.endpoints, title: cfg.title ?? '', hovered: Option.none(), layout }, []];
+  return {
+    model: { endpoints: cfg.endpoints, title: cfg.title ?? '', hovered: Option.none(), layout },
+  };
 }
 
 // MESSAGE
@@ -45,16 +48,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredBar: ({ label }) => [{ ...model, hovered: Option.some(label) }, []],
-      BlurredBar: () => [{ ...model, hovered: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredBar: ({ label }) => ({ model: { ...model, hovered: Option.some(label) } }),
+    BlurredBar: () => ({ model: { ...model, hovered: Option.none() } }),
+  });
 
 // VIEW
 

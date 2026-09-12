@@ -25,8 +25,8 @@ const DATA: Array<Record<string, number>> = [
   { react: 23.1, vue: 5.6, angular: 4.4, svelte: 2.0, solid: 1.02 },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [streamgraph] = StreamgraphChart.init({
+export const init = (_props: unknown) => {
+  const { model: streamgraph } = StreamgraphChart.init({
     data: DATA,
     xLabels: MONTHS,
     series: [
@@ -37,5 +37,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       { key: 'solid', label: 'Solid', color: '#c084fc' },
     ],
   });
-  return [{ streamgraph }, []];
+  return { model: { streamgraph } };
 };

@@ -1,7 +1,7 @@
 import { arc } from '@opsydyn/foldkit-viz/shape/arc';
-import { Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -36,14 +36,13 @@ export type Model = Readonly<{
   config: Config;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [
-    {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
+  return {
+    model: {
       entries: cfg.entries,
       config: { ...DEFAULT_CONFIG, ...cfg.config },
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE — gauge is a display-only component; GaugeUpdated satisfies the TEA contract
@@ -54,8 +53,8 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 
-export function update(model: Model, _msg: Message): readonly [Model, readonly []] {
-  return [model, []];
+export function update(model: Model, _msg: Message): UpdateReturn<Model, Message> {
+  return { model: model };
 }
 
 // VIEW

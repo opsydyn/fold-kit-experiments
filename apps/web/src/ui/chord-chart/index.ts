@@ -1,9 +1,10 @@
 import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { arc, arcCentroid } from '@opsydyn/foldkit-viz/shape/arc';
 import { chord, ribbon } from '@opsydyn/foldkit-viz/shape/chord';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -144,8 +145,8 @@ function buildLayout(cfg: InitConfig): Layout {
   return { groups: computedGroups, ribbons: computedRibbons };
 }
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [{ layout: buildLayout(cfg), activeIndex: Option.none() }, []];
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
+  return { model: { layout: buildLayout(cfg), activeIndex: Option.none() } };
 }
 
 // MESSAGE
@@ -158,16 +159,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredGroup: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      BlurredGroup: () => [{ ...model, activeIndex: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredGroup: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    BlurredGroup: () => ({ model: { ...model, activeIndex: Option.none() } }),
+  });
 
 // VIEW
 

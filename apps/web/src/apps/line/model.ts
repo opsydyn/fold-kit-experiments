@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'line'> & {
   readonly line: LineChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [line] = LineChart.init({
+export const init = (_props: unknown) => {
+  const { model: line } = LineChart.init({
     points: [
       { label: 'Jan', value: 42 },
       { label: 'Feb', value: 38 },
@@ -24,5 +24,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       { label: 'Dec', value: 47 },
     ],
   });
-  return [{ line }, []];
+  return { model: { line } };
 };

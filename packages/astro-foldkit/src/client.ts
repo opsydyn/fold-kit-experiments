@@ -9,7 +9,7 @@ import type { AppConfigShape, FoldkitApp, FoldkitPage, PageConfigShape } from '.
 type ConfigModel<
   Props extends Record<string, unknown>,
   Config extends AppConfigShape<Props>,
-> = ReturnType<Config['init']>[0];
+> = ReturnType<Config['init']>['model'];
 
 type ConfigMessage<
   Props extends Record<string, unknown>,

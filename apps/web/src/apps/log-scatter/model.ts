@@ -36,12 +36,12 @@ const PACKAGES: ReadonlyArray<LogScatter.Point> = [
   { label: 'cypress', x: 4_500_000, y: 48_000, category: 'Testing' },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = LogScatter.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = LogScatter.init({
     points: PACKAGES,
     categories: [...CATEGORIES],
     xLabel: 'Weekly downloads',
     yLabel: 'GitHub stars',
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

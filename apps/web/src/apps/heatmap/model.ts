@@ -26,13 +26,13 @@ const data: ReadonlyArray<HeatmapChart.CellDatum> = RAW.flatMap((row, r) =>
   row.map((value, c) => ({ row: r, col: c, value })),
 );
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [heatmap] = HeatmapChart.init({
+export const init = (_props: unknown) => {
+  const { model: heatmap } = HeatmapChart.init({
     data,
     rowLabels: DAYS,
     colLabels: HOURS,
     colors: ['#f0f9ff', '#bae6fd', '#38bdf8', '#0284c7', '#075985'],
     domain: [0, 100],
   });
-  return [{ heatmap }, []];
+  return { model: { heatmap } };
 };

@@ -17,8 +17,8 @@ const DATA: ReadonlyArray<BubbleChart.Point> = [
   { label: 'Speakers', x: 350, y: 4.4, value: 280 },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [bubble] = BubbleChart.init({
+export const init = (_props: unknown) => {
+  const { model: bubble } = BubbleChart.init({
     points: DATA,
     config: {
       xLabel: 'Price ($)',
@@ -26,5 +26,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       valueLabel: 'Monthly sales',
     },
   });
-  return [{ bubble }, []];
+  return { model: { bubble } };
 };

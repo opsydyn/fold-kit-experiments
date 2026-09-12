@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'radar'> & {
   readonly radar: RadarChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [radar] = RadarChart.init({
+export const init = (_props: unknown) => {
+  const { model: radar } = RadarChart.init({
     axes: ['Performance', 'Expressiveness', 'Type Safety', 'Ecosystem', 'Dev Speed'],
     maxValue: 10,
     series: [
@@ -29,5 +29,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       },
     ],
   });
-  return [{ radar }, []];
+  return { model: { radar } };
 };

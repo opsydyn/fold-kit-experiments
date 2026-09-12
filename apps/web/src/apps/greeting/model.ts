@@ -18,7 +18,7 @@ export const Flags = Schema.Struct({
 });
 export type Flags = typeof Flags.Type;
 
-export const init = (flags: Flags): readonly [Model, readonly []] => {
+export const init = (flags: Flags) => {
   const { name, locale } = Schema.decodeSync(Flags)(flags);
-  return [{ name, locale }, []];
+  return { model: { name, locale } };
 };

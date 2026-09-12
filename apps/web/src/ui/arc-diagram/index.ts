@@ -1,7 +1,8 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -27,21 +28,20 @@ export type Model = Readonly<{
   readonly layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: 220, ...cfg.dims },
     { top: 24, right: 24, bottom: 40, left: 24, ...cfg.margins },
   );
-  return [
-    {
+  return {
+    model: {
       nodes: cfg.nodes,
       links: cfg.links,
       color: cfg.color ?? '#6366f1',
       activeId: Option.none(),
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -54,16 +54,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredNode: ({ id }) => [{ ...model, activeId: Option.some(id) }, []],
-      BlurredNode: () => [{ ...model, activeId: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredNode: ({ id }) => ({ model: { ...model, activeId: Option.some(id) } }),
+    BlurredNode: () => ({ model: { ...model, activeId: Option.none() } }),
+  });
 
 // VIEW
 

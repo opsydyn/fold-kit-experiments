@@ -84,8 +84,8 @@ function generateYear(year: number): {
   return { days, monthLabels };
 }
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
+export const init = (_props: unknown) => {
   const { days, monthLabels } = generateYear(2025);
-  const [calendar] = CalendarHeatmapChart.init({ days, monthLabels, year: 2025 });
-  return [{ calendar }, []];
+  const { model: calendar } = CalendarHeatmapChart.init({ days, monthLabels, year: 2025 });
+  return { model: { calendar } };
 };

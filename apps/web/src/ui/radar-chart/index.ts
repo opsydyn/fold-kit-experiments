@@ -1,8 +1,9 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { lineRadial } from '@opsydyn/foldkit-viz/shape/lineRadial';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { r3, svgRoot } from '../shared';
 
@@ -27,18 +28,17 @@ export type InitConfig = Readonly<{
   maxValue?: number;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const allValues = cfg.series.flatMap((s) => [...s.values]);
   const maxValue = cfg.maxValue ?? Math.max(...allValues, 1);
-  return [
-    {
+  return {
+    model: {
       axes: cfg.axes,
       series: cfg.series,
       activeSeriesIndex: Option.none(),
       maxValue,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -51,16 +51,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredSeries: ({ index }) => [{ ...model, activeSeriesIndex: Option.some(index) }, []],
-      BlurredSeries: () => [{ ...model, activeSeriesIndex: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredSeries: ({ index }) => ({ model: { ...model, activeSeriesIndex: Option.some(index) } }),
+    BlurredSeries: () => ({ model: { ...model, activeSeriesIndex: Option.none() } }),
+  });
 
 // VIEW
 

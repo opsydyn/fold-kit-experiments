@@ -1,7 +1,8 @@
 import { linear } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, r3, svgRoot } from '../shared';
@@ -36,21 +37,20 @@ export type Model = Readonly<{
   readonly layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: cfg.data.length * 56 + 16, ...cfg.dims },
     { top: 16, right: 24, bottom: 8, left: 120, ...cfg.margins },
   );
-  return [
-    {
+  return {
+    model: {
       data: cfg.data,
       color: cfg.color ?? '#1e40af',
       targetColor: cfg.targetColor ?? 'var(--page-text, #e8e8ff)',
       activeIndex: Option.none(),
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -63,16 +63,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredRow: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      BlurredRow: () => [{ ...model, activeIndex: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredRow: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    BlurredRow: () => ({ model: { ...model, activeIndex: Option.none() } }),
+  });
 
 // VIEW
 

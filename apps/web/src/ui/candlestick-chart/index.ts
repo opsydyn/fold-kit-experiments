@@ -1,7 +1,8 @@
 import { band, linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -42,20 +43,19 @@ export type Model = Readonly<{
   readonly layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: 265, ...cfg.dims },
     { top: 15, right: 20, bottom: 30, left: 48, ...cfg.margins },
   );
-  return [
-    {
+  return {
+    model: {
       candles: cfg.candles,
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -68,16 +68,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredCandle: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      BlurredCandle: () => [{ ...model, activeIndex: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredCandle: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    BlurredCandle: () => ({ model: { ...model, activeIndex: Option.none() } }),
+  });
 
 // VIEW
 

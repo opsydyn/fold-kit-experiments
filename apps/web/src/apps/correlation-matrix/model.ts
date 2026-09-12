@@ -78,7 +78,7 @@ const MATRIX: Corr.CorrelationMatrix = {
   ],
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = Corr.init({ matrix: MATRIX });
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = Corr.init({ matrix: MATRIX });
+  return { model: { chart } };
 };

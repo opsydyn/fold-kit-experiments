@@ -1,18 +1,15 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as BarChart from '../../ui/bar-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, message: Message): Return =>
-  Match.value(message).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotBarMessage: ({ message }) => {
-        const [nextBar] = BarChart.update(model.bar, message as BarChart.Message);
-        return [{ ...model, bar: nextBar }, []];
-      },
-    }),
-  );
+  Message.match(message, {
+    GotBarMessage: ({ message }) => {
+      const { model: nextBar } = BarChart.update(model.bar, message as BarChart.Message);
+      return { model: { ...model, bar: nextBar } };
+    },
+  });

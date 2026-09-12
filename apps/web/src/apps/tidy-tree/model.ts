@@ -44,9 +44,9 @@ const TECH_TREE: TidyTree.TreeDatum = {
   ],
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = TidyTree.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = TidyTree.init({
     data: TECH_TREE,
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

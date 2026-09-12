@@ -1,9 +1,10 @@
 import type { TreeLayoutNode } from '@opsydyn/foldkit-viz/hierarchy';
 import { hierarchy, treeLayout } from '@opsydyn/foldkit-viz/hierarchy';
 import { linkVertical } from '@opsydyn/foldkit-viz/shape/link';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -38,7 +39,7 @@ export type Model = Readonly<{
   readonly layout: Layout;
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const w = cfg.width ?? 440;
   const h = cfg.height ?? 220;
   const root = hierarchy(cfg.data as TreeDatum);
@@ -58,8 +59,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     { top: 24, right: 20, bottom: 32, left: 20, ...cfg.margins },
   );
 
-  return [
-    {
+  return {
+    model: {
       nodes,
       links,
       activeId: Option.none(),
@@ -69,8 +70,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       color: cfg.color ?? '#6366f1',
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -83,16 +83,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredNode: ({ name }) => [{ ...model, activeId: Option.some(name) }, []],
-      BlurredNode: () => [{ ...model, activeId: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredNode: ({ name }) => ({ model: { ...model, activeId: Option.some(name) } }),
+    BlurredNode: () => ({ model: { ...model, activeId: Option.none() } }),
+  });
 
 // VIEW
 

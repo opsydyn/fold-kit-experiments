@@ -8,8 +8,8 @@ export type Model = typeof Model.Type;
 
 const Props = Schema.Struct({ fallback: UsernameSchema });
 
-export const init = (props: unknown): readonly [Model, readonly []] => {
+export const init = (props: unknown) => {
   const { fallback } = Schema.decodeUnknownSync(Props)(props);
   const stored = usernameAtom.get();
-  return [{ username: stored !== '' ? stored : fallback }, []];
+  return { model: { username: stored !== '' ? stored : fallback } };
 };

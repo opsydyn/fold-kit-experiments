@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'treemap'> & {
   readonly treemap: TreemapChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [treemap] = TreemapChart.init({
+export const init = (_props: unknown) => {
+  const { model: treemap } = TreemapChart.init({
     root: {
       name: 'Tech Revenue',
       children: [
@@ -55,5 +55,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       ],
     },
   });
-  return [{ treemap }, []];
+  return { model: { treemap } };
 };

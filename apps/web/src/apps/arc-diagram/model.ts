@@ -5,7 +5,7 @@ import * as Arc from '../../ui/arc-diagram';
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Arc.Model };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
+export const init = (_props: unknown) => {
   const nodes: ReadonlyArray<Arc.ArcNode> = [
     { id: 'ts', label: 'TS' },
     { id: 'react', label: 'React' },
@@ -35,6 +35,6 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     { source: 'biome', target: 'ts', weight: 0.5 },
   ];
 
-  const [chart] = Arc.init({ nodes, links, color: '#6366f1' });
-  return [{ chart }, []];
+  const { model: chart } = Arc.init({ nodes, links, color: '#6366f1' });
+  return { model: { chart } };
 };

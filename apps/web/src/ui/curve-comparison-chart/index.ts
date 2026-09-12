@@ -1,9 +1,10 @@
 import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import type { CurveType } from '@opsydyn/foldkit-viz/shape/line';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import { makeLayout, svgRoot } from '../shared';
@@ -34,21 +35,20 @@ const CURVES: ReadonlyArray<Readonly<{ curve: CurveType; color: string }>> = [
   { curve: 'monotoneX', color: '#ef4444' },
 ];
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: 265, ...cfg.dims },
     { top: 16, right: 16, bottom: 48, left: 44, ...cfg.margins },
   );
-  return [
-    {
+  return {
+    model: {
       data: cfg.data,
       xLabel: cfg.xLabel ?? 'x',
       yLabel: cfg.yLabel ?? 'y',
       activeCurve: Option.none(),
       layout,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -61,16 +61,15 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredCurve: ({ curve }) => [{ ...model, activeCurve: Option.some(curve as CurveType) }, []],
-      BlurredCurve: () => [{ ...model, activeCurve: Option.none() }, []],
+  Message.match(msg, {
+    HoveredCurve: ({ curve }) => ({
+      model: { ...model, activeCurve: Option.some(curve as CurveType) },
     }),
-  );
+    BlurredCurve: () => ({ model: { ...model, activeCurve: Option.none() } }),
+  });
 
 // VIEW
 

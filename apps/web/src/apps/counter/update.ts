@@ -1,5 +1,6 @@
 import { Array as Arr, Match as M, Newtype, Option, Result } from 'effect';
 import type { Command } from 'foldkit';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { SpawnParticle } from './command';
 import {
@@ -17,7 +18,7 @@ import {
   TWO_PI,
   UP_ANGLE,
 } from './constant';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 import { _count, _elapsedSeconds, _nextId, _particles } from './model';
 import type { Particle } from './particle';
@@ -25,7 +26,7 @@ import { _age, _lifespan, _px, _py, _trail, _vx, _vy } from './particle';
 import type { Hue } from './types';
 import { Milliseconds, Pixels } from './types';
 
-type Return = readonly [Model, ReadonlyArray<Command.Command<Message>>];
+type Return = UpdateReturn<Model, Message>;
 
 const advanceParticle =
   (deltaSeconds: number) =>
@@ -68,26 +69,25 @@ export const update = (model: Model, message: Message): Return =>
   M.value(message).pipe(
     M.withReturnType<Return>(),
     M.tagsExhaustive({
-      ClickedDecrement: () => [
-        _count.modify((n) => n - 1)(model),
-        directionalBurst(DECREMENT_HUE, DOWN_ANGLE),
-      ],
-      ClickedIncrement: () => [
-        _count.modify((n) => n + 1)(model),
-        directionalBurst(INCREMENT_HUE, UP_ANGLE),
-      ],
-      ClickedReset: () => [
-        _particles.replace([], _count.replace(0, model)),
-        radialBurst(RESET_HUE),
-      ],
+      ClickedDecrement: () => ({
+        model: _count.modify((n) => n - 1)(model),
+        commands: directionalBurst(DECREMENT_HUE, DOWN_ANGLE),
+      }),
+      ClickedIncrement: () => ({
+        model: _count.modify((n) => n + 1)(model),
+        commands: directionalBurst(INCREMENT_HUE, UP_ANGLE),
+      }),
+      ClickedReset: () => ({
+        model: _particles.replace([], _count.replace(0, model)),
+        commands: radialBurst(RESET_HUE),
+      }),
       TickedFrame: ({ deltaTimeMs }) => {
         const deltaSeconds = cappedDelta(deltaTimeMs);
-        return [
-          _elapsedSeconds.modify((s) => s + deltaSeconds)(
+        return {
+          model: _elapsedSeconds.modify((s) => s + deltaSeconds)(
             _particles.modify((ps) => Arr.filterMap(ps, advanceParticle(deltaSeconds)))(model),
           ),
-          [],
-        ];
+        };
       },
       SpawnedParticle: ({ x, y, vx, vy, hue, lifespanMs }) => {
         const particle: Particle = {
@@ -99,7 +99,9 @@ export const update = (model: Model, message: Message): Return =>
           vx,
           vy,
         };
-        return [_nextId.modify((id) => id + 1)(_particles.modify(Arr.append(particle))(model)), []];
+        return {
+          model: _nextId.modify((id) => id + 1)(_particles.modify(Arr.append(particle))(model)),
+        };
       },
     }),
   );

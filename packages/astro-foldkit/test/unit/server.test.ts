@@ -30,8 +30,8 @@ const Flags = Schema.Struct({
 const pageConfig = {
   Flags,
   Model: {},
-  init: (flags: Flags) => [flags, [{ _tag: 'IgnoredCommand' }]] as const,
-  update: (model: Model, _message: Message) => [model, []] as const,
+  init: (flags: Flags) => ({ model: flags, commands: [{ _tag: 'IgnoredCommand' }] }),
+  update: (model: Model, _message: Message) => ({ model }),
   view: (model: Model, h: HtmlBuilder<Message>): Document => ({
     title: 'Server page',
     body: h.section([], [`${model.locale}:${model.pathname}:${model.routeLocale ?? 'missing'}`]),

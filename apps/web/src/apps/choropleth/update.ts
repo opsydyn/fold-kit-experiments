@@ -1,11 +1,13 @@
+import type { Return as UpdateReturn } from 'foldkit/update';
+
 import * as Choropleth from '../../ui/choropleth-map';
 import type { GotChoroplethMessage, Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return => {
   const message = (msg as GotChoroplethMessage).message;
-  const [chart] = Choropleth.update(model.chart, message);
-  return [{ ...model, chart }, []];
+  const { model: chart } = Choropleth.update(model.chart, message);
+  return { model: { ...model, chart } };
 };

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 
 import { Message } from './message';
-import { Idle, initModel, samplePoints } from './model';
+import { ExplorerState, initModel, samplePoints } from './model';
 import { diagnosticsMachine, update } from './update';
 
 const exited = Message.Navigated({
@@ -60,7 +60,7 @@ describe('request diagnostics machine', () => {
   });
 
   test('starts the replacement request from the interrupt outcome', () => {
-    const [model, commands] = update(
+    const { model, commands } = update(
       { ...initModel, explorer: { _tag: 'Cancelling', reason: 'Reload' } },
       Message.CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
     );
@@ -70,7 +70,7 @@ describe('request diagnostics machine', () => {
   });
 
   test('does not replace metrics work after route-exit cancellation', () => {
-    const [model, commands] = update(
+    const { model, commands } = update(
       { ...initModel, explorer: { _tag: 'Cancelling', reason: 'RouteExit' } },
       Message.CompletedCancelFetchMetrics({ outcome: { _tag: 'Interrupted' } }),
     );
@@ -80,7 +80,7 @@ describe('request diagnostics machine', () => {
   });
 
   test('does not interrupt completed metrics work on route exit', () => {
-    const [model, commands] = update(
+    const { model, commands } = update(
       { ...initModel, explorer: { _tag: 'Ready', points: samplePoints } },
       exited,
     );
@@ -90,8 +90,8 @@ describe('request diagnostics machine', () => {
   });
 
   test('ignores a late successful load after route-exit cancellation', () => {
-    const model = { ...initModel, explorer: Idle() };
-    const [nextModel, commands] = update(
+    const model = { ...initModel, explorer: ExplorerState.Idle() };
+    const { model: nextModel, commands } = update(
       model,
       Message.LoadedMetrics({ points: samplePoints }),
     );

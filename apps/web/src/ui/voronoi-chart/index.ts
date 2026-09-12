@@ -1,8 +1,9 @@
 import { triangulate, voronoiCells } from '@opsydyn/foldkit-viz/math/delaunay';
 import { randomLcg } from '@opsydyn/foldkit-viz/math/random';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -58,9 +59,9 @@ function generate(seed: number): PlotData {
   return { points: pts, cellPaths };
 }
 
-export function init(seed = 7): readonly [Model, readonly []] {
+export function init(seed = 7): UpdateReturn<Model, Message> {
   const data = generate(seed);
-  return [{ data, n: NUM_POINTS, hovered: Option.none() }, []];
+  return { model: { data, n: NUM_POINTS, hovered: Option.none() } };
 }
 
 // MESSAGE
@@ -73,16 +74,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredCell: ({ idx }) => [{ ...model, hovered: Option.some(idx) }, []],
-      BlurredCell: () => [{ ...model, hovered: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredCell: ({ idx }) => ({ model: { ...model, hovered: Option.some(idx) } }),
+    BlurredCell: () => ({ model: { ...model, hovered: Option.none() } }),
+  });
 
 // VIEW
 

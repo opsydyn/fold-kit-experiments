@@ -5,13 +5,14 @@ import {
   type Selection,
 } from '@opsydyn/foldkit-viz/interaction/selection';
 import { Match, Option } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 const BRUSH_TAGS = new Set([
   'StartedHistogramBrush',
@@ -43,30 +44,27 @@ const pointsForSelection = (
 
 const applyBrushSelection = (model: Model, histogram: Histogram.Model): Return => {
   const selection = selectionFromHistogram(histogram);
-  const [scatter] = Scatter.update(
+  const { model: scatter } = Scatter.update(
     model.scatter,
     Scatter.Message.UpdatedPoints({ points: pointsForSelection(model.allPoints, selection) }),
   );
-  return [{ ...model, histogram, scatter, selection }, []];
+  return { model: { ...model, histogram, scatter, selection } };
 };
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotHistogramMessage: ({ message }) => {
-        const histMsg = message as Histogram.Message;
-        const [histogram] = Histogram.update(model.histogram, histMsg);
-        if (BRUSH_TAGS.has(histMsg._tag)) {
-          return applyBrushSelection(model, histogram);
-        }
-        return [{ ...model, histogram }, []];
-      },
+  Message.match(msg, {
+    GotHistogramMessage: ({ message }) => {
+      const histMsg = message as Histogram.Message;
+      const { model: histogram } = Histogram.update(model.histogram, histMsg);
+      if (BRUSH_TAGS.has(histMsg._tag)) {
+        return applyBrushSelection(model, histogram);
+      }
+      return { model: { ...model, histogram } };
+    },
 
-      GotScatterMessage: ({ message }) => {
-        const scatterMsg = message as Scatter.Message;
-        const [scatter] = Scatter.update(model.scatter, scatterMsg);
-        return [{ ...model, scatter }, []];
-      },
-    }),
-  );
+    GotScatterMessage: ({ message }) => {
+      const scatterMsg = message as Scatter.Message;
+      const { model: scatter } = Scatter.update(model.scatter, scatterMsg);
+      return { model: { ...model, scatter } };
+    },
+  });

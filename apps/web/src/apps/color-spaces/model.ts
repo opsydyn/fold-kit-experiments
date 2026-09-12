@@ -7,7 +7,7 @@ export type Model = Omit<typeof Model.Type, 'chart'> & {
   readonly chart: ColorSpaces.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = ColorSpaces.init();
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = ColorSpaces.init();
+  return { model: { chart } };
 };

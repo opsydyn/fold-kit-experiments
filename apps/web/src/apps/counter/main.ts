@@ -8,7 +8,6 @@ import { view } from './view';
 export { subscriptions } from './subscription';
 export { Message, Model, update, view };
 
-export const init: Runtime.ApplicationInit<typeof Model.Type, typeof Message.Type> = () => [
-  initialModel,
-  [],
-];
+export const init: Runtime.ApplicationInit<typeof Model.Type, typeof Message.Type> = () => ({
+  model: initialModel,
+});

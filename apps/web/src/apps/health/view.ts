@@ -1,7 +1,7 @@
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import type { Message } from './message';
-import type { Model } from './model';
+import { Model, type Model as ModelType } from './model';
 
 import * as styles from './health.css';
 
@@ -47,34 +47,30 @@ const skeleton = (h: HtmlBuilder<Message>): Document => {
   };
 };
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export const view = (model: ModelType, h: HtmlBuilder<Message>): Document => {
   const { div, Class } = h;
-  switch (model._tag) {
-    case 'Loading':
-      return skeleton(h);
-
-    case 'Failed':
-      return {
-        title: 'Health — Astro + FoldKit',
-        body: div(
-          [Class(styles.grid)],
-          [
-            div(
-              [Class(styles.card)],
-              [
-                div([Class(styles.cardLabel)], ['Status']),
-                div([Class(`${styles.cardValue} ${styles.cardValueError}`)], ['error']),
-                div([Class(styles.cardSub)], [model.error]),
-              ],
-            ),
-          ],
-        ),
-      };
-
-    case 'Loaded': {
-      const { status, uptimeSeconds, timestamp } = model.data;
-      const liveUptimeSeconds = uptimeSeconds + model.elapsedMs / 1000;
-      const liveServerTime = new Date(new Date(timestamp).getTime() + model.elapsedMs);
+  return Model.match(model, {
+    Loading: () => skeleton(h),
+    Failed: ({ error }) => ({
+      title: 'Health — Astro + FoldKit',
+      body: div(
+        [Class(styles.grid)],
+        [
+          div(
+            [Class(styles.card)],
+            [
+              div([Class(styles.cardLabel)], ['Status']),
+              div([Class(`${styles.cardValue} ${styles.cardValueError}`)], ['error']),
+              div([Class(styles.cardSub)], [error]),
+            ],
+          ),
+        ],
+      ),
+    }),
+    Loaded: ({ data, elapsedMs, sinceLabel }) => {
+      const { status, uptimeSeconds, timestamp } = data;
+      const liveUptimeSeconds = uptimeSeconds + elapsedMs / 1000;
+      const liveServerTime = new Date(new Date(timestamp).getTime() + elapsedMs);
 
       return {
         title: 'Health — Astro + FoldKit',
@@ -102,7 +98,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               [
                 div([Class(styles.cardLabel)], ['Uptime']),
                 div([Class(styles.cardValue)], [formatUptime(liveUptimeSeconds)]),
-                div([Class(styles.cardSub)], [`since ${model.sinceLabel}`]),
+                div([Class(styles.cardSub)], [`since ${sinceLabel}`]),
               ],
             ),
             div(
@@ -119,6 +115,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ],
         ),
       };
-    }
-  }
+    },
+  });
 };

@@ -7,8 +7,8 @@ export type Model = Omit<typeof Model.Type, 'candle'> & {
   readonly candle: CandleChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [candle] = CandleChart.init({
+export const init = (_props: unknown) => {
+  const { model: candle } = CandleChart.init({
     candles: [
       { label: 'Apr 1', open: 142.5, high: 145.8, low: 141.2, close: 144.6 },
       { label: 'Apr 2', open: 144.6, high: 147.3, low: 143.5, close: 146.9 },
@@ -42,5 +42,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       { label: 'May 14', open: 167.6, high: 170.4, low: 166.9, close: 169.8 },
     ],
   });
-  return [{ candle }, []];
+  return { model: { candle } };
 };

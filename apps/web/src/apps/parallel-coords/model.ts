@@ -16,8 +16,8 @@ const AXES: ReadonlyArray<ParallelCoordsChart.Axis> = [
   { label: 'Year' },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [parallelCoords] = ParallelCoordsChart.init({
+export const init = (_props: unknown) => {
+  const { model: parallelCoords } = ParallelCoordsChart.init({
     axes: AXES,
     records: [
       { label: 'Prius', color: '#10b981', values: [52, 121, 3010, 9.8, 2020] },
@@ -30,5 +30,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
       { label: 'Charger SRT', color: '#ec4899', values: [13, 797, 4586, 3.6, 2022] },
     ],
   });
-  return [{ parallelCoords }, []];
+  return { model: { parallelCoords } };
 };

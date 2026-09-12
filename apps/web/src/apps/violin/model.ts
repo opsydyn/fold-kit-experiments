@@ -32,10 +32,10 @@ function generateSalaries(): ReadonlyArray<ViolinChart.ViolinSeries> {
   ];
 }
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = ViolinChart.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = ViolinChart.init({
     series: generateSalaries(),
     yLabel: '$k',
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

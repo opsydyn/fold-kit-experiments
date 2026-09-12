@@ -204,7 +204,7 @@ function buildFeatures(): GeoFeatureCollection {
   };
 }
 
-export const init = (_: unknown): readonly [Model, readonly []] => {
+export const init = (_: unknown) => {
   const features = buildFeatures();
 
   const data: ReadonlyArray<ZChoropleth.ChoroplethDatum> = Object.entries(INTERNET_PCT).map(
@@ -215,7 +215,7 @@ export const init = (_: unknown): readonly [Model, readonly []] => {
     }),
   );
 
-  const [chart] = ZChoropleth.init({
+  const { model: chart } = ZChoropleth.init({
     features,
     data,
     colorLow: '#1e3a5f',
@@ -224,5 +224,5 @@ export const init = (_: unknown): readonly [Model, readonly []] => {
     legendLabel: 'Internet %',
   });
 
-  return [{ chart }, []];
+  return { model: { chart } };
 };

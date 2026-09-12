@@ -32,12 +32,12 @@ function generateSalaries(): ReadonlyArray<HistogramChart.HistogramDatum> {
   return data;
 }
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = HistogramChart.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = HistogramChart.init({
     data: generateSalaries(),
     binCount: 12,
     color: '#6366f1',
     xLabel: 'Salary ($k)',
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

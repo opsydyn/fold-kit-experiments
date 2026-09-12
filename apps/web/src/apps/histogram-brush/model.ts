@@ -88,8 +88,8 @@ export type Model = Omit<typeof Model.Type, 'histogram' | 'scatter' | 'allPoints
   readonly selection: Selection;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [histogram] = Histogram.init({
+export const init = (_props: unknown) => {
+  const { model: histogram } = Histogram.init({
     data: ALL_POINTS.map((p) => ({ value: p.x })),
     binCount: 12,
     color: '#6366f1',
@@ -98,7 +98,7 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     enableBrush: true,
   });
 
-  const [scatter] = Scatter.init({
+  const { model: scatter } = Scatter.init({
     points: ALL_POINTS as ReadonlyArray<Scatter.Point>,
     config: {
       color: '#6366f1',
@@ -109,5 +109,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     dims: { width: 380, height: 260 },
   });
 
-  return [{ histogram, scatter, allPoints: ALL_POINTS, selection: SELECTION_NONE }, []];
+  return { model: { histogram, scatter, allPoints: ALL_POINTS, selection: SELECTION_NONE } };
 };

@@ -27,13 +27,12 @@ const BARS: ReadonlyArray<Bar> = [
 const DURATION = 600; // ms per bar
 const STAGGER = 80; // ms delay added per bar index
 
-export function init(_props: unknown): readonly [Model, readonly []] {
-  return [
-    {
+export function init(_props: unknown): Readonly<{ readonly model: Model }> {
+  return {
+    model: {
       bars: BARS,
       tweens: BARS.map((_, i) => tweenCreate(DURATION + i * STAGGER)),
       activeIndex: Option.none(),
     },
-    [],
-  ];
+  };
 }

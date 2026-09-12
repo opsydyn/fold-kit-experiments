@@ -7,7 +7,7 @@ export type Model = Omit<typeof Model.Type, 'chart'> & {
   readonly chart: PhyllotaxisChart.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = PhyllotaxisChart.init();
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = PhyllotaxisChart.init();
+  return { model: { chart } };
 };

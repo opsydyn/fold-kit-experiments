@@ -1,21 +1,18 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as CalendarHeatmapChart from '../../ui/calendar-heatmap-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotCalendarMessage: ({ message }) => {
-        const [calendar] = CalendarHeatmapChart.update(
-          model.calendar,
-          message as CalendarHeatmapChart.Message,
-        );
-        return [{ ...model, calendar }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotCalendarMessage: ({ message }) => {
+      const { model: calendar } = CalendarHeatmapChart.update(
+        model.calendar,
+        message as CalendarHeatmapChart.Message,
+      );
+      return { model: { ...model, calendar } };
+    },
+  });

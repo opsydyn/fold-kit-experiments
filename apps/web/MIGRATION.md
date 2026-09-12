@@ -60,8 +60,8 @@ const W = 480,
 const PW = W - ML - MR;
 const PH = H - MT - MB;
 
-export function init(bars): readonly [Model, readonly []] {
-  return [{ bars, activeIndex: Option.none(), config: DEFAULT_CONFIG }, []];
+export function init(bars): { readonly model: Model } {
+  return { model: { bars, activeIndex: Option.none(), config: DEFAULT_CONFIG } };
 }
 ```
 
@@ -76,12 +76,12 @@ export type InitConfig = Readonly<{
   margins?: Partial<Margins>; // { top?, right?, bottom?, left? }
 }>;
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): { readonly model: Model } {
   const layout = makeLayout(
     { width: 480, height: 280, ...cfg.dims },
     { top: 24, right: 16, bottom: 44, left: 44, ...cfg.margins },
   );
-  return [{ bars: cfg.bars, ..., layout }, []];
+  return { model: { bars: cfg.bars, ..., layout } };
 }
 
 // In view(), destructure from model.layout:

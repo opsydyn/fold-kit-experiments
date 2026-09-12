@@ -14,7 +14,7 @@ const SEGMENTS: ReadonlyArray<DonutChart.Segment> = [
   { label: 'Operations', value: 5, color: '#c4b5fd' },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [donut] = DonutChart.init({ segments: SEGMENTS });
-  return [{ donut }, []];
+export const init = (_props: unknown) => {
+  const { model: donut } = DonutChart.init({ segments: SEGMENTS });
+  return { model: { donut } };
 };

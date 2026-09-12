@@ -43,8 +43,8 @@ export type Model = Omit<typeof Model.Type, 'scatter' | 'histogram'> & {
   readonly histogram: Histogram.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [scatter] = Scatter.init({
+export const init = (_props: unknown) => {
+  const { model: scatter } = Scatter.init({
     points: POINTS,
     config: {
       color: '#6366f1',
@@ -55,7 +55,7 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     dims: { width: 380, height: 260 },
   });
 
-  const [histogram] = Histogram.init({
+  const { model: histogram } = Histogram.init({
     data: POINTS.map((p) => ({ value: p.y })),
     binCount: 8,
     color: '#6366f1',
@@ -63,5 +63,5 @@ export const init = (_props: unknown): readonly [Model, readonly []] => {
     dims: { width: 360, height: 260 },
   });
 
-  return [{ scatter, histogram }, []];
+  return { model: { scatter, histogram } };
 };

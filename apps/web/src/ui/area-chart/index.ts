@@ -1,10 +1,11 @@
 import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
 import { area } from '@opsydyn/foldkit-viz/shape/area';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
-import { Effect, Match, Option, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import {
@@ -56,21 +57,20 @@ const DEFAULT_CONFIG: Config = {
   curve: 'catmullRom',
 };
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = makeLayout(
     { width: 480, height: 260, ...cfg.dims },
     { top: 24, right: 20, bottom: 44, left: 44, ...cfg.margins },
   );
-  return [
-    {
+  return {
+    model: {
       points: cfg.points,
       activeIndex: Option.none(),
       config: { ...DEFAULT_CONFIG, ...cfg.config },
       layout,
       svgBounds: Option.none(),
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -89,38 +89,38 @@ export type Message = typeof Message.Type;
 
 // MOUNT
 
-export const CaptureChartBounds = Mount.define(
-  'CaptureChartBounds',
-  RecordedChartBounds,
-)((element) =>
-  Effect.sync(() => {
-    const rect = element.getBoundingClientRect();
-    return Message.RecordedChartBounds({ screenLeft: rect.left + window.screenX, renderedPW: rect.width });
-  }),
-);
+export const CaptureChartBounds = Mount.define('CaptureChartBounds', {
+  messages: [Message.RecordedChartBounds],
+  execute: ({ element }) =>
+    Effect.sync(() => {
+      const rect = element.getBoundingClientRect();
+      return Message.RecordedChartBounds({
+        screenLeft: rect.left + window.screenX,
+        renderedPW: rect.width,
+      });
+    }),
+});
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredPoint: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      BlurredPoint: () => [{ ...model, activeIndex: Option.none() }, []],
-      RecordedChartBounds: ({ screenLeft, renderedPW }) => [
-        { ...model, svgBounds: Option.some({ screenLeft, renderedPW }) },
-        [],
-      ],
-      UpdatedPoints: ({ points }) => [{ ...model, points: points as ReadonlyArray<Point> }, []],
-      PressedKeyNav: ({ direction }) => {
-        const n = model.points.length;
-        const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
-        return [{ ...model, activeIndex: Option.some(nextIndex(n, current, direction)) }, []];
-      },
+  Message.match(msg, {
+    HoveredPoint: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    BlurredPoint: () => ({ model: { ...model, activeIndex: Option.none() } }),
+    RecordedChartBounds: ({ screenLeft, renderedPW }) => ({
+      model: { ...model, svgBounds: Option.some({ screenLeft, renderedPW }) },
     }),
-  );
+    UpdatedPoints: ({ points }) => ({
+      model: { ...model, points: points as ReadonlyArray<Point> },
+    }),
+    PressedKeyNav: ({ direction }) => {
+      const n = model.points.length;
+      const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
+      return { model: { ...model, activeIndex: Option.some(nextIndex(n, current, direction)) } };
+    },
+  });
 
 // VIEW
 
@@ -255,7 +255,9 @@ export const view = <M>(
                     ? Option.some(toParentMessage(Message.HoveredPoint({ index: idx })))
                     : Option.none();
                 }),
-                h.OnPointerLeave((_pointerType) => Option.some(toParentMessage(Message.BlurredPoint()))),
+                h.OnPointerLeave((_pointerType) =>
+                  Option.some(toParentMessage(Message.BlurredPoint())),
+                ),
               ],
               [],
             ),

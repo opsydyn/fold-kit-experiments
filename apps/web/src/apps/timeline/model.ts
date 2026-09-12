@@ -18,7 +18,7 @@ const TASKS: ReadonlyArray<TimelineChart.TimelineTask> = [
   { name: 'Launch', start: new Date('2025-04-21'), end: new Date('2025-05-02') },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = TimelineChart.init({ tasks: TASKS, tickCount: 6 });
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = TimelineChart.init({ tasks: TASKS, tickCount: 6 });
+  return { model: { chart } };
 };

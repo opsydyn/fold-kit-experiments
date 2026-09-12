@@ -21,11 +21,11 @@ const DATA: ReadonlyArray<readonly [number, number]> = [
   [9, 90],
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = CurveComparison.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = CurveComparison.init({
     data: DATA,
     xLabel: 'x',
     yLabel: 'y',
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

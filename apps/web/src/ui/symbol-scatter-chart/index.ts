@@ -1,8 +1,9 @@
 import { linear, linearTicks, ordinal } from '@opsydyn/foldkit-viz/math/scale';
 import { SYMBOLS_FILL, type SymbolType, symbolPath } from '@opsydyn/foldkit-viz/shape/symbol';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { r3, svgRoot } from '../shared';
 
@@ -60,7 +61,7 @@ const DEFAULT_COLORS = [
   '#f97316',
 ];
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const colors = cfg.colors ?? DEFAULT_COLORS;
   const symbolSize = cfg.symbolSize ?? 72;
 
@@ -103,8 +104,8 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
     };
   });
 
-  return [
-    {
+  return {
+    model: {
       points,
       categories: cfg.categories,
       categoryStyles,
@@ -115,8 +116,7 @@ export function init(cfg: InitConfig): readonly [Model, readonly []] {
       xDomain,
       yDomain,
     },
-    [],
-  ];
+  };
 }
 
 // MESSAGE
@@ -129,16 +129,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredPoint: ({ index }) => [{ ...model, activeIndex: Option.some(index) }, []],
-      BlurredPoint: () => [{ ...model, activeIndex: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredPoint: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
+    BlurredPoint: () => ({ model: { ...model, activeIndex: Option.none() } }),
+  });
 
 // VIEW
 

@@ -2,9 +2,10 @@ import { linear } from '@opsydyn/foldkit-viz/math/scale';
 import { tableau10 } from '@opsydyn/foldkit-viz/math/schemes';
 import { area } from '@opsydyn/foldkit-viz/shape/area';
 import { stack } from '@opsydyn/foldkit-viz/shape/stack';
-import { Match, Option, Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { svgRoot } from '../shared';
 
@@ -126,8 +127,8 @@ function buildLayout(cfg: InitConfig): Layout {
   return { series: computedSeries, xLabels: computedXLabels };
 }
 
-export function init(cfg: InitConfig): readonly [Model, readonly []] {
-  return [{ layout: buildLayout(cfg), activeKey: Option.none() }, []];
+export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
+  return { model: { layout: buildLayout(cfg), activeKey: Option.none() } };
 }
 
 // MESSAGE
@@ -140,16 +141,13 @@ export type Message = typeof Message.Type;
 
 // UPDATE
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      HoveredSeries: ({ key }) => [{ ...model, activeKey: Option.some(key) }, []],
-      BlurredSeries: () => [{ ...model, activeKey: Option.none() }, []],
-    }),
-  );
+  Message.match(msg, {
+    HoveredSeries: ({ key }) => ({ model: { ...model, activeKey: Option.some(key) } }),
+    BlurredSeries: () => ({ model: { ...model, activeKey: Option.none() } }),
+  });
 
 // VIEW
 

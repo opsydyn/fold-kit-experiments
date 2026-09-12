@@ -1,18 +1,15 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as CandleChart from '../../ui/candlestick-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotCandleMessage: ({ message }) => {
-        const [candle] = CandleChart.update(model.candle, message as CandleChart.Message);
-        return [{ ...model, candle }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotCandleMessage: ({ message }) => {
+      const { model: candle } = CandleChart.update(model.candle, message as CandleChart.Message);
+      return { model: { ...model, candle } };
+    },
+  });

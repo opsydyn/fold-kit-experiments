@@ -23,10 +23,10 @@ const BARS: ReadonlyArray<DivBar.Bar> = [
   { label: 'Dec', value: 0.27 },
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = DivBar.init({
+export const init = (_props: unknown) => {
+  const { model: chart } = DivBar.init({
     bars: BARS,
     xLabel: 'Year-over-year revenue growth',
   });
-  return [{ chart }, []];
+  return { model: { chart } };
 };

@@ -7,7 +7,7 @@ export type Model = Omit<typeof Model.Type, 'chart'> & {
   readonly chart: Voronoi.Model;
 };
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chart] = Voronoi.init(7);
-  return [{ chart }, []];
+export const init = (_props: unknown) => {
+  const { model: chart } = Voronoi.init(7);
+  return { model: { chart } };
 };

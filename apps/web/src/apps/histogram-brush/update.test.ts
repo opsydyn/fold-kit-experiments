@@ -6,7 +6,7 @@ import { Message } from './message';
 import { init } from './model';
 import { update } from './update';
 
-const seedBounds = (model: ReturnType<typeof init>[0]) =>
+const seedBounds = (model: ReturnType<typeof init>['model']) =>
   update(
     model,
     Message.GotHistogramMessage({
@@ -15,24 +15,28 @@ const seedBounds = (model: ReturnType<typeof init>[0]) =>
         renderedPW: model.histogram.layout.pw,
       }),
     }),
-  )[0];
+  ).model;
 
 const selectedModel = () => {
-  const initial = seedBounds(init(undefined)[0]);
+  const initial = seedBounds(init(undefined).model);
   const started = update(
     initial,
     Message.GotHistogramMessage({
       message: Histogram.Message.StartedHistogramBrush({ screenX: 40, clientX: 40 }),
     }),
-  )[0];
+  ).model;
   const moved = update(
     started,
-    Message.GotHistogramMessage({ message: Histogram.Message.MovedHistogramBrush({ screenX: 180 }) }),
-  )[0];
+    Message.GotHistogramMessage({
+      message: Histogram.Message.MovedHistogramBrush({ screenX: 180 }),
+    }),
+  ).model;
   return update(
     moved,
-    Message.GotHistogramMessage({ message: Histogram.Message.EndedHistogramBrush({ screenX: 180 }) }),
-  )[0];
+    Message.GotHistogramMessage({
+      message: Histogram.Message.EndedHistogramBrush({ screenX: 180 }),
+    }),
+  ).model;
 };
 
 describe('histogram brush selection', () => {
@@ -46,7 +50,7 @@ describe('histogram brush selection', () => {
     const model = update(
       selectedModel(),
       Message.GotHistogramMessage({ message: Histogram.Message.ClearedHistogramBrush() }),
-    )[0];
+    ).model;
     expect(model.selection).toEqual({ _tag: 'None' });
     expect(model.scatter.points).toEqual(model.allPoints);
   });
@@ -56,7 +60,7 @@ describe('histogram brush selection', () => {
     const model = update(
       selected,
       Message.GotScatterMessage({ message: Scatter.Message.HoveredPoint({ index: 0 }) }),
-    )[0];
+    ).model;
     expect(model.selection).toBe(selected.selection);
   });
 });

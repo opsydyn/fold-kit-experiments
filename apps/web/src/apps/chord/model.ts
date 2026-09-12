@@ -25,7 +25,7 @@ const MATRIX: ReadonlyArray<ReadonlyArray<number>> = [
   [32, 24, 9, 18, 14], // AI
 ];
 
-export const init = (_props: unknown): readonly [Model, readonly []] => {
-  const [chord] = ChordChart.init({ matrix: MATRIX, groups: GROUPS });
-  return [{ chord }, []];
+export const init = (_props: unknown) => {
+  const { model: chord } = ChordChart.init({ matrix: MATRIX, groups: GROUPS });
+  return { model: { chord } };
 };

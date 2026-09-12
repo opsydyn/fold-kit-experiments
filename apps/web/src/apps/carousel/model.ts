@@ -21,6 +21,6 @@ export type Model = Omit<typeof Model.Type, 'carousel' | 'slides'> & {
 
 // Carousel starts with 0 slides; slideCount is synced when LoadSlides settles.
 export const initModel: Model = {
-  carousel: Carousel.init({ id: 'main', slideCount: 0, loop: true }),
+  carousel: Carousel.init({ id: 'main', slideCount: 0, loop: true }).model,
   slides: { _tag: 'Idle' },
 };

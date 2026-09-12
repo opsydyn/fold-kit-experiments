@@ -1,18 +1,15 @@
-import { Match } from 'effect';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as BoxChart from '../../ui/box-plot-chart';
-import type { Message } from './message';
+import { Message } from './message';
 import type { Model } from './model';
 
-type Return = readonly [Model, readonly []];
+type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
-  Match.value(msg).pipe(
-    Match.withReturnType<Return>(),
-    Match.tagsExhaustive({
-      GotBoxMessage: ({ message }) => {
-        const [box] = BoxChart.update(model.box, message as BoxChart.Message);
-        return [{ ...model, box }, []];
-      },
-    }),
-  );
+  Message.match(msg, {
+    GotBoxMessage: ({ message }) => {
+      const { model: box } = BoxChart.update(model.box, message as BoxChart.Message);
+      return { model: { ...model, box } };
+    },
+  });

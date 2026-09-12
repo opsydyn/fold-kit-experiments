@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/html';
 import { Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { makeElement } from 'foldkit/runtime';
+import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as AreaChart from '../ui/area-chart';
 import * as BarChart from '../ui/bar-chart';
@@ -84,8 +85,8 @@ const nextId = () => `fk-story-${Math.random().toString(36).slice(2, 9)}`;
 const STORY_MODEL_SCHEMA = Schema.Any as Schema.Codec<never, never, never, never>;
 
 function mountChart<Mod, Msg extends { _tag: string }>(
-  init: () => readonly [Mod, readonly []],
-  update: (model: Mod, msg: Msg) => readonly [Mod, readonly []],
+  init: () => UpdateReturn<Mod, Msg>,
+  update: (model: Mod, msg: Msg) => UpdateReturn<Mod, Msg>,
   view: (model: Mod, h: HtmlBuilder<Msg>) => Html,
 ): HTMLElement {
   return mountFoldkitProgram(
@@ -138,7 +139,7 @@ export const Bar: StoryObj<BarArgs> = {
     },
   },
   render: (args) => {
-    const [model0, cmds0] = BarChart.init({
+    const { model: model0 } = BarChart.init({
       bars: SAMPLE_BARS,
       config: {
         color: args.color,
@@ -149,7 +150,7 @@ export const Bar: StoryObj<BarArgs> = {
       },
     });
     return mountChart<BarChart.Model, BarChart.Message>(
-      () => [model0, cmds0],
+      () => ({ model: model0 }),
       BarChart.update,
       (model, h) => BarChart.view({ model, toParentMessage: (m) => m }, h),
     );
@@ -192,7 +193,7 @@ export const Line: StoryObj<LineArgs> = {
     },
   },
   render: (args) => {
-    const [model0, cmds0] = LineChart.init({
+    const { model: model0 } = LineChart.init({
       points: SAMPLE_LINE,
       config: {
         color: args.color,
@@ -202,7 +203,7 @@ export const Line: StoryObj<LineArgs> = {
       },
     });
     return mountChart<LineChart.Model, LineChart.Message>(
-      () => [model0, cmds0],
+      () => ({ model: model0 }),
       LineChart.update,
       (model, h) => LineChart.view({ model, toParentMessage: (m) => m }, h),
     );
@@ -247,7 +248,7 @@ export const Area: StoryObj<AreaArgs> = {
     },
   },
   render: (args) => {
-    const [model0, cmds0] = AreaChart.init({
+    const { model: model0 } = AreaChart.init({
       points: SAMPLE_AREA,
       config: {
         color: args.color,
@@ -257,7 +258,7 @@ export const Area: StoryObj<AreaArgs> = {
       },
     });
     return mountChart<AreaChart.Model, AreaChart.Message>(
-      () => [model0, cmds0],
+      () => ({ model: model0 }),
       AreaChart.update,
       (model, h) => AreaChart.view({ model, toParentMessage: (m) => m }, h),
     );
@@ -301,7 +302,7 @@ export const Scatter: StoryObj<ScatterArgs> = {
     yLabel: { control: 'text', description: 'Y-axis label' },
   },
   render: (args) => {
-    const [model0, cmds0] = ScatterChart.init({
+    const { model: model0 } = ScatterChart.init({
       points: SAMPLE_SCATTER,
       config: {
         color: args.color,
@@ -312,7 +313,7 @@ export const Scatter: StoryObj<ScatterArgs> = {
       },
     });
     return mountChart<ScatterChart.Model, ScatterChart.Message>(
-      () => [model0, cmds0],
+      () => ({ model: model0 }),
       ScatterChart.update,
       (model, h) => ScatterChart.view({ model, toParentMessage: (m) => m }, h),
     );

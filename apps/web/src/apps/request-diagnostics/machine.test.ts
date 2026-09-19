@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest';
 
+import { diagnosticsMachine } from './machine';
 import { Message } from './message';
 import { ExplorerState, initModel, samplePoints } from './model';
-import { diagnosticsMachine, update } from './update';
+import { update } from './update';
 
 const exited = Message.Navigated({
   phase: 'exited',
@@ -11,6 +12,45 @@ const exited = Message.Navigated({
 });
 
 describe('request diagnostics machine', () => {
+  test('exposes the state and edge graph consumed by Stateflow', () => {
+    expect(diagnosticsMachine.stateTags).toEqual([
+      'Idle',
+      'Loading',
+      'Cancelling',
+      'Ready',
+      'Selecting',
+      'Filtered',
+      'Failed',
+    ]);
+    expect(diagnosticsMachine.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          from: 'Loading',
+          messageTag: 'LoadedMetrics',
+          target: 'Ready',
+        }),
+        expect.objectContaining({
+          from: 'Loading',
+          messageTag: 'Navigated',
+          target: 'Cancelling',
+        }),
+        expect.objectContaining({
+          from: 'Cancelling',
+          messageTag: 'CompletedCancelFetchMetrics',
+          target: 'Idle',
+        }),
+      ]),
+    );
+  });
+
+  test('has no unreachable states from its initial state', () => {
+    expect(diagnosticsMachine.unreachableStates()).toEqual([]);
+  });
+
+  test('has no dead transitions in its declared graph', () => {
+    expect(diagnosticsMachine.deadTransitions()).toEqual([]);
+  });
+
   test('loads data from the loading state', () => {
     const result = diagnosticsMachine.step(
       { _tag: 'Loading' },

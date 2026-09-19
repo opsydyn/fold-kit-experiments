@@ -4,130 +4,17 @@ import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
-import { FetchMetrics } from './command';
+import { diagnosticsMachine } from './machine';
 import { Message } from './message';
-import { ExplorerState, type ExplorerState as ExplorerStateType, type Model } from './model';
+import type { ExplorerState, Model } from './model';
 import { isEnteringDiagnostics, parseDiagnosticsPath } from './navigation';
 
 type LoadedMetricsMessage = Extract<Message, { readonly _tag: 'LoadedMetrics' }>;
 type NavigationMessage = Extract<Message, { readonly _tag: 'Navigated' }>;
 
-const cancelling = (reason: import('./model').CancellationReason) =>
-  ExplorerState.Cancelling({ reason });
-
-const interruptMetrics = () => [
-  FetchMetrics.Interrupt((outcome) => Message.CompletedCancelFetchMetrics({ outcome })),
-];
-
-const filterPoints = (
-  points: ReadonlyArray<import('./model').Point>,
-  domain: readonly [number, number],
-): ReadonlyArray<import('./model').Point> =>
-  points.filter(({ x }) => x >= domain[0] && x <= domain[1]);
-
-export const diagnosticsMachine = Machine.define({
-  state: ExplorerState,
-  message: Message,
-})({
-  initial: ExplorerState.Loading(),
-  states: {
-    Loading: {
-      on: {
-        ClickedReload: Machine.to('Cancelling', () => cancelling('Reload'), interruptMetrics),
-        Navigated: [
-          Machine.when(
-            (_state, message) => message.phase === 'exited',
-            'Cancelling',
-            () => cancelling('RouteExit'),
-            interruptMetrics,
-          ),
-        ],
-        LoadedMetrics: Machine.to('Ready', ({ message }) =>
-          ExplorerState.Ready({ points: message.points }),
-        ),
-        FailedLoad: Machine.to('Failed', ({ message }) =>
-          ExplorerState.Failed({ error: message.error }),
-        ),
-      },
-    },
-    Ready: {
-      on: {
-        ClickedReload: Machine.to('Cancelling', () => cancelling('Reload'), interruptMetrics),
-        StartedSelection: Machine.to('Selecting', ({ state }) =>
-          ExplorerState.Selecting({ points: state.points, allPoints: state.points }),
-        ),
-        ChangedSelection: [
-          Machine.when(
-            (_state, message) =>
-              message.domain[1] - message.domain[0] > 2
-                ? Option.some(message.domain)
-                : Option.none(),
-            'Filtered',
-            ({ state, guardValue }) =>
-              ExplorerState.Filtered({
-                points: filterPoints(state.points, guardValue),
-                allPoints: state.points,
-                domain: guardValue,
-              }),
-          ),
-        ],
-      },
-    },
-    Selecting: {
-      on: {
-        ChangedSelection: [
-          Machine.when(
-            (_state, message) =>
-              message.domain[1] - message.domain[0] > 2
-                ? Option.some(message.domain)
-                : Option.none(),
-            'Filtered',
-            ({ state, guardValue }) =>
-              ExplorerState.Filtered({
-                points: filterPoints(state.points, guardValue),
-                allPoints: state.points,
-                domain: guardValue,
-              }),
-          ),
-        ],
-        ClearedSelection: Machine.to('Ready', ({ state }) =>
-          ExplorerState.Ready({ points: state.allPoints }),
-        ),
-      },
-    },
-    Filtered: {
-      on: {
-        ClearedSelection: Machine.to('Ready', ({ state }) =>
-          ExplorerState.Ready({ points: state.allPoints }),
-        ),
-        ClickedReload: Machine.to('Cancelling', () => cancelling('Reload'), interruptMetrics),
-      },
-    },
-    Failed: {
-      on: {
-        ClickedReload: Machine.to('Cancelling', () => cancelling('Reload'), interruptMetrics),
-      },
-    },
-    Cancelling: {
-      on: {
-        CompletedCancelFetchMetrics: [
-          Machine.when(
-            (state) => state.reason === 'Reload',
-            'Loading',
-            () => ExplorerState.Loading(),
-            () => [FetchMetrics()],
-          ),
-          Machine.otherwise(Machine.to('Idle', () => ExplorerState.Idle())),
-        ],
-      },
-    },
-    Idle: { on: {} },
-  },
-});
-
 type Return = UpdateReturn<Model, Message>;
 
-const transitionLabel = (result: Machine.TransitionResult<ExplorerStateType, Message>): string =>
+const transitionLabel = (result: Machine.TransitionResult<ExplorerState, Message>): string =>
   result._tag === 'Transitioned'
     ? `${result.from} -> ${result.target} on ${result.messageTag}`
     : `${result.messageTag} ignored in ${result.stateTag}`;

@@ -1,0 +1,10 @@
+---
+import StateflowApp from '../apps/stateflow/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Stateflow Observatory — FoldKit Machine and Ports">
+  <h1 class={layoutStyles.heading}>Stateflow Observatory</h1>
+  <StateflowApp client:load />
+</Layout>

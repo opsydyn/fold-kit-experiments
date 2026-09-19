@@ -1,5 +1,3 @@
-import type { Document, HtmlBuilder } from 'foldkit/html';
-
 import { Message } from './message';
 import { initModel, Model } from './model';
 import { ReplayEventPort, TransitionTelemetryPort } from './ports';
@@ -15,7 +13,4 @@ export const ports = {
 
 export const init = () => ({ model: initModel });
 
-export const view = (model: typeof initModel, h: HtmlBuilder<Message>): Document => ({
-  title: 'Stateflow replay',
-  body: h.div([], [`Stateflow replay: ${model.explorer._tag}`]),
-});
+export { view } from './view';

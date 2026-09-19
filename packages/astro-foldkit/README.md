@@ -478,6 +478,17 @@ element.addEventListener(
 | `astro`   | `≥ 5.0`               |
 | `foldkit` | `≥ 0.155.0 < 0.156.0` |
 
+## Stateflow Observatory example
+
+The demo route `/stateflow` mounts `StateflowApp` with `client:load` inside the
+existing Astro layout. Astro supplies the island and lifecycle facts; the app
+owns the Machine, typed inbound replay Port, outbound transition telemetry Port,
+replay policy, and trace inspector. The graph consumes plain layout records.
+
+This slice adds no Astro integration API and moves no async work into the
+integration. Commands and subscriptions remain app-owned, including telemetry
+emission and validation of inbound replay events.
+
 ## License
 
 MIT

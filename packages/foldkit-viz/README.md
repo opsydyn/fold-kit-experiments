@@ -62,6 +62,7 @@ chart primitives.
 | `@opsydyn/foldkit-viz/shape/link`            | `linkVertical`, `linkHorizontal`                                                                                                                                      |
 | `@opsydyn/foldkit-viz/hierarchy`             | `hierarchy`, `treeLayout`, `packLayout`                                                                                                                               |
 | `@opsydyn/foldkit-viz/simulation`            | Barnes-Hut force simulation (N-body)                                                                                                                                  |
+| `@opsydyn/foldkit-viz/stateflow`              | Framework-free Stateflow graph records and deterministic layout                                                                                                       |
 
 ---
 

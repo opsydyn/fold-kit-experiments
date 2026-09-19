@@ -77,6 +77,9 @@
       "simulation": [
         "./dist/simulation.d.mts"
       ],
+      "stateflow": [
+        "./dist/stateflow.d.mts"
+      ],
       "math/zoom": [
         "./dist/math/zoom.d.mts"
       ],
@@ -191,6 +194,10 @@
     "./simulation": {
       "types": "./dist/simulation.d.mts",
       "import": "./dist/simulation.mjs"
+    },
+    "./stateflow": {
+      "types": "./dist/stateflow.d.mts",
+      "import": "./dist/stateflow.mjs"
     },
     "./math/zoom": {
       "types": "./dist/math/zoom.d.mts",

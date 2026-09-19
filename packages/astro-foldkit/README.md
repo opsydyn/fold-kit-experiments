@@ -491,40 +491,95 @@ emission and validation of inbound replay events.
 
 ## Remote visual loads
 
-For future remote filter, brush, or zoom loads, define the refresh step in the
-consuming app. In this example, `Model.data` is `AsyncData<Data, string>`, and
-`LoadFilteredData` is the app-owned Command that returns its result as a Message.
-`Model`, `Data`, and `Message` are application types.
+For future remote filter, brush, or zoom loads, construct the refresh step with
+an explicit selection snapshot and request ID. `LoadFilteredData` is an
+app-owned interruptible Command whose declared args include `selection` and
+`requestId`; its `execute` uses those args and returns the ID with its result
+Message. Commands do not read the later Model implicitly.
+
+In this example, `Model.data` is `AsyncData<Data, string>`. `Selection`, `Data`,
+`Model`, and `Message` are application types. The app also stores the latest
+`selection`, a monotonic `nextRequestId`, `routeActive`, and a discriminated
+`request` union: `Idle | Running { requestId } | Cancelling { requestId }`.
 
 ```ts
 import { Option } from 'effect';
-import { revalidateOrLoad } from 'foldkit/asyncData';
+import { getData, Idle, revalidateOrLoad, succeed } from 'foldkit/asyncData';
 import { refresh } from 'foldkit/update';
+import type { Return } from 'foldkit/update';
 
 import { LoadFilteredData } from './command';
 import type { Message } from './message';
-import type { Data, Model } from './model';
+import type { Data, Model, Selection } from './model';
 
-const loadOnFilter = refresh<Model, Message, Data, string>({
-  read: (model) => Option.some(model.data),
-  revalidate: revalidateOrLoad,
-  write: (model, data) => ({ ...model, data }),
-  load: LoadFilteredData(),
-});
+const loadOnFilter = (selection: Selection, requestId: number) =>
+  refresh<Model, Message, Data, string>({
+    read: (model) => Option.some(model.data),
+    revalidate: revalidateOrLoad,
+    write: (model, data) => ({ ...model, data }),
+    load: LoadFilteredData({ selection, requestId }),
+  });
+
+// Call only when request is Idle and data is not Loading or Refreshing.
+const startLatest = (model: Model): Return<Model, Message> => {
+  const requestId = model.nextRequestId;
+  const next: Model = {
+    ...model,
+    nextRequestId: requestId + 1,
+    request: { _tag: 'Running', requestId },
+  };
+  return loadOnFilter(next.selection, requestId)(next);
+};
+
+// The outcome handler first checks Cancelling and the cancelled request ID.
+const afterInterruption = (model: Model): Return<Model, Message> => {
+  const next: Model = {
+    ...model,
+    request: { _tag: 'Idle' },
+    data: Option.match(getData(model.data), {
+      onNone: () => Idle(),
+      onSome: (data) => succeed(data),
+    }),
+  };
+  if (!next.routeActive) return { model: next };
+  return startLatest(next);
+};
 ```
 
-Apply this step from the app's update loop after recording the new filter,
-brush, or zoom selection; compose it with other steps using `combine` from
-`foldkit/update`. Handle the Command's result Message with `settle` from
-`foldkit/asyncData` to update the app-owned AsyncData field. The app derives the
-records supplied to `foldkit-viz`, whose synchronous functions compute geometry;
-chart primitives cannot fetch data or subscribe to events or Ports.
+Use this explicit **latest-selection wins** policy in the app's update loop:
 
-The app also owns command keys, interruption/cancellation policy, and stale
-result handling. `refresh` manages the revalidation step; it does not establish
-a latest-request-wins policy. For interruptible replacements, wait for the
-interruption outcome Message before starting the next Command, and cancel on
-route exit without starting a replacement.
+1. Record every new filter, brush, or zoom selection in `Model.selection`. If
+   the route is active and `request` is `Idle`, call `startLatest` with that
+   updated Model. While the route is inactive, only store the selection.
+2. If a request is `Running`, change it to `Cancelling` with the same request
+   ID and return only its keyed interruption Command. Capture that ID in the
+   interruption outcome Message. Do not start a replacement in the same batch.
+3. While `Cancelling`, keep replacing `Model.selection` with the latest input;
+   emit no further load or interruption Commands. Ignore normal result Messages
+   for this cancelled request, including a result racing with interruption.
+4. For a matching interruption outcome (`Interrupted` or `NotFound`), call
+   `afterInterruption` using the current Model. An interrupted Command will not
+   send its original result Message. The helper therefore explicitly clears
+   pending AsyncData: `Loading` becomes `Idle`, and `Refreshing(data)` becomes
+   `Success(data)`. It then starts the latest selection with a fresh ID, moving
+   back to `Loading` or `Refreshing`. Calling `refresh` on the old pending state
+   would produce no Command because `revalidateOrLoad` returns `None` there.
+5. Accept a normal result only when its ID matches the `Running` request.
+   Apply `settle(model.data, result)` from `foldkit/asyncData` and set `request`
+   to `Idle` in the same update. Ignore stale IDs and duplicate outcomes. Cached
+   data retained during replacement still belongs to the previous selection;
+   present it as such until the matching replacement result arrives.
+6. On route exit, mark the route inactive and interrupt any `Running` request,
+   or wait for the existing `Cancelling` outcome. The same outcome handler
+   clears pending AsyncData but starts no replacement while inactive. Route
+   entry can call `startLatest` from `Idle`; if still `Cancelling`, wait for its
+   outcome before loading the latest selection.
+
+The app owns command keys and correlation, interruption/cancellation policy,
+AsyncData, and the Model. `refresh` supplies the revalidation step, not that
+replacement policy. The app derives the records supplied to `foldkit-viz`,
+whose synchronous functions compute geometry; chart primitives cannot fetch
+data or subscribe to events or Ports.
 
 Use typed Ports only for host input/output: map validated inbound values to app
 Messages and emit outbound values through app-owned Commands. Keep internal

@@ -1,3 +1,5 @@
+import { Schema } from 'effect';
+
 import { Message } from './message';
 import { initModel, Model } from './model';
 import { ReplayEventPort, TransitionTelemetryPort } from './ports';
@@ -11,6 +13,8 @@ export const ports = {
   outbound: { transitionTelemetry: TransitionTelemetryPort },
 };
 
-export const init = () => ({ model: initModel });
+export const Flags = Schema.Struct({});
+
+export const init = (_flags: typeof Flags.Type) => ({ model: initModel });
 
 export { view } from './view';

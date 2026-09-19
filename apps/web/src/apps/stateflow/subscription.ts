@@ -9,6 +9,6 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
   replay: Port.subscription(ReplayEventPort, (event) => Message.ReceivedReplayEvent({ event })),
   frame: Subscription.animationFrame({
     isActive: (model) => model.playback === 'playing' && model.replayIndex < fixture.length,
-    toMessage: () => Message.AdvancedReplay(),
+    toMessage: (deltaTimeMs) => Message.AdvancedReplay({ deltaTimeMs }),
   }),
 }));

@@ -257,4 +257,44 @@ describe('Stateflow Observatory view', () => {
       Scene.expect(Scene.text('Ready')).toExist(),
     );
   });
+  it('inspects an untaken edge with the mouse without changing the live state', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initModel),
+      Scene.click(Scene.role('button', { name: '2. Loading → Cancelling: Navigated (when #0)' })),
+      Scene.tap(({ html }) => {
+        const inspector = Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html));
+        const content = Scene.textContent(inspector);
+        expect(content).toContain('Navigated');
+        expect(content).toContain('Loading → Cancelling');
+        expect(content).toContain('Guard: when #0');
+        expect(content).toContain('No recorded event for this transition.');
+      }),
+      Scene.expect(Scene.text('Current state: Loading')).toExist(),
+      Scene.expect(Scene.text('Transitions: 0')).toExist(),
+    );
+  });
+
+  it('inspects an untaken otherwise edge with the keyboard', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initModel),
+      Scene.keydown(
+        Scene.role('button', {
+          name: '14. Cancelling → Idle: CompletedCancelFetchMetrics (otherwise #1)',
+        }),
+        'Enter',
+      ),
+      Scene.tap(({ html }) => {
+        const content = Scene.textContent(
+          Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html)),
+        );
+        expect(content).toContain('CompletedCancelFetchMetrics');
+        expect(content).toContain('Cancelling → Idle');
+        expect(content).toContain('Guard: otherwise #1');
+        expect(content).toContain('No recorded event for this transition.');
+      }),
+      Scene.expect(Scene.text('Current state: Loading')).toExist(),
+    );
+  });
 });

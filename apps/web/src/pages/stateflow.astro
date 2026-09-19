@@ -1,10 +1,21 @@
 ---
-import StateflowApp from '../apps/stateflow/app';
+export const prerender = false;
+
+import { resolvePageDocument } from '@opsydyn/astro-foldkit/server';
+
+import StateflowPage from '../apps/stateflow/page';
 import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
+
+const document = await resolvePageDocument(StateflowPage, {
+  request: Astro.request,
+  url: Astro.url,
+  params: Astro.params,
+  props: {},
+});
 ---
 
-<Layout title="Stateflow Observatory — FoldKit Machine and Ports">
+<Layout title={document.title}>
   <h1 class={layoutStyles.heading}>Stateflow Observatory</h1>
-  <StateflowApp client:load />
+  <StateflowPage client:load />
 </Layout>

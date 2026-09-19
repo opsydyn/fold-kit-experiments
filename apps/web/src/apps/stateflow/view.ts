@@ -148,7 +148,7 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
     const record = Option.fromNullishOr(model.trace.findLast((item) => matchesEdge(item, edge)));
     const message = Option.match(record, {
       onSome: (item) => Message.SelectedTrace({ sequence: item.sequence }),
-      onNone: () => Message.SelectedNode({ node: edge.source }),
+      onNone: () => Message.SelectedEdge({ edge: edge.id }),
     });
     const latestMatch = Option.fromNullishOr(latest).pipe(
       Option.filter((item) => matchesEdge(item, edge)),
@@ -293,6 +293,15 @@ function inspectorView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Messa
   const selected = Option.fromNullishOr(
     model.trace.find((record) => record.sequence === model.selectedSequence),
   );
+  const selectedEdge = Option.fromNullishOr(
+    graph.edges.find((edge) => edge.id === model.selectedEdge),
+  );
+  const edgeDetails = (edge: StateFlowEdge): ReadonlyArray<Html> => [
+    h.p([h.Class(styles.eventName)], [edge.event]),
+    h.p([], [`${edge.source} → ${edge.target}`]),
+    h.p([], [`Guard: ${guardLabel(edge)}`]),
+    h.p([h.Class(styles.muted)], ['No recorded event for this transition.']),
+  ];
   function eventDetails(record: TransitionFact): ReadonlyArray<Html> {
     const edges = graph.edges.filter((edge) => matchesEdge(record, edge));
     const guards = Option.fromNullishOr(edges.map(guardLabel).join(', ') || undefined);
@@ -312,17 +321,16 @@ function inspectorView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Messa
       h.pre([h.Class(styles.eventData)], [encodeEvent(record)]),
     ];
   }
+  const edgeContent = Option.map(selectedEdge, edgeDetails);
+  const content = Option.map(selected, eventDetails).pipe(
+    Option.orElse(() => edgeContent),
+    Option.getOrElse(() => [
+      h.p([h.Class(styles.muted)], ['Select an event to inspect its recorded facts.']),
+    ]),
+  );
   return h.section(
     [h.Class(styles.inspector), h.AriaLabel('Selected trace inspector'), h.Tabindex(0)],
-    [
-      h.h2([h.Class(styles.sectionHeading)], ['Event inspector']),
-      ...Option.match(selected, {
-        onSome: eventDetails,
-        onNone: () => [
-          h.p([h.Class(styles.muted)], ['Select an event to inspect its recorded facts.']),
-        ],
-      }),
-    ],
+    [h.h2([h.Class(styles.sectionHeading)], ['Event inspector']), ...content],
   );
 }
 

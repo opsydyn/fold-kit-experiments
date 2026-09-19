@@ -8,9 +8,10 @@ export const Message = defineMessageUnion({
   ClickedPause: {},
   ClickedStep: {},
   ClickedReset: {},
-  AdvancedReplay: {},
+  AdvancedReplay: { deltaTimeMs: Schema.Number },
   SelectedTrace: { sequence: Schema.Number },
   SelectedNode: { node: Schema.String },
+  SelectedEdge: { edge: Schema.String },
   ReceivedReplayEvent: { event: Schema.Unknown },
   CompletedReportTransition: { sequence: Schema.Number },
 });

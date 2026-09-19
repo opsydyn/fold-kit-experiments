@@ -20,8 +20,8 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` is tested with FoldKit `0.155.x` and the matching
-`@foldkit/vite-plugin` `0.19.x` line. Applications can define interruptible
+`@opsydyn/astro-foldkit` is tested with FoldKit `0.161.x` and the matching
+`@foldkit/vite-plugin` `0.22.x` line. Applications can define interruptible
 work with `Command.define(name, { interrupt: true, ... })` inside their own
 update loop; this integration continues to own Astro rendering, hydration,
 and lifecycle event delivery.
@@ -70,8 +70,9 @@ type Message = 'Inc' | 'Dec';
 
 export const Model = null;
 export const init = () => ({ model: 0 });
-export const update = (model: number, message: Message) =>
-  ({ model: message === 'Inc' ? model + 1 : model - 1 });
+export const update = (model: number, message: Message) => ({
+  model: message === 'Inc' ? model + 1 : model - 1,
+});
 export const view = (model: number, h: HtmlBuilder<Message>): Document => ({
   title: `Counter: ${model}`,
   body: h.button([h.OnClick('Inc')], [String(model)]),
@@ -340,12 +341,12 @@ The double-decode is intentional: `Schema.decodeSync` at the Astro boundary ensu
 
 The module returned by your loader must export:
 
-| Export   | Type                                                           | Description                                   |
-| :------- | :------------------------------------------------------------- | :-------------------------------------------- |
-| `Model`  | `unknown`                                                      | Initial model type marker                     |
+| Export   | Type                                                                      | Description                                   |
+| :------- | :------------------------------------------------------------------------ | :-------------------------------------------- |
+| `Model`  | `unknown`                                                                 | Initial model type marker                     |
 | `init`   | `(props: unknown) => { model: Model; commands?: ReadonlyArray<Command> }` | Initial state from props and startup commands |
 | `update` | `(model, message) => { model: Model; commands?: ReadonlyArray<Command> }` | Pure state transition                         |
-| `view`   | `(model, h: HtmlBuilder<Message>) => Document`                 | Render with the current render-frame builder  |
+| `view`   | `(model, h: HtmlBuilder<Message>) => Document`                            | Render with the current render-frame builder  |
 
 For `definePage`, `init` receives the validated `Flags` value rather than raw
 Astro props, and the module must additionally export the runtime `Flags`
@@ -476,7 +477,7 @@ element.addEventListener(
 | Package   | Version               |
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
-| `foldkit` | `≥ 0.155.0 < 0.156.0` |
+| `foldkit` | `≥ 0.161.0 < 0.162.0` |
 
 ## Stateflow Observatory example
 

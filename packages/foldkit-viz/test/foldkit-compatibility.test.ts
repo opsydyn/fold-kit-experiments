@@ -4,7 +4,7 @@ import { Schema } from 'effect';
 import { TextDirection } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 
-describe('FoldKit 0.155 document compatibility', () => {
+describe('FoldKit 0.161 document compatibility', () => {
   it('keeps TextDirection values decodable for chart hosts', () => {
     const decode = Schema.decodeSync(TextDirection);
     const directions = ['Ltr', 'Rtl', 'Auto'] as const;

@@ -13,9 +13,9 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
-Current package compatibility targets FoldKit `0.155.x`, Effect
-`4.0.0-rc.112`, and the `@foldkit/vite-plugin` `0.19.x` line. The 0.155
-contract migration is not considered released until the packed-consumer and
+Current package compatibility targets FoldKit `0.161.x`, Effect
+`4.0.0-rc.115`, and the `@foldkit/vite-plugin` `0.22.x` line. The 0.161
+dependency migration is not considered released until the packed-consumer and
 workspace verification gates pass.
 
 ## Product Thesis

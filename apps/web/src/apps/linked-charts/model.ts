@@ -1,7 +1,9 @@
 import { Schema } from 'effect';
+import { foldChildInits } from 'foldkit/update';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
+import { Message } from './message';
 
 // 30 salary vs experience data points
 const POINTS: ReadonlyArray<Scatter.Point> = [
@@ -43,25 +45,38 @@ export type Model = Omit<typeof Model.Type, 'scatter' | 'histogram'> & {
   readonly histogram: Histogram.Model;
 };
 
-export const init = (_props: unknown) => {
-  const { model: scatter } = Scatter.init({
-    points: POINTS,
-    config: {
-      color: '#6366f1',
-      activeColor: '#4338ca',
-      xLabel: 'Years experience',
-      yLabel: 'Salary ($)',
+export const initChartModels = () =>
+  foldChildInits(
+    {
+      scatter: Scatter.init({
+        points: POINTS,
+        config: {
+          color: '#6366f1',
+          activeColor: '#4338ca',
+          xLabel: 'Years experience',
+          yLabel: 'Salary ($)',
+        },
+        dims: { width: 380, height: 260 },
+      }),
+      histogram: Histogram.init({
+        data: POINTS.map((p) => ({ value: p.y })),
+        binCount: 8,
+        color: '#6366f1',
+        xLabel: 'Salary ($)',
+        dims: { width: 360, height: 260 },
+      }),
     },
-    dims: { width: 380, height: 260 },
-  });
+    {
+      toParentModel: ({ scatter, histogram }) => ({ scatter, histogram }),
+      folds: {
+        scatter: {
+          toParentMessage: (message) => Message.GotScatterMessage({ message }),
+        },
+        histogram: {
+          toParentMessage: (message) => Message.GotHistogramMessage({ message }),
+        },
+      },
+    },
+  );
 
-  const { model: histogram } = Histogram.init({
-    data: POINTS.map((p) => ({ value: p.y })),
-    binCount: 8,
-    color: '#6366f1',
-    xLabel: 'Salary ($)',
-    dims: { width: 360, height: 260 },
-  });
-
-  return { model: { scatter, histogram } };
-};
+export const init = () => initChartModels();

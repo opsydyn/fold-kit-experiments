@@ -452,7 +452,7 @@ export const view = <M>(config: ViewConfig<M>, h: HtmlBuilder<M>): Html => {
     h.Role('region'),
     h.AriaLabel(ariaLabel ?? 'Carousel'),
     h.Tabindex(0),
-    h.OnKeyDownPreventDefault(handleKeyDown),
+    h.OnKeyDownSelfPreventDefault(handleKeyDown),
     h.Style({ outline: 'none' }),
   ];
 

@@ -12,7 +12,7 @@ Bun workspace monorepo. Three active workspaces:
 | `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | Chart primitives (no D3 dependency) |
 | `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types           |
 
-**Stack:** FoldKit 0.155.0 · Effect 4.0.0-rc.112 · Astro 7.1 · TypeScript · bun · oxlint · oxfmt
+**Stack:** FoldKit 0.161.0 · Effect 4.0.0-rc.115 · Astro 7.1 · TypeScript · bun · oxlint · oxfmt
 
 ## Before you write code
 
@@ -106,7 +106,9 @@ FoldKit 0.151+ `init` and `update` functions return records. Omit `commands`
 when no commands are statically produced; retain computed command collections
 even when they are empty. Use `ReturnWithOutMessage` for a submodel that
 reports a typed event to its parent, and use `foldChild` so child models,
-commands, and out messages are composed explicitly.
+commands, and out messages are composed explicitly. When initializing multiple
+named sibling submodels, use `foldChildInits` with one message fold per child
+and a `toParentModel` function instead of assembling the child records by hand.
 
 ### foldkit/schema unions
 

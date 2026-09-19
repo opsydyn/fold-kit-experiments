@@ -489,6 +489,48 @@ This slice adds no Astro integration API and moves no async work into the
 integration. Commands and subscriptions remain app-owned, including telemetry
 emission and validation of inbound replay events.
 
+## Remote visual loads
+
+For future remote filter, brush, or zoom loads, define the refresh step in the
+consuming app. In this example, `Model.data` is `AsyncData<Data, string>`, and
+`LoadFilteredData` is the app-owned Command that returns its result as a Message.
+`Model`, `Data`, and `Message` are application types.
+
+```ts
+import { Option } from 'effect';
+import { revalidateOrLoad } from 'foldkit/asyncData';
+import { refresh } from 'foldkit/update';
+
+import { LoadFilteredData } from './command';
+import type { Message } from './message';
+import type { Data, Model } from './model';
+
+const loadOnFilter = refresh<Model, Message, Data, string>({
+  read: (model) => Option.some(model.data),
+  revalidate: revalidateOrLoad,
+  write: (model, data) => ({ ...model, data }),
+  load: LoadFilteredData(),
+});
+```
+
+Apply this step from the app's update loop after recording the new filter,
+brush, or zoom selection; compose it with other steps using `combine` from
+`foldkit/update`. Handle the Command's result Message with `settle` from
+`foldkit/asyncData` to update the app-owned AsyncData field. The app derives the
+records supplied to `foldkit-viz`, whose synchronous functions compute geometry;
+chart primitives cannot fetch data or subscribe to events or Ports.
+
+The app also owns command keys, interruption/cancellation policy, and stale
+result handling. `refresh` manages the revalidation step; it does not establish
+a latest-request-wins policy. For interruptible replacements, wait for the
+interruption outcome Message before starting the next Command, and cancel on
+route exit without starting a replacement.
+
+Use typed Ports only for host input/output: map validated inbound values to app
+Messages and emit outbound values through app-owned Commands. Keep internal
+state in the Model and internal event flow in Messages and update. Astro mounts
+the island and supplies lifecycle facts; it does not own remote visual loads.
+
 ## License
 
 MIT

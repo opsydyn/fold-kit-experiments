@@ -22,6 +22,29 @@ workspace verification gates pass.
 
 Build the most useful Astro host and chart-primitives layer for FoldKit applications: server-compatible islands, route-aware application lifecycle, typed parent-owned state, and linked data visualizations that remain pure and testable.
 
+## Next Rerelease Slice: Stateflow Observatory
+
+**Outcome:** `/stateflow` makes app-owned Machine transitions and typed Port
+activity visible through a deterministic graph, replay timeline, and inspector.
+
+- [x] Keep the Machine, replay policy, trace Model, Commands, and typed inbound
+      replay/outbound telemetry Ports in `apps/web`.
+- [x] Expose plain graph records and the pure `layoutStateFlow` API through
+      `@opsydyn/foldkit-viz/stateflow`; no Machine execution or Port subscriptions
+      belong in the viz package.
+- [x] Host the page as an Astro `client:load` island using the existing lifecycle
+      bridge, without adding integration APIs or async visualisation ownership.
+- [x] Document the reusable remote filter, brush, and zoom load pattern: an
+      app-owned Command loads data, app-owned AsyncData/Model state records the
+      result, and typed Ports carry host input/output only. The app owns keyed
+      interruption/cancellation and replacement sequencing; `foldkit-viz`
+      receives derived records and computes geometry synchronously.
+
+**Release gate:** implementation and documentation do not establish rerelease
+readiness. The packed-consumer and workspace verification gates still apply.
+See the [viz usage](../packages/foldkit-viz/README.md#remote-visual-loads) and
+[Astro host usage](../packages/astro-foldkit/README.md#remote-visual-loads).
+
 ## Now: Astro Production Boundary
 
 **Outcome:** an Astro consumer can mount a typed FoldKit app with stable server output, predictable hydration, and verified teardown.

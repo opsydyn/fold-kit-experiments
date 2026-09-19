@@ -1,11 +1,14 @@
 import { Option } from 'effect';
 import { Scene } from 'foldkit';
+import type { Document, HtmlBuilder } from 'foldkit/html';
 import { describe, expect, it } from 'vitest';
 
+import { svgRoot } from '../../ui/shared';
 import { ReportTransition } from './command';
 import { fixture } from './fixture';
 import { view } from './main';
 import { Message } from './message';
+import type { Model } from './model';
 import { initModel } from './model';
 import { update } from './update';
 
@@ -14,17 +17,19 @@ const replayed = fixture.reduce(
   initModel,
 );
 
+function viewWithTitle(model: Model, h: HtmlBuilder<Message>): Document {
+  const document = view(model, h);
+  expect(document.title).toBe('Stateflow Observatory — Loading');
+  return document;
+}
+
 // These tests catch missing accessible content, miswired controls and inspection that changes live state.
 describe('Stateflow Observatory view', () => {
   it('renders a titled, accessible static graph and replay controls before hydration', () => {
     Scene.scene(
       {
         update,
-        view: (model, h) => {
-          const document = view(model, h);
-          expect(document.title).toBe('Stateflow Observatory — Loading');
-          return document;
-        },
+        view: viewWithTitle,
       },
       Scene.given(initModel),
       Scene.expect(
@@ -137,6 +142,119 @@ describe('Stateflow Observatory view', () => {
         expect(Scene.textContent(inspector)).toContain('Guard: unguarded');
       }),
       Scene.expect(Scene.text('Current state: Idle')).toExist(),
+    );
+  });
+  it('keeps the full Loading/Cancelling guard labels apart in both directions', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initModel),
+      Scene.tap(({ html }) => {
+        const connected = Scene.findAll(html, 'svg g').filter(
+          (node) =>
+            Option.getOrElse(Scene.attr(node, 'aria-label'), () => '').includes(
+              'Loading → Cancelling:',
+            ) ||
+            Option.getOrElse(Scene.attr(node, 'aria-label'), () => '').includes(
+              'Cancelling → Loading:',
+            ),
+        );
+        expect(connected).toHaveLength(3);
+        const labels = connected.map((node) => Option.getOrThrow(Scene.find(node, 'text')));
+        expect(labels.map(Scene.textContent)).toEqual([
+          '1 · unguarded',
+          '2 · when #0',
+          '13 · when #0',
+        ]);
+        for (const [index, label] of labels.entries()) {
+          for (const other of labels.slice(index + 1)) {
+            const dx = Math.abs(
+              Number(Option.getOrThrow(Scene.attr(label, 'x'))) -
+                Number(Option.getOrThrow(Scene.attr(other, 'x'))),
+            );
+            const dy = Math.abs(
+              Number(Option.getOrThrow(Scene.attr(label, 'y'))) -
+                Number(Option.getOrThrow(Scene.attr(other, 'y'))),
+            );
+            const width = Scene.textContent(label).length * 7;
+            const otherWidth = Scene.textContent(other).length * 7;
+            expect(dx >= (width + otherWidth) / 2 + 8 || dy >= 24).toBe(true);
+          }
+        }
+        expect(Scene.textContent(html)).toContain('otherwise #1');
+      }),
+    );
+  });
+
+  it('focuses graph actions without adding an inert SVG root focus stop', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initModel),
+      Scene.tap(({ html }) => {
+        const root = Option.getOrThrow(Scene.find(html, 'svg'));
+        expect(Scene.attr(root, 'tabIndex')).toEqual(Option.none());
+        expect(
+          Scene.attr(Option.getOrThrow(Scene.getByLabel('Select state Loading')(html)), 'tabIndex'),
+        ).toEqual(Option.some('0'));
+        expect(
+          Scene.attr(
+            Option.getOrThrow(
+              Scene.getByLabel('1. Loading → Cancelling: ClickedReload (unguarded)')(html),
+            ),
+            'tabIndex',
+          ),
+        ).toEqual(Option.some('0'));
+      }),
+    );
+  });
+  it('keeps guard labels readable where different connected pairs meet', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initModel),
+      Scene.tap(({ html }) => {
+        const labels = Scene.findAll(html, 'svg g')
+          .filter((node) => Option.isSome(Scene.find(node, 'title')))
+          .map((node) => Option.getOrThrow(Scene.find(node, 'text')));
+        expect(labels).toHaveLength(14);
+        for (const [index, label] of labels.entries()) {
+          for (const other of labels.slice(index + 1)) {
+            const dx = Math.abs(
+              Number(Option.getOrThrow(Scene.attr(label, 'x'))) -
+                Number(Option.getOrThrow(Scene.attr(other, 'x'))),
+            );
+            const dy = Math.abs(
+              Number(Option.getOrThrow(Scene.attr(label, 'y'))) -
+                Number(Option.getOrThrow(Scene.attr(other, 'y'))),
+            );
+            const width = Scene.textContent(label).length * 7;
+            const otherWidth = Scene.textContent(other).length * 7;
+            expect(dx >= (width + otherWidth) / 2 + 8 || dy >= 24).toBe(true);
+          }
+        }
+      }),
+    );
+  });
+
+  it('retains root focus and keyboard events for charts with a root key handler', () => {
+    Scene.scene(
+      {
+        update,
+        view: (model, h) =>
+          svgRoot(
+            h,
+            {
+              width: 200,
+              height: 100,
+              interactive: true,
+              ariaLabel: 'Keyboard chart',
+            },
+            () => Option.some(Message.SelectedNode({ node: 'Ready' })),
+            [h.text([], [model.selectedNode ?? 'None'])],
+          ),
+      },
+      Scene.given(initModel),
+      Scene.tap(({ html }) => expect(Scene.attr(html, 'tabIndex')).toEqual(Option.some('0'))),
+      Scene.keydown('svg', 'Enter'),
+      Scene.expect(Scene.text('Ready')).toExist(),
     );
   });
 });

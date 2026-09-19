@@ -40,7 +40,8 @@ export function svgRoot<M>(
       color: 'var(--chart-label, #888)',
       ...style,
     }),
-    ...(interactive ? [h.Tabindex(0)] : []),
+    // A graph whose children own keyboard actions does not need an inert root focus stop.
+    ...(interactive && handleKeyDown ? [h.Tabindex(0)] : []),
     ...(interactive && handleKeyDown ? [h.OnKeyDownPreventDefault(handleKeyDown)] : []),
   ];
 

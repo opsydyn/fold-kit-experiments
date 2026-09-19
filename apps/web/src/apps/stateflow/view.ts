@@ -1,6 +1,12 @@
 import { layoutStateFlow } from '@opsydyn/foldkit-viz/stateflow';
-import type { StateFlowEdge, StateFlowGraph } from '@opsydyn/foldkit-viz/stateflow';
-import { Option } from 'effect';
+import type {
+  StateFlowEdge,
+  StateFlowGraph,
+  StateFlowLayout,
+  StateFlowLayoutEdge,
+  StateFlowLayoutNode,
+} from '@opsydyn/foldkit-viz/stateflow';
+import { Match, Option, Schema } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { svgRoot } from '../../ui/shared';
@@ -8,24 +14,127 @@ import { fixture } from './fixture';
 import { graphFor } from './graph';
 import { Message } from './message';
 import type { Model, TransitionFact } from './model';
+import { TransitionRecorded } from './ports';
 
 import * as styles from './stateflow.css';
 
 const guardLabel = (edge: StateFlowEdge): string =>
-  edge.guard === 'unguarded' ? 'unguarded' : `${edge.guard} #${edge.guardPosition ?? 0}`;
+  Match.value(edge.guard).pipe(
+    Match.when('unguarded', () => 'unguarded'),
+    Match.orElse((guard) => `${guard} #${edge.guardPosition ?? 0}`),
+  );
+
+const isTransitioned = (record: TransitionFact): boolean =>
+  Match.value(record.outcome).pipe(
+    Match.when('transitioned', () => true),
+    Match.orElse(() => false),
+  );
 
 const matchesEdge = (record: TransitionFact, edge: StateFlowEdge): boolean =>
-  record.outcome === 'transitioned' &&
-  record.from === edge.source &&
-  record.target === edge.target &&
-  record.messageTag === edge.event;
+  [
+    isTransitioned(record),
+    record.from === edge.source,
+    record.target === edge.target,
+    record.messageTag === edge.event,
+  ].every(Boolean);
+
+const textWhen = (condition: boolean, whenTrue: string, whenFalse = ''): string =>
+  Match.value(condition).pipe(
+    Match.when(true, () => whenTrue),
+    Match.orElse(() => whenFalse),
+  );
 
 const activation =
   (message: Message) =>
   (key: string): Option.Option<Message> =>
-    key === 'Enter' || key === ' ' ? Option.some(message) : Option.none();
+    Match.value(key).pipe(
+      Match.whenOr('Enter', ' ', () => Option.some(message)),
+      Match.orElse(() => Option.none()),
+    );
 
-const graphView = (model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>): Html => {
+const encodeEvent = Schema.encodeSync(Schema.fromJsonString(TransitionRecorded, { space: 2 }));
+
+const edgePair = (edge: StateFlowEdge): string => [edge.source, edge.target].sort().join(':');
+
+const edgeCaption = (edge: StateFlowEdge, index: number): string =>
+  `${index + 1} · ${guardLabel(edge)}`;
+
+function edgeLabelPosition(edge: StateFlowLayoutEdge, edges: ReadonlyArray<StateFlowLayoutEdge>) {
+  const pair = edgePair(edge);
+  const peers = edges.filter((candidate) => edgePair(candidate) === pair);
+  const lane = peers.findIndex((candidate) => candidate.id === edge.id) - (peers.length - 1) / 2;
+  const dx = edge.x2 - edge.x1;
+  const dy = edge.y2 - edge.y1;
+  const distance = Math.hypot(dx, dy) || 1;
+  const direction = Match.value(edge.source < edge.target).pipe(
+    Match.when(true, () => 1),
+    Match.orElse(() => -1),
+  );
+  const nx = (-dy / distance) * direction;
+  const ny = (dx / distance) * direction;
+  const maxWidth = Math.max(
+    ...peers.map(
+      (candidate) =>
+        edgeCaption(
+          candidate,
+          edges.findIndex((item) => item.id === candidate.id),
+        ).length * 7,
+    ),
+  );
+  // Use one normal for both directions, reserving the full label width and line height.
+  const spacing = Math.abs(nx) * (maxWidth + 16) + Math.abs(ny) * 28;
+  return {
+    x: (edge.x1 + edge.x2) / 2 + nx * lane * spacing,
+    y: (edge.y1 + edge.y2) / 2 + ny * lane * spacing,
+  };
+}
+
+type EdgeLabel = Readonly<{ x: number; y: number; width: number }>;
+
+const labelsOverlap = (a: EdgeLabel, b: EdgeLabel): boolean =>
+  [Math.abs(a.x - b.x) < (a.width + b.width) / 2 + 8, Math.abs(a.y - b.y) < 24].every(Boolean);
+
+function edgeLabels(layout: StateFlowLayout): ReadonlyArray<EdgeLabel> {
+  const placed: EdgeLabel[] = [];
+  for (const [index, edge] of layout.edges.entries()) {
+    const preferred = edgeLabelPosition(edge, layout.edges);
+    const width = edgeCaption(edge, index).length * 7;
+    // Search nearest positions first; pair lanes remain the preferred placement.
+    const candidates = Array.from({ length: 21 }, (_, row) =>
+      Array.from({ length: 21 }, (_, column) => ({
+        x: preferred.x + (column - 10) * 24,
+        y: preferred.y + (row - 10) * 24,
+        width,
+      })),
+    )
+      .flat()
+      .sort(
+        (a, b) =>
+          Math.hypot(a.x - preferred.x, a.y - preferred.y) -
+          Math.hypot(b.x - preferred.x, b.y - preferred.y),
+      );
+    const position = candidates.find((candidate) =>
+      [
+        candidate.x - width / 2 >= 8,
+        candidate.x + width / 2 <= 892,
+        candidate.y >= 24,
+        candidate.y <= 608,
+        placed.every((label) => !labelsOverlap(candidate, label)),
+        layout.nodes.every(
+          (node) =>
+            ![
+              Math.abs(candidate.x - node.x) < width / 2 + 58,
+              Math.abs(candidate.y - node.y) < 72,
+            ].every(Boolean),
+        ),
+      ].every(Boolean),
+    );
+    placed.push(Option.getOrThrow(Option.fromNullishOr(position)));
+  }
+  return placed;
+}
+
+function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>): Html {
   const layout = layoutStateFlow(graph, {
     width: 900,
     height: 620,
@@ -34,6 +143,131 @@ const graphView = (model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
     strength: -800,
   });
   const latest = model.trace.at(-1);
+  const labels = edgeLabels(layout);
+  function edgeView(edge: StateFlowLayoutEdge, index: number): Html {
+    const record = Option.fromNullishOr(model.trace.findLast((item) => matchesEdge(item, edge)));
+    const message = Option.match(record, {
+      onSome: (item) => Message.SelectedTrace({ sequence: item.sequence }),
+      onNone: () => Message.SelectedNode({ node: edge.source }),
+    });
+    const latestMatch = Option.fromNullishOr(latest).pipe(
+      Option.filter((item) => matchesEdge(item, edge)),
+    );
+    const pulseSequence = latestMatch.pipe(
+      Option.map((item) => item.sequence),
+      Option.getOrElse(() => 0),
+    );
+    const dx = edge.x2 - edge.x1;
+    const dy = edge.y2 - edge.y1;
+    const distance = Math.hypot(dx, dy) || 1;
+    const ux = dx / distance;
+    const uy = dy / distance;
+    const labelPosition = Option.getOrThrow(Option.fromNullishOr(labels[index]));
+    const cx = 2 * labelPosition.x - (edge.x1 + edge.x2) / 2;
+    const cy = 2 * labelPosition.y - (edge.y1 + edge.y2) / 2;
+    const endX = edge.x2 - ux * 58;
+    const endY = edge.y2 - uy * 58;
+    const label = `${index + 1}. ${edge.source} → ${edge.target}: ${edge.event} (${guardLabel(edge)})`;
+    return h.g(
+      [
+        h.Key(`${edge.id}:${pulseSequence}`),
+        h.Class(
+          [
+            styles.edge,
+            textWhen(edge.transitionCount > 0, styles.visitedEdge),
+            textWhen(Option.isSome(latestMatch), styles.pulse),
+          ].join(' '),
+        ),
+        h.Role('button'),
+        h.Tabindex(0),
+        h.AriaLabel(label),
+        h.OnClick(message),
+        h.OnKeyDownPreventDefault(activation(message)),
+      ],
+      [
+        h.title([], [label]),
+        h.path(
+          [
+            h.D(`M${edge.x1 + ux * 58},${edge.y1 + uy * 58} Q${cx},${cy} ${endX},${endY}`),
+            h.Fill('none'),
+            h.Stroke('currentColor'),
+            h.StrokeWidth('2'),
+          ],
+          [],
+        ),
+        h.path(
+          [
+            h.D(
+              `M${endX - ux * 9 - uy * 4},${endY - uy * 9 + ux * 4} L${endX},${endY} L${endX - ux * 9 + uy * 4},${endY - uy * 9 - ux * 4}`,
+            ),
+            h.Fill('none'),
+            h.Stroke('currentColor'),
+            h.StrokeWidth('2'),
+          ],
+          [],
+        ),
+        h.text(
+          [
+            h.X(String(labelPosition.x)),
+            h.Y(String(labelPosition.y - 5)),
+            h.TextLength(String(edgeCaption(edge, index).length * 7)),
+            h.LengthAdjust('spacingAndGlyphs'),
+            h.Class(styles.edgeLabel),
+          ],
+          [edgeCaption(edge, index)],
+        ),
+      ],
+    );
+  }
+  function nodeView(node: StateFlowLayoutNode): Html {
+    const active = node.id === model.explorer._tag;
+    const error = Match.value(node.id).pipe(
+      Match.when('Failed', () => true),
+      Match.orElse(() => false),
+    );
+    const status = Match.value({ active, error, visited: node.visitCount > 0 }).pipe(
+      Match.when({ active: true }, () => 'active'),
+      Match.when({ error: true }, () => 'error state'),
+      Match.when({ visited: true }, () => 'visited'),
+      Match.orElse(() => node.role),
+    );
+    const message = Message.SelectedNode({ node: node.id });
+    return h.g(
+      [
+        h.Key(node.id),
+        h.Transform(`translate(${node.x},${node.y})`),
+        h.Class(
+          [
+            styles.node,
+            textWhen(node.visitCount > 0, styles.visitedNode),
+            textWhen(error, styles.errorNode),
+            textWhen(active, styles.activeNode),
+            textWhen(model.selectedNode === node.id, styles.selectedNode),
+          ].join(' '),
+        ),
+        h.Role('button'),
+        h.Tabindex(0),
+        h.AriaLabel(`Select state ${node.label}`),
+        h.AriaPressed(textWhen(model.selectedNode === node.id, 'true', 'false')),
+        h.OnClick(message),
+        h.OnKeyDownPreventDefault(activation(message)),
+      ],
+      [
+        h.circle(
+          [
+            h.R('54'),
+            h.Fill('#171e28'),
+            h.Stroke('currentColor'),
+            h.StrokeWidth(textWhen(active, '3', '1.5')),
+          ],
+          [],
+        ),
+        h.text([h.Y('-3'), h.Class(styles.nodeLabel)], [node.label]),
+        h.text([h.Y('17'), h.Class(styles.nodeStatus)], [status]),
+      ],
+    );
+  }
+
   return h.div(
     [h.Class(styles.graphScroll)],
     [
@@ -49,149 +283,79 @@ const graphView = (model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
           style: { 'min-width': '680px' },
         },
         null,
-        [
-          ...layout.edges.map((edge, index) => {
-            const record = model.trace.findLast((item) => matchesEdge(item, edge));
-            const message = record
-              ? Message.SelectedTrace({ sequence: record.sequence })
-              : Message.SelectedNode({ node: edge.source });
-            const dx = edge.x2 - edge.x1;
-            const dy = edge.y2 - edge.y1;
-            const distance = Math.hypot(dx, dy) || 1;
-            const ux = dx / distance;
-            const uy = dy / distance;
-            const offset = ((index % 3) - 1) * 18;
-            const cx = (edge.x1 + edge.x2) / 2 - uy * offset;
-            const cy = (edge.y1 + edge.y2) / 2 + ux * offset;
-            const endX = edge.x2 - ux * 58;
-            const endY = edge.y2 - uy * 58;
-            const label = `${index + 1}. ${edge.source} → ${edge.target}: ${edge.event} (${guardLabel(edge)})`;
-            return h.g(
-              [
-                h.Key(`${edge.id}:${latest && matchesEdge(latest, edge) ? latest.sequence : 0}`),
-                h.Class(
-                  [
-                    styles.edge,
-                    edge.transitionCount > 0 ? styles.visitedEdge : '',
-                    latest && matchesEdge(latest, edge) ? styles.pulse : '',
-                  ].join(' '),
-                ),
-                h.Role('button'),
-                h.Tabindex(0),
-                h.AriaLabel(label),
-                h.OnClick(message),
-                h.OnKeyDownPreventDefault(activation(message)),
-              ],
-              [
-                h.title([], [label]),
-                h.path(
-                  [
-                    h.D(`M${edge.x1 + ux * 58},${edge.y1 + uy * 58} Q${cx},${cy} ${endX},${endY}`),
-                    h.Fill('none'),
-                    h.Stroke('currentColor'),
-                    h.StrokeWidth('2'),
-                  ],
-                  [],
-                ),
-                h.path(
-                  [
-                    h.D(
-                      `M${endX - ux * 9 - uy * 4},${endY - uy * 9 + ux * 4} L${endX},${endY} L${endX - ux * 9 + uy * 4},${endY - uy * 9 - ux * 4}`,
-                    ),
-                    h.Fill('none'),
-                    h.Stroke('currentColor'),
-                    h.StrokeWidth('2'),
-                  ],
-                  [],
-                ),
-                h.text(
-                  [h.X(String(cx)), h.Y(String(cy - 5)), h.Class(styles.edgeLabel)],
-                  [`${index + 1} · ${guardLabel(edge)}`],
-                ),
-              ],
-            );
-          }),
-          ...layout.nodes.map((node) => {
-            const active = node.id === model.explorer._tag;
-            const status = active
-              ? 'active'
-              : node.id === 'Failed'
-                ? 'error state'
-                : node.visitCount > 0
-                  ? 'visited'
-                  : node.role;
-            const message = Message.SelectedNode({ node: node.id });
-            return h.g(
-              [
-                h.Key(node.id),
-                h.Transform(`translate(${node.x},${node.y})`),
-                h.Class(
-                  [
-                    styles.node,
-                    node.visitCount > 0 ? styles.visitedNode : '',
-                    node.id === 'Failed' ? styles.errorNode : '',
-                    active ? styles.activeNode : '',
-                    model.selectedNode === node.id ? styles.selectedNode : '',
-                  ].join(' '),
-                ),
-                h.Role('button'),
-                h.Tabindex(0),
-                h.AriaLabel(`Select state ${node.label}`),
-                h.AriaPressed(model.selectedNode === node.id ? 'true' : 'false'),
-                h.OnClick(message),
-                h.OnKeyDownPreventDefault(activation(message)),
-              ],
-              [
-                h.circle(
-                  [
-                    h.R('54'),
-                    h.Fill('#171e28'),
-                    h.Stroke('currentColor'),
-                    h.StrokeWidth(active ? '3' : '1.5'),
-                  ],
-                  [],
-                ),
-                h.text([h.Y('-3'), h.Class(styles.nodeLabel)], [node.label]),
-                h.text([h.Y('17'), h.Class(styles.nodeStatus)], [status]),
-              ],
-            );
-          }),
-        ],
+        [...layout.edges.map(edgeView), ...layout.nodes.map(nodeView)],
       ),
     ],
   );
-};
+}
 
-const inspectorView = (model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>): Html => {
-  const selected = model.trace.find((record) => record.sequence === model.selectedSequence);
-  const edges = selected ? graph.edges.filter((edge) => matchesEdge(selected, edge)) : [];
+function inspectorView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>): Html {
+  const selected = Option.fromNullishOr(
+    model.trace.find((record) => record.sequence === model.selectedSequence),
+  );
+  function eventDetails(record: TransitionFact): ReadonlyArray<Html> {
+    const edges = graph.edges.filter((edge) => matchesEdge(record, edge));
+    const guards = Option.fromNullishOr(edges.map(guardLabel).join(', ') || undefined);
+    return [
+      h.p([h.Class(styles.eventName)], [`#${record.sequence} ${record.messageTag}`]),
+      h.p([], [`${record.from} → ${record.target ?? '—'}`]),
+      h.p([], [`Outcome: ${record.outcome}`]),
+      h.p([], [`Guard: ${Option.getOrElse(guards, () => 'not recorded')}`]),
+      h.p([], [`Reason: ${record.reason ?? '—'}`]),
+      h.h3([h.Class(styles.sectionHeading)], ['Command names']),
+      h.p([], [record.commandNames.join(', ') || 'None']),
+      h.h3([h.Class(styles.sectionHeading)], ['Structured event data']),
+      h.p(
+        [h.Class(styles.muted)],
+        ['Redacted transition facts; original payload is not retained.'],
+      ),
+      h.pre([h.Class(styles.eventData)], [encodeEvent(record)]),
+    ];
+  }
   return h.section(
     [h.Class(styles.inspector), h.AriaLabel('Selected trace inspector'), h.Tabindex(0)],
     [
       h.h2([h.Class(styles.sectionHeading)], ['Event inspector']),
-      ...(selected
-        ? [
-            h.p([h.Class(styles.eventName)], [`#${selected.sequence} ${selected.messageTag}`]),
-            h.p([], [`${selected.from} → ${selected.target ?? '—'}`]),
-            h.p([], [`Outcome: ${selected.outcome}`]),
-            h.p(
-              [],
-              [`Guard: ${edges.length > 0 ? edges.map(guardLabel).join(', ') : 'not recorded'}`],
-            ),
-            h.p([], [`Reason: ${selected.reason ?? '—'}`]),
-            h.h3([h.Class(styles.sectionHeading)], ['Command names']),
-            h.p([], [selected.commandNames.join(', ') || 'None']),
-            h.h3([h.Class(styles.sectionHeading)], ['Structured event data']),
-            h.p(
-              [h.Class(styles.muted)],
-              ['Redacted transition facts; original payload is not retained.'],
-            ),
-            h.pre([h.Class(styles.eventData)], [JSON.stringify(selected, null, 2)]),
-          ]
-        : [h.p([h.Class(styles.muted)], ['Select an event to inspect its recorded facts.'])]),
+      ...Option.match(selected, {
+        onSome: eventDetails,
+        onNone: () => [
+          h.p([h.Class(styles.muted)], ['Select an event to inspect its recorded facts.']),
+        ],
+      }),
     ],
   );
-};
+}
+
+function eventRow(model: Model, record: TransitionFact, h: HtmlBuilder<Message>): Html {
+  const related = [record.from, record.target].includes(model.selectedNode ?? '');
+  return h.tr(
+    [
+      h.Key(String(record.sequence)),
+      h.Attribute('data-related', String(related)),
+      h.Class(textWhen(related, styles.relatedRow)),
+    ],
+    [
+      h.td([], [String(record.sequence)]),
+      h.td(
+        [],
+        [
+          h.button(
+            [
+              h.Class(styles.eventButton),
+              h.AriaLabel(`Inspect event ${record.sequence}: ${record.messageTag}`),
+              h.AriaPressed(textWhen(record.sequence === model.selectedSequence, 'true', 'false')),
+              h.OnClick(Message.SelectedTrace({ sequence: record.sequence })),
+            ],
+            [record.messageTag],
+          ),
+        ],
+      ),
+      ...[record.from, record.outcome, record.target ?? '—', record.reason ?? '—'].map((value) =>
+        h.td([], [value]),
+      ),
+    ],
+  );
+}
 
 const timelineView = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.section(
@@ -201,9 +365,10 @@ const timelineView = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.p(
         [h.Class(styles.muted)],
         [
-          model.selectedNode
-            ? `Related events highlighted: ${model.selectedNode}`
-            : 'Select a state to highlight related events.',
+          Option.match(Option.fromNullishOr(model.selectedNode), {
+            onSome: (node) => `Related events highlighted: ${node}`,
+            onNone: () => 'Select a state to highlight related events.',
+          }),
         ],
       ),
       h.div(
@@ -225,57 +390,32 @@ const timelineView = (model: Model, h: HtmlBuilder<Message>): Html =>
               ),
               h.tbody(
                 [],
-                model.trace.slice(-30).map((record) => {
-                  const related =
-                    model.selectedNode !== null &&
-                    (record.from === model.selectedNode || record.target === model.selectedNode);
-                  return h.tr(
-                    [
-                      h.Key(String(record.sequence)),
-                      h.Attribute('data-related', String(related)),
-                      h.Class(related ? styles.relatedRow : ''),
-                    ],
-                    [
-                      h.td([], [String(record.sequence)]),
-                      h.td(
-                        [],
-                        [
-                          h.button(
-                            [
-                              h.Class(styles.eventButton),
-                              h.AriaLabel(`Inspect event ${record.sequence}: ${record.messageTag}`),
-                              h.AriaPressed(
-                                record.sequence === model.selectedSequence ? 'true' : 'false',
-                              ),
-                              h.OnClick(Message.SelectedTrace({ sequence: record.sequence })),
-                            ],
-                            [record.messageTag],
-                          ),
-                        ],
-                      ),
-                      ...[
-                        record.from,
-                        record.outcome,
-                        record.target ?? '—',
-                        record.reason ?? '—',
-                      ].map((value) => h.td([], [value])),
-                    ],
-                  );
-                }),
+                model.trace.slice(-30).map((record) => eventRow(model, record, h)),
               ),
             ],
           ),
         ],
       ),
-      ...(model.trace.length === 0
-        ? [h.p([h.Class(styles.muted)], ['No events yet. Step or play the replay session.'])]
-        : []),
+      ...Match.value(model.trace.length).pipe(
+        Match.when(0, () => [
+          h.p([h.Class(styles.muted)], ['No events yet. Step or play the replay session.']),
+        ]),
+        Match.orElse(() => []),
+      ),
     ],
   );
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const graph = graphFor(model);
-  const transitions = model.trace.filter((record) => record.outcome === 'transitioned').length;
+  const transitions = model.trace.filter(isTransitioned).length;
+  const playing = Match.value(model.playback).pipe(
+    Match.when('playing', () => true),
+    Match.orElse(() => false),
+  );
+  const telemetryLabel = Option.match(Option.fromNullishOr(model.lastTelemetrySequence), {
+    onNone: () => 'Outbound Port: no emission recorded',
+    onSome: (sequence) => `Outbound Port: emitted #${sequence}`,
+  });
   const control = (label: string, message: Message, disabled: boolean) =>
     h.button([h.Class(styles.control), h.OnClick(message), h.Disabled(disabled)], [label]);
   return {
@@ -305,13 +445,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                     control(
                       'Play',
                       Message.ClickedPlay(),
-                      model.playback === 'playing' || model.replayIndex >= fixture.length,
+                      playing || model.replayIndex >= fixture.length,
                     ),
-                    control('Pause', Message.ClickedPause(), model.playback === 'paused'),
+                    control('Pause', Message.ClickedPause(), !playing),
                     control(
                       'Step',
                       Message.ClickedStep(),
-                      model.playback === 'playing' || model.replayIndex >= fixture.length,
+                      playing || model.replayIndex >= fixture.length,
                     ),
                     control('Reset', Message.ClickedReset(), false),
                   ],
@@ -323,14 +463,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 ),
                 h.h3([h.Class(styles.sectionHeading)], ['Typed Ports']),
                 h.p([], ['Inbound Port: replay input configured']),
-                h.p(
-                  [],
-                  [
-                    model.lastTelemetrySequence === null
-                      ? 'Outbound Port: no emission recorded'
-                      : `Outbound Port: emitted #${model.lastTelemetrySequence}`,
-                  ],
-                ),
+                h.p([], [telemetryLabel]),
                 h.p(
                   [h.Class(styles.muted)],
                   ['Telemetry records command emission, not consumer delivery.'],
@@ -366,4 +499,4 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       ],
     ),
   };
-};
+}

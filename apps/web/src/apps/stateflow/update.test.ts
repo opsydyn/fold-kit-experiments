@@ -42,4 +42,22 @@ describe('stateflow replay update', () => {
 
     expect(result.model.explorer).toEqual({ _tag: 'Idle' });
   });
+
+  it('pauses playback while consuming the final replay event', () => {
+    const playing = update(initModel, Message.ClickedPlay());
+    const result = fixture.reduce(
+      (state) => update(state.model, Message.AdvancedReplay()),
+      playing,
+    );
+
+    expect(result.model.replayIndex).toBe(fixture.length);
+    expect(result.model.playback).toBe('paused');
+    expect(result.commands?.map((command) => command.name)).toEqual(['ReportTransition']);
+  });
+
+  it('does not resume playback after the fixture is exhausted', () => {
+    const result = update({ ...initModel, replayIndex: fixture.length }, Message.ClickedPlay());
+
+    expect(result.model.playback).toBe('paused');
+  });
 });

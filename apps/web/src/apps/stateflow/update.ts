@@ -48,6 +48,7 @@ const runReplayEvent = (model: Model, event: ReplayEvent): Return => {
       ...model,
       explorer: result.state,
       replayIndex: model.replayIndex + 1,
+      playback: model.replayIndex + 1 >= fixture.length ? 'paused' : model.playback,
       trace: [...model.trace, record],
       selectedSequence: record.sequence,
     },
@@ -62,7 +63,9 @@ const advanceFixture = (model: Model): Return => {
 
 export const update = (model: Model, message: Message): Return =>
   Message.match(message, {
-    ClickedPlay: () => ({ model: { ...model, playback: 'playing' } }),
+    ClickedPlay: () => ({
+      model: { ...model, playback: model.replayIndex < fixture.length ? 'playing' : 'paused' },
+    }),
     ClickedPause: () => ({ model: { ...model, playback: 'paused' } }),
     ClickedStep: () => (model.playback === 'paused' ? advanceFixture(model) : { model }),
     ClickedReset: () => ({ model: initModel }),

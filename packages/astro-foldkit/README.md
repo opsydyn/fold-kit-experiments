@@ -20,11 +20,12 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` is tested with FoldKit `0.161.x` and the matching
-`@foldkit/vite-plugin` `0.22.x` line. Applications can define interruptible
-work with `Command.define(name, { interrupt: true, ... })` inside their own
-update loop; this integration continues to own Astro rendering, hydration,
-and lifecycle event delivery.
+`@opsydyn/astro-foldkit` is tested with FoldKit `0.163.x`, Effect
+`4.0.0-rc.116`, and the matching `@foldkit/vite-plugin` `0.24.x` line.
+Applications can define interruptible work with
+`Command.define(name, { interrupt: true, ... })` inside their own update loop;
+this integration continues to own Astro rendering, hydration, and lifecycle
+event delivery.
 
 ## Setup
 
@@ -485,7 +486,7 @@ element.addEventListener(
 | Package   | Version               |
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
-| `foldkit` | `≥ 0.161.0 < 0.162.0` |
+| `foldkit` | `≥ 0.163.0 < 0.164.0` |
 
 ## Stateflow Observatory example
 

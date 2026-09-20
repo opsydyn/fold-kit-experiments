@@ -45,7 +45,7 @@ Config files:
 
 ## Foldkit import style guide
 
-Foldkit 0.126.0 exports submodule functions as **named exports**, not namespace objects.
+Foldkit 0.163.0 exports submodule functions as **named exports**, not namespace objects.
 
 ### foldkit/update
 
@@ -64,8 +64,10 @@ Common patterns:
 // Type alias — pin once per update module
 type AppReturn = Return<Model, Message>;
 
-// Step — a function (model) => [model, commands]
-const myStep: Step<Model, Message> = (model) => [{ ...model, foo: 'bar' }, []];
+// Step — a function that returns the current record contract
+const myStep: Step<Model, Message> = (model) => ({
+  model: { ...model, foo: 'bar' },
+});
 
 // combine — data-first (run now) or data-last (build a Step)
 combine(model, [stepA, stepB(args)]); // data-first: returns AppReturn
@@ -200,7 +202,19 @@ From the Foldkit style guide (adapted):
 
 ## Foldkit version
 
-Currently on `foldkit@0.126.0`. New in this version:
+Currently on `foldkit@0.163.0` with Effect `4.0.0-rc.116` and
+`@foldkit/vite-plugin` `0.24.x`.
+
+FoldKit 0.163 migration guidance:
+
+- Prefer the renamed helpers `modifyFields`, `keyBindings`, `mapEvent`, and
+  `filterMapEvent` when migrating code that used their older names.
+- Existing `animationFrame.toMessage` and `lift.toParentMessage` remain valid;
+  do not rename them without a repository-specific reason.
+- `foldkit/update` uses record-shaped `Step` and `Return` values. Omit
+  `commands` when no commands are produced.
+
+The current release includes:
 
 - `foldkit/update` — `combine`, `refresh`, `Step`, `Return`, `Refreshable` types
 - `foldkit/asyncData` — `fromOptionOrIdle`, `revalidateOrLoad`, `settle`, `matchData`

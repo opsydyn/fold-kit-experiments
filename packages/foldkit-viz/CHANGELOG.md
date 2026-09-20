@@ -2,6 +2,13 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.8.0...foldkit-viz-v0.9.0) (2026-09-20)
+
+
+### Features
+
+* **viz:** add stateflow layout primitives ([0513750](https://github.com/opsydyn/fold-kit-experiments/commit/051375015dcd062c5da40ae2567d7da610fc69d8))
+
 ## [0.8.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.7.0...foldkit-viz-v0.8.0) (2026-08-20)
 
 

@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'bun:test';
 import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,6 +21,15 @@ const env = (): NodeJS.ProcessEnv => ({
 
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const fileExists = async (file: string): Promise<boolean> => {
+  try {
+    await access(file);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const findPort = async (): Promise<number> => {
   const server = createServer();
@@ -92,6 +101,11 @@ describe('Astro page rendering smoke', () => {
 
   it('proves SSG, request SSR, metadata handoff, and unchanged app islands', async () => {
     await execFileAsync('bun', ['run', 'build'], { cwd: webDir, env: env(), maxBuffer });
+
+    expect(await fileExists(path.join(webDir, 'dist', 'client', 'index.html'))).toBe(false);
+    expect(
+      await fileExists(path.join(webDir, 'dist', 'client', 'greeting-static', 'index.html')),
+    ).toBe(true);
 
     const staticHtml = await readFile(
       path.join(webDir, 'dist', 'client', 'greeting-static', 'index.html'),

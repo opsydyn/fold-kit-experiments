@@ -11,6 +11,33 @@ import { subscriptions } from './subscription';
 import { update } from './update';
 
 describe('stateflow Port bridge', () => {
+  it('processes an inbound replay event sent during runtime boot', async () => {
+    const received: AppMessage[] = [];
+    const container = document.createElement('div');
+    container.id = 'stateflow-boot-port-test';
+    document.body.appendChild(container);
+    const handle = Runtime.embed(
+      Runtime.makeElement({
+        Model,
+        init: () => ({ model: initModel }),
+        update: (model, message) => (received.push(message), update(model, message)),
+        view: (_model, h) => h.div([], []),
+        subscriptions,
+        ports: { inbound: { replay: ReplayEventPort } },
+        container,
+      }),
+    );
+
+    handle.ports.replay.send(fixture[0]);
+
+    await vi.waitFor(() => {
+      expect(received).toEqual([Message.ReceivedReplayEvent({ event: fixture[0] })]);
+    });
+
+    handle.dispose();
+    container.remove();
+  });
+
   it('replays valid inbound events and rejects malformed values at the boundary', async () => {
     const received: AppMessage[] = [];
     const telemetry: unknown[] = [];

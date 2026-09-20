@@ -22,14 +22,11 @@ const env = (): NodeJS.ProcessEnv => ({
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-const fileExists = async (file: string): Promise<boolean> => {
-  try {
-    await access(file);
-    return true;
-  } catch {
-    return false;
-  }
-};
+const fileExists = (file: string): Promise<boolean> =>
+  access(file).then(
+    () => true,
+    () => false,
+  );
 
 const findPort = async (): Promise<number> => {
   const server = createServer();

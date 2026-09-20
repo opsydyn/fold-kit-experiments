@@ -16,14 +16,15 @@ describe('stateflow Port bridge', () => {
     const container = document.createElement('div');
     container.id = 'stateflow-boot-port-test';
     document.body.appendChild(container);
+    const ports = { inbound: { replay: ReplayEventPort } } as const;
     const handle = Runtime.embed(
-      Runtime.makeElement({
+      Runtime.makeElement<AppModel, AppMessage, never, never, typeof ports>({
         Model,
         init: () => ({ model: initModel }),
         update: (model, message) => (received.push(message), update(model, message)),
         view: (_model, h) => h.div([], []),
         subscriptions,
-        ports: { inbound: { replay: ReplayEventPort } },
+        ports,
         container,
       }),
     );

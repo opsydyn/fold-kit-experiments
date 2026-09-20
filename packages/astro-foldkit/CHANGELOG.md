@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.6.0...astro-foldkit-v0.7.0) (2026-09-20)
+
+
+### Features
+
+* **web:** add stateflow observatory ([b50446e](https://github.com/opsydyn/fold-kit-experiments/commit/b50446e11f2fad81d1b5799974dd1ab10b705f1f))
+
+
+### Bug Fixes
+
+* align Vite plugin with Effect rc.116 ([33682f8](https://github.com/opsydyn/fold-kit-experiments/commit/33682f8fda999ee82d963d5d6687aee56f08c413))
+* satisfy Astro smoke lint contract ([f67f71e](https://github.com/opsydyn/fold-kit-experiments/commit/f67f71e4f7b2ce480ccce841c1dcd4ef3c81cdf7))
+* **web:** complete stateflow SSR and replay interactions ([d71ad2a](https://github.com/opsydyn/fold-kit-experiments/commit/d71ad2aeaf5ad0f1a8ff4e86c77ba99d5da3368f))
+
 ## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.5.0...astro-foldkit-v0.6.0) (2026-08-20)
 
 

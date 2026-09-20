@@ -21,6 +21,9 @@ type Message = {
   readonly _tag: 'NoOp';
 };
 
+type PageMetadata = Pick<Document, 'canonical' | 'ogUrl'>;
+type MetadataFactory = (model: Model) => PageMetadata;
+
 const Flags = Schema.Struct({
   locale: Schema.String,
   pathname: Schema.String,
@@ -31,7 +34,12 @@ const textDirectionByLocale: Readonly<Record<string, 'Rtl' | 'Auto'>> = {
   ar: 'Rtl',
 };
 
-const pageConfig = {
+const makePageConfig = (
+  metadata: MetadataFactory = (model) => ({
+    canonical: '',
+    ogUrl: `https://example.com${model.pathname}`,
+  }),
+) => ({
   Flags,
   Model: {},
   init: (flags: Flags) => ({ model: flags, commands: [{ _tag: 'IgnoredCommand' }] }),
@@ -40,15 +48,14 @@ const pageConfig = {
     title: `Server page ${model.locale}`,
     lang: model.locale,
     dir: textDirectionByLocale[model.locale] ?? 'Auto',
-    canonical: '',
-    ogUrl: `https://example.com${model.pathname}`,
+    ...metadata(model),
     body: h.section([], [`${model.locale}:${model.pathname}:${model.routeLocale ?? 'missing'}`]),
   }),
-} satisfies PageConfig<Flags, Model, Message>;
+}) satisfies PageConfig<Flags, Model, Message>;
 
-const makePage = () =>
+const makePage = (metadata?: MetadataFactory) =>
   definePage<{ readonly locale: string; readonly noMeta?: boolean | '' }, Flags>(
-    () => Promise.resolve(pageConfig),
+    () => Promise.resolve(makePageConfig(metadata)),
     {
       flags: ({ request, url, params, props }) => ({
         locale: props.locale,
@@ -97,6 +104,18 @@ describe('resolvePageDocument', () => {
 
     expect('buildId' in resolved).toBe(false);
     expect(resolved.title).toBe('Server page ar');
+  });
+
+  it('preserves canonical semantics when the page omits ogUrl', async () => {
+    process.env.FOLDKIT_BUILD_ID = 'resolver-build';
+
+    const resolved = await resolvePageDocument(
+      makePage(() => ({ canonical: 'https://example.com/ar/dashboard' })),
+      context,
+    );
+
+    expect(resolved.canonical).toBe('https://example.com/ar/dashboard');
+    expect(resolved.ogUrl).toBe('https://example.com/ar/dashboard');
   });
 
   it('preserves absent optional metadata fields instead of filling them in', async () => {

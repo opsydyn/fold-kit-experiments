@@ -192,6 +192,14 @@ The layout owns the outer `<html>` structure and applies `title`, `lang`,
 HTML contains one stamped FoldKit root and the browser hydrates that exact root
 with the serialized Flags payload.
 
+### Canonical metadata
+
+`definePage` does not infer a canonical URL from `Astro.url`, route parameters,
+or the browser location. The page view must return `Document.canonical` when the
+application has a canonical identity. Query parameters and alternate
+representations remain application-owned. When FoldKit supplies the 0.163
+canonical-to-`ogUrl` fallback, the resolver passes it through unchanged.
+
 ### SSG
 
 The same page owner can be prerendered when its props and Flags are universal:

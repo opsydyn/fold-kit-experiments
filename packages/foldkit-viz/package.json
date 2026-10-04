@@ -310,11 +310,15 @@
     "effect": ">=4.0.0 <5.0.0",
     "foldkit": ">=0.165.0 <0.166.0"
   },
+  "peerDependenciesMeta": {
+    "effect": {
+      "optional": true
+    },
+    "foldkit": {
+      "optional": true
+    }
+  },
   "engines": {
     "node": ">=22.0.0"
-  },
-  "peerDependenciesOptional": {
-    "effect": true,
-    "foldkit": true
   }
 }

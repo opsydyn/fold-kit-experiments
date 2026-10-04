@@ -10,7 +10,7 @@
     "dev": "cd apps/web && bun run dev",
     "dev:promo": "bun run --filter @opsydyn/promo dev",
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build",
-    "test": "bun run --filter '*' test",
+    "test": "bun run --sequential --filter '*' test",
     "typecheck": "bun run --sequential --filter '*' typecheck",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "storybook": "bun run --filter @opsydyn/web storybook",

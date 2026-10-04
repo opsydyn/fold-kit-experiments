@@ -125,7 +125,10 @@ export default defineConfig({
     },
     {
       // Temporary exported modules are executed and cleaned up at the test I/O boundary.
-      files: ['apps/promo/test/{live-line,line-project,example-template}.test.ts'],
+      files: [
+        'apps/promo/test/{live-line,line-project,example-template,standalone-chart-project}.test.ts',
+        'packages/foldkit-viz/test/package-import-smoke.test.ts',
+      ],
       rules: { 'linteffect/no-try-catch': 'off' },
     },
     {

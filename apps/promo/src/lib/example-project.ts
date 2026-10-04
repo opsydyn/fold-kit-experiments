@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export type SourceFile = Readonly<{ name: string; content: string }>;
@@ -14,15 +14,33 @@ export async function buildExampleTemplate(
   const files: Record<string, string> = Object.fromEntries(
     sources.map(({ name, content }) => ['src/' + name, content]),
   );
-  const modules = {
-    line: ['math/scale', 'shape/line', 'shape/path'],
-    histogram: ['math/scale', 'math/bin'],
-    scatter: ['math/scale'],
-  }[example];
-  for (const module of modules) {
-    for (const extension of ['.mjs', '.d.mts']) {
-      const path = module + extension;
-      files['vendor/foldkit-viz/dist/' + path] = await readFile(join(libraryRoot, path), 'utf8');
+  const modules = [
+    'chart/cartesian',
+    'chart/theme',
+    'foldkit/cartesian',
+    ...{
+      line: ['math/scale', 'shape/line', 'shape/path'],
+      histogram: ['math/scale', 'math/bin'],
+      scatter: ['math/scale'],
+    }[example],
+  ];
+  const pending = modules.flatMap((module) => [module + '.mjs', module + '.d.mts']);
+  const included = new Set<string>();
+  while (pending.length > 0) {
+    const modulePath = pending.pop();
+    if (modulePath === undefined || included.has(modulePath)) continue;
+    included.add(modulePath);
+    const content = await readFile(join(libraryRoot, modulePath), 'utf8');
+    files['vendor/foldkit-viz/dist/' + modulePath] = content;
+    // tsdown emits relative ESM edges. Declaration .mjs specifiers resolve to adjacent .d.mts.
+    const imports = content.matchAll(/(?:from\s*|import\s*\(\s*|import\s*)['"](\.[^'"]+)['"]/g);
+    for (const match of imports) {
+      const specifier = match[1];
+      if (specifier === undefined) continue;
+      const resolved = posix.normalize(posix.join(posix.dirname(modulePath), specifier));
+      if (resolved.startsWith('../'))
+        throw new RangeError('Compiled Viz import escapes the distribution');
+      pending.push(modulePath.endsWith('.d.mts') ? resolved.replace(/\.mjs$/, '.d.mts') : resolved);
     }
   }
   files['vendor/foldkit-viz/package.json'] = JSON.stringify(
@@ -46,6 +64,10 @@ export async function buildExampleTemplate(
       name: 'foldkit-viz-live-' + example,
       private: true,
       type: 'module',
+      imports: {
+        '#example/measurement': './src/shared/measurement.ts',
+        '#example/frame': './src/shared/frame.ts',
+      },
       scripts: {
         dev: 'vite --host 0.0.0.0',
         start: 'vite --host 0.0.0.0',
@@ -105,6 +127,6 @@ export async function buildExampleTemplate(
   files['README.md'] =
     '# Foldkit Viz live ' +
     example +
-    '\n\nRequires Node.js 22.12 or newer (or Bun).\n\n```sh\nnpm install\nnpm run dev\n```\n\nEdit `src/settings.ts` for initial values or `src/chart.ts` for geometry. `src/view.ts` renders the chart and controls. Settings are captured from the promo page at export time.\n\nThe same maintained sources power the promo island. A compiled subset of Foldkit Viz is included under `vendor/` so this project does not depend on an unpublished package version.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
+    '\n\nRequires Node.js 22.12 or newer (or Bun).\n\n```sh\nnpm install\nnpm run dev\n```\n\nEdit `src/settings.ts` for initial values or `src/chart.ts` for geometry. `src/view.ts` renders the chart and controls. Settings are captured from the promo page at export time. Change data/accessors in `src/chart.ts` and `src/data.ts` (where present), brand paints and keyed styles in `src/chart.ts`, surface tokens in `src/shared/frame.ts`, ordered layers and custom tooltips/annotations in `src/view.ts`. The Model owns measured width, controls and inspection; the scoped observer in `src/shared/measurement.ts` reports facts through Messages. Use the data table for complete raw values; numeric axes use concise caller-supplied formatting. Palette assignment is stable over an explicit domain and cycles deterministically.\n\nThe same maintained sources power the promo island. The geometry, semantic themes and optional FoldKit layers plus their compiled dependencies are included under `vendor/` so this project does not depend on an unpublished package version.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
   return files;
 }

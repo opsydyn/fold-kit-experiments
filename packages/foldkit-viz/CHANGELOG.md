@@ -2,6 +2,14 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## Unreleased
+
+- Add accessor-based Cartesian line, scatter and histogram geometry, semantic light/dark themes and stable keyed styles.
+- Add optional parent-builder FoldKit layers, annotation, replacement tooltip, symbol legend and raw data table.
+- Preserve semantic child events and Commands in linked charts; migrate promo examples to responsive composition.
+- Qualify packed pure/optional consumers and standalone generated projects outside the monorepo.
+- Correct optional peer metadata and equal-domain linear midpoint projection. No release version bump.
+
 ## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.8.0...foldkit-viz-v0.9.0) (2026-09-20)
 
 ### Features

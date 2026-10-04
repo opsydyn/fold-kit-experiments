@@ -4,7 +4,8 @@ D3-quality visualisation primitives for FoldKit — **no D3 dependency**.
 
 A pure-TypeScript data-transformation and geometry layer designed for use with
 [FoldKit](https://github.com/opsydyn/foldkit)'s TEA (The Elm Architecture) rendering model.
-All functions are pure, immutable, and framework-agnostic.
+The root and mathematical modules are pure and framework-agnostic. The optional
+`foldkit/cartesian` adapter renders through your parent's FoldKit `HtmlBuilder`.
 
 The runnable [`/request-diagnostics`](../../apps/web/src/apps/request-diagnostics/) example shows these primitives inside a FoldKit state machine. The machine belongs to the consuming application; this package remains focused on chart geometry and chart-local state.
 
@@ -26,12 +27,11 @@ and rendering helpers. Chart views consume the render-scoped `HtmlBuilder`
 supplied by their parent; the package does not own application effects or
 remote-data policy.
 
-This package remains framework-free and does not support server rendering. It
-does not import Astro, `Request`, `foldkit/experimental/server`, or
-`Runtime.hydrate`, and it does not own server Commands, request-derived Flags,
-or remote-data loading. Use `@opsydyn/astro-foldkit`'s opt-in `definePage` path
-for the Astro server handoff, then pass the resulting model data to these pure
-chart primitives.
+The pure entry points do not require FoldKit or Effect. Install both peers to
+use `foldkit/cartesian`. The adapter accepts a caller-supplied builder, including
+one supplied by server rendering; it owns no runtime or server entry point.
+Astro server handoff belongs to `@opsydyn/astro-foldkit`'s opt-in `definePage`
+path. Application Commands, request flags and data loading remain app-owned.
 
 ---
 
@@ -39,7 +39,7 @@ chart primitives.
 
 | Import path                                  | Contents                                                                                                                                                              |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@opsydyn/foldkit-viz`                       | Root barrel — all exports                                                                                                                                             |
+| `@opsydyn/foldkit-viz`                       | Root barrel — pure exports                                                                                                                                            |
 | `@opsydyn/foldkit-viz/math/scale`            | `linear`, `log`, `band`, `point`, `sqrt`, `ordinal`, `scaleSequential`, `scaleQuantile`, `scaleQuantize`, `scalePow`, `scaleSymlog`, `linearInvertible`, `niceLinear` |
 | `@opsydyn/foldkit-viz/math/array`            | `extent`, `sum`, `mean`, `median`, `variance`, `deviation`, `cumsum`, `group`, `rollup`, `bisect`, `pairs`, `zip`, `range`                                            |
 | `@opsydyn/foldkit-viz/math/color`            | `interpolateRgb`, `interpolateLab`, `interpolateHsl`, `interpolateRgbBasis`, `colorScale`, `divergingScale`                                                           |
@@ -67,11 +67,147 @@ chart primitives.
 
 ---
 
+## Composable Cartesian charts (unreleased workspace API)
+
+These new modules are implemented in this checkout; no release version has been
+published for this slice. Use workspace imports or the promo's standalone ZIP.
+
+- `chart/cartesian`: `lineGeometry`, `scatterGeometry`, `histogramGeometry` and layout types.
+- `chart/theme`: `lightTheme`, `darkTheme`, `resolveSeriesStyle`, `createSeriesStyles`, `themeProperties`.
+- `foldkit/cartesian`: optional frame, grid, axes, line/point/bar layers, annotation, tooltip, legend and data table.
+
+Your data shape is arbitrary. Accessors preserve original records for tooltips
+and tables; datum keys must be globally unique. Series IDs identify stable groups.
+
+```ts
+import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
+import {
+  lightTheme,
+  darkTheme,
+  createSeriesStyles,
+  resolveSeriesStyle,
+} from '@opsydyn/foldkit-viz/chart/theme';
+import {
+  chartFrame,
+  grid,
+  axis,
+  lineSeries,
+  annotation,
+  tooltip,
+} from '@opsydyn/foldkit-viz/foldkit/cartesian';
+
+const data = [
+  { id: 'jan', month: 1, revenue: 45, team: 'north' },
+  { id: 'feb', month: 2, revenue: 80, team: 'north' },
+];
+const geometry = lineGeometry(
+  data,
+  {
+    x: (d) => d.month,
+    y: (d) => d.revenue,
+    datumKey: (d) => d.id,
+    seriesKey: (d) => d.team,
+  },
+  {
+    frame: { width: 560, height: 290, margins: { top: 30, right: 24, bottom: 60, left: 48 } },
+    includeZero: { y: true },
+    curve: 'linear',
+  },
+);
+const theme = lightTheme; // Choose darkTheme using app-owned state or CSS tokens.
+const styles = createSeriesStyles(['north', 'south'], ['var(--brand)', 'oklch(65% .15 150)']);
+const style = resolveSeriesStyle(theme, {}, styles.get('north') ?? {}, {});
+const target = resolveSeriesStyle(theme, {}, { stroke: 'currentColor', dashPattern: '4 4' }, {});
+
+// Inside the parent's render function, using its supplied h:
+const chart = chartFrame(
+  h,
+  {
+    layout: geometry.layout,
+    title: 'Revenue',
+    description: 'Monthly revenue',
+    theme,
+  },
+  [
+    grid(h, { layout: geometry.layout, xTicks: geometry.xTicks, yTicks: geometry.yTicks, theme }),
+    ...geometry.series.map((series) => lineSeries(h, { path: series.path, style })),
+    annotation(h, {
+      layout: geometry.layout,
+      axis: 'y',
+      value: 60,
+      label: 'Target',
+      style: target,
+    }),
+    axis(h, {
+      layout: geometry.layout,
+      orientation: 'bottom',
+      ticks: geometry.xTicks,
+      label: 'Month',
+      format: String,
+      theme,
+    }),
+  ],
+);
+
+// A replacement tooltip receives the original record and resolved paint.
+const point = geometry.points[0];
+const detail =
+  point &&
+  tooltip(h, {
+    point,
+    style,
+    theme,
+    render: ({ datum, x, y, style }, h) =>
+      h.text(
+        [h.X(String(x)), h.Y(String(y - 16)), h.Fill(style.fill)],
+        [`${datum.team}: ${datum.revenue}`],
+      ),
+  });
+```
+
+Layer order is ordinary child order: render the grid first, then marks, overlays
+and axes as appropriate. Add `detail` to that child array when inspecting a point.
+`legend` accepts keyed entries and `dataTable` takes your raw data, columns and
+caption. The promo scatter demonstrates a clamped tooltip, matching symbol
+legend and one chart focus stop with arrow/Home/End/Escape inspection.
+
+Style precedence is defaults → theme → chart override → series override → datum
+override. Construct the series map from a stable explicit domain before filtering
+or reordering; colours then keep their identities. Palettes cycle on overflow,
+so add symbols or dash patterns when repeated colours need distinction. Paints
+are opaque CSS strings: CSS variables, `currentColor`, `rgb()` and `oklch()` pass
+through unchanged. Set numeric opacity separately; never append hex alpha to an
+arbitrary paint. Numerical colour interpolation in existing `math/color` remains
+hex-only. Its `interpolateRgbBasis` parity gap remains outside this slice.
+
+Frames require finite positive dimensions and non-negative margins with a
+positive plot area. Explicit domains require finite endpoints; reversed domains
+are preserved. Equal endpoints project to the range midpoint. Automatic domains
+use finite defined observations, expand constant extents by `max(abs(value)*.1, 1)`,
+and fall back to `[0,1]` for empty input. Zero inclusion is opt-in for line/scatter;
+histogram counts start at zero. Non-finite samples are excluded; line samples
+marked undefined retain gaps. Empty input produces no marks and still has usable
+axes. Histogram thresholds must be finite and strictly increasing; explicit
+thresholds outside the domain are trimmed by the existing bin primitive.
+`binCount` is a positive integer and provides equal-width intervals on a
+non-degenerate domain. A degenerate explicit domain collapses to one zero-width
+interval. Invalid frames, domains, duplicate datum keys, non-finite projected
+coordinates, tick counts below two, negative sizes or opacity outside `[0,1]`
+throw `RangeError`. See [D3 source provenance](D3-PROVENANCE.md) for the precise
+primitive contracts.
+
 ## Parent-owned interaction state
 
 Viz owns pure interaction values. Individual charts own their local gesture
 mechanics, while the consuming parent owns shared selection state and
-child-message coordination.
+child-message coordination. Stateful chart children use typed `OutMessage`
+unions such as `InspectedPoint` or `InspectedRange`. Fold them with `foldChild`:
+map the child Message, consume its semantic event in the parent, and retain the
+returned Commands. Initialise sibling children with `foldChildInits`.
+The [linked-charts example](../../apps/web/src/apps/linked-charts/fold.ts) composes
+scatter and histogram events without interpreting private child message tags or
+discarding child Commands. Resize is a Mount stream fact stored as chart width
+in the promo Model; its observer is scoped to island lifetime.
 
 ```ts
 const selection = intervalSelection('x', [100, 300]);
@@ -262,7 +398,7 @@ bun run docs   # generates docs/ using TypeDoc
 ## Testing
 
 ```bash
-bun test       # 125 tests across 11 files
+bun test       # run this package's tests from packages/foldkit-viz
 ```
 
 ---

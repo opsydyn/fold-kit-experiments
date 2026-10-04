@@ -258,10 +258,11 @@ export function createClientRenderer(
       element.addEventListener(
         'astro:unmount',
         () => {
-          if (disposed) return;
-          disposed = true;
-          detachNavigation();
-          handle.dispose();
+          if (!disposed) {
+            disposed = true;
+            detachNavigation();
+            handle.dispose();
+          }
         },
         { once: true },
       );

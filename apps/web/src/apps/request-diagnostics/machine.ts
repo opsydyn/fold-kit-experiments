@@ -1,4 +1,4 @@
-import { Option } from 'effect';
+import { Match, Option } from 'effect';
 import { Machine } from 'foldkit/experimental';
 
 import { FetchMetrics } from './command';
@@ -18,6 +18,41 @@ const filterPoints = (
 ): ReadonlyArray<import('./model').Point> =>
   points.filter(({ x }) => x >= domain[0] && x <= domain[1]);
 
+const wideDomain = (domain: readonly [number, number]): Option.Option<readonly [number, number]> =>
+  Match.value(domain[1] - domain[0] > 2).pipe(
+    Match.when(true, () => Option.some(domain)),
+    Match.orElse(() => Option.none()),
+  );
+
+const isExitedNavigation = (message: Extract<Message, { readonly _tag: 'Navigated' }>): boolean =>
+  Match.value(message.phase).pipe(
+    Match.when('exited', () => true),
+    Match.orElse(() => false),
+  );
+
+const isReloadCancellation = (
+  state: Extract<ExplorerState, { readonly _tag: 'Cancelling' }>,
+): boolean =>
+  Match.value(state.reason).pipe(
+    Match.when('Reload', () => true),
+    Match.orElse(() => false),
+  );
+
+const reloadTransition = () => ({
+  model: cancelling('Reload'),
+  commands: interruptMetrics(),
+});
+
+const routeExitTransition = () => ({
+  model: cancelling('RouteExit'),
+  commands: interruptMetrics(),
+});
+
+const restartAfterReload = () => ({
+  model: ExplorerState.Loading(),
+  commands: [FetchMetrics()],
+});
+
 export const diagnosticsMachine = Machine.define({
   state: ExplorerState,
   message: Message,
@@ -26,18 +61,12 @@ export const diagnosticsMachine = Machine.define({
   states: {
     Loading: {
       on: {
-        ClickedReload: Machine.to('Cancelling', () => ({
-          model: cancelling('Reload'),
-          commands: interruptMetrics(),
-        })),
+        ClickedReload: Machine.to('Cancelling', reloadTransition),
         Navigated: [
           Machine.when(
-            (_state, message) => message.phase === 'exited',
+            (_state, message) => isExitedNavigation(message),
             'Cancelling',
-            () => ({
-              model: cancelling('RouteExit'),
-              commands: interruptMetrics(),
-            }),
+            routeExitTransition,
           ),
         ],
         LoadedMetrics: Machine.to('Ready', ({ message }) => ({
@@ -50,19 +79,13 @@ export const diagnosticsMachine = Machine.define({
     },
     Ready: {
       on: {
-        ClickedReload: Machine.to('Cancelling', () => ({
-          model: cancelling('Reload'),
-          commands: interruptMetrics(),
-        })),
+        ClickedReload: Machine.to('Cancelling', reloadTransition),
         StartedSelection: Machine.to('Selecting', ({ state }) => ({
           model: ExplorerState.Selecting({ points: state.points, allPoints: state.points }),
         })),
         ChangedSelection: [
           Machine.when(
-            (_state, message) =>
-              message.domain[1] - message.domain[0] > 2
-                ? Option.some(message.domain)
-                : Option.none(),
+            (_state, message) => wideDomain(message.domain),
             'Filtered',
             ({ state, guardValue }) => ({
               model: ExplorerState.Filtered({
@@ -79,10 +102,7 @@ export const diagnosticsMachine = Machine.define({
       on: {
         ChangedSelection: [
           Machine.when(
-            (_state, message) =>
-              message.domain[1] - message.domain[0] > 2
-                ? Option.some(message.domain)
-                : Option.none(),
+            (_state, message) => wideDomain(message.domain),
             'Filtered',
             ({ state, guardValue }) => ({
               model: ExplorerState.Filtered({
@@ -103,31 +123,18 @@ export const diagnosticsMachine = Machine.define({
         ClearedSelection: Machine.to('Ready', ({ state }) => ({
           model: ExplorerState.Ready({ points: state.allPoints }),
         })),
-        ClickedReload: Machine.to('Cancelling', () => ({
-          model: cancelling('Reload'),
-          commands: interruptMetrics(),
-        })),
+        ClickedReload: Machine.to('Cancelling', reloadTransition),
       },
     },
     Failed: {
       on: {
-        ClickedReload: Machine.to('Cancelling', () => ({
-          model: cancelling('Reload'),
-          commands: interruptMetrics(),
-        })),
+        ClickedReload: Machine.to('Cancelling', reloadTransition),
       },
     },
     Cancelling: {
       on: {
         CompletedCancelFetchMetrics: [
-          Machine.when(
-            (state) => state.reason === 'Reload',
-            'Loading',
-            () => ({
-              model: ExplorerState.Loading(),
-              commands: [FetchMetrics()],
-            }),
-          ),
+          Machine.when((state) => isReloadCancellation(state), 'Loading', restartAfterReload),
           Machine.otherwise(Machine.to('Idle', () => ({ model: ExplorerState.Idle() }))),
         ],
       },

@@ -129,6 +129,7 @@ export function update(model: Model, message: Message): Return {
     }),
     ReceivedReplayEvent: ({ event: rawEvent }) => {
       // SAFETY: ReplayEventPort decodes this value before it reaches the app subscription.
+      // oxlint-disable-next-line linteffect/no-model-overlay-cast
       const event = rawEvent as ReceivedReplayEvent['event'];
       return runReplayEvent(model, event);
     },

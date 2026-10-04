@@ -270,9 +270,10 @@ function toGeoFeatureGeometry(geometry: TopoGeometry): GeoGeometry | null {
 }
 
 function buildFeatures(): GeoFeatureCollection {
-  const worldAtlasTopology: unknown = countries110m;
-  // SAFETY: world-atlas ships this versioned JSON asset as a TopoJSON topology.
-  const topology = worldAtlasTopology as TopologyInput;
+  // SAFETY: world-atlas ships this versioned JSON asset as a TopoJSON topology;
+  // its generated declaration widens the literal fields beyond topojson-client's type.
+  // oxlint-disable-next-line anti-slop/no-chained-type-assertions, linteffect/no-model-overlay-cast
+  const topology = countries110m as unknown as TopologyInput;
   const fc = Match.value(topology.objects.countries).pipe(
     Match.when({ type: 'GeometryCollection' }, (countries) =>
       topojson.feature(topology, countries),

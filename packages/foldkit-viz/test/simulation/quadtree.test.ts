@@ -25,20 +25,25 @@ describe('quadtree — structure', () => {
   it('single point becomes the root leaf', () => {
     const qt = createQuadtree();
     qt.addAll([node(1, 1)]);
-    expect(isLeaf(qt.root!)).toBe(true);
+    const root = qt.root;
+    if (root === undefined) throw new Error('Expected a root after inserting one point.');
+    expect(isLeaf(root)).toBe(true);
   });
 
   it('two points in different quadrants produce an internal root with two leaves', () => {
     const qt = createQuadtree();
     // Both within [0,4]: midpoint (2,2). Point A in nw, B in se.
     qt.addAll([node(1, 1, 0), node(3, 3, 1)]);
-    expect(isInternal(qt.root!)).toBe(true);
+    const root = qt.root;
+    if (root === undefined) throw new Error('Expected a root after inserting two points.');
+    expect(isInternal(root)).toBe(true);
   });
 
   it('coincident points form a linked-list leaf, not an internal node', () => {
     const qt = createQuadtree();
     qt.addAll([node(2, 2, 0), node(2, 2, 1)]);
-    const root = qt.root!;
+    const root = qt.root;
+    if (root === undefined) throw new Error('Expected a root for coincident points.');
     expect(isLeaf(root)).toBe(true);
     // The two nodes are chained
     if (isLeaf(root)) {
@@ -52,7 +57,8 @@ describe('quadtree — structure', () => {
     // Both land in nw of [0,4] — (0.5,0.5) and (1,1) are both x<2, y<2
     qt.addAll([node(0.5, 0.5, 0), node(1.5, 1.5, 1)]);
     // Root must be internal; nw child is either internal or has two leaves separated
-    const root = qt.root!;
+    const root = qt.root;
+    if (root === undefined) throw new Error('Expected a root after recursive subdivision.');
     expect(isInternal(root)).toBe(true);
   });
 });

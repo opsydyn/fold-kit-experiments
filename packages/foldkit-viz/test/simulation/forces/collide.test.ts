@@ -66,8 +66,10 @@ describe('collideForce', () => {
           // Check no two nodes overlap
           for (let i = 0; i < nodes.length; i++) {
             for (let j = i + 1; j < nodes.length; j++) {
-              const ni = nodes[i]!;
-              const nj = nodes[j]!;
+              const ni = nodes[i];
+              const nj = nodes[j];
+              if (ni === undefined || nj === undefined)
+                throw new Error('Test fixture invariant violated: missing simulation node.');
               const dx = ni.x - nj.x;
               const dy = ni.y - nj.y;
               const dist = Math.sqrt(dx * dx + dy * dy);

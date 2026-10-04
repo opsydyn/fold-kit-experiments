@@ -8,12 +8,12 @@ export type Model = Omit<typeof Model.Type, 'chart'> & {
   readonly chart: LogScatter.Model;
 };
 
-const CATEGORIES = [
+const CATEGORIES: ReadonlyArray<Readonly<{ name: string; color: string }>> = [
   { name: 'Framework', color: '#6366f1' },
   { name: 'Build tool', color: '#f59e0b' },
   { name: 'Utility', color: '#10b981' },
   { name: 'Testing', color: '#ef4444' },
-] as const;
+];
 
 // npm weekly downloads (approx) vs GitHub stars (approx)
 const PACKAGES: ReadonlyArray<LogScatter.Point> = [

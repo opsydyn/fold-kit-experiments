@@ -20,6 +20,11 @@ export type InternalQuad = Array<QuadNode | undefined> & {
 
 export type QuadNode = InternalQuad | LeafQuad;
 
+const requireValue = <Value>(value: Value | undefined, label: string): Value => {
+  if (value === undefined) throw new Error(`Quadtree invariant violated: missing ${label}.`);
+  return value;
+};
+
 export function isInternal(n: QuadNode): n is InternalQuad {
   return Array.isArray(n);
 }
@@ -203,7 +208,7 @@ export function createQuadtree(): Quadtree {
     const ys: number[] = [];
 
     for (let i = 0; i < nodes.length; i++) {
-      const n = nodes[i]!;
+      const n = requireValue(nodes[i], `node at index ${i}`);
       const x = n.x,
         y = n.y;
       if (Number.isNaN(x) || Number.isNaN(y)) {
@@ -225,9 +230,10 @@ export function createQuadtree(): Quadtree {
     cover(x1max, y1max);
 
     for (let i = 0; i < nodes.length; i++) {
-      const xi = xs[i]!;
-      const yi = ys[i]!;
-      if (!Number.isNaN(xi) && !Number.isNaN(yi)) add(nodes[i]!, xi, yi);
+      const xi = requireValue(xs[i], `x coordinate at index ${i}`);
+      const yi = requireValue(ys[i], `y coordinate at index ${i}`);
+      const node = requireValue(nodes[i], `node at index ${i}`);
+      if (!Number.isNaN(xi) && !Number.isNaN(yi)) add(node, xi, yi);
     }
   }
 
@@ -249,17 +255,21 @@ export function createQuadtree(): Quadtree {
     const stack: Frame[] = [{ node: _root, x0: _x0, y0: _y0, x1: _x1, y1: _y1 }];
 
     while (stack.length > 0) {
-      const frame = stack.pop()!;
+      const frame = requireValue(stack.pop(), 'visit frame');
       const { node, x0, y0, x1, y1 } = frame;
       const prune = cb(node, x0, y0, x1, y1);
       if (!prune && isInternal(node)) {
         const xm = (x0 + x1) / 2;
         const ym = (y0 + y1) / 2;
         // Push children (D3 visit pushes 3,2,1,0 so they pop 0,1,2,3)
-        if (node[3]) stack.push({ node: node[3]!, x0: xm, y0: ym, x1, y1 });
-        if (node[2]) stack.push({ node: node[2]!, x0, y0: ym, x1: xm, y1 });
-        if (node[1]) stack.push({ node: node[1]!, x0: xm, y0, x1, y1: ym });
-        if (node[0]) stack.push({ node: node[0]!, x0, y0, x1: xm, y1: ym });
+        const child3 = node[3];
+        const child2 = node[2];
+        const child1 = node[1];
+        const child0 = node[0];
+        if (child3) stack.push({ node: child3, x0: xm, y0: ym, x1, y1 });
+        if (child2) stack.push({ node: child2, x0, y0: ym, x1: xm, y1 });
+        if (child1) stack.push({ node: child1, x0: xm, y0, x1, y1: ym });
+        if (child0) stack.push({ node: child0, x0, y0, x1: xm, y1: ym });
       }
     }
   }
@@ -285,21 +295,25 @@ export function createQuadtree(): Quadtree {
     quads.push({ node: _root, x0: _x0, y0: _y0, x1: _x1, y1: _y1 });
 
     while (quads.length > 0) {
-      const frame = quads.pop()!;
+      const frame = requireValue(quads.pop(), 'post-order frame');
       next.push(frame);
       if (isInternal(frame.node)) {
         const { node, x0, y0, x1, y1 } = frame;
         const xm = (x0 + x1) / 2;
         const ym = (y0 + y1) / 2;
-        if (node[0]) quads.push({ node: node[0]!, x0, y0, x1: xm, y1: ym });
-        if (node[1]) quads.push({ node: node[1]!, x0: xm, y0, x1, y1: ym });
-        if (node[2]) quads.push({ node: node[2]!, x0, y0: ym, x1: xm, y1 });
-        if (node[3]) quads.push({ node: node[3]!, x0: xm, y0: ym, x1, y1 });
+        const child0 = node[0];
+        const child1 = node[1];
+        const child2 = node[2];
+        const child3 = node[3];
+        if (child0) quads.push({ node: child0, x0, y0, x1: xm, y1: ym });
+        if (child1) quads.push({ node: child1, x0: xm, y0, x1, y1: ym });
+        if (child2) quads.push({ node: child2, x0, y0: ym, x1: xm, y1 });
+        if (child3) quads.push({ node: child3, x0: xm, y0: ym, x1, y1 });
       }
     }
 
     while (next.length > 0) {
-      const frame = next.pop()!;
+      const frame = requireValue(next.pop(), 'completed post-order frame');
       cb(frame.node, frame.x0, frame.y0, frame.x1, frame.y1);
     }
   }

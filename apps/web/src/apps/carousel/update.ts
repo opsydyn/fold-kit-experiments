@@ -47,11 +47,13 @@ export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     ReceivedCarouselMessage: ({ message: carouselMessage }) => {
       // SAFETY: The app model and message contracts establish this value before the assertion.
+      // oxlint-disable-next-line linteffect/no-model-overlay-cast
       return foldCarousel(model, carouselMessage as Carousel.Message);
     },
 
     SettledSlides: ({ result: rawResult }) => {
       // SAFETY: The app model and message contracts establish this value before the assertion.
+      // oxlint-disable-next-line linteffect/no-model-overlay-cast
       const result = rawResult as Result.Result<ReadonlyArray<Slide>, string>;
       return combine(model, [
         (m) => ({ model: { ...m, slides: settle(m.slides, result) } }),

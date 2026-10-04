@@ -32,7 +32,8 @@ export const ParticleId = particleIdIso.set;
 
 // --- Schema field types ---
 
-const finite = (u: unknown): u is number => typeof u === 'number' && Number.isFinite(u);
+const isNumber = Schema.is(Schema.Number);
+const finite = (u: unknown): u is number => isNumber(u) && Number.isFinite(u);
 
 export const CountSchema = Schema.declare(
   (u: unknown): u is Count => finite(u) && Number.isInteger(u),

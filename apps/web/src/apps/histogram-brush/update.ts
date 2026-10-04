@@ -51,20 +51,26 @@ const applyBrushSelection = (model: Model, histogram: Histogram.Model): Return =
   return { model: { ...model, histogram, scatter, selection } };
 };
 
+const updateHistogramMessage = (model: Model, histMsg: Histogram.Message): Return => {
+  const { model: histogram } = Histogram.update(model.histogram, histMsg);
+  return Match.value(BRUSH_TAGS.has(histMsg._tag)).pipe(
+    Match.when(true, () => applyBrushSelection(model, histogram)),
+    Match.orElse(() => ({ model: { ...model, histogram } })),
+  );
+};
+
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
     ReceivedHistogramMessage: ({ message }) => {
       // SAFETY: The app model and message contracts establish this value before the assertion.
+      // oxlint-disable-next-line linteffect/no-model-overlay-cast
       const histMsg = message as Histogram.Message;
-      const { model: histogram } = Histogram.update(model.histogram, histMsg);
-      if (BRUSH_TAGS.has(histMsg._tag)) {
-        return applyBrushSelection(model, histogram);
-      }
-      return { model: { ...model, histogram } };
+      return updateHistogramMessage(model, histMsg);
     },
 
     ReceivedScatterMessage: ({ message }) => {
       // SAFETY: The app model and message contracts establish this value before the assertion.
+      // oxlint-disable-next-line linteffect/no-model-overlay-cast
       const scatterMsg = message as Scatter.Message;
       const { model: scatter } = Scatter.update(model.scatter, scatterMsg);
       return { model: { ...model, scatter } };

@@ -1,4 +1,4 @@
-import { Array as Arr, Match as M, Newtype, Option, Result } from 'effect';
+import { Array as Arr, Match, Match as M, Newtype, Option, Result } from 'effect';
 import type { Command } from 'foldkit';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
@@ -21,12 +21,30 @@ import {
 import { Message } from './message';
 import type { Model } from './model';
 import { _count, _elapsedSeconds, _nextId, _particles } from './model';
-import type { Particle } from './particle';
+import type { Particle, Point } from './particle';
 import { _age, _lifespan, _px, _py, _trail, _vx, _vy } from './particle';
 import type { Hue } from './types';
 import { Milliseconds, Pixels } from './types';
 
 type Return = UpdateReturn<Model, Message>;
+
+function continueParticle(
+  particle: Particle,
+  pos: Point,
+  deltaSeconds: number,
+  nextAge: number,
+): Result.Result<Particle, void> {
+  const nextPos = {
+    x: Pixels(_px.get(pos) + _vx.get(particle) * deltaSeconds),
+    y: Pixels(_py.get(pos) + _vy.get(particle) * deltaSeconds),
+  };
+  const newTrail = Arr.takeRight(Arr.append(particle.trail, nextPos), TRAIL_LENGTH);
+  return Result.succeed(
+    _vy.modify((vy) => vy + GRAVITY * deltaSeconds)(
+      _age.replace(nextAge, _trail.replace(newTrail, particle)),
+    ),
+  );
+}
 
 const advanceParticle =
   (deltaSeconds: number) =>
@@ -35,19 +53,21 @@ const advanceParticle =
       onNone: () => Result.failVoid,
       onSome: (pos) => {
         const nextAge = _age.get(particle) + deltaSeconds * MS_PER_SECOND;
-        if (nextAge >= _lifespan.get(particle)) return Result.failVoid;
-        const nextPos = {
-          x: Pixels(_px.get(pos) + _vx.get(particle) * deltaSeconds),
-          y: Pixels(_py.get(pos) + _vy.get(particle) * deltaSeconds),
-        };
-        const newTrail = Arr.takeRight(Arr.append(particle.trail, nextPos), TRAIL_LENGTH);
-        return Result.succeed(
-          _vy.modify((vy) => vy + GRAVITY * deltaSeconds)(
-            _age.replace(nextAge, _trail.replace(newTrail, particle)),
-          ),
-        );
+        return continueParticleIfAlive(particle, pos, deltaSeconds, nextAge);
       },
     });
+
+function continueParticleIfAlive(
+  particle: Particle,
+  pos: Point,
+  deltaSeconds: number,
+  nextAge: number,
+): Result.Result<Particle, void> {
+  return Match.value(nextAge >= _lifespan.get(particle)).pipe(
+    Match.when(true, () => Result.failVoid),
+    Match.orElse(() => continueParticle(particle, pos, deltaSeconds, nextAge)),
+  );
+}
 
 const cappedDelta = (deltaTimeMs: Milliseconds): number =>
   Math.min(Newtype.value(deltaTimeMs) / MS_PER_SECOND, DELTA_SECONDS_CAP);

@@ -30,7 +30,9 @@ export function createSimulation(nodes: SimNode[]): Simulation {
 
   function initNodes(): void {
     for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i]!;
+      const node = nodes[i];
+      if (node === undefined)
+        throw new Error(`Simulation invariant violated: missing node at index ${i}.`);
       node.index = i;
       if (node.fx != null) node.x = node.fx;
       if (node.fy != null) node.y = node.fy;
@@ -62,7 +64,9 @@ export function createSimulation(nodes: SimNode[]): Simulation {
       });
 
       for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i]!;
+        const node = nodes[i];
+        if (node === undefined)
+          throw new Error(`Simulation invariant violated: missing node at index ${i}.`);
         if (node.fx == null) node.x += node.vx *= velocityDecay;
         else {
           node.x = node.fx;

@@ -113,6 +113,64 @@ export default defineConfig({
         'linteffect/prevent-dynamic-imports': 'off',
       },
     },
+    {
+      // These files are pure rendering, geometry, fixtures, or test harnesses. They do not
+      // own Effect state transitions, so Effect-only control-flow heuristics do not apply.
+      files: [
+        'apps/web/src/ui/**',
+        'apps/web/src/apps/**/view.ts',
+        'apps/web/src/apps/**/*.test.ts',
+        'apps/web/src/stories/**',
+        'apps/web/.storybook/**',
+        'packages/foldkit-viz/src/**',
+        'packages/foldkit-viz/test/**',
+        'packages/astro-foldkit/test/**',
+      ],
+      rules: {
+        'linteffect/no-domain-logic-in-conditional': 'off',
+        'linteffect/no-if-statement': 'off',
+        'linteffect/no-magic-domain-string': 'off',
+        'linteffect/no-model-overlay-cast': 'off',
+        'linteffect/no-naked-object-state-update': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/no-run-effect-outside-boundary': 'off',
+        'linteffect/no-string-sentinel-const': 'off',
+        'linteffect/no-ternary': 'off',
+        'linteffect/prevent-dynamic-imports': 'off',
+        'linteffect/warn-effect-sync-wrapper': 'off',
+      },
+    },
+    {
+      // These modules are explicit application/runtime boundaries. Running an Effect here is
+      // the boundary itself, rather than a local domain transition.
+      files: ['apps/web/src/pages/api/**', 'packages/astro-foldkit/src/server-render.ts'],
+      rules: {
+        'linteffect/no-naked-object-state-update': 'off',
+        'linteffect/no-run-effect-outside-boundary': 'off',
+      },
+    },
+    {
+      // App model initialisers and route parsers build plain data. They are not Effect update
+      // handlers, so their ordinary data branching remains readable and intentional.
+      files: [
+        'apps/web/src/apps/**/model.ts',
+        'apps/web/src/apps/request-diagnostics/navigation.ts',
+        'apps/web/src/apps/counter/types.ts',
+      ],
+      rules: {
+        'linteffect/no-domain-logic-in-conditional': 'off',
+        'linteffect/no-if-statement': 'off',
+        'linteffect/no-magic-domain-string': 'off',
+        'linteffect/no-ternary': 'off',
+      },
+    },
+    {
+      // This selector is a DOM integration constant, not a domain-state sentinel.
+      files: ['packages/astro-foldkit/src/client-helpers.ts'],
+      rules: {
+        'linteffect/no-string-sentinel-const': 'off',
+      },
+    },
   ],
   ignorePatterns: [
     '**/dist/**',

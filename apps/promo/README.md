@@ -72,3 +72,9 @@ the chosen dataset and bin count, while `data.ts` contains both sample arrays.
 The static `/downloads/histogram-template.json` uses shared project scaffolding
 and includes the compiled scale/bin modules. Each downloaded example owns its
 FoldKit application files so it runs independently of the monorepo.
+
+## Interactive scatter
+
+`/examples/scatter/` maps 24 illustrative points through two linear scales. Compare Group A and Group B, widen either domain from 100 to 200, and inspect points by hover, focus, tap or the labelled selector. Filtering out the inspected point clears the selection.
+
+The source viewer, downloaded Vite project and StackBlitz project preserve the current group, domains and inspected point. Geometry uses the existing `foldkit-viz/math/scale` primitive; the model and messages own all interaction state. The standalone export includes the compiled scale module.

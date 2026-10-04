@@ -6,7 +6,31 @@ import { join, dirname } from 'node:path';
 import { unzipSync, strFromU8 } from 'fflate';
 
 import { projectFiles, projectZip } from '../src/examples/histogram/project';
+import { projectFiles as scatterFiles } from '../src/examples/scatter/project';
 import { buildExampleTemplate } from '../src/lib/example-project';
+
+test('scatter ZIP preserves inspection and domain settings with a runnable scale', async () => {
+  const captured = { group: 'b' as const, xMax: 200, yMax: 150, selectedPoint: 'b-03' };
+  const files = unzipSync(
+    projectZip(scatterFiles(await buildExampleTemplate([], 'scatter'), captured)),
+  );
+  const directory = await mkdtemp(join(tmpdir(), 'foldkit-scatter-'));
+  try {
+    for (const [name, bytes] of Object.entries(files)) {
+      const path = join(directory, name);
+      await mkdir(dirname(path), { recursive: true });
+      await writeFile(path, strFromU8(bytes));
+    }
+    const settings = await import(join(directory, 'src/settings.ts'));
+    expect(settings.initialSettings).toEqual(captured);
+    const geometry = await import(join(directory, 'vendor/foldkit-viz/dist/math/scale.mjs'));
+    expect(
+      geometry.linear({ domain: [0, settings.initialSettings.xMax], range: [48, 528] })(100),
+    ).toBe(288);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 // Catches missing compiled dependencies and settings exports that silently revert to defaults.
 test('histogram ZIP runs its captured configuration and included bin implementation', async () => {

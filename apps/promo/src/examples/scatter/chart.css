@@ -1,0 +1,307 @@
+.scatter-playground {
+  --scatter-accent: #3468ef;
+  color: var(--text, #151619);
+  font-family: inherit;
+  min-width: 0;
+}
+.scatter-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  border: 1px solid var(--border, #d9dce1);
+  background: var(--surface, #fffefa);
+}
+.scatter-preview {
+  padding: 30px;
+  min-width: 0;
+  align-self: center;
+}
+.scatter-preview-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--muted, #5d6574);
+  font-size: 12px;
+}
+.scatter-preview-heading span:first-child {
+  letter-spacing: 0.13em;
+  font-family: monospace;
+}
+.scatter-preview svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 24px;
+  overflow: visible;
+}
+.scatter-grid {
+  stroke: var(--border, #d9dce1);
+  stroke-width: 1;
+}
+.scatter-axis-label {
+  fill: var(--muted, #5d6574);
+  font-size: 12px;
+}
+.scatter-bar {
+  fill: var(--scatter-accent);
+}
+.scatter-preview-caption {
+  color: var(--muted, #5d6574);
+  font-size: 14px;
+  max-width: 48ch;
+  line-height: 1.6;
+}
+.scatter-controls {
+  padding: 24px;
+  border-left: 1px solid var(--border, #d9dce1);
+}
+.scatter-playground fieldset {
+  padding: 0;
+  margin: 0 0 24px;
+  border: 0;
+  min-width: 0;
+}
+.scatter-playground legend {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.scatter-playground button,
+.scatter-playground select {
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border, #d9dce1);
+  border-radius: 4px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+.scatter-playground button:hover {
+  border-color: var(--scatter-accent);
+}
+.scatter-playground button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.scatter-playground :is(button, select, input, pre, ul):focus-visible {
+  outline: 2px solid var(--scatter-accent);
+  outline-offset: 4px;
+}
+.scatter-segmented {
+  display: flex;
+}
+.scatter-segmented button {
+  flex: 1;
+  padding: 8px 10px;
+}
+.scatter-segmented button[aria-pressed='true'] {
+  background: var(--scatter-accent);
+  color: #fff;
+  border-color: var(--scatter-accent);
+}
+.scatter-range {
+  margin-bottom: 14px;
+}
+.scatter-range label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.scatter-range label span {
+  color: var(--muted, #5d6574);
+  font-variant-numeric: tabular-nums;
+}
+.scatter-range input {
+  width: 100%;
+  display: block;
+  accent-color: var(--scatter-accent);
+  cursor: pointer;
+}
+.scatter-reset {
+  width: 100%;
+  margin-top: 8px;
+}
+.scatter-source {
+  margin-top: 24px;
+  border: 1px solid #303641;
+  background: #191c24;
+  color: #edf0f7;
+  min-width: 0;
+}
+.scatter-source-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #303641;
+  font-size: 13px;
+}
+.scatter-source-toolbar select {
+  background: #191c24;
+  color: #edf0f7;
+  border-color: #505b6c;
+}
+.scatter-source-toolbar button {
+  margin-left: auto;
+  border-color: #505b6c;
+}
+.scatter-source pre {
+  margin: 0;
+  padding: 24px;
+  height: 340px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.75;
+  tab-size: 2;
+}
+.scatter-source code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #bbcafa;
+  white-space: pre;
+}
+.scatter-export {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-top: 20px;
+}
+.scatter-export p {
+  color: var(--muted, #5d6574);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 56ch;
+}
+.scatter-export-buttons {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  .scatter-workbench {
+    grid-template-columns: 1fr;
+  }
+  .scatter-controls {
+    border-left: 0;
+    border-top: 1px solid var(--border, #d9dce1);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+  }
+  .scatter-reset {
+    align-self: end;
+  }
+  .scatter-export {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}
+@media (max-width: 480px) {
+  .scatter-preview {
+    padding: 20px 12px;
+  }
+  .scatter-preview-heading {
+    font-size: 10px;
+  }
+  .scatter-controls {
+    display: block;
+    padding: 20px;
+  }
+  .scatter-source-toolbar {
+    padding: 12px;
+    gap: 8px;
+  }
+  .scatter-source-toolbar label {
+    width: 100%;
+  }
+  .scatter-source pre {
+    padding: 16px;
+    font-size: 12px;
+  }
+  .scatter-export-buttons {
+    flex-wrap: wrap;
+  }
+  .scatter-export-buttons button {
+    flex: 1;
+  }
+}
+
+.scatter-point {
+  fill: var(--scatter-accent);
+  stroke: var(--surface, #fffefa);
+  stroke-width: 2;
+  cursor: crosshair;
+}
+.scatter-point-b {
+  fill: #c95b40;
+}
+.scatter-point[aria-current='true'],
+.scatter-point:focus-visible {
+  stroke: var(--text, #151619);
+  stroke-width: 3;
+  outline: none;
+}
+.scatter-legend {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--muted, #5d6574);
+}
+.scatter-legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scatter-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--scatter-accent);
+}
+.scatter-legend span:last-child i {
+  background: #c95b40;
+}
+.scatter-inspector {
+  padding: 16px;
+  margin-top: 20px;
+  border: 1px solid var(--border, #d9dce1);
+  border-radius: 4px;
+  font-size: 14px;
+  min-height: 105px;
+}
+.scatter-inspector p {
+  margin: 0;
+}
+.scatter-inspector dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 12px 0 0;
+}
+.scatter-inspector dl div {
+  display: flex;
+  gap: 8px;
+}
+.scatter-inspector dt {
+  color: var(--muted, #5d6574);
+}
+.scatter-inspector dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.scatter-inspect-select {
+  margin-bottom: 20px;
+}
+.scatter-inspect-select label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.scatter-inspect-select select {
+  width: 100%;
+}

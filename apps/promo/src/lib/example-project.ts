@@ -6,7 +6,7 @@ export type SourceFile = Readonly<{ name: string; content: string }>;
 
 export async function buildExampleTemplate(
   sources: ReadonlyArray<SourceFile>,
-  example: 'line' | 'histogram',
+  example: 'line' | 'histogram' | 'scatter',
 ): Promise<Record<string, string>> {
   const libraryRoot = dirname(
     dirname(fileURLToPath(import.meta.resolve('@opsydyn/foldkit-viz/math/scale'))),
@@ -17,6 +17,7 @@ export async function buildExampleTemplate(
   const modules = {
     line: ['math/scale', 'shape/line', 'shape/path'],
     histogram: ['math/scale', 'math/bin'],
+    scatter: ['math/scale'],
   }[example];
   for (const module of modules) {
     for (const extension of ['.mjs', '.d.mts']) {

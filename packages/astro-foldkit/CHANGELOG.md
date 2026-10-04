@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.7.0...astro-foldkit-v0.7.1) (2026-10-04)
+
+### Bug Fixes
+
+- clear oxlint warnings ([4bd5016](https://github.com/opsydyn/fold-kit-experiments/commit/4bd5016f71dde9621bb5bbd6b587792f9585e6ea))
+
 ## [0.7.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.6.0...astro-foldkit-v0.7.0) (2026-09-20)
 
 ### Features

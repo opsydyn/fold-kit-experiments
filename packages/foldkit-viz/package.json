@@ -130,6 +130,9 @@
       ],
       "chart/cartesian": [
         "./dist/chart/cartesian.d.mts"
+      ],
+      "chart/theme": [
+        "./dist/chart/theme.d.mts"
       ]
     }
   },
@@ -269,6 +272,10 @@
     "./chart/cartesian": {
       "types": "./dist/chart/cartesian.d.mts",
       "import": "./dist/chart/cartesian.mjs"
+    },
+    "./chart/theme": {
+      "types": "./dist/chart/theme.d.mts",
+      "import": "./dist/chart/theme.mjs"
     }
   },
   "publishConfig": {

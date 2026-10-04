@@ -176,7 +176,17 @@ export const view = <M>(
             yGridlines(h, yTicks, (v) => yScale(v), PW),
 
             ...(areaPath
-              ? [h.path([h.D(areaPath), h.Fill(`${cfg.color}22`), h.Stroke('none')], [])]
+              ? [
+                  h.path(
+                    [
+                      h.D(areaPath),
+                      h.Fill(cfg.color),
+                      h.FillOpacity(String(2 / 15)),
+                      h.Stroke('none'),
+                    ],
+                    [],
+                  ),
+                ]
               : []),
 
             ...(linePath

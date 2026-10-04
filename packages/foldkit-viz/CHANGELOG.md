@@ -2,29 +2,27 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
-## Unreleased
+## [0.10.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.9.0...foldkit-viz-v0.10.0) (2026-10-04)
+
+### Release highlights
 
 - Add accessor-based Cartesian line, scatter and histogram geometry, semantic light/dark themes and stable keyed styles.
 - Add optional parent-builder FoldKit layers, annotation, replacement tooltip, symbol legend and raw data table.
 - Preserve semantic child events and Commands in linked charts; migrate promo examples to responsive composition.
 - Qualify packed pure/optional consumers and standalone generated projects outside the monorepo.
-- Correct optional peer metadata and equal-domain linear midpoint projection. No release version bump.
-
-## [0.10.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.9.0...foldkit-viz-v0.10.0) (2026-10-04)
-
+- Correct optional peer metadata and equal-domain linear midpoint projection.
 
 ### Features
 
-* add FoldKit Viz promo site and composable charts ([6e951ef](https://github.com/opsydyn/fold-kit-experiments/commit/6e951ef96c018350cde5ee18100fae08171455b7))
-* **viz:** add composable Cartesian geometry ([cfaf3bb](https://github.com/opsydyn/fold-kit-experiments/commit/cfaf3bb3f91c808834ab2798cf97eaf706d5928f))
-* **viz:** add FoldKit chart layers and semantic composition ([bd6b2c9](https://github.com/opsydyn/fold-kit-experiments/commit/bd6b2c9493052abd28b35b07e6860256bb475e62))
-* **viz:** add semantic chart themes and keyed styles ([9bcbb21](https://github.com/opsydyn/fold-kit-experiments/commit/9bcbb219d8dd106042f9ecff029736ddd26ab048))
-
+- add FoldKit Viz promo site and composable charts ([6e951ef](https://github.com/opsydyn/fold-kit-experiments/commit/6e951ef96c018350cde5ee18100fae08171455b7))
+- **viz:** add composable Cartesian geometry ([cfaf3bb](https://github.com/opsydyn/fold-kit-experiments/commit/cfaf3bb3f91c808834ab2798cf97eaf706d5928f))
+- **viz:** add FoldKit chart layers and semantic composition ([bd6b2c9](https://github.com/opsydyn/fold-kit-experiments/commit/bd6b2c9493052abd28b35b07e6860256bb475e62))
+- **viz:** add semantic chart themes and keyed styles ([9bcbb21](https://github.com/opsydyn/fold-kit-experiments/commit/9bcbb219d8dd106042f9ecff029736ddd26ab048))
 
 ### Bug Fixes
 
-* clear oxlint warnings ([4bd5016](https://github.com/opsydyn/fold-kit-experiments/commit/4bd5016f71dde9621bb5bbd6b587792f9585e6ea))
-* **viz:** validate numeric chart boundaries and preserve tick precision ([5a6cf4c](https://github.com/opsydyn/fold-kit-experiments/commit/5a6cf4c4ee914df62db7be15ef1b89679d51391c))
+- clear oxlint warnings ([4bd5016](https://github.com/opsydyn/fold-kit-experiments/commit/4bd5016f71dde9621bb5bbd6b587792f9585e6ea))
+- **viz:** validate numeric chart boundaries and preserve tick precision ([5a6cf4c](https://github.com/opsydyn/fold-kit-experiments/commit/5a6cf4c4ee914df62db7be15ef1b89679d51391c))
 
 ## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.8.0...foldkit-viz-v0.9.0) (2026-09-20)
 

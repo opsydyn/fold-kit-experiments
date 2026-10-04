@@ -1,7 +1,7 @@
 # Composable FoldKit charts and themes
 
-Status: proposed written specification for review. The architectural direction
-was approved in conversation; this file specifies the first implementation slice.
+Status: approved in conversation on 2026-10-04. This file specifies the first
+implementation slice; the implementation plan is reviewed separately.
 
 ## Outcome
 
@@ -234,4 +234,4 @@ Self-review: the package boundary preserves the framework-independent core;
 accessors/callbacks stay outside serialised Models; interpolation limitations are
 explicit; standalone vendoring includes new module dependencies; acceptance
 covers rendering, interaction composition, data robustness and actual browser
-behaviour. No product implementation has started under this proposed spec.
+behaviour. No product implementation has started under this approved spec.

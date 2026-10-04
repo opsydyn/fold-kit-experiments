@@ -98,3 +98,41 @@ describe('linked charts update', () => {
     expect(nextModel.scatter.activeIndex).toEqual(Option.none());
   });
 });
+
+it('links keyboard inspection through semantic point events', () => {
+  const model = initialModel();
+  const result = update(
+    model,
+    Message.ReceivedScatterMessage({
+      message: Scatter.Message.PressedKeyNav({ direction: 'next' }),
+    }),
+  );
+  expect(result.model.scatter.activeIndex).toEqual(Option.some(0));
+  expect(result.model.histogram.activeBin).toEqual(Option.some(0));
+});
+
+it('includes the final salary endpoint when linking a scatter inspection', () => {
+  const model = initialModel();
+  const pointIndex = model.scatter.points.length - 1;
+  const result = update(
+    model,
+    Message.ReceivedScatterMessage({
+      message: Scatter.Message.HoveredPoint({ index: pointIndex }),
+    }),
+  );
+  expect(result.model.histogram.activeBin).toEqual(Option.some(model.histogram.bins.length - 1));
+});
+
+it('emits data-domain inspection facts from stateful chart children', () => {
+  const model = initialModel();
+  expect(
+    Scatter.update(model.scatter, Scatter.Message.HoveredPoint({ index: 0 })).outMessage,
+  ).toEqual({ _tag: 'InspectedPoint', key: '1yr', x: 1, y: 55000 });
+  expect(Scatter.update(model.scatter, Scatter.Message.BlurredPoint()).outMessage).toEqual({
+    _tag: 'ClearedInspection',
+  });
+  const bin = Option.getOrThrow(Option.fromNullishOr(model.histogram.bins[0]));
+  expect(
+    Histogram.update(model.histogram, Histogram.Message.HoveredBin({ index: 0 })).outMessage,
+  ).toEqual({ _tag: 'InspectedRange', domain: [bin.x0, bin.x1] });
+});

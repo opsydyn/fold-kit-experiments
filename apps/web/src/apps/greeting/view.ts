@@ -5,28 +5,42 @@ import type { Locale, Model } from './model';
 
 import * as styles from './greeting.css';
 
-const canonicalByLocale: Readonly<Record<Locale, string>> = {
+const canonicalByLocale = {
   en: 'https://opsydyn-web.opsydyn.workers.dev/greeting',
   ar: 'https://opsydyn-web.opsydyn.workers.dev/greeting?locale=ar',
-};
+} satisfies Readonly<Record<Locale, string>>;
 
-export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const { div, p, button, Class, OnClick, AriaLabel, AriaPressed, Role } = h;
+type GreetingPresentation = Readonly<{
+  title: string;
+  greeting: string;
+  lang: 'ar' | 'en';
+  dir: 'Rtl' | 'Ltr';
+  canonical: string;
+  ogUrl: string;
+}>;
+
+export const presentationFor = (model: Model): GreetingPresentation => {
   const presentation =
     model.locale === 'ar'
       ? {
           title: `مرحبا، ${model.name}! — Astro + FoldKit`,
           greeting: `مرحبا، ${model.name}!`,
-          lang: 'ar',
+          lang: 'ar' as const,
           dir: 'Rtl' as const,
         }
       : {
           title: `Hello, ${model.name}! — Astro + FoldKit`,
           greeting: `Hello, ${model.name}!`,
-          lang: 'en',
+          lang: 'en' as const,
           dir: 'Ltr' as const,
         };
   const canonical = canonicalByLocale[model.locale];
+  return { ...presentation, canonical, ogUrl: canonical };
+};
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const { div, p, button, Class, OnClick, AriaLabel, AriaPressed, Role } = h;
+  const presentation = presentationFor(model);
   const localeButton = (locale: Locale, label: string) => {
     const selected = model.locale === locale;
     return button(
@@ -45,8 +59,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     title: presentation.title,
     lang: presentation.lang,
     dir: presentation.dir,
-    canonical,
-    ogUrl: canonical,
+    canonical: presentation.canonical,
+    ogUrl: presentation.ogUrl,
     body: div(
       [Class(styles.card)],
       [

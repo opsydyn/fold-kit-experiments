@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot, yGridlines } from '../shared';
+import { layoutFor, r3, svgRoot, yGridlines } from '../shared';
 
 // MODEL — Likert-scale diverging stacked bar
 // Negative responses stack left of centre; positive stack right.
@@ -39,7 +39,7 @@ export type Model = Readonly<{
 }>;
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: cfg.rows.length * 44 + 56, ...cfg.dims },
     { top: 28, right: 80, bottom: 36, left: 140, ...cfg.margins },
   );

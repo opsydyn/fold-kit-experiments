@@ -1,9 +1,10 @@
 import { Schema } from 'effect';
 
 import * as WR from '../../ui/wind-rose-chart';
+import type { AppInitProps } from '../types';
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: WR.Model };
-export const init = (_: unknown) => {
+export const init = (_: AppInitProps) => {
   const { model: chart } = WR.init({
     segments: [
       { label: 'N', value: 12, color: '#6366f1' },

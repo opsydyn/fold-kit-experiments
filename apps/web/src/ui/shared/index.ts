@@ -7,7 +7,7 @@ export type { CrosshairState } from './dispatch';
 export { CROSSHAIR_IDLE, crosshairActive, isDimmed, isHighlighted } from './dispatch';
 export { arrowKeyNav, nextIndex } from './keyboard';
 export type { Dims, Layout, Margins } from './layout';
-export { DEFAULT_DIMS, DEFAULT_MARGINS, makeLayout } from './layout';
+export { DEFAULT_DIMS, DEFAULT_MARGINS, layoutFor } from './layout';
 export { extentWithPadding, r3 } from './math';
 export type { SvgRootConfig } from './svg-root';
 export { svgRoot } from './svg-root';

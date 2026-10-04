@@ -1,6 +1,8 @@
 import { type Tween, tweenCreate } from '@opsydyn/foldkit-viz/math/tween';
 import { Option, Schema } from 'effect';
 
+import type { AppInitProps } from '../types';
+
 export type Bar = Readonly<{ label: string; value: number; color: string }>;
 
 export const Model = Schema.Struct({
@@ -27,7 +29,7 @@ const BARS: ReadonlyArray<Bar> = [
 const DURATION = 600; // ms per bar
 const STAGGER = 80; // ms delay added per bar index
 
-export function init(_props: unknown): Readonly<{ readonly model: Model }> {
+export function init(_props: AppInitProps) {
   return {
     model: {
       bars: BARS,

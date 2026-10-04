@@ -3,6 +3,10 @@ import { line } from './line';
 
 export type AreaConfig = LineConfig;
 
+const isBaselinePoints = (
+  value: number | ReadonlyArray<readonly [number, number]>,
+): value is ReadonlyArray<readonly [number, number]> => Array.isArray(value);
+
 const r3 = (n: number, d = 3) => Math.round(n * 10 ** d) / 10 ** d;
 
 /**
@@ -27,7 +31,7 @@ export function area(
   const digits = config.digits ?? 3;
   const f = (n: number) => r3(n, digits);
 
-  if (typeof y0 === 'number') {
+  if (!isBaselinePoints(y0)) {
     const first = topline[0];
     const last = topline[topline.length - 1];
     if (!first || !last) return null;

@@ -21,6 +21,7 @@ const setOptional = <Key extends keyof Omit<ResolvedPageDocument, 'title'>>(
 export const mapRenderedApplicationDocument = (
   rendered: Pick<RenderedApplication, 'title' | 'lang' | 'dir' | 'canonical' | 'ogUrl'>,
 ): ResolvedPageDocument => {
+  // SAFETY: The surrounding package boundary establishes this value before the assertion.
   const withTitle = { title: rendered.title } as ResolvedPageDocument;
   const withLang = setOptional(withTitle, 'lang', rendered.lang);
   const withDir = setOptional(withLang, 'dir', rendered.dir);
@@ -29,8 +30,8 @@ export const mapRenderedApplicationDocument = (
 };
 
 export async function resolvePageDocument<
-  Props extends Record<string, unknown> = Record<string, unknown>,
-  Flags extends Record<string, unknown> = Record<string, unknown>,
+  Props extends object = object,
+  Flags extends object = object,
 >(page: FoldkitPage<Props, Flags>, context: PageContext<Props>): Promise<ResolvedPageDocument> {
   const flags = page.flags(context);
   const config = await page.load();

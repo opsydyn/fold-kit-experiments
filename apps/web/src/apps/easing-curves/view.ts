@@ -4,7 +4,8 @@ import * as EasingCurves from '../../ui/easing-curves-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: EasingCurves.Message): Message => Message.GotEasingMessage({ message: msg });
+const toParentMessage = (msg: EasingCurves.Message): Message =>
+  Message.ReceivedEasingMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Easing functions — foldkit-viz',

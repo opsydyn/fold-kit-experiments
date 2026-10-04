@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import { HttpClient, HttpClientResponse } from 'effect/http';
 import { Command, Http } from 'foldkit';
 
 import { Message } from './message';
@@ -12,9 +12,7 @@ export const FetchHealth = Command.define('FetchHealth', {
       const response = yield* HttpClient.get('/api/health');
       const data = yield* HttpClientResponse.schemaBodyJson(HealthData)(response);
       return Message.FetchedHealth(data);
-    }).pipe(
-      Effect.catch((error) => Effect.succeed(Message.FetchFailed({ error: String(error) }))),
-    ),
+    }).pipe(Effect.catch((error) => Effect.succeed(Message.FetchFailed({ error: String(error) })))),
     Http.layer,
   ),
 });

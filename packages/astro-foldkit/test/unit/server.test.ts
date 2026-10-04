@@ -5,6 +5,7 @@ import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { definePage } from '../../src/define-page';
 import { check, renderToStaticMarkup } from '../../src/server';
+import type { AstroProps } from '../../src/server';
 import type { PageConfig } from '../../src/types';
 
 const component = Object.assign(() => {}, { __foldkit: true as const });
@@ -52,7 +53,7 @@ const makeResult = () => {
   return {
     request,
     params: { locale: 'en' },
-    createAstro: (props: Record<string, unknown>) => ({
+    createAstro: (props: AstroProps) => ({
       request,
       url: new URL(request.url),
       params: { locale: 'en' },

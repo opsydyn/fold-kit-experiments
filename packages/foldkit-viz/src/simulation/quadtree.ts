@@ -73,7 +73,8 @@ export function createQuadtree(): Quadtree {
       // Which quadrant does the existing content live in relative to the expansion?
       // i = (existing content is south) << 1 | (existing content is east)
       // equivalently: new point is north/west → i where existing is opposite
-      const i = (((y < _y0) as unknown as number) << 1) | ((x < _x0) as unknown as number);
+      const i = (Number(y < _y0) << 1) | Number(x < _x0);
+      // SAFETY: The chart algorithm establishes this representation before the assertion.
       const parent: InternalQuad = Object.assign(new Array(4) as InternalQuad, {
         x: undefined,
         y: undefined,
@@ -158,6 +159,7 @@ export function createQuadtree(): Quadtree {
 
     // Not coincident: subdivide until new and existing leaf separate
     do {
+      // SAFETY: The chart algorithm establishes this representation before the assertion.
       const internal: InternalQuad = Object.assign(new Array(4) as InternalQuad, {
         x: undefined,
         y: undefined,

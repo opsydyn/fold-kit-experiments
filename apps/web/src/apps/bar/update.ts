@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, message: Message): Return =>
   Message.match(message, {
-    GotBarMessage: ({ message }) => {
+    ReceivedBarMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: nextBar } = BarChart.update(model.bar, message as BarChart.Message);
       return { model: { ...model, bar: nextBar } };
     },

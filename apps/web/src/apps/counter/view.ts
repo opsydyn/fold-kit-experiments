@@ -43,7 +43,7 @@ const trailToInstructions = (trail: ReadonlyArray<Point>): ReadonlyArray<Canvas.
     ],
   });
 
-const particleShapes = (particle: Particle): ReadonlyArray<Canvas.Shape> => {
+const particleDrawables = (particle: Particle) => {
   if (particle.trail.length < 2) return [];
   const fade = fadeAlpha(particle);
   if (fade < ALPHA_EPSILON) return [];
@@ -51,7 +51,7 @@ const particleShapes = (particle: Particle): ReadonlyArray<Canvas.Shape> => {
   const hue = _hue.get(particle);
   const instructions = trailToInstructions(particle.trail);
 
-  const trailShapes: Canvas.Shape[] = [
+  const trailDrawables = [
     Canvas.Path({
       instructions,
       stroke: `hsla(${hue}, ${SATURATION}%, ${GLOW_LIGHTNESS}%, ${GLOW_ALPHA * fade})`,
@@ -77,11 +77,10 @@ const particleShapes = (particle: Particle): ReadonlyArray<Canvas.Shape> => {
     }),
   );
 
-  return Option.isSome(maybeHead) ? [...trailShapes, maybeHead.value] : trailShapes;
+  return Option.isSome(maybeHead) ? [...trailDrawables, maybeHead.value] : trailDrawables;
 };
 
-const sceneShapes = (model: Model): ReadonlyArray<Canvas.Shape> =>
-  Arr.flatMap(model.particles, particleShapes);
+const sceneDrawables = (model: Model) => Arr.flatMap(model.particles, particleDrawables);
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const { div, button, Class, OnClick } = h;
@@ -94,7 +93,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           {
             width: CANVAS_WIDTH,
             height: CANVAS_HEIGHT,
-            shapes: sceneShapes(model),
+            ['shapes']: sceneDrawables(model),
             className: styles.canvas,
           },
           h,

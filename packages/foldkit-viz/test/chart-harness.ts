@@ -63,7 +63,9 @@ export function assertScaleRange(
  */
 export function assertMonotone(scale: (v: number) => number, inputs: ReadonlyArray<number>): void {
   for (let i = 1; i < inputs.length; i++) {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const prev = scale(inputs[i - 1] as number);
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const curr = scale(inputs[i] as number);
     if (curr < prev - 0.001) {
       throw new Error(

@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as ZoomableLineChart from '../../ui/zoomable-line-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & {
@@ -52,7 +53,7 @@ function generateStockData(): ReadonlyArray<ZoomableLineChart.StockPoint> {
   return points;
 }
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const points = generateStockData();
   const { model: chart } = ZoomableLineChart.init({ points, color: '#6366f1' });
   return { model: { chart } };

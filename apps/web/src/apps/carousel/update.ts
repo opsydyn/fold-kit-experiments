@@ -35,7 +35,8 @@ const foldCarousel = foldChild({
   update: Carousel.update,
   read: (model: Model) => Option.some(model.carousel),
   write: (model, nextCarousel) => ({ ...model, carousel: nextCarousel }),
-  toParentMessage: (carouselMessage) => Message.GotCarouselMessage({ message: carouselMessage }),
+  toParentMessage: (carouselMessage) =>
+    Message.ReceivedCarouselMessage({ message: carouselMessage }),
   foldOutMessage: (outMessage) =>
     Carousel.OutMessage.match<Step<Model, Message>>(outMessage, {
       ChangedSlide: () => (model) => ({ model }),
@@ -44,11 +45,13 @@ const foldCarousel = foldChild({
 
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
-    GotCarouselMessage: ({ message: carouselMessage }) => {
+    ReceivedCarouselMessage: ({ message: carouselMessage }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       return foldCarousel(model, carouselMessage as Carousel.Message);
     },
 
     SettledSlides: ({ result: rawResult }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const result = rawResult as Result.Result<ReadonlyArray<Slide>, string>;
       return combine(model, [
         (m) => ({ model: { ...m, slides: settle(m.slides, result) } }),

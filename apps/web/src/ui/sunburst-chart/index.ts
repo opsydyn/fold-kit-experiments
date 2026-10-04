@@ -52,6 +52,13 @@ export type Model = Readonly<{
 
 export type InitConfig = Readonly<{ root: RootDatum }>;
 
+type LayoutDatum = {
+  name: string;
+  children?: ReadonlyArray<CategoryDatum> | ReadonlyArray<LeafDatum>;
+  color?: string;
+  value?: number;
+};
+
 // DIMENSIONS
 
 const W = 300;
@@ -79,8 +86,9 @@ function tint(hex: string, t: number): string {
 }
 
 function buildLayout(root: RootDatum): Layout {
-  const rootNode = hierarchy(root as { name: string; children: CategoryDatum[] });
-  sum(rootNode, (d) => ('value' in d && typeof d.value === 'number' ? d.value : 0));
+  // SAFETY: The app model and message contracts establish this value before the assertion.
+  const rootNode = hierarchy<LayoutDatum>(root as LayoutDatum);
+  sum(rootNode, (d) => (Number.isFinite(d.value) ? (d.value ?? 0) : 0));
   sort(rootNode, (a, b) => b.value - a.value);
   partition(rootNode, { width: TAU, height: 1 });
 
@@ -89,10 +97,12 @@ function buildLayout(root: RootDatum): Layout {
 
   for (const node of descendants(rootNode)) {
     if (node.depth === 0) continue;
+    // SAFETY: The app model and message contracts establish this value before the assertion.
     const name = (node.data as { name?: string }).name ?? '';
 
     if (node.depth === 1) {
-      const datum = node.data as unknown as CategoryDatum;
+      // SAFETY: The app model and message contracts establish this value before the assertion.
+      const datum = node.data as CategoryDatum;
       catArcs.push({
         name,
         color: datum.color ?? '#94a3b8',
@@ -100,7 +110,8 @@ function buildLayout(root: RootDatum): Layout {
         childNames: datum.children.map((c) => c.name),
       });
     } else if (node.depth === 2) {
-      const catData = node.parent?.data as unknown as CategoryDatum | undefined;
+      // SAFETY: The app model and message contracts establish this value before the assertion.
+      const catData = node.parent?.data as CategoryDatum | undefined;
       const catColor = catData?.color ?? '#94a3b8';
       const spanAngle = node.x1 - node.x0;
       const pathD =

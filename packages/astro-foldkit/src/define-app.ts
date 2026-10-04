@@ -1,10 +1,10 @@
-import type { AppConfigShape, FoldkitApp } from './types';
+import type { AppConfigContract, EmptyProps, FoldkitApp } from './types';
 
 export type { AppConfig, FoldkitApp } from './types';
 
 export function defineApp<
-  Props extends Record<string, unknown> = Record<string, unknown>,
-  Config extends AppConfigShape<Props> = AppConfigShape<Props>,
+  Props extends object = EmptyProps,
+  Config extends AppConfigContract<Props> = AppConfigContract<Props>,
 >(load: () => Promise<Config>): FoldkitApp<Props, Config> {
   return Object.assign((_props?: Props) => {}, { __foldkit: true as const, load });
 }

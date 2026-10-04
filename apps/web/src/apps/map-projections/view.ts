@@ -4,7 +4,8 @@ import * as MapProjections from '../../ui/map-projections-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: MapProjections.Message): Message => Message.GotMapMessage({ message: msg });
+const toParentMessage = (msg: MapProjections.Message): Message =>
+  Message.ReceivedMapMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Map projections — foldkit-viz',

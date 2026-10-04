@@ -4,7 +4,8 @@ import * as ViolinChart from '../../ui/violin-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: ViolinChart.Message): Message => Message.GotViolinMessage({ message: msg });
+const toParentMessage = (msg: ViolinChart.Message): Message =>
+  Message.ReceivedViolinMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Salary distribution by level — foldkit-viz',

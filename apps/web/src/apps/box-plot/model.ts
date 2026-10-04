@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as BoxChart from '../../ui/box-plot-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ box: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'box'> & {
   readonly box: BoxChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: box } = BoxChart.init({
     series: [
       { label: 'IC1', values: [42, 45, 47, 48, 50, 52, 55, 58, 60, 65] },

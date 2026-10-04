@@ -4,7 +4,8 @@ import * as GaugeChart from '../../ui/gauge-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: GaugeChart.Message): Message => Message.GotGaugeMessage({ message: msg });
+const toParentMessage = (msg: GaugeChart.Message): Message =>
+  Message.ReceivedGaugeMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Gauge — foldkit-viz',

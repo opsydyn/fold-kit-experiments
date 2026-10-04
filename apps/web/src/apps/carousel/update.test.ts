@@ -21,7 +21,7 @@ describe('carousel update composition', () => {
   it('handles the child out message at the application boundary', () => {
     const result = update(
       modelWithSlides,
-      Message.GotCarouselMessage({ message: Carousel.Message.ClickedNext() }),
+      Message.ReceivedCarouselMessage({ message: Carousel.Message.ClickedNext() }),
     );
 
     expect(result.model.carousel.activeIndex).toBe(1);

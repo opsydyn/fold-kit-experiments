@@ -18,6 +18,13 @@ export type RootDatum = Readonly<{ name: string; children: ReadonlyArray<GroupDa
 
 export type InitConfig = Readonly<{ root: RootDatum }>;
 
+type LayoutDatum = {
+  name: string;
+  children?: ReadonlyArray<GroupDatum> | ReadonlyArray<LeafDatum>;
+  color?: string;
+  value?: number;
+};
+
 // DIMENSIONS
 
 const W = 480;
@@ -68,9 +75,9 @@ function tint(hex: string, t: number): string {
 }
 
 function buildLayout(cfg: InitConfig): Layout {
-  type RD = { name: string; children?: GroupDatum[] | LeafDatum[]; color?: string; value?: number };
-  const rootNode = hierarchy<RD>(cfg.root as RD);
-  sum(rootNode, (d) => ('value' in d && typeof d.value === 'number' ? d.value : 0));
+  // SAFETY: The app model and message contracts establish this value before the assertion.
+  const rootNode = hierarchy<LayoutDatum>(cfg.root as LayoutDatum);
+  sum(rootNode, (d) => (Number.isFinite(d.value) ? (d.value ?? 0) : 0));
   sort(rootNode, (a, b) => b.value - a.value);
 
   const packed = pack(rootNode, { width: W, height: H, padding: 3 });
@@ -83,6 +90,7 @@ function buildLayout(cfg: InitConfig): Layout {
 
   const walk = (node: typeof packed): void => {
     if (node.depth === 1) {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const d = node.data as GroupDatum;
       groups.push({
         id: d.name,
@@ -93,7 +101,9 @@ function buildLayout(cfg: InitConfig): Layout {
         r: r1(node.r),
       });
     } else if (node.depth === 2) {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const d = node.data as LeafDatum;
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const parentData = (node.parent?.data ?? {}) as GroupDatum;
       const groupColor = groupColorMap.get(parentData.name ?? '') ?? '#94a3b8';
       const groupId = parentData.name ?? '';

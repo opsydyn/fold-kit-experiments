@@ -1,13 +1,10 @@
 import { resolvePageDocument } from '@opsydyn/astro-foldkit/server';
 import { Schema } from 'effect';
-import { inertHtml } from 'foldkit/html';
-import type { HtmlBuilder } from 'foldkit/html';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import type { Message } from './message';
 import { Flags, Name, init } from './model';
 import GreetingPage from './page';
-import { view } from './view';
+import { presentationFor } from './view';
 
 const props = (name: string) => ({ name: Schema.decodeSync(Name)(name) });
 
@@ -64,10 +61,10 @@ describe('GreetingPage', () => {
   });
 
   test('view metadata remains deterministic from the model only', () => {
-    const document = view(
-      { name: Schema.decodeSync(Name)('Ada'), locale: 'en' },
-      inertHtml as unknown as HtmlBuilder<Message>,
-    );
+    const document = presentationFor({
+      name: Schema.decodeSync(Name)('Ada'),
+      locale: 'en',
+    });
 
     expect(document.title).toBe('Hello, Ada! — Astro + FoldKit');
     expect(document.lang).toBe('en');

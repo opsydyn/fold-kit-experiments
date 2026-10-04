@@ -12,7 +12,7 @@ type CarouselMessage = Carousel.Message;
 const pad = (n: number): string => String(n).padStart(2, '0');
 
 const toParentMessage = (msg: CarouselMessage): Message =>
-  Message.GotCarouselMessage({ message: msg });
+  Message.ReceivedCarouselMessage({ message: msg });
 
 const slideCount = (model: Model): number => model.carousel.slideCount;
 

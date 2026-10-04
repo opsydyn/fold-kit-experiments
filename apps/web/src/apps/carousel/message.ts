@@ -5,10 +5,13 @@ import type { Message as CarouselMessage } from '../../ui/carousel';
 import type { Slide } from './model';
 
 export const Message = defineMessageUnion({
-  GotCarouselMessage: { message: Schema.Unknown },
+  ReceivedCarouselMessage: { message: Schema.Unknown },
   SettledSlides: { result: Schema.Unknown },
 });
-export type GotCarouselMessage = Omit<typeof Message.GotCarouselMessage.Type, 'message'> & {
+export type ReceivedCarouselMessage = Omit<
+  typeof Message.ReceivedCarouselMessage.Type,
+  'message'
+> & {
   readonly message: CarouselMessage;
 };
 export type SettledSlides = Omit<typeof Message.SettledSlides.Type, 'result'> & {

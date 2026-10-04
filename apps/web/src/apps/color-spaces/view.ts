@@ -5,7 +5,7 @@ import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: ColorSpaces.Message): Message =>
-  Message.GotColorSpacesMessage({ message: msg });
+  Message.ReceivedColorSpacesMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Color space interpolation — foldkit-viz',

@@ -4,9 +4,12 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as WaterfallMessage } from '../../ui/waterfall-chart';
 
 export const Message = defineMessageUnion({
-  GotWaterfallMessage: { message: Schema.Unknown },
+  ReceivedWaterfallMessage: { message: Schema.Unknown },
 });
-export type GotWaterfallMessage = Omit<typeof Message.GotWaterfallMessage.Type, 'message'> & {
+export type ReceivedWaterfallMessage = Omit<
+  typeof Message.ReceivedWaterfallMessage.Type,
+  'message'
+> & {
   readonly message: WaterfallMessage;
 };
 export type Message = typeof Message.Type;

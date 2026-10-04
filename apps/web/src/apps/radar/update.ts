@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotRadarMessage: ({ message }) => {
+    ReceivedRadarMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: radar } = RadarChart.update(model.radar, message as RadarChart.Message);
       return { model: { ...model, radar } };
     },

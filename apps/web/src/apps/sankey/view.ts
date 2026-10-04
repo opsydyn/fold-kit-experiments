@@ -4,7 +4,8 @@ import * as SankeyChart from '../../ui/sankey-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: SankeyChart.Message): Message => Message.GotSankeyMessage({ message: msg });
+const toParentMessage = (msg: SankeyChart.Message): Message =>
+  Message.ReceivedSankeyMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Sankey — foldkit-viz',

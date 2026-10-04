@@ -7,7 +7,7 @@ type H<M> = HtmlBuilder<M>;
  * so it is available to screen readers but invisible to sighted users.
  * Applied via inline style to avoid requiring a global stylesheet.
  */
-const SR_ONLY_STYLE: Record<string, string> = {
+const SR_ONLY_STYLE = {
   position: 'absolute',
   width: '1px',
   height: '1px',
@@ -17,7 +17,7 @@ const SR_ONLY_STYLE: Record<string, string> = {
   clip: 'rect(0,0,0,0)',
   'white-space': 'nowrap',
   border: '0',
-};
+} satisfies Readonly<Record<string, string>>;
 
 /**
  * Render a screen-reader-only `<figure>` containing the SVG chart and a

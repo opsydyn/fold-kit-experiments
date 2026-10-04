@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 // MODEL — Wind rose / polar bar chart
 // Each segment = one directional/categorical bin with a magnitude.
@@ -38,7 +38,7 @@ export type Model = Readonly<{
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const size = Math.min(cfg.dims?.width ?? 300, cfg.dims?.height ?? 300);
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: size, height: size, ...cfg.dims },
     { top: 20, right: 20, bottom: 20, left: 20, ...cfg.margins },
   );

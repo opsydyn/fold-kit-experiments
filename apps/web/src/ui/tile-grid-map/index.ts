@@ -7,7 +7,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 // MODEL — tile grid map (cartogram-style choropleth)
 // Each "tile" is a labelled rectangle placed at a grid [col, row] position.
@@ -53,9 +53,10 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const tileSize = cfg.tileSize ?? 36;
   const cols = Math.max(...cfg.cells.map((c) => c.col)) + 1;
   const rows = Math.max(...cfg.cells.map((c) => c.row)) + 1;
+  // SAFETY: The app model and message contracts establish this value before the assertion.
   const [lo, hi] = extent(cfg.cells, (c) => c.value) as [number, number];
 
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: cols * tileSize + 80, height: rows * tileSize + 48, ...cfg.dims },
     { top: 8, right: 72, bottom: 40, left: 8, ...cfg.margins },
   );

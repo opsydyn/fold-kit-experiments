@@ -4,6 +4,7 @@ import { check } from '../../src/server';
 
 describe('check', () => {
   it('accepts a valid FoldKit component', async () => {
+    // SAFETY: The test fixture establishes this value before the assertion.
     const component = { __foldkit: true as const, load: () => Promise.resolve({} as any) };
     expect(await check(component)).toBe(true);
   });

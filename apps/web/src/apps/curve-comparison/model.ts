@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as CurveComparison from '../../ui/curve-comparison-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & {
@@ -21,7 +22,7 @@ const DATA: ReadonlyArray<readonly [number, number]> = [
   [9, 90],
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = CurveComparison.init({
     data: DATA,
     xLabel: 'x',

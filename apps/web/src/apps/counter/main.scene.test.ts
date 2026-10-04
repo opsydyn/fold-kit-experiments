@@ -19,7 +19,7 @@ const drainSpawns = (hue: Hue) =>
       () =>
         [
           SpawnParticle,
-        Message.SpawnedParticle({
+          Message.SpawnedParticle({
             x: Pixels(400),
             y: Pixels(330),
             vx: PixelsPerSec(0),

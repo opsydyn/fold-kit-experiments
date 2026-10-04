@@ -7,7 +7,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, svgRoot } from '../shared';
+import { layoutFor, svgRoot } from '../shared';
 
 // MODEL
 
@@ -70,7 +70,7 @@ function generateData(seed: number): PlotData {
 
 export function init(cfg: InitConfig = {}): UpdateReturn<Model, Message> {
   const data = generateData(cfg.seed ?? 42);
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 420, height: 280, ...cfg.dims },
     { top: 12, right: 16, bottom: 42, left: 20, ...cfg.margins },
   );

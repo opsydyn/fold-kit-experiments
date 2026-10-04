@@ -8,9 +8,10 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotStreamgraphMessage: ({ message }) => {
+    ReceivedStreamgraphMessage: ({ message }) => {
       const { model: streamgraph } = StreamgraphChart.update(
         model.streamgraph,
+        // SAFETY: The app model and message contracts establish this value before the assertion.
         message as StreamgraphChart.Message,
       );
       return { model: { ...model, streamgraph } };

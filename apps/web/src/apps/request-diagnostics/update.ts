@@ -54,8 +54,7 @@ const selectionMessage = (
   return Option.map(domain, (value) => Message.ChangedSelection({ domain: value }));
 };
 
-const updateHistogram = (model: Model, rawMessage: unknown): Return => {
-  const child = rawMessage as Histogram.Message;
+const updateHistogram = (model: Model, child: Histogram.Message): Return => {
   const { model: histogram } = Histogram.update(model.histogram, child);
   const nextModel = { ...model, histogram };
   const maybeSelection = selectionMessage(child._tag, Histogram.getBrushDomain(histogram));
@@ -65,8 +64,7 @@ const updateHistogram = (model: Model, rawMessage: unknown): Return => {
   });
 };
 
-const updateScatter = (model: Model, rawMessage: unknown): Return => {
-  const child = rawMessage as Scatter.Message;
+const updateScatter = (model: Model, child: Scatter.Message): Return => {
   const { model: scatter } = Scatter.update(model.scatter, child);
   return { model: { ...model, scatter } };
 };
@@ -114,8 +112,14 @@ const updateNavigation = (model: Model, message: NavigationMessage): Return => {
 
 export const update = (model: Model, message: Message): Return =>
   Message.match(message, {
-    GotHistogramMessage: ({ message: rawMessage }) => updateHistogram(model, rawMessage),
-    GotScatterMessage: ({ message: rawMessage }) => updateScatter(model, rawMessage),
+    ReceivedHistogramMessage: ({ message: rawMessage }) => {
+      // SAFETY: The child message wrapper is produced by the Histogram submodel boundary.
+      return updateHistogram(model, rawMessage as Histogram.Message);
+    },
+    ReceivedScatterMessage: ({ message: rawMessage }) => {
+      // SAFETY: The child message wrapper is produced by the Scatter submodel boundary.
+      return updateScatter(model, rawMessage as Scatter.Message);
+    },
     LoadedMetrics: (loadedMessage) => updateLoadedMetrics(model, loadedMessage),
     CompletedCancelFetchMetrics: () => runMachine(model, message),
     ClickedReload: () => runMachine(model, message),

@@ -206,9 +206,12 @@ export function timeTicks(domain: readonly [Date, Date], count = 10): ReadonlyAr
   const target = span / count;
 
   // Find the tick interval whose duration is closest to target
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   let best: TickInterval = TICK_INTERVALS[TICK_INTERVALS.length - 1] as TickInterval;
   for (let i = 0; i < TICK_INTERVALS.length; i++) {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const interval = TICK_INTERVALS[i] as TickInterval;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const next = TICK_INTERVALS[i + 1] as TickInterval | undefined;
     if (!next || target <= interval[2] || target < Math.sqrt(interval[2] * next[2])) {
       best = interval;
@@ -252,7 +255,10 @@ export function timeTickFormat(date: Date): string {
   if (s !== 0) return `:${pad2(s)}`;
   if (m !== 0 || h !== 0) return `${pad2(h)}:${pad2(m)}`;
   if (D !== 1) return `${D} ${MONTHS_SHORT[M]}`;
-  if (M !== 0) return MONTHS_SHORT[M] as string;
+  if (M !== 0) {
+    // SAFETY: Date.getMonth() returns an index in the twelve-entry month table.
+    return MONTHS_SHORT[M] as string;
+  }
   return String(date.getFullYear());
 }
 
@@ -267,7 +273,9 @@ export function timeNice(domain: readonly [Date, Date], count = 10): readonly [D
   let unit: TimeUnit = 'year';
   let step = 1;
   for (let i = 0; i < TICK_INTERVALS.length; i++) {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const interval = TICK_INTERVALS[i] as TickInterval;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const next = TICK_INTERVALS[i + 1] as TickInterval | undefined;
     if (!next || target <= interval[2] || target < Math.sqrt(interval[2] * next[2])) {
       unit = interval[0];
@@ -572,6 +580,7 @@ export function timeParse(specifier: string): (str: string) => Date | null {
         case 'h': {
           let found = false;
           for (let m = 0; m < MONTHS_SHORT_FMT.length; m++) {
+            // SAFETY: The chart algorithm establishes this representation before the assertion.
             const abbr = MONTHS_SHORT_FMT[m] as string;
             if (str.slice(si, si + abbr.length).toLowerCase() === abbr.toLowerCase()) {
               month = m;
@@ -586,6 +595,7 @@ export function timeParse(specifier: string): (str: string) => Date | null {
         case 'B': {
           let found = false;
           for (let m = 0; m < MONTHS_LONG.length; m++) {
+            // SAFETY: The chart algorithm establishes this representation before the assertion.
             const name = MONTHS_LONG[m] as string;
             if (str.slice(si, si + name.length).toLowerCase() === name.toLowerCase()) {
               month = m;

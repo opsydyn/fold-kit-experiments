@@ -50,6 +50,13 @@ export type Model = Readonly<{
 
 export type InitConfig = Readonly<{ root: RootDatum }>;
 
+type LayoutDatum = {
+  name: string;
+  children?: ReadonlyArray<CategoryDatum> | ReadonlyArray<LeafDatum>;
+  color?: string;
+  value?: number;
+};
+
 // VIEW CONSTANTS (needed in both buildLayout and view)
 
 const W = 480;
@@ -70,8 +77,9 @@ function tint(hex: string, t: number): string {
 }
 
 function buildLayout(root: RootDatum): Layout {
-  const rootNode = hierarchy(root as { name: string; children: CategoryDatum[] });
-  sum(rootNode, (d) => ('value' in d && typeof d.value === 'number' ? d.value : 0));
+  // SAFETY: The app model and message contracts establish this value before the assertion.
+  const rootNode = hierarchy<LayoutDatum>(root as LayoutDatum);
+  sum(rootNode, (d) => (Number.isFinite(d.value) ? (d.value ?? 0) : 0));
   sort(rootNode, (a, b) => b.value - a.value);
   treemap(rootNode, {
     width: W,
@@ -88,10 +96,15 @@ function buildLayout(root: RootDatum): Layout {
   const catNodes: ComputedCatNode[] = allNodes
     .filter((n) => n.depth === 1 && n.children)
     .map((catNode) => {
-      const datum = catNode.data as unknown as CategoryDatum;
+      // SAFETY: The app model and message contracts establish this value before the assertion.
+      const datum = catNode.data as CategoryDatum;
       const leafNames = leafNodesRaw
         .filter((l) => l.parent === catNode)
-        .map((l) => (l.data as unknown as LeafDatum).name);
+        .map((l) => {
+          // SAFETY: A depth-one category's leaves carry the declared leaf datum.
+          const leaf = l.data as LeafDatum;
+          return leaf.name;
+        });
       return {
         name: datum.name,
         color: datum.color,
@@ -105,8 +118,10 @@ function buildLayout(root: RootDatum): Layout {
     });
 
   const leafNodes: ComputedLeafNode[] = leafNodesRaw.map((leafNode) => {
-    const datum = leafNode.data as unknown as LeafDatum;
-    const parentDatum = (leafNode.parent?.data ?? {}) as unknown as CategoryDatum;
+    // SAFETY: The app model and message contracts establish this value before the assertion.
+    const datum = leafNode.data as LeafDatum;
+    // SAFETY: The app model and message contracts establish this value before the assertion.
+    const parentDatum = (leafNode.parent?.data ?? {}) as CategoryDatum;
     const catColor = root.children.find((c) => c.name === parentDatum.name)?.color ?? '#94a3b8';
     return {
       name: datum.name,

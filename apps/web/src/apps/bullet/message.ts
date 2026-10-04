@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as BulletMessage } from '../../ui/bullet-chart';
 
 export const Message = defineMessageUnion({
-  GotBulletMessage: { message: Schema.Unknown },
+  ReceivedBulletMessage: { message: Schema.Unknown },
 });
-export type GotBulletMessage = Omit<typeof Message.GotBulletMessage.Type, 'message'> & {
+export type ReceivedBulletMessage = Omit<typeof Message.ReceivedBulletMessage.Type, 'message'> & {
   readonly message: BulletMessage;
 };
 export type Message = typeof Message.Type;

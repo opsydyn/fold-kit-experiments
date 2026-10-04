@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as CalendarHeatmapChart from '../../ui/calendar-heatmap-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ calendar: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'calendar'> & {
@@ -23,10 +24,12 @@ const MONTH_NAMES = [
 ];
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-function generateYear(year: number): {
+type GeneratedYear = {
   days: ReadonlyArray<Omit<CalendarHeatmapChart.DayEntry, 'color'>>;
   monthLabels: ReadonlyArray<CalendarHeatmapChart.MonthLabel>;
-} {
+};
+
+function generateYear(year: number): GeneratedYear {
   const startDow = new Date(year, 0, 1).getDay(); // 0=Sun, for 2025 = 3 (Wed)
   const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
   const mdays = isLeap ? [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] : MONTH_DAYS;
@@ -84,7 +87,7 @@ function generateYear(year: number): {
   return { days, monthLabels };
 }
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { days, monthLabels } = generateYear(2025);
   const { model: calendar } = CalendarHeatmapChart.init({ days, monthLabels, year: 2025 });
   return { model: { calendar } };

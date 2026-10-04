@@ -17,6 +17,18 @@ const REF_SCALE = 150; // D3-geo reference scale used by fitSize algorithm
 
 export type GeoCoord = readonly [number, number]; // [lng, lat]
 
+export type GeoPropertyValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ReadonlyArray<GeoPropertyValue>
+  | GeoProperties;
+
+export interface GeoProperties {
+  readonly [key: string]: GeoPropertyValue;
+}
+
 export type GeoGeometry =
   | Readonly<{ type: 'Point'; coordinates: GeoCoord }>
   | Readonly<{ type: 'MultiPoint'; coordinates: ReadonlyArray<GeoCoord> }>
@@ -32,7 +44,7 @@ export type GeoGeometry =
 export type GeoFeature = Readonly<{
   type: 'Feature';
   geometry: GeoGeometry | null;
-  properties?: Readonly<Record<string, unknown>>;
+  properties?: GeoProperties;
 }>;
 
 export type GeoFeatureCollection = Readonly<{
@@ -121,12 +133,18 @@ function makeProjection(
     fitExtent(extent: GeoBBox, object: GeoObject | GeoSphere): ProjectionObject {
       const ref = makeProjection(raw, REF_SCALE, [0, 0]);
       const b = geoBoundsRaw(ref, object);
-      if (!b) return proj as ProjectionObject;
+      if (!b) {
+        // SAFETY: The current projection already satisfies the public projection contract.
+        return proj as ProjectionObject;
+      }
 
       const [[bx0, by0], [bx1, by1]] = b;
       const dx = bx1 - bx0;
       const dy = by1 - by0;
-      if (dx === 0 || dy === 0) return proj as ProjectionObject;
+      if (dx === 0 || dy === 0) {
+        // SAFETY: A degenerate extent leaves the current projection unchanged.
+        return proj as ProjectionObject;
+      }
 
       const [[ex0, ey0], [ex1, ey1]] = extent;
       const w = ex1 - ex0;
@@ -140,6 +158,7 @@ function makeProjection(
     },
 
     fitSize(size: readonly [number, number], object: GeoObject | GeoSphere): ProjectionObject {
+      // SAFETY: The chart algorithm establishes this representation before the assertion.
       return (proj as ProjectionObject).fitExtent(
         [
           [0, 0],
@@ -150,6 +169,7 @@ function makeProjection(
     },
   });
 
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   return proj as ProjectionObject;
 }
 
@@ -447,6 +467,7 @@ export function geoPath(projection: Projection): GeoPathFn {
     return geometryPath(projection, obj);
   };
 
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   return Object.assign(fn, {
     bounds: (obj: GeoObject) => geoBoundsRaw(projection, obj),
     centroid: (obj: GeoObject) => geoCentroid(projection, obj),

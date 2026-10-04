@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as WaterfallChart from '../../ui/waterfall-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ waterfall: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'waterfall'> & {
   readonly waterfall: WaterfallChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: waterfall } = WaterfallChart.init({
     entries: [
       { label: 'Revenue', value: 850, type: 'total' },

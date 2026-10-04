@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as VoronoiMessage } from '../../ui/voronoi-chart';
 
 export const Message = defineMessageUnion({
-  GotVoronoiMessage: { message: Schema.Unknown },
+  ReceivedVoronoiMessage: { message: Schema.Unknown },
 });
-export type GotVoronoiMessage = Omit<typeof Message.GotVoronoiMessage.Type, 'message'> & {
+export type ReceivedVoronoiMessage = Omit<typeof Message.ReceivedVoronoiMessage.Type, 'message'> & {
   readonly message: VoronoiMessage;
 };
 export type Message = typeof Message.Type;

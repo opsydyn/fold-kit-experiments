@@ -39,7 +39,7 @@ describe('linked charts update', () => {
 
     const nextModel = update(
       model,
-      Message.GotScatterMessage({
+      Message.ReceivedScatterMessage({
         message: Scatter.Message.HoveredPoint({ index: pointIndex }),
       }),
     ).model;
@@ -52,14 +52,14 @@ describe('linked charts update', () => {
     const { model, pointIndex } = scatterPointAndBin();
     const hovered = update(
       model,
-      Message.GotScatterMessage({
+      Message.ReceivedScatterMessage({
         message: Scatter.Message.HoveredPoint({ index: pointIndex }),
       }),
     ).model;
 
     const nextModel = update(
       hovered,
-      Message.GotScatterMessage({ message: Scatter.Message.BlurredPoint() }),
+      Message.ReceivedScatterMessage({ message: Scatter.Message.BlurredPoint() }),
     ).model;
 
     expect(nextModel.scatter.activeIndex).toEqual(Option.none());
@@ -71,7 +71,7 @@ describe('linked charts update', () => {
 
     const nextModel = update(
       model,
-      Message.GotHistogramMessage({
+      Message.ReceivedHistogramMessage({
         message: Histogram.Message.HoveredBin({ index: binIndex }),
       }),
     ).model;
@@ -84,14 +84,14 @@ describe('linked charts update', () => {
     const { binIndex, model } = histogramBinAndPoint();
     const hovered = update(
       model,
-      Message.GotHistogramMessage({
+      Message.ReceivedHistogramMessage({
         message: Histogram.Message.HoveredBin({ index: binIndex }),
       }),
     ).model;
 
     const nextModel = update(
       hovered,
-      Message.GotHistogramMessage({ message: Histogram.Message.BlurredBin() }),
+      Message.ReceivedHistogramMessage({ message: Histogram.Message.BlurredBin() }),
     ).model;
 
     expect(nextModel.histogram.activeBin).toEqual(Option.none());

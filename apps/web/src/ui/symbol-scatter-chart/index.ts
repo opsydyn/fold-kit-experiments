@@ -66,9 +66,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const symbolSize = cfg.symbolSize ?? 72;
 
   const colorScale = ordinal(cfg.categories, colors);
-  const symbolScale = ordinal(cfg.categories, SYMBOLS_FILL as unknown as string[]) as unknown as (
-    v: string,
-  ) => SymbolType;
+  const symbolScale = ordinal(cfg.categories, SYMBOLS_FILL);
 
   const categoryStyles = new Map<string, CategoryStyle>(
     cfg.categories.map((cat) => [cat, { color: colorScale(cat), symbol: symbolScale(cat) }]),
@@ -91,6 +89,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const points: ReadonlyArray<PlottedPoint> = cfg.data.map((datum) => {
     const style = categoryStyles.get(datum.category) ?? {
       color: colors[0] ?? '#6366f1',
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       symbol: 'circle' as SymbolType,
     };
     return {
@@ -334,6 +333,7 @@ export function view<M>(
       categories.map((cat, i) => {
         const style = categoryStyles.get(cat) ?? {
           color: '#6366f1',
+          // SAFETY: The app model and message contracts establish this value before the assertion.
           symbol: 'circle' as SymbolType,
         };
         const legendPath = symbolPath(style.symbol, LEGEND_SYMBOL_SIZE);

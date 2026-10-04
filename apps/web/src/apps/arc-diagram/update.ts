@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotArcMessage: ({ message }) => {
+    ReceivedArcMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: chart } = Arc.update(model.chart, message as Arc.Message);
       return { model: { ...model, chart } };
     },

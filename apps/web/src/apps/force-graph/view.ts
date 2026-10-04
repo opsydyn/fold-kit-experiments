@@ -4,7 +4,8 @@ import * as ForceGraph from '../../ui/force-graph';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: ForceGraph.Message): Message => Message.GotGraphMessage({ message: msg });
+const toParentMessage = (msg: ForceGraph.Message): Message =>
+  Message.ReceivedGraphMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Force Graph — foldkit-viz',

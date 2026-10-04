@@ -3,7 +3,9 @@ import { describe, expect, it, mock } from 'bun:test';
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import type { AppConfig, AppConfigShape } from '../../src/types';
+import type { ClientRuntime } from '../../src/client';
+import type { NavigationEvent } from '../../src/navigation';
+import type { AppConfig, AppConfigContract } from '../../src/types';
 
 mock.module('foldkit', () => ({ Runtime: {} }));
 
@@ -14,14 +16,21 @@ const { createClientRenderer } = await import('../../src/client');
 
 type Model = { readonly count: number };
 type Message = { readonly _tag: 'Increment' };
+interface TestProps {
+  readonly initialCount?: number;
+  readonly noMeta?: boolean | '';
+}
+type RuntimeConfig = Parameters<ClientRuntime['makeApplication']>[0];
+type RuntimeProgram = ReturnType<ClientRuntime['makeApplication']>;
+type RuntimeHydrationOptions = NonNullable<Parameters<NonNullable<ClientRuntime['hydrate']>>[1]>;
 
 const config = {
   Model: {},
-  init: (props: Record<string, unknown>) => ({ model: { count: Number(props.initialCount) } }),
+  init: (props: TestProps) => ({ model: { count: Number(props.initialCount) } }),
   update: (model: Model, _message: Message) => ({ model }),
+  // SAFETY: The test fixture establishes this value before the assertion.
   view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
-} satisfies AppConfig<Record<string, unknown>, Model, Message> &
-  AppConfigShape<Record<string, unknown>>;
+} satisfies AppConfig<TestProps, Model, Message> & AppConfigContract<TestProps>;
 
 const makeEventTarget = () => {
   const listeners = new Map<string, Set<EventListener>>();
@@ -34,7 +43,7 @@ const makeEventTarget = () => {
     removeEventListener: (type: string, listener: EventListener) => {
       listeners.get(type)?.delete(listener);
     },
-    dispatch: (type: string, eventProperties: Record<string, unknown> = {}) => {
+    dispatch: (type: string, eventProperties: EventProperties = {}) => {
       const event = Object.assign(new Event(type), eventProperties);
       for (const listener of listeners.get(type) ?? []) listener(event);
     },
@@ -44,6 +53,14 @@ const makeEventTarget = () => {
 type TestChild = {
   readonly attributes: Readonly<Record<string, string>>;
 };
+
+interface EventProperties {
+  readonly detail?: {
+    readonly newDocument?: ReturnType<typeof makeDocument>;
+    readonly to?: { readonly href?: string };
+  };
+  readonly newDocument?: ReturnType<typeof makeDocument>;
+}
 
 const makeFoldkitRoot = (
   attributes: Readonly<Record<string, string>> = { 'data-foldkit-build': BUILD_ID },
@@ -65,6 +82,13 @@ const makeElement = (uid = 'island-test', children: readonly TestChild[] = []) =
   ...makeEventTarget(),
 });
 
+type TestElement = ReturnType<typeof makeElement> & HTMLElement;
+
+function toTestElement(value: ReturnType<typeof makeElement>): TestElement {
+  // SAFETY: The test fixture supplies the DOM element expected by the renderer boundary.
+  return value as TestElement;
+}
+
 const makeDocument = (uids: readonly string[] = []) => ({
   title: 'Test page',
   querySelector: (selector: string) => {
@@ -79,7 +103,7 @@ const makeDocument = (uids: readonly string[] = []) => ({
 const renderWith = async (
   runtime: Parameters<typeof createClientRenderer>[0],
   options: {
-    readonly navigation?: AppConfigShape<Record<string, unknown>>['navigation'];
+    readonly navigation?: AppConfigContract<TestProps>['navigation'];
     readonly element?: ReturnType<typeof makeElement>;
     readonly document?: ReturnType<typeof makeDocument>;
     readonly window?: { readonly location: { href: string } };
@@ -88,9 +112,10 @@ const renderWith = async (
   const element = options.element ?? makeElement();
   const appConfig = {
     ...config,
-    ...(options.navigation ? { navigation: options.navigation } : {}),
   };
-  const app = Object.assign((_props?: Record<string, unknown>) => {}, {
+  if (options.navigation !== undefined)
+    Object.assign(appConfig, { navigation: options.navigation });
+  const app = Object.assign((_props?: TestProps) => {}, {
     __foldkit: true as const,
     load: async () => appConfig,
   });
@@ -98,7 +123,7 @@ const renderWith = async (
   await createClientRenderer(runtime, {
     document: options.document ?? makeDocument(),
     window: options.window ?? { location: { href: 'https://example.test/' } },
-  })(element as unknown as HTMLElement)(app, {}, {}, { client: 'load' });
+  })(toTestElement(element))(app, {}, {}, { client: 'load' });
   return element;
 };
 
@@ -112,31 +137,32 @@ describe('astro-foldkit client renderer', () => {
       Flags: Schema.Struct({ initialCount: Schema.Number }),
       customField: 'preserved',
     };
-    const page = Object.assign((_props?: Record<string, unknown>) => {}, {
+    const page = Object.assign((_props?: TestProps) => {}, {
       __foldkitPage: true as const,
       load: async () => pageConfig,
       flags: () => ({ initialCount: 9 }),
     });
     let makeApplicationInput: unknown;
-    let hydrateArgs: unknown;
+    let hydrateArgs: [RuntimeProgram, RuntimeHydrationOptions] | undefined;
     let embedCalls = 0;
     let disposeCalls = 0;
 
     const runtime = {
-      makeApplication: (input: unknown) => {
+      makeApplication: (input: RuntimeConfig) => {
         makeApplicationInput = input;
         return application;
       },
-      embed: (_program: unknown) => {
+      embed: (_program: RuntimeProgram) => {
         embedCalls += 1;
         return { dispose: () => (disposeCalls += 1) };
       },
-      hydrate: (program: unknown, options: unknown) => {
+      hydrate: (program: RuntimeProgram, options: RuntimeHydrationOptions) => {
         hydrateArgs = [program, options];
       },
     };
 
-    await createClientRenderer(runtime)(element as unknown as HTMLElement)(
+    // SAFETY: The test fixture establishes this value before the assertion.
+    await createClientRenderer(runtime)(element as TestElement)(
       page,
       { initialCount: 9 },
       {},
@@ -163,7 +189,7 @@ describe('astro-foldkit client renderer', () => {
       ...config,
       Flags: Schema.Struct({ initialCount: Schema.Number }),
     };
-    const page = Object.assign((_props?: Record<string, unknown>) => {}, {
+    const page = Object.assign((_props?: TestProps) => {}, {
       __foldkitPage: true as const,
       load: async () => pageConfig,
       flags: () => ({ initialCount: 9 }),
@@ -173,21 +199,22 @@ describe('astro-foldkit client renderer', () => {
       makeFoldkitRoot({}),
       makeFoldkitRoot({ 'data-foldkit-build': 'other-build' }),
     ]) {
-      let hydrateArgs: unknown;
+      let hydrateArgs: [RuntimeProgram, RuntimeHydrationOptions] | undefined;
       let embedCalls = 0;
       const runtime = {
-        makeApplication: (input: unknown) => input,
-        embed: (_program: unknown) => {
+        makeApplication: (input: RuntimeConfig) => input,
+        embed: (_program: RuntimeProgram) => {
           embedCalls += 1;
           return { dispose: () => {} };
         },
-        hydrate: (program: unknown, options: unknown) => {
+        hydrate: (program: RuntimeProgram, options: RuntimeHydrationOptions) => {
           hydrateArgs = [program, options];
         },
       };
 
       await createClientRenderer(runtime)(
-        makeElement('page-island', [root]) as unknown as HTMLElement,
+        // SAFETY: The test fixture establishes this value before the assertion.
+        makeElement('page-island', [root]) as TestElement,
       )(page, { initialCount: 9 }, {}, { client: 'load' });
 
       expect(hydrateArgs).toEqual([{ ...pageConfig, container: root }, { buildId: BUILD_ID }]);
@@ -200,7 +227,7 @@ describe('astro-foldkit client renderer', () => {
       ...config,
       Flags: Schema.Struct({ initialCount: Schema.Number }),
     };
-    const page = Object.assign((_props?: Record<string, unknown>) => {}, {
+    const page = Object.assign((_props?: TestProps) => {}, {
       __foldkitPage: true as const,
       load: async () => pageConfig,
       flags: () => ({ initialCount: 9 }),
@@ -214,11 +241,11 @@ describe('astro-foldkit client renderer', () => {
       let embedCalls = 0;
       let hydrateCalls = 0;
       const runtime = {
-        makeApplication: (input: unknown) => {
+        makeApplication: (input: RuntimeConfig) => {
           makeApplicationCalls += 1;
           return input;
         },
-        embed: (_program: unknown) => {
+        embed: (_program: RuntimeProgram) => {
           embedCalls += 1;
           return { dispose: () => {} };
         },
@@ -229,7 +256,8 @@ describe('astro-foldkit client renderer', () => {
 
       await expect(
         createClientRenderer(runtime)(
-          makeElement('page-island', children) as unknown as HTMLElement,
+          // SAFETY: The test fixture establishes this value before the assertion.
+          makeElement('page-island', children) as TestElement,
         )(page, { initialCount: 9 }, {}, { client: 'load' }),
       ).rejects.toThrow('exactly one stamped FoldKit root');
       expect(makeApplicationCalls).toBe(0);
@@ -248,12 +276,13 @@ describe('astro-foldkit client renderer', () => {
     let disposeCalls = 0;
 
     const runtime = {
-      makeApplication: (input: unknown) => {
+      makeApplication: (input: RuntimeConfig) => {
         makeApplicationCalls += 1;
+        // SAFETY: The test fixture establishes this value before the assertion.
         initProps = (input as { init: () => { readonly model: Model } }).init();
         return input;
       },
-      embed: (_program: unknown) => {
+      embed: (_program: RuntimeProgram) => {
         embedCalls += 1;
         return { dispose: () => (disposeCalls += 1) };
       },
@@ -267,12 +296,8 @@ describe('astro-foldkit client renderer', () => {
       },
     });
 
-    await createClientRenderer(runtime)(element as unknown as HTMLElement)(
-      app,
-      props,
-      {},
-      { client: 'load' },
-    );
+    // SAFETY: The test fixture establishes this value before the assertion.
+    await createClientRenderer(runtime)(element as TestElement)(app, props, {}, { client: 'load' });
     element.dispatch('astro:unmount');
     element.dispatch('astro:unmount');
 
@@ -286,9 +311,9 @@ describe('astro-foldkit client renderer', () => {
   it('sends coldLoad through the configured inbound port', async () => {
     const sent: unknown[] = [];
     const runtime = {
-      makeApplication: (input: unknown) => input,
-      embed: (_program: unknown) => ({
-        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+      makeApplication: (input: RuntimeConfig) => input,
+      embed: (_program: RuntimeProgram) => ({
+        ports: { navigation: { send: (value: NavigationEvent) => sent.push(value) } },
         dispose: () => {},
       }),
     };
@@ -305,11 +330,11 @@ describe('astro-foldkit client renderer', () => {
     const element = makeElement('lifecycle-order-island');
     const document = makeDocument();
     const runtime = {
-      makeApplication: (input: unknown) => input,
-      embed: (_program: unknown) => ({
+      makeApplication: (input: RuntimeConfig) => input,
+      embed: (_program: RuntimeProgram) => ({
         ports: {
           navigation: {
-            send: (value: unknown) => events.push(['navigation', value]),
+            send: (value: NavigationEvent) => events.push(['navigation', value]),
           },
         },
         dispose: () => events.push(['dispose']),
@@ -336,9 +361,9 @@ describe('astro-foldkit client renderer', () => {
     const document = makeDocument();
     const window = { location: { href: 'https://example.test/start' } };
     const runtime = {
-      makeApplication: (input: unknown) => input,
-      embed: (_program: unknown) => ({
-        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+      makeApplication: (input: RuntimeConfig) => input,
+      embed: (_program: RuntimeProgram) => ({
+        ports: { navigation: { send: (value: NavigationEvent) => sent.push(value) } },
         dispose: () => {},
       }),
     };
@@ -368,9 +393,9 @@ describe('astro-foldkit client renderer', () => {
     const document = makeDocument();
     const window = { location: { href: 'https://example.test/old' } };
     const runtime = {
-      makeApplication: (input: unknown) => input,
-      embed: (_program: unknown) => ({
-        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+      makeApplication: (input: RuntimeConfig) => input,
+      embed: (_program: RuntimeProgram) => ({
+        ports: { navigation: { send: (value: NavigationEvent) => sent.push(value) } },
         dispose: () => {},
       }),
     };
@@ -395,9 +420,9 @@ describe('astro-foldkit client renderer', () => {
     const sent: unknown[] = [];
     const document = makeDocument();
     const runtime = {
-      makeApplication: (input: unknown) => input,
-      embed: (_program: unknown) => ({
-        ports: { navigation: { send: (value: unknown) => sent.push(value) } },
+      makeApplication: (input: RuntimeConfig) => input,
+      embed: (_program: RuntimeProgram) => ({
+        ports: { navigation: { send: (value: NavigationEvent) => sent.push(value) } },
         dispose: () => {},
       }),
     };
@@ -418,9 +443,9 @@ describe('astro-foldkit client renderer', () => {
     const firstElement = makeElement('remounted-island');
     const firstDocument = makeDocument();
     const runtime = {
-      makeApplication: (input: unknown) => input,
-      embed: (_program: unknown) => ({
-        ports: { navigation: { send: (value: unknown) => firstSent.push(value) } },
+      makeApplication: (input: RuntimeConfig) => input,
+      embed: (_program: RuntimeProgram) => ({
+        ports: { navigation: { send: (value: NavigationEvent) => firstSent.push(value) } },
         dispose: () => {},
       }),
     };
@@ -436,9 +461,9 @@ describe('astro-foldkit client renderer', () => {
     const remountSent: unknown[] = [];
     await renderWith(
       {
-        makeApplication: (input: unknown) => input,
-        embed: (_program: unknown) => ({
-          ports: { navigation: { send: (value: unknown) => remountSent.push(value) } },
+        makeApplication: (input: RuntimeConfig) => input,
+        embed: (_program: RuntimeProgram) => ({
+          ports: { navigation: { send: (value: NavigationEvent) => remountSent.push(value) } },
           dispose: () => {},
         }),
       },
@@ -463,9 +488,9 @@ describe('astro-foldkit client renderer', () => {
     console.warn = warn;
     const element = await renderWith(
       {
-        makeApplication: (input: unknown) => input,
-        embed: (_program: unknown) => ({
-          ports: { other: { send: (value: unknown) => sent.push(value) } },
+        makeApplication: (input: RuntimeConfig) => input,
+        embed: (_program: RuntimeProgram) => ({
+          ports: { other: { send: (value: NavigationEvent) => sent.push(value) } },
           dispose: () => {
             disposeCalls += 1;
           },

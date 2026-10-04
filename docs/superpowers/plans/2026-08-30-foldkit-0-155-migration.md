@@ -48,6 +48,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 1: Establish the 0.155 dependency and lint floor
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `apps/web/package.json`
 - Modify: `packages/astro-foldkit/package.json`
@@ -56,6 +57,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 - Modify: `bun.lock`
 
 **Interfaces:**
+
 - Consumes: the current workspace ranges (`foldkit ^0.148.0`, Effect `rc.109`, Vite plugin `0.16.x`, and Oxlint plugin `0.3.x`).
 - Produces: one installed FoldKit `0.155.0` line, Effect `rc.112` line, compatible Vite/Oxlint plugins, and package peer floors that reject older incompatible APIs.
 
@@ -105,11 +107,13 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 2: Migrate application message declarations
 
 **Files:**
+
 - Create: `apps/web/src/apps/health/message.test.ts`
 - Modify: `apps/web/src/apps/*/message.ts` (58 application message modules)
 - Modify: application files importing named message constructors under `apps/web/src/apps/`
 
 **Interfaces:**
+
 - Consumes: `defineMessageUnion` from `foldkit/message` and the existing message field schemas.
 - Produces: one `Message` namespace per application message module, with callable no-field constructors and `typeof Message.Type` message types.
 
@@ -126,12 +130,14 @@ Generated `dist` output is produced by package builds and is not hand-edited.
         _tag: 'TickedFrame',
         deltaTimeMs: 16,
       });
-      expect(Message.FetchedHealth({
-        status: 'ok',
-        uptimeSeconds: 1,
-        startedAt: '2026-01-01T00:00:00.000Z',
-        timestamp: '2026-01-01T00:00:01.000Z',
-      })._tag).toBe('FetchedHealth');
+      expect(
+        Message.FetchedHealth({
+          status: 'ok',
+          uptimeSeconds: 1,
+          startedAt: '2026-01-01T00:00:00.000Z',
+          timestamp: '2026-01-01T00:00:01.000Z',
+        })._tag,
+      ).toBe('FetchedHealth');
     });
   });
   ```
@@ -173,15 +179,13 @@ Generated `dist` output is produced by package builds and is not hand-edited.
     SettledSlides: { result: Schema.Unknown },
   });
 
-  export type GotCarouselMessage = Omit<
-    typeof Message.GotCarouselMessage.Type,
-    'message'
-  > & { readonly message: CarouselMessage };
+  export type GotCarouselMessage = Omit<typeof Message.GotCarouselMessage.Type, 'message'> & {
+    readonly message: CarouselMessage;
+  };
 
-  export type SettledSlides = Omit<
-    typeof Message.SettledSlides.Type,
-    'result'
-  > & { readonly result: Result.Result<ReadonlyArray<Slide>, string> };
+  export type SettledSlides = Omit<typeof Message.SettledSlides.Type, 'result'> & {
+    readonly result: Result.Result<ReadonlyArray<Slide>, string>;
+  };
   ```
 
 - [ ] **Step 5: Migrate application message call sites.** Remove named value imports such as `FetchedHealth` and use `Message.FetchedHealth(...)` at construction sites. Update local no-field calls from `Variant({})` to `Message.Variant()`. Keep type-only imports when a file needs only `type Message`.
@@ -205,12 +209,14 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 3: Migrate UI message namespaces and constructor consumers
 
 **Files:**
+
 - Modify: `apps/web/src/ui/*/index.ts` (48 message-bearing UI modules)
 - Modify: `apps/web/src/apps/*/{view,update,model,subscription}.ts` where UI constructors are used
 - Modify: `apps/web/src/stories/charts-primitives.stories.ts`
 - Modify: `apps/web/src/stories/mount.ts`
 
 **Interfaces:**
+
 - Consumes: application `Message` namespaces from Task 2 and `defineMessageUnion`.
 - Produces: UI modules exposing `Message` and, where applicable, a separate `OutMessage` namespace; chart consumers construct values through `Chart.Message.Variant()`.
 
@@ -245,7 +251,10 @@ Generated `dist` output is produced by package builds and is not hand-edited.
       readonly model: unknown;
       readonly commands?: ReadonlyArray<unknown>;
     };
-    update: (model: unknown, message: unknown) => {
+    update: (
+      model: unknown,
+      message: unknown,
+    ) => {
       readonly model: unknown;
       readonly commands?: ReadonlyArray<unknown>;
     };
@@ -286,6 +295,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 4: Convert tagged states, routes, and FoldKit matchers
 
 **Files:**
+
 - Modify: `apps/web/src/apps/health/model.ts`
 - Modify: `apps/web/src/apps/health/update.ts`
 - Modify: `apps/web/src/apps/request-diagnostics/model.ts`
@@ -297,6 +307,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 - Modify: `apps/web/src/apps/request-diagnostics/{navigation,machine,main.scene}.test.ts`
 
 **Interfaces:**
+
 - Consumes: namespace-owned message values from Tasks 2 and 3.
 - Produces: `HealthState`, `ExplorerState`, URL-route, and normalized-route namespaces plus exhaustive union `.match` handlers.
 
@@ -385,6 +396,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 5: Migrate the five chart mounts
 
 **Files:**
+
 - Modify: `apps/web/src/ui/bar-chart/index.ts`
 - Modify: `apps/web/src/ui/area-chart/index.ts`
 - Modify: `apps/web/src/ui/line-chart/index.ts`
@@ -392,6 +404,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 - Modify: `apps/web/src/ui/histogram-chart/index.ts`
 
 **Interfaces:**
+
 - Consumes: each module’s `Message.RecordedChartBounds` or `Message.RecordedSvgBounds` constructor from Tasks 3 and 4.
 - Produces: 0.155 `Mount.define` configuration objects with an element-aware `execute` function and the same emitted messages.
 
@@ -444,10 +457,12 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 6: Convert UI primitive init/update results to records
 
 **Files:**
+
 - Create: `apps/web/src/ui/record-contract.test.ts`
 - Modify: `apps/web/src/ui/*/index.ts` (all 48 UI primitive modules)
 
 **Interfaces:**
+
 - Consumes: 0.155 `Update.Return` and the namespace message types from previous tasks.
 - Produces: chart primitive `init` and `update` functions that return `{ model }` when they have no commands and preserve all existing model transitions.
 
@@ -518,6 +533,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 7: Convert application runtime records and carousel OutMessage composition
 
 **Files:**
+
 - Create: `apps/web/src/ui/carousel/update.test.ts`
 - Modify: `apps/web/src/apps/*/{main,model,update}.ts`
 - Modify: `apps/web/src/apps/*/*.test.ts`, `*.story.test.ts`, and `*.scene.test.ts`
@@ -528,6 +544,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 - Modify: `apps/web/src/apps/histogram-brush/update.ts`
 
 **Interfaces:**
+
 - Consumes: record-returning UI primitives from Task 6 and 0.155 `Update.Return`/`ReturnWithOutMessage`.
 - Produces: record-shaped app init/update functions, explicit carousel child folding, and unchanged request-exit cancellation behavior.
 
@@ -541,7 +558,10 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 
   describe('carousel OutMessage', () => {
     it('returns a direct OutMessage when navigation changes the slide', () => {
-      const result = update(init({ id: 'test', slideCount: 3, loop: false }), Message.ClickedNext());
+      const result = update(
+        init({ id: 'test', slideCount: 3, loop: false }),
+        Message.ClickedNext(),
+      );
       expect(result.model.activeIndex).toBe(1);
       expect(result.outMessage?._tag).toBe('ChangedSlide');
       expect('commands' in result).toBe(false);
@@ -622,6 +642,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 8: Update the Astro public AppConfig contract and fixtures
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/src/types.ts`
 - Modify: `packages/astro-foldkit/src/client.ts`
 - Modify: `packages/astro-foldkit/src/server-render.ts` only if 0.155 type inference requires an adapter annotation
@@ -634,6 +655,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 - Modify: `packages/astro-foldkit/test/integration/package-import-smoke.test.ts`
 
 **Interfaces:**
+
 - Consumes: 0.155 `Update.Return` record and existing server/client adapters.
 - Produces: type-safe `AppConfig`, `AppConfigShape`, page config, client model inference, and packed consumer fixtures that accept records and reject tuples.
 
@@ -707,6 +729,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 9: Update viz compatibility fixtures and current documentation
 
 **Files:**
+
 - Modify: `packages/foldkit-viz/test/chart-harness.ts`
 - Modify: `packages/foldkit-viz/test/foldkit-compatibility.test.ts`
 - Modify: `packages/foldkit-viz/test/package-import-smoke.test.ts` only for record fixture assertions
@@ -717,6 +740,7 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 - Modify: `docs/roadmap.md`
 
 **Interfaces:**
+
 - Consumes: the record contract and package ranges from Tasks 1, 6, and 8.
 - Produces: documentation that matches FoldKit 0.155 and a pure viz package whose tests prove compatibility without adding runtime dependencies.
 
@@ -771,10 +795,12 @@ Generated `dist` output is produced by package builds and is not hand-edited.
 ### Task 10: Run repository gates and prepare the coordinated release
 
 **Files:**
+
 - Modify through release tooling: `packages/astro-foldkit/package.json`, `packages/foldkit-viz/package.json`, `.release-please-manifest.json`, generated changelogs/release notes
 - Inspect: `package.json`, `apps/web/package.json`, `packages/astro-foldkit/package.json`, `packages/foldkit-viz/package.json`, `oxlint.config.ts`, and `bun.lock`
 
 **Interfaces:**
+
 - Consumes: all migrated source, tests, docs, and dependency metadata from Tasks 1-9.
 - Produces: verified packed artifacts and release-please-ready package minors `@opsydyn/astro-foldkit@0.7.0` and `@opsydyn/foldkit-viz@0.9.0`.
 

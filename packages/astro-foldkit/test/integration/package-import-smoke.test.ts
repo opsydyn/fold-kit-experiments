@@ -8,6 +8,18 @@ import { promisify } from 'node:util';
 const execFileAsync = promisify(execFile);
 const maxBuffer = 10 * 1024 * 1024;
 
+type RuntimeFunction = (...args: never[]) => void;
+const isFunction = (value: unknown): value is RuntimeFunction => typeof value === 'function';
+
+interface IntegrationHooks {
+  readonly 'astro:config:setup'?: unknown;
+}
+
+interface Integration {
+  readonly name: string;
+  readonly hooks: IntegrationHooks;
+}
+
 const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 type DistIndex = { default: unknown };
@@ -64,6 +76,7 @@ const setupFixture = async (): Promise<SmokeFixture> => {
     env,
     maxBuffer,
   });
+  // SAFETY: The test fixture establishes this value before the assertion.
   const [{ filename }] = JSON.parse(stdout) as [{ filename: string }];
   const tarball = path.resolve(packageDir, filename);
 
@@ -179,20 +192,25 @@ void title;
     ],
     { cwd: consumerDir, env, maxBuffer },
   );
+  // SAFETY: The test fixture establishes this value before the assertion.
   const distIndex = (await import(
     pathToFileURL(path.join(pkgRoot, 'dist', 'index.mjs')).href
   )) as DistIndex;
+  // SAFETY: The test fixture establishes this value before the assertion.
   const distDefineApp = (await import(
     pathToFileURL(path.join(pkgRoot, 'dist', 'define-app.mjs')).href
   )) as DistDefineApp;
+  // SAFETY: The test fixture establishes this value before the assertion.
   const distDefinePage = (await import(
     pathToFileURL(path.join(pkgRoot, 'dist', 'define-page.mjs')).href
   )) as DistDefinePage;
+  // SAFETY: The test fixture establishes this value before the assertion.
   const distServer = (await import(
     pathToFileURL(path.join(pkgRoot, 'dist', 'server-public.mjs')).href
   )) as DistServer;
   const clientBundle = await readFile(path.join(pkgRoot, 'dist', 'client.mjs'), 'utf8');
   const distIndexTypes = await readFile(path.join(pkgRoot, 'dist', 'index.d.mts'), 'utf8');
+  // SAFETY: The test fixture establishes this value before the assertion.
   const packedPackageJson = JSON.parse(
     await readFile(path.join(pkgRoot, 'package.json'), 'utf8'),
   ) as PackedPackageJson;
@@ -270,16 +288,15 @@ describe('packed import smoke', () => {
       distIndexTypes,
       packedPackageJson,
     } = await fixturePromise;
-    expect(typeof distIndex.default).toBe('function');
-    const integration = (
-      distIndex.default as () => { name: string; hooks: Record<string, unknown> }
-    )();
+    expect(isFunction(distIndex.default)).toBe(true);
+    const integration = // SAFETY: The test fixture establishes this value before the assertion.
+      (distIndex.default as () => Integration)();
     expect(integration.name).toBe('astro-foldkit');
-    expect(typeof integration.hooks['astro:config:setup']).toBe('function');
-    expect(typeof distDefineApp.defineApp).toBe('function');
-    expect(typeof distDefineApp.lazyApp).toBe('function');
-    expect(typeof distDefinePage.definePage).toBe('function');
-    expect(typeof distServer.resolvePageDocument).toBe('function');
+    expect(isFunction(integration.hooks['astro:config:setup'])).toBe(true);
+    expect(isFunction(distDefineApp.defineApp)).toBe(true);
+    expect(isFunction(distDefineApp.lazyApp)).toBe(true);
+    expect(isFunction(distDefinePage.definePage)).toBe(true);
+    expect(isFunction(distServer.resolvePageDocument)).toBe(true);
     expect(clientBundle).not.toContain('resolvePageDocument');
     expect(clientBundle).not.toContain('foldkit/experimental/server');
     expect(distIndexTypes).toContain('NavigationConfig');
@@ -297,6 +314,7 @@ describe('packed import smoke', () => {
       ['node', ['-e', importScript]],
     ] as const) {
       const { stdout } = await execFileAsync(runtime, args, { cwd: consumerDir, env, maxBuffer });
+      // SAFETY: The test fixture establishes this value before the assertion.
       const payload = JSON.parse(stdout.trim().split('\n').at(-1) ?? '') as {
         defaultIsFunction: boolean;
         integrationName: string;
@@ -312,6 +330,7 @@ describe('packed import smoke', () => {
       ['node', ['-e', defineAppScript]],
     ] as const) {
       const { stdout } = await execFileAsync(runtime, args, { cwd: consumerDir, env, maxBuffer });
+      // SAFETY: The test fixture establishes this value before the assertion.
       const payload = JSON.parse(stdout.trim().split('\n').at(-1) ?? '') as {
         defineAppIsFunction: boolean;
         lazyAppIsFunction: boolean;
@@ -331,6 +350,7 @@ describe('packed import smoke', () => {
       ['node', ['-e', definePageScript]],
     ] as const) {
       const { stdout } = await execFileAsync(runtime, args, { cwd: consumerDir, env, maxBuffer });
+      // SAFETY: The test fixture establishes this value before the assertion.
       const payload = JSON.parse(stdout.trim().split('\n').at(-1) ?? '') as {
         definePageIsFunction: boolean;
       };
@@ -342,6 +362,7 @@ describe('packed import smoke', () => {
       ['node', ['-e', serverScript]],
     ] as const) {
       const { stdout } = await execFileAsync(runtime, args, { cwd: consumerDir, env, maxBuffer });
+      // SAFETY: The test fixture establishes this value before the assertion.
       const payload = JSON.parse(stdout.trim().split('\n').at(-1) ?? '') as {
         resolvePageDocumentIsFunction: boolean;
         hasDefaultExport: boolean;

@@ -11,6 +11,7 @@ export type FoldkitAppConfig = {
 
 type RuntimeHandle = Pick<EmbedHandle, 'dispose'>;
 type FoldkitProgram = MakeRuntimeReturn<any>;
+interface MountProps {}
 
 export function mountFoldkitProgram(
   createProgram: (container: HTMLElement) => FoldkitProgram,
@@ -62,10 +63,7 @@ export function mountFoldkitProgram(
   return host;
 }
 
-export function mountFoldkit(
-  config: FoldkitAppConfig,
-  initProps: Record<string, unknown> = {},
-): HTMLElement {
+export function mountFoldkit(config: FoldkitAppConfig, initProps: MountProps = {}): HTMLElement {
   return mountFoldkitProgram((container) =>
     makeApplication({
       ...config,

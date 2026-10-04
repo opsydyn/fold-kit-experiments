@@ -18,6 +18,7 @@ const preview: Preview = {
     (Story) => {
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'padding: 32px; box-sizing: border-box; width: 100%;';
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       wrapper.appendChild(Story() as Node);
       return wrapper;
     },

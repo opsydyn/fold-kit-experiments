@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as ScatterChart from '../../ui/symbol-scatter-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & {
@@ -45,7 +46,7 @@ const AUTO_DATA: ReadonlyArray<ScatterChart.ScatterDatum> = [
   { x: 100, y: 26, category: 'Japan' },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = ScatterChart.init({
     data: AUTO_DATA,
     categories: ['USA', 'Europe', 'Japan'],

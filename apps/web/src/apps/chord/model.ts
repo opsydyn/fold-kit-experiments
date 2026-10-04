@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as ChordChart from '../../ui/chord-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chord: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chord'> & {
@@ -25,7 +26,7 @@ const MATRIX: ReadonlyArray<ReadonlyArray<number>> = [
   [32, 24, 9, 18, 14], // AI
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chord } = ChordChart.init({ matrix: MATRIX, groups: GROUPS });
   return { model: { chord } };
 };

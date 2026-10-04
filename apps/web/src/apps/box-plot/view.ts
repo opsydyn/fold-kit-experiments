@@ -4,7 +4,8 @@ import * as BoxChart from '../../ui/box-plot-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: BoxChart.Message): Message => Message.GotBoxMessage({ message: msg });
+const toParentMessage = (msg: BoxChart.Message): Message =>
+  Message.ReceivedBoxMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Box Plot — foldkit-viz',

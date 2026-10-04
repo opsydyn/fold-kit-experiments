@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as ThresholdBar from '../../ui/threshold-bar-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & {
@@ -18,7 +19,7 @@ const ENDPOINTS: ReadonlyArray<ThresholdBar.Endpoint> = [
   { label: 'GET /api/full-dump', ms: 1240 },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = ThresholdBar.init({ endpoints: ENDPOINTS });
   return { model: { chart } };
 };

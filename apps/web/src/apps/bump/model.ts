@@ -1,11 +1,12 @@
 import { Schema } from 'effect';
 
 import * as Bump from '../../ui/bump-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Bump.Model };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = Bump.init({
     xLabels: ['2019', '2020', '2021', '2022', '2023', '2024'],
     series: [

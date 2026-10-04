@@ -8,7 +8,7 @@ import type { Return as UpdateReturn } from 'foldkit/update';
 import type { Dims, Layout, Margins } from '../shared';
 import {
   arrowKeyNav,
-  makeLayout,
+  layoutFor,
   nearestIndex,
   nextIndex,
   r3,
@@ -58,7 +58,7 @@ const DEFAULT_CONFIG: Config = {
 };
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 280, ...cfg.dims },
     { top: 24, right: 16, bottom: 44, left: 44, ...cfg.margins },
   );
@@ -114,6 +114,7 @@ export const update = (model: Model, msg: Message): Return =>
     RecordedChartBounds: ({ screenLeft, renderedPW }) => ({
       model: { ...model, svgBounds: Option.some({ screenLeft, renderedPW }) },
     }),
+    // SAFETY: The app model and message contracts establish this value before the assertion.
     UpdatedBars: ({ bars }) => ({ model: { ...model, bars: bars as ReadonlyArray<Bar> } }),
     PressedKeyNav: ({ direction }) => {
       const n = model.bars.length;

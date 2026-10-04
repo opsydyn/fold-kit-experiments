@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as RadarChart from '../../ui/radar-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ radar: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'radar'> & {
   readonly radar: RadarChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: radar } = RadarChart.init({
     axes: ['Performance', 'Expressiveness', 'Type Safety', 'Ecosystem', 'Dev Speed'],
     maxValue: 10,

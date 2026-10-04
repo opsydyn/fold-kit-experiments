@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotLogScatterMessage: ({ message }) => {
+    ReceivedLogScatterMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: chart } = LogScatter.update(model.chart, message as LogScatter.Message);
       return { model: { ...model, chart } };
     },

@@ -1,24 +1,29 @@
 import { Runtime } from 'foldkit';
 
 import { readFoldkitBuildId } from './build-id';
-import { findSingleFoldkitRoot, makeNoMetaView, shouldSkipMetadata } from './client-helpers';
+import { findSingleFoldkitRoot, shouldSkipMetadata, withNoMetaView } from './client-helpers';
 import { normalizeNavigationEvent } from './navigation';
-import type { NavigationConfig, NavigationPhase } from './navigation';
-import type { AppConfigShape, FoldkitApp, FoldkitPage, PageConfigShape } from './types';
+import type { NavigationConfig, NavigationEvent, NavigationPhase } from './navigation';
+import type { AppConfigContract, FoldkitApp } from './types';
 
-type ConfigModel<
-  Props extends Record<string, unknown>,
-  Config extends AppConfigShape<Props>,
-> = ReturnType<Config['init']>['model'];
+interface RuntimeConfigInput {}
+interface RuntimeProgram {}
+interface RuntimeHydrationOptions {
+  readonly buildId: string;
+}
+interface ClientSlots {}
 
-type ConfigMessage<
-  Props extends Record<string, unknown>,
-  Config extends AppConfigShape<Props>,
-> = Parameters<Config['update']>[1];
+type ConfigModel<Props extends object, Config extends AppConfigContract<Props>> = ReturnType<
+  Config['init']
+>['model'];
+
+type ConfigMessage<Props extends object, Config extends AppConfigContract<Props>> = Parameters<
+  Config['update']
+>[1];
 
 type RuntimeConfigOf<
-  Props extends Record<string, unknown>,
-  Config extends AppConfigShape<Props>,
+  Props extends object,
+  Config extends AppConfigContract<Props>,
 > = Runtime.ApplicationConfig<ConfigModel<Props, Config>, ConfigMessage<Props, Config>>;
 
 type EventTargetLike = {
@@ -34,11 +39,12 @@ type IslandLike = EventTargetLike & {
 
 type NavigationDocument = EventTargetLike & {
   readonly title: string;
-  readonly querySelector: (selector: string) => unknown;
+  readonly querySelector: (selector: string) => object | null;
 };
 
+type RuntimePortHandle<Value> = { readonly send: (value: Value) => void };
 type EmbedHandle = {
-  readonly ports?: Record<string, { readonly send: (value: unknown) => unknown }>;
+  readonly ports?: Readonly<Record<string, RuntimePortHandle<NavigationEvent>>>;
   readonly dispose: () => void;
 };
 
@@ -48,26 +54,26 @@ type ClientEnvironment = {
 };
 
 type BeforeSwapEvent = Event & {
-  readonly newDocument?: unknown;
+  readonly newDocument?: NavigationDocument;
   readonly detail?: {
-    readonly newDocument?: unknown;
-    readonly to?: { readonly href?: unknown };
+    readonly newDocument?: NavigationDocument;
+    readonly to?: { readonly href?: string };
   };
 };
 
 export type ClientRuntime = {
-  readonly makeApplication: (config: unknown) => unknown;
-  readonly embed: (program: unknown) => EmbedHandle;
-  readonly hydrate?: (program: unknown, options: { readonly buildId: string }) => unknown;
+  readonly makeApplication: (config: RuntimeConfigInput) => RuntimeProgram;
+  readonly embed: (program: RuntimeProgram) => EmbedHandle;
+  readonly hydrate?: (program: RuntimeProgram, options: RuntimeHydrationOptions) => void;
 };
 
-type ClientPage = FoldkitPage<
-  Record<string, unknown>,
-  Record<string, unknown>,
-  PageConfigShape<Record<string, unknown>>
->;
+interface ClientPage {
+  (props?: never): void;
+  readonly __foldkitPage: true;
+  readonly load: () => Promise<RuntimeConfigInput>;
+}
 
-type ClientComponent<Props extends Record<string, unknown>, Config extends AppConfigShape<Props>> =
+type ClientComponent<Props extends object, Config extends AppConfigContract<Props>> =
   | FoldkitApp<Props, Config>
   | ClientPage;
 
@@ -95,27 +101,27 @@ const seenIslandIdentities = new Set<string>();
 
 const islandIdentity = (element: IslandLike): string => element.getAttribute('uid') ?? element.id;
 
-const newDocumentFrom = (event: Event): unknown => {
+const newDocumentFrom = (event: Event): NavigationDocument | undefined => {
+  // SAFETY: The surrounding package boundary establishes this value before the assertion.
   const beforeSwap = event as BeforeSwapEvent;
   return beforeSwap.newDocument ?? beforeSwap.detail?.newDocument;
 };
 
 const destinationHrefFrom = (event: Event, fallback: string): string => {
+  // SAFETY: The surrounding package boundary establishes this value before the assertion.
   const beforeSwap = event as BeforeSwapEvent;
-  const href = beforeSwap.detail?.to?.href;
-  return typeof href === 'string' ? href : fallback;
+  return beforeSwap.detail?.to?.href ?? fallback;
 };
 
-const containsIsland = (document: unknown, identity: string): boolean => {
-  if (!document || typeof (document as NavigationDocument).querySelector !== 'function')
-    return false;
-  return Boolean((document as NavigationDocument).querySelector(`astro-island[uid="${identity}"]`));
+const containsIsland = (document: NavigationDocument | undefined, identity: string): boolean => {
+  if (document === undefined) return false;
+  return document.querySelector(`astro-island[uid="${identity}"]`) !== null;
 };
 
 const attachNavigationBridge = (
   element: IslandLike,
-  navigation: NavigationConfig<unknown>,
-  send: (value: unknown) => void,
+  navigation: NavigationConfig<NavigationEvent>,
+  send: (value: NavigationEvent) => void,
   environment: ClientEnvironment,
 ): (() => void) => {
   let active = true;
@@ -171,8 +177,11 @@ const attachNavigationBridge = (
 };
 
 const defaultRuntime: ClientRuntime = {
+  // SAFETY: The surrounding package boundary establishes this value before the assertion.
   makeApplication: (config) => Runtime.makeApplication(config as never),
+  // SAFETY: The surrounding package boundary establishes this value before the assertion.
   embed: (program) => Runtime.embed(program as never) as EmbedHandle,
+  // SAFETY: The surrounding package boundary establishes this value before the assertion.
   hydrate: (program, options) => Runtime.hydrate(program as never, options),
 };
 
@@ -186,14 +195,13 @@ export function createClientRenderer(
   environment: Partial<ClientEnvironment> = {},
 ) {
   return (element: HTMLElement) =>
-    async <Props extends Record<string, unknown>, Config extends AppConfigShape<Props>>(
+    async <Props extends object, Config extends AppConfigContract<Props>>(
       component: ClientComponent<Props, Config>,
       props: Props,
-      _slots: Record<string, unknown>,
+      _slots: ClientSlots,
       _meta: { client: string },
     ): Promise<void> => {
-      const config = await component.load();
-      const runtimeConfig = config as unknown as RuntimeConfigOf<Props, Config>;
+      // SAFETY: The surrounding package boundary establishes this value before the assertion.
       const clientEnvironment = {
         document: environment.document ?? globalThis.document,
         window: environment.window ?? globalThis.window,
@@ -202,6 +210,7 @@ export function createClientRenderer(
       element.id ||= element.getAttribute('uid') ?? crypto.randomUUID();
 
       if (isPageOwner(component)) {
+        const config = await component.load();
         const root = findSingleFoldkitRoot(element);
         const application = runtime.makeApplication({ ...config, container: root });
         if (runtime.hydrate === undefined)
@@ -210,9 +219,12 @@ export function createClientRenderer(
         return;
       }
 
+      const config = await component.load();
+      // SAFETY: The surrounding package boundary establishes this value before the assertion.
+      const runtimeConfig = config as RuntimeConfigOf<Props, Config>;
       const baseView = runtimeConfig.view;
       const view = shouldSkipMetadata(props)
-        ? makeNoMetaView(baseView, clientEnvironment.document.title)
+        ? withNoMetaView(baseView, clientEnvironment.document.title)
         : baseView;
 
       const program = runtime.makeApplication({

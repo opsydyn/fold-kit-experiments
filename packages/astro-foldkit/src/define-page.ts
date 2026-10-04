@@ -1,4 +1,4 @@
-import type { DefinePageOptions, FoldkitPage, PageConfigShape } from './types';
+import type { DefinePageOptions, EmptyProps, FoldkitPage, PageConfigContract } from './types';
 
 export type {
   DefinePageOptions,
@@ -6,15 +6,15 @@ export type {
   PageFlagsContext,
   PageFlagsSchema,
   FoldkitPage,
-  PageConfigShape,
+  PageConfigContract,
   PageContext,
   PageParams,
 } from './types';
 
 export function definePage<
-  Props extends Record<string, unknown> = Record<string, unknown>,
-  Flags extends Record<string, unknown> = Record<string, unknown>,
-  Config extends PageConfigShape<Flags> = PageConfigShape<Flags>,
+  Props extends object = EmptyProps,
+  Flags extends object = EmptyProps,
+  Config extends PageConfigContract<Flags> = PageConfigContract<Flags>,
 >(
   load: () => Promise<Config>,
   options: DefinePageOptions<Props, Flags>,

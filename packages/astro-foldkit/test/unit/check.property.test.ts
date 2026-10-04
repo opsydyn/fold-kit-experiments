@@ -9,7 +9,7 @@ describe('check — properties', () => {
     await fc.assert(
       fc.asyncProperty(fc.anything(), async (value) => {
         const result = await check(value);
-        expect(typeof result).toBe('boolean');
+        expect([true, false]).toContain(result);
       }),
     );
   });

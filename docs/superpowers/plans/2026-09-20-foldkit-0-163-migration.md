@@ -37,6 +37,7 @@
 ### Task 1: Establish the FoldKit 0.163 dependency contract
 
 **Files:**
+
 - Modify: `apps/web/package.json`
 - Modify: `packages/astro-foldkit/package.json`
 - Modify: `packages/foldkit-viz/package.json`
@@ -44,6 +45,7 @@
 - Modify: `bun.lock`
 
 **Interfaces:**
+
 - Consumes: the approved 0.163 dependency contract and the registry peer metadata for the Vite/Oxlint FoldKit plugins.
 - Produces: one resolved FoldKit `0.163.0` line, Effect rc.116 line, compatible Vite/Oxlint tooling, and package peer ranges that reject the tested-incompatible FoldKit 0.161 line.
 
@@ -135,11 +137,13 @@
 ### Task 2: Audit renamed APIs and update compatibility coverage
 
 **Files:**
+
 - Modify: `packages/foldkit-viz/test/foldkit-compatibility.test.ts`
 - Modify: any application/package source file only if the audit finds a real 0.162/0.163 renamed API usage
 - Test: `packages/astro-foldkit/test/integration/package-import-smoke.test.ts`
 
 **Interfaces:**
+
 - Consumes: the dependency and peer contract from Task 1.
 - Produces: a source tree with no obsolete 0.162/0.163 names and compatibility tests labelled for FoldKit 0.163.
 
@@ -203,11 +207,13 @@
 ### Task 3: Pin the Astro document metadata contract
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/test/unit/server-document.test.ts`
 - Modify: `packages/astro-foldkit/src/server-document.ts` only if the focused test proves the adapter loses the 0.163 canonical/`ogUrl` result
 - Modify: `packages/astro-foldkit/README.md`
 
 **Interfaces:**
+
 - Consumes: `RenderedApplication` metadata from FoldKit 0.163.
 - Produces: `resolvePageDocument` behaviour that preserves explicit canonical metadata, preserves the upstream canonical-to-`ogUrl` fallback, and leaves omitted metadata absent.
 
@@ -224,19 +230,23 @@
       canonical: '',
       ogUrl: `https://example.com${model.pathname}`,
     }),
-  ) => ({
-    Flags,
-    Model: {},
-    init: (flags: Flags) => ({ model: flags, commands: [{ _tag: 'IgnoredCommand' }] }),
-    update: (model: Model, _message: Message) => ({ model }),
-    view: (model: Model, h: HtmlBuilder<Message>): Document => ({
-      title: `Server page ${model.locale}`,
-      lang: model.locale,
-      dir: textDirectionByLocale[model.locale] ?? 'Auto',
-      ...metadata(model),
-      body: h.section([], [`${model.locale}:${model.pathname}:${model.routeLocale ?? 'missing'}`]),
-    }),
-  } satisfies PageConfig<Flags, Model, Message>);
+  ) =>
+    ({
+      Flags,
+      Model: {},
+      init: (flags: Flags) => ({ model: flags, commands: [{ _tag: 'IgnoredCommand' }] }),
+      update: (model: Model, _message: Message) => ({ model }),
+      view: (model: Model, h: HtmlBuilder<Message>): Document => ({
+        title: `Server page ${model.locale}`,
+        lang: model.locale,
+        dir: textDirectionByLocale[model.locale] ?? 'Auto',
+        ...metadata(model),
+        body: h.section(
+          [],
+          [`${model.locale}:${model.pathname}:${model.routeLocale ?? 'missing'}`],
+        ),
+      }),
+    }) satisfies PageConfig<Flags, Model, Message>;
 
   const makePage = (metadata?: MetadataFactory) =>
     definePage<{ readonly locale: string; readonly noMeta?: boolean | '' }, Flags>(
@@ -313,10 +323,12 @@
 ### Task 4: Cover SSR artifact output and boot-time subscription buffering
 
 **Files:**
+
 - Modify: `packages/astro-foldkit/test/integration/astro-page-smoke.test.ts`
 - Modify: `apps/web/src/apps/stateflow/main.scene.test.ts`
 
 **Interfaces:**
+
 - Consumes: the upgraded Astro renderer, existing `greeting-static` page, existing Stateflow replay Port, and existing runtime test harness.
 - Produces: integration evidence for the 0.163 SSR output change and an app-level regression test for an inbound Port message arriving immediately after embed.
 
@@ -401,6 +413,7 @@
 ### Task 5: Refresh current compatibility guidance
 
 **Files:**
+
 - Modify: `AGENTS.md`
 - Modify: `CLAUDE.md`
 - Modify: `docs/roadmap.md`
@@ -409,6 +422,7 @@
 - Modify: `packages/foldkit-viz/test/foldkit-compatibility.test.ts` only if Task 2 did not already update its suite label
 
 **Interfaces:**
+
 - Consumes: the tested versions and behaviour from Tasks 1-4.
 - Produces: repository guidance that describes the current FoldKit 0.163 contract without rewriting historical migration records.
 
@@ -448,10 +462,12 @@
 ### Task 6: Run the release qualification gates
 
 **Files:**
+
 - Modify: none unless a focused verification exposes a defect in the preceding task
 - Test: all workspace package tests, typechecks, lint/format checks, builds, and packed-consumer smoke tests
 
 **Interfaces:**
+
 - Consumes: all committed migration tasks.
 - Produces: a clean, verified branch ready for a separate package version/release decision; this task does not publish or push.
 

@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as SankeyMessage } from '../../ui/sankey-chart';
 
 export const Message = defineMessageUnion({
-  GotSankeyMessage: { message: Schema.Unknown },
+  ReceivedSankeyMessage: { message: Schema.Unknown },
 });
-export type GotSankeyMessage = Omit<typeof Message.GotSankeyMessage.Type, 'message'> & {
+export type ReceivedSankeyMessage = Omit<typeof Message.ReceivedSankeyMessage.Type, 'message'> & {
   readonly message: SankeyMessage;
 };
 export type Message = typeof Message.Type;

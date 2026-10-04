@@ -4,7 +4,8 @@ import * as Corr from '../../ui/correlation-matrix';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: Corr.Message): Message => Message.GotCorrMessage({ message: msg });
+const toParentMessage = (msg: Corr.Message): Message =>
+  Message.ReceivedCorrMessage({ message: msg });
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Correlation matrix — foldkit-viz',
   body: Corr.view(

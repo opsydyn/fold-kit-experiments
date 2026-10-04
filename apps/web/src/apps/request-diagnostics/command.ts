@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect';
-import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
+import { HttpClient, HttpClientResponse } from 'effect/http';
 import { Command, Http } from 'foldkit';
 
 import { Message } from './message';

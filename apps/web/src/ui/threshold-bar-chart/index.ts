@@ -5,7 +5,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, svgRoot } from '../shared';
+import { layoutFor, svgRoot } from '../shared';
 
 // MODEL
 
@@ -29,7 +29,7 @@ export type Model = Readonly<{
 }>;
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 265, ...cfg.dims },
     { top: 20, right: 56, bottom: 36, left: 140, ...cfg.margins },
   );

@@ -9,9 +9,10 @@ export const Model = Schema.Struct({
 });
 export type Model = typeof Model.Type;
 
-const Props = Schema.Struct({ startedAt: Iso8601 });
+const InitPropsSchema = Schema.Struct({ startedAt: Iso8601 });
+export type InitProps = typeof InitPropsSchema.Type;
 
-export const init = (props: unknown) => {
-  const { startedAt } = Schema.decodeUnknownSync(Props)(props);
+export const init = (props: InitProps) => {
+  const { startedAt } = Schema.decodeUnknownSync(InitPropsSchema)(props);
   return { model: { startedAt, elapsedMs: 0 } };
 };

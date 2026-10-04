@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotThresholdBarMessage: ({ message }) => {
+    ReceivedThresholdBarMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: chart } = ThresholdBar.update(model.chart, message as ThresholdBar.Message);
       return { model: { ...model, chart } };
     },

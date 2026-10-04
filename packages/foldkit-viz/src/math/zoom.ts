@@ -79,7 +79,11 @@ export function multiplyMatrices(a: TransformMatrix, b: TransformMatrix): Transf
 
 export function composeMatrices(...matrices: TransformMatrix[]): TransformMatrix {
   if (matrices.length === 0) throw new Error('composeMatrices requires at least one argument');
-  if (matrices.length === 1) return matrices[0] as TransformMatrix;
+  if (matrices.length === 1) {
+    // SAFETY: The length guard establishes that the first matrix exists.
+    return matrices[0] as TransformMatrix;
+  }
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   const [first, second, ...rest] = matrices as [
     TransformMatrix,
     TransformMatrix,

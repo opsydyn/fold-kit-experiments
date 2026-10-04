@@ -11,10 +11,11 @@ export const Model = Schema.Struct({
 });
 export type Model = typeof Model.Type;
 
-const Props = Schema.Struct({ defaultName: Username });
+const InitPropsSchema = Schema.Struct({ defaultName: Username });
+export type InitProps = typeof InitPropsSchema.Type;
 
-export const init = (props: unknown) => {
-  const { defaultName } = Schema.decodeUnknownSync(Props)(props);
+export const init = (props: InitProps) => {
+  const { defaultName } = Schema.decodeUnknownSync(InitPropsSchema)(props);
   const stored = usernameAtom.get();
   return { model: { draft: stored !== '' ? stored : defaultName, isSaved: false } };
 };

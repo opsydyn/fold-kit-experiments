@@ -1,11 +1,12 @@
 import { Schema } from 'effect';
 
 import * as Bullet from '../../ui/bullet-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Bullet.Model };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = Bullet.init({
     data: [
       { label: 'Revenue', value: 270, target: 300, ranges: [200, 250, 350] },

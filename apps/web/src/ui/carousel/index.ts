@@ -174,7 +174,7 @@ export const update = (model: Model, message: Message): Return =>
         model: {
           ...model,
           dragState: {
-            _tag: 'Dragging',
+            _tag: 'Dragging' as const,
             originIndex: model.activeIndex,
             startX: clientX,
             deltaX: 0,
@@ -205,7 +205,7 @@ export const update = (model: Model, message: Message): Return =>
         model.slideCount,
         model.loop,
       );
-      const nextModel = {
+      const nextModel: Model = {
         ...model,
         activeIndex: targetIndex,
         dragState: {
@@ -217,7 +217,7 @@ export const update = (model: Model, message: Message): Return =>
           duration: computeSettleDuration(originIndex, targetIndex),
         },
       };
-      return withOutMessage(
+      return withOutMessage<Model, Message, OutMessage>(
         { model: nextModel },
         targetIndex !== model.activeIndex
           ? OutMessage.ChangedSlide({ index: targetIndex })
@@ -234,7 +234,7 @@ export const update = (model: Model, message: Message): Return =>
         model: {
           ...model,
           dragState: {
-            _tag: 'Settling',
+            _tag: 'Settling' as const,
             fromIndex: originIndex,
             targetIndex: originIndex,
             fromDeltaX: deltaX,
@@ -252,7 +252,7 @@ export const update = (model: Model, message: Message): Return =>
       const { elapsed, duration } = model.dragState;
       const newElapsed = elapsed + deltaTimeMs;
       if (newElapsed >= duration) {
-        return { model: { ...model, dragState: { _tag: 'Idle' } } };
+        return { model: { ...model, dragState: { _tag: 'Idle' as const } } };
       }
       return { model: { ...model, dragState: { ...model.dragState, elapsed: newElapsed } } };
     },

@@ -20,11 +20,15 @@ export type PieConfig<T> = Readonly<{
 
 const defaultSortValues = (a: number, b: number) => b - a;
 
+function asNumber<T>(value: T): number {
+  return Number(value);
+}
+
 export function pie<T>(
   data: ReadonlyArray<T>,
   config: PieConfig<T> = {},
 ): ReadonlyArray<PieArcDatum<T>> {
-  const getValue = config.value ?? ((d) => d as unknown as number);
+  const getValue = config.value ?? asNumber;
   const startAngle = config.startAngle ?? 0;
   const endAngle = config.endAngle ?? tau;
   const padAngle = config.padAngle ?? 0;
@@ -33,13 +37,16 @@ export function pie<T>(
   const sort = 'sort' in config ? config.sort : null;
 
   const n = data.length;
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   const values = Array.from({ length: n }, (_, i) => getValue(data[i] as T, i));
 
   // build index array, then sort it
   const indices = Array.from({ length: n }, (_, i) => i);
   if (sort != null) {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     indices.sort((a, b) => sort(data[a] as T, data[b] as T));
   } else if (sortValues != null) {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     indices.sort((a, b) => sortValues(values[a] as number, values[b] as number));
   }
 
@@ -53,10 +60,13 @@ export function pie<T>(
   const arcs: PieArcDatum<T>[] = new Array(n);
 
   for (let i = 0; i < n; i++) {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const j = indices[i] as number;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const v = Math.max(0, values[j] as number);
     const arcEnd = a + (v > 0 ? v * k + effectivePad : 0) * Math.sign(da);
     arcs[j] = {
+      // SAFETY: The chart algorithm establishes this representation before the assertion.
       data: data[j] as T,
       value: v,
       index: i,

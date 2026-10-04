@@ -7,7 +7,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, svgRoot } from '../shared';
+import { layoutFor, svgRoot } from '../shared';
 
 // MODEL
 
@@ -36,7 +36,7 @@ const CURVES: ReadonlyArray<Readonly<{ curve: CurveType; color: string }>> = [
 ];
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 265, ...cfg.dims },
     { top: 16, right: 16, bottom: 48, left: 44, ...cfg.margins },
   );
@@ -66,6 +66,7 @@ type Return = UpdateReturn<Model, Message>;
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
     HoveredCurve: ({ curve }) => ({
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       model: { ...model, activeCurve: Option.some(curve as CurveType) },
     }),
     BlurredCurve: () => ({ model: { ...model, activeCurve: Option.none() } }),

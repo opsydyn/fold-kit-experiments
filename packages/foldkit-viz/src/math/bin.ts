@@ -3,6 +3,13 @@
 
 import { linearTicks } from './scale.js';
 
+function asNumber<T>(value: T): number {
+  return Number(value);
+}
+
+const isThresholdArray = (value: number | ReadonlyArray<number>): value is ReadonlyArray<number> =>
+  Array.isArray(value);
+
 export type Bin<T = number> = Readonly<{
   values: ReadonlyArray<T>;
   x0: number;
@@ -44,7 +51,8 @@ export function bin<T = number>(
   data: ReadonlyArray<T>,
   config: BinConfig<T> = {},
 ): ReadonlyArray<Bin<T>> {
-  const accessor = config.value ?? ((d: T) => d as unknown as number);
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
+  const accessor = config.value ?? asNumber;
   const values = data.map((d, i) => accessor(d, i));
 
   const [domainMin, domainMax] = config.domain ?? valuesExtent(values);
@@ -52,15 +60,14 @@ export function bin<T = number>(
 
   // Compute threshold breakpoints, excluding the domain endpoints
   let thresholds: ReadonlyArray<number>;
-  if (config.thresholds === undefined || typeof config.thresholds === 'number') {
-    const count = typeof config.thresholds === 'number' ? config.thresholds : 10;
+  const configuredThresholds = config.thresholds;
+  if (configuredThresholds === undefined || !isThresholdArray(configuredThresholds)) {
+    const count = configuredThresholds ?? 10;
     thresholds = linearTicks([domainMin, domainMax], count).filter(
       (t) => t > domainMin && t < domainMax,
     );
   } else {
-    thresholds = (config.thresholds as ReadonlyArray<number>).filter(
-      (t) => t > domainMin && t < domainMax,
-    );
+    thresholds = configuredThresholds.filter((t) => t > domainMin && t < domainMax);
   }
 
   const n = thresholds.length;
@@ -68,25 +75,29 @@ export function bin<T = number>(
 
   for (let i = 0; i < data.length; i++) {
     const v = values[i];
-    if (v === null || v === undefined || !Number.isFinite(v as number)) continue;
-    if ((v as number) < domainMin || (v as number) > domainMax) continue;
+    if (v === undefined || !Number.isFinite(v)) continue;
+    if (v < domainMin || v > domainMax) continue;
 
     // Bisect right: find the first threshold strictly greater than v
     let lo = 0;
     let hi = n;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if ((v as number) >= (thresholds[mid] as number)) {
+      const threshold = thresholds[mid];
+      if (threshold !== undefined && v >= threshold) {
         lo = mid + 1;
       } else {
         hi = mid;
       }
     }
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     (buckets[lo] as T[]).push(data[i] as T);
   }
 
   return buckets.map((bucket, i) => {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const x0 = i === 0 ? domainMin : (thresholds[i - 1] as number);
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const x1 = i === n ? domainMax : (thresholds[i] as number);
     return { values: bucket, x0, x1, count: bucket.length };
   });

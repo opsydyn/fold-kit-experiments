@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as BumpMessage } from '../../ui/bump-chart';
 
 export const Message = defineMessageUnion({
-  GotBumpMessage: { message: Schema.Unknown },
+  ReceivedBumpMessage: { message: Schema.Unknown },
 });
-export type GotBumpMessage = Omit<typeof Message.GotBumpMessage.Type, 'message'> & {
+export type ReceivedBumpMessage = Omit<typeof Message.ReceivedBumpMessage.Type, 'message'> & {
   readonly message: BumpMessage;
 };
 export type Message = typeof Message.Type;

@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as TreemapChart from '../../ui/treemap-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ treemap: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'treemap'> & {
   readonly treemap: TreemapChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: treemap } = TreemapChart.init({
     root: {
       name: 'Tech Revenue',

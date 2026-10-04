@@ -5,7 +5,7 @@ import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: Choropleth.Message): Message =>
-  Message.GotChoroplethMessage({ message: msg });
+  Message.ReceivedChoroplethMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'World internet penetration — choropleth map',

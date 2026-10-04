@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as AreaChart from '../../ui/area-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ area: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'area'> & {
   readonly area: AreaChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: area } = AreaChart.init({
     points: [
       { label: 'Jan', value: 28 },

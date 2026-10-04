@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as PackedMessage } from '../../ui/packed-circles-chart';
 
 export const Message = defineMessageUnion({
-  GotPackedMessage: { message: Schema.Unknown },
+  ReceivedPackedMessage: { message: Schema.Unknown },
 });
-export type GotPackedMessage = Omit<typeof Message.GotPackedMessage.Type, 'message'> & {
+export type ReceivedPackedMessage = Omit<typeof Message.ReceivedPackedMessage.Type, 'message'> & {
   readonly message: PackedMessage;
 };
 export type Message = typeof Message.Type;

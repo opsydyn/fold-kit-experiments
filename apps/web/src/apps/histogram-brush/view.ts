@@ -33,7 +33,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const histogram: Html = Histogram.view(
     {
       model: model.histogram,
-      toParentMessage: (msg) => Message.GotHistogramMessage({ message: msg }),
+      toParentMessage: (msg) => Message.ReceivedHistogramMessage({ message: msg }),
       ariaLabel: 'Histogram — response time distribution, drag to brush-filter',
     },
     h,
@@ -42,7 +42,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scatter: Html = Scatter.view(
     {
       model: model.scatter,
-      toParentMessage: (msg) => Message.GotScatterMessage({ message: msg }),
+      toParentMessage: (msg) => Message.ReceivedScatterMessage({ message: msg }),
       ariaLabel: 'Scatter — response time vs error rate',
     },
     h,
@@ -68,7 +68,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         opacity: hasBrush ? '1' : '0.4',
         transition: 'opacity 120ms',
       }),
-      h.OnClick(Message.GotHistogramMessage({ message: Histogram.Message.ClearedHistogramBrush() })),
+      h.OnClick(
+        Message.ReceivedHistogramMessage({ message: Histogram.Message.ClearedHistogramBrush() }),
+      ),
       h.Attribute('aria-label', 'Clear brush selection'),
     ],
     ['Clear'],

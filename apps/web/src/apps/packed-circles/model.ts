@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as PackedChart from '../../ui/packed-circles-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ packed: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'packed'> & {
   readonly packed: PackedChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: packed } = PackedChart.init({
     root: {
       name: 'Languages',

@@ -6,6 +6,14 @@ import { initModel } from './model';
 import { update } from './update';
 
 describe('stateflow replay update', () => {
+  it('records the browser motion preference as model state', () => {
+    const message = Message.ChangedReducedMotion({ isReducedMotion: true });
+
+    const result = update(initModel, message);
+
+    expect(result.model.reducedMotion).toBe(true);
+  });
+
   it('records a transitioned replay event', () => {
     const first = update(initModel, Message.ReceivedReplayEvent({ event: fixture[0] }));
 

@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as BubbleChart from '../../ui/bubble-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ bubble: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'bubble'> & { readonly bubble: BubbleChart.Model };
@@ -17,7 +18,7 @@ const DATA: ReadonlyArray<BubbleChart.Point> = [
   { label: 'Speakers', x: 350, y: 4.4, value: 280 },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: bubble } = BubbleChart.init({
     points: DATA,
     config: {

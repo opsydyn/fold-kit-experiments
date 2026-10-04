@@ -5,7 +5,7 @@ import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: LogScatter.Message): Message =>
-  Message.GotLogScatterMessage({ message: msg });
+  Message.ReceivedLogScatterMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'npm packages — log scatter — foldkit-viz',

@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as HistogramChart from '../../ui/histogram-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & {
@@ -32,7 +33,7 @@ function generateSalaries(): ReadonlyArray<HistogramChart.HistogramDatum> {
   return data;
 }
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = HistogramChart.init({
     data: generateSalaries(),
     binCount: 12,

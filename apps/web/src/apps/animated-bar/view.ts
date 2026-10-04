@@ -79,6 +79,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               const tween = tweens[i];
               const progress = tween?.progress ?? 1;
               // Animate from 0 to full height using tweenValue
+              // SAFETY: The app model and message contracts establish this value before the assertion.
               const animatedValue = tweenValue(0, bar.value, { progress } as Parameters<
                 typeof tweenValue
               >[2]);

@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as ParallelCoordsChart from '../../ui/parallel-coords-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ parallelCoords: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'parallelCoords'> & {
@@ -16,7 +17,7 @@ const AXES: ReadonlyArray<ParallelCoordsChart.Axis> = [
   { label: 'Year' },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: parallelCoords } = ParallelCoordsChart.init({
     axes: AXES,
     records: [

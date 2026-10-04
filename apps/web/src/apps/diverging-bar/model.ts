@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as DivBar from '../../ui/diverging-bar-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & {
@@ -23,7 +24,7 @@ const BARS: ReadonlyArray<DivBar.Bar> = [
   { label: 'Dec', value: 0.27 },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = DivBar.init({
     bars: BARS,
     xLabel: 'Year-over-year revenue growth',

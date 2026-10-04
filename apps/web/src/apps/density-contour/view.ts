@@ -5,7 +5,7 @@ import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: DensityContour.Message): Message =>
-  Message.GotDensityContourMessage({ message: msg });
+  Message.ReceivedDensityContourMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Density contour — foldkit-viz',

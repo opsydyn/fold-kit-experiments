@@ -4,9 +4,12 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as TimelineMessage } from '../../ui/timeline-chart';
 
 export const Message = defineMessageUnion({
-  GotTimelineMessage: { message: Schema.Unknown },
+  ReceivedTimelineMessage: { message: Schema.Unknown },
 });
-export type GotTimelineMessage = Omit<typeof Message.GotTimelineMessage.Type, 'message'> & {
+export type ReceivedTimelineMessage = Omit<
+  typeof Message.ReceivedTimelineMessage.Type,
+  'message'
+> & {
   readonly message: TimelineMessage;
 };
 export type Message = typeof Message.Type;

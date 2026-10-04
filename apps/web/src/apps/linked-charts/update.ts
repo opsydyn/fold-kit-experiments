@@ -9,7 +9,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotScatterMessage: ({ message }) => {
+    ReceivedScatterMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const scatterMsg = message as Scatter.Message;
       const { model: scatter } = Scatter.update(model.scatter, scatterMsg);
 
@@ -40,7 +41,8 @@ export const update = (model: Model, msg: Message): Return =>
       return { model: { ...model, scatter } };
     },
 
-    GotHistogramMessage: ({ message }) => {
+    ReceivedHistogramMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const histMsg = message as Histogram.Message;
       const { model: histogram } = Histogram.update(model.histogram, histMsg);
 

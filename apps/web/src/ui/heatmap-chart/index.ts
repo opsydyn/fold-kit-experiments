@@ -157,6 +157,7 @@ export const update = (model: Model, msg: Message): Return =>
     HoveredCell: ({ key }) => ({ model: { ...model, activeKey: Option.some(key) } }),
     BlurredCell: () => ({ model: { ...model, activeKey: Option.none() } }),
     UpdatedCells: ({ cells }) => ({
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       model: { ...model, cells: cells as ReadonlyArray<ComputedCell> },
     }),
   });

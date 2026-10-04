@@ -2,7 +2,7 @@ import { FetchMetrics } from './command';
 import { Message } from './message';
 import { initModel, Model } from './model';
 import { NavigationPort, toNavigationValue } from './navigation';
-import { makeSubscriptions } from './subscription';
+import { subscriptionsFor } from './subscription';
 import { update } from './update';
 import { view } from './view';
 
@@ -13,6 +13,6 @@ export const ports = {
 };
 
 export const navigation = { port: 'navigation', map: toNavigationValue };
-export const subscriptions = makeSubscriptions();
+export const subscriptions = subscriptionsFor();
 
 export const init = () => ({ model: initModel, commands: [FetchMetrics()] });

@@ -37,6 +37,7 @@ describe('Stateflow Observatory view', () => {
       ).toExist(),
       Scene.expect(Scene.text('Current state: Loading')).toExist(),
       Scene.expect(Scene.text('Playback: paused')).toExist(),
+      Scene.expect(Scene.text('Motion preference: standard')).toExist(),
       Scene.expect(Scene.text('Replay session: Request diagnostics')).toExist(),
       ...['Play', 'Pause', 'Step', 'Reset'].map((name) =>
         Scene.expect(Scene.role('button', { name })).toExist(),

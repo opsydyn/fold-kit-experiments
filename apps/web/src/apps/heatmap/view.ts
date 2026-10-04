@@ -4,7 +4,8 @@ import * as HeatmapChart from '../../ui/heatmap-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: HeatmapChart.Message): Message => Message.GotHeatmapMessage({ message: msg });
+const toParentMessage = (msg: HeatmapChart.Message): Message =>
+  Message.ReceivedHeatmapMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Heatmap — foldkit-viz',

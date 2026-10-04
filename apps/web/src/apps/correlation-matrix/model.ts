@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as Corr from '../../ui/correlation-matrix';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Corr.Model };
@@ -78,7 +79,7 @@ const MATRIX: Corr.CorrelationMatrix = {
   ],
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = Corr.init({ matrix: MATRIX });
   return { model: { chart } };
 };

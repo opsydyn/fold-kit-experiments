@@ -4,7 +4,7 @@ import * as DSB from '../../ui/diverging-stacked-bar';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: DSB.Message): Message => Message.GotDSBMessage({ message: msg });
+const toParentMessage = (msg: DSB.Message): Message => Message.ReceivedDSBMessage({ message: msg });
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Diverging stacked bar — foldkit-viz',
   body: DSB.view(

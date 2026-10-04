@@ -9,7 +9,8 @@ import * as styles from './donut.css';
 
 type DonutMessage = DonutChart.Message;
 
-const toParentMessage = (msg: DonutMessage): Message => Message.GotDonutMessage({ message: msg });
+const toParentMessage = (msg: DonutMessage): Message =>
+  Message.ReceivedDonutMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const { div, span, Class, Style, DataAttribute } = h;

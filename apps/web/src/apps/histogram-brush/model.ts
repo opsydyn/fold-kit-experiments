@@ -4,6 +4,7 @@ import { Schema } from 'effect';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
+import type { AppInitProps } from '../types';
 
 // 65 synthetic data points: response time (ms) vs error rate (%)
 // Distribution peaks around 150-250ms; error rate correlates with response time.
@@ -88,7 +89,7 @@ export type Model = Omit<typeof Model.Type, 'histogram' | 'scatter' | 'allPoints
   readonly selection: Selection;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: histogram } = Histogram.init({
     data: ALL_POINTS.map((p) => ({ value: p.x })),
     binCount: 12,
@@ -99,6 +100,7 @@ export const init = (_props: unknown) => {
   });
 
   const { model: scatter } = Scatter.init({
+    // SAFETY: The app model and message contracts establish this value before the assertion.
     points: ALL_POINTS as ReadonlyArray<Scatter.Point>,
     config: {
       color: '#6366f1',

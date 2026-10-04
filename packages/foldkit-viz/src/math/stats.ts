@@ -2,11 +2,18 @@
 export function quantile(sorted: readonly number[], p: number): number {
   const n = sorted.length;
   if (n === 0) return Number.NaN;
-  if (p <= 0 || n < 2) return sorted[0] as number;
-  if (p >= 1) return sorted[n - 1] as number;
+  if (p <= 0 || n < 2) {
+    // SAFETY: A non-empty sorted input has an element at index zero.
+    return sorted[0] as number;
+  }
+  if (p >= 1) {
+    // SAFETY: A sorted input with at least two elements has an element at its final index.
+    return sorted[n - 1] as number;
+  }
   const i = (n - 1) * p;
   const lo = Math.floor(i);
   const h = i - lo;
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   return (sorted[lo] as number) * (1 - h) + (sorted[lo + 1] as number) * h;
 }
 
@@ -60,7 +67,9 @@ export function kde(
 
 export function boxStats(values: readonly number[]): BoxStats {
   const sorted = [...values].sort((a, b) => a - b);
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   const min = sorted[0] as number;
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   const max = sorted[sorted.length - 1] as number;
   const q1 = quantile(sorted, 0.25);
   const median = quantile(sorted, 0.5);

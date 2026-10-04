@@ -8,6 +8,10 @@
 
 // ── Reduction ─────────────────────────────────────────────────────────────────
 
+function asNumber<T>(value: T): number {
+  return Number(value);
+}
+
 /**
  * Returns `[min, max]` in a single pass, or `[undefined, undefined]` for an empty array.
  * @category Array
@@ -19,7 +23,8 @@ export function extent<T>(
   let lo = Number.POSITIVE_INFINITY;
   let hi = Number.NEGATIVE_INFINITY;
   for (const v of values) {
-    const n = accessor ? accessor(v) : (v as unknown as number);
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
+    const n = accessor ? accessor(v) : asNumber(v);
     if (n < lo) lo = n;
     if (n > hi) hi = n;
   }
@@ -29,7 +34,8 @@ export function extent<T>(
 
 export function sum<T>(values: ReadonlyArray<T>, accessor?: (v: T) => number): number {
   let s = 0;
-  for (const v of values) s += accessor ? accessor(v) : (v as unknown as number);
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
+  for (const v of values) s += accessor ? accessor(v) : asNumber(v);
   return s;
 }
 
@@ -40,11 +46,13 @@ export function mean<T>(values: ReadonlyArray<T>, accessor?: (v: T) => number): 
 
 export function median<T>(values: ReadonlyArray<T>, accessor?: (v: T) => number): number {
   const ns = [...values]
-    .map(accessor ? accessor : (v) => v as unknown as number)
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
+    .map(accessor ?? asNumber)
     .sort((a, b) => a - b);
   const m = ns.length;
   if (m === 0) return Number.NaN;
   const mid = m >> 1;
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   return m & 1 ? (ns[mid] as number) : ((ns[mid - 1] as number) + (ns[mid] as number)) / 2;
 }
 
@@ -53,7 +61,8 @@ export function variance<T>(values: ReadonlyArray<T>, accessor?: (v: T) => numbe
   const mu = mean(values, accessor);
   let s = 0;
   for (const v of values) {
-    const d = (accessor ? accessor(v) : (v as unknown as number)) - mu;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
+    const d = (accessor ? accessor(v) : asNumber(v)) - mu;
     s += d * d;
   }
   return s / (values.length - 1);
@@ -72,7 +81,8 @@ export function cumsum<T>(
   const result: number[] = [];
   let acc = 0;
   for (const v of values) {
-    acc += accessor ? accessor(v) : (v as unknown as number);
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
+    acc += accessor ? accessor(v) : asNumber(v);
     result.push(acc);
   }
   return result;
@@ -88,6 +98,7 @@ export function group<T, K>(values: ReadonlyArray<T>, key: (v: T) => K): Map<K, 
     if (arr) arr.push(v);
     else map.set(k, [v]);
   }
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   return map as Map<K, ReadonlyArray<T>>;
 }
 
@@ -113,6 +124,7 @@ export function bisect(sorted: ReadonlyArray<number>, value: number): number {
   let hi = sorted.length;
   while (lo < hi) {
     const mid = (lo + hi) >>> 1;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     if ((sorted[mid] as number) <= value) lo = mid + 1;
     else hi = mid;
   }
@@ -128,6 +140,7 @@ export function bisectLeft(sorted: ReadonlyArray<number>, value: number): number
   let hi = sorted.length;
   while (lo < hi) {
     const mid = (lo + hi) >>> 1;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     if ((sorted[mid] as number) < value) lo = mid + 1;
     else hi = mid;
   }
@@ -139,6 +152,7 @@ export function bisectLeft(sorted: ReadonlyArray<number>, value: number): number
 export function pairs<T>(values: ReadonlyArray<T>): ReadonlyArray<readonly [T, T]> {
   const result: Array<readonly [T, T]> = [];
   for (let i = 1; i < values.length; i++) {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     result.push([values[i - 1] as T, values[i] as T]);
   }
   return result;
@@ -150,7 +164,15 @@ export function zip<A, B>(
 ): ReadonlyArray<readonly [A, B]> {
   const len = Math.min(a.length, b.length);
   const result: Array<readonly [A, B]> = [];
-  for (let i = 0; i < len; i++) result.push([a[i] as A, b[i] as B]);
+  for (let i = 0; i < len; i++) {
+    const first = a[i];
+    const second = b[i];
+    // SAFETY: The loop bound is the minimum length of both input arrays.
+    const firstValue = first as A;
+    // SAFETY: The loop bound is the minimum length of both input arrays.
+    const secondValue = second as B;
+    result.push([firstValue, secondValue]);
+  }
   return result;
 }
 

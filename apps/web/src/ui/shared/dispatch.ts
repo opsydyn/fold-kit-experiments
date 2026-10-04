@@ -4,7 +4,7 @@
  * Instead of a global event bus, linked views work through the parent model:
  *
  *   1. Child charts emit their normal messages (HoveredBar, HoveredPoint, …).
- *   2. The parent wraps them in a chart-scoped message (GotChartA, GotChartB).
+ *   2. The parent wraps them in a chart-scoped message (ReceivedChartA, ReceivedChartB).
  *   3. The parent update function unwraps and also applies relevant side-effects
  *      to sibling charts — e.g. set the same hover index on chart B.
  *

@@ -5,7 +5,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 // MODEL — pairwise Pearson correlation matrix
 
@@ -74,7 +74,7 @@ export function pearsonMatrix(
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const n = cfg.matrix.labels.length;
   const cellSize = Math.min(48, Math.floor(340 / n));
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: n * cellSize + 120, height: n * cellSize + 80, ...cfg.dims },
     { top: 80, right: 16, bottom: 16, left: 110, ...cfg.margins },
   );

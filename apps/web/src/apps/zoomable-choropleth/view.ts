@@ -5,7 +5,7 @@ import { Message } from './message';
 import type { Model } from './model';
 
 const toParentMessage = (msg: ZChoropleth.Message): Message =>
-  Message.GotZChoroplethMessage({ message: msg });
+  Message.ReceivedZChoroplethMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'World internet penetration — zoomable choropleth map',

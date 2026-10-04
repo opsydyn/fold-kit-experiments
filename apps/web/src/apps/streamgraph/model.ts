@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as StreamgraphChart from '../../ui/streamgraph-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ streamgraph: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'streamgraph'> & {
@@ -25,7 +26,7 @@ const DATA: Array<Record<string, number>> = [
   { react: 23.1, vue: 5.6, angular: 4.4, svelte: 2.0, solid: 1.02 },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: streamgraph } = StreamgraphChart.init({
     data: DATA,
     xLabels: MONTHS,

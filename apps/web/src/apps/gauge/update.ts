@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotGaugeMessage: ({ message }) => {
+    ReceivedGaugeMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: gauge } = GaugeChart.update(model.gauge, message as GaugeChart.Message);
       return { model: { ...model, gauge } };
     },

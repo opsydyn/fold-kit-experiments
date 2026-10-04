@@ -5,7 +5,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 // MODEL — network links as arcs above a linear node axis
 
@@ -29,7 +29,7 @@ export type Model = Readonly<{
 }>;
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 220, ...cfg.dims },
     { top: 24, right: 24, bottom: 40, left: 24, ...cfg.margins },
   );

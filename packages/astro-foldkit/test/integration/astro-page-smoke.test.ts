@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from 'bun:test';
 import { execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { access, readFile } from 'node:fs/promises';
-import { createServer } from 'node:net';
+import { createServer, type AddressInfo } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -28,6 +28,9 @@ const fileExists = (file: string): Promise<boolean> =>
     () => false,
   );
 
+const isAddressInfo = (address: string | AddressInfo | null): address is AddressInfo =>
+  address !== null && typeof address === 'object';
+
 const findPort = async (): Promise<number> => {
   const server = createServer();
   await new Promise<void>((resolve, reject) => {
@@ -35,7 +38,7 @@ const findPort = async (): Promise<number> => {
     server.listen(0, '127.0.0.1', resolve);
   });
   const address = server.address();
-  if (address === null || typeof address === 'string') {
+  if (!isAddressInfo(address)) {
     server.close();
     throw new Error('Could not determine a free TCP port for the Astro smoke server.');
   }

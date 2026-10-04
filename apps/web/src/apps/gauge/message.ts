@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as GaugeMessage } from '../../ui/gauge-chart';
 
 export const Message = defineMessageUnion({
-  GotGaugeMessage: { message: Schema.Unknown },
+  ReceivedGaugeMessage: { message: Schema.Unknown },
 });
-export type GotGaugeMessage = Omit<typeof Message.GotGaugeMessage.Type, 'message'> & {
+export type ReceivedGaugeMessage = Omit<typeof Message.ReceivedGaugeMessage.Type, 'message'> & {
   readonly message: GaugeMessage;
 };
 export type Message = typeof Message.Type;

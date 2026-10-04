@@ -7,7 +7,7 @@ import type { Model } from './model';
 type ZoomableLineMessage = ZoomableLineChart.Message;
 
 const toParentMessage = (msg: ZoomableLineMessage): Message =>
-  Message.GotZoomableLineMessage({ message: msg });
+  Message.ReceivedZoomableLineMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Zoomable Line Chart — foldkit-viz',

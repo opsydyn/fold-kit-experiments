@@ -7,7 +7,7 @@ import type { Model } from './model';
 type PhyllotaxisMessage = PhyllotaxisChart.Message;
 
 const toParentMessage = (msg: PhyllotaxisMessage): Message =>
-  Message.GotPhyllotaxisMessage({ message: msg });
+  Message.ReceivedPhyllotaxisMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Phyllotaxis — foldkit-viz',

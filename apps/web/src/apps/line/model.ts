@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as LineChart from '../../ui/line-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ line: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'line'> & {
   readonly line: LineChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: line } = LineChart.init({
     points: [
       { label: 'Jan', value: 42 },

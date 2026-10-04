@@ -13,10 +13,10 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
-Current package compatibility targets FoldKit `0.163.x`, Effect
-`4.0.0-rc.116`, and the `@foldkit/vite-plugin` `0.24.x` line. The 0.163
-dependency migration is not considered released until the packed-consumer and
-workspace verification gates pass.
+Current package compatibility targets FoldKit `0.165.x`, stable Effect
+`4.0.0`, and the `@foldkit/vite-plugin` `0.26.x` line. The 0.165 dependency
+migration is not considered released until the packed-consumer and workspace
+verification gates pass.
 
 ## Product Thesis
 
@@ -34,6 +34,9 @@ activity visible through a deterministic graph, replay timeline, and inspector.
       belong in the viz package.
 - [x] Host the page as an Astro `client:load` island using the existing lifecycle
       bridge, without adding integration APIs or async visualisation ownership.
+- [x] Use FoldKit 0.165's [`Subscription.fromMediaQuery`](https://github.com/foldkit/foldkit/pull/1424)
+      in the app to record the current and changed reduced-motion preference;
+      Astro remains a lifecycle host and `foldkit-viz` remains pure.
 - [x] Document the reusable remote filter, brush, and zoom load pattern: an
       app-owned Command loads data, app-owned AsyncData/Model state records the
       result, and typed Ports carry host input/output only. The app owns keyed

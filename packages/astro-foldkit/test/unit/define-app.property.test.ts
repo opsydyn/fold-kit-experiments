@@ -6,6 +6,7 @@ import { defineApp } from '../../src/define-app';
 import { check } from '../../src/server';
 import type { AppConfig } from '../../src/types';
 
+// SAFETY: The test fixture establishes this value before the assertion.
 const anyLoader = fc.func(fc.anything()).map((fn) => () => Promise.resolve(fn() as AppConfig));
 
 describe('defineApp — properties', () => {

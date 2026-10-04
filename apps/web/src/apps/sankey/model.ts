@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as SankeyChart from '../../ui/sankey-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ sankey: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'sankey'> & {
@@ -38,7 +39,7 @@ const LINKS = [
   { source: 'Heating', target: 'Industrial', value: 10 },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: sankey } = SankeyChart.init({ nodes: NODES, links: LINKS });
   return { model: { sankey } };
 };

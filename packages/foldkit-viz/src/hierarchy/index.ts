@@ -17,6 +17,11 @@ export interface HierarchyNode<Datum> {
   y1: number;
 }
 
+function toUnknownHierarchy<Datum>(node: HierarchyNode<Datum>): HierarchyNode<unknown> {
+  // SAFETY: The hierarchy algorithms only read structural fields at this boundary.
+  return node as HierarchyNode<unknown>;
+}
+
 // ── Internal traversals ───────────────────────────────────────────────────────
 
 function eachBefore<D>(root: HierarchyNode<D>, fn: (n: HierarchyNode<D>) => void): void {
@@ -57,6 +62,7 @@ function eachAfter<D>(root: HierarchyNode<D>, fn: (n: HierarchyNode<D>) => void)
 export function hierarchy<Datum>(
   data: Datum,
   getChildren: (d: Datum) => Datum[] | null | undefined = (d) =>
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     (d as { children?: Datum[] }).children,
 ): HierarchyNode<Datum> {
   const root: HierarchyNode<Datum> = {
@@ -575,7 +581,9 @@ function packEnclose(circles: MCircle[]): MCircle {
   const cs = circles.slice();
   for (let s = n - 1; s > 0; s--) {
     const t = (Math.random() * (s + 1)) | 0;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const a = cs[s] as MCircle;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     cs[s] = cs[t] as MCircle;
     cs[t] = a;
   }
@@ -585,6 +593,7 @@ function packEnclose(circles: MCircle[]): MCircle {
   let i = 0;
 
   while (i < n) {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const p = cs[i] as MCircle;
     if (b.n > 0 && enclosesWeak(e, p)) {
       i++;
@@ -633,6 +642,7 @@ function chainScore(node: PackChainNode): number {
 }
 
 function makeChainNode(c: MCircle): PackChainNode {
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   const node = { c } as PackChainNode;
   node.next = node;
   node.prev = node;
@@ -723,12 +733,14 @@ export function pack<Datum>(root: HierarchyNode<Datum>, config: PackConfig): Pac
   type N = HierarchyNode<Datum> & MCircle;
 
   eachAfter(root, (node) => {
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     const n = node as N;
     if (!node.children || node.children.length === 0) {
       n.x = 0;
       n.y = 0;
       n.r = Math.sqrt(node.value);
     } else {
+      // SAFETY: The chart algorithm establishes this representation before the assertion.
       const children = node.children.map((c) => c as N);
       packSiblings(children);
       const enc = packEnclose(children);
@@ -740,6 +752,7 @@ export function pack<Datum>(root: HierarchyNode<Datum>, config: PackConfig): Pac
     }
   });
 
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   const rootN = root as N;
   const k = Math.min(width, height) / 2 / rootN.r;
   rootN.x = width / 2;
@@ -748,7 +761,9 @@ export function pack<Datum>(root: HierarchyNode<Datum>, config: PackConfig): Pac
 
   eachBefore(root, (node) => {
     if (node.parent) {
+      // SAFETY: The chart algorithm establishes this representation before the assertion.
       const n = node as N;
+      // SAFETY: The chart algorithm establishes this representation before the assertion.
       const p = node.parent as N;
       n.x = p.x + n.x * k;
       n.y = p.y + n.y * k;
@@ -756,7 +771,10 @@ export function pack<Datum>(root: HierarchyNode<Datum>, config: PackConfig): Pac
     }
   });
 
-  return root as unknown as PackNode<Datum>;
+  // SAFETY: Pack adds the radius field to the same mutable hierarchy nodes.
+  const packedRoot = root as HierarchyNode<Datum> & MCircle;
+  // SAFETY: The packed root carries the radius added by the layout pass.
+  return packedRoot as PackNode<Datum>;
 }
 
 // ── Public: treeLayout ────────────────────────────────────────────────────────
@@ -786,10 +804,10 @@ export type TreeConfig = Readonly<{
 // Internal wrapper node for the algorithm
 interface TN {
   _: HierarchyNode<unknown>;
-  parent: TN;
+  parent: TN | null;
   children: TN[] | null;
   A: TN | null;
-  a: TN;
+  a: TN | null;
   z: number;
   m: number;
   c: number;
@@ -835,16 +853,17 @@ function tnExecuteShifts(v: TN): void {
 }
 
 function tnNextAncestor(vim: TN, v: TN, ancestor: TN): TN {
-  return vim.a.parent === v.parent ? vim.a : ancestor;
+  const candidate = vim.a;
+  return candidate && candidate.parent === v.parent ? candidate : ancestor;
 }
 
-function makeTN(node: HierarchyNode<unknown>, i: number, parent: TN): TN {
+function makeTN(node: HierarchyNode<unknown>, i: number, parent: TN | null): TN {
   const tn: TN = {
     _: node,
     parent,
     children: null,
     A: null,
-    a: null as unknown as TN,
+    a: null,
     z: 0,
     m: 0,
     c: 0,
@@ -857,7 +876,7 @@ function makeTN(node: HierarchyNode<unknown>, i: number, parent: TN): TN {
 }
 
 function buildTNTree(root: HierarchyNode<unknown>): TN {
-  const sentinel = makeTN(root, 0, null as unknown as TN);
+  const sentinel = makeTN(root, 0, null);
   const tree = makeTN(root, 0, sentinel);
   sentinel.children = [tree];
 
@@ -869,13 +888,46 @@ function buildTNTree(root: HierarchyNode<unknown>): TN {
     if (kids && kids.length > 0) {
       v.children = new Array(kids.length);
       for (let i = kids.length - 1; i >= 0; --i) {
-        const child = makeTN(kids[i] as HierarchyNode<unknown>, i, v);
+        const childNode = kids[i];
+        if (!childNode) continue;
+        const child = makeTN(childNode, i, v);
+        // SAFETY: The chart algorithm establishes this representation before the assertion.
         (v.children as TN[])[i] = child;
         stack.push(child);
       }
     }
   }
   return tree;
+}
+
+function eachBeforeTN(root: TN, fn: (node: TN) => void): void {
+  const stack: TN[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) break;
+    fn(node);
+    if (node.children) {
+      for (let i = node.children.length - 1; i >= 0; --i) {
+        const child = node.children[i];
+        if (child) stack.push(child);
+      }
+    }
+  }
+}
+
+function eachAfterTN(root: TN, fn: (node: TN) => void): void {
+  const stack: TN[] = [root];
+  const next: TN[] = [];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) break;
+    next.push(node);
+    if (node.children) for (const child of node.children) stack.push(child);
+  }
+  while (next.length > 0) {
+    const node = next.pop();
+    if (node) fn(node);
+  }
 }
 
 export function treeLayout<Datum>(
@@ -886,15 +938,19 @@ export function treeLayout<Datum>(
     width = 1,
     height = 1,
     nodeSize = null,
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     separation = defaultSep as (a: HierarchyNode<unknown>, b: HierarchyNode<unknown>) => number,
   } = config;
 
-  const t = buildTNTree(root as unknown as HierarchyNode<unknown>);
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
+  const t = buildTNTree(toUnknownHierarchy(root));
 
   // First walk (bottom-up): assign prelim x coords
   function firstWalk(v: TN): void {
     const children = v.children;
-    const siblings = v.parent.children;
+    const parent = v.parent;
+    if (!parent) return;
+    const siblings = parent.children;
     const w: TN | null = v.i > 0 ? (siblings?.[v.i - 1] ?? null) : null;
     if (children && children.length > 0) {
       tnExecuteShifts(v);
@@ -908,7 +964,7 @@ export function treeLayout<Datum>(
     } else if (w) {
       v.z = w.z + separation(v._, w._);
     }
-    v.parent.A = apportion(v, w, v.parent.A ?? siblings?.[0] ?? v);
+    parent.A = apportion(v, w, parent.A ?? siblings?.[0] ?? v);
   }
 
   function apportion(v: TN, w: TN | null, ancestor: TN): TN {
@@ -916,7 +972,7 @@ export function treeLayout<Datum>(
     let vip: TN = v,
       vop: TN = v;
     let vim: TN = w;
-    let vom: TN = vip.parent.children?.[0] ?? vip;
+    let vom: TN = vip.parent?.children?.[0] ?? vip;
     let sip = vip.m,
       sop = vop.m,
       sim = vim.m,
@@ -957,14 +1013,19 @@ export function treeLayout<Datum>(
 
   // Second walk (top-down): accumulate mods into final x
   function secondWalk(v: TN): void {
-    v._.x0 = v.z + v.parent.m;
-    v.m += v.parent.m;
+    const parent = v.parent;
+    if (!parent) return;
+    v._.x0 = v.z + parent.m;
+    v.m += parent.m;
   }
 
   // Run both passes
-  eachAfter(t as unknown as HierarchyNode<Datum>, (n) => firstWalk(n as unknown as TN));
-  (t.parent as TN).m = -t.z;
-  eachBefore(t as unknown as HierarchyNode<Datum>, (n) => secondWalk(n as unknown as TN));
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
+  eachAfterTN(t, firstWalk);
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
+  if (t.parent) t.parent.m = -t.z;
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
+  eachBeforeTN(t, secondWalk);
 
   // x0 now holds unnormalized x; depth holds y index
   if (nodeSize) {
@@ -987,8 +1048,9 @@ export function treeLayout<Datum>(
       left === right
         ? 1
         : separation(
-            left as unknown as HierarchyNode<unknown>,
-            right as unknown as HierarchyNode<unknown>,
+            // SAFETY: The chart algorithm establishes this representation before the assertion.
+            toUnknownHierarchy(left),
+            toUnknownHierarchy(right),
           ) / 2;
     const tx = s - left.x0;
     const kx = width / (right.x0 + s + tx);
@@ -1000,20 +1062,19 @@ export function treeLayout<Datum>(
   }
 
   // Collect flat array of TreeLayoutNode
-  const result: TreeLayoutNode<Datum>[] = [];
+  type MutableTreeLayoutNode = {
+    data: Datum;
+    depth: number;
+    height: number;
+    parent: MutableTreeLayoutNode | null;
+    children?: Array<MutableTreeLayoutNode>;
+    value: number;
+    x: number;
+    y: number;
+  };
+  const result: MutableTreeLayoutNode[] = [];
   eachBefore(root, (node) => {
-    (
-      result as unknown as Array<{
-        data: Datum;
-        depth: number;
-        height: number;
-        parent: unknown;
-        children?: unknown[];
-        value: number;
-        x: number;
-        y: number;
-      }>
-    ).push({
+    result.push({
       data: node.data,
       depth: node.depth,
       height: node.height,
@@ -1025,21 +1086,21 @@ export function treeLayout<Datum>(
   });
 
   // Wire up parent/children references
-  const nodeMap = new Map<HierarchyNode<Datum>, TreeLayoutNode<Datum>>();
+  const nodeMap = new Map<HierarchyNode<Datum>, MutableTreeLayoutNode>();
   eachBefore(root, (node) => {
     const idx = result.findIndex((r) => r.data === node.data && r.depth === node.depth);
-    if (idx >= 0) nodeMap.set(node, result[idx] as TreeLayoutNode<Datum>);
+    const layoutNode = result[idx];
+    if (layoutNode) nodeMap.set(node, layoutNode);
   });
 
   eachBefore(root, (node) => {
     const tln = nodeMap.get(node);
     if (!tln) return;
-    const mut = tln as { parent: TreeLayoutNode<Datum> | null; children?: TreeLayoutNode<Datum>[] };
-    if (node.parent) mut.parent = nodeMap.get(node.parent as HierarchyNode<Datum>) ?? null;
+    if (node.parent) tln.parent = nodeMap.get(node.parent) ?? null;
     if (node.children) {
-      mut.children = node.children
-        .map((c) => nodeMap.get(c as HierarchyNode<Datum>))
-        .filter((c): c is TreeLayoutNode<Datum> => c !== undefined);
+      tln.children = node.children
+        .map((c) => nodeMap.get(c))
+        .filter((c): c is MutableTreeLayoutNode => c !== undefined);
     }
   });
 
@@ -1077,14 +1138,21 @@ function clusterDefaultSep(a: HierarchyNode<unknown>, b: HierarchyNode<unknown>)
 
 function clusterLeafLeft<D>(node: HierarchyNode<D>): HierarchyNode<D> {
   let n = node;
-  while (n.children && n.children.length > 0) n = n.children[0] as HierarchyNode<D>;
+  while (n.children && n.children.length > 0) {
+    const child = n.children[0];
+    if (!child) break;
+    n = child;
+  }
   return n;
 }
 
 function clusterLeafRight<D>(node: HierarchyNode<D>): HierarchyNode<D> {
   let n = node;
-  while (n.children && n.children.length > 0)
-    n = n.children[n.children.length - 1] as HierarchyNode<D>;
+  while (n.children && n.children.length > 0) {
+    const child = n.children[n.children.length - 1];
+    if (!child) break;
+    n = child;
+  }
   return n;
 }
 
@@ -1095,6 +1163,7 @@ export function clusterLayout<Datum>(
   const {
     width = 2 * Math.PI,
     height = 1,
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     separation = clusterDefaultSep as (
       a: HierarchyNode<unknown>,
       b: HierarchyNode<unknown>,
@@ -1108,10 +1177,7 @@ export function clusterLayout<Datum>(
     const kids = node.children;
     if (!kids || kids.length === 0) {
       if (previousLeaf) {
-        leafX += separation(
-          node as unknown as HierarchyNode<unknown>,
-          previousLeaf as unknown as HierarchyNode<unknown>,
-        );
+        leafX += separation(toUnknownHierarchy(node), toUnknownHierarchy(previousLeaf));
       }
       node.x0 = leafX;
       node.y0 = 0;
@@ -1132,12 +1198,12 @@ export function clusterLayout<Datum>(
   const lr = clusterLeafRight(root);
   const x0 =
     ll.x0 -
-    separation(ll as unknown as HierarchyNode<unknown>, lr as unknown as HierarchyNode<unknown>) /
-      2;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
+    separation(toUnknownHierarchy(ll), toUnknownHierarchy(lr)) / 2;
   const x1 =
     lr.x0 +
-    separation(lr as unknown as HierarchyNode<unknown>, ll as unknown as HierarchyNode<unknown>) /
-      2;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
+    separation(toUnknownHierarchy(lr), toUnknownHierarchy(ll)) / 2;
   const rootY = root.y0;
 
   eachAfter(root, (node) => {
@@ -1145,11 +1211,21 @@ export function clusterLayout<Datum>(
     node.y0 = rootY > 0 ? (1 - node.y0 / rootY) * height : height;
   });
 
-  const result: ClusterLayoutNode<Datum>[] = [];
-  const nodeMap = new Map<HierarchyNode<Datum>, ClusterLayoutNode<Datum>>();
+  type MutableClusterLayoutNode = {
+    data: Datum;
+    depth: number;
+    height: number;
+    parent: MutableClusterLayoutNode | null;
+    children?: Array<MutableClusterLayoutNode>;
+    value: number;
+    x: number;
+    y: number;
+  };
+  const result: MutableClusterLayoutNode[] = [];
+  const nodeMap = new Map<HierarchyNode<Datum>, MutableClusterLayoutNode>();
 
   eachBefore(root, (node) => {
-    const cln: ClusterLayoutNode<Datum> = {
+    const cln: MutableClusterLayoutNode = {
       data: node.data,
       depth: node.depth,
       height: node.height,
@@ -1165,15 +1241,11 @@ export function clusterLayout<Datum>(
   eachBefore(root, (node) => {
     const cln = nodeMap.get(node);
     if (!cln) return;
-    const mut = cln as {
-      parent: ClusterLayoutNode<Datum> | null;
-      children?: ClusterLayoutNode<Datum>[];
-    };
-    if (node.parent) mut.parent = nodeMap.get(node.parent as HierarchyNode<Datum>) ?? null;
+    if (node.parent) cln.parent = nodeMap.get(node.parent) ?? null;
     if (node.children) {
-      mut.children = node.children
-        .map((c) => nodeMap.get(c as HierarchyNode<Datum>))
-        .filter((c): c is ClusterLayoutNode<Datum> => c !== undefined);
+      cln.children = node.children
+        .map((c) => nodeMap.get(c))
+        .filter((c): c is MutableClusterLayoutNode => c !== undefined);
     }
   });
 

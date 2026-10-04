@@ -1,15 +1,33 @@
-import type { GeoFeature, GeoFeatureCollection } from '@opsydyn/foldkit-viz/shape/geo';
-import { Schema } from 'effect';
+import type {
+  GeoCoord,
+  GeoFeature,
+  GeoFeatureCollection,
+  GeoGeometry,
+} from '@opsydyn/foldkit-viz/shape/geo';
+import { Match, Schema } from 'effect';
 import * as topojson from 'topojson-client';
 import countries110m from 'world-atlas/countries-110m.json';
 
 import * as Choropleth from '../../ui/choropleth-map';
 
+type TopologyInput = Parameters<typeof topojson.feature>[0];
+type TopoFeatureCollection = Extract<
+  ReturnType<typeof topojson.feature>,
+  { readonly type: 'FeatureCollection' }
+>;
+type TopoGeometry = TopoFeatureCollection['features'][number]['geometry'];
+const GeoCoordSchema = Schema.Tuple([Schema.Number, Schema.Number]);
+const decodeGeoCoord = Schema.decodeUnknownSync(GeoCoordSchema);
+
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Choropleth.Model };
 
+interface CountryNameLookup {
+  readonly [code: string]: string;
+}
+
 // ISO 3166-1 numeric → label lookup (subset)
-const COUNTRY_NAMES: Record<string, string> = {
+const COUNTRY_NAMES: CountryNameLookup = {
   '4': 'Afghanistan',
   '8': 'Albania',
   '12': 'Algeria',
@@ -109,10 +127,10 @@ const COUNTRY_NAMES: Record<string, string> = {
   '887': 'Yemen',
   '894': 'Zambia',
   '716': 'Zimbabwe',
-};
+} satisfies Readonly<Record<string, string>>;
 
 // Illustrative internet penetration % by ISO numeric code (2023 estimates)
-const INTERNET_PCT: Record<string, number> = {
+const INTERNET_PCT = {
   '840': 92,
   '826': 96,
   '276': 91,
@@ -184,31 +202,101 @@ const INTERNET_PCT: Record<string, number> = {
   '686': 58,
   '430': 30,
   '332': 33,
-};
+} satisfies Readonly<Record<string, number>>;
 
 // Convert world-atlas TopoJSON → foldkit GeoFeatureCollection
 // topojson.feature over a GeometryCollection always returns a FeatureCollection
+function toGeoCoord(position: ReadonlyArray<number>): GeoCoord {
+  return decodeGeoCoord(position.slice(0, 2));
+}
+
+function toGeoLine(positions: ReadonlyArray<ReadonlyArray<number>>): ReadonlyArray<GeoCoord> {
+  return positions.map(toGeoCoord);
+}
+
+function toGeoGeometry(geometry: Exclude<TopoGeometry, null>): GeoGeometry {
+  return Match.value(geometry).pipe(
+    Match.when(
+      { type: 'Point' },
+      ({ coordinates }): GeoGeometry => ({
+        type: 'Point',
+        coordinates: toGeoCoord(coordinates),
+      }),
+    ),
+    Match.when(
+      { type: 'MultiPoint' },
+      ({ coordinates }): GeoGeometry => ({
+        type: 'MultiPoint',
+        coordinates: coordinates.map(toGeoCoord),
+      }),
+    ),
+    Match.when(
+      { type: 'LineString' },
+      ({ coordinates }): GeoGeometry => ({
+        type: 'LineString',
+        coordinates: toGeoLine(coordinates),
+      }),
+    ),
+    Match.when(
+      { type: 'MultiLineString' },
+      ({ coordinates }): GeoGeometry => ({
+        type: 'MultiLineString',
+        coordinates: coordinates.map(toGeoLine),
+      }),
+    ),
+    Match.when(
+      { type: 'Polygon' },
+      ({ coordinates }): GeoGeometry => ({
+        type: 'Polygon',
+        coordinates: coordinates.map(toGeoLine),
+      }),
+    ),
+    Match.when(
+      { type: 'MultiPolygon' },
+      ({ coordinates }): GeoGeometry => ({
+        type: 'MultiPolygon',
+        coordinates: coordinates.map((polygon) => polygon.map(toGeoLine)),
+      }),
+    ),
+    Match.when(
+      { type: 'GeometryCollection' },
+      ({ geometries }): GeoGeometry => ({
+        type: 'GeometryCollection',
+        geometries: geometries.map(toGeoGeometry),
+      }),
+    ),
+    Match.exhaustive,
+  );
+}
+
+function toGeoFeatureGeometry(geometry: TopoGeometry): GeoGeometry | null {
+  return toGeoGeometry(geometry);
+}
+
 function buildFeatures(): GeoFeatureCollection {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const topo = countries110m as any;
-  const fc = topojson.feature(topo, topo.objects.countries) as unknown as {
-    type: 'FeatureCollection';
-    features: Array<{ id?: string | number; geometry: any; properties: any }>; // eslint-disable-line @typescript-eslint/no-explicit-any
-  };
+  const worldAtlasTopology: unknown = countries110m;
+  // SAFETY: world-atlas ships this versioned JSON asset as a TopoJSON topology.
+  const topology = worldAtlasTopology as TopologyInput;
+  const fc = Match.value(topology.objects.countries).pipe(
+    Match.when({ type: 'GeometryCollection' }, (countries) =>
+      topojson.feature(topology, countries),
+    ),
+    Match.orElse(() => ({ type: 'FeatureCollection', features: [] })),
+  );
 
   return {
     type: 'FeatureCollection',
     features: fc.features.map(
       (f): GeoFeature => ({
         type: 'Feature',
-        geometry: f.geometry,
+        geometry: toGeoFeatureGeometry(f.geometry),
         properties: { id: String(f.id ?? '') },
       }),
     ),
   };
 }
 
-export const init = (_: unknown) => {
+export const init = () => {
   const features = buildFeatures();
 
   const data: ReadonlyArray<Choropleth.ChoroplethDatum> = Object.entries(INTERNET_PCT).map(

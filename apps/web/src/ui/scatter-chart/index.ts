@@ -8,7 +8,7 @@ import type { Return as UpdateReturn } from 'foldkit/update';
 import type { Dims, Layout, Margins } from '../shared';
 import {
   arrowKeyNav,
-  makeLayout,
+  layoutFor,
   nearestPoint,
   nextIndex,
   r3,
@@ -65,7 +65,7 @@ const DEFAULT_CONFIG: Config = {
 };
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 260, ...cfg.dims },
     { top: 24, right: 20, bottom: 52, left: 52, ...cfg.margins },
   );
@@ -133,6 +133,7 @@ export const update = (model: Model, msg: Message): Return =>
       },
     }),
     UpdatedPoints: ({ points }) => ({
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       model: { ...model, points: points as ReadonlyArray<Point> },
     }),
     PressedKeyNav: ({ direction }) => {

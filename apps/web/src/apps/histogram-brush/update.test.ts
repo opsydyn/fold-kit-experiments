@@ -9,7 +9,7 @@ import { update } from './update';
 const seedBounds = (model: ReturnType<typeof init>['model']) =>
   update(
     model,
-    Message.GotHistogramMessage({
+    Message.ReceivedHistogramMessage({
       message: Histogram.Message.RecordedSvgBounds({
         clientLeft: 0,
         renderedPW: model.histogram.layout.pw,
@@ -18,22 +18,22 @@ const seedBounds = (model: ReturnType<typeof init>['model']) =>
   ).model;
 
 const selectedModel = () => {
-  const initial = seedBounds(init(undefined).model);
+  const initial = seedBounds(init({}).model);
   const started = update(
     initial,
-    Message.GotHistogramMessage({
+    Message.ReceivedHistogramMessage({
       message: Histogram.Message.StartedHistogramBrush({ screenX: 40, clientX: 40 }),
     }),
   ).model;
   const moved = update(
     started,
-    Message.GotHistogramMessage({
+    Message.ReceivedHistogramMessage({
       message: Histogram.Message.MovedHistogramBrush({ screenX: 180 }),
     }),
   ).model;
   return update(
     moved,
-    Message.GotHistogramMessage({
+    Message.ReceivedHistogramMessage({
       message: Histogram.Message.EndedHistogramBrush({ screenX: 180 }),
     }),
   ).model;
@@ -49,7 +49,7 @@ describe('histogram brush selection', () => {
   it('clears the parent selection and restores every point', () => {
     const model = update(
       selectedModel(),
-      Message.GotHistogramMessage({ message: Histogram.Message.ClearedHistogramBrush() }),
+      Message.ReceivedHistogramMessage({ message: Histogram.Message.ClearedHistogramBrush() }),
     ).model;
     expect(model.selection).toEqual({ _tag: 'None' });
     expect(model.scatter.points).toEqual(model.allPoints);
@@ -59,7 +59,7 @@ describe('histogram brush selection', () => {
     const selected = selectedModel();
     const model = update(
       selected,
-      Message.GotScatterMessage({ message: Scatter.Message.HoveredPoint({ index: 0 }) }),
+      Message.ReceivedScatterMessage({ message: Scatter.Message.HoveredPoint({ index: 0 }) }),
     ).model;
     expect(model.selection).toBe(selected.selection);
   });

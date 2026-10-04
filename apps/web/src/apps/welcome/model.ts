@@ -6,10 +6,11 @@ import { Username as UsernameSchema } from '../profile/model';
 export const Model = Schema.Struct({ username: Schema.String });
 export type Model = typeof Model.Type;
 
-const Props = Schema.Struct({ fallback: UsernameSchema });
+const InitPropsSchema = Schema.Struct({ fallback: UsernameSchema });
+export type InitProps = typeof InitPropsSchema.Type;
 
-export const init = (props: unknown) => {
-  const { fallback } = Schema.decodeUnknownSync(Props)(props);
+export const init = (props: InitProps) => {
+  const { fallback } = Schema.decodeUnknownSync(InitPropsSchema)(props);
   const stored = usernameAtom.get();
   return { model: { username: stored !== '' ? stored : fallback } };
 };

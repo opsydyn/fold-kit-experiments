@@ -8,9 +8,10 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotWaterfallMessage: ({ message }) => {
+    ReceivedWaterfallMessage: ({ message }) => {
       const { model: waterfall } = WaterfallChart.update(
         model.waterfall,
+        // SAFETY: The app model and message contracts establish this value before the assertion.
         message as WaterfallChart.Message,
       );
       return { model: { ...model, waterfall } };

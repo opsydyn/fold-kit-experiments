@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as TG from '../../ui/tile-grid-map';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: TG.Model };
@@ -60,7 +61,7 @@ const US_STATES: ReadonlyArray<TG.TileCell> = [
   { id: 'FL', label: 'FL', col: 8, row: 6, value: 81 },
 ];
 
-export const init = (_: unknown) => {
+export const init = (_: AppInitProps) => {
   const { model: chart } = TG.init({
     cells: US_STATES,
     tileSize: 32,

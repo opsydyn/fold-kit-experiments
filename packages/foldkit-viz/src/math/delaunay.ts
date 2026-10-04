@@ -449,6 +449,7 @@ export function triangulate(points: ReadonlyArray<Point2D>): DelaunayResult {
   }
 
   const triangles = _triangles.subarray(0, trianglesLen);
+  // SAFETY: The chart algorithm establishes this representation before the assertion.
   const halfedges = _halfedges.subarray(0, trianglesLen) as Int32Array;
 
   // Compute inedges (d3-delaunay/_init logic)

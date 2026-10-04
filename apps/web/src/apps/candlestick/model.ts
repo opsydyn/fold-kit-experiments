@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as CandleChart from '../../ui/candlestick-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ candle: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'candle'> & {
   readonly candle: CandleChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: candle } = CandleChart.init({
     candles: [
       { label: 'Apr 1', open: 142.5, high: 145.8, low: 141.2, close: 144.6 },

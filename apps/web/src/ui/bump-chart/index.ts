@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 // MODEL — temporal rankings (lower rank = better, rank 1 is top)
 
@@ -33,7 +33,7 @@ export type Model = Readonly<{
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const n = cfg.series.length;
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: n * 36 + 48, ...cfg.dims },
     { top: 24, right: 80, bottom: 24, left: 80, ...cfg.margins },
   );

@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -74,11 +74,12 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
       q1: stats.q1,
       median: stats.median,
       q3: stats.q3,
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       color: colors[i % colors.length] as string,
     };
   });
 
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 300, ...cfg.dims },
     { top: 24, right: 20, bottom: 44, left: 52, ...cfg.margins },
   );

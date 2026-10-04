@@ -8,7 +8,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 // MODEL — choropleth map
 // Features come in as a GeoFeatureCollection (post-topojson conversion).
@@ -49,7 +49,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const hi = Math.max(...values);
   const dataById = new Map(cfg.data.map((d) => [d.id, d]));
 
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 760, height: 420, ...cfg.dims },
     { top: 12, right: 80, bottom: 16, left: 12, ...cfg.margins },
   );

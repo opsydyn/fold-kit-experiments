@@ -30,28 +30,27 @@ const Flags = Schema.Struct({
   routeLocale: Schema.optional(Schema.String),
   noMeta: Schema.Boolean,
 });
-const textDirectionByLocale: Readonly<Record<string, 'Rtl' | 'Auto'>> = {
-  ar: 'Rtl',
-};
+const textDirectionFor = (locale: string): 'Rtl' | 'Auto' => (locale === 'ar' ? 'Rtl' : 'Auto');
 
 const makePageConfig = (
   metadata: MetadataFactory = (model) => ({
     canonical: '',
     ogUrl: `https://example.com${model.pathname}`,
   }),
-) => ({
-  Flags,
-  Model: {},
-  init: (flags: Flags) => ({ model: flags, commands: [{ _tag: 'IgnoredCommand' }] }),
-  update: (model: Model, _message: Message) => ({ model }),
-  view: (model: Model, h: HtmlBuilder<Message>): Document => ({
-    title: `Server page ${model.locale}`,
-    lang: model.locale,
-    dir: textDirectionByLocale[model.locale] ?? 'Auto',
-    ...metadata(model),
-    body: h.section([], [`${model.locale}:${model.pathname}:${model.routeLocale ?? 'missing'}`]),
-  }),
-}) satisfies PageConfig<Flags, Model, Message>;
+) =>
+  ({
+    Flags,
+    Model: {},
+    init: (flags: Flags) => ({ model: flags, commands: [{ _tag: 'IgnoredCommand' }] }),
+    update: (model: Model, _message: Message) => ({ model }),
+    view: (model: Model, h: HtmlBuilder<Message>): Document => ({
+      title: `Server page ${model.locale}`,
+      lang: model.locale,
+      dir: textDirectionFor(model.locale),
+      ...metadata(model),
+      body: h.section([], [`${model.locale}:${model.pathname}:${model.routeLocale ?? 'missing'}`]),
+    }),
+  }) satisfies PageConfig<Flags, Model, Message>;
 
 const makePage = (metadata?: MetadataFactory) =>
   definePage<{ readonly locale: string; readonly noMeta?: boolean | '' }, Flags>(
@@ -66,12 +65,14 @@ const makePage = (metadata?: MetadataFactory) =>
     },
   );
 
-const context: {
+type TestContext = {
   readonly request: Request;
   readonly url: URL;
   readonly params: { readonly locale: string };
   readonly props: { readonly locale: string; readonly noMeta: true };
-} = {
+};
+
+const context: TestContext = {
   request: new Request('https://example.com/ar/dashboard?preview=true', { method: 'POST' }),
   url: new URL('https://example.com/ar/dashboard?preview=true'),
   params: { locale: 'ar' },

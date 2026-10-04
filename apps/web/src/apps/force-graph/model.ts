@@ -2,6 +2,7 @@ import { runForceLayout } from '@opsydyn/foldkit-viz/simulation';
 import { Schema } from 'effect';
 
 import * as ForceGraph from '../../ui/force-graph';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ graph: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'graph'> & { readonly graph: ForceGraph.Model };
@@ -39,7 +40,7 @@ const LINKS: ReadonlyArray<ForceGraph.Link> = [
   { source: 'vue', target: 'vite' },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const layout = runForceLayout({
     nodes: NODES,
     links: LINKS,

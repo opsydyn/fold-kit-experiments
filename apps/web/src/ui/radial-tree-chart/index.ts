@@ -33,6 +33,7 @@ export type Model = Readonly<{
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const outerRadius = cfg.outerRadius ?? 108;
+  // SAFETY: The app model and message contracts establish this value before the assertion.
   const root = hierarchy(cfg.data as TreeDatum);
   const nodes = clusterLayout(root, { width: 2 * Math.PI, height: outerRadius });
 

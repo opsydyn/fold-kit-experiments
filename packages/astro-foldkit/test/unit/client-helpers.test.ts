@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'bun:test';
 
+import { inertHtml } from 'foldkit/html';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import {
   findSingleFoldkitRoot,
-  makeNoMetaView,
   shouldSkipMetadata,
+  withNoMetaView,
 } from '../../src/client-helpers';
 
-const h = {} as unknown as HtmlBuilder<unknown>;
+const h = inertHtml;
+
+const wrapView = <Model>(
+  view: (model: Model, builder: HtmlBuilder<never>) => Document,
+  title: string,
+) => withNoMetaView<Model, never>(view, title);
 
 type TestChild = {
   readonly attributes: Readonly<Record<string, string>>;
@@ -77,10 +83,10 @@ describe('shouldSkipMetadata', () => {
   });
 });
 
-describe('makeNoMetaView', () => {
+describe('withNoMetaView', () => {
   it('forwards the render-frame builder and preserves document attributes', () => {
     const model = { count: 7 };
-    const h = { frame: 'test-builder' } as unknown as HtmlBuilder<never>;
+    const h: HtmlBuilder<never> = inertHtml;
     const received: unknown[] = [];
     const appView = (nextModel: typeof model, nextH: HtmlBuilder<never>): Document => {
       received.push(nextModel, nextH);
@@ -91,7 +97,7 @@ describe('makeNoMetaView', () => {
         body: null,
       };
     };
-    const wrapped = makeNoMetaView(appView, 'Astro page title');
+    const wrapped = wrapView(appView, 'Astro page title');
 
     expect(wrapped(model, h)).toEqual({
       title: 'Astro page title',
@@ -104,7 +110,7 @@ describe('makeNoMetaView', () => {
 
   it('returns a view that replaces title with the captured initial title', () => {
     const appView = () => ({ title: 'Bar Chart — foldkit-viz', body: null });
-    const wrapped = makeNoMetaView(appView, 'Charts — My App');
+    const wrapped = wrapView(appView, 'Charts — My App');
 
     expect(wrapped({}, h)).toEqual({ title: 'Charts — My App', body: null });
   });
@@ -116,7 +122,7 @@ describe('makeNoMetaView', () => {
       ogUrl: 'https://example.com/og',
       body: null,
     });
-    const wrapped = makeNoMetaView(appView, 'Page Title');
+    const wrapped = wrapView(appView, 'Page Title');
     const result = wrapped({}, h);
 
     expect(result.title).toBe('Page Title');
@@ -127,11 +133,11 @@ describe('makeNoMetaView', () => {
 
   it('passes the model through to the original view', () => {
     const received: unknown[] = [];
-    const appView = (model: unknown) => {
+    const appView = (model: { readonly count: number }) => {
       received.push(model);
       return { title: 'App', body: null };
     };
-    const wrapped = makeNoMetaView(appView, 'Page');
+    const wrapped = wrapView(appView, 'Page');
     const model = { count: 7 };
     wrapped(model, h);
 
@@ -140,7 +146,7 @@ describe('makeNoMetaView', () => {
 
   it('uses the captured title on every call, not the latest document.title', () => {
     const appView = () => ({ title: 'Scatter Chart — foldkit-viz', body: null });
-    const wrapped = makeNoMetaView(appView, 'Charts — My App');
+    const wrapped = wrapView(appView, 'Charts — My App');
 
     expect(wrapped({}, h)).toMatchObject({ title: 'Charts — My App' });
     expect(wrapped({}, h)).toMatchObject({ title: 'Charts — My App' });

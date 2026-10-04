@@ -8,6 +8,7 @@ type ImportMetaWithEnv = ImportMeta &
   }>;
 
 export function readFoldkitBuildId(
+  // SAFETY: The surrounding package boundary establishes this value before the assertion.
   env: FoldkitEnv | undefined = (import.meta as ImportMetaWithEnv).env,
 ): string {
   const buildId = env?.FOLDKIT_BUILD_ID;

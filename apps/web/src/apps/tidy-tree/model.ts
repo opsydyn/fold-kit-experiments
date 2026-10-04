@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as TidyTree from '../../ui/tidy-tree-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & {
@@ -44,7 +45,7 @@ const TECH_TREE: TidyTree.TreeDatum = {
   ],
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = TidyTree.init({
     data: TECH_TREE,
   });

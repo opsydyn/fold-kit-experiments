@@ -152,9 +152,10 @@ root, `define-app`, `define-page`, and `server` exports remain stable.
 The five existing chart measurement mounts migrate from the positional form:
 
 ```ts
-Mount.define('CaptureChartBounds', RecordedChartBounds)(element =>
-  Effect.sync(() => RecordedChartBounds(readBounds(element))),
-);
+Mount.define(
+  'CaptureChartBounds',
+  RecordedChartBounds,
+)((element) => Effect.sync(() => RecordedChartBounds(readBounds(element))));
 ```
 
 to the 0.155 named form:
@@ -162,8 +163,7 @@ to the 0.155 named form:
 ```ts
 Mount.define('CaptureChartBounds', {
   messages: [Message.RecordedChartBounds],
-  execute: ({ element }) =>
-    Effect.sync(() => Message.RecordedChartBounds(readBounds(element))),
+  execute: ({ element }) => Effect.sync(() => Message.RecordedChartBounds(readBounds(element))),
 });
 ```
 

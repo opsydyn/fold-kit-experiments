@@ -11,6 +11,11 @@ import type { ReplayEvent } from './ports';
 
 type Return = import('foldkit/update').Return<Model, Message>;
 
+const withPlayback = (model: Model, playback: Model['playback']): Return => {
+  const nextModel: Model = { ...model, playback };
+  return { model: nextModel };
+};
+
 const recordFor = (
   model: Model,
   event: ReplayEvent,
@@ -99,17 +104,21 @@ function advancePlayback(model: Model, deltaTimeMs: number): Return {
 }
 
 export function update(model: Model, message: Message): Return {
-  const availablePlayback = Match.value(model.replayIndex < fixture.length).pipe(
+  const availablePlayback: Model['playback'] = Match.value(model.replayIndex < fixture.length).pipe(
     Match.when(true, () => 'playing' as const),
     Match.orElse(() => 'paused' as const),
   );
   return Message.match(message, {
-    ClickedPlay: () => ({
-      model: { ...model, playback: availablePlayback },
-    }),
-    ClickedPause: () => ({ model: { ...model, playback: 'paused' } }),
+    ClickedPlay: () => withPlayback(model, availablePlayback),
+    ClickedPause: () => {
+      const nextModel: Model = { ...model, playback: 'paused' };
+      return { model: nextModel };
+    },
     ClickedStep: () => stepReplay(model),
     ClickedReset: () => ({ model: initModel }),
+    ChangedReducedMotion: ({ isReducedMotion }) => ({
+      model: { ...model, reducedMotion: isReducedMotion },
+    }),
     AdvancedReplay: ({ deltaTimeMs }) => advancePlayback(model, deltaTimeMs),
     SelectedTrace: ({ sequence }) => ({
       model: { ...model, selectedSequence: sequence, selectedEdge: null },

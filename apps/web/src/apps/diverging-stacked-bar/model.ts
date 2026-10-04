@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as DSB from '../../ui/diverging-stacked-bar';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: DSB.Model };
@@ -23,7 +24,7 @@ const ROWS: ReadonlyArray<DSB.LikertRow> = [
   { label: 'Enjoyable to use', counts: [7, 11, 16, 40, 26] },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = DSB.init({ categories: CATEGORIES, rows: ROWS });
   return { model: { chart } };
 };

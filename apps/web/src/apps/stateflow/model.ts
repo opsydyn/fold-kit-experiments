@@ -9,6 +9,7 @@ export type TransitionFact = TransitionRecordedValue;
 export type Model = Readonly<{
   explorer: ExplorerState;
   playback: 'paused' | 'playing';
+  reducedMotion: boolean;
   replayIndex: number;
   replayElapsedMs: number;
   trace: ReadonlyArray<TransitionFact>;
@@ -21,6 +22,7 @@ export type Model = Readonly<{
 export const Model = Schema.Struct({
   explorer: ExplorerState,
   playback: Schema.Literals(['paused', 'playing']),
+  reducedMotion: Schema.Boolean,
   replayIndex: Schema.Number,
   replayElapsedMs: Schema.Number,
   trace: Schema.Array(TransitionRecorded),
@@ -33,6 +35,7 @@ export const Model = Schema.Struct({
 export const initModel: Model = {
   explorer: ExplorerState.Loading(),
   playback: 'paused',
+  reducedMotion: false,
   replayIndex: 0,
   replayElapsedMs: 0,
   trace: [],

@@ -175,7 +175,7 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
           [
             styles.edge,
             textWhen(edge.transitionCount > 0, styles.visitedEdge),
-            textWhen(Option.isSome(latestMatch), styles.pulse),
+            textWhen(!model.reducedMotion && Option.isSome(latestMatch), styles.pulse),
           ].join(' '),
         ),
         h.Role('button'),
@@ -426,6 +426,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   });
   const control = (label: string, message: Message, disabled: boolean) =>
     h.button([h.Class(styles.control), h.OnClick(message), h.Disabled(disabled)], [label]);
+  const motionPreference = Match.value(model.reducedMotion).pipe(
+    Match.when(true, () => 'reduced'),
+    Match.orElse(() => 'standard'),
+  );
   return {
     title: `Stateflow Observatory — ${model.explorer._tag}`,
     body: h.div(
@@ -438,6 +442,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.p([], [`Transitions: ${transitions}`]),
             h.p([], [`Ignored: ${model.trace.length - transitions}`]),
             h.p([], [`Playback: ${model.playback}`]),
+            h.p([], [`Motion preference: ${motionPreference}`]),
           ],
         ),
         h.div(

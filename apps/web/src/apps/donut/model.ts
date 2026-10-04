@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as DonutChart from '../../ui/donut-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ donut: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'donut'> & {
@@ -14,7 +15,7 @@ const SEGMENTS: ReadonlyArray<DonutChart.Segment> = [
   { label: 'Operations', value: 5, color: '#c4b5fd' },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: donut } = DonutChart.init({ segments: SEGMENTS });
   return { model: { donut } };
 };

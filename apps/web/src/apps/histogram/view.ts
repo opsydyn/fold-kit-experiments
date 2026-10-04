@@ -6,7 +6,8 @@ import type { Model } from './model';
 
 type HistogramMessage = HistogramChart.Message;
 
-const toParentMessage = (msg: HistogramMessage): Message => Message.GotHistogramMessage({ message: msg });
+const toParentMessage = (msg: HistogramMessage): Message =>
+  Message.ReceivedHistogramMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Salary Distribution — foldkit-viz',

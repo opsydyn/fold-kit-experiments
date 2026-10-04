@@ -1,13 +1,14 @@
 import { Schema } from 'effect';
 
 import * as SunburstChart from '../../ui/sunburst-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ sunburst: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'sunburst'> & {
   readonly sunburst: SunburstChart.Model;
 };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: sunburst } = SunburstChart.init({
     root: {
       name: 'Tech Market Cap',

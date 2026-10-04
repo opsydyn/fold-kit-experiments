@@ -4,7 +4,8 @@ import * as TidyTree from '../../ui/tidy-tree-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: TidyTree.Message): Message => Message.GotTreeMessage({ message: msg });
+const toParentMessage = (msg: TidyTree.Message): Message =>
+  Message.ReceivedTreeMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Tech stack — foldkit-viz',

@@ -23,7 +23,7 @@ export const DEFAULT_DIMS: Dims = { width: 480, height: 260 };
 
 export const DEFAULT_MARGINS: Margins = { top: 24, right: 20, bottom: 44, left: 44 };
 
-export function makeLayout(dims: Dims = DEFAULT_DIMS, margins: Margins = DEFAULT_MARGINS): Layout {
+export function layoutFor(dims: Dims = DEFAULT_DIMS, margins: Margins = DEFAULT_MARGINS): Layout {
   return {
     dims,
     margins,

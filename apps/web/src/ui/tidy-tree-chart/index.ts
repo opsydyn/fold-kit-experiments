@@ -7,7 +7,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, svgRoot } from '../shared';
+import { layoutFor, svgRoot } from '../shared';
 
 // MODEL
 
@@ -42,6 +42,7 @@ export type Model = Readonly<{
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const w = cfg.width ?? 440;
   const h = cfg.height ?? 220;
+  // SAFETY: The app model and message contracts establish this value before the assertion.
   const root = hierarchy(cfg.data as TreeDatum);
   const nodes = treeLayout(root, { width: w, height: h });
 
@@ -54,7 +55,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
     }
   }
 
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 260, ...cfg.dims },
     { top: 24, right: 20, bottom: 32, left: 20, ...cfg.margins },
   );

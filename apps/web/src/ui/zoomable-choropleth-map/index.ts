@@ -17,7 +17,7 @@ import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { ChoroplethDatum } from '../choropleth-map';
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 export type { ChoroplethDatum };
 
@@ -55,7 +55,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const hi = Math.max(...values);
   const dataById = new Map(cfg.data.map((d) => [d.id, d]));
 
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 760, height: 420, ...cfg.dims },
     { top: 12, right: 80, bottom: 16, left: 12, ...cfg.margins },
   );
@@ -99,7 +99,9 @@ const MIN_SCALE = 0.8;
 const MAX_SCALE = 16;
 const ZOOM_FACTOR = 1.4;
 
-function zoomCenter(model: Model): { x: number; y: number } {
+type ZoomCenter = Readonly<{ x: number; y: number }>;
+
+function zoomCenter(model: Model): ZoomCenter {
   return { x: model.layout.pw / 2, y: model.layout.ph / 2 };
 }
 

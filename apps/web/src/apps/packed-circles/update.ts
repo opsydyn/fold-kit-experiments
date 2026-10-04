@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotPackedMessage: ({ message }) => {
+    ReceivedPackedMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: packed } = PackedChart.update(model.packed, message as PackedChart.Message);
       return { model: { ...model, packed } };
     },

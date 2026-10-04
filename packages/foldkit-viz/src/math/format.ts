@@ -60,6 +60,7 @@ function parseSpec(spec: string): Spec {
     comma: m[1] === ',',
     precision: m[2] != null ? parseInt(m[2], 10) : undefined,
     trim: m[3] === '~',
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     type: (m[4] ?? '') as FormatType,
   };
 }

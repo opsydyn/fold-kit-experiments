@@ -17,9 +17,11 @@ describe('defineApp', () => {
     type Message = { readonly _tag: 'Increment' };
 
     const config = {
+      // SAFETY: The test fixture establishes this value before the assertion.
       Model: {} as AppConfig<Props, Model, Message>['Model'],
       init: (props: Props) => ({ model: { count: props.initialCount } }),
       update: (model: Model, _message: Message) => ({ model }),
+      // SAFETY: The test fixture establishes this value before the assertion.
       view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
     } satisfies AppConfig<Props, Model, Message>;
 
@@ -30,22 +32,26 @@ describe('defineApp', () => {
   });
 
   it('sets __foldkit: true', () => {
+    // SAFETY: The test fixture establishes this value before the assertion.
     const app = defineApp(() => Promise.resolve({} as any));
     expect(app.__foldkit).toBe(true);
   });
 
   it('stores the loader as load', () => {
+    // SAFETY: The test fixture establishes this value before the assertion.
     const loader = () => Promise.resolve({} as any);
     const app = defineApp(loader);
     expect(app.load).toBe(loader);
   });
 
   it('is callable as a function', () => {
+    // SAFETY: The test fixture establishes this value before the assertion.
     const app = defineApp(() => Promise.resolve({} as any));
     expect(() => app()).not.toThrow();
   });
 
   it('load returns the config the loader resolves to', async () => {
+    // SAFETY: The test fixture establishes this value before the assertion.
     const config = {} as AppConfig;
     const app = defineApp(() => Promise.resolve(config));
     expect(await app.load()).toBe(config);

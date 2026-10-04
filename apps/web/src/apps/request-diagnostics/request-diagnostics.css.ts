@@ -8,19 +8,19 @@ export const root = style({
 
 export const toolbar = style({
   display: 'flex',
+  flexWrap: 'wrap',
   alignItems: 'center',
   justifyContent: 'space-between',
   gap: '1rem',
-  flexWrap: 'wrap',
 });
 
 export const button = style({
   border: '1px solid #334155',
   borderRadius: '4px',
   background: '#0f172a',
-  color: '#e2e8f0',
   cursor: 'pointer',
   padding: '0.5rem 0.75rem',
+  color: '#e2e8f0',
 });
 
 export const status = style({

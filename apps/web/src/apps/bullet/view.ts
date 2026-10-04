@@ -4,7 +4,8 @@ import * as Bullet from '../../ui/bullet-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: Bullet.Message): Message => Message.GotBulletMessage({ message: msg });
+const toParentMessage = (msg: Bullet.Message): Message =>
+  Message.ReceivedBulletMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Bullet chart — foldkit-viz',

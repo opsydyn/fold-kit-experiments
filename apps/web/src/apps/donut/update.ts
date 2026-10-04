@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, message: Message): Return =>
   Message.match(message, {
-    GotDonutMessage: ({ message }) => {
+    ReceivedDonutMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: nextDonut } = DonutChart.update(model.donut, message as DonutChart.Message);
       return { model: { ...model, donut: nextDonut } };
     },

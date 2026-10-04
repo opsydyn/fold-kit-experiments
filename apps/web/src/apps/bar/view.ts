@@ -6,7 +6,7 @@ import type { Model } from './model';
 
 type BarMessage = BarChart.Message;
 
-const toParentMessage = (msg: BarMessage): Message => Message.GotBarMessage({ message: msg });
+const toParentMessage = (msg: BarMessage): Message => Message.ReceivedBarMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Bar Chart — foldkit-viz',

@@ -1,27 +1,31 @@
 import type { Schema } from 'effect';
 import type { Runtime } from 'foldkit';
 import type { Document } from 'foldkit/html';
+import type { Ports } from 'foldkit/port';
 
-import type { NavigationConfig } from './navigation';
+import type { NavigationConfig, NavigationEvent } from './navigation';
 
 type TaggedMessage = { readonly _tag: string };
+export interface EmptyProps {
+  readonly noMeta?: boolean | '';
+}
 
 export type AppReturn<Model = unknown> = Readonly<{
   readonly model: Model;
   readonly commands?: ReadonlyArray<unknown>;
 }>;
 
-export type AppConfigShape<Props extends Record<string, unknown>> = {
+export type AppConfigContract<Props extends object = EmptyProps> = {
   readonly Model: unknown;
   readonly init: (props: Props) => AppReturn;
   readonly update: (model: never, message: never) => AppReturn;
   readonly view: (model: never, h: never) => Document;
-  readonly navigation?: NavigationConfig<unknown>;
-  readonly ports?: Record<string, unknown>;
+  readonly navigation?: NavigationConfig<NavigationEvent>;
+  readonly ports?: Ports;
 };
 
 export type AppConfig<
-  Props extends Record<string, unknown> = Record<string, unknown>,
+  Props extends object = EmptyProps,
   Model = unknown,
   Message extends TaggedMessage = TaggedMessage,
 > = {
@@ -32,8 +36,8 @@ export type AppConfig<
 };
 
 export type FoldkitApp<
-  Props extends Record<string, unknown> = Record<string, unknown>,
-  Config extends AppConfigShape<Props> = AppConfigShape<Props>,
+  Props extends object = EmptyProps,
+  Config extends AppConfigContract<Props> = AppConfigContract<Props>,
 > = {
   (props?: Props): void;
   readonly __foldkit: true;
@@ -42,46 +46,40 @@ export type FoldkitApp<
 
 export type PageParams = Readonly<Record<string, string | undefined>>;
 
-export type PageFlagsContext<Props extends Record<string, unknown> = Record<string, unknown>> = {
+export type PageFlagsContext<Props extends object = EmptyProps> = {
   readonly request: Request;
   readonly url: URL;
   readonly params: PageParams;
   readonly props: Props;
 };
 
-export type PageContext<Props extends Record<string, unknown> = Record<string, unknown>> =
-  PageFlagsContext<Props>;
+export type PageContext<Props extends object = EmptyProps> = PageFlagsContext<Props>;
 
-export type PageFlagsSchema<Flags extends Record<string, unknown>> = Schema.Codec<
-  Flags,
-  any,
-  never,
-  never
->;
+export type PageFlagsSchema<Flags extends object> = Schema.Codec<Flags, any, never, never>;
 
 export type PageConfig<
-  Flags extends Record<string, unknown> = Record<string, unknown>,
+  Flags extends object = EmptyProps,
   Model = unknown,
   Message extends TaggedMessage = TaggedMessage,
 > = AppConfig<Flags, Model, Message> & {
   readonly Flags: PageFlagsSchema<Flags>;
 };
 
-export type PageConfigShape<Flags extends Record<string, unknown>> = AppConfigShape<Flags> & {
+export type PageConfigContract<Flags extends object = EmptyProps> = AppConfigContract<Flags> & {
   readonly Flags: PageFlagsSchema<Flags>;
 };
 
 export type DefinePageOptions<
-  Props extends Record<string, unknown> = Record<string, unknown>,
-  Flags extends Record<string, unknown> = Record<string, unknown>,
+  Props extends object = EmptyProps,
+  Flags extends object = EmptyProps,
 > = {
   readonly flags: (context: PageFlagsContext<Props>) => Flags;
 };
 
 export type FoldkitPage<
-  Props extends Record<string, unknown> = Record<string, unknown>,
-  Flags extends Record<string, unknown> = Record<string, unknown>,
-  Config extends PageConfigShape<Flags> = PageConfigShape<Flags>,
+  Props extends object = EmptyProps,
+  Flags extends object = EmptyProps,
+  Config extends PageConfigContract<Flags> = PageConfigContract<Flags>,
 > = {
   (props?: Props): void;
   readonly __foldkitPage: true;

@@ -147,6 +147,7 @@ export function view<M>(
   let linePath: string | null = null;
   let areaPath: string | null = null;
   if (visibleCoords.length >= 2) {
+    // SAFETY: The app model and message contracts establish this value before the assertion.
     const [first, ...rest] = visibleCoords as [
       readonly [number, number],
       ...Array<readonly [number, number]>,

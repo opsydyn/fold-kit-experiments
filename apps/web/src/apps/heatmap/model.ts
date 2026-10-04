@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as HeatmapChart from '../../ui/heatmap-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ heatmap: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'heatmap'> & {
@@ -26,7 +27,7 @@ const data: ReadonlyArray<HeatmapChart.CellDatum> = RAW.flatMap((row, r) =>
   row.map((value, c) => ({ row: r, col: c, value })),
 );
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: heatmap } = HeatmapChart.init({
     data,
     rowLabels: DAYS,

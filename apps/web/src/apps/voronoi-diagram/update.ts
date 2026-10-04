@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotVoronoiMessage: ({ message }) => {
+    ReceivedVoronoiMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: chart } = Voronoi.update(model.chart, message as Voronoi.Message);
       return { model: { ...model, chart } };
     },

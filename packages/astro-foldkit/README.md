@@ -20,8 +20,8 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` is tested with FoldKit `0.163.x`, Effect
-`4.0.0-rc.116`, and the matching `@foldkit/vite-plugin` `0.24.x` line.
+`@opsydyn/astro-foldkit` is tested with FoldKit `0.165.x`, stable Effect
+`4.0.0`, and the matching `@foldkit/vite-plugin` `0.26.x` line.
 Applications can define interruptible work with
 `Command.define(name, { interrupt: true, ... })` inside their own update loop;
 this integration continues to own Astro rendering, hydration, and lifecycle
@@ -198,7 +198,7 @@ with the serialized Flags payload.
 `definePage` does not infer a canonical URL from `Astro.url`, route parameters,
 or the browser location. The page view must return `Document.canonical` when the
 application has a canonical identity. Query parameters and alternate
-representations remain application-owned. When FoldKit supplies the 0.163
+representations remain application-owned. When FoldKit supplies the 0.165
 canonical-to-`ogUrl` fallback, the resolver passes it through unchanged.
 
 ### SSG
@@ -486,7 +486,7 @@ element.addEventListener(
 | Package   | Version               |
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
-| `foldkit` | `≥ 0.163.0 < 0.164.0` |
+| `foldkit` | `≥ 0.165.0 < 0.166.0` |
 
 ## Stateflow Observatory example
 
@@ -498,7 +498,11 @@ replay policy, and trace inspector. The graph consumes plain layout records.
 
 This slice adds no Astro integration API and moves no async work into the
 integration. Commands and subscriptions remain app-owned, including telemetry
-emission and validation of inbound replay events.
+emission, validation of inbound replay events, and the reduced-motion
+`Subscription.fromMediaQuery` subscription. That subscription is the app's
+example of FoldKit PR [#1424](https://github.com/foldkit/foldkit/pull/1424): it
+records the browser's initial media-query match and subsequent changes, then
+lets the Model decide whether visual motion is allowed.
 
 ## Remote visual loads
 

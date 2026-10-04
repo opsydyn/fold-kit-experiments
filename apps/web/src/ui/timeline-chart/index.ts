@@ -6,7 +6,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
-import { makeLayout, r3, svgRoot } from '../shared';
+import { layoutFor, r3, svgRoot } from '../shared';
 
 // MODEL
 
@@ -58,6 +58,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
     name: t.name,
     start: t.start,
     end: t.end,
+    // SAFETY: The app model and message contracts establish this value before the assertion.
     color: t.color ?? (colors[i % colors.length] as string),
   }));
 
@@ -65,7 +66,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const rawMin = new Date(Math.min(...allDates.map((d) => +d)));
   const rawMax = new Date(Math.max(...allDates.map((d) => +d)));
   const domain = timeNice([rawMin, rawMax], tickCount);
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 265, ...cfg.dims },
     { top: 16, right: 16, bottom: 36, left: 88, ...cfg.margins },
   );

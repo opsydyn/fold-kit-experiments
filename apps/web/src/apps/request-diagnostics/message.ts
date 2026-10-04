@@ -20,13 +20,16 @@ export const Message = defineMessageUnion({
     outcome: Command.Interruptible.Outcome,
   },
   Navigated: NavigationValue.fields,
-  GotHistogramMessage: { message: Schema.Unknown },
-  GotScatterMessage: { message: Schema.Unknown },
+  ReceivedHistogramMessage: { message: Schema.Unknown },
+  ReceivedScatterMessage: { message: Schema.Unknown },
 });
-export type GotHistogramMessage = Omit<typeof Message.GotHistogramMessage.Type, 'message'> & {
+export type ReceivedHistogramMessage = Omit<
+  typeof Message.ReceivedHistogramMessage.Type,
+  'message'
+> & {
   readonly message: HistogramMessage;
 };
-export type GotScatterMessage = Omit<typeof Message.GotScatterMessage.Type, 'message'> & {
+export type ReceivedScatterMessage = Omit<typeof Message.ReceivedScatterMessage.Type, 'message'> & {
   readonly message: ScatterMessage;
 };
 export type Message = typeof Message.Type;

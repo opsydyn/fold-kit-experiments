@@ -8,6 +8,7 @@ export const Message = defineMessageUnion({
   ClickedPause: {},
   ClickedStep: {},
   ClickedReset: {},
+  ChangedReducedMotion: { isReducedMotion: Schema.Boolean },
   AdvancedReplay: { deltaTimeMs: Schema.Number },
   SelectedTrace: { sequence: Schema.Number },
   SelectedNode: { node: Schema.String },

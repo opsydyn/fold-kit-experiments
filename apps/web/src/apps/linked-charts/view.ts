@@ -9,7 +9,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scatter: Html = Scatter.view(
     {
       model: model.scatter,
-      toParentMessage: (msg) => Message.GotScatterMessage({ message: msg }),
+      toParentMessage: (msg) => Message.ReceivedScatterMessage({ message: msg }),
       ariaLabel: 'Scatter chart — experience vs salary',
     },
     h,
@@ -18,7 +18,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const histogram: Html = Histogram.view(
     {
       model: model.histogram,
-      toParentMessage: (msg) => Message.GotHistogramMessage({ message: msg }),
+      toParentMessage: (msg) => Message.ReceivedHistogramMessage({ message: msg }),
       ariaLabel: 'Histogram — salary distribution',
     },
     h,

@@ -8,7 +8,8 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotAreaMessage: ({ message }) => {
+    ReceivedAreaMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: area } = AreaChart.update(model.area, message as AreaChart.Message);
       return { model: { ...model, area } };
     },

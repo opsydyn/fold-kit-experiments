@@ -251,10 +251,7 @@ export function stack(
 
   // Build mutable internal series, one per key
   const series: MutableSeries[] = keys.map((key) => {
-    const s = [] as unknown as MutableSeries;
-    s.key = key;
-    s.index = 0;
-    return s;
+    return Object.assign(new Array<MutablePt>(), { key, index: 0 });
   });
 
   // Populate raw [0, value] points

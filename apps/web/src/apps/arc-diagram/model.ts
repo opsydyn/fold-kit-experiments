@@ -1,11 +1,12 @@
 import { Schema } from 'effect';
 
 import * as Arc from '../../ui/arc-diagram';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & { readonly chart: Arc.Model };
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const nodes: ReadonlyArray<Arc.ArcNode> = [
     { id: 'ts', label: 'TS' },
     { id: 'react', label: 'React' },

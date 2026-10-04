@@ -54,8 +54,10 @@ describe('renderFoldkitServerApplication', () => {
   });
 
   it('rejects invalid Flags before emitting HTML', async () => {
+    const invalidFlags: Flags = { name: 'Ada' };
+    Object.defineProperty(invalidFlags, 'name', { value: 42 });
     await expect(
-      renderFoldkitServerApplication(config, { name: 42 } as unknown as Flags, 'build-123'),
+      renderFoldkitServerApplication(config, invalidFlags, 'build-123'),
     ).rejects.toMatchObject({ _tag: 'FlagsEncodeError' });
   });
 

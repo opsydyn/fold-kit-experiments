@@ -17,7 +17,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const histogram: Html = Histogram.view(
     {
       model: model.histogram,
-      toParentMessage: (message) => Message.GotHistogramMessage({ message }),
+      toParentMessage: (message) => Message.ReceivedHistogramMessage({ message }),
       ariaLabel: 'Request latency distribution. Drag to filter the scatter plot.',
     },
     h,
@@ -25,7 +25,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scatter: Html = Scatter.view(
     {
       model: model.scatter,
-      toParentMessage: (message) => Message.GotScatterMessage({ message }),
+      toParentMessage: (message) => Message.ReceivedScatterMessage({ message }),
       ariaLabel: 'Error rate by request latency.',
     },
     h,

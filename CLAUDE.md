@@ -45,7 +45,7 @@ Config files:
 
 ## Foldkit import style guide
 
-Foldkit 0.163.0 exports submodule functions as **named exports**, not namespace objects.
+Foldkit 0.165.0 exports submodule functions as **named exports**, not namespace objects.
 
 ### foldkit/update
 
@@ -202,10 +202,10 @@ From the Foldkit style guide (adapted):
 
 ## Foldkit version
 
-Currently on `foldkit@0.163.0` with Effect `4.0.0-rc.116` and
-`@foldkit/vite-plugin` `0.24.x`.
+Currently on `foldkit@0.165.0` with stable Effect `4.0.0` and
+`@foldkit/vite-plugin` `0.26.x`.
 
-FoldKit 0.163 migration guidance:
+FoldKit 0.165 and stable Effect guidance:
 
 - Prefer the renamed helpers `modifyFields`, `keyBindings`, `mapEvent`, and
   `filterMapEvent` when migrating code that used their older names.
@@ -213,6 +213,11 @@ FoldKit 0.163 migration guidance:
   do not rename them without a repository-specific reason.
 - `foldkit/update` uses record-shaped `Step` and `Return` values. Omit
   `commands` when no commands are produced.
+- Use stable Effect module paths such as `effect/http`; do not reintroduce
+  `effect/unstable/*` imports.
+- Keep browser subscriptions in the owning app. `Subscription.fromMediaQuery`
+  provides an initial match and later change facts; the app maps those facts to
+  Messages and owns the resulting Model policy.
 
 The current release includes:
 

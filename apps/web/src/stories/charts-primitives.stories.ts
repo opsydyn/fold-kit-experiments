@@ -82,6 +82,7 @@ const nextId = () => `fk-story-${Math.random().toString(36).slice(2, 9)}`;
 
 // Schema.Any is a no-op codec: chart models don't round-trip through JSON in
 // Storybook (no HMR model preservation), so encoding is never invoked.
+// SAFETY: The app model and message contracts establish this value before the assertion.
 const STORY_MODEL_SCHEMA = Schema.Any as Schema.Codec<never, never, never, never>;
 
 function mountChart<Mod, Msg extends { _tag: string }>(
@@ -92,6 +93,7 @@ function mountChart<Mod, Msg extends { _tag: string }>(
   return mountFoldkitProgram(
     (container) =>
       makeElement<Mod, Msg>({
+        // SAFETY: The app model and message contracts establish this value before the assertion.
         Model: STORY_MODEL_SCHEMA as Schema.Codec<Mod, any, unknown, unknown>,
         init,
         update,

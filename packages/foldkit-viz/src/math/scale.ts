@@ -81,6 +81,7 @@ export function ordinal<R>(
   const n = range.length;
   return (value: string): R => {
     const i = index.get(value) ?? 0;
+    // SAFETY: The chart algorithm establishes this representation before the assertion.
     return range[i % n] as R;
   };
 }

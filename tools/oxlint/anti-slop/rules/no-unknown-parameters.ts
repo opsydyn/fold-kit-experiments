@@ -55,6 +55,8 @@ export const noUnknownParametersRule = defineRule({
   createOnce(context) {
     const checkParameters = (node: ParameterOwner) => {
       for (const parameter of node.params) {
+        // A type-predicate parameter is the parser boundary this rule asks callers to establish.
+        if (node.returnType?.typeAnnotation.type === 'TSTypePredicate') continue;
         const annotation = parameterAnnotation(parameter);
         if (annotation?.typeAnnotation.type !== "TSUnknownKeyword") continue;
         const name = parameterName(parameter, context.sourceCode.getText(parameter));

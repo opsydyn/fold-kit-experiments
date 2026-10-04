@@ -8,9 +8,10 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotCurveMessage: ({ message }) => {
+    ReceivedCurveMessage: ({ message }) => {
       const { model: chart } = CurveComparison.update(
         model.chart,
+        // SAFETY: The app model and message contracts establish this value before the assertion.
         message as CurveComparison.Message,
       );
       return { model: { ...model, chart } };

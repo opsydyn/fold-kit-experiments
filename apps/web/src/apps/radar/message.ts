@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as RadarMessage } from '../../ui/radar-chart';
 
 export const Message = defineMessageUnion({
-  GotRadarMessage: { message: Schema.Unknown },
+  ReceivedRadarMessage: { message: Schema.Unknown },
 });
-export type GotRadarMessage = Omit<typeof Message.GotRadarMessage.Type, 'message'> & {
+export type ReceivedRadarMessage = Omit<typeof Message.ReceivedRadarMessage.Type, 'message'> & {
   readonly message: RadarMessage;
 };
 export type Message = typeof Message.Type;

@@ -4,37 +4,32 @@ All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
 ## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.8.0...foldkit-viz-v0.9.0) (2026-09-20)
 
-
 ### Features
 
-* **viz:** add stateflow layout primitives ([0513750](https://github.com/opsydyn/fold-kit-experiments/commit/051375015dcd062c5da40ae2567d7da610fc69d8))
+- **viz:** add stateflow layout primitives ([0513750](https://github.com/opsydyn/fold-kit-experiments/commit/051375015dcd062c5da40ae2567d7da610fc69d8))
 
 ## [0.8.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.7.0...foldkit-viz-v0.8.0) (2026-08-20)
 
-
 ### Features
 
-* **astro-foldkit:** document opt-in server rendering ([53e9d00](https://github.com/opsydyn/fold-kit-experiments/commit/53e9d004c75c10245d0aa88fc4c412b96c7f2f4c))
-* support FoldKit 0.136 ([50f4134](https://github.com/opsydyn/fold-kit-experiments/commit/50f4134d7596926fed373408642816736907934f))
-
+- **astro-foldkit:** document opt-in server rendering ([53e9d00](https://github.com/opsydyn/fold-kit-experiments/commit/53e9d004c75c10245d0aa88fc4c412b96c7f2f4c))
+- support FoldKit 0.136 ([50f4134](https://github.com/opsydyn/fold-kit-experiments/commit/50f4134d7596926fed373408642816736907934f))
 
 ### Bug Fixes
 
-* **astro-foldkit:** keep define-page markers inert ([0fb4e54](https://github.com/opsydyn/fold-kit-experiments/commit/0fb4e54dbd3a0b53f21de57f27f3948e13fcf80b))
+- **astro-foldkit:** keep define-page markers inert ([0fb4e54](https://github.com/opsydyn/fold-kit-experiments/commit/0fb4e54dbd3a0b53f21de57f27f3948e13fcf80b))
 
 ## [0.7.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.6.0...foldkit-viz-v0.7.0) (2026-07-18)
 
-
 ### Features
 
-* **foldkit-viz:** add selection contract ([1526cd6](https://github.com/opsydyn/fold-kit-experiments/commit/1526cd6b4c97ec2a76604faf2849931c3be3525a))
-
+- **foldkit-viz:** add selection contract ([1526cd6](https://github.com/opsydyn/fold-kit-experiments/commit/1526cd6b4c97ec2a76604faf2849931c3be3525a))
 
 ### Bug Fixes
 
-* **foldkit-viz:** clean smoke fixture failures ([df6a842](https://github.com/opsydyn/fold-kit-experiments/commit/df6a8425c495d237ac6251bbe01328fd21ba2f39))
-* **foldkit-viz:** package selection subpath ([54d770f](https://github.com/opsydyn/fold-kit-experiments/commit/54d770f7584c95abc01bf58f4573c5c8065391f9))
-* **foldkit-viz:** use async smoke fixture cleanup ([6d146de](https://github.com/opsydyn/fold-kit-experiments/commit/6d146dec9db63c50ff6c3d2d866def8e31885a30))
+- **foldkit-viz:** clean smoke fixture failures ([df6a842](https://github.com/opsydyn/fold-kit-experiments/commit/df6a8425c495d237ac6251bbe01328fd21ba2f39))
+- **foldkit-viz:** package selection subpath ([54d770f](https://github.com/opsydyn/fold-kit-experiments/commit/54d770f7584c95abc01bf58f4573c5c8065391f9))
+- **foldkit-viz:** use async smoke fixture cleanup ([6d146de](https://github.com/opsydyn/fold-kit-experiments/commit/6d146dec9db63c50ff6c3d2d866def8e31885a30))
 
 ## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.5.0...foldkit-viz-v0.6.0) (2026-07-18)
 

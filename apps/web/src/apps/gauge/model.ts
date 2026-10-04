@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as GaugeChart from '../../ui/gauge-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ gauge: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'gauge'> & {
@@ -13,7 +14,7 @@ const THRESHOLDS = [
   { at: 80, color: '#ef4444' },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: gauge } = GaugeChart.init({
     entries: [
       {

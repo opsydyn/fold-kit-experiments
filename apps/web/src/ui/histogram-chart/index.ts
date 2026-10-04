@@ -21,7 +21,7 @@ import {
   type Dims,
   type Layout,
   type Margins,
-  makeLayout,
+  layoutFor,
   r3,
   svgRoot,
   valueTooltip,
@@ -75,7 +75,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
     x1: b.x1,
     count: b.count,
   }));
-  const layout = makeLayout(
+  const layout = layoutFor(
     { width: 480, height: 265, ...cfg.dims },
     { top: 24, right: 20, bottom: 48, left: 44, ...cfg.margins },
   );

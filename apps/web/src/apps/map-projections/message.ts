@@ -4,9 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import type { Message as MapMessage } from '../../ui/map-projections-chart';
 
 export const Message = defineMessageUnion({
-  GotMapMessage: { message: Schema.Unknown },
+  ReceivedMapMessage: { message: Schema.Unknown },
 });
-export type GotMapMessage = Omit<typeof Message.GotMapMessage.Type, 'message'> & {
+export type ReceivedMapMessage = Omit<typeof Message.ReceivedMapMessage.Type, 'message'> & {
   readonly message: MapMessage;
 };
 export type Message = typeof Message.Type;

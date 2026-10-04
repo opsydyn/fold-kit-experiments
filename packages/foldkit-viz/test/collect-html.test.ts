@@ -7,26 +7,26 @@
  */
 import { describe, expect, it } from 'bun:test';
 
-import { collectAttr, collectText, countElements, findNodes } from './collect-html';
+import { collectAttr, collectText, countElements, findNodes, isElementNode } from './collect-html';
+import type { HtmlProbeAttribute, HtmlProbeNode } from './collect-html';
 
 // ── Mock vdom helpers ─────────────────────────────────────────────────────────
 // We simulate what a supplied HtmlBuilder<M> produces, since foldkit itself is
 // not available in the test environment without a full app context.
 
-type MockAttr = { _tag: string; value?: unknown; name?: string; value2?: unknown };
-type MockNode = { tag?: string; attributes?: MockAttr[]; children?: unknown[] } | string;
+type MockAttr = HtmlProbeAttribute;
+type MockNode = HtmlProbeNode;
 
 function mockText(value: string): MockNode {
-  const tag = 'Text';
-  return Object.assign({ value }, { _tag: tag }) as unknown as MockNode;
+  return { _tag: 'Text', value };
 }
 
 function mockEl(
   tag: string,
-  attrs: Array<{ _tag: string; value: string } | { name: string; value: string }>,
-  children: unknown[],
+  attrs: ReadonlyArray<MockAttr>,
+  children: ReadonlyArray<MockNode>,
 ): MockNode {
-  return { tag, attributes: attrs as MockAttr[], children };
+  return { tag, attributes: attrs, children };
 }
 
 function mockRole(role: string) {
@@ -138,25 +138,13 @@ describe('findNodes', () => {
         mockEl('rect', [mockAttr('fill', 'blue')], []),
       ],
     );
-    const rects = findNodes(
-      node,
-      (n) =>
-        typeof n === 'object' && n !== null && (n as MockNode & { tag?: string }).tag === 'rect',
-    );
+    const rects = findNodes(node, (n) => isElementNode(n) && n.tag === 'rect');
     expect(rects.length).toBe(2);
   });
 
   it('returns empty array when no match', () => {
     const node = mockEl('g', [], [mockEl('line', [], [])]);
-    expect(
-      findNodes(
-        node,
-        (n) =>
-          typeof n === 'object' &&
-          n !== null &&
-          (n as MockNode & { tag?: string }).tag === 'circle',
-      ).length,
-    ).toBe(0);
+    expect(findNodes(node, (n) => isElementNode(n) && n.tag === 'circle').length).toBe(0);
   });
 });
 

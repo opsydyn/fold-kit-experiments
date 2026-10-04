@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as LogScatter from '../../ui/log-scatter-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ chart: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'chart'> & {
@@ -36,7 +37,7 @@ const PACKAGES: ReadonlyArray<LogScatter.Point> = [
   { label: 'cypress', x: 4_500_000, y: 48_000, category: 'Testing' },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: chart } = LogScatter.init({
     points: PACKAGES,
     categories: [...CATEGORIES],

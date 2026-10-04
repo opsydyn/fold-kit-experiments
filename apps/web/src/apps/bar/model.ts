@@ -1,6 +1,7 @@
 import { Schema } from 'effect';
 
 import * as BarChart from '../../ui/bar-chart';
+import type { AppInitProps } from '../types';
 
 export const Model = Schema.Struct({ bar: Schema.Unknown });
 export type Model = Omit<typeof Model.Type, 'bar'> & {
@@ -16,7 +17,7 @@ const BARS: ReadonlyArray<BarChart.Bar> = [
   { label: 'Jun', value: 38 },
 ];
 
-export const init = (_props: unknown) => {
+export const init = (_props: AppInitProps) => {
   const { model: bar } = BarChart.init({ bars: BARS });
   return { model: { bar } };
 };

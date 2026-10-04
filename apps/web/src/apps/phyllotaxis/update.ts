@@ -8,9 +8,10 @@ type Return = UpdateReturn<Model, Message>;
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotPhyllotaxisMessage: ({ message }) => {
+    ReceivedPhyllotaxisMessage: ({ message }) => {
       const { model: chart } = PhyllotaxisChart.update(
         model.chart,
+        // SAFETY: The app model and message contracts establish this value before the assertion.
         message as PhyllotaxisChart.Message,
       );
       return { model: { ...model, chart } };

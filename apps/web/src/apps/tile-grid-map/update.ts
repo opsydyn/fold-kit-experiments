@@ -7,7 +7,8 @@ import type { Model } from './model';
 type Return = UpdateReturn<Model, Message>;
 export const update = (model: Model, msg: Message): Return =>
   Message.match(msg, {
-    GotTGMessage: ({ message }) => {
+    ReceivedTGMessage: ({ message }) => {
+      // SAFETY: The app model and message contracts establish this value before the assertion.
       const { model: chart } = TG.update(model.chart, message as TG.Message);
       return { model: { ...model, chart } };
     },

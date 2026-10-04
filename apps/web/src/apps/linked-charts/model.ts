@@ -70,10 +70,10 @@ export const initChartModels = () =>
       toParentModel: ({ scatter, histogram }) => ({ scatter, histogram }),
       folds: {
         scatter: {
-          toParentMessage: (message) => Message.GotScatterMessage({ message }),
+          toParentMessage: (message) => Message.ReceivedScatterMessage({ message }),
         },
         histogram: {
-          toParentMessage: (message) => Message.GotHistogramMessage({ message }),
+          toParentMessage: (message) => Message.ReceivedHistogramMessage({ message }),
         },
       },
     },

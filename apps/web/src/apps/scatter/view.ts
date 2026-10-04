@@ -4,7 +4,8 @@ import * as ScatterChart from '../../ui/scatter-chart';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: ScatterChart.Message): Message => Message.GotScatterMessage({ message: msg });
+const toParentMessage = (msg: ScatterChart.Message): Message =>
+  Message.ReceivedScatterMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Scatter Chart — foldkit-viz',

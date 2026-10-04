@@ -34,6 +34,7 @@ export type Model = Readonly<{
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const axisDomains = cfg.axes.map((_, ai) => {
     const vals = cfg.records.map((r) => r.values[ai] ?? 0);
+    // SAFETY: The app model and message contracts establish this value before the assertion.
     return [Math.min(...vals), Math.max(...vals)] as readonly [number, number];
   });
   return {

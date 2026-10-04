@@ -4,7 +4,7 @@ import * as Arc from '../../ui/arc-diagram';
 import { Message } from './message';
 import type { Model } from './model';
 
-const toParentMessage = (msg: Arc.Message): Message => Message.GotArcMessage({ message: msg });
+const toParentMessage = (msg: Arc.Message): Message => Message.ReceivedArcMessage({ message: msg });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Arc diagram — foldkit-viz',

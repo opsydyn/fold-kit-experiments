@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from 'bun:test';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -18,9 +19,7 @@ type Fixture = {
 type PackExecutor = (tempDir: string) => Promise<string>;
 
 const createFixture = async (): Promise<Fixture> => {
-  const artifactsDir = path.join(packageDir, 'artifacts', 'test');
-  await mkdir(artifactsDir, { recursive: true });
-  const tempDir = await mkdtemp(path.join(artifactsDir, 'selection-smoke-'));
+  const tempDir = await mkdtemp(path.join(tmpdir(), 'foldkit-viz-smoke-'));
 
   return {
     tempDir,
@@ -62,6 +61,13 @@ const setupFixture = async (fixture: Fixture, pack: PackExecutor = npmPack): Pro
     consumer,
     `import { intervalSelection as intervalSelectionFromRoot } from '@opsydyn/foldkit-viz';
 import { intervalSelection as intervalSelectionFromSelection } from '@opsydyn/foldkit-viz/interaction/selection';
+import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
+import type { ChartFrame } from '@opsydyn/foldkit-viz/chart/cartesian';
+const frame: ChartFrame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
+const accessors = { x: (d: number) => d, y: (d: number) => d, datumKey: (d: number) => String(d), seriesKey: () => 'a' };
+lineGeometry([0, 10], accessors, { frame });
+scatterGeometry([0, 10], accessors, { frame });
+histogramGeometry([0, 10], d => d, { frame, binCount: 2 });
 
 const rootSelection = intervalSelectionFromRoot('x', [0, 1]);
 const selectionSelection = intervalSelectionFromSelection('x', [0, 1]);
@@ -97,6 +103,19 @@ void selectionSelection;
     { cwd: consumerDir, maxBuffer },
   );
 
+  const geometryScript = `import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
+const frame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
+const accessors = { x: d => d, y: d => d, datumKey: d => String(d), seriesKey: () => 'a' };
+console.log(lineGeometry([0, 10], accessors, { frame }).series[0].path);
+console.log(scatterGeometry([5], accessors, { frame }).points[0].x);
+console.log(histogramGeometry([0, 2, 5, 10], d => d, { frame, domain: [0, 10], binCount: 2 }).bins.map(b => b.count).join(','));`;
+  for (const runtime of ['bun', 'node']) {
+    const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', geometryScript], {
+      cwd: consumerDir,
+      maxBuffer,
+    });
+    expect(stdout.trim()).toBe('M0,100L200,0\n100\n2,2');
+  }
   return runtimeOutput;
 };
 

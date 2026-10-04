@@ -3,6 +3,7 @@ import { defineConfig } from 'tsdown';
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
+    'chart/cartesian': 'src/chart/cartesian.ts',
     'interaction/selection': 'src/interaction/selection.ts',
     'math/scale': 'src/math/scale.ts',
     'math/color': 'src/math/color.ts',

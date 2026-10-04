@@ -10,6 +10,9 @@ export function linear(config: LinearScaleConfig): (value: number) => number {
   const [d0, d1] = config.domain;
   const [r0, r1] = config.range;
   const clamp = config.clamp ?? false;
+  // d3-scale continuous.js normalize(a,b): equal endpoints normalise to 0.5.
+  // Reference commit d6904a4bde09e16005e0ad8ca3e25b10ce54fa0d.
+  if (d0 === d1) return () => r0 * 0.5 + r1 * 0.5;
   const k = (r1 - r0) / (d1 - d0);
 
   return (value: number): number => {

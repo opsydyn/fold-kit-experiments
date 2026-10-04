@@ -127,6 +127,9 @@
       ],
       "math/tween": [
         "./dist/math/tween.d.mts"
+      ],
+      "chart/cartesian": [
+        "./dist/chart/cartesian.d.mts"
       ]
     }
   },
@@ -262,6 +265,10 @@
     "./math/tween": {
       "types": "./dist/math/tween.d.mts",
       "import": "./dist/math/tween.mjs"
+    },
+    "./chart/cartesian": {
+      "types": "./dist/chart/cartesian.d.mts",
+      "import": "./dist/chart/cartesian.mjs"
     }
   },
   "publishConfig": {

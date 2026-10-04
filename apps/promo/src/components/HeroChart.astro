@@ -1,0 +1,33 @@
+---
+import { heroMonths, heroSeries } from '../lib/charts';
+---
+<figure class="hero-chart">
+  <svg viewBox="0 0 620 314" role="group" aria-label="Illustrative monthly activity by community group">
+    <desc>Six stacked activity series across twelve months. Focus a month to read its total in thousands.</desc>
+    {[0, 40, 80, 120].map((value) =>
+      <text class="chart-label" x="30" y={262 - value * 240 / 140} text-anchor="end">{value === 0 ? '0' : value + 'k'}</text>
+    )}
+    {heroSeries.map(({ d, colour }) => <path d={d} fill={'var(--' + colour + ')'} />)}
+    <path class="axis" d="M42 18V258H526" />
+    {['Core', 'Tools', 'Community'].map((name, i) => <g transform={'translate(548 ' + (38 + i * 24) + ')'}>
+      <circle r="5" fill={['var(--blue)', 'var(--coral)', 'var(--gold)'][i]} />
+      <text class="legend-label" x="10" y="4">{name}</text>
+    </g>)}
+    {heroMonths.map((month, i) => <g
+      class:list={['month-marker', { 'month-default': i === 5 }]}
+      tabindex="0" role="img" aria-label={month.label + ': ' + month.total + ' thousand total activities'}>
+      <rect class="month-hit" x={month.x - 21} y="8" width="43" height="265" fill="transparent" />
+      <g class="month-detail" pointer-events="none">
+        <path d={'M' + month.x + ' 10V258'} class="crosshair" />
+        <circle cx={month.x} cy={month.y} r="4" fill="var(--text)" stroke="var(--page)" stroke-width="1.5" />
+        <g transform={'translate(' + Math.min(449, Math.max(42, month.x - 38)) + ' 4)'}>
+          <rect width="88" height="25" rx="5" fill="var(--surface)" stroke="var(--border)" />
+          <text x="44" y="16" text-anchor="middle" class="tooltip-label">{month.label + ' · ' + month.total + 'k'}</text>
+        </g>
+      </g>
+      <path d={'M' + month.x + ' 258v6'} class="axis" />
+      <text class="chart-label" x={month.x} y="284" text-anchor="middle">{month.label}</text>
+    </g>)}
+  </svg>
+  <figcaption>Built with Foldkit Viz <span>Illustrative data · Hover or focus a month</span></figcaption>
+</figure>

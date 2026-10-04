@@ -4,13 +4,14 @@ Agent guidance for this monorepo. Read this before writing any code.
 
 ## Repo at a glance
 
-Bun workspace monorepo. Three active workspaces:
+Bun workspace monorepo. Four active workspaces:
 
-| Workspace                | Path                      | Purpose                             |
-| ------------------------ | ------------------------- | ----------------------------------- |
-| `@opsydyn/astro-foldkit` | `packages/astro-foldkit/` | Astro integration for Foldkit       |
-| `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | Chart primitives (no D3 dependency) |
-| `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types           |
+| Workspace                | Path                      | Purpose                                 |
+| ------------------------ | ------------------------- | --------------------------------------- |
+| `@opsydyn/astro-foldkit` | `packages/astro-foldkit/` | Astro integration for Foldkit           |
+| `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | Chart primitives (no D3 dependency)     |
+| `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types               |
+| `@opsydyn/promo`         | `apps/promo/`             | Static Astro promo site for Foldkit Viz |
 
 **Stack:** FoldKit 0.165.0 · Effect 4.0.0 · Astro 7.1 · TypeScript · bun · oxlint · oxfmt
 
@@ -31,6 +32,7 @@ bun typecheck                         # all workspaces
 bun run check                         # oxlint + oxfmt --check (both must pass before committing)
 bun run check:fix                     # oxfmt then oxlint --fix
 bun run --filter @opsydyn/web dev     # single-workspace dev
+bun run dev:promo                    # promo site at localhost:4322
 ```
 
 ## Linting

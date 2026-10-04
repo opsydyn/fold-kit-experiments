@@ -1,0 +1,278 @@
+import { Schema } from 'effect';
+import type { Document, HtmlBuilder } from 'foldkit/html';
+
+import { chartGeometry } from './chart';
+import { Message } from './message';
+import { ActionStatus, SourceName } from './model';
+import type { Model } from './model';
+import { currentSource } from './update';
+
+const feedback = (model: Model): string =>
+  ActionStatus.match(model.actionStatus, {
+    Ready: () =>
+      'The configuration follows your controls. Other files show the code running this example.',
+    Pending: () => 'Preparing…',
+    Succeeded: ({ action }) =>
+      ({
+        copy: 'File copied.',
+        download: 'Project downloaded with your current settings.',
+        playground: 'Opening StackBlitz…',
+      })[action],
+    Failed: ({ error }) => error,
+  });
+
+export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const geometry = chartGeometry(model.settings);
+  const pending = model.actionStatus._tag === 'Pending';
+  const range = (
+    id: string,
+    name: string,
+    value: number,
+    min: string,
+    max: string,
+    step: string,
+    toMessage: (value: string) => Message,
+  ) =>
+    h.div(
+      [h.Class('line-range')],
+      [
+        h.label([h.For(id)], [name, h.span([], [String(value)])]),
+        h.input([
+          h.Id(id),
+          h.Type('range'),
+          h.Min(min),
+          h.Max(max),
+          h.Step(step),
+          h.Value(String(value)),
+          h.OnInput(toMessage),
+        ]),
+      ],
+    );
+  return {
+    title: 'Live line — Foldkit Viz',
+    body: h.div(
+      [h.Class('line-playground')],
+      [
+        h.div(
+          [h.Class('line-workbench')],
+          [
+            h.div(
+              [h.Class('line-preview')],
+              [
+                h.div(
+                  [h.Class('line-preview-heading')],
+                  [h.span([], ['LIVE PREVIEW']), h.span([], ['Illustrative data'])],
+                ),
+                h.svg(
+                  [
+                    h.ViewBox('0 0 560 290'),
+                    h.Role('img'),
+                    h.AriaLabel('Line chart with five illustrative point values'),
+                  ],
+                  [
+                    h.title([], ['Line chart']),
+                    h.desc(
+                      [],
+                      [
+                        'Values: ' +
+                          model.settings.values.join(', ') +
+                          '. Y-axis domain: 0 to ' +
+                          model.settings.yMax +
+                          '.',
+                      ],
+                    ),
+                    ...geometry.yTicks.map(({ value, y }) =>
+                      h.g(
+                        [],
+                        [
+                          h.line(
+                            [
+                              h.X1('48'),
+                              h.X2('528'),
+                              h.Y1(String(y)),
+                              h.Y2(String(y)),
+                              h.Class('line-grid'),
+                            ],
+                            [],
+                          ),
+                          h.text(
+                            [
+                              h.X('36'),
+                              h.Y(String(y + 4)),
+                              h.TextAnchor('end'),
+                              h.Class('line-axis-label'),
+                            ],
+                            [String(value)],
+                          ),
+                        ],
+                      ),
+                    ),
+                    ...geometry.xTicks.map(({ value, x }) =>
+                      h.text(
+                        [
+                          h.X(String(x)),
+                          h.Y('276'),
+                          h.TextAnchor('middle'),
+                          h.Class('line-axis-label'),
+                        ],
+                        [String(value)],
+                      ),
+                    ),
+                    h.path(
+                      [
+                        h.Class('line-trace'),
+                        h.D(geometry.path),
+                        h.Fill('none'),
+                        h.StrokeWidth('3'),
+                        h.StrokeLinecap('round'),
+                        h.StrokeLinejoin('round'),
+                      ],
+                      [],
+                    ),
+                    ...geometry.points.map(([x, y], index) =>
+                      h.circle(
+                        [h.Cx(String(x)), h.Cy(String(y)), h.R('5'), h.Class('line-point')],
+                        [
+                          h.title(
+                            [],
+                            ['Point ' + (index + 1) + ': ' + model.settings.values[index]],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                h.p(
+                  [h.Class('line-preview-caption')],
+                  [
+                    'Change a point or the domain. The scales recompute coordinates; the curve connects them.',
+                  ],
+                ),
+              ],
+            ),
+            h.div(
+              [h.Class('line-controls')],
+              [
+                h.fieldset(
+                  [],
+                  [
+                    h.legend([], ['Interpolation']),
+                    h.div(
+                      [h.Class('line-segmented')],
+                      (
+                        [
+                          ['catmullRom', 'Smooth'],
+                          ['linear', 'Linear'],
+                          ['step', 'Step'],
+                        ] as const
+                      ).map(([curve, label]) =>
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.AriaPressed(String(model.settings.curve === curve)),
+                            h.OnClick(Message.SelectedCurve({ curve })),
+                          ],
+                          [label],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                h.fieldset(
+                  [],
+                  [
+                    h.legend([], ['Point values']),
+                    ...model.settings.values.map((value, index) =>
+                      range(
+                        'line-point-' + index,
+                        'Point ' + (index + 1),
+                        value,
+                        '0',
+                        '100',
+                        '1',
+                        (raw) => Message.ChangedPoint({ index, value: raw }),
+                      ),
+                    ),
+                  ],
+                ),
+                range(
+                  'line-domain',
+                  'Y-axis maximum',
+                  model.settings.yMax,
+                  '100',
+                  '200',
+                  '10',
+                  (value) => Message.ChangedDomain({ value }),
+                ),
+                h.button(
+                  [h.Class('line-reset'), h.Type('button'), h.OnClick(Message.ClickedReset())],
+                  ['Reset example'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.div(
+          [h.Class('line-source')],
+          [
+            h.div(
+              [h.Class('line-source-toolbar')],
+              [
+                h.label([h.For('line-source-file')], ['Source file']),
+                h.select(
+                  [
+                    h.Id('line-source-file'),
+                    h.Value(model.activeFile),
+                    h.OnChange((value) =>
+                      Message.SelectedFile({ name: Schema.decodeUnknownSync(SourceName)(value) }),
+                    ),
+                  ],
+                  model.sources.map(({ name }) => h.option([h.Value(name)], [name])),
+                ),
+                h.button(
+                  [h.Type('button'), h.Disabled(pending), h.OnClick(Message.ClickedCopy())],
+                  ['Copy file'],
+                ),
+              ],
+            ),
+            h.pre(
+              [h.Tabindex(0), h.AriaLabel(model.activeFile + ' source code')],
+              [h.code([], [currentSource(model)])],
+            ),
+          ],
+        ),
+        h.div(
+          [h.Class('line-export')],
+          [
+            h.p([h.Role('status'), h.AriaLive('polite')], [feedback(model)]),
+            ...(model.templateUrl === null
+              ? []
+              : [
+                  h.div(
+                    [h.Class('line-export-buttons')],
+                    [
+                      h.button(
+                        [
+                          h.Type('button'),
+                          h.Disabled(pending),
+                          h.OnClick(Message.ClickedDownload()),
+                        ],
+                        ['Download project'],
+                      ),
+                      h.button(
+                        [
+                          h.Type('button'),
+                          h.Disabled(pending),
+                          h.OnClick(Message.ClickedPlayground()),
+                        ],
+                        ['Open in StackBlitz ↗'],
+                      ),
+                    ],
+                  ),
+                ]),
+          ],
+        ),
+      ],
+    ),
+  };
+};

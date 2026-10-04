@@ -1,0 +1,60 @@
+---
+import type { ExampleId } from '../lib/examples';
+import { chordGroups, chordRibbons, colours, curvePlots, flow, histograms, plotX, scatter } from '../lib/charts';
+import { mapPaths } from '../lib/map';
+
+interface Props { kind: ExampleId; label: string }
+const { kind, label } = Astro.props;
+const flowSources = ['Web', 'Mobile', 'API', 'Other'];
+const yTicks = kind === 'distribution' ? [0, 10, 20, 30, 40, 50] : [0, 25, 50, 75, 100];
+---
+<svg class:list={['chart', 'chart-' + kind]} viewBox="0 0 340 230" role="img" aria-label={label}>
+  <desc>Illustrative data rendered with Foldkit Viz primitives.</desc>
+  {kind === 'connections' && <>
+    <g transform="translate(122 116)">
+      {chordRibbons.map(({ d, colour }) => <path d={d} fill={'var(--' + colour + ')'} opacity="0.45" />)}
+      {chordGroups.map(({ d, colour }) => <path d={d} fill={'var(--' + colour + ')'} />)}
+    </g>
+    {['Product', 'Design', 'Engineering', 'Marketing', 'Operations', 'Community'].map((name, i) =>
+      <g transform={'translate(242 ' + (64 + i * 21) + ')'}>
+        <circle r="4" fill={'var(--' + colours[i] + ')'} />
+        <text x="10" y="3">{name}</text>
+      </g>
+    )}
+  </>}
+  {kind === 'flow' && <g transform="translate(62 22)">
+    {flow.links.map((link) =>
+      <path d={link.pathD} fill="none"
+        stroke={'var(--' + colours[flowSources.indexOf(link.sourceId)] + ')'}
+        stroke-width={link.width} opacity="0.55"><title>{link.sourceId + ' → ' + link.targetId + ': ' + link.value}</title></path>
+    )}
+    {flow.nodes.map((node) => <>
+      <rect x={node.x0} y={node.y0} width={node.x1 - node.x0} height={node.y1 - node.y0}
+        fill={'var(--' + colours[node.column === 0 ? flowSources.indexOf(node.id) : ['Sign up', 'Active', 'Purchase', 'Return'].indexOf(node.id)] + ')'} />
+      <text x={node.column === 0 ? node.x0 - 9 : node.x1 + 9}
+        y={(node.y0 + node.y1) / 2 + 3} text-anchor={node.column === 0 ? 'end' : 'start'}>{node.id}</text>
+    </>)}
+  </g>}
+  {(kind === 'relationships' || kind === 'curves' || kind === 'distribution') && <>
+    <path class="axis" d="M34 20V197H307" />
+    {yTicks.map((value) => <text x="25" y={200 - value * 177 / (kind === 'distribution' ? 50 : 100)} text-anchor="end">{value}</text>)}
+    {[0, 25, 50, 75, 100].map((value) => <>
+      <text x={plotX(value)} y="215" text-anchor="middle">{value}</text>
+    </>)}
+  </>}
+  {kind === 'relationships' && <>
+    <rect x="231" y="26" width="68" height="66" rx="1" class="selection-area" />
+    {scatter.map((point) => <circle cx={point.x} cy={point.y} r="2.5" fill={'var(--' + point.colour + ')'} opacity="0.86" />)}
+  </>}
+  {kind === 'places' && <>
+    {mapPaths.map(({ d, name, fill }) => <path d={d} fill={fill} stroke="var(--map-border)" stroke-width="0.45"><title>{name}</title></path>)}
+    <text x="168" y="218" text-anchor="middle">Europe · Illustrative colour bands</text>
+  </>}
+  {kind === 'curves' && curvePlots.map((plot) => <g class={'curve-series curve-' + plot.curve}>
+    {plot.series.map(({ d, colour }) => <path d={d} stroke={'var(--' + colour + ')'} stroke-width="2.2" fill="none" />)}
+  </g>)}
+  {kind === 'distribution' && histograms.map((buckets) => buckets.map((bucket) =>
+    <rect x={bucket.x} y={bucket.y} width={bucket.width} height={bucket.height}
+      fill={'var(--' + bucket.colour + ')'} opacity="0.68"><title>{bucket.count + ' samples'}</title></rect>
+  ))}
+</svg>

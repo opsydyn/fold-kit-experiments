@@ -6,5 +6,5 @@
   "semi": true,
   "trailingComma": "all",
   "sortImports": true,
-  "ignorePatterns": ["skills/**", "tools/oxlint/anti-slop/**"]
+  "ignorePatterns": ["skills/**", "tools/oxlint/anti-slop/**", ".superpowers/**"]
 }

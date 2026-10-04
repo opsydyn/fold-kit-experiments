@@ -16,7 +16,8 @@ FoldKit is an Elm Architecture runtime for the browser built on [Effect](https:/
 ```text
 fold-kit-experiments/
 ├── apps/
-│   └── web/               — demo Astro app: 49 chart types, interactive storybook
+│   ├── web/               — demo Astro app: 49 chart types, interactive storybook
+│   └── promo/             — Foldkit Viz promo site: Astro, light/dark themes
 └── packages/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     └── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
@@ -32,6 +33,7 @@ fold-kit-experiments/
 ```sh
 bun install
 bun dev          # demo app at http://localhost:4321
+bun run dev:promo # promo site at http://localhost:4322
 bun storybook    # chart storybook at http://localhost:6006
 ```
 
@@ -41,14 +43,15 @@ client islands.
 
 ## Commands
 
-| Command         | Action                                      |
-| :-------------- | :------------------------------------------ |
-| `bun dev`       | Start the demo app at `localhost:4321`      |
-| `bun storybook` | Start Storybook at `localhost:6006`         |
-| `bun build`     | Build all packages, then build the demo app |
-| `bun test`      | Run all tests across every workspace        |
-| `bun typecheck` | Typecheck all workspaces                    |
-| `bun check`     | oxlint + oxfmt format check                 |
+| Command             | Action                                      |
+| :------------------ | :------------------------------------------ |
+| `bun dev`           | Start the demo app at `localhost:4321`      |
+| `bun storybook`     | Start Storybook at `localhost:6006`         |
+| `bun build`         | Build the packages, demo app and promo site |
+| `bun run dev:promo` | Start the promo site at `localhost:4322`    |
+| `bun test`          | Run all tests across every workspace        |
+| `bun typecheck`     | Typecheck all workspaces                    |
+| `bun check`         | oxlint + oxfmt format check                 |
 
 To work within a single workspace, pass `--filter`:
 

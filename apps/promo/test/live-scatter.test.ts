@@ -10,6 +10,9 @@ import { points } from '../src/examples/scatter/data';
 import { init, update, Message } from '../src/examples/scatter/main';
 import { currentSource } from '../src/examples/scatter/update';
 
+const legacyFrame = {
+  frame: { width: 560, height: 290, margins: { top: 30, right: 32, bottom: 40, left: 48 } },
+};
 const settings = { group: 'all' as const, xMax: 100, yMax: 100, selectedPoint: null };
 
 test('domains map known values to plot coordinates and changing domains rescales points', () => {
@@ -18,11 +21,13 @@ test('domains map known values to plot coordinates and changing domains rescales
     { id: 'middle', group: 'a' as const, x: 50, y: 50 },
     { id: 'end', group: 'b' as const, x: 100, y: 100 },
   ];
-  scatterGeometry(sample, settings).points.forEach(({ cx, cy }, index) => {
+  scatterGeometry(sample, settings, legacyFrame).points.forEach(({ cx, cy }, index) => {
     expect(cx).toBeCloseTo([48, 288, 528][index] ?? NaN, 10);
     expect(cy).toBeCloseTo([250, 140, 30][index] ?? NaN, 10);
   });
-  expect(scatterGeometry(sample, { ...settings, xMax: 200, yMax: 200 }).points[2]).toMatchObject({
+  expect(
+    scatterGeometry(sample, { ...settings, xMax: 200, yMax: 200 }, legacyFrame).points[2],
+  ).toMatchObject({
     cx: 288,
     cy: 140,
   });

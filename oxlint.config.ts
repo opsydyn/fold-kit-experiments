@@ -107,6 +107,17 @@ export default defineConfig({
   },
   overrides: [
     {
+      // ResizeObserver registration and release are the shared Mount stream's native I/O boundary.
+      // Nested callback/acquireRelease is the documented Effect callback bridge, not domain logic.
+      files: ['apps/promo/src/examples/shared/measurement.ts'],
+      rules: {
+        'linteffect/no-effect-wrapper-alias': 'off',
+        'linteffect/no-call-tower': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/warn-effect-sync-wrapper': 'off',
+      },
+    },
+    {
       // Third-party DOM resources follow Mount's documented acquireRelease pattern.
       // Acquire and cleanup must run in the lifecycle Effect, rather than in the view.
       files: ['apps/promo/src/examples/line/editor-mount.ts'],

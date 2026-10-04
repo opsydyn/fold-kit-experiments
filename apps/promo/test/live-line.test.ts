@@ -9,10 +9,17 @@ import {
   changeDomain,
   settingsSource,
 } from '../src/examples/line/chart';
+const legacyFrame = {
+  frame: { width: 560, height: 290, margins: { top: 30, right: 32, bottom: 40, left: 48 } },
+};
+
 import { initialSettings } from '../src/examples/line/settings';
 
 test('linear chart maps values onto the labelled axes', () => {
-  const chart = chartGeometry({ curve: 'linear', values: [0, 50, 100, 50, 0], yMax: 100 });
+  const chart = chartGeometry(
+    { curve: 'linear', values: [0, 50, 100, 50, 0], yMax: 100 },
+    legacyFrame,
+  );
   const expected = [
     [48, 250],
     [168, 140],
@@ -30,7 +37,7 @@ test('linear chart maps values onto the labelled axes', () => {
 test('curve and domain changes affect the actual geometry', () => {
   const smooth = chartGeometry(initialSettings);
   const straight = chartGeometry({ ...initialSettings, curve: 'linear' });
-  const expanded = chartGeometry({ ...initialSettings, yMax: 200 });
+  const expanded = chartGeometry({ ...initialSettings, yMax: 200 }, legacyFrame);
   expect(smooth.path).not.toBe(straight.path);
   expect(expanded.points[0]).toEqual([48, 239]);
   expect(expanded.yTicks.at(-1)?.value).toBe(200);
@@ -57,7 +64,7 @@ test('copied settings execute with the current point and curve choices', async (
     await writeFile(file, source);
     const module = await import(file);
     expect(module.initialSettings).toEqual(settings);
-    expect(chartGeometry(module.initialSettings).points[0]).toEqual([48, 140]);
+    expect(chartGeometry(module.initialSettings, legacyFrame).points[0]).toEqual([48, 140]);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

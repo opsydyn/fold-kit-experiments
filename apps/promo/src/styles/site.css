@@ -15,6 +15,17 @@
   --periwinkle: #b3c9fc;
   --map-border: #faf9f6;
   --selection: rgb(61 121 250 / 8%);
+  --chart-background: var(--surface);
+  --chart-text: var(--text);
+  --chart-muted-text: var(--muted);
+  --chart-grid: var(--border);
+  --chart-axis: var(--rule);
+  --chart-focus: var(--blue);
+  --chart-selection: var(--text);
+  --chart-tooltip-background: var(--text);
+  --chart-tooltip-text: var(--surface);
+  --chart-series-a: var(--blue);
+  --chart-series-b: var(--coral);
 }
 :root[data-theme='dark'] {
   color-scheme: dark;

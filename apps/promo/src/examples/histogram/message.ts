@@ -4,6 +4,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import { Action, Dataset, SourceName } from './model';
 
 export const Message = defineMessageUnion({
+  RecordedChartWidth: { width: Schema.Number },
   SelectedDataset: { dataset: Dataset },
   ChangedBinCount: { value: Schema.String },
   SelectedFile: { name: SourceName },

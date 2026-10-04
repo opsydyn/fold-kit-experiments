@@ -34,6 +34,7 @@ export const Props = Schema.Struct({
   templateUrl: Schema.NullOr(Schema.String),
 });
 export const Model = Schema.Struct({
+  chartWidth: Schema.Number,
   settings: Settings,
   panel: Panel,
   editor: Editor,
@@ -50,6 +51,7 @@ export interface InitReturn {
 export const init = (props: Props): InitReturn => ({
   model: {
     ...Schema.decodeUnknownSync(Props)(props),
+    chartWidth: 560,
     settings: initialSettings,
     panel: 'controls' as const,
     editor: Editor.Idle(),

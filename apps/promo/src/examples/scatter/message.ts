@@ -4,6 +4,8 @@ import { defineMessageUnion } from 'foldkit/message';
 import { Action, Axis, Group, SourceName } from './model';
 
 export const Message = defineMessageUnion({
+  RecordedChartWidth: { width: Schema.Number },
+  PressedChartKey: { key: Schema.String },
   SelectedGroup: { group: Group },
   ChangedDomain: { axis: Axis, value: Schema.String },
   SelectedPoint: { id: Schema.String },

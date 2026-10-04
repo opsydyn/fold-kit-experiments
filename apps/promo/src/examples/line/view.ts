@@ -1,8 +1,21 @@
+import {
+  annotation,
+  axis,
+  chartFrame,
+  dataTable,
+  grid,
+  legend,
+  lineSeries,
+  pointSeries,
+} from '@opsydyn/foldkit-viz/foldkit/cartesian';
 import { Option, Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import { chartGeometry } from './chart';
+import { frameForWidth } from '#example/frame';
+
+import { chartGeometry, chartTheme, seriesStyle, comparisonStyle } from './chart';
 import { EmbedEditor } from './editor-mount';
+import { MeasureLineChart } from './measurement';
 import { Message } from './message';
 import { ActionStatus, Editor, EditorStatus, SourceName } from './model';
 import type { Model } from './model';
@@ -23,7 +36,12 @@ const feedback = (model: Model): string =>
   });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const geometry = chartGeometry(model.settings);
+  const frame = frameForWidth(model.chartWidth, 290);
+  const geometry = chartGeometry(model.settings, { frame });
+  const comparison = chartGeometry(
+    { ...model.settings, values: model.settings.values.map((value) => value * 0.75) },
+    { frame },
+  );
   const pending = model.actionStatus._tag === 'Pending';
   const range = (
     id: string,
@@ -118,83 +136,82 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                       [h.Class('line-preview-heading')],
                       [h.span([], ['LIVE PREVIEW']), h.span([], ['Illustrative data'])],
                     ),
-                    h.svg(
+                    h.div(
+                      [h.Class('chart-viewport'), h.OnMount(MeasureLineChart())],
                       [
-                        h.ViewBox('0 0 560 290'),
-                        h.Role('img'),
-                        h.AriaLabel('Line chart with five illustrative point values'),
-                      ],
-                      [
-                        h.title([], ['Line chart']),
-                        h.desc(
-                          [],
-                          [
-                            'Values: ' +
+                        chartFrame(
+                          h,
+                          {
+                            layout: geometry.cartesian.layout,
+                            title: 'Illustrative line chart',
+                            description:
+                              'Values: ' +
                               model.settings.values.join(', ') +
-                              '. Y-axis domain: 0 to ' +
-                              model.settings.yMax +
-                              '.',
-                          ],
-                        ),
-                        ...geometry.yTicks.map(({ value, y }) =>
-                          h.g(
-                            [],
-                            [
-                              h.line(
-                                [
-                                  h.X1('48'),
-                                  h.X2('528'),
-                                  h.Y1(String(y)),
-                                  h.Y2(String(y)),
-                                  h.Class('line-grid'),
-                                ],
-                                [],
-                              ),
-                              h.text(
-                                [
-                                  h.X('36'),
-                                  h.Y(String(y + 4)),
-                                  h.TextAnchor('end'),
-                                  h.Class('line-axis-label'),
-                                ],
-                                [String(value)],
-                              ),
-                            ],
-                          ),
-                        ),
-                        ...geometry.xTicks.map(({ value, x }) =>
-                          h.text(
-                            [
-                              h.X(String(x)),
-                              h.Y('276'),
-                              h.TextAnchor('middle'),
-                              h.Class('line-axis-label'),
-                            ],
-                            [String(value)],
-                          ),
-                        ),
-                        h.path(
+                              '. Dashed reference is 75% of each value; threshold is 80 units.',
+                            theme: chartTheme,
+                          },
                           [
-                            h.Class('line-trace'),
-                            h.D(geometry.path),
-                            h.Fill('none'),
-                            h.StrokeWidth('3'),
-                            h.StrokeLinecap('round'),
-                            h.StrokeLinejoin('round'),
-                          ],
-                          [],
-                        ),
-                        ...geometry.points.map(([x, y], index) =>
-                          h.circle(
-                            [h.Cx(String(x)), h.Cy(String(y)), h.R('5'), h.Class('line-point')],
-                            [
-                              h.title(
-                                [],
-                                ['Point ' + (index + 1) + ': ' + model.settings.values[index]],
+                            grid(h, { ...geometry.cartesian, theme: chartTheme }),
+                            axis(h, {
+                              layout: geometry.cartesian.layout,
+                              orientation: 'left',
+                              ticks: geometry.cartesian.yTicks,
+                              label: 'Value (units)',
+                              format: (value) => String(value),
+                              theme: chartTheme,
+                            }),
+                            axis(h, {
+                              layout: geometry.cartesian.layout,
+                              orientation: 'bottom',
+                              ticks: geometry.cartesian.xTicks.filter((t) =>
+                                Number.isInteger(t.value),
                               ),
-                            ],
-                          ),
+                              label: 'Point',
+                              format: (value) => String(value + 1),
+                              theme: chartTheme,
+                            }),
+                            lineSeries(h, { path: comparison.path, style: comparisonStyle }),
+                            lineSeries(h, { path: geometry.path, style: seriesStyle }),
+                            pointSeries(h, {
+                              points: geometry.cartesian.points,
+                              styleFor: () => seriesStyle,
+                              labelFor: (value) => String(value),
+                              activeKey: null,
+                            }),
+                            annotation(h, {
+                              layout: geometry.cartesian.layout,
+                              axis: 'y',
+                              value: 80,
+                              label: 'Threshold 80',
+                              style: comparisonStyle,
+                            }),
+                          ],
                         ),
+                      ],
+                    ),
+                    ...(geometry.points.length === 0
+                      ? [h.p([h.Role('status')], ['No values to display'])]
+                      : []),
+                    legend(h, {
+                      theme: chartTheme,
+                      entries: [
+                        { key: 'values', label: 'Values', style: seriesStyle },
+                        { key: 'reference', label: '75% reference', style: comparisonStyle },
+                      ],
+                    }),
+                    h.details(
+                      [h.Class('chart-data')],
+                      [
+                        h.summary([], ['View source data']),
+                        dataTable(h, {
+                          caption: 'Illustrative line values',
+                          headers: ['Point', 'Value', '75% reference'],
+                          rows: model.settings.values.map((value, index) => [
+                            String(index + 1),
+                            String(value),
+                            String(value * 0.75),
+                          ]),
+                        }),
                       ],
                     ),
                     h.p(

@@ -1,6 +1,8 @@
 import type { Return } from 'foldkit/update';
 
-import { changeDomain, changeGroup, selectPoint, settingsSource } from './chart';
+import { validChartWidth } from '#example/frame';
+
+import { navigatePoint, changeDomain, changeGroup, selectPoint, settingsSource } from './chart';
 import { CopySource, ExportProject } from './command';
 import { Message } from './message';
 import { ActionStatus, sourceFor } from './model';
@@ -36,7 +38,12 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     ChangedDomain: ({ axis, value }) => ({
       model: { ...model, settings: changeDomain(model.settings, axis, value) },
     }),
+    PressedChartKey: ({ key }) => ({
+      model: { ...model, settings: navigatePoint(model.settings, key) },
+    }),
     SelectedPoint: ({ id }) => ({ model: { ...model, settings: selectPoint(model.settings, id) } }),
+    RecordedChartWidth: ({ width }) =>
+      validChartWidth(width) ? { model: { ...model, chartWidth: width } } : { model },
     SelectedFile: ({ name }) => ({
       model: { ...model, activeFile: name, actionStatus: clearFeedback(model.actionStatus) },
     }),

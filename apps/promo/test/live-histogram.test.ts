@@ -4,8 +4,12 @@ import { histogramGeometry, changeBinCount, settingsSource } from '../src/exampl
 import { datasets } from '../src/examples/histogram/data';
 import { init, update, Message } from '../src/examples/histogram/main';
 
+const legacyFrame = {
+  frame: { width: 560, height: 290, margins: { top: 30, right: 32, bottom: 40, left: 48 } },
+};
+
 test('exact bin boundaries retain both domain endpoints and put interior edges in the next bin', () => {
-  const geometry = histogramGeometry([0, 19, 20, 39, 40, 59, 60, 79, 80, 100], 5);
+  const geometry = histogramGeometry([0, 19, 20, 39, 40, 59, 60, 79, 80, 100], 5, legacyFrame);
   expect(geometry.bars.map(({ x0, x1, count }) => [x0, x1, count])).toEqual([
     [0, 20, 2],
     [20, 40, 2],

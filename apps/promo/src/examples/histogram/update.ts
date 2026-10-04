@@ -1,5 +1,7 @@
 import type { Return } from 'foldkit/update';
 
+import { validChartWidth } from '#example/frame';
+
 import { changeBinCount, settingsSource } from './chart';
 import { CopySource, ExportProject } from './command';
 import { Message } from './message';
@@ -36,6 +38,8 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     ChangedBinCount: ({ value }) => ({
       model: { ...model, settings: changeBinCount(model.settings, value) },
     }),
+    RecordedChartWidth: ({ width }) =>
+      validChartWidth(width) ? { model: { ...model, chartWidth: width } } : { model },
     SelectedFile: ({ name }) => ({
       model: { ...model, activeFile: name, actionStatus: clearFeedback(model.actionStatus) },
     }),

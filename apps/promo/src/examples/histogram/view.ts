@@ -1,8 +1,18 @@
+import {
+  axis,
+  barSeries,
+  chartFrame,
+  dataTable,
+  grid,
+} from '@opsydyn/foldkit-viz/foldkit/cartesian';
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import { histogramGeometry } from './chart';
+import { frameForWidth } from '#example/frame';
+
+import { histogramGeometry, chartTheme, seriesStyle } from './chart';
 import { datasets } from './data';
+import { MeasureHistogramChart } from './measurement';
 import { Message } from './message';
 import { ActionStatus, SourceName } from './model';
 import type { Model } from './model';
@@ -23,7 +33,10 @@ const feedback = (model: Model): string =>
   });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const geometry = histogramGeometry(datasets[model.settings.dataset], model.settings.binCount);
+  const values = datasets[model.settings.dataset];
+  const geometry = histogramGeometry(values, model.settings.binCount, {
+    frame: frameForWidth(model.chartWidth, 290),
+  });
   const pending = model.actionStatus._tag === 'Pending';
   const range = (
     id: string,
@@ -64,91 +77,64 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                   [h.Class('histogram-preview-heading')],
                   [h.span([], ['LIVE PREVIEW']), h.span([], ['Illustrative data'])],
                 ),
-                h.svg(
+                h.div(
+                  [h.Class('chart-viewport'), h.OnMount(MeasureHistogramChart())],
                   [
-                    h.ViewBox('0 0 560 290'),
-                    h.Role('img'),
-                    h.AriaLabel('Histogram of illustrative values'),
-                  ],
-                  [
-                    h.title([], ['Histogram']),
-                    h.desc(
-                      [],
-                      [
-                        model.settings.dataset +
-                          ' dataset. ' +
+                    chartFrame(
+                      h,
+                      {
+                        layout: geometry.cartesian.layout,
+                        title: 'Illustrative histogram',
+                        description:
                           geometry.total +
-                          ' observations in ' +
-                          model.settings.binCount +
-                          ' bins on a 0 to 100 domain. ' +
-                          geometry.bars
-                            .map(({ interval, count }) => interval + ': ' + count)
-                            .join('; '),
+                          ' observations. Intervals include the lower edge and the final upper edge.',
+                        theme: chartTheme,
+                      },
+                      [
+                        grid(h, {
+                          ...geometry.cartesian,
+                          yTicks: geometry.cartesian.yTicks.filter((t) =>
+                            Number.isInteger(t.value),
+                          ),
+                          theme: chartTheme,
+                        }),
+                        axis(h, {
+                          layout: geometry.cartesian.layout,
+                          orientation: 'left',
+                          ticks: geometry.cartesian.yTicks.filter((t) => Number.isInteger(t.value)),
+                          label: 'Count',
+                          format: (value) => String(value),
+                          theme: chartTheme,
+                        }),
+                        axis(h, {
+                          layout: geometry.cartesian.layout,
+                          orientation: 'bottom',
+                          ticks: geometry.cartesian.xTicks,
+                          label: 'Value (units)',
+                          format: (value) => String(value),
+                          theme: chartTheme,
+                        }),
+                        barSeries(h, {
+                          bins: geometry.cartesian.bins,
+                          styleFor: () => seriesStyle,
+                          labelFor: (bin) => `${bin.x0} to ${bin.x1}: ${bin.count} observations`,
+                        }),
                       ],
                     ),
-                    ...geometry.yTicks.map(({ value, y }) =>
-                      h.g(
-                        [],
-                        [
-                          h.line(
-                            [
-                              h.X1('48'),
-                              h.X2('528'),
-                              h.Y1(String(y)),
-                              h.Y2(String(y)),
-                              h.Class('histogram-grid'),
-                            ],
-                            [],
-                          ),
-                          h.text(
-                            [
-                              h.X('36'),
-                              h.Y(String(y + 4)),
-                              h.TextAnchor('end'),
-                              h.Class('histogram-axis-label'),
-                            ],
-                            [String(value)],
-                          ),
-                        ],
-                      ),
-                    ),
-                    ...geometry.xTicks.map(({ value, x }) =>
-                      h.text(
-                        [
-                          h.X(String(x)),
-                          h.Y('276'),
-                          h.TextAnchor('middle'),
-                          h.Class('histogram-axis-label'),
-                        ],
-                        [String(value)],
-                      ),
-                    ),
-                    ...geometry.bars.map(({ x, y, width, height, interval, count }) =>
-                      h.g(
-                        [],
-                        [
-                          h.rect(
-                            [
-                              h.X(String(x)),
-                              h.Y(String(y)),
-                              h.Width(String(width)),
-                              h.Height(String(height)),
-                              h.Class('histogram-bar'),
-                            ],
-                            [h.title([], [interval + ': ' + count + ' observations'])],
-                          ),
-                          h.text(
-                            [
-                              h.X(String(x + width / 2)),
-                              h.Y(String(y - 7)),
-                              h.TextAnchor('middle'),
-                              h.Class('histogram-axis-label'),
-                            ],
-                            [String(count)],
-                          ),
-                        ],
-                      ),
-                    ),
+                  ],
+                ),
+                ...(geometry.total === 0
+                  ? [h.p([h.Role('status')], ['No values to display'])]
+                  : []),
+                h.details(
+                  [h.Class('chart-data')],
+                  [
+                    h.summary([], ['View source data']),
+                    dataTable(h, {
+                      caption: 'Illustrative histogram values',
+                      headers: ['Observation', 'Value'],
+                      rows: values.map((value, index) => [String(index + 1), String(value)]),
+                    }),
                   ],
                 ),
                 h.div(
@@ -166,7 +152,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                 h.p(
                   [h.Class('histogram-preview-caption')],
                   [
-                    'The same 40 observations, grouped differently. Bar labels show counts; the Y-axis rescales to the largest bin.',
+                    'The same 40 observations, grouped differently. The interval list shows counts; the Y-axis rescales to the largest bin.',
                   ],
                 ),
               ],

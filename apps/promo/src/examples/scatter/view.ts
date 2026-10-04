@@ -1,8 +1,20 @@
-import { Schema } from 'effect';
+import {
+  axis,
+  chartFrame,
+  dataTable,
+  grid,
+  legend,
+  pointSeries,
+  tooltip,
+} from '@opsydyn/foldkit-viz/foldkit/cartesian';
+import { Option, Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import { scatterGeometry } from './chart';
+import { frameForWidth } from '#example/frame';
+
+import { scatterGeometry, chartTheme, seriesStyles } from './chart';
 import { points } from './data';
+import { MeasureScatterChart } from './measurement';
 import { Message } from './message';
 import { ActionStatus, SourceName } from './model';
 import type { Model } from './model';
@@ -23,7 +35,13 @@ const feedback = (model: Model): string =>
   });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
-  const geometry = scatterGeometry(points, model.settings);
+  const geometry = scatterGeometry(points, model.settings, {
+    frame: frameForWidth(model.chartWidth, 320),
+  });
+  const styleFor = (key: string) => seriesStyles.get(key) ?? chartTheme.series;
+  const selectedPoint = geometry.cartesian.points.find(
+    (point) => point.key === model.settings.selectedPoint,
+  );
   const selected = geometry.points.find((point) => point.id === model.settings.selectedPoint);
   const pending = model.actionStatus._tag === 'Pending';
   const range = (
@@ -65,103 +83,150 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                   [h.Class('scatter-preview-heading')],
                   [h.span([], ['LIVE PREVIEW']), h.span([], ['Illustrative data'])],
                 ),
-                h.svg(
+                h.div(
+                  [h.Class('chart-viewport'), h.OnMount(MeasureScatterChart())],
                   [
-                    h.ViewBox('0 0 560 320'),
-                    h.Role('group'),
-                    h.AriaLabel('Scatter plot. Focus or tap a point to inspect its values.'),
-                  ],
-                  [
-                    h.title([], ['Scatter']),
-                    h.desc(
-                      [],
+                    chartFrame(
+                      h,
+                      {
+                        layout: geometry.cartesian.layout,
+                        title: 'Illustrative scatter plot',
+                        description:
+                          geometry.points.length +
+                          ' points. Use arrow keys, Home or End to inspect; Escape clears inspection. Group A uses circles and Group B squares.',
+                        theme: chartTheme,
+                        interactive: true,
+                        onKeyDown: (key) =>
+                          [
+                            'ArrowLeft',
+                            'ArrowRight',
+                            'ArrowUp',
+                            'ArrowDown',
+                            'Home',
+                            'End',
+                            'Escape',
+                          ].includes(key)
+                            ? Option.some(Message.PressedChartKey({ key }))
+                            : Option.none(),
+                      },
                       [
-                        geometry.points.length +
-                          ' illustrative points. X domain 0 to ' +
-                          model.settings.xMax +
-                          '; Y domain 0 to ' +
-                          model.settings.yMax +
-                          '.',
+                        grid(h, { ...geometry.cartesian, theme: chartTheme }),
+                        axis(h, {
+                          layout: geometry.cartesian.layout,
+                          orientation: 'left',
+                          ticks: geometry.cartesian.yTicks,
+                          label: 'Y value',
+                          format: (value) => String(value),
+                          theme: chartTheme,
+                        }),
+                        axis(h, {
+                          layout: geometry.cartesian.layout,
+                          orientation: 'bottom',
+                          ticks: geometry.cartesian.xTicks,
+                          label: 'X value',
+                          format: (value) => String(value),
+                          theme: chartTheme,
+                        }),
+                        pointSeries(h, {
+                          points: geometry.cartesian.points,
+                          styleFor: (point) => styleFor(point.seriesKey),
+                          labelFor: (point) =>
+                            `${point.id}, Group ${point.group.toUpperCase()}, X ${point.x}, Y ${point.y}`,
+                          activeKey: model.settings.selectedPoint,
+                          onInspect: (id) => Message.SelectedPoint({ id }),
+                        }),
+                        ...(selectedPoint
+                          ? [
+                              tooltip(h, {
+                                point: selectedPoint,
+                                style: styleFor(selectedPoint.seriesKey),
+                                theme: chartTheme,
+                                render: (context, builder) => {
+                                  const { plot } = geometry.cartesian.layout;
+                                  const width = Math.min(180, plot.width);
+                                  const x = Math.max(
+                                    plot.left,
+                                    Math.min(plot.right - width, context.x - width / 2),
+                                  );
+                                  const y = Math.max(plot.top, context.y - 64);
+                                  return builder.g(
+                                    [
+                                      builder.Class('chart-tooltip'),
+                                      builder.Style({ 'pointer-events': 'none' }),
+                                    ],
+                                    [
+                                      builder.rect(
+                                        [
+                                          builder.X(String(x)),
+                                          builder.Y(String(y)),
+                                          builder.Width(String(width)),
+                                          builder.Height('54'),
+                                          builder.Rx('5'),
+                                          builder.Fill(chartTheme.tooltipBackground),
+                                          builder.Stroke(context.style.stroke),
+                                        ],
+                                        [],
+                                      ),
+                                      builder.text(
+                                        [
+                                          builder.X(String(x + 10)),
+                                          builder.Y(String(y + 20)),
+                                          builder.Fill(chartTheme.tooltipText),
+                                          builder.FontSize('12'),
+                                        ],
+                                        [
+                                          context.datum.id +
+                                            ' · Group ' +
+                                            context.datum.group.toUpperCase(),
+                                        ],
+                                      ),
+                                      builder.text(
+                                        [
+                                          builder.X(String(x + 10)),
+                                          builder.Y(String(y + 40)),
+                                          builder.Fill(chartTheme.tooltipText),
+                                          builder.FontSize('12'),
+                                        ],
+                                        [`X ${context.datum.x} · Y ${context.datum.y}`],
+                                      ),
+                                    ],
+                                  );
+                                },
+                              }),
+                            ]
+                          : []),
                       ],
-                    ),
-                    h.text([h.X('48'), h.Y('16'), h.Class('scatter-axis-label')], ['Y value']),
-                    h.text(
-                      [
-                        h.X('288'),
-                        h.Y('306'),
-                        h.TextAnchor('middle'),
-                        h.Class('scatter-axis-label'),
-                      ],
-                      ['X value'],
-                    ),
-                    ...geometry.yTicks.map(({ value, y }) =>
-                      h.g(
-                        [],
-                        [
-                          h.line(
-                            [
-                              h.X1('48'),
-                              h.X2('528'),
-                              h.Y1(String(y)),
-                              h.Y2(String(y)),
-                              h.Class('scatter-grid'),
-                            ],
-                            [],
-                          ),
-                          h.text(
-                            [
-                              h.X('36'),
-                              h.Y(String(y + 4)),
-                              h.TextAnchor('end'),
-                              h.Class('scatter-axis-label'),
-                            ],
-                            [String(value)],
-                          ),
-                        ],
-                      ),
-                    ),
-                    ...geometry.xTicks.map(({ value, x }) =>
-                      h.text(
-                        [
-                          h.X(String(x)),
-                          h.Y('276'),
-                          h.TextAnchor('middle'),
-                          h.Class('scatter-axis-label'),
-                        ],
-                        [String(value)],
-                      ),
-                    ),
-                    ...geometry.points.map(({ id, group, x, y, cx, cy }) =>
-                      h.circle(
-                        [
-                          h.Cx(String(cx)),
-                          h.Cy(String(cy)),
-                          h.R(id === model.settings.selectedPoint ? '8' : '6'),
-                          h.Class('scatter-point' + (group === 'b' ? ' scatter-point-b' : '')),
-                          h.Tabindex(0),
-                          h.Role('img'),
-                          h.AriaLabel(
-                            id + ', Group ' + group.toUpperCase() + ', X ' + x + ', Y ' + y,
-                          ),
-                          h.AriaCurrent(String(id === model.settings.selectedPoint)),
-                          h.OnFocus(Message.SelectedPoint({ id })),
-                          h.OnMouseEnter(Message.SelectedPoint({ id })),
-                          h.OnClick(Message.SelectedPoint({ id })),
-                        ],
-                        [h.title([], [id + ': (' + x + ', ' + y + ')'])],
-                      ),
                     ),
                   ],
                 ),
-                h.div(
-                  [h.Class('scatter-legend')],
+                ...(geometry.points.length === 0
+                  ? [h.p([h.Role('status')], ['No points to display'])]
+                  : []),
+                legend(h, {
+                  theme: chartTheme,
+                  entries: [
+                    { key: 'a', label: 'Group A · circles', style: styleFor('a') },
+                    { key: 'b', label: 'Group B · squares', style: styleFor('b') },
+                  ],
+                }),
+                h.details(
+                  [h.Class('chart-data')],
                   [
-                    h.span([], [h.i([h.AriaHidden(true)], []), 'Group A']),
-                    h.span([], [h.i([h.AriaHidden(true)], []), 'Group B']),
+                    h.summary([], ['View source data']),
+                    dataTable(h, {
+                      caption: 'Illustrative scatter values',
+                      headers: ['Point', 'Group', 'X', 'Y'],
+                      rows: geometry.points.map((point) => [
+                        point.id,
+                        point.group.toUpperCase(),
+                        String(point.x),
+                        String(point.y),
+                      ]),
+                    }),
                   ],
                 ),
                 h.div(
-                  [h.Class('scatter-inspector')],
+                  [h.Class('scatter-inspector'), h.AriaLive('polite')],
                   selected
                     ? [
                         h.p(
@@ -176,7 +241,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                           ],
                         ),
                       ]
-                    : [h.p([], ['Focus, tap or choose a point to inspect its values.'])],
+                    : [h.p([], ['Use arrow keys, tap or choose a point to inspect its values.'])],
                 ),
                 h.p(
                   [h.Class('scatter-preview-caption')],

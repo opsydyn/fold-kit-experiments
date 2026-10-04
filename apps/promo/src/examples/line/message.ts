@@ -4,6 +4,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import { Action, Curve, Panel, SourceName } from './model';
 
 export const Message = defineMessageUnion({
+  RecordedChartWidth: { width: Schema.Number },
   SelectedPanel: { panel: Panel },
   ClickedRestartEditor: {},
   SucceededEditor: { revision: Schema.Number },

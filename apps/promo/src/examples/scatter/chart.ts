@@ -1,4 +1,8 @@
-import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
+import { scatterGeometry as projectScatter } from '@opsydyn/foldkit-viz/chart/cartesian';
+import type { ChartFrame, Domain } from '@opsydyn/foldkit-viz/chart/cartesian';
+import { createSeriesStyles } from '@opsydyn/foldkit-viz/chart/theme';
+
+import { exampleTheme, frameForWidth, tickCountForWidth } from '#example/frame';
 
 import { points } from './data';
 import type { Point } from './data';
@@ -10,16 +14,59 @@ export type Settings = Readonly<{
   selectedPoint: string | null;
 }>;
 
-export function scatterGeometry(data: ReadonlyArray<Point>, settings: Settings) {
-  const x = linear({ domain: [0, settings.xMax], range: [48, 528] });
-  const y = linear({ domain: [0, settings.yMax], range: [250, 30] });
+export const chartTheme = exampleTheme;
+export const seriesStyles = createSeriesStyles(
+  ['a', 'b'],
+  ['var(--chart-series-a, var(--blue, #3d79fa))', 'var(--chart-series-b, var(--coral, #fa8b79))'],
+  new Map([
+    ['a', { pointRadius: 6, strokeWidth: 1, symbol: 'circle' }],
+    ['b', { pointRadius: 6, strokeWidth: 1, symbol: 'square' }],
+  ]),
+);
+export function scatterGeometry(
+  data: ReadonlyArray<Point>,
+  settings: Settings,
+  options: Readonly<{ frame?: ChartFrame; xDomain?: Domain; yDomain?: Domain }> = {},
+) {
+  const frame = options.frame ?? frameForWidth(560, 320);
+  const cartesian = projectScatter(
+    data.filter((point) => settings.group === 'all' || point.group === settings.group),
+    {
+      x: (point) => point.x,
+      y: (point) => point.y,
+      datumKey: (point) => point.id,
+      seriesKey: (point) => point.group,
+    },
+    {
+      frame,
+      xDomain: options.xDomain ?? [0, settings.xMax],
+      yDomain: options.yDomain ?? [0, settings.yMax],
+      xTickCount: tickCountForWidth(frame.width),
+      yTickCount: tickCountForWidth(frame.width),
+    },
+  );
   return {
-    points: data
-      .filter((point) => settings.group === 'all' || point.group === settings.group)
-      .map((point) => ({ ...point, cx: x(point.x), cy: y(point.y) })),
-    xTicks: linearTicks([0, settings.xMax], 5).map((value) => ({ value, x: x(value) })),
-    yTicks: linearTicks([0, settings.yMax], 5).map((value) => ({ value, y: y(value) })),
+    cartesian,
+    points: cartesian.points.map((p) => ({ ...p.datum, cx: p.x, cy: p.y })),
+    xTicks: cartesian.xTicks.map((t) => ({ value: t.value, x: t.position })),
+    yTicks: cartesian.yTicks.map((t) => ({ value: t.value, y: t.position })),
   };
+}
+
+export function navigatePoint(settings: Settings, key: string): Settings {
+  const visible = points.filter(
+    (point) => settings.group === 'all' || point.group === settings.group,
+  );
+  if (key === 'Escape' || visible.length === 0) return { ...settings, selectedPoint: null };
+  const index = visible.findIndex((point) => point.id === settings.selectedPoint);
+  let next: number;
+  if (key === 'Home') next = 0;
+  else if (key === 'End') next = visible.length - 1;
+  else if (key === 'ArrowRight' || key === 'ArrowDown') next = (index + 1) % visible.length;
+  else if (key === 'ArrowLeft' || key === 'ArrowUp')
+    next = index <= 0 ? visible.length - 1 : index - 1;
+  else return settings;
+  return selectPoint(settings, visible[next]?.id ?? '');
 }
 
 export function changeDomain(settings: Settings, axis: 'xMax' | 'yMax', raw: string): Settings {

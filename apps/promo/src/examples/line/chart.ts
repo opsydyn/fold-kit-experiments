@@ -1,21 +1,58 @@
-import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
-import { line } from '@opsydyn/foldkit-viz/shape/line';
+import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
+import type { ChartFrame, Domain } from '@opsydyn/foldkit-viz/chart/cartesian';
+import { resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
+
+import { exampleTheme, frameForWidth, tickCountForWidth } from '#example/frame';
 
 export type Curve = 'catmullRom' | 'linear' | 'step';
 export type Settings = Readonly<{ curve: Curve; values: ReadonlyArray<number>; yMax: number }>;
 
-export function chartGeometry(settings: Settings) {
-  const x = linear({ domain: [0, settings.values.length - 1], range: [48, 528] });
-  const y = linear({ domain: [0, settings.yMax], range: [250, 30] });
-  const points = settings.values.map((value, index): readonly [number, number] => [
-    x(index),
-    y(value),
-  ]);
+export const chartTheme = exampleTheme;
+export const seriesStyle = resolveSeriesStyle(
+  chartTheme,
+  {
+    stroke: 'var(--chart-series-a, var(--blue, #3d79fa))',
+    fill: 'var(--chart-series-a, var(--blue, #3d79fa))',
+    pointRadius: 5,
+    strokeWidth: 3,
+  },
+  {},
+  {},
+);
+export const comparisonStyle = resolveSeriesStyle(
+  chartTheme,
+  { stroke: 'var(--chart-series-b, var(--coral, #fa8b79))', dashPattern: '5 4', strokeWidth: 2 },
+  {},
+  {},
+);
+export function chartGeometry(
+  settings: Settings,
+  options: Readonly<{ frame?: ChartFrame; xDomain?: Domain; yDomain?: Domain }> = {},
+) {
+  const frame = options.frame ?? frameForWidth(560, 290);
+  const cartesian = lineGeometry(
+    settings.values,
+    {
+      x: (_value, index) => index,
+      y: (value) => value,
+      datumKey: (_value, index) => String(index),
+      seriesKey: () => 'values',
+    },
+    {
+      frame,
+      xDomain: options.xDomain ?? [0, Math.max(0, settings.values.length - 1)],
+      yDomain: options.yDomain ?? [0, settings.yMax],
+      xTickCount: tickCountForWidth(frame.width),
+      yTickCount: tickCountForWidth(frame.width),
+      curve: settings.curve,
+    },
+  );
   return {
-    path: line(points, { curve: settings.curve }) ?? '',
-    points,
-    xTicks: settings.values.map((_, index) => ({ value: index + 1, x: x(index) })),
-    yTicks: linearTicks([0, settings.yMax], 5).map((value) => ({ value, y: y(value) })),
+    cartesian,
+    path: cartesian.series[0]?.path ?? '',
+    points: cartesian.points.map((p): readonly [number, number] => [p.x, p.y]),
+    xTicks: cartesian.xTicks.map((t) => ({ value: t.value + 1, x: t.position })),
+    yTicks: cartesian.yTicks.map((t) => ({ value: t.value, y: t.position })),
   };
 }
 

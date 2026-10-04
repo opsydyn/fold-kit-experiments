@@ -2,6 +2,10 @@
   "name": "@opsydyn/promo",
   "private": true,
   "type": "module",
+  "imports": {
+    "#example/measurement": "./src/examples/shared/measurement.ts",
+    "#example/frame": "./src/examples/shared/frame.ts"
+  },
   "scripts": {
     "dev": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && astro dev",
     "build": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && astro build",

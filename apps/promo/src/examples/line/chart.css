@@ -26,7 +26,7 @@
   letter-spacing: 0.13em;
   font-family: monospace;
 }
-.line-preview svg {
+.line-preview .chart-frame {
   display: block;
   width: 100%;
   height: auto;
@@ -298,4 +298,36 @@
   .line-editor-heading button {
     align-self: start;
   }
+}
+
+.chart-viewport {
+  width: 100%;
+  min-width: 0;
+}
+.chart-frame:focus-visible {
+  outline: 2px solid var(--chart-focus, var(--blue, #3d79fa));
+  outline-offset: 4px;
+}
+.chart-data {
+  margin-top: 16px;
+  font-size: 12px;
+}
+.chart-data summary {
+  cursor: pointer;
+}
+.chart-data table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+.chart-data th,
+.chart-data td {
+  padding: 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #d9dce1);
+  overflow-wrap: anywhere;
+}
+.chart-data caption {
+  text-align: left;
+  margin-bottom: 8px;
 }

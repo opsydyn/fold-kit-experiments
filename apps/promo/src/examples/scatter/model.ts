@@ -26,6 +26,7 @@ export const Props = Schema.Struct({
   templateUrl: Schema.NullOr(Schema.String),
 });
 export const Model = Schema.Struct({
+  chartWidth: Schema.Number,
   settings: Settings,
   sources: Schema.Array(Source),
   activeFile: SourceName,
@@ -40,6 +41,7 @@ export interface InitReturn {
 export const init = (props: Props): InitReturn => ({
   model: {
     ...Schema.decodeUnknownSync(Props)(props),
+    chartWidth: 560,
     settings: initialSettings,
     activeFile: 'settings.ts' as const,
     actionStatus: ActionStatus.Ready(),

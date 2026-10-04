@@ -50,3 +50,17 @@ test('standalone projects do not recursively offer embedded editors', () => {
   expect(update(model, Message.SelectedPanel({ panel: 'edit' }))).toEqual({ model });
   expect(update(model, Message.ClickedRestartEditor())).toEqual({ model });
 });
+
+test('width facts preserve the line editor session and control state', () => {
+  let model = init({ sources: [], templateUrl: '/downloads/line-template.json' }).model;
+  model = update(model, Message.SelectedCurve({ curve: 'step' })).model;
+  model = update(model, Message.SelectedPanel({ panel: 'edit' })).model;
+  model = update(model, Message.SucceededEditor({ revision: 1 })).model;
+  const next = update(model, Message.RecordedChartWidth({ width: 324 })).model;
+  expect(next.chartWidth).toBe(324);
+  expect(next.settings).toBe(model.settings);
+  expect(next.editor).toBe(model.editor);
+  expect(next.panel).toBe('edit');
+  for (const width of [0, -1, 50, NaN, Infinity])
+    expect(update(next, Message.RecordedChartWidth({ width })).model).toBe(next);
+});

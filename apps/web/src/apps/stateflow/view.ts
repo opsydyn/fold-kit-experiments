@@ -56,8 +56,8 @@ const encodeEvent = Schema.encodeSync(Schema.fromJsonString(TransitionRecorded, 
 
 const edgePair = (edge: StateFlowEdge): string => [edge.source, edge.target].sort().join(':');
 
-const edgeCaption = (edge: StateFlowEdge, index: number): string =>
-  `${index + 1} · ${guardLabel(edge)}`;
+const edgeCaption = (_edge: StateFlowEdge, index: number): string =>
+  String(index + 1).padStart(2, '0');
 
 function edgeLabelPosition(edge: StateFlowLayoutEdge, edges: ReadonlyArray<StateFlowLayoutEdge>) {
   const pair = edgePair(edge);
@@ -157,16 +157,24 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
       Option.map((item) => item.sequence),
       Option.getOrElse(() => 0),
     );
-    const dx = edge.x2 - edge.x1;
-    const dy = edge.y2 - edge.y1;
-    const distance = Math.hypot(dx, dy) || 1;
-    const ux = dx / distance;
-    const uy = dy / distance;
     const labelPosition = Option.getOrThrow(Option.fromNullishOr(labels[index]));
     const cx = 2 * labelPosition.x - (edge.x1 + edge.x2) / 2;
     const cy = 2 * labelPosition.y - (edge.y1 + edge.y2) / 2;
-    const endX = edge.x2 - ux * 58;
-    const endY = edge.y2 - uy * 58;
+    // Intersect each curve tangent with the rectangular terminal plus four pixels clearance.
+    const startDistance = Math.hypot(cx - edge.x1, cy - edge.y1) || 1;
+    const sx = (cx - edge.x1) / startDistance;
+    const sy = (cy - edge.y1) / startDistance;
+    const startOffset = Math.min(60 / Math.abs(sx), 36 / Math.abs(sy));
+    const endDistance = Math.hypot(edge.x2 - cx, edge.y2 - cy) || 1;
+    const ex = (edge.x2 - cx) / endDistance;
+    const ey = (edge.y2 - cy) / endDistance;
+    const endOffset = Math.min(60 / Math.abs(ex), 36 / Math.abs(ey));
+    const endX = edge.x2 - ex * endOffset;
+    const endY = edge.y2 - ey * endOffset;
+    const routePath = `M${edge.x1 + sx * startOffset},${edge.y1 + sy * startOffset} Q${cx},${cy} ${endX},${endY}`;
+    const inspected = model.trace.find((item) => item.sequence === model.selectedSequence);
+    const selected =
+      model.selectedEdge === edge.id || (inspected !== undefined && matchesEdge(inspected, edge));
     const label = `${index + 1}. ${edge.source} → ${edge.target}: ${edge.event} (${guardLabel(edge)})`;
     return h.g(
       [
@@ -174,13 +182,17 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
         h.Class(
           [
             styles.edge,
+            textWhen(edge.guard !== 'unguarded', styles.guardedEdge),
             textWhen(edge.transitionCount > 0, styles.visitedEdge),
+            textWhen(Option.isSome(latestMatch), styles.latestEdge),
+            textWhen(selected, styles.selectedEdge),
             textWhen(!model.reducedMotion && Option.isSome(latestMatch), styles.pulse),
           ].join(' '),
         ),
         h.Role('button'),
         h.Tabindex(0),
         h.AriaLabel(label),
+        h.AriaPressed(String(selected)),
         h.OnClick(message),
         h.OnKeyDownPreventDefault(activation(message)),
       ],
@@ -188,21 +200,35 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
         h.title([], [label]),
         h.path(
           [
-            h.D(`M${edge.x1 + ux * 58},${edge.y1 + uy * 58} Q${cx},${cy} ${endX},${endY}`),
+            h.D(routePath),
             h.Fill('none'),
-            h.Stroke('currentColor'),
-            h.StrokeWidth('2'),
+            h.Stroke('transparent'),
+            h.StrokeWidth('16'),
+            h.Style({ 'pointer-events': 'stroke' }),
+            h.AriaHidden(true),
           ],
+          [],
+        ),
+        h.path(
+          [h.D(routePath), h.Fill('none'), h.Stroke('currentColor'), h.Class(styles.route)],
           [],
         ),
         h.path(
           [
             h.D(
-              `M${endX - ux * 9 - uy * 4},${endY - uy * 9 + ux * 4} L${endX},${endY} L${endX - ux * 9 + uy * 4},${endY - uy * 9 - ux * 4}`,
+              `M${endX - ex * 9 - ey * 4},${endY - ey * 9 + ex * 4} L${endX},${endY} L${endX - ex * 9 + ey * 4},${endY - ey * 9 - ex * 4} Z`,
             ),
-            h.Fill('none'),
-            h.Stroke('currentColor'),
-            h.StrokeWidth('2'),
+            h.Fill('currentColor'),
+          ],
+          [],
+        ),
+        h.rect(
+          [
+            h.X(String(labelPosition.x - 15)),
+            h.Y(String(labelPosition.y - 17)),
+            h.Width('30'),
+            h.Height('22'),
+            h.Class(styles.badge),
           ],
           [],
         ),
@@ -210,8 +236,6 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
           [
             h.X(String(labelPosition.x)),
             h.Y(String(labelPosition.y - 5)),
-            h.TextLength(String(edgeCaption(edge, index).length * 7)),
-            h.LengthAdjust('spacingAndGlyphs'),
             h.Class(styles.edgeLabel),
           ],
           [edgeCaption(edge, index)],
@@ -253,12 +277,26 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
         h.OnKeyDownPreventDefault(activation(message)),
       ],
       [
-        h.circle(
+        h.rect(
+          [h.X('-56'), h.Y('-32'), h.Width('112'), h.Height('64'), h.Class(styles.terminal)],
+          [],
+        ),
+        h.rect(
           [
-            h.R('54'),
-            h.Fill('#171e28'),
-            h.Stroke('currentColor'),
-            h.StrokeWidth(textWhen(active, '3', '1.5')),
+            h.X('-56'),
+            h.Y('-32'),
+            h.Width('112'),
+            h.Height('3'),
+            h.Fill('currentColor'),
+            h.AriaHidden(true),
+          ],
+          [],
+        ),
+        h.path(
+          [
+            h.D('M-63,-23 V-39 H-47 M47,-39 H63 V-23 M63,23 V39 H47 M-47,39 H-63 V23'),
+            h.Class(styles.selectionBracket),
+            h.AriaHidden(true),
           ],
           [],
         ),
@@ -280,7 +318,7 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
           ariaLabel: 'Request diagnostics state graph',
           ariaDescription:
             'Select a state to highlight related events. Tab reaches states and recorded transitions; Enter or Space selects. Edge numbers refer to the transition key below.',
-          style: { 'min-width': '680px' },
+          style: { 'min-width': '900px' },
         },
         null,
         [...layout.edges.map(edgeView), ...layout.nodes.map(nodeView)],
@@ -488,6 +526,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               [
                 h.h2([h.Class(styles.sectionHeading)], ['Request diagnostics']),
                 graphView(model, graph, h),
+                h.ul(
+                  [h.Class(styles.legend), h.AriaLabel('Graph signals')],
+                  [
+                    h.li([h.Class(styles.legendActive)], ['Active / latest']),
+                    h.li([h.Class(styles.legendVisited)], ['Traversed']),
+                    h.li([h.Class(styles.legendGuard)], ['Guarded route']),
+                    h.li([h.Class(styles.legendError)], ['Failure state']),
+                  ],
+                ),
                 h.details(
                   [],
                   [

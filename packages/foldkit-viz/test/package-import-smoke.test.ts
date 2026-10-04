@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'bun:test';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -195,6 +195,36 @@ it('renders through the packed optional adapter with the installed FoldKit host'
         tarball,
         'foldkit@0.165.0',
         'effect@4.0.0',
+      ],
+      { cwd: consumerDir, maxBuffer },
+    );
+    const readme = await readFile(path.join(packageDir, 'README.md'), 'utf8');
+    const snippet = readme
+      .split('## Composable Cartesian charts')[1]
+      ?.match(/```ts\n([\s\S]*?)```/)?.[1];
+    if (snippet === undefined) throw new RangeError('Primary Cartesian README example is missing');
+    const documentationConsumer = path.join(consumerDir, 'readme-consumer.ts');
+    await writeFile(
+      documentationConsumer,
+      "import type { HtmlBuilder } from 'foldkit/html';\ndeclare const h: HtmlBuilder<never>;\n" +
+        snippet,
+    );
+    await execFileAsync(
+      'bun',
+      [
+        'x',
+        'tsc',
+        '--noEmit',
+        '--ignoreConfig',
+        '--strict',
+        '--skipLibCheck',
+        '--target',
+        'ES2022',
+        '--module',
+        'ESNext',
+        '--moduleResolution',
+        'Bundler',
+        documentationConsumer,
       ],
       { cwd: consumerDir, maxBuffer },
     );

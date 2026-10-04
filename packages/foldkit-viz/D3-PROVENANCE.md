@@ -11,3 +11,9 @@ dependencies.
 Automatic constant-domain expansion, layout validation, stable datum keys and
 paint/theme contracts are documented library policies above these primitives;
 they are not claims of additional D3 API parity.
+
+- [d3-array ticks](https://github.com/d3/d3-array/blob/be0ae0d2b36ab91b833294ad2cfc5d5905acbd0f/src/ticks.js): integer/reciprocal tick increments preserve numeric precision independently of label formatting, including short epoch-millisecond domains. Non-finite tick specifications yield no ticks rather than allocate invalid arrays.
+
+The Cartesian boundary rejects non-finite generated curve paths and generated
+histogram thresholds that cannot be represented distinctly inside a non-zero
+span. Explicit equal histogram domains retain a single zero-width interval.

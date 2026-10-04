@@ -110,7 +110,7 @@ const geometry = lineGeometry(
   },
   {
     frame: { width: 560, height: 290, margins: { top: 30, right: 24, bottom: 60, left: 48 } },
-    includeZero: { y: true },
+    includeZero: { x: false, y: true },
     curve: 'linear',
   },
 );
@@ -193,7 +193,10 @@ thresholds outside the domain are trimmed by the existing bin primitive.
 non-degenerate domain. A degenerate explicit domain collapses to one zero-width
 interval. Invalid frames, domains, duplicate datum keys, non-finite projected
 coordinates, tick counts below two, negative sizes or opacity outside `[0,1]`
-throw `RangeError`. See [D3 source provenance](D3-PROVENANCE.md) for the precise
+throw `RangeError`. Curves whose internal arithmetic produces non-finite paths
+are rejected too. Requested histogram thresholds that cannot be represented
+distinctly inside a non-degenerate domain also throw. Tick positions preserve
+full numeric precision; format their labels separately. See [D3 source provenance](D3-PROVENANCE.md) for the precise
 primitive contracts.
 
 ## Parent-owned interaction state

@@ -125,15 +125,15 @@ export function lineGeometry<T>(
         coordinates.push([point.x, point.y]);
       }
     }
-    return {
-      key,
-      points,
-      path:
-        line(coordinates, {
-          curve: config.curve,
-          defined: (p) => Number.isFinite(p[0]) && Number.isFinite(p[1]),
-        }) ?? '',
-    };
+    const path =
+      line(coordinates, {
+        curve: config.curve,
+        defined: (p) => Number.isFinite(p[0]) && Number.isFinite(p[1]),
+      }) ?? '';
+    // Curves can overflow after projection; the public geometry boundary must reject that output.
+    if (/NaN|Infinity/.test(path))
+      throw new RangeError('Chart path coordinates must remain finite after curve calculation');
+    return { key, points, path };
   });
   return { ...geometry, series };
 }
@@ -188,10 +188,22 @@ export function histogramGeometry<T>(
   if (config.binCount !== undefined) {
     if (!Number.isInteger(config.binCount) || config.binCount <= 0)
       throw new RangeError('Histogram bin count must be a positive integer');
-    thresholds = Array.from(
-      { length: config.binCount - 1 },
-      (_, i) => lo + (hi - lo) * ((i + 1) / config.binCount),
-    );
+    thresholds =
+      lo === hi
+        ? []
+        : Array.from(
+            { length: config.binCount - 1 },
+            (_, i) => lo + (hi - lo) * ((i + 1) / config.binCount),
+          );
+    if (
+      !thresholds.every(
+        (t, i) =>
+          Number.isFinite(t) && t > lo && t < hi && (i === 0 || t > (thresholds[i - 1] ?? lo)),
+      )
+    )
+      throw new RangeError(
+        'Histogram bin thresholds cannot be represented distinctly within this domain',
+      );
   } else {
     thresholds = config.thresholds;
     if (

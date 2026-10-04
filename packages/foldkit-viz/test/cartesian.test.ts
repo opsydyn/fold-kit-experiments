@@ -202,3 +202,57 @@ describe('histogram geometry', () => {
     );
   });
 });
+
+describe('numeric geometry boundaries', () => {
+  it('rejects a curve whose internal arithmetic overflows despite finite input coordinates', () => {
+    const huge = [sample('one', 0, 0), sample('two', 1e200, 1), sample('three', 2e200, 2)];
+    expect(() =>
+      lineGeometry(huge, accessors, {
+        frame,
+        xDomain: [0, 1],
+        yDomain: [0, 2],
+        curve: 'catmullRom',
+      }),
+    ).toThrow(/path.*finite|finite.*path/i);
+    expect(
+      lineGeometry(huge, accessors, { frame, xDomain: [0, 1], yDomain: [0, 2], curve: 'linear' })
+        .series[0]?.path,
+    ).not.toMatch(/NaN|Infinity/);
+  });
+  it('retains distinct millisecond timestamp ticks in ascending and reversed domains', () => {
+    const start = 1700000000000;
+    const forward = scatterGeometry([], accessors, { frame, xDomain: [start, start + 4] });
+    expect(forward.xTicks.map((t) => t.value)).toEqual([
+      start,
+      start + 1,
+      start + 2,
+      start + 3,
+      start + 4,
+    ]);
+    expect(forward.xTicks.map((t) => t.position)).toEqual([0, 50, 100, 150, 200]);
+    const reverse = scatterGeometry([], accessors, { frame, xDomain: [start + 4, start] });
+    expect(reverse.xTicks.map((t) => t.value)).toEqual([
+      start + 4,
+      start + 3,
+      start + 2,
+      start + 1,
+      start,
+    ]);
+    expect(reverse.xTicks.map((t) => t.position)).toEqual([0, 50, 100, 150, 200]);
+  });
+  it('rejects unrepresentable requested histogram intervals instead of repeating keys', () => {
+    for (const domain of [
+      [1, 1 + 1e-15],
+      [1 + 1e-15, 1],
+    ] as const) {
+      expect(() => histogramGeometry(domain, (n) => n, { frame, domain, binCount: 20 })).toThrow(
+        /represent|threshold/i,
+      );
+    }
+    const valid = histogramGeometry([1, 2], (n) => n, { frame, domain: [1, 2], binCount: 20 });
+    expect(valid.bins.length).toBe(20);
+    expect(new Set(valid.bins.map((b) => b.key)).size).toBe(20);
+    const equal = histogramGeometry([5], (n) => n, { frame, domain: [5, 5], binCount: 20 });
+    expect(equal.bins.map((b) => [b.key, b.count, b.width])).toEqual([['5:5', 1, 0]]);
+  });
+});

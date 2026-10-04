@@ -32,14 +32,45 @@ function tickStep(start: number, stop: number, count: number): number {
   return stop < start ? -step1 : step1;
 }
 
+// d3-array/src/ticks.js, commit be0ae0d2b36ab91b833294ad2cfc5d5905acbd0f.
+// Reciprocal integer increments retain fractional precision without rounding timestamps.
+function tickSpec(start: number, stop: number, count: number): readonly [number, number, number] {
+  const step = (stop - start) / Math.max(0, count);
+  const power = Math.floor(Math.log10(step));
+  const error = step / 10 ** power;
+  const factor =
+    error >= Math.sqrt(50) ? 10 : error >= Math.sqrt(10) ? 5 : error >= Math.sqrt(2) ? 2 : 1;
+  let i1: number, i2: number, increment: number;
+  if (power < 0) {
+    increment = 10 ** -power / factor;
+    i1 = Math.round(start * increment);
+    i2 = Math.round(stop * increment);
+    if (i1 / increment < start) ++i1;
+    if (i2 / increment > stop) --i2;
+    increment = -increment;
+  } else {
+    increment = 10 ** power * factor;
+    i1 = Math.round(start / increment);
+    i2 = Math.round(stop / increment);
+    if (i1 * increment < start) ++i1;
+    if (i2 * increment > stop) --i2;
+  }
+  if (i2 < i1 && 0.5 <= count && count < 2) return tickSpec(start, stop, count * 2);
+  return [i1, i2, increment];
+}
+
 export function linearTicks(domain: readonly [number, number], count = 5): ReadonlyArray<number> {
   const [start, stop] = domain;
-  const step = tickStep(start, stop, count);
-  if (!Number.isFinite(step) || step === 0) return [];
-  const t0 = Math.ceil(start / step) * step;
-  const t1 = Math.floor(stop / step) * step;
-  const n = Math.round((t1 - t0) / step) + 1;
-  return Array.from({ length: n }, (_, i) => parseFloat((t0 + i * step).toPrecision(12)));
+  if (!(count > 0)) return [];
+  if (start === stop) return [start];
+  const reverse = stop < start;
+  const [i1, i2, increment] = reverse ? tickSpec(stop, start, count) : tickSpec(start, stop, count);
+  if (!(i2 >= i1) || !Number.isFinite(i1) || !Number.isFinite(i2) || !Number.isFinite(increment))
+    return [];
+  return Array.from({ length: i2 - i1 + 1 }, (_, i) => {
+    const index = reverse ? i2 - i : i1 + i;
+    return increment < 0 ? index / -increment : index * increment;
+  });
 }
 
 // SQRT SCALE — D3 scaleSqrt parity (d3-scale pow.js transformSqrt)

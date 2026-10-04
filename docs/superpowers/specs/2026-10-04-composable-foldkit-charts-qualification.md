@@ -6,7 +6,7 @@ Date: 2026-10-04. Checkout: managed `codex/foldkit-viz-promo` worktree.
 
 - Root `bun run check`: exit 0, no lint or format findings.
 - Root `bun typecheck`: exit 0, Astro diagnostics contain zero errors/warnings/hints.
-- Root `bun run test`: 381 passing tests (Viz 165, integration 74, promo 37, web 105).
+- Root `bun run test`: 384 passing tests (Viz 168, integration 74, promo 37, web 105).
 - Promo production build: exit 0, six pages generated.
 - `git diff --check`: exit 0.
 - Independent OS temporary projects for line, histogram and scatter: npm install,
@@ -43,6 +43,8 @@ computed stroke to `oklch(0.65 0.15 150)`, with the reference stroke retained.
 Download produced visible success feedback. The resulting native Downloads ZIP
 contained 43 files, shared frame/measurement sources and settings with first
 observation 11, agreeing with the controls/source rather than editor edits.
+Histogram and scatter downloads contained 42 and 41 files respectively, with
+clustered/five-bin and inspected a-02 settings matching their controls and source.
 
 ## Evidence boundaries
 
@@ -55,3 +57,36 @@ success state and actual ZIP contents confirmed it independently.
 No site deployment, npm publication, release version bump or full-catalogue
 migration was performed. Mathematical colour interpolation remains hex-only;
 the existing RGB basis interpolation parity gap is outside this slice.
+
+## Fresh review and fix pass
+
+A fresh gpt-6-astra reviewer inspected the whole branch, `4bd5016..a9457c6`,
+read-only. No Critical finding; three Important numeric findings were reproduced:
+finite projected coordinates causing non-finite spline output, collapsed epoch
+millisecond ticks, and unrepresentable histogram thresholds producing duplicate
+interval keys. Its Minor README type issue was regraded to Important because
+copying the example failed compilation.
+
+All four regressions were observed failing first (23 pass, four fail), then
+passing (27 pass, zero fail). The geometry boundary now rejects non-finite curve
+paths and non-distinct generated thresholds. The tick implementation follows
+pinned d3-array integer/reciprocal increments. The primary README snippet is
+compiled against the packed optional adapter. All material findings were fixed;
+no deferred minor remains. Full verification repeated after the fixes.
+
+Rulings retained from implementation and review:
+
+1. Name the pure local factory `linkedChartFolds`, since the service lint treats
+   make-prefixed imports as Effect services. Cost: one internal name differs
+   from the plan; public API is unchanged.
+2. Consume scatter semantic notifications through `foldChild` in its Storybook
+   host. Cost: the story has no sibling coordination, while Commands survive.
+3. Run workspace tests sequentially because package smoke rebuilds Viz output
+   that promo packaging reads. Cost: modestly longer tests.
+4. Keep comprehensive existing curve/colour parity outside the slice, while
+   validating new accepted geometry. Cost: other primitive parity gaps remain.
+5. Keep publication/deployment outside the slice. Cost: external availability
+   requires a subsequent release/deployment.
+6. Keep full-catalogue migration and large-dataset performance outside the
+   three-example scope. Cost: other charts retain earlier patterns and large
+   datasets remain unqualified.

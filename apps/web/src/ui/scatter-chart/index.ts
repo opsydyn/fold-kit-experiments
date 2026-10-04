@@ -3,7 +3,8 @@ import { Effect, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
-import type { Return as UpdateReturn } from 'foldkit/update';
+import { withOutMessage } from 'foldkit/update';
+import type { Return as UpdateReturn, ReturnWithOutMessage } from 'foldkit/update';
 
 import type { Dims, Layout, Margins } from '../shared';
 import {
@@ -96,6 +97,12 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 
+export const OutMessage = defineMessageUnion({
+  InspectedPoint: { key: Schema.String, x: Schema.Number, y: Schema.Number },
+  ClearedInspection: {},
+});
+export type OutMessage = typeof OutMessage.Type;
+
 // MOUNT
 
 export const CaptureChartBounds = Mount.define('CaptureChartBounds', {
@@ -115,12 +122,29 @@ export const CaptureChartBounds = Mount.define('CaptureChartBounds', {
 
 // UPDATE
 
-type Return = UpdateReturn<Model, Message>;
+type Return = ReturnWithOutMessage<Model, Message, OutMessage>;
+
+function inspected(model: Model, index: number): Return {
+  const point = model.points[index];
+  if (point === undefined)
+    return withOutMessage<Model, Message, OutMessage>(
+      { model: { ...model, activeIndex: Option.none() } },
+      OutMessage.ClearedInspection(),
+    );
+  return withOutMessage<Model, Message, OutMessage>(
+    { model: { ...model, activeIndex: Option.some(index) } },
+    OutMessage.InspectedPoint({ key: point.label, x: point.x, y: point.y }),
+  );
+}
 
 export const update = (model: Model, msg: Message): Return =>
-  Message.match(msg, {
-    HoveredPoint: ({ index }) => ({ model: { ...model, activeIndex: Option.some(index) } }),
-    BlurredPoint: () => ({ model: { ...model, activeIndex: Option.none() } }),
+  Message.match<Return>(msg, {
+    HoveredPoint: ({ index }) => inspected(model, index),
+    BlurredPoint: () =>
+      withOutMessage<Model, Message, OutMessage>(
+        { model: { ...model, activeIndex: Option.none() } },
+        OutMessage.ClearedInspection(),
+      ),
     RecordedChartBounds: ({ screenLeft, screenTop, renderedPW, renderedPH }) => ({
       model: {
         ...model,
@@ -139,12 +163,7 @@ export const update = (model: Model, msg: Message): Return =>
     PressedKeyNav: ({ direction }) => {
       const n = model.points.length;
       const current = Option.isSome(model.activeIndex) ? model.activeIndex.value : -1;
-      return {
-        model: {
-          ...model,
-          activeIndex: Option.some(nextIndex(n, current, direction)),
-        },
-      };
+      return inspected(model, nextIndex(n, current, direction));
     },
   });
 

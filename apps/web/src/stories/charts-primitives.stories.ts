@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/html';
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { makeElement } from 'foldkit/runtime';
+import { foldChild } from 'foldkit/update';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as AreaChart from '../ui/area-chart';
@@ -316,7 +317,13 @@ export const Scatter: StoryObj<ScatterArgs> = {
     });
     return mountChart<ScatterChart.Model, ScatterChart.Message>(
       () => ({ model: model0 }),
-      ScatterChart.update,
+      foldChild({
+        update: ScatterChart.update,
+        read: (model: ScatterChart.Model) => Option.some(model),
+        write: (_model, next) => next,
+        toParentMessage: (message) => message,
+        foldOutMessage: () => (model) => ({ model }),
+      }),
       (model, h) => ScatterChart.view({ model, toParentMessage: (m) => m }, h),
     );
   },

@@ -127,6 +127,15 @@
       ],
       "math/tween": [
         "./dist/math/tween.d.mts"
+      ],
+      "chart/cartesian": [
+        "./dist/chart/cartesian.d.mts"
+      ],
+      "chart/theme": [
+        "./dist/chart/theme.d.mts"
+      ],
+      "foldkit/cartesian": [
+        "./dist/foldkit/cartesian.d.mts"
       ]
     }
   },
@@ -262,6 +271,18 @@
     "./math/tween": {
       "types": "./dist/math/tween.d.mts",
       "import": "./dist/math/tween.mjs"
+    },
+    "./chart/cartesian": {
+      "types": "./dist/chart/cartesian.d.mts",
+      "import": "./dist/chart/cartesian.mjs"
+    },
+    "./chart/theme": {
+      "types": "./dist/chart/theme.d.mts",
+      "import": "./dist/chart/theme.mjs"
+    },
+    "./foldkit/cartesian": {
+      "types": "./dist/foldkit/cartesian.d.mts",
+      "import": "./dist/foldkit/cartesian.mjs"
     }
   },
   "publishConfig": {
@@ -289,11 +310,15 @@
     "effect": ">=4.0.0 <5.0.0",
     "foldkit": ">=0.165.0 <0.166.0"
   },
+  "peerDependenciesMeta": {
+    "effect": {
+      "optional": true
+    },
+    "foldkit": {
+      "optional": true
+    }
+  },
   "engines": {
     "node": ">=22.0.0"
-  },
-  "peerDependenciesOptional": {
-    "effect": true,
-    "foldkit": true
   }
 }

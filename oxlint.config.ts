@@ -107,8 +107,58 @@ export default defineConfig({
   },
   overrides: [
     {
+      // ResizeObserver registration and release are the shared Mount stream's native I/O boundary.
+      // Nested callback/acquireRelease is the documented Effect callback bridge, not domain logic.
+      files: ['apps/promo/src/examples/shared/measurement.ts'],
+      rules: {
+        'linteffect/no-effect-wrapper-alias': 'off',
+        'linteffect/no-call-tower': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/warn-effect-sync-wrapper': 'off',
+      },
+    },
+    {
+      // Third-party DOM resources follow Mount's documented acquireRelease pattern.
+      // Acquire and cleanup must run in the lifecycle Effect, rather than in the view.
+      files: ['apps/promo/src/examples/line/editor-mount.ts'],
+      rules: { 'linteffect/no-call-tower': 'off', 'linteffect/warn-effect-sync-wrapper': 'off' },
+    },
+    {
+      // Temporary exported modules are executed and cleaned up at the test I/O boundary.
+      files: [
+        'apps/promo/test/{live-line,line-project,example-template,standalone-chart-project}.test.ts',
+        'packages/foldkit-viz/test/package-import-smoke.test.ts',
+      ],
+      rules: { 'linteffect/no-try-catch': 'off' },
+    },
+    {
+      // Native download and playground branches live inside a declared Command.
+      files: [
+        'apps/promo/src/examples/{line,histogram,scatter}/command.ts',
+        'apps/promo/src/examples/line/editor-mount.ts',
+      ],
+      rules: { 'linteffect/no-if-statement': 'off', 'linteffect/no-magic-domain-string': 'off' },
+    },
+    {
+      // Promo fixtures and SVG geometry are pure rendering data, not Effect handlers.
+      files: ['apps/promo/src/lib/**', 'apps/promo/src/pages/**', 'apps/promo/test/**'],
+      rules: {
+        'linteffect/no-string-sentinel-const': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+      },
+    },
+    {
+      // Astro page chrome talks directly to browser storage and colour preferences.
+      // Storage access can throw even before getItem runs; guard this native boundary.
+      files: ['apps/promo/src/layouts/Layout.astro'],
+      rules: {
+        'linteffect/no-try-catch': 'off',
+        'linteffect/no-string-sentinel-const': 'off',
+      },
+    },
+    {
       // Astro islands use literal module specifiers as explicit code-splitting boundaries.
-      files: ['apps/web/src/apps/**/app.ts'],
+      files: ['apps/web/src/apps/**/app.ts', 'apps/promo/src/examples/**/app.ts'],
       rules: {
         'linteffect/prevent-dynamic-imports': 'off',
       },
@@ -125,6 +175,8 @@ export default defineConfig({
         'packages/foldkit-viz/src/**',
         'packages/foldkit-viz/test/**',
         'packages/astro-foldkit/test/**',
+        'apps/promo/src/examples/{line,histogram,scatter}/{chart,data,project,view}.ts',
+        'apps/promo/test/**',
       ],
       rules: {
         'linteffect/no-domain-logic-in-conditional': 'off',
@@ -143,7 +195,12 @@ export default defineConfig({
     {
       // These modules are explicit application/runtime boundaries. Running an Effect here is
       // the boundary itself, rather than a local domain transition.
-      files: ['apps/web/src/pages/api/**', 'packages/astro-foldkit/src/server-render.ts'],
+      files: [
+        'apps/web/src/pages/api/**',
+        'packages/astro-foldkit/src/server-render.ts',
+        'apps/promo/src/lib/{line,example}-project.ts',
+        'apps/promo/src/pages/downloads/**',
+      ],
       rules: {
         'linteffect/no-naked-object-state-update': 'off',
         'linteffect/no-run-effect-outside-boundary': 'off',
@@ -154,6 +211,7 @@ export default defineConfig({
       // handlers, so their ordinary data branching remains readable and intentional.
       files: [
         'apps/web/src/apps/**/model.ts',
+        'apps/promo/src/examples/**/model.ts',
         'apps/web/src/apps/request-diagnostics/navigation.ts',
         'apps/web/src/apps/counter/types.ts',
       ],

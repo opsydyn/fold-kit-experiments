@@ -1,0 +1,26 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import LiveHistogram from '../../examples/histogram/app';
+import { histogramSources } from '../../lib/histogram-sources';
+---
+<Layout title="Live histogram example — Foldkit Viz">
+  <section class="page-intro">
+    <a class="text-link" href="/examples/">← All examples</a>
+    <p class="eyebrow">LEARN BY CHANGING</p>
+    <h1>Find the shape in the sample.</h1>
+    <p>Forty observations. Two distributions. Choose how to group the values and watch the shape emerge.</p>
+  </section>
+  <section class="live-example" aria-label="Interactive histogram example">
+    <LiveHistogram client:load noMeta sources={histogramSources} templateUrl="/downloads/histogram-template.json" />
+    <noscript><p>This example needs JavaScript for its controls. <a href="/docs/#quick-start">Read the static quick start</a> or <a href="/examples/#distribution">see the static histogram</a>.</p></noscript>
+  </section>
+  <section class="closing-callout">
+    <h2>The pieces stay simple.</h2>
+    <p>The bin primitive groups values into intervals. Scales turn the counts into bars. FoldKit keeps your chosen dataset and bin count in the Model, so the preview and exported code agree.</p>
+    <a class="text-link" href="/docs/#foldkit">Explore the architecture →</a>
+  </section>
+</Layout>
+<style>
+  .live-example { min-width: 0; }
+  .live-example astro-island[ssr]::before { content: 'Preparing the live example…'; display: block; padding: 48px; border: 1px solid var(--border); color: var(--muted); }
+</style>

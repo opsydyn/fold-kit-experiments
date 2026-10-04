@@ -1,0 +1,297 @@
+.histogram-playground {
+  --histogram-accent: #3468ef;
+  color: var(--text, #151619);
+  font-family: inherit;
+  min-width: 0;
+}
+.histogram-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  border: 1px solid var(--border, #d9dce1);
+  background: var(--surface, #fffefa);
+}
+.histogram-preview {
+  padding: 30px;
+  min-width: 0;
+  align-self: center;
+}
+.histogram-preview-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--muted, #5d6574);
+  font-size: 12px;
+}
+.histogram-preview-heading span:first-child {
+  letter-spacing: 0.13em;
+  font-family: monospace;
+}
+.histogram-preview .chart-frame {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 24px;
+  overflow: visible;
+}
+.histogram-grid {
+  stroke: var(--border, #d9dce1);
+  stroke-width: 1;
+}
+.histogram-axis-label {
+  fill: var(--muted, #5d6574);
+  font-size: 12px;
+}
+.histogram-bar {
+  fill: var(--histogram-accent);
+}
+.histogram-preview-caption {
+  color: var(--muted, #5d6574);
+  font-size: 14px;
+  max-width: 48ch;
+  line-height: 1.6;
+}
+.histogram-controls {
+  padding: 24px;
+  border-left: 1px solid var(--border, #d9dce1);
+}
+.histogram-playground fieldset {
+  padding: 0;
+  margin: 0 0 24px;
+  border: 0;
+  min-width: 0;
+}
+.histogram-playground legend {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.histogram-playground button,
+.histogram-playground select {
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border, #d9dce1);
+  border-radius: 4px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+.histogram-playground button:hover {
+  border-color: var(--histogram-accent);
+}
+.histogram-playground button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.histogram-playground :is(button, select, input, pre, ul):focus-visible {
+  outline: 2px solid var(--histogram-accent);
+  outline-offset: 4px;
+}
+.histogram-segmented {
+  display: flex;
+}
+.histogram-segmented button {
+  flex: 1;
+  padding: 8px 10px;
+}
+.histogram-segmented button[aria-pressed='true'] {
+  background: var(--histogram-accent);
+  color: #fff;
+  border-color: var(--histogram-accent);
+}
+.histogram-range {
+  margin-bottom: 14px;
+}
+.histogram-range label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.histogram-range label span {
+  color: var(--muted, #5d6574);
+  font-variant-numeric: tabular-nums;
+}
+.histogram-range input {
+  width: 100%;
+  display: block;
+  accent-color: var(--histogram-accent);
+  cursor: pointer;
+}
+.histogram-reset {
+  width: 100%;
+  margin-top: 8px;
+}
+.histogram-source {
+  margin-top: 24px;
+  border: 1px solid #303641;
+  background: #191c24;
+  color: #edf0f7;
+  min-width: 0;
+}
+.histogram-source-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #303641;
+  font-size: 13px;
+}
+.histogram-source-toolbar select {
+  background: #191c24;
+  color: #edf0f7;
+  border-color: #505b6c;
+}
+.histogram-source-toolbar button {
+  margin-left: auto;
+  border-color: #505b6c;
+}
+.histogram-source pre {
+  margin: 0;
+  padding: 24px;
+  height: 340px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.75;
+  tab-size: 2;
+}
+.histogram-source code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #bbcafa;
+  white-space: pre;
+}
+.histogram-export {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-top: 20px;
+}
+.histogram-export p {
+  color: var(--muted, #5d6574);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 56ch;
+}
+.histogram-export-buttons {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  .histogram-workbench {
+    grid-template-columns: 1fr;
+  }
+  .histogram-controls {
+    border-left: 0;
+    border-top: 1px solid var(--border, #d9dce1);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+  }
+  .histogram-reset {
+    align-self: end;
+  }
+  .histogram-export {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}
+@media (max-width: 480px) {
+  .histogram-preview {
+    padding: 20px 12px;
+  }
+  .histogram-preview-heading {
+    font-size: 10px;
+  }
+  .histogram-controls {
+    display: block;
+    padding: 20px;
+  }
+  .histogram-source-toolbar {
+    padding: 12px;
+    gap: 8px;
+  }
+  .histogram-source-toolbar label {
+    width: 100%;
+  }
+  .histogram-source pre {
+    padding: 16px;
+    font-size: 12px;
+  }
+  .histogram-export-buttons {
+    flex-wrap: wrap;
+  }
+  .histogram-export-buttons button {
+    flex: 1;
+  }
+}
+
+.histogram-intervals {
+  margin-top: 24px;
+}
+.histogram-intervals-heading {
+  font-size: 12px;
+  color: var(--muted, #5d6574);
+}
+.histogram-intervals ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 20px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  max-height: 180px;
+  overflow: auto;
+}
+.histogram-intervals li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.histogram-intervals li span {
+  color: var(--muted, #5d6574);
+}
+@media (max-width: 480px) {
+  .histogram-intervals ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
+  }
+}
+
+.chart-viewport {
+  width: 100%;
+  min-width: 0;
+}
+.chart-frame:focus-visible {
+  outline: 2px solid var(--chart-focus, var(--blue, #3d79fa));
+  outline-offset: 4px;
+}
+.chart-data {
+  margin-top: 16px;
+  font-size: 12px;
+}
+.chart-data summary {
+  cursor: pointer;
+}
+.chart-data table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+.chart-data th,
+.chart-data td {
+  padding: 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #d9dce1);
+  overflow-wrap: anywhere;
+}
+.chart-data caption {
+  text-align: left;
+  margin-bottom: 8px;
+}

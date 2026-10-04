@@ -15,7 +15,8 @@ import { Effect, Option, Schema } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
-import type { Return as UpdateReturn } from 'foldkit/update';
+import { withOutMessage } from 'foldkit/update';
+import type { Return as UpdateReturn, ReturnWithOutMessage } from 'foldkit/update';
 
 import {
   type Dims,
@@ -115,6 +116,12 @@ export const Message = defineMessageUnion({
 });
 export type Message = typeof Message.Type;
 
+export const OutMessage = defineMessageUnion({
+  InspectedRange: { domain: Schema.Tuple([Schema.Number, Schema.Number]) },
+  ClearedInspection: {},
+});
+export type OutMessage = typeof OutMessage.Type;
+
 // MOUNT
 
 export const CaptureSvgBounds = Mount.define('CaptureSvgBounds', {
@@ -128,7 +135,7 @@ export const CaptureSvgBounds = Mount.define('CaptureSvgBounds', {
 
 // UPDATE
 
-type Return = UpdateReturn<Model, Message>;
+type Return = ReturnWithOutMessage<Model, Message, OutMessage>;
 
 function computePlotX(svgBounds: Option.Option<SvgBounds>, PW: number, clientX: number): number {
   return Option.match(svgBounds, {
@@ -147,9 +154,24 @@ function computeMovePlotX(model: Model, screenX: number): number {
 }
 
 export const update = (model: Model, msg: Message): Return =>
-  Message.match(msg, {
-    HoveredBin: ({ index }) => ({ model: { ...model, activeBin: Option.some(index) } }),
-    BlurredBin: () => ({ model: { ...model, activeBin: Option.none() } }),
+  Message.match<Return>(msg, {
+    HoveredBin: ({ index }) => {
+      const selected = model.bins[index];
+      if (selected === undefined)
+        return withOutMessage<Model, Message, OutMessage>(
+          { model: { ...model, activeBin: Option.none() } },
+          OutMessage.ClearedInspection(),
+        );
+      return withOutMessage<Model, Message, OutMessage>(
+        { model: { ...model, activeBin: Option.some(index) } },
+        OutMessage.InspectedRange({ domain: [selected.x0, selected.x1] }),
+      );
+    },
+    BlurredBin: () =>
+      withOutMessage<Model, Message, OutMessage>(
+        { model: { ...model, activeBin: Option.none() } },
+        OutMessage.ClearedInspection(),
+      ),
     RecordedSvgBounds: ({ clientLeft, renderedPW }) => ({
       model: { ...model, svgBounds: Option.some({ clientLeft, renderedPW }) },
     }),

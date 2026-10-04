@@ -145,7 +145,7 @@ describe('Stateflow Observatory view', () => {
       Scene.expect(Scene.text('Current state: Idle')).toExist(),
     );
   });
-  it('keeps the full Loading/Cancelling guard labels apart in both directions', () => {
+  it('keeps compact Loading/Cancelling route tags apart and retains guard metadata', () => {
     Scene.scene(
       { update, view },
       Scene.given(initModel),
@@ -161,11 +161,7 @@ describe('Stateflow Observatory view', () => {
         );
         expect(connected).toHaveLength(3);
         const labels = connected.map((node) => Option.getOrThrow(Scene.find(node, 'text')));
-        expect(labels.map(Scene.textContent)).toEqual([
-          '1 · unguarded',
-          '2 · when #0',
-          '13 · when #0',
-        ]);
+        expect(labels.map(Scene.textContent)).toEqual(['01', '02', '13']);
         for (const [index, label] of labels.entries()) {
           for (const other of labels.slice(index + 1)) {
             const dx = Math.abs(
@@ -229,6 +225,46 @@ describe('Stateflow Observatory view', () => {
             const width = Scene.textContent(label).length * 7;
             const otherWidth = Scene.textContent(other).length * 7;
             expect(dx >= (width + otherWidth) / 2 + 8 || dy >= 24).toBe(true);
+          }
+        }
+      }),
+    );
+  });
+
+  // Circular offsets would cut into rectangular terminals.
+  it('terminates routes at the state terminal boundary with a clear gap', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initModel),
+      Scene.tap(({ html }) => {
+        const routes = Scene.findAll(html, 'svg g').filter((node) =>
+          Option.getOrElse(Scene.attr(node, 'aria-label'), () => '').includes(' → '),
+        );
+        expect(routes).toHaveLength(14);
+        for (const route of routes) {
+          const label = Option.getOrThrow(Scene.attr(route, 'aria-label'));
+          const stateNames = Option.getOrThrow(
+            Option.fromNullishOr(label.match(/^\d+\. (\w+) → (\w+):/)),
+          );
+          const path = Option.getOrThrow(
+            Scene.attr(Option.getOrThrow(Scene.find(route, 'path')), 'd'),
+          );
+          const coordinates = Option.getOrThrow(
+            Option.fromNullishOr(path.match(/^M([^,]+),([^ ]+) Q.+ ([^, ]+),([^ ]+)$/)),
+          );
+          for (const [name, x, y] of [
+            [stateNames[1], Number(coordinates[1]), Number(coordinates[2])],
+            [stateNames[2], Number(coordinates[3]), Number(coordinates[4])],
+          ] as const) {
+            const node = Option.getOrThrow(Scene.getByLabel(`Select state ${name}`)(html));
+            const transform = Option.getOrThrow(Scene.attr(node, 'transform'));
+            const center = Option.getOrThrow(
+              Option.fromNullishOr(transform.match(/translate\(([^,]+),([^)]+)\)/)),
+            );
+            const dx = Math.abs(x - Number(center[1]));
+            const dy = Math.abs(y - Number(center[2]));
+            // The 112×64 terminal has a four-pixel routing clearance on each side.
+            expect(Math.max(dx / 60, dy / 36)).toBeCloseTo(1, 8);
           }
         }
       }),

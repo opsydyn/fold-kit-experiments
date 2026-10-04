@@ -1,0 +1,49 @@
+---
+import { Code } from 'astro:components';
+import Chart from '../components/Chart.astro';
+import HeroChart from '../components/HeroChart.astro';
+import Layout from '../layouts/Layout.astro';
+import { examples } from '../lib/examples';
+const teaser = "const x = linear({ domain: [0, 10], range: [0, 400] });\nconst path = line(points, { curve: 'catmullRom' });";
+---
+<Layout>
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="hero-copy">
+      <p class="eyebrow">Visualisation primitives for FoldKit</p>
+      <h1 id="hero-heading">Give your<br />data<br />shape.</h1>
+      <p class="hero-description">Pure TypeScript geometry. Expressive SVG.<br class="desktop-break" /> Interaction you control.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="/examples/">Explore examples <span aria-hidden="true">→</span></a>
+        <a class="button button-secondary" href="/docs/#quick-start">Build your first chart</a>
+      </div>
+    </div>
+    <HeroChart />
+  </section>
+  <section class="principles" aria-label="Why Foldkit Viz">
+    <div><h2>Pure geometry</h2><p>Scales, shapes and layouts in pure TypeScript. No D3 dependency.</p></div>
+    <div><h2>Composable primitives</h2><p>Start with a scale. Add a shape. Import only the pieces you need.</p></div>
+    <div><h2>Your state, your rules</h2><p>Bring your own data and state logic. Keep creative control.</p></div>
+  </section>
+  <section class="gallery-section" aria-labelledby="gallery-heading">
+    <div class="section-heading">
+      <h2 id="gallery-heading">A few shapes of possibility.</h2>
+      <a class="text-link" href="/examples/">View all examples <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="gallery-grid">
+      {examples.map((example) => <a class="example-card" href={'/examples/#' + example.id}>
+        <span class="eyebrow">{example.category}</span>
+        <Chart kind={example.id} label={example.title} />
+        <div class="card-caption"><h3>{example.title}</h3><span class="card-arrow" aria-hidden="true">↗</span></div>
+      </a>)}
+    </div>
+    <p class="gallery-note">Real primitives. Illustrative data. Yours to make your own.</p>
+  </section>
+  <section class="quick-start-teaser" aria-labelledby="code-heading">
+    <div>
+      <h2 id="code-heading">From values to visuals.</h2>
+      <p>Start with a scale. Add a shape. Make it yours.</p>
+      <a class="text-link" href="/docs/#quick-start">Read the quick start <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="code-panel"><span class="code-language" aria-hidden="true">ts</span><Code code={teaser} lang="ts" theme="github-dark" /></div>
+  </section>
+</Layout>

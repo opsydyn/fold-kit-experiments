@@ -1,0 +1,63 @@
+---
+import { Code } from 'astro:components';
+import Layout from '../layouts/Layout.astro';
+import { repository, sourceRoot } from '../lib/examples';
+import { quickStart, astroExample } from '../lib/snippets';
+---
+<Layout title="Quick start — Foldkit Viz">
+  <section class="page-intro">
+    <p class="eyebrow">A small beginning</p>
+    <h1>From values to visuals.</h1>
+    <p>Foldkit Viz gives you the geometry. You choose the rendering, styling and interaction.</p>
+  </section>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="On this page">
+      <a href="#installation">Installation</a><a href="#quick-start">Your first chart</a><a href="#primitives">The primitives</a><a href="#composition">Compose a chart</a><a href="#foldkit">Using FoldKit</a>
+    </nav>
+    <article class="docs-content">
+      <section id="installation">
+        <h2>Install the package.</h2>
+        <p>Add Foldkit Viz to your project, then import the modules you need.</p>
+        <div class="code-panel"><Code code="bun add @opsydyn/foldkit-viz" lang="sh" theme="github-dark" /></div>
+        <p>Working in this monorepo? Use <code>workspace:*</code> for the dependency. The geometry functions are pure TypeScript and have no D3 dependency.</p>
+      </section>
+      <section id="quick-start">
+        <h2>A scale. A shape. A chart.</h2>
+        <p>Map values into coordinates with two linear scales, then turn the points into an SVG path.</p>
+        <div class="code-panel"><Code code={quickStart} lang="ts" theme="github-dark" /></div>
+        <p>In Astro, compute the path in frontmatter and render it directly. No browser JavaScript is needed for a static chart.</p>
+        <div class="code-panel"><Code code={astroExample} lang="astro" theme="github-dark" /></div>
+        <a class="text-link" href="/examples/line/">Try the live line example <span aria-hidden="true">→</span></a>
+      </section>
+      <section id="primitives">
+        <h2>Take the pieces you need.</h2>
+        <div class="module-grid">
+          {[
+            ['math/scale', 'Scales', 'Map domains to ranges.'],
+            ['shape/line', 'Lines', 'Choose how points connect.'],
+            ['shape/chord', 'Connections', 'Turn matrices into ribbons.'],
+            ['shape/sankey', 'Flows', 'Lay out sources and destinations.'],
+            ['shape/geo', 'Geography', 'Project features into SVG.'],
+            ['math/bin', 'Distributions', 'Group values into intervals.'],
+          ].map(([module, name, description]) => <a href={sourceRoot + '/' + module + '.ts'}>
+            <h3>{name} <span aria-hidden="true">↗</span></h3><p>{description}</p><code>{module}</code>
+          </a>)}
+        </div>
+        <a class="text-link" href={repository + '/tree/main/packages/foldkit-viz'}>Full module reference <span aria-hidden="true">↗</span></a>
+      </section>
+      <section id="composition">
+        <h2>Compose the chart around your data.</h2>
+        <p><code>chart/cartesian</code> maps your records through accessors into shared geometry. <code>chart/theme</code> supplies semantic light and dark paints and stable series styles. The optional <code>foldkit/cartesian</code> adapter renders frames, axes, marks, annotations, tooltips, legends and data tables through your parent's builder.</p>
+        <p>Choose layer order and replace the tooltip with a renderer receiving the original datum. Build colour mappings from stable series IDs before filtering; use symbols or dash patterns alongside colour. CSS variables and custom CSS colours pass through unchanged, with opacity set separately.</p>
+        <p>These modules are unreleased workspace APIs. Download a live example for a complete independent project containing the compiled modules, shared source and current control settings.</p>
+        <a class="text-link" href="/examples/scatter/">Inspect the composed scatter example <span aria-hidden="true">→</span></a>
+      </section>
+      <section id="foldkit">
+        <h2>Keep your model in charge.</h2>
+        <p>For interactive FoldKit charts, keep selections and chart state in your Model, describe interactions with Messages, and update through the normal loop. The primitives compute geometry; your app owns effects and data loading.</p>
+        <p>The library is tested with FoldKit 0.165.x and Effect 4.0.0. Astro integration and application server rendering belong to the separate <code>@opsydyn/astro-foldkit</code> package.</p>
+        <a class="text-link" href={repository + '/tree/main/apps/web/src/apps/linked-charts'}>See the linked-charts application <span aria-hidden="true">↗</span></a>
+      </section>
+    </article>
+  </div>
+</Layout>

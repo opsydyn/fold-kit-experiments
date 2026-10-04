@@ -1,3 +1,6 @@
+// Pure chart geometry; the optional FoldKit adapter is not re-exported.
+export * from './chart/cartesian';
+export * from './chart/theme';
 // interaction/selection
 export type { Selection, SelectionAxis } from './interaction/selection';
 export {

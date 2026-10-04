@@ -3,7 +3,7 @@ import type { Return } from 'foldkit/update';
 import { changeDomain, changeValue, settingsSource } from './chart';
 import { CopySource, ExportProject } from './command';
 import { Message } from './message';
-import { ActionStatus, sourceFor } from './model';
+import { ActionStatus, Editor, EditorStatus, sourceFor } from './model';
 import type { Model } from './model';
 import { initialSettings } from './settings';
 
@@ -28,8 +28,51 @@ const whenReady = (model: Model, start: () => Return<Model, Message>): Return<Mo
     Failed: start,
   });
 
+const startEditor = (model: Model, revision: number): Model => ({
+  ...model,
+  panel: 'edit',
+  editor: Editor.Session({
+    revision,
+    initialSettings: model.settings,
+    status: EditorStatus.Loading(),
+  }),
+});
+
+const finishEditor = (
+  model: Model,
+  revision: number,
+  status: typeof EditorStatus.Type,
+): Return<Model, Message> =>
+  Editor.match(model.editor, {
+    Idle: () => ({ model }),
+    Session: (session) =>
+      session.revision === revision
+        ? { model: { ...model, editor: Editor.Session({ ...session, status }) } }
+        : { model },
+  });
+
 export const update = (model: Model, message: Message): Return<Model, Message> =>
   Message.match(message, {
+    SelectedPanel: ({ panel }) =>
+      model.templateUrl === null && panel === 'edit'
+        ? { model }
+        : {
+            model:
+              panel === 'edit' && model.editor._tag === 'Idle'
+                ? startEditor(model, 1)
+                : { ...model, panel },
+          },
+    ClickedRestartEditor: () =>
+      Editor.match(model.editor, {
+        Idle: () => ({ model }),
+        Session: (session) =>
+          session.status._tag === 'Loading' || model.templateUrl === null
+            ? { model }
+            : { model: startEditor(model, session.revision + 1) },
+      }),
+    SucceededEditor: ({ revision }) => finishEditor(model, revision, EditorStatus.Ready()),
+    FailedEditor: ({ revision, error }) =>
+      finishEditor(model, revision, EditorStatus.Failed({ error })),
     SelectedCurve: ({ curve }) => ({ model: { ...model, settings: { ...model.settings, curve } } }),
     ChangedPoint: ({ index, value }) => ({
       model: { ...model, settings: changeValue(model.settings, index, value) },

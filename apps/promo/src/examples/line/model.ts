@@ -12,6 +12,16 @@ export const Settings = Schema.Struct({
   values: Schema.Array(Schema.Number),
   yMax: Schema.Number,
 });
+export const Panel = Schema.Literals(['controls', 'edit']);
+export const EditorStatus = defineTaggedUnion({
+  Loading: {},
+  Ready: {},
+  Failed: { error: Schema.String },
+});
+export const Editor = defineTaggedUnion({
+  Idle: {},
+  Session: { revision: Schema.Number, initialSettings: Settings, status: EditorStatus },
+});
 export const Action = Schema.Literals(['copy', 'download', 'playground']);
 export const ActionStatus = defineTaggedUnion({
   Ready: {},
@@ -25,6 +35,8 @@ export const Props = Schema.Struct({
 });
 export const Model = Schema.Struct({
   settings: Settings,
+  panel: Panel,
+  editor: Editor,
   sources: Schema.Array(Source),
   activeFile: SourceName,
   templateUrl: Schema.NullOr(Schema.String),
@@ -39,6 +51,8 @@ export const init = (props: Props): InitReturn => ({
   model: {
     ...Schema.decodeUnknownSync(Props)(props),
     settings: initialSettings,
+    panel: 'controls' as const,
+    editor: Editor.Idle(),
     activeFile: 'settings.ts' as const,
     actionStatus: ActionStatus.Ready(),
   },

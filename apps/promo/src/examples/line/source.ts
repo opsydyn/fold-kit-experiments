@@ -9,6 +9,7 @@ export const SourceName = Schema.Literals([
   'update.ts',
   'view.ts',
   'command.ts',
+  'editor-mount.ts',
   'project.ts',
   'chart.css',
   'source.ts',

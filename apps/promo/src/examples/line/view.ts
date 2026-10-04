@@ -1,9 +1,10 @@
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { chartGeometry } from './chart';
+import { EmbedEditor } from './editor-mount';
 import { Message } from './message';
-import { ActionStatus, SourceName } from './model';
+import { ActionStatus, Editor, EditorStatus, SourceName } from './model';
 import type { Model } from './model';
 import { currentSource } from './update';
 
@@ -53,194 +54,330 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     body: h.div(
       [h.Class('line-playground')],
       [
+        ...(model.templateUrl === null
+          ? []
+          : [
+              h.div(
+                [h.Class('line-tabs'), h.Role('tablist'), h.AriaLabel('Example mode')],
+                (
+                  [
+                    ['controls', 'Controls'],
+                    ['edit', 'Edit live'],
+                  ] as const
+                ).map(([panel, label]) =>
+                  h.button(
+                    [
+                      h.Id('line-tab-' + panel),
+                      h.Type('button'),
+                      h.Role('tab'),
+                      h.AriaSelected(model.panel === panel),
+                      h.AriaControls('line-panel-' + panel),
+                      h.Tabindex(model.panel === panel ? 0 : -1),
+                      h.OnClick(Message.SelectedPanel({ panel })),
+                      h.OnKeyDownFocus((key) => {
+                        const next =
+                          key === 'Home'
+                            ? 'controls'
+                            : key === 'End'
+                              ? 'edit'
+                              : key === 'ArrowLeft' || key === 'ArrowRight'
+                                ? panel === 'edit'
+                                  ? 'controls'
+                                  : 'edit'
+                                : null;
+                        return next === null
+                          ? Option.none()
+                          : Option.some({
+                              focusSelector: '#line-tab-' + next,
+                              message: Message.SelectedPanel({ panel: next }),
+                            });
+                      }),
+                    ],
+                    [label],
+                  ),
+                ),
+              ),
+            ]),
         h.div(
-          [h.Class('line-workbench')],
+          [
+            h.Id('line-panel-controls'),
+            h.Role(model.templateUrl === null ? 'group' : 'tabpanel'),
+            model.templateUrl === null
+              ? h.AriaLabel('Chart controls and source')
+              : h.AriaLabelledBy('line-tab-controls'),
+            h.Hidden(model.panel !== 'controls'),
+          ],
           [
             h.div(
-              [h.Class('line-preview')],
+              [h.Class('line-workbench')],
               [
                 h.div(
-                  [h.Class('line-preview-heading')],
-                  [h.span([], ['LIVE PREVIEW']), h.span([], ['Illustrative data'])],
-                ),
-                h.svg(
+                  [h.Class('line-preview')],
                   [
-                    h.ViewBox('0 0 560 290'),
-                    h.Role('img'),
-                    h.AriaLabel('Line chart with five illustrative point values'),
-                  ],
-                  [
-                    h.title([], ['Line chart']),
-                    h.desc(
-                      [],
-                      [
-                        'Values: ' +
-                          model.settings.values.join(', ') +
-                          '. Y-axis domain: 0 to ' +
-                          model.settings.yMax +
-                          '.',
-                      ],
+                    h.div(
+                      [h.Class('line-preview-heading')],
+                      [h.span([], ['LIVE PREVIEW']), h.span([], ['Illustrative data'])],
                     ),
-                    ...geometry.yTicks.map(({ value, y }) =>
-                      h.g(
-                        [],
-                        [
-                          h.line(
-                            [
-                              h.X1('48'),
-                              h.X2('528'),
-                              h.Y1(String(y)),
-                              h.Y2(String(y)),
-                              h.Class('line-grid'),
-                            ],
+                    h.svg(
+                      [
+                        h.ViewBox('0 0 560 290'),
+                        h.Role('img'),
+                        h.AriaLabel('Line chart with five illustrative point values'),
+                      ],
+                      [
+                        h.title([], ['Line chart']),
+                        h.desc(
+                          [],
+                          [
+                            'Values: ' +
+                              model.settings.values.join(', ') +
+                              '. Y-axis domain: 0 to ' +
+                              model.settings.yMax +
+                              '.',
+                          ],
+                        ),
+                        ...geometry.yTicks.map(({ value, y }) =>
+                          h.g(
                             [],
+                            [
+                              h.line(
+                                [
+                                  h.X1('48'),
+                                  h.X2('528'),
+                                  h.Y1(String(y)),
+                                  h.Y2(String(y)),
+                                  h.Class('line-grid'),
+                                ],
+                                [],
+                              ),
+                              h.text(
+                                [
+                                  h.X('36'),
+                                  h.Y(String(y + 4)),
+                                  h.TextAnchor('end'),
+                                  h.Class('line-axis-label'),
+                                ],
+                                [String(value)],
+                              ),
+                            ],
                           ),
+                        ),
+                        ...geometry.xTicks.map(({ value, x }) =>
                           h.text(
                             [
-                              h.X('36'),
-                              h.Y(String(y + 4)),
-                              h.TextAnchor('end'),
+                              h.X(String(x)),
+                              h.Y('276'),
+                              h.TextAnchor('middle'),
                               h.Class('line-axis-label'),
                             ],
                             [String(value)],
                           ),
-                        ],
-                      ),
-                    ),
-                    ...geometry.xTicks.map(({ value, x }) =>
-                      h.text(
-                        [
-                          h.X(String(x)),
-                          h.Y('276'),
-                          h.TextAnchor('middle'),
-                          h.Class('line-axis-label'),
-                        ],
-                        [String(value)],
-                      ),
-                    ),
-                    h.path(
-                      [
-                        h.Class('line-trace'),
-                        h.D(geometry.path),
-                        h.Fill('none'),
-                        h.StrokeWidth('3'),
-                        h.StrokeLinecap('round'),
-                        h.StrokeLinejoin('round'),
+                        ),
+                        h.path(
+                          [
+                            h.Class('line-trace'),
+                            h.D(geometry.path),
+                            h.Fill('none'),
+                            h.StrokeWidth('3'),
+                            h.StrokeLinecap('round'),
+                            h.StrokeLinejoin('round'),
+                          ],
+                          [],
+                        ),
+                        ...geometry.points.map(([x, y], index) =>
+                          h.circle(
+                            [h.Cx(String(x)), h.Cy(String(y)), h.R('5'), h.Class('line-point')],
+                            [
+                              h.title(
+                                [],
+                                ['Point ' + (index + 1) + ': ' + model.settings.values[index]],
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
-                      [],
                     ),
-                    ...geometry.points.map(([x, y], index) =>
-                      h.circle(
-                        [h.Cx(String(x)), h.Cy(String(y)), h.R('5'), h.Class('line-point')],
+                    h.p(
+                      [h.Class('line-preview-caption')],
+                      [
+                        'Change a point or the domain. The scales recompute coordinates; the curve connects them.',
+                      ],
+                    ),
+                  ],
+                ),
+                h.div(
+                  [h.Class('line-controls')],
+                  [
+                    h.fieldset(
+                      [],
+                      [
+                        h.legend([], ['Interpolation']),
+                        h.div(
+                          [h.Class('line-segmented')],
+                          (
+                            [
+                              ['catmullRom', 'Smooth'],
+                              ['linear', 'Linear'],
+                              ['step', 'Step'],
+                            ] as const
+                          ).map(([curve, label]) =>
+                            h.button(
+                              [
+                                h.Type('button'),
+                                h.AriaPressed(String(model.settings.curve === curve)),
+                                h.OnClick(Message.SelectedCurve({ curve })),
+                              ],
+                              [label],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    h.fieldset(
+                      [],
+                      [
+                        h.legend([], ['Point values']),
+                        ...model.settings.values.map((value, index) =>
+                          range(
+                            'line-point-' + index,
+                            'Point ' + (index + 1),
+                            value,
+                            '0',
+                            '100',
+                            '1',
+                            (raw) => Message.ChangedPoint({ index, value: raw }),
+                          ),
+                        ),
+                      ],
+                    ),
+                    range(
+                      'line-domain',
+                      'Y-axis maximum',
+                      model.settings.yMax,
+                      '100',
+                      '200',
+                      '10',
+                      (value) => Message.ChangedDomain({ value }),
+                    ),
+                    h.button(
+                      [h.Class('line-reset'), h.Type('button'), h.OnClick(Message.ClickedReset())],
+                      ['Reset example'],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            h.div(
+              [h.Class('line-source')],
+              [
+                h.div(
+                  [h.Class('line-source-toolbar')],
+                  [
+                    h.label([h.For('line-source-file')], ['Source file']),
+                    h.select(
+                      [
+                        h.Id('line-source-file'),
+                        h.Value(model.activeFile),
+                        h.OnChange((value) =>
+                          Message.SelectedFile({
+                            name: Schema.decodeUnknownSync(SourceName)(value),
+                          }),
+                        ),
+                      ],
+                      model.sources.map(({ name }) => h.option([h.Value(name)], [name])),
+                    ),
+                    h.button(
+                      [h.Type('button'), h.Disabled(pending), h.OnClick(Message.ClickedCopy())],
+                      ['Copy file'],
+                    ),
+                  ],
+                ),
+                h.pre(
+                  [h.Tabindex(0), h.AriaLabel(model.activeFile + ' source code')],
+                  [h.code([], [currentSource(model)])],
+                ),
+              ],
+            ),
+          ],
+        ),
+        ...(model.templateUrl === null
+          ? []
+          : [
+              h.div(
+                [
+                  h.Id('line-panel-edit'),
+                  h.Role('tabpanel'),
+                  h.AriaLabelledBy('line-tab-edit'),
+                  h.Hidden(model.panel !== 'edit'),
+                ],
+                [
+                  h.div(
+                    [h.Class('line-editor-heading')],
+                    [
+                      h.div(
+                        [],
                         [
-                          h.title(
+                          h.h2([], ['Change the code. See the chart.']),
+                          h.p(
                             [],
-                            ['Point ' + (index + 1) + ': ' + model.settings.values[index]],
+                            [
+                              'Edit settings.ts, chart.ts or view.ts. The preview updates as you edit.',
+                            ],
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                h.p(
-                  [h.Class('line-preview-caption')],
-                  [
-                    'Change a point or the domain. The scales recompute coordinates; the curve connects them.',
-                  ],
-                ),
-              ],
-            ),
-            h.div(
-              [h.Class('line-controls')],
-              [
-                h.fieldset(
-                  [],
-                  [
-                    h.legend([], ['Interpolation']),
-                    h.div(
-                      [h.Class('line-segmented')],
-                      (
+                      h.button(
                         [
-                          ['catmullRom', 'Smooth'],
-                          ['linear', 'Linear'],
-                          ['step', 'Step'],
-                        ] as const
-                      ).map(([curve, label]) =>
-                        h.button(
-                          [
-                            h.Type('button'),
-                            h.AriaPressed(String(model.settings.curve === curve)),
-                            h.OnClick(Message.SelectedCurve({ curve })),
-                          ],
-                          [label],
-                        ),
+                          h.Type('button'),
+                          h.Disabled(
+                            model.editor._tag === 'Idle' || model.editor.status._tag === 'Loading',
+                          ),
+                          h.OnClick(Message.ClickedRestartEditor()),
+                        ],
+                        ['Restart from controls'],
                       ),
-                    ),
-                  ],
-                ),
-                h.fieldset(
-                  [],
-                  [
-                    h.legend([], ['Point values']),
-                    ...model.settings.values.map((value, index) =>
-                      range(
-                        'line-point-' + index,
-                        'Point ' + (index + 1),
-                        value,
-                        '0',
-                        '100',
-                        '1',
-                        (raw) => Message.ChangedPoint({ index, value: raw }),
+                    ],
+                  ),
+                  h.p(
+                    [h.Class('line-editor-note')],
+                    [
+                      'Edits stay in this editor when switching tabs. Restart replaces them with the current control settings. Use StackBlitz to save or download your code edits; the buttons below export the control settings.',
+                    ],
+                  ),
+                  ...Editor.match(model.editor, {
+                    Idle: () => [],
+                    Session: (session) => [
+                      h.p(
+                        [h.Role('status'), h.AriaLive('polite'), h.Class('line-editor-status')],
+                        [
+                          EditorStatus.match(session.status, {
+                            Loading: () => 'Loading the editor… The first start may take a minute.',
+                            Ready: () =>
+                              'Editor connected. The preview starts after dependencies install.',
+                            Failed: ({ error }) => error,
+                          }),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-                range(
-                  'line-domain',
-                  'Y-axis maximum',
-                  model.settings.yMax,
-                  '100',
-                  '200',
-                  '10',
-                  (value) => Message.ChangedDomain({ value }),
-                ),
-                h.button(
-                  [h.Class('line-reset'), h.Type('button'), h.OnClick(Message.ClickedReset())],
-                  ['Reset example'],
-                ),
-              ],
-            ),
-          ],
-        ),
-        h.div(
-          [h.Class('line-source')],
-          [
-            h.div(
-              [h.Class('line-source-toolbar')],
-              [
-                h.label([h.For('line-source-file')], ['Source file']),
-                h.select(
-                  [
-                    h.Id('line-source-file'),
-                    h.Value(model.activeFile),
-                    h.OnChange((value) =>
-                      Message.SelectedFile({ name: Schema.decodeUnknownSync(SourceName)(value) }),
-                    ),
-                  ],
-                  model.sources.map(({ name }) => h.option([h.Value(name)], [name])),
-                ),
-                h.button(
-                  [h.Type('button'), h.Disabled(pending), h.OnClick(Message.ClickedCopy())],
-                  ['Copy file'],
-                ),
-              ],
-            ),
-            h.pre(
-              [h.Tabindex(0), h.AriaLabel(model.activeFile + ' source code')],
-              [h.code([], [currentSource(model)])],
-            ),
-          ],
-        ),
+                      h.div(
+                        [
+                          h.Key('line-editor-' + session.revision),
+                          h.Class('line-editor-host'),
+                          h.Hidden(session.status._tag === 'Failed'),
+                          h.OnMount(
+                            EmbedEditor({
+                              initialSettings: session.initialSettings,
+                              revision: session.revision,
+                              templateUrl: model.templateUrl ?? '',
+                            }),
+                          ),
+                        ],
+                        [],
+                      ),
+                    ],
+                  }),
+                ],
+              ),
+            ]),
         h.div(
           [h.Class('line-export')],
           [

@@ -16,6 +16,12 @@ export default defineConfig({
     ],
   },
   trailingSlash: 'always',
-  server: { port: 4322 },
+  server: {
+    port: 4322,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
+    },
+  },
   devToolbar: { enabled: false },
 });

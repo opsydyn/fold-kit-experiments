@@ -107,13 +107,22 @@ export default defineConfig({
   },
   overrides: [
     {
+      // Third-party DOM resources follow Mount's documented acquireRelease pattern.
+      // Acquire and cleanup must run in the lifecycle Effect, rather than in the view.
+      files: ['apps/promo/src/examples/line/editor-mount.ts'],
+      rules: { 'linteffect/no-call-tower': 'off', 'linteffect/warn-effect-sync-wrapper': 'off' },
+    },
+    {
       // Temporary exported modules are executed and cleaned up at the test I/O boundary.
       files: ['apps/promo/test/{live-line,line-project,example-template}.test.ts'],
       rules: { 'linteffect/no-try-catch': 'off' },
     },
     {
       // Native download and playground branches live inside a declared Command.
-      files: ['apps/promo/src/examples/{line,histogram,scatter}/command.ts'],
+      files: [
+        'apps/promo/src/examples/{line,histogram,scatter}/command.ts',
+        'apps/promo/src/examples/line/editor-mount.ts',
+      ],
       rules: { 'linteffect/no-if-statement': 'off', 'linteffect/no-magic-domain-string': 'off' },
     },
     {

@@ -78,3 +78,13 @@ FoldKit application files so it runs independently of the monorepo.
 `/examples/scatter/` maps 24 illustrative points through two linear scales. Compare Group A and Group B, widen either domain from 100 to 200, and inspect points by hover, focus, tap or the labelled selector. Filtering out the inspected point clears the selection.
 
 The source viewer, downloaded Vite project and StackBlitz project preserve the current group, domains and inspected point. Geometry uses the existing `foldkit-viz/math/scale` primitive; the model and messages own all interaction state. The standalone export includes the compiled scale module.
+
+## Edit live
+
+The line example has Controls and Edit live tabs. The editor loads on first selection, captures the current controls, and runs the same standalone Vite project in an embedded StackBlitz editor. Tab switches keep its session alive. Arrow keys, Home and End navigate the tabs.
+
+Code edits belong to the editor session. Restart from controls replaces those edits with a fresh copy of the current control settings. Use StackBlitz's project actions to keep code edits; the promo's Copy file, Download project and Open in StackBlitz actions use the control settings. Standalone exports hide the embedding controls to avoid recursive editors.
+
+The embed is a FoldKit Mount resource: the runtime owns the host, the SDK owns only its children, and unmounting clears the iframe. Failed connections provide a retry and the existing external StackBlitz action. StackBlitz and package installation require network access and a browser supported by WebContainers.
+
+Static hosting must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless`. Astro dev and preview send these through `server.headers`. The build includes `public/_headers` for platforms supporting that convention; on other hosts, configure the equivalent response headers explicitly. The embed delegates isolation to the StackBlitz origin, including its initial POST navigation.

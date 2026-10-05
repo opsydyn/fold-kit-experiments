@@ -180,3 +180,72 @@ test('baseline reference does not disguise a viewport with no drawable current m
   expect(plot(markup, 'latency')).toContain('class="signal-baseline-reference"');
   expect(panel(markup)).toContain('No current inspection');
 });
+
+const capCount = (markup: string): number =>
+  (markup.match(/<line\b[^>]*>/g) ?? []).filter((line) => {
+    const coordinate = (name: string) => Number(line.match(new RegExp(`${name}="([^"]+)"`))?.[1]);
+    return coordinate('y1') === coordinate('y2') && coordinate('x2') - coordinate('x1') === 8;
+  }).length;
+for (const equal of [false, true])
+  test(`singleton ${equal ? 'equal' : 'unequal'} interval has one rendering owner before and after capture`, async () => {
+    const record = qualityProps.data.find((d) => d.id === 'signal-035');
+    assert(record, 'Expected fixture record');
+    const data = [
+      {
+        ...record,
+        latency: Reading.Estimated({
+          value: 100,
+          bounds: {
+            lower: equal ? 100 : 92,
+            upper: equal ? 100 : 108,
+            label: 'supplied',
+            support: 0,
+          },
+          method: 'provided',
+        }),
+      },
+    ];
+    const initial = init({ ...qualityProps, data }).model;
+    assert(initial._tag === 'Ready', 'Expected Ready');
+    const unselected = plot(await render(initial), 'latency');
+    expect(unselected).toContain('signal-interval-mark');
+    expect(capCount(unselected)).toBe(equal ? 1 : 2);
+    const selected: ReadyModel = { ...initial, inspection: { _tag: 'Following', key: record.id } };
+    const captured = update(selected, Message.ClickedCaptureBaseline()).model;
+    for (const model of [selected, captured]) {
+      const latency = plot(await render(model), 'latency');
+      expect(latency.match(/class="signal-comparison-error-bar"/g)).toHaveLength(1);
+      expect(latency).not.toContain('signal-interval-mark');
+      expect(capCount(latency)).toBe(equal ? 1 : 2);
+      expect(latency).toContain('stroke-dasharray="' + (model === selected ? '7 4' : '3 3') + '"');
+    }
+  });
+
+test('all-equal band retains only unselected fallback marks', async () => {
+  const data = qualityProps.data
+    .filter((d) => d.id === 'signal-034' || d.id === 'signal-035')
+    .map((d) => ({
+      ...d,
+      latency: Reading.Estimated({
+        value: 100,
+        bounds: { lower: 100, upper: 100, label: 'equal', support: 0 },
+        method: 'provided',
+      }),
+    }));
+  const initial = init({ ...qualityProps, data }).model;
+  assert(initial._tag === 'Ready', 'Expected Ready');
+  const selected: ReadyModel = { ...initial, inspection: { _tag: 'Following', key: 'signal-035' } };
+  const latency = plot(await render(selected), 'latency');
+  expect(latency).toContain('Supplied interval for signal-034');
+  expect(latency).not.toContain('Supplied interval for signal-035');
+  expect(capCount(latency)).toBe(2);
+  const captured = update(selected, Message.ClickedCaptureBaseline()).model;
+  assert(captured._tag === 'Ready', 'Expected Ready');
+  const compared = plot(
+    await render({ ...captured, inspection: { _tag: 'Following', key: 'signal-034' } }),
+    'latency',
+  );
+  expect(compared).not.toContain('signal-interval-mark');
+  expect(compared.match(/class="signal-comparison-error-bar"/g)).toHaveLength(2);
+  expect(capCount(compared)).toBe(2);
+});

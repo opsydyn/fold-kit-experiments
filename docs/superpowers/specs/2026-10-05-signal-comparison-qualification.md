@@ -16,7 +16,7 @@ Task commits: `2915d08` geometry; `273a871` capture state; `7438bd0` derivation.
 
 Each task observed RED before implementation and GREEN afterwards. Geometry: 6 tests; packed consumers: 5 tests. Baseline state plus existing input/state regressions: 20 tests. Derivation plus geometry/state/input: 24 tests.
 
-Final Signal checks: 53 passing tests, 456 assertions across 10 files. Root `bun run check` and `bun typecheck` exited zero. Sequential `bun run test`: **520 pass, 1 skip, 0 fail** (Astro 74, Viz 211, promo 117, web 118). Pages-base production build generated 10 routes; Pages regression passed with 290 assertions. These prove host contracts and production output, not native device or assistive-technology acceptance.
+Initial final Signal checks: 53 passing tests, 456 assertions across 10 files. Root `bun run check` and `bun typecheck` exited zero. Sequential `bun run test`: **520 pass, 1 skip, 0 fail** before the review fix (Astro 74, Viz 211, promo 117, web 118). Pages-base production build generated 10 routes; Pages regression passed with 290 assertions. These prove host contracts and production output, not native device or assistive-technology acceptance.
 
 Session logs: `/tmp/comparison-all-signal.log`, `/tmp/comparison-task4-check.log`, `/tmp/comparison-task4-types.log`, `/tmp/comparison-task4-tests.log`, `/tmp/comparison-pages-build.log`, `/tmp/comparison-pages-test.log`. Logs are local session evidence, not committed dependencies. Review server restarted from apps/promo at `http://127.0.0.1:4321` after production qualification.
 
@@ -43,7 +43,20 @@ Held-pointer capture/clear, native Escape/lost capture, hardware touch/outside-p
 
 ## Independent review
 
-Pending the single fresh whole-feature review required by the execution plan. Material findings will be reproduced and fixed RED→GREEN before final completion; deferred polish and rulings will be recorded here.
+One fresh read-only reviewer inspected 7b5db30..e30413e. Critical: none. Important: selected singleton/equal intervals were rendered by both the legacy fallback and the new comparison layer, obscuring dash cues. Minor: none.
+
+Three full-composition regressions failed first: singleton unequal, singleton equal and wholly equal-band rendering. Selected intervals now belong to the comparison layer; unselected fallback marks and bands remain, and coincident fallback caps draw once. All three then passed; the complete comparison view file passed 10 tests/89 assertions. After the fix: root check/typecheck pass; sequential workspace tests **523 pass, 1 skip, 0 fail** (promo now 120). All Signal tests: **56 pass, 482 assertions**. Pages-base build still generates 10 routes; its regression passes 290 assertions. Logs: `/tmp/comparison-review-{check,types,tests,signals,pages-build,pages-test}.log`. Native observations above predate this composition fix; no native verification of the fix is claimed.
+
+Reviewer boundaries and executor rulings:
+
+- Earlier branch work stands outside the approved range because it was reviewed previously. Cost if wrong: unrelated historical changes are not requalified.
+- Off-screen pan, responsive/light layouts, table/source and screenshot acceptance remain open. Cost: those actual presentation paths are unqualified.
+- Held-pointer/Escape/lost capture, hardware touch/scrolling, assistive technology and comprehension remain open. Cost: host contracts cannot establish actual operability or announcements.
+- Late MovedChartPointer may continue Following inspection after cancellation: gesture rollback and rejection of late commits are required; ordinary hover inspection remains independent of captured evidence. Cost if wrong: a late move may change the current inspected record, while baseline and committed view remain intact.
+- Missing/Invalid captured latency has no overview time marker because that marker is gated on numeric baseline reference. The design permits the marker; exact captured time/text remains available. Cost: no overview locator for nonnumeric captured latency.
+- Publication/deployment and critical-system suitability are outside this authorised local slice. Cost: local qualification establishes neither a deployed release nor operational certification.
+
+No deferred minors. The three named pure-file lint exceptions and reading-content identity ruling above stand.
 
 ## Remaining scope
 

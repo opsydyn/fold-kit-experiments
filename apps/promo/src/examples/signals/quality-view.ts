@@ -38,6 +38,7 @@ export const qualityLayers = (
   role: ChartRole,
   chart: ReturnType<typeof deriveSignalChart>,
   h: HtmlBuilder<Message>,
+  selectedIntervalKeys: ReadonlySet<string>,
 ): ReadonlyArray<Html> => {
   const { plot } = chart.geometry.layout,
     layout = chart.geometry.layout;
@@ -68,7 +69,9 @@ export const qualityLayers = (
       );
     const equal = band.points.every((p) => p.lowerY === p.upperY);
     if (band.points.length === 1 || equal) {
-      for (const p of band.points)
+      for (const p of band.points) {
+        // Selected intervals are owned by the comparison layer; bands remain intact.
+        if (selectedIntervalKeys.has(p.key)) continue;
         layers.push(
           h.g(
             [h.Class('signal-interval-mark'), h.AriaLabel(`Supplied interval for ${p.key}`)],
@@ -83,7 +86,7 @@ export const qualityLayers = (
                 ],
                 [],
               ),
-              ...[p.lowerY, p.upperY].map((y) =>
+              ...[...new Set([p.lowerY, p.upperY])].map((y) =>
                 h.line(
                   [
                     h.X1(String(p.x - 4)),
@@ -98,6 +101,7 @@ export const qualityLayers = (
             ],
           ),
         );
+      }
     }
     for (const side of ['lowerY', 'upperY'] as const) {
       const path = line(band.points.map((p) => [p.x, p[side]] as const));

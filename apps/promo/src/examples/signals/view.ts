@@ -6,6 +6,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { exampleTheme } from '#example/frame';
 
+import { deriveComparisonChart } from './comparison';
 import { comparisonPanel, comparisonLayers, baselineReferenceList } from './comparison-view';
 import { currentSignalSource, deriveSignalChart, inspectionNotice, utc } from './derive';
 import { ObserveSignalInput } from './input';
@@ -128,7 +129,13 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
               ),
             ],
           ),
-          ...qualityLayers(m, role, chart, h),
+          ...qualityLayers(
+            m,
+            role,
+            chart,
+            h,
+            new Set(deriveComparisonChart(m, role, layout).errorBars.map(({ mark }) => mark.key)),
+          ),
           h.g(
             [h.Attribute('clip-path', `url(#signal-quality-clip-${role})`)],
             [

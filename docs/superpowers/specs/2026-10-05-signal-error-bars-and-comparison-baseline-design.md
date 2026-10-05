@@ -1,6 +1,6 @@
 # Signal error bars and comparison baseline — approved design
 
-Date: 2026-10-05. Source baseline: `3dec58a`, branch `codex/foldkit-0-166-0`, managed promo worktree. Status: written design approved by the user on 2026-10-05; implementation completed locally with [qualification evidence](2026-10-05-signal-comparison-qualification.md). Native acceptance remains partial; independent review is pending.
+Date: 2026-10-05. Source baseline: `3dec58a`, branch `codex/foldkit-0-166-0`, managed promo worktree. Status: written design approved by the user on 2026-10-05; implementation completed locally with [qualification evidence](2026-10-05-signal-comparison-qualification.md). Native acceptance remains partial; one independent review identified a composition defect, reproduced and fixed with regressions.
 
 ## Intent and success
 

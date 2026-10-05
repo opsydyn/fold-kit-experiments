@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import DatasetExplorer from '../../examples/datasets/app';
+import DatasetLauncher from '../../examples/datasets/launcher/app';
 import { datasetSources } from '../../lib/dataset-sources';
 ---
 <Layout title="Live dataset explorer — Foldkit Viz">
@@ -11,7 +12,8 @@ import { datasetSources } from '../../lib/dataset-sources';
     <p>Switch stations. Refresh without losing the chart. Watch a late response arrive — and leave the newer snapshot untouched.</p>
     <p class="small-note">Illustrative observations fetched from static JSON. Latency and failed refreshes are simulated in the client. Uses FoldKit’s experimental Query API.</p>
   </section>
-  <div class="dataset-download"><a class="button button-secondary" href="/downloads/dataset-explorer.zip" download="foldkit-viz-dataset-explorer.zip">Download standalone project ↓</a><p class="small-note">All three datasets, native FoldKit source and a Vite starter. Run with npm or Bun.</p></div>
+  <DatasetLauncher client:load noMeta templateUrl="/downloads/dataset-template.json" />
+  <noscript><p><a href="/downloads/dataset-explorer.zip" download>Download standalone project ↓</a></p></noscript>
   <section class="live-example" aria-label="Interactive dataset explorer">
     <DatasetExplorer client:load noMeta transport="fixtures" sources={datasetSources} />
     <noscript><p>This example needs JavaScript. <a href="/docs/#foldkit">Explore the FoldKit architecture</a>.</p></noscript>
@@ -23,7 +25,6 @@ import { datasetSources } from '../../lib/dataset-sources';
   </section>
 </Layout>
 <style>
-  .dataset-download { display: grid; justify-items: start; gap: 12px; margin: 24px 0 36px; }
   .live-example { min-width: 0; }
   .live-example astro-island[ssr]::before { content: 'Preparing the dataset explorer…'; display: block; padding: 48px; border: 1px solid var(--border); color: var(--muted); }
 </style>

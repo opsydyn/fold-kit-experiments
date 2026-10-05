@@ -135,6 +135,7 @@ export default defineConfig({
       // Native download and playground branches live inside a declared Command.
       files: [
         'apps/promo/src/examples/{line,histogram,scatter}/command.ts',
+        'apps/promo/src/examples/datasets/launcher/command.ts',
         'apps/promo/src/examples/line/editor-mount.ts',
       ],
       rules: { 'linteffect/no-if-statement': 'off', 'linteffect/no-magic-domain-string': 'off' },
@@ -177,6 +178,7 @@ export default defineConfig({
         'packages/foldkit-viz/test/**',
         'packages/astro-foldkit/test/**',
         'apps/promo/src/examples/{line,histogram,scatter}/{chart,data,project,view}.ts',
+        'apps/promo/src/examples/datasets/launcher/view.ts',
         'apps/promo/test/**',
       ],
       rules: {

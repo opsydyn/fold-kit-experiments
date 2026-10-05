@@ -35,6 +35,7 @@ export function datasetProject(
         private: true,
         type: 'module',
         scripts: {
+          start: 'vite --host 0.0.0.0',
           dev: 'vite --host 127.0.0.1',
           build: 'vite build',
           preview: 'vite preview --host 127.0.0.1',
@@ -46,6 +47,7 @@ export function datasetProject(
           effect: '4.0.0',
         },
         devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.26.1' },
+        stackblitz: { installDependencies: true, startCommand: 'npm start' },
       },
       null,
       2,

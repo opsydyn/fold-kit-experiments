@@ -2,6 +2,7 @@ import { lineGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
 
 import type { ReadyModel, ChartRole } from './model';
+import { readingValue } from './quality';
 export const deriveSignalChart = (model: ReadyModel, role: ChartRole) => {
   const domain = role === 'overview' ? model.bounds : model.viewport;
   const frame = {
@@ -10,8 +11,8 @@ export const deriveSignalChart = (model: ReadyModel, role: ChartRole) => {
     margins: { top: 24, right: 20, bottom: 36, left: 56 },
   };
   const value = (d: ReadyModel['records'][number]) =>
-    role === 'errors' ? d.errorPercent : d.latencyMs;
-  const maximum = Math.max(...model.records.map(value));
+    readingValue(role === 'errors' ? d.errors : d.latency) ?? NaN;
+  const maximum = Math.max(0, ...model.records.map(value).filter(Number.isFinite));
   const upper = maximum > 0 ? maximum * 1.1 : 1;
   const visible = model.records.filter((d) => d.time >= domain[0] && d.time <= domain[1]);
   const geometry = lineGeometry(

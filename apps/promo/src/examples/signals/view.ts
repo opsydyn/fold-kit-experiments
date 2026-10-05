@@ -17,6 +17,7 @@ import { ObserveSignalInput } from './input';
 import { Message } from './message';
 import { Model } from './model';
 import type { ReadyModel, ChartRole } from './model';
+import { readingText } from './quality';
 const labels = { overview: 'Latency overview', latency: 'Latency detail', errors: 'Error detail' };
 const Key = Schema.Literals(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape']);
 const theme = { ...exampleTheme, labelSize: 11 };
@@ -118,7 +119,7 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
             points: geometry.points.length === 1 ? geometry.points : point,
             styleFor: () => style,
             labelFor: (d) =>
-              `${d.id}, ${utc(d.time)}, ${d.latencyMs} ms, ${String(d.errorPercent)}%`,
+              `${d.id}, ${utc(d.time)}, ${readingText(d.latency)} ms, ${readingText(d.errors)}%`,
             activeKey: m.inspection.key,
           }),
           cursor,
@@ -276,14 +277,14 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
                 [],
                 [
                   h.dt([], ['Latency (ms)']),
-                  h.dd([], [inspected ? String(inspected.latencyMs) : '—']),
+                  h.dd([], [inspected ? readingText(inspected.latency) : '—']),
                 ],
               ),
               h.div(
                 [],
                 [
                   h.dt([], ['Errors (%)']),
-                  h.dd([], [inspected ? String(inspected.errorPercent) : '—']),
+                  h.dd([], [inspected ? readingText(inspected.errors) : '—']),
                 ],
               ),
             ],
@@ -335,8 +336,8 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
                         [
                           h.th([h.Scope('row')], [d.id]),
                           h.td([], [utc(d.time)]),
-                          h.td([], [String(d.latencyMs)]),
-                          h.td([], [String(d.errorPercent)]),
+                          h.td([], [readingText(d.latency)]),
+                          h.td([], [readingText(d.errors)]),
                           h.td(
                             [],
                             [

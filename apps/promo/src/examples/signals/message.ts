@@ -4,6 +4,8 @@ import { defineMessageUnion } from 'foldkit/message';
 import { ChartRole } from './model';
 const pointer = { role: ChartRole, pointerId: Schema.Number, x: Schema.Number, y: Schema.Number };
 export const Message = defineMessageUnion({
+  ClickedFreshnessScenario: { scenario: Schema.Literals(['Fresh', 'Stale']) },
+  ChangedSignalDataset: { props: Schema.Unknown },
   RecordedChartWidth: { role: ChartRole, width: Schema.Number },
   RecordedInputAvailability: { role: ChartRole, status: Schema.Literals(['Ready', 'Unavailable']) },
   RecordedPointerPosition: pointer,
@@ -25,3 +27,7 @@ export const Message = defineMessageUnion({
   },
 });
 export type Message = typeof Message.Type;
+
+export type ChangedSignalDataset = Omit<typeof Message.ChangedSignalDataset.Type, 'props'> & {
+  readonly props: import('./quality').Props;
+};

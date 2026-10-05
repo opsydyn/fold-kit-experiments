@@ -4,8 +4,9 @@ import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 
 import { signalData } from '../src/examples/signals/data';
-import { init, Inspection, type Model } from '../src/examples/signals/model';
+import { Inspection, type Model } from '../src/examples/signals/model';
 import { view } from '../src/examples/signals/view';
+import { init } from './signal-test-fixtures';
 const render = async (model: Model) =>
   (
     await Effect.runPromise(

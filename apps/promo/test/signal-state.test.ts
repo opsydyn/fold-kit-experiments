@@ -6,8 +6,9 @@ import {
   currentSignalSource,
 } from '../src/examples/signals/derive';
 import { Message } from '../src/examples/signals/message';
-import { init, type ReadyModel } from '../src/examples/signals/model';
+import { type ReadyModel } from '../src/examples/signals/model';
 import { update } from '../src/examples/signals/update';
+import { init } from './signal-test-fixtures';
 export const t0 = 1700000000000;
 export const records = Array.from({ length: 5 }, (_, i) => ({
   id: `sample-${i}`,

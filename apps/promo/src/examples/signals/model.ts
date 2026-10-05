@@ -2,10 +2,10 @@ import { Option, Schema } from 'effect';
 import { defineTaggedUnion } from 'foldkit/schema';
 import type { Return } from 'foldkit/update';
 
-import { Sample } from './data';
+import { Props, SignalRecord, SourceSnapshot, SignalThreshold, validSignalProps } from './quality';
+export { Props } from './quality';
+export type { Props as SignalProps } from './quality';
 import type { Message } from './message';
-export const Props = Schema.Struct({ data: Schema.Array(Sample) });
-export type Props = typeof Props.Type;
 export const ChartRole = Schema.Literals(['overview', 'latency', 'errors']);
 export type ChartRole = typeof ChartRole.Type;
 const Domain = Schema.Tuple([Schema.Number, Schema.Number]);
@@ -30,10 +30,14 @@ const active = {
 export const Gesture = defineTaggedUnion({ Idle: {}, Brushing: active, Panning: active });
 const Status = Schema.Literals(['Ready', 'Unavailable']);
 export const Model = defineTaggedUnion({
-  Empty: { records: Schema.Array(Sample) },
+  Empty: { records: Schema.Array(SignalRecord) },
   Invalid: { error: Schema.String },
   Ready: {
-    records: Schema.Array(Sample),
+    records: Schema.Array(SignalRecord),
+    snapshot: SourceSnapshot,
+    maxGapMs: Schema.Number,
+    thresholds: Schema.Array(SignalThreshold),
+    scenarioAsOf: Schema.Struct({ Fresh: Schema.Number, Stale: Schema.Number }),
     bounds: Domain,
     viewport: Domain,
     selection: Selection,
@@ -52,28 +56,16 @@ export type ReadyModel = Extract<Model, { _tag: 'Ready' }>;
 export const init = (props: Props): Return<Model, Message> =>
   Option.match(Schema.decodeUnknownOption(Props)(props), {
     onNone: () => ({ model: Model.Invalid({ error: 'Provide a valid observation array.' }) }),
-    onSome: ({ data }) => {
+    onSome: (props) => {
+      const { data } = props;
+      if (!validSignalProps(props))
+        return {
+          model: Model.Invalid({
+            error:
+              'Provide unique IDs/times, valid quality readings, intervals, source metadata and references.',
+          }),
+        };
       if (data.length === 0) return { model: Model.Empty({ records: [] }) };
-      const seen = new Set<string>();
-      for (const d of data) {
-        if (
-          d.id.length === 0 ||
-          seen.has(d.id) ||
-          ![d.time, d.latencyMs, d.errorPercent].every(Number.isFinite) ||
-          Math.abs(d.time) > 8.64e15 ||
-          d.latencyMs < 0 ||
-          d.errorPercent < 0 ||
-          d.errorPercent > 100 ||
-          !Number.isFinite(d.latencyMs * 1.1)
-        )
-          return {
-            model: Model.Invalid({
-              error:
-                'Provide unique IDs, usable UTC timestamps, non-negative latency and errors between 0 and 100%.',
-            }),
-          };
-        seen.add(d.id);
-      }
       const records = [...data].sort(
         (a, b) => a.time - b.time || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
       );
@@ -96,6 +88,10 @@ export const init = (props: Props): Return<Model, Message> =>
       return {
         model: Model.Ready({
           records,
+          snapshot: props.snapshot,
+          maxGapMs: props.maxGapMs,
+          thresholds: props.thresholds,
+          scenarioAsOf: props.scenarioAsOf,
           bounds,
           viewport: bounds,
           selection: Selection.None(),

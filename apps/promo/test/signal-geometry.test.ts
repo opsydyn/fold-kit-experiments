@@ -2,7 +2,8 @@ import { expect, test } from 'bun:test';
 
 import { signalData } from '../src/examples/signals/data';
 import { deriveSignalChart } from '../src/examples/signals/derive';
-import { init } from '../src/examples/signals/model';
+import { init } from './signal-test-fixtures';
+
 test('same records share X but retain labelled full-data Y domains through zoom', () => {
   const m = init({ data: signalData }).model;
   if (m._tag !== 'Ready') throw new Error('Expected Ready');

@@ -4,8 +4,9 @@ import type { Return } from 'foldkit/update';
 
 import { deriveSignalChart, nearestVisible, visibleRecords } from './derive';
 import { Message } from './message';
-import { Model, Gesture, Inspection } from './model';
+import { Model, Gesture, Inspection, init } from './model';
 import type { ReadyModel, ChartRole } from './model';
+import type { Props } from './quality';
 const cancel = (m: ReadyModel): ReadyModel =>
   Gesture.match(m.gesture, {
     Idle: () => m,
@@ -110,6 +111,11 @@ const zoom = (m: ReadyModel, factor: number): ReadyModel => {
 };
 const readyUpdate = (m: ReadyModel, message: Message): ReadyModel =>
   Message.match(message, {
+    ClickedFreshnessScenario: ({ scenario }) => ({
+      ...m,
+      snapshot: { ...m.snapshot, asOf: m.scenarioAsOf[scenario] },
+    }),
+    ChangedSignalDataset: () => m,
     RecordedChartWidth: ({ role, width }) => {
       if (!Number.isFinite(width) || width <= 76)
         return { ...cancel(m), inputStatus: { ...m.inputStatus, [role]: 'Unavailable' } };
@@ -209,10 +215,17 @@ const readyUpdate = (m: ReadyModel, message: Message): ReadyModel =>
       };
     },
   });
-export const update = (model: Model, message: Message): Return<Model, Message> => ({
-  model: Model.match(model, {
-    Empty: () => model,
-    Invalid: () => model,
-    Ready: (m) => readyUpdate(m, message),
-  }),
-});
+export const update = (model: Model, message: Message): Return<Model, Message> => {
+  if (message._tag === 'ChangedSignalDataset') {
+    // SAFETY: init schema-decodes and validates the payload before accessing any fields.
+    const props = message.props as Props;
+    return init(props);
+  }
+  return {
+    model: Model.match(model, {
+      Empty: () => model,
+      Invalid: () => model,
+      Ready: (m) => readyUpdate(m, message),
+    }),
+  };
+};

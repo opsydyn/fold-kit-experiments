@@ -115,6 +115,7 @@ export default defineConfig({
       ],
       rules: {
         'linteffect/no-effect-wrapper-alias': 'off',
+        'linteffect/no-magic-domain-string': 'off',
         'linteffect/no-call-tower': 'off',
         'linteffect/no-return-in-arrow': 'off',
         'linteffect/warn-effect-sync-wrapper': 'off',
@@ -234,6 +235,19 @@ export default defineConfig({
         'linteffect/no-if-statement': 'off',
         'linteffect/no-magic-domain-string': 'off',
         'linteffect/no-ternary': 'off',
+      },
+    },
+    {
+      // DOM listener callbacks execute at this Mount resource boundary, not in Model/update.
+      files: ['apps/promo/src/examples/signals/input.ts'],
+      rules: {
+        'linteffect/no-magic-domain-string': 'off',
+        'linteffect/no-call-tower': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/no-run-effect-outside-boundary': 'off',
+        'linteffect/no-if-statement': 'off',
+        'linteffect/no-ternary': 'off',
+        'linteffect/no-naked-object-state-update': 'off',
       },
     },
     {

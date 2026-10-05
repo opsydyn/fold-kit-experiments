@@ -518,3 +518,7 @@ Invalid input throws `RangeError`; singular/unrepresentable coordinate inversion
 return `null`. Inspection returns an original record, uses lexicographic key ties,
 and validates every unique non-empty key and finite X value. These helpers do not
 install event listeners, retain application state, or require Foldkit/Effect.
+
+`chartFrame` also accepts an optional typed `onMount` action on its SVG. Use a
+caller-defined Foldkit Mount stream to acquire scoped pointer/resize facts; the
+adapter owns no input state. Existing frames without this option render unchanged.

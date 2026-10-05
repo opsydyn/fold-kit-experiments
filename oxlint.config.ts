@@ -186,6 +186,7 @@ export default defineConfig({
         'packages/astro-foldkit/test/**',
         'apps/promo/src/examples/{line,histogram,scatter,bars,wordcloud}/{chart,data,project,view}.ts',
         'apps/promo/src/examples/datasets/launcher/view.ts',
+        'apps/promo/src/examples/signals/{data,derive,view}.ts',
         'apps/promo/test/**',
       ],
       rules: {

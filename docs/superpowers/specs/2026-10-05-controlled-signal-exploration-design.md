@@ -87,7 +87,7 @@ All three modules gain root exports, `exports`/`typesVersions` subpaths, build e
 
 A caller-supplied record is `{ id: string, time: number, latencyMs: number, errorPercent: number }`. The fixture has 120 distinct observations at one-second intervals with deterministic excursions. Every chart and table uses these same records. Display time in UTC, latency in ms and errors in percent. IDs, source data and units do not come from package math.
 
-The app validates unique non-empty IDs, finite values and usable time extent at initialization. Negative latency and percent outside 0–100 are invalid for this example's declared fixture contract; the generic geometry helpers retain caller-controlled signed domains. Empty, one-record and invalid-data props produce a visible fallback/table rather than fabricated zero data. A one-record extent gets explicit ±500ms display padding; initial two-minute fixture bounds follow the actual first/last sample.
+The app validates unique non-empty IDs, finite values and usable time extent at initialization. Negative latency and percent outside 0–100 are invalid for this example's declared fixture contract; the generic geometry helpers retain caller-controlled signed domains. Empty, one-record and invalid-data props produce a visible fallback/table rather than fabricated zero data. A one-record extent gets explicit ±500ms display padding. Multi-record extents shorter than 1,000ms receive symmetric display padding to that minimum span, retaining exact record timestamps; initial two-minute fixture bounds follow the actual first/last sample.
 
 Parent Model fields:
 
@@ -102,7 +102,7 @@ Chart roles are `overview`, `latency` and `errors`. Pure derivation creates per-
 
 ## Input runtime boundary
 
-The example input module uses Mount.defineStream on each actual SVG. Its scope owns listeners and ResizeObserver; acquisition/release must remove every listener and disconnect the observer on unmount. It reads a fresh screen matrix for each input and sends only plain local coordinates, numeric width and past-tense Messages. No SVG element, DOMMatrix or PointerEvent enters the application Model.
+The example input module uses Mount.defineStream on each actual SVG. Add a typed optional `onMount` argument to the existing chartFrame adapter so this acquisition does not require duplicating its SVG renderer. Its scope owns listeners and ResizeObserver; acquisition/release must remove every listener and disconnect the observer on unmount. It reads a fresh screen matrix for each input and sends only plain local coordinates, numeric width and past-tense Messages. No SVG element, DOMMatrix or PointerEvent enters the application Model.
 
 Use scoped pointer capture for an active pointer through runtime Effects; lost capture/pointer cancellation emits a cancellation fact. If native capture cannot be expressed cleanly through the current Mount API, a scoped window listener is acceptable, with active pointer identity entirely in the Model and matching cleanup tests. Do not introduce an external interaction state store. Suppress native plot-touch scrolling only for the owned gesture surface with declared touch-action; scrolling elsewhere remains available.
 

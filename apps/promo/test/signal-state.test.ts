@@ -153,3 +153,25 @@ test('range constraints and keyboard cancellation retain valid state', () => {
   expect(deriveSignalChart(empty, 'latency').visible).toHaveLength(0);
   expect(inspectionNotice(empty)).toContain('No observation');
 });
+
+test('release inspection follows overview bounds and the resulting detail viewport', () => {
+  const data = Array.from({ length: 120 }, (_, i) => ({
+    id: `record-${i}`,
+    time: t0 + i * 1000,
+    latencyMs: 80,
+    errorPercent: 0,
+  }));
+  let m = send(
+    send(ready(data), Message.ChangedRangeStart({ index: 20 })),
+    Message.ChangedRangeEnd({ index: 60 }),
+  );
+  const tap = point(m, 'overview', t0 + 42000);
+  m = send(send(m, Message.StartedChartPointer(tap)), Message.EndedChartPointer(tap));
+  expect(m.inspection.key).toBe('record-42');
+  expect(m.viewport).toEqual([t0 + 20000, t0 + 60000]);
+  const start = point(m, 'latency', t0 + 40000);
+  const end = point(m, 'latency', t0 + 50000);
+  m = send(send(m, Message.StartedChartPointer(start)), Message.EndedChartPointer(end));
+  expect(m.viewport).toEqual([t0 + 10000, t0 + 50000]);
+  expect(m.inspection.key).toBe('record-40');
+});

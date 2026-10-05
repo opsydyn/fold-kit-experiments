@@ -162,7 +162,7 @@ const readyUpdate = (m: ReadyModel, message: Message): ReadyModel =>
           });
       }
       return settleInspection(
-        inspect({ ...moved, gesture: Gesture.Idle() }, timeAt(m, p.role, p.x, g.startViewport)),
+        inspect({ ...moved, gesture: Gesture.Idle() }, timeAt(moved, p.role, p.x)),
       );
     },
     CancelledChartPointer: ({ role, pointerId }) =>

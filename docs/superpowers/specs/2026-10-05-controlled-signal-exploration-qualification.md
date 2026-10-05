@@ -17,7 +17,7 @@ The Signal desk composes an overview, latency/errors detail charts, native contr
 - Real Foldkit render tests: labelled SVGs, gesture surfaces, raw records/units, source, notices, no fabricated outside-view cursor and fractional caller precision.
 - Instrumented browser-boundary tests: fresh affine matrices, null/singular/hidden recovery, capture failures, cancellation facts, scoped listeners/observer teardown, no post-close messages, release on unmount. These are host tests, not hardware/browser touch evidence.
 - External packed consumers: Bun, Node, strict TypeScript, typed optional frame Mount; pure consumers do not install Foldkit/Effect.
-- Required root lint/format and typecheck passed with zero warnings/errors; the full suite passed 467 tests with one environment-gated Pages test skipped.
+- Required root lint/format and typecheck passed with zero warnings/errors; the full suite passed 469 tests with one environment-gated Pages test skipped.
 - Pages-base build `/fold-kit-experiments/`: ten routes, including `examples/signals/index.html`; artifact links/islands resolve within the base. Publication is unperformed.
 
 ## Direct browser observations
@@ -38,8 +38,12 @@ Native touch delivery is **unperformed**: this browser reports `Input.dispatchTo
 
 Rectangle/key brushes, resize handles, pinch/wheel zoom, measured HTML tooltip placement, general multi-series registry, quality/uncertainty and downsampling remain outside this slice. No complete F1–F3 or visx parity claim is made. Representative-user comprehension and critical-system suitability are untested.
 
-Independent whole-change review: pending at the first explorer commit; final result and any material regression fixes are recorded below before completion.
+Independent whole-change review completed against `332d08d..306be71`: no Critical findings; release inspection used the wrong domain after overview zoom/detail pan. A matrix-validation finding was regraded Important because valid structural public consumers could throw and inherited invalid fields bypassed validation. Both were reproduced with failing regressions and corrected in one pass; no findings are deferred. The reviewer independently passed 24 focused tests (476 assertions).
+
+Release inspection now uses the resulting model and the role's displayed domain. Native verification after correction: with range records 20–60, overview tap at record 42 inspected `signal-042`; a detail pan from time 40 to the former time-50 position produced viewport 10–50 and inspected `signal-040` beneath release. Matrix validation checks the six declared fields regardless of additional properties or accessor enumerability.
+
+Execution rulings: gesture surface markup followed the scoped input implementation in the view task, delaying native touch assessment until rendering; the input stream declares only its six emitted fact schemas, with no behaviour change; illustrative errors use integer tenths before division to avoid incidental floating-point artefacts, while caller values remain unquantised. Native touch remains unperformed; excluded handles, pinch/wheel, interpolation and async telemetry remain outside M1.
 
 ## Final verification
 
-Root `bun run check` and `bun typecheck`: pass, zero errors/warnings. Root `bun run test`: 467 pass, one environment-gated skip, zero failures. Breakdown: Astro integration 74, Viz 197, promo 78, web 118. Pages-base build: ten pages; explicit `PROMO_BASE_PATH=/fold-kit-experiments/ bun test apps/promo/test/pages-build.test.ts`: one pass, 290 assertions. Native touch remains unperformed as stated above.
+Root `bun run check` and `bun typecheck`: pass, zero errors/warnings. Root `bun run test`: 469 pass, one environment-gated skip, zero failures. Breakdown: Astro integration 74, Viz 198, promo 79, web 118. Pages-base build: ten pages; explicit `PROMO_BASE_PATH=/fold-kit-experiments/ bun test apps/promo/test/pages-build.test.ts`: one pass, 290 assertions. Native touch remains unperformed as stated above.

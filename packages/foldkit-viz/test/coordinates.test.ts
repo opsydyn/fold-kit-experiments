@@ -41,3 +41,29 @@ test('round trips independently composed nested transforms', () => {
     expect(Math.abs((result?.y ?? Infinity) - y)).toBeLessThan(1e-10 * Math.max(1, Math.abs(y)));
   }
 });
+
+test('validates declared matrix fields regardless of additional properties or accessors', () => {
+  const identity = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, label: 'identity' };
+  expect(clientToLocal({ x: 2, y: 3 }, identity)).toEqual({ x: 2, y: 3 });
+  class AccessorMatrix {
+    get a() {
+      return NaN;
+    }
+    get b() {
+      return 0;
+    }
+    get c() {
+      return 0;
+    }
+    get d() {
+      return 1;
+    }
+    get e() {
+      return 0;
+    }
+    get f() {
+      return 0;
+    }
+  }
+  expect(() => clientToLocal({ x: 2, y: 3 }, new AccessorMatrix())).toThrow(RangeError);
+});

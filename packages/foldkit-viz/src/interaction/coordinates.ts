@@ -12,7 +12,11 @@ export type AffineMatrix = Readonly<{
 
 /** Convert client coordinates using the actual SVG-local → client affine matrix. */
 export function clientToLocal(point: ChartPoint, matrix: AffineMatrix): ChartPoint | null {
-  if (![point.x, point.y, ...Object.values(matrix)].every(Number.isFinite))
+  if (
+    ![point.x, point.y, matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f].every(
+      Number.isFinite,
+    )
+  )
     throw new RangeError('Coordinates and matrix fields must be finite');
   const determinant = matrix.a * matrix.d - matrix.b * matrix.c;
   if (determinant === 0 || !Number.isFinite(determinant)) return null;

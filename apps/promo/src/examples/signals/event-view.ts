@@ -74,7 +74,7 @@ export function eventPanel(
     const position = eventPosition(model, event);
     const observation = model.records.find((record) => record.time === event.time);
     return h.article(
-      [h.Class('signal-event-selected')],
+      [h.Key('selected-event'), h.Class('signal-event-selected')],
       [
         h.h3([], ['Selected event']),
         h.p([h.Class('signal-event-identity')], [`${event.id} / ${utc(event.time)}`]),
@@ -110,7 +110,7 @@ export function eventPanel(
         h.p(
           [h.Class('signal-reading-detail')],
           [
-            'Dash-dot guide = exact selected event time. Temporal proximity is context, not proof of causation.',
+            'Selected-event guide = exact selected event time. Temporal proximity is context, not proof of causation.',
           ],
         ),
         h.div(
@@ -133,7 +133,7 @@ export function eventPanel(
   return h.section(
     [h.Class('signal-events')],
     [
-      h.h2([], ['Events']),
+      h.h2([h.Key('heading')], ['Events']),
       ...EventFeed.match(model.events, {
         NotSupplied: () => [h.p([h.Class('signal-reading-detail')], ['No event feed supplied'])],
         Invalid: ({ error }) => [
@@ -142,17 +142,18 @@ export function eventPanel(
         ],
         Ready: ({ records, snapshot }) => [
           h.p(
-            [h.Class('signal-event-count')],
+            [h.Key('count'), h.Class('signal-event-count')],
             [
               `${groups.reduce((count, group) => count + group.members.length, 0)} in view / ${records.length} recorded`,
             ],
           ),
           h.p(
-            [h.Class('signal-reading-detail')],
+            [h.Key('viewport'), h.Class('signal-reading-detail')],
             [`View: ${utc(model.viewport[0])} → ${utc(model.viewport[1])}`],
           ),
           h.svg(
             [
+              h.Key('lane'),
               h.Class('signal-event-lane'),
               h.ViewBox(`0 0 ${layout.frame.width} 52`),
               h.Width(String(layout.frame.width)),
@@ -225,24 +226,25 @@ export function eventPanel(
             ],
           ),
           ...(records.length === 0
-            ? [h.p([], ['No events recorded'])]
+            ? [h.p([h.Key('empty-range')], ['No events recorded'])]
             : groups.length === 0
-              ? [h.p([], ['No events in this time range'])]
+              ? [h.p([h.Key('empty-range')], ['No events in this time range'])]
               : []),
           h.p(
-            [h.Class('signal-reading-detail')],
+            [h.Key('bundle-legend'), h.Class('signal-reading-detail')],
             [
               'Overlapping squares = nearby events bundled for display. Each exact record remains individually selectable below.',
             ],
           ),
           h.p(
-            [h.Class('signal-reading-detail')],
+            [h.Key('source'), h.Class('signal-reading-detail')],
             [
               `Event source: ${sourceFreshness(snapshot)} · ${snapshot.revision} · as of ${utc(snapshot.asOf)} · updated ${utc(snapshot.updatedAt)} · stale after ${snapshot.staleAfterMs} ms`,
             ],
           ),
           h.p(
             [
+              h.Key('announcement'),
               h.Class('signal-event-announcement'),
               h.AriaLive('polite'),
               h.Attribute('aria-atomic', 'true'),
@@ -255,7 +257,7 @@ export function eventPanel(
           ),
           ...(selected ? [detail(selected)] : []),
           h.details(
-            [h.Class('signal-event-browser')],
+            [h.Key('browser'), h.Class('signal-event-browser')],
             [
               h.summary([], [`Browse events (${records.length})`]),
               h.ul(

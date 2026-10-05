@@ -193,3 +193,28 @@ test('existing signal composition retains quality, baseline evidence and complet
     markup.indexOf('class="signal-plot signal-plot-latency"'),
   );
 });
+
+test('event announcement and open browser retain DOM identity across conditional content', () => {
+  const result = Bun.spawnSync([process.execPath, 'test/fixtures/signal-event-dom.mjs'], {
+    cwd: new URL('../', import.meta.url).pathname,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  expect(result.stderr.toString()).toBe('');
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout.toString().trim()).toBe('Event DOM identity preserved');
+});
+test('selected-event legend describes exact time independently of caller dash style', async () => {
+  const base = ready();
+  assert(base.events._tag === 'Ready');
+  const record = base.events.records.find((event) => event.id === 'event-note');
+  assert(record);
+  const events = normaliseEventFeed({
+    records: [{ ...record, style: { dashPattern: 'none' } }],
+    snapshot: base.events.snapshot,
+  });
+  const markup = await render(step({ ...base, events }, Message.ClickedEvent({ key: record.id })));
+  expect(markup).toContain('stroke-dasharray="none"');
+  expect(panel(markup)).toContain('Selected-event guide = exact selected event time');
+  expect(panel(markup)).not.toContain('Dash-dot guide');
+});

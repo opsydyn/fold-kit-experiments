@@ -120,7 +120,10 @@ export default defineConfig({
     {
       // Third-party DOM resources follow Mount's documented acquireRelease pattern.
       // Acquire and cleanup must run in the lifecycle Effect, rather than in the view.
-      files: ['apps/promo/src/examples/line/editor-mount.ts'],
+      files: [
+        'apps/promo/src/examples/line/editor-mount.ts',
+        'apps/promo/src/examples/datasets/launcher/editor-mount.ts',
+      ],
       rules: { 'linteffect/no-call-tower': 'off', 'linteffect/warn-effect-sync-wrapper': 'off' },
     },
     {
@@ -136,6 +139,7 @@ export default defineConfig({
       files: [
         'apps/promo/src/examples/{line,histogram,scatter}/command.ts',
         'apps/promo/src/examples/datasets/launcher/command.ts',
+        'apps/promo/src/examples/datasets/launcher/editor-mount.ts',
         'apps/promo/src/examples/line/editor-mount.ts',
       ],
       rules: { 'linteffect/no-if-statement': 'off', 'linteffect/no-magic-domain-string': 'off' },

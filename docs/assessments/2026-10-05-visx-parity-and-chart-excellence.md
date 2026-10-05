@@ -216,4 +216,4 @@ P2 now includes exported, packed-consumer-qualified error-bar segment geometry f
 
 ## Event-lane design follow-up — 2026-10-05
 
-A [proposed written design](../superpowers/specs/2026-10-05-signal-event-lane-design.md) addresses only the event-lane portion of P4: an optional caller feed with independent provenance, exact event selection, aligned guides and retained raw event evidence. It reuses existing geometry and keeps events outside measured values/domains. This is design status, not implementation, replay or native acceptance. Next: written-spec review and a concrete implementation plan.
+A [approved written design](../superpowers/specs/2026-10-05-signal-event-lane-design.md) addresses only the event-lane portion of P4: an optional caller feed with independent provenance, exact event selection, aligned guides and retained raw event evidence. It reuses existing geometry and keeps events outside measured values/domains. This is design status, not implementation, replay or native acceptance. The [concrete implementation plan](../superpowers/plans/2026-10-05-signal-event-lane.md) is awaiting review. Next: approve the plan for native execution.

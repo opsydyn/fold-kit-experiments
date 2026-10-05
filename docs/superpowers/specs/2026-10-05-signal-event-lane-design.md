@@ -1,6 +1,6 @@
-# Signal event annotations and shared lane — proposed design
+# Signal event annotations and shared lane — approved design
 
-Date: 2026-10-05. Current source baseline: `2357948`, branch `codex/foldkit-0-166-0`, existing managed promo worktree. Status: the user authorised design work; this written spec is proposed for review. Product implementation and an implementation plan have not started.
+Date: 2026-10-05. Current source baseline: `2357948`, branch `codex/foldkit-0-166-0`, existing managed promo worktree. Status: the user approved this written spec on 2026-10-05. The [implementation plan](../plans/2026-10-05-signal-event-lane.md) is awaiting review; product implementation has not started.
 
 ## Intent and success
 

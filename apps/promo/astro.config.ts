@@ -3,6 +3,8 @@ import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   output: 'static',
+  site: process.env.PROMO_SITE_URL ?? 'https://opsydyn.github.io',
+  base: process.env.PROMO_BASE_PATH ?? '/',
   integrations: [foldkit()],
   // Astro 7 creates a separate prerender environment; keep FoldKit bundled there too.
   vite: {

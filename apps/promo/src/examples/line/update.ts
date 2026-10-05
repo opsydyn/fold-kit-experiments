@@ -56,7 +56,7 @@ const finishEditor = (
 export const update = (model: Model, message: Message): Return<Model, Message> =>
   Message.match(message, {
     SelectedPanel: ({ panel }) =>
-      model.templateUrl === null && panel === 'edit'
+      (model.templateUrl === null || !model.embeddedEditor) && panel === 'edit'
         ? { model }
         : {
             model:

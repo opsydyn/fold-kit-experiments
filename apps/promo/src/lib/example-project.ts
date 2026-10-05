@@ -2,11 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import vizPackage from '../../../../packages/foldkit-viz/package.json' with { type: 'json' };
+import { datasetProject } from './dataset-project';
+
 export type SourceFile = Readonly<{ name: string; content: string }>;
 
 export async function buildExampleTemplate(
   sources: ReadonlyArray<SourceFile>,
-  example: 'line' | 'histogram' | 'scatter',
+  example: 'line' | 'histogram' | 'scatter' | 'datasets',
 ): Promise<Record<string, string>> {
   const libraryRoot = dirname(
     dirname(fileURLToPath(import.meta.resolve('@opsydyn/foldkit-viz/math/scale'))),
@@ -20,6 +23,7 @@ export async function buildExampleTemplate(
     'foldkit/cartesian',
     ...{
       line: ['math/scale', 'shape/line', 'shape/path'],
+      datasets: ['math/scale', 'shape/line', 'shape/path'],
       histogram: ['math/scale', 'math/bin'],
       scatter: ['math/scale'],
     }[example],
@@ -46,7 +50,7 @@ export async function buildExampleTemplate(
   files['vendor/foldkit-viz/package.json'] = JSON.stringify(
     {
       name: '@opsydyn/foldkit-viz',
-      version: '0.9.0',
+      version: vizPackage.version,
       type: 'module',
       license: 'MIT',
       exports: Object.fromEntries(
@@ -76,12 +80,12 @@ export async function buildExampleTemplate(
       },
       dependencies: {
         '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
-        foldkit: '0.165.0',
+        foldkit: '0.166.0',
         effect: '4.0.0',
         fflate: '0.8.3',
         '@stackblitz/sdk': '1.11.0',
       },
-      devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.26.0' },
+      devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.26.1' },
       stackblitz: { installDependencies: true, startCommand: 'npm start' },
     },
     null,
@@ -128,5 +132,6 @@ export async function buildExampleTemplate(
     '# Foldkit Viz live ' +
     example +
     '\n\nRequires Node.js 22.12 or newer (or Bun).\n\n```sh\nnpm install\nnpm run dev\n```\n\nEdit `src/settings.ts` for initial values or `src/chart.ts` for geometry. `src/view.ts` renders the chart and controls. Settings are captured from the promo page at export time. Change data/accessors in `src/chart.ts` and `src/data.ts` (where present), brand paints and keyed styles in `src/chart.ts`, surface tokens in `src/shared/frame.ts`, ordered layers and custom tooltips/annotations in `src/view.ts`. The Model owns measured width, controls and inspection; the scoped observer in `src/shared/measurement.ts` reports facts through Messages. Use the data table for complete raw values; numeric axes use concise caller-supplied formatting. Palette assignment is stable over an explicit domain and cycles deterministically.\n\nThe same maintained sources power the promo island. The geometry, semantic themes and optional FoldKit layers plus their compiled dependencies are included under `vendor/` so this project does not depend on an unpublished package version.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
+  if (example === 'datasets') return datasetProject(files, sources);
   return files;
 }

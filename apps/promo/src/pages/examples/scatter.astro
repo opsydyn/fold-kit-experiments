@@ -1,23 +1,24 @@
 ---
+import { sitePath } from '../../lib/site-path';
 import Layout from '../../layouts/Layout.astro';
 import LiveScatter from '../../examples/scatter/app';
 import { scatterSources } from '../../lib/scatter-sources';
 ---
 <Layout title="Live scatter example — Foldkit Viz">
   <section class="page-intro">
-    <a class="text-link" href="/examples/">← All examples</a>
+    <a class="text-link" href={sitePath('/examples/')}>← All examples</a>
     <p class="eyebrow">LEARN BY CHANGING</p>
     <h1>A different perspective on the same points.</h1>
     <p>Two groups. Twenty-four observations. Change the scale domains, compare groups and inspect the values behind each point.</p>
   </section>
   <section class="live-example" aria-label="Interactive scatter example">
-    <LiveScatter client:load noMeta sources={scatterSources} templateUrl="/downloads/scatter-template.json" />
-    <noscript><p>This example needs JavaScript for its controls. <a href="/docs/#quick-start">Read the static quick start</a> or <a href="/examples/#relationships">see the static scatter plot</a>.</p></noscript>
+    <LiveScatter client:load noMeta sources={scatterSources} templateUrl={sitePath('/downloads/scatter-template.json')} />
+    <noscript><p>This example needs JavaScript for its controls. <a href={sitePath('/docs/#quick-start')}>Read the static quick start</a> or <a href={sitePath('/examples/#relationships')}>see the static scatter plot</a>.</p></noscript>
   </section>
   <section class="closing-callout">
     <h2>Values become positions.</h2>
     <p>Two linear scales map X and Y values into SVG coordinates. FoldKit keeps the domains, group filter and inspected point in the Model, so the preview, source and exported project agree.</p>
-    <a class="text-link" href="/docs/#foldkit">Explore the architecture →</a>
+    <a class="text-link" href={sitePath('/docs/#foldkit')}>Explore the architecture →</a>
   </section>
 </Layout>
 <style>

@@ -486,7 +486,7 @@ element.addEventListener(
 | Package   | Version               |
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
-| `foldkit` | `≥ 0.165.0 < 0.166.0` |
+| `foldkit` | `≥ 0.165.0 < 0.167.0` |
 
 ## Stateflow Observatory example
 

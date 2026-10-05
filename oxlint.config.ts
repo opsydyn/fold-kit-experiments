@@ -109,7 +109,10 @@ export default defineConfig({
     {
       // ResizeObserver registration and release are the shared Mount stream's native I/O boundary.
       // Nested callback/acquireRelease is the documented Effect callback bridge, not domain logic.
-      files: ['apps/promo/src/examples/shared/measurement.ts'],
+      files: [
+        'apps/promo/src/examples/shared/measurement.ts',
+        'packages/dataset-explorer/src/measurement.ts',
+      ],
       rules: {
         'linteffect/no-effect-wrapper-alias': 'off',
         'linteffect/no-call-tower': 'off',
@@ -120,7 +123,10 @@ export default defineConfig({
     {
       // Third-party DOM resources follow Mount's documented acquireRelease pattern.
       // Acquire and cleanup must run in the lifecycle Effect, rather than in the view.
-      files: ['apps/promo/src/examples/line/editor-mount.ts'],
+      files: [
+        'apps/promo/src/examples/line/editor-mount.ts',
+        'apps/promo/src/examples/datasets/launcher/editor-mount.ts',
+      ],
       rules: { 'linteffect/no-call-tower': 'off', 'linteffect/warn-effect-sync-wrapper': 'off' },
     },
     {
@@ -135,6 +141,8 @@ export default defineConfig({
       // Native download and playground branches live inside a declared Command.
       files: [
         'apps/promo/src/examples/{line,histogram,scatter}/command.ts',
+        'apps/promo/src/examples/datasets/launcher/command.ts',
+        'apps/promo/src/examples/datasets/launcher/editor-mount.ts',
         'apps/promo/src/examples/line/editor-mount.ts',
       ],
       rules: { 'linteffect/no-if-statement': 'off', 'linteffect/no-magic-domain-string': 'off' },
@@ -168,6 +176,7 @@ export default defineConfig({
       // own Effect state transitions, so Effect-only control-flow heuristics do not apply.
       files: [
         'apps/web/src/ui/**',
+        'packages/dataset-explorer/src/{data,chart,frame,view,source,source-view}.ts',
         'apps/web/src/apps/**/view.ts',
         'apps/web/src/apps/**/*.test.ts',
         'apps/web/src/stories/**',
@@ -176,6 +185,7 @@ export default defineConfig({
         'packages/foldkit-viz/test/**',
         'packages/astro-foldkit/test/**',
         'apps/promo/src/examples/{line,histogram,scatter}/{chart,data,project,view}.ts',
+        'apps/promo/src/examples/datasets/launcher/view.ts',
         'apps/promo/test/**',
       ],
       rules: {
@@ -198,8 +208,10 @@ export default defineConfig({
       files: [
         'apps/web/src/pages/api/**',
         'packages/astro-foldkit/src/server-render.ts',
-        'apps/promo/src/lib/{line,example}-project.ts',
+        'apps/promo/src/lib/{line,example,dataset}-project.ts',
         'apps/promo/src/pages/downloads/**',
+        'apps/promo/src/pages/datasets/**',
+        'apps/promo/src/lib/dataset-sources.ts',
       ],
       rules: {
         'linteffect/no-naked-object-state-update': 'off',
@@ -211,6 +223,7 @@ export default defineConfig({
       // handlers, so their ordinary data branching remains readable and intentional.
       files: [
         'apps/web/src/apps/**/model.ts',
+        'packages/dataset-explorer/src/model.ts',
         'apps/promo/src/examples/**/model.ts',
         'apps/web/src/apps/request-diagnostics/navigation.ts',
         'apps/web/src/apps/counter/types.ts',

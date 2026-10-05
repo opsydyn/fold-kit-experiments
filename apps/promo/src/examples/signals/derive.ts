@@ -11,12 +11,19 @@ export const deriveSignalChart = (model: ReadyModel, role: ChartRole) => {
   };
   const value = (d: ReadyModel['records'][number]) =>
     role === 'errors' ? d.errorPercent : d.latencyMs;
-  const upper = Math.max(1, ...model.records.map(value)) * 1.1;
+  const maximum = Math.max(...model.records.map(value));
+  const upper = maximum > 0 ? maximum * 1.1 : 1;
   const visible = model.records.filter((d) => d.time >= domain[0] && d.time <= domain[1]);
   const geometry = lineGeometry(
     visible,
     { datumKey: (d) => d.id, seriesKey: () => role, x: (d) => d.time, y: value },
-    { frame, xDomain: domain, yDomain: [0, upper], xTickCount: 4, yTickCount: 4 },
+    {
+      frame,
+      xDomain: domain,
+      yDomain: [0, upper],
+      xTickCount: frame.width < 420 ? 2 : 4,
+      yTickCount: 4,
+    },
   );
   const inspected = model.records.find((d) => d.id === model.inspection.key) ?? null;
   return { frame, geometry, visible, inspected };

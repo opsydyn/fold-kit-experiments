@@ -1110,3 +1110,224 @@ nav a[aria-current='page'] {
   margin-bottom: 12px;
   color: var(--muted);
 }
+
+/* Signal desk: measured plot space, crisp rules and exact-value typography. */
+.signal-context {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.signal-desk {
+  margin: 0 auto 5rem;
+  max-width: 1120px;
+  border-top: 3px solid var(--text);
+}
+.signal-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 1rem 0;
+  font:
+    600 0.7rem/1.5 ui-monospace,
+    monospace;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--rule);
+}
+.signal-plot {
+  padding: 1.1rem 0 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.signal-plot-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+.signal-plot-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: -0.025em;
+}
+.signal-plot-heading span,
+.signal-input-status {
+  font:
+    0.7rem/1.5 ui-monospace,
+    monospace;
+  color: var(--muted);
+}
+.signal-desk .chart-frame {
+  border-radius: 0;
+}
+.signal-desk .chart-frame:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.signal-input-status {
+  margin: 0.4rem 0;
+}
+.signal-ranges {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  padding: 1.2rem 0;
+}
+.signal-range label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.signal-range label span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.signal-range input {
+  width: 100%;
+  accent-color: var(--blue);
+  margin: 0.7rem 0 0;
+}
+.signal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+}
+.signal-controls button {
+  border: 1px solid var(--text);
+  border-radius: 0;
+  padding: 0.65rem 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.signal-controls button:hover:not(:disabled) {
+  background: var(--text);
+  color: var(--surface);
+}
+.signal-controls button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.signal-controls button:focus-visible,
+.signal-range input:focus-visible,
+.signal-desk summary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.signal-view-state {
+  font:
+    0.7rem/1.5 ui-monospace,
+    monospace;
+  padding: 0.6rem 0;
+  border-top: 1px dotted var(--rule);
+}
+.signal-view-state p {
+  margin: 0.2rem 0;
+  overflow-wrap: anywhere;
+}
+.signal-inspector {
+  border-top: 3px solid var(--blue);
+  padding: 1rem 0;
+}
+.signal-inspection-notice {
+  font:
+    0.8rem/1.5 ui-monospace,
+    monospace;
+  margin: 0 0 0.8rem;
+}
+.signal-inspector dl {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  margin: 0;
+  gap: 1rem;
+}
+.signal-inspector dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.signal-inspector dd {
+  margin: 0.4rem 0 0;
+  font:
+    600 1.6rem/1.3 ui-monospace,
+    monospace;
+  font-variant-numeric: tabular-nums;
+}
+.signal-inspector dl > div:first-child dd {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.signal-records,
+.signal-source {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.signal-desk summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.signal-table-scroll {
+  overflow: auto;
+  max-height: 28rem;
+  margin-top: 1rem;
+}
+.signal-table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  font:
+    0.75rem/1.5 ui-monospace,
+    monospace;
+  white-space: nowrap;
+}
+.signal-table-scroll caption {
+  text-align: left;
+  white-space: normal;
+  color: var(--muted);
+  padding-bottom: 0.75rem;
+}
+.signal-table-scroll th,
+.signal-table-scroll td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.signal-table-scroll thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+.signal-row-inspected {
+  background: color-mix(in srgb, var(--blue) 14%, var(--surface));
+}
+.signal-row-selected th {
+  border-left: 3px solid var(--blue);
+}
+.signal-source pre {
+  overflow: auto;
+  padding: 1rem;
+  font-size: 0.75rem;
+  background: var(--surface);
+}
+@media (max-width: 600px) {
+  .signal-ranges {
+    gap: 1rem;
+  }
+  .signal-inspector dl {
+    grid-template-columns: 1fr 1fr;
+  }
+  .signal-inspector dl > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .signal-meta {
+    font-size: 0.6rem;
+  }
+  .signal-plot-heading span {
+    font-size: 0.6rem;
+  }
+}

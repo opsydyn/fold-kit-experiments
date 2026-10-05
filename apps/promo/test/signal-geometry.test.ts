@@ -23,3 +23,24 @@ test('same records share X but retain labelled full-data Y domains through zoom'
   expect(latency.geometry.layout.x(m.bounds[1])).toBe(680);
   expect(deriveSignalChart(m, 'overview').frame.height).toBe(140);
 });
+
+test('narrow time axes leave room for complete UTC tick labels', () => {
+  const model = init({ data: signalData }).model;
+  if (model._tag !== 'Ready') throw new RangeError('Expected Ready');
+  const narrow = { ...model, widths: { overview: 350, latency: 350, errors: 350 } };
+  const ticks = deriveSignalChart(narrow, 'overview').geometry.xTicks;
+  for (let i = 1; i < ticks.length; i++) {
+    const previous = ticks[i - 1],
+      current = ticks[i];
+    if (!previous || !current) throw new RangeError('Missing tick');
+    expect(current.position - previous.position).toBeGreaterThanOrEqual(70);
+  }
+});
+
+test('sub-percent data uses full-data ten-percent headroom instead of a forced unit ceiling', () => {
+  const model = init({
+    data: [{ id: 'fractional', time: 1700000000000, latencyMs: 12.5, errorPercent: 0.125 }],
+  }).model;
+  if (model._tag !== 'Ready') throw new RangeError('Expected Ready');
+  expect(deriveSignalChart(model, 'errors').geometry.layout.yDomain[1]).toBeCloseTo(0.1375, 10);
+});

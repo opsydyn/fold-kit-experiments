@@ -197,3 +197,11 @@ For proposed accessibility targets, use [WCAG 2.2 contrast guidance](https://www
 - No migration of every existing web chart in one release; qualify representative contracts first.
 
 Next proposed action: specify M1 as a bounded interaction/composition project, with exact public contracts and regression fixtures. The roadmap does not authorise that implementation.
+
+## M1 implementation evidence — 2026-10-05
+
+The local [Signal desk qualification](../superpowers/specs/2026-10-05-controlled-signal-exploration-qualification.md) records pure coordinate/domain/nearest-record APIs, typed SVG Mount composition, parent-owned interval brush/pan/zoom/pin state and the native `/examples/signals/` route.
+
+F1 now has general affine conversion, scoped measurement/readiness and transformed/hidden SVG evidence. F2 has controlled interval selection, navigation/cancellation and keyboard/range alternatives. F3 has deterministic nearest-X inspection linked to exact readout/raw table, including pinned outside-view notices. These are bounded advances: native touch remains unperformed because the browser input capability rejects touch delivery; rectangle/key brushes, resize handles, pinch and measured HTML tooltip placement remain gaps. No complete F1–F3 parity or production-critical suitability is claimed.
+
+Recommended next: specify M2 quality and uncertainty, beginning with explicit missing/invalid/stale data and caller-owned thresholds. Keep representative-user comprehension and native touch acceptance separate from engineering test success.

@@ -12,7 +12,8 @@ test.skipIf(!base)(
     const pages = readdirSync(directory, { recursive: true }).filter(
       (path): path is string => typeof path === 'string' && path.endsWith('.html'),
     );
-    expect(pages.length).toBeGreaterThanOrEqual(7);
+    expect(pages.length).toBeGreaterThanOrEqual(10);
+    expect(pages).toContain('examples/signals/index.html');
     for (const page of pages) {
       const html = await Bun.file(join(directory, page)).text();
       const references = html.matchAll(/(?:href|src|component-url|renderer-url)="([^"]+)"/g);

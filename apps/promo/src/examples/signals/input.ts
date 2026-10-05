@@ -5,12 +5,28 @@ import { defineStream } from 'foldkit/mount';
 import { Message } from './message';
 import { ChartRole } from './model';
 
+type InputFact = Extract<
+  Message,
+  {
+    _tag:
+      | 'RecordedChartWidth'
+      | 'RecordedInputAvailability'
+      | 'StartedChartPointer'
+      | 'MovedChartPointer'
+      | 'EndedChartPointer'
+      | 'CancelledChartPointer';
+  }
+>;
+
 /** Scoped browser resource acquisition; semantic gestures live only in Model. */
-export function signalInputFacts(element: SVGSVGElement, role: ChartRole): Stream.Stream<Message> {
-  return Stream.callback<Message>((queue) =>
+export function signalInputFacts(
+  element: SVGSVGElement,
+  role: ChartRole,
+): Stream.Stream<InputFact> {
+  return Stream.callback<InputFact>((queue) =>
     Effect.acquireRelease(
       Effect.sync(() => {
-        const offer = (message: Message) => {
+        const offer = (message: InputFact) => {
           Queue.offerUnsafe(queue, message);
         };
         const availability = (status: 'Ready' | 'Unavailable') =>

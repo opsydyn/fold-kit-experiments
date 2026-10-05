@@ -93,6 +93,10 @@
 .query-readout {
   margin-bottom: 1rem;
 }
+.query-chart-viewport {
+  min-width: 0;
+  min-height: 330px;
+}
 .query-readout h2 {
   font-size: 1.3rem;
   letter-spacing: -0.025em;

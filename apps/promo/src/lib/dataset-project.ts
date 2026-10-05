@@ -129,6 +129,7 @@ These are the same maintained FoldKit sources as the promo example:
 - \`src/query.ts\`: experimental KeyedQuery, HTTP decoding and cache identity.
 - \`src/model.ts\`, \`src/message.ts\`, \`src/update.ts\`: native Model/Message/update flow.
 - \`src/chart.ts\`: data accessors, geometry, frame, theme and colour overrides.
+- \`src/frame.ts\`, \`src/measurement.ts\`: responsive chart frames and a scoped ResizeObserver Mount.
 - \`src/view.ts\`: chart layers, controls, raw observations and response log.
 - \`src/source.ts\`, \`src/source-view.ts\`: running source and live snapshot JSON.
 - \`src/standalone.css\`: page tokens and browser colour-scheme adaptation.

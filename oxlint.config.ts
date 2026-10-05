@@ -109,7 +109,10 @@ export default defineConfig({
     {
       // ResizeObserver registration and release are the shared Mount stream's native I/O boundary.
       // Nested callback/acquireRelease is the documented Effect callback bridge, not domain logic.
-      files: ['apps/promo/src/examples/shared/measurement.ts'],
+      files: [
+        'apps/promo/src/examples/shared/measurement.ts',
+        'packages/dataset-explorer/src/measurement.ts',
+      ],
       rules: {
         'linteffect/no-effect-wrapper-alias': 'off',
         'linteffect/no-call-tower': 'off',
@@ -173,7 +176,7 @@ export default defineConfig({
       // own Effect state transitions, so Effect-only control-flow heuristics do not apply.
       files: [
         'apps/web/src/ui/**',
-        'packages/dataset-explorer/src/{data,chart,view,source,source-view}.ts',
+        'packages/dataset-explorer/src/{data,chart,frame,view,source,source-view}.ts',
         'apps/web/src/apps/**/view.ts',
         'apps/web/src/apps/**/*.test.ts',
         'apps/web/src/stories/**',

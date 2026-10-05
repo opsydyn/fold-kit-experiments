@@ -11,6 +11,8 @@ export const SourceName = Schema.Literals([
   'message.ts',
   'update.ts',
   'chart.ts',
+  'frame.ts',
+  'measurement.ts',
   'view.ts',
   'main.ts',
   'source.ts',

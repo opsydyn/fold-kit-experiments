@@ -13,6 +13,7 @@ import type { HtmlBuilder } from 'foldkit/html';
 
 import { datasets } from './data';
 import type { Snapshot } from './data';
+import { frameForWidth, tickCountForFrame } from './frame';
 
 export const chartTheme: ChartTheme = {
   ...darkTheme,
@@ -35,11 +36,7 @@ export const snapshotChart = <M>(
   }> = {},
 ) => {
   const theme = options.theme ?? chartTheme;
-  const frame = options.frame ?? {
-    width: 920,
-    height: 330,
-    margins: { top: 24, right: 28, bottom: 58, left: 58 },
-  };
+  const frame = options.frame ?? frameForWidth(920);
   const geometry = lineGeometry(
     snapshot.points,
     {
@@ -48,7 +45,7 @@ export const snapshotChart = <M>(
       datumKey: (point) => String(point.hour),
       seriesKey: () => snapshot.dataset,
     },
-    { frame, curve: 'linear' },
+    { frame, curve: 'linear', xTickCount: tickCountForFrame(frame) },
   );
   const colour = options.colour ?? datasets[snapshot.dataset].colour;
   const style = resolveSeriesStyle(

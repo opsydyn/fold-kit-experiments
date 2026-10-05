@@ -5,6 +5,7 @@ import { combine } from 'foldkit/update';
 import type { Return, Step } from 'foldkit/update';
 
 import type { Request } from './data';
+import { validChartWidth } from './frame';
 import { Message } from './message';
 import type { Model } from './model';
 import { DatasetQuery } from './query';
@@ -73,6 +74,12 @@ const recordCompletion = (
 
 export const update = (model: Model, message: Message): Return<Model, Message> =>
   Message.match(message, {
+    RecordedChartWidth: ({ width }) =>
+      pipe(
+        Match.value(validChartWidth(width) && width !== model.chartWidth),
+        Match.when(true, () => ({ model: modifyFields(model, { chartWidth: () => width }) })),
+        Match.orElse(() => ({ model })),
+      ),
     SelectedSource: ({ name }) => ({ model: modifyFields(model, { activeFile: () => name }) }),
     ClickedDataset: ({ dataset: selected }) =>
       loadSelected(

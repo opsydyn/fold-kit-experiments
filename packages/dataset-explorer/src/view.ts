@@ -5,6 +5,8 @@ import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { hourLabel, snapshotChart } from './chart';
 import { datasetIds, datasets } from './data';
+import { frameForWidth } from './frame';
+import { MeasureDatasetChart } from './measurement';
 import { Message } from './message';
 import type { Model } from './model';
 import { DatasetQuery } from './query';
@@ -87,11 +89,17 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               ),
             ],
           ),
-          matchData(data, {
-            onEmpty: () => h.div([h.Class('query-empty')], ['Loading observations…']),
-            onFailure: (error) => h.div([h.Class('query-empty')], [error]),
-            onData: (snapshot) => snapshotChart(snapshot, h),
-          }),
+          h.div(
+            [h.Class('query-chart-viewport'), h.OnMount(MeasureDatasetChart())],
+            [
+              matchData(data, {
+                onEmpty: () => h.div([h.Class('query-empty')], ['Loading observations…']),
+                onFailure: (error) => h.div([h.Class('query-empty')], [error]),
+                onData: (snapshot) =>
+                  snapshotChart(snapshot, h, { frame: frameForWidth(model.chartWidth) }),
+              }),
+            ],
+          ),
           ...Option.match(getError(data), {
             onNone: () => [],
             onSome: (error) => [

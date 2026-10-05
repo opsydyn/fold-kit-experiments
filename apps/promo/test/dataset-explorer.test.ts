@@ -42,6 +42,50 @@ const render = (model: ReturnType<typeof init>['model']) =>
     Effect.runPromise,
   );
 
+test('resizing preserves pending requests and selected source without issuing commands', () => {
+  const started = init({ transport: 'fixtures' });
+  const selected = update(started.model, Message.SelectedSource({ name: 'snapshot.json' })).model;
+  const resized = update(selected, Message.RecordedChartWidth({ width: 375.5 }));
+  expect(resized.model.chartWidth).toBe(375.5);
+  expect(resized.commands ?? []).toHaveLength(0);
+  expect(resized.model.datasets).toBe(selected.datasets);
+  expect(resized.model.trace).toBe(selected.trace);
+  expect(resized.model.activeFile).toBe('snapshot.json');
+  expect(resized.model.nextRevision).toBe(selected.nextRevision);
+  for (const width of [375.5, 0, -1, 86, Number.NaN, Number.POSITIVE_INFINITY]) {
+    expect(update(resized.model, Message.RecordedChartWidth({ width })).model).toBe(resized.model);
+  }
+});
+
+test('narrow dataset charts reproject observations and reduce tick density without shrinking labels', async () => {
+  const started = init({ transport: 'fixtures' });
+  const ready = update(
+    started.model,
+    Message.GotDatasetMessage({
+      message: DatasetQuery.Message.CompletedFetch({
+        generation: 1,
+        args: { source: 'fixtures', dataset: 'north', revision: 1, profile: 'normal', fail: false },
+        result: Result.succeed({
+          dataset: 'north',
+          revision: 1,
+          points: [
+            { hour: 0, value: 0 },
+            { hour: 14, value: 10 },
+          ],
+        }),
+      }),
+    }),
+  ).model;
+  const narrow = (await render({ ...ready, chartWidth: 320 })).html;
+  const wide = (await render({ ...ready, chartWidth: 920 })).html;
+  expect(narrow).toContain('viewBox="0 0 320 330"');
+  expect(narrow).toContain('d="M58,272L292,24"');
+  expect(wide).toContain('d="M58,272L892,24"');
+  const hourTicks = (html: string) => [...html.matchAll(/>\d{2}:\d{2}<\/text>/g)].length;
+  expect(hourTicks(narrow)).toBeLessThan(hourTicks(wide));
+  expect(narrow).toContain('font-size="12"');
+});
+
 test('promo loads a static fixture through the generated Query command', async () => {
   const started = init({ transport: 'fixtures', sources: [] });
   const urls: string[] = [];

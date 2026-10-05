@@ -16,6 +16,7 @@ export const Props = Schema.Struct({
 });
 export type Props = typeof Props.Type;
 export const Model = Schema.Struct({
+  chartWidth: Schema.Number,
   selected: DatasetId,
   transport: Transport,
   sources: Schema.Array(Source),
@@ -26,6 +27,7 @@ export const Model = Schema.Struct({
 });
 export type Model = typeof Model.Type;
 export const initModel: Model = {
+  chartWidth: 920,
   selected: 'north',
   transport: 'api',
   sources: [],

@@ -51,3 +51,7 @@ This closes only partial P1, interval-band P2 and unit/domain/reference portions
 
 - Regrade and repair inherited tiny-domain slope overflow: newly validated props accept those readings, so inheritance does not justify a render crash. Cost: only non-finite-slope evaluation order changes; ordinary finite slopes remain unchanged.
 - Move quality-lane start42px→26px after native title overlap: cost is lane spacing only; data plot/frame extents stay unchanged.
+
+## Native gate follow-up — 2026-10-05
+
+On the approved follow-up, CUA inventory returned no apps or browsers and explicitly reported that the Mac was locked and automatic unlock failed. Native held-pointer, Escape/lost-capture, touch and assistive-technology gates remain open; this follow-up supplies no additional native acceptance. An unlock request was presented while the separate error-bar/comparison design proceeded. No browser state or preferences were changed.

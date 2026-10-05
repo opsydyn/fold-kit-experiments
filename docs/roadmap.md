@@ -13,10 +13,23 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
-Current package compatibility targets FoldKit `0.165.x`, stable Effect
-`4.0.0`, and the `@foldkit/vite-plugin` `0.26.x` line. The 0.165 dependency
-migration is not considered released until the packed-consumer and workspace
-verification gates pass.
+Current package compatibility targets FoldKit `0.165.x` and `0.166.x`, with
+workspace baseline `0.166.0`, stable Effect `4.0.0`, and the
+`@foldkit/vite-plugin` `0.26.x` line. Packed-consumer and workspace verification
+are required; publication and site deployment must be confirmed separately.
+
+## Viz direction: parity and chart excellence — 2026-10-05
+
+The [concrete visx parity map and stretch goals](assessments/2026-10-05-visx-parity-and-chart-excellence.md)
+records the current local source baseline, all 47 gallery examples, public/API
+limits and proposed acceptance criteria. It distinguishes implemented geometry,
+application-only recipes, promo exposure and behavioural qualification.
+
+Proposed next Viz sequence: controlled brush/zoom/linked inspection; trustworthy
+signals with explicit quality and uncertainty; expressive foldout/distribution
+compositions; measured scale and reproducible exports. Precision and expressive
+views share pure geometry and parent-owned Foldkit state. This is planning only;
+each slice needs its own specification and implementation decision.
 
 ## Product Thesis
 

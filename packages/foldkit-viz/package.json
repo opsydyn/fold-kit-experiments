@@ -149,6 +149,15 @@
       ],
       "foldkit/paint": [
         "./dist/foldkit/paint.d.mts"
+      ],
+      "interaction/coordinates": [
+        "./dist/interaction/coordinates.d.mts"
+      ],
+      "interaction/viewport": [
+        "./dist/interaction/viewport.d.mts"
+      ],
+      "interaction/inspection": [
+        "./dist/interaction/inspection.d.mts"
       ]
     }
   },
@@ -312,6 +321,18 @@
     "./foldkit/paint": {
       "types": "./dist/foldkit/paint.d.mts",
       "import": "./dist/foldkit/paint.mjs"
+    },
+    "./interaction/coordinates": {
+      "types": "./dist/interaction/coordinates.d.mts",
+      "import": "./dist/interaction/coordinates.mjs"
+    },
+    "./interaction/viewport": {
+      "types": "./dist/interaction/viewport.d.mts",
+      "import": "./dist/interaction/viewport.mjs"
+    },
+    "./interaction/inspection": {
+      "types": "./dist/interaction/inspection.d.mts",
+      "import": "./dist/interaction/inspection.mjs"
     }
   },
   "publishConfig": {

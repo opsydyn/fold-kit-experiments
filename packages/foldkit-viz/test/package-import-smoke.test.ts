@@ -61,6 +61,9 @@ const setupFixture = async (fixture: Fixture, pack: PackExecutor = npmPack): Pro
     consumer,
     `import { intervalSelection as intervalSelectionFromRoot } from '@opsydyn/foldkit-viz';
 import { intervalSelection as intervalSelectionFromSelection } from '@opsydyn/foldkit-viz/interaction/selection';
+import { clientToLocal } from '@opsydyn/foldkit-viz/interaction/coordinates';
+import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
+import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
 import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import type { ChartFrame } from '@opsydyn/foldkit-viz/chart/cartesian';
 const frame: ChartFrame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
@@ -71,6 +74,11 @@ histogramGeometry([0, 10], d => d, { frame, binCount: 2 });
 
 const rootSelection = intervalSelectionFromRoot('x', [0, 1]);
 const selectionSelection = intervalSelectionFromSelection('x', [0, 1]);
+clientToLocal({x:30,y:60},{a:2,b:0,c:0,d:3,e:10,f:30});
+constrainDomain([-2,3],[0,10],1);
+zoomDomain([2,8],0.5,4,[0,10],1);
+panDomain([2,5],9,[0,10],1);
+nearestByX([{id:'a',x:1}],{key:d=>d.id,x:d=>d.x},1);
 void rootSelection;
 void selectionSelection;
 `,
@@ -103,7 +111,10 @@ void selectionSelection;
     { cwd: consumerDir, maxBuffer },
   );
 
-  const geometryScript = `import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
+  const geometryScript = `import { clientToLocal } from '@opsydyn/foldkit-viz/interaction/coordinates';
+import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
+import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
+import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme';
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
 import { wordCloud } from '@opsydyn/foldkit-viz/layout/wordcloud';
@@ -117,13 +128,20 @@ console.log(lightTheme.labelSize);
 const bars = barGeometry([{id:'a',v:10}], {key:d=>d.id,category:()=> 'Jan',series:()=> 'Core',value:d=>d.v}, {frame,mode:'stacked',orientation:'horizontal'});
 console.log(bars.bars.length);
 console.log(wordCloud([{id:'a'}],{key:d=>d.id,text:()=> 'One',width:()=>20,height:()=>10},{width:100,height:60}).words.length);
-console.log(wrapText('one two',s=>s.length*10,{width:40}).lines.join(','));`;
+console.log(wrapText('one two',s=>s.length*10,{width:40}).lines.join(','));
+console.log(JSON.stringify(clientToLocal({x:30,y:60},{a:2,b:0,c:0,d:3,e:10,f:30})));
+console.log(constrainDomain([-2,3],[0,10],1).join(','));
+console.log(zoomDomain([2,8],0.5,4,[0,10],1).join(','));
+console.log(panDomain([2,5],9,[0,10],1).join(','));
+console.log(nearestByX([{id:'a',x:2},{id:'b',x:0}],{key:d=>d.id,x:d=>d.x},1).id);`;
   for (const runtime of ['bun', 'node']) {
     const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', geometryScript], {
       cwd: consumerDir,
       maxBuffer,
     });
-    expect(stdout.trim()).toBe('M0,100L200,0\n100\n2,2\n12\n1\n1\none,two');
+    expect(stdout.trim()).toBe(
+      'M0,100L200,0\n100\n2,2\n12\n1\n1\none,two\n{"x":10,"y":10}\n0,5\n3,6\n7,10\na',
+    );
   }
   return runtimeOutput;
 };

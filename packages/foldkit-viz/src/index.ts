@@ -1,3 +1,6 @@
+export * from './interaction/coordinates';
+export * from './interaction/viewport';
+export * from './interaction/inspection';
 export * from './chart/bars';
 export * from './layout/wordcloud';
 export * from './layout/text';

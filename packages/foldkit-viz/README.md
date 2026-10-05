@@ -495,3 +495,26 @@ be customised. The pure package root does not import these optional adapters.
 The word-cloud spirals adapt [d3-cloud](https://github.com/jasondavies/d3-cloud)
 by Jason Davies; see `THIRD-PARTY-NOTICES.md` for its BSD licence. Existing bar
 scales and signed stack accumulation reference the vendored D3 source.
+
+### Controlled exploration
+
+Pure helpers keep viewport and inspection state with the caller. The coordinate matrix
+uses the six numeric fields of SVG `getScreenCTM()`; obtain it at your runtime boundary.
+
+```typescript
+import { clientToLocal } from '@opsydyn/foldkit-viz/interaction/coordinates';
+import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
+import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
+
+const point = clientToLocal({ x: 30, y: 60 }, { a: 2, b: 0, c: 0, d: 3, e: 10, f: 30 });
+const viewport = constrainDomain([-2, 3], [0, 10], 1); // [0, 5]
+const zoomed = zoomDomain(viewport, 0.5, 2, [0, 10], 1);
+const panned = panDomain(zoomed, 1, [0, 10], 1);
+const record = nearestByX([{ id: 'sample-a', time: 2 }], { key: (d) => d.id, x: (d) => d.time }, 3);
+```
+
+Domains require finite increasing endpoints and positive representable spans.
+Invalid input throws `RangeError`; singular/unrepresentable coordinate inversions
+return `null`. Inspection returns an original record, uses lexicographic key ties,
+and validates every unique non-empty key and finite X value. These helpers do not
+install event listeners, retain application state, or require Foldkit/Effect.

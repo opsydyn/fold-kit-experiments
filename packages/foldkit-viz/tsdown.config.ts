@@ -3,6 +3,10 @@ import { defineConfig } from 'tsdown';
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
+    'interaction/coordinates': 'src/interaction/coordinates.ts',
+    'interaction/viewport': 'src/interaction/viewport.ts',
+    'interaction/inspection': 'src/interaction/inspection.ts',
+
     'chart/cartesian': 'src/chart/cartesian.ts',
     'chart/bars': 'src/chart/bars.ts',
     'layout/wordcloud': 'src/layout/wordcloud.ts',

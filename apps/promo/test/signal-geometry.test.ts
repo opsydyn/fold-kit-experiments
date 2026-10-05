@@ -22,7 +22,7 @@ test('same records share X but retain labelled full-data Y domains through zoom'
   expect(deriveSignalChart(zoom, 'latency').visible).toHaveLength(11);
   expect(latency.geometry.layout.x(m.bounds[0])).toBe(56);
   expect(latency.geometry.layout.x(m.bounds[1])).toBe(680);
-  expect(deriveSignalChart(m, 'overview').frame.height).toBe(140);
+  expect(deriveSignalChart(m, 'overview').frame.height).toBe(174);
 });
 
 test('narrow time axes leave room for complete UTC tick labels', () => {

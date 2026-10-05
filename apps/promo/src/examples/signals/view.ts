@@ -1,11 +1,5 @@
 import { resolveSeriesStyle } from '@opsydyn/foldkit-viz/chart/theme';
-import {
-  axis,
-  chartFrame,
-  grid,
-  lineSeries,
-  pointSeries,
-} from '@opsydyn/foldkit-viz/foldkit/cartesian';
+import { axis, chartFrame, grid, pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian';
 import { selectionContainsValue } from '@opsydyn/foldkit-viz/interaction/selection';
 import { Option, Schema } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
@@ -17,12 +11,14 @@ import { ObserveSignalInput } from './input';
 import { Message } from './message';
 import { Model } from './model';
 import type { ReadyModel, ChartRole } from './model';
-import { readingText } from './quality';
+import { readingText, sourceFreshness } from './quality';
+import { qualityLayers, qualityLegend, qualityDetails } from './quality-view';
 const labels = { overview: 'Latency overview', latency: 'Latency detail', errors: 'Error detail' };
 const Key = Schema.Literals(['ArrowLeft', 'ArrowRight', 'Home', 'End', 'Escape']);
 const theme = { ...exampleTheme, labelSize: 11 };
 function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): Html {
-  const { geometry, inspected } = deriveSignalChart(m, role);
+  const chart = deriveSignalChart(m, role);
+  const { geometry, inspected } = chart;
   const { layout } = geometry;
   const { plot } = layout;
   const colour =
@@ -112,17 +108,45 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
         },
         [
           grid(h, { ...geometry, theme }),
-          highlight,
-          ...geometry.series.map((series) => lineSeries(h, { path: series.path, style })),
-          // Single observations still have an honest visible mark, even without a line segment.
-          pointSeries(h, {
-            points: geometry.points.length === 1 ? geometry.points : point,
-            styleFor: () => style,
-            labelFor: (d) =>
-              `${d.id}, ${utc(d.time)}, ${readingText(d.latency)} ms, ${readingText(d.errors)}%`,
-            activeKey: m.inspection.key,
-          }),
-          cursor,
+          h.defs(
+            [],
+            [
+              h.clipPath(
+                [h.Id(`signal-quality-clip-${role}`)],
+                [
+                  h.rect(
+                    [
+                      h.X(String(plot.left)),
+                      h.Y(String(plot.top)),
+                      h.Width(String(plot.width)),
+                      h.Height(String(plot.height)),
+                    ],
+                    [],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          ...qualityLayers(m, role, chart, h),
+          h.g(
+            [h.Attribute('clip-path', `url(#signal-quality-clip-${role})`)],
+            [
+              highlight,
+
+              // Single observations still have an honest visible mark, even without a line segment.
+              pointSeries(h, {
+                points: point,
+                styleFor: (p) =>
+                  (role === 'errors' ? p.datum.errors : p.datum.latency)._tag === 'Estimated'
+                    ? { ...style, symbol: 'diamond', fill: 'var(--surface)' }
+                    : style,
+                labelFor: (d) =>
+                  `${d.id}, ${utc(d.time)}, ${readingText(d.latency)} ms, ${readingText(d.errors)}%`,
+                activeKey: m.inspection.key,
+              }),
+              cursor,
+            ],
+          ),
           axis(h, {
             layout,
             orientation: 'bottom',
@@ -156,6 +180,18 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
             [],
           ),
         ],
+      ),
+      ...(chart.noDrawable
+        ? [h.p([h.Class('signal-no-data')], ['No drawable measurements in this view.'])]
+        : []),
+      h.ul(
+        [h.Class('signal-reference-list')],
+        chart.thresholds.map((t) =>
+          h.li(
+            [h.Key(t.id), h.DataAttribute('threshold-id', t.id)],
+            [`Illustrative reference: ${t.label} · ${t.value} ${role === 'errors' ? '%' : 'ms'}`],
+          ),
+        ),
       ),
       h.p(
         [h.Class('signal-input-status')],
@@ -207,11 +243,34 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
       h.div(
         [h.Class('signal-meta')],
         [
-          h.span([], [`${m.records.length} OBSERVATIONS / 1s FIXTURE`]),
+          h.span([], [`${m.records.length} RECORDS · GAPS EXPLICIT`]),
           h.span([], [`${utc(m.bounds[0]).slice(0, 10)} / UTC`]),
           h.span([], ['ILLUSTRATIVE · STATIC']),
         ],
       ),
+      h.section(
+        [
+          h.Class('signal-source-status'),
+          h.DataAttribute('freshness', sourceFreshness(m.snapshot)),
+        ],
+        [
+          h.p([], [`Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision}`]),
+          h.p(
+            [],
+            [
+              `As of ${utc(m.snapshot.asOf)} · updated ${utc(m.snapshot.updatedAt)} · stale after ${m.snapshot.staleAfterMs} ms`,
+            ],
+          ),
+          h.div(
+            [h.Class('signal-controls')],
+            [
+              button('Fresh snapshot', Message.ClickedFreshnessScenario({ scenario: 'Fresh' })),
+              button('Stale snapshot', Message.ClickedFreshnessScenario({ scenario: 'Stale' })),
+            ],
+          ),
+        ],
+      ),
+      qualityLegend(h),
       signalChart(m, 'overview', h),
       h.div(
         [h.Class('signal-ranges')],
@@ -278,6 +337,14 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
                 [
                   h.dt([], ['Latency (ms)']),
                   h.dd([], [inspected ? readingText(inspected.latency) : '—']),
+                  ...(inspected
+                    ? [
+                        h.p(
+                          [h.Class('signal-reading-detail')],
+                          [qualityDetails(inspected.latency, 'ms')],
+                        ),
+                      ]
+                    : []),
                 ],
               ),
               h.div(
@@ -285,6 +352,14 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
                 [
                   h.dt([], ['Errors (%)']),
                   h.dd([], [inspected ? readingText(inspected.errors) : '—']),
+                  ...(inspected
+                    ? [
+                        h.p(
+                          [h.Class('signal-reading-detail')],
+                          [qualityDetails(inspected.errors, '%')],
+                        ),
+                      ]
+                    : []),
                 ],
               ),
             ],
@@ -306,7 +381,7 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
                   h.caption(
                     [],
                     [
-                      'Illustrative system telemetry. All records, including those outside the current view.',
+                      `Illustrative system telemetry. Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision}. All records, including those outside the current view.`,
                     ],
                   ),
                   h.thead(
@@ -314,9 +389,15 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
                     [
                       h.tr(
                         [],
-                        ['Observation', 'Time (UTC)', 'Latency (ms)', 'Errors (%)', 'State'].map(
-                          (label) => h.th([h.Scope('col')], [label]),
-                        ),
+                        [
+                          'Observation',
+                          'Time (UTC)',
+                          'Latency (ms)',
+                          'Errors (%)',
+                          'Latency quality',
+                          'Error quality',
+                          'State',
+                        ].map((label) => h.th([h.Scope('col')], [label])),
                       ),
                     ],
                   ),
@@ -338,6 +419,8 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
                           h.td([], [utc(d.time)]),
                           h.td([], [readingText(d.latency)]),
                           h.td([], [readingText(d.errors)]),
+                          h.td([], [qualityDetails(d.latency, 'ms')]),
+                          h.td([], [qualityDetails(d.errors, '%')]),
                           h.td(
                             [],
                             [

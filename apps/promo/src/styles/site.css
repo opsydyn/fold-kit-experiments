@@ -1331,3 +1331,68 @@ nav a[aria-current='page'] {
     font-size: 0.6rem;
   }
 }
+
+/* Quality remains structural and legible alongside the measured plot. */
+.signal-quality-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.4rem;
+  padding: 1rem 0;
+  margin: 0;
+  list-style: none;
+  border-block: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.signal-source-status {
+  border-left: 3px solid var(--blue);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: var(--surface);
+}
+.signal-source-status[data-freshness='Stale'] {
+  border-left-color: var(--coral);
+}
+.signal-source-status p {
+  margin: 0 0 0.5rem;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+.signal-source-status p:first-child {
+  font-weight: 700;
+  color: var(--text);
+}
+.signal-reference-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 0;
+  margin: 0.25rem 0 0.75rem;
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.signal-reference-list li {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.signal-reading-detail {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.signal-no-data {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.signal-table-scroll td:nth-child(5),
+.signal-table-scroll td:nth-child(6) {
+  min-width: 12rem;
+  max-width: 22rem;
+  white-space: normal;
+}

@@ -11,8 +11,8 @@ export const deriveSignalChart = (model: ReadyModel, role: ChartRole) => {
   const domain = role === 'overview' ? model.bounds : model.viewport;
   const frame = {
     width: model.widths[role],
-    height: role === 'overview' ? 140 : 260,
-    margins: { top: 24, right: 20, bottom: 36, left: 56 },
+    height: role === 'overview' ? 174 : 294,
+    margins: { top: 24, right: 20, bottom: 70, left: 56 },
   };
   const metric = role === 'errors' ? 'errors' : 'latency';
   const reading = (d: SignalRecord) => d[metric];

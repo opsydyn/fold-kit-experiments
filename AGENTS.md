@@ -13,7 +13,7 @@ Bun workspace monorepo. Four active workspaces:
 | `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types               |
 | `@opsydyn/promo`         | `apps/promo/`             | Static Astro promo site for Foldkit Viz |
 
-**Stack:** FoldKit 0.165.0 · Effect 4.0.0 · Astro 7.1 · TypeScript · bun · oxlint · oxfmt
+**Stack:** FoldKit 0.166.0 · Effect 4.0.0 · Astro 7.1 · TypeScript · bun · oxlint · oxfmt
 
 ## Before you write code
 
@@ -27,7 +27,7 @@ Bun workspace monorepo. Four active workspaces:
 ## Commands
 
 ```sh
-bun test                              # all workspaces
+bun run test                          # workspace tests; excludes vendored upstream tests
 bun typecheck                         # all workspaces
 bun run check                         # oxlint + oxfmt --check (both must pass before committing)
 bun run check:fix                     # oxfmt then oxlint --fix
@@ -79,6 +79,23 @@ import { AsyncData } from 'foldkit/asyncData';
 import type { Document, Html } from 'foldkit/html'; // Html, not Html<Message>, not Node
 import { html } from 'foldkit/html';
 ```
+
+## Lifted child lifecycle (FoldKit 0.166+)
+
+`Subscription.lift` uses `read` returning an `Option`:
+
+```typescript
+import { Option } from 'effect';
+
+Subscription.lift(Child.subscriptions)<Model, Message>({
+  read: (model) => Option.some(model.child),
+  toParentMessage: (message) => Message.GotChildMessage({ message }),
+});
+```
+
+For an optional child, return `Option.none()` when absent so the runtime stops
+its subscriptions. `ManagedResource.lift` also names its existing Option lens
+`read`. Keep `when` for additional business conditions, not child presence.
 
 ## AsyncData pattern
 
@@ -213,5 +230,5 @@ Always run before reporting work complete:
 ```sh
 bun run check      # lint + format — must exit 0
 bun typecheck      # must exit 0
-  bun test           # all workspace tests must pass
+bun run test       # all workspace tests must pass
 ```

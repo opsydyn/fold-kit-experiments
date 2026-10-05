@@ -175,60 +175,63 @@ it('does not install FoldKit or Effect when npm consumers only need the pure pac
   }
 }, 120_000);
 
-it('renders through the packed optional adapter with the installed FoldKit host', async () => {
-  const fixture = await createFixture();
-  const consumerDir = path.join(fixture.tempDir, 'adapter-consumer');
-  try {
-    await mkdir(consumerDir, { recursive: true });
-    await writeFile(
-      path.join(consumerDir, 'package.json'),
-      JSON.stringify({ private: true, type: 'module' }),
-    );
-    const tarball = await npmPack(fixture.tempDir);
-    await execFileAsync(
-      'npm',
-      [
-        'install',
-        '--ignore-scripts',
-        '--no-audit',
-        '--no-fund',
-        tarball,
-        'foldkit@0.165.0',
-        'effect@4.0.0',
-      ],
-      { cwd: consumerDir, maxBuffer },
-    );
-    const readme = await readFile(path.join(packageDir, 'README.md'), 'utf8');
-    const snippet = readme
-      .split('## Composable Cartesian charts')[1]
-      ?.match(/```ts\n([\s\S]*?)```/)?.[1];
-    if (snippet === undefined) throw new RangeError('Primary Cartesian README example is missing');
-    const documentationConsumer = path.join(consumerDir, 'readme-consumer.ts');
-    await writeFile(
-      documentationConsumer,
-      "import type { HtmlBuilder } from 'foldkit/html';\ndeclare const h: HtmlBuilder<never>;\n" +
-        snippet,
-    );
-    await execFileAsync(
-      'bun',
-      [
-        'x',
-        'tsc',
-        '--noEmit',
-        '--ignoreConfig',
-        '--strict',
-        '--skipLibCheck',
-        '--target',
-        'ES2022',
-        '--module',
-        'ESNext',
-        '--moduleResolution',
-        'Bundler',
+it.each(['0.165.0', '0.166.0'])(
+  'renders through the packed optional adapter with FoldKit %s',
+  async (foldkitVersion) => {
+    const fixture = await createFixture();
+    const consumerDir = path.join(fixture.tempDir, 'adapter-consumer');
+    try {
+      await mkdir(consumerDir, { recursive: true });
+      await writeFile(
+        path.join(consumerDir, 'package.json'),
+        JSON.stringify({ private: true, type: 'module' }),
+      );
+      const tarball = await npmPack(fixture.tempDir);
+      await execFileAsync(
+        'npm',
+        [
+          'install',
+          '--ignore-scripts',
+          '--no-audit',
+          '--no-fund',
+          tarball,
+          `foldkit@${foldkitVersion}`,
+          'effect@4.0.0',
+        ],
+        { cwd: consumerDir, maxBuffer },
+      );
+      const readme = await readFile(path.join(packageDir, 'README.md'), 'utf8');
+      const snippet = readme
+        .split('## Composable Cartesian charts')[1]
+        ?.match(/```ts\n([\s\S]*?)```/)?.[1];
+      if (snippet === undefined)
+        throw new RangeError('Primary Cartesian README example is missing');
+      const documentationConsumer = path.join(consumerDir, 'readme-consumer.ts');
+      await writeFile(
         documentationConsumer,
-      ],
-      { cwd: consumerDir, maxBuffer },
-    );
-    const script = `import { Effect, Schema } from 'effect';
+        "import type { HtmlBuilder } from 'foldkit/html';\ndeclare const h: HtmlBuilder<never>;\n" +
+          snippet,
+      );
+      await execFileAsync(
+        'bun',
+        [
+          'x',
+          'tsc',
+          '--noEmit',
+          '--ignoreConfig',
+          '--strict',
+          '--skipLibCheck',
+          '--target',
+          'ES2022',
+          '--module',
+          'ESNext',
+          '--moduleResolution',
+          'Bundler',
+          documentationConsumer,
+        ],
+        { cwd: consumerDir, maxBuffer },
+      );
+      const script = `import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import { scatterGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { darkTheme } from '@opsydyn/foldkit-viz/chart/theme';
@@ -236,14 +239,16 @@ import { chartFrame, pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian'
 const geometry = scatterGeometry([5], { x: d => d, y: d => d, datumKey: () => 'only', seriesKey: () => 'all' }, { frame: { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } } });
 const result = await Effect.runPromise(renderToString({ Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model: 0 }), view: (_model, h) => ({ title: 'External host', body: chartFrame(h, { layout: geometry.layout, title: 'External chart', description: 'Singleton point', theme: darkTheme }, [pointSeries(h, { points: geometry.points, styleFor: () => darkTheme.series, labelFor: String, activeKey: null })]) }) }, { flags: { test: true }, isHydratable: false }));
 console.log(result.html.includes('translate(100,50)') && result.html.includes('<title>External chart</title>'));`;
-    for (const runtime of ['bun', 'node']) {
-      const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', script], {
-        cwd: consumerDir,
-        maxBuffer,
-      });
-      expect(stdout.trim()).toBe('true');
+      for (const runtime of ['bun', 'node']) {
+        const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', script], {
+          cwd: consumerDir,
+          maxBuffer,
+        });
+        expect(stdout.trim()).toBe('true');
+      }
+    } finally {
+      await fixture.cleanup();
     }
-  } finally {
-    await fixture.cleanup();
-  }
-}, 120_000);
+  },
+  120_000,
+);

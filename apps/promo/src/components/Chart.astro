@@ -1,9 +1,9 @@
 ---
-import type { ExampleId } from '../lib/examples';
+import type { GalleryId } from '../lib/examples';
 import { chordGroups, chordRibbons, colours, curvePlots, flow, histograms, plotX, scatter } from '../lib/charts';
 import { mapPaths } from '../lib/map';
 
-interface Props { kind: ExampleId; label: string }
+interface Props { kind: GalleryId; label: string }
 const { kind, label } = Astro.props;
 const flowSources = ['Web', 'Mobile', 'API', 'Other'];
 const yTicks = kind === 'distribution' ? [0, 10, 20, 30, 40, 50] : [0, 25, 50, 75, 100];

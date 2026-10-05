@@ -105,18 +105,25 @@ void selectionSelection;
 
   const geometryScript = `import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme';
+import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
+import { wordCloud } from '@opsydyn/foldkit-viz/layout/wordcloud';
+import { wrapText } from '@opsydyn/foldkit-viz/layout/text';
 const frame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
 const accessors = { x: d => d, y: d => d, datumKey: d => String(d), seriesKey: () => 'a' };
 console.log(lineGeometry([0, 10], accessors, { frame }).series[0].path);
 console.log(scatterGeometry([5], accessors, { frame }).points[0].x);
 console.log(histogramGeometry([0, 2, 5, 10], d => d, { frame, domain: [0, 10], binCount: 2 }).bins.map(b => b.count).join(','));
-console.log(lightTheme.labelSize);`;
+console.log(lightTheme.labelSize);
+const bars = barGeometry([{id:'a',v:10}], {key:d=>d.id,category:()=> 'Jan',series:()=> 'Core',value:d=>d.v}, {frame,mode:'stacked',orientation:'horizontal'});
+console.log(bars.bars.length);
+console.log(wordCloud([{id:'a'}],{key:d=>d.id,text:()=> 'One',width:()=>20,height:()=>10},{width:100,height:60}).words.length);
+console.log(wrapText('one two',s=>s.length*10,{width:40}).lines.join(','));`;
   for (const runtime of ['bun', 'node']) {
     const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', geometryScript], {
       cwd: consumerDir,
       maxBuffer,
     });
-    expect(stdout.trim()).toBe('M0,100L200,0\n100\n2,2\n12');
+    expect(stdout.trim()).toBe('M0,100L200,0\n100\n2,2\n12\n1\n1\none,two');
   }
   return runtimeOutput;
 };
@@ -210,7 +217,8 @@ it.each(['0.165.0', '0.166.0'])(
       await writeFile(
         documentationConsumer,
         "import type { HtmlBuilder } from 'foldkit/html';\ndeclare const h: HtmlBuilder<never>;\n" +
-          snippet,
+          snippet +
+          `\nimport { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';\nimport { wordCloud } from '@opsydyn/foldkit-viz/layout/wordcloud';\nimport { wrapText } from '@opsydyn/foldkit-viz/layout/text';\nimport { dotPattern, hatchPattern, linearGradient, radialGradient } from '@opsydyn/foldkit-viz/foldkit/paint';\nconst barResult = barGeometry([10], {key: String, category: () => 'Jan', series: () => 'Core', value: d => d}, {frame: {width:200,height:100,margins:{top:0,right:0,bottom:0,left:0}},mode:'grouped',orientation:'vertical'});\nconst cloudResult = wordCloud(['one'], {key: d => d,text:d=>d,width:()=>30,height:()=>12}, {width:100,height:60});\nconst wrapped = wrapText('one two', d=>d.length*10, {width:40});\nconst paints = [dotPattern(h,{id:'d',colour:'currentColor',spacing:8}),hatchPattern(h,{id:'h',colour:'currentColor',spacing:8}),linearGradient(h,{id:'l',stops:[{offset:0,colour:'red'}]}),radialGradient(h,{id:'r',stops:[{offset:0,colour:'red'}]})];\nvoid [barResult, cloudResult, wrapped, paints];`,
       );
       await execFileAsync(
         'bun',
@@ -236,9 +244,10 @@ import { renderToString } from 'foldkit/experimental/server';
 import { scatterGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { darkTheme } from '@opsydyn/foldkit-viz/chart/theme';
 import { chartFrame, pointSeries } from '@opsydyn/foldkit-viz/foldkit/cartesian';
+import { dotPattern, hatchPattern, linearGradient, radialGradient } from '@opsydyn/foldkit-viz/foldkit/paint';
 const geometry = scatterGeometry([5], { x: d => d, y: d => d, datumKey: () => 'only', seriesKey: () => 'all' }, { frame: { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } } });
-const result = await Effect.runPromise(renderToString({ Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model: 0 }), view: (_model, h) => ({ title: 'External host', body: chartFrame(h, { layout: geometry.layout, title: 'External chart', description: 'Singleton point', theme: darkTheme }, [pointSeries(h, { points: geometry.points, styleFor: () => darkTheme.series, labelFor: String, activeKey: null })]) }) }, { flags: { test: true }, isHydratable: false }));
-console.log(result.html.includes('translate(100,50)') && result.html.includes('<title>External chart</title>'));`;
+const result = await Effect.runPromise(renderToString({ Flags: Schema.Struct({ test: Schema.Boolean }), init: () => ({ model: 0 }), view: (_model, h) => ({ title: 'External host', body: chartFrame(h, { layout: geometry.layout, title: 'External chart', description: 'Singleton point', theme: darkTheme }, [h.defs([], [dotPattern(h,{id:'packed-dots',colour:'var(--blue)',spacing:8}),hatchPattern(h,{id:'packed-hatch',colour:'currentColor',spacing:8}),linearGradient(h,{id:'packed-linear',stops:[{offset:0,colour:'red'}]}),radialGradient(h,{id:'packed-radial',stops:[{offset:0,colour:'red'}]})]), pointSeries(h, { points: geometry.points, styleFor: () => darkTheme.series, labelFor: String, activeKey: null })]) }) }, { flags: { test: true }, isHydratable: false }));
+console.log(result.html.includes('translate(100,50)') && result.html.includes('<title>External chart</title>') && result.html.includes('packed-dots') && result.html.includes('packed-hatch') && result.html.includes('packed-linear') && result.html.includes('packed-radial'));`;
       for (const runtime of ['bun', 'node']) {
         const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', script], {
           cwd: consumerDir,

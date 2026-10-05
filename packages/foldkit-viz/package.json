@@ -24,7 +24,8 @@
   "files": [
     "CHANGELOG.md",
     "dist",
-    "README.md"
+    "README.md",
+    "THIRD-PARTY-NOTICES.md"
   ],
   "type": "module",
   "sideEffects": false,
@@ -136,6 +137,18 @@
       ],
       "foldkit/cartesian": [
         "./dist/foldkit/cartesian.d.mts"
+      ],
+      "chart/bars": [
+        "./dist/chart/bars.d.mts"
+      ],
+      "layout/wordcloud": [
+        "./dist/layout/wordcloud.d.mts"
+      ],
+      "layout/text": [
+        "./dist/layout/text.d.mts"
+      ],
+      "foldkit/paint": [
+        "./dist/foldkit/paint.d.mts"
       ]
     }
   },
@@ -283,6 +296,22 @@
     "./foldkit/cartesian": {
       "types": "./dist/foldkit/cartesian.d.mts",
       "import": "./dist/foldkit/cartesian.mjs"
+    },
+    "./chart/bars": {
+      "types": "./dist/chart/bars.d.mts",
+      "import": "./dist/chart/bars.mjs"
+    },
+    "./layout/wordcloud": {
+      "types": "./dist/layout/wordcloud.d.mts",
+      "import": "./dist/layout/wordcloud.mjs"
+    },
+    "./layout/text": {
+      "types": "./dist/layout/text.d.mts",
+      "import": "./dist/layout/text.mjs"
+    },
+    "./foldkit/paint": {
+      "types": "./dist/foldkit/paint.d.mts",
+      "import": "./dist/foldkit/paint.mjs"
     }
   },
   "publishConfig": {

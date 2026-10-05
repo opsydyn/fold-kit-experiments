@@ -4,6 +4,10 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     'chart/cartesian': 'src/chart/cartesian.ts',
+    'chart/bars': 'src/chart/bars.ts',
+    'layout/wordcloud': 'src/layout/wordcloud.ts',
+    'layout/text': 'src/layout/text.ts',
+    'foldkit/paint': 'src/foldkit/paint.ts',
     'chart/theme': 'src/chart/theme.ts',
     'foldkit/cartesian': 'src/foldkit/cartesian.ts',
     'interaction/selection': 'src/interaction/selection.ts',

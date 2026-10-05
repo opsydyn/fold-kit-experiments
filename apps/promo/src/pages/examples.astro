@@ -1,25 +1,26 @@
 ---
 import { sitePath } from '../lib/site-path';
-import Chart from '../components/Chart.astro';
+import GalleryChart from '../components/GalleryChart.astro';
 import Layout from '../layouts/Layout.astro';
-import { examples, sourceRoot } from '../lib/examples';
+import { galleryExamples, sourceRoot } from '../lib/examples';
 ---
 <Layout title="Examples — Foldkit Viz">
   <section class="page-intro">
     <p class="eyebrow">Explore the primitives</p>
     <h1>A shape for every story.</h1>
-    <p>Six starting points for your next visualisation. Every chart is SVG, built with Foldkit Viz.</p>
+    <p>Eighteen starting points for your next visualisation. Every chart is SVG, built with Foldkit Viz.</p>
     <p class="small-note">All datasets are illustrative. Map boundaries: Natural Earth via world-atlas.</p>
   </section>
-  <section class="live-example-callout"><p class="eyebrow">NEW / INTERACTIVE</p><h2>Try it. Read it. Make it yours.</h2><p>Shape a line, regroup a distribution, inspect a scatter plot or explore retained datasets. Read the code as you experiment, then take the working example into your own project.</p><div class="live-example-actions"><a class="button button-primary" href={sitePath('/examples/line/')}>Explore the live line →</a><a class="button button-secondary" href={sitePath('/examples/histogram/')}>Explore the live histogram →</a><a class="button button-secondary" href={sitePath('/examples/scatter/')}>Explore the live scatter →</a><a class="button button-secondary" href={sitePath('/examples/datasets/')}>Explore the live datasets →</a></div></section>
+  <section class="live-example-callout"><p class="eyebrow">NEW / INTERACTIVE</p><h2>Try it. Read it. Make it yours.</h2><p>Shape a line, regroup a distribution, inspect a scatter plot, compose bars, weight words or explore retained datasets. Read the code as you experiment, then take the working example into your own project.</p><div class="live-example-actions"><a class="button button-primary" href={sitePath('/examples/line/')}>Explore the live line →</a><a class="button button-secondary" href={sitePath('/examples/histogram/')}>Explore the live histogram →</a><a class="button button-secondary" href={sitePath('/examples/scatter/')}>Explore the live scatter →</a><a class="button button-secondary" href={sitePath('/examples/datasets/')}>Explore the live datasets →</a><a class="button button-secondary" href={sitePath('/examples/bars/')}>Explore grouped and stacked bars →</a><a class="button button-secondary" href={sitePath('/examples/wordcloud/')}>Explore the word cloud →</a></div></section>
   <div class="examples-list">
-    {examples.map((example, i) => <section class="example-detail" id={example.id} aria-labelledby={example.id + '-heading'}>
+    {galleryExamples.map((example, i) => <section class="example-detail" id={example.id} aria-labelledby={example.id + '-heading'}>
       <div class="example-explanation">
         <p class="eyebrow">{String(i + 1).padStart(2, '0') + ' / ' + example.category}</p>
         <h2 id={example.id + '-heading'}>{example.title}</h2>
         <p>{example.description}</p>
+        {'live' in example && <a class="text-link" href={sitePath(example.live)}>Try the live example →</a>}
         <code class="module-path">{'@opsydyn/foldkit-viz/' + example.module}</code>
-        <a class="text-link" href={sourceRoot + '/' + example.module + '.ts'}>Explore the source <span aria-hidden="true">↗</span></a>
+        <a class="text-link" href={sourceRoot + '/' + example.module + (example.module === 'hierarchy' ? '/index.ts' : '.ts')}>Explore the source <span aria-hidden="true">↗</span></a>
       </div>
       <div class="example-plot">
         {example.id === 'curves' ? <div class="curve-comparison">
@@ -32,8 +33,8 @@ import { examples, sourceRoot } from '../lib/examples';
             <input type="radio" name="curve" id="curve-step" value="step" />
             <label for="curve-step">Step</label>
           </fieldset>
-          <Chart kind={example.id} label="Compare smooth, linear and stepped curves" />
-        </div> : <Chart kind={example.id} label={example.title} />}
+          <GalleryChart kind={example.id} label="Compare smooth, linear and stepped curves" />
+        </div> : <GalleryChart kind={example.id} label={example.title} />}
       </div>
     </section>)}
   </div>

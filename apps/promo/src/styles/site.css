@@ -13,6 +13,11 @@
   --mint: #80d7bb;
   --lavender: #b38bf5;
   --periwinkle: #b3c9fc;
+  --word-blue: #2458c7;
+  --word-coral: #b43d2b;
+  --word-mint: #177357;
+  --word-gold: #806200;
+  --word-lavender: #7841bd;
   --map-border: #faf9f6;
   --selection: rgb(61 121 250 / 8%);
   --chart-background: var(--surface);
@@ -41,6 +46,11 @@
   --mint: #7bdab8;
   --lavender: #b58bff;
   --periwinkle: #98b5ff;
+  --word-blue: var(--blue);
+  --word-coral: var(--coral);
+  --word-mint: var(--mint);
+  --word-gold: var(--gold);
+  --word-lavender: var(--lavender);
   --map-border: #191c24;
   --selection: rgb(68 133 255 / 10%);
 }
@@ -973,4 +983,130 @@ nav a[aria-current='page'] {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+/* Native primitive explorers share page typography and theme tokens. */
+.primitive-demo {
+  margin: 28px 0 72px;
+  min-width: 0;
+}
+.primitive-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.primitive-controls fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.primitive-controls legend {
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.primitive-demo button {
+  padding: 8px 12px;
+  border: 1px solid var(--rule);
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.primitive-demo button[aria-pressed='true'] {
+  background: var(--text);
+  color: var(--page);
+}
+.primitive-controls label {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.primitive-controls input {
+  accent-color: var(--blue);
+  max-width: 110px;
+}
+.primitive-plot {
+  width: 100%;
+  min-width: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.primitive-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.primitive-plot svg text:not(.cloud-word) {
+  fill: var(--muted);
+  font-size: 11px;
+}
+.primitive-plot svg .cloud-word {
+  cursor: pointer;
+}
+.primitive-plot .cloud-word.active {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.primitive-plot svg [tabindex]:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+.primitive-status {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 14px 0;
+}
+.primitive-placeholder {
+  min-height: 350px;
+  display: grid;
+  place-content: center;
+}
+.primitive-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  list-style: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+.primitive-demo details {
+  border-top: 1px solid var(--border);
+  padding: 16px 0;
+}
+.primitive-demo summary {
+  cursor: pointer;
+  font-size: 13px;
+}
+.primitive-demo pre {
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.primitive-demo table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  margin-top: 20px;
+}
+.primitive-demo th,
+.primitive-demo td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.primitive-demo caption {
+  text-align: left;
+  margin-bottom: 12px;
+  color: var(--muted);
 }

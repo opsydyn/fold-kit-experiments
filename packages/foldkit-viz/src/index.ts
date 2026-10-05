@@ -1,3 +1,6 @@
+export * from './chart/bars';
+export * from './layout/wordcloud';
+export * from './layout/text';
 // Pure chart geometry; the optional FoldKit adapter is not re-exported.
 export * from './chart/cartesian';
 export * from './chart/theme';

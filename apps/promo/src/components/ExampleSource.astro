@@ -1,0 +1,17 @@
+---
+import { Code } from 'astro:components';
+interface Props { files: ReadonlyArray<Readonly<{ name: string; content: string }>> }
+const { files } = Astro.props;
+---
+<section class="example-source" aria-label="Working example source">
+  <h2>See how it works.</h2><p>The source running this example. Expand a file to follow the Model, Messages and view.</p>
+  {files.map(file => <details><summary>{file.name}</summary><Code code={file.content} lang="ts" theme="github-dark" /></details>)}
+</section>
+<style>
+.example-source { margin: 48px 0; min-width: 0; }
+.example-source h2 { font-size: 24px; margin-bottom: 12px; }
+.example-source p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+.example-source details { border-top: 1px solid var(--border); padding: 16px 0; min-width: 0; }
+.example-source summary { cursor: pointer; font: 13px monospace; }
+.example-source :global(pre) { padding: 24px; overflow-x: auto; margin-top: 16px; font-size: 12px; line-height: 1.7; }
+</style>

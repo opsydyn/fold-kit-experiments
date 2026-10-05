@@ -409,3 +409,89 @@ bun test       # run this package's tests from packages/foldkit-viz
 ## License
 
 MIT — Alan P Currie
+
+## Bars, word cloud, text and paint (unreleased workspace API)
+
+These additions are available in the workspace and have not been published to npm.
+
+```ts
+import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
+
+const data = [
+  { id: 'jan-core', month: 'Jan', team: 'Core', count: 20 },
+  { id: 'jan-tools', month: 'Jan', team: 'Tools', count: 12 },
+];
+const geometry = barGeometry(
+  data,
+  {
+    key: (d) => d.id,
+    category: (d) => d.month,
+    series: (d) => d.team,
+    value: (d) => d.count,
+  },
+  {
+    frame: { width: 600, height: 320, margins: { top: 20, right: 20, bottom: 40, left: 50 } },
+    mode: 'grouped',
+    orientation: 'vertical',
+  },
+);
+```
+
+`mode` is `grouped` or `stacked`; `orientation` is `vertical` or `horizontal`.
+Signed stacks accumulate positive and negative values independently. Missing
+category/series pairs leave gaps; duplicate pairs must be aggregated by the caller.
+Non-finite values, invalid frames, duplicate datum keys and domains that omit
+zero or an endpoint throw `RangeError`. Colours remain a renderer concern.
+
+```ts
+import { wordCloud } from '@opsydyn/foldkit-viz/layout/wordcloud';
+import { wrapText } from '@opsydyn/foldkit-viz/layout/text';
+
+const measured = [{ id: 'geometry', text: 'Geometry', width: 180, height: 32 }];
+const cloud = wordCloud(
+  measured,
+  {
+    key: (d) => d.id,
+    text: (d) => d.text,
+    width: (d) => d.width,
+    height: (d) => d.height,
+    rotation: () => 0,
+  },
+  { width: 600, height: 320, padding: 3, spiral: 'archimedean' },
+);
+// cloud.words contain centre anchors and conservative collision bounds.
+// cloud.omitted contains input records which could not fit.
+const label = wrapText('Values become visuals', (text) => text.length * 8, { width: 100 });
+// Replace this illustrative measurement function with real font metrics.
+```
+
+Use `archimedean` or `rectangular` spirals. Placement is deterministic and
+bounded by `maxSteps` (default 8000, maximum 100000 per word). Rotated measured
+rectangles are conservative, so packing is less dense than pixel-mask clouds.
+There is no font/DOM dependency in the layout: measure the same font, weight
+and size used by your SVG renderer. The native promo example performs font
+loading and canvas measurement in a Foldkit Command, discarding stale revisions.
+
+`wrapText` preserves explicit newlines, collapses other whitespace and breaks
+long words on Unicode graphemes. It reports `overflow` if a glyph exceeds the
+width or `maxLines` omits text. The caller controls measurement; no DOM is used.
+
+```ts
+import {
+  dotPattern,
+  hatchPattern,
+  linearGradient,
+  radialGradient,
+} from '@opsydyn/foldkit-viz/foldkit/paint';
+// Optional Foldkit adapter: compose the returned nodes inside h.defs.
+// Use a unique caller-owned id per definition, then fill with url(#that-id).
+```
+
+All four paint functions accept caller colours including `currentColor` and
+CSS variables. Patterns use `userSpaceOnUse`. Gradient offsets are ordered in
+`[0, 1]`; opacity is optional. Linear endpoints and radial centres/radii can
+be customised. The pure package root does not import these optional adapters.
+
+The word-cloud spirals adapt [d3-cloud](https://github.com/jasondavies/d3-cloud)
+by Jason Davies; see `THIRD-PARTY-NOTICES.md` for its BSD licence. Existing bar
+scales and signed stack accumulation reference the vendored D3 source.

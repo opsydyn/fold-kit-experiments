@@ -5,6 +5,7 @@ import type { Return } from 'foldkit/update';
 import { Props, SignalRecord, SourceSnapshot, SignalThreshold, validSignalProps } from './quality';
 export { Props } from './quality';
 export type { Props as SignalProps } from './quality';
+import { Baseline } from './baseline';
 import type { Message } from './message';
 export const ChartRole = Schema.Literals(['overview', 'latency', 'errors']);
 export type ChartRole = typeof ChartRole.Type;
@@ -35,6 +36,7 @@ export const Model = defineTaggedUnion({
   Ready: {
     records: Schema.Array(SignalRecord),
     snapshot: SourceSnapshot,
+    baseline: Baseline,
     maxGapMs: Schema.Number,
     thresholds: Schema.Array(SignalThreshold),
     scenarioAsOf: Schema.Struct({ Fresh: Schema.Number, Stale: Schema.Number }),
@@ -89,6 +91,7 @@ export const init = (props: Props): Return<Model, Message> =>
         model: Model.Ready({
           records,
           snapshot: props.snapshot,
+          baseline: Baseline.None(),
           maxGapMs: props.maxGapMs,
           thresholds: props.thresholds,
           scenarioAsOf: props.scenarioAsOf,

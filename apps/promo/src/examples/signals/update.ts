@@ -2,6 +2,7 @@ import { intervalSelection, SELECTION_NONE } from '@opsydyn/foldkit-viz/interact
 import { constrainDomain, panDomain, zoomDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
 import type { Return } from 'foldkit/update';
 
+import { Baseline, captureBaseline } from './baseline';
 import { deriveSignalChart, nearestVisible, visibleRecords } from './derive';
 import { Message } from './message';
 import { Model, Gesture, Inspection, init } from './model';
@@ -111,6 +112,13 @@ const zoom = (m: ReadyModel, factor: number): ReadyModel => {
 };
 const readyUpdate = (m: ReadyModel, message: Message): ReadyModel =>
   Message.match(message, {
+    ClickedCaptureBaseline: () => {
+      const record = m.records.find((d) => d.id === m.inspection.key);
+      return record === undefined
+        ? m
+        : { ...cancel(m), baseline: captureBaseline(record, m.snapshot) };
+    },
+    ClickedClearBaseline: () => ({ ...cancel(m), baseline: Baseline.None() }),
     ClickedFreshnessScenario: ({ scenario }) => ({
       ...m,
       snapshot: { ...m.snapshot, asOf: m.scenarioAsOf[scenario] },

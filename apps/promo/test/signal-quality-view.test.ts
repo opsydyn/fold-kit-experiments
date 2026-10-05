@@ -156,7 +156,11 @@ test('inspector itself discloses source freshness identity and snapshot times', 
 
 test('quality lane labels remain vertically separate from the time-axis title', async () => {
   const markup = await render(ready());
-  for (const svg of markup.match(/<svg\b[\s\S]*?<\/svg>/g) ?? []) {
+  const measuredCharts = (markup.match(/<svg\b[\s\S]*?<\/svg>/g) ?? []).filter(
+    (svg) => !svg.includes('class="signal-event-lane"'),
+  );
+  expect(measuredCharts).toHaveLength(3);
+  for (const svg of measuredCharts) {
     const texts = [...svg.matchAll(/<text\b([^>]*)>([^<]*)<\/text>/g)].map((match) => ({
       label: match[2],
       y: Number(match[1]?.match(/\by="([^"]+)"/)?.[1]),

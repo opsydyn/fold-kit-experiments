@@ -1,6 +1,6 @@
 # Signal event annotations and shared lane — approved design
 
-Date: 2026-10-05. Current source baseline: `2357948`, branch `codex/foldkit-0-166-0`, existing managed promo worktree. Status: the user approved this written spec on 2026-10-05. The [implementation plan](../plans/2026-10-05-signal-event-lane.md) is awaiting review; product implementation has not started.
+Date: 2026-10-05. Current source baseline: `2357948`, branch `codex/foldkit-0-166-0`, existing managed promo worktree. Status: the user approved this written spec on 2026-10-05. The approved [implementation plan](../plans/2026-10-05-signal-event-lane.md) is implemented locally; see [qualification evidence](2026-10-05-signal-event-lane-qualification.md) for verified scope and open acceptance gates.
 
 ## Intent and success
 
@@ -141,4 +141,4 @@ Defer duration/range events, event editing/loading, feed refresh/live replay, pe
 
 Self-review: selection has one owner; optional event errors are isolated; event/observation snapshots and IDs are distinct; instant-time and cell grouping semantics are exact; all transition exceptions and dataset-reset boundaries are written; fixtures cover gaps, ties and range boundaries without replacing current measurements. No placeholders or unresolved alternatives remain in the proposed design.
 
-Next: review this written spec, then create a concrete test-first implementation plan. Native execution remains the user's selected method. This design approval does not imply publication or completion of replay/hardware/assistive-technology gates.
+Next: direct accessibility and device acceptance of the implemented Signal desk. Native execution was the user-selected method. This design approval does not imply publication or completion of replay/hardware/assistive-technology gates.

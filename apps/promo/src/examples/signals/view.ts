@@ -9,6 +9,7 @@ import { exampleTheme } from '#example/frame';
 import { deriveComparisonChart } from './comparison';
 import { comparisonPanel, comparisonLayers, baselineReferenceList } from './comparison-view';
 import { currentSignalSource, deriveSignalChart, inspectionNotice, utc } from './derive';
+import { eventPanel, eventGuideLayers } from './event-view';
 import { ObserveSignalInput } from './input';
 import { Message } from './message';
 import { Model } from './model';
@@ -141,6 +142,7 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
             [
               highlight,
               ...comparisonLayers(m, role, layout, h),
+              ...eventGuideLayers(m, role, layout, h),
 
               // Single observations still have an honest visible mark, even without a line segment.
               pointSeries(h, {
@@ -385,6 +387,7 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
         ],
       ),
       comparisonPanel(m, h),
+      eventPanel(m, deriveSignalChart(m, 'latency').geometry.layout, h),
       signalChart(m, 'latency', h),
       signalChart(m, 'errors', h),
       h.details(

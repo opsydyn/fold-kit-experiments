@@ -31,6 +31,9 @@
   --chart-tooltip-text: var(--surface);
   --chart-series-a: var(--blue);
   --chart-series-b: var(--coral);
+  --signal-event-deploy: var(--word-blue);
+  --signal-event-config: var(--word-lavender);
+  --signal-event-note: var(--word-mint);
 }
 :root[data-theme='dark'] {
   color-scheme: dark;
@@ -1469,5 +1472,127 @@ nav a[aria-current='page'] {
   .signal-comparison-grid,
   .signal-comparison-differences {
     grid-template-columns: 1fr;
+  }
+}
+
+.signal-events {
+  border-top: 3px solid var(--text);
+  border-bottom: 1px dotted var(--rule);
+  padding: 1.2rem 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.signal-events h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.signal-event-count {
+  font:
+    600 0.75rem/1.6 ui-monospace,
+    monospace;
+}
+.signal-event-lane {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.signal-event-announcement {
+  font:
+    0.75rem/1.6 ui-monospace,
+    monospace;
+}
+.signal-event-selected {
+  border-left: 3px solid var(--chart-focus);
+  padding: 0.4rem 0 0.8rem 1rem;
+  margin: 1rem 0;
+}
+.signal-event-selected h3 {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.signal-event-selected p {
+  margin: 0.5rem 0;
+}
+.signal-event-selected dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.signal-event-selected dt {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.signal-event-selected dd {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+}
+.signal-event-identity {
+  font:
+    0.75rem/1.6 ui-monospace,
+    monospace;
+}
+.signal-event-browser summary {
+  cursor: pointer;
+  padding: 0.8rem 0;
+  font-size: 0.8rem;
+}
+.signal-event-groups {
+  margin: 0;
+  padding-left: 1.2rem;
+  font:
+    0.75rem/1.6 ui-monospace,
+    monospace;
+}
+.signal-event-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.signal-event-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-top: 1px dotted var(--rule);
+}
+.signal-event-list-copy {
+  min-width: 0;
+}
+.signal-event-list-copy p {
+  margin: 0.2rem 0;
+  font-size: 0.8rem;
+}
+.signal-event-list button {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 0.5rem 0.8rem;
+  font:
+    0.75rem/1.5 ui-monospace,
+    monospace;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.signal-event-list button[aria-pressed='true'] {
+  border: 2px solid var(--chart-focus);
+  font-weight: 700;
+}
+.signal-event-list button:focus-visible,
+.signal-event-browser summary:focus-visible {
+  outline: 2px solid var(--chart-focus);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .signal-event-selected dl {
+    grid-template-columns: 1fr;
+  }
+  .signal-event-list li {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
   }
 }

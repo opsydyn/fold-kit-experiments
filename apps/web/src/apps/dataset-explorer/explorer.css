@@ -1,0 +1,194 @@
+.query-intro,
+.query-explorer {
+  --dataset-north: #4c8dff;
+  --dataset-coast: #f47757;
+  --dataset-upland: #25c99a;
+  max-width: 1100px;
+  margin-inline: auto;
+}
+.query-intro {
+  margin-block: 1rem 2rem;
+}
+.query-intro h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  letter-spacing: -0.055em;
+  margin: 0.6rem 0;
+}
+.query-intro p:not(.query-eyebrow) {
+  color: var(--chart-label);
+  max-width: 680px;
+  line-height: 1.6;
+}
+.query-intro a {
+  display: inline-block;
+  color: var(--dataset-north);
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+}
+.query-eyebrow,
+.query-cache-count,
+.query-state,
+.query-log {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.75rem;
+}
+.query-eyebrow {
+  color: var(--chart-label);
+  letter-spacing: 0.13em;
+}
+.query-toolbar,
+.query-readout,
+.query-actions,
+.query-stations {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+.query-toolbar,
+.query-readout {
+  justify-content: space-between;
+}
+.query-toolbar {
+  margin-bottom: 1rem;
+}
+.query-cache-count {
+  color: var(--chart-label);
+}
+.query-station,
+.query-action {
+  color: var(--page-text);
+  background: var(--card-bg);
+  border: 1px solid var(--chart-axis);
+  border-radius: 2px;
+  padding: 0.65rem 0.8rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+}
+.query-station {
+  border-top: 3px solid var(--station-colour);
+}
+.query-station[aria-pressed='true'] {
+  border-color: var(--station-colour);
+  box-shadow: inset 0 -2px var(--station-colour);
+}
+.query-station:focus-visible,
+.query-action:focus-visible {
+  outline: 2px solid var(--dataset-north);
+  outline-offset: 3px;
+}
+.query-action:hover:not(:disabled) {
+  border-color: var(--dataset-north);
+}
+.query-action:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+.query-panel {
+  padding: 1.3rem;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+}
+.query-readout {
+  margin-bottom: 1rem;
+}
+.query-readout h2 {
+  font-size: 1.3rem;
+  letter-spacing: -0.025em;
+  margin-top: 0.35rem;
+}
+.query-state {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--chart-label);
+}
+.query-state strong {
+  color: var(--dataset-upland);
+  text-transform: uppercase;
+}
+.query-actions {
+  border-top: 1px dotted var(--chart-axis);
+  padding-top: 1rem;
+  margin-top: 0.8rem;
+}
+.query-hint {
+  color: var(--chart-label);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  margin-top: 0.8rem;
+}
+.query-empty {
+  min-height: 330px;
+  display: grid;
+  place-items: center;
+  color: var(--chart-label);
+  border-block: 1px dotted var(--chart-axis);
+}
+.query-error {
+  color: var(--dataset-coast);
+  padding: 0.8rem 0;
+  font-size: 0.85rem;
+}
+.query-lower {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.query-section-title {
+  font-size: 0.9rem;
+}
+.query-log {
+  list-style: none;
+  margin-top: 1rem;
+}
+.query-log-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-top: 1px dotted var(--chart-axis);
+}
+.query-log-row strong {
+  color: var(--dataset-upland);
+  text-transform: uppercase;
+}
+.query-log-row[data-outcome='ignored'] strong,
+.query-log-row[data-outcome='failed'] strong {
+  color: var(--dataset-coast);
+}
+.query-explorer .chart-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+}
+.query-explorer .chart-data-table caption {
+  text-align: left;
+  color: var(--chart-label);
+  padding-bottom: 0.6rem;
+}
+.query-explorer .chart-data-table td,
+.query-explorer .chart-data-table th {
+  text-align: left;
+  padding: 0.4rem;
+  border-bottom: 1px dotted var(--chart-axis);
+}
+[data-theme='light'] .query-intro,
+[data-theme='light'] .query-explorer {
+  --dataset-north: #1c5cd5;
+  --dataset-coast: #bc452d;
+  --dataset-upland: #087c60;
+}
+@media (max-width: 720px) {
+  .query-lower {
+    grid-template-columns: 1fr;
+  }
+  .query-panel {
+    padding: 0.8rem;
+  }
+  .query-state {
+    width: 100%;
+  }
+}

@@ -1,0 +1,15 @@
+---
+import DatasetExplorerApp from '../apps/dataset-explorer/app';
+import Layout from '../layouts/Layout.astro';
+import '../apps/dataset-explorer/explorer.css';
+---
+
+<Layout title="Dataset explorer — FoldKit Query">
+  <div class="query-intro">
+    <p class="query-eyebrow">FOLDKIT 0.166 / EXPERIMENTAL KEYEDQUERY</p>
+    <h1>Data that remembers.</h1>
+    <p>Explore remote datasets, refresh without losing your place, and watch late responses stay in the past.</p>
+    <a href="https://foldkit.dev/core/query">Query guide ↗</a>
+  </div>
+  <DatasetExplorerApp client:load />
+</Layout>

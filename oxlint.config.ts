@@ -168,6 +168,7 @@ export default defineConfig({
       // own Effect state transitions, so Effect-only control-flow heuristics do not apply.
       files: [
         'apps/web/src/ui/**',
+        'apps/web/src/apps/dataset-explorer/{data,chart}.ts',
         'apps/web/src/apps/**/view.ts',
         'apps/web/src/apps/**/*.test.ts',
         'apps/web/src/stories/**',

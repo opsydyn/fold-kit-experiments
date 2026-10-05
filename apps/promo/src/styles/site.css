@@ -189,6 +189,13 @@ nav a[aria-current='page'] {
   line-height: 1.7;
   letter-spacing: -0.2px;
 }
+.hero-description a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.hero-description a:hover {
+  color: var(--blue);
+}
 .hero-actions {
   display: flex;
   flex-wrap: wrap;

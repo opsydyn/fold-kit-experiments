@@ -8,9 +8,11 @@ import { datasetIds, datasets } from './data';
 import { Message } from './message';
 import type { Model } from './model';
 import { DatasetQuery } from './query';
+import { sourcePanel } from './source-view';
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const args = {
+    source: model.transport,
     dataset: model.selected,
     revision: model.nextRevision,
     profile: 'normal' as const,
@@ -175,6 +177,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ),
         ],
       ),
+      ...sourcePanel(model, h),
     ],
   );
   return { title: 'Dataset explorer — FoldKit Query', body };

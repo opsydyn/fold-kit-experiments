@@ -1,7 +1,6 @@
+import { datasets, delays, Request } from '@opsydyn/dataset-explorer/data';
 import type { APIRoute } from 'astro';
 import { Effect, Match, pipe, Schema } from 'effect';
-
-import { datasets, delays, Request } from '../../apps/dataset-explorer/data';
 
 const datasetResponse = Effect.fn('datasetResponse')(function* (url: URL) {
   const fail = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Boolean))(

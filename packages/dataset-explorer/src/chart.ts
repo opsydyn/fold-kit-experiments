@@ -16,9 +16,9 @@ import type { Snapshot } from './data';
 
 export const chartTheme: ChartTheme = {
   ...darkTheme,
-  background: 'var(--card-bg)',
-  text: 'var(--page-text)',
-  mutedText: 'var(--chart-label)',
+  background: 'var(--card-bg, var(--surface))',
+  text: 'var(--page-text, var(--text))',
+  mutedText: 'var(--chart-label, var(--muted))',
   grid: 'var(--chart-grid)',
   axis: 'var(--chart-axis)',
 };

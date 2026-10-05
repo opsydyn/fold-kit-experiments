@@ -1,0 +1,27 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import DatasetExplorer from '../../examples/datasets/app';
+import { datasetSources } from '../../lib/dataset-sources';
+---
+<Layout title="Live dataset explorer — Foldkit Viz">
+  <section class="page-intro">
+    <a class="text-link" href="/examples/">← All examples</a>
+    <p class="eyebrow">FOLDKIT 0.166 / KEYEDQUERY</p>
+    <h1>Data that remembers.</h1>
+    <p>Switch stations. Refresh without losing the chart. Watch a late response arrive — and leave the newer snapshot untouched.</p>
+    <p class="small-note">Illustrative observations fetched from static JSON. Latency and failed refreshes are simulated in the client. Uses FoldKit’s experimental Query API.</p>
+  </section>
+  <section class="live-example" aria-label="Interactive dataset explorer">
+    <DatasetExplorer client:load noMeta transport="fixtures" sources={datasetSources} />
+    <noscript><p>This example needs JavaScript. <a href="/docs/#foldkit">Explore the FoldKit architecture</a>.</p></noscript>
+  </section>
+  <section class="closing-callout">
+    <h2>The chart composes. The data remembers.</h2>
+    <p>Accessor-based geometry feeds independent axes, grid, line and point layers. FoldKit Query retains each station’s data and rejects responses from an earlier generation. The Model owns every control.</p>
+    <a class="text-link" href="https://foldkit.dev/core/query">Read the Query guide ↗</a>
+  </section>
+</Layout>
+<style>
+  .live-example { min-width: 0; }
+  .live-example astro-island[ssr]::before { content: 'Preparing the dataset explorer…'; display: block; padding: 48px; border: 1px solid var(--border); color: var(--muted); }
+</style>

@@ -168,7 +168,7 @@ export default defineConfig({
       // own Effect state transitions, so Effect-only control-flow heuristics do not apply.
       files: [
         'apps/web/src/ui/**',
-        'apps/web/src/apps/dataset-explorer/{data,chart}.ts',
+        'packages/dataset-explorer/src/{data,chart,view,source,source-view}.ts',
         'apps/web/src/apps/**/view.ts',
         'apps/web/src/apps/**/*.test.ts',
         'apps/web/src/stories/**',
@@ -201,6 +201,8 @@ export default defineConfig({
         'packages/astro-foldkit/src/server-render.ts',
         'apps/promo/src/lib/{line,example}-project.ts',
         'apps/promo/src/pages/downloads/**',
+        'apps/promo/src/pages/datasets/**',
+        'apps/promo/src/lib/dataset-sources.ts',
       ],
       rules: {
         'linteffect/no-naked-object-state-update': 'off',
@@ -212,6 +214,7 @@ export default defineConfig({
       // handlers, so their ordinary data branching remains readable and intentional.
       files: [
         'apps/web/src/apps/**/model.ts',
+        'packages/dataset-explorer/src/model.ts',
         'apps/promo/src/examples/**/model.ts',
         'apps/web/src/apps/request-diagnostics/navigation.ts',
         'apps/web/src/apps/counter/types.ts',

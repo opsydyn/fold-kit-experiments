@@ -3,6 +3,8 @@ import { Schema } from 'effect';
 export const DatasetId = Schema.Literals(['north', 'coast', 'upland']);
 export type DatasetId = typeof DatasetId.Type;
 export const RequestProfile = Schema.Literals(['normal', 'slow', 'fast']);
+export const Transport = Schema.Literals(['api', 'fixtures']);
+export type Transport = typeof Transport.Type;
 export const Request = Schema.Struct({
   dataset: DatasetId,
   revision: Schema.Number.check(
@@ -12,6 +14,7 @@ export const Request = Schema.Struct({
   ),
   profile: RequestProfile,
   fail: Schema.Boolean,
+  source: Schema.optional(Transport),
 });
 export type Request = typeof Request.Type;
 export const Point = Schema.Struct({ hour: Schema.Number, value: Schema.Number });
@@ -20,9 +23,10 @@ export const Snapshot = Schema.Struct({
   revision: Schema.Number,
   points: Schema.Array(Point),
 });
+export const Fixture = Schema.Struct({ dataset: DatasetId, points: Schema.Array(Point) });
 export type Snapshot = typeof Snapshot.Type;
 
-/** Illustrative observations; only the API reads these values. Geometry uses accessors. */
+/** Illustrative observations served by the API and static fixture routes. */
 export const datasets = {
   north: {
     label: 'North station',

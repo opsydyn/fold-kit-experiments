@@ -1,8 +1,10 @@
 # KeyedQuery dataset explorer
 
-The demo at `/dataset-explorer` uses FoldKit 0.166's experimental Query API
+The demo at `/dataset-explorer` and promo at `/examples/datasets/` use FoldKit 0.166's experimental Query API
 with keyed arguments. It demonstrates application-owned remote state around
-composable chart geometry and FoldKit layers.
+composable chart geometry and FoldKit layers. Both apps consume the private
+`@opsydyn/dataset-explorer` workspace; the public Viz package stays independent
+of application state and HTTP transport.
 
 ## Try it
 
@@ -19,11 +21,25 @@ The observations are explicit illustrative fixtures, not live weather data.
 Delays make the asynchronous states observable. Snapshot identities come from
 the parent Model, not a server counter or external mutable state.
 
+## Promo source panel
+
+The promo fetches prerendered `/datasets/{station}.json` files. Its Query Command
+simulates latency and deliberate failures locally; the site needs no server API.
+The web demo still uses its HTTP API for latency and failures.
+
+The source selector displays the shared TypeScript and CSS files used by the
+running example, read directly by Vite at build time. `snapshot.json` is derived
+from the selected Query entry in the Model. It updates after accepted completions
+and preserves the current data while refreshing or stale. The panel is a source
+viewer; it does not compile edited code.
+
 ## Composition
+
+Core files live in `packages/dataset-explorer/src/`.
 
 - `data.ts` defines dataset identities, request/response codecs and fixture metadata.
 - `query.ts` defines the keyed child and its HTTP fetch Effect. Station identity
-  is the cache key; revision, latency profile and simulated failure are request
+  together with transport is the cache key; revision, latency profile and simulated failure are request
   controls. The generated fetch Command owns the effect execution.
 - `model.ts` embeds the generated Query Model schema directly.
 - `message.ts` embeds the generated child Message schema directly.
@@ -34,6 +50,7 @@ the parent Model, not a server counter or external mutable state.
   composes frame, axes, grid, line and point layers. It accepts frame, theme and
   colour overrides. Domains derive from the observations.
 - `view.ts` handles all AsyncData states and exposes a raw data table.
+- `source.ts` derives the current source content; `source-view.ts` renders the panel.
 - `pages/api/datasets.ts` validates requests at the HTTP boundary and returns
   uncached JSON so revisits demonstrate application caching.
 
@@ -41,7 +58,7 @@ Reset clears all station entries and invalidates old completions. It does not
 cancel requests. This example deliberately keeps explicit cancellation out of
 its contract; request diagnostics remains the example for interruptible work.
 
-The cache has only three allowed station keys. Query provides no automatic
+Each app uses only three allowed station keys for its transport. Query provides no automatic
 TTL or per-key eviction here. Its experimental API may change in future releases.
 
 ## Verification
@@ -65,7 +82,23 @@ Qualification completed on 2026-10-05:
 - Dark and light appearances were inspected; the original dark preference was
   restored. No runtime warning/error was recorded before the deliberate failure.
 
-Development preview: `http://127.0.0.1:64187/dataset-explorer`. The promo dev
-server remains on port 4321.
+Development preview: `http://127.0.0.1:64187/dataset-explorer`. Promo preview: `http://127.0.0.1:4321/examples/datasets/`.
 
 [Upstream Query guide](https://foldkit.dev/core/query)
+
+### Promo integration qualification (2026-10-05)
+
+- `bun run check`: zero lint warnings/errors; format clean.
+- `bun typecheck`: zero diagnostics across all five workspaces. The shared package
+  also passed its standalone typecheck after adding its Viz build prerequisite.
+- `bun run test`: 403 passing tests (Astro 74, Viz 169, promo 42, web 118).
+- `bun run build`: both apps passed; all three static JSON fixtures and the
+  dataset page were generated. The page contains the shared running source.
+- Read-only review: no remaining Critical, Important or Minor findings.
+- Native browser flow on port 4321: North snapshot 1, Coastal snapshot 2,
+  immediate retained North snapshot 1, refresh to snapshot 3, failed refresh
+  preserving snapshot 3, race accepting snapshot 6 and ignoring snapshot 5.
+  `snapshot.json` stayed aligned with the selected chart throughout.
+- Actual Query source selection, the gallery link, dark/light appearances and
+  the original web API consumer were inspected. The dark preference was restored;
+  no browser warning/error was recorded. Temporary QA tabs were closed.

@@ -1,12 +1,11 @@
+import { Message } from '@opsydyn/dataset-explorer/message';
+import { init, Model } from '@opsydyn/dataset-explorer/model';
+import { DatasetQuery } from '@opsydyn/dataset-explorer/query';
+import { update } from '@opsydyn/dataset-explorer/update';
+import { view } from '@opsydyn/dataset-explorer/view';
 import { Effect, pipe, Result, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import { describe, expect, it } from 'vitest';
-
-import { Message } from './message';
-import { init, Model } from './model';
-import { DatasetQuery } from './query';
-import { update } from './update';
-import { view } from './view';
 
 const render = (model: Model) =>
   pipe(

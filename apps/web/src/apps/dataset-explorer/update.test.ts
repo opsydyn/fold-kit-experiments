@@ -1,14 +1,13 @@
+import { Request } from '@opsydyn/dataset-explorer/data';
+import { Message } from '@opsydyn/dataset-explorer/message';
+import { init } from '@opsydyn/dataset-explorer/model';
+import type { Model } from '@opsydyn/dataset-explorer/model';
+import { DatasetQuery } from '@opsydyn/dataset-explorer/query';
+import { update } from '@opsydyn/dataset-explorer/update';
 import { Option, Result, Schema } from 'effect';
 import { getData } from 'foldkit/asyncData';
 import type { Return } from 'foldkit/update';
 import { describe, expect, it } from 'vitest';
-
-import { Request } from './data';
-import { Message } from './message';
-import { init } from './model';
-import type { Model } from './model';
-import { DatasetQuery } from './query';
-import { update } from './update';
 
 const commandInput = Schema.Struct({ args: Request, generation: Schema.Number });
 const completion = (started: Return<Model, Message>, index = 0, failed = false): Message => {

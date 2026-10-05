@@ -22,7 +22,13 @@ const request =
   ): Step<Model, Message> =>
   (model) =>
     pipe(
-      operation(model, { dataset: model.selected, revision: model.nextRevision, profile, fail }),
+      operation(model, {
+        source: model.transport,
+        dataset: model.selected,
+        revision: model.nextRevision,
+        profile,
+        fail,
+      }),
       (result) => ({
         ...result,
         model: modifyFields(result.model, {
@@ -67,6 +73,7 @@ const recordCompletion = (
 
 export const update = (model: Model, message: Message): Return<Model, Message> =>
   Message.match(message, {
+    SelectedSource: ({ name }) => ({ model: modifyFields(model, { activeFile: () => name }) }),
     ClickedDataset: ({ dataset: selected }) =>
       loadSelected(
         modifyFields(model, {

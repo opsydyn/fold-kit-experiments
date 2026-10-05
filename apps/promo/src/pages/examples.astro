@@ -1,4 +1,5 @@
 ---
+import { sitePath } from '../lib/site-path';
 import Chart from '../components/Chart.astro';
 import Layout from '../layouts/Layout.astro';
 import { examples, sourceRoot } from '../lib/examples';
@@ -10,7 +11,7 @@ import { examples, sourceRoot } from '../lib/examples';
     <p>Six starting points for your next visualisation. Every chart is SVG, built with Foldkit Viz.</p>
     <p class="small-note">All datasets are illustrative. Map boundaries: Natural Earth via world-atlas.</p>
   </section>
-  <section class="live-example-callout"><p class="eyebrow">NEW / INTERACTIVE</p><h2>Try it. Read it. Make it yours.</h2><p>Shape a line, regroup a distribution, inspect a scatter plot or explore retained datasets. Read the code as you experiment, then take the working example into your own project.</p><div class="live-example-actions"><a class="button button-primary" href="/examples/line/">Explore the live line →</a><a class="button button-secondary" href="/examples/histogram/">Explore the live histogram →</a><a class="button button-secondary" href="/examples/scatter/">Explore the live scatter →</a><a class="button button-secondary" href="/examples/datasets/">Explore the live datasets →</a></div></section>
+  <section class="live-example-callout"><p class="eyebrow">NEW / INTERACTIVE</p><h2>Try it. Read it. Make it yours.</h2><p>Shape a line, regroup a distribution, inspect a scatter plot or explore retained datasets. Read the code as you experiment, then take the working example into your own project.</p><div class="live-example-actions"><a class="button button-primary" href={sitePath('/examples/line/')}>Explore the live line →</a><a class="button button-secondary" href={sitePath('/examples/histogram/')}>Explore the live histogram →</a><a class="button button-secondary" href={sitePath('/examples/scatter/')}>Explore the live scatter →</a><a class="button button-secondary" href={sitePath('/examples/datasets/')}>Explore the live datasets →</a></div></section>
   <div class="examples-list">
     {examples.map((example, i) => <section class="example-detail" id={example.id} aria-labelledby={example.id + '-heading'}>
       <div class="example-explanation">
@@ -36,5 +37,5 @@ import { examples, sourceRoot } from '../lib/examples';
       </div>
     </section>)}
   </div>
-  <section class="closing-callout"><h2>Make the next one yours.</h2><a class="button button-primary" href="/docs/#quick-start">Build your first chart <span aria-hidden="true">→</span></a></section>
+  <section class="closing-callout"><h2>Make the next one yours.</h2><a class="button button-primary" href={sitePath('/docs/#quick-start')}>Build your first chart <span aria-hidden="true">→</span></a></section>
 </Layout>

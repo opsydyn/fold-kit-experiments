@@ -30,10 +30,12 @@ export const ActionStatus = defineTaggedUnion({
   Failed: { error: Schema.String },
 });
 export const Props = Schema.Struct({
+  embeddedEditor: Schema.optional(Schema.Boolean),
   sources: Schema.Array(Source),
   templateUrl: Schema.NullOr(Schema.String),
 });
 export const Model = Schema.Struct({
+  embeddedEditor: Schema.Boolean,
   chartWidth: Schema.Number,
   settings: Settings,
   panel: Panel,
@@ -51,6 +53,7 @@ export interface InitReturn {
 export const init = (props: Props): InitReturn => ({
   model: {
     ...Schema.decodeUnknownSync(Props)(props),
+    embeddedEditor: props.embeddedEditor ?? true,
     chartWidth: 560,
     settings: initialSettings,
     panel: 'controls' as const,

@@ -1,4 +1,5 @@
 ---
+import { sitePath } from '../lib/site-path';
 import '@fontsource-variable/inter/wght.css';
 import '../styles/site.css';
 import Brand from '../components/Brand.astro';
@@ -21,7 +22,7 @@ const path = Astro.url.pathname;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href={sitePath('/favicon.svg')} />
     <title>{title}</title>
     <script is:inline>
       // First-paint theme is page chrome, independent of chart/application state.
@@ -41,8 +42,8 @@ const path = Astro.url.pathname;
       <header class="site-header">
         <Brand />
         <nav aria-label="Main navigation">
-          <a href="/examples/" aria-current={path.startsWith('/examples') ? 'page' : undefined}>Examples</a>
-          <a href="/docs/" aria-current={path.startsWith('/docs') ? 'page' : undefined}>Docs</a>
+          <a href={sitePath('/examples/')} aria-current={path.startsWith(sitePath('/examples')) ? 'page' : undefined}>Examples</a>
+          <a href={sitePath('/docs/')} aria-current={path.startsWith(sitePath('/docs')) ? 'page' : undefined}>Docs</a>
           <a href={repository}>GitHub<span class="sr-only"> repository</span></a>
           <button class="theme-toggle" id="theme-toggle" aria-label="Switch colour theme" type="button">
             <svg class="sun-icon" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
@@ -59,7 +60,7 @@ const path = Astro.url.pathname;
       <footer class="site-footer">
         <div class="footer-brand"><Brand footer /><span>Made for the way you build.</span></div>
         <nav aria-label="Footer navigation">
-          <a href="/docs/">Docs</a>
+          <a href={sitePath('/docs/')}>Docs</a>
           <a href={repository}>GitHub</a>
           <a href={repository + '/tree/main/packages/foldkit-viz#license'}>MIT</a>
         </nav>

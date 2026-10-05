@@ -15,6 +15,7 @@ export const Request = Schema.Struct({
   profile: RequestProfile,
   fail: Schema.Boolean,
   source: Schema.optional(Transport),
+  fixturesUrl: Schema.optional(Schema.String),
 });
 export type Request = typeof Request.Type;
 export const Point = Schema.Struct({ hour: Schema.Number, value: Schema.Number });

@@ -7,16 +7,19 @@ import type { Model } from './model';
 
 export const update = (model: Model, message: Message): Return<Model, Message> =>
   Message.match(message, {
-    ClickedEditor: () => ({
-      model: {
-        ...model,
-        editorVisible: true,
-        editor: Editor.match(model.editor, {
-          Idle: () => Editor.Session({ revision: 1, status: EditorStatus.Loading() }),
-          Session: () => model.editor,
-        }),
-      },
-    }),
+    ClickedEditor: () =>
+      model.embeddedEditor
+        ? {
+            model: {
+              ...model,
+              editorVisible: true,
+              editor: Editor.match(model.editor, {
+                Idle: () => Editor.Session({ revision: 1, status: EditorStatus.Loading() }),
+                Session: () => model.editor,
+              }),
+            },
+          }
+        : { model },
     ClickedCloseEditor: () => ({ model: { ...model, editorVisible: false } }),
     ClickedRestartEditor: () =>
       Editor.match(model.editor, {

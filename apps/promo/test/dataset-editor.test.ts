@@ -64,3 +64,16 @@ test('editor and external playground progress independently', () => {
   expect(closed.status._tag).toBe('Pending');
   expect(closed.editor).toBe(editing.editor);
 });
+
+test('Pages mode refuses an embedded editor but retains the external playground', () => {
+  const model = init({
+    templateUrl: '/fold-kit-experiments/viz/downloads/dataset-template.json',
+    embeddedEditor: false,
+  }).model;
+  expect(update(model, Message.ClickedEditor())).toEqual({ model });
+  const opened = update(model, Message.ClickedPlayground());
+  expect(opened.commands).toHaveLength(1);
+  expect(opened.commands?.[0]?.args).toEqual({
+    templateUrl: '/fold-kit-experiments/viz/downloads/dataset-template.json',
+  });
+});

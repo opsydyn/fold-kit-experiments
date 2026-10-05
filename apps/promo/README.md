@@ -39,8 +39,20 @@ bun run --filter @opsydyn/promo typecheck
 bun run check
 ```
 
-Root `bun run build` includes this app. No hosting adapter, public site URL or
-deployment is configured.
+Root `bun run build` includes this app. The combined GitHub Pages workflow
+publishes it at `https://opsydyn.github.io/fold-kit-experiments/viz/`, alongside
+Storybook at the project root and TypeDoc under `/api/`.
+
+Pages builds set `PROMO_SITE_URL=https://opsydyn.github.io`,
+`PROMO_BASE_PATH=/fold-kit-experiments/viz/` and `PUBLIC_EMBED_EDITOR=false`.
+Navigation, island templates, downloads and dataset fixtures use that base.
+Local development defaults to `/` and retains embedded editors with the local
+isolation headers. Pages offers native chart controls, source inspection,
+downloads and external StackBlitz editing; it does not offer embedded editors.
+
+The post-build deployment check verifies internal links and island modules:
+`PROMO_BASE_PATH=/fold-kit-experiments/viz/ bun test apps/promo/test/pages-build.test.ts`
+(run from the repository root after a Pages build).
 
 ## Live line example (v2)
 

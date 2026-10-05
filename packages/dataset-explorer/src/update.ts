@@ -25,6 +25,7 @@ const request =
     pipe(
       operation(model, {
         source: model.transport,
+        fixturesUrl: model.fixturesUrl,
         dataset: model.selected,
         revision: model.nextRevision,
         profile,

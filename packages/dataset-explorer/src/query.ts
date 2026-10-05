@@ -21,7 +21,7 @@ class FixtureError extends Data.TaggedError('FixtureError')<{
 }> {}
 
 const fetchFixtureData = Effect.fn('fetchDatasetFixtureData')(function* (args: Request) {
-  const response = yield* HttpClient.get(`/datasets/${args.dataset}.json`);
+  const response = yield* HttpClient.get(`${args.fixturesUrl ?? '/datasets/'}${args.dataset}.json`);
   const fixture = yield* HttpClientResponse.schemaBodyJson(Fixture)(response).pipe(
     Effect.filterOrFail(
       (data) => data.dataset === args.dataset,

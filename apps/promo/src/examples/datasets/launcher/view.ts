@@ -13,14 +13,18 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       h.div(
         [h.Class('dataset-actions')],
         [
-          h.button(
-            [
-              h.Type('button'),
-              h.Class('button button-primary'),
-              h.OnClick(Message.ClickedEditor()),
-            ],
-            ['Edit live'],
-          ),
+          ...(model.embeddedEditor
+            ? [
+                h.button(
+                  [
+                    h.Type('button'),
+                    h.Class('button button-primary'),
+                    h.OnClick(Message.ClickedEditor()),
+                  ],
+                  ['Edit live'],
+                ),
+              ]
+            : []),
           h.button(
             [
               h.Type('button'),
@@ -33,7 +37,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.a(
             [
               h.Class('button button-secondary'),
-              h.Href('/downloads/dataset-explorer.zip'),
+              h.Href(model.downloadUrl),
               h.Attribute('download', 'foldkit-viz-dataset-explorer.zip'),
             ],
             ['Download standalone project ↓'],
@@ -123,7 +127,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [
           Status.match(model.status, {
             Ready: () =>
-              'Edit in your browser, or download the Vite starter to run with npm or Bun. All three datasets and native FoldKit source are included.',
+              'Open StackBlitz to edit the code, or download the Vite starter to run with npm or Bun. All three datasets and native FoldKit source are included.',
             Pending: () => 'Preparing the project…',
             Opened: () => 'Opening StackBlitz…',
             Failed: ({ error }) => error,

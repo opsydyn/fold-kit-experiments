@@ -1,4 +1,5 @@
 ---
+import { sitePath } from '../../lib/site-path';
 import Layout from '../../layouts/Layout.astro';
 import DatasetExplorer from '../../examples/datasets/app';
 import DatasetLauncher from '../../examples/datasets/launcher/app';
@@ -6,17 +7,17 @@ import { datasetSources } from '../../lib/dataset-sources';
 ---
 <Layout title="Live dataset explorer — Foldkit Viz">
   <section class="page-intro">
-    <a class="text-link" href="/examples/">← All examples</a>
+    <a class="text-link" href={sitePath('/examples/')}>← All examples</a>
     <p class="eyebrow">FOLDKIT 0.166 / KEYEDQUERY</p>
     <h1>Data that remembers.</h1>
     <p>Switch stations. Refresh without losing the chart. Watch a late response arrive — and leave the newer snapshot untouched.</p>
     <p class="small-note">Illustrative observations fetched from static JSON. Latency and failed refreshes are simulated in the client. Uses FoldKit’s experimental Query API.</p>
   </section>
-  <DatasetLauncher client:load noMeta templateUrl="/downloads/dataset-template.json" />
-  <noscript><p><a href="/downloads/dataset-explorer.zip" download>Download standalone project ↓</a></p></noscript>
+  <DatasetLauncher client:load noMeta embeddedEditor={import.meta.env.PUBLIC_EMBED_EDITOR !== 'false'} downloadUrl={sitePath('/downloads/dataset-explorer.zip')} templateUrl={sitePath('/downloads/dataset-template.json')} />
+  <noscript><p><a href={sitePath('/downloads/dataset-explorer.zip')} download>Download standalone project ↓</a></p></noscript>
   <section class="live-example" aria-label="Interactive dataset explorer">
-    <DatasetExplorer client:load noMeta transport="fixtures" sources={datasetSources} />
-    <noscript><p>This example needs JavaScript. <a href="/docs/#foldkit">Explore the FoldKit architecture</a>.</p></noscript>
+    <DatasetExplorer client:load noMeta transport="fixtures" fixturesUrl={sitePath('/datasets/')} sources={datasetSources} />
+    <noscript><p>This example needs JavaScript. <a href={sitePath('/docs/#foldkit')}>Explore the FoldKit architecture</a>.</p></noscript>
   </section>
   <section class="closing-callout">
     <h2>The chart composes. The data remembers.</h2>

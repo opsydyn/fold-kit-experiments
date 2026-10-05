@@ -202,3 +202,22 @@ test('a deliberate failure retains the loaded snapshot without fetching a replac
   expect(html).toContain('00:00: 9 m/s');
   expect(html).toContain('Your last snapshot stays visible.');
 });
+
+test('fixture requests use the deployed promo directory', async () => {
+  const started = init({
+    transport: 'fixtures',
+    fixturesUrl: '/fold-kit-experiments/viz/datasets/',
+  });
+  const urls: string[] = [];
+  const fetch = testFetch((input) => {
+    urls.push(String(input));
+    return Promise.resolve(Response.json({ dataset: 'north', points: [{ hour: 0, value: 4 }] }));
+  });
+  const message = await pipe(
+    firstCommand(started).effect,
+    Effect.provideService(FetchHttpClient.Fetch, fetch),
+    Effect.runPromise,
+  );
+  expect(urls).toEqual(['http://localhost/fold-kit-experiments/viz/datasets/north.json']);
+  expect((await render(update(started.model, message).model)).html).toContain('Snapshot 1');
+});

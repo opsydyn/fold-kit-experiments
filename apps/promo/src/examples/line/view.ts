@@ -67,12 +67,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         ]),
       ],
     );
+  const hasEditor = model.templateUrl !== null && model.embeddedEditor;
   return {
     title: 'Live line — Foldkit Viz',
     body: h.div(
       [h.Class('line-playground')],
       [
-        ...(model.templateUrl === null
+        ...(!hasEditor
           ? []
           : [
               h.div(
@@ -119,8 +120,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.div(
           [
             h.Id('line-panel-controls'),
-            h.Role(model.templateUrl === null ? 'group' : 'tabpanel'),
-            model.templateUrl === null
+            h.Role(hasEditor ? 'tabpanel' : 'group'),
+            !hasEditor
               ? h.AriaLabel('Chart controls and source')
               : h.AriaLabelledBy('line-tab-controls'),
             h.Hidden(model.panel !== 'controls'),
@@ -317,7 +318,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             ),
           ],
         ),
-        ...(model.templateUrl === null
+        ...(!hasEditor
           ? []
           : [
               h.div(

@@ -86,7 +86,7 @@ function intervalBandGeometry<T>(
 ): IntervalBandGeometry<T>;
 ```
 
-- [ ] Write failing named tests `excluded records and explicit connection breaks preserve references`, `all X inputs are strictly ordered even when excluded`, `band endpoints share caller scales and singleton has no area`, `invalid interval/key/projection fails visibly`. Assert empty runs, no connect call over an excluded point, singleton retention, equal/signed bounds, non-finite/repeated/decreasing X, duplicate/empty band keys and no caller mutation. With frame100×100, zero margins, X[0,10], Y[-10,10], datum{x:2,lower:-2,upper:4} must project x20/lowerY60/upperY30 with the original datum reference. Two such increasing points give one closed linear path; one gives null.
+- [x] Write failing named tests `excluded records and explicit connection breaks preserve references`, `all X inputs are strictly ordered even when excluded`, `band endpoints share caller scales and singleton has no area`, `invalid interval/key/projection fails visibly`. Assert empty runs, no connect call over an excluded point, singleton retention, equal/signed bounds, non-finite/repeated/decreasing X, duplicate/empty band keys and no caller mutation. With frame100×100, zero margins, X[0,10], Y[-10,10], datum{x:2,lower:-2,upper:4} must project x20/lowerY60/upperY30 with the original datum reference. Two such increasing points give one closed linear path; one gives null.
 
 ```typescript
 const a = { x: 0 },
@@ -101,11 +101,11 @@ expect(runs).toEqual([[a], [b]]);
 expect(runs[0]?.[0]).toBe(a);
 ```
 
-- [ ] Run `bun test packages/foldkit-viz/test/segments.test.ts packages/foldkit-viz/test/interval-band.test.ts`; observe real RED before implementation.
-- [ ] Implement both signatures. Validate input before evaluating connection policy, including excluded X values. Reject duplicate/empty keys and non-finite projected coordinates. Delegate finite linear path construction to existing area/line math for one run; minimum2 points for area. Do not add quality/time defaults or repair bounds.
-- [ ] Add root and exact `chart/segments`, `chart/intervalBand` subpath exports/build entries/README. Extend existing packed Bun/Node/strict TS consumers to import both functions/types, compute the independently expected coordinates, and verify no optional peers are installed in the pure fixture.
-- [ ] Run focused tests plus `bun test packages/foldkit-viz/test/package-import-smoke.test.ts`; then sequential root check/typecheck/workspace tests. Require zero failures and explicit packed-consumer success before commit.
-- [ ] Commit `feat(viz): add contiguous signal runs and interval bands` with tests/metadata/docs.
+- [x] Run `bun test packages/foldkit-viz/test/segments.test.ts packages/foldkit-viz/test/interval-band.test.ts`; observe real RED before implementation.
+- [x] Implement both signatures. Validate input before evaluating connection policy, including excluded X values. Reject duplicate/empty keys and non-finite projected coordinates. Delegate finite linear path construction to existing area/line math for one run; minimum2 points for area. Do not add quality/time defaults or repair bounds.
+- [x] Add root and exact `chart/segments`, `chart/intervalBand` subpath exports/build entries/README. Extend existing packed Bun/Node/strict TS consumers to import both functions/types, compute the independently expected coordinates, and verify no optional peers are installed in the pure fixture.
+- [x] Run focused tests plus `bun test packages/foldkit-viz/test/package-import-smoke.test.ts`; then sequential root check/typecheck/workspace tests. Require zero failures and explicit packed-consumer success before commit.
+- [x] Commit `feat(viz): add contiguous signal runs and interval bands` with tests/metadata/docs.
 
 ### Task 2: Validated quality records and controlled snapshot state
 

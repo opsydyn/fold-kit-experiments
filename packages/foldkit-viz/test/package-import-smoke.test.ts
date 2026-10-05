@@ -64,6 +64,9 @@ import { intervalSelection as intervalSelectionFromSelection } from '@opsydyn/fo
 import { clientToLocal } from '@opsydyn/foldkit-viz/interaction/coordinates';
 import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
 import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
+import { contiguousRuns } from '@opsydyn/foldkit-viz/chart/segments';
+import { intervalBandGeometry } from '@opsydyn/foldkit-viz/chart/intervalBand';
+import { contiguousRuns as rootRuns, intervalBandGeometry as rootBand } from '@opsydyn/foldkit-viz';
 import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import type { ChartFrame } from '@opsydyn/foldkit-viz/chart/cartesian';
 const frame: ChartFrame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
@@ -79,6 +82,9 @@ constrainDomain([-2,3],[0,10],1);
 zoomDomain([2,8],0.5,4,[0,10],1);
 panDomain([2,5],9,[0,10],1);
 nearestByX([{id:'a',x:1}],{key:d=>d.id,x:d=>d.x},1);
+const runs = contiguousRuns([0,1,2],{x:d=>d,defined:d=>d!==1,connect:()=>true});
+const band = intervalBandGeometry([2],{x:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout);
+void [runs,band,rootRuns,rootBand];
 void rootSelection;
 void selectionSelection;
 `,
@@ -114,6 +120,9 @@ void selectionSelection;
   const geometryScript = `import { clientToLocal } from '@opsydyn/foldkit-viz/interaction/coordinates';
 import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
 import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
+import { contiguousRuns } from '@opsydyn/foldkit-viz/chart/segments';
+import { intervalBandGeometry } from '@opsydyn/foldkit-viz/chart/intervalBand';
+import { contiguousRuns as rootRuns, intervalBandGeometry as rootBand } from '@opsydyn/foldkit-viz';
 import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme';
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
@@ -133,14 +142,17 @@ console.log(JSON.stringify(clientToLocal({x:30,y:60},{a:2,b:0,c:0,d:3,e:10,f:30}
 console.log(constrainDomain([-2,3],[0,10],1).join(','));
 console.log(zoomDomain([2,8],0.5,4,[0,10],1).join(','));
 console.log(panDomain([2,5],9,[0,10],1).join(','));
-console.log(nearestByX([{id:'a',x:2},{id:'b',x:0}],{key:d=>d.id,x:d=>d.x},1).id);`;
+console.log(nearestByX([{id:'a',x:2},{id:'b',x:0}],{key:d=>d.id,x:d=>d.x},1).id);
+console.log(contiguousRuns([0,1,2],{x:d=>d,defined:d=>d!==1,connect:()=>true}).map(r=>r.join(',')).join('|'));
+console.log(intervalBandGeometry([2],{x:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout).points.map(p=>[p.x,p.lowerY,p.upperY].join(',')).join('|'));
+console.log(rootRuns === contiguousRuns && rootBand === intervalBandGeometry);`;
   for (const runtime of ['bun', 'node']) {
     const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', geometryScript], {
       cwd: consumerDir,
       maxBuffer,
     });
     expect(stdout.trim()).toBe(
-      'M0,100L200,0\n100\n2,2\n12\n1\n1\none,two\n{"x":10,"y":10}\n0,5\n3,6\n7,10\na',
+      'M0,100L200,0\n100\n2,2\n12\n1\n1\none,two\n{"x":10,"y":10}\n0,5\n3,6\n7,10\na\n0|2\n20,60,30\ntrue',
     );
   }
   return runtimeOutput;

@@ -158,6 +158,12 @@
       ],
       "interaction/inspection": [
         "./dist/interaction/inspection.d.mts"
+      ],
+      "chart/segments": [
+        "./dist/chart/segments.d.mts"
+      ],
+      "chart/intervalBand": [
+        "./dist/chart/intervalBand.d.mts"
       ]
     }
   },
@@ -333,6 +339,14 @@
     "./interaction/inspection": {
       "types": "./dist/interaction/inspection.d.mts",
       "import": "./dist/interaction/inspection.mjs"
+    },
+    "./chart/segments": {
+      "types": "./dist/chart/segments.d.mts",
+      "import": "./dist/chart/segments.mjs"
+    },
+    "./chart/intervalBand": {
+      "types": "./dist/chart/intervalBand.d.mts",
+      "import": "./dist/chart/intervalBand.mjs"
     }
   },
   "publishConfig": {

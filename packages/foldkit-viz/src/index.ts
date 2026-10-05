@@ -195,3 +195,12 @@ export { stack } from './shape/stack';
 export type { SymbolType } from './shape/symbol';
 // shape/symbol
 export { SYMBOLS_FILL, symbolPath } from './shape/symbol';
+
+export { contiguousRuns } from './chart/segments.js';
+export type { SegmentAccessors } from './chart/segments.js';
+export { intervalBandGeometry } from './chart/intervalBand.js';
+export type {
+  IntervalBandAccessors,
+  IntervalBandPoint,
+  IntervalBandGeometry,
+} from './chart/intervalBand.js';

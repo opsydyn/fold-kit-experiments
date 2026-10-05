@@ -522,3 +522,9 @@ install event listeners, retain application state, or require Foldkit/Effect.
 `chartFrame` also accepts an optional typed `onMount` action on its SVG. Use a
 caller-defined Foldkit Mount stream to acquire scoped pointer/resize facts; the
 adapter owns no input state. Existing frames without this option render unchanged.
+
+## Contiguous signals and supplied intervals
+
+`contiguousRuns` (`chart/segments`) preserves original records in input order. Supply finite strictly increasing X values, a drawable predicate and an explicit connection policy; missing values and false connections break runs. No sorting or gap duration is inferred.
+
+`intervalBandGeometry` (`chart/intervalBand`) projects one ordered run of finite lower/upper bounds through a shared Cartesian layout. Bounds must be ordered and keys unique/non-empty. Signed/equal bounds are valid; empty/singleton runs return no area path, retaining singleton endpoints. Compose each disconnected run separately and clip to the plot. These pure root/subpath exports do not infer confidence, quality or statistics, and require no Foldkit/Effect peers.

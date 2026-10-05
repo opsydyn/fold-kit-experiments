@@ -7,6 +7,8 @@ export default defineConfig({
     'interaction/viewport': 'src/interaction/viewport.ts',
     'interaction/inspection': 'src/interaction/inspection.ts',
 
+    'chart/segments': 'src/chart/segments.ts',
+    'chart/intervalBand': 'src/chart/intervalBand.ts',
     'chart/cartesian': 'src/chart/cartesian.ts',
     'chart/bars': 'src/chart/bars.ts',
     'layout/wordcloud': 'src/layout/wordcloud.ts',

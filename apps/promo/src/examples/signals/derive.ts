@@ -5,6 +5,7 @@ import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
 
 import { Baseline } from './baseline';
+import { EVENT_CELL_SIZE, selectedEvent } from './event-derive';
 import type { ReadyModel, ChartRole } from './model';
 import { readingValue, readingBounds, sourceFreshness } from './quality';
 import type { SignalRecord } from './quality';
@@ -147,6 +148,10 @@ const viewport = ${JSON.stringify(model.viewport)};
 const selection = ${JSON.stringify(model.selection)};
 const inspection = ${JSON.stringify(model.inspection)};
 const baseline = ${JSON.stringify(model.baseline)};
+const events = ${JSON.stringify(model.events)};
+const selectedEventKey = ${JSON.stringify(selectedEvent(model)?.id ?? null)};
+const eventLaneWidth = ${JSON.stringify(model.widths.latency)};
+const eventCellSize = ${EVENT_CELL_SIZE};
 const baselineFreshnessAtCapture = ${JSON.stringify(Baseline.match(model.baseline, { None: () => null, Captured: (b) => sourceFreshness(b.snapshot) }))};
 const snapshot = ${JSON.stringify(model.snapshot)};
 const freshness = ${JSON.stringify(sourceFreshness(model.snapshot))};

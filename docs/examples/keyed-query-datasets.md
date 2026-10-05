@@ -33,6 +33,19 @@ from the selected Query entry in the Model. It updates after accepted completion
 and preserves the current data while refreshing or stale. The panel is a source
 viewer; it does not compile edited code.
 
+## Standalone download
+
+The promo page offers `/downloads/dataset-explorer.zip`, generated during the
+static Astro build. Extract it, run `npm install`, then `npm run dev` (Bun also
+works). `npm run typecheck`, `npm run build` and `npm run preview` are available.
+
+The starter opens on North station and includes all three JSON fixtures, the
+maintained native FoldKit app, source viewer and browser light/dark styles.
+Compiled Viz modules and declarations are vendored with the current package
+version and licence, so the starter needs neither this monorepo nor a newer npm
+publication. The download contains the starter rather than the current session's
+request history.
+
 ## Composition
 
 Core files live in `packages/dataset-explorer/src/`.
@@ -102,3 +115,19 @@ Development preview: `http://127.0.0.1:64187/dataset-explorer`. Promo preview: `
 - Actual Query source selection, the gallery link, dark/light appearances and
   the original web API consumer were inspected. The dark preference was restored;
   no browser warning/error was recorded. Temporary QA tabs were closed.
+
+### Standalone export qualification (2026-10-05)
+
+- `bun run check`, `bun typecheck`, `bun run test` and `bun run build` passed.
+  Tests: 404 total (Astro 74, Viz 169, promo 43, web 118), including independent
+  npm installation, typechecking, building and inspection of all three fixtures.
+- The browser download link delivered a valid ZIP. Its app sources matched the
+  maintained shared files; the vendored package recorded Viz 0.10.0.
+- The delivered archive was independently extracted, installed, typechecked and
+  built. Its production preview loaded the chart and running source, switched
+  to Coastal snapshot 2, returned to retained North snapshot 1, preserved that
+  snapshot after failure, accepted race snapshot 5 and ignored snapshot 4.
+- Browser light/dark preferences were inspected through temporary media
+  emulation, which was reset. No warning/error was recorded. The promo button's
+  divider overlap was corrected. QA tabs and the temporary preview were closed.
+- Read-only code review found no Critical, Important or Minor issues.

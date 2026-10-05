@@ -199,7 +199,7 @@ export default defineConfig({
       files: [
         'apps/web/src/pages/api/**',
         'packages/astro-foldkit/src/server-render.ts',
-        'apps/promo/src/lib/{line,example}-project.ts',
+        'apps/promo/src/lib/{line,example,dataset}-project.ts',
         'apps/promo/src/pages/downloads/**',
         'apps/promo/src/pages/datasets/**',
         'apps/promo/src/lib/dataset-sources.ts',

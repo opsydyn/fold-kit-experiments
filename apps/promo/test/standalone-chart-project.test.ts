@@ -12,6 +12,17 @@ import type { SourceFile } from '../src/lib/example-project';
 const exec = promisify(execFile);
 const examplesRoot = fileURLToPath(new URL('../src/examples/', import.meta.url));
 async function maintainedSources(example: string): Promise<ReadonlyArray<SourceFile>> {
+  if (example === 'datasets') {
+    const root = fileURLToPath(new URL('../../../packages/dataset-explorer/src/', import.meta.url));
+    return Promise.all(
+      (await readdir(root))
+        .filter((name) => /\.(ts|css)$/.test(name))
+        .map(async (name) => ({
+          name,
+          content: await readFile(join(root, name), 'utf8'),
+        })),
+    );
+  }
   const sources: Array<SourceFile> = [];
   for (const folder of [example, 'shared']) {
     for (const name of await readdir(join(examplesRoot, folder))) {
@@ -25,7 +36,7 @@ async function maintainedSources(example: string): Promise<ReadonlyArray<SourceF
   return sources;
 }
 
-for (const example of ['line', 'histogram', 'scatter'] as const) {
+for (const example of ['line', 'histogram', 'scatter', 'datasets'] as const) {
   test(`${example} exported project installs, typechecks and builds outside the workspace`, async () => {
     const directory = await mkdtemp(join(tmpdir(), `foldkit-standalone-${example}-`));
     try {
@@ -50,6 +61,21 @@ for (const example of ['line', 'histogram', 'scatter'] as const) {
       );
       expect(stdout.trim()).toBe('function 12 function');
       expect(await readdir(join(directory, 'dist'))).toContain('index.html');
+      if (example === 'datasets') {
+        for (const [station, first, last] of [
+          ['north', 4, 8],
+          ['coast', 8, 11],
+          ['upland', 6, 13],
+        ] as const) {
+          const fixture = JSON.parse(
+            await readFile(join(directory, 'dist/datasets', station + '.json'), 'utf8'),
+          );
+          expect(fixture.dataset).toBe(station);
+          expect(fixture.points).toHaveLength(8);
+          expect(fixture.points[0]).toEqual({ hour: 0, value: first });
+          expect(fixture.points[7]).toEqual({ hour: 14, value: last });
+        }
+      }
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

@@ -2,6 +2,7 @@ import { Schema } from 'effect';
 import { defineTaggedUnion } from 'foldkit/schema';
 
 import type { Sample } from './data';
+import type { EventDataset } from './events';
 export const Bounds = Schema.Struct({
   lower: Schema.Number,
   upper: Schema.Number,
@@ -51,16 +52,18 @@ export const SignalThreshold = Schema.Struct({
 });
 export type SignalThreshold = typeof SignalThreshold.Type;
 export const Props = Schema.Struct({
+  events: Schema.optional(Schema.Unknown),
   data: Schema.Array(SignalRecord),
   snapshot: SourceSnapshot,
   maxGapMs: Schema.Number,
   thresholds: Schema.Array(SignalThreshold),
   scenarioAsOf: Schema.Struct({ Fresh: Schema.Number, Stale: Schema.Number }),
 });
-export type Props = typeof Props.Type;
+export type Props = Omit<typeof Props.Type, 'events'> & { readonly events?: EventDataset };
+export type ObservationProps = Omit<typeof Props.Type, 'events'>;
 const nonempty = (text: string) => text.trim().length > 0;
 const usableTime = (time: number) => Number.isFinite(time) && Math.abs(time) <= 8.64e15;
-const validSnapshot = (s: SourceSnapshot) =>
+export const validSourceSnapshot = (s: SourceSnapshot): boolean =>
   nonempty(s.revision) &&
   usableTime(s.asOf) &&
   usableTime(s.updatedAt) &&
@@ -69,7 +72,7 @@ const validSnapshot = (s: SourceSnapshot) =>
   Number.isFinite(s.staleAfterMs) &&
   s.staleAfterMs >= 0;
 export function sourceFreshness(snapshot: SourceSnapshot): 'Fresh' | 'Stale' {
-  if (!validSnapshot(snapshot))
+  if (!validSourceSnapshot(snapshot))
     throw new RangeError(
       'Provide usable source snapshot times and a non-negative freshness cutoff.',
     );
@@ -138,14 +141,18 @@ function validValuedReading(
   );
 }
 /** Schema decoding precedes this semantic validation. No input is repaired or discarded. */
-export function validSignalProps(props: Props): boolean {
-  if (!validSnapshot(props.snapshot) || !Number.isFinite(props.maxGapMs) || props.maxGapMs <= 0)
+export function validSignalProps(props: ObservationProps): boolean {
+  if (
+    !validSourceSnapshot(props.snapshot) ||
+    !Number.isFinite(props.maxGapMs) ||
+    props.maxGapMs <= 0
+  )
     return false;
   const fresh = { ...props.snapshot, asOf: props.scenarioAsOf.Fresh },
     stale = { ...props.snapshot, asOf: props.scenarioAsOf.Stale };
   if (
-    !validSnapshot(fresh) ||
-    !validSnapshot(stale) ||
+    !validSourceSnapshot(fresh) ||
+    !validSourceSnapshot(stale) ||
     sourceFreshness(fresh) !== 'Fresh' ||
     sourceFreshness(stale) !== 'Stale'
   )

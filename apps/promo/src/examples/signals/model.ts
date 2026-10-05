@@ -6,6 +6,7 @@ import { Props, SignalRecord, SourceSnapshot, SignalThreshold, validSignalProps 
 export { Props } from './quality';
 export type { Props as SignalProps } from './quality';
 import { Baseline } from './baseline';
+import { EventFeed, normaliseEventFeed } from './events';
 import type { Message } from './message';
 export const ChartRole = Schema.Literals(['overview', 'latency', 'errors']);
 export type ChartRole = typeof ChartRole.Type;
@@ -37,6 +38,7 @@ export const Model = defineTaggedUnion({
     records: Schema.Array(SignalRecord),
     snapshot: SourceSnapshot,
     baseline: Baseline,
+    events: EventFeed,
     maxGapMs: Schema.Number,
     thresholds: Schema.Array(SignalThreshold),
     scenarioAsOf: Schema.Struct({ Fresh: Schema.Number, Stale: Schema.Number }),
@@ -92,6 +94,7 @@ export const init = (props: Props): Return<Model, Message> =>
           records,
           snapshot: props.snapshot,
           baseline: Baseline.None(),
+          events: normaliseEventFeed(props.events),
           maxGapMs: props.maxGapMs,
           thresholds: props.thresholds,
           scenarioAsOf: props.scenarioAsOf,

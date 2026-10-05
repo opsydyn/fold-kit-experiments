@@ -1,4 +1,5 @@
 import { signalData } from './data';
+import { eventDataset } from './events-data';
 import { Reading, observedRecords } from './quality';
 import type { Props, SignalRecord } from './quality';
 const t0 = 1700000000000;
@@ -64,6 +65,7 @@ export const qualityData: ReadonlyArray<SignalRecord> = observedRecords(signalDa
   },
 );
 export const qualityProps: Props = {
+  events: eventDataset,
   data: qualityData,
   snapshot: freshSnapshot,
   maxGapMs: 1500,

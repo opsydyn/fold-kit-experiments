@@ -26,7 +26,7 @@ Firefox Developer Edition on macOS, desktop 1909×1050, dark theme: hydrated Cap
 
 Fresh→Stale changed current provenance while the captured source stayed Fresh at capture. Missing signal010 latency and Invalid signal022 errors displayed unavailability and retained diagnostics. Replace explicitly captured signal022 with Stale provenance; Clear removed baseline marks/references without changing inspection. Recapture signal035 restored Fresh provenance. Range selection 20–60 retained it, temporary absent current inspection was explicit, and keyboard inspection of signal040 restored comparison. Desktop cards, sources, bounds and deltas remained readable without overlap in the observed viewport.
 
-## Open native gates
+## Open native gates at initial implementation
 
 This run did not complete off-screen pan, 390/1280 layout and light-theme checks, table/source inspection or a new contextual screenshot. The browser foreground changed to another active task during the native pass; further interaction stopped to preserve that activity. Earlier M2 layout observations are historical and do not qualify the added comparison panel.
 
@@ -58,6 +58,10 @@ Reviewer boundaries and executor rulings:
 
 No deferred minors. The three named pure-file lint exceptions and reading-content identity ruling above stand.
 
+## Follow-up browser qualification
+
+The [post-review browser follow-up](2026-10-05-signal-comparison-native-qualification.md) now records390/1280 light/dark layouts, table/source agreement, an off-screen baseline and Capture/Clear/Escape during held pans and brushes. These paths were observed directly in the in-app browser on68f9f72. Independent capture loss, hardware touch/scrolling, actual screen-reader announcements and comprehension remain open. Earlier open-gate descriptions above retain their historical meaning.
+
 ## Remaining scope
 
-P2 error-bar geometry and P3 captured comparison are delivered locally. Wider axis/unit/time edge qualification, interaction acceptance and the other precision goals remain partial. Existing fixture decimal-authoring polish remains deferred; arbitrary caller values are never rounded. Next recommended bounded work: finish comparison-specific native layout and interaction qualification, then consider fixture-only decimal authoring.
+P2 error-bar geometry and P3 captured comparison are delivered locally. Wider axis/unit/time edge qualification, interaction acceptance and the other precision goals remain partial. Existing fixture decimal-authoring polish remains deferred; arbitrary caller values are never rounded. The available comparison-specific browser qualification is complete; remaining device/assistive-technology gates are explicit. Next recommended product work: design caller-owned event annotations and a shared event lane.

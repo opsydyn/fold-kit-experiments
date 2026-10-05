@@ -31,7 +31,7 @@ compositions; measured scale and reproducible exports. Precision and expressive
 views share pure geometry and parent-owned Foldkit state. This is planning only;
 each slice needs its own specification and implementation decision.
 
-M1's local [controlled Signal desk qualification](superpowers/specs/2026-10-05-controlled-signal-exploration-qualification.md) now records the implemented pure helpers and native example, with native touch and representative-user comprehension explicitly unperformed. F1–F3 remain partial. The [M2 quality/uncertainty design](superpowers/specs/2026-10-05-trustworthy-signal-quality-design.md) is written for review. Recommended next: approve the spec and write its test-first implementation plan; M2 implementation and qualification remain unperformed.
+M1's local [controlled Signal desk qualification](superpowers/specs/2026-10-05-controlled-signal-exploration-qualification.md) now records the implemented pure helpers and native example, with native touch and representative-user comprehension explicitly unperformed. F1–F3 remain partial. The [M2 quality/uncertainty design](superpowers/specs/2026-10-05-trustworthy-signal-quality-design.md) is approved, with a [test-first native implementation plan](superpowers/plans/2026-10-05-trustworthy-signal-quality.md) written for review. Recommended next: review the plan before native implementation; M2 implementation and qualification remain unperformed.
 
 ## Product Thesis
 

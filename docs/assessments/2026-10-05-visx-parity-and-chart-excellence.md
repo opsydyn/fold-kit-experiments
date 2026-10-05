@@ -213,3 +213,7 @@ The [M2 qualification record](../superpowers/specs/2026-10-05-trustworthy-signal
 ## Captured comparison follow-up — 2026-10-05
 
 P2 now includes exported, packed-consumer-qualified error-bar segment geometry for both axes. P3 now includes independent native Foldkit baseline capture, exact current-minus-baseline differences and captured provenance. The Signal desk composes selected error bars and clipped baseline references without changing supplied bounds or full-data domains. See [local qualification](../superpowers/specs/2026-10-05-signal-comparison-qualification.md): 523 workspace tests pass, with [post-review browser evidence](../superpowers/specs/2026-10-05-signal-comparison-native-qualification.md) for responsive themes, off-screen baseline, table/source and held Capture/Clear/Escape interactions. Independent capture loss, hardware touch and assistive-technology acceptance remain open. This advances those bounded portions, not full P2/P3 or visx parity.
+
+## Event-lane design follow-up — 2026-10-05
+
+A [proposed written design](../superpowers/specs/2026-10-05-signal-event-lane-design.md) addresses only the event-lane portion of P4: an optional caller feed with independent provenance, exact event selection, aligned guides and retained raw event evidence. It reuses existing geometry and keeps events outside measured values/domains. This is design status, not implementation, replay or native acceptance. Next: written-spec review and a concrete implementation plan.

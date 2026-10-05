@@ -4,6 +4,7 @@ import { contiguousRuns } from '@opsydyn/foldkit-viz/chart/segments';
 import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
 import { line } from '@opsydyn/foldkit-viz/shape/line';
 
+import { Baseline } from './baseline';
 import type { ReadyModel, ChartRole } from './model';
 import { readingValue, readingBounds, sourceFreshness } from './quality';
 import type { SignalRecord } from './quality';
@@ -145,6 +146,8 @@ const bounds = ${JSON.stringify(model.bounds)};
 const viewport = ${JSON.stringify(model.viewport)};
 const selection = ${JSON.stringify(model.selection)};
 const inspection = ${JSON.stringify(model.inspection)};
+const baseline = ${JSON.stringify(model.baseline)};
+const baselineFreshnessAtCapture = ${JSON.stringify(Baseline.match(model.baseline, { None: () => null, Captured: (b) => sourceFreshness(b.snapshot) }))};
 const snapshot = ${JSON.stringify(model.snapshot)};
 const freshness = ${JSON.stringify(sourceFreshness(model.snapshot))};
 const maxGapMs = ${JSON.stringify(model.maxGapMs)};

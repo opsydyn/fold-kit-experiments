@@ -4,6 +4,9 @@ import { defineMessageUnion } from 'foldkit/message';
 import { ChartRole } from './model';
 const pointer = { role: ChartRole, pointerId: Schema.Number, x: Schema.Number, y: Schema.Number };
 export const Message = defineMessageUnion({
+  ClickedEvent: { key: Schema.String },
+  ClickedClearEvent: {},
+  ClickedCentreEvent: {},
   ClickedCaptureBaseline: {},
   ClickedClearBaseline: {},
   ClickedFreshnessScenario: { scenario: Schema.Literals(['Fresh', 'Stale']) },

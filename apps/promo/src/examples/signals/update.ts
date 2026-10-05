@@ -4,6 +4,7 @@ import type { Return } from 'foldkit/update';
 
 import { Baseline, captureBaseline } from './baseline';
 import { deriveSignalChart, nearestVisible, visibleRecords } from './derive';
+import { EventFeed, EventInspection } from './events';
 import { Message } from './message';
 import { Model, Gesture, Inspection, init } from './model';
 import type { ReadyModel, ChartRole } from './model';
@@ -112,6 +113,53 @@ const zoom = (m: ReadyModel, factor: number): ReadyModel => {
 };
 const readyUpdate = (m: ReadyModel, message: Message): ReadyModel =>
   Message.match(message, {
+    ClickedEvent: ({ key }) =>
+      EventFeed.match(m.events, {
+        NotSupplied: () => m,
+        Invalid: () => m,
+        Ready: (feed) => {
+          const event = feed.records.find((record) => record.id === key);
+          return event === undefined
+            ? m
+            : {
+                ...cancel(m),
+                events: { ...feed, inspection: EventInspection.Selected({ key: event.id }) },
+              };
+        },
+      }),
+    ClickedClearEvent: () =>
+      EventFeed.match(m.events, {
+        NotSupplied: () => m,
+        Invalid: () => m,
+        Ready: (feed) =>
+          EventInspection.match(feed.inspection, {
+            None: () => m,
+            Selected: () => ({
+              ...cancel(m),
+              events: { ...feed, inspection: EventInspection.None() },
+            }),
+          }),
+      }),
+    ClickedCentreEvent: () =>
+      EventFeed.match(m.events, {
+        NotSupplied: () => m,
+        Invalid: () => m,
+        Ready: (feed) =>
+          EventInspection.match(feed.inspection, {
+            None: () => m,
+            Selected: ({ key }) => {
+              const event = feed.records.find((record) => record.id === key);
+              if (event === undefined || event.time < m.bounds[0] || event.time > m.bounds[1])
+                return m;
+              const base = cancel(m);
+              const midpoint = base.viewport[0] + (base.viewport[1] - base.viewport[0]) / 2;
+              return settleInspection({
+                ...base,
+                viewport: panDomain(base.viewport, event.time - midpoint, base.bounds, 1000),
+              });
+            },
+          }),
+      }),
     ClickedCaptureBaseline: () => {
       const record = m.records.find((d) => d.id === m.inspection.key);
       return record === undefined

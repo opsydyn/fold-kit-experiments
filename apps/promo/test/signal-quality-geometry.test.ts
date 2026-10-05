@@ -134,3 +134,21 @@ test('non-drawable records retain exact inspection and independent interval brea
   expect(split.bands).toHaveLength(2);
   expect(split.runs.filter((r) => r.quality === 'Estimated')).toHaveLength(1);
 });
+
+test('accepted tiny positive readings retain finite relative geometry', () => {
+  for (const value of [1e-306, Number.MIN_VALUE]) {
+    const record = qualityProps.data[0];
+    if (!record) throw new RangeError('Fixture');
+    const m = ready({
+      ...qualityProps,
+      thresholds: [],
+      data: [{ ...record, latency: Reading.Observed({ value, bounds: null }) }],
+    });
+    const chart = deriveSignalChart(m, 'latency');
+    expect(chart.geometry.points).toHaveLength(1);
+    expect(Number.isFinite(chart.geometry.points[0]?.y)).toBe(true);
+    expect(chart.geometry.points[0]?.datum.latency).toEqual(
+      Reading.Observed({ value, bounds: null }),
+    );
+  }
+});

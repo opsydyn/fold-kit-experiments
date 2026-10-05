@@ -188,7 +188,7 @@ export const qualityLayers = (
     if (span.end < layout.xDomain[0] || span.start > layout.xDomain[1]) continue;
     const x = Math.max(plot.left, layout.x(span.start)),
       end = Math.min(plot.right, layout.x(span.end)),
-      y = plot.bottom + 42;
+      y = plot.bottom + 26;
     const label = span.status === 'Missing' ? 'M' : span.status === 'Invalid' ? '!' : 'G';
     lane.push(
       h.g(

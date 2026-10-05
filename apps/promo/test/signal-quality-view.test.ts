@@ -134,3 +134,36 @@ test('threshold identities survive shared locations and long labels', async () =
     'Illustrative reference: Long first reference label for a narrow screen · 180 ms',
   );
 });
+
+test('inspector itself discloses source freshness identity and snapshot times', async () => {
+  const m = { ...ready(), inspection: { _tag: 'Pinned' as const, key: 'signal-035' } };
+  const inspector = (markup: string) =>
+    markup.split('class="signal-inspector"')[1]?.split('</section>')[0] ?? '';
+  const fresh = inspector(await render(m));
+  const stale = inspector(await render({ ...m, snapshot: { ...m.snapshot, asOf: 1700000134001 } }));
+  for (const text of [
+    'Source: Fresh',
+    'signal-quality-v1',
+    '2023-11-14T22:15:24.000Z',
+    '2023-11-14T22:15:19.000Z',
+    '10000 ms',
+  ])
+    expect(fresh).toContain(text);
+  expect(stale).toContain('Source: Stale');
+  expect(stale).toContain('2023-11-14T22:15:34.001Z');
+  expect(stale).not.toBe(fresh);
+});
+
+test('quality lane labels remain vertically separate from the time-axis title', async () => {
+  const markup = await render(ready());
+  for (const svg of markup.match(/<svg\b[\s\S]*?<\/svg>/g) ?? []) {
+    const texts = [...svg.matchAll(/<text\b([^>]*)>([^<]*)<\/text>/g)].map((match) => ({
+      label: match[2],
+      y: Number(match[1]?.match(/\by="([^"]+)"/)?.[1]),
+    }));
+    const title = texts.find((text) => text.label === 'Time (UTC)');
+    expect(title).toBeDefined();
+    for (const label of texts.filter((text) => ['M', '!', 'G'].includes(text.label ?? '')))
+      expect(Math.abs(label.y - (title?.y ?? NaN))).toBeGreaterThanOrEqual(14);
+  }
+});

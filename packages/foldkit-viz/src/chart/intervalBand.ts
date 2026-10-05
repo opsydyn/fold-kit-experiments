@@ -61,5 +61,7 @@ export function intervalBandGeometry<T>(
           points.map((p) => [p.x, p.lowerY] as const),
           { curve: 'linear' },
         );
+  if (path !== null && /Infinity|NaN/.test(path))
+    throw new RangeError('Band path cannot serialise projected coordinates finitely');
   return { points, path };
 }

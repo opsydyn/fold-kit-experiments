@@ -16,7 +16,11 @@ export function linear(config: LinearScaleConfig): (value: number) => number {
   const k = (r1 - r0) / (d1 - d0);
 
   return (value: number): number => {
-    let t = (value - d0) * k + r0;
+    // D3 continuous.js normalises before interpolation. Use that order when
+    // a finite tiny domain makes the precomputed slope overflow.
+    let t = Number.isFinite(k)
+      ? (value - d0) * k + r0
+      : ((value - d0) / (d1 - d0)) * (r1 - r0) + r0;
     if (clamp) t = r1 > r0 ? Math.max(r0, Math.min(r1, t)) : Math.max(r1, Math.min(r0, t));
     return t;
   };

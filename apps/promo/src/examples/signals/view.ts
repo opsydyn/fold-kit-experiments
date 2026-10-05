@@ -322,6 +322,12 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
         [h.Class('signal-inspector'), h.AriaLive('polite')],
         [
           h.p([h.Class('signal-inspection-notice')], [inspectionNotice(m)]),
+          h.p(
+            [h.Class('signal-reading-detail')],
+            [
+              `Source: ${sourceFreshness(m.snapshot)} · ${m.snapshot.revision} · as of ${utc(m.snapshot.asOf)} · updated ${utc(m.snapshot.updatedAt)} · stale after ${m.snapshot.staleAfterMs} ms`,
+            ],
+          ),
           h.dl(
             [],
             [

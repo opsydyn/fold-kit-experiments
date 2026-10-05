@@ -49,3 +49,9 @@ test('invalid interval key and projection fail visibly', () => {
     RangeError,
   );
 });
+
+test('finite projected coordinates cannot silently serialise to Infinity', () => {
+  expect(() => intervalBandGeometry([a, b], accessors, { ...layout, x: (x) => x * 1e305 })).toThrow(
+    RangeError,
+  );
+});

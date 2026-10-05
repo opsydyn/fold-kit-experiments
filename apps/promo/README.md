@@ -118,3 +118,9 @@ directory and render the packed optional adapter under Bun and Node.
 
 These composition APIs are unreleased workspace changes. No npm publication or
 site deployment is implied by local build and browser qualification.
+
+## Captured signal comparisons
+
+The Signal desk can capture the inspected record as a baseline, then resume inspection and compare another record. The Model owns a copied record and source snapshot independently of the existing pinned cursor. Latency differences are in ms; error-rate differences are in percentage points. Missing/invalid readings stay unavailable, with diagnostics retained. Captured freshness is explicitly at capture; current freshness can change independently. Dataset replacement always clears the baseline, including reused revision/IDs.
+
+Selected supplied intervals use pure `chart/errorBars` segments with8 SVG-unit caps. Baseline lines use a distinct3 3 dash and complete adjacent labels, with the original supplied range/support in the comparison panel. Off-screen baseline geometry is clipped, while its value reference and captured provenance remain available. Bands and full-data Y domains remain unchanged; no statistical significance is inferred.

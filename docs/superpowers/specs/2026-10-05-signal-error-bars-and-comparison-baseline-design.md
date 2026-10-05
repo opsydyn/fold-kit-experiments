@@ -1,6 +1,6 @@
 # Signal error bars and comparison baseline — approved design
 
-Date: 2026-10-05. Source baseline: `3dec58a`, branch `codex/foldkit-0-166-0`, managed promo worktree. Status: written design approved by the user on 2026-10-05; implementation plan is awaiting review. Product implementation has not started.
+Date: 2026-10-05. Source baseline: `3dec58a`, branch `codex/foldkit-0-166-0`, managed promo worktree. Status: written design approved by the user on 2026-10-05; implementation completed locally with [qualification evidence](2026-10-05-signal-comparison-qualification.md). Native acceptance remains partial; independent review is pending.
 
 ## Intent and success
 
@@ -80,4 +80,4 @@ Before committing implementation: root check, typecheck and sequential workspace
 
 Deliver one pure geometry API and one native Signal desk composition. Defer interval-display modes, dense cap sampling, arbitrary unit adapters, multiple baselines, persisted baselines, comparison across dataset replacement, statistical inference, live transport and alarms. The fixture-only decimal-authoring improvement from M2 is a separate bounded change, not permission to round caller values.
 
-Self-review: package and app ownership are separate; all state transitions and unavailability cases are explicit; there are no inferred confidence claims, placeholders or hidden dataset continuity assumptions. The written spec is approved. Its concrete implementation plan awaits review; native execution is retained from the user's prior selection. Product implementation follows that plan review.
+Self-review: package and app ownership are separate; all state transitions and unavailability cases are explicit; there are no inferred confidence claims, placeholders or hidden dataset continuity assumptions. The written spec is approved. The approved implementation plan has been executed natively. See the qualification document for observed checks and open native acceptance gates.

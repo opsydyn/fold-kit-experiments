@@ -209,3 +209,7 @@ Recommended next: specify M2 quality and uncertainty, beginning with explicit mi
 ## M2 implementation evidence — 2026-10-05
 
 The [M2 qualification record](../superpowers/specs/2026-10-05-trustworthy-signal-quality-qualification.md) records pure run/band APIs, validated metric quality and source freshness, gap-aware clipped rendering and exact interval/support/reference disclosures. This advances partial P1, interval-band P2 and units/domain/reference portions of P3/F5. Automated qualification and one independent review/fix pass are complete; native Firefox mouse/keyboard and390/1280 light/dark observations are recorded. Held-pointer and hardware touch acceptance remain open. Error bars and a pinned comparison baseline remain gaps. No full parity, statistical inference or critical-system suitability is claimed.
+
+## Captured comparison follow-up — 2026-10-05
+
+P2 now includes exported, packed-consumer-qualified error-bar segment geometry for both axes. P3 now includes independent native Foldkit baseline capture, exact current-minus-baseline differences and captured provenance. The Signal desk composes selected error bars and clipped baseline references without changing supplied bounds or full-data domains. See [local qualification](../superpowers/specs/2026-10-05-signal-comparison-qualification.md): 520 workspace tests pass, while comparison-specific responsive, held-pointer, hardware touch and assistive-technology acceptance remain open. This advances those bounded portions, not full P2/P3 or visx parity.

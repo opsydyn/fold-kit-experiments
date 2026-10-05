@@ -6,6 +6,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { exampleTheme } from '#example/frame';
 
+import { comparisonPanel, comparisonLayers, baselineReferenceList } from './comparison-view';
 import { currentSignalSource, deriveSignalChart, inspectionNotice, utc } from './derive';
 import { ObserveSignalInput } from './input';
 import { Message } from './message';
@@ -132,6 +133,7 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
             [h.Attribute('clip-path', `url(#signal-quality-clip-${role})`)],
             [
               highlight,
+              ...comparisonLayers(m, role, layout, h),
 
               // Single observations still have an honest visible mark, even without a line segment.
               pointSeries(h, {
@@ -186,12 +188,15 @@ function signalChart(m: ReadyModel, role: ChartRole, h: HtmlBuilder<Message>): H
         : []),
       h.ul(
         [h.Class('signal-reference-list')],
-        chart.thresholds.map((t) =>
-          h.li(
-            [h.Key(t.id), h.DataAttribute('threshold-id', t.id)],
-            [`Illustrative reference: ${t.label} · ${t.value} ${role === 'errors' ? '%' : 'ms'}`],
+        [
+          ...baselineReferenceList(m, role, h),
+          ...chart.thresholds.map((t) =>
+            h.li(
+              [h.Key(t.id), h.DataAttribute('threshold-id', t.id)],
+              [`Illustrative reference: ${t.label} · ${t.value} ${role === 'errors' ? '%' : 'ms'}`],
+            ),
           ),
-        ),
+        ],
       ),
       h.p(
         [h.Class('signal-input-status')],
@@ -372,6 +377,7 @@ function readyView(m: ReadyModel, h: HtmlBuilder<Message>): Html {
           ),
         ],
       ),
+      comparisonPanel(m, h),
       signalChart(m, 'latency', h),
       signalChart(m, 'errors', h),
       h.details(

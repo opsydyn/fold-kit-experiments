@@ -1396,3 +1396,78 @@ nav a[aria-current='page'] {
   max-width: 22rem;
   white-space: normal;
 }
+
+.signal-comparison {
+  border-top: 3px solid var(--text);
+  border-bottom: 1px solid var(--rule);
+  padding: 1.2rem 0;
+}
+.signal-comparison h2 {
+  font-size: 1rem;
+  margin: 0 0 0.6rem;
+}
+.signal-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 2rem;
+  margin-top: 1.2rem;
+}
+.signal-comparison-record {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.signal-comparison-record h3 {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.signal-comparison-identity {
+  font:
+    0.75rem/1.6 ui-monospace,
+    monospace;
+}
+.signal-comparison-record dl {
+  display: grid;
+  gap: 0.8rem;
+}
+.signal-comparison dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.signal-comparison dd {
+  margin: 0.3rem 0 0;
+  font:
+    600 1rem/1.5 ui-monospace,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.signal-comparison-differences {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 2rem;
+  margin: 0;
+  border-top: 1px dotted var(--rule);
+  padding-top: 1rem;
+}
+.signal-comparison dd.signal-comparison-delta {
+  font-size: 1.35rem;
+}
+.signal-comparison-outside {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  margin: 0;
+}
+.signal-baseline-meaning {
+  border-left: 2px dotted var(--text);
+  padding-left: 0.6rem;
+}
+@media (max-width: 600px) {
+  .signal-comparison-grid,
+  .signal-comparison-differences {
+    grid-template-columns: 1fr;
+  }
+}

@@ -66,7 +66,8 @@ import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/int
 import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
 import { contiguousRuns } from '@opsydyn/foldkit-viz/chart/segments';
 import { intervalBandGeometry } from '@opsydyn/foldkit-viz/chart/intervalBand';
-import { contiguousRuns as rootRuns, intervalBandGeometry as rootBand } from '@opsydyn/foldkit-viz';
+import { errorBarGeometry } from '@opsydyn/foldkit-viz/chart/errorBars';
+import { contiguousRuns as rootRuns, intervalBandGeometry as rootBand, errorBarGeometry as rootErrors } from '@opsydyn/foldkit-viz';
 import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import type { ChartFrame } from '@opsydyn/foldkit-viz/chart/cartesian';
 const frame: ChartFrame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
@@ -84,7 +85,9 @@ panDomain([2,5],9,[0,10],1);
 nearestByX([{id:'a',x:1}],{key:d=>d.id,x:d=>d.x},1);
 const runs = contiguousRuns([0,1,2],{x:d=>d,defined:d=>d!==1,connect:()=>true});
 const band = intervalBandGeometry([2],{x:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout);
-void [runs,band,rootRuns,rootBand];
+const marks: ReadonlyArray<import('@opsydyn/foldkit-viz/chart/errorBars').ErrorBarMark<number>> = errorBarGeometry([2],{position:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout,{axis:'y',capSize:8});
+const sameMarks: ReadonlyArray<import('@opsydyn/foldkit-viz').ErrorBarMark<number>> = marks;
+void [runs,band,rootRuns,rootBand,rootErrors,sameMarks];
 void rootSelection;
 void selectionSelection;
 `,
@@ -122,7 +125,8 @@ import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/int
 import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
 import { contiguousRuns } from '@opsydyn/foldkit-viz/chart/segments';
 import { intervalBandGeometry } from '@opsydyn/foldkit-viz/chart/intervalBand';
-import { contiguousRuns as rootRuns, intervalBandGeometry as rootBand } from '@opsydyn/foldkit-viz';
+import { errorBarGeometry } from '@opsydyn/foldkit-viz/chart/errorBars';
+import { contiguousRuns as rootRuns, intervalBandGeometry as rootBand, errorBarGeometry as rootErrors } from '@opsydyn/foldkit-viz';
 import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme';
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
@@ -145,14 +149,15 @@ console.log(panDomain([2,5],9,[0,10],1).join(','));
 console.log(nearestByX([{id:'a',x:2},{id:'b',x:0}],{key:d=>d.id,x:d=>d.x},1).id);
 console.log(contiguousRuns([0,1,2],{x:d=>d,defined:d=>d!==1,connect:()=>true}).map(r=>r.join(',')).join('|'));
 console.log(intervalBandGeometry([2],{x:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout).points.map(p=>[p.x,p.lowerY,p.upperY].join(',')).join('|'));
-console.log(rootRuns === contiguousRuns && rootBand === intervalBandGeometry);`;
+console.log(rootRuns === contiguousRuns && rootBand === intervalBandGeometry && rootErrors === errorBarGeometry);
+console.log(JSON.stringify(errorBarGeometry([2],{position:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout,{axis:'y',capSize:8})[0]));`;
   for (const runtime of ['bun', 'node']) {
     const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', geometryScript], {
       cwd: consumerDir,
       maxBuffer,
     });
     expect(stdout.trim()).toBe(
-      'M0,100L200,0\n100\n2,2\n12\n1\n1\none,two\n{"x":10,"y":10}\n0,5\n3,6\n7,10\na\n0|2\n20,60,30\ntrue',
+      'M0,100L200,0\n100\n2,2\n12\n1\n1\none,two\n{"x":10,"y":10}\n0,5\n3,6\n7,10\na\n0|2\n20,60,30\ntrue\n{"datum":2,"key":"2","stem":{"start":[20,60],"end":[20,30]},"lowerCap":{"start":[16,60],"end":[24,60]},"upperCap":{"start":[16,30],"end":[24,30]}}',
     );
   }
   return runtimeOutput;

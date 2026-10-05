@@ -164,6 +164,9 @@
       ],
       "chart/intervalBand": [
         "./dist/chart/intervalBand.d.mts"
+      ],
+      "chart/errorBars": [
+        "./dist/chart/errorBars.d.mts"
       ]
     }
   },
@@ -347,6 +350,10 @@
     "./chart/intervalBand": {
       "types": "./dist/chart/intervalBand.d.mts",
       "import": "./dist/chart/intervalBand.mjs"
+    },
+    "./chart/errorBars": {
+      "types": "./dist/chart/errorBars.d.mts",
+      "import": "./dist/chart/errorBars.mjs"
     }
   },
   "publishConfig": {

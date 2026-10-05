@@ -204,3 +204,6 @@ export type {
   IntervalBandPoint,
   IntervalBandGeometry,
 } from './chart/intervalBand.js';
+
+export { errorBarGeometry } from './chart/errorBars.js';
+export type { ErrorBarAccessors, ErrorBarSegment, ErrorBarMark } from './chart/errorBars.js';

@@ -528,3 +528,9 @@ adapter owns no input state. Existing frames without this option render unchange
 `contiguousRuns` (`chart/segments`) preserves original records in input order. Supply finite strictly increasing X values, a drawable predicate and an explicit connection policy; missing values and false connections break runs. No sorting or gap duration is inferred.
 
 `intervalBandGeometry` (`chart/intervalBand`) projects one ordered run of finite lower/upper bounds through a shared Cartesian layout. Bounds must be ordered and keys unique/non-empty. Signed/equal bounds are valid; empty/singleton runs return no area path, retaining singleton endpoints. Compose each disconnected run separately and clip to the plot. These pure root/subpath exports do not infer confidence, quality or statistics, and require no Foldkit/Effect peers.
+
+## Supplied error bars
+
+`errorBarGeometry` (`chart/errorBars`, also root) projects independent caller-supplied intervals through a Cartesian layout. Accessors provide position, lower, upper and datumKey; options select axis x/y and the full capSize in SVG user units. For Y intervals position uses X, and for X intervals position uses Y. Each mark retains the original datum/key with numeric stem/lowerCap/upperCap endpoints; compose SVG lines and clipping yourself, using your own theme. No statistics, sorting, clipping or runtime peers are required.
+
+Bounds and positions must be finite, lower<=upper, keys unique/non-empty, and capSize finite/non-negative; invalid projections or cap-offset overflow throw RangeError. Equal bounds, zero caps, signed values and repeated positions with distinct keys are supported; order is preserved. Example: use capSize8 for sparse inspected intervals rather than caps on every dense sample.

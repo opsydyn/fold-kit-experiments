@@ -1,0 +1,74 @@
+{
+  "eventTabSequence": [
+    {
+      "aria": "Select event event-before: Earlier operator note / note / 2023-11-14T22:13:15.000Z",
+      "event": "event-before",
+      "id": "",
+      "tag": "BUTTON",
+      "text": "Select event"
+    },
+    {
+      "aria": "Select event event-missing: Collector note / note / 2023-11-14T22:13:32.000Z",
+      "event": "event-missing",
+      "id": "",
+      "tag": "BUTTON",
+      "text": "Select event"
+    },
+    {
+      "aria": "Select event event-config: Configuration recorded / configuration / 2023-11-14T22:14:08.000Z",
+      "event": "event-config",
+      "id": "",
+      "tag": "BUTTON",
+      "text": "Select event"
+    },
+    {
+      "aria": "Select event event-deploy: Deployment recorded / deployment / 2023-11-14T22:14:08.000Z",
+      "event": "event-deploy",
+      "id": "",
+      "tag": "BUTTON",
+      "text": "Select event"
+    },
+    {
+      "aria": "Select event event-note: Operator follow-up / note / 2023-11-14T22:14:08.200Z",
+      "event": "event-note",
+      "id": "",
+      "tag": "BUTTON",
+      "text": "Select event"
+    },
+    {
+      "aria": "Select event event-gap: Operator note during gap / note / 2023-11-14T22:14:32.000Z",
+      "event": "event-gap",
+      "id": "",
+      "tag": "BUTTON",
+      "text": "Select event"
+    },
+    {
+      "aria": "Select event event-boundary: Window review / review / 2023-11-14T22:15:19.000Z",
+      "event": "event-boundary",
+      "id": "",
+      "tag": "BUTTON",
+      "text": "Select event"
+    },
+    {
+      "aria": "Select event event-after: Later operator note / note / 2023-11-14T22:15:25.000Z",
+      "event": "event-after",
+      "id": "",
+      "tag": "BUTTON",
+      "text": "Select event"
+    }
+  ],
+  "clear": {
+    "aria": null,
+    "event": null,
+    "id": "",
+    "tag": "BODY",
+    "text": "Skip to contentFoldkit VizExamplesDocsGitHub repository← All examplesCONTROLLED EXPLORATIONFind the moment.Follow the si"
+  },
+  "nextTab": {
+    "aria": null,
+    "event": null,
+    "id": "",
+    "tag": "SUMMARY",
+    "text": "Browse events (8)"
+  }
+}

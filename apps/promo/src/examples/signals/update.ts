@@ -3,6 +3,7 @@ import { constrainDomain, panDomain, zoomDomain } from '@opsydyn/foldkit-viz/int
 import type { Return } from 'foldkit/update';
 
 import { Baseline, captureBaseline } from './baseline';
+import { FocusEventBrowser } from './command';
 import { deriveSignalChart, nearestVisible, visibleRecords } from './derive';
 import { EventFeed, EventInspection } from './events';
 import { Message } from './message';
@@ -113,6 +114,7 @@ const zoom = (m: ReadyModel, factor: number): ReadyModel => {
 };
 const readyUpdate = (m: ReadyModel, message: Message): ReadyModel =>
   Message.match(message, {
+    CompletedEventBrowserFocus: () => m,
     ClickedEvent: ({ key }) =>
       EventFeed.match(m.events, {
         NotSupplied: () => m,
@@ -277,11 +279,12 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     const props = message.props as Props;
     return init(props);
   }
-  return {
-    model: Model.match(model, {
-      Empty: () => model,
-      Invalid: () => model,
-      Ready: (m) => readyUpdate(m, message),
-    }),
-  };
+  const next = Model.match(model, {
+    Empty: () => model,
+    Invalid: () => model,
+    Ready: (m) => readyUpdate(m, message),
+  });
+  if (message._tag === 'ClickedClearEvent' && next !== model)
+    return { model: next, commands: [FocusEventBrowser()] };
+  return { model: next };
 };

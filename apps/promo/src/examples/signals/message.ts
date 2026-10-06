@@ -6,6 +6,7 @@ const pointer = { role: ChartRole, pointerId: Schema.Number, x: Schema.Number, y
 export const Message = defineMessageUnion({
   ClickedEvent: { key: Schema.String },
   ClickedClearEvent: {},
+  CompletedEventBrowserFocus: {},
   ClickedCentreEvent: {},
   ClickedCaptureBaseline: {},
   ClickedClearBaseline: {},

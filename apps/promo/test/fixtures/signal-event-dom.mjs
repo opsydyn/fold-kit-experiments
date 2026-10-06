@@ -1,7 +1,7 @@
 // Isolated process: real Foldkit patching without leaking DOM globals into SSR tests.
 import assert from 'node:assert/strict';
 
-import { Context } from 'effect';
+import { Context, Effect } from 'effect';
 import { Window } from 'happy-dom';
 
 import { __htmlBuilder } from '../../node_modules/foldkit/dist/html/index.js';
@@ -18,6 +18,9 @@ async function verifyEventDom() {
   globalThis.window = window;
   globalThis.document = window.document;
   globalThis.Element = window.Element;
+  globalThis.HTMLElement = window.HTMLElement;
+  globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window);
+  globalThis.cancelAnimationFrame = window.cancelAnimationFrame.bind(window);
   const { patch } = await import('../../node_modules/foldkit/dist/vdom.js');
   const h = __htmlBuilder();
   const render = (model) => {
@@ -59,7 +62,44 @@ async function verifyEventDom() {
   model = update(model, Message.ClickedEvent({ key: 'event-gap' })).model;
   vnode = patch(vnode, render(model));
   verify(text);
-  console.log('Event DOM identity preserved');
+  if (process.argv.includes('--focus')) {
+    for (const open of [true, false]) {
+      browser.open = open;
+      const clear = [...document.querySelectorAll('.signal-event-selected button')].find(
+        (button) => button.textContent === 'Clear event',
+      );
+      assert(clear, 'selected clear control');
+      clear.focus();
+      assert.equal(document.activeElement, clear);
+      const result = update(model, Message.ClickedClearEvent());
+      model = result.model;
+      vnode = patch(vnode, render(model));
+      for (const command of result.commands ?? []) {
+        const completion = await Effect.runPromise(command.effect);
+        const settled = update(model, completion);
+        assert.equal(settled.model, model, 'completion preserves model');
+        assert.equal(settled.commands, undefined, 'completion does not refocus');
+      }
+      assert.equal(document.activeElement, browser.querySelector('summary'), 'clear returns focus');
+      assert.equal(browser.open, open, 'focus does not toggle disclosure');
+      assert.equal(original.textContent, 'No event selected');
+      const repeated = update(model, Message.ClickedClearEvent());
+      assert.equal(repeated.model, model, 'empty clear is a no-op');
+      assert.equal(repeated.commands, undefined, 'empty clear schedules no focus');
+      model = update(model, Message.ClickedEvent({ key: 'event-gap' })).model;
+      vnode = patch(vnode, render(model));
+    }
+    // A dataset replacement can remove the target before the queued focus runs.
+    const result = update(model, Message.ClickedClearEvent());
+    browser.remove();
+    for (const command of result.commands ?? []) {
+      const completion = await Effect.runPromise(command.effect);
+      assert.equal(update(result.model, completion).model, result.model);
+    }
+    console.log('Event clear focus recovered');
+  } else {
+    console.log('Event DOM identity preserved');
+  }
   window.happyDOM.abort();
 }
 await verifyEventDom();

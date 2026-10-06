@@ -218,3 +218,17 @@ test('selected-event legend describes exact time independently of caller dash st
   expect(panel(markup)).toContain('Selected-event guide = exact selected event time');
   expect(panel(markup)).not.toContain('Dash-dot guide');
 });
+
+test('clearing an event returns DOM focus without toggling its browser', () => {
+  const result = Bun.spawnSync(
+    [process.execPath, 'test/fixtures/signal-event-dom.mjs', '--focus'],
+    {
+      cwd: new URL('../', import.meta.url).pathname,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+  );
+  expect(result.exitCode).toBe(0);
+  expect(result.stderr.toString()).toBe('');
+  expect(result.stdout.toString().trim()).toBe('Event clear focus recovered');
+});

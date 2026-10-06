@@ -152,3 +152,19 @@ test('event select clear and centre abandon pan and brush before rejecting late 
     }
   }
 });
+
+test('only a real selected-event clear schedules focus recovery', () => {
+  const m = selected();
+  expect(update(m, Message.ClickedClearEvent()).commands).toHaveLength(1);
+  for (const base of [
+    ready(),
+    { ...m, events: { _tag: 'NotSupplied' as const } },
+    { ...m, events: { _tag: 'Invalid' as const, error: 'bad feed' } },
+    { _tag: 'Empty' as const, records: [] },
+    { _tag: 'Invalid' as const, error: 'bad observation data' },
+  ]) {
+    const result = update(base, Message.ClickedClearEvent());
+    expect(result.model).toBe(base);
+    expect(result.commands).toBeUndefined();
+  }
+});

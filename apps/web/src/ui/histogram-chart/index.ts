@@ -65,8 +65,11 @@ export type Model = Readonly<{
   readonly layout: Layout;
   enableBrush: boolean;
   brush: BrushState;
+  brushGestureWidth: number;
   svgBounds: Option.Option<SvgBounds>;
-  brushDragStart: Option.Option<Readonly<{ anchorClientX: number; anchorScreenX: number }>>;
+  brushDragStart: Option.Option<
+    Readonly<{ anchorClientX: number; anchorScreenX: number; lastScreenX: number }>
+  >;
 }>;
 
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
@@ -96,6 +99,7 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
       layout,
       enableBrush: cfg.enableBrush ?? false,
       brush: BRUSH_IDLE,
+      brushGestureWidth: layout.pw,
       svgBounds: Option.none(),
       brushDragStart: Option.none(),
     },
@@ -169,6 +173,33 @@ function computeMovePlotX(model: Model, screenX: number): number {
   });
 }
 
+function rebaseBrushDrag(model: Model): Model {
+  if (!model.brush.active || Option.isNone(model.svgBounds) || model.layout.pw <= 0) return model;
+  const { clientLeft, renderedPW } = model.svgBounds.value;
+  const toClientX = linear({
+    domain: [0, model.layout.pw],
+    range: [clientLeft, clientLeft + renderedPW],
+  });
+  return {
+    ...model,
+    brushDragStart: Option.map(model.brushDragStart, ({ lastScreenX }) => ({
+      anchorClientX: toClientX(model.brush.extent),
+      anchorScreenX: lastScreenX,
+      lastScreenX,
+    })),
+  };
+}
+
+function resizeBrush(brush: BrushState, fromWidth: number, toWidth: number): BrushState {
+  const resizeX = linear({ domain: [0, fromWidth], range: [0, toWidth] });
+  return { ...brush, anchor: resizeX(brush.anchor), extent: resizeX(brush.extent) };
+}
+
+// Evaluate the brush helper's minimum gesture distance in the original gesture's coordinates.
+function brushAtGestureWidth(model: Model): BrushState {
+  return resizeBrush(model.brush, model.layout.pw, model.brushGestureWidth);
+}
+
 export const update = (model: Model, msg: Message): Return =>
   Message.match<Return>(msg, {
     PressedKeyNav: ({ direction }) => {
@@ -182,11 +213,21 @@ export const update = (model: Model, msg: Message): Return =>
     RecordedChartWidth: ({ width }) => {
       if (!Number.isFinite(width) || width <= 0 || width === model.layout.dims.width)
         return { model };
+      const layout = layoutFor({ ...model.layout.dims, width }, model.layout.margins);
+      if (!Number.isFinite(layout.pw) || layout.pw <= 0) return { model };
+      if (model.layout.pw <= 0) return { model: { ...model, layout } };
+      const resizeX = linear({ domain: [0, model.layout.pw], range: [0, layout.pw] });
+      // Brush coordinates are plot pixels; preserve their domain positions before rebasing the drag.
       return {
-        model: {
+        model: rebaseBrushDrag({
           ...model,
-          layout: layoutFor({ ...model.layout.dims, width }, model.layout.margins),
-        },
+          layout,
+          brush: resizeBrush(model.brush, model.layout.pw, layout.pw),
+          svgBounds: Option.map(model.svgBounds, (bounds) => ({
+            ...bounds,
+            renderedPW: resizeX(bounds.renderedPW),
+          })),
+        }),
       };
     },
     HoveredBin: ({ index }) => {
@@ -209,23 +250,41 @@ export const update = (model: Model, msg: Message): Return =>
         { model: { ...model, activeBin: Option.none() } },
         OutMessage.ClearedInspection(),
       ),
-    RecordedSvgBounds: ({ clientLeft, renderedPW }) => ({
-      model: { ...model, svgBounds: Option.some({ clientLeft, renderedPW }) },
-    }),
+    RecordedSvgBounds: ({ clientLeft, renderedPW }) => {
+      if (!Number.isFinite(clientLeft) || !Number.isFinite(renderedPW) || renderedPW <= 0)
+        return { model };
+      return {
+        model: rebaseBrushDrag({ ...model, svgBounds: Option.some({ clientLeft, renderedPW }) }),
+      };
+    },
     StartedHistogramBrush: ({ screenX, clientX }) => {
       const plotX = computePlotX(model.svgBounds, model.layout.pw, clientX);
       return {
         model: {
           ...model,
           brush: brushUpdate(model.brush, StartedBrush(plotX)),
-          brushDragStart: Option.some({ anchorClientX: clientX, anchorScreenX: screenX }),
+          brushGestureWidth: model.layout.pw,
+          brushDragStart: Option.some({
+            anchorClientX: clientX,
+            anchorScreenX: screenX,
+            lastScreenX: screenX,
+          }),
         },
       };
     },
     MovedHistogramBrush: ({ screenX }) => {
       if (!model.brush.active) return { model: model };
       const plotX = computeMovePlotX(model, screenX);
-      return { model: { ...model, brush: brushUpdate(model.brush, MovedBrush(plotX)) } };
+      return {
+        model: {
+          ...model,
+          brush: brushUpdate(model.brush, MovedBrush(plotX)),
+          brushDragStart: Option.map(model.brushDragStart, (drag) => ({
+            ...drag,
+            lastScreenX: screenX,
+          })),
+        },
+      };
     },
     EndedHistogramBrush: ({ screenX }) => {
       const plotX = computeMovePlotX(model, screenX);
@@ -251,12 +310,13 @@ export const update = (model: Model, msg: Message): Return =>
 /** Returns the brush selection as domain [lo, hi] values, or Option.none() if no selection. */
 export function getBrushDomain(model: Model): Option.Option<readonly [number, number]> {
   if (!model.enableBrush || model.bins.length === 0) return Option.none();
-  const ext = brushExtent(model.brush);
-  if (ext === null) return Option.none();
   const domainMin = model.bins[0]?.x0 ?? 0;
   const domainMax = model.bins[model.bins.length - 1]?.x1 ?? 1;
-  const xScale = linearInvertible({ domain: [domainMin, domainMax], range: [0, model.layout.pw] });
-  const domain = brushDomain(model.brush, xScale.invert);
+  const xScale = linearInvertible({
+    domain: [domainMin, domainMax],
+    range: [0, model.brushGestureWidth],
+  });
+  const domain = brushDomain(brushAtGestureWidth(model), xScale.invert);
   return domain === null ? Option.none() : Option.some(domain);
 }
 
@@ -291,7 +351,12 @@ export function view<M>(
   const yTicks = linearTicks([0, maxCount * 1.1], 5);
 
   const activeIdx = Option.isSome(activeBin) ? activeBin.value : -1;
-  const ext = enableBrush ? brushExtent(model.brush) : null;
+  const gestureExtent = enableBrush ? brushExtent(brushAtGestureWidth(model)) : null;
+  const fromGestureX = linear({ domain: [0, model.brushGestureWidth], range: [0, PW] });
+  const ext =
+    gestureExtent === null
+      ? null
+      : ([fromGestureX(gestureExtent[0]), fromGestureX(gestureExtent[1])] as const);
   const active = bins[activeIdx];
   const liveText = active ? `${xLabel}: ${active.x0} to ${active.x1}, ${active.count} points` : '';
   const handleKeyDown = (key: string) =>

@@ -30,11 +30,24 @@ describe('comparison settings', () => {
     expect(decode(captured)).toEqual(captured);
   });
 
-  it.each([-1, 1.5, NaN, Infinity])('rejects invalid panel ID %s', (id) => {
-    expect(() => decode({ ...initialSettings, panels: [{ id, kind: 'scatter' }] })).toThrow();
+  it('accepts a safe exhausted counter above the last allocatable ID', () => {
+    const exhausted = {
+      panels: [{ id: Number.MAX_SAFE_INTEGER - 1, kind: 'scatter' }],
+      nextPanelId: Number.MAX_SAFE_INTEGER,
+      linkInspections: true,
+    };
+    expect(decode(exhausted)).toEqual(exhausted);
+    expect(decode({ ...exhausted, panels: [] }).nextPanelId).toBe(Number.MAX_SAFE_INTEGER);
   });
 
-  it.each([-1, 1.5, NaN, Infinity, 1, 2])(
+  it.each([-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid panel ID %s',
+    (id) => {
+      expect(() => decode({ ...initialSettings, panels: [{ id, kind: 'scatter' }] })).toThrow();
+    },
+  );
+
+  it.each([-1, 1.5, NaN, Infinity, 1, 2, Number.MAX_SAFE_INTEGER + 1])(
     'rejects invalid or already used counter %s',
     (nextPanelId) => {
       expect(() => decode({ ...initialSettings, nextPanelId })).toThrow();

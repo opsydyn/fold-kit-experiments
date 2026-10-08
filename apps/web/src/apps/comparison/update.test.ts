@@ -1,4 +1,4 @@
-import { Option } from 'effect';
+import { Option, Schema } from 'effect';
 import { assert, describe, expect, it } from 'vitest';
 
 import * as Histogram from '../../ui/histogram-chart';
@@ -7,6 +7,7 @@ import { matchingBinIndices, matchingKeys } from '../../ui/shared/inspection';
 import { points } from './data';
 import { Message } from './message';
 import { init } from './model';
+import { Settings } from './settings';
 import { update } from './update';
 
 const inspectPoint = (id: number, index = 0) =>
@@ -76,6 +77,63 @@ describe('comparison collection', () => {
     expect(model.panels.map(({ id }) => id)).toEqual([3]);
     expect(model.nextPanelId).toBe(4);
   });
+
+  it.each(['scatter', 'histogram'] as const)(
+    'keeps repeated %s adds at exhaustion as identity no-ops',
+    (kind) => {
+      const initial = init(
+        Schema.decodeUnknownSync(Settings)({
+          panels: [],
+          nextPanelId: Number.MAX_SAFE_INTEGER,
+          linkInspections: true,
+        }),
+      ).model;
+      const first = update(initial, Message.ClickedAddPanel({ kind }));
+      const second = update(first.model, Message.ClickedAddPanel({ kind }));
+      const third = update(second.model, Message.ClickedAddPanel({ kind }));
+      expect(third.model.panels.map(({ id }) => id)).toEqual([]);
+      for (const result of [first, second, third]) {
+        expect(result.model).toBe(initial);
+        expect(result.commands ?? []).toEqual([]);
+        expect(result.model.nextPanelId).toBe(Number.MAX_SAFE_INTEGER);
+      }
+    },
+  );
+
+  it.each(['scatter', 'histogram'] as const)(
+    'allocates the final safe %s IDs without reusing them after removal',
+    (kind) => {
+      let model = init(
+        Schema.decodeUnknownSync(Settings)({
+          panels: [],
+          nextPanelId: Number.MAX_SAFE_INTEGER - 2,
+          linkInspections: true,
+        }),
+      ).model;
+      model = update(model, Message.ClickedAddPanel({ kind })).model;
+      model = update(model, Message.ClickedAddPanel({ kind })).model;
+      expect(model.panels.map(({ id }) => id)).toEqual([9007199254740989, 9007199254740990]);
+      expect(model.nextPanelId).toBe(9007199254740991);
+      expect(Number.isSafeInteger(model.nextPanelId)).toBe(true);
+      for (const panel of model.panels) expect(panel.id).toBeLessThan(model.nextPanelId);
+      const exhausted = update(model, Message.ClickedAddPanel({ kind }));
+      expect(exhausted.model).toBe(model);
+      expect(exhausted.commands ?? []).toEqual([]);
+      model = update(model, Message.ClickedRemovePanel({ id: 9007199254740989 })).model;
+      model = update(model, Message.ClickedRemovePanel({ id: 9007199254740990 })).model;
+      expect(model.panels).toEqual([]);
+      expect(model.nextPanelId).toBe(9007199254740991);
+      for (const nextKind of ['scatter', 'histogram'] as const) {
+        const result = update(model, Message.ClickedAddPanel({ kind: nextKind }));
+        expect(result.model).toBe(model);
+        expect(result.commands ?? []).toEqual([]);
+      }
+      const late =
+        kind === 'scatter' ? inspectPoint(9007199254740990) : inspectBin(9007199254740990);
+      expect(update(model, late).model).toBe(model);
+      expect(update(model, late).commands ?? []).toEqual([]);
+    },
+  );
 
   it('reorders without replacing child objects or the active inspection', () => {
     const model = update(init().model, inspectPoint(1, 1)).model;

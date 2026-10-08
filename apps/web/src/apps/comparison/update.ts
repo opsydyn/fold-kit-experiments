@@ -15,12 +15,15 @@ const folds = comparisonFolds({ scatter: Scatter.update, histogram: Histogram.up
 
 function add(model: Model, kind: Settings['panels'][number]['kind']): Return<Model, Message> {
   if (model.panels.length >= 4) return { model };
+  const nextPanelId = model.nextPanelId + 1;
+  // Keep a safe counter strictly above every allocated ID, even after removal.
+  if (!Number.isSafeInteger(nextPanelId)) return { model };
   const child = initPanel(model.nextPanelId, kind);
   return {
     model: {
       ...model,
       panels: [...model.panels, child.model],
-      nextPanelId: model.nextPanelId + 1,
+      nextPanelId,
     },
     commands: child.commands,
   };

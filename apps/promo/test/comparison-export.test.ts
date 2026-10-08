@@ -1,7 +1,7 @@
 // Filesystem fixtures must be removed even if assertions fail.
 /* oxlint-disable linteffect/no-try-catch */
 import { expect, test } from 'bun:test';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 import { Option, Schema } from 'effect';
@@ -14,6 +14,7 @@ import * as Scatter from '../../web/src/ui/scatter-chart';
 import { captureSettings, projectFiles, projectZip } from '../src/examples/comparison/project';
 import { collectComparisonSources } from '../src/lib/comparison-sources';
 import { buildExampleTemplate } from '../src/lib/example-project';
+import * as ExampleProject from '../src/lib/example-project';
 
 const settings: Settings = {
   panels: [
@@ -25,6 +26,80 @@ const settings: Settings = {
   nextPanelId: 4,
 };
 const initialPath = 'src/web/src/apps/comparison/initial-settings.ts';
+
+test('template builder rejects initial Viz traversal before filesystem lookup', async () => {
+  for (const subpath of [
+    '../__task5_missing_boundary_probe__',
+    'math/../../outside',
+    '/absolute',
+    'math//scale',
+  ]) {
+    const result = await buildExampleTemplate(
+      [{ name: 'main.ts', content: `export * from '@opsydyn/foldkit-viz/${subpath}';` }],
+      'comparison',
+    ).then(
+      () => null,
+      (error) => error,
+    );
+    expect(result).toBeInstanceOf(RangeError);
+  }
+});
+
+test.each(['linked', 'entry', 'external/outside'])(
+  'vendor collector rejects canonical dist escape through %s',
+  async (entry) => {
+    const root = await mkdtemp('/private/tmp/comparison-vendor-symlinks-');
+    const dist = join(root, 'dist');
+    try {
+      await mkdir(dist);
+      for (const extension of ['mjs', 'd.mts']) {
+        await writeFile(join(root, 'outside.' + extension), 'export const privateValue = 42;');
+        await symlink(join(root, 'outside.' + extension), join(dist, 'linked.' + extension));
+        await writeFile(join(dist, 'entry.' + extension), "export * from './linked.mjs';");
+      }
+      // A symlinked directory must not bypass the same boundary.
+      await symlink(root, join(dist, 'external'));
+      const result = await ExampleProject.collectVizModules(dist, [entry]).then(
+        () => null,
+        (error) => error,
+      );
+      expect(result).toBeInstanceOf(RangeError);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+);
+
+test('vendor collector rejects lexical dependency escapes but permits internal parent edges and symlinks', async () => {
+  const root = await mkdtemp('/private/tmp/comparison-vendor-edges-');
+  const dist = join(root, 'dist');
+  try {
+    await mkdir(join(dist, 'nested'), { recursive: true });
+    for (const extension of ['mjs', 'd.mts']) {
+      await writeFile(join(root, 'outside.' + extension), 'export const privateValue = 42;');
+      await writeFile(join(dist, 'escape.' + extension), "export * from '../outside.mjs';");
+      await writeFile(join(dist, 'shared.' + extension), 'export const shared = 1;');
+      await symlink(join(dist, 'shared.' + extension), join(dist, 'alias.' + extension));
+      await writeFile(join(dist, 'nested/entry.v2.' + extension), "export * from '../alias.mjs';");
+    }
+    const escaped = await ExampleProject.collectVizModules(dist, ['escape']).then(
+      () => null,
+      (error) => error,
+    );
+    expect(escaped).toBeInstanceOf(RangeError);
+    const files = await ExampleProject.collectVizModules(dist, ['nested/entry.v2']);
+    expect(files['vendor/foldkit-viz/dist/alias.mjs']).toBe('export const shared = 1;');
+    expect(files['vendor/foldkit-viz/dist/alias.d.mts']).toBe('export const shared = 1;');
+    expect(Object.keys(files).sort()).toEqual([
+      'vendor/foldkit-viz/dist/alias.d.mts',
+      'vendor/foldkit-viz/dist/alias.mjs',
+      'vendor/foldkit-viz/dist/nested/entry.v2.d.mts',
+      'vendor/foldkit-viz/dist/nested/entry.v2.mjs',
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test('snapshot ZIP round-trips [2,3,1], linking off and counter 4 without transient state', async () => {
   const resized = update(

@@ -41,6 +41,15 @@ export function staticImports(name: string, content: string): ReadonlyArray<stri
   });
 }
 
+export function assertVizSubpath(subpath: string): void {
+  if (
+    subpath
+      .split('/')
+      .some((segment) => segment === '.' || segment === '..' || !/^[A-Za-z0-9._-]+$/.test(segment))
+  )
+    throw new RangeError('Invalid Viz package subpath: ' + subpath);
+}
+
 export async function collectComparisonSources(
   options: Readonly<{ appsRoot?: string; entries?: ReadonlyArray<string> }> = {},
 ): Promise<ReadonlyArray<SourceFile>> {
@@ -79,11 +88,11 @@ export async function collectComparisonSources(
     if (path.endsWith('.css')) continue;
     for (const specifier of staticImports(path, content)) {
       if (specifier.startsWith('.')) pending.push(resolve(dirname(path), specifier));
-      else if (
+      else if (specifier.startsWith('@opsydyn/foldkit-viz/')) {
+        assertVizSubpath(specifier.slice('@opsydyn/foldkit-viz/'.length));
+      } else if (
         isAbsolute(specifier) ||
-        !/^(?:effect|foldkit)(?:\/|$)|^@opsydyn\/foldkit-viz\/|^(?:fflate|@stackblitz\/sdk)$/.test(
-          specifier,
-        )
+        !/^(?:effect|foldkit)(?:\/|$)|^(?:fflate|@stackblitz\/sdk)$/.test(specifier)
       ) {
         throw new RangeError('Unresolved comparison dependency: ' + specifier);
       }

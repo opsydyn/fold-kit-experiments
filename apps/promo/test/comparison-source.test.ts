@@ -10,6 +10,38 @@ import { buildExampleTemplate } from '../src/lib/example-project';
 
 const appsRoot = fileURLToPath(new URL('../../', import.meta.url));
 
+test('collector rejects traversal-bearing Viz subpaths before they reach vendoring', async () => {
+  const root = await mkdtemp('/private/tmp/comparison-viz-subpaths-');
+  const entry = 'promo/src/examples/comparison/main.ts';
+  try {
+    await mkdir(dirname(join(root, entry)), { recursive: true });
+    for (const subpath of [
+      '../__task5_missing_boundary_probe__',
+      'math/../../outside',
+      './math/scale',
+      '/math/scale',
+      'math//scale',
+      'math\\scale',
+      'math/%2e%2e/scale',
+      'math/scale?raw',
+    ]) {
+      await writeFile(
+        join(root, entry),
+        `export * from ${JSON.stringify('@opsydyn/foldkit-viz/' + subpath)};`,
+      );
+      const result = await collectComparisonSources({ appsRoot: root, entries: [entry] }).then(
+        () => null,
+        (error) => error,
+      );
+      expect(result).toBeInstanceOf(RangeError);
+    }
+    await writeFile(join(root, entry), "export * from '@opsydyn/foldkit-viz/_internal/scale.v2';");
+    expect(await collectComparisonSources({ appsRoot: root, entries: [entry] })).toHaveLength(1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('collector still finds maintained sources after the server bundler relocates its module', async () => {
   const directory = await mkdtemp(join(appsRoot, 'promo/.comparison-collector-'));
   try {

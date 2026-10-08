@@ -1,10 +1,50 @@
-import { readFile } from 'node:fs/promises';
-import { dirname, join, posix } from 'node:path';
+import { readFile, realpath } from 'node:fs/promises';
+import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { staticImports } from './comparison-sources';
+import { assertVizSubpath, staticImports } from './comparison-sources';
 
 export type SourceFile = Readonly<{ name: string; content: string }>;
+
+export async function collectVizModules(
+  libraryRoot: string,
+  modules: ReadonlyArray<string>,
+): Promise<Record<string, string>> {
+  modules.forEach(assertVizSubpath);
+  const canonicalRoot = await realpath(libraryRoot);
+  const files: Record<string, string> = {};
+  const pending = modules.flatMap((module) => [module + '.mjs', module + '.d.mts']);
+  const included = new Set<string>();
+  while (pending.length > 0) {
+    const modulePath = pending.pop();
+    if (modulePath === undefined || included.has(modulePath)) continue;
+    assertVizSubpath(modulePath);
+    const canonicalPath = await realpath(join(canonicalRoot, modulePath));
+    const containedPath = relative(canonicalRoot, canonicalPath);
+    if (
+      containedPath === '' ||
+      containedPath === '..' ||
+      containedPath.startsWith('..' + sep) ||
+      isAbsolute(containedPath)
+    ) {
+      throw new RangeError('Compiled Viz import escapes the distribution: ' + modulePath);
+    }
+    included.add(modulePath);
+    const content = await readFile(canonicalPath, 'utf8');
+    files['vendor/foldkit-viz/dist/' + modulePath] = content;
+    // tsdown emits relative ESM edges. Declaration .mjs specifiers resolve to adjacent .d.mts.
+    const imports = content.matchAll(/(?:from\s*|import\s*\(\s*|import\s*)['"](\.[^'"]+)['"]/g);
+    for (const match of imports) {
+      const specifier = match[1];
+      if (specifier === undefined) continue;
+      const resolved = posix.normalize(posix.join(posix.dirname(modulePath), specifier));
+      if (resolved.startsWith('../'))
+        throw new RangeError('Compiled Viz import escapes the distribution');
+      pending.push(modulePath.endsWith('.d.mts') ? resolved.replace(/\.mjs$/, '.d.mts') : resolved);
+    }
+  }
+  return files;
+}
 
 export async function buildExampleTemplate(
   sources: ReadonlyArray<SourceFile>,
@@ -37,25 +77,7 @@ export async function buildExampleTemplate(
       ],
     }[example],
   ];
-  const pending = modules.flatMap((module) => [module + '.mjs', module + '.d.mts']);
-  const included = new Set<string>();
-  while (pending.length > 0) {
-    const modulePath = pending.pop();
-    if (modulePath === undefined || included.has(modulePath)) continue;
-    included.add(modulePath);
-    const content = await readFile(join(libraryRoot, modulePath), 'utf8');
-    files['vendor/foldkit-viz/dist/' + modulePath] = content;
-    // tsdown emits relative ESM edges. Declaration .mjs specifiers resolve to adjacent .d.mts.
-    const imports = content.matchAll(/(?:from\s*|import\s*\(\s*|import\s*)['"](\.[^'"]+)['"]/g);
-    for (const match of imports) {
-      const specifier = match[1];
-      if (specifier === undefined) continue;
-      const resolved = posix.normalize(posix.join(posix.dirname(modulePath), specifier));
-      if (resolved.startsWith('../'))
-        throw new RangeError('Compiled Viz import escapes the distribution');
-      pending.push(modulePath.endsWith('.d.mts') ? resolved.replace(/\.mjs$/, '.d.mts') : resolved);
-    }
-  }
+  Object.assign(files, await collectVizModules(libraryRoot, modules));
   files['vendor/foldkit-viz/package.json'] = JSON.stringify(
     {
       name: '@opsydyn/foldkit-viz',

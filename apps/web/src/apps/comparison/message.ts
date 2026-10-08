@@ -5,6 +5,8 @@ import type * as Histogram from '../../ui/histogram-chart';
 import type * as Scatter from '../../ui/scatter-chart';
 
 export const Message = defineMessageUnion({
+  CompletedFocusComparisonTarget: {},
+  CompletedRestoreComparisonFocus: {},
   ClickedAddPanel: { kind: Schema.Literals(['scatter', 'histogram']) },
   ClickedRemovePanel: { id: Schema.Number },
   ClickedMovePanel: { id: Schema.Number, direction: Schema.Literals(['earlier', 'later']) },

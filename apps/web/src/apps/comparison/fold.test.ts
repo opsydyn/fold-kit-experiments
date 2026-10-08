@@ -129,7 +129,11 @@ it('lifts both initial and dynamically added child Commands with their allocated
   ]);
   for (const kind of ['scatter', 'histogram'] as const) {
     const added = update(initial.model, Message.ClickedAddPanel({ kind }));
-    expect(added.commands).toHaveLength(1);
+    expect(added.commands).toHaveLength(2);
+    expect(added.commands?.[1]).toMatchObject({
+      name: 'FocusComparisonTarget',
+      args: { selector: '#comparison-panel-3' },
+    });
     const completion = await Effect.runPromise(
       Option.getOrThrow(Option.fromNullishOr(added.commands?.[0])).effect,
     );

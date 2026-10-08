@@ -5,6 +5,7 @@ import type { Return } from 'foldkit/update';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
+import { FocusComparisonTarget, RestoreComparisonFocus } from './command';
 import { clearInspection, comparisonFolds } from './fold';
 import { Message } from './message';
 import { Linking, initPanel } from './model';
@@ -25,15 +26,25 @@ function add(model: Model, kind: Settings['panels'][number]['kind']): Return<Mod
       panels: [...model.panels, child.model],
       nextPanelId,
     },
-    commands: child.commands,
+    commands: [
+      ...(child.commands ?? []),
+      FocusComparisonTarget({ selector: `#comparison-panel-${child.model.id}` }),
+    ],
   };
 }
 
 function remove(model: Model, id: number): Return<Model, Message> {
-  if (!model.panels.some((panel) => panel.id === id)) return { model };
+  const index = model.panels.findIndex((panel) => panel.id === id);
+  if (index === -1) return { model };
+  const next = model.panels[index + 1] ?? model.panels[index - 1];
+  const selector = Option.match(Option.fromNullishOr(next), {
+    onNone: () => '#comparison-add-scatter',
+    onSome: (panel) => `#comparison-panel-${panel.id}`,
+  });
   const cleared = clearInspection(model, id);
   return {
     model: { ...cleared.model, panels: model.panels.filter((panel) => panel.id !== id) },
+    commands: [FocusComparisonTarget({ selector })],
   };
 }
 
@@ -51,7 +62,10 @@ function move(model: Model, id: number, direction: 'earlier' | 'later'): Return<
   const panels = [...model.panels];
   panels[index] = neighbour;
   panels[target] = panel;
-  return { model: { ...model, panels } };
+  return {
+    model: { ...model, panels },
+    commands: [RestoreComparisonFocus({ panelId: id })],
+  };
 }
 
 function changeLinking(model: Model, enabled: boolean): Return<Model, Message> {
@@ -70,6 +84,8 @@ function changeLinking(model: Model, enabled: boolean): Return<Model, Message> {
 
 export function update(model: Model, message: Message): Return<Model, Message> {
   return Message.match<Return<Model, Message>>(message, {
+    CompletedFocusComparisonTarget: () => ({ model }),
+    CompletedRestoreComparisonFocus: () => ({ model }),
     ClickedAddPanel: ({ kind }) => add(model, kind),
     ClickedRemovePanel: ({ id }) => remove(model, id),
     ClickedMovePanel: ({ id, direction }) => move(model, id, direction),

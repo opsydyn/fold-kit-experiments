@@ -58,3 +58,48 @@ it('preserves legacy label keys and a single active point without an overlay', a
   );
   expect(node.textContent).toContain('same (1, 10)');
 });
+
+it('ignores empty keyboard navigation without emitting an inspection', () => {
+  const model = init({ points: [] }).model;
+  expect(update(model, Message.PressedKeyNav({ direction: 'next' }))).toEqual({ model });
+});
+
+it('uses current client geometry and layout for nearest-point inspection', () => {
+  const model = init({ points }).model;
+  const first = update(
+    model,
+    Message.MovedPlotPointer({
+      clientX: 410,
+      clientY: 200,
+      left: 400,
+      top: 190,
+      width: 408,
+      height: 184,
+    }),
+  );
+  const moved = update(
+    model,
+    Message.MovedPlotPointer({
+      clientX: 410,
+      clientY: 200,
+      left: 0,
+      top: 190,
+      width: 408,
+      height: 184,
+    }),
+  );
+  expect(first.outMessage).toMatchObject({ key: 'a' });
+  expect(moved.outMessage).toMatchObject({ key: 'c' });
+});
+
+it('retains inspection and finite dimensions across hidden and positive width measurements', () => {
+  const active = update(init({ points }).model, Message.HoveredPoint({ index: 2 })).model;
+  for (const width of [0, -1, NaN, Infinity]) {
+    expect(update(active, Message.RecordedChartWidth({ width }))).toEqual({ model: active });
+  }
+  const resized = update(active, Message.RecordedChartWidth({ width: 300 }));
+  expect(resized.model.layout.dims.width).toBe(300);
+  expect(resized.model.layout.pw).toBe(228);
+  expect(resized.model.activeIndex).toEqual(Option.some(2));
+  expect(resized.outMessage).toBeUndefined();
+});

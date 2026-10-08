@@ -1,7 +1,7 @@
 # Keyed chart comparison workbench
 
-Status: conversational scope, ownership, interactions, and test rules approved.
-Written spec awaiting review. Implementation and its execution method require
+Status: written spec approved on 2026-10-08.
+Implementation and its execution method require
 separate approval after the implementation plan is written.
 
 ## Outcome and scope

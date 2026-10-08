@@ -2,11 +2,13 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { staticImports } from './comparison-sources';
+
 export type SourceFile = Readonly<{ name: string; content: string }>;
 
 export async function buildExampleTemplate(
   sources: ReadonlyArray<SourceFile>,
-  example: 'line' | 'histogram' | 'scatter',
+  example: 'line' | 'histogram' | 'scatter' | 'comparison',
 ): Promise<Record<string, string>> {
   const libraryRoot = dirname(
     dirname(fileURLToPath(import.meta.resolve('@opsydyn/foldkit-viz/math/scale'))),
@@ -22,6 +24,17 @@ export async function buildExampleTemplate(
       line: ['math/scale', 'shape/line', 'shape/path'],
       histogram: ['math/scale', 'math/bin'],
       scatter: ['math/scale'],
+      comparison: [
+        ...new Set(
+          sources.flatMap(({ name, content }) =>
+            name.endsWith('.ts')
+              ? staticImports(name, content)
+                  .filter((specifier) => specifier.startsWith('@opsydyn/foldkit-viz/'))
+                  .map((specifier) => specifier.slice('@opsydyn/foldkit-viz/'.length))
+              : [],
+          ),
+        ),
+      ],
     }[example],
   ];
   const pending = modules.flatMap((module) => [module + '.mjs', module + '.d.mts']);
@@ -64,10 +77,13 @@ export async function buildExampleTemplate(
       name: 'foldkit-viz-live-' + example,
       private: true,
       type: 'module',
-      imports: {
-        '#example/measurement': './src/shared/measurement.ts',
-        '#example/frame': './src/shared/frame.ts',
-      },
+      imports:
+        example === 'comparison'
+          ? undefined
+          : {
+              '#example/measurement': './src/shared/measurement.ts',
+              '#example/frame': './src/shared/frame.ts',
+            },
       scripts: {
         dev: 'vite --host 0.0.0.0',
         start: 'vite --host 0.0.0.0',
@@ -110,6 +126,10 @@ export async function buildExampleTemplate(
     '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Foldkit Viz — Live ' +
     example +
     '</title></head><body><main><h1>Give your data shape.</h1><p>Change the controls, inspect the code, make it yours.</p><div id="app"></div></main><script type="module" src="/src/entry.ts"></script></body></html>';
+  if (example === 'comparison') {
+    files['index.html'] =
+      '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chart comparison</title></head><body><main><h1>Chart comparison</h1><div id="app"></div></main><script type="module" src="/src/entry.ts"></script></body></html>';
+  }
   const imports = sources
     .map(({ name }, index) => `import source${index} from './${name}?raw';`)
     .join('\n');
@@ -117,7 +137,11 @@ export async function buildExampleTemplate(
     .map(({ name }, index) => `{ name: '${name}', content: source${index} }`)
     .join(',\n');
   files['src/entry.ts'] =
-    "import { Runtime } from 'foldkit';\nimport * as app from './main';\nimport './chart.css';\nimport './standalone.css';\n" +
+    "import { Runtime } from 'foldkit';\n" +
+    (example === 'comparison'
+      ? "import * as app from './promo/src/examples/comparison/main';\n"
+      : "import * as app from './main';\nimport './chart.css';\n") +
+    "import './standalone.css';\n" +
     imports +
     "\nconst container = document.getElementById('app');\nif (!container) throw new Error('Missing example container');\nconst sources = [\n" +
     sourceList +
@@ -128,5 +152,11 @@ export async function buildExampleTemplate(
     '# Foldkit Viz live ' +
     example +
     '\n\nRequires Node.js 22.12 or newer (or Bun).\n\n```sh\nnpm install\nnpm run dev\n```\n\nEdit `src/settings.ts` for initial values or `src/chart.ts` for geometry. `src/view.ts` renders the chart and controls. Settings are captured from the promo page at export time. Change data/accessors in `src/chart.ts` and `src/data.ts` (where present), brand paints and keyed styles in `src/chart.ts`, surface tokens in `src/shared/frame.ts`, ordered layers and custom tooltips/annotations in `src/view.ts`. The Model owns measured width, controls and inspection; the scoped observer in `src/shared/measurement.ts` reports facts through Messages. Use the data table for complete raw values; numeric axes use concise caller-supplied formatting. Palette assignment is stable over an explicit domain and cycles deterministically.\n\nThe same maintained sources power the promo island. The geometry, semantic themes and optional FoldKit layers plus their compiled dependencies are included under `vendor/` so this project does not depend on an unpublished package version.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
+  if (example === 'comparison') {
+    files['src/standalone.css'] =
+      ':root { color-scheme: light dark; --text:#151619; --muted:#5d6574; --border:#d9dce1; --surface:#fff; background:#f4f6f8; color:var(--text); font-family:system-ui,sans-serif; } * { box-sizing:border-box; } body { margin:0; } main { max-width:1160px; margin:auto; padding:24px 16px; } h1 { font-size:24px; letter-spacing:0; } @media(prefers-color-scheme:dark) { :root { --text:#f4f2ed; --muted:#adb6c7; --border:#43464b; --surface:#232529; background:#17191c; } }';
+    files['README.md'] =
+      '# Foldkit Viz chart comparison\n\nRequires Node.js 22.12 or newer.\n\n```sh\nnpm install\nnpm run typecheck\nnpm run dev\n```\n\nInitial panel kinds, IDs, order, linking and the next ID counter are captured at export. Edit `src/web/src/apps/comparison/initial-settings.ts`; schema and validation remain in `settings.ts`. Transient chart measurements and inspection are not persisted. The same maintained workbench and transitive chart sources power the Astro and promo hosts, with apps-relative paths preserved beneath `src/`. The promo wrapper is `src/promo/src/examples/comparison/main.ts`. Standalone mode retains source inspection and copy but offers no recursive project export.\n\nCompiled Viz modules and dependencies are included under `vendor/`; no unpublished package release is required.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
+  }
   return files;
 }

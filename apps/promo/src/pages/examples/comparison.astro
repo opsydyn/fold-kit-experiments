@@ -1,0 +1,14 @@
+---
+import Comparison from '../../examples/comparison/app';
+import Layout from '../../layouts/Layout.astro';
+import { collectComparisonSources } from '../../lib/comparison-sources';
+
+const sources = await collectComparisonSources();
+---
+<Layout title="Chart comparison - Foldkit Viz">
+  <h1>Chart comparison</h1>
+  <section aria-label="Interactive chart comparison">
+    <Comparison client:load noMeta sources={sources} templateUrl="/downloads/comparison-template.json" />
+    <noscript><p>Chart comparison needs JavaScript.</p></noscript>
+  </section>
+</Layout>

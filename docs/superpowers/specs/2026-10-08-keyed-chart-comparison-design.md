@@ -1,8 +1,12 @@
 # Keyed chart comparison workbench
 
-Status: written spec approved on 2026-10-08.
-Implementation and its execution method require
-separate approval after the implementation plan is written.
+Status: spec, five-task plan and subagent-driven execution approved on 2026-10-08.
+Tasks 1-3 are implemented and reviewed. Task 4 source/automated checkpoint
+`70b7c7b` is approved, with live browser acceptance pending. Task 5 export
+implementation and automated qualification are complete; controller review and
+remaining browser acceptance are pending. Standalone smoke was observed, with a
+scatter-axis label overlap deferred to the final correction wave.
+See the qualification document and authoritative controller `progress.md` ledger.
 
 ## Outcome and scope
 
@@ -32,12 +36,13 @@ and time-range policies would broaden the work beyond keyed child ownership.
 
 ## Current evidence and prerequisite
 
-The compatibility work is currently uncommitted on `codex/foldkit-0-167`.
-This spec does not commit, release, or otherwise accept those changes on behalf
-of the user. Implementation depends on the qualified FoldKit 0.167 upgrade;
-keep the upgrade and feature changes separately reviewable.
+The FoldKit 0.167 compatibility upgrade was separately authorised and committed
+as `3fe48cf`. Feature work is isolated in the managed `keyed-chart-comparison`
+worktree. Upgrade and feature checkpoints remain separately reviewable; none
+has been pushed, merged or published by this implementation.
 
-Relevant existing code:
+Relevant code at the design baseline (the limitations below are now repaired
+by the reviewed Tasks 1-3):
 
 - `apps/web/src/apps/linked-charts/`: fixed sibling composition and typed
   OutMessage handling.
@@ -205,27 +210,32 @@ vendored Viz dependency strategy; do not require an unpublished registry release
 
 ## Acceptance gates
 
-- [ ] Default state has one scatter and one histogram with unique IDs.
-- [ ] Add/remove/reorder obey the four-panel cap, preserve child state, and
+- [x] Default state has one scatter and one histogram with unique IDs.
+- [x] Add/remove/reorder obey the four-panel cap, preserve child state, and
       never reuse IDs, including remove-all followed by add.
-- [ ] Keyed folds preserve child Commands and consume OutMessages once.
-- [ ] Removed-ID and wrong-type Messages are complete no-ops.
-- [ ] Matching tests cover all points in a range, zero matches, duplicate
+- [x] Keyed folds preserve child Commands and consume OutMessages once.
+- [x] Removed-ID and wrong-type Messages are complete no-ops.
+- [x] Matching tests cover all points in a range, zero matches, duplicate
       labels, equal coordinates with distinct IDs, and both interval endpoints.
-- [ ] Render tests prove every matching scatter mark is highlighted while one
+- [x] Render tests prove every matching scatter mark is highlighted while one
       independent keyboard-active point and tooltip remain intact.
-- [ ] Existing linked charts show all matches; ordinary scatter callers retain
+- [x] Existing linked charts show all matches; ordinary scatter callers retain
       their original behaviour without supplying new options.
-- [ ] Linking toggles preserve local state; source removal and source-specific
+- [x] Linking toggles preserve local state; source removal and source-specific
       clear events behave as specified without sibling feedback loops.
-- [ ] Pointer and keyboard histogram inspection produce equivalent ranges.
+- [x] Pointer and keyboard histogram inspection produce equivalent ranges in
+      automated tests; real browser input remains part of the following gate.
 - [ ] Browser checks at 390px and desktop widths cover add/remove/reorder,
       focus recovery, visible matching counts, and hit testing after movement,
       resize, and scroll. Observe teardown and no duplicate host runtime.
-- [ ] The promo example and downloaded project use the same maintained code.
+- [x] The promo example and downloaded project use the same maintained code.
       Downloaded settings reflect current structure; install, typecheck, and
-      build succeed outside the monorepo, followed by a focused browser smoke.
-- [ ] `bun run check`, `bun typecheck`, and `bun run test` pass; build both apps
+      build succeed outside the monorepo. Only the data-only `initial-settings.ts`
+      is replaced; the maintained `settings.ts` validation is retained.
+- [x] Focused downloaded-project browser smoke confirms the captured structure,
+      add/reorder, multi-match inspection and linking toggle. Controller also
+      observed 390px control fit; scatter y-axis label overlap remains to fix.
+- [x] `bun run check`, `bun typecheck`, and `bun run test` pass; build both apps
       and Storybook. Use the root test script to target workspaces rather than
       bare `bun test`, which also discovers vendored reference tests.
 
@@ -237,10 +247,13 @@ dependency migration's results.
 
 No remote data, Query/KeyedQuery cache, persistence, time-series synchronisation,
 VirtualList, Machine runtime, new public Viz/Astro API, chart-math rewrite, or
-unrelated package cleanup belongs in this slice. No commit/push/release of the
-uncommitted upgrade is implied by approval of this design.
+unrelated package cleanup belongs in this slice. The upgrade checkpoint had
+separate authority; feature approval does not authorise push, merge or release.
 
-After written-spec approval, write an implementation plan with separately
-reviewable steps for the existing range-highlight fix, keyed composition,
-interaction/measurement qualification, and promo export. Then obtain plan
-approval and the execution-method choice before implementation.
+The approved implementation plan has separately reviewable steps for the
+range-highlight repair, keyed composition, interaction/measurement qualification
+and promo export. Next gates are controller review and live browser acceptance.
+The Mac is unlocked. Controller-observed standalone results are recorded in the
+qualification document; reference/promo checks and the scatter label-overlap
+correction remain open. Further UI checks are pending exclusive browser access
+after unrelated navigation invalidated the controller's Firefox binding.

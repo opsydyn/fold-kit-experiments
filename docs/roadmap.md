@@ -23,13 +23,24 @@ gate after packed-consumer and workspace verification.
 **Outcome:** users can compare charts in a dynamic collection without losing
 each panel's selection and inspection state when panels move.
 
-- [ ] Add, remove, and reorder chart panels using stable app-owned IDs and
+- [x] Add, remove, and reorder chart panels using stable app-owned IDs and
       `foldChildAt`.
-- [ ] Link panel selections through typed child OutMessages and parent-owned
+- [x] Link panel selections through typed child OutMessages and parent-owned
       selection policy.
-- [ ] Verify that reorder preserves state and late Messages for removed IDs
+- [x] Verify in automated tests that reorder preserves state and late Messages for removed IDs
       cannot recreate panels.
-- [ ] Publish a runnable promo example through the existing download workflow.
+- [x] Implement the same-source promo/download workflow; generated comparison,
+      line, histogram and scatter projects install, typecheck and build locally.
+- [ ] Complete controller-owned desktop/390px, keyboard, reduced-motion and
+      standalone browser acceptance. Further controller QA is pending exclusive
+      Firefox access; no live pass is inferred from automated tests.
+- [ ] Publish the runnable promo example after review and separate authority.
+
+Tasks 1-3 are implemented and reviewed. Task 4 source/automated checkpoint is
+approved; browser acceptance is pending. Task 5 source/automated qualification
+is complete and controller review is pending. Standalone browser smoke was
+observed, including 390px control fit; a scatter-axis label overlap remains for
+the final fix/review wave. See the [qualification record](superpowers/specs/2026-10-08-keyed-chart-comparison-qualification.md).
 
 Follow-on candidates: a VirtualList-backed Stateflow event explorer, then a
 separate bounded Query/KeyedQuery cache demo. Query's stale-result protection

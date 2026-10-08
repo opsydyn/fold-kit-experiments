@@ -1,6 +1,6 @@
 import { linear, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
-import { Option, Schema, Stream } from 'effect';
-import { Mount } from 'foldkit';
+import { Effect, Option, Schema, Stream } from 'effect';
+import { CustomElement, Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
 import { withOutMessage } from 'foldkit/update';
@@ -20,7 +20,7 @@ import {
   xLinearGridlines,
   yGridlines,
 } from '../shared';
-import { pointerPositions, widthChanges } from '../shared/plot-events';
+import { forwardPointerPositions, PlotPosition, widthChanges } from '../shared/plot-events';
 
 // MODEL
 
@@ -61,7 +61,8 @@ const DEFAULT_CONFIG: Config = {
 export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
   const layout = layoutFor(
     { width: 480, height: 260, ...cfg.dims },
-    { top: 24, right: 20, bottom: 52, left: 52, ...cfg.margins },
+    // Reserve distinct bands for the rotated title, gap and six-digit tick labels.
+    { top: 24, right: 20, bottom: 52, left: 104, ...cfg.margins },
   );
   return {
     model: {
@@ -76,14 +77,8 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
 // MESSAGE
 
 export const Message = defineMessageUnion({
-  MovedPlotPointer: {
-    clientX: Schema.Number,
-    clientY: Schema.Number,
-    left: Schema.Number,
-    top: Schema.Number,
-    width: Schema.Number,
-    height: Schema.Number,
-  },
+  MovedPlotPointer: PlotPosition.fields,
+  CompletedObservePlotPointer: {},
   RecordedChartWidth: { width: Schema.Number },
   HoveredPoint: { index: Schema.Number },
   BlurredPoint: {},
@@ -100,9 +95,19 @@ export type OutMessage = typeof OutMessage.Type;
 
 // MOUNT
 
-export const ObservePlotPointer = Mount.defineStream('ObserveScatterPlotPointer', {
-  messages: [Message.MovedPlotPointer],
-  execute: ({ element }) => pointerPositions(element).pipe(Stream.map(Message.MovedPlotPointer)),
+const plotPointerEvent = 'foldkit-scatter-pointer-move';
+const plotEvents = CustomElement.define({
+  tag: 'foldkit-scatter-plot',
+  properties: {},
+  events: { [plotPointerEvent]: PlotPosition },
+});
+
+export const ObservePlotPointer = Mount.define('ObserveScatterPlotPointer', {
+  messages: [Message.CompletedObservePlotPointer],
+  execute: ({ element }) =>
+    forwardPointerPositions(element, plotPointerEvent).pipe(
+      Effect.map(() => Message.CompletedObservePlotPointer()),
+    ),
 });
 
 export const ObserveChartWidth = Mount.defineStream('ObserveScatterChartWidth', {
@@ -130,6 +135,7 @@ function inspected(model: Model, index: number): Return {
 
 export const update = (model: Model, msg: Message): Return =>
   Message.match<Return>(msg, {
+    CompletedObservePlotPointer: () => ({ model }),
     MovedPlotPointer: ({ clientX, clientY, left, top, width, height }) => {
       if (
         ![clientX, clientY, left, top, width, height].every(Number.isFinite) ||
@@ -155,10 +161,12 @@ export const update = (model: Model, msg: Message): Return =>
     RecordedChartWidth: ({ width }) => {
       if (!Number.isFinite(width) || width <= 0 || width === model.layout.dims.width)
         return { model };
+      const layout = layoutFor({ ...model.layout.dims, width }, model.layout.margins);
+      if (layout.pw <= 0) return { model };
       return {
         model: {
           ...model,
-          layout: layoutFor({ ...model.layout.dims, width }, model.layout.margins),
+          layout,
         },
       };
     },
@@ -193,6 +201,7 @@ export const view = <M>(
   h: HtmlBuilder<M>,
 ): Html => {
   const { model, toParentMessage, ariaLabel = 'Scatter chart', renderTooltip } = config;
+  const plot = plotEvents.withMessage(h);
   const highlightedKeys = new Set(config.highlightedKeys);
   const {
     dims: { width: W, height: H },
@@ -358,6 +367,9 @@ export const view = <M>(
                     h.Fill('transparent'),
                     h.Style({ cursor: 'pointer' }),
                     h.OnMount(Mount.mapMessage(ObservePlotPointer(), toParentMessage)),
+                    plot.OnFoldkitScatterPointerMove((position) =>
+                      toParentMessage(Message.MovedPlotPointer(position)),
+                    ),
                     h.OnPointerLeave((_pointerType) =>
                       Option.some(toParentMessage(Message.BlurredPoint())),
                     ),

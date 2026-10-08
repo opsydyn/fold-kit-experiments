@@ -8,6 +8,7 @@ import { assert, expect, it, onTestFinished, vi } from 'vitest';
 import { Workbench } from '../../stories/comparison.stories';
 import type { FoldkitAppConfig } from '../../stories/mount';
 import * as config from './main';
+import { observeWidths } from './observe-widths.test-helper';
 
 function required<T>(value: T | null | undefined): T {
   assert(value !== null && value !== undefined);
@@ -35,6 +36,7 @@ it('initialises deterministic settings instead of interpreting Astro props as se
 });
 
 it('hosts keyed inspection, caps additions, preserves order and stops updates on disposal', async () => {
+  const observations = observeWidths();
   const host = document.createElement('div');
   const container = document.createElement('div');
   container.id = 'comparison-host-test';
@@ -96,15 +98,23 @@ it('hosts keyed inspection, caps additions, preserves order and stops updates on
   await vi.waitFor(() => expect(document.activeElement?.id).toBe('comparison-panel-5'));
 
   const chart = required(host.querySelector('svg'));
+  const overlay = required(chart.querySelector('rect[fill="transparent"]'));
+  const removed = vi.spyOn(overlay, 'removeEventListener');
+  await vi.waitFor(() => expect(observations).toHaveLength(5));
   handle.dispose();
-  // Disposal is asynchronous; let its scoped finalisers and queued Commands settle.
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await vi.waitFor(() => {
+    for (const observation of observations) expect(observation.disconnect).toHaveBeenCalledTimes(1);
+    expect(removed.mock.calls.some(([type]) => type === 'pointermove')).toBe(true);
+  });
   const calls = update.mock.calls.length;
   const disposedHtml = host.innerHTML;
   addScatter.click();
   chart.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  overlay.dispatchEvent(new PointerEvent('pointermove', { clientX: 100, clientY: 100 }));
+  for (const observation of observations) observation.notify(640);
   window.dispatchEvent(new Event('resize'));
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  // Cross one event-loop task after exercising disposed targets; cleanup was already observed.
+  await new Promise((resolve) => setTimeout(resolve, 0));
   expect(update).toHaveBeenCalledTimes(calls);
   expect(host.innerHTML).toBe(disposedHtml);
 });

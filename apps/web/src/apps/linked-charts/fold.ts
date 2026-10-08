@@ -4,6 +4,7 @@ import type { Return, Step } from 'foldkit/update';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
+import { containsValue } from '../../ui/shared/inspection';
 import { Message } from './message';
 import type { Model } from './model';
 
@@ -15,12 +16,6 @@ type LinkedFolds = Readonly<{
   scatter: (model: Model, message: Scatter.Message) => Return<Model, Message>;
   histogram: (model: Model, message: Histogram.Message) => Return<Model, Message>;
 }>;
-
-function containsValue(value: number, lo: number, hi: number, includeEnd: boolean): boolean {
-  const within = value >= lo && value < hi;
-  const atEnd = includeEnd && value === hi;
-  return within || atEnd;
-}
 
 /** The parent coordinates semantic events once; sibling notifications terminate here. */
 export function linkedChartFolds(updaters: ChartUpdaters): LinkedFolds {

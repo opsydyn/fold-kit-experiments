@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { type KeyedPoint, matchingBinIndices, matchingKeys } from './inspection';
+import { containsValue, type KeyedPoint, matchingBinIndices, matchingKeys } from './inspection';
 
 const points: ReadonlyArray<KeyedPoint> = Object.freeze([
   Object.freeze({ id: 'a', x: 1, y: 10, label: 'same' }),
@@ -14,6 +14,21 @@ const bins = Object.freeze([
 ]);
 
 describe('semantic inspection matching', () => {
+  it('exposes one interval predicate with explicit final-endpoint membership', () => {
+    expect(containsValue).toEqual(expect.any(Function));
+    for (const [value, lo, hi, includeEnd, expected] of [
+      [9, 10, 20, false, false],
+      [10, 10, 20, false, true],
+      [15, 10, 20, false, true],
+      [20, 10, 20, false, false],
+      [20, 10, 20, true, true],
+      [21, 10, 20, true, false],
+      [20, 20, 20, false, false],
+      [20, 20, 20, true, true],
+    ] as const)
+      expect(containsValue(value, lo, hi, includeEnd)).toBe(expected);
+  });
+
   it('selects every salary in the interval with an explicit endpoint policy', () => {
     expect(
       matchingKeys(points, { _tag: 'Range', lower: 10, upper: 20, includeEnd: false }),

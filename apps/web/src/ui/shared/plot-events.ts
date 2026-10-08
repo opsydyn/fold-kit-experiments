@@ -1,25 +1,34 @@
-import { Effect, Queue, Stream } from 'effect';
-import { Dom } from 'foldkit';
+import { Effect, Queue, Schema, Stream } from 'effect';
 
-export type PlotPosition = Readonly<{
-  clientX: number;
-  clientY: number;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}>;
+export const PlotPosition = Schema.Struct({
+  clientX: Schema.Number,
+  clientY: Schema.Number,
+  left: Schema.Number,
+  top: Schema.Number,
+  width: Schema.Number,
+  height: Schema.Number,
+});
 
-export function pointerPositions(element: Element): Stream.Stream<PlotPosition> {
-  return Dom.streamFromEvent({
-    target: element,
-    type: 'pointermove',
-    mapEvent: (event) => {
+/** Measure in the Mount scope; enter the normal DOM dispatcher without a Stream queue hop. */
+export const forwardPointerPositions = Effect.fn('forwardPointerPositions')(function* (
+  element: Element,
+  eventName: string,
+) {
+  const acquire = Effect.sync(() => {
+    const listener = (event: Event) => {
+      if (!(event instanceof PointerEvent)) return;
       const { left, top, width, height } = element.getBoundingClientRect();
-      return { clientX: event.clientX, clientY: event.clientY, left, top, width, height };
-    },
+      const detail = { clientX: event.clientX, clientY: event.clientY, left, top, width, height };
+      // Element-local and synchronous: later leave/key/other-chart facts cannot be overtaken.
+      element.dispatchEvent(new CustomEvent(eventName, { detail }));
+    };
+    element.addEventListener('pointermove', listener);
+    return listener;
   });
-}
+  yield* Effect.acquireRelease(acquire, (listener) =>
+    Effect.sync(() => element.removeEventListener('pointermove', listener)),
+  );
+});
 
 /** Match the promo measurement pattern: the Mount scope owns its observer. */
 // This stream is the shared lifecycle boundary, not an alias for a one-shot Effect.

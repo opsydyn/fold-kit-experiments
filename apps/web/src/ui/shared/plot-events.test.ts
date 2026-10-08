@@ -1,7 +1,7 @@
 import { Effect, Exit, Scope, Stream } from 'effect';
 import { expect, it, onTestFinished, vi } from 'vitest';
 
-import { pointerPositions, widthChanges } from './plot-events';
+import { forwardPointerPositions, widthChanges } from './plot-events';
 
 it('samples the current client rectangle on every event and removes its scoped listener', async () => {
   const element = document.createElement('div');
@@ -12,31 +12,30 @@ it('samples the current client rectangle on every event and removes its scoped l
   const values: unknown[] = [];
   const scope = Effect.runSync(Scope.make());
   onTestFinished(() => Effect.runPromise(Scope.close(scope, Exit.void)));
-  Effect.runFork(
-    Stream.runForEach(pointerPositions(element), (value) =>
-      Effect.sync(() => values.push(value)),
-    ).pipe(Effect.forkIn(scope)),
+  element.addEventListener('plot-position', (event) => {
+    if (event instanceof CustomEvent) values.push(event.detail);
+  });
+  await Effect.runPromise(
+    forwardPointerPositions(element, 'plot-position').pipe(
+      Effect.provideService(Scope.Scope, scope),
+    ),
   );
-  await vi.waitFor(() => expect(added).toHaveBeenCalled());
   element.dispatchEvent(
     new PointerEvent('pointermove', { clientX: 350, clientY: 240, screenX: 999, screenY: 888 }),
   );
-  await vi.waitFor(() => expect(values).toHaveLength(1));
+  expect(values).toHaveLength(1);
   rect = new DOMRect(20, 10, 200, 90);
   element.dispatchEvent(
     new PointerEvent('pointermove', { clientX: 350, clientY: 240, screenX: 999, screenY: 888 }),
   );
-  await vi.waitFor(() =>
-    expect(values).toEqual([
-      { clientX: 350, clientY: 240, left: 300, top: 200, width: 400, height: 180 },
-      { clientX: 350, clientY: 240, left: 20, top: 10, width: 200, height: 90 },
-    ]),
-  );
+  expect(values).toEqual([
+    { clientX: 350, clientY: 240, left: 300, top: 200, width: 400, height: 180 },
+    { clientX: 350, clientY: 240, left: 20, top: 10, width: 200, height: 90 },
+  ]);
   await Effect.runPromise(Scope.close(scope, Exit.void));
   expect(removed).toHaveBeenCalledWith(
     'pointermove',
-    added.mock.calls[0]?.[1],
-    added.mock.calls[0]?.[2],
+    added.mock.calls.find(([type]) => type === 'pointermove')?.[1],
   );
   element.dispatchEvent(new PointerEvent('pointermove'));
   expect(values).toHaveLength(2);

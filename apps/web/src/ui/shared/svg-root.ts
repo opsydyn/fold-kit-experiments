@@ -35,7 +35,6 @@ export function svgRoot<M>(
     ...(interactive ? [h.Attribute('aria-roledescription', 'interactive chart')] : []),
     h.Style({
       display: 'block',
-      outline: 'none',
       'font-family': 'inherit',
       color: 'var(--chart-label, #888)',
       ...style,

@@ -17,5 +17,6 @@ export function arrowKeyNav<M>(
  * Computes the next active index given direction and wrap-around.
  */
 export function nextIndex(n: number, current: number, direction: string): number {
+  if (current < 0) return direction === 'next' ? 0 : n - 1;
   return direction === 'next' ? (current + 1) % n : (current - 1 + n) % n;
 }

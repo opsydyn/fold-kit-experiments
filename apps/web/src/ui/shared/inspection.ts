@@ -14,7 +14,7 @@ function validateIds(points: ReadonlyArray<KeyedPoint>): void {
   }
 }
 
-function containsValue(value: number, lo: number, hi: number, includeEnd: boolean): boolean {
+export function containsValue(value: number, lo: number, hi: number, includeEnd: boolean): boolean {
   return (value >= lo && value < hi) || (includeEnd && value === hi);
 }
 

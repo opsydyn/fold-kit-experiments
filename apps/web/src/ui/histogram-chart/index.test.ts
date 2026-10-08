@@ -353,6 +353,25 @@ it('empty keyboard navigation is a complete no-op', () => {
   expect(update(model, Message.PressedKeyNav({ direction: 'next' }))).toEqual({ model });
 });
 
+it.each([
+  [1, 'next', 0],
+  [1, 'prev', 0],
+  [2, 'next', 0],
+  [2, 'prev', 1],
+  [3, 'next', 0],
+  [3, 'prev', 2],
+] as const)(
+  'first navigation across %s bins in direction %s inspects bin %s',
+  (count, direction, expected) => {
+    const model = { ...initial(), bins: initial().bins.slice(0, count) };
+    const result = update(model, Message.PressedKeyNav({ direction }));
+    expect(result.model.activeBin).toEqual(Option.some(expected));
+    expect(result.outMessage).toEqual(
+      update(model, Message.HoveredBin({ index: expected })).outMessage,
+    );
+  },
+);
+
 it('resizes without resetting inspection and ignores hidden or invalid widths', () => {
   const model = { ...initial(), activeBin: Option.some(1) };
   for (const width of [0, -1, NaN, Infinity]) {

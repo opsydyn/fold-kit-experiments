@@ -2,10 +2,13 @@ import { Option, Schema } from 'effect';
 import { Runtime } from 'foldkit';
 import { assert, expect, it, onTestFinished, vi } from 'vitest';
 
+import type * as Histogram from '../../ui/histogram-chart';
+import type * as Scatter from '../../ui/scatter-chart';
 import { FocusComparisonTarget } from './command';
 import { Message } from './message';
 import { init } from './model';
 import type { Model } from './model';
+import { observeWidths } from './observe-widths.test-helper';
 import { update } from './update';
 import { view } from './view';
 
@@ -33,51 +36,6 @@ function holdRenderFrames() {
     frames.clear();
     for (const callback of pending) callback(performance.now());
   };
-}
-
-type Observation = {
-  element: Element | null;
-  disconnect: () => void;
-  notify: (width: number) => void;
-};
-
-function observeWidths() {
-  const observations: Observation[] = [];
-  class Observer implements ResizeObserver {
-    entry: Observation;
-    constructor(callback: ResizeObserverCallback) {
-      this.entry = {
-        element: null,
-        disconnect: vi.fn(),
-        notify: (width) =>
-          callback(
-            [
-              {
-                target: required(this.entry.element),
-                contentRect: new DOMRect(0, 0, width, 260),
-                borderBoxSize: [],
-                contentBoxSize: [],
-                devicePixelContentBoxSize: [],
-              },
-            ],
-            this,
-          ),
-      };
-      observations.push(this.entry);
-    }
-    observe(element: Element) {
-      this.entry.element = element;
-    }
-    disconnect() {
-      this.entry.disconnect();
-    }
-    unobserve() {}
-  }
-  vi.stubGlobal('ResizeObserver', Observer);
-  onTestFinished(() => {
-    vi.unstubAllGlobals();
-  });
-  return observations;
 }
 
 async function scene(initial: Model = init().model, missingTarget = false) {
@@ -201,6 +159,93 @@ it('routes actual histogram keys and pointer hover to equivalent interval facts'
   await vi.waitFor(() => expect(model().linking).not.toEqual(keyboard));
   required(bars[1]).dispatchEvent(new MouseEvent('mouseenter'));
   await vi.waitFor(() => expect(model().linking).toEqual(keyboard));
+});
+
+it.each(['leave', 'histogram pointer', 'scatter key', 'histogram key'] as const)(
+  'preserves same-task scatter movement order before %s',
+  async (nextInput) => {
+    const listeners = vi.spyOn(Element.prototype, 'addEventListener');
+    onTestFinished(() => {
+      vi.restoreAllMocks();
+    });
+    const { host, model, messages } = await scene();
+    await vi.waitFor(() =>
+      expect(listeners.mock.calls.some(([type]) => type === 'pointermove')).toBe(true),
+    );
+    const scatter = required(host.querySelector('svg'));
+    const histogram = required(host.querySelectorAll('svg')[1]);
+    const overlay = required(scatter.querySelector('rect[fill="transparent"]'));
+    vi.spyOn(overlay, 'getBoundingClientRect').mockReturnValue(new DOMRect(396, 69, 308, 184));
+    messages.length = 0;
+    // No yield between user facts: a queued movement must not overtake later input.
+    overlay.dispatchEvent(new PointerEvent('pointermove', { clientX: 410, clientY: 200 }));
+    if (nextInput === 'leave' || nextInput === 'histogram pointer')
+      overlay.dispatchEvent(new PointerEvent('pointerleave'));
+    if (nextInput === 'histogram pointer')
+      required(histogram.querySelector('g[style="cursor: default;"]')).dispatchEvent(
+        new MouseEvent('mouseenter'),
+      );
+    if (nextInput === 'scatter key' || nextInput === 'histogram key')
+      (nextInput === 'scatter key' ? scatter : histogram).dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+      );
+    const inputFacts = () =>
+      messages.flatMap((message) => {
+        if (message._tag !== 'GotScatterMessage' && message._tag !== 'GotHistogramMessage')
+          return [];
+        // SAFETY: These envelopes come from the maintained typed chart views in this runtime.
+        const child = message.message as Scatter.Message | Histogram.Message;
+        return ['MovedPlotPointer', 'BlurredPoint', 'HoveredBin', 'PressedKeyNav'].includes(
+          child._tag,
+        )
+          ? [`${message.id}:${child._tag}`]
+          : [];
+      });
+    const expected =
+      nextInput === 'histogram pointer'
+        ? ['1:MovedPlotPointer', '1:BlurredPoint', '2:HoveredBin']
+        : [
+            '1:MovedPlotPointer',
+            nextInput === 'leave'
+              ? '1:BlurredPoint'
+              : nextInput === 'scatter key'
+                ? '1:PressedKeyNav'
+                : '2:PressedKeyNav',
+          ];
+    await vi.waitFor(() => expect(inputFacts()).toHaveLength(expected.length));
+    expect(inputFacts()).toEqual(expected);
+    if (nextInput === 'leave') {
+      expect(model().panels[0]).toMatchObject({ chart: { activeIndex: Option.none() } });
+      expect(model().linking).toEqual({ _tag: 'Linked', inspection: Option.none() });
+    } else if (nextInput === 'scatter key') {
+      expect(model().panels[0]).toMatchObject({ chart: { activeIndex: Option.some(1) } });
+      expect(model().linking).toMatchObject({
+        inspection: { value: { sourceId: 1, value: { key: 'salary-2' } } },
+      });
+    } else {
+      expect(model().linking).toMatchObject({ inspection: { value: { sourceId: 2 } } });
+      if (nextInput === 'histogram pointer')
+        expect(model().panels[0]).toMatchObject({ chart: { activeIndex: Option.none() } });
+    }
+  },
+);
+
+it('clears scatter inspection when movement and leave occur in separate tasks', async () => {
+  const { host, model } = await scene();
+  const overlay = required(host.querySelector('rect[fill="transparent"]'));
+  vi.spyOn(overlay, 'getBoundingClientRect').mockReturnValue(new DOMRect(396, 69, 308, 184));
+  onTestFinished(() => {
+    vi.restoreAllMocks();
+  });
+  overlay.dispatchEvent(new PointerEvent('pointermove', { clientX: 410, clientY: 200 }));
+  await vi.waitFor(() =>
+    expect(model().panels[0]).toMatchObject({ chart: { activeIndex: Option.some(0) } }),
+  );
+  overlay.dispatchEvent(new PointerEvent('pointerleave'));
+  await vi.waitFor(() => {
+    expect(model().panels[0]).toMatchObject({ chart: { activeIndex: Option.none() } });
+    expect(model().linking).toEqual({ _tag: 'Linked', inspection: Option.none() });
+  });
 });
 
 it('disposes chart Mount observers and pointer listeners when removed and on host disposal', async () => {

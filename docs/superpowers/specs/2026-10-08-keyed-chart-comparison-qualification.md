@@ -3,6 +3,14 @@
 Date: 2026-10-08. Task 4 baseline: `6e2afbd`, clean managed
 `keyed-chart-comparison` worktree.
 
+Latest checkpoint: the single final source correction wave from `cac26d1`
+addresses I1-I3 and M1-M4, with **529 workspace tests**, check/typecheck,
+both app builds, Storybook and a new standalone install/typecheck/build passing.
+The Task 4/5 sections below are historical evidence. See the final correction
+section for current source fixes and `/private/tmp/comparison-final-preview`.
+Native/browser acceptance, including visual rechecks of I2/I3, remains pending
+exclusive Firefox access. No browser was operated during this wave.
+
 ## Scope
 
 The `/comparison` Astro route contains one `client:load` island under the existing
@@ -229,3 +237,85 @@ are not claimed. The generated fixture remains unchanged.
 No UI tools were used by the Task 5
 implementer. Browser, native accessibility and device acceptance remain separate.
 No push, merge, publication or deployment occurred.
+
+## Single final source correction wave
+
+Baseline: `cac26d161a538edd45dacd914e5981970712904b`, initially clean.
+The exact commit and per-finding commands/results are in
+`.superpowers/sdd/2026-10-08-keyed-chart-comparison/final-fix-report.md`.
+No subagents, new worktree, renderer/public-package API changes, dependency
+changes, push, merge, publication or preview servers were used.
+
+### Corrections and regression evidence
+
+| Finding | Maintained-source correction                                                                                                                                                                                                                                                                    | Automated evidence                                                                                                                                                                                                                                                                                           |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| I1      | Scoped Mount measures each pointer event and synchronously forwards an element-local, schema-checked custom event to the normal FoldKit DOM dispatcher. Leave/keyboard remain synchronous. No delayed clear, parent workaround, external ordering state or DOM references in Model/view/update. | Four actual `Runtime.embed` same-task tests failed before correction: move/leave, move/leave/histogram entry, move/scatter key, move/histogram key. All pass without yielding between input events. Separate-task control, fresh geometry after reorder/scroll/resize, and listener disposal remain covered. |
+| I2      | Default scatter left gutter is 104px, budgeting separate title, gap and six-digit tick bands; existing readable font sizes and scale/client-coordinate contracts are retained.                                                                                                                  | Two salary-fixture render/layout regressions failed with tick x=44 and now pass at chart widths 380 and 342. Existing actual-runtime pointer/geometry tests pass with the changed margin. These are not measured native glyph bounds or visual rechecks.                                                     |
+| I3      | Shared SVG root no longer suppresses the native outline. Comparison-specific focus-visible styling remains unchanged; no tab stop was added.                                                                                                                                                    | Three mounted-runtime tests failed on `outline: none` and now pass for standalone histogram, standalone scatter and both diagnostics charts outside comparison. Native focus appearance and assistive technology remain unqualified.                                                                         |
+| M1      | Unselected reverse navigation selects `n - 1`; forward starts at zero.                                                                                                                                                                                                                          | One/two/three-item tests cover all four arrow keys, first selection and wraparound; histogram output agrees with pointer inspection. RED included the one-item negative-zero result.                                                                                                                         |
+| M2      | Scatter resize rejects a resulting `pw <= 0`, retaining the last usable layout and inspection.                                                                                                                                                                                                  | Below/equal-to-margin-sum rejection and positive recovery failed before correction and now pass.                                                                                                                                                                                                             |
+| M3      | Legacy linked charts and comparison matching use the same small pure app-owned `containsValue` predicate.                                                                                                                                                                                       | New shared-callable contract was RED before export; endpoint truth table and existing consumer tests pass. This removes equivalent duplication, not a previously observed endpoint divergence.                                                                                                               |
+| M4      | Host test waits for every chart observer's disconnect and the scatter listener's removal before exercising disposed targets; drains one zero-delay event-loop task afterwards.                                                                                                                  | Removing observer finalisation temporarily made the strengthened test fail (expected one disconnect, received zero). Restoring it passes. This mutation check qualifies the test improvement, not a claim of a pre-existing production leak. Both 50ms sleeps are removed.                                   |
+
+Focused logs are `/private/tmp/comparison-final-i1-{red,green}.log`,
+`comparison-final-chart-{red,green}.log`, `comparison-final-i3-red.log`,
+`comparison-final-m3-red.log`, `comparison-final-m3-m4-green.log`, and
+`comparison-final-m4-{red,green}.log` under the same directory.
+Final focused groups passed 25, 62 and 38 tests; the dedicated disposal suite
+passed all four tests. The final complete workspace suite subsumes these groups.
+
+### Final sequential gates
+
+All commands below exited zero; builds and tests did not overlap:
+
+- `bun run check`: no lint/format errors or warnings.
+- `bun typecheck`: zero errors, warnings or hints, including 538 web files.
+- `NPM_CONFIG_CACHE=/private/tmp/foldkit-npm-cache bun run test`: **529 passing**,
+  zero failures (Astro 77, Viz 168, promo 55, web 229 in 38 files).
+- `env -u FOLDKIT_BUILD_ID bun run --filter @opsydyn/web build`: no warnings.
+- `env -u FOLDKIT_BUILD_ID bun run --filter @opsydyn/promo build`: no warnings.
+- `env -u FOLDKIT_BUILD_ID bun run --filter @opsydyn/web build-storybook`:
+  completed with the retained greater-than-500kB advisory, axe 579.43kB and
+  iframe 812.55kB. No bundle attribution/performance claim or optimisation.
+- `git diff --check`: no whitespace errors.
+
+Logs: `/private/tmp/comparison-final-{check,typecheck,tests,web-build,promo-build,storybook}.log`.
+
+### Distinct corrected standalone fixture
+
+`bun /private/tmp/comparison-final-generate.ts` generated 64 files from current
+maintained source into **`/private/tmp/comparison-final-preview`**. Captured
+settings are Histogram 2, Scatter 3, Scatter 1; linking off; `nextPanelId: 4`.
+Only the data-only initial settings are replaced; validation remains present.
+From that directory, all three commands exited zero:
+
+```sh
+NPM_CONFIG_CACHE=/private/tmp/foldkit-npm-cache npm install --no-audit --no-fund
+npm run typecheck
+npm run build
+```
+
+Logs: `/private/tmp/comparison-final-preview-{generate,install,typecheck,build}.log`.
+Install added 41 packages. The standalone build produced a 470.06kB JS asset
+without warnings. No preview server was started and no browser inspected it.
+
+The frozen `/private/tmp/comparison-task-5-preview` remains unchanged. Read-only
+before/after fingerprints cover all 7,468 files (122,624,897 bytes), paths,
+metadata and symlink targets, including dependencies and build output.
+Both SHA-256 fingerprints are
+`4e15c802a05d0e01d4eb2cae7da279b285c0f0ab4cbaea70a0d84efada0e1d17`.
+`cmp` of `/private/tmp/comparison-final-old-preview-{before,after}.json` exited zero.
+Earlier screenshots belong to that old fixture, not to the corrected source.
+
+### Acceptance boundary
+
+All seven source corrections are implemented and automatically qualified;
+no unresolved source finding was identified in self-review. This does not
+close the controller's observed axis overlap: its post-fix desktop and 390px
+visual recheck, native shared-chart focus (including diagnostics), the complete
+reference/promo journeys, pointer checks, reduced motion, teardown, console,
+runtime multiplicity, real ZIP/StackBlitz delivery and assistive-technology/device
+checks remain pending. Exclusive Firefox permission has been requested but not
+approved. Merge readiness remains a separate controller decision; no merge,
+push or publication is authorised or claimed.

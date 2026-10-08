@@ -1,0 +1,10 @@
+---
+import ComparisonApp from '../apps/comparison/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Chart comparison - Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Chart comparison</h1>
+  <ComparisonApp client:load />
+</Layout>

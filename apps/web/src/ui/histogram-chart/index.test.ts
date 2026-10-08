@@ -1,8 +1,222 @@
-import { Option } from 'effect';
-import { expect, it } from 'vitest';
+import { Option, Schema } from 'effect';
+import { Runtime } from 'foldkit';
+import { assert, expect, it, onTestFinished, vi } from 'vitest';
 
 import { renderChart } from '../shared/render-chart.test-helper';
 import { getBrushDomain, init, Message, update, view } from './index';
+import type { Model } from './index';
+
+async function responsiveBrushScene(order: 'bounds-first' | 'width-first') {
+  const container = document.createElement('div');
+  container.id = 'responsive-histogram-scene';
+  const host = document.createElement('div');
+  host.append(container);
+  document.body.append(host);
+  let clientLeft = 100;
+  let containerWidth = 960;
+  const initial = {
+    ...init({ data: [], enableBrush: true }).model,
+    bins: [{ x0: 0, x1: 100, count: 2 }],
+  };
+  // Deliver the width fact before mounting to exercise the opposite measurement ordering.
+  let latest =
+    order === 'width-first'
+      ? update(initial, Message.RecordedChartWidth({ width: 960 })).model
+      : initial;
+  let notifyWidth = (_width: number) => {};
+  const messages: Message[] = [];
+  class Observer implements ResizeObserver {
+    constructor(readonly callback: ResizeObserverCallback) {}
+    observe(element: Element) {
+      notifyWidth = (width) => {
+        containerWidth = width;
+        this.callback(
+          [
+            {
+              target: element,
+              contentRect: new DOMRect(0, 0, width, 265),
+              borderBoxSize: [],
+              contentBoxSize: [],
+              devicePixelContentBoxSize: [],
+            },
+          ],
+          this,
+        );
+      };
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+  vi.stubGlobal('ResizeObserver', Observer);
+  function measuredRect(this: Element) {
+    if (this.localName !== 'rect') return new DOMRect(100, 0, 0, 0);
+    const svg = this.closest('svg');
+    const width = Number(svg?.getAttribute('viewBox')?.split(' ')[2]);
+    const scale = containerWidth / width;
+    return new DOMRect(clientLeft + 44 * scale, 0, (width - 64) * scale, 193 * scale);
+  }
+  vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(measuredRect);
+  const handle = Runtime.embed(
+    Runtime.makeApplication({
+      Model: Schema.declare<Model>(
+        (value): value is Model => typeof value === 'object' && value !== null && 'brush' in value,
+      ),
+      init: () => ({ model: latest }),
+      update: (model: Model, message: Message) => {
+        messages.push(message);
+        const result = update(model, message);
+        latest = result.model;
+        return { model: latest, commands: result.commands };
+      },
+      view: (model, h) => ({
+        title: 'Histogram brush',
+        body: view({ model, toParentMessage: (message) => message }, h),
+      }),
+      container,
+      devTools: false,
+    }),
+  );
+  onTestFinished(() => {
+    handle.dispose();
+    host.remove();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+  await vi.waitFor(() => expect(Option.isSome(latest.svgBounds)).toBe(true));
+  const captured = Option.getOrThrow(latest.svgBounds);
+  expect(captured).toEqual(
+    order === 'bounds-first'
+      ? { clientLeft: 188, renderedPW: 832 }
+      : { clientLeft: 144, renderedPW: 896 },
+  );
+  notifyWidth(960);
+  await vi.waitFor(() =>
+    expect(host.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 960 265'),
+  );
+  const overlay = host.querySelector('rect[fill="transparent"]');
+  assert(overlay !== null);
+  return {
+    overlay,
+    messages,
+    dispose: () => handle.dispose(),
+    model: () => latest,
+    pointer: (type: string, clientX: number, screenX: number) =>
+      overlay.dispatchEvent(new PointerEvent(type, { clientX, screenX, bubbles: true })),
+    move: (left: number) => {
+      clientLeft = left;
+    },
+    renderWidth: (width: number) => {
+      containerWidth = width;
+    },
+    resize: async (width: number) => {
+      notifyWidth(width);
+      await vi.waitFor(() =>
+        expect(host.querySelector('svg')?.getAttribute('viewBox')).toBe(`0 0 ${width} 265`),
+      );
+    },
+  };
+}
+
+it.each(['bounds-first', 'width-first'] as const)(
+  'maps a physical brush after initial responsive measurement ordering: %s',
+  async (order) => {
+    const scene = await responsiveBrushScene(order);
+    scene.pointer('pointerdown', 368, 2000);
+    await vi.waitFor(() => expect(scene.model().brush.active).toBe(true));
+    scene.pointer('pointerup', 592, 2224);
+    await vi.waitFor(() => expect(scene.model().brush.active).toBe(false));
+    const selected = Option.getOrThrow(getBrushDomain(scene.model()));
+    expect(selected[0]).toBeCloseTo(25);
+    expect(selected[1]).toBeCloseTo(50);
+    // A new gesture must use the moved rectangle, not the initial Mount capture.
+    scene.move(300);
+    scene.pointer('pointerdown', 568, 3000);
+    await vi.waitFor(() => expect(scene.model().brush.active).toBe(true));
+    scene.pointer('pointerup', 792, 3224);
+    await vi.waitFor(() => expect(scene.model().brush.active).toBe(false));
+    expect(Option.getOrThrow(getBrushDomain(scene.model()))[0]).toBeCloseTo(25);
+    expect(Option.getOrThrow(getBrushDomain(scene.model()))[1]).toBeCloseTo(50);
+    scene.pointer('pointerdown', 568, 4000);
+    await vi.waitFor(() => expect(scene.model().brush.active).toBe(true));
+    scene.pointer('pointermove', 792, 4224);
+    await vi.waitFor(() =>
+      expect(Option.getOrThrow(getBrushDomain(scene.model()))[1]).toBeCloseTo(50),
+    );
+    await scene.resize(1856);
+    expect(Option.getOrThrow(getBrushDomain(scene.model()))).toEqual([25, 50]);
+    scene.pointer('pointermove', 792, 4224);
+    await vi.waitFor(() =>
+      expect(Option.getOrThrow(scene.model().svgBounds).renderedPW).toBe(1792),
+    );
+    expect(Option.getOrThrow(getBrushDomain(scene.model()))).toEqual([25, 50]);
+    scene.pointer('pointermove', 971.2, 4403.2);
+    await vi.waitFor(() =>
+      expect(Option.getOrThrow(getBrushDomain(scene.model()))[1]).toBeCloseTo(60),
+    );
+    scene.pointer('pointerup', 1150.4, 4582.4);
+    await vi.waitFor(() => expect(scene.model().brush.active).toBe(false));
+    expect(Option.getOrThrow(getBrushDomain(scene.model()))[1]).toBeCloseTo(70);
+  },
+);
+
+it('retains the original drag anchor while clamped unless measured geometry changes', async () => {
+  const scene = await responsiveBrushScene('width-first');
+  scene.pointer('pointerdown', 368, 2000);
+  await vi.waitFor(() => expect(scene.model().brush.active).toBe(true));
+  scene.pointer('pointermove', 2368, 4000);
+  await vi.waitFor(() => expect(Option.getOrThrow(getBrushDomain(scene.model()))[1]).toBe(100));
+  scene.pointer('pointermove', 1368, 3000);
+  await vi.waitFor(() =>
+    expect(Option.getOrThrow(scene.model().brushDragStart).lastScreenX).toBe(3000),
+  );
+  expect(Option.getOrThrow(getBrushDomain(scene.model()))).toEqual([25, 100]);
+});
+
+it('samples every pointer phase and removes all brush listeners on runtime disposal', async () => {
+  const scene = await responsiveBrushScene('width-first');
+  const measured = vi.spyOn(scene.overlay, 'getBoundingClientRect');
+  measured.mockClear();
+  const removed = vi.spyOn(scene.overlay, 'removeEventListener');
+  // Back-to-back events must retain their order through the scoped stream.
+  scene.pointer('pointerdown', 368, 2000);
+  scene.pointer('pointermove', 480, 2112);
+  scene.pointer('pointerup', 592, 2224);
+  await vi.waitFor(() => expect(getBrushDomain(scene.model())).toEqual(Option.some([25, 50])));
+  expect(scene.model().brush.active).toBe(false);
+  expect(measured).toHaveBeenCalledTimes(3);
+  scene.dispose();
+  await vi.waitFor(() =>
+    expect(removed.mock.calls.map(([type]) => type).sort()).toEqual([
+      'pointerdown',
+      'pointermove',
+      'pointerup',
+    ]),
+  );
+  scene.pointer('pointerdown', 592, 3000);
+  scene.pointer('pointermove', 700, 3108);
+  scene.pointer('pointerup', 800, 3208);
+  expect(measured).toHaveBeenCalledTimes(3);
+  expect(getBrushDomain(scene.model())).toEqual(Option.some([25, 50]));
+});
+
+it('ignores hidden event geometry and recovers without using the previous rectangle', async () => {
+  const scene = await responsiveBrushScene('width-first');
+  scene.renderWidth(0);
+  scene.pointer('pointerdown', 368, 2000);
+  scene.renderWidth(960);
+  scene.pointer('pointermove', 592, 2224);
+  scene.pointer('pointerup', 592, 2224);
+  await vi.waitFor(() => expect(scene.messages.at(-1)?._tag).toBe('EndedHistogramBrush'));
+  expect(scene.model().brush.active).toBe(false);
+  expect(getBrushDomain(scene.model())).toEqual(Option.none());
+  scene.pointer('pointerdown', 368, 3000);
+  await vi.waitFor(() =>
+    expect(Option.getOrThrow(scene.model().brushDragStart).lastScreenX).toBe(3000),
+  );
+  expect(getBrushDomain(scene.model())).toEqual(Option.none());
+  scene.pointer('pointerup', 592, 3224);
+  await vi.waitFor(() => expect(getBrushDomain(scene.model())).toEqual(Option.some([25, 50])));
+});
 
 const initial = () => ({
   ...init({ data: [] }).model,
@@ -81,7 +295,10 @@ it('uses the last actual pointer position when resizing a drag clamped beyond th
   expect(getBrushDomain(resized)).toEqual(Option.some([25, 100]));
   const stationary = update(resized, Message.MovedHistogramBrush({ screenX: 2000 })).model;
   expect(getBrushDomain(stationary)).toEqual(Option.some([25, 100]));
-  const moved = update(stationary, Message.MovedHistogramBrush({ screenX: 1916.8 })).model;
+  const moved = update(
+    stationary,
+    Message.MovedHistogramBrush({ screenX: 1916.8, bounds: { clientLeft: 100, renderedPW: 832 } }),
+  ).model;
   expect(Option.getOrThrow(getBrushDomain(moved))[1]).toBeCloseTo(90);
 });
 

@@ -11,7 +11,7 @@ import {
   StartedBrush,
 } from '@opsydyn/foldkit-viz/math/brush';
 import { linear, linearInvertible, linearTicks } from '@opsydyn/foldkit-viz/math/scale';
-import { Effect, Option, Schema, Stream } from 'effect';
+import { Effect, Option, Queue, Schema, Stream } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
@@ -108,6 +108,8 @@ export function init(cfg: InitConfig): UpdateReturn<Model, Message> {
 
 // MESSAGE
 
+const MeasuredBounds = Schema.Struct({ clientLeft: Schema.Number, renderedPW: Schema.Number });
+
 export const Message = defineMessageUnion({
   PressedKeyNav: { direction: Schema.String },
   RecordedChartWidth: { width: Schema.Number },
@@ -120,9 +122,10 @@ export const Message = defineMessageUnion({
   StartedHistogramBrush: {
     screenX: Schema.Number,
     clientX: Schema.Number,
+    bounds: Schema.optionalKey(MeasuredBounds),
   },
-  MovedHistogramBrush: { screenX: Schema.Number },
-  EndedHistogramBrush: { screenX: Schema.Number },
+  MovedHistogramBrush: { screenX: Schema.Number, bounds: Schema.optionalKey(MeasuredBounds) },
+  EndedHistogramBrush: { screenX: Schema.Number, bounds: Schema.optionalKey(MeasuredBounds) },
   ClearedHistogramBrush: {},
 });
 export type Message = typeof Message.Type;
@@ -138,12 +141,58 @@ export type OutMessage = typeof OutMessage.Type;
 
 // MOUNT
 
-export const CaptureSvgBounds = Mount.define('CaptureSvgBounds', {
-  messages: [Message.RecordedSvgBounds],
+type BrushMountMessage = Extract<
+  Message,
+  {
+    _tag:
+      | 'RecordedSvgBounds'
+      | 'StartedHistogramBrush'
+      | 'MovedHistogramBrush'
+      | 'EndedHistogramBrush';
+  }
+>;
+
+export const CaptureSvgBounds = Mount.defineStream('CaptureSvgBounds', {
+  messages: [
+    Message.RecordedSvgBounds,
+    Message.StartedHistogramBrush,
+    Message.MovedHistogramBrush,
+    Message.EndedHistogramBrush,
+  ],
   execute: ({ element }) =>
-    Effect.sync(() => {
-      const rect = element.getBoundingClientRect();
-      return Message.RecordedSvgBounds({ clientLeft: rect.left, renderedPW: rect.width });
+    Stream.callback<BrushMountMessage>((queue) => {
+      const acquire = Effect.sync(() => {
+        const readBounds = () => {
+          const rect = element.getBoundingClientRect();
+          return { clientLeft: rect.left, renderedPW: rect.width };
+        };
+        const onPointer = (event: Event) => {
+          if (!(event instanceof PointerEvent)) return;
+          const bounds = readBounds();
+          const { screenX, clientX } = event;
+          const message =
+            event.type === 'pointerdown'
+              ? Message.StartedHistogramBrush({ screenX, clientX, bounds })
+              : event.type === 'pointermove'
+                ? Message.MovedHistogramBrush({ screenX, bounds })
+                : Message.EndedHistogramBrush({ screenX, bounds });
+          Queue.offerUnsafe(queue, message);
+        };
+        for (const type of ['pointerdown', 'pointermove', 'pointerup'])
+          element.addEventListener(type, onPointer);
+        Queue.offerUnsafe(queue, Message.RecordedSvgBounds(readBounds()));
+        return onPointer;
+      });
+      return Effect.acquireRelease(acquire, (onPointer) =>
+        Effect.sync(() => {
+          for (const type of ['pointerdown', 'pointermove', 'pointerup'])
+            element.removeEventListener(type, onPointer);
+        }),
+      ).pipe(
+        // Keep the listeners until the owning chart Mount is disposed.
+        // oxlint-disable-next-line linteffect/no-effect-never
+        Effect.andThen(Effect.never),
+      );
     }),
 });
 
@@ -190,6 +239,23 @@ function rebaseBrushDrag(model: Model): Model {
   };
 }
 
+function applyBrushBounds(model: Model, bounds?: SvgBounds): Model | undefined {
+  if (bounds === undefined) return model;
+  if (
+    !Number.isFinite(bounds.clientLeft) ||
+    !Number.isFinite(bounds.renderedPW) ||
+    bounds.renderedPW <= 0
+  )
+    return undefined;
+  if (
+    Option.isSome(model.svgBounds) &&
+    model.svgBounds.value.clientLeft === bounds.clientLeft &&
+    model.svgBounds.value.renderedPW === bounds.renderedPW
+  )
+    return model;
+  return rebaseBrushDrag({ ...model, svgBounds: Option.some(bounds) });
+}
+
 function resizeBrush(brush: BrushState, fromWidth: number, toWidth: number): BrushState {
   const resizeX = linear({ domain: [0, fromWidth], range: [0, toWidth] });
   return { ...brush, anchor: resizeX(brush.anchor), extent: resizeX(brush.extent) };
@@ -216,17 +282,12 @@ export const update = (model: Model, msg: Message): Return =>
       const layout = layoutFor({ ...model.layout.dims, width }, model.layout.margins);
       if (!Number.isFinite(layout.pw) || layout.pw <= 0) return { model };
       if (model.layout.pw <= 0) return { model: { ...model, layout } };
-      const resizeX = linear({ domain: [0, model.layout.pw], range: [0, layout.pw] });
       // Brush coordinates are plot pixels; preserve their domain positions before rebasing the drag.
       return {
         model: rebaseBrushDrag({
           ...model,
           layout,
           brush: resizeBrush(model.brush, model.layout.pw, layout.pw),
-          svgBounds: Option.map(model.svgBounds, (bounds) => ({
-            ...bounds,
-            renderedPW: resizeX(bounds.renderedPW),
-          })),
         }),
       };
     },
@@ -251,17 +312,15 @@ export const update = (model: Model, msg: Message): Return =>
         OutMessage.ClearedInspection(),
       ),
     RecordedSvgBounds: ({ clientLeft, renderedPW }) => {
-      if (!Number.isFinite(clientLeft) || !Number.isFinite(renderedPW) || renderedPW <= 0)
-        return { model };
-      return {
-        model: rebaseBrushDrag({ ...model, svgBounds: Option.some({ clientLeft, renderedPW }) }),
-      };
+      return { model: applyBrushBounds(model, { clientLeft, renderedPW }) ?? model };
     },
-    StartedHistogramBrush: ({ screenX, clientX }) => {
-      const plotX = computePlotX(model.svgBounds, model.layout.pw, clientX);
+    StartedHistogramBrush: ({ screenX, clientX, bounds }) => {
+      const measured = applyBrushBounds(model, bounds);
+      if (measured === undefined) return { model };
+      const plotX = computePlotX(measured.svgBounds, measured.layout.pw, clientX);
       return {
         model: {
-          ...model,
+          ...measured,
           brush: brushUpdate(model.brush, StartedBrush(plotX)),
           brushGestureWidth: model.layout.pw,
           brushDragStart: Option.some({
@@ -272,25 +331,30 @@ export const update = (model: Model, msg: Message): Return =>
         },
       };
     },
-    MovedHistogramBrush: ({ screenX }) => {
+    MovedHistogramBrush: ({ screenX, bounds }) => {
       if (!model.brush.active) return { model: model };
-      const plotX = computeMovePlotX(model, screenX);
+      const measured = applyBrushBounds(model, bounds);
+      if (measured === undefined) return { model };
+      const plotX = computeMovePlotX(measured, screenX);
       return {
         model: {
-          ...model,
+          ...measured,
           brush: brushUpdate(model.brush, MovedBrush(plotX)),
-          brushDragStart: Option.map(model.brushDragStart, (drag) => ({
+          brushDragStart: Option.map(measured.brushDragStart, (drag) => ({
             ...drag,
             lastScreenX: screenX,
           })),
         },
       };
     },
-    EndedHistogramBrush: ({ screenX }) => {
-      const plotX = computeMovePlotX(model, screenX);
+    EndedHistogramBrush: ({ screenX, bounds }) => {
+      if (!model.brush.active) return { model };
+      const measured = applyBrushBounds(model, bounds);
+      if (measured === undefined) return { model };
+      const plotX = computeMovePlotX(measured, screenX);
       return {
         model: {
-          ...model,
+          ...measured,
           brush: brushUpdate(model.brush, EndedBrush(plotX)),
           brushDragStart: Option.none(),
         },
@@ -523,24 +587,6 @@ export function view<M>(
                           h.Fill('transparent'),
                           h.Style({ cursor: 'crosshair', 'user-select': 'none' }),
                           h.OnMount(Mount.mapMessage(CaptureSvgBounds(), toParentMessage)),
-                          h.OnPointerDown(
-                            (_pointerType, _button, screenX, _screenY, _ts, clientX) =>
-                              Option.some(
-                                toParentMessage(
-                                  Message.StartedHistogramBrush({ screenX, clientX }),
-                                ),
-                              ),
-                          ),
-                          h.OnPointerMove((screenX, _screenY, _pointerType) =>
-                            model.brush.active
-                              ? Option.some(
-                                  toParentMessage(Message.MovedHistogramBrush({ screenX })),
-                                )
-                              : Option.none(),
-                          ),
-                          h.OnPointerUp((screenX, _screenY, _pointerType, _ts) =>
-                            Option.some(toParentMessage(Message.EndedHistogramBrush({ screenX }))),
-                          ),
                         ],
                         [],
                       ),

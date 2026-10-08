@@ -197,7 +197,8 @@ the complete matching key set and unchanged local `activeIndex`.
 - [ ] **Hosted browser acceptance (controller-owned).** Verify both hosted examples with keyboard, reduced motion and 390px/desktop layouts. The Mac is unlocked, but further QA is pending exclusive Firefox access after unrelated navigation invalidated the controller's binding. Retain only the observed standalone subset.
 - [x] **Source self-review and checkpoint.** Review the full diff against every spec acceptance item, verify no package-public runtime or API changes, and run `git diff --check`. Commit only this feature's final paths as `feat: export the maintained comparison workbench`. Do not push or publish without explicit authority.
 
-- [ ] **Controller final review.** Complete remaining hosted/browser gates and the observed scatter-axis label-overlap correction in the final fix/review wave.
+- [x] **Controller final source review.** The single correction wave at `f0705f2` addresses I1-I3 and M1-M4; independent scoped re-review found no unresolved source findings. Controller reran lint, typecheck, 529 tests, both apps and Storybook successfully.
+- [ ] **Controller final browser acceptance.** Complete hosted/browser gates and post-fix desktop/390px axis-spacing and native focus rechecks. Source approval is not visual acceptance or merge/release authority.
 
 ## Plan Review and Execution Choice
 

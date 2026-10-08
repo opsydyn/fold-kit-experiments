@@ -3,7 +3,9 @@
 Date: 2026-10-08. Task 4 baseline: `6e2afbd`, clean managed
 `keyed-chart-comparison` worktree.
 
-Latest checkpoint: the single final source correction wave from `cac26d1`
+Latest source checkpoint: `f0705f2`. Independent final re-review confirms all
+seven source findings addressed, with no new Important/Critical regressions.
+The single final source correction wave from `cac26d1`
 addresses I1-I3 and M1-M4, with **529 workspace tests**, check/typecheck,
 both app builds, Storybook and a new standalone install/typecheck/build passing.
 The Task 4/5 sections below are historical evidence. See the final correction
@@ -227,7 +229,8 @@ These were not observed independently by the implementer:
 - [ ] Complete removal/focus, pointer hit testing after movement/resize/scroll,
       reduced motion, teardown and runtime/console checks.
 - [ ] Real ZIP download and StackBlitz delivery in the hosted promo page.
-- [ ] Controller independent final review and the scatter label-overlap fix.
+- [x] Controller independent final source review and label-spacing correction.
+- [ ] Post-fix native visual recheck of label spacing and shared-chart focus.
 
 These gates are pending exclusive Firefox access, not blocked by a locked Mac.
 The controller stopped UI actions and requested a brief exclusive session after
@@ -319,3 +322,28 @@ runtime multiplicity, real ZIP/StackBlitz delivery and assistive-technology/devi
 checks remain pending. Exclusive Firefox permission has been requested but not
 approved. Merge readiness remains a separate controller decision; no merge,
 push or publication is authorised or claimed.
+
+## Controller verification and current preview
+
+At `f0705f2`, the controller independently ran these sequential gates, all
+with exit zero: `bun run check`, `bun typecheck`,
+`NPM_CONFIG_CACHE=/private/tmp/foldkit-npm-cache bun run test`,
+`env -u FOLDKIT_BUILD_ID bun run build`, and
+`bun run --filter @opsydyn/web build-storybook`.
+All 529 tests passed (77 integration, 168 Viz, 55 promo, 229 web).
+The Storybook chunk advisory remains; lint and typecheck are clean.
+Logs: `/tmp/comparison-controller-final-{check,typecheck,tests,build,storybook}.log`.
+
+Independent scoped re-review checked I1-I3 and M1-M4 and found all addressed
+in source, with no unresolved source findings. The pointer bridge guarantees
+synchronous ordered enqueue into FoldKit's FIFO queue, not unconditional
+reducer completion before a subsequent event when the runtime yields.
+Reports and the execution ledger remain in this plan's ignored SDD directory
+while browser acceptance is outstanding.
+
+A local development server is now available at
+`http://127.0.0.1:4347/comparison` (Astro PID 63378), started from this managed
+worktree with `bun run --filter @opsydyn/web dev --host 127.0.0.1 --port 4347`.
+The route returned HTTP 200. This is transport evidence, not browser acceptance.
+Use `bun run --filter @opsydyn/web astro dev stop` in this worktree to stop it.
+No unrelated server or browser tab was changed. No merge, push or publication.

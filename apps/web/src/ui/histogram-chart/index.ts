@@ -117,7 +117,10 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type;
 
 export const OutMessage = defineMessageUnion({
-  InspectedRange: { domain: Schema.Tuple([Schema.Number, Schema.Number]) },
+  InspectedRange: {
+    domain: Schema.Tuple([Schema.Number, Schema.Number]),
+    includeEnd: Schema.Boolean,
+  },
   ClearedInspection: {},
 });
 export type OutMessage = typeof OutMessage.Type;
@@ -164,7 +167,10 @@ export const update = (model: Model, msg: Message): Return =>
         );
       return withOutMessage<Model, Message, OutMessage>(
         { model: { ...model, activeBin: Option.some(index) } },
-        OutMessage.InspectedRange({ domain: [selected.x0, selected.x1] }),
+        OutMessage.InspectedRange({
+          domain: [selected.x0, selected.x1],
+          includeEnd: index === model.bins.length - 1,
+        }),
       );
     },
     BlurredBin: () =>
@@ -230,11 +236,13 @@ export function view<M>(
     model: Model;
     toParentMessage: (msg: Message) => M;
     ariaLabel?: string;
+    highlightedBins?: ReadonlyArray<number>;
     renderTooltip?: (datum: ComputedBin, x: number, y: number) => Html;
   },
   h: HtmlBuilder<M>,
 ): Html {
   const { model, toParentMessage, ariaLabel = 'Histogram', renderTooltip } = config;
+  const highlightedBins = new Set(config.highlightedBins);
   const {
     dims: { width: W, height: H },
     margins: { top: MT, left: ML },
@@ -320,6 +328,14 @@ export function view<M>(
                     h.Height(String(barH)),
                     h.Fill(color),
                     h.Opacity(opacity),
+                    ...(highlightedBins.has(i)
+                      ? [
+                          h.DataAttribute('linked-highlight', 'true'),
+                          h.Stroke('var(--chart-axis, #3a3a3a)'),
+                          h.StrokeWidth('2'),
+                          h.Attribute('stroke-dasharray', '4 2'),
+                        ]
+                      : []),
                     h.Style({ transition: 'opacity 80ms' }),
                   ],
                   [],

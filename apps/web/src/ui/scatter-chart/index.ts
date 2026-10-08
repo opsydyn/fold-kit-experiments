@@ -23,7 +23,7 @@ import {
 
 // MODEL
 
-export type Point = Readonly<{ x: number; y: number; label: string }>;
+export type Point = Readonly<{ id?: string; x: number; y: number; label: string }>;
 
 export type Config = Readonly<{
   color: string;
@@ -133,7 +133,7 @@ function inspected(model: Model, index: number): Return {
     );
   return withOutMessage<Model, Message, OutMessage>(
     { model: { ...model, activeIndex: Option.some(index) } },
-    OutMessage.InspectedPoint({ key: point.label, x: point.x, y: point.y }),
+    OutMessage.InspectedPoint({ key: point.id ?? point.label, x: point.x, y: point.y }),
   );
 }
 
@@ -174,11 +174,13 @@ export const view = <M>(
     model: Model;
     toParentMessage: (msg: Message) => M;
     ariaLabel?: string;
+    highlightedKeys?: ReadonlyArray<string>;
     renderTooltip?: (datum: Point, x: number, y: number) => Html;
   },
   h: HtmlBuilder<M>,
 ): Html => {
   const { model, toParentMessage, ariaLabel = 'Scatter chart', renderTooltip } = config;
+  const highlightedKeys = new Set(config.highlightedKeys);
   const {
     dims: { width: W, height: H },
     margins: { top: MT, left: ML },
@@ -286,6 +288,7 @@ export const view = <M>(
               points.map((p, i) => {
                 const [cx, cy] = coords[i] ?? [0, 0];
                 const isActive = Option.isSome(activeIndex) && activeIndex.value === i;
+                const isLinked = highlightedKeys.has(p.id ?? p.label);
                 const radius = isActive ? cfg.radius + 3 : cfg.radius;
                 return h.circle(
                   [
@@ -294,7 +297,13 @@ export const view = <M>(
                     h.R(String(radius)),
                     h.Fill(isActive ? cfg.activeColor : 'var(--card-bg, #12121f)'),
                     h.Stroke(isActive ? cfg.activeColor : cfg.color),
-                    h.StrokeWidth('2'),
+                    h.StrokeWidth(isLinked ? '3' : '2'),
+                    ...(isLinked
+                      ? [
+                          h.DataAttribute('linked-highlight', 'true'),
+                          h.Attribute('stroke-dasharray', '3 2'),
+                        ]
+                      : []),
                     h.Style({ transition: 'r 120ms, fill 120ms' }),
                     h.AriaLabel(`${p.label}: (${p.x}, ${p.y})`),
                   ],

@@ -392,7 +392,7 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
     },
   ),
 
-  settle: Subscription.animationFrame({
+  settle: Subscription.animationFrameEntry({
     isActive: (model) => model.dragState._tag === 'Settling',
     toMessage: (deltaTimeMs) => Message.TickedSettle({ deltaTimeMs }),
   }),

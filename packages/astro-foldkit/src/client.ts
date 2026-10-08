@@ -9,7 +9,7 @@ import type { AppConfigContract, FoldkitApp } from './types';
 interface RuntimeConfigInput {}
 interface RuntimeProgram {}
 interface RuntimeHydrationOptions {
-  readonly buildId: string;
+  readonly buildId?: string;
 }
 interface ClientSlots {}
 

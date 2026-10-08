@@ -4,13 +4,14 @@ Project conventions and agent guidance for this monorepo.
 
 ## Quick orientation
 
-Bun workspace monorepo. Three workspaces in active use:
+Bun workspace monorepo. Four workspaces in active use:
 
 | Workspace                | Path                      | Purpose                                                 |
 | ------------------------ | ------------------------- | ------------------------------------------------------- |
 | `@opsydyn/astro-foldkit` | `packages/astro-foldkit/` | Astro integration for Foldkit apps                      |
 | `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | D3-quality chart primitives (no D3 dep)                 |
 | `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types, the integration test surface |
+| `@opsydyn/promo`         | `apps/promo/`             | Static chart examples and downloadable projects         |
 
 **Stack:** Foldkit (Elm Architecture on Effect-TS) · Astro · TypeScript · bun · oxlint · oxfmt
 
@@ -45,7 +46,7 @@ Config files:
 
 ## Foldkit import style guide
 
-Foldkit 0.165.0 exports submodule functions as **named exports**, not namespace objects.
+Foldkit 0.167.0 exports submodule functions as **named exports**, not namespace objects.
 
 ### foldkit/update
 
@@ -202,22 +203,28 @@ From the Foldkit style guide (adapted):
 
 ## Foldkit version
 
-Currently on `foldkit@0.165.0` with stable Effect `4.0.0` and
-`@foldkit/vite-plugin` `0.26.x`.
+Currently on `foldkit@0.167.0` with stable Effect `4.0.0` and
+`@foldkit/vite-plugin` `0.27.x`.
 
-FoldKit 0.165 and stable Effect guidance:
+FoldKit 0.167 and stable Effect guidance:
 
-- Prefer the renamed helpers `modifyFields`, `keyBindings`, `mapEvent`, and
+- Prefer the renamed helpers `modifyFields`, `streamFromKeyBindings`, `mapEvent`, and
   `filterMapEvent` when migrating code that used their older names.
-- Existing `animationFrame.toMessage` and `lift.toParentMessage` remain valid;
-  do not rename them without a repository-specific reason.
+- Use `Subscription.animationFrameEntry`, `Subscription.persistentEntry`, and
+  `Port.subscriptionEntry` inside `Subscription.make`. `toMessage` and
+  `toParentMessage` remain the callback names.
+- `Subscription.lift` and `ManagedResource.lift` take `read` returning an
+  `Option`; wrap an always-present child with `Option.some`.
 - `foldkit/update` uses record-shaped `Step` and `Return` values. Omit
   `commands` when no commands are produced.
 - Use stable Effect module paths such as `effect/http`; do not reintroduce
   `effect/unstable/*` imports.
-- Keep browser subscriptions in the owning app. `Subscription.fromMediaQuery`
+- Keep browser subscriptions in the owning app. `Dom.streamFromMediaQuery`
   provides an initial match and later change facts; the app maps those facts to
   Messages and owns the resulting Model policy.
+- Astro owns document rendering. FoldKit's generated build identity coordinates
+  hydration; `server.buildId` or `FOLDKIT_BUILD_ID` supplies an explicit deployment
+  override. Do not hardcode `development` as a production build identity.
 
 The current release includes:
 

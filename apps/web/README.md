@@ -4,7 +4,7 @@ Demo app for [`@opsydyn/astro-foldkit`](../../packages/astro-foldkit/). It hosts
 
 ## Apps
 
-**Counter** (`/`) — increment/decrement with particle burst animations driven by `Subscription.animationFrame`.
+**Counter** (`/`) — increment/decrement with particle burst animations driven by `Subscription.animationFrameEntry`.
 
 **Health dashboard** (`/health`) — polls `/api/health` via `foldkit/http`, renders a live uptime timer that ticks on every animation frame once data loads, and uses a shimmer skeleton during the initial fetch to prevent layout shift.
 

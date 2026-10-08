@@ -5,9 +5,9 @@
  * Drive it by dispatching a `Tick({ deltaTime })` message on each
  * animation frame and calling `tweenStep` in the update function.
  *
- * Wire the tick via foldkit's `Subscription.animationFrame`:
+ * Wire the tick via foldkit's `Subscription.animationFrameEntry`:
  * ```typescript
- * Subscription.animationFrame({
+ * Subscription.animationFrameEntry({
  *   isActive: (model) => !allTweensDone(model.tweens),
  *   toMessage: (dt) => Ticked({ dt }),
  * })

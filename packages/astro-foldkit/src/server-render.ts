@@ -12,7 +12,7 @@ type ServerConfig<Flags extends object> = Pick<
 export async function renderFoldkitServerApplication<Flags extends object>(
   config: ServerConfig<Flags>,
   flags: Flags,
-  buildId: string,
+  buildId?: string,
 ): Promise<RenderedApplication> {
   return await Effect.runPromise(
     renderToString(

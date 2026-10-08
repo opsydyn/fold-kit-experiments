@@ -102,6 +102,6 @@ describe('astro-foldkit server renderer', () => {
     delete process.env.FOLDKIT_BUILD_ID;
     await expect(
       renderToStaticMarkup.call({ result: makeResult() }, makePage(), { locale: 'en' }, {}),
-    ).rejects.toThrow('FOLDKIT_BUILD_ID');
+    ).rejects.toMatchObject({ _tag: 'MissingBuildId' });
   });
 });

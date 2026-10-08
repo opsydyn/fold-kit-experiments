@@ -37,9 +37,13 @@ describe('readFoldkitBuildId', () => {
     expect(readFoldkitBuildId({ FOLDKIT_BUILD_ID: 'test-build' })).toBe('test-build');
   });
 
-  it('rejects absent and empty FoldKit build identities', () => {
-    expect(() => readFoldkitBuildId({})).toThrow('FOLDKIT_BUILD_ID');
+  it('defers absent overrides to FoldKit compiled build identity', () => {
+    expect(readFoldkitBuildId({})).toBeUndefined();
+  });
+
+  it('rejects explicitly empty FoldKit build identities', () => {
     expect(() => readFoldkitBuildId({ FOLDKIT_BUILD_ID: '' })).toThrow('FOLDKIT_BUILD_ID');
+    expect(() => readFoldkitBuildId({ FOLDKIT_BUILD_ID: '  ' })).toThrow('FOLDKIT_BUILD_ID');
   });
 });
 
@@ -65,5 +69,11 @@ describe('renderFoldkitServerApplication', () => {
     await expect(renderFoldkitServerApplication(config, { name: 'Ada' }, '')).rejects.toMatchObject(
       { _tag: 'MissingBuildId' },
     );
+  });
+
+  it('fails closed without an override or a compiled build identity', async () => {
+    await expect(renderFoldkitServerApplication(config, { name: 'Ada' })).rejects.toMatchObject({
+      _tag: 'MissingBuildId',
+    });
   });
 });

@@ -6,5 +6,5 @@ import { NavigationPort } from './navigation';
 
 export const subscriptionsFor = () =>
   Subscription.make<Model, Message>()(() => ({
-    navigation: Port.subscription(NavigationPort, (value) => Message.Navigated(value)),
+    navigation: Port.subscriptionEntry(NavigationPort, (value) => Message.Navigated(value)),
   }));

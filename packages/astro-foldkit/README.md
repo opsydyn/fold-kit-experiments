@@ -20,8 +20,8 @@ npm install astro foldkit
 
 ## FoldKit compatibility
 
-`@opsydyn/astro-foldkit` is tested with FoldKit `0.165.x`, stable Effect
-`4.0.0`, and the matching `@foldkit/vite-plugin` `0.26.x` line.
+`@opsydyn/astro-foldkit` targets FoldKit `0.167.x`, stable Effect
+`4.0.0`, and the matching `@foldkit/vite-plugin` `0.27.x` line.
 Applications can define interruptible work with
 `Command.define(name, { interrupt: true, ... })` inside their own update loop;
 this integration continues to own Astro rendering, hydration, and lifecycle
@@ -36,21 +36,25 @@ import { defineConfig } from 'astro/config';
 import foldkit from '@opsydyn/astro-foldkit';
 
 export default defineConfig({
-  integrations: [
-    foldkit({
-      server: {
-        buildId: process.env.FOLDKIT_BUILD_ID ?? 'development',
-      },
-    }),
-  ],
+  integrations: [foldkit()],
 });
 ```
 
-The build ID is an explicit server/client handoff identity. Use a stable
-deployment-specific value in production and the same value in every process
-that serves the build. The integration defaults to `development` for local
-use, rejects a blank value, and fails a `definePage` render closed rather than
-hydrating a mismatched document when no usable identity is available.
+FoldKit generates one public build identity for the coordinated client and server
+artifacts. The integration uses that compiled identity by default, including
+Astro's prerender and Cloudflare environments. Astro continues to own the HTML
+document, assets, and deployment adapter; do not enable the standalone FoldKit
+`ssr.build` pipeline inside this integration.
+
+For separately built artifacts, supply the same deployment-specific
+`FOLDKIT_BUILD_ID` environment variable to every build, or configure
+`foldkit({ server: { buildId: 'release-unique-deployment-id' } })`. The ID appears
+in public HTML, so it must not contain secrets. Do not reuse it across deployments
+with different rendering inputs. Blank `server.buildId` options are rejected, and FoldKit
+fails closed when neither a compiled identity nor an explicit override is available.
+
+See the [0.167 migration guide](../../docs/migrations/foldkit-0.167.md) for the
+subscription API changes and package compatibility checks.
 
 ## Defining an app
 
@@ -486,7 +490,7 @@ element.addEventListener(
 | Package   | Version               |
 | :-------- | :-------------------- |
 | `astro`   | `≥ 5.0`               |
-| `foldkit` | `≥ 0.165.0 < 0.166.0` |
+| `foldkit` | `≥ 0.167.0 < 0.168.0` |
 
 ## Stateflow Observatory example
 
@@ -499,7 +503,7 @@ replay policy, and trace inspector. The graph consumes plain layout records.
 This slice adds no Astro integration API and moves no async work into the
 integration. Commands and subscriptions remain app-owned, including telemetry
 emission, validation of inbound replay events, and the reduced-motion
-`Subscription.fromMediaQuery` subscription. That subscription is the app's
+`Dom.streamFromMediaQuery` stream in a `Subscription.persistentEntry`. That subscription is the app's
 example of FoldKit PR [#1424](https://github.com/foldkit/foldkit/pull/1424): it
 records the browser's initial media-query match and subsequent changes, then
 lets the Model decide whether visual motion is allowed.

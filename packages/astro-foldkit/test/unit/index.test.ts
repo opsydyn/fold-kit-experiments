@@ -42,10 +42,10 @@ describe('foldkit integration', () => {
     expect(await configuredBuildId(integration)).toBe('"release-123"');
   });
 
-  it('uses the development build identity as integration configuration default', async () => {
+  it('lets FoldKit generate the build identity when no override is configured', async () => {
     const integration = foldkit();
 
-    expect(await configuredBuildId(integration)).toBe('"development"');
+    expect(await configuredBuildId(integration)).toBeUndefined();
   });
 
   it('rejects an explicitly empty server build identity', () => {

@@ -15,7 +15,6 @@ export default function foldkit(options: FoldkitIntegrationOptions = {}): AstroI
   const configuredBuildId = options.server?.buildId;
   if (configuredBuildId !== undefined && configuredBuildId.trim() === '')
     throw new Error('foldkit({ server: { buildId } }) requires a non-empty server.buildId.');
-  const buildId = configuredBuildId ?? 'development';
   return {
     name: 'astro-foldkit',
     hooks: {
@@ -27,7 +26,7 @@ export default function foldkit(options: FoldkitIntegrationOptions = {}): AstroI
         });
         updateConfig({
           vite: {
-            plugins: [foldkitVitePlugin({ buildId })],
+            plugins: [foldkitVitePlugin(options.server)],
           },
         });
       },

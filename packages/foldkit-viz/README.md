@@ -19,7 +19,7 @@ bun add @opsydyn/foldkit-viz
 
 ## FoldKit compatibility
 
-`@opsydyn/foldkit-viz` is tested with FoldKit `0.165.x` and stable Effect
+`@opsydyn/foldkit-viz` targets FoldKit `0.167.x` and stable Effect
 `4.0.0`. Consumers can use
 `Command.define(name, { interrupt: true, ... })` to replace remote chart-data
 loads while this package remains focused on pure geometry, chart-local state,
@@ -356,7 +356,7 @@ const pathD = line(points, { curve: 'catmullRom' });
 
 ## Animation
 
-Use `math/tween` with FoldKit's `Subscription.animationFrame` for smooth transitions:
+Use `math/tween` with FoldKit's `Subscription.animationFrameEntry` for smooth transitions:
 
 ```typescript
 import { tweenCreate, tweenStep, tweenValue, allTweensDone } from '@opsydyn/foldkit-viz/math/tween';
@@ -366,7 +366,7 @@ import { Subscription } from 'foldkit';
 const tween = tweenCreate(600 /* ms */, easeOutCubic);
 
 // In subscription.ts
-Subscription.animationFrame({
+Subscription.animationFrameEntry({
   isActive: (model) => !allTweensDone(model.tweens),
   toMessage: (dt) => Ticked({ dt }),
 });

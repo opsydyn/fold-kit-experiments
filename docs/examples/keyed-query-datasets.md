@@ -1,10 +1,14 @@
 # KeyedQuery dataset explorer
 
-The demo at `/dataset-explorer` and promo at `/examples/datasets/` use FoldKit 0.166's experimental Query API
+The demo at `/dataset-explorer` and promo at `/examples/datasets/` use the experimental Query API
 with keyed arguments. It demonstrates application-owned remote state around
 composable chart geometry and FoldKit layers. Both apps consume the private
 `@opsydyn/dataset-explorer` workspace; the public Viz package stays independent
 of application state and HTTP transport.
+
+The current workspace and standalone exports target FoldKit 0.167.0 with Vite
+plugin 0.27.0. The qualification entries below retain their original dates and
+versions; release integration checks are separate from that earlier browser evidence.
 
 ## Try it
 

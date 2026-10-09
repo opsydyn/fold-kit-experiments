@@ -3,11 +3,17 @@
 D3-quality visualisation primitives for FoldKit — **no D3 dependency**.
 
 A pure-TypeScript data-transformation and geometry layer designed for use with
-[FoldKit](https://github.com/opsydyn/foldkit)'s TEA (The Elm Architecture) rendering model.
+[FoldKit](https://github.com/foldkit/foldkit)'s TEA (The Elm Architecture) rendering model.
 The root and mathematical modules are pure and framework-agnostic. The optional
 `foldkit/cartesian` adapter renders through your parent's FoldKit `HtmlBuilder`.
 
 The runnable [`/request-diagnostics`](../../apps/web/src/apps/request-diagnostics/) example shows these primitives inside a FoldKit state machine. The machine belongs to the consuming application; this package remains focused on chart geometry and chart-local state.
+
+The [`comparison workbench`](../../apps/web/src/apps/comparison/) demonstrates
+stable keyed panels and linked range inspection using these primitives.
+`foldChildAt`, panel identity, selection policy and browser effects remain
+application-owned. The promo reuses that workbench with maintained source and
+standalone exports; no public comparison controller is added to this package.
 
 ---
 
@@ -19,7 +25,7 @@ bun add @opsydyn/foldkit-viz
 
 ## FoldKit compatibility
 
-`@opsydyn/foldkit-viz` is tested with FoldKit `0.165.x` and stable Effect
+`@opsydyn/foldkit-viz` targets FoldKit `0.167.x` and stable Effect
 `4.0.0`. Consumers can use
 `Command.define(name, { interrupt: true, ... })` to replace remote chart-data
 loads while this package remains focused on pure geometry, chart-local state,
@@ -67,10 +73,10 @@ path. Application Commands, request flags and data loading remain app-owned.
 
 ---
 
-## Composable Cartesian charts (unreleased workspace API)
+## Composable Cartesian charts
 
-These new modules are implemented in this checkout; no release version has been
-published for this slice. Use workspace imports or the promo's standalone ZIP.
+These modules are available from version 0.10.0. Use package imports or the
+promo's standalone projects, which include the compiled modules they consume.
 
 - `chart/cartesian`: `lineGeometry`, `scatterGeometry`, `histogramGeometry` and layout types.
 - `chart/theme`: `lightTheme`, `darkTheme`, `resolveSeriesStyle`, `createSeriesStyles`, `themeProperties`.
@@ -356,7 +362,7 @@ const pathD = line(points, { curve: 'catmullRom' });
 
 ## Animation
 
-Use `math/tween` with FoldKit's `Subscription.animationFrame` for smooth transitions:
+Use `math/tween` with FoldKit's `Subscription.animationFrameEntry` for smooth transitions:
 
 ```typescript
 import { tweenCreate, tweenStep, tweenValue, allTweensDone } from '@opsydyn/foldkit-viz/math/tween';
@@ -366,7 +372,7 @@ import { Subscription } from 'foldkit';
 const tween = tweenCreate(600 /* ms */, easeOutCubic);
 
 // In subscription.ts
-Subscription.animationFrame({
+Subscription.animationFrameEntry({
   isActive: (model) => !allTweensDone(model.tweens),
   toMessage: (dt) => Ticked({ dt }),
 });

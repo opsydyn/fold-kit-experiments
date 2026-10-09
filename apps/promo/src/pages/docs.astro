@@ -50,13 +50,13 @@ import { quickStart, astroExample } from '../lib/snippets';
         <h2>Compose the chart around your data.</h2>
         <p><code>chart/cartesian</code> maps your records through accessors into shared geometry. <code>chart/theme</code> supplies semantic light and dark paints and stable series styles. The optional <code>foldkit/cartesian</code> adapter renders frames, axes, marks, annotations, tooltips, legends and data tables through your parent's builder.</p>
         <p>Choose layer order and replace the tooltip with a renderer receiving the original datum. Build colour mappings from stable series IDs before filtering; use symbols or dash patterns alongside colour. CSS variables and custom CSS colours pass through unchanged, with opacity set separately.</p>
-        <p>These modules are unreleased workspace APIs. Download a live example for a complete independent project containing the compiled modules, shared source and current control settings.</p>
+        <p>These modules are available from Foldkit Viz 0.10.0. Download a live example for an independent project containing the compiled modules, maintained source and captured settings.</p>
         <a class="text-link" href={sitePath('/examples/scatter/')}>Inspect the composed scatter example <span aria-hidden="true">→</span></a>
       </section>
       <section id="foldkit">
         <h2>Keep your model in charge.</h2>
         <p>For interactive FoldKit charts, keep selections and chart state in your Model, describe interactions with Messages, and update through the normal loop. The primitives compute geometry; your app owns effects and data loading.</p>
-        <p>The library is tested with FoldKit 0.165.x and Effect 4.0.0. Astro integration and application server rendering belong to the separate <code>@opsydyn/astro-foldkit</code> package.</p>
+        <p>The library targets FoldKit 0.167.x and Effect 4.0.0. Astro integration and application server rendering belong to the separate <code>@opsydyn/astro-foldkit</code> package.</p>
         <a class="text-link" href={repository + '/tree/main/apps/web/src/apps/linked-charts'}>See the linked-charts application <span aria-hidden="true">↗</span></a>
       </section>
     </article>

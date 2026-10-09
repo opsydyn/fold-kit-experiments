@@ -2,11 +2,21 @@ import { expect, test } from 'bun:test';
 
 import { Effect } from 'effect';
 
+import astroPackage from '../../../packages/astro-foldkit/package.json';
+import datasetPackage from '../../../packages/dataset-explorer/package.json';
 import { OpenPlayground } from '../src/examples/datasets/launcher/command';
 import { Message } from '../src/examples/datasets/launcher/message';
 import { init } from '../src/examples/datasets/launcher/model';
 import { update } from '../src/examples/datasets/launcher/update';
 import { datasetProject } from '../src/lib/dataset-project';
+
+test('dataset starter uses the maintained source runtime and matching Vite plugin', () => {
+  const manifest = JSON.parse(datasetProject({}, [])['package.json']);
+  expect(manifest.dependencies.foldkit).toBe(datasetPackage.dependencies.foldkit);
+  expect(manifest.devDependencies['@foldkit/vite-plugin']).toBe(
+    astroPackage.dependencies['@foldkit/vite-plugin'].replace(/^\^/, ''),
+  );
+});
 
 test('dataset starter automatically installs and starts a reachable Vite server in StackBlitz', () => {
   const files = datasetProject({}, []);

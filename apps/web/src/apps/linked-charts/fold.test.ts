@@ -12,6 +12,36 @@ const ProbeInspection = Command.define('ProbeInspection', {
   execute: Effect.succeed(Scatter.Message.BlurredPoint()),
 });
 
+const ProbeRangeInspection = Command.define('ProbeRangeInspection', {
+  messages: [Histogram.Message.BlurredBin],
+  execute: Effect.succeed(Histogram.Message.BlurredBin()),
+});
+
+it('preserves histogram Command completion mapping while storing the range overlay', async () => {
+  const decoratedHistogram: typeof Histogram.update = (model, message) => ({
+    ...Histogram.update(model, message),
+    commands: [ProbeRangeInspection()],
+  });
+  const folds = linkedChartFolds({ scatter: Scatter.update, histogram: decoratedHistogram });
+  const model = init().model;
+  const result = folds.histogram(model, Histogram.Message.HoveredBin({ index: 0 }));
+  expect(result.model.scatter).toBe(model.scatter);
+  expect(result.model.inspection).toEqual(
+    Option.some({
+      _tag: 'Range',
+      lower: 55000,
+      upper: 60000,
+      includeEnd: false,
+    }),
+  );
+  expect(result.commands).toHaveLength(1);
+  const command = Option.getOrThrow(Option.fromNullishOr(result.commands?.[0]));
+  expect(await Effect.runPromise(command.effect)).toEqual({
+    _tag: 'ReceivedHistogramMessage',
+    message: { _tag: 'BlurredBin' },
+  });
+});
+
 it('preserves child Commands and folds their completion while applying the inspection event', async () => {
   const decoratedScatter: typeof Scatter.update = (model, message) => ({
     ...Scatter.update(model, message),

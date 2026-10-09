@@ -26,5 +26,5 @@ const usernameSubscription: UsernameSubscription = function usernameSubscription
 const usernameStream: Stream.Stream<Message> = Stream.callback(usernameSubscription);
 
 export const subscriptions = Subscription.make<Model, Message>()((_entry) => ({
-  username: Subscription.persistent(usernameStream),
+  username: Subscription.persistentEntry(usernameStream),
 }));

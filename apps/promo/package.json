@@ -20,10 +20,10 @@
     "@opsydyn/dataset-explorer": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
     "@stackblitz/sdk": "1.11.0",
-    "astro": "7.1.1",
+    "astro": "7.2.8",
     "effect": "4.0.0",
     "fflate": "0.8.3",
-    "foldkit": "0.166.0",
+    "foldkit": "0.167.0",
     "topojson-client": "^3.1.0",
     "world-atlas": "^2.0.2"
   },

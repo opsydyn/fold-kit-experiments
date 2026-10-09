@@ -13,10 +13,43 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
-Current package compatibility targets FoldKit `0.165.x`, stable Effect
-`4.0.0`, and the `@foldkit/vite-plugin` `0.26.x` line. The 0.165 dependency
-migration is not considered released until the packed-consumer and workspace
-verification gates pass.
+Current package compatibility targets FoldKit `0.167.x`, stable Effect
+`4.0.0`, and the `@foldkit/vite-plugin` `0.27.x` line. See the
+[migration guide](migrations/foldkit-0.167.md). Publication remains a separate
+gate after packed-consumer and workspace verification.
+
+## Release: Keyed Chart Comparison
+
+**Outcome:** users can compare charts in a dynamic collection without losing
+each panel's selection and inspection state when panels move.
+
+- [x] Add, remove, and reorder chart panels using stable app-owned IDs and
+      `foldChildAt`.
+- [x] Link panel selections through typed child OutMessages and parent-owned
+      selection policy.
+- [x] Verify in automated tests that reorder preserves state and late Messages for removed IDs
+      cannot recreate panels.
+- [x] Implement the same-source promo/download workflow; generated comparison,
+      line, histogram and scatter projects install, typecheck and build locally.
+- [ ] Complete controller-owned desktop/390px, keyboard, reduced-motion and
+      standalone browser acceptance. Further controller QA is pending exclusive
+      Firefox access; no live pass is inferred from automated tests.
+- [ ] Publish the runnable promo example and FoldKit 0.167 package updates
+      through the authorised release workflow; verify hosted and registry results.
+
+All five source tasks and the final correction wave are implemented and reviewed.
+The final source checkpoint passed 529 tests, typechecks, lint and production
+builds. The scatter-axis spacing correction is implemented but its visual
+recheck and the complete browser journeys remain pending. Release integration
+also preserves main's dataset explorer and deployment support; its combined
+verification is recorded separately. See the
+[qualification record](superpowers/specs/2026-10-08-keyed-chart-comparison-qualification.md).
+
+Follow-on candidate: a VirtualList-backed Stateflow event explorer. The bounded
+KeyedQuery dataset explorer now exists in `packages/dataset-explorer` and is
+hosted by both apps. Query's stale-result protection
+does not replace the request-diagnostics example's interruptible route-exit
+contract. Keep Query, Machine, and browser lifecycle ownership in applications.
 
 ## Product Thesis
 
@@ -34,7 +67,7 @@ activity visible through a deterministic graph, replay timeline, and inspector.
       belong in the viz package.
 - [x] Host the page as an Astro `client:load` island using the existing lifecycle
       bridge, without adding integration APIs or async visualisation ownership.
-- [x] Use FoldKit 0.165's [`Subscription.fromMediaQuery`](https://github.com/foldkit/foldkit/pull/1424)
+- [x] Use FoldKit's [`Dom.streamFromMediaQuery`](https://github.com/foldkit/foldkit/pull/1424)
       in the app to record the current and changed reduced-motion preference;
       Astro remains a lifecycle host and `foldkit-viz` remains pure.
 - [x] Document the reusable remote filter, brush, and zoom load pattern: an
@@ -139,11 +172,11 @@ FoldKit 0.136.x.
 
 **Outcome:** both packages are dependable for external consumers.
 
-- [ ] Add package export and packed-consumer tests to CI.
+- [x] Add package export and packed-consumer tests to CI through `bun run test`.
 - [ ] Add API reports or generated type-surface checks for public exports.
 - [ ] Add compatibility coverage for the supported Astro range.
 - [ ] Publish migration notes for FoldKit minor/breaking changes such as `matchDataSplitEmpty` and route `Transition`.
-- [ ] Track package changelogs and versioning independently (`astro-foldkit` versus `foldkit-viz`).
+- [x] Track package changelogs and versioning independently with release-please (`astro-foldkit` versus `foldkit-viz`).
 - [ ] Add performance checks for bundle size and large chart datasets.
 
 ## Deliberate Non-Goals

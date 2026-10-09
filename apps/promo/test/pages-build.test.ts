@@ -25,5 +25,10 @@ test.skipIf(!base)(
         expect(await Bun.file(join(directory, file)).exists()).toBe(true);
       }
     }
+    const comparison = await Bun.file(join(directory, 'examples/comparison/index.html')).text();
+    expect(comparison).toContain(`${base}downloads/comparison-template.json`);
+    expect(await Bun.file(join(directory, 'downloads/comparison-template.json')).exists()).toBe(
+      true,
+    );
   },
 );

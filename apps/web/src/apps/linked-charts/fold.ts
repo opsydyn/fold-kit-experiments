@@ -4,6 +4,7 @@ import type { Return, Step } from 'foldkit/update';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
+import { containsValue } from '../../ui/shared/inspection';
 import { Message } from './message';
 import type { Model } from './model';
 
@@ -15,12 +16,6 @@ type LinkedFolds = Readonly<{
   scatter: (model: Model, message: Scatter.Message) => Return<Model, Message>;
   histogram: (model: Model, message: Histogram.Message) => Return<Model, Message>;
 }>;
-
-function containsValue(value: number, lo: number, hi: number, includeEnd: boolean): boolean {
-  const within = value >= lo && value < hi;
-  const atEnd = includeEnd && value === hi;
-  return within || atEnd;
-}
 
 /** The parent coordinates semantic events once; sibling notifications terminate here. */
 export function linkedChartFolds(updaters: ChartUpdaters): LinkedFolds {
@@ -37,11 +32,10 @@ export function linkedChartFolds(updaters: ChartUpdaters): LinkedFolds {
     toParentMessage: (message: Histogram.Message) => Message.ReceivedHistogramMessage({ message }),
   };
   const consumeNotification = (): Step<Model, Message> => (model) => ({ model });
-  const scatterSibling = foldChild({ ...scatterOwner, foldOutMessage: consumeNotification });
   const histogramSibling = foldChild({ ...histogramOwner, foldOutMessage: consumeNotification });
 
   const highlightHistogram =
-    ({ y }: Extract<Scatter.OutMessage, { _tag: 'InspectedPoint' }>): Step<Model, Message> =>
+    ({ key, y }: Extract<Scatter.OutMessage, { _tag: 'InspectedPoint' }>): Step<Model, Message> =>
     (model) => {
       const index = model.histogram.bins.findIndex((b, i) =>
         containsValue(y, b.x0, b.x1, i === model.histogram.bins.length - 1),
@@ -53,33 +47,29 @@ export function linkedChartFolds(updaters: ChartUpdaters): LinkedFolds {
           onSome: (index) => Histogram.Message.HoveredBin({ index }),
         },
       );
-      return histogramSibling(model, message);
+      return histogramSibling(
+        { ...model, inspection: Option.some({ _tag: 'Point', key }) },
+        message,
+      );
     };
   const highlightScatter =
     ({
-      domain: [lo, hi],
+      domain: [lower, upper],
+      includeEnd,
     }: Extract<Histogram.OutMessage, { _tag: 'InspectedRange' }>): Step<Model, Message> =>
-    (model) => {
-      const final = model.histogram.bins.at(-1)?.x1 === hi;
-      const index = model.scatter.points.findIndex((p) => containsValue(p.y, lo, hi, final));
-      const message = Option.match(
-        Option.filter(Option.some(index), (i) => i >= 0),
-        {
-          onNone: () => Scatter.Message.BlurredPoint(),
-          onSome: (index) => Scatter.Message.HoveredPoint({ index }),
-        },
-      );
-      return scatterSibling(model, message);
-    };
+    (model) => ({
+      model: { ...model, inspection: Option.some({ _tag: 'Range', lower, upper, includeEnd }) },
+    });
   const foldScatterOutMessage = (event: Scatter.OutMessage): Step<Model, Message> =>
-    Scatter.OutMessage.match(event, {
+    Scatter.OutMessage.match<Step<Model, Message>>(event, {
       InspectedPoint: highlightHistogram,
-      ClearedInspection: () => histogramSibling(Histogram.Message.BlurredBin()),
+      ClearedInspection: () => (model) =>
+        histogramSibling({ ...model, inspection: Option.none() }, Histogram.Message.BlurredBin()),
     });
   const foldHistogramOutMessage = (event: Histogram.OutMessage): Step<Model, Message> =>
-    Histogram.OutMessage.match(event, {
+    Histogram.OutMessage.match<Step<Model, Message>>(event, {
       InspectedRange: highlightScatter,
-      ClearedInspection: () => scatterSibling(Scatter.Message.BlurredPoint()),
+      ClearedInspection: () => (model) => ({ model: { ...model, inspection: Option.none() } }),
     });
   const scatter = foldChild({ ...scatterOwner, foldOutMessage: foldScatterOutMessage });
   const histogram = foldChild({ ...histogramOwner, foldOutMessage: foldHistogramOutMessage });

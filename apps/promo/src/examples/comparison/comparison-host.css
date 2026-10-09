@@ -1,0 +1,39 @@
+.comparison-host {
+  min-width: 0;
+}
+.comparison-source {
+  margin-top: 24px;
+  border-top: 1px solid var(--border, #d9dce1);
+  padding-top: 16px;
+}
+.comparison-source-toolbar,
+.comparison-export {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.comparison-source-toolbar select {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 260px;
+}
+.comparison-host button,
+.comparison-source-toolbar select {
+  font: inherit;
+}
+.comparison-source pre {
+  max-height: 420px;
+  overflow: auto;
+  padding: 16px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #d9dce1);
+}
+.comparison-export p {
+  flex: 1 1 100%;
+  min-height: 1.5em;
+}
+.comparison-host :focus-visible {
+  outline: 2px solid #0e7490;
+  outline-offset: 3px;
+}

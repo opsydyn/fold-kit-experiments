@@ -35,7 +35,7 @@ describe('request diagnostics navigation scene', () => {
     type TestModel = typeof TestModel.Type;
     const received: AppMessage[] = [];
     const testSubscriptions = Subscription.make<TestModel, AppMessage>()(() => ({
-      navigation: Port.subscription(NavigationPort, (value) => Message.Navigated(value)),
+      navigation: Port.subscriptionEntry(NavigationPort, (value) => Message.Navigated(value)),
     }));
     const container = document.createElement('div');
     container.id = 'request-diagnostics-port-test';

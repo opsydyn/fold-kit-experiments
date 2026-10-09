@@ -2,10 +2,9 @@
 
 ## [0.7.2](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.7.1...astro-foldkit-v0.7.2) (2026-10-05)
 
-
 ### Bug Fixes
 
-* support FoldKit 0.166.0 ([248636e](https://github.com/opsydyn/fold-kit-experiments/commit/248636efea03a2048432260da6261bb657a282dc))
+- support FoldKit 0.166.0 ([248636e](https://github.com/opsydyn/fold-kit-experiments/commit/248636efea03a2048432260da6261bb657a282dc))
 
 ## [0.7.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.7.0...astro-foldkit-v0.7.1) (2026-10-04)
 

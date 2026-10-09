@@ -162,6 +162,8 @@ describe('resolvePageDocument', () => {
   });
 
   it('fails closed when the build identity is missing', async () => {
-    await expect(resolvePageDocument(makePage(), context)).rejects.toThrow('FOLDKIT_BUILD_ID');
+    await expect(resolvePageDocument(makePage(), context)).rejects.toMatchObject({
+      _tag: 'MissingBuildId',
+    });
   });
 });

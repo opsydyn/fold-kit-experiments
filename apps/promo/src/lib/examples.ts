@@ -1,5 +1,9 @@
 export const repository = 'https://github.com/opsydyn/fold-kit-experiments';
 export const sourceRoot = repository + '/tree/main/packages/foldkit-viz/src';
+export const comparisonExample = {
+  title: 'Chart comparison',
+  href: '/examples/comparison/',
+} as const;
 export const examples = [
   {
     id: 'connections',

@@ -1,3 +1,4 @@
+import { Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { initChartModels } from './model';
@@ -9,5 +10,10 @@ describe('linked charts initialization', () => {
     expect(result.model.scatter.points).toHaveLength(30);
     expect(result.model.histogram.totalCount).toBe(30);
     expect(result.commands).toHaveLength(0);
+    expect(result.model.inspection).toEqual(Option.none());
+    const ids = result.model.scatter.points.map((point) => point.id);
+    expect(ids).not.toContain(undefined);
+    expect(ids).not.toContain('');
+    expect(new Set(ids).size).toBe(30);
   });
 });

@@ -10,11 +10,11 @@ Bun workspace monorepo. Five active workspaces:
 | --------------------------- | ---------------------------- | --------------------------------------- |
 | `@opsydyn/astro-foldkit`    | `packages/astro-foldkit/`    | Astro integration for Foldkit           |
 | `@opsydyn/foldkit-viz`      | `packages/foldkit-viz/`      | Chart primitives (no D3 dependency)     |
-| `@opsydyn/web`              | `apps/web/`                  | Demo app — 33 chart types               |
+| `@opsydyn/web`              | `apps/web/`                  | Chart demos and reference workbenches   |
 | `@opsydyn/dataset-explorer` | `packages/dataset-explorer/` | Private shared FoldKit example          |
 | `@opsydyn/promo`            | `apps/promo/`                | Static Astro promo site for Foldkit Viz |
 
-**Stack:** FoldKit 0.166.0 · Effect 4.0.0 · Astro 7.1 · TypeScript · bun · oxlint · oxfmt
+**Stack:** FoldKit 0.167.0 · Effect 4.0.0 · Astro 7.2.8 · TypeScript · bun · oxlint · oxfmt
 
 ## Before you write code
 
@@ -155,6 +155,14 @@ Mount.define('Chart', {
   execute: ({ element }) => Effect.sync(() => Message.RecordedBounds({ element })),
 });
 ```
+
+### Subscription entries and browser streams
+
+Use `Subscription.persistentEntry`, `Subscription.animationFrameEntry`, and
+`Port.subscriptionEntry` inside `Subscription.make`. Browser Stream constructors
+live in `foldkit/dom`: `streamFromEvent`, `streamFromMediaQuery`, and
+`streamFromKeyBindings`. `Subscription.lift` and `ManagedResource.lift` take an
+Option-returning `read`; use `Option.some(model.child)` for an always-present child.
 
 ## Update.combine + Update.refresh pattern
 

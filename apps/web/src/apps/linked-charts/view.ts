@@ -1,14 +1,22 @@
+import { Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
+import { matchingBinIndices, matchingKeys } from '../../ui/shared/inspection';
 import { Message } from './message';
 import type { Model } from './model';
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
+  const points = model.scatter.points.map((point) => ({ ...point, id: point.id ?? point.label }));
+  const keys = Option.match(model.inspection, {
+    onNone: () => [],
+    onSome: (inspection) => matchingKeys(points, inspection),
+  });
   const scatter: Html = Scatter.view(
     {
       model: model.scatter,
+      highlightedKeys: keys,
       toParentMessage: (msg) => Message.ReceivedScatterMessage({ message: msg }),
       ariaLabel: 'Scatter chart — experience vs salary',
     },
@@ -18,6 +26,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const histogram: Html = Histogram.view(
     {
       model: model.histogram,
+      highlightedBins: matchingBinIndices(points, keys, model.histogram.bins),
       toParentMessage: (msg) => Message.ReceivedHistogramMessage({ message: msg }),
       ariaLabel: 'Histogram — salary distribution',
     },
@@ -44,6 +53,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
               ['Experience vs Salary — hover to highlight bin'],
             ),
             scatter,
+            ...(Option.isSome(model.inspection)
+              ? [h.p([h.Attribute('aria-live', 'polite')], [`${keys.length} matching points`])]
+              : []),
           ],
         ),
         h.div(

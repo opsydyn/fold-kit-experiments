@@ -15,8 +15,9 @@ priorities rather than duplicating their status.
 
 Current package compatibility targets FoldKit `0.167.x`, stable Effect
 `4.0.0`, and the `@foldkit/vite-plugin` `0.27.x` line. See the
-[migration guide](migrations/foldkit-0.167.md). Publication remains a separate
-gate after packed-consumer and workspace verification.
+[migration guide](migrations/foldkit-0.167.md). Astro integration `0.8.0` and
+Viz `0.11.0` are published; registry and hosted deployment verification is
+recorded in the [release notes](releases/foldkit-0.167.md).
 
 ## Release: Keyed Chart Comparison
 
@@ -34,7 +35,7 @@ each panel's selection and inspection state when panels move.
 - [ ] Complete controller-owned desktop/390px, keyboard, reduced-motion and
       standalone browser acceptance. Further controller QA is pending exclusive
       Firefox access; no live pass is inferred from automated tests.
-- [ ] Publish the runnable promo example and FoldKit 0.167 package updates
+- [x] Publish the runnable promo example and FoldKit 0.167 package updates
       through the authorised release workflow; verify hosted and registry results.
 
 All five source tasks and the final correction wave are implemented and reviewed.

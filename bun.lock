@@ -71,7 +71,7 @@
     },
     "packages/astro-foldkit": {
       "name": "@opsydyn/astro-foldkit",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "dependencies": {
         "@foldkit/vite-plugin": "^0.27.0",
         "effect": "4.0.0",
@@ -104,7 +104,7 @@
     },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
-      "version": "0.10.1",
+      "version": "0.11.0",
       "devDependencies": {
         "@types/node": "^22.0.0",
         "bun-types": "^1.3.14",

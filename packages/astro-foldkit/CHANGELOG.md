@@ -2,15 +2,19 @@
 
 ## [0.8.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.7.2...astro-foldkit-v0.8.0) (2026-10-09)
 
+Upgrade FoldKit alongside this package: the supported peer range is now
+`>=0.167.0 <0.168.0`, with Effect `4.0.0`. Public app and server APIs are unchanged.
+The integration uses `@foldkit/vite-plugin` 0.27.x for coordinated client/server
+build identity. See the [migration guide](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/migrations/foldkit-0.167.md)
+and [release notes](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/releases/foldkit-0.167.md).
 
 ### Features
 
-* support FoldKit 0.167 and keyed chart comparison ([6e3edf7](https://github.com/opsydyn/fold-kit-experiments/commit/6e3edf76d0e04047652c052e2254ccd67a2458d9))
-
+- support FoldKit 0.167 and keyed chart comparison ([6e3edf7](https://github.com/opsydyn/fold-kit-experiments/commit/6e3edf76d0e04047652c052e2254ccd67a2458d9))
 
 ### Bug Fixes
 
-* **deps:** patch Astro to 7.2.8 ([65ebdb7](https://github.com/opsydyn/fold-kit-experiments/commit/65ebdb74999e7bcafb127f3c87e424dc165a3a7d))
+- **deps:** patch Astro to 7.2.8 ([65ebdb7](https://github.com/opsydyn/fold-kit-experiments/commit/65ebdb74999e7bcafb127f3c87e424dc165a3a7d))
 
 ## [0.7.2](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.7.1...astro-foldkit-v0.7.2) (2026-10-05)
 

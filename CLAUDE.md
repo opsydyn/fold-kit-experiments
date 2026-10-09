@@ -4,14 +4,15 @@ Project conventions and agent guidance for this monorepo.
 
 ## Quick orientation
 
-Bun workspace monorepo. Four workspaces in active use:
+Bun workspace monorepo. Five workspaces in active use:
 
-| Workspace                | Path                      | Purpose                                                 |
-| ------------------------ | ------------------------- | ------------------------------------------------------- |
-| `@opsydyn/astro-foldkit` | `packages/astro-foldkit/` | Astro integration for Foldkit apps                      |
-| `@opsydyn/foldkit-viz`   | `packages/foldkit-viz/`   | D3-quality chart primitives (no D3 dep)                 |
-| `@opsydyn/web`           | `apps/web/`               | Demo app — 33 chart types, the integration test surface |
-| `@opsydyn/promo`         | `apps/promo/`             | Static chart examples and downloadable projects         |
+| Workspace                   | Path                         | Purpose                                         |
+| --------------------------- | ---------------------------- | ----------------------------------------------- |
+| `@opsydyn/astro-foldkit`    | `packages/astro-foldkit/`    | Astro integration for Foldkit apps              |
+| `@opsydyn/foldkit-viz`      | `packages/foldkit-viz/`      | D3-quality chart primitives (no D3 dep)         |
+| `@opsydyn/web`              | `apps/web/`                  | Chart demos and reference workbenches           |
+| `@opsydyn/dataset-explorer` | `packages/dataset-explorer/` | Private shared KeyedQuery example               |
+| `@opsydyn/promo`            | `apps/promo/`                | Static chart examples and downloadable projects |
 
 **Stack:** Foldkit (Elm Architecture on Effect-TS) · Astro · TypeScript · bun · oxlint · oxfmt
 
@@ -20,7 +21,7 @@ Bun workspace monorepo. Four workspaces in active use:
 ```sh
 bun dev                               # demo app → localhost:4321
 bun storybook                         # chart storybook → localhost:6006
-bun test                              # all workspaces
+bun run test                          # all workspace scripts, sequentially
 bun typecheck                         # all workspaces
 bun run check                         # oxlint + oxfmt --check (both must pass)
 bun run check:fix                     # oxfmt then oxlint --fix
@@ -168,7 +169,7 @@ export const loadSlidesOnEntry: Step<Model, Message> = refresh<Model, Message, D
 
 // main.ts — shell hands off to the core Step
 export const init = (_props: unknown) => loadSlidesOnEntry(initModel);
-// init returns [Model with Loading state, [LoadData()]] — shell runs LoadData
+// init returns { model: Model with Loading state, commands: [LoadData()] }
 ```
 
 **`Route.isEntering`** — when a Foldkit app has internal sub-routes, use this to share load-on-entry logic between `init` (cold load, `maybePreviousRoute = None`) and `ChangedUrl` navigation:
@@ -199,7 +200,7 @@ From the Foldkit style guide (adapted):
 
 ## foldkit-viz conventions
 
-**D3 parity rule:** All math and shape implementations in `packages/foldkit-viz/` must reference `/Users/alan/Projects/astro-fold-kit/d3-main` as the source of truth. Never invent chart math from scratch — trace the D3 implementation.
+**D3 parity rule:** All math and shape implementations in `packages/foldkit-viz/` must reference `d3-main/` in this repository as the source of truth. Never invent chart math from scratch — trace the D3 implementation.
 
 ## Foldkit version
 

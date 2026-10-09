@@ -2,6 +2,7 @@
 /* oxlint-disable linteffect/no-try-catch */
 import { expect, test } from 'bun:test';
 import { mkdtemp, mkdir, writeFile, rm, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { Option, Schema } from 'effect';
@@ -48,7 +49,7 @@ test('template builder rejects initial Viz traversal before filesystem lookup', 
 test.each(['linked', 'entry', 'external/outside'])(
   'vendor collector rejects canonical dist escape through %s',
   async (entry) => {
-    const root = await mkdtemp('/private/tmp/comparison-vendor-symlinks-');
+    const root = await mkdtemp(join(tmpdir(), 'comparison-vendor-symlinks-'));
     const dist = join(root, 'dist');
     try {
       await mkdir(dist);
@@ -71,7 +72,7 @@ test.each(['linked', 'entry', 'external/outside'])(
 );
 
 test('vendor collector rejects lexical dependency escapes but permits internal parent edges and symlinks', async () => {
-  const root = await mkdtemp('/private/tmp/comparison-vendor-edges-');
+  const root = await mkdtemp(join(tmpdir(), 'comparison-vendor-edges-'));
   const dist = join(root, 'dist');
   try {
     await mkdir(join(dist, 'nested'), { recursive: true });
@@ -125,7 +126,7 @@ test('snapshot ZIP round-trips [2,3,1], linking off and counter 4 without transi
     template['src/web/src/apps/comparison/settings.ts'],
   );
   const bytes = unzipSync(projectZip(first));
-  const directory = await mkdtemp('/private/tmp/comparison-snapshot-');
+  const directory = await mkdtemp(join(tmpdir(), 'comparison-snapshot-'));
   try {
     const target = join(directory, initialPath);
     await mkdir(dirname(target), { recursive: true });

@@ -2,6 +2,7 @@
 /* oxlint-disable linteffect/no-try-catch */
 import { expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,7 +12,7 @@ import { buildExampleTemplate } from '../src/lib/example-project';
 const appsRoot = fileURLToPath(new URL('../../', import.meta.url));
 
 test('collector rejects traversal-bearing Viz subpaths before they reach vendoring', async () => {
-  const root = await mkdtemp('/private/tmp/comparison-viz-subpaths-');
+  const root = await mkdtemp(join(tmpdir(), 'comparison-viz-subpaths-'));
   const entry = 'promo/src/examples/comparison/main.ts';
   try {
     await mkdir(dirname(join(root, entry)), { recursive: true });
@@ -86,7 +87,7 @@ test('collector includes unchanged transitive maintained sources and CSS, not lo
 });
 
 test('parser follows import, export-from, type and side-effect edges without following comments', async () => {
-  const root = await mkdtemp('/private/tmp/comparison-sources-');
+  const root = await mkdtemp(join(tmpdir(), 'comparison-sources-'));
   const entry = 'promo/src/examples/comparison/main.ts';
   const put = async (name: string, content: string) => {
     await mkdir(dirname(join(root, name)), { recursive: true });

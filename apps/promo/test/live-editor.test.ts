@@ -64,3 +64,13 @@ test('width facts preserve the line editor session and control state', () => {
   for (const width of [0, -1, 50, NaN, Infinity])
     expect(update(next, Message.RecordedChartWidth({ width })).model).toBe(next);
 });
+
+test('Pages mode keeps line controls and exports without starting an embedded editor', () => {
+  const model = init({
+    sources: [],
+    templateUrl: '/fold-kit-experiments/viz/downloads/line-template.json',
+    embeddedEditor: false,
+  }).model;
+  expect(update(model, Message.SelectedPanel({ panel: 'edit' }))).toEqual({ model });
+  expect(update(model, Message.ClickedPlayground()).commands).toHaveLength(1);
+});

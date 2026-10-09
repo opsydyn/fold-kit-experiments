@@ -3,6 +3,7 @@
 import { expect, test } from 'bun:test';
 import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -12,7 +13,7 @@ import { buildExampleTemplate } from '../src/lib/example-project';
 
 const exec = promisify(execFile);
 test('comparison standalone installs, typechecks and builds with captured structure outside the monorepo', async () => {
-  const directory = await mkdtemp('/private/tmp/foldkit-comparison-test-');
+  const directory = await mkdtemp(join(tmpdir(), 'foldkit-comparison-test-'));
   try {
     const files = projectFiles(
       await buildExampleTemplate(await collectComparisonSources(), 'comparison'),

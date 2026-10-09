@@ -1,7 +1,8 @@
 # FoldKit 0.167 compatibility
 
-This migration covers both 0.166 and 0.167 because the previous workspace pin
-was 0.165.0. Both apps and both package development environments use FoldKit
+This migration covers both 0.166 and 0.167 because the compatibility branch
+started at 0.165.0. Main subsequently shipped 0.166 support; release integration
+preserves that work and its shared dataset explorer. All five workspaces use FoldKit
 0.167.0, Effect 4.0.0, and the Vite plugin 0.27 line. The FoldKit Oxlint plugin
 is upgraded to 0.15.3. Astro remains 7.1.1.
 
@@ -50,13 +51,14 @@ The package peer range is `>=0.167.0 <0.168.0`. FoldKit and Effect remain
 optional for pure geometry consumers; `foldkit/cartesian` uses the host's
 render-scoped builder. No fetching or lifecycle runtime is introduced into Viz.
 
-Promo ZIP and StackBlitz projects use the same FoldKit and Vite-plugin versions.
+Promo ZIP and StackBlitz projects, including comparison and the dataset explorer,
+use the same FoldKit and Vite-plugin versions.
 Their client-only Vite builds retain `index.html`; the new template-free build
 contract applies to FoldKit's standalone SSR/SSG pipeline.
 
 ## Qualification
 
-- Run `bun run check`, `bun typecheck`, and `bun run test` for all four workspaces.
+- Run `bun run check`, `bun typecheck`, and `bun run test` for all five workspaces.
 - Build both apps, Storybook, and TypeDoc.
 - Check packed imports in Node and Bun, optional Viz peers, and standalone
   line, histogram, and scatter downloads.

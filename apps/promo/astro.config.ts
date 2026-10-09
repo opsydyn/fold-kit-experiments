@@ -3,6 +3,8 @@ import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   output: 'static',
+  site: process.env.PROMO_SITE_URL ?? 'https://opsydyn.github.io',
+  base: process.env.PROMO_BASE_PATH ?? '/',
   integrations: [foldkit()],
   trailingSlash: 'always',
   server: {

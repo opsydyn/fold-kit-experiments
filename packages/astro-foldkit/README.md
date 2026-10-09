@@ -101,6 +101,13 @@ serialisation and client directive behavior.
 
 The demo app's [`/request-diagnostics`](../../apps/web/src/pages/request-diagnostics.astro) page shows the integration boundary with a practical machine-driven chart workflow. The page uses `@opsydyn/astro-foldkit` for hydration, `@opsydyn/foldkit-viz` for chart primitives, and `foldkit/experimental/machine` in the application update layer.
 
+The [`/comparison`](../../apps/web/src/pages/comparison.astro) example hosts
+dynamic scatter/histogram panels using the same `lazyApp` island contract.
+Stable panel IDs, `foldChildAt`, linked selection, measurements and focus policy
+belong to the application. Astro provides hydration and lifecycle facts only;
+no additional integration API or server-rendering opt-in is required. The promo
+hosts the maintained workbench with source inspection and standalone exports.
+
 ## Server-rendered pages (opt-in)
 
 Use `definePage` when one FoldKit application owns the document content for an

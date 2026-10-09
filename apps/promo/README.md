@@ -2,7 +2,9 @@
 
 The Foldkit Viz promo site, implemented from the approved light and dark
 visual-studio mockups. Static Astro pages render SVG geometry from workspace
-imports of `@opsydyn/foldkit-viz`; the site does not depend on demo internals.
+imports of `@opsydyn/foldkit-viz`. Interactive examples use FoldKit islands;
+the dataset explorer shares a private workspace, and comparison deliberately
+reuses the maintained web workbench and its chart sources.
 
 ## Run
 
@@ -21,6 +23,8 @@ The default port is **4322**. For the review server, run `bunx astro dev --host 
 
 - `/`: landing, six chart previews and a hero with keyboard/hover month totals.
 - `/examples/`: larger examples, source links and selectable curve interpolation.
+- `/examples/comparison/`: keyed chart panels with linked inspection and project exports.
+- `/examples/datasets/`: retained-data KeyedQuery explorer and standalone project exports.
 - `/docs/`: installation, quick start and architecture guidance.
 
 Chart datasets are illustrative. Geographic boundaries come from Natural
@@ -39,8 +43,20 @@ bun run --filter @opsydyn/promo typecheck
 bun run check
 ```
 
-Root `bun run build` includes this app. No hosting adapter, public site URL or
-deployment is configured.
+Root `bun run build` includes this app. The combined GitHub Pages workflow
+publishes it at `https://opsydyn.github.io/fold-kit-experiments/viz/`, alongside
+Storybook at the project root and TypeDoc under `/api/`.
+
+Pages builds set `PROMO_SITE_URL=https://opsydyn.github.io`,
+`PROMO_BASE_PATH=/fold-kit-experiments/viz/` and `PUBLIC_EMBED_EDITOR=false`.
+Navigation, island templates, downloads and dataset fixtures use that base.
+Local development defaults to `/` and retains embedded editors with the local
+isolation headers. Pages offers native chart controls, source inspection,
+downloads and external StackBlitz editing; it does not offer embedded editors.
+
+The post-build deployment check verifies internal links and island modules:
+`PROMO_BASE_PATH=/fold-kit-experiments/viz/ bun test apps/promo/test/pages-build.test.ts`
+(run from the repository root after a Pages build).
 
 ## Live line example (v2)
 
@@ -79,6 +95,36 @@ FoldKit application files so it runs independently of the monorepo.
 
 The source viewer, downloaded Vite project and StackBlitz project preserve the current group, domains and inspected point. Geometry uses `chart/cartesian`; keyed Group A circles and Group B squares retain identity when filtered. The Model and Messages own all interaction state. The standalone export includes the same layers and themes.
 
+## Keyed chart comparison
+
+`/examples/comparison/` hosts the same workbench as the web app's `/comparison`
+route and `Charts/Comparison` Storybook story. Add up to four scatter/histogram
+panels, reorder them without losing their state, remove all panels and add again,
+or link inspection across panels. A histogram range highlights every matching
+scatter point; local inspection remains separate. Controls, chart keyboard
+interaction and per-panel data tables are app-owned.
+
+Source inspection and copy use the maintained files. Download and Open in
+StackBlitz capture panel kinds, stable IDs, order, linking and the next ID
+counter when the action begins. Transient measurements, brush and hover state
+are not exported. The generated project preserves source paths and the settings
+schema, vendors compiled Viz dependencies, and has no dependency on this repo.
+It retains source inspection and copy without recursive project export or an
+embedded editor. The static template is `/downloads/comparison-template.json`.
+
+Automated tests cover source closure, exports and isolated install/typecheck/build.
+Full desktop/mobile and assistive-technology acceptance remains tracked in the
+[qualification record](../../docs/superpowers/specs/2026-10-08-keyed-chart-comparison-qualification.md).
+
+## Dataset explorer
+
+`/examples/datasets/` shares `packages/dataset-explorer` with the web app.
+KeyedQuery retains each dataset while refreshing and ignores obsolete results;
+reset invalidates results without cancelling the network request. Illustrative
+fixtures, simulated latency and deliberate failures are not live observations.
+Downloads and external StackBlitz projects include the maintained source and
+fixtures. Embedded editing is available locally, but disabled on GitHub Pages.
+
 ## Edit live
 
 The line example has Controls and Edit live tabs. The editor loads on first selection, captures the current controls, and runs the same standalone Vite project in an embedded StackBlitz editor. Tab switches keep its session alive. Arrow keys, Home and End navigate the tabs.
@@ -91,7 +137,7 @@ Static hosting must send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Or
 
 ## Composition and source capture
 
-All three live examples use the public `chart/cartesian`, `chart/theme` and
+The line, histogram and scatter examples use the public `chart/cartesian`, `chart/theme` and
 optional `foldkit/cartesian` APIs. Measured width is a serialisable Model field,
 reported by a scoped Mount ResizeObserver. Axes use 12px labels and fewer ticks
 on narrow plots. Theme paints use semantic CSS properties, separate opacity and
@@ -104,5 +150,6 @@ persistent session. ZIP exports vendor the compiled dependency closure and share
 import aliases. Tests install, typecheck and build each project in an OS temporary
 directory and render the packed optional adapter under Bun and Node.
 
-These composition APIs are unreleased workspace changes. No npm publication or
-site deployment is implied by local build and browser qualification.
+The composition APIs shipped in `@opsydyn/foldkit-viz` 0.10.0. The current
+workspace targets FoldKit 0.167.0 and Effect 4.0.0. Local checks, hosted
+deployment and npm publication are verified separately.

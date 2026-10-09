@@ -19,6 +19,7 @@
       "dependencies": {
         "@fontsource-variable/inter": "^5.3.0",
         "@opsydyn/astro-foldkit": "workspace:*",
+        "@opsydyn/dataset-explorer": "workspace:*",
         "@opsydyn/foldkit-viz": "workspace:*",
         "@stackblitz/sdk": "1.11.0",
         "astro": "7.1.1",
@@ -43,6 +44,7 @@
         "@foldkit/vite-plugin": "^0.27.0",
         "@nanostores/persistent": "^1.3.4",
         "@opsydyn/astro-foldkit": "workspace:*",
+        "@opsydyn/dataset-explorer": "workspace:*",
         "@opsydyn/foldkit-viz": "workspace:*",
         "@types/topojson-client": "^3.1.5",
         "@vanilla-extract/css": "^1.21.1",
@@ -69,7 +71,7 @@
     },
     "packages/astro-foldkit": {
       "name": "@opsydyn/astro-foldkit",
-      "version": "0.7.1",
+      "version": "0.7.2",
       "dependencies": {
         "@foldkit/vite-plugin": "^0.27.0",
         "effect": "4.0.0",
@@ -88,9 +90,21 @@
         "foldkit": ">=0.167.0 <0.168.0",
       },
     },
+    "packages/dataset-explorer": {
+      "name": "@opsydyn/dataset-explorer",
+      "dependencies": {
+        "@opsydyn/foldkit-viz": "workspace:*",
+        "effect": "4.0.0",
+        "foldkit": "0.167.0",
+      },
+      "devDependencies": {
+        "bun-types": "^1.3.14",
+        "typescript": "^6.0.3",
+      },
+    },
     "packages/foldkit-viz": {
       "name": "@opsydyn/foldkit-viz",
-      "version": "0.10.0",
+      "version": "0.10.1",
       "devDependencies": {
         "@types/node": "^22.0.0",
         "bun-types": "^1.3.14",
@@ -419,6 +433,8 @@
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.4", "", { "dependencies": { "@tybys/wasm-util": "^0.10.1" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow=="],
 
     "@opsydyn/astro-foldkit": ["@opsydyn/astro-foldkit@workspace:packages/astro-foldkit"],
+
+    "@opsydyn/dataset-explorer": ["@opsydyn/dataset-explorer@workspace:packages/dataset-explorer"],
 
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
 

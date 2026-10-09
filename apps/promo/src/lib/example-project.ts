@@ -2,7 +2,9 @@ import { readFile, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import vizPackage from '../../../../packages/foldkit-viz/package.json' with { type: 'json' };
 import { assertVizSubpath, staticImports } from './comparison-sources';
+import { datasetProject } from './dataset-project';
 
 export type SourceFile = Readonly<{ name: string; content: string }>;
 
@@ -48,7 +50,7 @@ export async function collectVizModules(
 
 export async function buildExampleTemplate(
   sources: ReadonlyArray<SourceFile>,
-  example: 'line' | 'histogram' | 'scatter' | 'comparison',
+  example: 'line' | 'histogram' | 'scatter' | 'comparison' | 'datasets',
 ): Promise<Record<string, string>> {
   const libraryRoot = dirname(
     dirname(fileURLToPath(import.meta.resolve('@opsydyn/foldkit-viz/math/scale'))),
@@ -62,6 +64,7 @@ export async function buildExampleTemplate(
     'foldkit/cartesian',
     ...{
       line: ['math/scale', 'shape/line', 'shape/path'],
+      datasets: ['math/scale', 'shape/line', 'shape/path'],
       histogram: ['math/scale', 'math/bin'],
       scatter: ['math/scale'],
       comparison: [
@@ -81,7 +84,7 @@ export async function buildExampleTemplate(
   files['vendor/foldkit-viz/package.json'] = JSON.stringify(
     {
       name: '@opsydyn/foldkit-viz',
-      version: '0.9.0',
+      version: vizPackage.version,
       type: 'module',
       license: 'MIT',
       exports: Object.fromEntries(
@@ -180,5 +183,6 @@ export async function buildExampleTemplate(
     files['README.md'] =
       '# Foldkit Viz chart comparison\n\nRequires Node.js 22.12 or newer.\n\n```sh\nnpm install\nnpm run typecheck\nnpm run dev\n```\n\nInitial panel kinds, IDs, order, linking and the next ID counter are captured at export. Edit `src/web/src/apps/comparison/initial-settings.ts`; schema and validation remain in `settings.ts`. Transient chart measurements and inspection are not persisted. The same maintained workbench and transitive chart sources power the Astro and promo hosts, with apps-relative paths preserved beneath `src/`. The promo wrapper is `src/promo/src/examples/comparison/main.ts`. Standalone mode retains source inspection and copy but offers no recursive project export.\n\nCompiled Viz modules and dependencies are included under `vendor/`; no unpublished package release is required.\n\nFoldkit Viz: MIT, copyright Alan P Currie. FoldKit, Effect, fflate, StackBlitz SDK and Vite retain their respective licences.\n';
   }
+  if (example === 'datasets') return datasetProject(files, sources);
   return files;
 }

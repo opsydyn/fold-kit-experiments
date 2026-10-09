@@ -18,7 +18,7 @@ Current package compatibility targets FoldKit `0.167.x`, stable Effect
 [migration guide](migrations/foldkit-0.167.md). Publication remains a separate
 gate after packed-consumer and workspace verification.
 
-## Next: Keyed Chart Comparison
+## Release: Keyed Chart Comparison
 
 **Outcome:** users can compare charts in a dynamic collection without losing
 each panel's selection and inspection state when panels move.
@@ -34,16 +34,20 @@ each panel's selection and inspection state when panels move.
 - [ ] Complete controller-owned desktop/390px, keyboard, reduced-motion and
       standalone browser acceptance. Further controller QA is pending exclusive
       Firefox access; no live pass is inferred from automated tests.
-- [ ] Publish the runnable promo example after review and separate authority.
+- [ ] Publish the runnable promo example and FoldKit 0.167 package updates
+      through the authorised release workflow; verify hosted and registry results.
 
-Tasks 1-3 are implemented and reviewed. Task 4 source/automated checkpoint is
-approved; browser acceptance is pending. Task 5 source/automated qualification
-is complete and controller review is pending. Standalone browser smoke was
-observed, including 390px control fit; a scatter-axis label overlap remains for
-the final fix/review wave. See the [qualification record](superpowers/specs/2026-10-08-keyed-chart-comparison-qualification.md).
+All five source tasks and the final correction wave are implemented and reviewed.
+The final source checkpoint passed 529 tests, typechecks, lint and production
+builds. The scatter-axis spacing correction is implemented but its visual
+recheck and the complete browser journeys remain pending. Release integration
+also preserves main's dataset explorer and deployment support; its combined
+verification is recorded separately. See the
+[qualification record](superpowers/specs/2026-10-08-keyed-chart-comparison-qualification.md).
 
-Follow-on candidates: a VirtualList-backed Stateflow event explorer, then a
-separate bounded Query/KeyedQuery cache demo. Query's stale-result protection
+Follow-on candidate: a VirtualList-backed Stateflow event explorer. The bounded
+KeyedQuery dataset explorer now exists in `packages/dataset-explorer` and is
+hosted by both apps. Query's stale-result protection
 does not replace the request-diagnostics example's interruptible route-exit
 contract. Keep Query, Machine, and browser lifecycle ownership in applications.
 
@@ -168,11 +172,11 @@ FoldKit 0.136.x.
 
 **Outcome:** both packages are dependable for external consumers.
 
-- [ ] Add package export and packed-consumer tests to CI.
+- [x] Add package export and packed-consumer tests to CI through `bun run test`.
 - [ ] Add API reports or generated type-surface checks for public exports.
 - [ ] Add compatibility coverage for the supported Astro range.
 - [ ] Publish migration notes for FoldKit minor/breaking changes such as `matchDataSplitEmpty` and route `Transition`.
-- [ ] Track package changelogs and versioning independently (`astro-foldkit` versus `foldkit-viz`).
+- [x] Track package changelogs and versioning independently with release-please (`astro-foldkit` versus `foldkit-viz`).
 - [ ] Add performance checks for bundle size and large chart datasets.
 
 ## Deliberate Non-Goals

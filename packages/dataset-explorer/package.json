@@ -1,0 +1,29 @@
+{
+  "name": "@opsydyn/dataset-explorer",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/main.ts",
+    "./styles.css": "./src/explorer.css",
+    "./model": "./src/model.ts",
+    "./message": "./src/message.ts",
+    "./query": "./src/query.ts",
+    "./update": "./src/update.ts",
+    "./data": "./src/data.ts",
+    "./chart": "./src/chart.ts",
+    "./view": "./src/view.ts",
+    "./source": "./src/source.ts"
+  },
+  "scripts": {
+    "typecheck": "bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit"
+  },
+  "dependencies": {
+    "@opsydyn/foldkit-viz": "workspace:*",
+    "effect": "4.0.0",
+    "foldkit": "0.167.0"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.14",
+    "typescript": "^6.0.3"
+  }
+}

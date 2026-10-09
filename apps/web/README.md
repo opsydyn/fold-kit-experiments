@@ -4,6 +4,21 @@ Demo app for [`@opsydyn/astro-foldkit`](../../packages/astro-foldkit/). It hosts
 
 ## Apps
 
+**Chart comparison** (`/comparison`) uses `foldChildAt` to compose up to four
+scatter/histogram panels with stable IDs. Reorder preserves child state; removed
+IDs ignore late Messages. The parent owns linked range inspection and derived
+overlays, while each chart keeps its own local active point. Scoped Mounts report
+width and pointer facts; Commands restore focus after reorder. No comparison
+runtime or async API is added to either public package. The same workbench is
+available in Storybook as `Charts/Comparison` and in the promo with source and
+project exports. See the [qualification record](../../docs/superpowers/specs/2026-10-08-keyed-chart-comparison-qualification.md)
+for browser acceptance still outstanding.
+
+**Dataset explorer** (`/dataset-explorer`) hosts the private shared
+`@opsydyn/dataset-explorer` app: experimental KeyedQuery caches, retained refresh
+data, failure recovery and stale-response rejection. The same app powers the
+promo's `/examples/datasets/`; request policy stays outside Viz and Astro.
+
 **Counter** (`/`) — increment/decrement with particle burst animations driven by `Subscription.animationFrameEntry`.
 
 **Health dashboard** (`/health`) — polls `/api/health` via `foldkit/http`, renders a live uptime timer that ticks on every animation frame once data loads, and uses a shimmer skeleton during the initial fetch to prevent layout shift.
@@ -47,7 +62,7 @@ Or from this directory:
 bun dev      # dev server at http://localhost:4321
 bun build    # production build → dist/
 bun preview  # preview the production build
-bun test     # vitest unit tests
+bun run test # Vitest tests in this workspace
 bun typecheck  # astro check
 ```
 

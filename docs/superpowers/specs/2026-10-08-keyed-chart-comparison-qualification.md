@@ -1,6 +1,6 @@
 # Keyed chart comparison: host and export qualification
 
-Date: 2026-10-08. Task 4 baseline: `6e2afbd`, clean managed
+Original qualification: 2026-10-08. Task 4 baseline: `6e2afbd`, clean managed
 `keyed-chart-comparison` worktree.
 
 Latest source checkpoint: `f0705f2`. Independent final re-review confirms all
@@ -12,6 +12,13 @@ The Task 4/5 sections below are historical evidence. See the final correction
 section for current source fixes and `/private/tmp/comparison-final-preview`.
 Native/browser acceptance, including visual rechecks of I2/I3, remains pending
 exclusive Firefox access. No browser was operated during this wave.
+
+Release preparation was authorised on 2026-10-09. The release branch integrates
+main's dataset explorer and deployment support without claiming the browser
+checklist is complete. Statements below about missing merge/push authority and
+preview processes are historical, not the current release status. Current
+release behaviour and compatibility changes are summarised in the
+[release notes](../../releases/foldkit-0.167.md).
 
 ## Scope
 

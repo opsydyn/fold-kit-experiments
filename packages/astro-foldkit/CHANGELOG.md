@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.7.2...astro-foldkit-v0.8.0) (2026-10-09)
+
+
+### Features
+
+* support FoldKit 0.167 and keyed chart comparison ([6e3edf7](https://github.com/opsydyn/fold-kit-experiments/commit/6e3edf76d0e04047652c052e2254ccd67a2458d9))
+
+
+### Bug Fixes
+
+* **deps:** patch Astro to 7.2.8 ([65ebdb7](https://github.com/opsydyn/fold-kit-experiments/commit/65ebdb74999e7bcafb127f3c87e424dc165a3a7d))
+
 ## [0.7.2](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.7.1...astro-foldkit-v0.7.2) (2026-10-05)
 
 ### Bug Fixes

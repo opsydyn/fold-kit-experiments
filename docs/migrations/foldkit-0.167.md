@@ -4,7 +4,8 @@ This migration covers both 0.166 and 0.167 because the compatibility branch
 started at 0.165.0. Main subsequently shipped 0.166 support; release integration
 preserves that work and its shared dataset explorer. All five workspaces use FoldKit
 0.167.0, Effect 4.0.0, and the Vite plugin 0.27 line. The FoldKit Oxlint plugin
-is upgraded to 0.15.3. Astro remains 7.1.1.
+is upgraded to 0.15.3. Release preparation upgrades Astro from 7.1.1 to 7.2.8
+for the AVIF-processing and base-path security fixes.
 
 ## Application changes
 

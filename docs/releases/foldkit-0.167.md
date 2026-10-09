@@ -1,22 +1,25 @@
 # FoldKit 0.167 release notes
 
-## Publication hold (2026-10-09)
+## Security patch (2026-10-09)
 
-The release branch is pushed in [PR #15](https://github.com/opsydyn/fold-kit-experiments/pull/15),
-but merge, deployment and package publication are held pending approval to
-upgrade all three Astro pins from 7.1.1 to 7.2.8 and repeat qualification.
-GitHub reports [AVIF processing RCE](https://github.com/advisories/GHSA-26w7-cxv4-gfx2)
+The release branch in [PR #15](https://github.com/opsydyn/fold-kit-experiments/pull/15)
+upgrades all three Astro pins from 7.1.1 to 7.2.8 after security-patch approval.
+This addresses GitHub's
+[AVIF processing RCE](https://github.com/advisories/GHSA-26w7-cxv4-gfx2)
 and [base-path authorisation bypass](https://github.com/advisories/GHSA-376h-93r7-7g6f).
 The former requires untrusted AVIF processing; the latter requires a non-root
 base and pathname-based authorisation middleware. These alerts do not alone
-establish exploitability of the demo. No new package version is published yet.
+establish exploitability of the demo. Astro 7.2.8 requires Sharp 0.35.4 or newer.
+All three local consumers resolve Sharp 0.35.5. Frozen-lockfile install,
+lint/typecheck, all 565 tests, both app builds and the Pages-prefix check passed
+again on the patched dependency tree. Publication is verified separately.
 
 ## Compatibility
 
 Both published packages now target FoldKit `>=0.167.0 <0.168.0` and stable
 Effect `4.0.0`. Upgrade FoldKit alongside these packages: the previous
-0.165/0.166 peer range is no longer supported by this release. Astro remains
-7.1.1 in the qualification environment. Viz's pure geometry entry points still
+0.165/0.166 peer range is no longer supported by this release. Astro is
+7.2.8 in the release qualification environment. Viz's pure geometry entry points still
 work without installing either optional peer.
 
 Astro uses `@foldkit/vite-plugin` 0.27.x and FoldKit's generated build identity

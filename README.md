@@ -42,7 +42,7 @@ The demo's `/greeting` route proves request SSR and `/greeting-static` proves
 SSG through `definePage`. Existing chart routes remain `lazyApp` / `defineApp`
 client islands.
 
-The workspace targets FoldKit `0.167.0`, Effect `4.0.0` and Astro `7.1.1`.
+The workspace targets FoldKit `0.167.0`, Effect `4.0.0` and Astro `7.2.8`.
 See the [migration guide](docs/migrations/foldkit-0.167.md) before upgrading an
 existing consumer; the optional FoldKit peers in Viz remain optional for pure
 geometry imports.

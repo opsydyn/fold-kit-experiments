@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 
 import foldkit from '../../src/index';
 
@@ -36,6 +36,16 @@ const configuredBuildId = async (integration: ReturnType<typeof foldkit>) => {
 };
 
 describe('foldkit integration', () => {
+  let previousBuildId: string | undefined;
+  beforeEach(() => {
+    previousBuildId = process.env.FOLDKIT_BUILD_ID;
+    delete process.env.FOLDKIT_BUILD_ID;
+  });
+  afterEach(() => {
+    if (previousBuildId === undefined) delete process.env.FOLDKIT_BUILD_ID;
+    else process.env.FOLDKIT_BUILD_ID = previousBuildId;
+  });
+
   it('passes a configured server build identity to the FoldKit Vite plugin', async () => {
     const integration = foldkit({ server: { buildId: 'release-123' } });
 
@@ -46,6 +56,11 @@ describe('foldkit integration', () => {
     const integration = foldkit();
 
     expect(await configuredBuildId(integration)).toBeUndefined();
+  });
+
+  it('forwards the environment deployment identity when no option overrides it', async () => {
+    process.env.FOLDKIT_BUILD_ID = 'environment-release';
+    expect(await configuredBuildId(foldkit())).toBe('"environment-release"');
   });
 
   it('rejects an explicitly empty server build identity', () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
@@ -10,7 +10,6 @@ import type { AppConfig, AppConfigContract } from '../../src/types';
 mock.module('foldkit', () => ({ Runtime: {} }));
 
 const BUILD_ID = 'client-test-build';
-process.env.FOLDKIT_BUILD_ID = BUILD_ID;
 
 const { createClientRenderer } = await import('../../src/client');
 
@@ -128,6 +127,16 @@ const renderWith = async (
 };
 
 describe('astro-foldkit client renderer', () => {
+  let previousBuildId: string | undefined;
+  beforeEach(() => {
+    previousBuildId = process.env.FOLDKIT_BUILD_ID;
+    process.env.FOLDKIT_BUILD_ID = BUILD_ID;
+  });
+  afterEach(() => {
+    if (previousBuildId === undefined) delete process.env.FOLDKIT_BUILD_ID;
+    else process.env.FOLDKIT_BUILD_ID = previousBuildId;
+  });
+
   it('hydrates page owners with the loaded config and build identity without embedding', async () => {
     const root = makeFoldkitRoot();
     const element = makeElement('page-island', [root]);

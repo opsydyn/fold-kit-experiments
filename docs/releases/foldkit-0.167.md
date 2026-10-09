@@ -1,5 +1,16 @@
 # FoldKit 0.167 release notes
 
+## Publication hold (2026-10-09)
+
+The release branch is pushed in [PR #15](https://github.com/opsydyn/fold-kit-experiments/pull/15),
+but merge, deployment and package publication are held pending approval to
+upgrade all three Astro pins from 7.1.1 to 7.2.8 and repeat qualification.
+GitHub reports [AVIF processing RCE](https://github.com/advisories/GHSA-26w7-cxv4-gfx2)
+and [base-path authorisation bypass](https://github.com/advisories/GHSA-376h-93r7-7g6f).
+The former requires untrusted AVIF processing; the latter requires a non-root
+base and pathname-based authorisation middleware. These alerts do not alone
+establish exploitability of the demo. No new package version is published yet.
+
 ## Compatibility
 
 Both published packages now target FoldKit `>=0.167.0 <0.168.0` and stable
@@ -50,7 +61,7 @@ deployment are separate outcomes and must each be verified.
 ### Integrated local checks (2026-10-09)
 
 - Frozen-lockfile install, lint/format and all five workspace typechecks passed.
-- 564 tests passed: Astro 77, Viz 168, promo 78 and web 241. The Pages-only
+- 565 tests passed: Astro 78, Viz 168, promo 78 and web 241. The Pages-only
   test is skipped in the default suite and passed separately against a
   base-path production build (229 assertions).
 - Both production apps, Storybook and TypeDoc built. Storybook retains its
@@ -59,5 +70,8 @@ deployment are separate outcomes and must each be verified.
   the Pages prefix and the dataset starter's mismatched dependency pins.
   Comparison filesystem tests now use the OS temporary directory rather than
   macOS-only paths, so they can run on the Linux CI host.
+- The first hosted run exposed a leaked `FOLDKIT_BUILD_ID` between test files.
+  Client and integration tests now scope and restore the environment per test;
+  the inherited-ID/randomised regression, full suite and typecheck pass locally.
 
 These are local automated results, not hosted publication or browser acceptance.

@@ -180,6 +180,21 @@ describe('Astro page rendering smoke', () => {
           const chartsHtml = await chartsResponse.text();
           expect(chartsHtml).toContain('<div data-foldkit-island="true"></div>');
           expect(chartsHtml).not.toContain('data-foldkit-app="app"');
+
+          const stateflowLinks: string[] = [];
+          new HTMLRewriter()
+            .on('nav a[href="/stateflow"]', {
+              element: () => {
+                stateflowLinks.push('navigation');
+              },
+            })
+            .on('main a[href="/stateflow"]', {
+              element: () => {
+                stateflowLinks.push('dashboard');
+              },
+            })
+            .transform(chartsHtml);
+          expect(stateflowLinks).toEqual(['navigation', 'dashboard']);
         })
         .finally(async () => {
           await stopDevServer(server.child);

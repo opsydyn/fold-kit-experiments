@@ -16,6 +16,7 @@ globalStyle('body', {
 
 export const nav = style({
   display: 'flex',
+  flexWrap: 'wrap',
   alignItems: 'center',
   gap: '0.25rem',
   transition: 'background 180ms, border-color 180ms',

@@ -138,3 +138,41 @@
   color: var(--text, #1f2328);
   border-color: var(--border, #d9dce1);
 }
+
+.source-line {
+  display: inline-flex;
+  min-width: 100%;
+  scroll-margin-top: 6rem;
+}
+.source-line-number {
+  display: inline-block;
+  flex: none;
+  width: 4ch;
+  margin-right: 2ch;
+  color: var(--color-prettylights-syntax-comment);
+  text-align: right;
+  text-decoration: none;
+  user-select: none;
+}
+.source-line-number::before {
+  content: attr(data-line);
+}
+.source-line-number:hover,
+.source-line-number:focus-visible {
+  color: var(--text, currentColor);
+  text-decoration: underline;
+}
+.source-line-text {
+  display: inline-block;
+}
+.source-line:target,
+.source-line:focus {
+  background: color-mix(in srgb, var(--color-prettylights-syntax-constant) 12%, transparent);
+}
+.source-line:focus {
+  outline: none;
+}
+.source-line-number:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 3px;
+}

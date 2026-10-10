@@ -1,10 +1,12 @@
 import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
 import { requestHighlighting, settleHighlighting } from '@opsydyn/dataset-explorer/highlighting';
+import { navigateSourceLine } from '@opsydyn/dataset-explorer/source-lines';
 import type { Return } from 'foldkit/update';
 
 import { validChartWidth } from '#example/frame';
 
 import { changeDomain, changeValue, settingsSource } from './chart';
+import { FocusSourceLine } from './command';
 import { HighlightSource } from './command';
 import { CopySource, ExportProject } from './command';
 import { Message } from './message';
@@ -64,6 +66,16 @@ export const update = (
   message: Message,
 ): Return<Model, Message, HighlightingService> => {
   const result: Return<Model, Message, HighlightingService> = Message.match(message, {
+    NavigatedSourceLine: (location) =>
+      navigateSourceLine(
+        model,
+        location,
+        [...model.sources.map((source) => source.name), 'settings.ts'],
+        currentSource,
+        FocusSourceLine,
+        (next): Model => ({ ...next, panel: 'controls' }),
+      ),
+    CompletedSourceLineFocus: () => ({ model }),
     AcquiredHighlighter: () => ({
       model: {
         ...model,

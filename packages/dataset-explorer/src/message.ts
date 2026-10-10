@@ -5,8 +5,11 @@ import { DatasetId } from './data';
 import { HighlightedSource } from './highlighting';
 import { DatasetQuery } from './query';
 import { SourceName } from './source';
+import { SourceLine } from './source-lines';
 
 export const Message = defineMessageUnion({
+  NavigatedSourceLine: SourceLine.fields,
+  CompletedSourceLineFocus: {},
   AcquiredHighlighter: {},
   FailedHighlighter: {},
   ReleasedHighlighter: {},

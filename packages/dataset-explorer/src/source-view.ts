@@ -65,6 +65,7 @@ export const sourcePanel = (model: Model, h: HtmlBuilder<Message>): ReadonlyArra
                     sourceContent(model),
                     model.activeFile,
                     model.highlightedSource,
+                    model.activeFile,
                   ),
                 ),
               ],

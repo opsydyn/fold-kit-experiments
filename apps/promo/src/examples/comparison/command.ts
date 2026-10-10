@@ -1,4 +1,5 @@
 import { SourceHighlighter, highlightedTree } from '@opsydyn/dataset-explorer/highlighting';
+import { SourceLine, focusSourceLine } from '@opsydyn/dataset-explorer/source-lines';
 // Browser delivery is an imperative boundary, entirely inside Command Effects.
 /* oxlint-disable linteffect/no-if-statement, linteffect/no-magic-domain-string */
 import sdk from '@stackblitz/sdk';
@@ -88,4 +89,11 @@ export const HighlightSource = Command.define('HighlightSource', {
         ),
       ),
     ),
+});
+
+export const FocusSourceLine = Command.define('FocusSourceLine', {
+  args: SourceLine.fields,
+  messages: [Message.CompletedSourceLineFocus],
+  execute: (location) =>
+    focusSourceLine(location).pipe(Effect.map(() => Message.CompletedSourceLineFocus())),
 });

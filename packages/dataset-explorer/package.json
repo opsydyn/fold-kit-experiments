@@ -15,7 +15,8 @@
     "./source": "./src/source.ts",
     "./highlighting": "./src/highlighting.ts",
     "./highlighting-engine": "./src/highlighting-engine.ts",
-    "./highlighting.css": "./src/highlighting.css"
+    "./highlighting.css": "./src/highlighting.css",
+    "./source-lines": "./src/source-lines.ts"
   },
   "scripts": {
     "typecheck": "bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit"

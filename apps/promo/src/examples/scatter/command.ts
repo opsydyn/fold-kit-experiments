@@ -1,4 +1,5 @@
 import { SourceHighlighter, highlightedTree } from '@opsydyn/dataset-explorer/highlighting';
+import { SourceLine, focusSourceLine } from '@opsydyn/dataset-explorer/source-lines';
 import sdk from '@stackblitz/sdk';
 import { Data, Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
@@ -86,4 +87,11 @@ export const HighlightSource = Command.define('HighlightSource', {
         ),
       ),
     ),
+});
+
+export const FocusSourceLine = Command.define('FocusSourceLine', {
+  args: SourceLine.fields,
+  messages: [Message.CompletedSourceLineFocus],
+  execute: (location) =>
+    focusSourceLine(location).pipe(Effect.map(() => Message.CompletedSourceLineFocus())),
 });

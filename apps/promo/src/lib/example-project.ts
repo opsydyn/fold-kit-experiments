@@ -64,6 +64,7 @@ export async function buildExampleTemplate(
       fileURLToPath(import.meta.resolve('@opsydyn/dataset-explorer/highlighting')),
     );
     for (const name of [
+      'source-lines.ts',
       'highlighting.ts',
       'highlighting-engine.ts',
       'highlighting-browser.ts',
@@ -81,6 +82,7 @@ export async function buildExampleTemplate(
         private: true,
         type: 'module',
         exports: {
+          './source-lines': './source-lines.ts',
           './highlighting': './highlighting.ts',
           './highlighting.css': './highlighting.css',
         },

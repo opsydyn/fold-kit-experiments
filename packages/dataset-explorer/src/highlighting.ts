@@ -6,6 +6,8 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 import type { Return } from 'foldkit/update';
 import type { Root, Element, Text } from 'hast';
 
+import { linkedSourceTree } from './source-lines';
+
 // The runtime owns the opaque engine; application state contains only source keys and tokens.
 export type Highlighter = Pick<
   Awaited<ReturnType<typeof createStarryNight>>,
@@ -123,6 +125,7 @@ export function highlightedCode<Message>(
   source: string,
   language: string,
   cached?: HighlightedSource,
+  sourceId?: string,
 ): ReadonlyArray<Html | string> {
   const render = (node: Root | Element | Text): ReadonlyArray<Html | string> =>
     Match.value(node).pipe(
@@ -135,12 +138,34 @@ export function highlightedCode<Message>(
       Match.orElse(() => ''),
     );
   function renderParent(parent: Root | Element): ReadonlyArray<Html | string> {
-    const children = parent.children.flatMap(renderContent);
     return Match.value(parent).pipe(
-      Match.when({ type: 'root' }, () => children),
-      Match.orElse((element) => [
-        h.span([h.Class(classNames(element.properties.className))], children),
+      Match.when({ type: 'root' }, (root) => root.children.flatMap(renderContent)),
+      Match.orElse(renderElement),
+    );
+  }
+  function renderElement(element: Element): ReadonlyArray<Html | string> {
+    const children = element.children.flatMap(renderContent);
+    const props = element.properties;
+    const attributes = [
+      h.Class(classNames(props.className)),
+      ...Option.match(Option.fromNullishOr(props.id), {
+        onNone: () => [],
+        onSome: (id) => [h.Id(String(id)), h.Tabindex(-1)],
+      }),
+    ];
+    return Match.value(element.tagName).pipe(
+      Match.when('a', () => [
+        h.a(
+          [
+            ...attributes,
+            h.Href(String(props.href)),
+            h.AriaLabel(String(props.ariaLabel)),
+            h.DataAttribute('line', String(props.dataLine)),
+          ],
+          children,
+        ),
       ]),
+      Match.orElse(() => [h.span(attributes, children)]),
     );
   }
   const renderContent = (node: Root['children'][number]): ReadonlyArray<Html | string> =>
@@ -154,5 +179,9 @@ export function highlightedCode<Message>(
     Option.map((entry) => entry.tree),
     Option.getOrElse(() => highlightedTree(source, language)),
   );
-  return tree.children.flatMap(renderContent);
+  const output = Option.match(Option.fromNullishOr(sourceId), {
+    onNone: () => tree,
+    onSome: (name) => linkedSourceTree(tree, name),
+  });
+  return output.children.flatMap(renderContent);
 }

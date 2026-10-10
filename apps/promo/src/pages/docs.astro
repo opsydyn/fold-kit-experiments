@@ -19,15 +19,15 @@ import { quickStart, astroExample } from '../lib/snippets';
       <section id="installation">
         <h2>Install the package.</h2>
         <p>Add Foldkit Viz to your project, then import the modules you need.</p>
-        <div class="code-panel"><SourceCode code="bun add @opsydyn/foldkit-viz" lang="sh" /></div>
+        <div class="code-panel"><SourceCode code="bun add @opsydyn/foldkit-viz" lang="sh" sourceId="installation.sh" /></div>
         <p>Working in this monorepo? Use <code>workspace:*</code> for the dependency. The geometry functions are pure TypeScript and have no D3 dependency.</p>
       </section>
       <section id="quick-start">
         <h2>A scale. A shape. A chart.</h2>
         <p>Map values into coordinates with two linear scales, then turn the points into an SVG path.</p>
-        <div class="code-panel"><SourceCode code={quickStart} lang="ts" /></div>
+        <div class="code-panel"><SourceCode code={quickStart} lang="ts" sourceId="quick-start.ts" /></div>
         <p>In Astro, compute the path in frontmatter and render it directly. No browser JavaScript is needed for a static chart.</p>
-        <div class="code-panel"><SourceCode code={astroExample} lang="astro" /></div>
+        <div class="code-panel"><SourceCode code={astroExample} lang="astro" sourceId="chart.astro" /></div>
         <a class="text-link" href={sitePath('/examples/line/')}>Try the live line example <span aria-hidden="true">→</span></a>
       </section>
       <section id="primitives">

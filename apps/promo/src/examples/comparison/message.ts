@@ -1,10 +1,13 @@
 import { HighlightedSource } from '@opsydyn/dataset-explorer/highlighting';
+import { SourceLine } from '@opsydyn/dataset-explorer/source-lines';
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import type * as Comparison from '../../../../web/src/apps/comparison/main';
 
 export const Message = defineMessageUnion({
+  NavigatedSourceLine: SourceLine.fields,
+  CompletedSourceLineFocus: {},
   AcquiredHighlighter: {},
   FailedHighlighter: {},
   ReleasedHighlighter: {},

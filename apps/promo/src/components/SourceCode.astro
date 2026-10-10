@@ -1,11 +1,12 @@
 ---
 import { createHighlighter } from '@opsydyn/dataset-explorer/highlighting-engine';
 import { highlightedTree } from '@opsydyn/dataset-explorer/highlighting';
+import { linkedSourceTree } from '@opsydyn/dataset-explorer/source-lines';
 import { toHtml } from 'hast-util-to-html';
-interface Props { code: string; lang: string }
-const { code, lang } = Astro.props;
+interface Props { code: string; lang: string; sourceId: string }
+const { code, lang, sourceId } = Astro.props;
 const highlighter = await createHighlighter();
-// HTML comes exclusively from the highlighter's text/span tree, with escaped text.
-const markup = toHtml(highlightedTree(code, lang, highlighter));
+// HTML comes from the escaped token tree and generated source-line anchors.
+const markup = toHtml(linkedSourceTree(highlightedTree(code, lang, highlighter), sourceId));
 ---
 <pre class="syntax-highlight" tabindex="0"><code set:html={markup} /></pre>

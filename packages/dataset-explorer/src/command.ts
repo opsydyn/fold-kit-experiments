@@ -3,6 +3,7 @@ import { Command } from 'foldkit';
 
 import { SourceHighlighter, highlightedTree } from './highlighting';
 import { Message } from './message';
+import { SourceLine, focusSourceLine } from './source-lines';
 
 export const HighlightSource = Command.define('HighlightSource', {
   args: { source: Schema.String, language: Schema.String },
@@ -22,4 +23,11 @@ export const HighlightSource = Command.define('HighlightSource', {
         ),
       ),
     ),
+});
+
+export const FocusSourceLine = Command.define('FocusSourceLine', {
+  args: SourceLine.fields,
+  messages: [Message.CompletedSourceLineFocus],
+  execute: (location) =>
+    focusSourceLine(location).pipe(Effect.map(() => Message.CompletedSourceLineFocus())),
 });

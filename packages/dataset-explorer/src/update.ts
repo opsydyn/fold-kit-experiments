@@ -4,6 +4,7 @@ import { modifyFields } from 'foldkit/struct';
 import { combine } from 'foldkit/update';
 import type { Return, Step } from 'foldkit/update';
 
+import { FocusSourceLine } from './command';
 import { HighlightSource } from './command';
 import type { Request } from './data';
 import { validChartWidth } from './frame';
@@ -13,6 +14,7 @@ import { Message } from './message';
 import type { Model } from './model';
 import { DatasetQuery } from './query';
 import { sourceContent } from './source';
+import { navigateSourceLine } from './source-lines';
 
 const dataset = DatasetQuery.lift<Model, Message>({
   parentField: 'datasets',
@@ -82,6 +84,15 @@ export const update = (
   message: Message,
 ): Return<Model, Message, HighlightingService> => {
   const result: Return<Model, Message, HighlightingService> = Message.match(message, {
+    NavigatedSourceLine: (location) =>
+      navigateSourceLine(
+        model,
+        location,
+        [...model.sources.map((source) => source.name), 'snapshot.json'],
+        sourceContent,
+        FocusSourceLine,
+      ),
+    CompletedSourceLineFocus: () => ({ model }),
     AcquiredHighlighter: () => ({
       model: {
         ...model,

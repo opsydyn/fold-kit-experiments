@@ -246,6 +246,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                     currentSource(model),
                     model.activeFile,
                     model.highlightedSource,
+                    model.activeFile,
                   ),
                 ),
               ],

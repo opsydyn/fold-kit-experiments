@@ -92,7 +92,7 @@ export async function collectComparisonSources(
         assertVizSubpath(specifier.slice('@opsydyn/foldkit-viz/'.length));
       } else if (
         isAbsolute(specifier) ||
-        !/^(?:effect|foldkit)(?:\/|$)|^(?:fflate|@stackblitz\/sdk|@opsydyn\/dataset-explorer\/highlighting(?:\.css)?)$/.test(
+        !/^(?:effect|foldkit)(?:\/|$)|^(?:fflate|@stackblitz\/sdk|@opsydyn\/dataset-explorer\/(?:highlighting(?:\.css)?|source-lines))$/.test(
           specifier,
         )
       ) {

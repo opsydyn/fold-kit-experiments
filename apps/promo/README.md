@@ -22,7 +22,8 @@ The default port is **4322**. For the review server, run `bunx astro dev --host 
 ## Pages
 
 - `/`: landing, six chart previews and a hero with keyboard/hover month totals.
-- `/examples/`: larger examples, source links and selectable curve interpolation.
+- `/examples/`: eighteen static SVG gallery entries, source links and selectable curve interpolation.
+- `/examples/bars/`: grouped/stacked bars, orientation and paint controls, keyboard inspection and the complete data table.
 - `/examples/comparison/`: keyed chart panels with linked inspection and project exports.
 - `/examples/datasets/`: retained-data KeyedQuery explorer and standalone project exports.
 - `/docs/`: installation, quick start and architecture guidance.
@@ -57,6 +58,20 @@ downloads and external StackBlitz editing; it does not offer embedded editors.
 The post-build deployment check verifies internal links and island modules:
 `PROMO_BASE_PATH=/fold-kit-experiments/viz/ bun test apps/promo/test/pages-build.test.ts`
 (run from the repository root after a Pages build).
+
+## Gallery and live bars
+
+The homepage retains its six curated previews. The gallery adds grouped and
+stacked bars, area, streamgraph, donut, radar, heatmap, treemap, circle packing,
+tree, box plot and violin examples using pure Viz geometry.
+
+The Bars island keeps grouping, orientation, paint and inspected datum in its
+Model. A scoped Mount observes width; focus and pointer hover report inspection
+Messages. Its source is rendered with the shared highlighter, line numbers and
+deep links. Without JavaScript, visitors can follow the static gallery fallback.
+Unlike the existing line/scatter examples, Bars does not yet export a standalone
+project or provide a live editor. Word Cloud and Signal Desk are not included in
+this integration slice.
 
 ## Live line example (v2)
 

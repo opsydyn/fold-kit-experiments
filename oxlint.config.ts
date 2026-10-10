@@ -184,7 +184,7 @@ export default defineConfig({
         'packages/foldkit-viz/src/**',
         'packages/foldkit-viz/test/**',
         'packages/astro-foldkit/test/**',
-        'apps/promo/src/examples/{line,histogram,scatter}/{chart,data,project,view}.ts',
+        'apps/promo/src/examples/{line,histogram,scatter,bars}/{chart,data,project,view}.ts',
         'apps/promo/src/examples/datasets/launcher/view.ts',
         'apps/promo/test/**',
       ],

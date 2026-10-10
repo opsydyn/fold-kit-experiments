@@ -39,5 +39,17 @@ test.skipIf(!base)(
     expect(await Bun.file(join(directory, 'downloads/comparison-template.json')).exists()).toBe(
       true,
     );
+    const gallery = await Bun.file(join(directory, 'examples/index.html')).text();
+    expect(gallery.match(/class="example-detail"/g)).toHaveLength(18);
+    expect(gallery).toContain(`${base}examples/bars/`);
+    expect(gallery).toContain(`${base}examples/comparison/`);
+    expect(gallery).toContain(`${base}examples/datasets/`);
+    expect(gallery).toContain('/tree/main/packages/foldkit-viz/src/hierarchy/index.ts');
+    expect(gallery).not.toContain('/tree/main/packages/foldkit-viz/src/hierarchy.ts');
+    const bars = await Bun.file(join(directory, 'examples/bars/index.html')).text();
+    expect(bars).toContain('source-view.ts-L1');
+    expect(bars).toContain('source-app.ts-L1');
+    expect(bars).toContain('source-line-number');
+    expect(bars).toContain(`${base}examples/#grouped-bars`);
   },
 );

@@ -1,0 +1,33 @@
+---
+import Chart from './Chart.astro';
+import { colours } from '../lib/charts';
+import { areaPath, circleGroups, circles, donut, grouped, heatCells, radarPaths, stacked, statistics, streamPaths, tiles, treeNodes } from '../lib/gallery-charts';
+import type { ExampleId, GalleryId } from '../lib/examples';
+interface Props { kind: GalleryId; label: string }
+const { kind, label } = Astro.props;
+const isOriginal = (value: GalleryId): value is ExampleId => ['connections', 'flow', 'relationships', 'places', 'curves', 'distribution'].includes(value);
+const colour = (i: number) => 'var(--' + colours[i % colours.length] + ')';
+const bars = kind === 'grouped-bars' ? grouped : stacked;
+---
+{isOriginal(kind) ? <Chart kind={kind} label={label} /> : <svg class="chart" viewBox="0 0 340 230" role="img" aria-label={label}>
+  <desc>Illustrative data rendered with Foldkit Viz primitives.</desc>
+  {(kind === 'grouped-bars' || kind === 'stacked-bars') && <>
+    {bars.bars.map(b => <rect x={b.x} y={b.y} width={b.width} height={b.height} fill={colour(bars.series.indexOf(b.series))}><title>{b.category + ' · ' + b.series + ': ' + b.value}</title></rect>)}
+    {bars.categories.map(c => kind === 'grouped-bars' ? <text x={c.position} y="215" text-anchor="middle">{c.key}</text> : <text x="27" y={c.position + 3} text-anchor="end">{c.key}</text>)}
+  </>}
+  {kind === 'donut' && <g transform="translate(170 110)">{donut.map((d, i) => <path d={d.d} fill={colour(i)}><title>{d.value + '%'}</title></path>)}</g>}
+  {kind === 'area' && <><path d={areaPath} fill="var(--blue)" opacity="0.6" /><path class="axis" d="M35 20V195H320" /></>}
+  {kind === 'streamgraph' && streamPaths.map((d, i) => <path d={d} fill={colour(i)} opacity="0.8" />)}
+  {kind === 'radar' && <g transform="translate(170 110)">{[30, 60, 90].map(r => <circle r={r} fill="none" stroke="var(--border)" />)}{radarPaths.map((d, i) => <path d={d} fill={colour(i)} fill-opacity="0.12" stroke={colour(i)} stroke-width="2" />)}</g>}
+  {kind === 'heatmap' && heatCells.map(d => <rect x={d.x} y={d.y} width="29" height="19" fill="var(--blue)" opacity={d.opacity} />)}
+  {kind === 'treemap' && <g transform="translate(30 25)">{tiles.map((d, i) => <><rect x={d.x0} y={d.y0} width={(d.x1 ?? 0) - (d.x0 ?? 0)} height={(d.y1 ?? 0) - (d.y0 ?? 0)} fill={colour(i)} opacity="0.8" /><text x={(d.x0 ?? 0) + 8} y={(d.y0 ?? 0) + 18} class="tile-label">{d.data.name}</text></>)}</g>}
+  {kind === 'pack' && <g transform="translate(25 15)">{circleGroups.map(d => <circle cx={d.x} cy={d.y} r={d.r} fill="none" stroke="var(--rule)" stroke-dasharray="2 3" />)}{circles.map((d, i) => <><circle cx={d.x} cy={d.y} r={d.r} fill={colour(i)} opacity="0.8"><title>{d.data.name + ": " + d.value}</title></circle><text x={d.x} y={d.y + 3} text-anchor="middle" class="tile-label">{d.data.name}</text></>)}</g>}
+  {kind === 'tree' && <g transform="translate(35 25)">{treeNodes.filter(d => d.parent).map(d => <path d={'M' + d.parent?.y + ',' + d.parent?.x + 'H' + ((d.parent?.y ?? 0) + (d.y ?? 0)) / 2 + 'V' + d.x + 'H' + d.y} stroke="var(--rule)" fill="none" />)}{treeNodes.map((d, i) => <circle cx={d.y} cy={d.x} r="5" fill={colour(i)} />)}</g>}
+  {kind === 'box-plot' && statistics.map((d, i) => <>
+    <path d={'M' + d.centre + ',' + d.y(d.stats.min) + 'V' + d.y(d.stats.max)} stroke={colour(i)} />
+    <rect x={d.centre - 22} y={d.y(d.stats.q3)} width="44" height={d.y(d.stats.q1) - d.y(d.stats.q3)} fill={colour(i)} opacity="0.7" />
+    <path d={'M' + (d.centre - 22) + ',' + d.y(d.stats.median) + 'h44'} stroke="var(--text)" stroke-width="2" />
+  </>)}
+  {kind === 'violin' && statistics.map((d, i) => <path d={d.violin} fill={colour(i)} fill-opacity="0.4" stroke={colour(i)} stroke-width="1.5" />)}
+</svg>}
+<style>.tile-label { fill: #151619; }</style>

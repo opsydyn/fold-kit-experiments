@@ -131,6 +131,12 @@
       "chart/cartesian": [
         "./dist/chart/cartesian.d.mts"
       ],
+      "chart/bars": [
+        "./dist/chart/bars.d.mts"
+      ],
+      "foldkit/paint": [
+        "./dist/foldkit/paint.d.mts"
+      ],
       "chart/theme": [
         "./dist/chart/theme.d.mts"
       ],
@@ -275,6 +281,14 @@
     "./chart/cartesian": {
       "types": "./dist/chart/cartesian.d.mts",
       "import": "./dist/chart/cartesian.mjs"
+    },
+    "./chart/bars": {
+      "types": "./dist/chart/bars.d.mts",
+      "import": "./dist/chart/bars.mjs"
+    },
+    "./foldkit/paint": {
+      "types": "./dist/foldkit/paint.d.mts",
+      "import": "./dist/foldkit/paint.mjs"
     },
     "./chart/theme": {
       "types": "./dist/chart/theme.d.mts",

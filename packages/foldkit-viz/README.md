@@ -73,6 +73,35 @@ path. Application Commands, request flags and data loading remain app-owned.
 
 ---
 
+## Grouped and stacked bars (unreleased)
+
+`chart/bars` exports pure `barGeometry` and its accessor/configuration types.
+It supports grouped or stacked series in either orientation, preserves each
+original datum and key, and accumulates positive and negative values separately.
+Explicit domains must include zero and every bar endpoint. Duplicate datum keys
+and category/series pairs are rejected; aggregate duplicate rows before calling.
+
+```ts
+import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
+
+const geometry = barGeometry(
+  [{ id: 'jan-core', month: 'Jan', team: 'Core', count: 12 }],
+  { key: (d) => d.id, category: (d) => d.month, series: (d) => d.team, value: (d) => d.count },
+  {
+    frame: { width: 400, height: 240, margins: { top: 16, right: 16, bottom: 32, left: 40 } },
+    mode: 'grouped',
+    orientation: 'vertical',
+  },
+);
+// geometry.bars contains x/y/width/height and the original datum.
+```
+
+The optional `foldkit/paint` subpath provides `dotPattern`, `hatchPattern`,
+`linearGradient` and `radialGradient`. Compose them inside your builder's SVG
+`defs`; supply IDs unique across the whole document. They accept CSS colours and
+variables, own no state, and are not exported from the framework-free root.
+These additions are available in the workspace pending the next package release.
+
 ## Composable Cartesian charts
 
 These modules are available from version 0.10.0. Use package imports or the

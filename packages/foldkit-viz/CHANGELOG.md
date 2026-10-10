@@ -2,6 +2,13 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.12.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.11.0...foldkit-viz-v0.12.0) (2026-10-10)
+
+
+### Features
+
+* **viz:** add bar geometry and expand promo gallery ([52f724c](https://github.com/opsydyn/fold-kit-experiments/commit/52f724c54eac893c2ad6d5cf2a85c7e20eb4e55e))
+
 ## [0.11.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.10.1...foldkit-viz-v0.11.0) (2026-10-09)
 
 FoldKit adapters now support `>=0.167.0 <0.168.0` with Effect `4.0.0`.

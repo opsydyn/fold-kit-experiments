@@ -10,6 +10,7 @@ import { update } from '@opsydyn/dataset-explorer/update';
 import { view } from '@opsydyn/dataset-explorer/view';
 import { Effect, pipe, Result, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
+import type { Command } from 'foldkit';
 import { renderToString } from 'foldkit/experimental/server';
 
 const previousLocation = Object.getOwnPropertyDescriptor(globalThis, 'location');
@@ -27,10 +28,14 @@ afterAll(() => {
 const testFetch = (run: (input: RequestInfo | URL) => Promise<Response>): typeof globalThis.fetch =>
   Object.assign(run, { preconnect: globalThis.fetch.preconnect });
 
-const firstCommand = (started: ReturnType<typeof init>) => {
+const firstCommand = (started: ReturnType<typeof update>): Command.Command<Message> => {
   const command = started.commands?.[0];
   ok(command, 'Expected a fetch Command');
-  return command;
+  // Query Commands supply their HTTP client and never read the highlighter.
+  // Verify provenance before narrowing the update's union of service requirements.
+  expect(command.name).toBe('FetchDatasetSnapshot');
+  // SAFETY: the checked FetchDatasetSnapshot definition supplies its own HTTP services.
+  return command as Command.Command<Message>;
 };
 
 const render = (model: ReturnType<typeof init>['model']) =>
@@ -119,7 +124,7 @@ test('promo exposes the running source beside the live chart', async () => {
 
 test('the snapshot source follows retained, refreshed and newly selected data', async () => {
   const input = Schema.Struct({ args: Request, generation: Schema.Number });
-  const finish = (started: ReturnType<typeof init>) => {
+  const finish = (started: ReturnType<typeof update>) => {
     const { args, generation } = Schema.decodeUnknownSync(input)(firstCommand(started).args);
     return update(
       started.model,

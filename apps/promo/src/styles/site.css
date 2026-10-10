@@ -435,8 +435,8 @@ nav a[aria-current='page'] {
   position: relative;
   border: 1px solid #303641;
   border-radius: 4px;
-  background: #171b24;
-  color: #f4f2ed;
+  background: var(--surface);
+  color: var(--text);
   overflow: hidden;
   min-width: 0;
 }

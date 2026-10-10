@@ -1,3 +1,4 @@
+import { highlightingResources } from '@opsydyn/dataset-explorer/highlighting';
 import { Schema } from 'effect';
 
 import { Message } from './message';
@@ -16,5 +17,10 @@ export const ports = {
 export const Flags = Schema.Struct({});
 
 export const init = (_flags: typeof Flags.Type) => ({ model: initModel });
+export const managedResources = highlightingResources<Model, Message>({
+  acquired: Message.AcquiredHighlighter,
+  failed: Message.FailedHighlighter,
+  released: Message.ReleasedHighlighter,
+});
 
 export { view } from './view';

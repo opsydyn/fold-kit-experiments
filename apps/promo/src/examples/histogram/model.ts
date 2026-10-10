@@ -1,3 +1,4 @@
+import { HighlightedSource, Highlighting, SourceKey } from '@opsydyn/dataset-explorer/highlighting';
 import { Schema } from 'effect';
 import { defineTaggedUnion } from 'foldkit/schema';
 
@@ -20,6 +21,9 @@ export const Props = Schema.Struct({
   templateUrl: Schema.NullOr(Schema.String),
 });
 export const Model = Schema.Struct({
+  highlighting: Highlighting,
+  requestedSource: Schema.optional(SourceKey),
+  highlightedSource: Schema.optional(HighlightedSource),
   chartWidth: Schema.Number,
   settings: Settings,
   sources: Schema.Array(Source),

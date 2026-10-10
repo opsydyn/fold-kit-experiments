@@ -1,3 +1,4 @@
+@import './highlighting.css';
 .query-intro,
 .query-explorer {
   --dataset-north: #4c8dff;

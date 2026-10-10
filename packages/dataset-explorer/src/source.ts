@@ -5,6 +5,12 @@ import type { Model } from './model';
 import { DatasetQuery } from './query';
 
 export const SourceName = Schema.Literals([
+  'highlighting.ts',
+  'highlighting-engine.ts',
+  'highlighting-browser.ts',
+  'highlighting-assets.d.ts',
+  'highlighting.css',
+  'command.ts',
   'data.ts',
   'query.ts',
   'model.ts',

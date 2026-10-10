@@ -1,6 +1,7 @@
 import { Option, Schema } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
+import { highlightedCode } from './highlighting';
 import { Message } from './message';
 import type { Model } from './model';
 import { sourceContent, SourceName } from './source';
@@ -51,8 +52,22 @@ export const sourcePanel = (model: Model, h: HtmlBuilder<Message>): ReadonlyArra
               ],
             ),
             h.pre(
-              [h.Class('query-source-code'), h.Tabindex(0), h.AriaLabel(model.activeFile)],
-              [h.code([], [sourceContent(model)])],
+              [
+                h.Class('query-source-code syntax-highlight'),
+                h.Tabindex(0),
+                h.AriaLabel(model.activeFile),
+              ],
+              [
+                h.code(
+                  [],
+                  highlightedCode(
+                    h,
+                    sourceContent(model),
+                    model.activeFile,
+                    model.highlightedSource,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

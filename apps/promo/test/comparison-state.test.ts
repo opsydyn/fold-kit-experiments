@@ -2,6 +2,7 @@
 /* oxlint-disable linteffect/no-try-catch */
 import { expect, test, spyOn } from 'bun:test';
 
+import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
 import sdk from '@stackblitz/sdk';
 import { Effect, Option, Schema } from 'effect';
 import { Command } from 'foldkit';
@@ -21,6 +22,18 @@ const props = {
 };
 const child = (message: Comparison.Message) => Message.GotWorkbenchMessage({ message });
 
+// These tests execute existing delivery/child Commands, which do not read the highlighter.
+// The update return type unions all service requirements; verify identity before narrowing.
+const independentCommand = (
+  command: Command.Command<Message, never, HighlightingService> | undefined,
+): Command.Command<Message> => {
+  expect(command).toBeDefined();
+  const selected = Option.getOrThrow(Option.fromNullishOr(command));
+  expect(['CopySource', 'ExportProject', 'Probe']).toContain(selected.name);
+  // SAFETY: the checked delivery/Probe definitions have no managed-resource requirements.
+  return selected as Command.Command<Message>;
+};
+
 test('delayed template fetch exports the original snapshot and completion keeps later edits', async () => {
   const response = Promise.withResolvers<Response>();
   const fetcher = spyOn(globalThis, 'fetch').mockReturnValue(response.promise);
@@ -28,9 +41,7 @@ test('delayed template fetch exports the original snapshot and completion keeps 
   try {
     const base = init(props).model;
     const started = update(base, Message.ClickedPlayground());
-    const completion = Effect.runPromise(
-      Option.getOrThrow(Option.fromNullishOr(started.commands?.[0])).effect,
-    );
+    const completion = Effect.runPromise(independentCommand(started.commands?.[0]).effect);
     const edited = update(
       started.model,
       child(Comparison.Message.ClickedAddPanel({ kind: 'scatter' })),
@@ -73,9 +84,7 @@ test('copy Command delivers the selected maintained source to the clipboard', as
     ];
     const model = init({ ...props, sources }).model;
     const started = update(model, Message.ClickedCopy());
-    const completion = await Effect.runPromise(
-      Option.getOrThrow(Option.fromNullishOr(started.commands?.[0])).effect,
-    );
+    const completion = await Effect.runPromise(independentCommand(started.commands?.[0]).effect);
     expect(copied).toEqual(['maintained view source']);
     expect(completion).toEqual(Message.SucceededAction({ action: 'copy' }));
   } finally {
@@ -135,9 +144,7 @@ test('failed export permits retry and does not disable workbench editing', async
   const fetcher = spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 500 }));
   try {
     const started = update(init(props).model, Message.ClickedPlayground());
-    const completion = await Effect.runPromise(
-      Option.getOrThrow(Option.fromNullishOr(started.commands?.[0])).effect,
-    );
+    const completion = await Effect.runPromise(independentCommand(started.commands?.[0]).effect);
     expect(completion._tag).toBe('FailedAction');
     const failed = update(started.model, completion).model;
     const edited = update(failed, child(Comparison.Message.ClickedRemovePanel({ id: 1 }))).model;
@@ -175,9 +182,7 @@ test('wrapper forwards delayed panel-keyed child Commands without recreating rem
     result.model,
     child(Comparison.Message.ClickedRemovePanel({ id: 1 })),
   ).model;
-  const completion = await Effect.runPromise(
-    Option.getOrThrow(Option.fromNullishOr(result.commands?.[0])).effect,
-  );
+  const completion = await Effect.runPromise(independentCommand(result.commands?.[0]).effect);
   expect(completion).toEqual(
     child(Comparison.Message.GotScatterMessage({ id: 1, message: Scatter.Message.BlurredPoint() })),
   );

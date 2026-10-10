@@ -1,3 +1,4 @@
+import { HighlightedSource, Highlighting, SourceKey } from '@opsydyn/dataset-explorer/highlighting';
 import { Schema } from 'effect';
 import { defineTaggedUnion } from 'foldkit/schema';
 import { foldChildInit } from 'foldkit/update';
@@ -21,6 +22,9 @@ export const Props = Schema.Struct({
 });
 export type Props = typeof Props.Type;
 export const Model = Schema.Struct({
+  highlighting: Highlighting,
+  requestedSource: Schema.optional(SourceKey),
+  highlightedSource: Schema.optional(HighlightedSource),
   // The maintained runtime schema is intentionally shallow for app-owned chart models.
   workbench: Schema.declare((value): value is Comparison.Model =>
     Schema.is(Comparison.Model)(value),

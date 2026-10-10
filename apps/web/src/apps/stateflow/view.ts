@@ -1,3 +1,5 @@
+import '@opsydyn/dataset-explorer/highlighting.css';
+import { highlightedCode } from '@opsydyn/dataset-explorer/highlighting';
 import { layoutStateFlow } from '@opsydyn/foldkit-viz/stateflow';
 import type {
   StateFlowEdge,
@@ -6,7 +8,7 @@ import type {
   StateFlowLayoutEdge,
   StateFlowLayoutNode,
 } from '@opsydyn/foldkit-viz/stateflow';
-import { Match, Option, Schema } from 'effect';
+import { Match, Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { svgRoot } from '../../ui/shared';
@@ -14,7 +16,7 @@ import { fixture } from './fixture';
 import { graphFor } from './graph';
 import { Message } from './message';
 import type { Model, TransitionFact } from './model';
-import { TransitionRecorded } from './ports';
+import { encodeEvent } from './source';
 
 import * as styles from './stateflow.css';
 
@@ -51,8 +53,6 @@ const activation =
       Match.whenOr('Enter', ' ', () => Option.some(message)),
       Match.orElse(() => Option.none()),
     );
-
-const encodeEvent = Schema.encodeSync(Schema.fromJsonString(TransitionRecorded, { space: 2 }));
 
 const edgePair = (edge: StateFlowEdge): string => [edge.source, edge.target].sort().join(':');
 
@@ -356,7 +356,10 @@ function inspectorView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Messa
         [h.Class(styles.muted)],
         ['Redacted transition facts; original payload is not retained.'],
       ),
-      h.pre([h.Class(styles.eventData)], [encodeEvent(record)]),
+      h.pre(
+        [h.Class(styles.eventData + ' syntax-highlight')],
+        [h.code([], highlightedCode(h, encodeEvent(record), 'json', model.highlightedSource))],
+      ),
     ];
   }
   const edgeContent = Option.map(selectedEdge, edgeDetails);

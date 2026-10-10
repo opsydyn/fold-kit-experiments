@@ -1,3 +1,4 @@
+import { SourceHighlighter, highlightedTree } from '@opsydyn/dataset-explorer/highlighting';
 // Browser delivery is an imperative boundary, entirely inside Command Effects.
 /* oxlint-disable linteffect/no-if-statement, linteffect/no-magic-domain-string */
 import sdk from '@stackblitz/sdk';
@@ -66,5 +67,25 @@ export const ExportProject = Command.define('ExportProject', {
     }).pipe(
       Effect.map(() => Message.SucceededAction({ action })),
       Effect.catch((error) => Effect.succeed(Message.FailedAction({ error }))),
+    ),
+});
+
+export const HighlightSource = Command.define('HighlightSource', {
+  args: { source: Schema.String, language: Schema.String },
+  messages: [Message.SettledHighlightedSource],
+  execute: ({ source, language }) =>
+    SourceHighlighter.get.pipe(
+      Effect.map((engine) =>
+        Message.SettledHighlightedSource({
+          highlightedSource: { source, language, tree: highlightedTree(source, language, engine) },
+        }),
+      ),
+      Effect.catch(() =>
+        Effect.succeed(
+          Message.SettledHighlightedSource({
+            highlightedSource: { source, language, tree: highlightedTree(source, language) },
+          }),
+        ),
+      ),
     ),
 });

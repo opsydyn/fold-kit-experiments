@@ -1,3 +1,4 @@
+import { HighlightedSource, Highlighting, SourceKey } from '@opsydyn/dataset-explorer/highlighting';
 import { Schema } from 'effect';
 
 import { ExplorerState } from '../request-diagnostics/model';
@@ -7,6 +8,9 @@ import type { TransitionRecorded as TransitionRecordedValue } from './ports';
 export type TransitionFact = TransitionRecordedValue;
 
 export type Model = Readonly<{
+  highlighting?: 'ready' | 'failed';
+  highlightedSource?: import('@opsydyn/dataset-explorer/highlighting').HighlightedSource;
+  requestedSource?: import('@opsydyn/dataset-explorer/highlighting').SourceKey;
   explorer: ExplorerState;
   playback: 'paused' | 'playing';
   reducedMotion: boolean;
@@ -20,6 +24,9 @@ export type Model = Readonly<{
 }>;
 
 export const Model = Schema.Struct({
+  highlighting: Highlighting,
+  highlightedSource: Schema.optional(HighlightedSource),
+  requestedSource: Schema.optional(SourceKey),
   explorer: ExplorerState,
   playback: Schema.Literals(['paused', 'playing']),
   reducedMotion: Schema.Boolean,

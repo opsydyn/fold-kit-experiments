@@ -4,11 +4,15 @@ import { modifyFields } from 'foldkit/struct';
 import { combine } from 'foldkit/update';
 import type { Return, Step } from 'foldkit/update';
 
+import { HighlightSource } from './command';
 import type { Request } from './data';
 import { validChartWidth } from './frame';
+import type { HighlightingService } from './highlighting';
+import { requestHighlighting, settleHighlighting } from './highlighting';
 import { Message } from './message';
 import type { Model } from './model';
 import { DatasetQuery } from './query';
+import { sourceContent } from './source';
 
 const dataset = DatasetQuery.lift<Model, Message>({
   parentField: 'datasets',
@@ -45,8 +49,8 @@ const refreshSelected = request(dataset.revalidateOrLoad, 'normal', false);
 const recordCompletion = (
   model: Model,
   message: typeof DatasetQuery.Message.Type,
-  result: Return<Model, Message>,
-): Return<Model, Message> => ({
+  result: Return<Model, Message, HighlightingService>,
+): Return<Model, Message, HighlightingService> => ({
   ...result,
   model: modifyFields(result.model, {
     trace: (trace) =>
@@ -73,8 +77,28 @@ const recordCompletion = (
   }),
 });
 
-export const update = (model: Model, message: Message): Return<Model, Message> =>
-  Message.match(message, {
+export const update = (
+  model: Model,
+  message: Message,
+): Return<Model, Message, HighlightingService> => {
+  const result: Return<Model, Message, HighlightingService> = Message.match(message, {
+    AcquiredHighlighter: () => ({
+      model: {
+        ...model,
+        highlighting: 'ready' as const,
+        requestedSource: undefined,
+        highlightedSource: undefined,
+      },
+    }),
+    FailedHighlighter: () => ({
+      model: { ...model, highlighting: 'failed' as const, requestedSource: undefined },
+    }),
+    ReleasedHighlighter: () => ({
+      model: { ...model, highlighting: undefined, requestedSource: undefined },
+    }),
+    SettledHighlightedSource: ({ highlightedSource }) => ({
+      model: settleHighlighting(model, highlightedSource, sourceContent(model), model.activeFile),
+    }),
     RecordedChartWidth: ({ width }) =>
       pipe(
         Match.value(validChartWidth(width) && width !== model.chartWidth),
@@ -100,3 +124,11 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
     GotDatasetMessage: ({ message }) =>
       recordCompletion(model, message, dataset.fold(model, message)),
   });
+
+  return requestHighlighting(
+    result,
+    sourceContent(result.model),
+    result.model.activeFile,
+    HighlightSource,
+  );
+};

@@ -92,7 +92,9 @@ export async function collectComparisonSources(
         assertVizSubpath(specifier.slice('@opsydyn/foldkit-viz/'.length));
       } else if (
         isAbsolute(specifier) ||
-        !/^(?:effect|foldkit)(?:\/|$)|^(?:fflate|@stackblitz\/sdk)$/.test(specifier)
+        !/^(?:effect|foldkit)(?:\/|$)|^(?:fflate|@stackblitz\/sdk|@opsydyn\/dataset-explorer\/highlighting(?:\.css)?)$/.test(
+          specifier,
+        )
       ) {
         throw new RangeError('Unresolved comparison dependency: ' + specifier);
       }

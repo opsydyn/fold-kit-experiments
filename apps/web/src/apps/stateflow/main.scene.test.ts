@@ -1,7 +1,10 @@
+import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
+import { Data, Effect } from 'effect';
 import { Runtime } from 'foldkit';
 import { describe, expect, it, vi } from 'vitest';
 
 import { fixture } from './fixture';
+import { managedResources as liveResources } from './main';
 import { Message } from './message';
 import type { Message as AppMessage } from './message';
 import { initModel, Model } from './model';
@@ -9,6 +12,17 @@ import type { Model as AppModel } from './model';
 import { ReplayEventPort, TransitionTelemetryPort } from './ports';
 import { subscriptions } from './subscription';
 import { update } from './update';
+
+class TestHighlighterUnavailable extends Data.TaggedError('TestHighlighterUnavailable') {}
+
+// Port tests use an unavailable highlighter to keep browser assets outside the harness.
+const managedResources = {
+  ...liveResources,
+  sourceHighlighter: {
+    ...liveResources.sourceHighlighter,
+    acquire: () => Effect.fail(new TestHighlighterUnavailable()),
+  },
+};
 
 function recordUpdate(
   model: AppModel,
@@ -60,6 +74,7 @@ describe('stateflow Port bridge', () => {
           recordUpdate(model, message, received, models),
         view: (_model, h) => h.div([], []),
         subscriptions,
+        managedResources,
         ports: {
           inbound: { replay: ReplayEventPort },
           outbound: { transitionTelemetry: TransitionTelemetryPort },
@@ -68,6 +83,8 @@ describe('stateflow Port bridge', () => {
       }),
     );
 
+    // DOM media-query events supply the boolean matches field.
+    // oxlint-disable-next-line linteffect/no-boolean-domain-flag
     const reducedMotionMessage = (isReducedMotion: boolean): AppMessage =>
       Message.ChangedReducedMotion({ isReducedMotion });
 
@@ -102,12 +119,13 @@ describe('stateflow Port bridge', () => {
       outbound: { transitionTelemetry: TransitionTelemetryPort },
     } as const;
     const handle = Runtime.embed(
-      Runtime.makeElement<AppModel, AppMessage, never, never, typeof ports>({
+      Runtime.makeElement<AppModel, AppMessage, never, HighlightingService, typeof ports>({
         Model,
         init: () => ({ model: initModel }),
         update: (model, message) => (received.push(message), update(model, message)),
         view: (_model, h) => h.div([], []),
         subscriptions,
+        managedResources,
         ports,
         container,
       }),
@@ -140,6 +158,7 @@ describe('stateflow Port bridge', () => {
         update: recordAndUpdate,
         view: (_model, h) => h.div([], []),
         subscriptions,
+        managedResources,
         ports: {
           inbound: { replay: ReplayEventPort },
           outbound: { transitionTelemetry: TransitionTelemetryPort },

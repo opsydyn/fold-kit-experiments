@@ -1,8 +1,11 @@
+import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
+import { requestHighlighting, settleHighlighting } from '@opsydyn/dataset-explorer/highlighting';
 import type { Return } from 'foldkit/update';
 
 import { validChartWidth } from '#example/frame';
 
 import { changeDomain, changeValue, settingsSource } from './chart';
+import { HighlightSource } from './command';
 import { CopySource, ExportProject } from './command';
 import { Message } from './message';
 import { ActionStatus, Editor, EditorStatus, sourceFor } from './model';
@@ -22,7 +25,10 @@ const clearFeedback = (status: Model['actionStatus']): Model['actionStatus'] =>
     Failed: () => ActionStatus.Ready(),
   });
 
-const whenReady = (model: Model, start: () => Return<Model, Message>): Return<Model, Message> =>
+const whenReady = (
+  model: Model,
+  start: () => Return<Model, Message, HighlightingService>,
+): Return<Model, Message, HighlightingService> =>
   ActionStatus.match(model.actionStatus, {
     Pending: () => ({ model }),
     Ready: start,
@@ -44,7 +50,7 @@ const finishEditor = (
   model: Model,
   revision: number,
   status: typeof EditorStatus.Type,
-): Return<Model, Message> =>
+): Return<Model, Message, HighlightingService> =>
   Editor.match(model.editor, {
     Idle: () => ({ model }),
     Session: (session) =>
@@ -53,8 +59,28 @@ const finishEditor = (
         : { model },
   });
 
-export const update = (model: Model, message: Message): Return<Model, Message> =>
-  Message.match(message, {
+export const update = (
+  model: Model,
+  message: Message,
+): Return<Model, Message, HighlightingService> => {
+  const result: Return<Model, Message, HighlightingService> = Message.match(message, {
+    AcquiredHighlighter: () => ({
+      model: {
+        ...model,
+        highlighting: 'ready' as const,
+        requestedSource: undefined,
+        highlightedSource: undefined,
+      },
+    }),
+    FailedHighlighter: () => ({
+      model: { ...model, highlighting: 'failed' as const, requestedSource: undefined },
+    }),
+    ReleasedHighlighter: () => ({
+      model: { ...model, highlighting: undefined, requestedSource: undefined },
+    }),
+    SettledHighlightedSource: ({ highlightedSource }) => ({
+      model: settleHighlighting(model, highlightedSource, currentSource(model), model.activeFile),
+    }),
     SelectedPanel: ({ panel }) =>
       (model.templateUrl === null || !model.embeddedEditor) && panel === 'edit'
         ? { model }
@@ -136,3 +162,11 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
       model: { ...model, actionStatus: ActionStatus.Failed({ error }) },
     }),
   });
+
+  return requestHighlighting(
+    result,
+    currentSource(result.model),
+    result.model.activeFile,
+    HighlightSource,
+  );
+};

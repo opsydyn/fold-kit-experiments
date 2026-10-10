@@ -58,6 +58,44 @@ export async function buildExampleTemplate(
   const files: Record<string, string> = Object.fromEntries(
     sources.map(({ name, content }) => ['src/' + name, content]),
   );
+  // Bundle the private shared renderer so exported examples do not require a workspace.
+  if (example !== 'datasets') {
+    const highlightingRoot = dirname(
+      fileURLToPath(import.meta.resolve('@opsydyn/dataset-explorer/highlighting')),
+    );
+    for (const name of [
+      'highlighting.ts',
+      'highlighting-engine.ts',
+      'highlighting-browser.ts',
+      'highlighting-assets.d.ts',
+      'highlighting.css',
+    ]) {
+      files['vendor/source-highlighting/' + name] = await readFile(
+        join(highlightingRoot, name),
+        'utf8',
+      );
+    }
+    files['vendor/source-highlighting/package.json'] = JSON.stringify(
+      {
+        name: '@opsydyn/dataset-explorer',
+        private: true,
+        type: 'module',
+        exports: {
+          './highlighting': './highlighting.ts',
+          './highlighting.css': './highlighting.css',
+        },
+        dependencies: {
+          '@wooorm/starry-night': '3.11.0',
+          'vscode-oniguruma': '2.0.1',
+          '@types/hast': '3.0.5',
+          foldkit: '0.167.0',
+          effect: '4.0.0',
+        },
+      },
+      null,
+      2,
+    );
+  }
   const modules = [
     'chart/cartesian',
     'chart/theme',
@@ -117,6 +155,7 @@ export async function buildExampleTemplate(
       },
       dependencies: {
         '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
+        '@opsydyn/dataset-explorer': 'file:./vendor/source-highlighting',
         foldkit: '0.167.0',
         effect: '4.0.0',
         fflate: '0.8.3',

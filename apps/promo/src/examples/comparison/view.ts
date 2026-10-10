@@ -1,3 +1,5 @@
+import '@opsydyn/dataset-explorer/highlighting.css';
+import { highlightedCode } from '@opsydyn/dataset-explorer/highlighting';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 import { defineView } from 'foldkit/submodel';
 
@@ -63,8 +65,22 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ],
             ),
             h.pre(
-              [h.Tabindex(0), h.AriaLabel(model.activeFile + ' source code')],
-              [h.code([], [currentSource(model)])],
+              [
+                h.Class('syntax-highlight'),
+                h.Tabindex(0),
+                h.AriaLabel(model.activeFile + ' source code'),
+              ],
+              [
+                h.code(
+                  [],
+                  highlightedCode(
+                    h,
+                    currentSource(model),
+                    model.activeFile,
+                    model.highlightedSource,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

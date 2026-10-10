@@ -1,8 +1,11 @@
+import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
+import { requestHighlighting, settleHighlighting } from '@opsydyn/dataset-explorer/highlighting';
 import { Match, Option } from 'effect';
 import { foldChild } from 'foldkit/update';
 import type { Return } from 'foldkit/update';
 
 import * as Comparison from '../../../../web/src/apps/comparison/main';
+import { HighlightSource } from './command';
 import { CopySource, ExportProject } from './command';
 import { Message } from './message';
 import { ActionStatus } from './model';
@@ -23,7 +26,10 @@ const foldWorkbench = foldChild({
   toParentMessage: (message: Comparison.Message) => Message.GotWorkbenchMessage({ message }),
 });
 
-const whenReady = (model: Model, start: () => Return<Model, Message>): Return<Model, Message> =>
+const whenReady = (
+  model: Model,
+  start: () => Return<Model, Message, HighlightingService>,
+): Return<Model, Message, HighlightingService> =>
   ActionStatus.match(model.actionStatus, {
     Pending: () => ({ model }),
     Ready: start,
@@ -37,7 +43,10 @@ const clearFeedback = (status: Model['actionStatus']): Model['actionStatus'] =>
     Succeeded: () => ActionStatus.Ready(),
     Failed: () => ActionStatus.Ready(),
   });
-const exportProject = (model: Model, action: 'download' | 'playground'): Return<Model, Message> =>
+const exportProject = (
+  model: Model,
+  action: 'download' | 'playground',
+): Return<Model, Message, HighlightingService> =>
   whenReady(model, () =>
     Option.match(Option.fromNullishOr(model.templateUrl), {
       onNone: () => ({ model }),
@@ -50,7 +59,7 @@ const exportProject = (model: Model, action: 'download' | 'playground'): Return<
     }),
   );
 
-const selectFile = (model: Model, name: string): Return<Model, Message> =>
+const selectFile = (model: Model, name: string): Return<Model, Message, HighlightingService> =>
   Option.match(Option.fromNullishOr(model.sources.find((source) => source.name === name)), {
     onNone: () => ({ model }),
     onSome: () => ({
@@ -58,8 +67,28 @@ const selectFile = (model: Model, name: string): Return<Model, Message> =>
     }),
   });
 
-export const update = (model: Model, message: Message): Return<Model, Message> =>
-  Message.match(message, {
+export const update = (
+  model: Model,
+  message: Message,
+): Return<Model, Message, HighlightingService> => {
+  const result: Return<Model, Message, HighlightingService> = Message.match(message, {
+    AcquiredHighlighter: () => ({
+      model: {
+        ...model,
+        highlighting: 'ready' as const,
+        requestedSource: undefined,
+        highlightedSource: undefined,
+      },
+    }),
+    FailedHighlighter: () => ({
+      model: { ...model, highlighting: 'failed' as const, requestedSource: undefined },
+    }),
+    ReleasedHighlighter: () => ({
+      model: { ...model, highlighting: undefined, requestedSource: undefined },
+    }),
+    SettledHighlightedSource: ({ highlightedSource }) => ({
+      model: settleHighlighting(model, highlightedSource, currentSource(model), model.activeFile),
+    }),
     // SAFETY: GotWorkbenchMessage carries Comparison.Message through the typed child fold/view boundary.
     GotWorkbenchMessage: ({ message: raw }) => foldWorkbench(model, raw as Comparison.Message),
     SelectedFile: ({ name }) => selectFile(model, name),
@@ -77,3 +106,11 @@ export const update = (model: Model, message: Message): Return<Model, Message> =
       model: { ...model, actionStatus: ActionStatus.Failed({ error }) },
     }),
   });
+
+  return requestHighlighting(
+    result,
+    currentSource(result.model),
+    result.model.activeFile,
+    HighlightSource,
+  );
+};

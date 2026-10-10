@@ -1,15 +1,18 @@
+import { requestHighlighting, settleHighlighting } from '@opsydyn/dataset-explorer/highlighting';
+import type { HighlightingService } from '@opsydyn/dataset-explorer/highlighting';
 import { Match, Option, Struct } from 'effect';
 
 import { diagnosticsMachine } from '../request-diagnostics/machine';
-import { ReportTransition } from './command';
+import { HighlightSource, ReportTransition } from './command';
 import { fixture } from './fixture';
 import { Message } from './message';
 import type { ReceivedReplayEvent } from './message';
 import { initModel } from './model';
 import type { Model, TransitionFact } from './model';
 import type { ReplayEvent } from './ports';
+import { selectedEventSource } from './source';
 
-type Return = import('foldkit/update').Return<Model, Message>;
+type Return = import('foldkit/update').Return<Model, Message, HighlightingService>;
 
 const withPlayback = (model: Model, playback: Model['playback']): Return => {
   const nextModel: Model = { ...model, playback };
@@ -108,14 +111,31 @@ export function update(model: Model, message: Message): Return {
     Match.when(true, () => 'playing' as const),
     Match.orElse(() => 'paused' as const),
   );
-  return Message.match(message, {
+  const result: Return = Message.match(message, {
+    AcquiredHighlighter: () => ({
+      model: {
+        ...model,
+        highlighting: 'ready' as const,
+        requestedSource: undefined,
+        highlightedSource: undefined,
+      },
+    }),
+    FailedHighlighter: () => ({
+      model: { ...model, highlighting: 'failed' as const, requestedSource: undefined },
+    }),
+    ReleasedHighlighter: () => ({
+      model: { ...model, highlighting: undefined, requestedSource: undefined },
+    }),
+    SettledHighlightedSource: ({ highlightedSource }) => ({
+      model: settleHighlighting(model, highlightedSource, selectedEventSource(model), 'json'),
+    }),
     ClickedPlay: () => withPlayback(model, availablePlayback),
     ClickedPause: () => {
       const nextModel: Model = { ...model, playback: 'paused' };
       return { model: nextModel };
     },
     ClickedStep: () => stepReplay(model),
-    ClickedReset: () => ({ model: initModel }),
+    ClickedReset: () => ({ model: { ...initModel, highlighting: model.highlighting } }),
     ChangedReducedMotion: ({ isReducedMotion }) => ({
       model: { ...model, reducedMotion: isReducedMotion },
     }),
@@ -137,4 +157,5 @@ export function update(model: Model, message: Message): Return {
       model: { ...model, lastTelemetrySequence: sequence },
     }),
   });
+  return requestHighlighting(result, selectedEventSource(result.model), 'json', HighlightSource);
 }

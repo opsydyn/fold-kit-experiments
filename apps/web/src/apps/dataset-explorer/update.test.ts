@@ -6,11 +6,10 @@ import { DatasetQuery } from '@opsydyn/dataset-explorer/query';
 import { update } from '@opsydyn/dataset-explorer/update';
 import { Option, Result, Schema } from 'effect';
 import { getData } from 'foldkit/asyncData';
-import type { Return } from 'foldkit/update';
 import { describe, expect, it } from 'vitest';
 
 const commandInput = Schema.Struct({ args: Request, generation: Schema.Number });
-const completion = (started: Return<Model, Message>, index = 0, failed = false): Message => {
+const completion = (started: ReturnType<typeof update>, index = 0, failed = false): Message => {
   const input = Schema.decodeUnknownSync(commandInput)(started.commands?.[index]?.args);
   return Message.GotDatasetMessage({
     message: {

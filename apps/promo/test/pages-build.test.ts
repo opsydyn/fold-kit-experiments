@@ -25,6 +25,15 @@ test.skipIf(!base)(
         expect(await Bun.file(join(directory, file)).exists()).toBe(true);
       }
     }
+    const assets = readdirSync(join(directory, '_astro'));
+    const wasm = assets.find((name) => /^onig\..*\.wasm$/.test(name));
+    const browserHighlighter = assets.find((name) => /^highlighting-browser\..*\.js$/.test(name));
+    expect(wasm).toBeDefined();
+    expect(browserHighlighter).toBeDefined();
+    if (!wasm || !browserHighlighter) throw new Error('Missing self-hosted highlighting assets');
+    expect(await Bun.file(join(directory, '_astro', browserHighlighter)).text()).toContain(
+      `${base}_astro/${wasm}`,
+    );
     const comparison = await Bun.file(join(directory, 'examples/comparison/index.html')).text();
     expect(comparison).toContain(`${base}downloads/comparison-template.json`);
     expect(await Bun.file(join(directory, 'downloads/comparison-template.json')).exists()).toBe(

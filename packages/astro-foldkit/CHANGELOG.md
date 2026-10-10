@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.8.0...astro-foldkit-v0.8.1) (2026-10-10)
+
+Example-site maintenance release: Stateflow Observatory is linked from the
+Charts dashboard and shared navigation, which now wraps on narrow screens.
+Rendered-page smoke tests cover both links. Public package APIs and the
+FoldKit `>=0.167.0 <0.168.0` compatibility range are unchanged.
+
+### Bug Fixes
+
+- **web:** link Stateflow from examples dashboard ([53f7856](https://github.com/opsydyn/fold-kit-experiments/commit/53f78568fd4dd84c06d7af805fa3acfb78ce07b5))
+
 ## [0.8.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.7.2...astro-foldkit-v0.8.0) (2026-10-09)
 
 Upgrade FoldKit alongside this package: the supported peer range is now

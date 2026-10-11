@@ -105,6 +105,11 @@ execute the FoldKit application during SSR; the application is loaded and
 embedded only by the client renderer. Astro still owns the outer island
 serialisation and client directive behavior.
 
+FoldKit replaces the inner mount, not the outer `<astro-island>`. The outer
+element remains Astro's lifecycle owner, including for empty `client:only`
+hosts, where the client renderer creates an inner mount. Nested islands keep
+their own mounts.
+
 The demo app's [`/request-diagnostics`](../../apps/web/src/pages/request-diagnostics.astro) page shows the integration boundary with a practical machine-driven chart workflow. The page uses `@opsydyn/astro-foldkit` for hydration, `@opsydyn/foldkit-viz` for chart primitives, and `foldkit/experimental/machine` in the application update layer.
 
 The [`/comparison`](../../apps/web/src/pages/comparison.astro) example hosts
@@ -450,6 +455,27 @@ type NavigationEvent = {
 The bridge sends `coldLoad` immediately for the first mount of an island identity. A retained island receives `stayed` on `astro:before-swap` when its matching `uid` exists in the incoming document, but does not receive `entered` from the following global `astro:page-load`. A same-identity remount emits `entered` on mount; an active island can also emit `entered` for a later page load when it was not retained. Every mounted island emits `exited` once on `astro:unmount`. Events contain normalized pathnames; route parsing and route-specific message decisions belong in the app mapper. If the configured inbound port is missing, the integration warns once and leaves the FoldKit runtime mounted without forwarding events.
 
 The integration owns only lifecycle observation and port delivery. The app owns parsing `path` into its route type, mapping the event into a past-tense Message, and deciding whether an `entered` event should run a load or revalidation command. Keep that policy in `update` or a FoldKit `Transition`, so SSR props, navigation facts, and side effects remain separate. When an app uses exited to interrupt work, the interrupt key, state, and outcome policy stay in its update loop; the integration does not cancel or replace commands.
+
+### Retained island ownership
+
+When Astro actually retains the same client-island element during navigation,
+the integration preserves its running FoldKit Model and resources. Repeated
+hydration of that host shares one initialization, including while its module
+is loading; it does not call `init` again or start another runtime. Matching a
+`uid` for navigation events alone is not a substitute for retaining the DOM host.
+
+Props seed `init` once per live runtime. Changes to Astro's serialized props do
+not reseed an active retained island; use app-owned inbound ports for live data.
+On genuine `astro:unmount`, the integration detaches its navigation bridge and
+disposes the runtime. Unmount during module loading prevents a later detached
+mount. Module-load or pure `init` failure releases ownership so hydration can
+retry; asynchronous runtime startup failures remain FoldKit-owned.
+
+Remounting the same host starts with fresh props and uses public `Runtime.embed`
+sequencing to wait for previous teardown before restarting. The host must still
+represent the same app, schemas, ports and update definition. This contract is
+for `lazyApp` / `defineApp` islands, not a new retained-navigation guarantee for
+`definePage` owners.
 
 Pass the ports map to `makeApplication` alongside your `init`, `update`, and `view`:
 

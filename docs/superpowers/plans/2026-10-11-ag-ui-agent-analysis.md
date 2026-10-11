@@ -15,14 +15,21 @@ AG-UI SDK 1.0.2, fast-json-patch 3.1.1, Playwright Test 1.62.1.
 
 **Spec:** [Approved design](../specs/2026-10-11-ag-ui-agent-analysis-design.md).
 
-Status: plan drafted and self-reviewed; user review and execution method pending.
-No implementation task below is complete.
+Status: Tasks 1-3 implemented and independently reviewed. The user also approved
+an internal Astro retention repair and the local merge of reviewed commits.
+Task 4's UI and browser harness remain uncommitted in the managed worktree;
+Task 5 has not started. See the
+[local merge checkpoint](../specs/2026-10-11-ag-ui-local-merge.md) for scope,
+evidence and remaining gates. The task checklists below retain the original
+implementation sequence, not the current completion ledger.
 
 ## Global Constraints
 
 - Product source stays in `apps/web`; related lockfile, CI/test/lint support and
   example docs may change. No Astro/Viz public API, chart-math, promo/export or
-  independent-skill changes.
+  independent-skill changes. Approved exception: internal Astro client-island
+  mount ownership, hydration deduplication and remount sequencing, with package
+  regression tests; no public API change.
 - Keep FoldKit 0.167.0, Effect 4.0.0 and Astro 7.2.8 unchanged. Pin each new
   dependency exactly: AG-UI client/core/encoder 1.0.2, fast-json-patch 3.1.1,
   `@playwright/test` 1.62.1. The latter registry version was verified when planning.
@@ -43,7 +50,9 @@ No implementation task below is complete.
   narrow overrides in `oxlint.config.ts`; no blanket rule suppression.
 - Run builds/typechecks/workspace tests sequentially because they share package
   `dist` outputs. Use the root test script, never bare root `bun test`.
-- No push, deployment, merge or package release is authorised by this plan.
+- The original plan authorised no push, deployment, merge or package release.
+  The later user instruction authorised this local merge and documentation only;
+  push, deployment and package release remain outside scope.
 
 ## Review Focus
 

@@ -80,8 +80,8 @@ async function readBoundedBody(request: Request): Promise<string | Response> {
       if (chunk.done) break;
       total += chunk.value.byteLength;
       if (total > 16384) {
-        // A source cleanup failure must not downgrade the already-proven overflow.
-        await reader.cancel().catch(() => {});
+        // Source cleanup must not delay the proven overflow; observe rejection without waiting.
+        void reader.cancel().catch(() => {});
         return new Response('Request body exceeds 16384 bytes', { status: 413 });
       }
       chunks.push(chunk.value);

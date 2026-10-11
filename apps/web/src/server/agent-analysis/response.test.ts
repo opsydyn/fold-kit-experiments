@@ -121,6 +121,38 @@ describe('bounded request validation', () => {
     expect(observations).toEqual([]);
   });
 
+  it('settles 413 promptly and releases ownership when source cancellation never settles', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    let cancellations = 0;
+    const observations: ResponseObservation[] = [];
+    const body = new ReadableStream<Uint8Array>({
+      start(stream) {
+        stream.enqueue(new Uint8Array(16385));
+      },
+      cancel() {
+        cancellations++;
+        return new Promise<void>(() => {});
+      },
+    });
+    const incoming = streamedRequest(body, controller.signal);
+    const result = Effect.runPromise(
+      serveAgentAnalysis(incoming, (item) => observations.push(item)),
+    );
+    const deadline = new Promise<null>((resolve) => setTimeout(() => resolve(null), 100));
+    const settlement = Promise.race([result, deadline]);
+    await vi.advanceTimersByTimeAsync(100);
+    const response = await settlement;
+    expect(response?.status).toBe(413);
+    expect(incoming.body?.locked).toBe(false);
+    expect(cancellations).toBe(1);
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(100000);
+    expect(observations).toEqual([]);
+    expect(cancellations).toBe(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('maps body read failure to 400 without starting a producer', async () => {
     const observations: ResponseObservation[] = [];
     const body = new ReadableStream<Uint8Array>({

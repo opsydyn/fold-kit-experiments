@@ -16,6 +16,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@ag-ui/client": "1.0.2",
     "@ag-ui/core": "1.0.2",
     "@ag-ui/encoder": "1.0.2",
     "@astrojs/cloudflare": "14.1.3",

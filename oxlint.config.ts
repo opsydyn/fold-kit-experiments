@@ -107,6 +107,23 @@ export default defineConfig({
   },
   overrides: [
     {
+      // This exact Rx/native-fetch bridge acquires and releases HTTP resources in one scope.
+      // Serialization and unknown SDK errors belong at this boundary, never in the reducer.
+      files: ['apps/web/src/apps/agent-analysis/transport.ts'],
+      rules: {
+        'linteffect/no-call-tower': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/no-naked-object-state-update': 'off',
+        'linteffect/no-ternary': 'off',
+        'anti-slop/no-unknown-parameters': 'off',
+      },
+    },
+    {
+      // This exact test boundary collects native HTTP Effects rather than provisioning a runtime.
+      files: ['apps/web/src/apps/agent-analysis/transport.test.ts'],
+      rules: { 'linteffect/no-effect-wrapper-alias': 'off' },
+    },
+    {
       // The Web stream owns timers/readers until completion, abort or body cancellation.
       // Native callbacks and finally release belong here, not to a short-lived HTTP Effect.
       files: ['apps/web/src/server/agent-analysis/response.ts'],

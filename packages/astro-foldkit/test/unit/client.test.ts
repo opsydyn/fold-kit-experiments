@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 
-import { Schema } from 'effect';
+import { Data, Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import type { ClientRuntime } from '../../src/client';
@@ -10,6 +10,10 @@ import type { AppConfig, AppConfigContract } from '../../src/types';
 mock.module('foldkit', () => ({ Runtime: {} }));
 
 const BUILD_ID = 'client-test-build';
+
+class TestRuntimeError extends Data.TaggedError('TestRuntimeError')<{
+  readonly message: string;
+}> {}
 
 const { createClientRenderer } = await import('../../src/client');
 
@@ -27,16 +31,25 @@ const config = {
   Model: {},
   init: (props: TestProps) => ({ model: { count: Number(props.initialCount) } }),
   update: (model: Model, _message: Message) => ({ model }),
-  // SAFETY: The test fixture establishes this value before the assertion.
-  view: (_model: Model, _h: HtmlBuilder<Message>) => ({}) as Document,
+  view: (_model: Model, _h: HtmlBuilder<Message>): Document => ({ title: 'App', body: null }),
 } satisfies AppConfig<TestProps, Model, Message> & AppConfigContract<TestProps>;
 
 const makeEventTarget = () => {
   const listeners = new Map<string, Set<EventListener>>();
   return {
-    addEventListener: (type: string, listener: EventListener) => {
+    addEventListener: (
+      type: string,
+      listener: EventListener,
+      options?: { readonly once?: boolean },
+    ) => {
       const current = listeners.get(type) ?? new Set<EventListener>();
-      current.add(listener);
+      const wrapped: EventListener = options?.once
+        ? (event) => {
+            current.delete(wrapped);
+            listener(event);
+          }
+        : listener;
+      current.add(wrapped);
       listeners.set(type, current);
     },
     removeEventListener: (type: string, listener: EventListener) => {
@@ -44,14 +57,91 @@ const makeEventTarget = () => {
     },
     dispatch: (type: string, eventProperties: EventProperties = {}) => {
       const event = Object.assign(new Event(type), eventProperties);
-      for (const listener of listeners.get(type) ?? []) listener(event);
+      for (const listener of Array.from(listeners.get(type) ?? [])) listener(event);
     },
+    listenerCount: (type: string) => listeners.get(type)?.size ?? 0,
   };
 };
 
-type TestChild = {
-  readonly attributes: Readonly<Record<string, string>>;
-};
+// Model the runtime's replacement semantics without adding a DOM dependency.
+class TestNode {
+  readonly children: TestNode[] = [];
+  parentNode: TestNode | null = null;
+  readonly events = makeEventTarget();
+  readonly addEventListener = this.events.addEventListener;
+  readonly removeEventListener = this.events.removeEventListener;
+  readonly dispatch = this.events.dispatch;
+  readonly listenerCount = this.events.listenerCount;
+  readonly ownerDocument = {
+    createElement: (tagName: string) => new TestNode(tagName),
+  };
+
+  constructor(
+    readonly tagName: string,
+    readonly attributes: Record<string, string> = {},
+  ) {}
+
+  get id() {
+    return this.attributes.id ?? '';
+  }
+
+  set id(value: string) {
+    this.attributes.id = value;
+  }
+
+  get isConnected(): boolean {
+    return this.tagName === '#document' || (this.parentNode?.isConnected ?? false);
+  }
+
+  getAttribute(name: string) {
+    return this.attributes[name] ?? null;
+  }
+
+  setAttribute(name: string, value: string) {
+    this.attributes[name] = value;
+  }
+
+  appendChild(child: TestNode) {
+    child.remove();
+    child.parentNode = this;
+    this.children.push(child);
+    return child;
+  }
+
+  remove() {
+    if (this.parentNode) {
+      this.parentNode.children.splice(this.parentNode.children.indexOf(this), 1);
+      this.parentNode = null;
+    }
+  }
+
+  replaceWith(next: TestNode) {
+    const parent = this.parentNode;
+    if (!parent) throw new TestRuntimeError({ message: 'Runtime mount must have a parent' });
+    const index = parent.children.indexOf(this);
+    this.remove();
+    next.remove();
+    parent.children.splice(index, 0, next);
+    next.parentNode = parent;
+  }
+
+  closest(selector: string): TestNode | null {
+    return this.tagName === selector ? this : (this.parentNode?.closest(selector) ?? null);
+  }
+
+  querySelectorAll(selector: string): TestNode[] {
+    return this.children.flatMap((child) => [
+      ...(selector === '[data-foldkit-app]' && child.getAttribute('data-foldkit-app') !== null
+        ? [child]
+        : []),
+      ...(selector === '[data-foldkit-island="true"]' &&
+      child.getAttribute('data-foldkit-island') === 'true'
+        ? [child]
+        : []),
+      ...child.querySelectorAll(selector),
+    ]);
+  }
+}
 
 interface EventProperties {
   readonly detail?: {
@@ -63,23 +153,21 @@ interface EventProperties {
 
 const makeFoldkitRoot = (
   attributes: Readonly<Record<string, string>> = { 'data-foldkit-build': BUILD_ID },
-): TestChild => ({
-  attributes: {
+): TestNode =>
+  new TestNode('section', {
     'data-foldkit-app': 'app',
     ...attributes,
-  },
-});
+  });
 
-const matchesSelector = (child: TestChild, selector: string): boolean =>
-  selector === '[data-foldkit-app]' && child.attributes['data-foldkit-app'] !== undefined;
-
-const makeElement = (uid = 'island-test', children: readonly TestChild[] = []) => ({
-  id: '',
-  getAttribute: (name: string) => (name === 'uid' ? uid : null),
-  querySelectorAll: (selector: string) =>
-    children.filter((child) => matchesSelector(child, selector)),
-  ...makeEventTarget(),
-});
+const makeElement = (
+  uid = 'island-test',
+  children: readonly TestNode[] = [new TestNode('div', { 'data-foldkit-island': 'true' })],
+) => {
+  const element = new TestNode('astro-island', { uid });
+  for (const child of children) element.appendChild(child);
+  new TestNode('#document').appendChild(element);
+  return element;
+};
 
 type TestElement = ReturnType<typeof makeElement> & HTMLElement;
 
@@ -106,6 +194,8 @@ const renderWith = async (
     readonly element?: ReturnType<typeof makeElement>;
     readonly document?: ReturnType<typeof makeDocument>;
     readonly window?: { readonly location: { href: string } };
+    readonly props?: TestProps;
+    readonly renderer?: ReturnType<typeof createClientRenderer>;
   } = {},
 ) => {
   const element = options.element ?? makeElement();
@@ -119,11 +209,64 @@ const renderWith = async (
     load: async () => appConfig,
   });
 
-  await createClientRenderer(runtime, {
-    document: options.document ?? makeDocument(),
-    window: options.window ?? { location: { href: 'https://example.test/' } },
-  })(toTestElement(element))(app, {}, {}, { client: 'load' });
+  const renderer =
+    options.renderer ??
+    createClientRenderer(runtime, {
+      document: options.document ?? makeDocument(),
+      window: options.window ?? { location: { href: 'https://example.test/' } },
+    });
+  await renderer(toTestElement(element))(app, options.props ?? {}, {}, { client: 'load' });
   return element;
+};
+
+const replacingRuntime = () => {
+  const sent: NavigationEvent[] = [];
+  const renderedRoot = new TestNode('section', { 'aria-label': 'Rendered application' });
+  let mount: TestNode | undefined;
+  let input: RuntimeConfig | undefined;
+  let initCalls = 0;
+  let embedCalls = 0;
+  let disposeCalls = 0;
+  const runtime: ClientRuntime = {
+    makeApplication: (config) => {
+      input = config;
+      return config;
+    },
+    embed: (program) => {
+      // SAFETY: The renderer creates the runtime config consumed by this test double.
+      const config = program as {
+        readonly container: TestNode;
+        readonly init: () => { readonly model: Model };
+      };
+      mount = config.container;
+      if (!mount.id) throw new TestRuntimeError({ message: 'FoldKit runtime requires a mount ID' });
+      config.init();
+      initCalls += 1;
+      embedCalls += 1;
+      mount.replaceWith(renderedRoot);
+      return {
+        ports: { navigation: { send: (event) => sent.push(event) } },
+        dispose: () => {
+          disposeCalls += 1;
+          renderedRoot.replaceWith(config.container);
+        },
+      };
+    },
+  };
+  return {
+    runtime,
+    sent,
+    renderedRoot,
+    get mount() {
+      return mount;
+    },
+    get input() {
+      return input;
+    },
+    get counts() {
+      return { initCalls, embedCalls, disposeCalls };
+    },
+  };
 };
 
 describe('astro-foldkit client renderer', () => {
@@ -135,6 +278,284 @@ describe('astro-foldkit client renderer', () => {
   afterEach(() => {
     if (previousBuildId === undefined) delete process.env.FOLDKIT_BUILD_ID;
     else process.env.FOLDKIT_BUILD_ID = previousBuildId;
+  });
+
+  it.each([true, false])(
+    'gives the runtime a stable distinct mount identity (SSR: %s)',
+    async (ssr) => {
+      const mountIds: string[] = [];
+      for (const uid of ['identity-a', 'identity-b', 'identity-a']) {
+        const element = ssr ? makeElement(uid) : makeElement(uid, []);
+        const replacement = replacingRuntime();
+        await renderWith(replacement.runtime, { element });
+        expect(replacement.mount?.id).toBeTruthy();
+        expect(replacement.mount?.id).not.toBe(element.id);
+        mountIds.push(replacement.mount?.id ?? '');
+      }
+      expect(mountIds[0]).not.toBe(mountIds[1]);
+      expect(mountIds[0]).toBe(mountIds[2]);
+    },
+  );
+
+  it('preserves a pre-existing inner runtime mount ID', async () => {
+    const shell = new TestNode('div', { 'data-foldkit-island': 'true', id: 'custom-mount' });
+    const replacement = replacingRuntime();
+    await renderWith(replacement.runtime, { element: makeElement('custom-host', [shell]) });
+    expect(replacement.mount?.id).toBe('custom-mount');
+  });
+
+  it('replaces only the SSR mount and preserves the connected Astro lifecycle host', async () => {
+    const shell = new TestNode('div', { 'data-foldkit-island': 'true' });
+    const element = makeElement('replacement-host', [shell]);
+    element.setAttribute('props', '{"initialCount":3}');
+    element.setAttribute('client', 'load');
+    element.setAttribute('data-astro-transition-persist', 'analysis');
+    const replacement = replacingRuntime();
+
+    await renderWith(replacement.runtime, { element });
+
+    expect(element.isConnected).toBe(true);
+    expect(element.attributes).toEqual({
+      id: 'replacement-host',
+      uid: 'replacement-host',
+      props: '{"initialCount":3}',
+      client: 'load',
+      'data-astro-transition-persist': 'analysis',
+    });
+    expect(replacement.mount).toBe(shell);
+    expect(shell.isConnected).toBe(false);
+    expect(element.children).toEqual([replacement.renderedRoot]);
+    expect(replacement.renderedRoot.isConnected).toBe(true);
+  });
+
+  it('creates an inner replaceable mount for an empty client-only host', async () => {
+    const element = makeElement('client-only-host', []);
+    const replacement = replacingRuntime();
+
+    await renderWith(replacement.runtime, { element });
+
+    expect(element.isConnected).toBe(true);
+    expect(replacement.mount).not.toBe(element);
+    expect(replacement.mount?.getAttribute('data-foldkit-island')).toBe('true');
+    expect(element.children).toEqual([replacement.renderedRoot]);
+  });
+
+  it('rejects multiple owned shells before initialization or embedding', async () => {
+    const first = new TestNode('div', { 'data-foldkit-island': 'true' });
+    const second = new TestNode('div', { 'data-foldkit-island': 'true' });
+    const wrapper = new TestNode('div');
+    wrapper.appendChild(second);
+    const element = makeElement('ambiguous-host', [first, wrapper]);
+    const replacement = replacingRuntime();
+
+    await expect(renderWith(replacement.runtime, { element })).rejects.toThrow(
+      'at most one owned FoldKit island mount',
+    );
+    expect(replacement.input).toBeUndefined();
+    expect(replacement.counts).toEqual({ initCalls: 0, embedCalls: 0, disposeCalls: 0 });
+    expect(element.children).toEqual([first, wrapper]);
+  });
+
+  it.each([true, false])('never uses a nested island shell (own shell: %s)', async (hasOwn) => {
+    const nestedShell = new TestNode('div', { 'data-foldkit-island': 'true' });
+    const nested = makeElement('nested-host', [nestedShell]);
+    const ownShell = new TestNode('div', { 'data-foldkit-island': 'true' });
+    const element = makeElement('outer-host', hasOwn ? [nested, ownShell] : [nested]);
+    const replacement = replacingRuntime();
+
+    await renderWith(replacement.runtime, { element });
+
+    expect(element.isConnected).toBe(true);
+    expect(nested.isConnected).toBe(true);
+    expect(nested.children).toEqual([nestedShell]);
+    expect(replacement.mount).not.toBe(nestedShell);
+    if (hasOwn) expect(replacement.mount).toBe(ownShell);
+    else expect(replacement.mount?.getAttribute('data-foldkit-island')).toBe('true');
+    expect(replacement.renderedRoot.parentNode).toBe(element);
+  });
+
+  it.each([true, ''] as const)(
+    'keeps noMeta title pinning on the inner mount (%s)',
+    async (noMeta) => {
+      const replacement = replacingRuntime();
+      const element = await renderWith(replacement.runtime, { props: { noMeta } });
+      // SAFETY: The renderer config supplies the wrapped view at this boundary.
+      const input = replacement.input as { readonly view: typeof config.view };
+
+      // SAFETY: This fixture view never uses its builder; only document metadata is exercised.
+      expect(input.view({ count: 0 }, {} as HtmlBuilder<Message>)).toEqual({
+        title: 'Test page',
+        body: null,
+      });
+      expect(element.isConnected).toBe(true);
+    },
+  );
+
+  it('retains the runtime across repeated swaps and disposes once on genuine route removal', async () => {
+    const uid = 'replacement-navigation-host';
+    const element = makeElement(uid);
+    const document = makeDocument();
+    const window = { location: { href: 'https://example.test/start' } };
+    const replacement = replacingRuntime();
+    const renderer = createClientRenderer(replacement.runtime, { document, window });
+
+    await renderWith(replacement.runtime, {
+      renderer,
+      element,
+      document,
+      window,
+      navigation: { port: 'navigation', map: (event) => event },
+    });
+    document.dispatch('astro:page-load');
+    for (const path of ['/next', '/start', '/next']) {
+      document.dispatch('astro:before-swap', {
+        newDocument: makeDocument([uid]),
+        detail: { to: { href: `https://example.test${path}` } },
+      });
+      // Astro emits unmount after swap only if its lifecycle host is disconnected.
+      if (!element.isConnected) element.dispatch('astro:unmount');
+      window.location.href = `https://example.test${path}`;
+      // Reconnecting a persisted Astro custom element invokes its hydrator again.
+      await renderWith(replacement.runtime, {
+        renderer,
+        element,
+        navigation: { port: 'navigation', map: (event) => event },
+      });
+      document.dispatch('astro:page-load');
+      expect(element.children).toEqual([replacement.renderedRoot]);
+      expect(replacement.renderedRoot.isConnected).toBe(true);
+      expect(replacement.counts).toEqual({ initCalls: 1, embedCalls: 1, disposeCalls: 0 });
+    }
+    expect(replacement.sent).toEqual([
+      { phase: 'coldLoad', path: '/start', previousPath: null },
+      { phase: 'stayed', path: '/next', previousPath: '/start' },
+      { phase: 'stayed', path: '/start', previousPath: '/next' },
+      { phase: 'stayed', path: '/next', previousPath: '/start' },
+    ]);
+
+    document.dispatch('astro:before-swap', { newDocument: makeDocument() });
+    element.remove();
+    element.dispatch('astro:unmount');
+    element.dispatch('astro:unmount');
+    expect(replacement.sent.at(-1)).toEqual({
+      phase: 'exited',
+      path: '/next',
+      previousPath: '/next',
+    });
+    expect(replacement.counts).toEqual({ initCalls: 1, embedCalls: 1, disposeCalls: 1 });
+    expect(document.listenerCount('astro:page-load')).toBe(0);
+    expect(document.listenerCount('astro:before-swap')).toBe(0);
+    expect(element.listenerCount('astro:unmount')).toBe(0);
+    document.dispatch('astro:page-load');
+    document.dispatch('astro:before-swap', { newDocument: makeDocument([uid]) });
+    expect(replacement.sent).toHaveLength(5);
+
+    const remount = replacingRuntime();
+    await renderWith(remount.runtime, {
+      element: makeElement(uid),
+      document,
+      window,
+      navigation: { port: 'navigation', map: (event) => event },
+    });
+    expect(remount.sent).toEqual([{ phase: 'entered', path: '/next', previousPath: null }]);
+  });
+
+  it('shares an in-flight island load across concurrent hydration callbacks', async () => {
+    const replacement = replacingRuntime();
+    const renderer = createClientRenderer(replacement.runtime, { document: makeDocument() });
+    const element = makeElement('concurrent-host');
+    const loaded = Promise.withResolvers<typeof config>();
+    let loadCalls = 0;
+    const app = Object.assign((_props?: TestProps) => {}, {
+      __foldkit: true as const,
+      load: () => {
+        loadCalls += 1;
+        return loaded.promise;
+      },
+    });
+    const first = renderer(toTestElement(element))(app, {}, {}, { client: 'load' });
+    const second = renderer(toTestElement(element))(app, {}, {}, { client: 'load' });
+    loaded.resolve(config);
+    await Promise.all([first, second]);
+    expect(loadCalls).toBe(1);
+    expect(replacement.counts).toEqual({ initCalls: 1, embedCalls: 1, disposeCalls: 0 });
+    expect(element.children).toEqual([replacement.renderedRoot]);
+  });
+
+  it('allows hydration to retry after a failed load and after a genuine unmount', async () => {
+    const replacement = replacingRuntime();
+    const document = makeDocument();
+    const renderer = createClientRenderer(replacement.runtime, { document });
+    const element = makeElement('retry-host');
+    let loadCalls = 0;
+    const app = Object.assign((_props?: TestProps) => {}, {
+      __foldkit: true as const,
+      load: async () => {
+        loadCalls += 1;
+        if (loadCalls === 1) throw new TestRuntimeError({ message: 'Transient load failure' });
+        return config;
+      },
+    });
+    await expect(renderer(toTestElement(element))(app, {}, {}, { client: 'load' })).rejects.toThrow(
+      'Transient load failure',
+    );
+    await renderer(toTestElement(element))(app, {}, {}, { client: 'load' });
+    element.remove();
+    element.dispatch('astro:unmount');
+    new TestNode('#document').appendChild(element);
+    await renderer(toTestElement(element))(app, {}, {}, { client: 'load' });
+    expect(loadCalls).toBe(3);
+    expect(replacement.counts).toEqual({ initCalls: 2, embedCalls: 2, disposeCalls: 1 });
+    expect(element.children).toEqual([replacement.renderedRoot]);
+  });
+
+  it('does not initialize a host removed while its component is still loading', async () => {
+    const replacement = replacingRuntime();
+    const renderer = createClientRenderer(replacement.runtime, { document: makeDocument() });
+    const element = makeElement('pending-removal-host');
+    const loaded = Promise.withResolvers<typeof config>();
+    const app = Object.assign((_props?: TestProps) => {}, {
+      __foldkit: true as const,
+      load: () => loaded.promise,
+    });
+    const pending = renderer(toTestElement(element))(app, {}, {}, { client: 'load' });
+    element.remove();
+    element.dispatch('astro:unmount');
+    loaded.resolve(config);
+    await pending;
+    expect(replacement.counts).toEqual({ initCalls: 0, embedCalls: 0, disposeCalls: 0 });
+    expect(element.listenerCount('astro:unmount')).toBe(0);
+    new TestNode('#document').appendChild(element);
+    await renderer(toTestElement(element))(app, {}, {}, { client: 'load' });
+    expect(replacement.counts).toEqual({ initCalls: 1, embedCalls: 1, disposeCalls: 0 });
+  });
+
+  it('cleans up an embedded runtime if initial navigation forwarding fails', async () => {
+    const replacement = replacingRuntime();
+    const document = makeDocument();
+    const renderer = createClientRenderer(replacement.runtime, {
+      document,
+      window: { location: { href: 'https://example.test/' } },
+    });
+    const element = makeElement('failed-bridge-host');
+    await expect(
+      renderWith(replacement.runtime, {
+        renderer,
+        element,
+        navigation: {
+          port: 'navigation',
+          map: () => {
+            throw new TestRuntimeError({ message: 'Navigation mapping failed' });
+          },
+        },
+      }),
+    ).rejects.toThrow('Navigation mapping failed');
+    expect(replacement.counts).toEqual({ initCalls: 1, embedCalls: 1, disposeCalls: 1 });
+    expect(element.listenerCount('astro:unmount')).toBe(0);
+    expect(document.listenerCount('astro:page-load')).toBe(0);
+    expect(document.listenerCount('astro:before-swap')).toBe(0);
+    await renderWith(replacement.runtime, { renderer, element });
+    expect(replacement.counts).toEqual({ initCalls: 2, embedCalls: 2, disposeCalls: 1 });
   });
 
   it('hydrates page owners with the loaded config and build identity without embedding', async () => {

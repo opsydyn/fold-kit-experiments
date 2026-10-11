@@ -190,10 +190,27 @@ const isPageOwner = (component: unknown): component is ClientPage =>
   '__foldkitPage' in component &&
   component.__foldkitPage === true;
 
+const findIslandMount = (element: HTMLElement): HTMLElement => {
+  const mounts = Array.from(
+    element.querySelectorAll<HTMLElement>('[data-foldkit-island="true"]'),
+  ).filter((mount) => mount.closest('astro-island') === element);
+  if (mounts.length > 1)
+    throw new Error(
+      `Expected at most one owned FoldKit island mount inside the Astro island, found ${mounts.length}.`,
+    );
+  if (mounts[0]) return mounts[0];
+
+  const mount = element.ownerDocument.createElement('div');
+  mount.setAttribute('data-foldkit-island', 'true');
+  element.appendChild(mount);
+  return mount;
+};
+
 export function createClientRenderer(
   runtime: ClientRuntime = defaultRuntime,
   environment: Partial<ClientEnvironment> = {},
 ) {
+  const islandRenders = new WeakMap<HTMLElement, Promise<void>>();
   return (element: HTMLElement) =>
     async <Props extends object, Config extends AppConfigContract<Props>>(
       component: ClientComponent<Props, Config>,
@@ -219,53 +236,76 @@ export function createClientRenderer(
         return;
       }
 
-      const config = await component.load();
-      // SAFETY: The surrounding package boundary establishes this value before the assertion.
-      const runtimeConfig = config as RuntimeConfigOf<Props, Config>;
-      const baseView = runtimeConfig.view;
-      const view = shouldSkipMetadata(props)
-        ? withNoMetaView(baseView, clientEnvironment.document.title)
-        : baseView;
+      const existingRender = islandRenders.get(element);
+      if (existingRender) return existingRender;
 
-      const program = runtime.makeApplication({
-        ...runtimeConfig,
-        // Forward Astro props into init so apps can seed their model from server data.
-        // Apps that declare no props simply receive an empty object and ignore it.
-        init: () => config.init(props),
-        view,
-        container: element,
-        preserveScroll: true,
+      let unmountedWhileLoading = false;
+      let disposeAfterFailure = () => {};
+      const removePendingUnmount = listenOnce(element, 'astro:unmount', () => {
+        unmountedWhileLoading = true;
+        islandRenders.delete(element);
       });
+      const renderIsland = async () => {
+        const config = await component.load();
+        if (unmountedWhileLoading) return;
+        removePendingUnmount();
+        // SAFETY: The surrounding package boundary establishes this value before the assertion.
+        const runtimeConfig = config as RuntimeConfigOf<Props, Config>;
+        const baseView = runtimeConfig.view;
+        const view = shouldSkipMetadata(props)
+          ? withNoMetaView(baseView, clientEnvironment.document.title)
+          : baseView;
+        const mount = findIslandMount(element);
+        mount.id ||= `${element.id}--foldkit-mount`;
 
-      const handle = runtime.embed(program);
-      let disposed = false;
-      let detachNavigation = () => {};
+        const program = runtime.makeApplication({
+          ...runtimeConfig,
+          // Forward Astro props into init so apps can seed their model from server data.
+          // Apps that declare no props simply receive an empty object and ignore it.
+          init: () => config.init(props),
+          view,
+          // FoldKit replaces its container; Astro must retain the outer lifecycle owner.
+          container: mount,
+          preserveScroll: true,
+        });
 
-      if (config.navigation) {
-        const port = handle.ports?.[config.navigation.port];
-        if (port) {
-          detachNavigation = attachNavigationBridge(
-            element,
-            config.navigation,
-            (value) => port.send(value),
-            clientEnvironment,
-          );
-        } else {
-          console.warn(`FoldKit navigation port "${config.navigation.port}" is not available`);
-        }
-      }
+        const handle = runtime.embed(program);
+        let disposed = false;
+        let detachNavigation = () => {};
+        const dispose = () => {
+          if (disposed) return;
+          disposed = true;
+          islandRenders.delete(element);
+          detachNavigation();
+          handle.dispose();
+        };
+        disposeAfterFailure = dispose;
 
-      element.addEventListener(
-        'astro:unmount',
-        () => {
-          if (!disposed) {
-            disposed = true;
-            detachNavigation();
-            handle.dispose();
+        if (config.navigation) {
+          const port = handle.ports?.[config.navigation.port];
+          if (port) {
+            detachNavigation = attachNavigationBridge(
+              element,
+              config.navigation,
+              (value) => port.send(value),
+              clientEnvironment,
+            );
+          } else {
+            console.warn(`FoldKit navigation port "${config.navigation.port}" is not available`);
           }
-        },
-        { once: true },
-      );
+        }
+
+        element.addEventListener('astro:unmount', dispose, { once: true });
+      };
+      // Astro may hydrate the same retained host again, even while its load is pending.
+      const rendering: Promise<void> = renderIsland().catch((error) => {
+        removePendingUnmount();
+        disposeAfterFailure();
+        if (islandRenders.get(element) === rendering) islandRenders.delete(element);
+        throw error;
+      });
+      islandRenders.set(element, rendering);
+      await rendering;
     };
 }
 

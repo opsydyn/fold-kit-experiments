@@ -107,6 +107,42 @@ export default defineConfig({
   },
   overrides: [
     {
+      // The Web stream owns timers/readers until completion, abort or body cancellation.
+      // Native callbacks and finally release belong here, not to a short-lived HTTP Effect.
+      files: ['apps/web/src/server/agent-analysis/response.ts'],
+      rules: {
+        'linteffect/no-try-catch': 'off',
+        'linteffect/no-effect-wrapper-alias': 'off',
+        'linteffect/no-if-statement': 'off',
+        'linteffect/no-magic-domain-string': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/no-naked-object-state-update': 'off',
+      },
+    },
+    {
+      // This single Astro POST shell is the declared Effect.runPromise HTTP boundary.
+      files: ['apps/web/src/pages/api/agent-analysis.ts'],
+      rules: { 'linteffect/no-effect-wrapper-alias': 'off' },
+    },
+    {
+      // These exact test boundaries own native HTTP sockets, async teardown and fake clocks.
+      files: [
+        'apps/web/src/server/agent-analysis/http.test-helper.ts',
+        'apps/web/src/server/agent-analysis/response.test.ts',
+      ],
+      rules: {
+        'linteffect/no-try-catch': 'off',
+        'linteffect/no-domain-logic-in-conditional': 'off',
+        'linteffect/no-if-statement': 'off',
+        'linteffect/no-magic-domain-string': 'off',
+        'linteffect/no-model-overlay-cast': 'off',
+        'linteffect/no-naked-object-state-update': 'off',
+        'linteffect/no-run-effect-outside-boundary': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/no-ternary': 'off',
+      },
+    },
+    {
       // ResizeObserver registration and release are the shared Mount stream's native I/O boundary.
       // Nested callback/acquireRelease is the documented Effect callback bridge, not domain logic.
       files: [

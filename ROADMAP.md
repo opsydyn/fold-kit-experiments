@@ -1,5 +1,11 @@
 # foldkit-viz Chart Roadmap
 
+For the current source-grounded visx gallery map, capability limits and proposed
+precision/expressive stretch goals, see the
+[2026-10-05 assessment](docs/assessments/2026-10-05-visx-parity-and-chart-excellence.md).
+The inventory below records implementation history; it is not a blanket parity
+or qualification claim. Product sequencing remains in [docs/roadmap.md](docs/roadmap.md).
+
 ## Completed (49 charts)
 
 | Chart                 | Primitive                                                  | Notes                                                                          |

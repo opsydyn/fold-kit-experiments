@@ -180,6 +180,7 @@ export default defineConfig({
       ],
       rules: {
         'linteffect/no-effect-wrapper-alias': 'off',
+        'linteffect/no-magic-domain-string': 'off',
         'linteffect/no-call-tower': 'off',
         'linteffect/no-return-in-arrow': 'off',
         'linteffect/warn-effect-sync-wrapper': 'off',
@@ -249,8 +250,9 @@ export default defineConfig({
         'packages/foldkit-viz/src/**',
         'packages/foldkit-viz/test/**',
         'packages/astro-foldkit/test/**',
-        'apps/promo/src/examples/{line,histogram,scatter,bars}/{chart,data,project,view}.ts',
+        'apps/promo/src/examples/{line,histogram,scatter,bars,wordcloud}/{chart,data,project,view}.ts',
         'apps/promo/src/examples/datasets/launcher/view.ts',
+        'apps/promo/src/examples/signals/{data,derive,view,quality,quality-data,quality-view,baseline,comparison,comparison-view,events,events-data,event-derive,event-view}.ts',
         'apps/promo/test/**',
       ],
       rules: {
@@ -298,6 +300,19 @@ export default defineConfig({
         'linteffect/no-if-statement': 'off',
         'linteffect/no-magic-domain-string': 'off',
         'linteffect/no-ternary': 'off',
+      },
+    },
+    {
+      // DOM listener callbacks execute at this Mount resource boundary, not in Model/update.
+      files: ['apps/promo/src/examples/signals/input.ts'],
+      rules: {
+        'linteffect/no-magic-domain-string': 'off',
+        'linteffect/no-call-tower': 'off',
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/no-run-effect-outside-boundary': 'off',
+        'linteffect/no-if-statement': 'off',
+        'linteffect/no-ternary': 'off',
+        'linteffect/no-naked-object-state-update': 'off',
       },
     },
     {

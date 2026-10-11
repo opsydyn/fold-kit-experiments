@@ -117,3 +117,5 @@ See the individual package READMEs for usage and changelog:
 - [`packages/foldkit-viz/`](packages/foldkit-viz/) — chart primitives source and tests
 
 The demo app in [`apps/web/`](apps/web/) is the primary integration test environment and serves as the reference implementation for both packages.
+
+The promo Signal desk at `/examples/signals/` composes quality-aware observations, an independent captured baseline and caller-owned instant events. Exact event guides retain separate source provenance without treating temporal proximity as causation. See the [event-lane qualification](docs/superpowers/specs/2026-10-05-signal-event-lane-qualification.md) for local evidence and remaining device/accessibility gates.

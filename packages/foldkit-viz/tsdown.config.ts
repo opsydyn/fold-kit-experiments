@@ -3,8 +3,17 @@ import { defineConfig } from 'tsdown';
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
+    'interaction/coordinates': 'src/interaction/coordinates.ts',
+    'interaction/viewport': 'src/interaction/viewport.ts',
+    'interaction/inspection': 'src/interaction/inspection.ts',
+
+    'chart/segments': 'src/chart/segments.ts',
+    'chart/intervalBand': 'src/chart/intervalBand.ts',
+    'chart/errorBars': 'src/chart/errorBars.ts',
     'chart/cartesian': 'src/chart/cartesian.ts',
     'chart/bars': 'src/chart/bars.ts',
+    'layout/wordcloud': 'src/layout/wordcloud.ts',
+    'layout/text': 'src/layout/text.ts',
     'chart/theme': 'src/chart/theme.ts',
     'foldkit/cartesian': 'src/foldkit/cartesian.ts',
     'foldkit/paint': 'src/foldkit/paint.ts',

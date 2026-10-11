@@ -1,5 +1,6 @@
 import type { Option } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
+import type { MountAction } from 'foldkit/mount';
 
 import type { CartesianLayout } from '../chart/cartesian.js';
 import type { ChartTheme } from '../chart/theme.js';
@@ -10,6 +11,7 @@ export type ChartFrameOptions<M> = Readonly<{
   description: string;
   theme: ChartTheme;
   interactive?: boolean;
+  onMount?: MountAction<M>;
   onKeyDown?: (key: string) => Option.Option<M>;
 }>;
 export function chartFrame<M>(
@@ -32,6 +34,7 @@ export function chartFrame<M>(
         color: options.theme.text,
         'font-family': options.theme.fontFamily,
       }),
+      ...(options.onMount ? [h.OnMount(options.onMount)] : []),
       ...(options.interactive ? [h.Tabindex(0)] : []),
       ...(options.onKeyDown ? [h.OnKeyDownPreventDefault(options.onKeyDown)] : []),
     ],

@@ -1,3 +1,8 @@
+export * from './interaction/coordinates';
+export * from './interaction/viewport';
+export * from './interaction/inspection';
+export * from './layout/wordcloud';
+export * from './layout/text';
 // Pure chart geometry; the optional FoldKit adapter is not re-exported.
 export * from './chart/cartesian';
 export * from './chart/bars';
@@ -190,3 +195,15 @@ export { stack } from './shape/stack';
 export type { SymbolType } from './shape/symbol';
 // shape/symbol
 export { SYMBOLS_FILL, symbolPath } from './shape/symbol';
+
+export { contiguousRuns } from './chart/segments.js';
+export type { SegmentAccessors } from './chart/segments.js';
+export { intervalBandGeometry } from './chart/intervalBand.js';
+export type {
+  IntervalBandAccessors,
+  IntervalBandPoint,
+  IntervalBandGeometry,
+} from './chart/intervalBand.js';
+
+export { errorBarGeometry } from './chart/errorBars.js';
+export type { ErrorBarAccessors, ErrorBarSegment, ErrorBarMark } from './chart/errorBars.js';

@@ -26,6 +26,8 @@ The default port is **4322**. For the review server, run `bunx astro dev --host 
 - `/examples/bars/`: grouped/stacked bars, orientation and paint controls, keyboard inspection and the complete data table.
 - `/examples/comparison/`: keyed chart panels with linked inspection and project exports.
 - `/examples/datasets/`: retained-data KeyedQuery explorer and standalone project exports.
+- `/examples/signals/`: controlled Signal Desk with supplied uncertainty, captured baselines and independent event annotations.
+- `/examples/wordcloud/`: measured word layout with spiral, font, rotation and spacing controls.
 - `/docs/`: installation, quick start and architecture guidance.
 
 Chart datasets are illustrative. Geographic boundaries come from Natural
@@ -70,8 +72,17 @@ Model. A scoped Mount observes width; focus and pointer hover report inspection
 Messages. Its source is rendered with the shared highlighter, line numbers and
 deep links. Without JavaScript, visitors can follow the static gallery fallback.
 Unlike the existing line/scatter examples, Bars does not yet export a standalone
-project or provide a live editor. Word Cloud and Signal Desk are not included in
-this integration slice.
+project or provide a live editor. Word Cloud and Signal Desk are also native
+islands with static source disclosures, not downloadable/live-editor projects.
+Their sources use the same highlighting and line-link component as Bars.
+
+Signal Desk retains application-owned viewport, selection, inspection, baseline
+and event-feed policy. Viz computes geometry; Astro owns the island lifecycle.
+Word Cloud measures fonts in a Command and rejects stale measurement revisions;
+its pure layout reports omitted words rather than hiding them. Historical device
+and accessibility evidence is in `docs/superpowers/specs/2026-10-05-signal-event-lane-qualification.md`.
+Actual screen-reader speech, physical touch, independent pointer-capture loss
+and large-feed performance remain unqualified.
 
 ## Live line example (v2)
 
@@ -168,3 +179,9 @@ directory and render the packed optional adapter under Bun and Node.
 The composition APIs shipped in `@opsydyn/foldkit-viz` 0.10.0. The current
 workspace targets FoldKit 0.167.0 and Effect 4.0.0. Local checks, hosted
 deployment and npm publication are verified separately.
+
+## Captured signal comparisons
+
+The Signal desk can capture the inspected record as a baseline, then resume inspection and compare another record. The Model owns a copied record and source snapshot independently of the existing pinned cursor. Latency differences are in ms; error-rate differences are in percentage points. Missing/invalid readings stay unavailable, with diagnostics retained. Captured freshness is explicitly at capture; current freshness can change independently. Dataset replacement always clears the baseline, including reused revision/IDs.
+
+Selected supplied intervals use pure `chart/errorBars` segments with8 SVG-unit caps. Baseline lines use a distinct3 3 dash and complete adjacent labels, with the original supplied range/support in the comparison panel. Off-screen baseline geometry is clipped, while its value reference and captured provenance remain available. Bands and full-data Y domains remain unchanged; no statistical significance is inferred.

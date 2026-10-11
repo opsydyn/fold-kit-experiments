@@ -17,10 +17,14 @@ The [pure scatter example](assets/scatter/package.json) targets the published
 Astro. Optional FoldKit adapters target FoldKit `0.167.x` and Effect `4.0.0`.
 These are qualified baselines, not instructions to downgrade another project.
 
-Repository main can be ahead of its package version. In the baseline reviewed
-for this skill, `chart/bars` and `foldkit/paint` exist in the workspace but are
-documented as unreleased. Do not infer npm availability from that workspace's
-`0.11.0` manifest; check the installed tarball/export map before importing them.
+Repository main can be ahead of its package version. Workspace-only additions
+include `chart/bars`, `foldkit/paint`, `layout/wordcloud`, `layout/text`,
+`interaction/coordinates`, `interaction/viewport`, `interaction/inspection`,
+`chart/segments`, `chart/intervalBand` and `chart/errorBars`. Do not infer npm
+availability from the workspace's `0.11.0` manifest; check the installed
+tarball/export map before importing them. Word-cloud collision bounds are
+conservative measured rectangles, not pixel-mask D3 parity. Supplied interval
+geometry does not infer confidence or statistical significance.
 
 ## Choose the smallest layer
 

@@ -12,7 +12,8 @@ test.skipIf(!base)(
     const pages = readdirSync(directory, { recursive: true }).filter(
       (path): path is string => typeof path === 'string' && path.endsWith('.html'),
     );
-    expect(pages.length).toBeGreaterThanOrEqual(7);
+    expect(pages.length).toBeGreaterThanOrEqual(10);
+    expect(pages).toContain('examples/signals/index.html');
     for (const page of pages) {
       const html = await Bun.file(join(directory, page)).text();
       const references = html.matchAll(/(?:href|src|component-url|renderer-url)="([^"]+)"/g);
@@ -42,6 +43,8 @@ test.skipIf(!base)(
     const gallery = await Bun.file(join(directory, 'examples/index.html')).text();
     expect(gallery.match(/class="example-detail"/g)).toHaveLength(18);
     expect(gallery).toContain(`${base}examples/bars/`);
+    expect(gallery).toContain(`${base}examples/signals/`);
+    expect(gallery).toContain(`${base}examples/wordcloud/`);
     expect(gallery).toContain(`${base}examples/comparison/`);
     expect(gallery).toContain(`${base}examples/datasets/`);
     expect(gallery).toContain('/tree/main/packages/foldkit-viz/src/hierarchy/index.ts');
@@ -51,5 +54,11 @@ test.skipIf(!base)(
     expect(bars).toContain('source-app.ts-L1');
     expect(bars).toContain('source-line-number');
     expect(bars).toContain(`${base}examples/#grouped-bars`);
+    for (const example of ['signals', 'wordcloud']) {
+      const page = await Bun.file(join(directory, `examples/${example}/index.html`)).text();
+      expect(page.includes('source-view.ts-L1')).toBe(true);
+      expect(page.includes('source-line-number')).toBe(true);
+      expect(page.includes('class="pl-')).toBe(true);
+    }
   },
 );

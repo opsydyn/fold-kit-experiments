@@ -61,18 +61,39 @@ const setupFixture = async (fixture: Fixture, pack: PackExecutor = npmPack): Pro
     consumer,
     `import { intervalSelection as intervalSelectionFromRoot } from '@opsydyn/foldkit-viz';
 import { intervalSelection as intervalSelectionFromSelection } from '@opsydyn/foldkit-viz/interaction/selection';
+import { clientToLocal } from '@opsydyn/foldkit-viz/interaction/coordinates';
+import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
+import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
+import { contiguousRuns } from '@opsydyn/foldkit-viz/chart/segments';
+import { intervalBandGeometry } from '@opsydyn/foldkit-viz/chart/intervalBand';
+import { errorBarGeometry } from '@opsydyn/foldkit-viz/chart/errorBars';
+import { contiguousRuns as rootRuns, intervalBandGeometry as rootBand, errorBarGeometry as rootErrors } from '@opsydyn/foldkit-viz';
 import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import type { ChartFrame } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
+import { wordCloud } from '@opsydyn/foldkit-viz/layout/wordcloud';
+import { wrapText } from '@opsydyn/foldkit-viz/layout/text';
 const frame: ChartFrame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
 const accessors = { x: (d: number) => d, y: (d: number) => d, datumKey: (d: number) => String(d), seriesKey: () => 'a' };
 lineGeometry([0, 10], accessors, { frame });
 scatterGeometry([0, 10], accessors, { frame });
 histogramGeometry([0, 10], d => d, { frame, binCount: 2 });
 barGeometry([10], { key: String, category: () => 'Jan', series: () => 'One', value: d => d }, { frame, mode: 'grouped', orientation: 'vertical' });
+wordCloud(['one'], { key: d => d, text: d => d, width: () => 30, height: () => 12 }, { width: 100, height: 60 });
+wrapText('one two', d => d.length * 10, { width: 40 });
 
 const rootSelection = intervalSelectionFromRoot('x', [0, 1]);
 const selectionSelection = intervalSelectionFromSelection('x', [0, 1]);
+clientToLocal({x:30,y:60},{a:2,b:0,c:0,d:3,e:10,f:30});
+constrainDomain([-2,3],[0,10],1);
+zoomDomain([2,8],0.5,4,[0,10],1);
+panDomain([2,5],9,[0,10],1);
+nearestByX([{id:'a',x:1}],{key:d=>d.id,x:d=>d.x},1);
+const runs = contiguousRuns([0,1,2],{x:d=>d,defined:d=>d!==1,connect:()=>true});
+const band = intervalBandGeometry([2],{x:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout);
+const marks: ReadonlyArray<import('@opsydyn/foldkit-viz/chart/errorBars').ErrorBarMark<number>> = errorBarGeometry([2],{position:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout,{axis:'y',capSize:8});
+const sameMarks: ReadonlyArray<import('@opsydyn/foldkit-viz').ErrorBarMark<number>> = marks;
+void [runs,band,rootRuns,rootBand,rootErrors,sameMarks];
 void rootSelection;
 void selectionSelection;
 `,
@@ -105,22 +126,46 @@ void selectionSelection;
     { cwd: consumerDir, maxBuffer },
   );
 
-  const geometryScript = `import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
+  const geometryScript = `import { clientToLocal } from '@opsydyn/foldkit-viz/interaction/coordinates';
+import { constrainDomain, zoomDomain, panDomain } from '@opsydyn/foldkit-viz/interaction/viewport';
+import { nearestByX } from '@opsydyn/foldkit-viz/interaction/inspection';
+import { contiguousRuns } from '@opsydyn/foldkit-viz/chart/segments';
+import { intervalBandGeometry } from '@opsydyn/foldkit-viz/chart/intervalBand';
+import { errorBarGeometry } from '@opsydyn/foldkit-viz/chart/errorBars';
+import { contiguousRuns as rootRuns, intervalBandGeometry as rootBand, errorBarGeometry as rootErrors } from '@opsydyn/foldkit-viz';
+import { lineGeometry, scatterGeometry, histogramGeometry } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { lightTheme } from '@opsydyn/foldkit-viz/chart/theme';
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
+import { wordCloud } from '@opsydyn/foldkit-viz/layout/wordcloud';
+import { wrapText } from '@opsydyn/foldkit-viz/layout/text';
 const frame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
 const accessors = { x: d => d, y: d => d, datumKey: d => String(d), seriesKey: () => 'a' };
 console.log(lineGeometry([0, 10], accessors, { frame }).series[0].path);
 console.log(scatterGeometry([5], accessors, { frame }).points[0].x);
 console.log(histogramGeometry([0, 2, 5, 10], d => d, { frame, domain: [0, 10], binCount: 2 }).bins.map(b => b.count).join(','));
 console.log(lightTheme.labelSize);
-console.log(barGeometry([10], { key: String, category: () => 'Jan', series: () => 'One', value: d => d }, { frame, mode: 'grouped', orientation: 'vertical' }).bars[0].height);`;
+console.log(barGeometry([10], { key: String, category: () => 'Jan', series: () => 'One', value: d => d }, { frame, mode: 'grouped', orientation: 'vertical' }).bars[0].height);
+const bars = barGeometry([{id:'a',v:10}], {key:d=>d.id,category:()=> 'Jan',series:()=> 'Core',value:d=>d.v}, {frame,mode:'stacked',orientation:'horizontal'});
+console.log(bars.bars.length);
+console.log(wordCloud([{id:'a'}],{key:d=>d.id,text:()=> 'One',width:()=>20,height:()=>10},{width:100,height:60}).words.length);
+console.log(wrapText('one two',s=>s.length*10,{width:40}).lines.join(','));
+console.log(JSON.stringify(clientToLocal({x:30,y:60},{a:2,b:0,c:0,d:3,e:10,f:30})));
+console.log(constrainDomain([-2,3],[0,10],1).join(','));
+console.log(zoomDomain([2,8],0.5,4,[0,10],1).join(','));
+console.log(panDomain([2,5],9,[0,10],1).join(','));
+console.log(nearestByX([{id:'a',x:2},{id:'b',x:0}],{key:d=>d.id,x:d=>d.x},1).id);
+console.log(contiguousRuns([0,1,2],{x:d=>d,defined:d=>d!==1,connect:()=>true}).map(r=>r.join(',')).join('|'));
+console.log(intervalBandGeometry([2],{x:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout).points.map(p=>[p.x,p.lowerY,p.upperY].join(',')).join('|'));
+console.log(rootRuns === contiguousRuns && rootBand === intervalBandGeometry && rootErrors === errorBarGeometry);
+console.log(JSON.stringify(errorBarGeometry([2],{position:d=>d,lower:()=>-2,upper:()=>4,datumKey:String},scatterGeometry([],accessors,{frame:{...frame,width:100},xDomain:[0,10],yDomain:[-10,10]}).layout,{axis:'y',capSize:8})[0]));`;
   for (const runtime of ['bun', 'node']) {
     const { stdout } = await execFileAsync(runtime, ['--input-type=module', '-e', geometryScript], {
       cwd: consumerDir,
       maxBuffer,
     });
-    expect(stdout.trim()).toBe('M0,100L200,0\n100\n2,2\n12\n100');
+    expect(stdout.trim()).toBe(
+      'M0,100L200,0\n100\n2,2\n12\n100\n1\n1\none,two\n{"x":10,"y":10}\n0,5\n3,6\n7,10\na\n0|2\n20,60,30\ntrue\n{"datum":2,"key":"2","stem":{"start":[20,60],"end":[20,30]},"lowerCap":{"start":[16,60],"end":[24,60]},"upperCap":{"start":[16,30],"end":[24,30]}}',
+    );
   }
   return runtimeOutput;
 };
@@ -212,7 +257,18 @@ it('renders through the packed optional adapter with the installed FoldKit host'
       documentationConsumer,
       "import type { HtmlBuilder } from 'foldkit/html';\ndeclare const h: HtmlBuilder<never>;\n" +
         snippet +
-        "\nimport { dotPattern } from '@opsydyn/foldkit-viz/foldkit/paint';\ndotPattern(h, { id: 'consumer-dots', colour: 'currentColor', spacing: 8 });\n",
+        `
+import { dotPattern, hatchPattern, linearGradient, radialGradient } from '@opsydyn/foldkit-viz/foldkit/paint';
+import { define as defineMount } from 'foldkit/mount';
+import { defineMessageUnion } from 'foldkit/message';
+import { Effect, Schema } from 'effect';
+import type { ChartFrameOptions } from '@opsydyn/foldkit-viz/foldkit/cartesian';
+const ConsumerMessage = defineMessageUnion({ Recorded: { width: Schema.Number } });
+const ConsumerMount = defineMount('ConsumerFrame', { messages: [ConsumerMessage.Recorded], execute: () => Effect.succeed(ConsumerMessage.Recorded({ width: 200 })) });
+const mountedFrame: ChartFrameOptions<typeof ConsumerMessage.Type> = { layout: geometry.layout, title: 'Mounted', description: 'Caller-owned input', theme: lightTheme, onMount: ConsumerMount() };
+const paints = [dotPattern(h, { id: 'd', colour: 'currentColor', spacing: 8 }), hatchPattern(h, { id: 'h', colour: 'currentColor', spacing: 8 }), linearGradient(h, { id: 'l', stops: [{ offset: 0, colour: 'red' }] }), radialGradient(h, { id: 'r', stops: [{ offset: 0, colour: 'red' }] })];
+void [mountedFrame, paints];
+`,
     );
     await execFileAsync(
       'bun',

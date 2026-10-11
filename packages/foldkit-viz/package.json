@@ -24,7 +24,8 @@
   "files": [
     "CHANGELOG.md",
     "dist",
-    "README.md"
+    "README.md",
+    "THIRD-PARTY-NOTICES.md"
   ],
   "type": "module",
   "sideEffects": false,
@@ -142,6 +143,30 @@
       ],
       "foldkit/cartesian": [
         "./dist/foldkit/cartesian.d.mts"
+      ],
+      "layout/wordcloud": [
+        "./dist/layout/wordcloud.d.mts"
+      ],
+      "layout/text": [
+        "./dist/layout/text.d.mts"
+      ],
+      "interaction/coordinates": [
+        "./dist/interaction/coordinates.d.mts"
+      ],
+      "interaction/viewport": [
+        "./dist/interaction/viewport.d.mts"
+      ],
+      "interaction/inspection": [
+        "./dist/interaction/inspection.d.mts"
+      ],
+      "chart/segments": [
+        "./dist/chart/segments.d.mts"
+      ],
+      "chart/intervalBand": [
+        "./dist/chart/intervalBand.d.mts"
+      ],
+      "chart/errorBars": [
+        "./dist/chart/errorBars.d.mts"
       ]
     }
   },
@@ -297,6 +322,38 @@
     "./foldkit/cartesian": {
       "types": "./dist/foldkit/cartesian.d.mts",
       "import": "./dist/foldkit/cartesian.mjs"
+    },
+    "./layout/wordcloud": {
+      "types": "./dist/layout/wordcloud.d.mts",
+      "import": "./dist/layout/wordcloud.mjs"
+    },
+    "./layout/text": {
+      "types": "./dist/layout/text.d.mts",
+      "import": "./dist/layout/text.mjs"
+    },
+    "./interaction/coordinates": {
+      "types": "./dist/interaction/coordinates.d.mts",
+      "import": "./dist/interaction/coordinates.mjs"
+    },
+    "./interaction/viewport": {
+      "types": "./dist/interaction/viewport.d.mts",
+      "import": "./dist/interaction/viewport.mjs"
+    },
+    "./interaction/inspection": {
+      "types": "./dist/interaction/inspection.d.mts",
+      "import": "./dist/interaction/inspection.mjs"
+    },
+    "./chart/segments": {
+      "types": "./dist/chart/segments.d.mts",
+      "import": "./dist/chart/segments.mjs"
+    },
+    "./chart/intervalBand": {
+      "types": "./dist/chart/intervalBand.d.mts",
+      "import": "./dist/chart/intervalBand.mjs"
+    },
+    "./chart/errorBars": {
+      "types": "./dist/chart/errorBars.d.mts",
+      "import": "./dist/chart/errorBars.mjs"
     }
   },
   "publishConfig": {

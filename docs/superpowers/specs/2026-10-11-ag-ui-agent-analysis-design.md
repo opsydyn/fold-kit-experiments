@@ -1,7 +1,8 @@
 # AG-UI Agent Analysis Reference Demo
 
-Status: conversational design approved on 2026-10-11. Written-spec review is
-pending; implementation planning and product code are not yet approved.
+Status: conversational design and written spec approved on 2026-10-11.
+Implementation plan review and execution-method selection are pending; product
+implementation has not started.
 
 ## Outcome
 
@@ -103,8 +104,9 @@ events do not carry lifecycle run IDs.
 ## Update And Recovery Contract
 
 Messages are facts such as `ClickedRun`, `ClickedCancel`, `ClickedRecover`,
-`ClickedFilter`, `ClickedService`, `GotAgentEvent`, `FailedStream` and `Navigated`.
-Use the union's exhaustive match and record-shaped update returns.
+`ClickedFilter`, `ClickedService`, `ReceivedAgentEvent`, `FailedStream` and
+`Navigated`. Reserve `Got*` for child-app results, as required by the repository's
+lint rules. Use the union's exhaustive match and record-shaped update returns.
 
 1. Run starts a fresh descriptor and enters Connecting. If another stream is
    active, replacing its descriptor disposes that stream. Retain last valid

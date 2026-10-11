@@ -63,6 +63,47 @@ the version gate on bars/paint. Review also led to explicitly scoping Model,
 Command and OutMessage guidance to FoldKit hosts rather than plain TypeScript.
 This is focused synthetic evidence, not a general measurement of agent uplift.
 
+## Standalone Dogfood Follow-up
+
+After committing the skills in `2152264`, two fresh-context agents built new
+consumers using one skill each, its supporting resources and installed published
+package declarations. Neither read monorepo source, root agent instructions or
+the sibling skill. Both also read their harness-required global process skill;
+this was isolated package guidance, not a completely instruction-free trial.
+
+| Consumer                               | New behaviour                                                                                                                                         | Verification                                                                                                                                     |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Astro quantity selector                | Validated product/initial quantity, immutable increment/decrement, zero floor; island and prerendered page ownership                                  | 25 application tests, 5 production-HTML tests, Astro diagnostics with zero errors/warnings/hints, two-route build                                |
+| Plain TypeScript service-latency chart | Six services in two series, original-record identity, host-owned filtering and multi-selection, reorder/resize reconciliation, SVG and raw-data table | 13 tests, strict TypeScript including dependency declarations, generated populated/narrow/filtered/empty SVGs; only Viz and TypeScript installed |
+
+The parent independently reran consumer tests and typechecks and checked the
+built output in headless Chrome at 1365px and 390px widths. Both Astro routes
+hydrated, supported Enter/Space activation, disabled decrement at zero, and
+recovered on increment. The island retained `Order form`; the page updated its
+quantity-dependent title. Raw HTML and a JavaScript-disabled browser confirmed
+the page's initial quantity of two. Neither route caused a browser exception or
+console error in this local static-server check.
+
+Viz rendered six labelled marks, two selection rings, the raw-data table and
+an empty chart. Screenshots and SVG text bounds were inspected. Narrow screens
+use intentional horizontal chart/table scrolling; geometry resize tests do not
+establish automatic DOM resize handling or a fully responsive chart layout.
+This remains static output, not pointer/keyboard chart interaction qualification.
+
+Parent review corrected one unnecessary dynamic import in the Astro consumer's
+test to a static import. The skill already specifies that boundary, so no new
+rule was added. Neither consumer exposed a blocking package-guidance gap.
+Selection eligibility and minimum dimensions remained explicit host policies,
+not new universal skill requirements. The Astro example's `check` script means
+typechecking, not lint; these consumer results do not claim lint coverage.
+
+Local artifacts are in `/tmp/foldkit-dogfood-astro` and
+`/tmp/foldkit-dogfood-viz`, with browser evidence in
+`/tmp/foldkit-dogfood-evidence`. They are temporary, not repository fixtures or
+globally installed skills. This follow-up does not qualify request SSR,
+retained-navigation behaviour, screen-reader use, native host skill discovery,
+or AG-UI compatibility.
+
 ## Limits
 
 - Request-SSR deployment adapters and navigation retention are documented but

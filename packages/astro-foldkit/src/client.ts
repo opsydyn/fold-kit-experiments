@@ -4,7 +4,7 @@ import { readFoldkitBuildId } from './build-id';
 import { findSingleFoldkitRoot, shouldSkipMetadata, withNoMetaView } from './client-helpers';
 import { normalizeNavigationEvent } from './navigation';
 import type { NavigationConfig, NavigationEvent, NavigationPhase } from './navigation';
-import type { AppConfigContract, FoldkitApp } from './types';
+import type { AppConfigContract, AppReturn, FoldkitApp } from './types';
 
 interface RuntimeConfigInput {}
 interface RuntimeProgram {}
@@ -12,6 +12,11 @@ interface RuntimeHydrationOptions {
   readonly buildId?: string;
 }
 interface ClientSlots {}
+
+type IslandBoot = {
+  readonly initial: AppReturn;
+  readonly view: AppConfigContract['view'];
+};
 
 type ConfigModel<Props extends object, Config extends AppConfigContract<Props>> = ReturnType<
   Config['init']
@@ -211,6 +216,13 @@ export function createClientRenderer(
   environment: Partial<ClientEnvironment> = {},
 ) {
   const islandRenders = new WeakMap<HTMLElement, Promise<void>>();
+  const islandPrograms = new WeakMap<
+    HTMLElement,
+    {
+      readonly program: RuntimeProgram;
+      readonly prepare: (initial: AppReturn, view: AppConfigContract['view']) => void;
+    }
+  >();
   return (element: HTMLElement) =>
     async <Props extends object, Config extends AppConfigContract<Props>>(
       component: ClientComponent<Props, Config>,
@@ -255,21 +267,36 @@ export function createClientRenderer(
         const view = shouldSkipMetadata(props)
           ? withNoMetaView(baseView, clientEnvironment.document.title)
           : baseView;
-        const mount = findIslandMount(element);
-        mount.id ||= `${element.id}--foldkit-mount`;
+        let owner = islandPrograms.get(element);
+        const mount = owner === undefined ? findIslandMount(element) : undefined;
+        if (mount) mount.id ||= `${element.id}--foldkit-mount`;
+        // init is pure: validate it before the runtime forks, retaining its command descriptions.
+        const initial = config.init(props);
+        if (owner) owner.prepare(initial, view);
+        else {
+          let boot: IslandBoot = {
+            initial,
+            view,
+          };
+          const program = runtime.makeApplication({
+            ...runtimeConfig,
+            init: () => boot.initial,
+            view: (model: never, h: never) => boot.view(model, h),
+            // FoldKit replaces its container; Astro must retain the outer lifecycle owner.
+            container: mount,
+            preserveScroll: true,
+          });
+          owner = {
+            program,
+            prepare: (nextInitial, nextView) => {
+              boot = { initial: nextInitial, view: nextView };
+            },
+          };
+          islandPrograms.set(element, owner);
+        }
 
-        const program = runtime.makeApplication({
-          ...runtimeConfig,
-          // Forward Astro props into init so apps can seed their model from server data.
-          // Apps that declare no props simply receive an empty object and ignore it.
-          init: () => config.init(props),
-          view,
-          // FoldKit replaces its container; Astro must retain the outer lifecycle owner.
-          container: mount,
-          preserveScroll: true,
-        });
-
-        const handle = runtime.embed(program);
+        // Same-program embed officially waits for prior fiber exit and mount restoration.
+        const handle = runtime.embed(owner.program);
         let disposed = false;
         let detachNavigation = () => {};
         const dispose = () => {

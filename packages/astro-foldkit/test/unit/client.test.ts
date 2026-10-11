@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 
-import { Data, Schema } from 'effect';
+import { Data, Option, Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import type { ClientRuntime } from '../../src/client';
@@ -269,6 +269,89 @@ const replacingRuntime = () => {
   };
 };
 
+const asynchronousRuntime = () => {
+  type BootConfig = {
+    readonly container: TestNode;
+    readonly init: () => { readonly model: Model };
+  };
+  const programs = new Map<
+    RuntimeProgram,
+    {
+      readonly config: BootConfig;
+      previousExit: Promise<void>;
+      active: boolean;
+    }
+  >();
+  const startupFailures: Error[] = [];
+  const startups: Promise<Option.Option<TestNode>>[] = [];
+  const teardowns: Promise<void>[] = [];
+  const restoration = Promise.withResolvers<void>();
+  let applicationCalls = 0;
+  let embedCalls = 0;
+  let disposeCalls = 0;
+  const runtime: ClientRuntime = {
+    makeApplication: (input) => {
+      applicationCalls += 1;
+      const program = {};
+      // SAFETY: This test runtime consumes the adapter's container/init boundary.
+      const config = input as BootConfig;
+      programs.set(program, { config, previousExit: Promise.resolve(), active: false });
+      return program;
+    },
+    embed: (program) => {
+      const state = programs.get(program);
+      if (!state || state.active)
+        throw new TestRuntimeError({ message: 'Invalid embed ownership' });
+      state.active = true;
+      embedCalls += 1;
+      let disposed = false;
+      const exited = Promise.withResolvers<void>();
+      // Public FoldKit embed waits for prior exit only when the program is reused.
+      const startup = state.previousExit
+        .then(() => {
+          if (disposed) return Option.none<TestNode>();
+          const { model } = state.config.init();
+          const root = new TestNode('section', { 'data-count': String(model.count) });
+          state.config.container.replaceWith(root);
+          return Option.some(root);
+        })
+        .catch((error) => {
+          startupFailures.push(
+            error instanceof Error ? error : new TestRuntimeError({ message: 'Startup failed' }),
+          );
+          return Option.none<TestNode>();
+        });
+      startups.push(startup);
+      state.previousExit = exited.promise;
+      return {
+        dispose: () => {
+          if (disposed) return;
+          disposed = true;
+          state.active = false;
+          disposeCalls += 1;
+          teardowns.push(
+            startup.then(async (root) => {
+              await restoration.promise;
+              if (Option.isSome(root)) root.value.replaceWith(state.config.container);
+              exited.resolve();
+            }),
+          );
+        },
+      };
+    },
+  };
+  return {
+    runtime,
+    startups,
+    teardowns,
+    restoration,
+    startupFailures,
+    get counts() {
+      return { applicationCalls, embedCalls, disposeCalls };
+    },
+  };
+};
+
 describe('astro-foldkit client renderer', () => {
   let previousBuildId: string | undefined;
   beforeEach(() => {
@@ -278,6 +361,76 @@ describe('astro-foldkit client renderer', () => {
   afterEach(() => {
     if (previousBuildId === undefined) delete process.env.FOLDKIT_BUILD_ID;
     else process.env.FOLDKIT_BUILD_ID = previousBuildId;
+  });
+
+  it('rejects a pure init failure before asynchronous startup can cache a dead owner', async () => {
+    const asynchronous = asynchronousRuntime();
+    const renderer = createClientRenderer(asynchronous.runtime, { document: makeDocument() });
+    const element = makeElement('async-init-failure-host');
+    let initCalls = 0;
+    const app = Object.assign((_props?: TestProps) => {}, {
+      __foldkit: true as const,
+      load: async () => ({
+        ...config,
+        init: () => {
+          initCalls += 1;
+          if (initCalls === 1) throw new TestRuntimeError({ message: 'Actual init failed' });
+          return { model: { count: 7 } };
+        },
+      }),
+    });
+    const first = await Promise.allSettled([
+      renderer(toTestElement(element))(app, {}, {}, { client: 'load' }),
+    ]);
+    await Promise.all(asynchronous.startups);
+    expect(first[0]?.status).toBe('rejected');
+    expect(asynchronous.counts.embedCalls).toBe(0);
+    await renderer(toTestElement(element))(app, {}, {}, { client: 'load' });
+    await Promise.all(asynchronous.startups);
+    expect(initCalls).toBe(2);
+    expect(element.children).toHaveLength(1);
+    expect(element.children[0]?.getAttribute('data-count')).toBe('7');
+    expect(asynchronous.startupFailures).toEqual([]);
+    element.dispatch('astro:unmount');
+    element.dispatch('astro:unmount');
+    asynchronous.restoration.resolve();
+    await Promise.all(asynchronous.teardowns);
+    expect(asynchronous.counts).toEqual({ applicationCalls: 1, embedCalls: 1, disposeCalls: 1 });
+  });
+
+  it('reuses the program so rapid remount waits for delayed renderer restoration', async () => {
+    const asynchronous = asynchronousRuntime();
+    const renderer = createClientRenderer(asynchronous.runtime, { document: makeDocument() });
+    const shell = new TestNode('div', { 'data-foldkit-island': 'true' });
+    const element = makeElement('delayed-restoration-host', [shell]);
+    const parent = element.parentNode;
+    await renderWith(asynchronous.runtime, { renderer, element, props: { initialCount: 1 } });
+    await Promise.all(asynchronous.startups);
+    const originalRoot = element.children[0];
+    if (!originalRoot) throw new TestRuntimeError({ message: 'Missing initial runtime root' });
+    element.remove();
+    element.dispatch('astro:unmount');
+    parent?.appendChild(element);
+    await renderWith(asynchronous.runtime, { renderer, element, props: { initialCount: 2 } });
+    const childrenBeforeRestoration = [...element.children];
+    const countsBeforeRestoration = asynchronous.counts;
+    asynchronous.restoration.resolve();
+    await Promise.all(asynchronous.teardowns);
+    await Promise.all(asynchronous.startups);
+    expect(element.children).toHaveLength(1);
+    expect(element.children[0]?.getAttribute('data-count')).toBe('2');
+    expect(childrenBeforeRestoration).toEqual([originalRoot]);
+    expect(countsBeforeRestoration).toEqual({
+      applicationCalls: 1,
+      embedCalls: 2,
+      disposeCalls: 1,
+    });
+    expect(element.querySelectorAll('[data-foldkit-island="true"]')).toHaveLength(0);
+    element.dispatch('astro:unmount');
+    await Promise.all(asynchronous.teardowns);
+    expect(element.children).toEqual([shell]);
+    expect(asynchronous.counts.disposeCalls).toBe(2);
+    expect(element.listenerCount('astro:unmount')).toBe(0);
   });
 
   it.each([true, false])(

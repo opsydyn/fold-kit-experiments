@@ -1,4 +1,7 @@
 // @vitest-environment node
+import { getEventListeners } from 'node:events';
+
+import { EventEncoder } from '@ag-ui/encoder';
 import { Effect } from 'effect';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,7 +33,10 @@ function streamedRequest(body: ReadableStream<Uint8Array>, signal?: AbortSignal)
   return new Request('http://localhost', init);
 }
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
 describe('bounded request validation', () => {
   it.each([
@@ -153,7 +159,7 @@ describe('bounded request validation', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('maps body read failure to 400 without starting a producer', async () => {
+  it('maps unexpected body read failure to generic 500 without starting a producer', async () => {
     const observations: ResponseObservation[] = [];
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -161,10 +167,48 @@ describe('bounded request validation', () => {
       },
     });
     const incoming = streamedRequest(body);
-    expect(
-      (await Effect.runPromise(serveAgentAnalysis(incoming, (item) => observations.push(item))))
-        .status,
-    ).toBe(400);
+    const response = await Effect.runPromise(
+      serveAgentAnalysis(incoming, (item) => observations.push(item)),
+    );
+    expect(response.status).toBe(500);
+    expect(await response.text()).toBe('Internal server error');
+    expect(observations).toEqual([]);
+    expect(incoming.body?.locked).toBe(false);
+    expect(getEventListeners(incoming.signal, 'abort')).toHaveLength(0);
+  });
+
+  it('rejects invalid UTF-8 before allocating a producer', async () => {
+    const observations: ResponseObservation[] = [];
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([0xc3, 0x28]));
+        controller.close();
+      },
+    });
+    const response = await Effect.runPromise(
+      serveAgentAnalysis(streamedRequest(body), (item) => observations.push(item)),
+    );
+    expect(response.status).toBe(400);
+    expect(observations).toEqual([]);
+  });
+
+  it('rejects missing and pre-aborted bodies before allocating a producer', async () => {
+    const observations: ResponseObservation[] = [];
+    const controller = new AbortController();
+    controller.abort();
+    for (const incoming of [
+      new Request('http://localhost', { method: 'POST' }),
+      new Request('http://localhost', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      }),
+    ]) {
+      const response = await Effect.runPromise(
+        serveAgentAnalysis(incoming, (item) => observations.push(item)),
+      );
+      expect(response.status).toBe(400);
+    }
     expect(observations).toEqual([]);
   });
 
@@ -189,14 +233,83 @@ describe('bounded request validation', () => {
 });
 
 describe('request-owned SSE lifetime', () => {
+  it('bounds unread prefetch and resumes the complete ordered wire on demand', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const observations: ResponseObservation[] = [];
+    const response = await Effect.runPromise(
+      createFixtureResponse(input, controller.signal, (item) => observations.push(item)),
+    );
+    await vi.advanceTimersByTimeAsync(20000);
+    // One queued Web Stream chunk plus at most one in-flight bridge chunk.
+    expect(observations.filter((item) => item._tag === 'Emitted').length).toBeLessThanOrEqual(2);
+    expect(disposed(observations)).toEqual([]);
+    const beforeRead = [...observations];
+    await vi.advanceTimersByTimeAsync(20000);
+    expect(observations).toEqual(beforeRead);
+    const text = response.text();
+    await vi.advanceTimersByTimeAsync(20000);
+    const wire = await text;
+    expect(wire.match(/data: /g)).toHaveLength(6);
+    expect(wire).toContain('RUN_FINISHED');
+    expect(disposed(observations)).toEqual([{ _tag: 'Disposed', cause: 'Completed' }]);
+    expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('fails the already returned body on an encoder defect and releases resources', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    vi.spyOn(EventEncoder.prototype, 'encode').mockImplementation(() => {
+      throw new TypeError('encoder defect');
+    });
+    const response = await Effect.runPromise(createFixtureResponse(input, controller.signal));
+    expect(response.status).toBe(200);
+    const result = response.text().then(
+      () => 'completed',
+      () => 'failed',
+    );
+    const deadline = new Promise<string>((resolve) => setTimeout(() => resolve('pending'), 100));
+    const settlement = Promise.race([result, deadline]);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(await settlement).toBe('failed');
+    expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(['abort', 'cancel'] as const)(
+    'releases an unread backpressured bridge on %s without another pull',
+    async (action) => {
+      vi.useFakeTimers();
+      const controller = new AbortController();
+      const observations: ResponseObservation[] = [];
+      const response = await Effect.runPromise(
+        createFixtureResponse(input, controller.signal, (item) => observations.push(item)),
+      );
+      await vi.advanceTimersByTimeAsync(20000);
+      expect(disposed(observations)).toEqual([]);
+      if (action === 'abort') controller.abort();
+      else await response.body?.cancel();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(disposed(observations)).toEqual([
+        { _tag: 'Disposed', cause: action === 'abort' ? 'Aborted' : 'Cancelled' },
+      ]);
+      expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
+      expect(vi.getTimerCount()).toBe(0);
+      const atDisposal = [...observations];
+      await vi.advanceTimersByTimeAsync(100000);
+      expect(observations).toEqual(atDisposal);
+    },
+  );
+
   it('aborting after the snapshot clears every delayed event', async () => {
     vi.useFakeTimers();
     const controller = new AbortController();
     const observations: ResponseObservation[] = [];
-    const response = createFixtureResponse(
-      { ...input, scenario: 'slow' },
-      controller.signal,
-      (item) => observations.push(item),
+    const response = await Effect.runPromise(
+      createFixtureResponse({ ...input, scenario: 'slow' }, controller.signal, (item) =>
+        observations.push(item),
+      ),
     );
     await vi.advanceTimersByTimeAsync(650);
     expect(observations).toEqual([
@@ -204,7 +317,8 @@ describe('request-owned SSE lifetime', () => {
       { _tag: 'Emitted', eventType: 'STATE_SNAPSHOT' },
     ]);
     controller.abort();
-    await response.body?.cancel();
+    // Abort interrupts the Web Stream bridge; cancellation of an errored body can reject.
+    await response.body?.cancel().catch(() => {});
     const atDisposal = [...observations];
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(100000);
@@ -251,21 +365,23 @@ describe('request-owned SSE lifetime', () => {
     const controller = new AbortController();
     const observations: ResponseObservation[] = [];
     if (action === 'pre-abort') controller.abort();
-    const response = createFixtureResponse(
-      { ...input, scenario: 'slow' },
-      controller.signal,
-      (item) => observations.push(item),
+    const response = await Effect.runPromise(
+      createFixtureResponse({ ...input, scenario: 'slow' }, controller.signal, (item) =>
+        observations.push(item),
+      ),
     );
-    if (action === 'completed-then-cancel') await vi.advanceTimersByTimeAsync(20000);
+    if (action === 'completed-then-cancel') {
+      const completed = response.body?.pipeTo(new WritableStream());
+      await vi.advanceTimersByTimeAsync(20000);
+      await completed;
+    }
     if (action === 'abort-before-read' || action === 'abort-and-cancel') controller.abort();
-    if (
-      action === 'cancel' ||
-      action === 'abort-and-cancel' ||
-      action === 'cancel-and-abort' ||
-      action === 'completed-then-cancel'
-    )
+    if (action === 'abort-and-cancel') await expect(response.body?.cancel()).rejects.toThrow();
+    if (action === 'cancel' || action === 'cancel-and-abort' || action === 'completed-then-cancel')
       await response.body?.cancel();
     if (action === 'cancel-and-abort') controller.abort();
+    // Flush Effect scheduler bookkeeping, not delayed fixture emissions.
+    await vi.advanceTimersByTimeAsync(0);
     const atDisposal = [...observations];
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(100000);
@@ -277,19 +393,20 @@ describe('request-owned SSE lifetime', () => {
           ? 'Cancelled'
           : 'Aborted';
     expect(disposed(observations)).toEqual([{ _tag: 'Disposed', cause }]);
+    expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
   });
 
   it('cancelling one request does not cancel a concurrent producer', async () => {
     vi.useFakeTimers();
     const first: ResponseObservation[] = [];
     const second: ResponseObservation[] = [];
-    const a = createFixtureResponse(input, new AbortController().signal, (item) =>
-      first.push(item),
+    const a = await Effect.runPromise(
+      createFixtureResponse(input, new AbortController().signal, (item) => first.push(item)),
     );
-    const b = createFixtureResponse(
-      { ...input, runId: 'run-2' },
-      new AbortController().signal,
-      (item) => second.push(item),
+    const b = await Effect.runPromise(
+      createFixtureResponse({ ...input, runId: 'run-2' }, new AbortController().signal, (item) =>
+        second.push(item),
+      ),
     );
     await a.body?.cancel();
     const text = b.text();

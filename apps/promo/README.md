@@ -182,6 +182,19 @@ deployment and npm publication are verified separately.
 
 ## Captured signal comparisons
 
+The homepage features Signal Desk as its primary action, with a larger signal
+preview and secondary word-cloud preview directly below the hero. Both previews
+are static captures of the real demos, in light and dark themes; the homepage
+does not hydrate either app. Links and assets use `sitePath` for the Pages base.
+
+Preview assets live in `public/images/showcase/`. Captured on 2026-10-11 with
+Chromium at a 1100px viewport and 2x pixel density, using the default illustrative
+fixtures and settings. Signal captures contain only the latency SVG; word-cloud
+captures wait for all 25 measured words. Regenerate from the corresponding demo
+routes after visual changes; do not substitute a mockup for the rendered state.
+The word-cloud stylesheet regression preserves measured font sizes and paints
+while retaining shared axis styling.
+
 The Signal desk can capture the inspected record as a baseline, then resume inspection and compare another record. The Model owns a copied record and source snapshot independently of the existing pinned cursor. Latency differences are in ms; error-rate differences are in percentage points. Missing/invalid readings stay unavailable, with diagnostics retained. Captured freshness is explicitly at capture; current freshness can change independently. Dataset replacement always clears the baseline, including reused revision/IDs.
 
 Selected supplied intervals use pure `chart/errorBars` segments with8 SVG-unit caps. Baseline lines use a distinct3 3 dash and complete adjacent labels, with the original supplied range/support in the comparison panel. Off-screen baseline geometry is clipped, while its value reference and captured provenance remain available. Bands and full-data Y domains remain unchanged; no statistical significance is inferred.

@@ -14,11 +14,35 @@ const teaser = "const x = linear({ domain: [0, 10], range: [0, 400] });\nconst p
       <h1 id="hero-heading">Give your<br />data<br />shape.</h1>
       <p class="hero-description">Build expressive charts with <a href="https://foldkit.dev/">Foldkit</a>, the TypeScript frontend framework built on Effect. Pure geometry. Composable SVG. State and interaction you can understand.</p>
       <div class="hero-actions">
-        <a class="button button-primary" href={sitePath('/examples/')}>Explore examples <span aria-hidden="true">→</span></a>
-        <a class="button button-secondary" href={sitePath('/docs/#quick-start')}>Build your first chart</a>
+        <a class="button button-primary" href={sitePath('/examples/signals/')}>Explore Signal Desk <span aria-hidden="true">→</span></a>
+        <a class="button button-secondary" href={sitePath('/examples/')}>All examples</a>
       </div>
     </div>
     <HeroChart />
+  </section>
+  <section class="showcase" aria-labelledby="showcase-heading">
+    <div class="section-heading">
+      <div><p class="eyebrow">New / In the workspace</p><h2 id="showcase-heading">Follow a signal. Find the words.</h2></div>
+      <a class="text-link" href={sitePath('/docs/#signal-exploration')}>Explore the primitives <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="showcase-grid">
+      <article class="showcase-example showcase-signal">
+        <a class="showcase-preview" href={sitePath('/examples/signals/')} aria-label="Explore Signal Desk">
+          <img class="showcase-image showcase-light" src={sitePath('/images/showcase/signals-light.png')} width="2056" height="590" loading="lazy" decoding="async" alt="Signal Desk preview: latency over time, with explicit gaps and a supplied interval around estimated observations." />
+          <img class="showcase-image showcase-dark" src={sitePath('/images/showcase/signals-dark.png')} width="2056" height="590" loading="lazy" decoding="async" alt="Signal Desk preview: latency over time, with explicit gaps and a supplied interval around estimated observations." />
+        </a>
+        <div class="showcase-caption"><h3>Signal Desk</h3><a class="text-link" href={sitePath('/examples/signals/')}>Explore the timeline <span aria-hidden="true">→</span></a></div>
+        <p>A moment in context. Missing observations, supplied intervals and a baseline that stays put.</p>
+      </article>
+      <article class="showcase-example showcase-cloud">
+        <a class="showcase-preview" href={sitePath('/examples/wordcloud/')} aria-label="Explore word cloud">
+          <img class="showcase-image showcase-light" src={sitePath('/images/showcase/wordcloud-light.png')} width="2056" height="702" loading="lazy" decoding="async" alt="Word-cloud preview: visualisation vocabulary arranged without overlap and sized by illustrative weight." />
+          <img class="showcase-image showcase-dark" src={sitePath('/images/showcase/wordcloud-dark.png')} width="2056" height="702" loading="lazy" decoding="async" alt="Word-cloud preview: visualisation vocabulary arranged without overlap and sized by illustrative weight." />
+        </a>
+        <div class="showcase-caption"><h3>Word cloud</h3><a class="text-link" href={sitePath('/examples/wordcloud/')}>Explore the words <span aria-hidden="true">→</span></a></div>
+        <p>Give words their weight. Measured type, deliberate space and a layout you can reshape.</p>
+      </article>
+    </div>
   </section>
   <section class="principles" aria-label="Why Foldkit Viz">
     <div><h2>Pure geometry</h2><p>Scales, shapes and layouts in pure TypeScript. No D3 dependency.</p></div>

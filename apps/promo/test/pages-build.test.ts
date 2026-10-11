@@ -14,6 +14,15 @@ test.skipIf(!base)(
     );
     expect(pages.length).toBeGreaterThanOrEqual(10);
     expect(pages).toContain('examples/signals/index.html');
+    const home = await Bun.file(join(directory, 'index.html')).text();
+    expect(home.includes(`href="${base}examples/signals/"`)).toBe(true);
+    expect(home.includes(`href="${base}examples/wordcloud/"`)).toBe(true);
+    for (const example of ['signals', 'wordcloud']) {
+      for (const theme of ['light', 'dark']) {
+        expect(home.includes(`${base}images/showcase/${example}-${theme}.png`)).toBe(true);
+      }
+    }
+    expect(home.includes('<astro-island')).toBe(false);
     for (const page of pages) {
       const html = await Bun.file(join(directory, page)).text();
       const references = html.matchAll(/(?:href|src|component-url|renderer-url)="([^"]+)"/g);

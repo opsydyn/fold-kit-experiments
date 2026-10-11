@@ -87,7 +87,7 @@
   width: 100%;
   height: auto;
 }
-.primitive-plot svg text {
+.primitive-plot svg text:not(.cloud-word) {
   fill: var(--muted);
   font-size: 11px;
 }
@@ -428,6 +428,88 @@ nav a[aria-current='page'] {
   stroke: var(--blue);
   stroke-width: 1;
   stroke-dasharray: 3 3;
+}
+.showcase {
+  padding: 32px 0 48px;
+  border-top: 1px solid var(--rule);
+}
+.showcase .section-heading {
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.showcase .section-heading h2 {
+  margin-top: 8px;
+  font-size: 30px;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+.showcase-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 36px;
+}
+.showcase-example {
+  min-width: 0;
+}
+.showcase-preview {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 260px;
+  border-bottom: 1px solid var(--rule);
+}
+.showcase-preview:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 4px;
+}
+.showcase-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.showcase-dark {
+  display: none;
+}
+[data-theme='dark'] .showcase-light {
+  display: none;
+}
+[data-theme='dark'] .showcase-dark {
+  display: block;
+}
+.showcase-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+.showcase-caption h3 {
+  font-size: 22px;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+.showcase-example > p {
+  margin-top: 10px;
+  max-width: 52ch;
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0;
+  line-height: 1.65;
+}
+@media (max-width: 760px) {
+  .showcase-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+  .showcase .section-heading h2 {
+    font-size: 26px;
+  }
+  .showcase-preview {
+    height: auto;
+    aspect-ratio: 2.6;
+  }
 }
 .principles {
   display: grid;
@@ -1005,8 +1087,8 @@ nav a[aria-current='page'] {
     letter-spacing: 1.2px;
   }
   .hero h1 {
-    font-size: clamp(62px, 20vw, 84px);
-    letter-spacing: -4px;
+    font-size: 56px;
+    letter-spacing: 0;
   }
   .hero-description {
     font-size: 13px;

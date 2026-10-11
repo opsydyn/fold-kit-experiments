@@ -1,0 +1,22 @@
+---
+import { resolvePageDocument } from '@opsydyn/astro-foldkit/server';
+import CounterPage from '../apps/counter/page';
+
+export const prerender = true;
+const props = { title: 'Server counter' };
+const document = await resolvePageDocument(CounterPage, {
+  request: Astro.request,
+  url: Astro.url,
+  params: Astro.params,
+  props,
+});
+---
+
+<!doctype html>
+<html lang={document.lang} dir={document.dir}>
+  <head><meta charset="utf-8" /><title>{document.title}</title></head>
+  <body>
+    <CounterPage client:load {...props} />
+    <a href="/">Client-only counter</a>
+  </body>
+</html>

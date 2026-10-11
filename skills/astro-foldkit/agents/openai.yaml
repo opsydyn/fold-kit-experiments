@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Astro FoldKit'
+  short_description: 'FoldKit islands and server pages in Astro'
+  default_prompt: 'Use $astro-foldkit to integrate a typed FoldKit application into my Astro project.'

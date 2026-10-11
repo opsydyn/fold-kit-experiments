@@ -11,6 +11,21 @@ FoldKit is an Elm Architecture runtime for the browser built on [Effect](https:/
 | [`@opsydyn/astro-foldkit`](packages/astro-foldkit/) | Astro integration — client islands plus opt-in FoldKit SSR/SSG page owners |
 | [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)     | D3-quality visualisation primitives for FoldKit — no D3 dependency         |
 
+## Agent Skills
+
+Two independent consumer skills are maintained alongside the packages:
+
+- [astro-foldkit](skills/astro-foldkit/SKILL.md): Astro islands, typed props,
+  server-rendered pages, hydration and lifecycle boundaries.
+- [foldkit-viz](skills/foldkit-viz/SKILL.md): pure geometry, optional FoldKit
+  rendering, chart interaction and accessibility; no Astro dependency.
+
+Install either complete skill folder through your agent host's skill installer,
+preserving its `SKILL.md`, `agents`, `references` and `assets`. They are not
+installed by the npm packages and do not require each other. Each includes a
+standalone pinned example; see the [qualification notes](docs/examples/package-skills.md)
+for checks and limitations.
+
 ## Structure
 
 ```text

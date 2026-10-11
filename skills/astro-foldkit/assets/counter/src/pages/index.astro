@@ -1,0 +1,13 @@
+---
+import Counter from '../apps/counter/app';
+---
+
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><title>Astro-owned title</title></head>
+  <body>
+    <Counter client:load noMeta title="Island counter" />
+    <noscript>The interactive counter requires JavaScript.</noscript>
+    <a href="/page/">Server-rendered counter</a>
+  </body>
+</html>

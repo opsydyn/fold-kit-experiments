@@ -1,0 +1,4 @@
+interface:
+  display_name: 'FoldKit Viz'
+  short_description: 'Pure chart geometry and optional FoldKit views'
+  default_prompt: 'Use $foldkit-viz to build an accessible chart with the appropriate geometry and rendering layer.'

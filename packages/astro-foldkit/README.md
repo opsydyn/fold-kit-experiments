@@ -12,6 +12,12 @@ There are two deliberately separate entry paths:
 
 ## Installation
 
+For coding agents, the independent
+[astro-foldkit skill](https://github.com/opsydyn/fold-kit-experiments/tree/main/skills/astro-foldkit)
+includes consumer guidance and a standalone island/SSG example. Install the
+complete skill folder through your agent host; it is separate from this npm
+package and does not require the Viz skill.
+
 ```sh
 npm install @opsydyn/astro-foldkit
 # peer deps

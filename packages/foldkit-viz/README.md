@@ -19,6 +19,12 @@ standalone exports; no public comparison controller is added to this package.
 
 ## Installation
 
+For coding agents, the independent
+[foldkit-viz skill](https://github.com/opsydyn/fold-kit-experiments/tree/main/skills/foldkit-viz)
+includes a standalone pure-TypeScript example and optional FoldKit rendering
+guidance. Install the complete skill folder through your agent host; it is
+separate from this npm package and does not require Astro or its skill.
+
 ```bash
 bun add @opsydyn/foldkit-viz
 ```

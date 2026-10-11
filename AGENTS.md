@@ -18,6 +18,11 @@ Bun workspace monorepo. Five active workspaces:
 
 ## Before you write code
 
+For consumer-facing package work, read the relevant independent skill:
+`skills/astro-foldkit/SKILL.md` for Astro integration, or
+`skills/foldkit-viz/SKILL.md` for chart geometry and rendering. Load both only
+when the task uses both packages. Their bundled examples work outside this repo.
+
 1. Run `bun typecheck` — understand baseline errors before touching anything
 2. Run `bun run check` — understand baseline lint/format state
 3. Read the exemplar files for the area you're working in:

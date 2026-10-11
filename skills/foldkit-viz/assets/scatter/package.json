@@ -1,0 +1,16 @@
+{
+  "name": "foldkit-viz-skill-scatter",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "tsc",
+    "test": "bun run build && node --test test/geometry.test.mjs"
+  },
+  "dependencies": {
+    "@opsydyn/foldkit-viz": "0.11.0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

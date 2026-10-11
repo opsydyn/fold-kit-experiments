@@ -18,6 +18,11 @@ Bun workspace monorepo. Five workspaces in active use:
 
 ## Dev commands
 
+Package consumer guidance lives in independent skills:
+`skills/astro-foldkit/SKILL.md` and `skills/foldkit-viz/SKILL.md`.
+Read the one relevant to the task; neither requires the other or an upstream
+checkout. Use both only for tasks that combine Astro integration and Viz.
+
 ```sh
 bun dev                               # demo app → localhost:4321
 bun storybook                         # chart storybook → localhost:6006

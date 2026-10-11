@@ -6,6 +6,9 @@ storybook-static/
 
 # test artifacts (packed tarballs, unpacked smoke dirs)
 packages/astro-foldkit/artifacts/
+# Playwright's canonical generated results and HTML report.
+apps/web/test-results/
+apps/web/playwright-report/
 # generated types
 .astro/
 

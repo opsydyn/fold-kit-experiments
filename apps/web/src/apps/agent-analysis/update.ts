@@ -36,6 +36,7 @@ const beginRun = (model: Model, scenario: Scenario): Model =>
       ...model,
       generation: model.generation + 1,
       accepted: 0,
+      rejection: null,
       session: Session.Connecting({ request: { runId: `run-${model.generation + 1}`, scenario } }),
     },
     'Connecting',
@@ -54,17 +55,64 @@ const fail = (
 const protocolFailure = (model: Model, request: RunRequest, reason: string): Model =>
   fail(model, request, { _tag: 'Protocol', reason });
 
-const acceptWire = (model: Model, request: RunRequest, wire: Wire, entry: string): Model =>
-  recordActivity(
+function rejectUpdate(
+  model: Model,
+  request: RunRequest,
+  kind: NonNullable<Model['rejection']>['kind'],
+  reason: string,
+  evidence: string,
+): Model {
+  return protocolFailure(
+    {
+      ...model,
+      rejection: {
+        kind,
+        runId: request.runId,
+        detail: `${evidence}\n${reason.slice(0, 400)}`.slice(0, 1200),
+      },
+    },
+    request,
+    `${kind} rejected; last valid measurements retained`,
+  );
+}
+
+type ValueOperation = Extract<StateDeltaEvent['delta'][number], { op: 'add' | 'replace' | 'test' }>;
+const evidenceValue = (operation: ValueOperation): string =>
+  Match.value(operation.value).pipe(
+    Match.when(Match.string, (value) => value.slice(0, 120)),
+    Match.when(Match.number, String),
+    Match.when(Match.boolean, String),
+    Match.when(Match.null, () => 'null'),
+    Match.orElse(() => '[structured value]'),
+  );
+const operationEvidence = (operation: StateDeltaEvent['delta'][number]): string =>
+  Match.value(operation).pipe(
+    Match.when(
+      { op: Match.is('add', 'replace', 'test') },
+      (operation) => `${operation.op} ${operation.path.slice(0, 160)}: ${evidenceValue(operation)}`,
+    ),
+    Match.orElse(({ op, path }) => `${op} ${path.slice(0, 160)}`),
+  );
+const deltaEvidence = (event: StateDeltaEvent): string =>
+  event.delta.slice(0, 8).map(operationEvidence).join('\n');
+
+function acceptWire(model: Model, request: RunRequest, wire: Wire, entry: string): Model {
+  const baseline = Match.value(model.session).pipe(
+    Match.when({ _tag: 'AwaitingSnapshot' }, () => wire),
+    Match.orElse(() => model.baseline),
+  );
+  return recordActivity(
     reconcileSelection({
       ...model,
       wire,
+      baseline,
       // Nested schema constructors copy records; preserve the already-validated connection descriptor.
       session: { _tag: 'Streaming', request },
       accepted: model.accepted + 1,
     }),
     entry,
   );
+}
 
 const cancel = (model: Model, cause: Extract<Session, { _tag: 'Cancelled' }>['cause']): Model =>
   Match.value(activeRun(model)).pipe(
@@ -109,7 +157,8 @@ const receiveSnapshot = (model: Model, request: RunRequest, event: StateSnapshot
         }),
         {
           onSuccess: (wire) => acceptWire(model, request, wire, 'Snapshot accepted'),
-          onFailure: (reason) => protocolFailure(model, request, reason),
+          onFailure: (reason) =>
+            rejectUpdate(model, request, 'Snapshot', reason, 'STATE_SNAPSHOT failed validation'),
         },
       ),
     ),
@@ -156,7 +205,7 @@ const receiveDelta = (model: Model, request: RunRequest, event: StateDeltaEvent)
     Match.when({ session: { _tag: 'Streaming' }, wire: Match.defined }, ({ wire }) =>
       Result.match(patchWire(wire, event), {
         onSuccess: (candidate) => acceptWire(model, request, candidate, 'Delta accepted'),
-        onFailure: (reason) => protocolFailure(model, request, reason),
+        onFailure: (reason) => rejectUpdate(model, request, 'Delta', reason, deltaEvidence(event)),
       }),
     ),
     Match.orElse(() =>
@@ -251,6 +300,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedScenario: ({ scenario }) => ({ ...model, scenario }),
     ClickedFilter: ({ filter }) => reconcileSelection({ ...model, filter }),
     ClickedService: ({ id }) => selectService(model, id),
+    ChangedCompactView: ({ isCompact }) => ({ ...model, isCompact }),
     ReceivedAgentEvent: (eventMessage) => receiveCurrent(model, eventMessage),
     FailedStream: (failureMessage) => failCurrent(model, failureMessage),
     Navigated: ({ phase }) => navigate(model, phase),

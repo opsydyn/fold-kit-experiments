@@ -1,5 +1,11 @@
 # AG-UI / FoldKit Feasibility Spike
 
+Follow-up: the maintained app-owned
+[Service Incident Lab](ag-ui-agent-analysis.md) extends this throwaway spike with
+a request-scoped Astro endpoint, retained host and baseline/rejection inspection.
+Its implementation and qualification status are tracked separately; the evidence
+below belongs to the original spike, not the maintained demo.
+
 ## Decision
 
 Proceed with an app-owned reference example, not a new public adapter package

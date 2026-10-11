@@ -1,8 +1,37 @@
 # AG-UI Agent Analysis Reference Demo
 
-Status: conversational design and written spec approved on 2026-10-11.
-Implementation plan review and execution-method selection are pending; product
-implementation has not started.
+Status: original design and plan approved on 2026-10-11. Tasks 1-3 and the
+approved internal Astro retention repair are reviewed and merged locally.
+Task 4's Service Incident Lab refinement is implemented, independently reviewed
+and locally qualified following approval of the Product Sense direction and
+interactive mockup. Its commit checkpoint and Task 5 remain open; see the
+[qualification record](./2026-10-11-ag-ui-agent-analysis-qualification.md).
+
+## Approved Product Refinement
+
+The user approved a more useful developer showcase: inspect a latency regression
+against its first valid run snapshot, then see an unsafe update rejected without
+losing measurements or selection. The approved interactive visual mockup shows
+baseline, accepted spike and rejection states; its imperative prototype is not
+production architecture.
+
+Task 4 adds an app-owned first-snapshot comparison baseline, bounded rejected
+update evidence, selected-service inspector and fixed-domain chart comparison.
+The illustrative 100ms p95 budget is explicitly not a production SLO. API's
+60 -> 145ms change survives snapshot reordering. The invalid fixture accepts
+that valid spike before attempting the unsafe multi-operation patch.
+
+Initial three-service data and the later fourth-service addition stay intact;
+counts derive from records and added services have no manufactured baseline.
+Existing explicit selection policy remains unchanged. The mobile chart and table
+fit their containers rather than requiring the originally proposed horizontal
+scrolling. Any compact-layout observation stays in a scoped app subscription.
+
+This supersedes the original scrolling presentation only, not schema validation,
+run correlation, cancellation, recovery, retained-island or package boundaries.
+No public package API change, provider integration, chat UI or autonomous action
+is authorised. Local lifecycle facts cannot establish a real compute-cancellation
+guarantee. Screen-reader and compiled/deployed Worker qualification remain open.
 
 ## Outcome
 

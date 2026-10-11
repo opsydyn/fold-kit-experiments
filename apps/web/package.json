@@ -9,6 +9,8 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
+    "test:e2e": "bun run predev && playwright test",
+    "test:e2e:smoke": "bun run test:e2e e2e/agent-analysis.smoke.spec.ts",
     "typecheck": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && astro check",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && oxfmt --check .",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix .",
@@ -39,6 +41,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@happy-dom/global-registrator": "^20.10.6",
+    "@playwright/test": "1.62.1",
     "@storybook/addon-a11y": "^10.4.6",
     "@storybook/html": "^10.4.6",
     "@storybook/html-vite": "^10.4.6",

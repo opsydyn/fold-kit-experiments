@@ -21,9 +21,18 @@ export const Session = defineTaggedUnion({
 });
 export type Session = typeof Session.Type;
 
+export const Rejection = Schema.Struct({
+  kind: Schema.Literals(['Snapshot', 'Delta']),
+  runId: Schema.String,
+  detail: Schema.String.check(Schema.isMaxLength(1200)),
+});
+
 export const Model = Schema.Struct({
   session: Session,
   wire: Schema.NullOr(Wire),
+  baseline: Schema.NullOr(Wire),
+  rejection: Schema.NullOr(Rejection),
+  isCompact: Schema.Boolean,
   filter: Filter,
   selectedId: Schema.NullOr(Schema.String),
   generation: Schema.Number,
@@ -36,6 +45,9 @@ export type Model = typeof Model.Type;
 export const initModel: Model = {
   session: Session.Idle(),
   wire: null,
+  baseline: null,
+  rejection: null,
+  isCompact: false,
   filter: 'All',
   selectedId: null,
   generation: 0,

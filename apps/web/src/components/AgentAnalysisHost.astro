@@ -1,0 +1,21 @@
+---
+import AgentAnalysisApp from '../apps/agent-analysis/app';
+import Layout from '../layouts/Layout.astro';
+import * as styles from '../layouts/layout.css';
+
+interface Props { variant: 'overview' | 'retained' }
+const { variant } = Astro.props;
+---
+
+<Layout title="Service Incident Lab" clientNavigation>
+  <h1 class={styles.heading}>Service Incident Lab</h1>
+  <p data-testid="host-variant" style="margin-bottom: 1rem">{variant === 'overview' ? 'Overview analysis' : 'Retained analysis'}</p>
+  <p style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem">
+    <a href={variant === 'overview' ? '/agent-analysis/retained' : '/agent-analysis'} style="color: var(--page-text)">{variant === 'overview' ? 'Retained analysis' : 'Overview analysis'}</a>
+    <a href="/charts" style="color: var(--page-text)">Back to Charts</a>
+  </p>
+  <!-- FoldKit replaces its mount element; Astro must retain an outer owned node. -->
+  <div data-testid="retained-host" transition:persist="agent-analysis">
+    <AgentAnalysisApp client:load noMeta />
+  </div>
+</Layout>

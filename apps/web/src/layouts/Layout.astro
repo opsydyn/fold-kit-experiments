@@ -1,6 +1,7 @@
 ---
 import * as styles from './layout.css';
 import '../styles/chart-tokens.css';
+import { ClientRouter } from 'astro:transitions';
 
 interface Props {
   title: string;
@@ -8,8 +9,9 @@ interface Props {
   dir?: 'ltr' | 'rtl' | 'auto';
   canonical?: string;
   ogUrl?: string;
+  clientNavigation?: boolean;
 }
-const { title, lang = 'en', dir = 'ltr', canonical, ogUrl } = Astro.props;
+const { title, lang = 'en', dir = 'ltr', canonical, ogUrl, clientNavigation = false } = Astro.props;
 const path = new URL(Astro.request.url).pathname;
 
 const linkClass = (href: string) =>
@@ -26,13 +28,14 @@ const linkClass = (href: string) =>
     {canonical !== undefined && <link rel="canonical" href={canonical} />}
     {ogUrl !== undefined && <meta property="og:url" content={ogUrl} />}
     <title>{title}</title>
+    {clientNavigation && <ClientRouter />}
     <script is:inline>
       // Restore theme before first paint to avoid flash
       const stored = localStorage.getItem('foldkit-theme');
       if (stored === 'light') document.documentElement.setAttribute('data-theme', 'light');
     </script>
   </head>
-  <body>
+  <body data-client-navigation={clientNavigation ? 'true' : undefined}>
     <nav class={styles.nav}>
       <a href="/" class={linkClass('/')}>Home</a>
       <a href="/health" class={linkClass('/health')}>Health</a>
@@ -58,8 +61,18 @@ const linkClass = (href: string) =>
   // Sync store → DOM on every change
   themeAtom.subscribe(applyTheme);
 
-  // Wire toggle button
-  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+  const toggleTheme = () => {
     themeAtom.set(themeAtom.get() === 'dark' ? 'light' : 'dark');
-  });
+  };
+  const bindThemeToggle = () => {
+    // A stable callback is deduplicated by EventTarget, including repeated page-load facts.
+    document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+    applyTheme(themeAtom.get());
+  };
+  bindThemeToggle();
+  if (document.body.dataset.clientNavigation === 'true') {
+    document.addEventListener('astro:page-load', () => {
+      if (document.body.dataset.clientNavigation === 'true') bindThemeToggle();
+    });
+  }
 </script>

@@ -11,6 +11,7 @@ export const Message = defineMessageUnion({
   SelectedScenario: { scenario: Scenario },
   ClickedFilter: { filter: Filter },
   ClickedService: { id: Schema.String },
+  ChangedCompactView: { isCompact: Schema.Boolean },
   ReceivedAgentEvent: { runId: Schema.String, event: Schema.Unknown },
   FailedStream: { runId: Schema.String, error: Schema.String },
   Navigated: NavigationValue.fields,

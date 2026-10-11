@@ -20,7 +20,7 @@ const delta = {
 const finish = { type: 'RUN_FINISHED', runId: 'run-1', threadId: 'agent-analysis' };
 
 describe('deterministic fixture events', () => {
-  it('emits exact normal data, reverting to the reversed original baseline before adding Events', () => {
+  it('emits exact normal data, retaining the spike through reorder before adding Events', () => {
     expect(initialWire).toEqual(baseline);
     expect(fixtureEvents(input)).toEqual([
       { delayMs: 0, event: start },
@@ -28,7 +28,14 @@ describe('deterministic fixture events', () => {
       { delayMs: 650, event: delta },
       {
         delayMs: 650,
-        event: { type: 'STATE_SNAPSHOT', snapshot: { services: [...baseline.services].reverse() } },
+        event: {
+          type: 'STATE_SNAPSHOT',
+          snapshot: {
+            services: baseline.services
+              .map((service) => (service.id === 'api' ? { ...service, latency: 145 } : service))
+              .reverse(),
+          },
+        },
       },
       {
         delayMs: 650,
@@ -56,10 +63,11 @@ describe('deterministic fixture events', () => {
     );
   });
 
-  it('emits an atomic invalid patch followed by a valid late delta and finish', () => {
+  it('accepts the spike before an atomic invalid patch, late delta and finish', () => {
     expect(fixtureEvents({ ...input, scenario: 'invalid' })).toEqual([
       { delayMs: 0, event: start },
       { delayMs: 650, event: snapshot },
+      { delayMs: 650, event: delta },
       {
         delayMs: 650,
         event: {

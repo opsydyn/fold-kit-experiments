@@ -30,6 +30,7 @@ export function fixtureEvents(input: FixtureInput): ReadonlyArray<TimedEvent> {
   const events: ReadonlyArray<Event> = [
     { type: EventType.RUN_STARTED, runId: input.runId, threadId: input.threadId },
     { type: EventType.STATE_SNAPSHOT, snapshot: baseline },
+    delta,
     ...(input.scenario === 'invalid'
       ? [
           {
@@ -42,10 +43,13 @@ export function fixtureEvents(input: FixtureInput): ReadonlyArray<TimedEvent> {
           delta,
         ]
       : [
-          delta,
           {
             type: EventType.STATE_SNAPSHOT,
-            snapshot: { services: [...baseline.services].reverse() },
+            snapshot: {
+              services: baseline.services
+                .map((service) => (service.id === 'api' ? { ...service, latency: 145 } : service))
+                .reverse(),
+            },
           } satisfies Event,
           {
             type: EventType.STATE_DELTA,

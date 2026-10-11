@@ -164,6 +164,9 @@ it('preserves the same request through real phases, stayed navigation and local 
   }
   expect(activeRun(s.model())).toBe(request);
   const wire = s.model().wire;
+  const baseline = s.model().baseline;
+  expect(baseline).toEqual(initialWire);
+  s.send(Message.ChangedCompactView({ isCompact: true }));
   s.send(Message.SelectedScenario({ scenario: 'invalid' }));
   s.send(Message.ClickedFilter({ filter: 'Core' }));
   s.send(Message.ClickedService({ id: 'api' }));
@@ -174,6 +177,8 @@ it('preserves the same request through real phases, stayed navigation and local 
   );
   expect(activeRun(s.model())).toBe(request);
   expect(s.model().wire).toBe(wire);
+  expect(s.model().baseline).toBe(baseline);
+  expect(s.model().isCompact).toBe(true);
   expect(server.requests).toHaveLength(1);
   s.send(Message.ClickedCancel());
   await vi.waitFor(() =>
@@ -186,6 +191,22 @@ it('preserves the same request through real phases, stayed navigation and local 
   );
   expect(server.requests).toHaveLength(1);
 });
+
+it('invalid fixture accepts the spike, rejects atomically and retains selection and baseline', async () => {
+  const server = await startAgentTestServer();
+  onTestFinished(() => server.close());
+  const s = await scene({ endpoint: server.url, fetch }, { ...initModel, scenario: 'invalid' });
+  s.send(Message.ClickedRun());
+  await vi.waitFor(() => expect(s.model().session._tag).toBe('Streaming'));
+  s.send(Message.ClickedService({ id: 'api' }));
+  await vi.waitFor(() => expect(s.model().session._tag).toBe('Failed'), { timeout: 5000 });
+  expect(s.model().accepted).toBe(2);
+  expect(s.model().wire?.services.find(({ id }) => id === 'api')?.latency).toBe(145);
+  expect(s.model().baseline?.services.find(({ id }) => id === 'api')?.latency).toBe(60);
+  expect(s.model().selectedId).toBe('api');
+  expect(s.model().rejection?.detail).toContain('999');
+  expect(server.requests).toHaveLength(1);
+}, 10000);
 
 it('exit after real completion and queued closure/error facts cannot cancel or mutate Completed', async () => {
   const server = await startAgentTestServer();

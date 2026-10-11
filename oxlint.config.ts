@@ -107,6 +107,18 @@ export default defineConfig({
   },
   overrides: [
     {
+      // These exact browser tests collect DOM diagnostics in serialized page callbacks.
+      // Raw JSON attachments are native test I/O, not application Effect state updates.
+      files: [
+        'apps/web/e2e/agent-analysis.smoke.spec.ts',
+        'apps/web/e2e/agent-analysis.incident.spec.ts',
+      ],
+      rules: {
+        'linteffect/no-return-in-arrow': 'off',
+        'linteffect/no-naked-object-state-update': 'off',
+      },
+    },
+    {
       // This exact Rx/native-fetch bridge acquires and releases HTTP resources in one scope.
       // Serialization and unknown SDK errors belong at this boundary, never in the reducer.
       files: ['apps/web/src/apps/agent-analysis/transport.ts'],

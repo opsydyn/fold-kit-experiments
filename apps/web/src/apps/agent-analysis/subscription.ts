@@ -1,5 +1,6 @@
 import { Match, Schema, Stream } from 'effect';
 import { Port, Subscription } from 'foldkit';
+import { streamFromMediaQuery } from 'foldkit/dom';
 
 import { RunRequest } from './contract';
 import { Message } from './message';
@@ -27,4 +28,10 @@ export const subscriptionsFor = (
       },
     ),
     navigation: Port.subscriptionEntry(NavigationPort, (value) => Message.Navigated(value)),
+    compactView: Subscription.persistentEntry(
+      streamFromMediaQuery({
+        query: '(max-width: 700px)',
+        mapMatches: (isCompact) => Message.ChangedCompactView({ isCompact }),
+      }),
+    ),
   }));

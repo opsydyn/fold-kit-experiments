@@ -25,6 +25,113 @@ const delta = (model: Model, patch: readonly object[]) =>
   received(model, { type: EventType.STATE_DELTA, delta: patch });
 const finish = { type: EventType.RUN_FINISHED, threadId: THREAD_ID, runId: 'run-1' };
 
+describe('incident baseline and rejection', () => {
+  it('captures the first snapshot once by stable ID across deltas, reorder and additions', () => {
+    const loaded = streaming();
+    expect(loaded.baseline).toEqual(wire);
+    const changed = delta(loaded, [{ op: 'replace', path: '/services/0/latency', value: 145 }]);
+    const reordered = received(changed, {
+      type: EventType.STATE_SNAPSHOT,
+      snapshot: { services: [...(changed.wire?.services ?? [])].reverse() },
+    });
+    const added = delta(reordered, [
+      {
+        op: 'add',
+        path: '/services/-',
+        value: {
+          id: 'new',
+          name: 'Shared',
+          series: 'Core',
+          volume: 1,
+          latency: 2,
+        },
+      },
+    ]);
+    expect(added.baseline).toBe(loaded.baseline);
+    expect(added.baseline?.services.find(({ id }) => id === 'api')?.latency).toBe(20);
+    expect(added.baseline?.services.find(({ id }) => id === 'new')).toBeUndefined();
+    expect(added.wire?.services.find(({ id }) => id === 'api')?.latency).toBe(145);
+  });
+
+  it('retains data and baseline through replacement until a fresh validated snapshot', () => {
+    const loaded = streaming();
+    const changed = delta(loaded, [{ op: 'replace', path: '/services/0/latency', value: 145 }]);
+    const next = update(changed, Message.ClickedRun()).model;
+    expect(next.baseline).toBe(loaded.baseline);
+    expect(next.wire).toBe(changed.wire);
+    expect(received(next, { broken: true })).toBe(next);
+    const started = received(
+      next,
+      { type: EventType.RUN_STARTED, threadId: THREAD_ID, runId: 'run-2' },
+      'run-2',
+    );
+    const fresh = received(
+      started,
+      { type: EventType.STATE_SNAPSHOT, snapshot: changed.wire },
+      'run-2',
+    );
+    expect(fresh.baseline).toEqual(changed.wire);
+    expect(fresh.baseline).not.toBe(loaded.baseline);
+    for (const inactive of [
+      update(changed, Message.ClickedCancel()).model,
+      received(changed, finish),
+      update(changed, Message.FailedStream({ runId: 'run-1', error: 'offline' })).model,
+    ])
+      expect(inactive.baseline).toBe(loaded.baseline);
+  });
+
+  it('bounds rejection evidence without leaking any patch operation or changing selection', () => {
+    const changed = delta(streaming(), [
+      { op: 'replace', path: '/services/0/latency', value: 145 },
+    ]);
+    const selected = update(changed, Message.ClickedService({ id: 'api' })).model;
+    const failed = delta(selected, [
+      { op: 'replace', path: '/services/0/latency', value: 999 },
+      { op: 'remove', path: '/services/99' },
+    ]);
+    expect(failed.rejection).toMatchObject({ kind: 'Delta', runId: 'run-1' });
+    expect(failed.rejection?.detail).toContain('999');
+    expect(failed.rejection?.detail).toContain('/services/99');
+    expect(failed.rejection?.detail.length).toBeLessThanOrEqual(1200);
+    expect(failed.wire).toBe(selected.wire);
+    expect(failed.baseline).toBe(selected.baseline);
+    expect(failed.selectedId).toBe('api');
+    expect(failed.accepted).toBe(2);
+    expect(received(failed, finish)).toBe(failed);
+    const recovered = update(failed, Message.ClickedRecover()).model;
+    expect(recovered.rejection).toBeNull();
+    expect(recovered.baseline).toBe(failed.baseline);
+    expect(activeRun(recovered)).toEqual({ runId: 'run-2', scenario: 'normal' });
+  });
+
+  it('records only actual acceptance failures and bounds hostile snapshot evidence', () => {
+    const loaded = streaming();
+    const failed = received(loaded, {
+      type: EventType.STATE_SNAPSHOT,
+      snapshot: { services: '<script>'.repeat(1000) },
+    });
+    expect(failed.rejection?.kind).toBe('Snapshot');
+    expect(failed.rejection?.detail.length).toBeLessThanOrEqual(1200);
+    expect(failed.wire).toBe(loaded.wire);
+    expect(failed.baseline).toBe(loaded.baseline);
+    for (const other of [
+      received(start(), { type: EventType.STATE_SNAPSHOT, snapshot: wire }),
+      received(loaded, { type: EventType.RUN_ERROR, message: 'Agent error' }),
+      update(loaded, Message.FailedStream({ runId: 'run-1', error: 'offline' })).model,
+    ])
+      expect(other.rejection).toBeNull();
+  });
+
+  it('compact layout facts preserve connection descriptor, baseline and data', () => {
+    const loaded = streaming();
+    const compact = update(loaded, Message.ChangedCompactView({ isCompact: true })).model;
+    expect(compact.isCompact).toBe(true);
+    expect(activeRun(compact)).toBe(activeRun(loaded));
+    expect(compact.wire).toBe(loaded.wire);
+    expect(compact.baseline).toBe(loaded.baseline);
+  });
+});
+
 describe('pure run state machine', () => {
   it('creates deterministic descriptors and preserves their identity across active states', () => {
     const connecting = start();

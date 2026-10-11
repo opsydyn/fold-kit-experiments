@@ -5,15 +5,18 @@ Astro retention repair is implemented and independently reviewed. Task 4's
 approved Service Incident Lab refinement has an independent compliant/approved
 source review and passing local desktop/mobile qualification. The strengthened
 browser assertion follow-up also passes and its scoped review confirms the
-finding is addressed with no new blocking issues. The commit checkpoint and
-Task 5 remain open.
+finding is addressed with no new blocking issues. Task 4 is committed as
+`083dff8` and fast-forwarded into local `main`. The user has approved pushing
+all reviewed work. Task 5 remains open.
 
 Checkout: managed worktree `ag-ui-agent-analysis`, branch
 `codex/ag-ui-agent-analysis`, starting at `16bed58`.
 The reviewed Tasks 1-3 and internal Astro fixes were subsequently fast-forwarded
 into local `main` with the user's approval, through `6b6b9c9`. Task 4's demo and
-approved Service Incident Lab refinement remain in this managed worktree. No
-further merge, push, deployment or package release is authorised by this slice.
+approved Service Incident Lab refinement were then committed as `083dff8` and
+merged locally on the user's subsequent instruction. That instruction also
+authorises pushing `main`; no separate package publication was requested.
+Existing hosted workflows may deploy the pushed changes.
 
 ## Baseline
 
@@ -86,8 +89,9 @@ both light and dark themes: four actual marks, table selection and focus are
 visible; mobile chart/table scroll inside their containers. This is visual
 inspection of saved evidence, not a fresh controller-run browser test.
 
-Task 4 UI/host changes remain uncommitted in the isolated worktree pending their
-own independent review and commit checkpoint. The internal package fix does not
+At the original repair checkpoint, Task 4 UI/host changes remained uncommitted
+in the isolated worktree pending their own review and commit. The subsequent
+review and `083dff8` merge are described above. The internal package fix does not
 complete full browser CI, compiled Cloudflare endpoint qualification or the final
 whole-branch review. This paragraph records the original repair checkpoint;
 the subsequent authorised local merge is described above. No push or release
@@ -143,5 +147,23 @@ and `astro-page-smoke-build` response stamp before being stopped. Its foreground
 ownership repair remains Task 5 work. A separate managed review server is running
 on `http://127.0.0.1:4372/agent-analysis` from this worktree; it does not replace
 the primary checkout's server.
+
+## Authorised Main Merge
+
+On the user's subsequent merge-and-push instruction, the reviewed Task 4 files
+were committed as `083dff8` and `main` fast-forwarded to that commit. Fresh frozen
+install, root lint/typechecks, production workspace build and all eight real
+desktop/mobile browser cases passed in the main checkout. Logs:
+`/tmp/agui-merge-main-{install,check,types,build,browser}.log`.
+
+The full workspace suite passed again after the merge: 724 tests and one existing
+promo skip. It ran from the isolated worktree at the identical merged commit,
+with only this documentation checkpoint pending, because the existing integration
+harness uses `dev --force` and would otherwise replace the primary server. Log:
+`/tmp/agui-merge-merged-tests.log`. The primary server was not stopped.
+
+The large syntax-highlighting chunk advisory remains disclosed. Hosted CI and
+deployment results are not implied by these local checks; Task 5's browser CI,
+compiled Worker streaming and final whole-plan review remain open.
 
 Maintained guide: [AG-UI Agent Analysis](../../examples/ag-ui-agent-analysis.md).

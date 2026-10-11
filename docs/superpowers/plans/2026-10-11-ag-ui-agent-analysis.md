@@ -17,11 +17,11 @@ AG-UI SDK 1.0.2, fast-json-patch 3.1.1, Playwright Test 1.62.1.
 
 Status: Tasks 1-3 implemented and independently reviewed. The user also approved
 an internal Astro retention repair and the local merge of reviewed commits.
-Task 4's UI and browser harness remain uncommitted in the managed worktree and
-now include the implemented, independently reviewed Service Incident Lab product
-refinement: 724 workspace passes (one existing skip), 8 real desktop/mobile
-browser passes, clean lint/types and a successful web build. Task 5 has not
-started. See the [current qualification record](../specs/2026-10-11-ag-ui-agent-analysis-qualification.md) and the
+Task 4's UI, browser harness and independently reviewed Service Incident Lab
+refinement are committed as `083dff8` and merged into local `main`: 724 workspace
+passes (one existing skip), 8 real desktop/mobile browser passes, clean lint/types
+and a successful web build. The user has approved pushing all reviewed commits.
+Task 5 has not started. See the [current qualification record](../specs/2026-10-11-ag-ui-agent-analysis-qualification.md) and the
 [local merge checkpoint](../specs/2026-10-11-ag-ui-local-merge.md) for scope,
 evidence and remaining gates. The task checklists below retain the original
 implementation sequence, not the current completion ledger.

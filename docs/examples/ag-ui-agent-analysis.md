@@ -67,5 +67,7 @@ See the [implementation plan](../superpowers/plans/2026-10-11-ag-ui-agent-analys
 and [qualification record](../superpowers/specs/2026-10-11-ag-ui-agent-analysis-qualification.md)
 for current execution evidence. Browser CI, compiled Cloudflare endpoint streaming,
 screen-reader acceptance, deployed behaviour and real backend compute cancellation
-remain separate qualification gates. The demo is locally qualified and reviewed
-in its managed worktree, but remains uncommitted and unmerged at this checkpoint.
+remain separate qualification gates. The locally qualified and reviewed demo is
+committed as `083dff8` and merged into local `main`. The subsequent user approval
+authorises pushing this work and the previously reviewed commits; hosted workflow
+results are separate from the local qualification evidence.

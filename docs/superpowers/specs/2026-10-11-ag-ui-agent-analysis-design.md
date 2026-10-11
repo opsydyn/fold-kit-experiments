@@ -4,7 +4,8 @@ Status: original design and plan approved on 2026-10-11. Tasks 1-3 and the
 approved internal Astro retention repair are reviewed and merged locally.
 Task 4's Service Incident Lab refinement is implemented, independently reviewed
 and locally qualified following approval of the Product Sense direction and
-interactive mockup. Its commit checkpoint and Task 5 remain open; see the
+interactive mockup. It is committed as `083dff8` and merged into local `main`;
+the user approved pushing the reviewed work. Task 5 remains open; see the
 [qualification record](./2026-10-11-ag-ui-agent-analysis-qualification.md).
 
 ## Approved Product Refinement

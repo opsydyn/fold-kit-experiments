@@ -1,0 +1,10 @@
+---
+import FunctionalAiRadar from '../apps/functional-ai-radar/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Functional & AI Radar - Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Functional &amp; AI Radar</h1>
+  <FunctionalAiRadar client:load />
+</Layout>

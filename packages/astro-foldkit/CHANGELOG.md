@@ -2,10 +2,9 @@
 
 ## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.8.2...astro-foldkit-v0.9.0) (2026-10-14)
 
-
 ### Features
 
-* add recorded earthquake globe with pure FoldKit SVG ([b524988](https://github.com/opsydyn/fold-kit-experiments/commit/b524988373e86ecd6d07914b2c49fe7a456cca1a))
+- add recorded earthquake globe with pure FoldKit SVG ([b524988](https://github.com/opsydyn/fold-kit-experiments/commit/b524988373e86ecd6d07914b2c49fe7a456cca1a))
 
 ## [0.8.2](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.8.1...astro-foldkit-v0.8.2) (2026-10-11)
 

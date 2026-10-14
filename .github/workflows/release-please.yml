@@ -16,6 +16,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    outputs:
+      prs_created: ${{ steps.release.outputs.prs_created }}
+      prs: ${{ steps.release.outputs.prs }}
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -115,3 +118,31 @@ jobs:
         run: |
           echo "foldkit-viz release was tagged, but npm publish was skipped because NPM_TOKEN is not configured."
           echo "Add an NPM_TOKEN repository secret to enable automated publication."
+
+  normalize-changelogs:
+    needs: release
+    if: ${{ always() && !cancelled() && needs.release.outputs.prs_created == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Check out trusted formatter code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install trusted formatter
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Normalize generated changelogs
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN != '' && secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          RELEASE_PLEASE_PRS: ${{ needs.release.outputs.prs }}
+        run: bash .github/scripts/format-release-changelogs.sh

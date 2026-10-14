@@ -59,10 +59,13 @@ function key(model: Model, pressed: string): Model {
 }
 function start(model: Model, fact: Extract<Message, { _tag: 'StartedGlobePointer' }>): Model {
   const canStart = Gesture.match(model.gesture, { Idle: () => true, Dragging: () => false });
+  const renderedRadius = fact.renderedBaseRadius * model.zoom;
   const valid =
     canStart &&
     [fact.pointerId, fact.clientX, fact.clientY, fact.renderedBaseRadius].every(Number.isFinite) &&
-    fact.renderedBaseRadius > 0;
+    fact.renderedBaseRadius > 0 &&
+    Number.isFinite(renderedRadius) &&
+    renderedRadius > 0;
   return Match.value(valid).pipe(
     Match.when(true, () => ({
       ...model,
@@ -71,7 +74,7 @@ function start(model: Model, fact: Extract<Message, { _tag: 'StartedGlobePointer
         startX: fact.clientX,
         startY: fact.clientY,
         startCenter: model.center,
-        renderedRadius: fact.renderedBaseRadius * model.zoom,
+        renderedRadius,
         maxDistance: 0,
       }),
     })),
@@ -80,23 +83,25 @@ function start(model: Model, fact: Extract<Message, { _tag: 'StartedGlobePointer
 }
 function move(model: Model, fact: Extract<Message, { _tag: 'MovedGlobePointer' }>): Model {
   function dragging(gesture: Extract<Gesture, { _tag: 'Dragging' }>): Model {
+    // Finite input facts can still overflow when subtracted, scaled or combined.
+    const dx = fact.clientX - gesture.startX;
+    const dy = fact.clientY - gesture.startY;
+    const longitude = gesture.startCenter[0] - (dx / gesture.renderedRadius) * 90;
+    const latitude = gesture.startCenter[1] + (dy / gesture.renderedRadius) * 90;
+    const distance = Math.hypot(dx, dy);
     function advanced(): Model {
-      const dx = fact.clientX - gesture.startX;
-      const dy = fact.clientY - gesture.startY;
       return {
         ...model,
-        center: centerAt(
-          gesture.startCenter[0] - (dx / gesture.renderedRadius) * 90,
-          gesture.startCenter[1] + (dy / gesture.renderedRadius) * 90,
-        ),
+        center: centerAt(longitude, latitude),
         gesture: Gesture.Dragging({
           ...gesture,
-          maxDistance: Math.max(gesture.maxDistance, Math.hypot(dx, dy)),
+          maxDistance: Math.max(gesture.maxDistance, distance),
         }),
       };
     }
     return Match.value(
-      gesture.pointerId === fact.pointerId && [fact.clientX, fact.clientY].every(Number.isFinite),
+      gesture.pointerId === fact.pointerId &&
+        [fact.clientX, fact.clientY, longitude, latitude, distance].every(Number.isFinite),
     ).pipe(
       Match.when(true, advanced),
       Match.orElse(() => model),

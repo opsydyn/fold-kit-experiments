@@ -48,6 +48,26 @@ const start = (pointerId = 1, renderedBaseRadius = 100) =>
   Message.StartedGlobePointer({ pointerId, renderedBaseRadius, clientX: 0, clientY: 0 });
 
 describe('FoldKit globe state', () => {
+  it('keeps a valid pose when finite pointer arithmetic would overflow', () => {
+    const base = initial();
+    const started = update(
+      base,
+      Message.StartedGlobePointer({
+        pointerId: 1,
+        clientX: -Number.MAX_VALUE,
+        clientY: 0,
+        renderedBaseRadius: 100,
+      }),
+    ).model;
+    expect(
+      update(
+        started,
+        Message.MovedGlobePointer({ pointerId: 1, clientX: Number.MAX_VALUE, clientY: 0 }),
+      ).model,
+    ).toBe(started);
+    const zoomed = { ...base, zoom: 2 };
+    expect(update(zoomed, start(1, Number.MAX_VALUE)).model).toBe(zoomed);
+  });
   it('bounds zoom and restores the initial pose and selection on reset', () => {
     let model = initial();
     expect(model.center).toEqual([-180, 0]);

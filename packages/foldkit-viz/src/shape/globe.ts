@@ -17,13 +17,18 @@ type ScreenPoint = readonly [number, number];
 const radians = Math.PI / 180;
 
 function validateCoordinate(coordinate: GeoCoord): void {
-  if (!coordinate.every(Number.isFinite) || Math.abs(coordinate[1]) > 90)
+  if (coordinate.length !== 2 || !coordinate.every(Number.isFinite) || Math.abs(coordinate[1]) > 90)
     throw new RangeError('Globe coordinates require finite longitude and latitude within [-90,90]');
 }
 
 function validateView(view: GlobeView): void {
   validateCoordinate(view.center);
-  if (!Number.isFinite(view.radius) || view.radius <= 0 || !view.translate.every(Number.isFinite))
+  if (
+    !Number.isFinite(view.radius) ||
+    view.radius <= 0 ||
+    view.translate.length !== 2 ||
+    !view.translate.every(Number.isFinite)
+  )
     throw new RangeError('Globe view requires a positive finite radius and finite translation');
 }
 

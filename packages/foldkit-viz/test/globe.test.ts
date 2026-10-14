@@ -86,6 +86,12 @@ describe('orthographic globe', () => {
 });
 
 describe('open spherical line clipping', () => {
+  it('rejects malformed JavaScript view tuples even for an empty line', () => {
+    // @ts-expect-error Deliberately exercise an untyped consumer's malformed coordinate tuple.
+    expect(() => clipGlobeLine([], { ...view, center: [] })).toThrow(RangeError);
+    // @ts-expect-error Deliberately exercise an untyped consumer's malformed translation tuple.
+    expect(() => clipGlobeLine([], { ...view, translate: [] })).toThrow(RangeError);
+  });
   it('inserts an analytic equatorial horizon intersection', () => {
     const segments = clipGlobeLine(
       [

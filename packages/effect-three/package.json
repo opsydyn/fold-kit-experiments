@@ -35,7 +35,8 @@
     "check": "bun run lint && bun run check:boundaries && bun run check:single-effect",
     "test": "bun test --pass-with-no-tests ./src ./test",
     "test:spikes": "bun test spikes",
-    "bench:spike-d2": "bun spikes/d2-lint-layering/bench.ts"
+    "bench:spike-d2": "bun spikes/d2-lint-layering/bench.ts",
+    "build": "tsc -b && bun build ./src/index.ts ./src/kernel/index.ts --root ./src --outdir ./dist --target browser --packages external --splitting --sourcemap=linked"
   },
   "devDependencies": {
     "@opsydyn/oxlint-effect": "2.0.1",

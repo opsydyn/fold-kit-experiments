@@ -9,6 +9,8 @@ export type Probe = {
   resizeObservers: number;
   intersectionObservers: number;
   stats: () => unknown;
+  /** GPU memory of the most recently created renderer. */
+  rendererMemory: () => unknown;
 };
 
 export const probe: Probe = {
@@ -16,6 +18,7 @@ export const probe: Probe = {
   resizeObservers: 0,
   intersectionObservers: 0,
   stats: () => undefined,
+  rendererMemory: () => undefined,
 };
 
 Reflect.set(globalThis, '__probe', probe);

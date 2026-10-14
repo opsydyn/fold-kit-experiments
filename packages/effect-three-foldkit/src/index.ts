@@ -19,6 +19,11 @@ export { animationFrameScheduler, type AnimationFrameHost } from './dom/animatio
 export { toNdc, toPointerInput } from './dom/pointer.ts';
 export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
 export { domEventName, SceneError, sceneElement, SceneLifecycle } from './element.ts';
-export { type Environment, type EnvironmentHost, makeEnvironment } from './environment.ts';
+export {
+  type Environment,
+  type EnvironmentHost,
+  type EnvironmentOptions,
+  makeEnvironment,
+} from './environment.ts';
 export { makeSceneMount, type SceneMount } from './mount.ts';
 export { type ButtonDetail, type KeyDetail, view, type ViewConfig } from './view.ts';

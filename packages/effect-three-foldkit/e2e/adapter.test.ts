@@ -5,37 +5,22 @@
  */
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 
-import { type Browser, type CDPSession, chromium, type Page } from 'playwright';
+import type { Browser, CDPSession, Page } from 'playwright';
 import { PNG } from 'pngjs';
 
-const appDir = new URL('./app/', import.meta.url).pathname;
-const distDir = new URL('./dist/', import.meta.url).pathname;
+import { launchBrowser, type ServedApp, serveApp } from './support/server.ts';
 
 let browser: Browser;
-let server: ReturnType<typeof Bun.serve>;
-
-function serveDist(request: Request): Response {
-  const path = new URL(request.url).pathname.slice(1);
-  return new Response(Bun.file(distDir + (path === '' ? 'index.html' : path)));
-}
+let app: ServedApp;
 
 beforeAll(async () => {
-  // Workspace packages export their sources under the `bun` condition until Phase 5 builds `dist`.
-  const build = await Bun.build({
-    entrypoints: [`${appDir}index.html`],
-    outdir: distDir,
-    conditions: ['bun'],
-  });
-  if (!build.success) throw new AggregateError(build.logs, 'e2e app build failed');
-  server = Bun.serve({ port: 0, fetch: serveDist });
-  browser = await chromium.launch({
-    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
-  });
+  app = await serveApp('dist', ['index.html']);
+  browser = await launchBrowser();
 });
 
 afterAll(async () => {
   await browser.close();
-  await server.stop();
+  await app.stop();
 });
 
 type Probe = {
@@ -125,7 +110,7 @@ test('the adapter proves the vertical slice in a real browser', async () => {
     if (message.type() === 'error') errors.push(message.text());
   });
   const cdp = await page.context().newCDPSession(page);
-  await page.goto(`http://localhost:${server.port}/`);
+  await page.goto(app.url('index.html'));
 
   // Mount: the Mount reports StartedScene through the app's typed Message.
   await waitForText(page, '#started', '1');
@@ -188,7 +173,7 @@ test('repeated mount and unmount releases WebGL contexts and resources', async (
   page.on('console', (message) => {
     if (message.text().includes('WebGL')) warnings.push(message.text());
   });
-  await page.goto(`http://localhost:${server.port}/`);
+  await page.goto(app.url('index.html'));
   await waitForText(page, '#started', '1');
   for (let cycle = 2; cycle <= 21; cycle++) {
     await page.click('#visible');

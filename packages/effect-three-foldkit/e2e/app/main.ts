@@ -1,3 +1,4 @@
+import type { RendererFactory } from '@opsydyn/effect-three';
 import { Option, Schema } from 'effect';
 import { Runtime } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
@@ -7,14 +8,24 @@ import { modifyFields } from 'foldkit/struct';
 import * as EffectThreeFoldkit from '../../src/index.ts';
 /** A minimal Foldkit app exercising the adapter end to end (application boundary). */
 import { probe } from './instrument.ts';
-import { type Colour, sceneFor } from './scene.ts';
+import { type Colour, type Size, sceneFor } from './scene.ts';
 
-const environment = EffectThreeFoldkit.makeEnvironment(window);
+// Wraps the WebGL renderer so the test can read three's `renderer.info.memory`.
+const probedRenderer = (canvas: HTMLCanvasElement): RendererFactory => ({
+  create: () => {
+    const renderer = EffectThreeFoldkit.webglRendererFactory(canvas).create();
+    probe.rendererMemory = renderer.memory;
+    return renderer;
+  },
+});
+
+const environment = EffectThreeFoldkit.makeEnvironment(window, { renderer: probedRenderer });
 const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 probe.stats = environment.store.stats;
 
 const Model = Schema.Struct({
   colour: Schema.Literals(['red', 'blue']),
+  size: Schema.Literals(['small', 'large']),
   visible: Schema.Boolean,
   clicks: Schema.Number,
   lastKey: Schema.String,
@@ -25,6 +36,7 @@ type Model = typeof Model.Type;
 
 const Message = defineMessageUnion({
   ClickedToggleColour: {},
+  ClickedToggleSize: {},
   ClickedToggleVisible: {},
   ClickedNode: { key: Schema.String },
   GotSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
@@ -32,6 +44,7 @@ const Message = defineMessageUnion({
 type Message = typeof Message.Type;
 
 const otherColour: Record<Colour, Colour> = { red: 'blue', blue: 'red' };
+const otherSize: Record<Size, Size> = { small: 'large', large: 'small' };
 
 const lifecycleUpdate = (model: Model, lifecycle: EffectThreeFoldkit.SceneLifecycle) =>
   EffectThreeFoldkit.SceneLifecycle.match(lifecycle, {
@@ -44,6 +57,7 @@ const pureUpdate = (model: Model, message: Message) =>
     ClickedToggleColour: () => ({
       model: modifyFields(model, { colour: (colour) => otherColour[colour] }),
     }),
+    ClickedToggleSize: () => ({ model: modifyFields(model, { size: (size) => otherSize[size] }) }),
     ClickedToggleVisible: () => ({
       model: modifyFields(model, { visible: (visible) => !visible }),
     }),
@@ -61,7 +75,7 @@ function update(model: Model, message: Message) {
 const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
   EffectThreeFoldkit.view(
     {
-      scene: sceneFor(model.colour),
+      scene: sceneFor(model.colour, model.size),
       mount: sceneMount,
       className: 'scene',
       onLifecycle: (lifecycle) => Message.GotSceneLifecycle({ lifecycle }),
@@ -78,6 +92,7 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html =>
     [
       h.button([h.Id('colour'), h.OnClick(Message.ClickedToggleColour())], ['colour']),
       h.button([h.Id('visible'), h.OnClick(Message.ClickedToggleVisible())], ['visible']),
+      h.button([h.Id('size'), h.OnClick(Message.ClickedToggleSize())], ['size']),
       h.p([h.Id('clicks')], [String(model.clicks)]),
       h.p([h.Id('last-key')], [model.lastKey]),
       h.p([h.Id('started')], [String(model.started)]),
@@ -91,6 +106,7 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html =>
 
 const initialModel: Model = {
   colour: 'red',
+  size: 'small',
   visible: true,
   clicks: 0,
   lastKey: '',

@@ -28,7 +28,8 @@
     "check": "bun run lint",
     "test": "bun test --pass-with-no-tests ./src ./test",
     "test:spikes": "bun test spikes",
-    "test:e2e": "bun test ./e2e"
+    "test:e2e": "bun test ./e2e",
+    "build": "tsc -b && bun build ./src/index.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked"
   },
   "dependencies": {
     "@opsydyn/effect-three": "workspace:*"
@@ -43,6 +44,7 @@
     "foldkit": "0.167.0",
     "oxlint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",
+    "pixelmatch": "8.0.0",
     "playwright": "1.64.1",
     "pngjs": "7.0.0",
     "three": "0.186.1",

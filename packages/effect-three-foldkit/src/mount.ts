@@ -29,7 +29,6 @@ import {
   observeSize,
   observeVisibility,
 } from './dom/viewport.ts';
-import { webglRendererFactory } from './dom/webgl.ts';
 import { SceneLifecycle } from './element.ts';
 import type { Environment } from './environment.ts';
 
@@ -135,7 +134,7 @@ const sceneRuntimeFor =
     const frames = createGatedFrames(environment.frames);
     const started = SceneRuntime.make({
       scene,
-      renderer: webglRendererFactory(canvas),
+      renderer: environment.renderer(canvas),
       viewport: measureViewport(element, environment.host.devicePixelRatio),
     }).pipe(
       Effect.provideService(FrameSource.FrameSource, FrameSource.fromScheduler(frames)),

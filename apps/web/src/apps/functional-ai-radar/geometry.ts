@@ -79,7 +79,12 @@ export function filterPositions(
 ): ReadonlyArray<RadarPosition> {
   return positions.filter(({ entry }) => matches(entry, filters));
 }
-export type RingCounts = Readonly<Record<Ring, number>>;
+export type RingCounts = Readonly<{
+  adopt: number;
+  trial: number;
+  assess: number;
+  caution: number;
+}>;
 export function countRings(
   positions: ReadonlyArray<RadarPosition>,
   filters: RadarFilters,

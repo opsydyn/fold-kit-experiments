@@ -1,5 +1,19 @@
 # D3 source reference
 
+## Orthographic globe
+
+`shape/globe` references d3-geo at immutable commit
+`8c53a90ae70c94bace73ecb02f2c792c649c86ba`:
+[rotation](https://github.com/d3/d3-geo/blob/8c53a90ae70c94bace73ecb02f2c792c649c86ba/src/rotation.js),
+[orthographic projection](https://github.com/d3/d3-geo/blob/8c53a90ae70c94bace73ecb02f2c792c649c86ba/src/projection/orthographic.js),
+[circle clipping](https://github.com/d3/d3-geo/blob/8c53a90ae70c94bace73ecb02f2c792c649c86ba/src/clip/circle.js),
+and their Cartesian/math helpers. The complete source and licence are retained
+locally under ignored `d3-main/d3-geo/`; no D3 runtime is installed.
+The port keeps spherical rotation and hemisphere visibility and specialises
+the great-circle/plane intersection to the hemisphere plane x=0. Its tolerance,
+validation and antipodal rejection are explicit library policies. It provides
+points and sampled open-line clipping only, not general D3 polygon/stream parity.
+
 The Cartesian slice uses these official source snapshots, restored locally in
 ignored `d3-main/` folders for comparison. They are reference source, not runtime
 dependencies.

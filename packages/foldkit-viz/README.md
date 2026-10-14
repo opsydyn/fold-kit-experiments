@@ -570,6 +570,23 @@ adapter owns no input state. Existing frames without this option render unchange
 
 `intervalBandGeometry` (`chart/intervalBand`) projects one ordered run of finite lower/upper bounds through a shared Cartesian layout. Bounds must be ordered and keys unique/non-empty. Signed/equal bounds are valid; empty/singleton runs return no area path, retaining singleton endpoints. Compose each disconnected run separately and clip to the plot. These pure root/subpath exports do not infer confidence, quality or statistics, and require no Foldkit/Effect peers.
 
+## Orthographic sphere (workspace-only)
+
+The additive `@opsydyn/foldkit-viz/shape/globe` entry exports `GlobeView`,
+`GlobePoint`, `projectGlobePoint`, `clipGlobeLine` and `GLOBE_EPSILON`.
+These functions are pure and require neither FoldKit, Effect nor D3 at runtime.
+This workspace addition is not established as available in the published 0.11.0.
+
+Supply longitude/latitude in degrees, a view centre, positive radius and screen
+translation. East is screen-right, north screen-up; `facing` is independent of
+domain measurements. Rear points have `visible:false`; do not render them or
+their interactive targets. Horizon tolerance is 1e-9 on the unit sphere.
+Open-line clipping emits separate projected runs with limb intersections. Edges
+are minor great-circle arcs; ambiguous antipodal edges throw `RangeError`.
+Non-finite/out-of-range latitude, invalid view and coordinate overflow also throw.
+Arrays are not mutated. This is not polygon clipping, resampling or full D3 parity;
+existing `geoOrthographic` and `geoPath` contracts remain unchanged.
+
 ## Supplied error bars
 
 `errorBarGeometry` (`chart/errorBars`, also root) projects independent caller-supplied intervals through a Cartesian layout. Accessors provide position, lower, upper and datumKey; options select axis x/y and the full capSize in SVG user units. For Y intervals position uses X, and for X intervals position uses Y. Each mark retains the original datum/key with numeric stem/lowerCap/upperCap endpoints; compose SVG lines and clipping yourself, using your own theme. No statistics, sorting, clipping or runtime peers are required.

@@ -138,8 +138,10 @@ function scene(model: Model, dataset: RadarDataset, h: HtmlBuilder<Message>): Ht
       h.Attribute('data-zoom', String(model.zoom)),
       h.OnMount(RadarPointerMount()),
       pointer.OnFoldkitRadarPointer((message) => message),
-      h.OnKeyDownSelfPreventDefault((key) =>
-        handledKeys.has(key) ? Option.some(Message.PressedRadarKey({ key })) : Option.none(),
+      h.OnKeyDownSelfPreventDefault((key, modifiers) =>
+        handledKeys.has(key) && !modifiers.ctrlKey && !modifiers.metaKey && !modifiers.altKey
+          ? Option.some(Message.PressedRadarKey({ key }))
+          : Option.none(),
       ),
     ],
     [
@@ -169,10 +171,13 @@ function scene(model: Model, dataset: RadarDataset, h: HtmlBuilder<Message>): Ht
                 h.Attribute('aria-hidden', 'true'),
                 h.Style({ pointerEvents: 'none' }),
               ],
-              shell.segments.map((segment) =>
-                h.path(
+              [
+                h.circle(
                   [
-                    h.D(segment.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join('')),
+                    h.Attribute('data-shell-outline', shell.ring),
+                    h.Cx('300'),
+                    h.Cy('300'),
+                    h.R(String(shell.radius)),
                     h.Fill('none'),
                     h.Stroke('var(--chart-label)'),
                     h.StrokeWidth(shell.ring === 'caution' ? '1.5' : '1'),
@@ -180,7 +185,19 @@ function scene(model: Model, dataset: RadarDataset, h: HtmlBuilder<Message>): Ht
                   ],
                   [],
                 ),
-              ),
+                ...shell.segments.map((segment) =>
+                  h.path(
+                    [
+                      h.D(segment.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x},${y}`).join('')),
+                      h.Fill('none'),
+                      h.Stroke('var(--chart-label)'),
+                      h.StrokeWidth(shell.ring === 'caution' ? '1.5' : '1'),
+                      h.StrokeOpacity('0.55'),
+                    ],
+                    [],
+                  ),
+                ),
+              ],
             ),
           ),
           // Keep focusable nodes stable; only the inert selection paint moves to the foreground.

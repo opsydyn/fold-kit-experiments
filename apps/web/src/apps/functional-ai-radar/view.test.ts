@@ -133,6 +133,46 @@ describe('functional AI radar rendered contract', () => {
       Scene.expectIgnored(),
     );
   });
+  it.each([{ ctrlKey: true }, { metaKey: true }, { altKey: true }])(
+    'leaves browser modifier shortcuts untouched: %j',
+    (modifiers) => {
+      Scene.scene(
+        { view, update },
+        Scene.given(initial()),
+        Scene.Mount.resolveAll([RadarPointerMount, Message.CompletedRadarPointerMount()]),
+        Scene.keydown(Scene.role('group', { name: 'Functional and AI radar' }), '+', modifiers),
+        Scene.expectIgnored(),
+        Scene.expect(Scene.text('1.00x')).toExist(),
+        Scene.keydown(
+          Scene.role('group', { name: 'Functional and AI radar' }),
+          'ArrowLeft',
+          modifiers,
+        ),
+        Scene.expectIgnored(),
+        Scene.expect(Scene.role('group', { name: 'Functional and AI radar' })).toHaveAttr(
+          'data-longitude',
+          '0',
+        ),
+        Scene.keydown(Scene.role('group', { name: 'Functional and AI radar' }), '+', {
+          shiftKey: true,
+        }),
+        Scene.expectHandled(),
+        Scene.expect(Scene.text('1.25x')).toExist(),
+      );
+    },
+  );
+  it('renders four complete inert shell outlines at every pose and scales their radii', async () => {
+    const root = await rendered({ ...initial(), center: [35, 55], zoom: 1.25 });
+    const outlines = Array.from(root.querySelectorAll('[data-shell-outline]'));
+    expect(outlines.map((node) => Number(node.getAttribute('r')))).toEqual([130, 195, 260, 325]);
+    for (const node of outlines) {
+      expect(node.getAttribute('cx')).toBe('300');
+      expect(node.getAttribute('cy')).toBe('300');
+      expect(node.getAttribute('fill')).toBe('none');
+      expect(node.parentElement?.getAttribute('aria-hidden')).toBe('true');
+      expect(node.parentElement?.getAttribute('style')).toMatch(/pointer-events:\s*none/);
+    }
+  });
   it('keeps failed, empty and zero-match states distinct with no fake points', async () => {
     const failed = await rendered(initModel({ _tag: 'Failure', reason: 'Broken fixture' }));
     expect(failed.textContent).toContain('Broken fixture');

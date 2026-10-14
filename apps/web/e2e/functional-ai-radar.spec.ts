@@ -130,6 +130,20 @@ test('marker selection keeps compact feedback visible and keyboard focus local',
   await globe.focus();
   await page.keyboard.press('ArrowRight');
   await expect(globe).toHaveAttribute('data-longitude', '15');
+  const prevented = await globe.evaluate((element) =>
+    [
+      { key: '+', ctrlKey: true },
+      { key: '-', metaKey: true },
+      { key: 'ArrowLeft', altKey: true },
+    ].map((options) => {
+      const event = new KeyboardEvent('keydown', { ...options, bubbles: true, cancelable: true });
+      element.dispatchEvent(event);
+      return event.defaultPrevented;
+    }),
+  );
+  expect(prevented).toEqual([false, false, false]);
+  await expect(globe).toHaveAttribute('data-longitude', '15');
+  await expect(globe).toHaveAttribute('data-zoom', '1');
   const search = page.getByRole('searchbox', { name: 'Search technologies' });
   await search.fill(entry.name);
   await search.press('Home');
@@ -146,6 +160,12 @@ test('marker selection keeps compact feedback visible and keyboard focus local',
   );
   await page.getByRole('button', { name: 'Reset view', exact: true }).click();
   await expect(globe).toHaveAttribute('data-longitude', '0');
+  await expect(globe.locator('[data-shell-outline]')).toHaveCount(4);
+  expect(
+    await globe
+      .locator('[data-shell-outline]')
+      .evaluateAll((nodes) => nodes.map((node) => Number(node.getAttribute('r')))),
+  ).toEqual([104, 156, 208, 260]);
   await expect(adopt).not.toBeChecked();
   expect(observations).toEqual({ errors: [], outside: [] });
 });

@@ -1,6 +1,6 @@
 # ADR-002: Foldkit adapter seam is CustomElement properties and events plus a one-shot Mount
 
-- Status: Accepted (2026-10-14), pending Phase 3 time-travel verification
+- Status: Accepted and implemented (2026-10-14, Phase 3). Time-travel pause is wired but not yet verified end to end.
 - Evidence: [d1-adapter spike](../../../packages/effect-three-foldkit/spikes/d1-adapter), [spike results](../spike-results.md#d1-details)
 
 ## Context
@@ -48,3 +48,33 @@ scene(
 - Mount finalisers run asynchronously after snabbdom's `destroy`. All teardown must be self-contained (no ordering assumptions about sibling DOM).
 - We need a structural equality fast path for descriptions. Reference equality isn't enough.
 - Open (Phase 3): suppress events while `viewStateChanges` is `Paused` (DevTools time travel).
+
+## Implementation notes (Phase 3)
+
+The shipped API, in `packages/effect-three-foldkit`:
+
+```ts
+// entry: once per app
+const environment = EffectThreeFoldkit.makeEnvironment(window);
+const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
+
+// view
+EffectThreeFoldkit.view(
+  {
+    scene: sceneFor(model),
+    mount: sceneMount,
+    onLifecycle: (lifecycle) => GotSceneLifecycle({ lifecycle }),
+    onClick: ({ key }) => ClickedNode({ key }),
+  },
+  h,
+);
+```
+
+What changed from the decision above:
+
+- **No `customElements.define`.** The Mount intercepts the `scene` property directly, so there's no element class to register, re-register under HMR, or guard during SSR.
+- **One DOM event per pointer kind** (`scene-click`, `scene-pointer-enter`, and so on, plus `scene-error`). Apps bind only the handlers they pass; unbound events dispatch nothing.
+- **Lifecycle Messages are the library's own** (`StartedScene`, `FailedScene`) and are lifted into the app's union with `Mount.mapMessage` through `onLifecycle`.
+- **Services are provided with `provideService`, not a Layer.** A Layer provided to `SceneRuntime.make` would be released as soon as `make` returned.
+- **WebGL contexts are released on unmount** with `forceContextLoss()`. The browser test found that without it, Chromium starts dropping contexts after about 16 mount/unmount cycles.
+- **Scene values are Schema-decoded** at the property boundary (`MalformedScene` on failure), because the DOM property is `unknown`. Benchmark this in Phase 5.

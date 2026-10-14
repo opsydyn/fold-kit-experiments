@@ -4,7 +4,12 @@
  *
  * @module
  */
-import { createPicker, createPointerTracker, type PointerInput, type SceneEvent } from './pointer.ts';
+import {
+  createPicker,
+  createPointerTracker,
+  type PointerInput,
+  type SceneEvent,
+} from './pointer.ts';
 import type { SceneRenderer } from './renderer.ts';
 import type { SceneGraph } from './sceneGraph.ts';
 

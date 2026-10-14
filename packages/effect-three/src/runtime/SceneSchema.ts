@@ -10,6 +10,8 @@
 import { Schema } from 'effect';
 
 import type * as Kernel from '../kernel/description.ts';
+import type { SceneEvent as KernelSceneEvent } from '../kernel/pointer.ts';
+import type { DescriptionError as KernelDescriptionError } from '../kernel/sceneIndex.ts';
 
 const NonNegative = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 const Positive = Schema.Finite.check(Schema.isGreaterThan(0));
@@ -122,6 +124,32 @@ export const SceneDescription = Schema.Struct({
   children: Schema.Array(SceneNode),
 });
 
+/** Detail of hover events: the interactive mesh's key. */
+export const KeyDetail = Schema.Struct({ key: Schema.String });
+
+/** Detail of button events: key, `MouseEvent.button` and the world-space hit point. */
+export const ButtonDetail = Schema.Struct({ key: Schema.String, button: Schema.Int, point: Vec3 });
+
+/** A pointer interaction with an interactive mesh. */
+export const SceneEvent = Schema.Union([
+  Schema.TaggedStruct('PointerEnter', { key: Schema.String }),
+  Schema.TaggedStruct('PointerLeave', { key: Schema.String }),
+  Schema.TaggedStruct('PointerDown', ButtonDetail.fields),
+  Schema.TaggedStruct('PointerUp', ButtonDetail.fields),
+  Schema.TaggedStruct('Click', ButtonDetail.fields),
+]);
+
+/** Why a scene description was rejected. */
+export const DescriptionError = Schema.Union([
+  Schema.TaggedStruct('DuplicateKey', { key: Schema.String }),
+  Schema.TaggedStruct('DuplicateResourceId', {
+    resource: Schema.Literals(['geometry', 'material']),
+    id: Schema.String,
+  }),
+  Schema.TaggedStruct('UnknownSharedGeometry', { nodeKey: Schema.String, id: Schema.String }),
+  Schema.TaggedStruct('UnknownSharedMaterial', { nodeKey: Schema.String, id: Schema.String }),
+]);
+
 type Equals<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 
@@ -136,6 +164,8 @@ export type SchemaMatchesKernel =
     Equals<typeof MeshNode.Type, Kernel.MeshNode>,
     Equals<typeof PerspectiveCamera.Type, Kernel.PerspectiveCamera>,
     Equals<typeof SceneDescription.Type, Kernel.SceneDescription>,
+    Equals<typeof SceneEvent.Type, KernelSceneEvent>,
+    Equals<typeof DescriptionError.Type, KernelDescriptionError>,
   ] extends ReadonlyArray<true>
     ? true
     : never;

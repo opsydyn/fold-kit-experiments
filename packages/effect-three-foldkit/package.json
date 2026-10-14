@@ -27,7 +27,8 @@
     "lint": "bunx --bun oxlint --config oxlint.strict.ts",
     "check": "bun run lint",
     "test": "bun test --pass-with-no-tests ./src ./test",
-    "test:spikes": "bun test spikes"
+    "test:spikes": "bun test spikes",
+    "test:e2e": "bun test ./e2e"
   },
   "dependencies": {
     "@opsydyn/effect-three": "workspace:*"
@@ -36,12 +37,14 @@
     "@effect/platform-browser": "4.0.0",
     "@opsydyn/oxlint-effect": "2.0.1",
     "@types/bun": "1.4.3",
+    "@types/pngjs": "6.0.5",
     "@types/three": "0.186.0",
     "effect": "4.0.0",
     "foldkit": "0.167.0",
     "oxlint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",
     "playwright": "1.64.1",
+    "pngjs": "7.0.0",
     "three": "0.186.1",
     "typescript": "7.0.2"
   },

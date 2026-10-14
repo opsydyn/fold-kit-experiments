@@ -376,7 +376,7 @@ _Exit:_ the brief's Delivery list is complete: tests, benchmarks, working demo, 
 
 ## 10. Decisions (accepted 2026-10-14)
 
-**Status (2026-10-14):** Phases 0–2 complete. Phase 1 (headless kernel) and Phase 2 (Effect runtime: `SceneRuntime.make`, `ResourceRegistry`, `FrameSource`, pointer events, atomic startup) are on `feat/effect-three`. Next: Phase 3, the Foldkit adapter. Phase 0: Spike evidence is in [spike-results.md](spike-results.md), and ADRs 001–004 are in [adr/](adr). Spikes re-ran green against Foldkit 0.167.0 after consolidation (`bun run test:spikes` in each package).
+**Status (2026-10-14):** Phases 0–3 complete on `feat/effect-three`: headless kernel, Effect runtime, and the Foldkit adapter with browser tests. Next: Phase 4, the demo and visual tests. Phase 0: Spike evidence is in [spike-results.md](spike-results.md), and ADRs 001–004 are in [adr/](adr). Spikes re-ran green against Foldkit 0.167.0 after consolidation (`bun run test:spikes` in each package).
 
 All recommendations in this plan were accepted. Specifically:
 

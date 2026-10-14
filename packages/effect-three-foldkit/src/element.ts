@@ -1,0 +1,49 @@
+/**
+ * The `<effect-three-scene>` element: a typed `scene` property that Foldkit diffs on
+ * every render, and Schema-decoded events that become the app's typed Messages.
+ *
+ * The tag is never registered with `customElements`; the scene Mount intercepts the
+ * property instead (ADR-002), so there is nothing to re-register under HMR or SSR.
+ *
+ * @module
+ */
+import { SceneSchema, type SceneEvent } from '@opsydyn/effect-three';
+import { Schema } from 'effect';
+import { CustomElement } from 'foldkit';
+import { defineMessageUnion } from 'foldkit/message';
+
+/** A scene update that could not be applied. The scene keeps its last good state. */
+export const SceneError = Schema.Union([
+  ...SceneSchema.DescriptionError.members,
+  Schema.TaggedStruct('MalformedScene', { issue: Schema.String }),
+]);
+export type SceneError = typeof SceneError.Type;
+
+export const sceneElement = CustomElement.define({
+  tag: 'effect-three-scene',
+  properties: { scene: SceneSchema.SceneDescription },
+  events: {
+    'scene-click': SceneSchema.ButtonDetail,
+    'scene-pointer-down': SceneSchema.ButtonDetail,
+    'scene-pointer-up': SceneSchema.ButtonDetail,
+    'scene-pointer-enter': SceneSchema.KeyDetail,
+    'scene-pointer-leave': SceneSchema.KeyDetail,
+    'scene-error': Schema.Struct({ error: SceneError }),
+  },
+});
+
+/** The DOM event name for each kernel scene event. */
+export const domEventName = {
+  Click: 'scene-click',
+  PointerDown: 'scene-pointer-down',
+  PointerUp: 'scene-pointer-up',
+  PointerEnter: 'scene-pointer-enter',
+  PointerLeave: 'scene-pointer-leave',
+} as const satisfies Record<SceneEvent['_tag'], keyof typeof sceneElement.events>;
+
+/** Outcome of mounting a scene. Map these into the app's Messages with `onLifecycle`. */
+export const SceneLifecycle = defineMessageUnion({
+  StartedScene: {},
+  FailedScene: { reason: Schema.String },
+});
+export type SceneLifecycle = typeof SceneLifecycle.Type;

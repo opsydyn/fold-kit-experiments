@@ -36,7 +36,14 @@ export {
   type ResourceStats,
   type ResourceStore,
 } from './resources.ts';
-export { createManualFrames, type FrameScheduler, type ManualFrames } from './frames.ts';
+export { createSceneClock, type SceneClock } from './clock.ts';
+export {
+  createGatedFrames,
+  createManualFrames,
+  type FrameScheduler,
+  type GatedFrames,
+  type ManualFrames,
+} from './frames.ts';
 export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
 export {
   createPicker,

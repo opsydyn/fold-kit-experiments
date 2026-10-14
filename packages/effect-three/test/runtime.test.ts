@@ -70,6 +70,23 @@ function* rendersAndAnimatesWithoutEvents(frames: ManualFrames) {
   expect(yield* handle.drainEvents).toEqual([]);
 }
 
+function* reducedMotionFreezesBehaviours(frames: ManualFrames) {
+  const renderers = recordingRendererFactory();
+  const handle = yield* SceneRuntime.make({
+    scene: cubeScene({ color: 1 }),
+    renderer: renderers,
+    viewport,
+  });
+  yield* advanceFrames(frames, 50, 20);
+  yield* handle.setAnimating(false);
+  yield* advanceFrames(frames, 50, 20);
+  expect(handle.graph.object('cube')?.rotation.y).toBeCloseTo(1, 9);
+  expect(renderers.created()[0]?.renders()).toBe(100);
+  yield* handle.setAnimating(true);
+  yield* advanceFrames(frames, 50, 20);
+  expect(handle.graph.object('cube')?.rotation.y).toBeCloseTo(2, 9);
+}
+
 function* updatesInPlace() {
   const handle = yield* SceneRuntime.make({
     scene: cubeScene({ color: 0xff0000 }),
@@ -211,6 +228,10 @@ function sceneRuntimeTests() {
   test('renders and animates 500 frames without emitting events', () =>
     current.runtime.runPromise(
       Effect.gen(() => rendersAndAnimatesWithoutEvents(current.frames)).pipe(Effect.scoped),
+    ));
+  test('reduced motion freezes behaviours while frames keep rendering', () =>
+    current.runtime.runPromise(
+      Effect.gen(() => reducedMotionFreezesBehaviours(current.frames)).pipe(Effect.scoped),
     ));
   test('updates reuse objects and invalid updates change nothing', () =>
     current.runtime.runPromise(Effect.gen(updatesInPlace).pipe(Effect.scoped)));

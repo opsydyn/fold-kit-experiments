@@ -34,7 +34,12 @@ export type SceneEvent =
       readonly button: number;
       readonly point: Vec3;
     }
-  | { readonly _tag: 'PointerUp'; readonly key: string; readonly button: number; readonly point: Vec3 }
+  | {
+      readonly _tag: 'PointerUp';
+      readonly key: string;
+      readonly button: number;
+      readonly point: Vec3;
+    }
   | { readonly _tag: 'Click'; readonly key: string; readonly button: number; readonly point: Vec3 };
 
 /** The nearest interactive mesh under a point, with the world-space hit point. */

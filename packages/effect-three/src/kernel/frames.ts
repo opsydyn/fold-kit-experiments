@@ -34,3 +34,25 @@ export const createManualFrames = (): ManualFrames => {
     subscribers: () => callbacks.size,
   };
 };
+
+/** A scheduler that forwards frames only while open. */
+export type GatedFrames = FrameScheduler & {
+  readonly setOpen: (open: boolean) => void;
+};
+
+/**
+ * Wraps `base` so frames pass only while open: for example, only while the canvas is on
+ * screen. The base subscription stays registered; closed frames are skipped.
+ */
+export const createGatedFrames = (base: FrameScheduler): GatedFrames => {
+  let open = true;
+  return {
+    subscribe: (onFrame) =>
+      base.subscribe(() => {
+        if (open) onFrame();
+      }),
+    setOpen: (next) => {
+      open = next;
+    },
+  };
+};

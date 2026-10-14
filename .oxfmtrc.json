@@ -6,5 +6,10 @@
   "semi": true,
   "trailingComma": "all",
   "sortImports": true,
-  "ignorePatterns": ["skills/**", "tools/oxlint/anti-slop/**", ".superpowers/**"]
+  "ignorePatterns": [
+    "skills/**",
+    "tools/oxlint/anti-slop/**",
+    ".superpowers/**",
+    "apps/web/src/apps/earthquake-globe/fixtures/usgs-week.geojson"
+  ]
 }

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing FoldKit 0.167.0, Effect 4.0.0, Astro 7.2.8, TypeScript, Vanilla Extract, Vitest/Scene, Playwright and Bun; unchanged manifests/lockfile.
 
-**Spec:** [Approved written design](../specs/2026-10-14-functional-ai-radar-design.md), approved in conversation after local design commit `56bca21`. This plan is not yet approved for execution.
+**Spec:** [Approved written design](../specs/2026-10-14-functional-ai-radar-design.md), approved in conversation after local design commit `56bca21`. The user approved this plan for inline execution; local implementation/verification commits are authorised, not push or publication.
 
 ## Global Constraints
 
@@ -43,7 +43,8 @@ them as unexplained changes or include unrelated files in that commit.
 All paths below are relative to `apps/web/src/apps/functional-ai-radar/` unless
 stated otherwise. Tasks execute in order. If delegated, each implementer receives
 the spec, its task, predecessor interfaces and approved file scope; no additional
-qualification/model trial follows from delegation. No agent runs in this plan pass.
+qualification/model trial follows from delegation. Inline execution uses one fresh
+read-only native whole-branch reviewer at the end, not per-task workers/reviewers.
 
 | Task | Owned files                                                                                                                                                                                   | Deliverable                                     |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
@@ -89,7 +90,7 @@ and `demoNotice` with the spec's exact provenance text. Export
 `fixture.ts` exports `demoRadar`, the raw local `{ authoredOn, entries }` fixture
 authored on `2026-10-14`; it contains no layout/camera/filter state.
 
-- [ ] **Write `data.test.ts` before these modules exist.** Import the contracts
+- [x] **Write `data.test.ts` before these modules exist.** Import the contracts
       above; pin the complete roster/rings from the spec, 32 unique IDs, eight per
       category and immutable input. Include these exact boundary assertions:
 
@@ -108,9 +109,9 @@ authored on `2026-10-14`; it contains no layout/camera/filter state.
   unknown category/ring, malformed date, a ninth category entry, `javascript:`,
   HTTP and credential-bearing HTTPS URLs. Never fetch links inside tests.
 
-- [ ] **Run RED:** from root, `bun run --filter @opsydyn/web test src/apps/functional-ai-radar/data.test.ts`.
+- [x] **Run RED:** from root, `bun run --filter @opsydyn/web test src/apps/functional-ai-radar/data.test.ts`.
       Expect failing imports/assertions for the new behavior, not test-runner setup.
-- [ ] **Implement the data boundary and fixture.** Use existing Effect Schema
+- [x] **Implement the data boundary and fixture.** Use existing Effect Schema
       patterns and structured URL parsing. IDs match lower-case kebab-case, dates
       are valid `YYYY-MM-DD`, source URLs are HTTPS with nonempty hostname and no
       username/password. Do not coerce values, drop bad rows or mutate input. Decode
@@ -118,9 +119,9 @@ authored on `2026-10-14`; it contains no layout/camera/filter state.
       original concise descriptions and the exact sample placements, not invented
       endorsement/failure stories. Check each source once against primary material;
       retain links/check date in the execution receipt, not a new crawler/service.
-- [ ] **Run GREEN:** rerun the focused command; all cases must pass. Inspect all
+- [x] **Run GREEN:** rerun the focused command; all cases must pass. Inspect all
       32 records for the spec's roster, category/ring assignment and honest notice.
-- [ ] **Review and commit only these three files** with message
+- [x] **Review and commit only these three files** with message
       `feat(web): add original functional AI radar dataset`. For delegated work,
       review this deliverable before Task 2; for native work, self-review now and
       retain one whole-branch independent review for the end if authorized.
@@ -182,7 +183,7 @@ function projectRadar(
 `countRings` applies query/category but ignores enabled rings.
 Filtering and counts reuse one matching policy; no duplicated search logic.
 
-- [ ] **Write `geometry.test.ts` with independent witnesses.** Build explicit
+- [x] **Write `geometry.test.ts` with independent witnesses.** Build explicit
       valid synthetic `RadarPosition` records for two front entries at `[30,0]`, one
       Adopt and one Trial, and a rear entry at `[180,0]`. With all rings/category All,
       query empty and view `{ center:[0,0], zoom:1 }`, assert:
@@ -202,9 +203,9 @@ Filtering and counts reuse one matching policy; no duplicated search logic.
   centre. Check trimmed mixed-case name/description search, ring-count semantics,
   all rings disabled, poles/horizon, frozen inputs and non-finite view rejection.
 
-- [ ] **Run RED:** `bun run --filter @opsydyn/web test src/apps/functional-ai-radar/geometry.test.ts`.
+- [x] **Run RED:** `bun run --filter @opsydyn/web test src/apps/functional-ai-radar/geometry.test.ts`.
       Expect the new adapter/layout behavior to fail before implementation.
-- [ ] **Implement only the app-local adapter.** Sort full-data IDs with a stable
+- [x] **Implement only the app-local adapter.** Sort full-data IDs with a stable
       lexical comparison; use the spec's eight-slot formula and global ID-order
       display numbers. Derive stable results without a cache or second mutable
       store. Project each ring at `260 * shellFraction * zoom`; reject non-finite
@@ -214,9 +215,9 @@ Filtering and counts reuse one matching policy; no duplicated search logic.
       spacing through existing clipping; output radius for its SVG outline. Keep all
       four guides, even when ring filters exclude their marks. Do not port new math
       or change any Viz helper/public contract.
-- [ ] **Run GREEN:** rerun geometry tests and Task 1's focused tests. Inspect
+- [x] **Run GREEN:** rerun geometry tests and Task 1's focused tests. Inspect
       output paths for finite coordinates and horizon splitting, not just existence.
-- [ ] **Review and commit only the geometry module/tests** with message
+- [x] **Review and commit only the geometry module/tests** with message
       `feat(web): add stable spherical radar layout`.
 
 ### Task 3: Model Transitions And Scoped Input
@@ -254,7 +255,7 @@ exports `pointerEventName = 'foldkit-radar-pointer'`, `radarEvents` (custom tag
 `foldkit-radar-input`), `RadarPointerMount` and
 `forwardRadarPointers(element: Element): Effect.Effect<void, never, Scope.Scope>`.
 
-- [ ] **Write `update.test.ts` and `mount.test.ts`.** Pin the default Model and
+- [x] **Write `update.test.ts` and `mount.test.ts`.** Pin the default Model and
       observable transitions, including this distinguishing zoom/reset witness:
 
   ```typescript
@@ -276,9 +277,9 @@ exports `pointerEventName = 'foldkit-radar-pointer'`, `radarEvents` (custom tag
   The actual scoped Effect must forward fresh width/identity facts and remove
   every listener after scope closure, following the existing Mount test pattern.
 
-- [ ] **Run RED:** `bun run --filter @opsydyn/web test src/apps/functional-ai-radar/update.test.ts src/apps/functional-ai-radar/mount.test.ts`.
+- [x] **Run RED:** `bun run --filter @opsydyn/web test src/apps/functional-ai-radar/update.test.ts src/apps/functional-ai-radar/mount.test.ts`.
       Test-runner startup failures do not count as reproductions.
-- [ ] **Implement Model, Messages and update.** Use existing FoldKit schemas,
+- [x] **Implement Model, Messages and update.** Use existing FoldKit schemas,
       `Message.match`, readonly records and normal Return values. Derive matching
       positions via Task 2 before selection; retain Cleared until another valid
       selection. Filter/view commands end gestures. In drag use
@@ -287,14 +288,14 @@ exports `pointerEventName = 'foldkit-radar-pointer'`, `radarEvents` (custom tag
       after rejecting non-finite derived values. Ignore unrelated pointers. Consume
       only the next pointer blip activation after a >4 CSS-pixel drag; keyboard
       selection remains available and starts fresh interaction state.
-- [ ] **Implement scoped pointer forwarding.** Use the earthquake Mount as a
+- [x] **Implement scoped pointer forwarding.** Use the earthquake Mount as a
       pattern, not an import. Read current outer base radius from SVG width and
       Task 2's constants; carry pointer ID/client coordinates in synchronous custom
       events. Only primary-button starts; forward release/cancel/leave. Effects own
       listener acquisition/removal; callbacks never mutate Model or camera/DOM.
-- [ ] **Run GREEN:** rerun both focused files, then all new radar unit tests.
+- [x] **Run GREEN:** rerun both focused files, then all new radar unit tests.
       Verify listener removal by dispatching after scope closure and seeing no facts.
-- [ ] **Review and commit the six state/input files** with message
+- [x] **Review and commit the six state/input files** with message
       `feat(web): add radar filtering selection and scoped gestures`.
 
 ### Task 4: Rendered App And Browser Acceptance
@@ -307,7 +308,7 @@ Task 2; Model/Selection/Message/update/Mount from Task 3. `view.ts` exports
 existing `lazyApp(() => import('./main'))` wrapper. The new Astro route uses the
 existing Layout and `client:load`; add one gallery link, not another gallery mount.
 
-- [ ] **Write `view.test.ts` before rendering code.** Use the real render helper
+- [x] **Write `view.test.ts` before rendering code.** Use the real render helper
       `apps/web/src/ui/shared/render-chart.test-helper.ts` and FoldKit Scene, with
       `Scene.Mount.resolveAll([RadarPointerMount, Message.CompletedRadarPointerMount()])`.
       Assert labelled provenance, all matching rows, no hidden/filter-excluded marker
@@ -320,15 +321,15 @@ existing Layout and `client:load`; add one gallery link, not another gallery mou
       empty dataset and Failure without fake blips. Pin HTTPS source link attributes.
       A Scene key interaction must acknowledge handled/ignored outcomes with the
       installed `Scene.expectHandled()`/`Scene.expectIgnored()` APIs.
-- [ ] **Run RED:** `bun run --filter @opsydyn/web test src/apps/functional-ai-radar/view.test.ts`.
+- [x] **Run RED:** `bun run --filter @opsydyn/web test src/apps/functional-ai-radar/view.test.ts`.
       Expect the requested view behavior to fail before rendering code exists.
-- [ ] **Implement `view.ts`/`radar.css.ts`** with unframed scene, compact controls,
+- [x] **Implement `view.ts`/`radar.css.ts`** with unframed scene, compact controls,
       full list and details. Render guides before marks with no guide input; normal
       depth order except selected-last emphasis. Use fixed 20-unit blip radii and
       20-unit numbered SVG text within the stable viewBox; full names/category/ring
       remain in details/list. Clip marker edges to the scene viewport. Use a unique
       `functional-ai-radar-viewport` clip ID; this app mounts one scene only.
-- [ ] **Wire native, accessible controls.** Search uses OnInput; category uses
+- [x] **Wire native, accessible controls.** Search uses OnInput; category uses
       OnChange with validated literals; labelled native ring checkboxes use one
       `ClickedRing` click handler, not duplicate change/click dispatches. Buttons are
       type button with names/tooltips. Root uses installed
@@ -340,12 +341,12 @@ existing Layout and `client:load`; add one gallery link, not another gallery mou
       search label `Search technologies` and list buttons `Inspect <entry name>`.
       Reuse light/dark tokens with teal/green/amber/rose category swatches and text;
       ring checkboxes show query/category counts before enabled-ring exclusions.
-- [ ] **Finish layout/route and run unit GREEN.** Put compact name/category/ring
+- [x] **Finish layout/route and run unit GREEN.** Put compact name/category/ring
       summary before the scene on mobile and beside it on desktop without reversing
       DOM reading order. Longer description/list may continue below. No auto-scroll,
       duplicate live summary, nested cards, viewport Model or new dependency. Add
       app/main, route and gallery link; rerun all new radar unit/Scene tests.
-- [ ] **Write `apps/web/e2e/functional-ai-radar.spec.ts`.** Use existing
+- [x] **Write `apps/web/e2e/functional-ai-radar.spec.ts`.** Use existing
       desktop 1365x900/mobile 390x844 projects and their exclusive server. Required
       journeys/assertions:
   - Initial 32 rows, four guides, explicit demo notice; after search/category/rings,
@@ -371,11 +372,11 @@ existing Layout and `client:load`; add one gallery link, not another gallery mou
     Capture scene screenshots before/after rotation and SVG raster pixels for
     nonblank guides/marks. Inspect text/control overlap and source-link contrast.
     Do not change Playwright configuration or add public fixture switches.
-- [ ] **Run browser qualification serially:** from `apps/web`,
+- [x] **Run browser qualification serially:** from `apps/web`,
       `bun run test:e2e e2e/functional-ai-radar.spec.ts`. Every required desktop/mobile
       journey must pass; document deliberate skips and startup failures separately.
       Fix failures at their actual boundary and rerun without weakening assertions.
-- [ ] **Final verification and scoped review.** Run root `bun run check`,
+- [x] **Final verification and scoped review.** Run root `bun run check`,
       `bun typecheck`, `bun run test`, then
       `bun run --filter @opsydyn/web build` and the focused browser file serially.
       Existing globe regression tests must remain green. Inspect any package export-map,
@@ -384,7 +385,7 @@ existing Layout and `client:load`; add one gallery link, not another gallery mou
       If a necessary change crosses those boundaries, stop for revised approval.
       Complete the selected review method, fix meaningful findings and rerun affected
       checks. Reviewer output is not a substitute for executed verification.
-- [ ] **Commit only Task 4's files** with message
+- [x] **Commit only Task 4's files** with message
       `feat(web): render and qualify functional AI radar`. Restore the preview via
       root `bun run --filter @opsydyn/web dev --host 127.0.0.1 --port 4381`, verify
       the new route responds and provide its URL. Do not push or create/merge a PR
@@ -408,3 +409,105 @@ declarations, existing globe data/state/Mount/view tests, real render helper,
 Astro route/wrapper and browser configuration. No radar code, fixture, model call
 or behavioural experiment was executed during planning. Review this plan and
 choose native/inline or subagent-driven execution before starting Task 1.
+
+## Execution Evidence
+
+- result: complete
+- claim: Approved four-task radar implemented inline and locally committed, with
+  both independent-review findings repaired in one verified fix pass. No push/publication.
+- evidence: 55 radar tests; full workspace 973 passed, one existing skip; strict
+  checks/typechecks and production build pass; combined radar/globe Chromium
+  16 passed, two deliberate desktop-touch skips, both mobile touch cases pass.
+- remaining uncertainty: Human preview review, physical device, Safari and
+  assistive technology are not qualified. Demo placement is not adoption advice;
+  live normalization qualification awaits the next genuine package release.
+- next: Needs review of the local preview, then an explicit integration choice.
+
+Approved inline execution produced local data, geometry, state/input and UI
+commits `3892537`, `3ccca56` plus correction `601c22b`, `3f45ca6`, and `84810ba`.
+No shared package, manifest/lockfile, workflow/configuration, version or existing
+earthquake code changed. Independent review of `f2cc400..84810ba` completed;
+its single fix pass passed final verification below.
+
+- Feature-absent RED logs: `/tmp/ehs-radar-data-red.log`,
+  `/tmp/ehs-radar-geometry-red.log`, `/tmp/ehs-radar-state-red.log`,
+  `/tmp/ehs-radar-view-red.log`. GREEN: 51 radar tests across five files.
+  Disabling the duplicate-ID guard yielded one behavioural failure; it was restored.
+- Strict-check checkpoint failure after initial geometry commit is retained:
+  its `Record` return type was corrected in `601c22b`, then checks passed.
+  No lint rule/configuration was weakened. This checkpoint was not qualified.
+- The first browser run exposed actual focused-marker loss after selected-last
+  node movement. The ID-pinned reproduction also failed. Stable interactive nodes
+  plus inert foreground paint restored desktop/mobile keyboard GREEN.
+- Final strict checks report zero warnings; full typechecks report zero
+  errors/warnings/hints across 606 files. Serial root tests: 969 passed,
+  one existing promo-artifact skip. Web production build exits 0.
+- An earlier full-suite run overlapped a typecheck-triggered package rebuild
+  and failed the existing stateflow HTTP smoke. The unchanged serial rerun passed;
+  the failed output remains `/tmp/ehs-radar-full-tests-overlap-failure.log`.
+  This is not a product RED or justification for weakening the smoke check.
+- Combined Chromium radar/globe qualification: 16 passed, two deliberate
+  desktop-touch skips; both mobile touch journeys passed. All 32 radar list entries
+  were individually inspected in both viewports. Pixel thresholds require over
+  12,000 painted and 2,000 coloured pixels per radar raster; measurements are
+  attached in `apps/web/playwright-report/index.html`.
+- Final command logs: `/tmp/ehs-radar-final-check.log`,
+  `/tmp/ehs-radar-final-typecheck.log`, `/tmp/ehs-radar-final-tests.log`,
+  `/tmp/ehs-radar-final-build.log`, `/tmp/ehs-radar-final-browser.log`.
+  Screenshots under `apps/web/test-results/functional-ai-radar-*` were inspected
+  for desktop/mobile, selected feedback, light/dark, 320px and rotated scenes.
+- Preview restored at `http://127.0.0.1:4381/functional-ai-radar`, HTTP 200.
+  Browser results are Chromium/emulated-device evidence, not physical-device,
+  Safari, assistive-technology or deployment acceptance. Live normalization
+  qualification remains pending the next genuine package release.
+
+### Rulings
+
+1. Geometry's single-ID `e` search test needed a description without `e`;
+   the separate description-search test remains. Cost if wrong: one test fixture,
+   not a production search-policy change.
+2. The single-result Scene search uses Algebraic data types because Effect
+   also matches FoldKit's description. Cost if wrong: a test expectation,
+   not weakening the required name-or-description match.
+3. Selected-last means last visual paint, with one inert foreground layer;
+   interactive targets remain depth ordered to preserve demonstrated browser focus.
+   Cost if wrong: one app-local paint layer; overlapping entries remain reachable
+   through the full list. No imperative DOM focus restoration or shared runtime edit.
+4. The reviewer did not check source availability/provenance because network
+   verification was excluded. Parent primary-source browsing and original local
+   descriptions establish checked-date demo provenance only, not future availability
+   or endorsement. Cost if wrong: source-link maintenance, with no runtime network dependency.
+5. The reviewer did not inspect screenshot legibility/contrast; the parent inspected
+   retained desktop/mobile/320px light/dark images and ran raster/layout checks.
+   Cost if wrong: undetected visual UX; human preview review remains recommended.
+6. Physical-device, Safari and assistive-technology acceptance remain unqualified.
+   Cost if wrong: browser/device-specific behaviour may escape Chromium tests;
+   no production or cross-browser acceptance claim is made.
+
+### Independent Review
+
+Native fresh-context reviewer `01a13c3d-ba63-79c2-9401-74cf3a2f2ece` (Lagrange),
+inherited model, read-only package/spec/plan/source/test inspection, no command
+execution, network, mutation or further delegation. Verdict: with fixes; two
+Important findings, no Critical/Minor. All five requested focus areas were checked;
+foreground selection paint and search-fixture rulings were accepted. The reviewer
+did not independently rerun the supplied verification.
+
+Both findings are accepted: leave Ctrl/Meta/Alt browser chords unhandled while
+retaining Shift-plus radar zoom; draw four complete inert, unfilled shell outlines
+before their projected guides. Three modifier Scene cases and an independently
+specified rotated/zoomed shell-radius test failed before these corrections
+(`/tmp/ehs-radar-review-red.log`), then all 55 radar tests passed. No re-review is
+dispatched; the one fix pass is gated by executed regressions and the full suite.
+Deferred minors: none.
+
+Post-review verification: `/tmp/ehs-radar-review-green.log` (55 passed),
+`/tmp/ehs-radar-review-check.log` (zero lint/format warnings),
+`/tmp/ehs-radar-review-typecheck.log` (606 files, zero errors/warnings/hints),
+`/tmp/ehs-radar-review-tests.log` (973 passed, one existing skip),
+`/tmp/ehs-radar-review-build.log` (production build exit 0), and
+`/tmp/ehs-radar-review-browser.log` (16 passed, two desktop-touch skips).
+Modified-key cancellation/camera assertions and all four shell outlines pass in
+both browser viewports. Corrected rotated-shell and narrow/mobile screenshots were
+inspected. These reruns qualify the fixes; no second reviewer or provider trial ran.
+Final recommendation: needs review. Keep the branch local; no integration is implied.

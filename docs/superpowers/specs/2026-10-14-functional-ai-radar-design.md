@@ -1,8 +1,9 @@
 # Functional & AI Radar Design
 
-Date: 2026-10-14. Direction approved in conversation; this written design still
-requires review. Approval of this document permits implementation planning, not
-product code. Baseline: merged main `f2cc4000cd575d710a8c5bd28ea5ad9ea9797f37`.
+Date: 2026-10-14. Written design approved in conversation after design commit
+`56bca21`. Approval permits implementation planning, not product code; the plan
+still needs review and an execution-method choice. Baseline: merged main
+`f2cc4000cd575d710a8c5bd28ea5ad9ea9797f37`.
 
 ## Intent And Minimum Complete Slice
 
@@ -61,7 +62,7 @@ states. No external dataset import or runtime network fetch is required.
 
 ## Architecture Decision And Simplicity Check
 
-Status: proposed written design, following approved direction. This section
+Status: approved written design; implementation is not yet authorised. This section
 reuses the repository's chart-spec decision convention; CI ADRs 0001/0002 remain
 separate. Review before implementation and before any public geometry expansion.
 
@@ -106,7 +107,8 @@ public exports; return for a revised design rather than quietly expanding scope.
 If overlapping/hidden marks prevent list-based inspection or recommendations
 are inferred incorrectly from screen position, hold acceptance and repair the
 interaction/labels. Do not claim superiority to a flat radar without comparison.
-Challenge verdict: proceed to written-design review only, not implementation.
+Challenge verdict: proceed to implementation planning after written-design
+approval, not implementation execution.
 
 ## Geometry, Layout And Identity
 

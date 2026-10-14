@@ -45,6 +45,7 @@ export default defineConfig({
     'math/contour': 'src/math/contour.ts',
     'math/delaunay': 'src/math/delaunay.ts',
     'shape/geo': 'src/shape/geo.ts',
+    'shape/globe': 'src/shape/globe.ts',
     'math/array': 'src/math/array.ts',
     'math/brush': 'src/math/brush.ts',
     'shape/areaRadial': 'src/shape/areaRadial.ts',

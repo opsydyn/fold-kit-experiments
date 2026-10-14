@@ -1,0 +1,10 @@
+---
+import EarthquakeGlobe from '../apps/earthquake-globe/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+
+<Layout title="Earthquake Globe - Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>Earthquake Globe</h1>
+  <EarthquakeGlobe client:load />
+</Layout>

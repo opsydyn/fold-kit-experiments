@@ -376,19 +376,19 @@ _Exit:_ the brief's Delivery list is complete: tests, benchmarks, working demo, 
 
 ## 10. Decisions (accepted 2026-10-14)
 
-**Status:** Phase 0 complete. Spike evidence is in [spike-results.md](spike-results.md), and ADRs 001–004 are in [adr/](adr). Spikes re-ran green against Foldkit 0.167.0 after consolidation (`bun run test:spikes` in each package).
+**Status (2026-10-14):** Phases 0–2 complete. Phase 1 (headless kernel) and Phase 2 (Effect runtime: `SceneRuntime.make`, `ResourceRegistry`, `FrameSource`, pointer events, atomic startup) are on `feat/effect-three`. Next: Phase 3, the Foldkit adapter. Phase 0: Spike evidence is in [spike-results.md](spike-results.md), and ADRs 001–004 are in [adr/](adr). Spikes re-ran green against Foldkit 0.167.0 after consolidation (`bun run test:spikes` in each package).
 
 All recommendations in this plan were accepted. Specifically:
 
-| #   | Decision                                                                                                                                                                        |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Adapter seam: **resolved by spike** to a hybrid of `CustomElement` props/events plus a one-shot `Mount.define` for lifecycle ([ADR-002](docs/adr/002-foldkit-adapter-seam.md)). |
-| D2  | `kernel/` (no `effect` import) / `runtime/` layering is sanctioned; `boundaryPaths` configuration is not an exception.                                                          |
-| D3  | Property engine is `effect/Arbitrary`, wrapped in `test/property.ts`; `effect` pinned exactly.                                                                                  |
-| D4  | Animated properties are owned by declarative behaviours, type-enforced; behaviour output is a pure function of elapsed time.                                                    |
-| D5  | `ResourceRegistry` is an app-level Layer over `RcMap`; Owned / Shared / Borrowed modes.                                                                                         |
-| D6  | Bun everywhere; Node 22+ allowed only for tools that cannot run under Bun (Playwright Test, oxlint jsPlugins), decided by spike.                                                |
-| D7  | Exact pins: `effect@4.0.0`, `@effect/platform-browser@4.0.0`, `foldkit@0.168.0`; single-copy CI check.                                                                          |
-| Q4  | Licence MIT. npm names `effect-three` (core) and `effect-three-foldkit` (adapter) as placeholders; scope and repo host still to confirm.                                        |
-| Q5  | Slice extended: two cubes sharing geometry + material, click toggles colour, mount/unmount toggle.                                                                              |
-| Q6  | Benchmark budgets in Phase 5 accepted as initial targets, tuned after first measurement.                                                                                        |
+| #   | Decision                                                                                                                                                                                                                |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Adapter seam: **resolved by spike** to a hybrid of `CustomElement` props/events plus a one-shot `Mount.define` for lifecycle ([ADR-002](docs/adr/002-foldkit-adapter-seam.md)).                                         |
+| D2  | `kernel/` (no `effect` import) / `runtime/` layering is sanctioned; `boundaryPaths` configuration is not an exception.                                                                                                  |
+| D3  | Property engine is `effect/Arbitrary`, wrapped in `test/property.ts`; `effect` pinned exactly.                                                                                                                          |
+| D4  | Animated properties are owned by declarative behaviours, type-enforced; behaviour output is a pure function of elapsed time.                                                                                            |
+| D5  | `ResourceRegistry` is an app-level scoped Layer owning the kernel's synchronous reference-counted store (amended by [ADR-005](adr/005-synchronous-resource-registry.md): not `RcMap`). Owned / Shared / Borrowed modes. |
+| D6  | Bun everywhere; Node 22+ allowed only for tools that cannot run under Bun (Playwright Test, oxlint jsPlugins), decided by spike.                                                                                        |
+| D7  | Exact pins: `effect@4.0.0`, `@effect/platform-browser@4.0.0`, `foldkit@0.168.0`; single-copy CI check.                                                                                                                  |
+| Q4  | Licence MIT. npm names `effect-three` (core) and `effect-three-foldkit` (adapter) as placeholders; scope and repo host still to confirm.                                                                                |
+| Q5  | Slice extended: two cubes sharing geometry + material, click toggles colour, mount/unmount toggle.                                                                                                                      |
+| Q6  | Benchmark budgets in Phase 5 accepted as initial targets, tuned after first measurement.                                                                                                                                |

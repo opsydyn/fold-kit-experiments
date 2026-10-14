@@ -74,6 +74,13 @@ export type SceneGraph = {
   readonly object: (key: string) => Object3D | undefined;
   /** The key of a hosted object. */
   readonly keyOf: (object: Object3D) => string | undefined;
+  /**
+   * Hosted objects of interactive meshes. The array is cached until the set changes and
+   * is mutable only because three's `Raycaster.intersectObjects` requires it: don't modify it.
+   */
+  readonly interactiveObjects: () => Array<Object3D>;
+  /** Sets the camera aspect ratio for a viewport of `width` by `height`. */
+  readonly resize: (width: number, height: number) => void;
   /** Removes every node and releases its resources. Disposes the store if the graph owns it. */
   readonly dispose: () => void;
 };
@@ -103,6 +110,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
+  const interactive = new Set<Object3D>();
+  let interactiveList: Array<Object3D> | undefined;
   let index: SceneIndex = emptyIndex;
   let elapsed = 0;
 
@@ -111,6 +120,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (entry._tag === 'Mesh' && entry.object.geometry === previous) entry.object.geometry = next;
     }
   });
+
+  const trackInteractive = (object: Object3D, enabled: boolean): void => {
+    const changed = enabled ? !interactive.has(object) : interactive.has(object);
+    if (!changed) return;
+    if (enabled) interactive.add(object);
+    else interactive.delete(object);
+    interactiveList = undefined;
+  };
 
   const trackRotation = (entry: Entry, node: GroupNode | MeshNode): void => {
     writeRotation(entry.object.rotation, node.rotation, elapsed);
@@ -136,6 +153,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         writeVec3(object.scale, node.scale);
         trackRotation(entry, node);
+        trackInteractive(object, node.interactive);
         return entry;
       }
       case 'AmbientLight':
@@ -150,6 +168,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const release = (entry: Entry): void => {
     spinning.delete(entry);
+    trackInteractive(entry.object, false);
     if (entry._tag === 'Mesh') {
       store.releaseGeometry(entry.node.geometry, entry.object.geometry);
       store.releaseMaterial(entry.node.material, entry.object.material);
@@ -177,6 +196,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       }
       entry.node = next;
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
       return;
     }
     if (entry._tag === 'Group' && next._tag === 'Group') {
@@ -322,6 +342,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     elapsedSeconds: () => elapsed,
     object: (key) => entries.get(key)?.object,
     keyOf: (object) => keys.get(object),
+    interactiveObjects: () => {
+      interactiveList ??= [...interactive];
+      return interactiveList;
+    },
+    resize: (width, height) => {
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    },
     dispose,
   };
 };

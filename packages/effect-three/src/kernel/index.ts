@@ -36,6 +36,26 @@ export {
   type ResourceStats,
   type ResourceStore,
 } from './resources.ts';
+export { createManualFrames, type FrameScheduler, type ManualFrames } from './frames.ts';
+export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
+export {
+  createPicker,
+  createPointerTracker,
+  type Hit,
+  type Picker,
+  type PointerInput,
+  type PointerTracker,
+  type SceneEvent,
+} from './pointer.ts';
+export {
+  recordingRendererFactory,
+  type RecordingRenderer,
+  type RecordingRendererFactory,
+  type RendererFactory,
+  type RendererMemory,
+  type SceneRenderer,
+  type Viewport,
+} from './renderer.ts';
 export {
   createSceneGraph,
   type HostMesh,

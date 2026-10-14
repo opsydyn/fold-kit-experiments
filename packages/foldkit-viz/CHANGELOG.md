@@ -4,16 +4,14 @@ All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
 ## [0.13.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.12.0...foldkit-viz-v0.13.0) (2026-10-14)
 
-
 ### Features
 
-* add recorded earthquake globe with pure FoldKit SVG ([b524988](https://github.com/opsydyn/fold-kit-experiments/commit/b524988373e86ecd6d07914b2c49fe7a456cca1a))
-* **viz:** add pure orthographic globe geometry ([fec7318](https://github.com/opsydyn/fold-kit-experiments/commit/fec731837247d3c1fa9779f2cca30ca8d91e578d))
-
+- add recorded earthquake globe with pure FoldKit SVG ([b524988](https://github.com/opsydyn/fold-kit-experiments/commit/b524988373e86ecd6d07914b2c49fe7a456cca1a))
+- **viz:** add pure orthographic globe geometry ([fec7318](https://github.com/opsydyn/fold-kit-experiments/commit/fec731837247d3c1fa9779f2cca30ca8d91e578d))
 
 ### Bug Fixes
 
-* **globe:** reject malformed views and overflowing gestures ([8a94256](https://github.com/opsydyn/fold-kit-experiments/commit/8a9425676cd507532e811087128b0735f0032845))
+- **globe:** reject malformed views and overflowing gestures ([8a94256](https://github.com/opsydyn/fold-kit-experiments/commit/8a9425676cd507532e811087128b0735f0032845))
 
 ## [0.12.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.11.0...foldkit-viz-v0.12.0) (2026-10-11)
 

@@ -117,6 +117,51 @@ test('recorded globe renders, rotates, inspects, resets and re-enters in both th
   expect(outside).toEqual([]);
 });
 
+test('selected event feedback stays visible near the globe without moving keyboard focus', async ({
+  page,
+}, info) => {
+  const errors = watchErrors(page);
+  await page.goto('/earthquake-globe');
+  const globe = page.getByRole('group', { name: 'Earthquake globe', exact: true });
+  await expect(globe).toHaveAttribute('data-longitude', '-180');
+  const marker = globe.getByRole('button', {
+    name: 'Select earthquake aka2026ujebcw',
+    exact: true,
+  });
+  await marker.focus();
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await page.keyboard.press('Enter');
+  await expect(marker).toBeFocused();
+  await expect(marker).toHaveAttribute('aria-pressed', 'true');
+  const details = page.getByRole('region', { name: 'Selected earthquake', exact: true });
+  await expect(details).toHaveCount(1);
+  await expect(details).toHaveAttribute('aria-live', 'polite');
+  await expect(details).toHaveAttribute('aria-atomic', 'true');
+  await expect(
+    details.getByRole('heading', { name: '14 km ENE of Glacier View, Alaska' }),
+  ).toBeInViewport({ ratio: 1 });
+  await expect(details.getByText('Magnitude 2.9', { exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(details.getByText('Depth 16.8 km', { exact: true })).toBeInViewport({ ratio: 1 });
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
+  const provenance = page.getByRole('heading', { name: 'Recorded USGS M2.5+ / seven days' });
+  const detailsBox = await details.boundingBox();
+  const provenanceBox = await provenance.boundingBox();
+  const globeBox = await globe.boundingBox();
+  if (detailsBox === null || provenanceBox === null || globeBox === null)
+    throw new Error('Missing feedback layout bounds');
+  if (info.project.name === 'mobile') {
+    expect(detailsBox.y).toBeLessThan(provenanceBox.y);
+  } else {
+    expect(detailsBox.x).toBeGreaterThan(globeBox.x + globeBox.width);
+    expect(detailsBox.y).toBeGreaterThan(provenanceBox.y);
+  }
+  await page.screenshot({ path: info.outputPath('selected-feedback.png') });
+  await page.getByRole('button', { name: 'Reset globe', exact: true }).click();
+  await expect(details).toContainText('No earthquake selected');
+  await expect(globe).toHaveAttribute('data-longitude', '-180');
+  expect(errors).toEqual([]);
+});
+
 test('foreign browser pointer events cannot replace the active drag', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/earthquake-globe');

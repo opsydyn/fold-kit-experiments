@@ -6,5 +6,10 @@
   "semi": true,
   "trailingComma": "all",
   "sortImports": true,
-  "ignorePatterns": ["skills/**", "tools/oxlint/anti-slop/**", ".superpowers/**"]
+  "ignorePatterns": [
+    "skills/**",
+    "tools/oxlint/anti-slop/**",
+    ".superpowers/**",
+    "docs/effect-three/brief.md"
+  ]
 }

@@ -4,15 +4,19 @@ Project conventions and agent guidance for this monorepo.
 
 ## Quick orientation
 
-Bun workspace monorepo. Five workspaces in active use:
+Bun workspace monorepo. Seven workspaces in active use:
 
-| Workspace                   | Path                         | Purpose                                         |
-| --------------------------- | ---------------------------- | ----------------------------------------------- |
-| `@opsydyn/astro-foldkit`    | `packages/astro-foldkit/`    | Astro integration for Foldkit apps              |
-| `@opsydyn/foldkit-viz`      | `packages/foldkit-viz/`      | D3-quality chart primitives (no D3 dep)         |
-| `@opsydyn/web`              | `apps/web/`                  | Chart demos and reference workbenches           |
-| `@opsydyn/dataset-explorer` | `packages/dataset-explorer/` | Private shared KeyedQuery example               |
-| `@opsydyn/promo`            | `apps/promo/`                | Static chart examples and downloadable projects |
+| Workspace                       | Path                             | Purpose                                           |
+| ------------------------------- | -------------------------------- | ------------------------------------------------- |
+| `@opsydyn/astro-foldkit`        | `packages/astro-foldkit/`        | Astro integration for Foldkit apps                |
+| `@opsydyn/foldkit-viz`          | `packages/foldkit-viz/`          | D3-quality chart primitives (no D3 dep)           |
+| `@opsydyn/web`                  | `apps/web/`                      | Chart demos and reference workbenches             |
+| `@opsydyn/dataset-explorer`     | `packages/dataset-explorer/`     | Private shared KeyedQuery example                 |
+| `@opsydyn/promo`                | `apps/promo/`                    | Static chart examples and downloadable projects   |
+| `@opsydyn/effect-three`         | `packages/effect-three/`         | Effect-native declarative Three.js core (private) |
+| `@opsydyn/effect-three-foldkit` | `packages/effect-three-foldkit/` | Foldkit adapter for effect-three (private)        |
+
+The two effect-three packages run a **stricter, package-local lint policy** (`oxlint.strict.ts`, `@opsydyn/oxlint-effect@2.0.1`, all rules, TypeScript 7). Read `docs/effect-three/PLAN.md` and `docs/effect-three/adr/` before changing them.
 
 **Stack:** Foldkit (Elm Architecture on Effect-TS) · Astro · TypeScript · bun · oxlint · oxfmt
 

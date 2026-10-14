@@ -36,7 +36,9 @@ fold-kit-experiments/
 └── packages/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     ├── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
-    └── dataset-explorer/ — private shared KeyedQuery example for both apps
+    ├── dataset-explorer/ — private shared KeyedQuery example for both apps
+    ├── effect-three/      — @opsydyn/effect-three   (private; Effect-native declarative Three.js core)
+    └── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (private; Foldkit adapter)
 ```
 
 ## Prerequisites

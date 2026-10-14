@@ -1,0 +1,53 @@
+{
+  "name": "@opsydyn/effect-three-foldkit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Thin Foldkit adapter for @opsydyn/effect-three.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opsydyn/fold-kit-experiments.git",
+    "directory": "packages/effect-three-foldkit"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+    "lint": "bunx --bun oxlint --config oxlint.strict.ts",
+    "check": "bun run lint",
+    "test": "bun test --pass-with-no-tests ./src ./test",
+    "test:spikes": "bun test spikes"
+  },
+  "dependencies": {
+    "@opsydyn/effect-three": "workspace:*"
+  },
+  "devDependencies": {
+    "@effect/platform-browser": "4.0.0",
+    "@opsydyn/oxlint-effect": "2.0.1",
+    "@types/bun": "1.4.3",
+    "@types/three": "0.186.0",
+    "effect": "4.0.0",
+    "foldkit": "0.167.0",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "playwright": "1.64.1",
+    "three": "0.186.1",
+    "typescript": "7.0.2"
+  },
+  "peerDependencies": {
+    "effect": "^4.0.0",
+    "foldkit": "0.167.0",
+    "three": ">=0.186.0 <0.187.0"
+  }
+}

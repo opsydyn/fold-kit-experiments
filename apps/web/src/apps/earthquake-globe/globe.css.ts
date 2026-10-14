@@ -52,7 +52,11 @@ export const globe = style({
   userSelect: 'none',
   selectors: { '&:focus-visible': { outline: '2px solid var(--page-text)', outlineOffset: '3px' } },
 });
-export const side = style({ paddingTop: '1rem', minWidth: 0 });
+export const side = style({
+  paddingTop: '1rem',
+  minWidth: 0,
+  '@media': { '(max-width: 800px)': { display: 'flex', flexDirection: 'column' } },
+});
 export const heading = style({ marginBottom: '0.75rem', fontSize: '1rem', fontWeight: 600 });
 export const metadata = style({
   overflowWrap: 'anywhere',
@@ -66,6 +70,16 @@ export const details = style({
   minHeight: '12rem',
   overflowWrap: 'anywhere',
   lineHeight: '1.6',
+  '@media': {
+    '(max-width: 800px)': {
+      order: -1,
+      marginTop: 0,
+      marginBottom: '1.5rem',
+      borderTop: 0,
+      paddingTop: 0,
+      minHeight: 0,
+    },
+  },
 });
 export const legend = style({
   display: 'flex',

@@ -27,6 +27,7 @@ export default defineConfig({
     ...allRules,
     'linteffect/no-run-effect-outside-boundary': ['error', { effectVersion: 4, boundaryPaths }],
     'linteffect/no-early-catchall-null': ['error', { effectVersion: 4, boundaryPaths }],
+    'linteffect/no-hidden-effect-execution': ['error', { effectVersion: 4, boundaryPaths }],
     'typescript/no-explicit-any': 'error',
     'typescript/no-unnecessary-type-assertion': 'error',
     'typescript/no-non-null-assertion': 'error',

@@ -2,3 +2,5 @@ dist/
 artifacts/
 docs/
 node_modules/
+# Original upstream bytes; independently checked against the recorded SHA-256.
+apps/web/src/apps/earthquake-globe/fixtures/usgs-week.geojson

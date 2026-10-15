@@ -115,3 +115,45 @@
   flex: 1 1 12rem;
   accent-color: var(--blue, #3d79fa);
 }
+
+.e3-readout {
+  margin: 0.75rem 0 0;
+  min-height: 1.5em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text, #e8e8f0);
+}
+
+.e3-table {
+  margin-top: 0.75rem;
+  color: var(--text, #e8e8f0);
+  font-size: 0.875rem;
+}
+
+.e3-table summary {
+  cursor: pointer;
+  color: var(--muted, #a0a0b8);
+}
+
+.e3-table table {
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.e3-table caption {
+  text-align: left;
+  color: var(--muted, #a0a0b8);
+  padding-bottom: 0.25rem;
+}
+
+.e3-table th,
+.e3-table td {
+  padding: 0.25rem 0.75rem 0.25rem 0;
+  border-bottom: 1px solid var(--border, #2e2e48);
+  text-align: right;
+}
+
+.e3-table th[scope='row'],
+.e3-table thead th:first-child {
+  text-align: left;
+}

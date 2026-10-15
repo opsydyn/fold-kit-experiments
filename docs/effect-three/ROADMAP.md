@@ -32,8 +32,9 @@ ambient and directional lights, and one perspective camera.
 | Full pointer events           | `EventHandlers` in `core/events.ts`                           | ✅     | Enter, move, leave, down, up, click, double-click, context menu, wheel and missed, with key, button, point, distance, face normal and uv. Click, double-click and context menu follow the press target as in R3F; misses use its 2 px tolerance. Pointer cancel ends hover like leave. | M    |
 | Event propagation and capture | `stopPropagation`, `PointerCaptureTarget` in `core/events.ts` | ❌     | Bubble through ancestor groups by key, a declarative stop, and pointer capture for drags. Needed before drag controls.                                                                                                                                                                 | M    |
 
-**Showcase:** a 3D bar chart sample (foldkit-viz scales, eased bars, hover readout and an
-accessible data table) needs nothing new and can land alongside R1.
+**Showcase (done):** a 3D bar chart sample: foldkit-viz scales, eased bars, a theme
+subscription, hover readout, pinning with misses to clear, double-click to isolate a
+series, and a data table.
 
 **Exit:** every R1 row ✅, with tests mirroring the kernel's existing property tests and a
 sample using lights, shadows and the new events.

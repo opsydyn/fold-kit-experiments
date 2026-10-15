@@ -17,6 +17,14 @@ export const examples = [
     alt: 'Sculpture: coloured blocks, balls and drums stacked on a grey plate, with a palette, piece picker and history slider.',
   },
   {
+    id: 'bars',
+    category: 'Data',
+    title: 'Chart in three dimensions',
+    description:
+      'Foldkit Viz scales place every bar and effect-three eases them as the data changes. Hover to read, click to pin, double-click to isolate a series.',
+    alt: '3D bar chart: three rows of blue, orange and green bars for six months, with gridlines on the back wall.',
+  },
+  {
     id: 'shared',
     category: 'Resources',
     title: 'Share what the GPU holds',

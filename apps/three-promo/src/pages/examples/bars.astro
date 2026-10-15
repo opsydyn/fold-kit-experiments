@@ -1,0 +1,21 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/bars/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/bars/model.ts?raw';
+import layoutSource from '@opsydyn/effect-three-samples/src/bars/layout.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/bars/update.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/bars/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/bars/view.ts?raw';
+import subscriptionSource from '@opsydyn/effect-three-samples/src/bars/subscription.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'layout.ts', content: layoutSource }, { name: 'update.ts', content: updateSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }, { name: 'subscription.ts', content: subscriptionSource }];
+---
+<Layout title="3D bar chart — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">CHARTS IN THREE DIMENSIONS</p><h1>Scales from Viz. Bars in 3D.</h1><p>Foldkit Viz scales place every bar; effect-three eases them whenever the data changes. Hover a bar to read it, click to pin it, double-click to show only its series, or click empty space to clear.</p></section>
+  <Sample client:load noMeta />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>The same maths, a new medium.</h2><p>The band and linear scales, the nice domain and the gridline ticks come from Foldkit Viz, the D3-parity primitives behind our 2D charts. The legend and the data table carry each series' identity, so colour is never the only cue.</p><a class="text-link" href={samplesSource + '/bars'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

@@ -1,0 +1,19 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/city/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/city/model.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/city/update.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/city/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/city/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'update.ts', content: updateSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="City — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">TEN THOUSAND, ONE DRAW</p><h1>A city in one draw call.</h1><p>Ten thousand buildings in a single instanced mesh. Hover to name one, click to raise it. Each change rewrites one or two instances, and the scene draws only when something changes.</p></section>
+  <Sample client:load noMeta />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Ten thousand, still data.</h2><p>The buildings are a plain list in the scene description. The skyline for a seed is built once, so a hover swaps one instance by reference and the diff rewrites that one slot. If frames ever run slow, the scene reports it and the Model lowers the render resolution until they recover.</p><a class="text-link" href={samplesSource + '/city'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

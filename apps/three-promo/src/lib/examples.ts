@@ -33,6 +33,14 @@ export const examples = [
     alt: 'Studio: a torus, capsule, cone, ball and crate in different finishes on a pale floor, casting soft shadows under a spot light.',
   },
   {
+    id: 'city',
+    category: 'Performance',
+    title: 'A city in one draw call',
+    description:
+      'Ten thousand buildings in one instanced mesh. Hover and clicks rewrite single instances, frames render only on change, and resolution follows measured performance.',
+    alt: 'City: a grid of ten thousand blue buildings, tallest in the centre, on a pale ground.',
+  },
+  {
     id: 'shared',
     category: 'Resources',
     title: 'Share what the GPU holds',

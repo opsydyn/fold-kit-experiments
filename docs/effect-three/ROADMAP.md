@@ -48,8 +48,9 @@ shadows, materials, the orthographic camera and drag capture.
 | Instancing                  | `InstancedMesh` via the catalogue                      | ✅     | `instances({ key, geometry, material, instances: [instance({ key, position, rotation, scale, color })] })`, declarative like Drei's `Instances` but diffed: an update rewrites only the slots that changed (one moved instance among 10,000 reconciles in ~0.27 ms), capacity doubles as lists grow, picking reports the instance key, and removal frees the instance buffers.                                                                                                                              | L    |
 | Adaptive performance        | `performance`/`regress` in `core/configuration.ts`     | ✅     | Drei's `PerformanceMonitor` algorithm in the kernel frame loop, reported as a `PerformanceChanged { fps, factor }` event (`onPerformanceChange`), and `render.resolution` to scale the pixel ratio, as `AdaptiveDpr` does. The app decides the policy in its Model. The factor starts at 1, and idle gaps of on-demand scenes reset measurement rather than counting as slow.                                                                                                                               | S    |
 
-**Exit:** a static scene renders zero frames between updates; 10,000 instanced meshes
-under the existing frame budget.
+**Exit (met):** a static scene requests zero animation frames between updates (proved in
+the adapter's browser test), and the city sample draws 10,000 instances in one call, with
+one changed instance reconciling in ~0.27 ms (budget 2 ms).
 
 ## R3. Real content
 

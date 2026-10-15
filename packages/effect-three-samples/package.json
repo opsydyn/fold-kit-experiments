@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./bars": "./src/bars/main.ts",
+    "./city": "./src/city/main.ts",
     "./hero": "./src/hero/main.ts",
     "./playground": "./src/playground/main.ts",
     "./sculpture": "./src/sculpture/main.ts",

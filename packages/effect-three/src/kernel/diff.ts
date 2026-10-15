@@ -60,7 +60,8 @@ export type Field =
   | 'shadowMapSize'
   | 'shadowBias'
   | 'shadowArea'
-  | 'instances';
+  | 'instances'
+  | 'id';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -129,6 +130,16 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
       if (!instancesEqual(prev.instances, next.instances)) fields.push('instances');
+      return fields;
+    }
+    case 'Borrowed': {
+      if (prev._tag !== 'Borrowed') return undefined;
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
+      if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
+      if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
+      if (prev.id !== next.id) fields.push('id');
+      if (prev.interactive !== next.interactive) fields.push('interactive');
       return fields;
     }
     case 'AmbientLight': {

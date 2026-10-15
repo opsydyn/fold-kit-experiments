@@ -124,6 +124,8 @@ export type MaterialSide = 'front' | 'back' | 'double';
 export type BasicMaterial = {
   readonly _tag: 'Basic';
   readonly color: Rgb;
+  /** Id of a texture lent to the store for the colour map, or `null` for none. */
+  readonly map: string | null;
   readonly opacity: number;
   readonly transparent: boolean;
   readonly side: MaterialSide;
@@ -134,6 +136,8 @@ export type BasicMaterial = {
 export type LambertMaterial = {
   readonly _tag: 'Lambert';
   readonly color: Rgb;
+  /** Id of a texture lent to the store for the colour map, or `null` for none. */
+  readonly map: string | null;
   readonly emissive: Rgb;
   readonly opacity: number;
   readonly transparent: boolean;
@@ -146,6 +150,8 @@ export type LambertMaterial = {
 export type PhongMaterial = {
   readonly _tag: 'Phong';
   readonly color: Rgb;
+  /** Id of a texture lent to the store for the colour map, or `null` for none. */
+  readonly map: string | null;
   readonly emissive: Rgb;
   readonly specular: Rgb;
   readonly shininess: number;
@@ -160,6 +166,8 @@ export type PhongMaterial = {
 export type StandardMaterial = {
   readonly _tag: 'Standard';
   readonly color: Rgb;
+  /** Id of a texture lent to the store for the colour map, or `null` for none. */
+  readonly map: string | null;
   readonly roughness: number;
   readonly metalness: number;
   readonly emissive: Rgb;
@@ -175,6 +183,8 @@ export type StandardMaterial = {
 export type PhysicalMaterial = {
   readonly _tag: 'Physical';
   readonly color: Rgb;
+  /** Id of a texture lent to the store for the colour map, or `null` for none. */
+  readonly map: string | null;
   readonly roughness: number;
   readonly metalness: number;
   readonly emissive: Rgb;
@@ -311,6 +321,25 @@ export type InstancesNode = {
   readonly instances: ReadonlyArray<Instance>;
 };
 
+/**
+ * Shows a three.js object the application lent to the resource store under `id`: React
+ * Three Fiber's `<primitive>`, by reference rather than by value, so descriptions stay
+ * plain data. The node's transform applies to a wrapper, leaving the object's own as the
+ * application set it. The object is never disposed. Until something is lent under `id`
+ * the node is empty, so a description can name a model that is still loading.
+ */
+export type BorrowedNode = {
+  readonly _tag: 'Borrowed';
+  readonly key: string;
+  readonly id: string;
+  readonly position: Vec3;
+  readonly rotation: Rotation;
+  readonly scale: Vec3;
+  readonly transition: Transition;
+  /** Makes every mesh inside the object pickable; hits name the part by its `name`. */
+  readonly interactive: boolean;
+};
+
 /** Uniform ambient light. */
 export type AmbientLightNode = {
   readonly _tag: 'AmbientLight';
@@ -392,6 +421,7 @@ export type SceneNode =
   | GroupNode
   | MeshNode
   | InstancesNode
+  | BorrowedNode
   | AmbientLightNode
   | DirectionalLightNode
   | PointLightNode

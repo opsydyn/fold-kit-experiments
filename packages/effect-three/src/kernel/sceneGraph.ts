@@ -26,6 +26,7 @@ import { writeRotation } from './behaviours.ts';
 import { renderSettings } from './build.ts';
 import type {
   AmbientLightNode,
+  BorrowedNode,
   DirectionalLightNode,
   HemisphereLightNode,
   GroupNode,
@@ -60,6 +61,13 @@ type Entry =
   | { readonly _tag: 'Mesh'; node: MeshNode; readonly object: HostMesh }
   // Mutable: growing past capacity swaps in a larger InstancedMesh under the same entry.
   | { readonly _tag: 'Instances'; node: InstancesNode; object: HostInstances }
+  // `shown` is the lent object (or a clone of it) inside the wrapper, when one is lent.
+  | {
+      readonly _tag: 'Borrowed';
+      node: BorrowedNode;
+      readonly object: Group;
+      shown: Object3D | undefined;
+    }
   | { readonly _tag: 'AmbientLight'; node: AmbientLightNode; readonly object: AmbientLight }
   | {
       readonly _tag: 'DirectionalLight';
@@ -75,13 +83,19 @@ type Entry =
     };
 
 /** Entries with a transform: position, rotation, scale and transitions. */
-type Placed = Extract<Entry, { readonly _tag: 'Group' | 'Mesh' | 'Instances' }>;
+/** Descriptions with a transform. */
+type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode;
+
+type Placed = Extract<Entry, { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' }>;
 
 /** Entries drawing a geometry with a material. */
 type Surfaced = Extract<Entry, { readonly _tag: 'Mesh' | 'Instances' }>;
 
 const isPlaced = (entry: Entry): entry is Placed =>
-  entry._tag === 'Group' || entry._tag === 'Mesh' || entry._tag === 'Instances';
+  entry._tag === 'Group' ||
+  entry._tag === 'Mesh' ||
+  entry._tag === 'Instances' ||
+  entry._tag === 'Borrowed';
 
 const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
@@ -309,7 +323,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     interactiveList = undefined;
   };
 
-  const trackRotation = (entry: Entry, node: GroupNode | MeshNode | InstancesNode): void => {
+  const trackRotation = (entry: Entry, node: PlacedNode): void => {
     writeRotation(entry.object.rotation, node.rotation, elapsed);
     if (node.rotation._tag === 'Spin') spinning.add(entry);
     else spinning.delete(entry);
@@ -355,6 +369,20 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         object.receiveShadow = node.receiveShadow;
         return entry;
       }
+      case 'Borrowed': {
+        const entry: Extract<Entry, { readonly _tag: 'Borrowed' }> = {
+          _tag: 'Borrowed',
+          node,
+          object: new Group(),
+          shown: undefined,
+        };
+        writeVec3(entry.object.position, node.position);
+        writeVec3(entry.object.scale, node.scale);
+        trackRotation(entry, node);
+        trackInteractive(entry.object, node.interactive);
+        showLoan(entry);
+        return entry;
+      }
       case 'AmbientLight':
         return { _tag: 'AmbientLight', node, object: new AmbientLight(node.color, node.intensity) };
       case 'DirectionalLight': {
@@ -380,6 +408,41 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
   };
 
+  /**
+   * Shows what is lent under the entry's id: the object itself, or a clone when another
+   * borrowed node already shows it (an object can have only one parent).
+   */
+  const showLoan = (entry: Extract<Entry, { readonly _tag: 'Borrowed' }>): void => {
+    entry.shown?.removeFromParent();
+    entry.shown = undefined;
+    const lent = store.lent(entry.node.id);
+    if (lent === undefined) return;
+    const shown = lent.parent === null ? lent : lent.clone();
+    entry.object.add(shown);
+    entry.shown = shown;
+  };
+
+  /** Re-applies owned materials that use a texture whose loan changed. */
+  const refreshTexture = (id: string): void => {
+    for (const entry of entries.values()) {
+      if (!isSurfaced(entry)) continue;
+      const material = entry.node.material;
+      if (material._tag !== 'SharedMaterial' && 'map' in material && material.map === id) {
+        store.updateOwnedMaterial(entry.object.material, material);
+      }
+    }
+  };
+
+  const unsubscribeLoans = store.onLoanChanged((loan) => {
+    if (loan.kind === 'texture') refreshTexture(loan.id);
+    else {
+      for (const entry of entries.values()) {
+        if (entry._tag === 'Borrowed' && entry.node.id === loan.id) showLoan(entry);
+      }
+    }
+    invalidate();
+  });
+
   const release = (entry: Entry): void => {
     spinning.delete(entry);
     moving.delete(entry);
@@ -391,6 +454,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     // Frees the instance buffers on the GPU; geometry and material belong to the store.
     if (entry._tag === 'Instances') entry.object.dispose();
+    // A borrowed object belongs to the application: detach it, never dispose it.
+    if (entry._tag === 'Borrowed') {
+      entry.shown?.removeFromParent();
+      entry.shown = undefined;
+    }
   };
 
   /**
@@ -433,7 +501,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
    * animating, otherwise by restarting the tween from the current rendered pose at the last
    * frame's time.
    */
-  const retarget = (entry: Entry, node: GroupNode | MeshNode | InstancesNode): void => {
+  const retarget = (entry: Entry, node: PlacedNode): void => {
     if (!animating || node.transition._tag === 'Instant') {
       moving.delete(entry);
       writeVec3(entry.object.position, node.position);
@@ -483,6 +551,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
       mesh.castShadow = next.castShadow;
       mesh.receiveShadow = next.receiveShadow;
+      return;
+    }
+    if (entry._tag === 'Borrowed' && next._tag === 'Borrowed') {
+      entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
+      if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
+      if (fields.includes('id')) showLoan(entry);
       return;
     }
     if (entry._tag === 'Group' && next._tag === 'Group') {
@@ -670,6 +746,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     unsubscribeGeometry();
     unsubscribeMaterial();
     unsubscribeShared();
+    unsubscribeLoans();
     invalidationListeners.clear();
     if (ownsStore) store.dispose();
   };

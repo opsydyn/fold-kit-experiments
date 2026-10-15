@@ -6,7 +6,7 @@
  */
 export type * from './description.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
-export { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
+export { buildMaterial, type HostMaterial, type Textures, updateMaterial } from './materials.ts';
 export { capacityFor, type HostInstances } from './instances.ts';
 export {
   createPerformanceMonitor,
@@ -18,6 +18,7 @@ export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,
   basic,
+  borrowed,
   box,
   capsule,
   circle,
@@ -69,6 +70,7 @@ export {
 export {
   createResourceStore,
   type GeometryReplaced,
+  type Loan,
   type MaterialReplaced,
   type ResourceCounts,
   type ResourceStats,

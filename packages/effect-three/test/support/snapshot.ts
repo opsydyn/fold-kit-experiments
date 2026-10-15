@@ -23,6 +23,7 @@ import {
   RingGeometry,
   SphereGeometry,
   SpotLight,
+  Texture,
   TorusGeometry,
 } from 'three';
 
@@ -58,6 +59,7 @@ const materialOf = (material: Material): Record<string, unknown> => {
   for (const key of materialKeys) {
     const value: unknown = Reflect.get(material, key);
     if (value instanceof Color) detail[key] = value.getHex();
+    else if (value instanceof Texture) detail[key] = value.uuid;
     else if (value !== undefined) detail[key] = value;
   }
   return detail;
@@ -65,6 +67,7 @@ const materialOf = (material: Material): Record<string, unknown> => {
 
 const materialKeys = [
   'color',
+  'map',
   'emissive',
   'specular',
   'shininess',

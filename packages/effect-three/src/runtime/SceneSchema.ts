@@ -122,6 +122,9 @@ export const Transition = Schema.Union([
 /** Which faces a material draws. */
 export const MaterialSide = Schema.Literals(['front', 'back', 'double']);
 
+/** A texture lent to the store, by id, or `null` for none. */
+const TextureId = Schema.NullOr(Schema.String);
+
 const surface = {
   opacity: UnitInterval,
   transparent: Schema.Boolean,
@@ -132,11 +135,16 @@ const surface = {
 const shaded = { ...surface, flatShading: Schema.Boolean };
 
 /** Unlit material parameters. */
-export const BasicMaterial = Schema.TaggedStruct('Basic', { color: Rgb, ...surface });
+export const BasicMaterial = Schema.TaggedStruct('Basic', {
+  color: Rgb,
+  map: TextureId,
+  ...surface,
+});
 
 /** Matte material parameters. */
 export const LambertMaterial = Schema.TaggedStruct('Lambert', {
   color: Rgb,
+  map: TextureId,
   emissive: Rgb,
   ...shaded,
 });
@@ -144,6 +152,7 @@ export const LambertMaterial = Schema.TaggedStruct('Lambert', {
 /** Shiny material parameters. */
 export const PhongMaterial = Schema.TaggedStruct('Phong', {
   color: Rgb,
+  map: TextureId,
   emissive: Rgb,
   specular: Rgb,
   shininess: NonNegative,
@@ -152,6 +161,7 @@ export const PhongMaterial = Schema.TaggedStruct('Phong', {
 
 const pbr = {
   color: Rgb,
+  map: TextureId,
   roughness: UnitInterval,
   metalness: UnitInterval,
   emissive: Rgb,
@@ -240,6 +250,17 @@ export const InstancesNode = Schema.TaggedStruct('Instances', {
   instances: Schema.Array(Instance),
 });
 
+/** An application object lent to the store under `id`. */
+export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
+  key: Schema.String,
+  id: Schema.String,
+  position: Vec3,
+  rotation: Rotation,
+  scale: Vec3,
+  transition: Transition,
+  interactive: Schema.Boolean,
+});
+
 /** Uniform ambient light. */
 export const AmbientLightNode = Schema.TaggedStruct('AmbientLight', {
   key: Schema.String,
@@ -321,6 +342,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   }),
   MeshNode,
   InstancesNode,
+  BorrowedNode,
   AmbientLightNode,
   DirectionalLightNode,
   PointLightNode,
@@ -380,6 +402,7 @@ export const KeyDetail = Schema.Struct({ key: Schema.String });
 export const HitDetail = Schema.Struct({
   key: Schema.String,
   instance: Schema.optionalKey(Schema.String),
+  part: Schema.optionalKey(Schema.String),
   path: Schema.Array(Schema.String),
   point: Vec3,
   distance: Schema.Finite,

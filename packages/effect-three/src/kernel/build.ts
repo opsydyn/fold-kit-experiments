@@ -6,6 +6,7 @@
 import type {
   AmbientLightNode,
   BasicMaterial,
+  BorrowedNode,
   Axis,
   BoxGeometry,
   Camera,
@@ -199,6 +200,7 @@ export const ease = (options: {
 export const basic = (options: Partial<Omit<BasicMaterial, '_tag'>> = {}): BasicMaterial => ({
   _tag: 'Basic',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   opacity: options.opacity ?? 1,
   transparent: options.transparent ?? false,
   side: options.side ?? 'front',
@@ -211,6 +213,7 @@ export const basic = (options: Partial<Omit<BasicMaterial, '_tag'>> = {}): Basic
 export const lambert = (options: Partial<Omit<LambertMaterial, '_tag'>> = {}): LambertMaterial => ({
   _tag: 'Lambert',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   emissive: options.emissive ?? 0x000000,
   opacity: options.opacity ?? 1,
   transparent: options.transparent ?? false,
@@ -225,6 +228,7 @@ export const lambert = (options: Partial<Omit<LambertMaterial, '_tag'>> = {}): L
 export const phong = (options: Partial<Omit<PhongMaterial, '_tag'>> = {}): PhongMaterial => ({
   _tag: 'Phong',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   emissive: options.emissive ?? 0x000000,
   specular: options.specular ?? 0x111111,
   shininess: options.shininess ?? 30,
@@ -243,6 +247,7 @@ export const standard = (
 ): StandardMaterial => ({
   _tag: 'Standard',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   roughness: options.roughness ?? 1,
   metalness: options.metalness ?? 0,
   emissive: options.emissive ?? 0x000000,
@@ -263,6 +268,7 @@ export const physical = (
 ): PhysicalMaterial => ({
   _tag: 'Physical',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   roughness: options.roughness ?? 1,
   metalness: options.metalness ?? 0,
   emissive: options.emissive ?? 0x000000,
@@ -386,6 +392,20 @@ export const instances = (
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
   instances: options.instances,
+});
+
+/** An object lent to the resource store under `id`. Not interactive by default. */
+export const borrowed = (
+  options: TransformOptions & { readonly id: string; readonly interactive?: boolean },
+): BorrowedNode => ({
+  _tag: 'Borrowed',
+  key: options.key,
+  id: options.id,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? noRotation,
+  scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
+  interactive: options.interactive ?? false,
 });
 
 /** Ambient light. Defaults: white, intensity 1. */

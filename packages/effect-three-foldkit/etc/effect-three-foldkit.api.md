@@ -218,6 +218,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
                     readonly wireframe: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                 }>, Schema.TaggedStruct<"Lambert", {
                     readonly opacity: Schema.Finite;
                     readonly transparent: Schema.Boolean;
@@ -225,6 +226,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                     readonly emissive: Schema.Int;
                 }>, Schema.TaggedStruct<"Phong", {
                     readonly opacity: Schema.Finite;
@@ -233,6 +235,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                     readonly emissive: Schema.Int;
                     readonly specular: Schema.Int;
                     readonly shininess: Schema.Finite;
@@ -243,6 +246,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                     readonly roughness: Schema.Finite;
                     readonly metalness: Schema.Finite;
                     readonly emissive: Schema.Int;
@@ -254,6 +258,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                     readonly roughness: Schema.Finite;
                     readonly metalness: Schema.Finite;
                     readonly emissive: Schema.Int;
@@ -277,6 +282,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-click': Schema.Struct<{
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -291,6 +297,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-double-click': Schema.Struct<{
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -305,6 +312,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-context-menu': Schema.Struct<{
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -318,6 +326,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-pointer-down': Schema.Struct<{
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -332,6 +341,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-pointer-up': Schema.Struct<{
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -346,6 +356,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-pointer-enter': Schema.Struct<{
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -359,6 +370,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-pointer-move': Schema.Struct<{
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -378,6 +390,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-wheel': Schema.Struct<{
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;

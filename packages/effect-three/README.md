@@ -78,7 +78,14 @@ const environment = Layer.mergeAll(ResourceRegistry.layer, FrameSource.layer(sch
 | Owned  | `geometry: box(...)`, `material: standard(...)`                          | Created for one mesh, disposed with it. Owned material changes are applied in place.                                                                                                                                                                                        |
 | Shared | `sharedGeometry(id)`, `sharedMaterial(id)` plus a `resources` definition | Created on first use, reference-counted across every scene using the same `ResourceRegistry`, disposed when the last user releases it. Changing a shared material updates it in place; changing a shared geometry swaps a new one onto every user and disposes the old one. |
 
-Borrowed resources (user-supplied three.js objects the library never disposes) are planned but not yet implemented.
+Borrowed objects and textures are the application's own: lend them to the store and the library shows them but never disposes them.
+
+```ts
+const withdraw = store.lend('car', gltf.scene); // then: borrowed({ key: 'car', id: 'car' })
+store.lendTexture('bricks', texture); // then: standard({ map: 'bricks' })
+```
+
+A `borrowed` node may name an id before it is lent, so a description can refer to a model that is still loading; it appears when lent and disappears when withdrawn. Hits inside a borrowed object carry the `part` name of the mesh hit.
 
 ## Animation
 

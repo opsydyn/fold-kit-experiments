@@ -74,8 +74,10 @@ const surface = {
   wireframe: Schema.Boolean,
 };
 const shaded = { ...surface, flatShading: Schema.Boolean };
+const Map = Schema.NullOr(Schema.Literals(['tex-a', 'tex-b']));
 const pbr = {
   color: Colour,
+  map: Map,
   roughness: Unit,
   metalness: Unit,
   emissive: Colour,
@@ -84,10 +86,11 @@ const pbr = {
 
 /** Every material kind, with small domains so equal values and kind changes are common. */
 const Surface = Schema.Union([
-  Schema.TaggedStruct('Basic', { color: Colour, ...surface }),
-  Schema.TaggedStruct('Lambert', { color: Colour, emissive: Colour, ...shaded }),
+  Schema.TaggedStruct('Basic', { color: Colour, map: Map, ...surface }),
+  Schema.TaggedStruct('Lambert', { color: Colour, map: Map, emissive: Colour, ...shaded }),
   Schema.TaggedStruct('Phong', {
     color: Colour,
+    map: Map,
     emissive: Colour,
     specular: Colour,
     shininess: Schema.Literals([10, 30]),
@@ -164,6 +167,15 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
         color: Colour,
       }),
     ).check(Schema.isMaxLength(20)),
+  }),
+  Schema.TaggedStruct('Borrowed', {
+    key: Key,
+    id: Schema.Literals(['model-a', 'model-b']),
+    position: Vec3,
+    rotation: Rotation,
+    scale: Vec3,
+    transition: Transition,
+    interactive: Schema.Boolean,
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),
   Schema.TaggedStruct('PointLight', {

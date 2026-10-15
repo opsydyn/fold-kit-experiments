@@ -251,9 +251,16 @@ export const InstancesNode = Schema.TaggedStruct('Instances', {
 });
 
 /** An application object lent to the store under `id`. */
+export const Animation = Schema.Struct({
+  clip: Schema.String,
+  speed: Schema.Finite,
+  loop: Schema.Boolean,
+});
+
 export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
   key: Schema.String,
   id: Schema.String,
+  animation: Schema.NullOr(Animation),
   position: Vec3,
   rotation: Rotation,
   scale: Vec3,

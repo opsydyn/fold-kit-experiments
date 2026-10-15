@@ -171,6 +171,13 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
   Schema.TaggedStruct('Borrowed', {
     key: Key,
     id: Schema.Literals(['model-a', 'model-b']),
+    animation: Schema.NullOr(
+      Schema.Struct({
+        clip: Schema.Literals(['wave', 'roll']),
+        speed: Schema.Literals([1, -0.5]),
+        loop: Schema.Boolean,
+      }),
+    ),
     position: Vec3,
     rotation: Rotation,
     scale: Vec3,

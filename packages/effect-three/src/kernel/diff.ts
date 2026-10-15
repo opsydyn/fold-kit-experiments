@@ -23,6 +23,7 @@ import type {
 import {
   cameraEquals,
   renderSettingsEquals,
+  animationEquals,
   geometryRefEquals,
   instancesEqual,
   materialRefEquals,
@@ -61,7 +62,8 @@ export type Field =
   | 'shadowBias'
   | 'shadowArea'
   | 'instances'
-  | 'id';
+  | 'id'
+  | 'animation';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -139,6 +141,7 @@ export const changedFields = (
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
       if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
       if (prev.id !== next.id) fields.push('id');
+      if (!animationEquals(prev.animation, next.animation)) fields.push('animation');
       if (prev.interactive !== next.interactive) fields.push('interactive');
       return fields;
     }

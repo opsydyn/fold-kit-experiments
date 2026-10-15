@@ -5,6 +5,7 @@
  * @module
  */
 export type * from './description.ts';
+export { clipRunning, clipTime } from './animation.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
 export { buildMaterial, type HostMaterial, type Textures, updateMaterial } from './materials.ts';
 export { capacityFor, type HostInstances } from './instances.ts';
@@ -38,6 +39,7 @@ export {
   orthographicCamera,
   perspectiveCamera,
   phong,
+  play,
   physical,
   plane,
   pointLight,
@@ -56,6 +58,7 @@ export {
 export { changedFields, diff, type DiffResult, type Field, type Op } from './diff.ts';
 export {
   cameraEquals,
+  animationEquals,
   geometryRefEquals,
   instanceEquals,
   instancesEqual,

@@ -5,6 +5,7 @@
  * @module
  */
 import type {
+  Animation,
   GeometryRef,
   Instance,
   MaterialRef,
@@ -127,6 +128,15 @@ export const instancesEqual = (a: ReadonlyArray<Instance>, b: ReadonlyArray<Inst
   }
   return true;
 };
+
+/** Animation equality: both none, or the same clip, speed and looping. */
+export const animationEquals = (a: Animation | null, b: Animation | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    a.clip === b.clip &&
+    Object.is(a.speed, b.speed) &&
+    a.loop === b.loop);
 
 /** Transition equality. */
 export const transitionEquals = (a: Transition, b: Transition): boolean => {

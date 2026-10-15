@@ -54,6 +54,24 @@ const AmbientLightNode_2: Schema.TaggedStruct<"AmbientLight", {
 }>;
 
 // @public
+type Animation_2 = {
+    readonly clip: string;
+    readonly speed: number;
+    readonly loop: boolean;
+};
+export { Animation_2 as Animation }
+
+// @public
+const Animation_3: Schema.Struct<{
+    readonly clip: Schema.String;
+    readonly speed: Schema.Finite;
+    readonly loop: Schema.Boolean;
+}>;
+
+// @public
+export const animationEquals: (a: Animation_2 | null, b: Animation_2 | null) => boolean;
+
+// @public
 export const applyTween: (object: Object3D, tween: Tween, elapsedSeconds: number) => boolean;
 
 // @public
@@ -90,6 +108,7 @@ const BasicMaterial_2: Schema.TaggedStruct<"Basic", {
 export const borrowed: (options: TransformOptions & {
     readonly id: string;
     readonly interactive?: boolean;
+    readonly animation?: Animation_2 | null;
 }) => BorrowedNode;
 
 // @public
@@ -102,12 +121,18 @@ export type BorrowedNode = {
     readonly scale: Vec3;
     readonly transition: Transition;
     readonly interactive: boolean;
+    readonly animation: Animation_2 | null;
 };
 
-// @public
+// @public (undocumented)
 const BorrowedNode_2: Schema.TaggedStruct<"Borrowed", {
     readonly key: Schema.String;
     readonly id: Schema.String;
+    readonly animation: Schema.NullOr<Schema.Struct<{
+        readonly clip: Schema.String;
+        readonly speed: Schema.Finite;
+        readonly loop: Schema.Boolean;
+    }>>;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly rotation: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
         readonly euler: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -236,6 +261,12 @@ const CircleGeometry_2: Schema.TaggedStruct<"Circle", {
     readonly radius: Schema.Finite;
     readonly segments: Schema.Int;
 }>;
+
+// @public
+export const clipRunning: (animation: Animation_2, duration: number, elapsed: number) => boolean;
+
+// @public
+export const clipTime: (animation: Animation_2, duration: number, elapsed: number) => number;
 
 // @public
 export const cone: (options?: {
@@ -434,7 +465,7 @@ const Easing_2: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCu
 export const emptyIndex: SceneIndex;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id';
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation';
 
 // @public
 export const fixed: (euler: Vec3) => Rotation;
@@ -1411,6 +1442,12 @@ const PlaneGeometry_2: Schema.TaggedStruct<"Plane", {
 }>;
 
 // @public
+export const play: (clip: string, options?: {
+    readonly speed?: number;
+    readonly loop?: boolean;
+}) => Animation_2;
+
+// @public
 export type PointerInput = {
     readonly _tag: 'PointerMove';
     readonly x: number;
@@ -2257,6 +2294,7 @@ declare namespace SceneSchema {
         MeshNode_2 as MeshNode,
         Instance_2 as Instance,
         InstancesNode_2 as InstancesNode,
+        Animation_3 as Animation,
         BorrowedNode_2 as BorrowedNode,
         AmbientLightNode_2 as AmbientLightNode,
         DirectionalLightNode_2 as DirectionalLightNode,

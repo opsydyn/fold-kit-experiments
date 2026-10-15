@@ -8,6 +8,8 @@
  */
 import {
   AmbientLight,
+  AnimationClip,
+  AnimationMixer,
   type BufferGeometry,
   DirectionalLight,
   Group,
@@ -22,6 +24,7 @@ import {
   Vector3,
 } from 'three';
 
+import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
 import { renderSettings } from './build.ts';
 import type {
@@ -67,6 +70,7 @@ type Entry =
       node: BorrowedNode;
       readonly object: Group;
       shown: Object3D | undefined;
+      player: Player | undefined;
     }
   | { readonly _tag: 'AmbientLight'; node: AmbientLightNode; readonly object: AmbientLight }
   | {
@@ -83,6 +87,15 @@ type Entry =
     };
 
 /** Entries with a transform: position, rotation, scale and transitions. */
+/** A clip playing on a borrowed object: its mixer, length and scene-time start. */
+type Borrowing = Extract<Entry, { readonly _tag: 'Borrowed' }>;
+
+type Player = {
+  readonly mixer: AnimationMixer;
+  readonly duration: number;
+  readonly startedAt: number;
+};
+
 /** Descriptions with a transform. */
 type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode;
 
@@ -286,6 +299,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
+  const playing = new Set<Borrowing>();
   const moving = new Map<Entry, Tween>();
   const reparented = new Set<Entry>();
   const worldPosition = new Vector3();
@@ -370,11 +384,12 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         return entry;
       }
       case 'Borrowed': {
-        const entry: Extract<Entry, { readonly _tag: 'Borrowed' }> = {
+        const entry: Borrowing = {
           _tag: 'Borrowed',
           node,
           object: new Group(),
           shown: undefined,
+          player: undefined,
         };
         writeVec3(entry.object.position, node.position);
         writeVec3(entry.object.scale, node.scale);
@@ -412,7 +427,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
    * Shows what is lent under the entry's id: the object itself, or a clone when another
    * borrowed node already shows it (an object can have only one parent).
    */
-  const showLoan = (entry: Extract<Entry, { readonly _tag: 'Borrowed' }>): void => {
+  const showLoan = (entry: Borrowing): void => {
+    stopPlayer(entry);
     entry.shown?.removeFromParent();
     entry.shown = undefined;
     const lent = store.lent(entry.node.id);
@@ -420,6 +436,49 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     const shown = lent.parent === null ? lent : lent.clone();
     entry.object.add(shown);
     entry.shown = shown;
+    startPlayer(entry);
+  };
+
+  const stopPlayer = (entry: Borrowing): void => {
+    if (entry.player === undefined) return;
+    entry.player.mixer.stopAllAction();
+    if (entry.shown !== undefined) entry.player.mixer.uncacheRoot(entry.shown);
+    entry.player = undefined;
+    playing.delete(entry);
+  };
+
+  /** Starts the node's clip on what it shows, from now in scene time, if both exist. */
+  const startPlayer = (entry: Borrowing): void => {
+    stopPlayer(entry);
+    const animation = entry.node.animation;
+    const shown = entry.shown;
+    if (animation === null || shown === undefined) return;
+    const clip = AnimationClip.findByName(shown.animations, animation.clip);
+    if (clip === null) return;
+    const mixer = new AnimationMixer(shown);
+    mixer.clipAction(clip).play();
+    entry.player = { mixer, duration: clip.duration, startedAt: elapsed };
+    playing.add(entry);
+    pose(entry);
+  };
+
+  /** Shows the clip's pose for the current scene time. */
+  const pose = (entry: Borrowing): void => {
+    const animation = entry.node.animation;
+    if (entry.player === undefined || animation === null) return;
+    const since = elapsed - entry.player.startedAt;
+    entry.player.mixer.setTime(clipTime(animation, entry.player.duration, since));
+  };
+
+  /** Whether any clip still changes its pose, so frames are needed. */
+  const clipsRunning = (): boolean => {
+    for (const entry of playing) {
+      const animation = entry.node.animation;
+      if (entry.player === undefined || animation === null) continue;
+      const since = elapsed - entry.player.startedAt;
+      if (clipRunning(animation, entry.player.duration, since)) return true;
+    }
+    return false;
   };
 
   /** Re-applies owned materials that use a texture whose loan changed. */
@@ -456,6 +515,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'Instances') entry.object.dispose();
     // A borrowed object belongs to the application: detach it, never dispose it.
     if (entry._tag === 'Borrowed') {
+      stopPlayer(entry);
       entry.shown?.removeFromParent();
       entry.shown = undefined;
     }
@@ -559,6 +619,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('rotation')) trackRotation(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       if (fields.includes('id')) showLoan(entry);
+      else if (fields.includes('animation')) startPlayer(entry);
       return;
     }
     if (entry._tag === 'Group' && next._tag === 'Group') {
@@ -722,6 +783,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       }
     }
     moving.forEach(stepTween);
+    for (const entry of playing) pose(entry);
   };
 
   const finishTween = (tween: Tween, entry: Entry): void => {
@@ -761,7 +823,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     tick,
     elapsedSeconds: () => elapsed,
     renderSettings: () => settings,
-    needsFrame: () => dirty || (animating && (spinning.size > 0 || moving.size > 0)),
+    needsFrame: () =>
+      dirty || (animating && (spinning.size > 0 || moving.size > 0 || clipsRunning())),
     drawn: () => {
       dirty = false;
     },

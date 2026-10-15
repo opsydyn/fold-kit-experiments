@@ -338,6 +338,21 @@ export type BorrowedNode = {
   readonly transition: Transition;
   /** Makes every mesh inside the object pickable; hits name the part by its `name`. */
   readonly interactive: boolean;
+  /** An animation clip of the lent object to play, or `null` for none. */
+  readonly animation: Animation | null;
+};
+
+/**
+ * Plays the clip named `clip` from the borrowed object's `animations`. Playback is a
+ * function of scene time, like `spin`: it pauses with the scene and rewinds with it.
+ * `speed` scales time (negative plays backwards); `loop: false` holds the last frame.
+ * Changing the animation restarts it from the current scene time; removing it returns
+ * the object to its rest pose.
+ */
+export type Animation = {
+  readonly clip: string;
+  readonly speed: number;
+  readonly loop: boolean;
 };
 
 /** Uniform ambient light. */

@@ -5,6 +5,7 @@
  */
 import type {
   AmbientLightNode,
+  Animation,
   BasicMaterial,
   BorrowedNode,
   Axis,
@@ -394,13 +395,24 @@ export const instances = (
   instances: options.instances,
 });
 
+/** Plays an animation clip by name. Defaults: normal speed, looping. */
+export const play = (
+  clip: string,
+  options: { readonly speed?: number; readonly loop?: boolean } = {},
+): Animation => ({ clip, speed: options.speed ?? 1, loop: options.loop ?? true });
+
 /** An object lent to the resource store under `id`. Not interactive by default. */
 export const borrowed = (
-  options: TransformOptions & { readonly id: string; readonly interactive?: boolean },
+  options: TransformOptions & {
+    readonly id: string;
+    readonly interactive?: boolean;
+    readonly animation?: Animation | null;
+  },
 ): BorrowedNode => ({
   _tag: 'Borrowed',
   key: options.key,
   id: options.id,
+  animation: options.animation ?? null,
   position: options.position ?? origin,
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,

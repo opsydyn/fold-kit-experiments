@@ -402,8 +402,15 @@ export type ShadowMode = 'off' | 'basic' | 'percentage' | 'soft' | 'variance';
 /** How the renderer maps scene light to screen colour. */
 export type ToneMapping = 'none' | 'linear' | 'reinhard' | 'cineon' | 'aces' | 'agx' | 'neutral';
 
+/**
+ * When frames render, as React Three Fiber's `frameloop`: `always` every display frame,
+ * `demand` only when something changed or is animating, `never` only on `advance`.
+ */
+export type FrameMode = 'always' | 'demand' | 'never';
+
 /** Scene-wide rendering settings, changeable at any time. */
 export type RenderSettings = {
+  readonly frames: FrameMode;
   readonly shadows: ShadowMode;
   readonly toneMapping: ToneMapping;
   /** Exposure for tone mapping. Ignored when `toneMapping` is `none`. */

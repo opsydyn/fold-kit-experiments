@@ -212,6 +212,11 @@ const ConeGeometry_2: Schema.TaggedStruct<"Cone", {
     readonly radialSegments: Schema.Int;
 }>;
 
+// Warning: (ae-forgotten-export) The symbol "Paced" needs to be exported by the entry point index.d.ts
+//
+// @public
+export const createFramePacer: (loop: Paced) => FramePacer;
+
 // @public
 export const createGatedFrames: (base: FrameScheduler) => GatedFrames;
 
@@ -378,6 +383,23 @@ export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry
 export const fixed: (euler: Vec3) => Rotation;
 
 // @public
+export type FrameControl = {
+    readonly wake: () => void;
+    readonly sleep: () => void;
+};
+
+// @public
+export type FrameMode = 'always' | 'demand' | 'never';
+
+// @public (undocumented)
+export type FramePacer = {
+    readonly frame: () => void;
+    readonly attach: (control: FrameControl) => void;
+    readonly wake: () => void;
+    readonly advance: () => void;
+};
+
+// @public
 export type FrameScheduler = {
     readonly subscribe: (onFrame: () => void) => () => void;
 };
@@ -398,7 +420,7 @@ class FrameSource_2 extends FrameSource_base {
 
 // @public
 const fromScheduler: (scheduler: FrameScheduler) => {
-    subscribe: (onFrame: () => void) => Effect.Effect<void, never, Scope>;
+    subscribe: (onFrame: () => void) => Effect.Effect<FrameControl, never, Scope>;
 };
 
 // @public
@@ -622,6 +644,7 @@ const make: (options: SceneRuntimeOptions) => Effect.Effect<{
     update: (scene: SceneDescription) => Effect.Effect<readonly Op[], InvalidScene, never>;
     resize: (viewport: Viewport) => Effect.Effect<void, never, never>;
     setAnimating: (animating: boolean) => Effect.Effect<void, never, never>;
+    advance: Effect.Effect<void, never, never>;
     pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
     events: Stream.Stream<SceneEvent, never, never>;
     drainEvents: Effect.Effect<SceneEvent[], never, never>;
@@ -1223,6 +1246,7 @@ export class RendererUnavailable extends RendererUnavailable_base<{
 
 // @public
 export type RenderSettings = {
+    readonly frames: FrameMode;
     readonly shadows: ShadowMode;
     readonly toneMapping: ToneMapping;
     readonly exposure: number;
@@ -1234,6 +1258,7 @@ export const renderSettings: (options?: Partial<RenderSettings>) => RenderSettin
 
 // @public
 const RenderSettings_2: Schema.Struct<{
+    readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
     readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
     readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
     readonly exposure: Schema.Finite;
@@ -1393,6 +1418,7 @@ export type ResourceStore = {
     readonly acquireMaterial: (ref: MaterialRef) => HostMaterial;
     readonly releaseMaterial: (ref: MaterialRef, material: HostMaterial) => void;
     readonly onGeometryReplaced: (listener: (event: GeometryReplaced) => void) => () => void;
+    readonly onSharedChanged: (listener: () => void) => () => void;
     readonly onMaterialReplaced: (listener: (event: MaterialReplaced) => void) => () => void;
     readonly updateOwnedMaterial: (material: HostMaterial, next: SurfaceMaterial) => boolean;
     readonly sharedGeometryId: (geometry: BufferGeometry) => string | undefined;
@@ -1491,6 +1517,7 @@ const SceneDescription_2: Schema.Struct<{
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>]>;
     readonly render: Schema.Struct<{
+        readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
         readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
         readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
         readonly exposure: Schema.Finite;
@@ -1768,6 +1795,9 @@ export type SceneGraph = {
     readonly elapsedSeconds: () => number;
     readonly renderSettings: () => RenderSettings;
     readonly setAnimating: (animating: boolean) => void;
+    readonly needsFrame: () => boolean;
+    readonly drawn: () => void;
+    readonly onInvalidated: (listener: () => void) => () => void;
     readonly object: (key: string) => Object3D | undefined;
     readonly keyOf: (object: Object3D) => string | undefined;
     readonly interactiveObjects: () => Array<Object3D>;
@@ -1798,6 +1828,7 @@ export type SceneIndex = {
 // @public (undocumented)
 export type SceneLoop = {
     readonly frame: () => void;
+    readonly wantsFrames: () => boolean;
     readonly pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
 };
 

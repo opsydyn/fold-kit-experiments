@@ -27,6 +27,11 @@ export type SceneLoop = {
   /** Advances behaviours, re-tests hover and renders one frame. */
   readonly frame: () => void;
   /**
+   * Whether frames should keep coming: always in `always` mode, while the graph needs one
+   * in `demand` mode, never in `never` mode (frames then come only from `advance`).
+   */
+  readonly wantsFrames: () => boolean;
+  /**
    * Routes pointer input to hit testing, emits the resulting events and returns them, so
    * a DOM listener can decide synchronously whether the scene handled its event.
    */
@@ -49,6 +54,11 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
         configured = settings;
       }
       renderer.render(graph.scene, graph.camera);
+      graph.drawn();
+    },
+    wantsFrames: () => {
+      const mode = graph.renderSettings().frames;
+      return mode === 'always' || (mode === 'demand' && graph.needsFrame());
     },
     pointer: (input) => {
       const events = tracker.input(input);

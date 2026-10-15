@@ -10,6 +10,7 @@ import { Clock, Effect, Exit, Match, Queue, Result, Scope, Stream } from 'effect
 import {
   createSceneClock,
   createSceneGraph,
+  createFramePacer,
   createSceneLoop,
   type Op,
   type ReconcileResult,
@@ -50,6 +51,15 @@ const applyViewport = (graph: SceneGraph, renderer: SceneRenderer, viewport: Vie
 const sceneGraph = (registry: ResourceRegistry['Service']) => () =>
   createSceneGraph({ store: registry.store });
 
+/**
+ * Reconciles at the current scene time. An idle scene draws no frames, so its last tick
+ * can be long past; catching up first makes new transitions start now, not back then.
+ */
+const reconcileNow = (graph: SceneGraph, sceneClock: SceneClock, scene: SceneDescription) => {
+  graph.tick(sceneClock.elapsedSeconds());
+  return graph.reconcile(scene);
+};
+
 const viewportChange = (graph: SceneGraph, renderer: SceneRenderer, viewport: Viewport) => () =>
   applyViewport(graph, renderer, viewport);
 
@@ -69,6 +79,14 @@ const acquireRenderer = (factory: RendererFactory) => {
     catch: (cause) => new RendererUnavailable({ cause }),
   });
   return Effect.acquireRelease(create, (renderer) => Effect.sync(renderer.dispose));
+};
+
+const invalidationListening = (graph: SceneGraph, onInvalidated: () => void) => () =>
+  graph.onInvalidated(onInvalidated);
+
+const acquireInvalidation = (graph: SceneGraph, onInvalidated: () => void) => {
+  const listen = Effect.sync(invalidationListening(graph, onInvalidated));
+  return Effect.acquireRelease(listen, Effect.sync);
 };
 
 const acquireEvents = (capacity: number) => {
@@ -98,7 +116,9 @@ function* startScene(options: SceneRuntimeOptions) {
       Queue.offerUnsafe(events, event);
     },
   });
-  yield* frames.subscribe(loop.frame);
+  const pacer = createFramePacer(loop);
+  pacer.attach(yield* frames.subscribe(pacer.frame));
+  yield* acquireInvalidation(graph, pacer.wake);
 
   return {
     /** The hosted scene graph, for inspection. */
@@ -110,12 +130,17 @@ function* startScene(options: SceneRuntimeOptions) {
      * descriptions return no operations and cost no host changes.
      */
     update: (scene: SceneDescription) =>
-      Effect.suspend(() => Effect.fromResult(toResult(graph.reconcile(scene)))),
+      Effect.suspend(() => Effect.fromResult(toResult(reconcileNow(graph, sceneClock, scene)))),
     /** Resizes the camera aspect and the renderer's drawing surface. */
     resize: (viewport: Viewport) => Effect.sync(viewportChange(graph, renderer, viewport)),
-    /** Freezes (`false`) or resumes (`true`) behaviours; frozen, transitions land at once. Frames keep rendering. */
+    /** Freezes (`false`) or resumes (`true`) behaviours; frozen, transitions land at once. */
     setAnimating: (animating: boolean) =>
       Effect.sync(animationChange(sceneClock, graph, animating)),
+    /**
+     * Draws one frame now, whatever the frame mode: React Three Fiber's `advance`, for
+     * `frames: 'never'` scenes and frame-exact capture.
+     */
+    advance: Effect.sync(pacer.advance),
     /** Routes pointer input. Synchronous, so DOM listeners can call it directly. */
     pointer: loop.pointer,
     /** Scene events, newest kept when the consumer falls behind. */

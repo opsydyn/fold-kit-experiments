@@ -484,11 +484,16 @@ export const orthographicCamera = (
 });
 
 /**
- * Render settings. Defaults: shadows off, no tone mapping, exposure 1, sRGB output.
- * React Three Fiber defaults to ACES tone mapping; this keeps colours exactly as given,
- * so a validated palette renders as validated. Pass `toneMapping: 'aces'` to match R3F.
+ * Render settings. Defaults: frames on demand, shadows off, no tone mapping, exposure 1,
+ * sRGB output. Two deliberate differences from React Three Fiber:
+ *
+ * - Frames default to `demand`, not `always`. Every visual change passes through the
+ *   kernel, which knows when a frame is needed, so nothing has to call `invalidate` and
+ *   idle scenes stop drawing.
+ * - Tone mapping defaults to `none`, not ACES, so a validated palette renders as given.
  */
 export const renderSettings = (options: Partial<RenderSettings> = {}): RenderSettings => ({
+  frames: options.frames ?? 'demand',
   shadows: options.shadows ?? 'off',
   toneMapping: options.toneMapping ?? 'none',
   exposure: options.exposure ?? 1,

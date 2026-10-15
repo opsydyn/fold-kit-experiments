@@ -31,6 +31,7 @@ type Probe = {
     readonly geometries: { readonly live: number; readonly created: number };
     readonly materials: { readonly live: number; readonly created: number };
   };
+  readonly frameRequests: number;
 };
 
 /** Runs in the page: a serialisable copy of `window.__probe`. */
@@ -41,6 +42,7 @@ function probeSnapshot(): Probe {
     resizeObservers: probe.resizeObservers,
     intersectionObservers: probe.intersectionObservers,
     stats: probe.stats(),
+    frameRequests: probe.frameRequests,
   };
 }
 
@@ -191,6 +193,17 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   expect(afterColour.stats.materials.created).toBe(statsBefore.materials.created);
   // onReconciled reports the in-place change as exactly one Update.
   await waitForText(page, '#last-updated', '1');
+
+  // On demand, a scene that holds still stops asking for frames altogether; spinning
+  // again resumes them. (Waiting uses timers: the test must not request frames itself.)
+  await page.click('#still');
+  await page.waitForTimeout(300);
+  const idle = (await readProbe(page)).frameRequests;
+  await page.waitForTimeout(500);
+  expect((await readProbe(page)).frameRequests).toBe(idle);
+  await page.click('#still');
+  await page.waitForTimeout(300);
+  expect((await readProbe(page)).frameRequests).toBeGreaterThan(idle + 5);
 
   // Unmount releases owned resources, listeners and observers.
   await page.click('#visible');

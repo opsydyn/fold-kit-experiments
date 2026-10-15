@@ -76,6 +76,11 @@ export type ResourceStore = {
   readonly releaseMaterial: (ref: MaterialRef, material: HostMaterial) => void;
   /** Subscribes to shared geometry replacement. Returns an unsubscribe function. */
   readonly onGeometryReplaced: (listener: (event: GeometryReplaced) => void) => () => void;
+  /**
+   * Subscribes to any change to a live shared resource (updated in place or replaced),
+   * so scenes using it know to draw again. Returns an unsubscribe function.
+   */
+  readonly onSharedChanged: (listener: () => void) => () => void;
   /** Subscribes to shared material replacement. Returns an unsubscribe function. */
   readonly onMaterialReplaced: (listener: (event: MaterialReplaced) => void) => () => void;
   /**
@@ -169,6 +174,10 @@ export const createResourceStore = (): ResourceStore => {
   const owned = new Set<BufferGeometry | HostMaterial>();
   const replacedListeners = new Set<(event: GeometryReplaced) => void>();
   const materialListeners = new Set<(event: MaterialReplaced) => void>();
+  const changeListeners = new Set<() => void>();
+  const notifyChanged = (): void => {
+    for (const listener of changeListeners) listener();
+  };
   const geometryCounter: Counter = { created: 0, disposed: 0 };
   const materialCounter: Counter = { created: 0, disposed: 0 };
 
@@ -203,6 +212,7 @@ export const createResourceStore = (): ResourceStore => {
       live.value = replacement;
       for (const listener of replacedListeners) listener({ previous, next: replacement });
       disposeGeometry(previous);
+      notifyChanged();
     }
     for (const { id, material } of definitions.materials) {
       const before = materialDefinitions.get(id);
@@ -211,13 +221,17 @@ export const createResourceStore = (): ResourceStore => {
       if (live === undefined || before === undefined || materialRefEquals(before, material)) {
         continue;
       }
-      if (updateMaterial(live.value, material)) continue;
+      if (updateMaterial(live.value, material)) {
+        notifyChanged();
+        continue;
+      }
       const previous = live.value;
       const replacement = makeMaterial(material);
       sharedMaterialIds.set(replacement, id);
       live.value = replacement;
       for (const listener of materialListeners) listener({ previous, next: replacement });
       disposeMaterial(previous);
+      notifyChanged();
     }
   };
 
@@ -310,6 +324,12 @@ export const createResourceStore = (): ResourceStore => {
       replacedListeners.add(listener);
       return () => {
         replacedListeners.delete(listener);
+      };
+    },
+    onSharedChanged: (listener) => {
+      changeListeners.add(listener);
+      return () => {
+        changeListeners.delete(listener);
       };
     },
     onMaterialReplaced: (listener) => {

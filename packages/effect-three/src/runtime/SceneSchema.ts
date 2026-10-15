@@ -326,6 +326,7 @@ export const Camera = Schema.Union([PerspectiveCamera, OrthographicCamera]);
 
 /** Scene-wide render settings. */
 export const RenderSettings = Schema.Struct({
+  frames: Schema.Literals(['always', 'demand', 'never']),
   shadows: Schema.Literals(['off', 'basic', 'percentage', 'soft', 'variance']),
   toneMapping: Schema.Literals(['none', 'linear', 'reinhard', 'cineon', 'aces', 'agx', 'neutral']),
   exposure: Positive,

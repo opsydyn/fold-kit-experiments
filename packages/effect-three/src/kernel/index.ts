@@ -65,7 +65,10 @@ export {
 } from './resources.ts';
 export { createSceneClock, type SceneClock } from './clock.ts';
 export {
+  createFramePacer,
   createGatedFrames,
+  type FrameControl,
+  type FramePacer,
   createManualFrames,
   type FrameScheduler,
   type GatedFrames,

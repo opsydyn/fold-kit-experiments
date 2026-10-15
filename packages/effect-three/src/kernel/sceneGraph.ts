@@ -99,6 +99,15 @@ export type SceneGraph = {
    * any in flight finish, because frozen scene time would otherwise strand them mid-way.
    */
   readonly setAnimating: (animating: boolean) => void;
+  /**
+   * Whether the next frame would draw something new: after any change (reconcile, resize,
+   * animation toggle, a shared resource changed elsewhere) or while something animates.
+   */
+  readonly needsFrame: () => boolean;
+  /** Marks the current state as drawn. The frame loop calls it after each render. */
+  readonly drawn: () => void;
+  /** Calls `listener` whenever the graph changes in a way that needs a frame. */
+  readonly onInvalidated: (listener: () => void) => () => void;
   /** The hosted object for a key. */
   readonly object: (key: string) => Object3D | undefined;
   /** The key of a hosted object. */
@@ -250,6 +259,12 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let index: SceneIndex = emptyIndex;
   let elapsed = 0;
   let animating = true;
+  let dirty = true;
+  const invalidationListeners = new Set<() => void>();
+  const invalidate = (): void => {
+    dirty = true;
+    for (const listener of invalidationListeners) listener();
+  };
   let settings: RenderSettings = renderSettings();
   let viewport = { width: 1, height: 1 };
 
@@ -258,6 +273,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (entry._tag === 'Mesh' && entry.object.geometry === previous) entry.object.geometry = next;
     }
   });
+  const unsubscribeShared = store.onSharedChanged(invalidate);
   const unsubscribeMaterial = store.onMaterialReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
       if (entry._tag === 'Mesh' && entry.object.material === previous) entry.object.material = next;
@@ -529,6 +545,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     reparented.clear();
     index = result.index;
+    if (result.ops.length > 0) invalidate();
     return { _tag: 'Applied', ops: result.ops };
   };
 
@@ -552,6 +569,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   };
 
   const setAnimating = (next: boolean): void => {
+    if (next !== animating) invalidate();
     animating = next;
     if (next) return;
     moving.forEach(finishTween);
@@ -567,6 +585,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     index = emptyIndex;
     unsubscribeGeometry();
     unsubscribeMaterial();
+    unsubscribeShared();
+    invalidationListeners.clear();
     if (ownsStore) store.dispose();
   };
 
@@ -580,6 +600,16 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     tick,
     elapsedSeconds: () => elapsed,
     renderSettings: () => settings,
+    needsFrame: () => dirty || (animating && (spinning.size > 0 || moving.size > 0)),
+    drawn: () => {
+      dirty = false;
+    },
+    onInvalidated: (listener) => {
+      invalidationListeners.add(listener);
+      return () => {
+        invalidationListeners.delete(listener);
+      };
+    },
     setAnimating,
     object: (key) => entries.get(key)?.object,
     keyOf: (object) => keys.get(object),
@@ -591,6 +621,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     resize: (width, height) => {
       viewport = { width, height };
       fitCamera(camera, viewport);
+      invalidate();
     },
     dispose,
   };

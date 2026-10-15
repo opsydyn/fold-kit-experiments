@@ -13,6 +13,8 @@ export type Probe = {
   rendererMemory: () => unknown;
   /** `defaultPrevented` of each context menu, read after the scene's listener ran. */
   contextMenus: Array<boolean>;
+  /** Calls to `requestAnimationFrame`: they stop when no scene wants frames. */
+  frameRequests: number;
 };
 
 export const probe: Probe = {
@@ -22,6 +24,7 @@ export const probe: Probe = {
   stats: () => undefined,
   rendererMemory: () => undefined,
   contextMenus: [],
+  frameRequests: 0,
 };
 
 Reflect.set(globalThis, '__probe', probe);
@@ -54,3 +57,9 @@ globalThis.IntersectionObserver = CountingIntersectionObserver;
 window.addEventListener('contextmenu', (event) => {
   probe.contextMenus.push(event.defaultPrevented);
 });
+
+const requestFrame = window.requestAnimationFrame.bind(window);
+window.requestAnimationFrame = (callback) => {
+  probe.frameRequests++;
+  return requestFrame(callback);
+};

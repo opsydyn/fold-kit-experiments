@@ -37,6 +37,9 @@ export const capturesPointer: (events: ReadonlyArray<SceneEvent>) => boolean;
 // @public
 export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
 
+// @public (undocumented)
+export const defaultPixelRatio: PixelRatio;
+
 // @public
 export const domEventName: {
     readonly Click: 'scene-click';
@@ -65,6 +68,7 @@ export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | '
 // @public (undocumented)
 export type EnvironmentOptions = {
     readonly renderer?: (canvas: HTMLCanvasElement) => RendererFactory;
+    readonly pixelRatio?: PixelRatio;
 };
 
 // @public
@@ -79,6 +83,7 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     store: ResourceStore;
     frames: FrameScheduler;
     renderer: (canvas: HTMLCanvasElement) => RendererFactory;
+    pixelRatio: PixelRatio;
     dispose: () => void;
 };
 
@@ -92,6 +97,9 @@ export const makeSceneMount: (environment: Environment) => Mount.MountDefinition
 
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
+
+// @public
+export type PixelRatio = number | readonly [min: number, max: number];
 
 // @public
 export const ReconciledDetail: Schema.Struct<{
@@ -128,6 +136,9 @@ export type Rect = {
     readonly width: number;
     readonly height: number;
 };
+
+// @public
+export const resolvePixelRatio: (devicePixelRatio: number, setting: PixelRatio) => number;
 
 // @public (undocumented)
 export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene", {

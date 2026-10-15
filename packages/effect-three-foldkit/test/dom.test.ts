@@ -15,6 +15,7 @@ import { toNdc } from '../src/dom/pointer.ts';
 import { interceptProperty } from '../src/dom/property.ts';
 import { summarise } from '../src/dom/reconciled.ts';
 import { markTyped, typedScene } from '../src/dom/typedScenes.ts';
+import { observePixelRatio, resolvePixelRatio } from '../src/dom/viewport.ts';
 
 test('client coordinates map to normalised device coordinates', () => {
   const rect = { left: 100, top: 50, width: 200, height: 100 };
@@ -111,4 +112,33 @@ test('reconciled summaries count operations by kind', () => {
       materials: { live: 1, created: 1, disposed: 0 },
     },
   });
+});
+
+test('pixel ratios resolve as React Three Fiber resolves dpr', () => {
+  expect(resolvePixelRatio(3, [1, 2])).toBe(2);
+  expect(resolvePixelRatio(0.5, [1, 2])).toBe(1);
+  expect(resolvePixelRatio(1.5, [1, 2])).toBe(1.5);
+  expect(resolvePixelRatio(3, 1)).toBe(1);
+});
+
+test('a pixel ratio change is reported and the watch re-arms for the new ratio', () => {
+  const listeners = new Map<string, () => void>();
+  const view = {
+    devicePixelRatio: 1,
+    matchMedia: (query: string) => ({
+      addEventListener: (_type: string, listener: () => void) => listeners.set(query, listener),
+      removeEventListener: (_type: string, listener: () => void) => {
+        if (listeners.get(query) === listener) listeners.delete(query);
+      },
+    }),
+  };
+  let changes = 0;
+  const stop = observePixelRatio(view, () => changes++);
+  expect([...listeners.keys()]).toEqual(['(resolution: 1dppx)']);
+  view.devicePixelRatio = 2;
+  listeners.get('(resolution: 1dppx)')?.();
+  expect(changes).toBe(1);
+  expect([...listeners.keys()]).toEqual(['(resolution: 2dppx)']);
+  stop();
+  expect(listeners.size).toBe(0);
 });

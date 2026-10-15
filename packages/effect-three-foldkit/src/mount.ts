@@ -33,6 +33,7 @@ import { interceptProperty } from './dom/property.ts';
 import { typedScene } from './dom/typedScenes.ts';
 import {
   measureViewport,
+  observePixelRatio,
   observeReducedMotion,
   observeSize,
   observeVisibility,
@@ -120,7 +121,11 @@ const applyUpdate = (mounted: Mounted) => (value: unknown) => {
 
 const resize = (mounted: Mounted) => () =>
   mounted.handle.resize(
-    measureViewport(mounted.element, mounted.environment.host.devicePixelRatio),
+    measureViewport(
+      mounted.element,
+      mounted.environment.host.devicePixelRatio,
+      mounted.environment.pixelRatio,
+    ),
   );
 
 const watchers = (
@@ -130,6 +135,7 @@ const watchers = (
 ) => {
   const dispatchEvent = sceneEventDispatch(mounted.element, mounted.live);
   const sizes = observed<void>((emit) => observeSize(mounted.element, emit));
+  const ratios = observed<void>((emit) => observePixelRatio(mounted.environment.host, emit));
   const visibility = observed<boolean>((emit) => observeVisibility(mounted.element, emit));
   const reducedMotion = observed<boolean>((emit) =>
     observeReducedMotion(mounted.environment.host, emit),
@@ -141,6 +147,7 @@ const watchers = (
       Effect.sync(applying(mounted.live.set, isLive(state))),
     ),
     Stream.runForEach(sizes, resize(mounted)),
+    Stream.runForEach(ratios, resize(mounted)),
     Stream.runForEach(visibility, (visible) =>
       Effect.sync(applying(mounted.frames.setOpen, visible)),
     ),
@@ -155,7 +162,7 @@ const sceneRuntimeFor =
     const started = SceneRuntime.make({
       scene,
       renderer: environment.renderer(canvas),
-      viewport: measureViewport(element, environment.host.devicePixelRatio),
+      viewport: measureViewport(element, environment.host.devicePixelRatio, environment.pixelRatio),
     }).pipe(
       Effect.provideService(FrameSource.FrameSource, FrameSource.fromScheduler(frames)),
       Effect.provideService(ResourceRegistry.ResourceRegistry, { store: environment.store }),

@@ -23,6 +23,7 @@ export {
   toNdc,
   toPointerInput,
 } from './dom/pointer.ts';
+export { defaultPixelRatio, type PixelRatio, resolvePixelRatio } from './dom/viewport.ts';
 export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
 export {
   domEventName,

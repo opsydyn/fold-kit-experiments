@@ -5,20 +5,32 @@
  */
 import type { Viewport } from '@opsydyn/effect-three';
 
-/** Device pixel ratios above this cost GPU time with little visible gain. */
-export const defaultMaxPixelRatio = 2;
+/**
+ * The drawing buffer's pixel ratio: a fixed number, or `[min, max]` to follow the device
+ * within bounds. React Three Fiber's `dpr`, with its `[1, 2]` default (`calculateDpr` in
+ * `core/utils.tsx` at `d74622e`): ratios above 2 cost GPU time for little visible gain.
+ */
+export type PixelRatio = number | readonly [min: number, max: number];
 
-/** The element's current viewport, with the pixel ratio capped. */
+export const defaultPixelRatio: PixelRatio = [1, 2];
+
+/** Resolves a pixel ratio setting against the device's ratio. */
+export const resolvePixelRatio = (devicePixelRatio: number, setting: PixelRatio): number =>
+  typeof setting === 'number'
+    ? setting
+    : Math.min(Math.max(setting[0], devicePixelRatio), setting[1]);
+
+/** The element's current viewport, with the pixel ratio resolved. */
 export const measureViewport = (
   element: Element,
   devicePixelRatio: number,
-  maxPixelRatio: number = defaultMaxPixelRatio,
+  pixelRatio: PixelRatio = defaultPixelRatio,
 ): Viewport => {
   const rect = element.getBoundingClientRect();
   return {
     width: Math.max(1, rect.width),
     height: Math.max(1, rect.height),
-    pixelRatio: Math.min(devicePixelRatio, maxPixelRatio),
+    pixelRatio: resolvePixelRatio(devicePixelRatio, pixelRatio),
   };
 };
 
@@ -51,4 +63,35 @@ export const observeReducedMotion = (
   onChange(query.matches);
   query.addEventListener('change', listener);
   return () => query.removeEventListener('change', listener);
+};
+
+/** The media query calls the pixel-ratio watch needs; `window` provides them. */
+type ChangeTarget = {
+  addEventListener(type: 'change', listener: () => void): void;
+  removeEventListener(type: 'change', listener: () => void): void;
+};
+
+export type PixelRatioHost = {
+  readonly devicePixelRatio: number;
+  readonly matchMedia: (query: string) => ChangeTarget;
+};
+
+/**
+ * Calls `onChange` whenever the device pixel ratio changes (moving to another display, or
+ * zooming), which resizes nothing. As React Three Fiber's `watchDpr`: a media query for
+ * the current resolution, re-armed for the new ratio after each change.
+ */
+export const observePixelRatio = (view: PixelRatioHost, onChange: () => void): (() => void) => {
+  let query: ChangeTarget | undefined;
+  const listener = (): void => {
+    query?.removeEventListener('change', listener);
+    arm();
+    onChange();
+  };
+  const arm = (): void => {
+    query = view.matchMedia(`(resolution: ${view.devicePixelRatio}dppx)`);
+    query.addEventListener('change', listener);
+  };
+  arm();
+  return () => query?.removeEventListener('change', listener);
 };

@@ -1,9 +1,6 @@
 import { Option, Schema } from 'effect';
 
-import type { AppInitProps } from '../types';
-
-export const Paint = Schema.Literals(['teal', 'amber']);
-export type Paint = typeof Paint.Type;
+import { Paint } from '../palette';
 
 export const CubeSize = Schema.Literals(['small', 'large']);
 export type CubeSize = typeof CubeSize.Type;
@@ -22,9 +19,9 @@ export const Model = Schema.Struct({
 });
 export type Model = typeof Model.Type;
 
-export const init = (_props: AppInitProps) => ({
+export const init = () => ({
   model: {
-    paint: 'teal',
+    paint: 'blue',
     size: 'small',
     showSecondCube: true,
     showScene: true,

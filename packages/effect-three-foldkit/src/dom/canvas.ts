@@ -3,10 +3,11 @@
  *
  * @module
  */
-import type { SceneEvent } from '@opsydyn/effect-three';
+import type { Op, ResourceStore, SceneEvent } from '@opsydyn/effect-three';
 
 import { domEventName, type SceneError } from '../element.ts';
 import type { Latch } from './latch.ts';
+import { summarise } from './reconciled.ts';
 
 /** Creates a canvas filling `host` and appends it. */
 export const appendCanvas = (host: Element): HTMLCanvasElement => {
@@ -39,3 +40,15 @@ export const sceneEventDispatch = (element: Element, live: Latch) => (event: Sce
 };
 export const sceneErrorDispatch = (element: Element) => (error: SceneError) => () =>
   dispatchSceneError(element, error);
+
+/**
+ * Dispatches a `scene-reconciled` summary when an update changed something. Updates with
+ * no operations dispatch nothing, so an app storing the summary in its Model can't loop.
+ */
+export const reconciledDispatch =
+  (element: Element, store: ResourceStore) => (ops: ReadonlyArray<Op>) => () => {
+    if (ops.length === 0) return;
+    element.dispatchEvent(
+      new CustomEvent('scene-reconciled', { detail: summarise(ops, store.stats()) }),
+    );
+  };

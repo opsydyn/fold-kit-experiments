@@ -30,6 +30,7 @@ const Model = Schema.Struct({
   clicks: Schema.Number,
   lastKey: Schema.String,
   started: Schema.Number,
+  lastUpdated: Schema.Number,
   failed: Schema.Number,
 });
 type Model = typeof Model.Type;
@@ -39,6 +40,7 @@ const Message = defineMessageUnion({
   ClickedToggleSize: {},
   ClickedToggleVisible: {},
   ClickedNode: { key: Schema.String },
+  GotReconciled: { updated: Schema.Number },
   GotSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });
 type Message = typeof Message.Type;
@@ -65,6 +67,9 @@ const pureUpdate = (model: Model, message: Message) =>
       model: modifyFields(model, { clicks: (count) => count + 1, lastKey: () => key }),
     }),
     GotSceneLifecycle: ({ lifecycle }) => ({ model: lifecycleUpdate(model, lifecycle) }),
+    GotReconciled: ({ updated }) => ({
+      model: modifyFields(model, { lastUpdated: () => updated }),
+    }),
   });
 
 function update(model: Model, message: Message) {
@@ -80,6 +85,7 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
       className: 'scene',
       onLifecycle: (lifecycle) => Message.GotSceneLifecycle({ lifecycle }),
       onClick: ({ key }) => Message.ClickedNode({ key }),
+      onReconciled: ({ ops }) => Message.GotReconciled({ updated: ops.updated }),
     },
     h,
   );
@@ -97,6 +103,7 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.p([h.Id('last-key')], [model.lastKey]),
       h.p([h.Id('started')], [String(model.started)]),
       h.p([h.Id('failed')], [String(model.failed)]),
+      h.p([h.Id('last-updated')], [String(model.lastUpdated)]),
       ...Option.liftPredicate(model, isVisible).pipe(
         Option.map((visible) => sceneView(visible, h)),
         Option.toArray,
@@ -111,6 +118,7 @@ const initialModel: Model = {
   clicks: 0,
   lastKey: '',
   started: 0,
+  lastUpdated: -1,
   failed: 0,
 };
 

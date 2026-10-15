@@ -19,6 +19,23 @@ export const SceneError = Schema.Union([
 ]);
 export type SceneError = typeof SceneError.Type;
 
+const Counts = Schema.Struct({ live: Schema.Int, created: Schema.Int, disposed: Schema.Int });
+
+/** What one scene update did, and the GPU resources held afterwards. */
+export const ReconciledDetail = Schema.Struct({
+  ops: Schema.Struct({
+    created: Schema.Int,
+    updated: Schema.Int,
+    moved: Schema.Int,
+    removed: Schema.Int,
+    replaced: Schema.Int,
+    reordered: Schema.Int,
+    configured: Schema.Int,
+  }),
+  resources: Schema.Struct({ geometries: Counts, materials: Counts }),
+});
+export type ReconciledDetail = typeof ReconciledDetail.Type;
+
 export const sceneElement = CustomElement.define({
   tag: 'effect-three-scene',
   properties: { scene: SceneSchema.SceneDescription },
@@ -29,6 +46,7 @@ export const sceneElement = CustomElement.define({
     'scene-pointer-enter': SceneSchema.KeyDetail,
     'scene-pointer-leave': SceneSchema.KeyDetail,
     'scene-error': Schema.Struct({ error: SceneError }),
+    'scene-reconciled': ReconciledDetail,
   },
 });
 

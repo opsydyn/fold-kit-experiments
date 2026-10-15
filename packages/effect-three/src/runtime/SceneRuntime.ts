@@ -5,12 +5,13 @@
  *
  * @module
  */
-import { Clock, Effect, Exit, Match, Queue, Scope, Stream } from 'effect';
+import { Clock, Effect, Exit, Match, Queue, Result, Scope, Stream } from 'effect';
 
 import {
   createSceneClock,
   createSceneGraph,
   createSceneLoop,
+  type Op,
   type ReconcileResult,
   type RendererFactory,
   type SceneDescription,
@@ -35,10 +36,10 @@ export type SceneRuntimeOptions = {
 const defaultEventCapacity = 64;
 const nanosPerSecond = 1_000_000_000;
 
-const settle = (result: ReconcileResult) =>
+const toResult = (result: ReconcileResult): Result.Result<ReadonlyArray<Op>, InvalidScene> =>
   Match.valueTags(result, {
-    Applied: () => Effect.void,
-    Invalid: ({ error }) => Effect.fail(new InvalidScene({ error })),
+    Applied: (applied) => Result.succeed(applied.ops),
+    Invalid: ({ error }) => Result.fail(new InvalidScene({ error })),
   });
 
 const applyViewport = (graph: SceneGraph, renderer: SceneRenderer, viewport: Viewport): void => {
@@ -79,7 +80,7 @@ function* startScene(options: SceneRuntimeOptions) {
   const clock = yield* Clock.Clock;
 
   const graph = yield* acquireGraph(registry);
-  yield* settle(graph.reconcile(options.scene));
+  const startupOps = yield* Effect.fromResult(toResult(graph.reconcile(options.scene)));
   const renderer = yield* acquireRenderer(options.renderer);
   applyViewport(graph, renderer, options.viewport);
   const events = yield* acquireEvents(options.eventCapacity ?? defaultEventCapacity);
@@ -100,8 +101,14 @@ function* startScene(options: SceneRuntimeOptions) {
   return {
     /** The hosted scene graph, for inspection. */
     graph,
-    /** Applies a new description. Structurally equal descriptions cost no host changes. */
-    update: (scene: SceneDescription) => Effect.suspend(() => settle(graph.reconcile(scene))),
+    /** The operations that built the initial scene. */
+    startupOps,
+    /**
+     * Applies a new description and returns the operations it took. Structurally equal
+     * descriptions return no operations and cost no host changes.
+     */
+    update: (scene: SceneDescription) =>
+      Effect.suspend(() => Effect.fromResult(toResult(graph.reconcile(scene)))),
     /** Resizes the camera aspect and the renderer's drawing surface. */
     resize: (viewport: Viewport) => Effect.sync(viewportChange(graph, renderer, viewport)),
     /** Freezes (`false`) or resumes (`true`) behaviours. Frames keep rendering. */

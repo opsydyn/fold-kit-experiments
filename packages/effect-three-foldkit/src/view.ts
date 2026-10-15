@@ -10,7 +10,12 @@ import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { markTyped } from './dom/typedScenes.ts';
-import { type SceneError, sceneElement, type SceneLifecycle } from './element.ts';
+import {
+  type ReconciledDetail,
+  type SceneError,
+  sceneElement,
+  type SceneLifecycle,
+} from './element.ts';
 import type { SceneMount } from './mount.ts';
 
 /** Detail of click, pointer-down and pointer-up events. */
@@ -33,6 +38,11 @@ export type ViewConfig<Message> = {
   readonly onPointerLeave?: (detail: KeyDetail) => Message;
   /** A scene update was rejected; the scene keeps its last good state. */
   readonly onError?: (detail: { readonly error: SceneError }) => Message;
+  /**
+   * What each scene update did (operations by kind) and the GPU resources held afterwards.
+   * Fires at startup and after every update that changed something, never for no-ops.
+   */
+  readonly onReconciled?: (detail: ReconciledDetail) => Message;
   readonly className?: string;
 };
 
@@ -51,6 +61,7 @@ export const view = <Message>(
     Option.map(given(config.onPointerEnter), element.OnScenePointerEnter),
     Option.map(given(config.onPointerLeave), element.OnScenePointerLeave),
     Option.map(given(config.onError), element.OnSceneError),
+    Option.map(given(config.onReconciled), element.OnSceneReconciled),
     Option.map(given(config.className), h.Class),
   ]);
   const lifecycle = Mount.mapMessage(config.mount(), config.onLifecycle);

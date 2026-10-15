@@ -10,6 +10,7 @@
     "skills/**",
     "tools/oxlint/anti-slop/**",
     ".superpowers/**",
-    "docs/effect-three/brief.md"
+    "docs/effect-three/brief.md",
+    "packages/*/etc/*.api.md"
   ]
 }

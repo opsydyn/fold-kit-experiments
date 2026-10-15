@@ -2,7 +2,7 @@
 
 A thin Foldkit adapter for [`@opsydyn/effect-three`](../effect-three/README.md): derive a Three.js scene from your Model, get pointer interaction back as your own typed Messages, and let Foldkit's runtime own the scene's lifetime.
 
-> Status: private, pre-release (`0.0.0`). The API is documented in [`etc/effect-three-foldkit.api.md`](etc/effect-three-foldkit.api.md). A working demo is at `/effect-three` in `apps/web`.
+> Status: private, pre-release (`0.0.0`). The API is documented in [`etc/effect-three-foldkit.api.md`](etc/effect-three-foldkit.api.md). Live samples are in `apps/web` at `/effect-three` and on the effect-three promo site (`apps/three-promo`); their source is in [`packages/effect-three-samples`](../effect-three-samples/).
 
 ## Use it
 
@@ -37,6 +37,7 @@ EffectThreeFoldkit.view(
 - **Updates are in place.** Foldkit hands the element a new scene on every render, and the core diffs it, so unchanged scenes cost no host changes and changed ones reuse their three.js objects.
 - **Animation never touches the Model.** Behaviours such as `spin` run in the frame loop, outside Foldkit's `update`.
 - **Events are typed and opt-in:** `onClick`, `onPointerDown`, `onPointerUp`, `onPointerEnter`, `onPointerLeave` and `onError`. Only the handlers you pass are bound.
+- **Update telemetry:** `onReconciled` reports what each update did (created, updated, moved, removed, replaced, reordered) and the GPU resources held afterwards. It fires at startup and after updates that changed something, never for no-ops, so storing it in the Model can't loop.
 - **Lifecycle:** `StartedScene` once the scene is running, or `FailedScene { reason }` (malformed or invalid scene, or no WebGL2).
 
 ## What the Mount handles

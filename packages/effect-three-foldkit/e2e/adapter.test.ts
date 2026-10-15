@@ -147,6 +147,8 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   expect(await text(page, '#started')).toBe('1');
   expect(afterColour.stats.geometries.created).toBe(statsBefore.geometries.created);
   expect(afterColour.stats.materials.created).toBe(statsBefore.materials.created);
+  // onReconciled reports the in-place change as exactly one Update.
+  await waitForText(page, '#last-updated', '1');
 
   // Unmount releases owned resources, listeners and observers.
   await page.click('#visible');

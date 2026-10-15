@@ -19,7 +19,13 @@ import { type Cause, Effect, Option, Queue, Schema, Stream } from 'effect';
 import { Mount } from 'foldkit';
 import type { ViewState } from 'foldkit/mount';
 
-import { canvasIn, removal, sceneErrorDispatch, sceneEventDispatch } from './dom/canvas.ts';
+import {
+  canvasIn,
+  reconciledDispatch,
+  removal,
+  sceneErrorDispatch,
+  sceneEventDispatch,
+} from './dom/canvas.ts';
 import { applying, createLatch, type Latch, whileOpen } from './dom/latch.ts';
 import { listenForPointer } from './dom/pointer.ts';
 import { interceptProperty } from './dom/property.ts';
@@ -95,8 +101,12 @@ const observed = <A>(observe: (emit: (value: A) => void) => () => void) =>
 
 const applyUpdate = (mounted: Mounted) => (value: unknown) => {
   const reportError = sceneErrorDispatch(mounted.element);
+  const reportReconciled = reconciledDispatch(mounted.element, mounted.environment.store);
   const decoded = decodeScene(value);
-  const applied = decoded.pipe(Effect.flatMap(mounted.handle.update));
+  const applied = decoded.pipe(
+    Effect.flatMap(mounted.handle.update),
+    Effect.flatMap((ops) => Effect.sync(reportReconciled(ops))),
+  );
   return applied.pipe(
     Effect.catchTags({
       SchemaError: (error) =>
@@ -163,6 +173,7 @@ function* runScene(
   const { handle, frames } = yield* sceneRuntimeFor(environment, element, canvas)(initial);
   const mounted: Mounted = { environment, element, handle, frames, live: createLatch(true) };
   yield* acquirePointer(canvas, mounted);
+  yield* Effect.sync(reconciledDispatch(element, environment.store)(handle.startupOps));
   const forks = watchers(mounted, updates, viewStateChanges).map((watcher) =>
     Effect.forkScoped(watcher),
   );

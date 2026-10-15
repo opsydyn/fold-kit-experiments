@@ -29,6 +29,7 @@
     "@opsydyn/dataset-explorer": "workspace:*",
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/effect-three-foldkit": "workspace:*",
+    "@opsydyn/effect-three-samples": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
     "@types/topojson-client": "^3.1.5",
     "@vanilla-extract/css": "^1.21.1",
@@ -43,6 +44,8 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@foldkit/devtools": "0.167.0",
+    "@foldkit/ui": "0.167.0",
     "@happy-dom/global-registrator": "^20.10.6",
     "@playwright/test": "1.62.1",
     "@storybook/addon-a11y": "^10.4.6",

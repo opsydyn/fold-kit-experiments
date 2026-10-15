@@ -2,12 +2,12 @@ import { Match, Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
+import { nextPaint } from '../palette';
 import { Message } from './message';
-import type { CubeSize, Model, Paint, SceneStatus } from './model';
+import type { CubeSize, Model, SceneStatus } from './model';
 
 type AppReturn = Return<Model, Message>;
 
-const nextPaint = { teal: 'amber', amber: 'teal' } satisfies Record<Paint, Paint>;
 const nextSize = { small: 'large', large: 'small' } satisfies Record<CubeSize, CubeSize>;
 
 const statusFor = (lifecycle: Extract<Message, { _tag: 'ReceivedSceneLifecycle' }>['lifecycle']) =>
@@ -20,10 +20,7 @@ const statusFor = (lifecycle: Extract<Message, { _tag: 'ReceivedSceneLifecycle' 
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     ClickedCube: () => ({
-      model: modifyFields(model, {
-        paint: (paint) => nextPaint[paint],
-        clicks: (clicks) => clicks + 1,
-      }),
+      model: modifyFields(model, { paint: nextPaint, clicks: (clicks) => clicks + 1 }),
     }),
     HoveredCube: ({ key }) => ({ model: modifyFields(model, { hovered: () => Option.some(key) }) }),
     LeftCube: ({ key }) => ({
@@ -31,9 +28,7 @@ export const update = (model: Model, message: Message): AppReturn =>
         hovered: (hovered) => Option.filter(hovered, (current) => current !== key),
       }),
     }),
-    ClickedToggleSize: () => ({
-      model: modifyFields(model, { size: (size) => nextSize[size] }),
-    }),
+    ClickedToggleSize: () => ({ model: modifyFields(model, { size: (size) => nextSize[size] }) }),
     ClickedToggleSecondCube: () => ({
       model: modifyFields(model, { showSecondCube: (shown) => !shown }),
     }),

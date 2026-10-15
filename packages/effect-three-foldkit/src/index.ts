@@ -18,7 +18,14 @@
 export { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
 export { type Rect, toNdc, toPointerInput } from './dom/pointer.ts';
 export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
-export { domEventName, SceneError, sceneElement, SceneLifecycle } from './element.ts';
+export {
+  domEventName,
+  ReconciledDetail,
+  SceneError,
+  sceneElement,
+  SceneLifecycle,
+} from './element.ts';
+export { summarise } from './dom/reconciled.ts';
 export {
   type Environment,
   type EnvironmentHost,

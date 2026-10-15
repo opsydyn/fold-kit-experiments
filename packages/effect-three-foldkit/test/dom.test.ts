@@ -1,11 +1,19 @@
 import { expect, test } from 'bun:test';
 
-import { scene } from '@opsydyn/effect-three';
+import {
+  box,
+  createResourceStore,
+  createSceneGraph,
+  mesh,
+  scene,
+  standard,
+} from '@opsydyn/effect-three';
 
 import { animationFrameScheduler } from '../src/dom/animationFrames.ts';
 import { createLatch, whileOpen } from '../src/dom/latch.ts';
 import { toNdc } from '../src/dom/pointer.ts';
 import { interceptProperty } from '../src/dom/property.ts';
+import { summarise } from '../src/dom/reconciled.ts';
 import { markTyped, typedScene } from '../src/dom/typedScenes.ts';
 
 test('client coordinates map to normalised device coordinates', () => {
@@ -86,4 +94,20 @@ test('only scenes marked by the typed view skip decoding', () => {
   expect(typedScene(scene({}))).toBeUndefined();
   expect(typedScene('not a scene')).toBeUndefined();
   expect(typedScene(null)).toBeUndefined();
+});
+
+test('reconciled summaries count operations by kind', () => {
+  const store = createResourceStore();
+  const graph = createSceneGraph({ store });
+  const first = graph.reconcile(
+    scene({ children: [mesh({ key: 'a', geometry: box(), material: standard({ color: 1 }) })] }),
+  );
+  if (first._tag !== 'Applied') throw new Error('expected Applied');
+  expect(summarise(first.ops, store.stats())).toEqual({
+    ops: { created: 1, updated: 0, moved: 0, removed: 0, replaced: 0, reordered: 0, configured: 2 },
+    resources: {
+      geometries: { live: 1, created: 1, disposed: 0 },
+      materials: { live: 1, created: 1, disposed: 0 },
+    },
+  });
 });

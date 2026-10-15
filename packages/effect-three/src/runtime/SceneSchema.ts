@@ -352,6 +352,9 @@ export const Camera = Schema.Union([PerspectiveCamera, OrthographicCamera]);
 /** Scene-wide render settings. */
 export const RenderSettings = Schema.Struct({
   frames: Schema.Literals(['always', 'demand', 'never']),
+  resolution: Schema.Finite.check(
+    Schema.isBetween({ minimum: 0, maximum: 1, exclusiveMinimum: true }),
+  ),
   shadows: Schema.Literals(['off', 'basic', 'percentage', 'soft', 'variance']),
   toneMapping: Schema.Literals(['none', 'linear', 'reinhard', 'cineon', 'aces', 'agx', 'neutral']),
   exposure: Positive,
@@ -404,6 +407,12 @@ export const Ray = HitDetail.fields.ray;
 /** Detail of drag events: the captured mesh, the pressed button and the pointer's ray. */
 export const DragDetail = Schema.Struct({ key: Schema.String, button: Schema.Int, ray: Ray });
 
+/** Detail of performance changes: the fps average and the new factor (0 to 1). */
+export const PerformanceDetail = Schema.Struct({
+  fps: Schema.Finite,
+  factor: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+});
+
 /** A pointer interaction with an interactive mesh, or a miss. */
 export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('PointerEnter', HitDetail.fields),
@@ -418,6 +427,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('PointerMissed', MissDetail.fields),
   Schema.TaggedStruct('Drag', DragDetail.fields),
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
+  Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 
 /** Why a scene description was rejected. */

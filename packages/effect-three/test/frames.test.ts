@@ -148,3 +148,29 @@ function frameModeTests() {
 }
 
 describe('frame modes', frameModeTests);
+
+function* slowFramesReportPerformance(frames: ManualFrames) {
+  const handle = yield* SceneRuntime.make({
+    scene: cube({ frames: 'always' }),
+    renderer: recordingRendererFactory(),
+    viewport,
+  });
+  // 25 fps for three seconds: below the 40 fps lower bound for a 60 Hz display.
+  yield* advanceFrames(frames, 75, 40);
+  const events = yield* handle.drainEvents;
+  expect(events).toEqual([{ _tag: 'PerformanceChanged', fps: 25, factor: 0.9 }]);
+}
+
+function performanceTests() {
+  const current = { value: sceneTestRuntime() };
+  beforeEach(() => {
+    current.value = sceneTestRuntime();
+  });
+  afterEach(() => current.value.runtime.dispose());
+  test('slow frames emit a PerformanceChanged event', () =>
+    current.value.runtime.runPromise(
+      Effect.gen(() => slowFramesReportPerformance(current.value.frames)).pipe(Effect.scoped),
+    ));
+}
+
+describe('performance', performanceTests);

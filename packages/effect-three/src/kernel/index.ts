@@ -8,6 +8,12 @@ export type * from './description.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
 export { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
 export { capacityFor, type HostInstances } from './instances.ts';
+export {
+  createPerformanceMonitor,
+  type PerformanceChange,
+  type PerformanceMonitor,
+  type PerformanceOptions,
+} from './performance.ts';
 export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,

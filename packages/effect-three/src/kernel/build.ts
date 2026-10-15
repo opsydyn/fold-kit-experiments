@@ -526,8 +526,8 @@ export const orthographicCamera = (
 });
 
 /**
- * Render settings. Defaults: frames on demand, shadows off, no tone mapping, exposure 1,
- * sRGB output. Two deliberate differences from React Three Fiber:
+ * Render settings. Defaults: frames on demand, full resolution, shadows off, no tone
+ * mapping, exposure 1, sRGB output. Two deliberate differences from React Three Fiber:
  *
  * - Frames default to `demand`, not `always`. Every visual change passes through the
  *   kernel, which knows when a frame is needed, so nothing has to call `invalidate` and
@@ -536,6 +536,7 @@ export const orthographicCamera = (
  */
 export const renderSettings = (options: Partial<RenderSettings> = {}): RenderSettings => ({
   frames: options.frames ?? 'demand',
+  resolution: options.resolution ?? 1,
   shadows: options.shadows ?? 'off',
   toneMapping: options.toneMapping ?? 'none',
   exposure: options.exposure ?? 1,

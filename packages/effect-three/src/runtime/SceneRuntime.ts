@@ -35,6 +35,7 @@ export type SceneRuntimeOptions = {
 };
 
 const defaultEventCapacity = 64;
+const nanosPerMillisecond = 1_000_000;
 const nanosPerSecond = 1_000_000_000;
 
 const toResult = (result: ReconcileResult): Result.Result<ReadonlyArray<Op>, InvalidScene> =>
@@ -115,6 +116,7 @@ function* startScene(options: SceneRuntimeOptions) {
     emit: (event) => {
       Queue.offerUnsafe(events, event);
     },
+    now: () => Number(clock.monotonicTimeNanosUnsafe()) / nanosPerMillisecond,
   });
   const pacer = createFramePacer(loop);
   pacer.attach(yield* frames.subscribe(pacer.frame));

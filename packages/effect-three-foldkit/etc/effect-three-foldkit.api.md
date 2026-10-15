@@ -54,6 +54,7 @@ export const domEventName: {
     readonly Wheel: 'scene-wheel';
     readonly Drag: 'scene-drag';
     readonly DragEnd: 'scene-drag-end';
+    readonly PerformanceChanged: 'scene-performance';
 };
 
 // @public
@@ -97,6 +98,9 @@ export const makeSceneMount: (environment: Environment) => Mount.MountDefinition
 
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
+
+// @public
+export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
 
 // @public
 export type PixelRatio = number | readonly [min: number, max: number];
@@ -158,6 +162,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         }>]>;
         readonly render: Schema.Struct<{
             readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
+            readonly resolution: Schema.Finite;
             readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
             readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
             readonly exposure: Schema.Finite;
@@ -401,6 +406,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>;
     }>;
+    'scene-performance': Schema.Struct<{
+        readonly fps: Schema.Finite;
+        readonly factor: Schema.Finite;
+    }>;
     'scene-error': Schema.Struct<{
         readonly error: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKey", {
             readonly key: Schema.String;
@@ -513,6 +522,7 @@ export type ViewConfig<Message> = {
     readonly onWheel?: (detail: WheelDetail) => Message;
     readonly onDrag?: (detail: DragDetail) => Message;
     readonly onDragEnd?: (detail: DragDetail) => Message;
+    readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
     }) => Message;

@@ -119,7 +119,12 @@ export type SceneEvent =
       readonly key: string;
       readonly button: number;
       readonly ray: Ray;
-    };
+    }
+  /**
+   * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
+   * it travels with them so one stream carries everything the scene reports.
+   */
+  | { readonly _tag: 'PerformanceChanged'; readonly fps: number; readonly factor: number };
 
 export type Picker = {
   /** Hit-tests at NDC `(x, y)`. Updates world matrices first, so it works headless. */

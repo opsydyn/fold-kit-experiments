@@ -216,6 +216,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 const sceneFields = {
   render: Schema.Struct({
     frames: Schema.Literals(['always', 'demand', 'never']),
+    resolution: Schema.Literals([0.5, 1]),
     shadows: Schema.Literals(['off', 'soft']),
     toneMapping: Schema.Literals(['none', 'aces']),
     exposure: Schema.Literals([1, 2]),

@@ -52,6 +52,7 @@ export const sceneElement = CustomElement.define({
     'scene-wheel': SceneSchema.WheelDetail,
     'scene-drag': SceneSchema.DragDetail,
     'scene-drag-end': SceneSchema.DragDetail,
+    'scene-performance': SceneSchema.PerformanceDetail,
     'scene-error': Schema.Struct({ error: SceneError }),
     'scene-reconciled': ReconciledDetail,
   },
@@ -71,6 +72,7 @@ export const domEventName = {
   Wheel: 'scene-wheel',
   Drag: 'scene-drag',
   DragEnd: 'scene-drag-end',
+  PerformanceChanged: 'scene-performance',
 } as const satisfies Record<SceneEvent['_tag'], keyof typeof sceneElement.events>;
 
 /** Outcome of mounting a scene. Map these into the app's Messages with `onLifecycle`. */

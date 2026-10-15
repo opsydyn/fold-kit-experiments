@@ -446,6 +446,11 @@ export type FrameMode = 'always' | 'demand' | 'never';
 /** Scene-wide rendering settings, changeable at any time. */
 export type RenderSettings = {
   readonly frames: FrameMode;
+  /**
+   * Scales the drawing buffer's pixel ratio, from just above 0 to 1. Lower it when
+   * frames are slow (see `PerformanceChanged`), as Drei's `AdaptiveDpr` does.
+   */
+  readonly resolution: number;
   readonly shadows: ShadowMode;
   readonly toneMapping: ToneMapping;
   /** Exposure for tone mapping. Ignored when `toneMapping` is `none`. */

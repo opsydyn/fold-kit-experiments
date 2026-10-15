@@ -1,4 +1,5 @@
 import type { RenderSettings } from './description.ts';
+import { createPerformanceMonitor, type PerformanceOptions } from './performance.ts';
 /**
  * The per-frame step and pointer routing for one scene. Plain synchronous code: the
  * Effect runtime owns its lifetime (ADR-003: Effect owns lifetimes, not frames).
@@ -21,6 +22,10 @@ export type SceneLoopOptions = {
   readonly elapsedSeconds: () => number;
   /** Receives every scene event. Must not throw. */
   readonly emit: (event: SceneEvent) => void;
+  /** Wall-clock milliseconds, for the frame-rate monitor. Defaults to `Date.now`. */
+  readonly now?: () => number;
+  /** Tuning for the frame-rate monitor. */
+  readonly performance?: PerformanceOptions;
 };
 
 export type SceneLoop = {
@@ -42,6 +47,8 @@ export type SceneLoop = {
 export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
   const { graph, renderer, elapsedSeconds, emit } = options;
   const tracker = createPointerTracker(createPicker(graph));
+  const monitor = createPerformanceMonitor(options.performance);
+  const now = options.now ?? Date.now;
   let configured: RenderSettings | undefined;
   return {
     frame: () => {
@@ -55,6 +62,8 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       }
       renderer.render(graph.scene, graph.camera);
       graph.drawn();
+      const change = monitor.sample(now());
+      if (change !== undefined) emit({ _tag: 'PerformanceChanged', ...change });
     },
     wantsFrames: () => {
       const mode = graph.renderSettings().frames;

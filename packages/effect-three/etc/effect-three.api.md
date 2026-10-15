@@ -229,6 +229,9 @@ export const createGatedFrames: (base: FrameScheduler) => GatedFrames;
 export const createManualFrames: () => ManualFrames;
 
 // @public
+export const createPerformanceMonitor: (options?: PerformanceOptions) => PerformanceMonitor;
+
+// @public
 export const createPicker: (graph: SceneGraph) => Picker;
 
 // @public
@@ -1182,6 +1185,34 @@ const OrthographicCamera_3: Schema.TaggedStruct<"Orthographic", {
 export type ParentKey = string | null;
 
 // @public
+export type PerformanceChange = {
+    readonly fps: number;
+    readonly factor: number;
+};
+
+// @public
+const PerformanceDetail: Schema.Struct<{
+    readonly fps: Schema.Finite;
+    readonly factor: Schema.Finite;
+}>;
+
+// @public (undocumented)
+export type PerformanceMonitor = {
+    readonly sample: (nowMs: number) => PerformanceChange | undefined;
+    readonly factor: () => number;
+};
+
+// @public
+export type PerformanceOptions = {
+    readonly ms?: number;
+    readonly iterations?: number;
+    readonly threshold?: number;
+    readonly step?: number;
+    readonly bounds?: (refreshRate: number) => readonly [lower: number, upper: number];
+    readonly idleMs?: number;
+};
+
+// @public
 export type PerspectiveCamera = {
     readonly _tag: 'Perspective';
     readonly fov: number;
@@ -1450,6 +1481,7 @@ export class RendererUnavailable extends RendererUnavailable_base<{
 // @public
 export type RenderSettings = {
     readonly frames: FrameMode;
+    readonly resolution: number;
     readonly shadows: ShadowMode;
     readonly toneMapping: ToneMapping;
     readonly exposure: number;
@@ -1462,6 +1494,7 @@ export const renderSettings: (options?: Partial<RenderSettings>) => RenderSettin
 // @public
 const RenderSettings_2: Schema.Struct<{
     readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
+    readonly resolution: Schema.Finite;
     readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
     readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
     readonly exposure: Schema.Finite;
@@ -1721,6 +1754,7 @@ const SceneDescription_2: Schema.Struct<{
     }>]>;
     readonly render: Schema.Struct<{
         readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
+        readonly resolution: Schema.Finite;
         readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
         readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
         readonly exposure: Schema.Finite;
@@ -1871,6 +1905,15 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly key: string;
     readonly button: number;
     readonly ray: Ray;
+}
+/**
+* The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
+* it travels with them so one stream carries everything the scene reports.
+*/
+| {
+    readonly _tag: 'PerformanceChanged';
+    readonly fps: number;
+    readonly factor: number;
 };
 
 // @public
@@ -1994,6 +2037,9 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>;
+}>, Schema.TaggedStruct<"PerformanceChanged", {
+    readonly fps: Schema.Finite;
+    readonly factor: Schema.Finite;
 }>]>;
 
 // @public (undocumented)
@@ -2050,6 +2096,8 @@ export type SceneLoopOptions = {
     readonly renderer: SceneRenderer;
     readonly elapsedSeconds: () => number;
     readonly emit: (event: SceneEvent) => void;
+    readonly now?: () => number;
+    readonly performance?: PerformanceOptions;
 };
 
 // @public
@@ -2133,6 +2181,7 @@ declare namespace SceneSchema {
         MissDetail,
         Ray_2 as Ray,
         DragDetail,
+        PerformanceDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError
     }

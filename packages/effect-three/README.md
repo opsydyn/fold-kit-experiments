@@ -101,6 +101,8 @@ mesh({
 
 Frames render on demand by default: a scene draws after any change and while anything animates, then stops requesting frames until the next change, so nothing ever calls `invalidate`. `render: renderSettings({ frames: 'always' })` draws every display frame, as React Three Fiber's default does; `frames: 'never'` draws only on `handle.advance`.
 
+When frames run persistently slow, the scene emits `PerformanceChanged { fps, factor }` (Drei's `PerformanceMonitor` algorithm). Store the factor in the Model and pass it back as `renderSettings({ resolution })` to lower the pixel ratio until frames recover.
+
 `handle.setAnimating(false)` freezes scene time (for `prefers-reduced-motion`) while frames keep rendering; transitions then land at once, including any in flight.
 
 ## Testing

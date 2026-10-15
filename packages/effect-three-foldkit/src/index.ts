@@ -46,6 +46,7 @@ export {
   type HitDetail,
   type KeyDetail,
   type MissDetail,
+  type PerformanceDetail,
   view,
   type ViewConfig,
   type WheelDetail,

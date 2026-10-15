@@ -42,6 +42,7 @@ const shots: ReadonlyArray<Shot> = [
   { id: 'playground', prepare: (page) => clickButton(page, 'Add cube', 2) },
   { id: 'sculpture', prepare: placeBlocks },
   { id: 'bars', prepare: async () => undefined },
+  { id: 'studio', prepare: async () => undefined },
   { id: 'shared', prepare: async () => undefined },
 ];
 

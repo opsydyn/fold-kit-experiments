@@ -25,6 +25,14 @@ export const examples = [
     alt: '3D bar chart: three rows of blue, orange and green bars for six months, with gridlines on the back wall.',
   },
   {
+    id: 'studio',
+    category: 'Light and material',
+    title: 'Drag it into the light',
+    description:
+      'Five geometries in five material kinds, under a sky light, a point light and a spot that casts soft shadows. Drag pieces across the floor and change their finish.',
+    alt: 'Studio: a torus, capsule, cone, ball and crate in different finishes on a pale floor, casting soft shadows under a spot light.',
+  },
+  {
     id: 'shared',
     category: 'Resources',
     title: 'Share what the GPU holds',

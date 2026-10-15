@@ -36,8 +36,9 @@ ambient and directional lights, and one perspective camera.
 subscription, hover readout, pinning with misses to clear, double-click to isolate a
 series, and a data table.
 
-**Exit:** every R1 row ✅, with tests mirroring the kernel's existing property tests and a
-sample using lights, shadows and the new events.
+**Exit (met):** every R1 row ✅, with the kernel's property tests generating every new
+geometry, material, light, camera and render setting, and the studio sample using lights,
+shadows, materials, the orthographic camera and drag capture.
 
 ## R2. Frames and performance
 

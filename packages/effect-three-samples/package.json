@@ -8,6 +8,7 @@
     "./hero": "./src/hero/main.ts",
     "./playground": "./src/playground/main.ts",
     "./sculpture": "./src/sculpture/main.ts",
+    "./studio": "./src/studio/main.ts",
     "./shared": "./src/shared/main.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"

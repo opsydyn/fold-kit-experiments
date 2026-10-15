@@ -389,6 +389,8 @@ Showcase (2026-10-15): three samples in `packages/effect-three-samples` (reconci
 
 Transitions and shapes (2026-10-15): `sphere`, `plane` and `cylinder` join `box`, and groups and meshes take a `transition` (`instant()` by default, or `ease({ seconds, easing })`) for `position` and `scale`. The Model owns the target; tweens restart from the pose on screen when retargeted, keep world position across a change of parent, run allocation-free in the frame loop (1,000 eased meshes ~21 µs per frame, budget 500 µs, no heap growth), and land at once while not animating so reduced motion and DevTools pauses never strand a node mid-way. The playground glides, the hero pops on hover, and the sculpture stacks blocks, balls and drums.
 
+Next: capability parity with React Three Fiber, phased in [ROADMAP.md](ROADMAP.md) against pinned reference checkouts ([references.md](references.md)).
+
 Not done, by decision or pending yours:
 
 - Both packages are `private`; release-please is not configured for them.

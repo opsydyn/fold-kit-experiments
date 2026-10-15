@@ -1,0 +1,36 @@
+---
+import * as barStyles from '../../apps/bar/bar.css';
+import Layout from '../../layouts/Layout.astro';
+import * as layoutStyles from '../../layouts/layout.css';
+
+const samples = [
+  {
+    href: '/effect-three/playground',
+    title: 'Reconciliation playground',
+    body: 'Add, move, reorder, repaint and remove keyed cubes, and watch exactly which operations each update takes and which GPU resources it holds.',
+  },
+  {
+    href: '/effect-three/sculpture',
+    title: 'Sculpture and time travel',
+    body: 'Stack blocks by clicking in 3D. The DevTools are in time-travel mode: pick any history row and the scene rewinds with the Model.',
+  },
+  {
+    href: '/effect-three/shared',
+    title: 'Shared resources',
+    body: 'Two cubes share one geometry and one material. Repaint, resize, remove one, or unmount the whole scene and its WebGL context.',
+  },
+];
+---
+
+<Layout title="effect-three samples — Astro + FoldKit">
+  <h1 class={layoutStyles.heading}>effect-three</h1>
+  <p>Declarative Three.js scenes for Foldkit: the scene is plain data derived from the Model.</p>
+  {
+    samples.map((sample) => (
+      <a class={barStyles.card} href={sample.href} style="display:block;margin-bottom:1rem;color:inherit;text-decoration:none">
+        <h2>{sample.title}</h2>
+        <p>{sample.body}</p>
+      </a>
+    ))
+  }
+</Layout>

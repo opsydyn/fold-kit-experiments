@@ -1,0 +1,79 @@
+---
+import SourceCode from '../components/SourceCode.astro';
+import Layout from '../layouts/Layout.astro';
+import { adapterSource, coreSource, decisions } from '../lib/links';
+import { sitePath } from '../lib/site-path';
+import { entry, installation, runtime, sharing, teaser, testing, view } from '../lib/snippets';
+---
+<Layout title="Guide — effect-three">
+  <section class="page-intro">
+    <p class="eyebrow">A small beginning</p>
+    <h1>From Model to mesh.</h1>
+    <p>effect-three turns plain scene descriptions into Three.js objects, keeps them in step with your Model, and lets Effect own every lifetime.</p>
+  </section>
+  <div class="docs-layout">
+    <nav class="docs-nav" aria-label="On this page">
+      <a href="#installation">Installation</a><a href="#first-scene">Your first scene</a><a href="#foldkit">Using Foldkit</a><a href="#identity">Keys and identity</a><a href="#resources">Resources</a><a href="#animation">Animation</a><a href="#runtime">Without Foldkit</a><a href="#testing">Testing</a><a href="#architecture">Architecture</a>
+    </nav>
+    <article class="docs-content">
+      <section id="installation">
+        <h2>Install the packages.</h2>
+        <p>The core works anywhere Effect does. The Foldkit adapter adds the browser pieces: the WebGL renderer, the animation-frame loop and the scene element.</p>
+        <div class="code-panel"><SourceCode code={installation} lang="sh" sourceId="installation.sh" /></div>
+        <p>Working in this monorepo? Use <code>workspace:*</code> for the dependencies. Both packages are pre-release.</p>
+      </section>
+      <section id="first-scene">
+        <h2>Describe a scene.</h2>
+        <p>A scene is plain data: a camera, shared resources and keyed nodes. Constructors fill in defaults, so a description stays short.</p>
+        <div class="code-panel"><SourceCode code={teaser} lang="ts" sourceId="scene.ts" /></div>
+        <p>Rotation belongs either to the Model (<code>fixed</code>) or to a behaviour (<code>spin</code>), never both. Behaviours are pure functions of scene time, so frames are deterministic.</p>
+      </section>
+      <section id="foldkit">
+        <h2>Render it with Foldkit.</h2>
+        <p>Create one environment for the application, then render scenes from your view. Pointer interaction comes back as your own typed Messages; only the handlers you pass are bound.</p>
+        <div class="code-panel"><SourceCode code={entry} lang="ts" sourceId="entry.ts" /></div>
+        <div class="code-panel"><SourceCode code={view} lang="ts" sourceId="view.ts" /></div>
+        <p>Unmounting the element releases its renderer, WebGL context, GPU resources, listeners and frame subscription. While Foldkit DevTools time-travels, the scene shows the historical state and ignores pointer input.</p>
+        <a class="text-link" href={sitePath('/examples/playground/')}>Try the playground <span aria-hidden="true">→</span></a>
+      </section>
+      <section id="identity">
+        <h2>Keys keep objects alive.</h2>
+        <p>Keys are unique across the whole scene. A node keeps its Three.js object while its key and kind stay the same, including when it moves to another group. A structurally equal scene costs no host changes at all, which matters because Foldkit sends a fresh scene on every render.</p>
+        <p>Updating 1,000 meshes takes about 120 µs when nothing changed and about 130 µs when one property did, with exactly one operation applied.</p>
+      </section>
+      <section id="resources">
+        <h2>Share what the GPU holds.</h2>
+        <p>Declare a geometry or material once in <code>resources</code>, then refer to it by id. Shared resources are reference-counted across every scene on the page and disposed when their last user goes. Owned resources live and die with their mesh.</p>
+        <div class="code-panel"><SourceCode code={sharing} lang="ts" sourceId="shared.ts" /></div>
+        <a class="text-link" href={sitePath('/examples/shared/')}>Try shared resources <span aria-hidden="true">→</span></a>
+      </section>
+      <section id="animation">
+        <h2>Animate without update.</h2>
+        <p>Behaviours run in the frame loop, outside Foldkit's update, so a spinning scene never causes a Model update. Scenes pause their frames when off screen, and <code>prefers-reduced-motion</code> freezes behaviours while frames keep rendering.</p>
+      </section>
+      <section id="runtime">
+        <h2>Use the runtime directly.</h2>
+        <p>Outside Foldkit, start a scene inside a Scope. Startup is atomic: if the description is invalid, the renderer can't be created, or startup is interrupted, nothing is left behind.</p>
+        <div class="code-panel"><SourceCode code={runtime} lang="ts" sourceId="runtime.ts" /></div>
+      </section>
+      <section id="testing">
+        <h2>Test it headless.</h2>
+        <p>A recording renderer, a manual frame scheduler and Effect's TestClock make scene tests deterministic, with no browser and no GPU.</p>
+        <div class="code-panel"><SourceCode code={testing} lang="ts" sourceId="scene.test.ts" /></div>
+      </section>
+      <section id="architecture">
+        <h2>How it fits together.</h2>
+        <div class="module-grid">
+          {[
+            [coreSource + '/src/kernel', 'Kernel', 'Plain TypeScript: descriptions, keyed diff, applier, resources and behaviours. It never imports Effect.', 'effect-three/kernel'],
+            [coreSource + '/src/runtime', 'Runtime', 'Effect services, scopes and typed errors around the kernel.', 'effect-three'],
+            [adapterSource, 'Foldkit adapter', 'The scene element, WebGL renderer, frame loop and DOM bridge.', 'effect-three-foldkit'],
+            [decisions, 'Decisions', 'The plan, architecture decision records and benchmark results.', 'docs/effect-three'],
+          ].map(([href, name, description, path]) => <a href={href}>
+            <h3>{name} <span aria-hidden="true">↗</span></h3><p>{description}</p><code>{path}</code>
+          </a>)}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>

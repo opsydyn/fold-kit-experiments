@@ -1,0 +1,33 @@
+{
+  "name": "@opsydyn/three-promo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild-packages": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build",
+    "dev": "bun run prebuild-packages && astro dev",
+    "build": "bun run prebuild-packages && astro build",
+    "preview": "astro preview",
+    "typecheck": "bun run prebuild-packages && astro check"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@opsydyn/astro-foldkit": "workspace:*",
+    "@opsydyn/dataset-explorer": "workspace:*",
+    "@opsydyn/effect-three": "workspace:*",
+    "@opsydyn/effect-three-foldkit": "workspace:*",
+    "@opsydyn/effect-three-samples": "workspace:*",
+    "astro": "7.2.8",
+    "effect": "4.0.0",
+    "foldkit": "0.167.0",
+    "hast-util-to-html": "^9.0.5",
+    "three": "0.186.1",
+    "vscode-oniguruma": "2.0.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@types/hast": "^3.0.5",
+    "bun-types": "^1.3.14",
+    "playwright": "1.64.1",
+    "typescript": "^6.0.3"
+  }
+}

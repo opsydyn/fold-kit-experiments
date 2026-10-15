@@ -1,0 +1,100 @@
+---
+import '@opsydyn/dataset-explorer/highlighting.css';
+import { sitePath } from '../lib/site-path';
+import '@fontsource-variable/inter/wght.css';
+import '../styles/site.css';
+import Brand from '../components/Brand.astro';
+import { coreSource, repository } from '../lib/links';
+
+interface Props { title?: string; description?: string }
+const {
+  title = 'effect-three — Scenes from state.',
+  description = 'Declarative Three.js for Foldkit, the TypeScript frontend framework built on Effect. Scenes are plain data derived from your Model. Effect owns every GPU lifetime.',
+} = Astro.props;
+const path = Astro.url.pathname;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href={sitePath('/favicon.svg')} />
+    <title>{title}</title>
+    <script is:inline>
+      // First-paint theme is page chrome, independent of chart/application state.
+      (() => {
+        let saved = null;
+        try { saved = localStorage.getItem('effect-three-theme'); } catch { /* Storage can be blocked. */ }
+        const theme = saved === 'light' || saved === 'dark'
+          ? saved
+          : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-shell">
+      <header class="site-header">
+        <Brand />
+        <nav aria-label="Main navigation">
+          <a href={sitePath('/examples/')} aria-current={path.startsWith(sitePath('/examples')) ? 'page' : undefined}>Examples</a>
+          <a href={sitePath('/docs/')} aria-current={path.startsWith(sitePath('/docs')) ? 'page' : undefined}>Docs</a>
+          <a href={repository}>GitHub<span class="sr-only"> repository</span></a>
+          <button class="theme-toggle" id="theme-toggle" aria-label="Switch colour theme" type="button">
+            <svg class="sun-icon" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" />
+            </svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true">
+              <path d="M20.5 14A9 9 0 0 1 10 3.5 9 9 0 1 0 20.5 14Z" />
+            </svg>
+          </button>
+        </nav>
+      </header>
+      <main id="main"><slot /></main>
+      <footer class="site-footer">
+        <div class="footer-brand"><Brand footer /><span>Made for the way you build.</span></div>
+        <nav aria-label="Footer navigation">
+          <a href={sitePath('/docs/')}>Docs</a>
+          <a href={repository}>GitHub</a>
+          <a href={coreSource + '#readme'}>MIT</a>
+        </nav>
+      </footer>
+    </div>
+    <script>
+      import { resolveTheme } from '../lib/theme';
+
+      const key = 'effect-three-theme';
+      const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+      const toggle = document.querySelector<HTMLButtonElement>('#theme-toggle');
+      function savedTheme(): string | null {
+        try { return localStorage.getItem(key); } catch { return null; }
+      }
+      function applyTheme(theme: 'light' | 'dark') {
+        document.documentElement.dataset.theme = theme;
+        toggle?.setAttribute('aria-label', 'Switch to ' + (theme === 'dark' ? 'light' : 'dark') + ' theme');
+      }
+      applyTheme(resolveTheme(savedTheme(), systemTheme.matches));
+      toggle?.addEventListener('click', () => {
+        const current = document.documentElement.dataset.theme;
+        const next = current === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        try { localStorage.setItem(key, next); } catch { /* The choice still applies to this page. */ }
+      });
+      systemTheme.addEventListener('change', () => {
+        applyTheme(resolveTheme(savedTheme(), systemTheme.matches));
+      });
+      window.addEventListener('storage', (event) => {
+        if (event.key === key || event.key === null) {
+          applyTheme(resolveTheme(savedTheme(), systemTheme.matches));
+        }
+      });
+    </script>
+  </body>
+</html>

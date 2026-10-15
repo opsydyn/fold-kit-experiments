@@ -1,0 +1,20 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/sculpture/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/sculpture/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/sculpture/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/sculpture/update.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/sculpture/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/sculpture/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="Sculpture — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">BUILD, THEN REWIND</p><h1>A scene is a function of state.</h1><p>Click the plate or a block to stack one. Pick a colour. Then drag the history slider: the sculpture replays exactly, because nothing in the scene exists outside the Model.</p></section>
+  <Sample client:load noMeta />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Rewind for free.</h2><p>The history slider only changes a number in the Model. The scene is derived from it on every render, so the 3D view follows with no extra code. With Foldkit DevTools in time-travel mode, picking any history row does the same.</p><a class="text-link" href={samplesSource + '/sculpture'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

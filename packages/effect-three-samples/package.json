@@ -1,0 +1,28 @@
+{
+  "name": "@opsydyn/effect-three-samples",
+  "private": true,
+  "description": "effect-three sample applications shared by apps/web and apps/three-promo.",
+  "type": "module",
+  "exports": {
+    "./hero": "./src/hero/main.ts",
+    "./playground": "./src/playground/main.ts",
+    "./sculpture": "./src/sculpture/main.ts",
+    "./shared": "./src/shared/main.ts",
+    "./styles.css": "./src/styles.css",
+    "./src/*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && tsc --noEmit"
+  },
+  "dependencies": {
+    "@opsydyn/effect-three": "workspace:*",
+    "@opsydyn/effect-three-foldkit": "workspace:*",
+    "effect": "4.0.0",
+    "foldkit": "0.167.0",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.14",
+    "typescript": "^6.0.3"
+  }
+}

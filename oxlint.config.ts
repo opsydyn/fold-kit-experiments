@@ -215,7 +215,14 @@ export default defineConfig({
     },
     {
       // Promo fixtures and SVG geometry are pure rendering data, not Effect handlers.
-      files: ['apps/promo/src/lib/**', 'apps/promo/src/pages/**', 'apps/promo/test/**'],
+      files: [
+        'apps/promo/src/lib/**',
+        'apps/promo/src/pages/**',
+        'apps/promo/test/**',
+        'apps/three-promo/src/lib/**',
+        'apps/three-promo/src/pages/**',
+        'apps/three-promo/scripts/**',
+      ],
       rules: {
         'linteffect/no-string-sentinel-const': 'off',
         'linteffect/no-return-in-arrow': 'off',
@@ -224,7 +231,7 @@ export default defineConfig({
     {
       // Astro page chrome talks directly to browser storage and colour preferences.
       // Storage access can throw even before getItem runs; guard this native boundary.
-      files: ['apps/promo/src/layouts/Layout.astro'],
+      files: ['apps/promo/src/layouts/Layout.astro', 'apps/three-promo/src/layouts/Layout.astro'],
       rules: {
         'linteffect/no-try-catch': 'off',
         'linteffect/no-string-sentinel-const': 'off',
@@ -232,7 +239,11 @@ export default defineConfig({
     },
     {
       // Astro islands use literal module specifiers as explicit code-splitting boundaries.
-      files: ['apps/web/src/apps/**/app.ts', 'apps/promo/src/examples/**/app.ts'],
+      files: [
+        'apps/web/src/apps/**/app.ts',
+        'apps/promo/src/examples/**/app.ts',
+        'apps/three-promo/src/examples/**/app.ts',
+      ],
       rules: {
         'linteffect/prevent-dynamic-imports': 'off',
       },
@@ -324,6 +335,9 @@ export default defineConfig({
     },
   ],
   ignorePatterns: [
+    // effect-three packages run their own stricter config (oxlint-effect 2.x, all rules).
+    'packages/effect-three/**',
+    'packages/effect-three-foldkit/**',
     '**/dist/**',
     '**/artifacts/**',
     '**/docs/**',

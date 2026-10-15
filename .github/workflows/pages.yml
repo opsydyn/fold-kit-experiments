@@ -1,4 +1,4 @@
-name: Deploy Storybook + TypeDoc + Viz promo to GitHub Pages
+name: Deploy Storybook + TypeDoc + Viz and effect-three promos to GitHub Pages
 
 on:
   push:
@@ -49,6 +49,12 @@ jobs:
           PROMO_BASE_PATH: /fold-kit-experiments/viz/
           PUBLIC_EMBED_EDITOR: 'false'
 
+      - name: Build effect-three promo
+        run: bun run --filter @opsydyn/three-promo build
+        env:
+          THREE_PROMO_SITE_URL: https://opsydyn.github.io
+          THREE_PROMO_BASE_PATH: /fold-kit-experiments/three/
+
       - name: Verify promo deployment paths
         run: bun test apps/promo/test/pages-build.test.ts
         env:
@@ -56,10 +62,11 @@ jobs:
 
       - name: Assemble site
         run: |
-          mkdir -p _site/api _site/viz
+          mkdir -p _site/api _site/viz _site/three
           cp -r apps/web/storybook-static/. _site/
           cp -r packages/foldkit-viz/docs/. _site/api/
           cp -r apps/promo/dist/. _site/viz/
+          cp -r apps/three-promo/dist/. _site/three/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

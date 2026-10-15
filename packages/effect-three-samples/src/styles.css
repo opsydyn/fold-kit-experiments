@@ -1,0 +1,117 @@
+/*
+ * effect-three samples. Colours come from the host page's theme variables (the promo
+ * sites' --surface, --text, --muted, --border, --blue), with dark fallbacks for apps/web.
+ */
+.e3-sample {
+  display: grid;
+  gap: 1rem;
+  color: var(--text, #e8e8f0);
+}
+
+.e3-stage {
+  display: block;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      color-mix(in srgb, var(--blue, #3d79fa) 10%, transparent),
+      transparent 70%
+    ),
+    var(--surface, #12121f);
+  cursor: pointer;
+  width: 100%;
+  height: 380px;
+  overflow: hidden;
+}
+
+.e3-stage-hero {
+  height: 440px;
+}
+
+.e3-stage-placeholder {
+  display: grid;
+  place-items: center;
+  cursor: default;
+  color: var(--muted, #8a8aa3);
+}
+
+.e3-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.e3-button {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: var(--surface, #1a1a2e);
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.e3-button:hover {
+  border-color: var(--blue, #3d79fa);
+}
+
+.e3-button:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+}
+
+.e3-button[aria-pressed='true'] {
+  border-color: var(--blue, #3d79fa);
+  background: color-mix(in srgb, var(--blue, #3d79fa) 16%, transparent);
+}
+
+.e3-swatch {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.e3-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.e3-stat {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+}
+
+.e3-stat dt {
+  color: var(--muted, #8a8aa3);
+  font-size: 0.75rem;
+}
+
+.e3-stat dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.e3-stat-active dd {
+  color: var(--blue, #6b9bff);
+}
+
+.e3-note {
+  margin: 0;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.875rem;
+}
+
+.e3-range {
+  flex: 1 1 12rem;
+  accent-color: var(--blue, #3d79fa);
+}

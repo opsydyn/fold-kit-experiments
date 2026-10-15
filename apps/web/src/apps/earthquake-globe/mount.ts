@@ -12,43 +12,46 @@ export const globeEvents = CustomElement.define({
   events: { [pointerEventName]: Message },
 });
 
-export const forwardGlobePointers = Effect.fn('forwardGlobePointers')(function* (element: Element) {
-  const acquire = Effect.sync(() => {
-    const listeners: ReadonlyArray<readonly [string, EventListener]> = [
-      'pointerdown',
-      'pointermove',
-      'pointerup',
-      'pointercancel',
-      'pointerleave',
-    ].map((name) => [
-      name,
-      (event: Event) => {
-        if (!(event instanceof PointerEvent)) return;
-        if (name === 'pointerdown' && event.button !== 0) return;
-        const identity = { pointerId: event.pointerId };
-        const position = { ...identity, clientX: event.clientX, clientY: event.clientY };
-        const message = Match.value(name).pipe(
-          Match.when('pointerdown', () =>
-            Message.StartedGlobePointer({
-              ...position,
-              renderedBaseRadius: (element.getBoundingClientRect().width * 260) / 600,
-            }),
-          ),
-          Match.when('pointermove', () => Message.MovedGlobePointer(position)),
-          Match.orElse(() => Message.EndedGlobePointer(identity)),
-        );
-        element.dispatchEvent(new CustomEvent(pointerEventName, { detail: message }));
-      },
-    ]);
-    for (const [name, listener] of listeners) element.addEventListener(name, listener);
-    return listeners;
+export const forwardGlobePointers = (element: Element) => {
+  const program = Effect.gen(function* () {
+    const acquire = Effect.sync(() => {
+      const listeners: ReadonlyArray<readonly [string, EventListener]> = [
+        'pointerdown',
+        'pointermove',
+        'pointerup',
+        'pointercancel',
+        'pointerleave',
+      ].map((name) => [
+        name,
+        (event: Event) => {
+          if (!(event instanceof PointerEvent)) return;
+          if (name === 'pointerdown' && event.button !== 0) return;
+          const identity = { pointerId: event.pointerId };
+          const position = { ...identity, clientX: event.clientX, clientY: event.clientY };
+          const message = Match.value(name).pipe(
+            Match.when('pointerdown', () =>
+              Message.StartedGlobePointer({
+                ...position,
+                renderedBaseRadius: (element.getBoundingClientRect().width * 260) / 600,
+              }),
+            ),
+            Match.when('pointermove', () => Message.MovedGlobePointer(position)),
+            Match.orElse(() => Message.EndedGlobePointer(identity)),
+          );
+          element.dispatchEvent(new CustomEvent(pointerEventName, { detail: message }));
+        },
+      ]);
+      for (const [name, listener] of listeners) element.addEventListener(name, listener);
+      return listeners;
+    });
+    yield* Effect.acquireRelease(acquire, (listeners) =>
+      Effect.sync(() => {
+        for (const [name, listener] of listeners) element.removeEventListener(name, listener);
+      }),
+    );
   });
-  yield* Effect.acquireRelease(acquire, (listeners) =>
-    Effect.sync(() => {
-      for (const [name, listener] of listeners) element.removeEventListener(name, listener);
-    }),
-  );
-});
+  return program.pipe(Effect.withSpan('forwardGlobePointers'));
+};
 export const GlobePointerMount = Mount.define('GlobePointerMount', {
   messages: [Message.CompletedGlobePointerMount],
   execute: ({ element }) =>

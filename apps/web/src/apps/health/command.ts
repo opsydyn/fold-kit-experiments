@@ -12,7 +12,12 @@ export const FetchHealth = Command.define('FetchHealth', {
       const response = yield* HttpClient.get('/api/health');
       const data = yield* HttpClientResponse.schemaBodyJson(HealthData)(response);
       return Message.FetchedHealth(data);
-    }).pipe(Effect.catch((error) => Effect.succeed(Message.FetchFailed({ error: String(error) })))),
+    }).pipe(
+      Effect.match({
+        onSuccess: (message) => message,
+        onFailure: (error) => Message.FetchFailed({ error: String(error) }),
+      }),
+    ),
     Http.layer,
   ),
 });

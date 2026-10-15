@@ -13,6 +13,23 @@ export default defineConfig({
   rules: {
     ...recommended.rules,
 
+    // Adoption backlog from @opsydyn/oxlint-effect 2.x. These rules are new in the 2.x
+    // recommended preset (0.4.0 did not have them) and already have findings here, so they
+    // start off; the other 33 rules new in 2.x are on. Counts are findings when added
+    // (2026-10-15). Remove a line once its findings are fixed.
+    'linteffect/prefer-extracted-concept': 'off', // 389
+    'linteffect/no-new-date-in-domain-logic': 'off', // 19
+    'linteffect/no-clever-effect-expression': 'off', // 13
+    'linteffect/no-run-with-open-resource': 'off', // 11
+    'linteffect/no-hidden-effect-execution': 'off', // 10
+    'linteffect/no-node-platform-in-shared-code': 'off', // 9
+    'linteffect/no-process-env-direct-read': 'off', // 5
+    'linteffect/no-json-parse-without-schema': 'off', // 2
+    'linteffect/no-node-fs-in-effect-code': 'off', // 2
+    'linteffect/prefer-pipe-for-behavior': 'off', // 2
+    'linteffect/no-boundary-try-catch-without-effect-map': 'off', // 1
+    'linteffect/no-gen-for-mapping': 'off', // 1
+
     // Generic anti-slop rules from the local repository plugin
     'anti-slop/no-chained-type-assertions': 'error',
     'anti-slop/no-conditional-empty-object-spread': 'error',

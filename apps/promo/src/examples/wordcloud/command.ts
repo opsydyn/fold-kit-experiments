@@ -57,6 +57,9 @@ export const MeasureWords = Command.define('MeasureWords', {
       },
       catch: () => 'Could not measure this font. Retry or choose another font.',
     }).pipe(
-      Effect.catch((error) => Effect.succeed(Message.FailedMeasurement({ revision, error }))),
+      Effect.match({
+        onSuccess: (message) => message,
+        onFailure: (error) => Message.FailedMeasurement({ revision, error }),
+      }),
     ),
 });

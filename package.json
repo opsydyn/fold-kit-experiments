@@ -21,7 +21,7 @@
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",
     "@effect/language-service": "^0.86.2",
     "@foldkit/oxlint-plugin": "^0.15.3",
-    "@opsydyn/oxlint-effect": "^0.4.0",
+    "@opsydyn/oxlint-effect": "2.0.1",
     "@oxlint/plugins": "1.79.0",
     "@typescript-eslint/utils": "^8.63.0",
     "oxfmt": "^0.57.0",

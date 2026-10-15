@@ -13,7 +13,12 @@ export const FetchMetrics = Command.define('FetchMetrics', {
       const response = yield* HttpClient.get('/api/request-diagnostics');
       const points = yield* HttpClientResponse.schemaBodyJson(Schema.Array(Point))(response);
       return Message.LoadedMetrics({ points });
-    }).pipe(Effect.catch((error) => Effect.succeed(Message.FailedLoad({ error: String(error) })))),
+    }).pipe(
+      Effect.match({
+        onSuccess: (message) => message,
+        onFailure: (error) => Message.FailedLoad({ error: String(error) }),
+      }),
+    ),
     Http.layer,
   ),
 });

@@ -137,7 +137,8 @@ export function focusSourceLine({ name, line }: SourceLine) {
   const selector = `[id="${CSS.escape(sourceLineId(name, line))}"]`;
   return Dom.scrollIntoViewAfterPaint(selector, { block: 'start' }).pipe(
     Effect.andThen(Dom.focus(selector, { preventScroll: true })),
-    Effect.catch(() => Effect.void),
+    // Focusing is best effort: the line may not be rendered yet.
+    Effect.catchTag('ElementNotFound', () => Effect.void),
   );
 }
 

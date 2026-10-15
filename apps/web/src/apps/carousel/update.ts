@@ -43,6 +43,21 @@ const foldCarousel = foldChild({
     }),
 });
 
+type SlidesResult = Result.Result<ReadonlyArray<Slide>, string>;
+
+/** Once slides load, keep the carousel's slide count in step; a failure needs nothing more. */
+const afterSettled = (result: SlidesResult): ReadonlyArray<Step<Model, Message>> =>
+  Result.match(result, {
+    onSuccess: (slides) => [syncSlideCount(slides)],
+    onFailure: () => [],
+  });
+
+const settleSlides = (model: Model, result: SlidesResult): AppReturn =>
+  combine(model, [
+    (m) => ({ model: { ...m, slides: settle(m.slides, result) } }),
+    ...afterSettled(result),
+  ]);
+
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     ReceivedCarouselMessage: ({ message: carouselMessage }) => {
@@ -55,12 +70,6 @@ export const update = (model: Model, message: Message): AppReturn =>
       // SAFETY: The app model and message contracts establish this value before the assertion.
       // oxlint-disable-next-line linteffect/no-model-overlay-cast
       const result = rawResult as Result.Result<ReadonlyArray<Slide>, string>;
-      return combine(model, [
-        (m) => ({ model: { ...m, slides: settle(m.slides, result) } }),
-        ...Result.match(result, {
-          onSuccess: (slides) => [syncSlideCount(slides)],
-          onFailure: () => [],
-        }),
-      ]);
+      return settleSlides(model, result);
     },
   });

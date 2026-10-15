@@ -224,6 +224,54 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   await page.close();
 }, 60_000);
 
+/** three's GPU memory counters for the scene's renderer. */
+function gpuMemory(): { readonly geometries: number; readonly textures: number } {
+  return Reflect.get(globalThis, '__probe').rendererMemory();
+}
+
+test('assets load into the store, play, pick by part and unload from the GPU', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(app.url('index.html'));
+  await waitForText(page, '#started', '1');
+  await page.click('#still');
+  await animationFrames(page, 3);
+  const before = await page.evaluate(gpuMemory);
+
+  // A glTF model loads through a Foldkit Command and appears through a borrowed node.
+  await page.click('#load-model');
+  await waitForText(page, '#robot', 'ready:wave,roll');
+  await animationFrames(page, 5);
+  const loaded = await page.evaluate(gpuMemory);
+  expect(loaded.geometries).toBeGreaterThan(before.geometries + 5);
+
+  // The robot sits at (1.4, -0.44) in the world: (250, 148) on the 320 × 240 canvas.
+  const canvas = page.locator('effect-three-scene canvas');
+  await canvas.click({ position: { x: 250, y: 148 } });
+  await waitForText(page, '#last-key', 'robot/body');
+
+  // Its wave clip plays, so the on-demand scene keeps drawing while the cube holds still.
+  const idleCheck = (await readProbe(page)).frameRequests;
+  await page.waitForTimeout(300);
+  expect((await readProbe(page)).frameRequests).toBeGreaterThan(idleCheck + 5);
+
+  // Unloading withdraws the model and frees its GPU geometry.
+  await page.click('#unload-model');
+  await waitForText(page, '#robot', 'unloaded');
+  await animationFrames(page, 3);
+  expect((await page.evaluate(gpuMemory)).geometries).toBe(before.geometries);
+
+  // A texture becomes the cube's map.
+  await page.click('#load-texture');
+  await page.waitForFunction(
+    () => Reflect.get(globalThis, '__probe').rendererMemory().textures > 0,
+  );
+
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
 test('repeated mount and unmount releases WebGL contexts and resources', async () => {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const warnings: Array<string> = [];

@@ -5,6 +5,8 @@
 ```ts
 
 import { CustomElement } from 'foldkit';
+import { Effect } from 'effect';
+import { Effect as Effect_2 } from 'effect/Effect';
 import { FrameScheduler } from '@opsydyn/effect-three';
 import type { Html } from 'foldkit/html';
 import type { HtmlBuilder } from 'foldkit/html';
@@ -20,13 +22,27 @@ import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
+import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
+import { YieldableError } from 'effect/Cause';
 
 // @public
 export type AnimationFrameHost = Pick<Window, 'requestAnimationFrame' | 'cancelAnimationFrame'>;
 
 // @public
 export const animationFrameScheduler: (host: AnimationFrameHost) => FrameScheduler;
+
+// Warning: (ae-forgotten-export) The symbol "AssetLoadError_base" needs to be exported by the entry point index.d.ts
+//
+// @public
+export class AssetLoadError extends AssetLoadError_base<{
+    readonly url: string;
+    readonly cause: unknown;
+}> {
+}
+
+// @public (undocumented)
+export type Assets = ReturnType<typeof makeAssets>;
 
 // @public
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
@@ -79,12 +95,26 @@ export type HitDetail = typeof SceneSchema.HitDetail.Type;
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 
 // @public
+export const makeAssets: (store: ResourceStore) => {
+    loadTexture: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
+    loadModel: (id: string, url: string) => Effect.Effect<ModelInfo, AssetLoadError, never>;
+    unload: (id: string) => Effect.Effect<void, never, never>;
+    dispose: () => void;
+};
+
+// @public
 export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptions) => {
     host: EnvironmentHost;
     store: ResourceStore;
     frames: FrameScheduler;
     renderer: (canvas: HTMLCanvasElement) => RendererFactory;
     pixelRatio: PixelRatio;
+    assets: {
+        loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
+        loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
+        unload: (id: string) => Effect_2<void, never, never>;
+        dispose: () => void;
+    };
     dispose: () => void;
 };
 
@@ -98,6 +128,13 @@ export const makeSceneMount: (environment: Environment) => Mount.MountDefinition
 
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
+
+// @public
+export type ModelInfo = {
+    readonly id: string;
+    readonly parts: ReadonlyArray<string>;
+    readonly clips: ReadonlyArray<string>;
+};
 
 // @public
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;

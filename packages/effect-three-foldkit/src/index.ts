@@ -15,6 +15,7 @@
  *
  * @module
  */
+export { AssetLoadError, type Assets, makeAssets, type ModelInfo } from './assets.ts';
 export { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
 export {
   capturesPointer,

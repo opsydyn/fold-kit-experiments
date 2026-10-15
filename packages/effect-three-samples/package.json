@@ -16,6 +16,7 @@
   },
   "scripts": {
     "test": "bun test ./test",
+    "make:robot": "bun scripts/make-robot.ts ../../apps/three-promo/public/models/robot.glb ../effect-three-foldkit/e2e/app/robot.glb",
     "typecheck": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && tsc --noEmit"
   },
   "dependencies": {

@@ -8,10 +8,12 @@ import {
   type BufferGeometry,
   CapsuleGeometry,
   CircleGeometry,
+  Color,
   ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
   HemisphereLight,
+  type Material,
   Mesh,
   type Object3D,
   PerspectiveCamera,
@@ -49,18 +51,42 @@ const shapeOf = (geometry: BufferGeometry): unknown => {
   return 'unexpected geometry';
 };
 
+/** Hex colours and plain parameters of a hosted material, whatever its kind. */
+const materialOf = (material: Material): Record<string, unknown> => {
+  const detail: Record<string, unknown> = { type: material.type };
+  for (const key of materialKeys) {
+    const value: unknown = Reflect.get(material, key);
+    if (value instanceof Color) detail[key] = value.getHex();
+    else if (value !== undefined) detail[key] = value;
+  }
+  return detail;
+};
+
+const materialKeys = [
+  'color',
+  'emissive',
+  'specular',
+  'shininess',
+  'roughness',
+  'metalness',
+  'emissiveIntensity',
+  'clearcoat',
+  'clearcoatRoughness',
+  'transmission',
+  'ior',
+  'opacity',
+  'transparent',
+  'side',
+  'wireframe',
+  'flatShading',
+] as const;
+
 const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
   if (object instanceof Mesh) {
-    const material: unknown = object.material;
-    const materialDetail =
-      material !== null && typeof material === 'object' && 'color' in material
-        ? {
-            shared: graph.store.sharedMaterialId(object.material),
-            color: object.material.color.getHex(),
-            roughness: object.material.roughness,
-            metalness: object.material.metalness,
-          }
-        : 'unexpected material';
+    const materialDetail = {
+      shared: graph.store.sharedMaterialId(object.material),
+      ...materialOf(object.material),
+    };
     return {
       geometry: {
         shared: graph.store.sharedGeometryId(object.geometry),

@@ -181,11 +181,63 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             }>>;
             readonly materials: Schema.$Array<Schema.Struct<{
                 readonly id: Schema.String;
-                readonly material: Schema.TaggedStruct<"Standard", {
+                readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+                    readonly opacity: Schema.Finite;
+                    readonly transparent: Schema.Boolean;
+                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                    readonly wireframe: Schema.Boolean;
+                    readonly color: Schema.Int;
+                }>, Schema.TaggedStruct<"Lambert", {
+                    readonly opacity: Schema.Finite;
+                    readonly transparent: Schema.Boolean;
+                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                    readonly wireframe: Schema.Boolean;
+                    readonly flatShading: Schema.Boolean;
+                    readonly color: Schema.Int;
+                    readonly emissive: Schema.Int;
+                }>, Schema.TaggedStruct<"Phong", {
+                    readonly opacity: Schema.Finite;
+                    readonly transparent: Schema.Boolean;
+                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                    readonly wireframe: Schema.Boolean;
+                    readonly flatShading: Schema.Boolean;
+                    readonly color: Schema.Int;
+                    readonly emissive: Schema.Int;
+                    readonly specular: Schema.Int;
+                    readonly shininess: Schema.Finite;
+                }>, Schema.TaggedStruct<"Standard", {
+                    readonly opacity: Schema.Finite;
+                    readonly transparent: Schema.Boolean;
+                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                    readonly wireframe: Schema.Boolean;
+                    readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
                     readonly roughness: Schema.Finite;
                     readonly metalness: Schema.Finite;
-                }>;
+                    readonly emissive: Schema.Int;
+                    readonly emissiveIntensity: Schema.Finite;
+                }>, Schema.TaggedStruct<"Physical", {
+                    readonly opacity: Schema.Finite;
+                    readonly transparent: Schema.Boolean;
+                    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                    readonly wireframe: Schema.Boolean;
+                    readonly flatShading: Schema.Boolean;
+                    readonly color: Schema.Int;
+                    readonly roughness: Schema.Finite;
+                    readonly metalness: Schema.Finite;
+                    readonly emissive: Schema.Int;
+                    readonly emissiveIntensity: Schema.Finite;
+                    readonly clearcoat: Schema.Finite;
+                    readonly clearcoatRoughness: Schema.Finite;
+                    readonly transmission: Schema.Finite;
+                    readonly ior: Schema.Finite;
+                }>, Schema.TaggedStruct<"Normal", {
+                    opacity: Schema.Finite;
+                    transparent: Schema.Boolean;
+                    side: Schema.Literals<readonly ["front", "back", "double"]>;
+                    wireframe: Schema.Boolean;
+                    flatShading: Schema.Boolean;
+                }>]>;
             }>>;
         }>;
         readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;

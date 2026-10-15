@@ -67,11 +67,43 @@ const Transition = Schema.Union([
     easing: Schema.Literals(['linear', 'easeInOutCubic', 'easeOutCubic', 'easeOutBack']),
   }),
 ]);
-const Standard = Schema.TaggedStruct('Standard', {
+const surface = {
+  opacity: Unit,
+  transparent: Schema.Boolean,
+  side: Schema.Literals(['front', 'back', 'double']),
+  wireframe: Schema.Boolean,
+};
+const shaded = { ...surface, flatShading: Schema.Boolean };
+const pbr = {
   color: Colour,
   roughness: Unit,
   metalness: Unit,
-});
+  emissive: Colour,
+  emissiveIntensity: Unit,
+};
+
+/** Every material kind, with small domains so equal values and kind changes are common. */
+const Surface = Schema.Union([
+  Schema.TaggedStruct('Basic', { color: Colour, ...surface }),
+  Schema.TaggedStruct('Lambert', { color: Colour, emissive: Colour, ...shaded }),
+  Schema.TaggedStruct('Phong', {
+    color: Colour,
+    emissive: Colour,
+    specular: Colour,
+    shininess: Schema.Literals([10, 30]),
+    ...shaded,
+  }),
+  Schema.TaggedStruct('Standard', { ...pbr, ...shaded }),
+  Schema.TaggedStruct('Physical', {
+    ...pbr,
+    clearcoat: Unit,
+    clearcoatRoughness: Unit,
+    transmission: Unit,
+    ior: Schema.Literals([1, 1.5]),
+    ...shaded,
+  }),
+  Schema.TaggedStruct('Normal', shaded),
+]);
 
 const Children = Schema.Array(Schema.suspend((): Schema.Codec<SceneNode> => Node)).check(
   Schema.isMaxLength(4),
@@ -97,7 +129,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
       Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
     ]),
     material: Schema.Union([
-      Standard,
+      ...Surface.members,
       Schema.TaggedStruct('SharedMaterial', { id: Schema.Literals(['m1', 'm2']) }),
     ]),
     interactive: Schema.Boolean,
@@ -160,8 +192,8 @@ const sceneFields = {
       Schema.Struct({ id: Schema.Literals(['g2']), geometry: Shape }),
     ]),
     materials: Schema.Tuple([
-      Schema.Struct({ id: Schema.Literals(['m1']), material: Standard }),
-      Schema.Struct({ id: Schema.Literals(['m2']), material: Standard }),
+      Schema.Struct({ id: Schema.Literals(['m1']), material: Surface }),
+      Schema.Struct({ id: Schema.Literals(['m2']), material: Surface }),
     ]),
   }),
   children: Schema.Array(Node).check(Schema.isMaxLength(6)),

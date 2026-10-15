@@ -5,9 +5,10 @@
  * - Shared: defined by id, created on first use, reference-counted by the meshes using
  *   it, disposed when the last user releases it. Several scene graphs may share one store.
  *
- * Definitions are upserts. Changing a live shared material updates it in place. Changing
- * a live shared geometry creates a replacement, notifies subscribers (each scene graph
- * swaps it onto its meshes) and disposes the old one.
+ * Definitions are upserts. Changing a live shared material within its kind updates it in
+ * place. Changing a live shared geometry, or a shared material's kind, creates a
+ * replacement, notifies subscribers (each scene graph swaps it onto its meshes) and
+ * disposes the old one.
  *
  * The store is synchronous so the applier stays synchronous. The Effect runtime owns the
  * store's lifetime and calls `dispose` from a scope finalizer.
@@ -21,7 +22,7 @@ import {
   CircleGeometry,
   ConeGeometry,
   CylinderGeometry,
-  MeshStandardMaterial,
+  Material,
   PlaneGeometry,
   RingGeometry,
   SphereGeometry,
@@ -33,9 +34,10 @@ import type {
   MaterialRef,
   ResourceDefinitions,
   ShapeGeometry,
-  StandardMaterial,
+  SurfaceMaterial,
 } from './description.ts';
 import { geometryRefEquals, materialRefEquals } from './equality.ts';
+import { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
 
 /** Lifetime counters for one resource type. `live` is `created - disposed`. */
 export type ResourceCounts = {
@@ -58,22 +60,33 @@ export type GeometryReplaced = {
   readonly next: BufferGeometry;
 };
 
+/** Raised when a live shared material is replaced because its kind changed. */
+export type MaterialReplaced = {
+  readonly previous: HostMaterial;
+  readonly next: HostMaterial;
+};
+
 export type ResourceStore = {
   readonly define: (definitions: ResourceDefinitions) => void;
   readonly acquireGeometry: (ref: GeometryRef) => BufferGeometry;
   /** Releases one acquisition. `geometry` is the value currently held for `ref`. */
   readonly releaseGeometry: (ref: GeometryRef, geometry: BufferGeometry) => void;
-  readonly acquireMaterial: (ref: MaterialRef) => MeshStandardMaterial;
+  readonly acquireMaterial: (ref: MaterialRef) => HostMaterial;
   /** Releases one acquisition. `material` is the value currently held for `ref`. */
-  readonly releaseMaterial: (ref: MaterialRef, material: MeshStandardMaterial) => void;
+  readonly releaseMaterial: (ref: MaterialRef, material: HostMaterial) => void;
   /** Subscribes to shared geometry replacement. Returns an unsubscribe function. */
   readonly onGeometryReplaced: (listener: (event: GeometryReplaced) => void) => () => void;
-  /** Applies new parameters to an owned material in place. */
-  readonly updateOwnedMaterial: (material: MeshStandardMaterial, next: StandardMaterial) => void;
+  /** Subscribes to shared material replacement. Returns an unsubscribe function. */
+  readonly onMaterialReplaced: (listener: (event: MaterialReplaced) => void) => () => void;
+  /**
+   * Applies new parameters to an owned material in place. Returns `false`, changing
+   * nothing, when `next` is a different kind: release it and acquire a new one instead.
+   */
+  readonly updateOwnedMaterial: (material: HostMaterial, next: SurfaceMaterial) => boolean;
   /** The shared id of a live geometry, or `undefined` if it is owned or unknown. */
   readonly sharedGeometryId: (geometry: BufferGeometry) => string | undefined;
   /** The shared id of a live material, or `undefined` if it is owned or unknown. */
-  readonly sharedMaterialId: (material: MeshStandardMaterial) => string | undefined;
+  readonly sharedMaterialId: (material: HostMaterial) => string | undefined;
   readonly stats: () => ResourceStats;
   /** Disposes every live resource. Idempotent. */
   readonly dispose: () => void;
@@ -104,12 +117,6 @@ const liveId = <A extends object>(
   const id = ids.get(value);
   if (id === undefined || entries.get(id)?.value !== value) return undefined;
   return id;
-};
-
-const applyStandard = (material: MeshStandardMaterial, description: StandardMaterial): void => {
-  material.color.setHex(description.color);
-  material.roughness = description.roughness;
-  material.metalness = description.metalness;
 };
 
 /** Builds the three.js geometry for a shape description. */
@@ -154,13 +161,14 @@ const buildShape = (shape: ShapeGeometry): BufferGeometry => {
 /** Creates an empty resource store. */
 export const createResourceStore = (): ResourceStore => {
   const geometryDefinitions = new Map<string, ShapeGeometry>();
-  const materialDefinitions = new Map<string, StandardMaterial>();
+  const materialDefinitions = new Map<string, SurfaceMaterial>();
   const sharedGeometries = new Map<string, Shared<BufferGeometry>>();
-  const sharedMaterials = new Map<string, Shared<MeshStandardMaterial>>();
+  const sharedMaterials = new Map<string, Shared<HostMaterial>>();
   const sharedGeometryIds = new WeakMap<BufferGeometry, string>();
-  const sharedMaterialIds = new WeakMap<MeshStandardMaterial, string>();
-  const owned = new Set<BufferGeometry | MeshStandardMaterial>();
+  const sharedMaterialIds = new WeakMap<HostMaterial, string>();
+  const owned = new Set<BufferGeometry | HostMaterial>();
   const replacedListeners = new Set<(event: GeometryReplaced) => void>();
+  const materialListeners = new Set<(event: MaterialReplaced) => void>();
   const geometryCounter: Counter = { created: 0, disposed: 0 };
   const materialCounter: Counter = { created: 0, disposed: 0 };
 
@@ -172,13 +180,11 @@ export const createResourceStore = (): ResourceStore => {
     geometryCounter.disposed++;
     geometry.dispose();
   };
-  const makeMaterial = (description: StandardMaterial): MeshStandardMaterial => {
+  const makeMaterial = (description: SurfaceMaterial): HostMaterial => {
     materialCounter.created++;
-    const material = new MeshStandardMaterial();
-    applyStandard(material, description);
-    return material;
+    return buildMaterial(description);
   };
-  const disposeMaterial = (material: MeshStandardMaterial): void => {
+  const disposeMaterial = (material: HostMaterial): void => {
     materialCounter.disposed++;
     material.dispose();
   };
@@ -202,9 +208,16 @@ export const createResourceStore = (): ResourceStore => {
       const before = materialDefinitions.get(id);
       materialDefinitions.set(id, material);
       const live = sharedMaterials.get(id);
-      if (live !== undefined && before !== undefined && !materialRefEquals(before, material)) {
-        applyStandard(live.value, material);
+      if (live === undefined || before === undefined || materialRefEquals(before, material)) {
+        continue;
       }
+      if (updateMaterial(live.value, material)) continue;
+      const previous = live.value;
+      const replacement = makeMaterial(material);
+      sharedMaterialIds.set(replacement, id);
+      live.value = replacement;
+      for (const listener of materialListeners) listener({ previous, next: replacement });
+      disposeMaterial(previous);
     }
   };
 
@@ -241,8 +254,8 @@ export const createResourceStore = (): ResourceStore => {
     disposeGeometry(live.value);
   };
 
-  const acquireMaterial = (ref: MaterialRef): MeshStandardMaterial => {
-    if (ref._tag === 'Standard') {
+  const acquireMaterial = (ref: MaterialRef): HostMaterial => {
+    if (ref._tag !== 'SharedMaterial') {
       const material = makeMaterial(ref);
       owned.add(material);
       return material;
@@ -261,8 +274,8 @@ export const createResourceStore = (): ResourceStore => {
     return material;
   };
 
-  const releaseMaterial = (ref: MaterialRef, material: MeshStandardMaterial): void => {
-    if (ref._tag === 'Standard') {
+  const releaseMaterial = (ref: MaterialRef, material: HostMaterial): void => {
+    if (ref._tag !== 'SharedMaterial') {
       if (owned.delete(material)) disposeMaterial(material);
       return;
     }
@@ -276,7 +289,7 @@ export const createResourceStore = (): ResourceStore => {
 
   const dispose = (): void => {
     for (const resource of owned) {
-      if (resource instanceof MeshStandardMaterial) disposeMaterial(resource);
+      if (resource instanceof Material) disposeMaterial(resource);
       else disposeGeometry(resource);
     }
     owned.clear();
@@ -292,11 +305,17 @@ export const createResourceStore = (): ResourceStore => {
     releaseGeometry,
     acquireMaterial,
     releaseMaterial,
-    updateOwnedMaterial: applyStandard,
+    updateOwnedMaterial: updateMaterial,
     onGeometryReplaced: (listener) => {
       replacedListeners.add(listener);
       return () => {
         replacedListeners.delete(listener);
+      };
+    },
+    onMaterialReplaced: (listener) => {
+      materialListeners.add(listener);
+      return () => {
+        materialListeners.delete(listener);
       };
     },
     sharedGeometryId: (geometry) => liveId(sharedGeometries, sharedGeometryIds, geometry),

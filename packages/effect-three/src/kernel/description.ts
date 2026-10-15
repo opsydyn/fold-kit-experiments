@@ -117,27 +117,111 @@ export type ShapeGeometry =
   | RingGeometry
   | CircleGeometry;
 
-/** Physically based standard material parameters. */
+/** Which faces a material draws. */
+export type MaterialSide = 'front' | 'back' | 'double';
+
+/** An unlit material: flat colour, unaffected by lights. */
+export type BasicMaterial = {
+  readonly _tag: 'Basic';
+  readonly color: Rgb;
+  readonly opacity: number;
+  readonly transparent: boolean;
+  readonly side: MaterialSide;
+  readonly wireframe: boolean;
+};
+
+/** A matte (Lambertian) material: cheap per-vertex lighting, no highlights. */
+export type LambertMaterial = {
+  readonly _tag: 'Lambert';
+  readonly color: Rgb;
+  readonly emissive: Rgb;
+  readonly opacity: number;
+  readonly transparent: boolean;
+  readonly side: MaterialSide;
+  readonly wireframe: boolean;
+  readonly flatShading: boolean;
+};
+
+/** A shiny (Blinn-Phong) material with specular highlights. */
+export type PhongMaterial = {
+  readonly _tag: 'Phong';
+  readonly color: Rgb;
+  readonly emissive: Rgb;
+  readonly specular: Rgb;
+  readonly shininess: number;
+  readonly opacity: number;
+  readonly transparent: boolean;
+  readonly side: MaterialSide;
+  readonly wireframe: boolean;
+  readonly flatShading: boolean;
+};
+
+/** A physically based (metallic-roughness) material. */
 export type StandardMaterial = {
   readonly _tag: 'Standard';
   readonly color: Rgb;
   readonly roughness: number;
   readonly metalness: number;
+  readonly emissive: Rgb;
+  readonly emissiveIntensity: number;
+  readonly opacity: number;
+  readonly transparent: boolean;
+  readonly side: MaterialSide;
+  readonly wireframe: boolean;
+  readonly flatShading: boolean;
 };
+
+/** A standard material plus clearcoat, transmission (glass-like) and index of refraction. */
+export type PhysicalMaterial = {
+  readonly _tag: 'Physical';
+  readonly color: Rgb;
+  readonly roughness: number;
+  readonly metalness: number;
+  readonly emissive: Rgb;
+  readonly emissiveIntensity: number;
+  readonly clearcoat: number;
+  readonly clearcoatRoughness: number;
+  readonly transmission: number;
+  readonly ior: number;
+  readonly opacity: number;
+  readonly transparent: boolean;
+  readonly side: MaterialSide;
+  readonly wireframe: boolean;
+  readonly flatShading: boolean;
+};
+
+/** Colours each face by its normal: useful for debugging geometry. */
+export type NormalMaterial = {
+  readonly _tag: 'Normal';
+  readonly opacity: number;
+  readonly transparent: boolean;
+  readonly side: MaterialSide;
+  readonly wireframe: boolean;
+  readonly flatShading: boolean;
+};
+
+/** Any material the kernel can build. */
+export type SurfaceMaterial =
+  | BasicMaterial
+  | LambertMaterial
+  | PhongMaterial
+  | StandardMaterial
+  | PhysicalMaterial
+  | NormalMaterial;
 
 /** A geometry owned by one mesh (a shape) or shared by id (`SharedGeometry`). */
 export type GeometryRef = ShapeGeometry | { readonly _tag: 'SharedGeometry'; readonly id: string };
 
-/** A material owned by one mesh (`Standard`) or shared by id (`SharedMaterial`). */
+/** A material owned by one mesh, or shared by id (`SharedMaterial`). */
 export type MaterialRef =
-  | StandardMaterial
+  | SurfaceMaterial
   | { readonly _tag: 'SharedMaterial'; readonly id: string };
 
 /** A shared geometry definition. */
 export type GeometryDefinition = { readonly id: string; readonly geometry: ShapeGeometry };
 
 /** A shared material definition. */
-export type MaterialDefinition = { readonly id: string; readonly material: StandardMaterial };
+export type MaterialDefinition = { readonly id: string; readonly material: SurfaceMaterial };
 
 /** Shared resource definitions referenced by `SharedGeometry` and `SharedMaterial`. */
 export type ResourceDefinitions = {

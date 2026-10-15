@@ -5,6 +5,7 @@
  */
 import type {
   AmbientLightNode,
+  BasicMaterial,
   Axis,
   BoxGeometry,
   Camera,
@@ -14,12 +15,16 @@ import type {
   CylinderGeometry,
   DirectionalLightNode,
   HemisphereLightNode,
+  LambertMaterial,
   Easing,
   GeometryRef,
   GroupNode,
   MaterialRef,
   MeshNode,
+  NormalMaterial,
   OrthographicCamera,
+  PhongMaterial,
+  PhysicalMaterial,
   PerspectiveCamera,
   PlaneGeometry,
   PointLightNode,
@@ -185,16 +190,103 @@ export const ease = (options: {
   easing: options.easing ?? 'easeInOutCubic',
 });
 
-/** Standard material. Defaults: roughness 1, metalness 0. */
-export const standard = (options: {
-  readonly color: Rgb;
-  readonly roughness?: number;
-  readonly metalness?: number;
-}): StandardMaterial => ({
+/**
+ * Unlit material. Defaults (as three.js): white, opaque, front faces.
+ */
+export const basic = (options: Partial<Omit<BasicMaterial, '_tag'>> = {}): BasicMaterial => ({
+  _tag: 'Basic',
+  color: options.color ?? 0xffffff,
+  opacity: options.opacity ?? 1,
+  transparent: options.transparent ?? false,
+  side: options.side ?? 'front',
+  wireframe: options.wireframe ?? false,
+});
+
+/**
+ * Matte material. Defaults (as three.js): white, no emission, smooth shading.
+ */
+export const lambert = (options: Partial<Omit<LambertMaterial, '_tag'>> = {}): LambertMaterial => ({
+  _tag: 'Lambert',
+  color: options.color ?? 0xffffff,
+  emissive: options.emissive ?? 0x000000,
+  opacity: options.opacity ?? 1,
+  transparent: options.transparent ?? false,
+  side: options.side ?? 'front',
+  wireframe: options.wireframe ?? false,
+  flatShading: options.flatShading ?? false,
+});
+
+/**
+ * Shiny material. Defaults (as three.js): white, specular `0x111111`, shininess 30.
+ */
+export const phong = (options: Partial<Omit<PhongMaterial, '_tag'>> = {}): PhongMaterial => ({
+  _tag: 'Phong',
+  color: options.color ?? 0xffffff,
+  emissive: options.emissive ?? 0x000000,
+  specular: options.specular ?? 0x111111,
+  shininess: options.shininess ?? 30,
+  opacity: options.opacity ?? 1,
+  transparent: options.transparent ?? false,
+  side: options.side ?? 'front',
+  wireframe: options.wireframe ?? false,
+  flatShading: options.flatShading ?? false,
+});
+
+/**
+ * Physically based material. Defaults (as three.js): white, roughness 1, metalness 0.
+ */
+export const standard = (
+  options: Partial<Omit<StandardMaterial, '_tag'>> = {},
+): StandardMaterial => ({
   _tag: 'Standard',
-  color: options.color,
+  color: options.color ?? 0xffffff,
   roughness: options.roughness ?? 1,
   metalness: options.metalness ?? 0,
+  emissive: options.emissive ?? 0x000000,
+  emissiveIntensity: options.emissiveIntensity ?? 1,
+  opacity: options.opacity ?? 1,
+  transparent: options.transparent ?? false,
+  side: options.side ?? 'front',
+  wireframe: options.wireframe ?? false,
+  flatShading: options.flatShading ?? false,
+});
+
+/**
+ * Physically based material with clearcoat and transmission. Defaults (as three.js):
+ * the standard defaults, no clearcoat or transmission, index of refraction 1.5.
+ */
+export const physical = (
+  options: Partial<Omit<PhysicalMaterial, '_tag'>> = {},
+): PhysicalMaterial => ({
+  _tag: 'Physical',
+  color: options.color ?? 0xffffff,
+  roughness: options.roughness ?? 1,
+  metalness: options.metalness ?? 0,
+  emissive: options.emissive ?? 0x000000,
+  emissiveIntensity: options.emissiveIntensity ?? 1,
+  clearcoat: options.clearcoat ?? 0,
+  clearcoatRoughness: options.clearcoatRoughness ?? 0,
+  transmission: options.transmission ?? 0,
+  ior: options.ior ?? 1.5,
+  opacity: options.opacity ?? 1,
+  transparent: options.transparent ?? false,
+  side: options.side ?? 'front',
+  wireframe: options.wireframe ?? false,
+  flatShading: options.flatShading ?? false,
+});
+
+/**
+ * Normal-coloured material, for debugging geometry. Defaults as three.js.
+ */
+export const normalMaterial = (
+  options: Partial<Omit<NormalMaterial, '_tag'>> = {},
+): NormalMaterial => ({
+  _tag: 'Normal',
+  opacity: options.opacity ?? 1,
+  transparent: options.transparent ?? false,
+  side: options.side ?? 'front',
+  wireframe: options.wireframe ?? false,
+  flatShading: options.flatShading ?? false,
 });
 
 /** A reference to a shared geometry defined in the scene's resources. */

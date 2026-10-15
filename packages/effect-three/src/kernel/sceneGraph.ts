@@ -13,7 +13,6 @@ import {
   Group,
   HemisphereLight,
   Mesh,
-  type MeshStandardMaterial,
   type Object3D,
   OrthographicCamera,
   PerspectiveCamera,
@@ -38,6 +37,7 @@ import type {
   Vec3,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
+import type { HostMaterial } from './materials.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -48,7 +48,7 @@ import {
 import { applyTween, startTween, type Tween } from './tween.ts';
 
 /** The mesh type the kernel hosts. */
-export type HostMesh = Mesh<BufferGeometry, MeshStandardMaterial>;
+export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
 
 type Entry =
   | { readonly _tag: 'Group'; node: GroupNode; readonly object: Group }
@@ -207,9 +207,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let animating = true;
   let viewport = { width: 1, height: 1 };
 
-  const unsubscribe = store.onGeometryReplaced(({ previous, next }) => {
+  const unsubscribeGeometry = store.onGeometryReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
       if (entry._tag === 'Mesh' && entry.object.geometry === previous) entry.object.geometry = next;
+    }
+  });
+  const unsubscribeMaterial = store.onMaterialReplaced(({ previous, next }) => {
+    for (const entry of entries.values()) {
+      if (entry._tag === 'Mesh' && entry.object.material === previous) entry.object.material = next;
     }
   });
 
@@ -313,9 +318,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
           store.releaseGeometry(prev.geometry, mesh.geometry);
           mesh.geometry = store.acquireGeometry(next.geometry);
         } else if (field === 'material') {
-          if (prev.material._tag === 'Standard' && next.material._tag === 'Standard') {
+          const updatedInPlace =
+            prev.material._tag !== 'SharedMaterial' &&
+            next.material._tag !== 'SharedMaterial' &&
             store.updateOwnedMaterial(mesh.material, next.material);
-          } else {
+          if (!updatedInPlace) {
             store.releaseMaterial(prev.material, mesh.material);
             mesh.material = store.acquireMaterial(next.material);
           }
@@ -505,7 +512,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     entries.clear();
     index = emptyIndex;
-    unsubscribe();
+    unsubscribeGeometry();
+    unsubscribeMaterial();
     if (ownsStore) store.dispose();
   };
 

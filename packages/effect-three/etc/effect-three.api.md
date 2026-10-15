@@ -11,6 +11,11 @@ import { Effect } from 'effect';
 import type { Euler } from 'three';
 import { Layer } from 'effect';
 import { Mesh } from 'three';
+import { MeshBasicMaterial } from 'three';
+import { MeshLambertMaterial } from 'three';
+import { MeshNormalMaterial } from 'three';
+import { MeshPhongMaterial } from 'three';
+import { MeshPhysicalMaterial } from 'three';
 import { MeshStandardMaterial } from 'three';
 import { Object3D } from 'three';
 import { OrthographicCamera as OrthographicCamera_2 } from 'three';
@@ -56,6 +61,28 @@ export type Axis = 'x' | 'y' | 'z';
 const Axis_2: Schema.Literals<readonly ["x", "y", "z"]>;
 
 // @public
+export const basic: (options?: Partial<Omit<BasicMaterial, '_tag'>>) => BasicMaterial;
+
+// @public
+export type BasicMaterial = {
+    readonly _tag: 'Basic';
+    readonly color: Rgb;
+    readonly opacity: number;
+    readonly transparent: boolean;
+    readonly side: MaterialSide;
+    readonly wireframe: boolean;
+};
+
+// @public
+const BasicMaterial_2: Schema.TaggedStruct<"Basic", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly color: Schema.Int;
+}>;
+
+// @public
 export const box: (size?: {
     readonly width?: number;
     readonly height?: number;
@@ -76,6 +103,9 @@ const BoxGeometry_2: Schema.TaggedStruct<"Box", {
     readonly height: Schema.Finite;
     readonly depth: Schema.Finite;
 }>;
+
+// @public
+export const buildMaterial: (description: SurfaceMaterial) => HostMaterial;
 
 // @public
 const ButtonDetail: Schema.Struct<{
@@ -478,7 +508,10 @@ const HitDetail: Schema.Struct<{
 export type HostCamera = PerspectiveCamera_2 | OrthographicCamera_2;
 
 // @public
-export type HostMesh = Mesh<BufferGeometry, MeshStandardMaterial>;
+export type HostMaterial = MeshBasicMaterial | MeshLambertMaterial | MeshPhongMaterial | MeshStandardMaterial | MeshPhysicalMaterial | MeshNormalMaterial;
+
+// @public
+export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
 
 // @public
 export type IndexedNode = {
@@ -515,6 +548,32 @@ const KeyDetail: Schema.Struct<{
 }>;
 
 // @public
+export const lambert: (options?: Partial<Omit<LambertMaterial, '_tag'>>) => LambertMaterial;
+
+// @public
+export type LambertMaterial = {
+    readonly _tag: 'Lambert';
+    readonly color: Rgb;
+    readonly emissive: Rgb;
+    readonly opacity: number;
+    readonly transparent: boolean;
+    readonly side: MaterialSide;
+    readonly wireframe: boolean;
+    readonly flatShading: boolean;
+};
+
+// @public
+const LambertMaterial_2: Schema.TaggedStruct<"Lambert", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly emissive: Schema.Int;
+}>;
+
+// @public
 const layer: (scheduler: FrameScheduler) => Layer.Layer<FrameSource_2, never, never>;
 
 // @public
@@ -541,26 +600,90 @@ export type ManualFrames = FrameScheduler & {
 // @public
 export type MaterialDefinition = {
     readonly id: string;
-    readonly material: StandardMaterial;
+    readonly material: SurfaceMaterial;
 };
 
 // @public
-export type MaterialRef = StandardMaterial | {
+export type MaterialRef = SurfaceMaterial | {
     readonly _tag: 'SharedMaterial';
     readonly id: string;
 };
 
 // @public
-const MaterialRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Standard", {
+const MaterialRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly color: Schema.Int;
+}>, Schema.TaggedStruct<"Lambert", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly emissive: Schema.Int;
+}>, Schema.TaggedStruct<"Phong", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly emissive: Schema.Int;
+    readonly specular: Schema.Int;
+    readonly shininess: Schema.Finite;
+}>, Schema.TaggedStruct<"Standard", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
     readonly color: Schema.Int;
     readonly roughness: Schema.Finite;
     readonly metalness: Schema.Finite;
+    readonly emissive: Schema.Int;
+    readonly emissiveIntensity: Schema.Finite;
+}>, Schema.TaggedStruct<"Physical", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly roughness: Schema.Finite;
+    readonly metalness: Schema.Finite;
+    readonly emissive: Schema.Int;
+    readonly emissiveIntensity: Schema.Finite;
+    readonly clearcoat: Schema.Finite;
+    readonly clearcoatRoughness: Schema.Finite;
+    readonly transmission: Schema.Finite;
+    readonly ior: Schema.Finite;
+}>, Schema.TaggedStruct<"Normal", {
+    opacity: Schema.Finite;
+    transparent: Schema.Boolean;
+    side: Schema.Literals<readonly ["front", "back", "double"]>;
+    wireframe: Schema.Boolean;
+    flatShading: Schema.Boolean;
 }>, Schema.TaggedStruct<"SharedMaterial", {
     readonly id: Schema.String;
 }>]>;
 
 // @public
 export const materialRefEquals: (a: MaterialRef, b: MaterialRef) => boolean;
+
+// @public
+export type MaterialReplaced = {
+    readonly previous: HostMaterial;
+    readonly next: HostMaterial;
+};
+
+// @public
+export type MaterialSide = 'front' | 'back' | 'double';
+
+// @public
+const MaterialSide_2: Schema.Literals<readonly ["front", "back", "double"]>;
 
 // @public
 export const mesh: (options: TransformOptions & {
@@ -638,10 +761,62 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
     }>, Schema.TaggedStruct<"SharedGeometry", {
         readonly id: Schema.String;
     }>]>;
-    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Standard", {
+    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly color: Schema.Int;
+    }>, Schema.TaggedStruct<"Lambert", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly flatShading: Schema.Boolean;
+        readonly color: Schema.Int;
+        readonly emissive: Schema.Int;
+    }>, Schema.TaggedStruct<"Phong", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly flatShading: Schema.Boolean;
+        readonly color: Schema.Int;
+        readonly emissive: Schema.Int;
+        readonly specular: Schema.Int;
+        readonly shininess: Schema.Finite;
+    }>, Schema.TaggedStruct<"Standard", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly flatShading: Schema.Boolean;
         readonly color: Schema.Int;
         readonly roughness: Schema.Finite;
         readonly metalness: Schema.Finite;
+        readonly emissive: Schema.Int;
+        readonly emissiveIntensity: Schema.Finite;
+    }>, Schema.TaggedStruct<"Physical", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly flatShading: Schema.Boolean;
+        readonly color: Schema.Int;
+        readonly roughness: Schema.Finite;
+        readonly metalness: Schema.Finite;
+        readonly emissive: Schema.Int;
+        readonly emissiveIntensity: Schema.Finite;
+        readonly clearcoat: Schema.Finite;
+        readonly clearcoatRoughness: Schema.Finite;
+        readonly transmission: Schema.Finite;
+        readonly ior: Schema.Finite;
+    }>, Schema.TaggedStruct<"Normal", {
+        opacity: Schema.Finite;
+        transparent: Schema.Boolean;
+        side: Schema.Literals<readonly ["front", "back", "double"]>;
+        wireframe: Schema.Boolean;
+        flatShading: Schema.Boolean;
     }>, Schema.TaggedStruct<"SharedMaterial", {
         readonly id: Schema.String;
     }>]>;
@@ -655,6 +830,28 @@ const MissDetail: Schema.Struct<{
 
 // @public
 export type NodeKind = SceneNode['_tag'];
+
+// @public
+export type NormalMaterial = {
+    readonly _tag: 'Normal';
+    readonly opacity: number;
+    readonly transparent: boolean;
+    readonly side: MaterialSide;
+    readonly wireframe: boolean;
+    readonly flatShading: boolean;
+};
+
+// @public
+export const normalMaterial: (options?: Partial<Omit<NormalMaterial, '_tag'>>) => NormalMaterial;
+
+// @public
+const NormalMaterial_2: Schema.TaggedStruct<"Normal", {
+    opacity: Schema.Finite;
+    transparent: Schema.Boolean;
+    side: Schema.Literals<readonly ["front", "back", "double"]>;
+    wireframe: Schema.Boolean;
+    flatShading: Schema.Boolean;
+}>;
 
 // @public
 export type Op = {
@@ -733,6 +930,76 @@ const PerspectiveCamera_3: Schema.TaggedStruct<"Perspective", {
     readonly far: Schema.Finite;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+
+// @public
+export const phong: (options?: Partial<Omit<PhongMaterial, '_tag'>>) => PhongMaterial;
+
+// @public
+export type PhongMaterial = {
+    readonly _tag: 'Phong';
+    readonly color: Rgb;
+    readonly emissive: Rgb;
+    readonly specular: Rgb;
+    readonly shininess: number;
+    readonly opacity: number;
+    readonly transparent: boolean;
+    readonly side: MaterialSide;
+    readonly wireframe: boolean;
+    readonly flatShading: boolean;
+};
+
+// @public
+const PhongMaterial_2: Schema.TaggedStruct<"Phong", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly emissive: Schema.Int;
+    readonly specular: Schema.Int;
+    readonly shininess: Schema.Finite;
+}>;
+
+// @public
+export const physical: (options?: Partial<Omit<PhysicalMaterial, '_tag'>>) => PhysicalMaterial;
+
+// @public
+export type PhysicalMaterial = {
+    readonly _tag: 'Physical';
+    readonly color: Rgb;
+    readonly roughness: number;
+    readonly metalness: number;
+    readonly emissive: Rgb;
+    readonly emissiveIntensity: number;
+    readonly clearcoat: number;
+    readonly clearcoatRoughness: number;
+    readonly transmission: number;
+    readonly ior: number;
+    readonly opacity: number;
+    readonly transparent: boolean;
+    readonly side: MaterialSide;
+    readonly wireframe: boolean;
+    readonly flatShading: boolean;
+};
+
+// @public
+const PhysicalMaterial_2: Schema.TaggedStruct<"Physical", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly roughness: Schema.Finite;
+    readonly metalness: Schema.Finite;
+    readonly emissive: Schema.Int;
+    readonly emissiveIntensity: Schema.Finite;
+    readonly clearcoat: Schema.Finite;
+    readonly clearcoatRoughness: Schema.Finite;
+    readonly transmission: Schema.Finite;
+    readonly ior: Schema.Finite;
 }>;
 
 // @public (undocumented)
@@ -935,11 +1202,63 @@ const ResourceDefinitions_2: Schema.Struct<{
     }>>;
     readonly materials: Schema.$Array<Schema.Struct<{
         readonly id: Schema.String;
-        readonly material: Schema.TaggedStruct<"Standard", {
+        readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+            readonly opacity: Schema.Finite;
+            readonly transparent: Schema.Boolean;
+            readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+            readonly wireframe: Schema.Boolean;
+            readonly color: Schema.Int;
+        }>, Schema.TaggedStruct<"Lambert", {
+            readonly opacity: Schema.Finite;
+            readonly transparent: Schema.Boolean;
+            readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+            readonly wireframe: Schema.Boolean;
+            readonly flatShading: Schema.Boolean;
+            readonly color: Schema.Int;
+            readonly emissive: Schema.Int;
+        }>, Schema.TaggedStruct<"Phong", {
+            readonly opacity: Schema.Finite;
+            readonly transparent: Schema.Boolean;
+            readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+            readonly wireframe: Schema.Boolean;
+            readonly flatShading: Schema.Boolean;
+            readonly color: Schema.Int;
+            readonly emissive: Schema.Int;
+            readonly specular: Schema.Int;
+            readonly shininess: Schema.Finite;
+        }>, Schema.TaggedStruct<"Standard", {
+            readonly opacity: Schema.Finite;
+            readonly transparent: Schema.Boolean;
+            readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+            readonly wireframe: Schema.Boolean;
+            readonly flatShading: Schema.Boolean;
             readonly color: Schema.Int;
             readonly roughness: Schema.Finite;
             readonly metalness: Schema.Finite;
-        }>;
+            readonly emissive: Schema.Int;
+            readonly emissiveIntensity: Schema.Finite;
+        }>, Schema.TaggedStruct<"Physical", {
+            readonly opacity: Schema.Finite;
+            readonly transparent: Schema.Boolean;
+            readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+            readonly wireframe: Schema.Boolean;
+            readonly flatShading: Schema.Boolean;
+            readonly color: Schema.Int;
+            readonly roughness: Schema.Finite;
+            readonly metalness: Schema.Finite;
+            readonly emissive: Schema.Int;
+            readonly emissiveIntensity: Schema.Finite;
+            readonly clearcoat: Schema.Finite;
+            readonly clearcoatRoughness: Schema.Finite;
+            readonly transmission: Schema.Finite;
+            readonly ior: Schema.Finite;
+        }>, Schema.TaggedStruct<"Normal", {
+            opacity: Schema.Finite;
+            transparent: Schema.Boolean;
+            side: Schema.Literals<readonly ["front", "back", "double"]>;
+            wireframe: Schema.Boolean;
+            flatShading: Schema.Boolean;
+        }>]>;
     }>>;
 }>;
 
@@ -972,12 +1291,13 @@ export type ResourceStore = {
     readonly define: (definitions: ResourceDefinitions) => void;
     readonly acquireGeometry: (ref: GeometryRef) => BufferGeometry;
     readonly releaseGeometry: (ref: GeometryRef, geometry: BufferGeometry) => void;
-    readonly acquireMaterial: (ref: MaterialRef) => MeshStandardMaterial;
-    readonly releaseMaterial: (ref: MaterialRef, material: MeshStandardMaterial) => void;
+    readonly acquireMaterial: (ref: MaterialRef) => HostMaterial;
+    readonly releaseMaterial: (ref: MaterialRef, material: HostMaterial) => void;
     readonly onGeometryReplaced: (listener: (event: GeometryReplaced) => void) => () => void;
-    readonly updateOwnedMaterial: (material: MeshStandardMaterial, next: StandardMaterial) => void;
+    readonly onMaterialReplaced: (listener: (event: MaterialReplaced) => void) => () => void;
+    readonly updateOwnedMaterial: (material: HostMaterial, next: SurfaceMaterial) => boolean;
     readonly sharedGeometryId: (geometry: BufferGeometry) => string | undefined;
-    readonly sharedMaterialId: (material: MeshStandardMaterial) => string | undefined;
+    readonly sharedMaterialId: (material: HostMaterial) => string | undefined;
     readonly stats: () => ResourceStats;
     readonly dispose: () => void;
 };
@@ -1113,11 +1433,63 @@ const SceneDescription_2: Schema.Struct<{
         }>>;
         readonly materials: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
-            readonly material: Schema.TaggedStruct<"Standard", {
+            readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+                readonly opacity: Schema.Finite;
+                readonly transparent: Schema.Boolean;
+                readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                readonly wireframe: Schema.Boolean;
+                readonly color: Schema.Int;
+            }>, Schema.TaggedStruct<"Lambert", {
+                readonly opacity: Schema.Finite;
+                readonly transparent: Schema.Boolean;
+                readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                readonly wireframe: Schema.Boolean;
+                readonly flatShading: Schema.Boolean;
+                readonly color: Schema.Int;
+                readonly emissive: Schema.Int;
+            }>, Schema.TaggedStruct<"Phong", {
+                readonly opacity: Schema.Finite;
+                readonly transparent: Schema.Boolean;
+                readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                readonly wireframe: Schema.Boolean;
+                readonly flatShading: Schema.Boolean;
+                readonly color: Schema.Int;
+                readonly emissive: Schema.Int;
+                readonly specular: Schema.Int;
+                readonly shininess: Schema.Finite;
+            }>, Schema.TaggedStruct<"Standard", {
+                readonly opacity: Schema.Finite;
+                readonly transparent: Schema.Boolean;
+                readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                readonly wireframe: Schema.Boolean;
+                readonly flatShading: Schema.Boolean;
                 readonly color: Schema.Int;
                 readonly roughness: Schema.Finite;
                 readonly metalness: Schema.Finite;
-            }>;
+                readonly emissive: Schema.Int;
+                readonly emissiveIntensity: Schema.Finite;
+            }>, Schema.TaggedStruct<"Physical", {
+                readonly opacity: Schema.Finite;
+                readonly transparent: Schema.Boolean;
+                readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+                readonly wireframe: Schema.Boolean;
+                readonly flatShading: Schema.Boolean;
+                readonly color: Schema.Int;
+                readonly roughness: Schema.Finite;
+                readonly metalness: Schema.Finite;
+                readonly emissive: Schema.Int;
+                readonly emissiveIntensity: Schema.Finite;
+                readonly clearcoat: Schema.Finite;
+                readonly clearcoatRoughness: Schema.Finite;
+                readonly transmission: Schema.Finite;
+                readonly ior: Schema.Finite;
+            }>, Schema.TaggedStruct<"Normal", {
+                opacity: Schema.Finite;
+                transparent: Schema.Boolean;
+                side: Schema.Literals<readonly ["front", "back", "double"]>;
+                wireframe: Schema.Boolean;
+                flatShading: Schema.Boolean;
+            }>]>;
         }>>;
     }>;
     readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
@@ -1306,7 +1678,14 @@ declare namespace SceneSchema {
         ShapeGeometry_2 as ShapeGeometry,
         Easing_2 as Easing,
         Transition_2 as Transition,
+        MaterialSide_2 as MaterialSide,
+        BasicMaterial_2 as BasicMaterial,
+        LambertMaterial_2 as LambertMaterial,
+        PhongMaterial_2 as PhongMaterial,
         StandardMaterial_2 as StandardMaterial,
+        PhysicalMaterial_2 as PhysicalMaterial,
+        NormalMaterial_2 as NormalMaterial,
+        SurfaceMaterial_2 as SurfaceMaterial,
         GeometryRef_2 as GeometryRef,
         MaterialRef_2 as MaterialRef,
         ResourceDefinitions_2 as ResourceDefinitions,
@@ -1458,11 +1837,7 @@ const SpotLightNode_2: Schema.TaggedStruct<"SpotLight", {
 }>;
 
 // @public
-export const standard: (options: {
-    readonly color: Rgb;
-    readonly roughness?: number;
-    readonly metalness?: number;
-}) => StandardMaterial;
+export const standard: (options?: Partial<Omit<StandardMaterial, '_tag'>>) => StandardMaterial;
 
 // @public
 export type StandardMaterial = {
@@ -1470,13 +1845,27 @@ export type StandardMaterial = {
     readonly color: Rgb;
     readonly roughness: number;
     readonly metalness: number;
+    readonly emissive: Rgb;
+    readonly emissiveIntensity: number;
+    readonly opacity: number;
+    readonly transparent: boolean;
+    readonly side: MaterialSide;
+    readonly wireframe: boolean;
+    readonly flatShading: boolean;
 };
 
 // @public
 const StandardMaterial_2: Schema.TaggedStruct<"Standard", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
     readonly color: Schema.Int;
     readonly roughness: Schema.Finite;
     readonly metalness: Schema.Finite;
+    readonly emissive: Schema.Int;
+    readonly emissiveIntensity: Schema.Finite;
 }>;
 
 // @public
@@ -1487,6 +1876,68 @@ export const startTween: (object: Object3D, target: {
     readonly seconds: number;
     readonly easing: Easing;
 }) => Tween;
+
+// @public
+export type SurfaceMaterial = BasicMaterial | LambertMaterial | PhongMaterial | StandardMaterial | PhysicalMaterial | NormalMaterial;
+
+// @public
+const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly color: Schema.Int;
+}>, Schema.TaggedStruct<"Lambert", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly emissive: Schema.Int;
+}>, Schema.TaggedStruct<"Phong", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly emissive: Schema.Int;
+    readonly specular: Schema.Int;
+    readonly shininess: Schema.Finite;
+}>, Schema.TaggedStruct<"Standard", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly roughness: Schema.Finite;
+    readonly metalness: Schema.Finite;
+    readonly emissive: Schema.Int;
+    readonly emissiveIntensity: Schema.Finite;
+}>, Schema.TaggedStruct<"Physical", {
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+    readonly wireframe: Schema.Boolean;
+    readonly flatShading: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly roughness: Schema.Finite;
+    readonly metalness: Schema.Finite;
+    readonly emissive: Schema.Int;
+    readonly emissiveIntensity: Schema.Finite;
+    readonly clearcoat: Schema.Finite;
+    readonly clearcoatRoughness: Schema.Finite;
+    readonly transmission: Schema.Finite;
+    readonly ior: Schema.Finite;
+}>, Schema.TaggedStruct<"Normal", {
+    opacity: Schema.Finite;
+    transparent: Schema.Boolean;
+    side: Schema.Literals<readonly ["front", "back", "double"]>;
+    wireframe: Schema.Boolean;
+    flatShading: Schema.Boolean;
+}>]>;
 
 // @public
 export const torus: (options?: {
@@ -1550,6 +2001,9 @@ export type Tween = {
     readonly seconds: number;
     readonly easing: Easing;
 };
+
+// @public
+export const updateMaterial: (material: HostMaterial, description: SurfaceMaterial) => boolean;
 
 // @public
 export type Vec3 = readonly [x: number, y: number, z: number];

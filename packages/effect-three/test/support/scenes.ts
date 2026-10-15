@@ -39,7 +39,7 @@ export const expectedResources = (description: SceneDescription) => {
       const id = mesh.geometry.id;
       sharedGeometryUsers.set(id, (sharedGeometryUsers.get(id) ?? 0) + 1);
     }
-    if (mesh.material._tag === 'Standard') ownedMaterials++;
+    if (mesh.material._tag !== 'SharedMaterial') ownedMaterials++;
     else {
       const id = mesh.material.id;
       sharedMaterialUsers.set(id, (sharedMaterialUsers.get(id) ?? 0) + 1);

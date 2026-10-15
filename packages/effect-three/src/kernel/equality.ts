@@ -112,18 +112,27 @@ export const transitionEquals = (a: Transition, b: Transition): boolean => {
   return Object.is(a.seconds, b.seconds) && a.easing === b.easing;
 };
 
-/** Material reference equality: same ownership mode and same parameters or id. */
+/**
+ * Equality of two flat description records: same keys, each value `Object.is`-equal.
+ * Material descriptions are flat (numbers, booleans and string literals), so this is
+ * exact for them and needs no per-kind code.
+ */
+const sameFlatRecord = (a: object, b: object): boolean => {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  for (const key of keys) {
+    if (!Object.is(Reflect.get(a, key), Reflect.get(b, key))) return false;
+  }
+  return true;
+};
+
+/** Material reference equality: same ownership mode and same kind and parameters, or id. */
 export const materialRefEquals = (a: MaterialRef, b: MaterialRef): boolean => {
   if (a === b) return true;
-  if (a._tag === 'Standard' && b._tag === 'Standard') {
-    return (
-      Object.is(a.color, b.color) &&
-      Object.is(a.roughness, b.roughness) &&
-      Object.is(a.metalness, b.metalness)
-    );
+  if (a._tag === 'SharedMaterial' || b._tag === 'SharedMaterial') {
+    return a._tag === 'SharedMaterial' && b._tag === 'SharedMaterial' && a.id === b.id;
   }
-  if (a._tag === 'SharedMaterial' && b._tag === 'SharedMaterial') return a.id === b.id;
-  return false;
+  return sameFlatRecord(a, b);
 };
 
 /** Camera equality: same kind, same lens and same placement. */

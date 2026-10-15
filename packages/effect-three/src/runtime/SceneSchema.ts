@@ -119,12 +119,70 @@ export const Transition = Schema.Union([
   Schema.TaggedStruct('Ease', { seconds: Positive, easing: Easing }),
 ]);
 
-/** Standard (PBR) material parameters. */
-export const StandardMaterial = Schema.TaggedStruct('Standard', {
+/** Which faces a material draws. */
+export const MaterialSide = Schema.Literals(['front', 'back', 'double']);
+
+const surface = {
+  opacity: UnitInterval,
+  transparent: Schema.Boolean,
+  side: MaterialSide,
+  wireframe: Schema.Boolean,
+};
+
+const shaded = { ...surface, flatShading: Schema.Boolean };
+
+/** Unlit material parameters. */
+export const BasicMaterial = Schema.TaggedStruct('Basic', { color: Rgb, ...surface });
+
+/** Matte material parameters. */
+export const LambertMaterial = Schema.TaggedStruct('Lambert', {
+  color: Rgb,
+  emissive: Rgb,
+  ...shaded,
+});
+
+/** Shiny material parameters. */
+export const PhongMaterial = Schema.TaggedStruct('Phong', {
+  color: Rgb,
+  emissive: Rgb,
+  specular: Rgb,
+  shininess: NonNegative,
+  ...shaded,
+});
+
+const pbr = {
   color: Rgb,
   roughness: UnitInterval,
   metalness: UnitInterval,
+  emissive: Rgb,
+  emissiveIntensity: NonNegative,
+};
+
+/** Standard (PBR) material parameters. */
+export const StandardMaterial = Schema.TaggedStruct('Standard', { ...pbr, ...shaded });
+
+/** Physical material parameters: index of refraction in [1, 2.333], the range three.js documents. */
+export const PhysicalMaterial = Schema.TaggedStruct('Physical', {
+  ...pbr,
+  clearcoat: UnitInterval,
+  clearcoatRoughness: UnitInterval,
+  transmission: UnitInterval,
+  ior: Schema.Finite.check(Schema.isBetween({ minimum: 1, maximum: 2.333 })),
+  ...shaded,
 });
+
+/** Normal-coloured material parameters. */
+export const NormalMaterial = Schema.TaggedStruct('Normal', shaded);
+
+/** Any material kind. */
+export const SurfaceMaterial = Schema.Union([
+  BasicMaterial,
+  LambertMaterial,
+  PhongMaterial,
+  StandardMaterial,
+  PhysicalMaterial,
+  NormalMaterial,
+]);
 
 /** An owned geometry or a reference to a shared one. */
 export const GeometryRef = Schema.Union([
@@ -134,14 +192,14 @@ export const GeometryRef = Schema.Union([
 
 /** An owned material or a reference to a shared one. */
 export const MaterialRef = Schema.Union([
-  StandardMaterial,
+  ...SurfaceMaterial.members,
   Schema.TaggedStruct('SharedMaterial', { id: Schema.String }),
 ]);
 
 /** Shared resource definitions. */
 export const ResourceDefinitions = Schema.Struct({
   geometries: Schema.Array(Schema.Struct({ id: Schema.String, geometry: ShapeGeometry })),
-  materials: Schema.Array(Schema.Struct({ id: Schema.String, material: StandardMaterial })),
+  materials: Schema.Array(Schema.Struct({ id: Schema.String, material: SurfaceMaterial })),
 });
 
 /** A renderable mesh. */

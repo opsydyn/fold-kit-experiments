@@ -6,9 +6,11 @@
  */
 export type * from './description.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
+export { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
 export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,
+  basic,
   box,
   capsule,
   circle,
@@ -20,9 +22,13 @@ export {
   group,
   hemisphereLight,
   instant,
+  lambert,
   mesh,
+  normalMaterial,
   orthographicCamera,
   perspectiveCamera,
+  phong,
+  physical,
   plane,
   pointLight,
   ring,
@@ -50,6 +56,7 @@ export {
 export {
   createResourceStore,
   type GeometryReplaced,
+  type MaterialReplaced,
   type ResourceCounts,
   type ResourceStats,
   type ResourceStore,

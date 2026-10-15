@@ -48,36 +48,43 @@ const request =
 export const loadSelected = request(dataset.loadIfMissing, 'normal', false);
 const refreshSelected = request(dataset.revalidateOrLoad, 'normal', false);
 
+/** Whether this completion changed the dataset: accepted or failed, or ignored as stale. */
+const completionOutcome = (
+  model: Model,
+  message: typeof DatasetQuery.Message.Type,
+  result: Return<Model, Message, HighlightingService>,
+) =>
+  pipe(
+    Match.value(
+      isPending(DatasetQuery.read(model.datasets, message.args)) &&
+        !isPending(DatasetQuery.read(result.model.datasets, message.args)),
+    ),
+    Match.when(true, () =>
+      Result.match(message.result, {
+        onSuccess: () => 'accepted' as const,
+        onFailure: () => 'failed' as const,
+      }),
+    ),
+    Match.orElse(() => 'ignored' as const),
+  );
+
 const recordCompletion = (
   model: Model,
   message: typeof DatasetQuery.Message.Type,
   result: Return<Model, Message, HighlightingService>,
-): Return<Model, Message, HighlightingService> => ({
-  ...result,
-  model: modifyFields(result.model, {
-    trace: (trace) =>
-      [
-        ...trace,
-        {
-          dataset: message.args.dataset,
-          revision: message.args.revision,
-          outcome: pipe(
-            Match.value(
-              isPending(DatasetQuery.read(model.datasets, message.args)) &&
-                !isPending(DatasetQuery.read(result.model.datasets, message.args)),
-            ),
-            Match.when(true, () =>
-              Result.match(message.result, {
-                onSuccess: () => 'accepted' as const,
-                onFailure: () => 'failed' as const,
-              }),
-            ),
-            Match.orElse(() => 'ignored' as const),
-          ),
-        },
-      ].slice(-8),
-  }),
-});
+): Return<Model, Message, HighlightingService> => {
+  const outcome = completionOutcome(model, message, result);
+  return {
+    ...result,
+    model: modifyFields(result.model, {
+      trace: (trace) =>
+        [
+          ...trace,
+          { dataset: message.args.dataset, revision: message.args.revision, outcome },
+        ].slice(-8),
+    }),
+  };
+};
 
 export const update = (
   model: Model,

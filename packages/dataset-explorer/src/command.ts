@@ -10,18 +10,20 @@ export const HighlightSource = Command.define('HighlightSource', {
   messages: [Message.SettledHighlightedSource],
   execute: ({ source, language }) =>
     SourceHighlighter.get.pipe(
-      Effect.map((engine) =>
-        Message.SettledHighlightedSource({
-          highlightedSource: { source, language, tree: highlightedTree(source, language, engine) },
-        }),
-      ),
-      Effect.catch(() =>
-        Effect.succeed(
+      Effect.match({
+        onSuccess: (engine) =>
+          Message.SettledHighlightedSource({
+            highlightedSource: {
+              source,
+              language,
+              tree: highlightedTree(source, language, engine),
+            },
+          }),
+        onFailure: () =>
           Message.SettledHighlightedSource({
             highlightedSource: { source, language, tree: highlightedTree(source, language) },
           }),
-        ),
-      ),
+      }),
     ),
 });
 

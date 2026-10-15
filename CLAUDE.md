@@ -54,7 +54,7 @@ The `bun run check` script already includes this flag — prefer `bun run check`
 
 Config files:
 
-- `oxlint.config.ts` — lint rules (recommended `@opsydyn/oxlint-effect` + `@foldkit/oxlint-plugin` + biome equivalents)
+- `oxlint.config.ts` — lint rules (recommended `@opsydyn/oxlint-effect` 2.x with Effect 4 policy + `@foldkit/oxlint-plugin` + biome equivalents). Rules new in the 2.x preset that still have findings are switched off near the top as an adoption backlog, with counts; fix their findings and remove the line rather than adding disables.
 - `.oxfmtrc.json` — formatter (100-char width, 2-space indent, single quotes, trailing commas, semicolons, import sorting)
 
 ## Foldkit import style guide

@@ -10,25 +10,25 @@ export const PlotPosition = Schema.Struct({
 });
 
 /** Measure in the Mount scope; enter the normal DOM dispatcher without a Stream queue hop. */
-export const forwardPointerPositions = Effect.fn('forwardPointerPositions')(function* (
-  element: Element,
-  eventName: string,
-) {
-  const acquire = Effect.sync(() => {
-    const listener = (event: Event) => {
-      if (!(event instanceof PointerEvent)) return;
-      const { left, top, width, height } = element.getBoundingClientRect();
-      const detail = { clientX: event.clientX, clientY: event.clientY, left, top, width, height };
-      // Element-local and synchronous: later leave/key/other-chart facts cannot be overtaken.
-      element.dispatchEvent(new CustomEvent(eventName, { detail }));
-    };
-    element.addEventListener('pointermove', listener);
-    return listener;
+export const forwardPointerPositions = (element: Element, eventName: string) => {
+  const program = Effect.gen(function* () {
+    const acquire = Effect.sync(() => {
+      const listener = (event: Event) => {
+        if (!(event instanceof PointerEvent)) return;
+        const { left, top, width, height } = element.getBoundingClientRect();
+        const detail = { clientX: event.clientX, clientY: event.clientY, left, top, width, height };
+        // Element-local and synchronous: later leave/key/other-chart facts cannot be overtaken.
+        element.dispatchEvent(new CustomEvent(eventName, { detail }));
+      };
+      element.addEventListener('pointermove', listener);
+      return listener;
+    });
+    yield* Effect.acquireRelease(acquire, (listener) =>
+      Effect.sync(() => element.removeEventListener('pointermove', listener)),
+    );
   });
-  yield* Effect.acquireRelease(acquire, (listener) =>
-    Effect.sync(() => element.removeEventListener('pointermove', listener)),
-  );
-});
+  return program.pipe(Effect.withSpan('forwardPointerPositions'));
+};
 
 /** Match the promo measurement pattern: the Mount scope owns its observer. */
 // This stream is the shared lifecycle boundary, not an alias for a one-shot Effect.

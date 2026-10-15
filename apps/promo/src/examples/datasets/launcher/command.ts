@@ -32,7 +32,9 @@ export const OpenPlayground = Command.define('OpenPlayground', {
       },
       catch: () => 'Could not open StackBlitz. Please try again or download the project.',
     }).pipe(
-      Effect.map(() => Message.SucceededPlayground()),
-      Effect.catch((error) => Effect.succeed(Message.FailedPlayground({ error }))),
+      Effect.match({
+        onSuccess: () => Message.SucceededPlayground(),
+        onFailure: (error) => Message.FailedPlayground({ error }),
+      }),
     ),
 });

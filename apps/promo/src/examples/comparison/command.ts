@@ -22,8 +22,10 @@ export const CopySource = Command.define('CopySource', {
       try: () => navigator.clipboard.writeText(source),
       catch: () => 'Copy was blocked. Select the code and copy it with your keyboard.',
     }).pipe(
-      Effect.map(() => Message.SucceededAction({ action: 'copy' })),
-      Effect.catch((error) => Effect.succeed(Message.FailedAction({ error }))),
+      Effect.match({
+        onSuccess: () => Message.SucceededAction({ action: 'copy' }),
+        onFailure: (error) => Message.FailedAction({ error }),
+      }),
     ),
 });
 
@@ -66,8 +68,10 @@ export const ExportProject = Command.define('ExportProject', {
       },
       catch: () => 'Could not prepare the project. Please try again.',
     }).pipe(
-      Effect.map(() => Message.SucceededAction({ action })),
-      Effect.catch((error) => Effect.succeed(Message.FailedAction({ error }))),
+      Effect.match({
+        onSuccess: () => Message.SucceededAction({ action }),
+        onFailure: (error) => Message.FailedAction({ error }),
+      }),
     ),
 });
 
@@ -76,18 +80,20 @@ export const HighlightSource = Command.define('HighlightSource', {
   messages: [Message.SettledHighlightedSource],
   execute: ({ source, language }) =>
     SourceHighlighter.get.pipe(
-      Effect.map((engine) =>
-        Message.SettledHighlightedSource({
-          highlightedSource: { source, language, tree: highlightedTree(source, language, engine) },
-        }),
-      ),
-      Effect.catch(() =>
-        Effect.succeed(
+      Effect.match({
+        onSuccess: (engine) =>
+          Message.SettledHighlightedSource({
+            highlightedSource: {
+              source,
+              language,
+              tree: highlightedTree(source, language, engine),
+            },
+          }),
+        onFailure: () =>
           Message.SettledHighlightedSource({
             highlightedSource: { source, language, tree: highlightedTree(source, language) },
           }),
-        ),
-      ),
+      }),
     ),
 });
 

@@ -137,6 +137,12 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>]>;
+        readonly render: Schema.Struct<{
+            readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
+            readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
+            readonly exposure: Schema.Finite;
+            readonly colorSpace: Schema.Literals<readonly ["srgb", "linear"]>;
+        }>;
         readonly resources: Schema.Struct<{
             readonly geometries: Schema.$Array<Schema.Struct<{
                 readonly id: Schema.String;

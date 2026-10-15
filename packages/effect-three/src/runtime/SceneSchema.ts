@@ -212,6 +212,8 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   geometry: GeometryRef,
   material: MaterialRef,
   interactive: Schema.Boolean,
+  castShadow: Schema.Boolean,
+  receiveShadow: Schema.Boolean,
 });
 
 /** Uniform ambient light. */
@@ -222,11 +224,24 @@ export const AmbientLightNode = Schema.TaggedStruct('AmbientLight', {
 });
 
 /** Directional light. */
+const isPowerOfTwo = (size: number) =>
+  Number.isInteger(Math.log2(size)) || 'expected a power of two';
+
+/** Shadow map size: a power of two from 16 to 8192 texels. */
+const ShadowMapSize = Schema.Int.check(
+  Schema.isBetween({ minimum: 16, maximum: 8192 }),
+  Schema.makeFilter(isPowerOfTwo),
+);
+
 export const DirectionalLightNode = Schema.TaggedStruct('DirectionalLight', {
   key: Schema.String,
   color: Rgb,
   intensity: NonNegative,
   position: Vec3,
+  castShadow: Schema.Boolean,
+  shadowMapSize: ShadowMapSize,
+  shadowBias: Schema.Finite,
+  shadowArea: Positive,
 });
 
 /** Point light. */
@@ -237,6 +252,9 @@ export const PointLightNode = Schema.TaggedStruct('PointLight', {
   position: Vec3,
   distance: NonNegative,
   decay: NonNegative,
+  castShadow: Schema.Boolean,
+  shadowMapSize: ShadowMapSize,
+  shadowBias: Schema.Finite,
 });
 
 /** Spot light: `angle` in (0, π/2], `penumbra` in [0, 1]. */
@@ -252,6 +270,9 @@ export const SpotLightNode = Schema.TaggedStruct('SpotLight', {
   ),
   penumbra: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   decay: NonNegative,
+  castShadow: Schema.Boolean,
+  shadowMapSize: ShadowMapSize,
+  shadowBias: Schema.Finite,
 });
 
 /** Hemisphere light. */
@@ -302,9 +323,18 @@ export const OrthographicCamera = Schema.TaggedStruct('Orthographic', {
 /** The active camera. */
 export const Camera = Schema.Union([PerspectiveCamera, OrthographicCamera]);
 
+/** Scene-wide render settings. */
+export const RenderSettings = Schema.Struct({
+  shadows: Schema.Literals(['off', 'basic', 'percentage', 'soft', 'variance']),
+  toneMapping: Schema.Literals(['none', 'linear', 'reinhard', 'cineon', 'aces', 'agx', 'neutral']),
+  exposure: Positive,
+  colorSpace: Schema.Literals(['srgb', 'linear']),
+});
+
 /** A complete scene description. */
 export const SceneDescription = Schema.Struct({
   camera: Camera,
+  render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
 });

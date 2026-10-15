@@ -133,6 +133,8 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
       Schema.TaggedStruct('SharedMaterial', { id: Schema.Literals(['m1', 'm2']) }),
     ]),
     interactive: Schema.Boolean,
+    castShadow: Schema.Boolean,
+    receiveShadow: Schema.Boolean,
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),
   Schema.TaggedStruct('PointLight', {
@@ -142,6 +144,10 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     position: Vec3,
     distance: Schema.Literals([0, 10]),
     decay: Schema.Literals([1, 2]),
+
+    castShadow: Schema.Boolean,
+    shadowMapSize: Schema.Literals([256, 512]),
+    shadowBias: Schema.Literals([0, -0.001]),
   }),
   Schema.TaggedStruct('SpotLight', {
     key: Key,
@@ -153,6 +159,10 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     angle: Schema.Literals([0.5, 1]),
     penumbra: Unit,
     decay: Schema.Literals([1, 2]),
+
+    castShadow: Schema.Boolean,
+    shadowMapSize: Schema.Literals([256, 512]),
+    shadowBias: Schema.Literals([0, -0.001]),
   }),
   Schema.TaggedStruct('HemisphereLight', {
     key: Key,
@@ -166,10 +176,21 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     color: Colour,
     intensity: Size,
     position: Vec3,
+
+    castShadow: Schema.Boolean,
+    shadowMapSize: Schema.Literals([256, 512]),
+    shadowBias: Schema.Literals([0, -0.001]),
+    shadowArea: Schema.Literals([5, 10]),
   }),
 ]);
 
 const sceneFields = {
+  render: Schema.Struct({
+    shadows: Schema.Literals(['off', 'soft']),
+    toneMapping: Schema.Literals(['none', 'aces']),
+    exposure: Schema.Literals([1, 2]),
+    colorSpace: Schema.Literals(['srgb', 'linear']),
+  }),
   camera: Schema.Union([
     Schema.TaggedStruct('Perspective', {
       fov: Schema.Literals([45, 60]),

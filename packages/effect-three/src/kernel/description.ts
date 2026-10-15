@@ -266,6 +266,10 @@ export type MeshNode = {
   readonly geometry: GeometryRef;
   readonly material: MaterialRef;
   readonly interactive: boolean;
+  /** Casts shadows from lights with `castShadow`, when the scene enables shadows. */
+  readonly castShadow: boolean;
+  /** Receives shadows, when the scene enables shadows. */
+  readonly receiveShadow: boolean;
 };
 
 /** Uniform ambient light. */
@@ -283,6 +287,14 @@ export type DirectionalLightNode = {
   readonly color: Rgb;
   readonly intensity: number;
   readonly position: Vec3;
+  /** Renders a shadow map from this light, when the scene enables shadows. */
+  readonly castShadow: boolean;
+  /** Shadow map width and height in texels: a power of two. */
+  readonly shadowMapSize: number;
+  /** Depth offset that removes shadow acne; usually a small negative number. */
+  readonly shadowBias: number;
+  /** Half the width and height, in world units, of the area the shadow covers. */
+  readonly shadowArea: number;
 };
 
 /**
@@ -296,7 +308,12 @@ export type PointLightNode = {
   readonly intensity: number;
   readonly position: Vec3;
   readonly distance: number;
-  readonly decay: number;
+  readonly decay: number /** Renders a shadow map from this light, when the scene enables shadows. */;
+  readonly castShadow: boolean;
+  /** Shadow map width and height in texels: a power of two. */
+  readonly shadowMapSize: number;
+  /** Depth offset that removes shadow acne; usually a small negative number. */
+  readonly shadowBias: number;
 };
 
 /**
@@ -313,7 +330,12 @@ export type SpotLightNode = {
   readonly distance: number;
   readonly angle: number;
   readonly penumbra: number;
-  readonly decay: number;
+  readonly decay: number /** Renders a shadow map from this light, when the scene enables shadows. */;
+  readonly castShadow: boolean;
+  /** Shadow map width and height in texels: a power of two. */
+  readonly shadowMapSize: number;
+  /** Depth offset that removes shadow acne; usually a small negative number. */
+  readonly shadowBias: number;
 };
 
 /** Sky-to-ground gradient light: `color` from above `position`, `groundColor` from below. */
@@ -366,9 +388,29 @@ export type OrthographicCamera = {
 /** The single active camera. */
 export type Camera = PerspectiveCamera | OrthographicCamera;
 
-/** A complete scene: camera, shared resources and root nodes. */
+/**
+ * Shadow map filtering, as React Three Fiber names it: `basic` (hard), `percentage` (PCF),
+ * `soft` (PCF soft) or `variance` (VSM). `off` disables shadows.
+ */
+export type ShadowMode = 'off' | 'basic' | 'percentage' | 'soft' | 'variance';
+
+/** How the renderer maps scene light to screen colour. */
+export type ToneMapping = 'none' | 'linear' | 'reinhard' | 'cineon' | 'aces' | 'agx' | 'neutral';
+
+/** Scene-wide rendering settings, changeable at any time. */
+export type RenderSettings = {
+  readonly shadows: ShadowMode;
+  readonly toneMapping: ToneMapping;
+  /** Exposure for tone mapping. Ignored when `toneMapping` is `none`. */
+  readonly exposure: number;
+  /** The output colour space: `srgb` for displays, `linear` to skip the conversion. */
+  readonly colorSpace: 'srgb' | 'linear';
+};
+
+/** A complete scene: camera, render settings, shared resources and root nodes. */
 export type SceneDescription = {
   readonly camera: Camera;
+  readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;
 };

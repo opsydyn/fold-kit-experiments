@@ -8,6 +8,7 @@ import type {
   GeometryRef,
   MaterialRef,
   Camera,
+  RenderSettings,
   ResourceDefinitions,
   Rotation,
   ShapeGeometry,
@@ -149,6 +150,10 @@ export const cameraEquals = (a: Camera, b: Camera): boolean => {
     vec3Equals(a.lookAt, b.lookAt)
   );
 };
+
+/** Render settings equality. */
+export const renderSettingsEquals = (a: RenderSettings, b: RenderSettings): boolean =>
+  a === b || sameFlatRecord(a, b);
 
 /** Order-sensitive equality of shared resource definitions. */
 export const resourcesEqual = (a: ResourceDefinitions, b: ResourceDefinitions): boolean => {

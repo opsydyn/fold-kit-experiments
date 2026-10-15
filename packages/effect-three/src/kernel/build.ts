@@ -28,6 +28,7 @@ import type {
   PerspectiveCamera,
   PlaneGeometry,
   PointLightNode,
+  RenderSettings,
   RingGeometry,
   ResourceDefinitions,
   Rgb,
@@ -324,6 +325,8 @@ export const mesh = (
     readonly geometry: GeometryRef;
     readonly material: MaterialRef;
     readonly interactive?: boolean;
+    readonly castShadow?: boolean;
+    readonly receiveShadow?: boolean;
   },
 ): MeshNode => ({
   _tag: 'Mesh',
@@ -335,6 +338,8 @@ export const mesh = (
   geometry: options.geometry,
   material: options.material,
   interactive: options.interactive ?? false,
+  castShadow: options.castShadow ?? false,
+  receiveShadow: options.receiveShadow ?? false,
 });
 
 /** Ambient light. Defaults: white, intensity 1. */
@@ -349,18 +354,29 @@ export const ambientLight = (options: {
   intensity: options.intensity ?? 1,
 });
 
-/** Directional light. Defaults: white, intensity 1, shining from `[0, 1, 0]`. */
+/**
+ * Directional light. Defaults: white, intensity 1, shining from `[0, 1, 0]`; no shadow,
+ * or a 512² shadow map covering ±5 world units (three.js's defaults) when casting.
+ */
 export const directionalLight = (options: {
   readonly key: string;
   readonly color?: Rgb;
   readonly intensity?: number;
   readonly position?: Vec3;
+  readonly castShadow?: boolean;
+  readonly shadowMapSize?: number;
+  readonly shadowBias?: number;
+  readonly shadowArea?: number;
 }): DirectionalLightNode => ({
   _tag: 'DirectionalLight',
   key: options.key,
   color: options.color ?? 0xffffff,
   intensity: options.intensity ?? 1,
   position: options.position ?? [0, 1, 0],
+  castShadow: options.castShadow ?? false,
+  shadowMapSize: options.shadowMapSize ?? 512,
+  shadowBias: options.shadowBias ?? 0,
+  shadowArea: options.shadowArea ?? 5,
 });
 
 /** Point light. Defaults (as three.js): white, intensity 1, at the origin, no cut-off, decay 2. */
@@ -371,6 +387,9 @@ export const pointLight = (options: {
   readonly position?: Vec3;
   readonly distance?: number;
   readonly decay?: number;
+  readonly castShadow?: boolean;
+  readonly shadowMapSize?: number;
+  readonly shadowBias?: number;
 }): PointLightNode => ({
   _tag: 'PointLight',
   key: options.key,
@@ -379,6 +398,9 @@ export const pointLight = (options: {
   position: options.position ?? origin,
   distance: options.distance ?? 0,
   decay: options.decay ?? 2,
+  castShadow: options.castShadow ?? false,
+  shadowMapSize: options.shadowMapSize ?? 512,
+  shadowBias: options.shadowBias ?? 0,
 });
 
 /**
@@ -395,6 +417,9 @@ export const spotLight = (options: {
   readonly angle?: number;
   readonly penumbra?: number;
   readonly decay?: number;
+  readonly castShadow?: boolean;
+  readonly shadowMapSize?: number;
+  readonly shadowBias?: number;
 }): SpotLightNode => ({
   _tag: 'SpotLight',
   key: options.key,
@@ -406,6 +431,9 @@ export const spotLight = (options: {
   angle: options.angle ?? Math.PI / 3,
   penumbra: options.penumbra ?? 0,
   decay: options.decay ?? 2,
+  castShadow: options.castShadow ?? false,
+  shadowMapSize: options.shadowMapSize ?? 512,
+  shadowBias: options.shadowBias ?? 0,
 });
 
 /** Hemisphere light. Defaults (as three.js): white sky and ground, intensity 1, from `[0, 1, 0]`. */
@@ -451,13 +479,29 @@ export const orthographicCamera = (
   lookAt: options.lookAt ?? origin,
 });
 
+/**
+ * Render settings. Defaults: shadows off, no tone mapping, exposure 1, sRGB output.
+ * React Three Fiber defaults to ACES tone mapping; this keeps colours exactly as given,
+ * so a validated palette renders as validated. Pass `toneMapping: 'aces'` to match R3F.
+ */
+export const renderSettings = (options: Partial<RenderSettings> = {}): RenderSettings => ({
+  shadows: options.shadows ?? 'off',
+  toneMapping: options.toneMapping ?? 'none',
+  exposure: options.exposure ?? 1,
+  colorSpace: options.colorSpace ?? 'srgb',
+});
+
+const defaultRenderSettings = renderSettings();
+
 /** A scene description. */
 export const scene = (options: {
   readonly camera?: Camera;
+  readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
 }): SceneDescription => ({
   camera: options.camera ?? perspectiveCamera(),
+  render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,
     materials: options.resources?.materials ?? noResources.materials,

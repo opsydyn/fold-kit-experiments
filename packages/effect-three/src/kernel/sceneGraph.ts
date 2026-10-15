@@ -23,6 +23,7 @@ import {
 } from 'three';
 
 import { writeRotation } from './behaviours.ts';
+import { renderSettings } from './build.ts';
 import type {
   AmbientLightNode,
   DirectionalLightNode,
@@ -31,6 +32,7 @@ import type {
   MeshNode,
   Camera as CameraDescription,
   PointLightNode,
+  RenderSettings,
   SceneDescription,
   SceneNode,
   SpotLightNode,
@@ -88,6 +90,11 @@ export type SceneGraph = {
   /** Scene time of the last `tick`. */
   readonly elapsedSeconds: () => number;
   /**
+   * The scene's current render settings. A new value (by reference) means they changed,
+   * so the frame loop can reconfigure the renderer without comparing fields.
+   */
+  readonly renderSettings: () => RenderSettings;
+  /**
    * While not animating (reduced motion, a paused debugger), transitions land at once and
    * any in flight finish, because frozen scene time would otherwise strand them mid-way.
    */
@@ -116,6 +123,41 @@ const writeVec3 = (
   target.set(v[0], v[1], v[2]);
 };
 
+type ShadowFields = {
+  readonly castShadow: boolean;
+  readonly shadowMapSize: number;
+  readonly shadowBias: number;
+};
+
+/** Writes a light's shadow settings. A new map size drops the old map so three reallocates it. */
+const writeShadow = (
+  light: DirectionalLight | PointLight | SpotLight,
+  fields: ShadowFields,
+): void => {
+  light.castShadow = fields.castShadow;
+  light.shadow.bias = fields.shadowBias;
+  if (light.shadow.mapSize.x !== fields.shadowMapSize) {
+    light.shadow.mapSize.set(fields.shadowMapSize, fields.shadowMapSize);
+    light.shadow.map?.dispose();
+    light.shadow.map = null;
+  }
+};
+
+const writeDirectionalLight = (light: DirectionalLight, node: DirectionalLightNode): void => {
+  light.color.setHex(node.color);
+  light.intensity = node.intensity;
+  writeVec3(light.position, node.position);
+  writeShadow(light, node);
+  const camera = light.shadow.camera;
+  if (camera.right !== node.shadowArea) {
+    camera.left = -node.shadowArea;
+    camera.right = node.shadowArea;
+    camera.top = node.shadowArea;
+    camera.bottom = -node.shadowArea;
+    camera.updateProjectionMatrix();
+  }
+};
+
 // Lights are cheap to write in full, so an update rewrites every field from the node.
 const writePointLight = (light: PointLight, node: PointLightNode): void => {
   light.color.setHex(node.color);
@@ -123,6 +165,7 @@ const writePointLight = (light: PointLight, node: PointLightNode): void => {
   writeVec3(light.position, node.position);
   light.distance = node.distance;
   light.decay = node.decay;
+  writeShadow(light, node);
 };
 
 const writeSpotLight = (light: SpotLight, node: SpotLightNode): void => {
@@ -133,6 +176,7 @@ const writeSpotLight = (light: SpotLight, node: SpotLightNode): void => {
   light.angle = node.angle;
   light.penumbra = node.penumbra;
   light.decay = node.decay;
+  writeShadow(light, node);
   // The target is not in the scene graph (it is world space), so three never updates its
   // matrix: do it here, once per change.
   writeVec3(light.target.position, node.target);
@@ -205,6 +249,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let index: SceneIndex = emptyIndex;
   let elapsed = 0;
   let animating = true;
+  let settings: RenderSettings = renderSettings();
   let viewport = { width: 1, height: 1 };
 
   const unsubscribeGeometry = store.onGeometryReplaced(({ previous, next }) => {
@@ -251,13 +296,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.scale, node.scale);
         trackRotation(entry, node);
         trackInteractive(object, node.interactive);
+        object.castShadow = node.castShadow;
+        object.receiveShadow = node.receiveShadow;
         return entry;
       }
       case 'AmbientLight':
         return { _tag: 'AmbientLight', node, object: new AmbientLight(node.color, node.intensity) };
       case 'DirectionalLight': {
-        const object = new DirectionalLight(node.color, node.intensity);
-        writeVec3(object.position, node.position);
+        const object = new DirectionalLight();
+        writeDirectionalLight(object, node);
         return { _tag: 'DirectionalLight', node, object };
       }
       case 'PointLight': {
@@ -332,6 +379,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
       if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
+      mesh.castShadow = next.castShadow;
+      mesh.receiveShadow = next.receiveShadow;
       return;
     }
     if (entry._tag === 'Group' && next._tag === 'Group') {
@@ -347,9 +396,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       return;
     }
     if (entry._tag === 'DirectionalLight' && next._tag === 'DirectionalLight') {
-      entry.object.color.setHex(next.color);
-      entry.object.intensity = next.intensity;
-      writeVec3(entry.object.position, next.position);
+      writeDirectionalLight(entry.object, next);
       entry.node = next;
       return;
     }
@@ -390,6 +437,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         camera = cameraFor(camera, op.camera);
         applyCamera(camera, op.camera);
         fitCamera(camera, viewport);
+        return;
+      case 'SetRenderSettings':
+        settings = op.settings;
         return;
       case 'DefineResources':
         store.define(op.resources);
@@ -526,6 +576,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     reconcile,
     tick,
     elapsedSeconds: () => elapsed,
+    renderSettings: () => settings,
     setAnimating,
     object: (key) => entries.get(key)?.object,
     keyOf: (object) => keys.get(object),

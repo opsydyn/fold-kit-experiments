@@ -81,6 +81,12 @@ const materialKeys = [
   'flatShading',
 ] as const;
 
+const shadowOf = (light: DirectionalLight | PointLight | SpotLight) => ({
+  castShadow: light.castShadow,
+  mapSize: light.shadow.mapSize.toArray(),
+  bias: light.shadow.bias,
+});
+
 const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
   if (object instanceof Mesh) {
     const materialDetail = {
@@ -88,6 +94,8 @@ const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
       ...materialOf(object.material),
     };
     return {
+      castShadow: object.castShadow,
+      receiveShadow: object.receiveShadow,
       geometry: {
         shared: graph.store.sharedGeometryId(object.geometry),
         shape: shapeOf(object.geometry),
@@ -97,6 +105,7 @@ const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
   }
   if (object instanceof SpotLight) {
     return {
+      ...shadowOf(object),
       color: object.color.getHex(),
       intensity: object.intensity,
       target: object.target.position.toArray(),
@@ -108,6 +117,7 @@ const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
   }
   if (object instanceof PointLight) {
     return {
+      ...shadowOf(object),
       color: object.color.getHex(),
       intensity: object.intensity,
       distance: object.distance,
@@ -121,7 +131,15 @@ const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
       intensity: object.intensity,
     };
   }
-  if (object instanceof AmbientLight || object instanceof DirectionalLight) {
+  if (object instanceof DirectionalLight) {
+    return {
+      ...shadowOf(object),
+      area: object.shadow.camera.right,
+      color: object.color.getHex(),
+      intensity: object.intensity,
+    };
+  }
+  if (object instanceof AmbientLight) {
     return { color: object.color.getHex(), intensity: object.intensity };
   }
   return null;
@@ -138,6 +156,7 @@ const snapshotNode = (graph: SceneGraph, object: Object3D): NodeSnapshot => ({
 });
 
 export const snapshot = (graph: SceneGraph): unknown => ({
+  render: graph.renderSettings(),
   camera: {
     type: graph.camera.type,
     lens: graph.camera instanceof PerspectiveCamera ? graph.camera.fov : graph.camera.zoom,

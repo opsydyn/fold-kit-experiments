@@ -13,9 +13,16 @@
  *
  * @module
  */
-import type { Camera, ResourceDefinitions, SceneDescription, SceneNode } from './description.ts';
+import type {
+  Camera,
+  RenderSettings,
+  ResourceDefinitions,
+  SceneDescription,
+  SceneNode,
+} from './description.ts';
 import {
   cameraEquals,
+  renderSettingsEquals,
   geometryRefEquals,
   materialRefEquals,
   resourcesEqual,
@@ -46,11 +53,17 @@ export type Field =
   | 'distance'
   | 'angle'
   | 'penumbra'
-  | 'decay';
+  | 'decay'
+  | 'castShadow'
+  | 'receiveShadow'
+  | 'shadowMapSize'
+  | 'shadowBias'
+  | 'shadowArea';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
   | { readonly _tag: 'SetCamera'; readonly camera: Camera }
+  | { readonly _tag: 'SetRenderSettings'; readonly settings: RenderSettings }
   | { readonly _tag: 'DefineResources'; readonly resources: ResourceDefinitions }
   | { readonly _tag: 'Create'; readonly node: SceneNode; readonly parent: ParentKey }
   | { readonly _tag: 'Replace'; readonly node: SceneNode; readonly parent: ParentKey }
@@ -97,6 +110,8 @@ export const changedFields = (
       if (!geometryRefEquals(prev.geometry, next.geometry)) fields.push('geometry');
       if (!materialRefEquals(prev.material, next.material)) fields.push('material');
       if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (prev.castShadow !== next.castShadow) fields.push('castShadow');
+      if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
       return fields;
     }
     case 'AmbientLight': {
@@ -110,6 +125,10 @@ export const changedFields = (
       if (!Object.is(prev.color, next.color)) fields.push('color');
       if (!Object.is(prev.intensity, next.intensity)) fields.push('intensity');
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (prev.castShadow !== next.castShadow) fields.push('castShadow');
+      if (!Object.is(prev.shadowMapSize, next.shadowMapSize)) fields.push('shadowMapSize');
+      if (!Object.is(prev.shadowBias, next.shadowBias)) fields.push('shadowBias');
+      if (!Object.is(prev.shadowArea, next.shadowArea)) fields.push('shadowArea');
       return fields;
     }
     case 'PointLight': {
@@ -119,6 +138,9 @@ export const changedFields = (
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
       if (!Object.is(prev.distance, next.distance)) fields.push('distance');
       if (!Object.is(prev.decay, next.decay)) fields.push('decay');
+      if (prev.castShadow !== next.castShadow) fields.push('castShadow');
+      if (!Object.is(prev.shadowMapSize, next.shadowMapSize)) fields.push('shadowMapSize');
+      if (!Object.is(prev.shadowBias, next.shadowBias)) fields.push('shadowBias');
       return fields;
     }
     case 'SpotLight': {
@@ -131,6 +153,9 @@ export const changedFields = (
       if (!Object.is(prev.angle, next.angle)) fields.push('angle');
       if (!Object.is(prev.penumbra, next.penumbra)) fields.push('penumbra');
       if (!Object.is(prev.decay, next.decay)) fields.push('decay');
+      if (prev.castShadow !== next.castShadow) fields.push('castShadow');
+      if (!Object.is(prev.shadowMapSize, next.shadowMapSize)) fields.push('shadowMapSize');
+      if (!Object.is(prev.shadowBias, next.shadowBias)) fields.push('shadowBias');
       return fields;
     }
     case 'HemisphereLight': {
@@ -161,6 +186,9 @@ export const diff = (prev: SceneIndex, next: SceneDescription): DiffResult => {
   const prevDescription = prev.description;
   if (prevDescription === null || !cameraEquals(prevDescription.camera, next.camera)) {
     ops.push({ _tag: 'SetCamera', camera: next.camera });
+  }
+  if (prevDescription === null || !renderSettingsEquals(prevDescription.render, next.render)) {
+    ops.push({ _tag: 'SetRenderSettings', settings: next.render });
   }
   if (prevDescription === null || !resourcesEqual(prevDescription.resources, next.resources)) {
     ops.push({ _tag: 'DefineResources', resources: next.resources });

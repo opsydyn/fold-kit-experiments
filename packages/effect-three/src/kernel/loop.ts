@@ -1,3 +1,4 @@
+import type { RenderSettings } from './description.ts';
 /**
  * The per-frame step and pointer routing for one scene. Plain synchronous code: the
  * Effect runtime owns its lifetime (ADR-003: Effect owns lifetimes, not frames).
@@ -36,10 +37,17 @@ export type SceneLoop = {
 export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
   const { graph, renderer, elapsedSeconds, emit } = options;
   const tracker = createPointerTracker(createPicker(graph));
+  let configured: RenderSettings | undefined;
   return {
     frame: () => {
       graph.tick(elapsedSeconds());
       for (const event of tracker.frame()) emit(event);
+      // Settings change only through reconcile, which replaces the value: compare by reference.
+      const settings = graph.renderSettings();
+      if (settings !== configured) {
+        renderer.configure(settings);
+        configured = settings;
+      }
       renderer.render(graph.scene, graph.camera);
     },
     pointer: (input) => {

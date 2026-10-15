@@ -74,7 +74,14 @@ describe('reconcile', () => {
         }),
       ),
     );
-    expect(tags(ops)).toEqual(['SetCamera', 'DefineResources', 'Create', 'Create', 'Create']);
+    expect(tags(ops)).toEqual([
+      'SetCamera',
+      'SetRenderSettings',
+      'DefineResources',
+      'Create',
+      'Create',
+      'Create',
+    ]);
     expect(graph.scene.children.map((child) => graph.keyOf(child))).toEqual([
       'ambient',
       'sun',

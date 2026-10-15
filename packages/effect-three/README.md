@@ -44,6 +44,7 @@ const description = scene({
 - **Descriptions are fully specified data.** The constructors fill in defaults, and nothing in a description is a closure or a three.js object.
 - **Shapes:** `box`, `sphere`, `plane`, `cylinder`, `torus`, `cone`, `capsule`, `ring` and `circle`, owned by one mesh or shared through `resources`. Parameter names and defaults are three.js's own.
 - **Materials:** `basic`, `lambert`, `phong`, `standard`, `physical` and `normalMaterial`, each with opacity, transparency, `side`, wireframe and (lit kinds) flat shading and emission. Defaults are three.js's own. Changing a material within its kind updates it in place; changing its kind replaces it.
+- **Shadows and render settings:** `scene({ render: renderSettings({ shadows: 'soft', toneMapping: 'aces' }) })`, then `castShadow`/`receiveShadow` on meshes and `castShadow` on directional, point and spot lights. Tone mapping defaults to `none` (React Three Fiber defaults to ACES) so colours render exactly as given.
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 

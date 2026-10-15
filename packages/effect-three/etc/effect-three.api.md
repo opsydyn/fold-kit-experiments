@@ -307,6 +307,10 @@ export const directionalLight: (options: {
     readonly color?: Rgb;
     readonly intensity?: number;
     readonly position?: Vec3;
+    readonly castShadow?: boolean;
+    readonly shadowMapSize?: number;
+    readonly shadowBias?: number;
+    readonly shadowArea?: number;
 }) => DirectionalLightNode;
 
 // @public
@@ -316,14 +320,22 @@ export type DirectionalLightNode = {
     readonly color: Rgb;
     readonly intensity: number;
     readonly position: Vec3;
+    readonly castShadow: boolean;
+    readonly shadowMapSize: number;
+    readonly shadowBias: number;
+    readonly shadowArea: number;
 };
 
-// @public
+// @public (undocumented)
 const DirectionalLightNode_2: Schema.TaggedStruct<"DirectionalLight", {
     readonly key: Schema.String;
     readonly color: Schema.Int;
     readonly intensity: Schema.Finite;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly castShadow: Schema.Boolean;
+    readonly shadowMapSize: Schema.Int;
+    readonly shadowBias: Schema.Finite;
+    readonly shadowArea: Schema.Finite;
 }>;
 
 // @public
@@ -345,7 +357,7 @@ const Easing_2: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCu
 export const emptyIndex: SceneIndex;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay';
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea';
 
 // @public
 export const fixed: (euler: Vec3) => Rotation;
@@ -690,6 +702,8 @@ export const mesh: (options: TransformOptions & {
     readonly geometry: GeometryRef;
     readonly material: MaterialRef;
     readonly interactive?: boolean;
+    readonly castShadow?: boolean;
+    readonly receiveShadow?: boolean;
 }) => MeshNode;
 
 // @public
@@ -703,6 +717,8 @@ export type MeshNode = {
     readonly geometry: GeometryRef;
     readonly material: MaterialRef;
     readonly interactive: boolean;
+    readonly castShadow: boolean;
+    readonly receiveShadow: boolean;
 };
 
 // @public
@@ -821,6 +837,8 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
         readonly id: Schema.String;
     }>]>;
     readonly interactive: Schema.Boolean;
+    readonly castShadow: Schema.Boolean;
+    readonly receiveShadow: Schema.Boolean;
 }>;
 
 // @public
@@ -857,6 +875,9 @@ const NormalMaterial_2: Schema.TaggedStruct<"Normal", {
 export type Op = {
     readonly _tag: 'SetCamera';
     readonly camera: Camera;
+} | {
+    readonly _tag: 'SetRenderSettings';
+    readonly settings: RenderSettings;
 } | {
     readonly _tag: 'DefineResources';
     readonly resources: ResourceDefinitions;
@@ -1078,6 +1099,9 @@ export const pointLight: (options: {
     readonly position?: Vec3;
     readonly distance?: number;
     readonly decay?: number;
+    readonly castShadow?: boolean;
+    readonly shadowMapSize?: number;
+    readonly shadowBias?: number;
 }) => PointLightNode;
 
 // @public
@@ -1088,7 +1112,10 @@ export type PointLightNode = {
     readonly intensity: number;
     readonly position: Vec3;
     readonly distance: number;
-    readonly decay: number;
+    readonly decay: number /** Renders a shadow map from this light, when the scene enables shadows. */;
+    readonly castShadow: boolean;
+    readonly shadowMapSize: number;
+    readonly shadowBias: number;
 };
 
 // @public
@@ -1099,6 +1126,9 @@ const PointLightNode_2: Schema.TaggedStruct<"PointLight", {
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly decay: Schema.Finite;
+    readonly castShadow: Schema.Boolean;
+    readonly shadowMapSize: Schema.Int;
+    readonly shadowBias: Schema.Finite;
 }>;
 
 // @public (undocumented)
@@ -1113,6 +1143,7 @@ export type ReconcileResult = {
 // @public
 export type RecordingRenderer = SceneRenderer & {
     readonly renders: () => number;
+    readonly configured: () => ReadonlyArray<RenderSettings>;
     readonly viewport: () => Viewport | undefined;
     readonly disposed: () => boolean;
 };
@@ -1143,6 +1174,28 @@ export class RendererUnavailable extends RendererUnavailable_base<{
     readonly cause: unknown;
 }> {
 }
+
+// @public
+export type RenderSettings = {
+    readonly shadows: ShadowMode;
+    readonly toneMapping: ToneMapping;
+    readonly exposure: number;
+    readonly colorSpace: 'srgb' | 'linear';
+};
+
+// @public
+export const renderSettings: (options?: Partial<RenderSettings>) => RenderSettings;
+
+// @public
+const RenderSettings_2: Schema.Struct<{
+    readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
+    readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
+    readonly exposure: Schema.Finite;
+    readonly colorSpace: Schema.Literals<readonly ["srgb", "linear"]>;
+}>;
+
+// @public
+export const renderSettingsEquals: (a: RenderSettings, b: RenderSettings) => boolean;
 
 // @public
 export type ResourceCounts = {
@@ -1356,6 +1409,7 @@ export const rotationEquals: (a: Rotation, b: Rotation) => boolean;
 // @public
 export const scene: (options: {
     readonly camera?: Camera;
+    readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
 }) => SceneDescription;
@@ -1370,6 +1424,7 @@ export type SceneClock = {
 // @public
 export type SceneDescription = {
     readonly camera: Camera;
+    readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
 };
@@ -1389,6 +1444,12 @@ const SceneDescription_2: Schema.Struct<{
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>]>;
+    readonly render: Schema.Struct<{
+        readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
+        readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
+        readonly exposure: Schema.Finite;
+        readonly colorSpace: Schema.Literals<readonly ["srgb", "linear"]>;
+    }>;
     readonly resources: Schema.Struct<{
         readonly geometries: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
@@ -1588,6 +1649,7 @@ export type SceneGraph = {
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
     readonly elapsedSeconds: () => number;
+    readonly renderSettings: () => RenderSettings;
     readonly setAnimating: (animating: boolean) => void;
     readonly object: (key: string) => Object3D | undefined;
     readonly keyOf: (object: Object3D) => string | undefined;
@@ -1639,6 +1701,7 @@ const SceneNode_2: Schema.Codec<SceneNode>;
 // @public
 export type SceneRenderer = {
     readonly render: (scene: Scene, camera: Camera_2) => void;
+    readonly configure: (settings: RenderSettings) => void;
     readonly setViewport: (viewport: Viewport) => void;
     readonly memory: () => RendererMemory;
     readonly dispose: () => void;
@@ -1699,6 +1762,7 @@ declare namespace SceneSchema {
         PerspectiveCamera_3 as PerspectiveCamera,
         OrthographicCamera_3 as OrthographicCamera,
         Camera_3 as Camera,
+        RenderSettings_2 as RenderSettings,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
         HitDetail,
@@ -1709,6 +1773,9 @@ declare namespace SceneSchema {
         DescriptionError_2 as DescriptionError
     }
 }
+
+// @public
+export type ShadowMode = 'off' | 'basic' | 'percentage' | 'soft' | 'variance';
 
 // @public
 export const shapeEquals: (a: ShapeGeometry, b: ShapeGeometry) => boolean;
@@ -1807,6 +1874,9 @@ export const spotLight: (options: {
     readonly angle?: number;
     readonly penumbra?: number;
     readonly decay?: number;
+    readonly castShadow?: boolean;
+    readonly shadowMapSize?: number;
+    readonly shadowBias?: number;
 }) => SpotLightNode;
 
 // @public
@@ -1820,7 +1890,10 @@ export type SpotLightNode = {
     readonly distance: number;
     readonly angle: number;
     readonly penumbra: number;
-    readonly decay: number;
+    readonly decay: number /** Renders a shadow map from this light, when the scene enables shadows. */;
+    readonly castShadow: boolean;
+    readonly shadowMapSize: number;
+    readonly shadowBias: number;
 };
 
 // @public
@@ -1834,6 +1907,9 @@ const SpotLightNode_2: Schema.TaggedStruct<"SpotLight", {
     readonly angle: Schema.Finite;
     readonly penumbra: Schema.Finite;
     readonly decay: Schema.Finite;
+    readonly castShadow: Schema.Boolean;
+    readonly shadowMapSize: Schema.Int;
+    readonly shadowBias: Schema.Finite;
 }>;
 
 // @public
@@ -1938,6 +2014,9 @@ const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
     wireframe: Schema.Boolean;
     flatShading: Schema.Boolean;
 }>]>;
+
+// @public
+export type ToneMapping = 'none' | 'linear' | 'reinhard' | 'cineon' | 'aces' | 'agx' | 'neutral';
 
 // @public
 export const torus: (options?: {

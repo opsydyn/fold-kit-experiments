@@ -6,6 +6,8 @@
  */
 import type { Camera, Scene } from 'three';
 
+import type { RenderSettings } from './description.ts';
+
 /** Size of the drawing surface in CSS pixels, plus the device pixel ratio. */
 export type Viewport = {
   readonly width: number;
@@ -22,6 +24,8 @@ export type RendererMemory = {
 /** A live renderer bound to one drawing surface. */
 export type SceneRenderer = {
   readonly render: (scene: Scene, camera: Camera) => void;
+  /** Applies scene-wide render settings. Called before the first frame and on each change. */
+  readonly configure: (settings: RenderSettings) => void;
   readonly setViewport: (viewport: Viewport) => void;
   readonly memory: () => RendererMemory;
   /** Releases the renderer and its drawing context. Called exactly once. */
@@ -36,6 +40,8 @@ export type RendererFactory = {
 /** A renderer that records calls instead of drawing. For headless tests. */
 export type RecordingRenderer = SceneRenderer & {
   readonly renders: () => number;
+  /** Every `configure` call, in order. */
+  readonly configured: () => ReadonlyArray<RenderSettings>;
   readonly viewport: () => Viewport | undefined;
   readonly disposed: () => boolean;
 };
@@ -47,11 +53,15 @@ export type RecordingRendererFactory = RendererFactory & {
 
 const createRecordingRenderer = (): RecordingRenderer => {
   let renders = 0;
+  const configured: Array<RenderSettings> = [];
   let viewport: Viewport | undefined;
   let disposed = false;
   return {
     render: () => {
       renders++;
+    },
+    configure: (settings) => {
+      configured.push(settings);
     },
     setViewport: (next) => {
       viewport = next;
@@ -61,6 +71,7 @@ const createRecordingRenderer = (): RecordingRenderer => {
       disposed = true;
     },
     renders: () => renders,
+    configured: () => configured,
     viewport: () => viewport,
     disposed: () => disposed,
   };

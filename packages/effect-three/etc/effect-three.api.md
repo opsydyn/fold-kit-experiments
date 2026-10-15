@@ -90,7 +90,73 @@ const ButtonDetail: Schema.Struct<{
 export const cameraEquals: (a: PerspectiveCamera, b: PerspectiveCamera) => boolean;
 
 // @public
+export const capsule: (options?: {
+    readonly radius?: number;
+    readonly height?: number;
+    readonly capSegments?: number;
+    readonly radialSegments?: number;
+}) => CapsuleGeometry;
+
+// @public
+export type CapsuleGeometry = {
+    readonly _tag: 'Capsule';
+    readonly radius: number;
+    readonly height: number;
+    readonly capSegments: number;
+    readonly radialSegments: number;
+};
+
+// @public
+const CapsuleGeometry_2: Schema.TaggedStruct<"Capsule", {
+    readonly radius: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly capSegments: Schema.Int;
+    readonly radialSegments: Schema.Int;
+}>;
+
+// @public
 export const changedFields: (prev: SceneNode, next: SceneNode) => ReadonlyArray<Field> | undefined;
+
+// @public
+export const circle: (options?: {
+    readonly radius?: number;
+    readonly segments?: number;
+}) => CircleGeometry;
+
+// @public
+export type CircleGeometry = {
+    readonly _tag: 'Circle';
+    readonly radius: number;
+    readonly segments: number;
+};
+
+// @public
+const CircleGeometry_2: Schema.TaggedStruct<"Circle", {
+    readonly radius: Schema.Finite;
+    readonly segments: Schema.Int;
+}>;
+
+// @public
+export const cone: (options?: {
+    readonly radius?: number;
+    readonly height?: number;
+    readonly radialSegments?: number;
+}) => ConeGeometry;
+
+// @public
+export type ConeGeometry = {
+    readonly _tag: 'Cone';
+    readonly radius: number;
+    readonly height: number;
+    readonly radialSegments: number;
+};
+
+// @public
+const ConeGeometry_2: Schema.TaggedStruct<"Cone", {
+    readonly radius: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly radialSegments: Schema.Int;
+}>;
 
 // @public
 export const createGatedFrames: (base: FrameScheduler) => GatedFrames;
@@ -230,7 +296,7 @@ const Easing_2: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCu
 export const emptyIndex: SceneIndex;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity';
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay';
 
 // @public
 export const fixed: (euler: Vec3) => Rotation;
@@ -293,6 +359,27 @@ const GeometryRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
     readonly radiusBottom: Schema.Finite;
     readonly height: Schema.Finite;
     readonly radialSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Torus", {
+    readonly radius: Schema.Finite;
+    readonly tube: Schema.Finite;
+    readonly radialSegments: Schema.Int;
+    readonly tubularSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Cone", {
+    readonly radius: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly radialSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Capsule", {
+    readonly radius: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly capSegments: Schema.Int;
+    readonly radialSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Ring", {
+    readonly innerRadius: Schema.Finite;
+    readonly outerRadius: Schema.Finite;
+    readonly thetaSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Circle", {
+    readonly radius: Schema.Finite;
+    readonly segments: Schema.Int;
 }>, Schema.TaggedStruct<"SharedGeometry", {
     readonly id: Schema.String;
 }>]>;
@@ -321,6 +408,34 @@ export type GroupNode = {
     readonly transition: Transition;
     readonly children: ReadonlyArray<SceneNode>;
 };
+
+// @public
+export const hemisphereLight: (options: {
+    readonly key: string;
+    readonly color?: Rgb;
+    readonly groundColor?: Rgb;
+    readonly intensity?: number;
+    readonly position?: Vec3;
+}) => HemisphereLightNode;
+
+// @public
+export type HemisphereLightNode = {
+    readonly _tag: 'HemisphereLight';
+    readonly key: string;
+    readonly color: Rgb;
+    readonly groundColor: Rgb;
+    readonly intensity: number;
+    readonly position: Vec3;
+};
+
+// @public
+const HemisphereLightNode_2: Schema.TaggedStruct<"HemisphereLight", {
+    readonly key: Schema.String;
+    readonly color: Schema.Int;
+    readonly groundColor: Schema.Int;
+    readonly intensity: Schema.Finite;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
 
 // @public
 export type Hit = {
@@ -477,6 +592,27 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
         readonly radiusBottom: Schema.Finite;
         readonly height: Schema.Finite;
         readonly radialSegments: Schema.Int;
+    }>, Schema.TaggedStruct<"Torus", {
+        readonly radius: Schema.Finite;
+        readonly tube: Schema.Finite;
+        readonly radialSegments: Schema.Int;
+        readonly tubularSegments: Schema.Int;
+    }>, Schema.TaggedStruct<"Cone", {
+        readonly radius: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly radialSegments: Schema.Int;
+    }>, Schema.TaggedStruct<"Capsule", {
+        readonly radius: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly capSegments: Schema.Int;
+        readonly radialSegments: Schema.Int;
+    }>, Schema.TaggedStruct<"Ring", {
+        readonly innerRadius: Schema.Finite;
+        readonly outerRadius: Schema.Finite;
+        readonly thetaSegments: Schema.Int;
+    }>, Schema.TaggedStruct<"Circle", {
+        readonly radius: Schema.Finite;
+        readonly segments: Schema.Int;
     }>, Schema.TaggedStruct<"SharedGeometry", {
         readonly id: Schema.String;
     }>]>;
@@ -622,6 +758,37 @@ export type PointerTracker = {
     readonly frame: () => ReadonlyArray<SceneEvent>;
 };
 
+// @public
+export const pointLight: (options: {
+    readonly key: string;
+    readonly color?: Rgb;
+    readonly intensity?: number;
+    readonly position?: Vec3;
+    readonly distance?: number;
+    readonly decay?: number;
+}) => PointLightNode;
+
+// @public
+export type PointLightNode = {
+    readonly _tag: 'PointLight';
+    readonly key: string;
+    readonly color: Rgb;
+    readonly intensity: number;
+    readonly position: Vec3;
+    readonly distance: number;
+    readonly decay: number;
+};
+
+// @public
+const PointLightNode_2: Schema.TaggedStruct<"PointLight", {
+    readonly key: Schema.String;
+    readonly color: Schema.Int;
+    readonly intensity: Schema.Finite;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly decay: Schema.Finite;
+}>;
+
 // @public (undocumented)
 export type ReconcileResult = {
     readonly _tag: 'Applied';
@@ -698,6 +865,27 @@ const ResourceDefinitions_2: Schema.Struct<{
             readonly radiusBottom: Schema.Finite;
             readonly height: Schema.Finite;
             readonly radialSegments: Schema.Int;
+        }>, Schema.TaggedStruct<"Torus", {
+            readonly radius: Schema.Finite;
+            readonly tube: Schema.Finite;
+            readonly radialSegments: Schema.Int;
+            readonly tubularSegments: Schema.Int;
+        }>, Schema.TaggedStruct<"Cone", {
+            readonly radius: Schema.Finite;
+            readonly height: Schema.Finite;
+            readonly radialSegments: Schema.Int;
+        }>, Schema.TaggedStruct<"Capsule", {
+            readonly radius: Schema.Finite;
+            readonly height: Schema.Finite;
+            readonly capSegments: Schema.Int;
+            readonly radialSegments: Schema.Int;
+        }>, Schema.TaggedStruct<"Ring", {
+            readonly innerRadius: Schema.Finite;
+            readonly outerRadius: Schema.Finite;
+            readonly thetaSegments: Schema.Int;
+        }>, Schema.TaggedStruct<"Circle", {
+            readonly radius: Schema.Finite;
+            readonly segments: Schema.Int;
         }>]>;
     }>>;
     readonly materials: Schema.$Array<Schema.Struct<{
@@ -754,6 +942,28 @@ export type Rgb = number;
 
 // @public
 const Rgb_2: Schema.Int;
+
+// @public
+export const ring: (options?: {
+    readonly innerRadius?: number;
+    readonly outerRadius?: number;
+    readonly thetaSegments?: number;
+}) => RingGeometry;
+
+// @public
+export type RingGeometry = {
+    readonly _tag: 'Ring';
+    readonly innerRadius: number;
+    readonly outerRadius: number;
+    readonly thetaSegments: number;
+};
+
+// @public
+const RingGeometry_2: Schema.TaggedStruct<"Ring", {
+    readonly innerRadius: Schema.Finite;
+    readonly outerRadius: Schema.Finite;
+    readonly thetaSegments: Schema.Int;
+}>;
 
 // @public
 export type Rotation = {
@@ -827,6 +1037,27 @@ const SceneDescription_2: Schema.Struct<{
                 readonly radiusBottom: Schema.Finite;
                 readonly height: Schema.Finite;
                 readonly radialSegments: Schema.Int;
+            }>, Schema.TaggedStruct<"Torus", {
+                readonly radius: Schema.Finite;
+                readonly tube: Schema.Finite;
+                readonly radialSegments: Schema.Int;
+                readonly tubularSegments: Schema.Int;
+            }>, Schema.TaggedStruct<"Cone", {
+                readonly radius: Schema.Finite;
+                readonly height: Schema.Finite;
+                readonly radialSegments: Schema.Int;
+            }>, Schema.TaggedStruct<"Capsule", {
+                readonly radius: Schema.Finite;
+                readonly height: Schema.Finite;
+                readonly capSegments: Schema.Int;
+                readonly radialSegments: Schema.Int;
+            }>, Schema.TaggedStruct<"Ring", {
+                readonly innerRadius: Schema.Finite;
+                readonly outerRadius: Schema.Finite;
+                readonly thetaSegments: Schema.Int;
+            }>, Schema.TaggedStruct<"Circle", {
+                readonly radius: Schema.Finite;
+                readonly segments: Schema.Int;
             }>]>;
         }>>;
         readonly materials: Schema.$Array<Schema.Struct<{
@@ -977,7 +1208,7 @@ export type SceneLoopOptions = {
 };
 
 // @public
-export type SceneNode = GroupNode | MeshNode | AmbientLightNode | DirectionalLightNode;
+export type SceneNode = GroupNode | MeshNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
 
 // @public
 const SceneNode_2: Schema.Codec<SceneNode>;
@@ -1016,6 +1247,11 @@ declare namespace SceneSchema {
         SphereGeometry_2 as SphereGeometry,
         PlaneGeometry_2 as PlaneGeometry,
         CylinderGeometry_2 as CylinderGeometry,
+        TorusGeometry_2 as TorusGeometry,
+        ConeGeometry_2 as ConeGeometry,
+        CapsuleGeometry_2 as CapsuleGeometry,
+        RingGeometry_2 as RingGeometry,
+        CircleGeometry_2 as CircleGeometry,
         ShapeGeometry_2 as ShapeGeometry,
         Easing_2 as Easing,
         Transition_2 as Transition,
@@ -1026,6 +1262,9 @@ declare namespace SceneSchema {
         MeshNode_2 as MeshNode,
         AmbientLightNode_2 as AmbientLightNode,
         DirectionalLightNode_2 as DirectionalLightNode,
+        PointLightNode_2 as PointLightNode,
+        SpotLightNode_2 as SpotLightNode,
+        HemisphereLightNode_2 as HemisphereLightNode,
         SceneNode_2 as SceneNode,
         PerspectiveCamera_3 as PerspectiveCamera,
         SceneDescription_2 as SceneDescription,
@@ -1043,7 +1282,7 @@ declare namespace SceneSchema {
 export const shapeEquals: (a: ShapeGeometry, b: ShapeGeometry) => boolean;
 
 // @public
-export type ShapeGeometry = BoxGeometry | SphereGeometry | PlaneGeometry | CylinderGeometry;
+export type ShapeGeometry = BoxGeometry | SphereGeometry | PlaneGeometry | CylinderGeometry | TorusGeometry | ConeGeometry | CapsuleGeometry | RingGeometry | CircleGeometry;
 
 // @public
 const ShapeGeometry_2: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
@@ -1062,6 +1301,27 @@ const ShapeGeometry_2: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
     readonly radiusBottom: Schema.Finite;
     readonly height: Schema.Finite;
     readonly radialSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Torus", {
+    readonly radius: Schema.Finite;
+    readonly tube: Schema.Finite;
+    readonly radialSegments: Schema.Int;
+    readonly tubularSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Cone", {
+    readonly radius: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly radialSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Capsule", {
+    readonly radius: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly capSegments: Schema.Int;
+    readonly radialSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Ring", {
+    readonly innerRadius: Schema.Finite;
+    readonly outerRadius: Schema.Finite;
+    readonly thetaSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Circle", {
+    readonly radius: Schema.Finite;
+    readonly segments: Schema.Int;
 }>]>;
 
 // @public
@@ -1105,6 +1365,46 @@ export const spinAngle: (spin: Extract<Rotation, {
 }>, elapsedSeconds: number) => number;
 
 // @public
+export const spotLight: (options: {
+    readonly key: string;
+    readonly color?: Rgb;
+    readonly intensity?: number;
+    readonly position?: Vec3;
+    readonly target?: Vec3;
+    readonly distance?: number;
+    readonly angle?: number;
+    readonly penumbra?: number;
+    readonly decay?: number;
+}) => SpotLightNode;
+
+// @public
+export type SpotLightNode = {
+    readonly _tag: 'SpotLight';
+    readonly key: string;
+    readonly color: Rgb;
+    readonly intensity: number;
+    readonly position: Vec3;
+    readonly target: Vec3;
+    readonly distance: number;
+    readonly angle: number;
+    readonly penumbra: number;
+    readonly decay: number;
+};
+
+// @public
+const SpotLightNode_2: Schema.TaggedStruct<"SpotLight", {
+    readonly key: Schema.String;
+    readonly color: Schema.Int;
+    readonly intensity: Schema.Finite;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly target: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly angle: Schema.Finite;
+    readonly penumbra: Schema.Finite;
+    readonly decay: Schema.Finite;
+}>;
+
+// @public
 export const standard: (options: {
     readonly color: Rgb;
     readonly roughness?: number;
@@ -1134,6 +1434,31 @@ export const startTween: (object: Object3D, target: {
     readonly seconds: number;
     readonly easing: Easing;
 }) => Tween;
+
+// @public
+export const torus: (options?: {
+    readonly radius?: number;
+    readonly tube?: number;
+    readonly radialSegments?: number;
+    readonly tubularSegments?: number;
+}) => TorusGeometry;
+
+// @public
+export type TorusGeometry = {
+    readonly _tag: 'Torus';
+    readonly radius: number;
+    readonly tube: number;
+    readonly radialSegments: number;
+    readonly tubularSegments: number;
+};
+
+// @public
+const TorusGeometry_2: Schema.TaggedStruct<"Torus", {
+    readonly radius: Schema.Finite;
+    readonly tube: Schema.Finite;
+    readonly radialSegments: Schema.Int;
+    readonly tubularSegments: Schema.Int;
+}>;
 
 // @public
 export type TransformOptions = {

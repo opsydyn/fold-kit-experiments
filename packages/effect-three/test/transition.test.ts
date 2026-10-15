@@ -1,7 +1,22 @@
 import { describe, expect, test } from 'bun:test';
 
 import {
+  BoxGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
+  ConeGeometry,
+  CylinderGeometry,
+  PlaneGeometry,
+  RingGeometry,
+  SphereGeometry,
+  TorusGeometry,
+} from 'three';
+
+import {
   box,
+  capsule,
+  circle,
+  cone,
   createSceneGraph,
   cylinder,
   type Easing,
@@ -11,11 +26,13 @@ import {
   instant,
   mesh,
   plane,
+  ring,
   scene,
   type Transition,
   type Vec3,
   sphere,
   standard,
+  torus,
 } from '../src/kernel/index.ts';
 import { easingAndTimes } from './arbitraries.ts';
 import { assertProperty } from './property.ts';
@@ -253,6 +270,11 @@ describe('shapes', () => {
       sphere({ radius: 2 }),
       plane({ width: 3 }),
       cylinder({ radiusTop: 0 }),
+      torus(),
+      cone(),
+      capsule(),
+      ring(),
+      circle(),
       box(),
     ] as const;
     for (const geometry of shapes) {
@@ -268,20 +290,22 @@ describe('shapes', () => {
     expect(graph.store.stats().geometries.live).toBe(0);
   });
 
-  test('constructors fill in three.js defaults', () => {
-    expect(sphere()).toEqual({
-      _tag: 'Sphere',
-      radius: 0.5,
-      widthSegments: 32,
-      heightSegments: 16,
-    });
-    expect(plane()).toEqual({ _tag: 'Plane', width: 1, height: 1 });
-    expect(cylinder()).toEqual({
-      _tag: 'Cylinder',
-      radiusTop: 0.5,
-      radiusBottom: 0.5,
-      height: 1,
-      radialSegments: 32,
-    });
+  test('constructors default every parameter exactly as three.js does', () => {
+    const pairs = [
+      [box(), new BoxGeometry()],
+      [sphere(), new SphereGeometry()],
+      [plane(), new PlaneGeometry()],
+      [cylinder(), new CylinderGeometry()],
+      [torus(), new TorusGeometry()],
+      [cone(), new ConeGeometry()],
+      [capsule(), new CapsuleGeometry()],
+      [ring(), new RingGeometry()],
+      [circle(), new CircleGeometry()],
+    ] as const;
+    for (const [shape, reference] of pairs) {
+      const { _tag, ...parameters } = shape;
+      expect(reference.parameters).toMatchObject(parameters);
+      reference.dispose();
+    }
   });
 });

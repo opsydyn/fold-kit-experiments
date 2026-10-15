@@ -17,10 +17,15 @@
 import {
   BoxGeometry,
   type BufferGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
+  ConeGeometry,
   CylinderGeometry,
   MeshStandardMaterial,
   PlaneGeometry,
+  RingGeometry,
   SphereGeometry,
+  TorusGeometry,
 } from 'three';
 
 import type {
@@ -123,6 +128,26 @@ const buildShape = (shape: ShapeGeometry): BufferGeometry => {
         shape.height,
         shape.radialSegments,
       );
+    case 'Torus':
+      return new TorusGeometry(
+        shape.radius,
+        shape.tube,
+        shape.radialSegments,
+        shape.tubularSegments,
+      );
+    case 'Cone':
+      return new ConeGeometry(shape.radius, shape.height, shape.radialSegments);
+    case 'Capsule':
+      return new CapsuleGeometry(
+        shape.radius,
+        shape.height,
+        shape.capSegments,
+        shape.radialSegments,
+      );
+    case 'Ring':
+      return new RingGeometry(shape.innerRadius, shape.outerRadius, shape.thetaSegments);
+    case 'Circle':
+      return new CircleGeometry(shape.radius, shape.segments);
   }
 };
 

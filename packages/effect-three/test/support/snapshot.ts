@@ -6,12 +6,20 @@ import {
   AmbientLight,
   BoxGeometry,
   type BufferGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
+  ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
+  HemisphereLight,
   Mesh,
   type Object3D,
   PlaneGeometry,
+  PointLight,
+  RingGeometry,
   SphereGeometry,
+  SpotLight,
+  TorusGeometry,
 } from 'three';
 
 import type { SceneGraph } from '../../src/kernel/index.ts';
@@ -31,7 +39,12 @@ const shapeOf = (geometry: BufferGeometry): unknown => {
   if (geometry instanceof BoxGeometry) return { type: 'Box', ...geometry.parameters };
   if (geometry instanceof SphereGeometry) return { type: 'Sphere', ...geometry.parameters };
   if (geometry instanceof PlaneGeometry) return { type: 'Plane', ...geometry.parameters };
+  if (geometry instanceof ConeGeometry) return { type: 'Cone', ...geometry.parameters };
   if (geometry instanceof CylinderGeometry) return { type: 'Cylinder', ...geometry.parameters };
+  if (geometry instanceof TorusGeometry) return { type: 'Torus', ...geometry.parameters };
+  if (geometry instanceof CapsuleGeometry) return { type: 'Capsule', ...geometry.parameters };
+  if (geometry instanceof RingGeometry) return { type: 'Ring', ...geometry.parameters };
+  if (geometry instanceof CircleGeometry) return { type: 'Circle', ...geometry.parameters };
   return 'unexpected geometry';
 };
 
@@ -53,6 +66,32 @@ const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
         shape: shapeOf(object.geometry),
       },
       material: materialDetail,
+    };
+  }
+  if (object instanceof SpotLight) {
+    return {
+      color: object.color.getHex(),
+      intensity: object.intensity,
+      target: object.target.position.toArray(),
+      distance: object.distance,
+      angle: object.angle,
+      penumbra: object.penumbra,
+      decay: object.decay,
+    };
+  }
+  if (object instanceof PointLight) {
+    return {
+      color: object.color.getHex(),
+      intensity: object.intensity,
+      distance: object.distance,
+      decay: object.decay,
+    };
+  }
+  if (object instanceof HemisphereLight) {
+    return {
+      color: object.color.getHex(),
+      groundColor: object.groundColor.getHex(),
+      intensity: object.intensity,
     };
   }
   if (object instanceof AmbientLight || object instanceof DirectionalLight) {

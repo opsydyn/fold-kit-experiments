@@ -45,7 +45,13 @@ export type Field =
   | 'material'
   | 'interactive'
   | 'color'
-  | 'intensity';
+  | 'intensity'
+  | 'groundColor'
+  | 'target'
+  | 'distance'
+  | 'angle'
+  | 'penumbra'
+  | 'decay';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -107,6 +113,35 @@ export const changedFields = (
     case 'DirectionalLight': {
       if (prev._tag !== 'DirectionalLight') return undefined;
       if (!Object.is(prev.color, next.color)) fields.push('color');
+      if (!Object.is(prev.intensity, next.intensity)) fields.push('intensity');
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      return fields;
+    }
+    case 'PointLight': {
+      if (prev._tag !== 'PointLight') return undefined;
+      if (!Object.is(prev.color, next.color)) fields.push('color');
+      if (!Object.is(prev.intensity, next.intensity)) fields.push('intensity');
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!Object.is(prev.distance, next.distance)) fields.push('distance');
+      if (!Object.is(prev.decay, next.decay)) fields.push('decay');
+      return fields;
+    }
+    case 'SpotLight': {
+      if (prev._tag !== 'SpotLight') return undefined;
+      if (!Object.is(prev.color, next.color)) fields.push('color');
+      if (!Object.is(prev.intensity, next.intensity)) fields.push('intensity');
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!vec3Equals(prev.target, next.target)) fields.push('target');
+      if (!Object.is(prev.distance, next.distance)) fields.push('distance');
+      if (!Object.is(prev.angle, next.angle)) fields.push('angle');
+      if (!Object.is(prev.penumbra, next.penumbra)) fields.push('penumbra');
+      if (!Object.is(prev.decay, next.decay)) fields.push('decay');
+      return fields;
+    }
+    case 'HemisphereLight': {
+      if (prev._tag !== 'HemisphereLight') return undefined;
+      if (!Object.is(prev.color, next.color)) fields.push('color');
+      if (!Object.is(prev.groundColor, next.groundColor)) fields.push('groundColor');
       if (!Object.is(prev.intensity, next.intensity)) fields.push('intensity');
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
       return fields;

@@ -64,6 +64,9 @@ export const perturb = (node: SceneNode): { readonly node: SceneNode; readonly f
       };
     case 'AmbientLight':
     case 'DirectionalLight':
+    case 'PointLight':
+    case 'SpotLight':
+    case 'HemisphereLight':
       return { node: { ...node, intensity: node.intensity + 1 }, field: 'intensity' };
   }
 };

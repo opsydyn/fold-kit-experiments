@@ -7,8 +7,12 @@ import type {
   AmbientLightNode,
   Axis,
   BoxGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
+  ConeGeometry,
   CylinderGeometry,
   DirectionalLightNode,
+  HemisphereLightNode,
   Easing,
   GeometryRef,
   GroupNode,
@@ -16,12 +20,16 @@ import type {
   MeshNode,
   PerspectiveCamera,
   PlaneGeometry,
+  PointLightNode,
+  RingGeometry,
   ResourceDefinitions,
   Rgb,
   Rotation,
   SceneDescription,
   SceneNode,
   SphereGeometry,
+  SpotLightNode,
+  TorusGeometry,
   StandardMaterial,
   Transition,
   Vec3,
@@ -58,7 +66,7 @@ export const box = (
   depth: size.depth ?? 1,
 });
 
-/** Sphere geometry. Defaults: radius 0.5, 32 × 16 segments. */
+/** Sphere geometry. Defaults (as three.js): radius 1, 32 × 16 segments. */
 export const sphere = (
   options: {
     readonly radius?: number;
@@ -67,7 +75,7 @@ export const sphere = (
   } = {},
 ): SphereGeometry => ({
   _tag: 'Sphere',
-  radius: options.radius ?? 0.5,
+  radius: options.radius ?? 1,
   widthSegments: options.widthSegments ?? 32,
   heightSegments: options.heightSegments ?? 16,
 });
@@ -77,7 +85,7 @@ export const plane = (
   size: { readonly width?: number; readonly height?: number } = {},
 ): PlaneGeometry => ({ _tag: 'Plane', width: size.width ?? 1, height: size.height ?? 1 });
 
-/** Cylinder geometry along Y. Defaults: radius 0.5 top and bottom, height 1, 32 segments. */
+/** Cylinder geometry along Y. Defaults (as three.js): radius 1 top and bottom, height 1, 32 segments. */
 export const cylinder = (
   options: {
     readonly radiusTop?: number;
@@ -87,10 +95,79 @@ export const cylinder = (
   } = {},
 ): CylinderGeometry => ({
   _tag: 'Cylinder',
-  radiusTop: options.radiusTop ?? 0.5,
-  radiusBottom: options.radiusBottom ?? 0.5,
+  radiusTop: options.radiusTop ?? 1,
+  radiusBottom: options.radiusBottom ?? 1,
   height: options.height ?? 1,
   radialSegments: options.radialSegments ?? 32,
+});
+
+/** Torus geometry. Defaults (as three.js): radius 1, tube 0.4, 12 × 48 segments. */
+export const torus = (
+  options: {
+    readonly radius?: number;
+    readonly tube?: number;
+    readonly radialSegments?: number;
+    readonly tubularSegments?: number;
+  } = {},
+): TorusGeometry => ({
+  _tag: 'Torus',
+  radius: options.radius ?? 1,
+  tube: options.tube ?? 0.4,
+  radialSegments: options.radialSegments ?? 12,
+  tubularSegments: options.tubularSegments ?? 48,
+});
+
+/** Cone geometry along Y. Defaults (as three.js): radius 1, height 1, 32 segments. */
+export const cone = (
+  options: {
+    readonly radius?: number;
+    readonly height?: number;
+    readonly radialSegments?: number;
+  } = {},
+): ConeGeometry => ({
+  _tag: 'Cone',
+  radius: options.radius ?? 1,
+  height: options.height ?? 1,
+  radialSegments: options.radialSegments ?? 32,
+});
+
+/** Capsule geometry along Y. Defaults (as three.js): radius 1, height 1, 4 cap and 8 radial segments. */
+export const capsule = (
+  options: {
+    readonly radius?: number;
+    readonly height?: number;
+    readonly capSegments?: number;
+    readonly radialSegments?: number;
+  } = {},
+): CapsuleGeometry => ({
+  _tag: 'Capsule',
+  radius: options.radius ?? 1,
+  height: options.height ?? 1,
+  capSegments: options.capSegments ?? 4,
+  radialSegments: options.radialSegments ?? 8,
+});
+
+/** Ring geometry facing +Z. Defaults (as three.js): radii 0.5 and 1, 32 segments. */
+export const ring = (
+  options: {
+    readonly innerRadius?: number;
+    readonly outerRadius?: number;
+    readonly thetaSegments?: number;
+  } = {},
+): RingGeometry => ({
+  _tag: 'Ring',
+  innerRadius: options.innerRadius ?? 0.5,
+  outerRadius: options.outerRadius ?? 1,
+  thetaSegments: options.thetaSegments ?? 32,
+});
+
+/** Circle geometry facing +Z. Defaults (as three.js): radius 1, 32 segments. */
+export const circle = (
+  options: { readonly radius?: number; readonly segments?: number } = {},
+): CircleGeometry => ({
+  _tag: 'Circle',
+  radius: options.radius ?? 1,
+  segments: options.segments ?? 32,
 });
 
 /** Position and scale changes apply immediately. The default. */
@@ -188,6 +265,67 @@ export const directionalLight = (options: {
   _tag: 'DirectionalLight',
   key: options.key,
   color: options.color ?? 0xffffff,
+  intensity: options.intensity ?? 1,
+  position: options.position ?? [0, 1, 0],
+});
+
+/** Point light. Defaults (as three.js): white, intensity 1, at the origin, no cut-off, decay 2. */
+export const pointLight = (options: {
+  readonly key: string;
+  readonly color?: Rgb;
+  readonly intensity?: number;
+  readonly position?: Vec3;
+  readonly distance?: number;
+  readonly decay?: number;
+}): PointLightNode => ({
+  _tag: 'PointLight',
+  key: options.key,
+  color: options.color ?? 0xffffff,
+  intensity: options.intensity ?? 1,
+  position: options.position ?? origin,
+  distance: options.distance ?? 0,
+  decay: options.decay ?? 2,
+});
+
+/**
+ * Spot light. Defaults (as three.js): white, intensity 1, at `[0, 1, 0]` aimed at the
+ * origin, no cut-off, a π/3 half-angle, a hard edge and decay 2.
+ */
+export const spotLight = (options: {
+  readonly key: string;
+  readonly color?: Rgb;
+  readonly intensity?: number;
+  readonly position?: Vec3;
+  readonly target?: Vec3;
+  readonly distance?: number;
+  readonly angle?: number;
+  readonly penumbra?: number;
+  readonly decay?: number;
+}): SpotLightNode => ({
+  _tag: 'SpotLight',
+  key: options.key,
+  color: options.color ?? 0xffffff,
+  intensity: options.intensity ?? 1,
+  position: options.position ?? [0, 1, 0],
+  target: options.target ?? origin,
+  distance: options.distance ?? 0,
+  angle: options.angle ?? Math.PI / 3,
+  penumbra: options.penumbra ?? 0,
+  decay: options.decay ?? 2,
+});
+
+/** Hemisphere light. Defaults (as three.js): white sky and ground, intensity 1, from `[0, 1, 0]`. */
+export const hemisphereLight = (options: {
+  readonly key: string;
+  readonly color?: Rgb;
+  readonly groundColor?: Rgb;
+  readonly intensity?: number;
+  readonly position?: Vec3;
+}): HemisphereLightNode => ({
+  _tag: 'HemisphereLight',
+  key: options.key,
+  color: options.color ?? 0xffffff,
+  groundColor: options.groundColor ?? 0xffffff,
   intensity: options.intensity ?? 1,
   position: options.position ?? [0, 1, 0],
 });

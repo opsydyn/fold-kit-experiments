@@ -61,12 +61,53 @@ export const CylinderGeometry = Schema.TaggedStruct('Cylinder', {
   radialSegments: Segments,
 });
 
+/** Torus geometry parameters. */
+export const TorusGeometry = Schema.TaggedStruct('Torus', {
+  radius: Positive,
+  tube: Positive,
+  radialSegments: Segments,
+  tubularSegments: Segments,
+});
+
+/** Cone geometry parameters. */
+export const ConeGeometry = Schema.TaggedStruct('Cone', {
+  radius: Positive,
+  height: Positive,
+  radialSegments: Segments,
+});
+
+/** Capsule geometry parameters. */
+export const CapsuleGeometry = Schema.TaggedStruct('Capsule', {
+  radius: Positive,
+  height: NonNegative,
+  capSegments: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  radialSegments: Segments,
+});
+
+/** Ring geometry parameters. */
+export const RingGeometry = Schema.TaggedStruct('Ring', {
+  innerRadius: NonNegative,
+  outerRadius: Positive,
+  thetaSegments: Segments,
+});
+
+/** Circle geometry parameters. */
+export const CircleGeometry = Schema.TaggedStruct('Circle', {
+  radius: Positive,
+  segments: Segments,
+});
+
 /** Any geometry shape. */
 export const ShapeGeometry = Schema.Union([
   BoxGeometry,
   SphereGeometry,
   PlaneGeometry,
   CylinderGeometry,
+  TorusGeometry,
+  ConeGeometry,
+  CapsuleGeometry,
+  RingGeometry,
+  CircleGeometry,
 ]);
 
 /** How a transition progresses. */
@@ -130,6 +171,40 @@ export const DirectionalLightNode = Schema.TaggedStruct('DirectionalLight', {
   position: Vec3,
 });
 
+/** Point light. */
+export const PointLightNode = Schema.TaggedStruct('PointLight', {
+  key: Schema.String,
+  color: Rgb,
+  intensity: NonNegative,
+  position: Vec3,
+  distance: NonNegative,
+  decay: NonNegative,
+});
+
+/** Spot light: `angle` in (0, π/2], `penumbra` in [0, 1]. */
+export const SpotLightNode = Schema.TaggedStruct('SpotLight', {
+  key: Schema.String,
+  color: Rgb,
+  intensity: NonNegative,
+  position: Vec3,
+  target: Vec3,
+  distance: NonNegative,
+  angle: Schema.Finite.check(
+    Schema.isBetween({ minimum: 0, maximum: Math.PI / 2, exclusiveMinimum: true }),
+  ),
+  penumbra: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+  decay: NonNegative,
+});
+
+/** Hemisphere light. */
+export const HemisphereLightNode = Schema.TaggedStruct('HemisphereLight', {
+  key: Schema.String,
+  color: Rgb,
+  groundColor: Rgb,
+  intensity: NonNegative,
+  position: Vec3,
+});
+
 /** Any scene node. Groups nest recursively. */
 export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   Schema.TaggedStruct('Group', {
@@ -143,6 +218,9 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   MeshNode,
   AmbientLightNode,
   DirectionalLightNode,
+  PointLightNode,
+  SpotLightNode,
+  HemisphereLightNode,
 ]);
 
 /** The active perspective camera. */

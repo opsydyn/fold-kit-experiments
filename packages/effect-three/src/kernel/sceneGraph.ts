@@ -11,11 +11,14 @@ import {
   type BufferGeometry,
   DirectionalLight,
   Group,
+  HemisphereLight,
   Mesh,
   type MeshStandardMaterial,
   type Object3D,
   PerspectiveCamera,
+  PointLight,
   Scene,
+  SpotLight,
   Vector3,
 } from 'three';
 
@@ -23,11 +26,14 @@ import { writeRotation } from './behaviours.ts';
 import type {
   AmbientLightNode,
   DirectionalLightNode,
+  HemisphereLightNode,
   GroupNode,
   MeshNode,
   PerspectiveCamera as CameraDescription,
+  PointLightNode,
   SceneDescription,
   SceneNode,
+  SpotLightNode,
   Vec3,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
@@ -51,6 +57,13 @@ type Entry =
       readonly _tag: 'DirectionalLight';
       node: DirectionalLightNode;
       readonly object: DirectionalLight;
+    }
+  | { readonly _tag: 'PointLight'; node: PointLightNode; readonly object: PointLight }
+  | { readonly _tag: 'SpotLight'; node: SpotLightNode; readonly object: SpotLight }
+  | {
+      readonly _tag: 'HemisphereLight';
+      node: HemisphereLightNode;
+      readonly object: HemisphereLight;
     };
 
 export type ReconcileResult =
@@ -99,6 +112,36 @@ const writeVec3 = (
   v: Vec3,
 ): void => {
   target.set(v[0], v[1], v[2]);
+};
+
+// Lights are cheap to write in full, so an update rewrites every field from the node.
+const writePointLight = (light: PointLight, node: PointLightNode): void => {
+  light.color.setHex(node.color);
+  light.intensity = node.intensity;
+  writeVec3(light.position, node.position);
+  light.distance = node.distance;
+  light.decay = node.decay;
+};
+
+const writeSpotLight = (light: SpotLight, node: SpotLightNode): void => {
+  light.color.setHex(node.color);
+  light.intensity = node.intensity;
+  writeVec3(light.position, node.position);
+  light.distance = node.distance;
+  light.angle = node.angle;
+  light.penumbra = node.penumbra;
+  light.decay = node.decay;
+  // The target is not in the scene graph (it is world space), so three never updates its
+  // matrix: do it here, once per change.
+  writeVec3(light.target.position, node.target);
+  light.target.updateMatrixWorld();
+};
+
+const writeHemisphereLight = (light: HemisphereLight, node: HemisphereLightNode): void => {
+  light.color.setHex(node.color);
+  light.groundColor.setHex(node.groundColor);
+  light.intensity = node.intensity;
+  writeVec3(light.position, node.position);
 };
 
 const applyCamera = (camera: PerspectiveCamera, description: CameraDescription): void => {
@@ -177,6 +220,21 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         return { _tag: 'DirectionalLight', node, object };
       }
+      case 'PointLight': {
+        const object = new PointLight();
+        writePointLight(object, node);
+        return { _tag: 'PointLight', node, object };
+      }
+      case 'SpotLight': {
+        const object = new SpotLight();
+        writeSpotLight(object, node);
+        return { _tag: 'SpotLight', node, object };
+      }
+      case 'HemisphereLight': {
+        const object = new HemisphereLight();
+        writeHemisphereLight(object, node);
+        return { _tag: 'HemisphereLight', node, object };
+      }
     }
   };
 
@@ -250,6 +308,21 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.object.color.setHex(next.color);
       entry.object.intensity = next.intensity;
       writeVec3(entry.object.position, next.position);
+      entry.node = next;
+      return;
+    }
+    if (entry._tag === 'PointLight' && next._tag === 'PointLight') {
+      writePointLight(entry.object, next);
+      entry.node = next;
+      return;
+    }
+    if (entry._tag === 'SpotLight' && next._tag === 'SpotLight') {
+      writeSpotLight(entry.object, next);
+      entry.node = next;
+      return;
+    }
+    if (entry._tag === 'HemisphereLight' && next._tag === 'HemisphereLight') {
+      writeHemisphereLight(entry.object, next);
       entry.node = next;
       return;
     }

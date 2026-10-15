@@ -64,8 +64,58 @@ export type CylinderGeometry = {
   readonly radialSegments: number;
 };
 
+/** A torus (ring doughnut) in the XY plane, around the Z axis. */
+export type TorusGeometry = {
+  readonly _tag: 'Torus';
+  readonly radius: number;
+  readonly tube: number;
+  readonly radialSegments: number;
+  readonly tubularSegments: number;
+};
+
+/** A cone along the Y axis, point up. */
+export type ConeGeometry = {
+  readonly _tag: 'Cone';
+  readonly radius: number;
+  readonly height: number;
+  readonly radialSegments: number;
+};
+
+/** A capsule along the Y axis: a cylinder of `height` with hemispherical caps. */
+export type CapsuleGeometry = {
+  readonly _tag: 'Capsule';
+  readonly radius: number;
+  readonly height: number;
+  readonly capSegments: number;
+  readonly radialSegments: number;
+};
+
+/** A flat ring (annulus) in the XY plane, facing +Z. */
+export type RingGeometry = {
+  readonly _tag: 'Ring';
+  readonly innerRadius: number;
+  readonly outerRadius: number;
+  readonly thetaSegments: number;
+};
+
+/** A flat disc in the XY plane, facing +Z. */
+export type CircleGeometry = {
+  readonly _tag: 'Circle';
+  readonly radius: number;
+  readonly segments: number;
+};
+
 /** Any geometry shape the kernel can build. */
-export type ShapeGeometry = BoxGeometry | SphereGeometry | PlaneGeometry | CylinderGeometry;
+export type ShapeGeometry =
+  | BoxGeometry
+  | SphereGeometry
+  | PlaneGeometry
+  | CylinderGeometry
+  | TorusGeometry
+  | ConeGeometry
+  | CapsuleGeometry
+  | RingGeometry
+  | CircleGeometry;
 
 /** Physically based standard material parameters. */
 export type StandardMaterial = {
@@ -151,8 +201,56 @@ export type DirectionalLightNode = {
   readonly position: Vec3;
 };
 
+/**
+ * A light shining in every direction from `position`. `distance` 0 means no cut-off;
+ * `decay` 2 is physically correct.
+ */
+export type PointLightNode = {
+  readonly _tag: 'PointLight';
+  readonly key: string;
+  readonly color: Rgb;
+  readonly intensity: number;
+  readonly position: Vec3;
+  readonly distance: number;
+  readonly decay: number;
+};
+
+/**
+ * A cone of light from `position` towards `target`, both in world space. `angle` is the
+ * cone's half-angle in radians; `penumbra` (0 to 1) softens its edge.
+ */
+export type SpotLightNode = {
+  readonly _tag: 'SpotLight';
+  readonly key: string;
+  readonly color: Rgb;
+  readonly intensity: number;
+  readonly position: Vec3;
+  readonly target: Vec3;
+  readonly distance: number;
+  readonly angle: number;
+  readonly penumbra: number;
+  readonly decay: number;
+};
+
+/** Sky-to-ground gradient light: `color` from above `position`, `groundColor` from below. */
+export type HemisphereLightNode = {
+  readonly _tag: 'HemisphereLight';
+  readonly key: string;
+  readonly color: Rgb;
+  readonly groundColor: Rgb;
+  readonly intensity: number;
+  readonly position: Vec3;
+};
+
 /** Any node in a scene. Keys are unique across the whole scene. */
-export type SceneNode = GroupNode | MeshNode | AmbientLightNode | DirectionalLightNode;
+export type SceneNode =
+  | GroupNode
+  | MeshNode
+  | AmbientLightNode
+  | DirectionalLightNode
+  | PointLightNode
+  | SpotLightNode
+  | HemisphereLightNode;
 
 /** The node kinds the kernel knows how to host. */
 export type NodeKind = SceneNode['_tag'];

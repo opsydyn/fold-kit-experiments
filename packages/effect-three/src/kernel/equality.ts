@@ -61,6 +61,38 @@ export const shapeEquals = (a: ShapeGeometry, b: ShapeGeometry): boolean => {
         Object.is(a.height, b.height) &&
         a.radialSegments === b.radialSegments
       );
+    case 'Torus':
+      return (
+        b._tag === 'Torus' &&
+        Object.is(a.radius, b.radius) &&
+        Object.is(a.tube, b.tube) &&
+        a.radialSegments === b.radialSegments &&
+        a.tubularSegments === b.tubularSegments
+      );
+    case 'Cone':
+      return (
+        b._tag === 'Cone' &&
+        Object.is(a.radius, b.radius) &&
+        Object.is(a.height, b.height) &&
+        a.radialSegments === b.radialSegments
+      );
+    case 'Capsule':
+      return (
+        b._tag === 'Capsule' &&
+        Object.is(a.radius, b.radius) &&
+        Object.is(a.height, b.height) &&
+        a.capSegments === b.capSegments &&
+        a.radialSegments === b.radialSegments
+      );
+    case 'Ring':
+      return (
+        b._tag === 'Ring' &&
+        Object.is(a.innerRadius, b.innerRadius) &&
+        Object.is(a.outerRadius, b.outerRadius) &&
+        a.thetaSegments === b.thetaSegments
+      );
+    case 'Circle':
+      return b._tag === 'Circle' && Object.is(a.radius, b.radius) && a.segments === b.segments;
   }
 };
 

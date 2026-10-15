@@ -40,6 +40,25 @@ const Shape = Schema.Union([
     height: Size,
     radialSegments: Segments,
   }),
+  Schema.TaggedStruct('Torus', {
+    radius: Size,
+    tube: Schema.Literals([0.25, 0.5]),
+    radialSegments: Segments,
+    tubularSegments: Segments,
+  }),
+  Schema.TaggedStruct('Cone', { radius: Size, height: Size, radialSegments: Segments }),
+  Schema.TaggedStruct('Capsule', {
+    radius: Size,
+    height: Size,
+    capSegments: Schema.Literals([1, 4]),
+    radialSegments: Segments,
+  }),
+  Schema.TaggedStruct('Ring', {
+    innerRadius: Schema.Literals([0, 0.5]),
+    outerRadius: Size,
+    thetaSegments: Segments,
+  }),
+  Schema.TaggedStruct('Circle', { radius: Size, segments: Segments }),
 ]);
 const Transition = Schema.Union([
   Schema.TaggedStruct('Instant', {}),
@@ -84,6 +103,32 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     interactive: Schema.Boolean,
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),
+  Schema.TaggedStruct('PointLight', {
+    key: Key,
+    color: Colour,
+    intensity: Size,
+    position: Vec3,
+    distance: Schema.Literals([0, 10]),
+    decay: Schema.Literals([1, 2]),
+  }),
+  Schema.TaggedStruct('SpotLight', {
+    key: Key,
+    color: Colour,
+    intensity: Size,
+    position: Vec3,
+    target: Vec3,
+    distance: Schema.Literals([0, 10]),
+    angle: Schema.Literals([0.5, 1]),
+    penumbra: Unit,
+    decay: Schema.Literals([1, 2]),
+  }),
+  Schema.TaggedStruct('HemisphereLight', {
+    key: Key,
+    color: Colour,
+    groundColor: Colour,
+    intensity: Size,
+    position: Vec3,
+  }),
   Schema.TaggedStruct('DirectionalLight', {
     key: Key,
     color: Colour,

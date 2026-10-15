@@ -385,11 +385,13 @@ _Exit:_ the brief's Delivery list is complete: tests, benchmarks, working demo, 
 
 Measured on Apple Silicon: no-op reconcile of 1,000 meshes ~120 µs (budget 200), one change ~130 µs with 1 op (500), runtime mount/unmount ~17 µs (1 ms), frame with one animated mesh ~31 ns with no heap growth (50 µs).
 
+Showcase (2026-10-15): three samples in `packages/effect-three-samples` (reconciliation playground, sculpture with history and DevTools time travel, shared resources), shown in `apps/web` at `/effect-three` and on a new promo site, `apps/three-promo`, which uses the Foldkit Viz site's layout and styling. Real Foldkit DevTools time travel is now verified by hand on the sculpture sample.
+
 Not done, by decision or pending yours:
 
 - Both packages are `private`; release-please is not configured for them.
 - Borrowed resources, a `demand` frame mode and a WebGPU renderer are designed for but not built.
-- Real DevTools time travel is verified through Foldkit's Mount contract, not the Vite-plugin overlay.
+- Automated tests drive time travel through Foldkit's Mount contract; the DevTools overlay itself was verified by hand.
 
 All recommendations in this plan were accepted. Specifically:
 

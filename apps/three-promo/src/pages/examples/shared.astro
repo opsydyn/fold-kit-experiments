@@ -1,0 +1,20 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/shared/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/shared/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/shared/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/shared/update.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/shared/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/shared/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="Shared resources — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">SHARE WHAT THE GPU HOLDS</p><h1>One geometry. One material. Two cubes.</h1><p>Both cubes use one shared geometry and one shared material. Click a cube to repaint the material and both change. Grow them, remove one, or unmount the whole scene.</p></section>
+  <Sample client:load noMeta />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Released exactly once.</h2><p>Shared resources are reference-counted across every scene on the page and disposed when their last user goes. Unmounting a scene also releases its renderer and its WebGL context, so mounting and unmounting never runs out of contexts.</p><a class="text-link" href={samplesSource + '/shared'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

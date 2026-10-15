@@ -32,13 +32,15 @@ for checks and limitations.
 fold-kit-experiments/
 ├── apps/
 │   ├── web/               — demo Astro app, chart workbenches and interactive Storybook
-│   └── promo/             — Foldkit Viz promo site: Astro, light/dark themes
+│   ├── promo/             — Foldkit Viz promo site: Astro, light/dark themes
+│   └── three-promo/       — effect-three promo site: same layout and themes, live 3D examples
 └── packages/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     ├── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
     ├── dataset-explorer/ — private shared KeyedQuery example for both apps
     ├── effect-three/      — @opsydyn/effect-three   (private; Effect-native declarative Three.js core)
-    └── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (private; Foldkit adapter)
+    ├── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (private; Foldkit adapter)
+    └── effect-three-samples/ — private effect-three samples shared by apps/web and three-promo
 ```
 
 ## Prerequisites

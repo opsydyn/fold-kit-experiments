@@ -1,0 +1,20 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/playground/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/playground/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/playground/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/playground/update.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/playground/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/playground/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="Reconciliation playground — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">WATCH EVERY UPDATE</p><h1>Change little. Touch little.</h1><p>Add, move, reorder, repaint and remove keyed cubes. The panel shows what each update did: which objects were created, updated, moved or removed, and which GPU resources are still alive.</p></section>
+  <Sample client:load noMeta />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Identity follows the key.</h2><p>A cube keeps its three.js object for as long as its key exists, even when it moves to another shelf. Colours are shared materials: when no cube uses a colour, its material is disposed, and it comes back when a cube needs it again.</p><a class="text-link" href={samplesSource + '/playground'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

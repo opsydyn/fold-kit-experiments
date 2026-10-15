@@ -1,0 +1,57 @@
+---
+import SourceCode from '../components/SourceCode.astro';
+import Hero from '../examples/hero/app';
+import Layout from '../layouts/Layout.astro';
+import { examples } from '../lib/examples';
+import { sitePath } from '../lib/site-path';
+import { teaser } from '../lib/snippets';
+---
+<Layout>
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="hero-copy">
+      <p class="eyebrow">Declarative Three.js for Foldkit</p>
+      <h1 id="hero-heading">Scenes<br />from<br />state.</h1>
+      <p class="hero-description">Describe a 3D scene as plain data derived from your Model. <a href="https://foldkit.dev/">Foldkit</a> renders it, keyed updates keep every object in place, and Effect owns every GPU lifetime. Pointer input comes back as your own typed Messages.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href={sitePath('/examples/playground/')}>Explore the playground <span aria-hidden="true">→</span></a>
+        <a class="button button-secondary" href={sitePath('/examples/')}>All examples</a>
+      </div>
+    </div>
+    <div class="hero-scene">
+      <Hero client:visible noMeta />
+      <p class="small-note">Live: hover a cube, click to repaint it.</p>
+    </div>
+  </section>
+  <section class="showcase" aria-labelledby="showcase-heading">
+    <div class="section-heading">
+      <div><p class="eyebrow">Live examples</p><h2 id="showcase-heading">Change the state. Watch the scene follow.</h2></div>
+      <a class="text-link" href={sitePath('/docs/')}>Read the guide <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="gallery-grid">
+      {examples.map((example) => <a class="example-card" href={sitePath(`/examples/${example.id}/`)}>
+        <span class="eyebrow">{example.category}</span>
+        <img class="showcase-image showcase-light" src={sitePath(`/images/showcase/${example.id}-light.png`)} width="1776" height="762" loading="lazy" decoding="async" alt={example.alt} />
+        <img class="showcase-image showcase-dark" src={sitePath(`/images/showcase/${example.id}-dark.png`)} width="1776" height="762" loading="lazy" decoding="async" alt={example.alt} />
+        <div class="card-caption"><h3>{example.title}</h3><span class="card-arrow" aria-hidden="true">↗</span></div>
+      </a>)}
+    </div>
+  </section>
+  <section class="principles" aria-label="Why effect-three">
+    <div><h2>Scenes are data</h2><p>No closures, no three.js objects in your Model. Derive the scene in your view; keyed updates change only what changed.</p></div>
+    <div><h2>Effect owns lifetimes</h2><p>Renderers, GPU resources, frame loops and listeners live in a Scope. Unmount, fail or interrupt, and everything is released.</p></div>
+    <div><h2>Explicit interaction</h2><p>Clicks and hovers arrive as your typed Messages. Animation runs in the frame loop and never touches update.</p></div>
+  </section>
+  <section class="quick-start-teaser" aria-labelledby="code-heading">
+    <div>
+      <h2 id="code-heading">From Model to mesh.</h2>
+      <p>Describe it once. Change the Model. The scene follows.</p>
+      <a class="text-link" href={sitePath('/docs/#first-scene')}>Read the quick start <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="code-panel"><span class="code-language" aria-hidden="true">ts</span><SourceCode code={teaser} lang="ts" sourceId="scene.ts" /></div>
+  </section>
+</Layout>
+<style>
+  .hero-scene { display: grid; gap: 12px; min-width: 0; }
+  .hero-scene .small-note { color: var(--muted); font-size: 13px; text-align: center; }
+  .example-card .showcase-image { width: 100%; height: auto; border-radius: 12px; }
+</style>

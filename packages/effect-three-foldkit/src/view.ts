@@ -18,10 +18,22 @@ import {
 } from './element.ts';
 import type { SceneMount } from './mount.ts';
 
-/** Detail of click, pointer-down and pointer-up events. */
+/**
+ * Where the pointer met an interactive mesh: key, world-space point, distance from the
+ * camera, world-space face normal and texture coordinates.
+ */
+export type HitDetail = typeof SceneSchema.HitDetail.Type;
+
+/** Detail of click, double-click, pointer-down and pointer-up events: the hit and button. */
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
 
-/** Detail of pointer-enter and pointer-leave events. */
+/** Detail of wheel events: the hit and the wheel deltas. */
+export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
+
+/** Detail of a click that hit no interactive mesh. */
+export type MissDetail = typeof SceneSchema.MissDetail.Type;
+
+/** Detail of pointer-leave events: the key that is no longer under the pointer. */
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 
 export type ViewConfig<Message> = {
@@ -31,11 +43,22 @@ export type ViewConfig<Message> = {
   readonly mount: SceneMount;
   /** Maps the mount outcome (started or failed) into the app's Messages. */
   readonly onLifecycle: (message: SceneLifecycle) => Message;
+  /** Pressed and released on the same mesh with the same button. */
   readonly onClick?: (detail: ButtonDetail) => Message;
+  /** A double-click on the mesh that was last pressed. */
+  readonly onDoubleClick?: (detail: ButtonDetail) => Message;
+  /** A context menu on the mesh that was last pressed. The browser's menu stays shut. */
+  readonly onContextMenu?: (detail: HitDetail) => Message;
   readonly onPointerDown?: (detail: ButtonDetail) => Message;
   readonly onPointerUp?: (detail: ButtonDetail) => Message;
-  readonly onPointerEnter?: (detail: KeyDetail) => Message;
+  readonly onPointerEnter?: (detail: HitDetail) => Message;
+  /** Every pointer movement over an interactive mesh. Can fire at the pointer's rate. */
+  readonly onPointerMove?: (detail: HitDetail) => Message;
   readonly onPointerLeave?: (detail: KeyDetail) => Message;
+  /** A click that hit no interactive mesh and moved at most two pixels: clear a selection. */
+  readonly onPointerMissed?: (detail: MissDetail) => Message;
+  /** The wheel over an interactive mesh. Page scrolling is not blocked. */
+  readonly onWheel?: (detail: WheelDetail) => Message;
   /** A scene update was rejected; the scene keeps its last good state. */
   readonly onError?: (detail: { readonly error: SceneError }) => Message;
   /**
@@ -56,10 +79,15 @@ export const view = <Message>(
   const element = sceneElement.withMessage(h);
   const optional = Arr.getSomes([
     Option.map(given(config.onClick), element.OnSceneClick),
+    Option.map(given(config.onDoubleClick), element.OnSceneDoubleClick),
+    Option.map(given(config.onContextMenu), element.OnSceneContextMenu),
     Option.map(given(config.onPointerDown), element.OnScenePointerDown),
     Option.map(given(config.onPointerUp), element.OnScenePointerUp),
     Option.map(given(config.onPointerEnter), element.OnScenePointerEnter),
+    Option.map(given(config.onPointerMove), element.OnScenePointerMove),
     Option.map(given(config.onPointerLeave), element.OnScenePointerLeave),
+    Option.map(given(config.onPointerMissed), element.OnScenePointerMissed),
+    Option.map(given(config.onWheel), element.OnSceneWheel),
     Option.map(given(config.onError), element.OnSceneError),
     Option.map(given(config.onReconciled), element.OnSceneReconciled),
     Option.map(given(config.className), h.Class),

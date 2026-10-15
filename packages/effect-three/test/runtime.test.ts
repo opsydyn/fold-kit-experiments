@@ -194,9 +194,10 @@ function* hoverFollowsObjectsUnderAStillPointer(frames: ManualFrames) {
   yield* handle.update(cubeScene({ color: 1, position: [10, 0, 0] }));
   frames.step();
   const events = yield* handle.drainEvents;
-  expect(events).toEqual([
-    { _tag: 'PointerEnter', key: 'cube' },
-    { _tag: 'PointerLeave', key: 'cube' },
+  expect(events.map((event) => [event._tag, 'key' in event && event.key])).toEqual([
+    ['PointerEnter', 'cube'],
+    ['PointerMove', 'cube'],
+    ['PointerLeave', 'cube'],
   ]);
 }
 

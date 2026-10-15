@@ -86,8 +86,10 @@ export type SceneGraph = {
    * is mutable only because three's `Raycaster.intersectObjects` requires it: don't modify it.
    */
   readonly interactiveObjects: () => Array<Object3D>;
-  /** Sets the camera aspect ratio for a viewport of `width` by `height`. */
+  /** Sets the camera aspect ratio for a viewport of `width` by `height` CSS pixels. */
   readonly resize: (width: number, height: number) => void;
+  /** The last `resize`, in CSS pixels. `1 × 1` until the first resize. */
+  readonly viewport: () => { readonly width: number; readonly height: number };
   /** Removes every node and releases its resources. Disposes the store if the graph owns it. */
   readonly dispose: () => void;
 };
@@ -125,6 +127,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let index: SceneIndex = emptyIndex;
   let elapsed = 0;
   let animating = true;
+  let viewport = { width: 1, height: 1 };
 
   const unsubscribe = store.onGeometryReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
@@ -410,7 +413,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       interactiveList ??= [...interactive];
       return interactiveList;
     },
+    viewport: () => viewport,
     resize: (width, height) => {
+      viewport = { width, height };
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     },

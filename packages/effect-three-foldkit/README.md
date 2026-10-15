@@ -36,7 +36,8 @@ EffectThreeFoldkit.view(
 
 - **Updates are in place.** Foldkit hands the element a new scene on every render, and the core diffs it, so unchanged scenes cost no host changes and changed ones reuse their three.js objects.
 - **Animation never touches the Model.** Behaviours such as `spin` run in the frame loop, outside Foldkit's `update`.
-- **Events are typed and opt-in:** `onClick`, `onPointerDown`, `onPointerUp`, `onPointerEnter`, `onPointerLeave` and `onError`. Only the handlers you pass are bound.
+- **Events are typed and opt-in:** `onClick`, `onDoubleClick`, `onContextMenu`, `onPointerDown`, `onPointerUp`, `onPointerEnter`, `onPointerMove`, `onPointerLeave`, `onPointerMissed`, `onWheel`, `onError` and `onReconciled`. Only the handlers you pass are bound. Hits carry the mesh key, world-space point, distance, face normal and uv.
+- **Browser defaults:** a context menu over an interactive mesh keeps the browser's menu shut; elsewhere it opens as usual. Wheel listening is passive, so the page still scrolls.
 - **Update telemetry:** `onReconciled` reports what each update did (created, updated, moved, removed, replaced, reordered) and the GPU resources held afterwards. It fires at startup and after updates that changed something, never for no-ops, so storing it in the Model can't loop.
 - **Lifecycle:** `StartedScene` once the scene is running, or `FailedScene { reason }` (malformed or invalid scene, or no WebGL2).
 

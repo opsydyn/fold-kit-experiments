@@ -161,19 +161,46 @@ export const SceneDescription = Schema.Struct({
   children: Schema.Array(SceneNode),
 });
 
-/** Detail of hover events: the interactive mesh's key. */
+/** Detail of pointer-leave events: the interactive mesh's key. */
 export const KeyDetail = Schema.Struct({ key: Schema.String });
 
-/** Detail of button events: key, `MouseEvent.button` and the world-space hit point. */
-export const ButtonDetail = Schema.Struct({ key: Schema.String, button: Schema.Int, point: Vec3 });
+/**
+ * Where the pointer met an interactive mesh: its key, the world-space hit point, the
+ * distance from the camera, the world-space face normal and the texture coordinates.
+ */
+export const HitDetail = Schema.Struct({
+  key: Schema.String,
+  point: Vec3,
+  distance: Schema.Finite,
+  normal: Vec3,
+  uv: Schema.Tuple([Schema.Finite, Schema.Finite]),
+});
 
-/** A pointer interaction with an interactive mesh. */
+/** Detail of button events: the hit plus `MouseEvent.button`. */
+export const ButtonDetail = Schema.Struct({ ...HitDetail.fields, button: Schema.Int });
+
+/** Detail of wheel events: the hit plus `WheelEvent.deltaX` and `deltaY`. */
+export const WheelDetail = Schema.Struct({
+  ...HitDetail.fields,
+  deltaX: Schema.Finite,
+  deltaY: Schema.Finite,
+});
+
+/** Detail of a click that hit no interactive mesh. */
+export const MissDetail = Schema.Struct({ button: Schema.Int });
+
+/** A pointer interaction with an interactive mesh, or a miss. */
 export const SceneEvent = Schema.Union([
-  Schema.TaggedStruct('PointerEnter', { key: Schema.String }),
-  Schema.TaggedStruct('PointerLeave', { key: Schema.String }),
+  Schema.TaggedStruct('PointerEnter', HitDetail.fields),
+  Schema.TaggedStruct('PointerLeave', KeyDetail.fields),
+  Schema.TaggedStruct('PointerMove', HitDetail.fields),
   Schema.TaggedStruct('PointerDown', ButtonDetail.fields),
   Schema.TaggedStruct('PointerUp', ButtonDetail.fields),
   Schema.TaggedStruct('Click', ButtonDetail.fields),
+  Schema.TaggedStruct('DoubleClick', ButtonDetail.fields),
+  Schema.TaggedStruct('ContextMenu', HitDetail.fields),
+  Schema.TaggedStruct('Wheel', WheelDetail.fields),
+  Schema.TaggedStruct('PointerMissed', MissDetail.fields),
 ]);
 
 /** Why a scene description was rejected. */

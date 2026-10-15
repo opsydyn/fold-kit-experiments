@@ -10,7 +10,7 @@ import {
 } from '@opsydyn/effect-three';
 
 import { animationFrameScheduler } from '../src/dom/animationFrames.ts';
-import { createLatch, whileOpen } from '../src/dom/latch.ts';
+import { createLatch, routedWhileOpen } from '../src/dom/latch.ts';
 import { toNdc } from '../src/dom/pointer.ts';
 import { interceptProperty } from '../src/dom/property.ts';
 import { summarise } from '../src/dom/reconciled.ts';
@@ -76,15 +76,16 @@ test('one animation-frame loop serves every subscriber and stops with the last',
   expect(pending.size).toBe(0);
 });
 
-test('whileOpen drops calls while the latch is closed', () => {
+test('routedWhileOpen drops input while the latch is closed and returns what it routed', () => {
   const latch = createLatch(true);
   const calls: Array<number> = [];
-  const forward = whileOpen(latch, (value: number) => calls.push(value));
-  forward(1);
+  const record = (value: number): ReadonlyArray<number> => [calls.push(value) && value * 10];
+  const route = routedWhileOpen(latch, record);
+  expect(route(1)).toEqual([10]);
   latch.set(false);
-  forward(2);
+  expect(route(2)).toEqual([]);
   latch.set(true);
-  forward(3);
+  expect(route(3)).toEqual([30]);
   expect(calls).toEqual([1, 3]);
 });
 

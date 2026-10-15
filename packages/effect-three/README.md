@@ -54,7 +54,8 @@ const program = Effect.gen(function* () {
   const handle = yield* SceneRuntime.make({ scene: description, renderer, viewport });
   yield* handle.update(nextDescription); // diff and apply; equal scenes cost no host changes
   handle.pointer({ _tag: 'PointerDown', x: 0, y: 0, button: 0 }); // normalised device coords
-  // handle.events: Stream of PointerEnter | PointerLeave | PointerDown | PointerUp | Click
+  // handle.events: Stream of PointerEnter | PointerMove | PointerLeave | PointerDown | PointerUp
+  //   | Click | DoubleClick | ContextMenu | Wheel | PointerMissed
 }).pipe(Effect.scoped);
 
 const environment = Layer.mergeAll(ResourceRegistry.layer, FrameSource.layer(scheduler));
@@ -62,6 +63,7 @@ const environment = Layer.mergeAll(ResourceRegistry.layer, FrameSource.layer(sch
 
 - `renderer` is a `RendererFactory`: a plain object whose `create()` returns a renderer bound to one drawing surface. The WebGL2 implementation lives in the browser adapter. A WebGPU one can be added without touching the core.
 - `FrameSource.layer(scheduler)` takes any `FrameScheduler`: `requestAnimationFrame`, three's `setAnimationLoop`, or `createManualFrames()` in tests.
+- Pointer events follow React Three Fiber's semantics: click, double-click and context menu go only to the mesh that was pressed; a click that hits nothing and moves at most 2 CSS pixels is a `PointerMissed`. Hits carry the key, world-space point, distance, face normal and uv.
 - `make` is atomic. If the description is invalid (`InvalidScene`), the renderer can't be created (`RendererUnavailable`), or startup is interrupted, everything already acquired is released before it returns.
 
 ## Resource ownership

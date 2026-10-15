@@ -92,14 +92,25 @@ function animationFrames(page: Page, count: number): Promise<number> {
   );
 }
 
-/** Pointer listener types registered on the canvas kept in `window.__canvas`. */
+const sceneInputTypes = new Set([
+  'pointermove',
+  'pointerdown',
+  'pointerup',
+  'pointerleave',
+  'pointercancel',
+  'dblclick',
+  'contextmenu',
+  'wheel',
+]);
+
+/** Scene input listener types registered on the canvas kept in `window.__canvas`. */
 async function canvasPointerListeners(cdp: CDPSession): Promise<ReadonlyArray<string>> {
   const { result } = await cdp.send('Runtime.evaluate', { expression: 'window.__canvas' });
   if (result.objectId === undefined) throw new Error('window.__canvas is not set');
   const { listeners } = await cdp.send('DOMDebugger.getEventListeners', {
     objectId: result.objectId,
   });
-  return listeners.map((listener) => listener.type).filter((type) => type.startsWith('pointer'));
+  return listeners.map((listener) => listener.type).filter((type) => sceneInputTypes.has(type));
 }
 
 test('the adapter proves the vertical slice in a real browser', async () => {
@@ -118,7 +129,7 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   await page.evaluate(() =>
     Reflect.set(globalThis, '__canvas', document.querySelector('effect-three-scene canvas')),
   );
-  expect(await canvasPointerListeners(cdp)).toHaveLength(5);
+  expect(await canvasPointerListeners(cdp)).toHaveLength(sceneInputTypes.size);
   expect(await readProbe(page)).toMatchObject({ resizeObservers: 1, intersectionObservers: 1 });
 
   // Animation runs without Foldkit model updates.
@@ -134,6 +145,25 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   await canvas.click({ position: { x: 160, y: 120 } });
   await waitForText(page, '#clicks', '1');
   expect(await text(page, '#last-key')).toBe('cube');
+  expect(Number(await text(page, '#moves'))).toBeGreaterThan(0);
+
+  // The rest of the pointer vocabulary: double-click, context menu, wheel and misses.
+  // A context menu over the mesh keeps the browser menu shut; anywhere else it opens.
+  await canvas.dblclick({ position: { x: 160, y: 120 } });
+  await canvas.click({ position: { x: 160, y: 120 }, button: 'right' });
+  await canvas.hover({ position: { x: 160, y: 120 } });
+  await page.mouse.wheel(0, 120);
+  await canvas.click({ position: { x: 4, y: 4 } });
+  await canvas.click({ position: { x: 4, y: 4 }, button: 'right' });
+  await waitForText(
+    page,
+    '#events',
+    'DoubleClick:cube ContextMenu:cube Wheel:cube:1 Missed:0 Missed:2',
+  );
+  expect(await page.evaluate(() => Reflect.get(globalThis, '__probe').contextMenus)).toEqual([
+    true,
+    false,
+  ]);
 
   // A model change updates the existing scene: no remount, no new GPU resources.
   const statsBefore = (await readProbe(page)).stats;

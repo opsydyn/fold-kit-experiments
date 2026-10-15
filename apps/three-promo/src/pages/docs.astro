@@ -31,7 +31,7 @@ import { entry, installation, runtime, sharing, teaser, testing, transitions, vi
       </section>
       <section id="foldkit">
         <h2>Render it with Foldkit.</h2>
-        <p>Create one environment for the application, then render scenes from your view. Pointer interaction comes back as your own typed Messages; only the handlers you pass are bound.</p>
+        <p>Create one environment for the application, then render scenes from your view. Pointer interaction comes back as your own typed Messages: clicks, double-clicks, context menus, hover and movement, the wheel, and misses for clearing a selection. Only the handlers you pass are bound.</p>
         <div class="code-panel"><SourceCode code={entry} lang="ts" sourceId="entry.ts" /></div>
         <div class="code-panel"><SourceCode code={view} lang="ts" sourceId="view.ts" /></div>
         <p>Unmounting the element releases its renderer, WebGL context, GPU resources, listeners and frame subscription. While Foldkit DevTools time-travels, the scene shows the historical state and ignores pointer input.</p>

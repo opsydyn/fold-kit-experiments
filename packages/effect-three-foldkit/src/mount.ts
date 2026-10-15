@@ -11,6 +11,7 @@ import {
   type GatedFrames,
   type PointerInput,
   ResourceRegistry,
+  type SceneEvent,
   type SceneDescription,
   SceneRuntime,
   SceneSchema,
@@ -26,7 +27,7 @@ import {
   sceneErrorDispatch,
   sceneEventDispatch,
 } from './dom/canvas.ts';
-import { applying, createLatch, type Latch, whileOpen } from './dom/latch.ts';
+import { applying, createLatch, type Latch, routedWhileOpen } from './dom/latch.ts';
 import { listenForPointer } from './dom/pointer.ts';
 import { interceptProperty } from './dom/property.ts';
 import { typedScene } from './dom/typedScenes.ts';
@@ -78,12 +79,13 @@ const acquireInterception = (element: Element, updates: Queue.Queue<unknown>) =>
   return Effect.acquireRelease(intercept, (intercepted) => Effect.sync(intercepted.restore));
 };
 
-const pointerListening = (canvas: HTMLElement, onInput: (input: PointerInput) => void) => () =>
-  listenForPointer(canvas, onInput);
+const pointerListening =
+  (canvas: HTMLElement, onInput: (input: PointerInput) => ReadonlyArray<SceneEvent>) => () =>
+    listenForPointer(canvas, onInput);
 
 const acquirePointer = (canvas: HTMLElement, mounted: Mounted) => {
   const listen = Effect.sync(
-    pointerListening(canvas, whileOpen(mounted.live, mounted.handle.pointer)),
+    pointerListening(canvas, routedWhileOpen(mounted.live, mounted.handle.pointer)),
   );
   return Effect.acquireRelease(listen, Effect.sync);
 };

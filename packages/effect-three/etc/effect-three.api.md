@@ -79,8 +79,11 @@ const BoxGeometry_2: Schema.TaggedStruct<"Box", {
 // @public
 const ButtonDetail: Schema.Struct<{
     readonly key: Schema.String;
-    readonly button: Schema.Int;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly button: Schema.Int;
 }>;
 
 // @public
@@ -323,7 +326,19 @@ export type GroupNode = {
 export type Hit = {
     readonly key: string;
     readonly point: Vec3;
+    readonly distance: number;
+    readonly normal: Vec3;
+    readonly uv: readonly [u: number, v: number];
 };
+
+// @public
+const HitDetail: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+}>;
 
 // @public
 export type HostMesh = Mesh<BufferGeometry, MeshStandardMaterial>;
@@ -375,7 +390,7 @@ const make: (options: SceneRuntimeOptions) => Effect.Effect<{
     update: (scene: SceneDescription) => Effect.Effect<readonly Op[], InvalidScene, never>;
     resize: (viewport: Viewport) => Effect.Effect<void, never, never>;
     setAnimating: (animating: boolean) => Effect.Effect<void, never, never>;
-    pointer: (input: PointerInput) => void;
+    pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
     events: Stream.Stream<SceneEvent, never, never>;
     drainEvents: Effect.Effect<SceneEvent[], never, never>;
 }, InvalidScene | RendererUnavailable, FrameSource_2 | ResourceRegistry_2 | Scope_2.Scope>;
@@ -476,6 +491,11 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
 }>;
 
 // @public
+const MissDetail: Schema.Struct<{
+    readonly button: Schema.Int;
+}>;
+
+// @public
 export type NodeKind = SceneNode['_tag'];
 
 // @public
@@ -537,6 +557,10 @@ const PerspectiveCamera_3: Schema.Struct<{
 // @public (undocumented)
 export type Picker = {
     readonly pick: (x: number, y: number) => Hit | undefined;
+    readonly viewport: () => {
+        readonly width: number;
+        readonly height: number;
+    };
 };
 
 // @public
@@ -573,6 +597,21 @@ export type PointerInput = {
     readonly x: number;
     readonly y: number;
     readonly button: number;
+} | {
+    readonly _tag: 'DoubleClick';
+    readonly x: number;
+    readonly y: number;
+    readonly button: number;
+} | {
+    readonly _tag: 'ContextMenu';
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly _tag: 'Wheel';
+    readonly x: number;
+    readonly y: number;
+    readonly deltaX: number;
+    readonly deltaY: number;
 } | {
     readonly _tag: 'PointerLeave';
 };
@@ -802,47 +841,89 @@ const SceneDescription_2: Schema.Struct<{
     readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
 }>;
 
+// Warning: (ae-forgotten-export) The symbol "HitEvent" needs to be exported by the entry point index.d.ts
+//
 // @public
-export type SceneEvent = {
-    readonly _tag: 'PointerEnter';
-    readonly key: string;
-} | {
+export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly _tag: 'PointerLeave';
     readonly key: string;
-} | {
-    readonly _tag: 'PointerDown';
-    readonly key: string;
+} | HitEvent<'PointerMove'> | HitEvent<'PointerDown', {
     readonly button: number;
-    readonly point: Vec3;
-} | {
-    readonly _tag: 'PointerUp';
-    readonly key: string;
+}> | HitEvent<'PointerUp', {
     readonly button: number;
-    readonly point: Vec3;
-} | {
-    readonly _tag: 'Click';
-    readonly key: string;
+}> | HitEvent<'Click', {
     readonly button: number;
-    readonly point: Vec3;
+}> | HitEvent<'DoubleClick', {
+    readonly button: number;
+}> | HitEvent<'ContextMenu'> | HitEvent<'Wheel', {
+    readonly deltaX: number;
+    readonly deltaY: number;
+}>
+/** A click that hit no interactive mesh: useful for clearing a selection. */
+| {
+    readonly _tag: 'PointerMissed';
+    readonly button: number;
 };
 
 // @public
 const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"PointerLeave", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"PointerMove", {
+    readonly key: Schema.String;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"PointerDown", {
     readonly key: Schema.String;
-    readonly button: Schema.Int;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly button: Schema.Int;
 }>, Schema.TaggedStruct<"PointerUp", {
     readonly key: Schema.String;
-    readonly button: Schema.Int;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly button: Schema.Int;
 }>, Schema.TaggedStruct<"Click", {
     readonly key: Schema.String;
-    readonly button: Schema.Int;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly button: Schema.Int;
+}>, Schema.TaggedStruct<"DoubleClick", {
+    readonly key: Schema.String;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly button: Schema.Int;
+}>, Schema.TaggedStruct<"ContextMenu", {
+    readonly key: Schema.String;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"Wheel", {
+    readonly key: Schema.String;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly deltaX: Schema.Finite;
+    readonly deltaY: Schema.Finite;
+}>, Schema.TaggedStruct<"PointerMissed", {
+    readonly button: Schema.Int;
 }>]>;
 
 // @public (undocumented)
@@ -858,6 +939,10 @@ export type SceneGraph = {
     readonly keyOf: (object: Object3D) => string | undefined;
     readonly interactiveObjects: () => Array<Object3D>;
     readonly resize: (width: number, height: number) => void;
+    readonly viewport: () => {
+        readonly width: number;
+        readonly height: number;
+    };
     readonly dispose: () => void;
 };
 
@@ -880,7 +965,7 @@ export type SceneIndex = {
 // @public (undocumented)
 export type SceneLoop = {
     readonly frame: () => void;
-    readonly pointer: (input: PointerInput) => void;
+    readonly pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
 };
 
 // @public (undocumented)
@@ -945,7 +1030,10 @@ declare namespace SceneSchema {
         PerspectiveCamera_3 as PerspectiveCamera,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
+        HitDetail,
         ButtonDetail,
+        WheelDetail,
+        MissDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError
     }
@@ -1100,6 +1188,17 @@ export type Viewport = {
     readonly height: number;
     readonly pixelRatio: number;
 };
+
+// @public
+const WheelDetail: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly distance: Schema.Finite;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly deltaX: Schema.Finite;
+    readonly deltaY: Schema.Finite;
+}>;
 
 // @public
 export const writeRotation: (target: Euler, rotation: Rotation, elapsedSeconds: number) => void;

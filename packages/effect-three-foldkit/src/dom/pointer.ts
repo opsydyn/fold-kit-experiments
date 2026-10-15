@@ -3,7 +3,7 @@
  *
  * @module
  */
-import type { PointerInput } from '@opsydyn/effect-three';
+import type { PointerInput, SceneEvent } from '@opsydyn/effect-three';
 
 /** The part of `DOMRect` the conversion needs. */
 export type Rect = {
@@ -26,37 +26,70 @@ export const toNdc = (
   };
 };
 
-/** Converts a DOM pointer event into kernel input, or `undefined` for other event types. */
-export const toPointerInput = (event: PointerEvent, rect: Rect): PointerInput | undefined => {
+/**
+ * Converts a DOM pointer, mouse or wheel event into kernel input, or `undefined` for
+ * other event types. Pointer cancel is treated as leaving the surface.
+ */
+export const toPointerInput = (event: MouseEvent, rect: Rect): PointerInput | undefined => {
   if (event.type === 'pointerleave' || event.type === 'pointercancel') {
     return { _tag: 'PointerLeave' };
   }
   const { x, y } = toNdc(rect, event.clientX, event.clientY);
-  if (event.type === 'pointermove') return { _tag: 'PointerMove', x, y };
-  if (event.type === 'pointerdown') return { _tag: 'PointerDown', x, y, button: event.button };
-  if (event.type === 'pointerup') return { _tag: 'PointerUp', x, y, button: event.button };
-  return undefined;
+  switch (event.type) {
+    case 'pointermove':
+      return { _tag: 'PointerMove', x, y };
+    case 'pointerdown':
+      return { _tag: 'PointerDown', x, y, button: event.button };
+    case 'pointerup':
+      return { _tag: 'PointerUp', x, y, button: event.button };
+    case 'dblclick':
+      return { _tag: 'DoubleClick', x, y, button: event.button };
+    case 'contextmenu':
+      return { _tag: 'ContextMenu', x, y };
+    case 'wheel':
+      return 'deltaY' in event && event instanceof WheelEvent
+        ? { _tag: 'Wheel', x, y, deltaX: event.deltaX, deltaY: event.deltaY }
+        : undefined;
+    default:
+      return undefined;
+  }
 };
 
-const pointerEventTypes = [
+/** True when the scene handled a context-menu input, so the browser menu should not open. */
+export const claimsContextMenu = (events: ReadonlyArray<SceneEvent>): boolean =>
+  events.some((event) => event._tag === 'ContextMenu');
+
+const eventTypes = [
   'pointermove',
   'pointerdown',
   'pointerup',
   'pointerleave',
   'pointercancel',
+  'dblclick',
+  'contextmenu',
+  'wheel',
 ] as const;
 
-/** Forwards pointer input from `element`. Returns a function that removes every listener. */
+/**
+ * Forwards pointer, mouse and wheel input from `element`. `onInput` returns the scene
+ * events it produced: a context menu over an interactive mesh suppresses the browser's
+ * menu, anywhere else it opens as usual. Wheel listening is passive, so page scrolling
+ * is never blocked. Returns a function that removes every listener.
+ */
 export const listenForPointer = (
   element: HTMLElement,
-  onInput: (input: PointerInput) => void,
+  onInput: (input: PointerInput) => ReadonlyArray<SceneEvent>,
 ): (() => void) => {
-  const listener = (event: PointerEvent): void => {
+  const listener = (event: Event): void => {
+    if (!(event instanceof MouseEvent)) return;
     const input = toPointerInput(event, element.getBoundingClientRect());
-    if (input !== undefined) onInput(input);
+    if (input === undefined) return;
+    const events = onInput(input);
+    if (event.type === 'contextmenu' && claimsContextMenu(events)) event.preventDefault();
   };
-  for (const type of pointerEventTypes) element.addEventListener(type, listener);
+  for (const type of eventTypes)
+    element.addEventListener(type, listener, { passive: type === 'wheel' });
   return () => {
-    for (const type of pointerEventTypes) element.removeEventListener(type, listener);
+    for (const type of eventTypes) element.removeEventListener(type, listener);
   };
 };

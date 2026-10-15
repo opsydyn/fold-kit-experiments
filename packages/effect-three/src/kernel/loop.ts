@@ -25,8 +25,11 @@ export type SceneLoopOptions = {
 export type SceneLoop = {
   /** Advances behaviours, re-tests hover and renders one frame. */
   readonly frame: () => void;
-  /** Routes pointer input to hit testing and emits the resulting events. */
-  readonly pointer: (input: PointerInput) => void;
+  /**
+   * Routes pointer input to hit testing, emits the resulting events and returns them, so
+   * a DOM listener can decide synchronously whether the scene handled its event.
+   */
+  readonly pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
 };
 
 /** Creates the frame step and pointer router for one scene. */
@@ -40,7 +43,9 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       renderer.render(graph.scene, graph.camera);
     },
     pointer: (input) => {
-      for (const event of tracker.input(input)) emit(event);
+      const events = tracker.input(input);
+      for (const event of events) emit(event);
+      return events;
     },
   };
 };

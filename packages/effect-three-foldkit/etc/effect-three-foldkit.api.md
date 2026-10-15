@@ -16,6 +16,7 @@ import { RendererFactory } from '@opsydyn/effect-three';
 import type { ResourceStats } from '@opsydyn/effect-three';
 import { ResourceStore } from '@opsydyn/effect-three';
 import type { SceneDescription } from '@opsydyn/effect-three';
+import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
@@ -31,12 +32,20 @@ export const animationFrameScheduler: (host: AnimationFrameHost) => FrameSchedul
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
 
 // @public
+export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
+
+// @public
 export const domEventName: {
     readonly Click: 'scene-click';
+    readonly DoubleClick: 'scene-double-click';
+    readonly ContextMenu: 'scene-context-menu';
     readonly PointerDown: 'scene-pointer-down';
     readonly PointerUp: 'scene-pointer-up';
     readonly PointerEnter: 'scene-pointer-enter';
+    readonly PointerMove: 'scene-pointer-move';
     readonly PointerLeave: 'scene-pointer-leave';
+    readonly PointerMissed: 'scene-pointer-missed';
+    readonly Wheel: 'scene-wheel';
 };
 
 // @public (undocumented)
@@ -49,6 +58,9 @@ export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | '
 export type EnvironmentOptions = {
     readonly renderer?: (canvas: HTMLCanvasElement) => RendererFactory;
 };
+
+// @public
+export type HitDetail = typeof SceneSchema.HitDetail.Type;
 
 // @public
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
@@ -69,6 +81,9 @@ export const makeSceneMount: (environment: Environment) => Mount.MountDefinition
     readonly _tag: "FailedScene";
     readonly reason: string;
 }>;
+
+// @public
+export type MissDetail = typeof SceneSchema.MissDetail.Type;
 
 // @public
 export const ReconciledDetail: Schema.Struct<{
@@ -151,24 +166,71 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
 }, {
     'scene-click': Schema.Struct<{
         readonly key: Schema.String;
-        readonly button: Schema.Int;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly button: Schema.Int;
+    }>;
+    'scene-double-click': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly button: Schema.Int;
+    }>;
+    'scene-context-menu': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
     }>;
     'scene-pointer-down': Schema.Struct<{
         readonly key: Schema.String;
-        readonly button: Schema.Int;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly button: Schema.Int;
     }>;
     'scene-pointer-up': Schema.Struct<{
         readonly key: Schema.String;
-        readonly button: Schema.Int;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly button: Schema.Int;
     }>;
     'scene-pointer-enter': Schema.Struct<{
         readonly key: Schema.String;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    }>;
+    'scene-pointer-move': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
     }>;
     'scene-pointer-leave': Schema.Struct<{
         readonly key: Schema.String;
+    }>;
+    'scene-pointer-missed': Schema.Struct<{
+        readonly button: Schema.Int;
+    }>;
+    'scene-wheel': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly deltaX: Schema.Finite;
+        readonly deltaY: Schema.Finite;
     }>;
     'scene-error': Schema.Struct<{
         readonly error: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKey", {
@@ -254,7 +316,7 @@ export const toNdc: (rect: Rect, clientX: number, clientY: number) => {
 };
 
 // @public
-export const toPointerInput: (event: PointerEvent, rect: Rect) => PointerInput | undefined;
+export const toPointerInput: (event: MouseEvent, rect: Rect) => PointerInput | undefined;
 
 // @public
 export const view: <Message>(config: ViewConfig<NoInfer<Message>>, h: HtmlBuilder<Message>) => Html;
@@ -265,10 +327,15 @@ export type ViewConfig<Message> = {
     readonly mount: SceneMount;
     readonly onLifecycle: (message: SceneLifecycle) => Message;
     readonly onClick?: (detail: ButtonDetail) => Message;
+    readonly onDoubleClick?: (detail: ButtonDetail) => Message;
+    readonly onContextMenu?: (detail: HitDetail) => Message;
     readonly onPointerDown?: (detail: ButtonDetail) => Message;
     readonly onPointerUp?: (detail: ButtonDetail) => Message;
-    readonly onPointerEnter?: (detail: KeyDetail) => Message;
+    readonly onPointerEnter?: (detail: HitDetail) => Message;
+    readonly onPointerMove?: (detail: HitDetail) => Message;
     readonly onPointerLeave?: (detail: KeyDetail) => Message;
+    readonly onPointerMissed?: (detail: MissDetail) => Message;
+    readonly onWheel?: (detail: WheelDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
     }) => Message;
@@ -281,6 +348,9 @@ export type WebGLOptions = Omit<WebGLRendererParameters, 'canvas'>;
 
 // @public
 export const webglRendererFactory: (canvas: HTMLCanvasElement, options?: WebGLOptions) => RendererFactory;
+
+// @public
+export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
 
 // (No @packageDocumentation comment for this package)
 

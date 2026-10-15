@@ -16,7 +16,7 @@
  * @module
  */
 export { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
-export { toNdc, toPointerInput } from './dom/pointer.ts';
+export { type Rect, toNdc, toPointerInput } from './dom/pointer.ts';
 export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
 export { domEventName, SceneError, sceneElement, SceneLifecycle } from './element.ts';
 export {

@@ -14,15 +14,13 @@ const boundaryPaths = [
   'bench/**',
   'e2e/**',
   'scripts/**',
-  'spikes/**',
 ];
 
 export default defineConfig({
   options: typeAware.options,
   plugins: ['typescript', 'unicorn', 'oxc'],
   jsPlugins: [...jsPlugins],
-  // spikes/ holds throwaway Phase 0 evidence (docs/effect-three/spike-results.md); deleted after Phase 1.
-  ignorePatterns: ['**/dist/**', 'node_modules/**', 'spikes/**'],
+  ignorePatterns: ['**/dist/**', 'node_modules/**'],
   rules: {
     ...allRules,
     'linteffect/no-run-effect-outside-boundary': ['error', { effectVersion: 4, boundaryPaths }],

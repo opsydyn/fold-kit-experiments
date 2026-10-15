@@ -2,8 +2,9 @@
  * Visual and resource tests in a real browser.
  *
  * - Golden images: Playwright's clock is paused, so frames are a pure function of fake
- *   time and identical on every run. Set UPDATE_GOLDENS=1 to rewrite them. Goldens are
- *   SwiftShader renders; a small pixel tolerance absorbs driver-level drift.
+ *   time and identical on every run. Goldens are SwiftShader (software) renders, which were
+ *   pixel-identical on macOS and Linux. Set UPDATE_GOLDENS=1 to rewrite them. Locally a
+ *   missing golden is written; in CI (`CI=true`) it fails, so new goldens must be committed.
  * - Leak oracle: three's own `renderer.info.memory` must return to its baseline after
  *   repeated shared-resource swaps.
  * - Time-travel gate: while the Mount's view state is `Paused`, pointer events are dropped.
@@ -38,7 +39,13 @@ afterAll(async () => {
 /** Compares `actual` with the named golden, writing it when missing or when updating. */
 async function expectGolden(name: string, actual: Buffer): Promise<void> {
   const file = Bun.file(`${goldenDir}${name}.png`);
-  if (Bun.env['UPDATE_GOLDENS'] === '1' || !(await file.exists())) {
+  const exists = await file.exists();
+  if (!exists && Bun.env['CI'] === 'true') {
+    await mkdir(diffDir, { recursive: true });
+    await Bun.write(`${diffDir}${name}.actual.png`, actual);
+    throw new Error(`missing golden ${name}.png; the render is in goldens/__diff__/`);
+  }
+  if (Bun.env['UPDATE_GOLDENS'] === '1' || !exists) {
     await Bun.write(file, actual);
     return;
   }

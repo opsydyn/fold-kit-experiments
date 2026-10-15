@@ -15,7 +15,7 @@ import {
   SceneRuntime,
   SceneSchema,
 } from '@opsydyn/effect-three';
-import { type Cause, Effect, Queue, Schema, Stream } from 'effect';
+import { type Cause, Effect, Option, Queue, Schema, Stream } from 'effect';
 import { Mount } from 'foldkit';
 import type { ViewState } from 'foldkit/mount';
 
@@ -23,6 +23,7 @@ import { canvasIn, removal, sceneErrorDispatch, sceneEventDispatch } from './dom
 import { applying, createLatch, type Latch, whileOpen } from './dom/latch.ts';
 import { listenForPointer } from './dom/pointer.ts';
 import { interceptProperty } from './dom/property.ts';
+import { typedScene } from './dom/typedScenes.ts';
 import {
   measureViewport,
   observeReducedMotion,
@@ -43,7 +44,14 @@ type Mounted = {
   readonly frames: GatedFrames;
 };
 
-const decodeScene = Schema.decodeUnknownEffect(SceneSchema.SceneDescription);
+const decodeUnknownScene = Schema.decodeUnknownEffect(SceneSchema.SceneDescription);
+
+/** Typed scenes from `view` skip validation; anything else is Schema-decoded. */
+const decodeScene = (value: unknown) =>
+  Option.fromNullishOr(typedScene(value)).pipe(
+    Option.match({ onNone: () => decodeUnknownScene(value), onSome: Effect.succeed }),
+  );
+
 const isLive = Schema.is(Schema.Literal('Live'));
 
 const acquireCanvas = (element: Element) => {

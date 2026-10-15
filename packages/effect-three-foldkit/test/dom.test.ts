@@ -1,9 +1,12 @@
 import { expect, test } from 'bun:test';
 
+import { scene } from '@opsydyn/effect-three';
+
 import { animationFrameScheduler } from '../src/dom/animationFrames.ts';
 import { createLatch, whileOpen } from '../src/dom/latch.ts';
 import { toNdc } from '../src/dom/pointer.ts';
 import { interceptProperty } from '../src/dom/property.ts';
+import { markTyped, typedScene } from '../src/dom/typedScenes.ts';
 
 test('client coordinates map to normalised device coordinates', () => {
   const rect = { left: 100, top: 50, width: 200, height: 100 };
@@ -75,4 +78,12 @@ test('whileOpen drops calls while the latch is closed', () => {
   latch.set(true);
   forward(3);
   expect(calls).toEqual([1, 3]);
+});
+
+test('only scenes marked by the typed view skip decoding', () => {
+  const marked = markTyped(scene({}));
+  expect(typedScene(marked)).toBe(marked);
+  expect(typedScene(scene({}))).toBeUndefined();
+  expect(typedScene('not a scene')).toBeUndefined();
+  expect(typedScene(null)).toBeUndefined();
 });

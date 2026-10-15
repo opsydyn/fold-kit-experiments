@@ -1,7 +1,7 @@
 # ADR-002: Foldkit adapter seam is CustomElement properties and events plus a one-shot Mount
 
 - Status: Accepted and implemented (2026-10-14, Phase 3). Time-travel pause is wired but not yet verified end to end.
-- Evidence: [d1-adapter spike](../../../packages/effect-three-foldkit/spikes/d1-adapter), [spike results](../spike-results.md#d1-details)
+- Evidence: [d1-adapter spike](https://github.com/opsydyn/fold-kit-experiments/tree/02fa947/packages/effect-three-foldkit/spikes/d1-adapter) (removed after Phase 1; kept in commit `02fa947`), [spike results](../spike-results.md#d1-details)
 
 ## Context
 

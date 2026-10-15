@@ -70,7 +70,8 @@ export const sharedGeometry = (id: string): GeometryRef => ({ _tag: 'SharedGeome
 /** A reference to a shared material defined in the scene's resources. */
 export const sharedMaterial = (id: string): MaterialRef => ({ _tag: 'SharedMaterial', id });
 
-type TransformOptions = {
+/** Key and optional transform shared by `group` and `mesh`. */
+export type TransformOptions = {
   readonly key: string;
   readonly position?: Vec3;
   readonly rotation?: Rotation;

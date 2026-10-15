@@ -9,6 +9,7 @@ import { Array as Arr, Option } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
+import { markTyped } from './dom/typedScenes.ts';
 import { type SceneError, sceneElement, type SceneLifecycle } from './element.ts';
 import type { SceneMount } from './mount.ts';
 
@@ -53,5 +54,5 @@ export const view = <Message>(
     Option.map(given(config.className), h.Class),
   ]);
   const lifecycle = Mount.mapMessage(config.mount(), config.onLifecycle);
-  return element([element.Scene(config.scene), h.OnMount(lifecycle), ...optional], []);
+  return element([element.Scene(markTyped(config.scene)), h.OnMount(lifecycle), ...optional], []);
 };

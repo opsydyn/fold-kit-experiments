@@ -1,7 +1,7 @@
 # ADR-003: Kernel/runtime layering under "all oxlint-effect rules, no exceptions"
 
 - Status: Accepted (2026-10-14)
-- Evidence: [d2-lint-layering spike](../../../packages/effect-three/spikes/d2-lint-layering), [spike results](../spike-results.md#d2-numbers-1000-keyed-nodes-mitata-apple-silicon)
+- Evidence: [d2-lint-layering spike](https://github.com/opsydyn/fold-kit-experiments/tree/02fa947/packages/effect-three/spikes/d2-lint-layering) (removed after Phase 1; kept in commit `02fa947`), [spike results](../spike-results.md#d2-numbers-1000-keyed-nodes-mitata-apple-silicon)
 
 ## Context
 
@@ -21,7 +21,7 @@ Rules of the road:
 1. Effect owns **lifetimes**, not frames. The per-frame callback is a plain function registered inside `acquireRelease`.
 2. `boundaryPaths` for runtime-execution rules is configuration, not an exception (`packages/effect-three/oxlint.strict.ts`).
 3. No `// oxlint-disable` comments anywhere.
-4. Each package's `spikes/` folder is outside the lint path. It is throwaway evidence and is deleted after Phase 1.
+4. The Phase 0 spikes were outside the lint path. They were deleted in Phase 5 and remain in commit `02fa947`; nothing in either package is excluded from the strict lint any more.
 
 ## Enforcement
 

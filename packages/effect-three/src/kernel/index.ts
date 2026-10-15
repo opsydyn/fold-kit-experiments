@@ -19,6 +19,7 @@ export {
   sharedMaterial,
   spin,
   standard,
+  type TransformOptions,
 } from './build.ts';
 export { changedFields, diff, type DiffResult, type Field, type Op } from './diff.ts';
 export {

@@ -9,9 +9,7 @@
  */
 import { Schema } from 'effect';
 
-import type * as Kernel from '../kernel/description.ts';
-import type { SceneEvent as KernelSceneEvent } from '../kernel/pointer.ts';
-import type { DescriptionError as KernelDescriptionError } from '../kernel/sceneIndex.ts';
+import type { SceneNode as KernelSceneNode } from '../kernel/description.ts';
 
 const NonNegative = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 const Positive = Schema.Finite.check(Schema.isGreaterThan(0));
@@ -95,13 +93,13 @@ export const DirectionalLightNode = Schema.TaggedStruct('DirectionalLight', {
 });
 
 /** Any scene node. Groups nest recursively. */
-export const SceneNode: Schema.Codec<Kernel.SceneNode> = Schema.Union([
+export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   Schema.TaggedStruct('Group', {
     key: Schema.String,
     position: Vec3,
     rotation: Rotation,
     scale: Vec3,
-    children: Schema.Array(Schema.suspend((): Schema.Codec<Kernel.SceneNode> => SceneNode)),
+    children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
   }),
   MeshNode,
   AmbientLightNode,
@@ -149,25 +147,3 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('UnknownSharedGeometry', { nodeKey: Schema.String, id: Schema.String }),
   Schema.TaggedStruct('UnknownSharedMaterial', { nodeKey: Schema.String, id: Schema.String }),
 ]);
-
-type Equals<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
-
-/** Compile-time proof that the Schemas decode exactly the kernel types. */
-export type SchemaMatchesKernel =
-  [
-    Equals<typeof Vec3.Type, Kernel.Vec3>,
-    Equals<typeof Rotation.Type, Kernel.Rotation>,
-    Equals<typeof GeometryRef.Type, Kernel.GeometryRef>,
-    Equals<typeof MaterialRef.Type, Kernel.MaterialRef>,
-    Equals<typeof ResourceDefinitions.Type, Kernel.ResourceDefinitions>,
-    Equals<typeof MeshNode.Type, Kernel.MeshNode>,
-    Equals<typeof PerspectiveCamera.Type, Kernel.PerspectiveCamera>,
-    Equals<typeof SceneDescription.Type, Kernel.SceneDescription>,
-    Equals<typeof SceneEvent.Type, KernelSceneEvent>,
-    Equals<typeof DescriptionError.Type, KernelDescriptionError>,
-  ] extends ReadonlyArray<true>
-    ? true
-    : never;
-
-export const schemaMatchesKernel: SchemaMatchesKernel = true;

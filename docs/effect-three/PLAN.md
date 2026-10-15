@@ -376,7 +376,20 @@ _Exit:_ the brief's Delivery list is complete: tests, benchmarks, working demo, 
 
 ## 10. Decisions (accepted 2026-10-14)
 
-**Status (2026-10-14):** Phases 0–4 complete on `feat/effect-three`: headless kernel, Effect runtime, Foldkit adapter, the `apps/web` demo (`/effect-three`) and visual tests (golden frames on a paused fake clock, renderer memory leak oracle, time-travel pause gate). Next: Phase 5, benchmarks, API docs and release readiness. Phase 0: Spike evidence is in [spike-results.md](spike-results.md), and ADRs 001–004 are in [adr/](adr). Spikes re-ran green against Foldkit 0.167.0 after consolidation (`bun run test:spikes` in each package).
+**Status (2026-10-15):** All phases (0–5) complete on `feat/effect-three`. The brief's delivery list is met:
+
+- **Tests:** kernel unit and property tests, Effect runtime tests, adapter unit tests, and browser tests with goldens, a leak oracle and the time-travel gate. Browser tests run in CI.
+- **Benchmarks:** `bun run bench:check` against the budgets below.
+- **Working demo:** `/effect-three` in `apps/web`.
+- **Documented public API:** package READMEs plus API Extractor reports in each package's `etc/`, checked in CI.
+
+Measured on Apple Silicon: no-op reconcile of 1,000 meshes ~120 µs (budget 200), one change ~130 µs with 1 op (500), runtime mount/unmount ~17 µs (1 ms), frame with one animated mesh ~31 ns with no heap growth (50 µs).
+
+Not done, by decision or pending yours:
+
+- Both packages are `private`; release-please is not configured for them.
+- Borrowed resources, a `demand` frame mode and a WebGPU renderer are designed for but not built.
+- Real DevTools time travel is verified through Foldkit's Mount contract, not the Vite-plugin overlay.
 
 All recommendations in this plan were accepted. Specifically:
 

@@ -1,7 +1,7 @@
 # Phase 0 spike results (2026-10-14)
 
 Local toolchain: Bun 1.4.2 (pinned target 1.4.3), TypeScript 7.0.2, macOS arm64.
-Run them with `bun run test:spikes` in `packages/effect-three` (D2, D6) and `packages/effect-three-foldkit` (D1). D1 was re-verified against Foldkit 0.167.0, the workspace pin, after consolidation.
+The spike code was removed in Phase 5; it is preserved in commit `02fa947` under each package's `spikes/` folder. D1 was re-verified against Foldkit 0.167.0, the workspace pin, after consolidation.
 
 | Spike       | Question                                                                   | Result                                                                                                                                 | Evidence                                                  |
 | ----------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |

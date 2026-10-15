@@ -73,6 +73,9 @@ import type { ChartFrame } from '@opsydyn/foldkit-viz/chart/cartesian';
 import { barGeometry } from '@opsydyn/foldkit-viz/chart/bars';
 import { wordCloud } from '@opsydyn/foldkit-viz/layout/wordcloud';
 import { wrapText } from '@opsydyn/foldkit-viz/layout/text';
+import { projectGlobePoint, type GlobeView } from '@opsydyn/foldkit-viz/shape/globe';
+const globeView: GlobeView = { center: [0,0], radius: 100, translate: [200,200] };
+projectGlobePoint([180,0], globeView);
 const frame: ChartFrame = { width: 200, height: 100, margins: { top: 0, right: 0, bottom: 0, left: 0 } };
 const accessors = { x: (d: number) => d, y: (d: number) => d, datumKey: (d: number) => String(d), seriesKey: () => 'a' };
 lineGeometry([0, 10], accessors, { frame });
@@ -166,6 +169,23 @@ console.log(JSON.stringify(errorBarGeometry([2],{position:d=>d,lower:()=>-2,uppe
     expect(stdout.trim()).toBe(
       'M0,100L200,0\n100\n2,2\n12\n100\n1\n1\none,two\n{"x":10,"y":10}\n0,5\n3,6\n7,10\na\n0|2\n20,60,30\ntrue\n{"datum":2,"key":"2","stem":{"start":[20,60],"end":[20,30]},"lowerCap":{"start":[16,60],"end":[24,60]},"upperCap":{"start":[16,30],"end":[24,30]}}',
     );
+  }
+  for (const runtime of ['bun', 'node']) {
+    const { stdout } = await execFileAsync(
+      runtime,
+      [
+        '--input-type=module',
+        '-e',
+        `
+      import { projectGlobePoint, clipGlobeLine } from '@opsydyn/foldkit-viz/shape/globe';
+      const view = { center: [0,0], radius: 100, translate: [200,200] };
+      console.log(projectGlobePoint([180,0], view).visible);
+      console.log(clipGlobeLine([[80,0],[100,0]], view)[0][1].join(','));
+    `,
+      ],
+      { cwd: consumerDir, maxBuffer },
+    );
+    expect(stdout.trim()).toBe('false\n300,200');
   }
   return runtimeOutput;
 };

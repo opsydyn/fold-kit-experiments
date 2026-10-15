@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-viz",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "D3-quality visualisation primitives for FoldKit — no D3 dependency.",
   "keywords": [
     "charts",
@@ -113,6 +113,9 @@
       ],
       "math/delaunay": [
         "./dist/math/delaunay.d.mts"
+      ],
+      "shape/globe": [
+        "./dist/shape/globe.d.mts"
       ],
       "shape/geo": [
         "./dist/shape/geo.d.mts"
@@ -282,6 +285,10 @@
     "./math/delaunay": {
       "types": "./dist/math/delaunay.d.mts",
       "import": "./dist/math/delaunay.mjs"
+    },
+    "./shape/globe": {
+      "types": "./dist/shape/globe.d.mts",
+      "import": "./dist/shape/globe.mjs"
     },
     "./shape/geo": {
       "types": "./dist/shape/geo.d.mts",

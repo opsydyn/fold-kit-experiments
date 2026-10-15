@@ -10,6 +10,7 @@
     "skills/**",
     "tools/oxlint/anti-slop/**",
     ".superpowers/**",
+    "apps/web/src/apps/earthquake-globe/fixtures/usgs-week.geojson",
     "docs/effect-three/brief.md",
     "packages/*/etc/*.api.md"
   ]

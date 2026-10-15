@@ -6,20 +6,8 @@
     "declaration": false,
     "declarationMap": false,
     "composite": false,
-    "lib": [
-      "ES2023",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "types": [
-      "bun"
-    ]
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["bun"]
   },
-  "include": [
-    "bench",
-    "oxlint.strict.ts",
-    "scripts",
-    "src/**/*.test.ts",
-    "test"
-  ]
+  "include": ["bench", "oxlint.strict.ts", "scripts", "src/**/*.test.ts", "test"]
 }

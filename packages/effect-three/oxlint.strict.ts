@@ -7,14 +7,7 @@ import { defineConfig } from 'oxlint';
 //
 // Runtime execution boundaries are configuration, not exceptions.
 // Custom paths replace the plugin defaults, so the defaults are restated.
-const boundaryPaths = [
-  '**/main.ts',
-  '**/*.test.ts',
-  'test/**',
-  'bench/**',
-  'e2e/**',
-  'scripts/**',
-];
+const boundaryPaths = ['**/main.ts', '**/*.test.ts', 'test/**', 'bench/**', 'e2e/**', 'scripts/**'];
 
 export default defineConfig({
   options: typeAware.options,

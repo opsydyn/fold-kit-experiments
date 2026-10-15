@@ -1,12 +1,17 @@
 # Changelog
 
-## [0.8.2](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.8.1...astro-foldkit-v0.8.2) (2026-10-11)
+## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.8.2...astro-foldkit-v0.9.0) (2026-10-14)
 
+### Features
+
+- add recorded earthquake globe with pure FoldKit SVG ([b524988](https://github.com/opsydyn/fold-kit-experiments/commit/b524988373e86ecd6d07914b2c49fe7a456cca1a))
+
+## [0.8.2](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.8.1...astro-foldkit-v0.8.2) (2026-10-11)
 
 ### Bug Fixes
 
-* **astro-foldkit:** retain island runtime ownership across swaps ([a6a1753](https://github.com/opsydyn/fold-kit-experiments/commit/a6a1753a508dd7b44ad41d78f473b3e574918b25))
-* **astro-foldkit:** sequence island restart through public embed ([3b7fbeb](https://github.com/opsydyn/fold-kit-experiments/commit/3b7fbeb66f5f9431c4475e36b9aac139b30e2d53))
+- **astro-foldkit:** retain island runtime ownership across swaps ([a6a1753](https://github.com/opsydyn/fold-kit-experiments/commit/a6a1753a508dd7b44ad41d78f473b3e574918b25))
+- **astro-foldkit:** sequence island restart through public embed ([3b7fbeb](https://github.com/opsydyn/fold-kit-experiments/commit/3b7fbeb66f5f9431c4475e36b9aac139b30e2d53))
 
 ## [0.8.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.8.0...astro-foldkit-v0.8.1) (2026-10-10)
 

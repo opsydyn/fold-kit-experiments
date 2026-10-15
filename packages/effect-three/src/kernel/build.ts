@@ -7,18 +7,23 @@ import type {
   AmbientLightNode,
   Axis,
   BoxGeometry,
+  CylinderGeometry,
   DirectionalLightNode,
+  Easing,
   GeometryRef,
   GroupNode,
   MaterialRef,
   MeshNode,
   PerspectiveCamera,
+  PlaneGeometry,
   ResourceDefinitions,
   Rgb,
   Rotation,
   SceneDescription,
   SceneNode,
+  SphereGeometry,
   StandardMaterial,
+  Transition,
   Vec3,
 } from './description.ts';
 
@@ -26,6 +31,7 @@ const origin: Vec3 = [0, 0, 0];
 const unitScale: Vec3 = [1, 1, 1];
 const noRotation: Rotation = { _tag: 'Fixed', euler: origin };
 const noResources: ResourceDefinitions = { geometries: [], materials: [] };
+const instantTransition: Transition = { _tag: 'Instant' };
 
 /** Model-owned Euler angles in radians. */
 export const fixed = (euler: Vec3): Rotation => ({ _tag: 'Fixed', euler });
@@ -52,6 +58,54 @@ export const box = (
   depth: size.depth ?? 1,
 });
 
+/** Sphere geometry. Defaults: radius 0.5, 32 × 16 segments. */
+export const sphere = (
+  options: {
+    readonly radius?: number;
+    readonly widthSegments?: number;
+    readonly heightSegments?: number;
+  } = {},
+): SphereGeometry => ({
+  _tag: 'Sphere',
+  radius: options.radius ?? 0.5,
+  widthSegments: options.widthSegments ?? 32,
+  heightSegments: options.heightSegments ?? 16,
+});
+
+/** Plane geometry in the XY plane, facing +Z. Each dimension defaults to 1. */
+export const plane = (
+  size: { readonly width?: number; readonly height?: number } = {},
+): PlaneGeometry => ({ _tag: 'Plane', width: size.width ?? 1, height: size.height ?? 1 });
+
+/** Cylinder geometry along Y. Defaults: radius 0.5 top and bottom, height 1, 32 segments. */
+export const cylinder = (
+  options: {
+    readonly radiusTop?: number;
+    readonly radiusBottom?: number;
+    readonly height?: number;
+    readonly radialSegments?: number;
+  } = {},
+): CylinderGeometry => ({
+  _tag: 'Cylinder',
+  radiusTop: options.radiusTop ?? 0.5,
+  radiusBottom: options.radiusBottom ?? 0.5,
+  height: options.height ?? 1,
+  radialSegments: options.radialSegments ?? 32,
+});
+
+/** Position and scale changes apply immediately. The default. */
+export const instant = (): Transition => instantTransition;
+
+/** Position and scale changes ease to their new values over `seconds` of scene time. */
+export const ease = (options: {
+  readonly seconds: number;
+  readonly easing?: Easing;
+}): Transition => ({
+  _tag: 'Ease',
+  seconds: options.seconds,
+  easing: options.easing ?? 'easeInOutCubic',
+});
+
 /** Standard material. Defaults: roughness 1, metalness 0. */
 export const standard = (options: {
   readonly color: Rgb;
@@ -76,6 +130,8 @@ export type TransformOptions = {
   readonly position?: Vec3;
   readonly rotation?: Rotation;
   readonly scale?: Vec3;
+  /** How position and scale changes are shown. Defaults to `instant()`. */
+  readonly transition?: Transition;
 };
 
 /** A group of child nodes. */
@@ -87,6 +143,7 @@ export const group = (
   position: options.position ?? origin,
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
   children: options.children ?? [],
 });
 
@@ -103,6 +160,7 @@ export const mesh = (
   position: options.position ?? origin,
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
   geometry: options.geometry,
   material: options.material,
   interactive: options.interactive ?? false,

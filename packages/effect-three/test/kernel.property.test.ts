@@ -21,9 +21,13 @@ const applied = (result: ReconcileResult) => {
   return result.ops;
 };
 
-const freshSnapshot = (description: SceneDescription): unknown => {
+/** Longer than any generated transition, so every tween has landed. */
+const settleSeconds = 2;
+
+const freshSnapshot = (description: SceneDescription, time: number): unknown => {
   const graph = createSceneGraph();
   applied(graph.reconcile(description));
+  graph.tick(time);
   const result = snapshot(graph);
   graph.dispose();
   return result;
@@ -39,12 +43,15 @@ const expectResourcesMatch = (graph: SceneGraph, description: SceneDescription):
 };
 
 describe('reconcile properties', () => {
-  test('convergence: any sequence ends in the same host state as a fresh build, with balanced resources', async () => {
+  test('convergence: any sequence settles to the same host state as a fresh build, with balanced resources', async () => {
     await assertProperty(sceneSequence, (sequence) => {
       const graph = createSceneGraph();
+      let time = 0;
       for (const description of sequence) {
         applied(graph.reconcile(description));
-        expect(snapshot(graph)).toEqual(freshSnapshot(description));
+        time += settleSeconds;
+        graph.tick(time);
+        expect(snapshot(graph)).toEqual(freshSnapshot(description, time));
         expectResourcesMatch(graph, description);
       }
       graph.dispose();

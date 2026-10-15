@@ -21,6 +21,7 @@ async function placeBlocks(page: Page): Promise<void> {
   if (box === null) throw new Error('stage not visible');
   const at = (x: number, y: number) => ({ position: { x: box.width * x, y: box.height * y } });
   const paints = ['lavender', 'mint', 'gold', 'coral', 'periwinkle'];
+  const pieces = ['block', 'drum', 'block', 'block', 'ball', 'drum', 'ball'];
   const spots: ReadonlyArray<readonly [number, number]> = [
     [0.38, 0.62],
     [0.38, 0.62],
@@ -32,6 +33,7 @@ async function placeBlocks(page: Page): Promise<void> {
   ];
   for (const [i, [x, y]] of spots.entries()) {
     await page.getByRole('button', { name: paints[i % paints.length] ?? 'blue' }).click();
+    await page.getByRole('button', { name: pieces[i] ?? 'block', exact: true }).click();
     await stage.click(at(x, y));
   }
 }

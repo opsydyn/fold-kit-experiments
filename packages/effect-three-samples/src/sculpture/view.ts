@@ -4,7 +4,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 import { sceneMount } from '../environment';
 import { type Paint, paintCss, paints } from '../palette';
 import { Message } from './message';
-import type { Model } from './model';
+import { type Model, type Piece, pieces } from './model';
 import { sceneFor } from './scene';
 
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
@@ -19,6 +19,17 @@ const swatch = (model: Model, h: HtmlBuilder<Message>, paint: Paint): Html =>
       h.OnClick(Message.ClickedPaint({ paint })),
     ],
     [h.span([h.Class('e3-swatch'), h.Style({ background: paintCss(paint) })], []), paint],
+  );
+
+const piecePicker = (model: Model, h: HtmlBuilder<Message>, piece: Piece): Html =>
+  h.button(
+    [
+      h.Class('e3-button'),
+      h.Type('button'),
+      h.AriaPressed(String(model.piece === piece)),
+      h.OnClick(Message.ClickedPiece({ piece })),
+    ],
+    [piece],
   );
 
 const history = (model: Model, h: HtmlBuilder<Message>): Html =>
@@ -59,11 +70,15 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [h.Class('e3-controls')],
         paints.map((paint) => swatch(model, h, paint)),
       ),
+      h.div(
+        [h.Class('e3-controls'), h.AriaLabel('Piece')],
+        pieces.map((piece) => piecePicker(model, h, piece)),
+      ),
       history(model, h),
       h.p(
         [h.Class('e3-note')],
         [
-          `Showing ${model.shown} of ${model.blocks.length} blocks. Click the ground or a block to stack one. `,
+          `Showing ${model.shown} of ${model.blocks.length} pieces. Click the ground or a piece to stack a block, ball or drum. `,
           'The scene is a pure function of the model, so the history slider replays the build exactly.',
         ],
       ),

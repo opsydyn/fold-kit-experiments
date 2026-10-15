@@ -10,6 +10,8 @@ import type {
   PerspectiveCamera,
   ResourceDefinitions,
   Rotation,
+  ShapeGeometry,
+  Transition,
   Vec3,
 } from './description.ts';
 
@@ -31,16 +33,51 @@ export const rotationEquals = (a: Rotation, b: Rotation): boolean => {
   return false;
 };
 
-/** Geometry reference equality: same ownership mode and same parameters or id. */
+/** Shape equality: same kind and same parameters. */
+export const shapeEquals = (a: ShapeGeometry, b: ShapeGeometry): boolean => {
+  if (a === b) return true;
+  switch (a._tag) {
+    case 'Box':
+      return (
+        b._tag === 'Box' &&
+        Object.is(a.width, b.width) &&
+        Object.is(a.height, b.height) &&
+        Object.is(a.depth, b.depth)
+      );
+    case 'Sphere':
+      return (
+        b._tag === 'Sphere' &&
+        Object.is(a.radius, b.radius) &&
+        a.widthSegments === b.widthSegments &&
+        a.heightSegments === b.heightSegments
+      );
+    case 'Plane':
+      return b._tag === 'Plane' && Object.is(a.width, b.width) && Object.is(a.height, b.height);
+    case 'Cylinder':
+      return (
+        b._tag === 'Cylinder' &&
+        Object.is(a.radiusTop, b.radiusTop) &&
+        Object.is(a.radiusBottom, b.radiusBottom) &&
+        Object.is(a.height, b.height) &&
+        a.radialSegments === b.radialSegments
+      );
+  }
+};
+
+/** Geometry reference equality: same ownership mode and same shape or id. */
 export const geometryRefEquals = (a: GeometryRef, b: GeometryRef): boolean => {
   if (a === b) return true;
-  if (a._tag === 'Box' && b._tag === 'Box') {
-    return (
-      Object.is(a.width, b.width) && Object.is(a.height, b.height) && Object.is(a.depth, b.depth)
-    );
+  if (a._tag === 'SharedGeometry' || b._tag === 'SharedGeometry') {
+    return a._tag === 'SharedGeometry' && b._tag === 'SharedGeometry' && a.id === b.id;
   }
-  if (a._tag === 'SharedGeometry' && b._tag === 'SharedGeometry') return a.id === b.id;
-  return false;
+  return shapeEquals(a, b);
+};
+
+/** Transition equality. */
+export const transitionEquals = (a: Transition, b: Transition): boolean => {
+  if (a === b) return true;
+  if (a._tag === 'Instant' || b._tag === 'Instant') return a._tag === b._tag;
+  return Object.is(a.seconds, b.seconds) && a.easing === b.easing;
 };
 
 /** Material reference equality: same ownership mode and same parameters or id. */

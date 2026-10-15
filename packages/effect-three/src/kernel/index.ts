@@ -6,17 +6,23 @@
  */
 export type * from './description.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
+export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,
   box,
+  cylinder,
   directionalLight,
+  ease,
   fixed,
   group,
+  instant,
   mesh,
   perspectiveCamera,
+  plane,
   scene,
   sharedGeometry,
   sharedMaterial,
+  sphere,
   spin,
   standard,
   type TransformOptions,
@@ -28,6 +34,8 @@ export {
   materialRefEquals,
   resourcesEqual,
   rotationEquals,
+  shapeEquals,
+  transitionEquals,
   vec3Equals,
 } from './equality.ts';
 export {

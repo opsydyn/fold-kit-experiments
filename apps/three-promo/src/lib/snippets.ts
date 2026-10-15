@@ -13,6 +13,16 @@ export const teaser = `const sceneFor = (model: Model) =>
     ],
   });`;
 
+export const transitions = `const cubeNode = (model: Model, cube: Cube, index: number) =>
+  mesh({
+    key: cube.key,
+    position: [index * 1.1, 0, 0], // the Model owns the target
+    scale: hovered(model, cube) ? [1.12, 1.12, 1.12] : [1, 1, 1],
+    transition: ease({ seconds: 0.35 }), // the scene shows the journey
+    geometry: sharedGeometry('cube'),
+    material: sharedMaterial(cube.paint),
+  });`;
+
 export const installation =
   'bun add @opsydyn/effect-three @opsydyn/effect-three-foldkit three effect foldkit';
 

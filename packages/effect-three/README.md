@@ -42,6 +42,7 @@ const description = scene({
 
 - **Keys are unique across the whole scene.** A node keeps its three.js object while its key and kind stay the same, including when it moves to another group. A different kind under the same key replaces the object in place.
 - **Descriptions are fully specified data.** The constructors fill in defaults, and nothing in a description is a closure or a three.js object.
+- **Shapes:** `box`, `sphere`, `plane` and `cylinder` (a cone when one radius is `0`), owned by one mesh or shared through `resources`.
 
 ## Run it
 
@@ -74,7 +75,24 @@ Borrowed resources (user-supplied three.js objects the library never disposes) a
 
 ## Animation
 
-Behaviours own animated properties: a mesh's rotation is either model-owned (`fixed`) or behaviour-owned (`spin`), never both. A behaviour's output is a pure function of scene time, so frames are deterministic and frame-rate independent. `handle.setAnimating(false)` freezes scene time (for `prefers-reduced-motion`) while frames keep rendering.
+Behaviours own animated properties: a mesh's rotation is either model-owned (`fixed`) or behaviour-owned (`spin`), never both. A behaviour's output is a pure function of scene time, so frames are deterministic and frame-rate independent.
+
+Transitions decide how `position` and `scale` reach new values. The Model always owns the target; a transition only shapes the journey:
+
+```ts
+mesh({
+  key: 'cube',
+  position: [model.column, 0, 0],
+  transition: ease({ seconds: 0.35, easing: 'easeOutBack' }), // default: instant()
+  geometry: box(),
+  material: standard({ color: 0x14b8a6 }),
+});
+```
+
+- A new target mid-flight restarts from the pose on screen, so nothing jumps. A node moving to another group keeps its world position and travels to its new place.
+- Easings: `linear`, `easeInOutCubic` (default), `easeOutCubic`, `easeOutBack`. Tweens run in the frame loop without allocating and never reach `update`.
+
+`handle.setAnimating(false)` freezes scene time (for `prefers-reduced-motion`) while frames keep rendering; transitions then land at once, including any in flight.
 
 ## Testing
 

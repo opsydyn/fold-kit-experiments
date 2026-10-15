@@ -25,6 +25,29 @@ const Rotation = Schema.Union([
 ]);
 
 const Box = Schema.TaggedStruct('Box', { width: Size, height: Size, depth: Size });
+const Segments = Schema.Literals([3, 8]);
+const Shape = Schema.Union([
+  Box,
+  Schema.TaggedStruct('Sphere', {
+    radius: Size,
+    widthSegments: Segments,
+    heightSegments: Segments,
+  }),
+  Schema.TaggedStruct('Plane', { width: Size, height: Size }),
+  Schema.TaggedStruct('Cylinder', {
+    radiusTop: Schema.Literals([0, 1]),
+    radiusBottom: Size,
+    height: Size,
+    radialSegments: Segments,
+  }),
+]);
+const Transition = Schema.Union([
+  Schema.TaggedStruct('Instant', {}),
+  Schema.TaggedStruct('Ease', {
+    seconds: Schema.Literals([0.25, 1]),
+    easing: Schema.Literals(['linear', 'easeInOutCubic', 'easeOutCubic', 'easeOutBack']),
+  }),
+]);
 const Standard = Schema.TaggedStruct('Standard', {
   color: Colour,
   roughness: Unit,
@@ -41,6 +64,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     position: Vec3,
     rotation: Rotation,
     scale: Vec3,
+    transition: Transition,
     children: Children,
   }),
   Schema.TaggedStruct('Mesh', {
@@ -48,8 +72,9 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     position: Vec3,
     rotation: Rotation,
     scale: Vec3,
+    transition: Transition,
     geometry: Schema.Union([
-      Box,
+      ...Shape.members,
       Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
     ]),
     material: Schema.Union([
@@ -77,8 +102,8 @@ const sceneFields = {
   }),
   resources: Schema.Struct({
     geometries: Schema.Tuple([
-      Schema.Struct({ id: Schema.Literals(['g1']), geometry: Box }),
-      Schema.Struct({ id: Schema.Literals(['g2']), geometry: Box }),
+      Schema.Struct({ id: Schema.Literals(['g1']), geometry: Shape }),
+      Schema.Struct({ id: Schema.Literals(['g2']), geometry: Shape }),
     ]),
     materials: Schema.Tuple([
       Schema.Struct({ id: Schema.Literals(['m1']), material: Standard }),
@@ -147,3 +172,10 @@ const frameTimes = Arbitrary.array(Arbitrary.schema(Seconds), { minLength: 1, ma
 
 /** A spin behaviour and a series of frame times (unsorted). */
 export const spinAndTimes = Arbitrary.all([Arbitrary.schema(SpinParameters), frameTimes]);
+
+const Easing = Schema.Literals(['linear', 'easeInOutCubic', 'easeOutCubic', 'easeOutBack']);
+const TweenTime = Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 2 }));
+const tweenTimes = Arbitrary.array(Arbitrary.schema(TweenTime), { minLength: 1, maxLength: 30 });
+
+/** An easing and a series of frame times (unsorted) around a one-second tween. */
+export const easingAndTimes = Arbitrary.all([Arbitrary.schema(Easing), tweenTimes]);

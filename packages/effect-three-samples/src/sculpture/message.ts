@@ -3,10 +3,12 @@ import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import { Paint } from '../palette';
+import { Piece } from './model';
 
 export const Message = defineMessageUnion({
   ClickedSurface: { key: Schema.String, x: Schema.Number, z: Schema.Number },
   ClickedPaint: { paint: Paint },
+  ClickedPiece: { piece: Piece },
   ChangedHistory: { shown: Schema.Int },
   ClickedUndo: {},
   ClickedRedo: {},

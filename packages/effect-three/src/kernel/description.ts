@@ -40,6 +40,33 @@ export type BoxGeometry = {
   readonly depth: number;
 };
 
+/** UV sphere geometry parameters. */
+export type SphereGeometry = {
+  readonly _tag: 'Sphere';
+  readonly radius: number;
+  readonly widthSegments: number;
+  readonly heightSegments: number;
+};
+
+/** A flat rectangle in the XY plane, facing +Z. */
+export type PlaneGeometry = {
+  readonly _tag: 'Plane';
+  readonly width: number;
+  readonly height: number;
+};
+
+/** Cylinder (or cone, with one radius zero) along the Y axis. */
+export type CylinderGeometry = {
+  readonly _tag: 'Cylinder';
+  readonly radiusTop: number;
+  readonly radiusBottom: number;
+  readonly height: number;
+  readonly radialSegments: number;
+};
+
+/** Any geometry shape the kernel can build. */
+export type ShapeGeometry = BoxGeometry | SphereGeometry | PlaneGeometry | CylinderGeometry;
+
 /** Physically based standard material parameters. */
 export type StandardMaterial = {
   readonly _tag: 'Standard';
@@ -48,8 +75,8 @@ export type StandardMaterial = {
   readonly metalness: number;
 };
 
-/** A geometry owned by one mesh (`Box`) or shared by id (`SharedGeometry`). */
-export type GeometryRef = BoxGeometry | { readonly _tag: 'SharedGeometry'; readonly id: string };
+/** A geometry owned by one mesh (a shape) or shared by id (`SharedGeometry`). */
+export type GeometryRef = ShapeGeometry | { readonly _tag: 'SharedGeometry'; readonly id: string };
 
 /** A material owned by one mesh (`Standard`) or shared by id (`SharedMaterial`). */
 export type MaterialRef =
@@ -57,7 +84,7 @@ export type MaterialRef =
   | { readonly _tag: 'SharedMaterial'; readonly id: string };
 
 /** A shared geometry definition. */
-export type GeometryDefinition = { readonly id: string; readonly geometry: BoxGeometry };
+export type GeometryDefinition = { readonly id: string; readonly geometry: ShapeGeometry };
 
 /** A shared material definition. */
 export type MaterialDefinition = { readonly id: string; readonly material: StandardMaterial };
@@ -68,6 +95,21 @@ export type ResourceDefinitions = {
   readonly materials: ReadonlyArray<MaterialDefinition>;
 };
 
+/** How a transition progresses from 0 to 1. */
+export type Easing = 'linear' | 'easeInOutCubic' | 'easeOutCubic' | 'easeOutBack';
+
+/**
+ * How `position` and `scale` reach new values. The Model always owns the target; a
+ * transition only decides how the rendered value travels there.
+ *
+ * - `Instant`: jump to the new value.
+ * - `Ease`: travel over `seconds` of scene time. A new target mid-flight restarts the
+ *   transition from the pose at the last frame, so nothing jumps.
+ */
+export type Transition =
+  | { readonly _tag: 'Instant' }
+  | { readonly _tag: 'Ease'; readonly seconds: number; readonly easing: Easing };
+
 /** A transform node that may contain children. */
 export type GroupNode = {
   readonly _tag: 'Group';
@@ -75,6 +117,7 @@ export type GroupNode = {
   readonly position: Vec3;
   readonly rotation: Rotation;
   readonly scale: Vec3;
+  readonly transition: Transition;
   readonly children: ReadonlyArray<SceneNode>;
 };
 
@@ -85,6 +128,7 @@ export type MeshNode = {
   readonly position: Vec3;
   readonly rotation: Rotation;
   readonly scale: Vec3;
+  readonly transition: Transition;
   readonly geometry: GeometryRef;
   readonly material: MaterialRef;
   readonly interactive: boolean;

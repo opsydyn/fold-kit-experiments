@@ -34,7 +34,7 @@ export const expectedResources = (description: SceneDescription) => {
   let ownedGeometries = 0;
   let ownedMaterials = 0;
   for (const mesh of meshes) {
-    if (mesh.geometry._tag === 'Box') ownedGeometries++;
+    if (mesh.geometry._tag !== 'SharedGeometry') ownedGeometries++;
     else {
       const id = mesh.geometry.id;
       sharedGeometryUsers.set(id, (sharedGeometryUsers.get(id) ?? 0) + 1);

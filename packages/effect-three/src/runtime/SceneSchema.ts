@@ -41,6 +41,43 @@ export const BoxGeometry = Schema.TaggedStruct('Box', {
   depth: Positive,
 });
 
+const Segments = Schema.Int.check(Schema.isGreaterThanOrEqualTo(3));
+
+/** Sphere geometry parameters. */
+export const SphereGeometry = Schema.TaggedStruct('Sphere', {
+  radius: Positive,
+  widthSegments: Segments,
+  heightSegments: Schema.Int.check(Schema.isGreaterThanOrEqualTo(2)),
+});
+
+/** Plane geometry parameters. */
+export const PlaneGeometry = Schema.TaggedStruct('Plane', { width: Positive, height: Positive });
+
+/** Cylinder geometry parameters. A zero radius makes a cone. */
+export const CylinderGeometry = Schema.TaggedStruct('Cylinder', {
+  radiusTop: NonNegative,
+  radiusBottom: NonNegative,
+  height: Positive,
+  radialSegments: Segments,
+});
+
+/** Any geometry shape. */
+export const ShapeGeometry = Schema.Union([
+  BoxGeometry,
+  SphereGeometry,
+  PlaneGeometry,
+  CylinderGeometry,
+]);
+
+/** How a transition progresses. */
+export const Easing = Schema.Literals(['linear', 'easeInOutCubic', 'easeOutCubic', 'easeOutBack']);
+
+/** How position and scale changes are shown. */
+export const Transition = Schema.Union([
+  Schema.TaggedStruct('Instant', {}),
+  Schema.TaggedStruct('Ease', { seconds: Positive, easing: Easing }),
+]);
+
 /** Standard (PBR) material parameters. */
 export const StandardMaterial = Schema.TaggedStruct('Standard', {
   color: Rgb,
@@ -50,7 +87,7 @@ export const StandardMaterial = Schema.TaggedStruct('Standard', {
 
 /** An owned geometry or a reference to a shared one. */
 export const GeometryRef = Schema.Union([
-  BoxGeometry,
+  ...ShapeGeometry.members,
   Schema.TaggedStruct('SharedGeometry', { id: Schema.String }),
 ]);
 
@@ -62,7 +99,7 @@ export const MaterialRef = Schema.Union([
 
 /** Shared resource definitions. */
 export const ResourceDefinitions = Schema.Struct({
-  geometries: Schema.Array(Schema.Struct({ id: Schema.String, geometry: BoxGeometry })),
+  geometries: Schema.Array(Schema.Struct({ id: Schema.String, geometry: ShapeGeometry })),
   materials: Schema.Array(Schema.Struct({ id: Schema.String, material: StandardMaterial })),
 });
 
@@ -72,6 +109,7 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   position: Vec3,
   rotation: Rotation,
   scale: Vec3,
+  transition: Transition,
   geometry: GeometryRef,
   material: MaterialRef,
   interactive: Schema.Boolean,
@@ -99,6 +137,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     position: Vec3,
     rotation: Rotation,
     scale: Vec3,
+    transition: Transition,
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
   }),
   MeshNode,

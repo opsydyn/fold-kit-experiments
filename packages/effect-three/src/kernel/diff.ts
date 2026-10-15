@@ -25,6 +25,7 @@ import {
   materialRefEquals,
   resourcesEqual,
   rotationEquals,
+  transitionEquals,
   vec3Equals,
 } from './equality.ts';
 import {
@@ -39,6 +40,7 @@ export type Field =
   | 'position'
   | 'rotation'
   | 'scale'
+  | 'transition'
   | 'geometry'
   | 'material'
   | 'interactive'
@@ -82,6 +84,7 @@ export const changedFields = (
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
       if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
+      if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
       return fields;
     }
     case 'Mesh': {
@@ -89,6 +92,7 @@ export const changedFields = (
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
       if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
+      if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
       if (!geometryRefEquals(prev.geometry, next.geometry)) fields.push('geometry');
       if (!materialRefEquals(prev.material, next.material)) fields.push('material');
       if (prev.interactive !== next.interactive) fields.push('interactive');

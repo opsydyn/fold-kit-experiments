@@ -14,6 +14,8 @@ type Proof = [
   Equals<typeof SceneSchema.Vec3.Type, Kernel.Vec3>,
   Equals<typeof SceneSchema.Rotation.Type, Kernel.Rotation>,
   Equals<typeof SceneSchema.GeometryRef.Type, Kernel.GeometryRef>,
+  Equals<typeof SceneSchema.ShapeGeometry.Type, Kernel.ShapeGeometry>,
+  Equals<typeof SceneSchema.Transition.Type, Kernel.Transition>,
   Equals<typeof SceneSchema.MaterialRef.Type, Kernel.MaterialRef>,
   Equals<typeof SceneSchema.ResourceDefinitions.Type, Kernel.ResourceDefinitions>,
   Equals<typeof SceneSchema.MeshNode.Type, Kernel.MeshNode>,

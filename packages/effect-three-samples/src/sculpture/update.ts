@@ -25,7 +25,13 @@ const place = (model: Model, key: string, x: number, z: number): Model => {
   const column = columnFor(model, key, x, z);
   const shown = shownBlocks(model);
   const height = shown.filter((block) => block.x === column.x && block.z === column.z).length;
-  const block: Block = { id: model.nextId, ...column, y: height, paint: model.paint };
+  const block: Block = {
+    id: model.nextId,
+    ...column,
+    y: height,
+    paint: model.paint,
+    piece: model.piece,
+  };
   return { ...model, blocks: [...shown, block], shown: shown.length + 1, nextId: model.nextId + 1 };
 };
 
@@ -33,6 +39,7 @@ export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     ClickedSurface: ({ key, x, z }) => ({ model: place(model, key, x, z) }),
     ClickedPaint: ({ paint }) => ({ model: modifyFields(model, { paint: () => paint }) }),
+    ClickedPiece: ({ piece }) => ({ model: modifyFields(model, { piece: () => piece }) }),
     ChangedHistory: ({ shown }) => ({
       model: modifyFields(model, {
         shown: () => Math.max(0, Math.min(model.blocks.length, shown)),

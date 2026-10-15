@@ -1,7 +1,8 @@
-/** The sculpture as a pure function of the model: a ground plate and the shown blocks. */
+/** The sculpture as a pure function of the model: a ground plate and the shown pieces. */
 import {
   ambientLight,
   box,
+  cylinder,
   directionalLight,
   mesh,
   perspectiveCamera,
@@ -9,6 +10,7 @@ import {
   type SceneNode,
   sharedGeometry,
   sharedMaterial,
+  sphere,
   standard,
 } from '@opsydyn/effect-three';
 
@@ -22,7 +24,7 @@ const blockNode = (block: Block): SceneNode =>
   mesh({
     key: `block-${block.id}`,
     position: [block.x, block.y + 0.5, block.z],
-    geometry: sharedGeometry('block'),
+    geometry: sharedGeometry(block.piece),
     material: sharedMaterial(block.paint),
     interactive: true,
   });
@@ -31,7 +33,11 @@ export const sceneFor = (model: Model) =>
   scene({
     camera: perspectiveCamera({ fov: 40, position: [9, 9, 12], lookAt: [0, 0.5, 0] }),
     resources: {
-      geometries: [{ id: 'block', geometry: box({ width: 0.96, height: 0.96, depth: 0.96 }) }],
+      geometries: [
+        { id: 'block', geometry: box({ width: 0.96, height: 0.96, depth: 0.96 }) },
+        { id: 'ball', geometry: sphere({ radius: 0.48 }) },
+        { id: 'drum', geometry: cylinder({ radiusTop: 0.46, radiusBottom: 0.46, height: 0.96 }) },
+      ],
       materials: paints.map((paint) => ({
         id: paint,
         material: standard({ color: paintColour[paint], roughness: 0.55 }),

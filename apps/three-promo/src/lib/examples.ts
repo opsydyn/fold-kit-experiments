@@ -5,7 +5,7 @@ export const examples = [
     category: 'Reconciliation',
     title: 'Watch every update',
     description:
-      'Add, move, reorder, repaint and remove keyed cubes. A live panel shows exactly which operations each update takes and which GPU resources stay alive.',
+      'Add, move, reorder, repaint and remove keyed cubes, and watch them glide into place. A live panel shows exactly which operations each update takes and which GPU resources stay alive.',
     alt: 'Reconciliation playground: two shelves of coloured cubes above a panel counting created, updated and moved objects.',
   },
   {
@@ -13,8 +13,8 @@ export const examples = [
     category: 'State',
     title: 'Build, then rewind',
     description:
-      'Stack blocks by clicking in 3D. Drag the history slider and the sculpture replays exactly, because the scene is a pure function of the Model.',
-    alt: 'Sculpture: coloured blocks stacked on a grey plate, with a palette and a history slider.',
+      'Stack blocks, balls and drums by clicking in 3D. Drag the history slider and the sculpture replays exactly, because the scene is a pure function of the Model.',
+    alt: 'Sculpture: coloured blocks, balls and drums stacked on a grey plate, with a palette, piece picker and history slider.',
   },
   {
     id: 'shared',

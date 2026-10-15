@@ -14,13 +14,20 @@
  *
  * @module
  */
-import { BoxGeometry, type BufferGeometry, MeshStandardMaterial } from 'three';
+import {
+  BoxGeometry,
+  type BufferGeometry,
+  CylinderGeometry,
+  MeshStandardMaterial,
+  PlaneGeometry,
+  SphereGeometry,
+} from 'three';
 
 import type {
-  BoxGeometry as BoxGeometryDescription,
   GeometryRef,
   MaterialRef,
   ResourceDefinitions,
+  ShapeGeometry,
   StandardMaterial,
 } from './description.ts';
 import { geometryRefEquals, materialRefEquals } from './equality.ts';
@@ -100,9 +107,28 @@ const applyStandard = (material: MeshStandardMaterial, description: StandardMate
   material.metalness = description.metalness;
 };
 
+/** Builds the three.js geometry for a shape description. */
+const buildShape = (shape: ShapeGeometry): BufferGeometry => {
+  switch (shape._tag) {
+    case 'Box':
+      return new BoxGeometry(shape.width, shape.height, shape.depth);
+    case 'Sphere':
+      return new SphereGeometry(shape.radius, shape.widthSegments, shape.heightSegments);
+    case 'Plane':
+      return new PlaneGeometry(shape.width, shape.height);
+    case 'Cylinder':
+      return new CylinderGeometry(
+        shape.radiusTop,
+        shape.radiusBottom,
+        shape.height,
+        shape.radialSegments,
+      );
+  }
+};
+
 /** Creates an empty resource store. */
 export const createResourceStore = (): ResourceStore => {
-  const geometryDefinitions = new Map<string, BoxGeometryDescription>();
+  const geometryDefinitions = new Map<string, ShapeGeometry>();
   const materialDefinitions = new Map<string, StandardMaterial>();
   const sharedGeometries = new Map<string, Shared<BufferGeometry>>();
   const sharedMaterials = new Map<string, Shared<MeshStandardMaterial>>();
@@ -113,9 +139,9 @@ export const createResourceStore = (): ResourceStore => {
   const geometryCounter: Counter = { created: 0, disposed: 0 };
   const materialCounter: Counter = { created: 0, disposed: 0 };
 
-  const makeGeometry = (description: BoxGeometryDescription): BufferGeometry => {
+  const makeGeometry = (description: ShapeGeometry): BufferGeometry => {
     geometryCounter.created++;
-    return new BoxGeometry(description.width, description.height, description.depth);
+    return buildShape(description);
   };
   const disposeGeometry = (geometry: BufferGeometry): void => {
     geometryCounter.disposed++;
@@ -158,7 +184,7 @@ export const createResourceStore = (): ResourceStore => {
   };
 
   const acquireGeometry = (ref: GeometryRef): BufferGeometry => {
-    if (ref._tag === 'Box') {
+    if (ref._tag !== 'SharedGeometry') {
       const geometry = makeGeometry(ref);
       owned.add(geometry);
       return geometry;
@@ -178,7 +204,7 @@ export const createResourceStore = (): ResourceStore => {
   };
 
   const releaseGeometry = (ref: GeometryRef, geometry: BufferGeometry): void => {
-    if (ref._tag === 'Box') {
+    if (ref._tag !== 'SharedGeometry') {
       if (owned.delete(geometry)) disposeGeometry(geometry);
       return;
     }

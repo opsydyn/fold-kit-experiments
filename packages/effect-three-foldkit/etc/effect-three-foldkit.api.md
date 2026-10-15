@@ -119,11 +119,23 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly resources: Schema.Struct<{
             readonly geometries: Schema.$Array<Schema.Struct<{
                 readonly id: Schema.String;
-                readonly geometry: Schema.TaggedStruct<"Box", {
+                readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
                     readonly width: Schema.Finite;
                     readonly height: Schema.Finite;
                     readonly depth: Schema.Finite;
-                }>;
+                }>, Schema.TaggedStruct<"Sphere", {
+                    readonly radius: Schema.Finite;
+                    readonly widthSegments: Schema.Int;
+                    readonly heightSegments: Schema.Int;
+                }>, Schema.TaggedStruct<"Plane", {
+                    readonly width: Schema.Finite;
+                    readonly height: Schema.Finite;
+                }>, Schema.TaggedStruct<"Cylinder", {
+                    readonly radiusTop: Schema.Finite;
+                    readonly radiusBottom: Schema.Finite;
+                    readonly height: Schema.Finite;
+                    readonly radialSegments: Schema.Int;
+                }>]>;
             }>>;
             readonly materials: Schema.$Array<Schema.Struct<{
                 readonly id: Schema.String;

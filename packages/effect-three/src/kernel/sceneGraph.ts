@@ -16,6 +16,7 @@ import {
   type Object3D,
   PerspectiveCamera,
   Scene,
+  Vector3,
 } from 'three';
 
 import { writeRotation } from './behaviours.ts';
@@ -37,6 +38,7 @@ import {
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
+import { applyTween, startTween, type Tween } from './tween.ts';
 
 /** The mesh type the kernel hosts. */
 export type HostMesh = Mesh<BufferGeometry, MeshStandardMaterial>;
@@ -70,6 +72,11 @@ export type SceneGraph = {
   readonly tick: (elapsedSeconds: number) => void;
   /** Scene time of the last `tick`. */
   readonly elapsedSeconds: () => number;
+  /**
+   * While not animating (reduced motion, a paused debugger), transitions land at once and
+   * any in flight finish, because frozen scene time would otherwise strand them mid-way.
+   */
+  readonly setAnimating: (animating: boolean) => void;
   /** The hosted object for a key. */
   readonly object: (key: string) => Object3D | undefined;
   /** The key of a hosted object. */
@@ -110,10 +117,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
+  const moving = new Map<Entry, Tween>();
+  const reparented = new Set<Entry>();
+  const worldPosition = new Vector3();
   const interactive = new Set<Object3D>();
   let interactiveList: Array<Object3D> | undefined;
   let index: SceneIndex = emptyIndex;
   let elapsed = 0;
+  let animating = true;
 
   const unsubscribe = store.onGeometryReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
@@ -168,6 +179,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const release = (entry: Entry): void => {
     spinning.delete(entry);
+    moving.delete(entry);
+    reparented.delete(entry);
     trackInteractive(entry.object, false);
     if (entry._tag === 'Mesh') {
       store.releaseGeometry(entry.node.geometry, entry.object.geometry);
@@ -175,14 +188,32 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
   };
 
+  /**
+   * Moves the object towards a new position and scale: at once for `Instant` or while not
+   * animating, otherwise by restarting the tween from the current rendered pose at the last
+   * frame's time.
+   */
+  const retarget = (entry: Entry, node: GroupNode | MeshNode): void => {
+    if (!animating || node.transition._tag === 'Instant') {
+      moving.delete(entry);
+      writeVec3(entry.object.position, node.position);
+      writeVec3(entry.object.scale, node.scale);
+      return;
+    }
+    moving.set(entry, startTween(entry.object, node, elapsed, node.transition));
+  };
+
+  const movesTransform = (entry: Entry, fields: ReadonlyArray<Field>): boolean =>
+    fields.includes('position') ||
+    fields.includes('scale') ||
+    (fields.includes('transition') && moving.has(entry));
+
   const update = (entry: Entry, next: SceneNode, fields: ReadonlyArray<Field>): void => {
     if (entry._tag === 'Mesh' && next._tag === 'Mesh') {
       const prev = entry.node;
       const mesh = entry.object;
       for (const field of fields) {
-        if (field === 'position') writeVec3(mesh.position, next.position);
-        else if (field === 'scale') writeVec3(mesh.scale, next.scale);
-        else if (field === 'geometry') {
+        if (field === 'geometry') {
           store.releaseGeometry(prev.geometry, mesh.geometry);
           mesh.geometry = store.acquireGeometry(next.geometry);
         } else if (field === 'material') {
@@ -195,14 +226,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         }
       }
       entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
       if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
       return;
     }
     if (entry._tag === 'Group' && next._tag === 'Group') {
-      if (fields.includes('position')) writeVec3(entry.object.position, next.position);
-      if (fields.includes('scale')) writeVec3(entry.object.scale, next.scale);
       entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
       return;
     }
@@ -272,7 +303,18 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       case 'Move': {
         const entry = entries.get(op.key);
         if (entry === undefined) throw new Error(`effect-three: missing node "${op.key}"`);
-        parentObject(op.parent).add(entry.object);
+        const target = parentObject(op.parent);
+        if (entry._tag === 'Group' || entry._tag === 'Mesh') {
+          // Keep the world position across the move; settle() then takes the node to its
+          // new local position, instantly or along its transition.
+          entry.object.getWorldPosition(worldPosition);
+          target.add(entry.object);
+          target.updateWorldMatrix(true, false);
+          entry.object.position.copy(target.worldToLocal(worldPosition));
+          reparented.add(entry);
+        } else {
+          target.add(entry.object);
+        }
         return;
       }
       case 'Update': {
@@ -309,8 +351,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     const result = diff(index, next);
     if (result._tag === 'Invalid') return result;
     for (const op of result.ops) apply(op);
+    for (const entry of reparented) {
+      if (entry._tag === 'Group' || entry._tag === 'Mesh') retarget(entry, entry.node);
+    }
+    reparented.clear();
     index = result.index;
     return { _tag: 'Applied', ops: result.ops };
+  };
+
+  // Defined once so ticking allocates nothing; deleting during Map.forEach is safe.
+  const stepTween = (tween: Tween, entry: Entry): void => {
+    if (applyTween(entry.object, tween, elapsed)) moving.delete(entry);
   };
 
   const tick = (elapsedSeconds: number): void => {
@@ -320,6 +371,18 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeRotation(entry.object.rotation, entry.node.rotation, elapsed);
       }
     }
+    moving.forEach(stepTween);
+  };
+
+  const finishTween = (tween: Tween, entry: Entry): void => {
+    applyTween(entry.object, tween, Number.POSITIVE_INFINITY);
+  };
+
+  const setAnimating = (next: boolean): void => {
+    animating = next;
+    if (next) return;
+    moving.forEach(finishTween);
+    moving.clear();
   };
 
   const dispose = (): void => {
@@ -340,6 +403,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     reconcile,
     tick,
     elapsedSeconds: () => elapsed,
+    setAnimating,
     object: (key) => entries.get(key)?.object,
     keyOf: (object) => keys.get(object),
     interactiveObjects: () => {

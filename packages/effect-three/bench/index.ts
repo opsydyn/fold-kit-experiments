@@ -90,7 +90,25 @@ record({ ...measure('runtime mount + unmount', runtimeMountCycle(spinningCube)),
   });
 }
 
-// 6. Per-frame hover re-test with the pointer over the scene (reported, no budget).
+// 6. Per-frame kernel overhead with 1,000 meshes all easing to new positions.
+{
+  const graph = createSceneGraph();
+  graph.reconcile(wideScene(1000));
+  graph.reconcile(wideScene(1000, -2));
+  let time = 0;
+  const frame = (): void => {
+    time += 1 / 60;
+    graph.tick(time);
+  };
+  const bytes = heapGrowthPerCall(frame, 10_000);
+  record({
+    ...measure('frame: 1,000 eased meshes', frame, { batch: 100 }),
+    budgetMs: 0.5,
+    note: `${bytes.toFixed(1)} B/frame heap growth`,
+  });
+}
+
+// 7. Per-frame hover re-test with the pointer over the scene (reported, no budget).
 {
   const graph = createSceneGraph();
   graph.reconcile(wideScene(100));
@@ -100,7 +118,7 @@ record({ ...measure('runtime mount + unmount', runtimeMountCycle(spinningCube)),
   record(measure('hover re-test, 100 interactive meshes', () => tracker.frame()));
 }
 
-// 7. Schema decode at the adapter boundary (reported, no budget). Only values assigned to
+// 8. Schema decode at the adapter boundary (reported, no budget). Only values assigned to
 // the element outside the typed `view` helper pay this; typed scenes skip it.
 record({
   ...measure('schema decode, 1,000 meshes', decodeScene(wideScene(1000)), { batch: 5 }),

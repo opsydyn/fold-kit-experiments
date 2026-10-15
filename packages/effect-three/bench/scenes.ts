@@ -1,6 +1,7 @@
 /** Benchmark scenes: `count` interactive meshes in groups of ten, sharing resources. */
 import {
   box,
+  ease,
   group,
   mesh,
   scene,
@@ -16,16 +17,23 @@ const resources = {
   materials: [{ id: 'paint', material: standard({ color: 0x3366ff }) }],
 };
 
+const endless = ease({ seconds: 1e9, easing: 'linear' });
+
 function benchMesh(index: number, column: number, row: number, changedIndex: number) {
   return mesh({
     key: `m${index}`,
-    position: [index === changedIndex ? 1 : 0, column, row],
+    position: [index === changedIndex || changedIndex === -2 ? 1 : 0, column, row],
+    transition: endless,
     geometry: sharedGeometry('box'),
     material: sharedMaterial('paint'),
     interactive: true,
   });
 }
 
+/**
+ * `count` meshes in groups of ten. Every mesh eases position changes, so moving all of
+ * them (`changedIndex = -2`) leaves `count` tweens in flight for the length of a run.
+ */
 export const wideScene = (count: number, changedIndex = -1): SceneDescription =>
   scene({
     resources,

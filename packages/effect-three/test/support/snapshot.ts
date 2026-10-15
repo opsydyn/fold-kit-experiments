@@ -2,7 +2,17 @@
  * Serialisable snapshot of a hosted scene graph, read from the three.js objects
  * themselves, so convergence tests compare real host state rather than descriptions.
  */
-import { AmbientLight, BoxGeometry, DirectionalLight, Mesh, type Object3D } from 'three';
+import {
+  AmbientLight,
+  BoxGeometry,
+  type BufferGeometry,
+  CylinderGeometry,
+  DirectionalLight,
+  Mesh,
+  type Object3D,
+  PlaneGeometry,
+  SphereGeometry,
+} from 'three';
 
 import type { SceneGraph } from '../../src/kernel/index.ts';
 
@@ -16,8 +26,17 @@ export type NodeSnapshot = {
   readonly children: ReadonlyArray<NodeSnapshot>;
 };
 
+/** The kind and parameters of a kernel-built geometry. */
+const shapeOf = (geometry: BufferGeometry): unknown => {
+  if (geometry instanceof BoxGeometry) return { type: 'Box', ...geometry.parameters };
+  if (geometry instanceof SphereGeometry) return { type: 'Sphere', ...geometry.parameters };
+  if (geometry instanceof PlaneGeometry) return { type: 'Plane', ...geometry.parameters };
+  if (geometry instanceof CylinderGeometry) return { type: 'Cylinder', ...geometry.parameters };
+  return 'unexpected geometry';
+};
+
 const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
-  if (object instanceof Mesh && object.geometry instanceof BoxGeometry) {
+  if (object instanceof Mesh) {
     const material: unknown = object.material;
     const materialDetail =
       material !== null && typeof material === 'object' && 'color' in material
@@ -31,7 +50,7 @@ const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
     return {
       geometry: {
         shared: graph.store.sharedGeometryId(object.geometry),
-        ...object.geometry.parameters,
+        shape: shapeOf(object.geometry),
       },
       material: materialDetail,
     };

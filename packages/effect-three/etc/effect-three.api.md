@@ -19,6 +19,7 @@ import { Schema } from 'effect';
 import { Scope } from 'effect/Scope';
 import { Scope as Scope_2 } from 'effect';
 import { Stream } from 'effect';
+import type { Vector3Tuple } from 'three';
 import { VoidIfEmpty } from 'effect/Types';
 import { YieldableError } from 'effect/Cause';
 
@@ -43,6 +44,9 @@ const AmbientLightNode_2: Schema.TaggedStruct<"AmbientLight", {
     readonly color: Schema.Int;
     readonly intensity: Schema.Finite;
 }>;
+
+// @public
+export const applyTween: (object: Object3D, tween: Tween, elapsedSeconds: number) => boolean;
 
 // @public
 export type Axis = 'x' | 'y' | 'z';
@@ -108,6 +112,31 @@ export const createSceneGraph: (options?: SceneGraphOptions) => SceneGraph;
 
 // @public
 export const createSceneLoop: (options: SceneLoopOptions) => SceneLoop;
+
+// @public
+export const cylinder: (options?: {
+    readonly radiusTop?: number;
+    readonly radiusBottom?: number;
+    readonly height?: number;
+    readonly radialSegments?: number;
+}) => CylinderGeometry;
+
+// @public
+export type CylinderGeometry = {
+    readonly _tag: 'Cylinder';
+    readonly radiusTop: number;
+    readonly radiusBottom: number;
+    readonly height: number;
+    readonly radialSegments: number;
+};
+
+// @public
+const CylinderGeometry_2: Schema.TaggedStruct<"Cylinder", {
+    readonly radiusTop: Schema.Finite;
+    readonly radiusBottom: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly radialSegments: Schema.Int;
+}>;
 
 // @public
 export type DescriptionError = {
@@ -180,10 +209,25 @@ const DirectionalLightNode_2: Schema.TaggedStruct<"DirectionalLight", {
 }>;
 
 // @public
+export const ease: (options: {
+    readonly seconds: number;
+    readonly easing?: Easing;
+}) => Transition;
+
+// @public
+export const easeProgress: (easing: Easing, progress: number) => number;
+
+// @public
+export type Easing = 'linear' | 'easeInOutCubic' | 'easeOutCubic' | 'easeOutBack';
+
+// @public
+const Easing_2: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
+
+// @public
 export const emptyIndex: SceneIndex;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity';
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity';
 
 // @public
 export const fixed: (euler: Vec3) => Rotation;
@@ -220,11 +264,11 @@ export type GatedFrames = FrameScheduler & {
 // @public
 export type GeometryDefinition = {
     readonly id: string;
-    readonly geometry: BoxGeometry;
+    readonly geometry: ShapeGeometry;
 };
 
 // @public
-export type GeometryRef = BoxGeometry | {
+export type GeometryRef = ShapeGeometry | {
     readonly _tag: 'SharedGeometry';
     readonly id: string;
 };
@@ -234,6 +278,18 @@ const GeometryRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
     readonly depth: Schema.Finite;
+}>, Schema.TaggedStruct<"Sphere", {
+    readonly radius: Schema.Finite;
+    readonly widthSegments: Schema.Int;
+    readonly heightSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Plane", {
+    readonly width: Schema.Finite;
+    readonly height: Schema.Finite;
+}>, Schema.TaggedStruct<"Cylinder", {
+    readonly radiusTop: Schema.Finite;
+    readonly radiusBottom: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly radialSegments: Schema.Int;
 }>, Schema.TaggedStruct<"SharedGeometry", {
     readonly id: Schema.String;
 }>]>;
@@ -259,6 +315,7 @@ export type GroupNode = {
     readonly position: Vec3;
     readonly rotation: Rotation;
     readonly scale: Vec3;
+    readonly transition: Transition;
     readonly children: ReadonlyArray<SceneNode>;
 };
 
@@ -288,6 +345,9 @@ export type IndexResult = {
 
 // @public
 export const indexScene: (description: SceneDescription) => IndexResult;
+
+// @public
+export const instant: () => Transition;
 
 // Warning: (ae-forgotten-export) The symbol "InvalidScene_base" needs to be exported by the entry point index.d.ts
 //
@@ -364,6 +424,7 @@ export type MeshNode = {
     readonly position: Vec3;
     readonly rotation: Rotation;
     readonly scale: Vec3;
+    readonly transition: Transition;
     readonly geometry: GeometryRef;
     readonly material: MaterialRef;
     readonly interactive: boolean;
@@ -381,10 +442,26 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
         readonly phase: Schema.Finite;
     }>]>;
     readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly transition: Schema.Union<readonly [Schema.TaggedStruct<"Instant", {}>, Schema.TaggedStruct<"Ease", {
+        readonly seconds: Schema.Finite;
+        readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
+    }>]>;
     readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
         readonly depth: Schema.Finite;
+    }>, Schema.TaggedStruct<"Sphere", {
+        readonly radius: Schema.Finite;
+        readonly widthSegments: Schema.Int;
+        readonly heightSegments: Schema.Int;
+    }>, Schema.TaggedStruct<"Plane", {
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+    }>, Schema.TaggedStruct<"Cylinder", {
+        readonly radiusTop: Schema.Finite;
+        readonly radiusBottom: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly radialSegments: Schema.Int;
     }>, Schema.TaggedStruct<"SharedGeometry", {
         readonly id: Schema.String;
     }>]>;
@@ -461,6 +538,25 @@ const PerspectiveCamera_3: Schema.Struct<{
 export type Picker = {
     readonly pick: (x: number, y: number) => Hit | undefined;
 };
+
+// @public
+export const plane: (size?: {
+    readonly width?: number;
+    readonly height?: number;
+}) => PlaneGeometry;
+
+// @public
+export type PlaneGeometry = {
+    readonly _tag: 'Plane';
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
+const PlaneGeometry_2: Schema.TaggedStruct<"Plane", {
+    readonly width: Schema.Finite;
+    readonly height: Schema.Finite;
+}>;
 
 // @public
 export type PointerInput = {
@@ -547,11 +643,23 @@ export type ResourceDefinitions = {
 const ResourceDefinitions_2: Schema.Struct<{
     readonly geometries: Schema.$Array<Schema.Struct<{
         readonly id: Schema.String;
-        readonly geometry: Schema.TaggedStruct<"Box", {
+        readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
             readonly depth: Schema.Finite;
-        }>;
+        }>, Schema.TaggedStruct<"Sphere", {
+            readonly radius: Schema.Finite;
+            readonly widthSegments: Schema.Int;
+            readonly heightSegments: Schema.Int;
+        }>, Schema.TaggedStruct<"Plane", {
+            readonly width: Schema.Finite;
+            readonly height: Schema.Finite;
+        }>, Schema.TaggedStruct<"Cylinder", {
+            readonly radiusTop: Schema.Finite;
+            readonly radiusBottom: Schema.Finite;
+            readonly height: Schema.Finite;
+            readonly radialSegments: Schema.Int;
+        }>]>;
     }>>;
     readonly materials: Schema.$Array<Schema.Struct<{
         readonly id: Schema.String;
@@ -664,11 +772,23 @@ const SceneDescription_2: Schema.Struct<{
     readonly resources: Schema.Struct<{
         readonly geometries: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
-            readonly geometry: Schema.TaggedStruct<"Box", {
+            readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
                 readonly width: Schema.Finite;
                 readonly height: Schema.Finite;
                 readonly depth: Schema.Finite;
-            }>;
+            }>, Schema.TaggedStruct<"Sphere", {
+                readonly radius: Schema.Finite;
+                readonly widthSegments: Schema.Int;
+                readonly heightSegments: Schema.Int;
+            }>, Schema.TaggedStruct<"Plane", {
+                readonly width: Schema.Finite;
+                readonly height: Schema.Finite;
+            }>, Schema.TaggedStruct<"Cylinder", {
+                readonly radiusTop: Schema.Finite;
+                readonly radiusBottom: Schema.Finite;
+                readonly height: Schema.Finite;
+                readonly radialSegments: Schema.Int;
+            }>]>;
         }>>;
         readonly materials: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
@@ -733,6 +853,7 @@ export type SceneGraph = {
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
     readonly elapsedSeconds: () => number;
+    readonly setAnimating: (animating: boolean) => void;
     readonly object: (key: string) => Object3D | undefined;
     readonly keyOf: (object: Object3D) => string | undefined;
     readonly interactiveObjects: () => Array<Object3D>;
@@ -807,6 +928,12 @@ declare namespace SceneSchema {
         Rgb_2 as Rgb,
         Rotation_2 as Rotation,
         BoxGeometry_2 as BoxGeometry,
+        SphereGeometry_2 as SphereGeometry,
+        PlaneGeometry_2 as PlaneGeometry,
+        CylinderGeometry_2 as CylinderGeometry,
+        ShapeGeometry_2 as ShapeGeometry,
+        Easing_2 as Easing,
+        Transition_2 as Transition,
         StandardMaterial_2 as StandardMaterial,
         GeometryRef_2 as GeometryRef,
         MaterialRef_2 as MaterialRef,
@@ -825,10 +952,57 @@ declare namespace SceneSchema {
 }
 
 // @public
+export const shapeEquals: (a: ShapeGeometry, b: ShapeGeometry) => boolean;
+
+// @public
+export type ShapeGeometry = BoxGeometry | SphereGeometry | PlaneGeometry | CylinderGeometry;
+
+// @public
+const ShapeGeometry_2: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
+    readonly width: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly depth: Schema.Finite;
+}>, Schema.TaggedStruct<"Sphere", {
+    readonly radius: Schema.Finite;
+    readonly widthSegments: Schema.Int;
+    readonly heightSegments: Schema.Int;
+}>, Schema.TaggedStruct<"Plane", {
+    readonly width: Schema.Finite;
+    readonly height: Schema.Finite;
+}>, Schema.TaggedStruct<"Cylinder", {
+    readonly radiusTop: Schema.Finite;
+    readonly radiusBottom: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly radialSegments: Schema.Int;
+}>]>;
+
+// @public
 export const sharedGeometry: (id: string) => GeometryRef;
 
 // @public
 export const sharedMaterial: (id: string) => MaterialRef;
+
+// @public
+export const sphere: (options?: {
+    readonly radius?: number;
+    readonly widthSegments?: number;
+    readonly heightSegments?: number;
+}) => SphereGeometry;
+
+// @public
+export type SphereGeometry = {
+    readonly _tag: 'Sphere';
+    readonly radius: number;
+    readonly widthSegments: number;
+    readonly heightSegments: number;
+};
+
+// @public
+const SphereGeometry_2: Schema.TaggedStruct<"Sphere", {
+    readonly radius: Schema.Finite;
+    readonly widthSegments: Schema.Int;
+    readonly heightSegments: Schema.Int;
+}>;
 
 // @public
 export const spin: (options: {
@@ -865,11 +1039,50 @@ const StandardMaterial_2: Schema.TaggedStruct<"Standard", {
 }>;
 
 // @public
+export const startTween: (object: Object3D, target: {
+    readonly position: Vec3;
+    readonly scale: Vec3;
+}, start: number, transition: {
+    readonly seconds: number;
+    readonly easing: Easing;
+}) => Tween;
+
+// @public
 export type TransformOptions = {
     readonly key: string;
     readonly position?: Vec3;
     readonly rotation?: Rotation;
     readonly scale?: Vec3;
+    readonly transition?: Transition;
+};
+
+// @public
+export type Transition = {
+    readonly _tag: 'Instant';
+} | {
+    readonly _tag: 'Ease';
+    readonly seconds: number;
+    readonly easing: Easing;
+};
+
+// @public
+const Transition_2: Schema.Union<readonly [Schema.TaggedStruct<"Instant", {}>, Schema.TaggedStruct<"Ease", {
+    readonly seconds: Schema.Finite;
+    readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
+}>]>;
+
+// @public
+export const transitionEquals: (a: Transition, b: Transition) => boolean;
+
+// @public
+export type Tween = {
+    readonly fromPosition: Vector3Tuple;
+    readonly fromScale: Vector3Tuple;
+    readonly toPosition: Vec3;
+    readonly toScale: Vec3;
+    readonly start: number;
+    readonly seconds: number;
+    readonly easing: Easing;
 };
 
 // @public

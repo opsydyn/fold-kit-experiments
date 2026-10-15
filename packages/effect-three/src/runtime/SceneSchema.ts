@@ -344,8 +344,9 @@ export const SceneDescription = Schema.Struct({
 export const KeyDetail = Schema.Struct({ key: Schema.String });
 
 /**
- * Where the pointer met an interactive mesh: its key, the world-space hit point, the
- * distance from the camera, the world-space face normal and the texture coordinates.
+ * Where the pointer met an interactive mesh: its key and ancestor path, the world-space
+ * hit point, the distance from the camera, the world-space face normal, the texture
+ * coordinates and the pointer's world-space ray.
  */
 export const HitDetail = Schema.Struct({
   key: Schema.String,
@@ -354,6 +355,7 @@ export const HitDetail = Schema.Struct({
   distance: Schema.Finite,
   normal: Vec3,
   uv: Schema.Tuple([Schema.Finite, Schema.Finite]),
+  ray: Schema.Struct({ origin: Vec3, direction: Vec3 }),
 });
 
 /** Detail of button events: the hit plus `MouseEvent.button`. */
@@ -370,7 +372,7 @@ export const WheelDetail = Schema.Struct({
 export const MissDetail = Schema.Struct({ button: Schema.Int });
 
 /** A world-space ray: an origin and a unit direction. */
-export const Ray = Schema.Struct({ origin: Vec3, direction: Vec3 });
+export const Ray = HitDetail.fields.ray;
 
 /** Detail of drag events: the captured mesh, the pressed button and the pointer's ray. */
 export const DragDetail = Schema.Struct({ key: Schema.String, button: Schema.Int, ray: Ray });

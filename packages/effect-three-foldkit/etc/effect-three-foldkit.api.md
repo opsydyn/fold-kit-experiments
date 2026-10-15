@@ -275,6 +275,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
         readonly button: Schema.Int;
     }>;
     'scene-double-click': Schema.Struct<{
@@ -284,6 +288,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
         readonly button: Schema.Int;
     }>;
     'scene-context-menu': Schema.Struct<{
@@ -293,6 +301,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
     }>;
     'scene-pointer-down': Schema.Struct<{
         readonly key: Schema.String;
@@ -301,6 +313,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
         readonly button: Schema.Int;
     }>;
     'scene-pointer-up': Schema.Struct<{
@@ -310,6 +326,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
         readonly button: Schema.Int;
     }>;
     'scene-pointer-enter': Schema.Struct<{
@@ -319,6 +339,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
     }>;
     'scene-pointer-move': Schema.Struct<{
         readonly key: Schema.String;
@@ -327,6 +351,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
     }>;
     'scene-pointer-leave': Schema.Struct<{
         readonly key: Schema.String;
@@ -341,6 +369,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
     }>;

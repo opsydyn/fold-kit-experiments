@@ -61,6 +61,8 @@ export type Hit = {
   readonly distance: number;
   readonly normal: Vec3;
   readonly uv: readonly [u: number, v: number];
+  /** The world-space ray through the pointer, as on every React Three Fiber event. */
+  readonly ray: Ray;
 };
 
 /** A world-space ray from the camera through the pointer. `direction` is unit length. */
@@ -149,10 +151,14 @@ export const createPicker = (graph: SceneGraph): Picker => {
     ndc.set(x, y);
     raycaster.setFromCamera(ndc, graph.camera);
   };
+  const currentRay = (): Ray => ({
+    origin: toVec3(raycaster.ray.origin),
+    direction: toVec3(raycaster.ray.direction),
+  });
   return {
     ray: (x, y) => {
       aim(x, y);
-      return { origin: toVec3(raycaster.ray.origin), direction: toVec3(raycaster.ray.direction) };
+      return currentRay();
     },
     pick: (x, y) => {
       const targets = graph.interactiveObjects();
@@ -175,6 +181,7 @@ export const createPicker = (graph: SceneGraph): Picker => {
             distance: intersection.distance,
             normal: toVec3(normal),
             uv: [intersection.uv?.x ?? 0, intersection.uv?.y ?? 0],
+            ray: currentRay(),
           };
         }
       }

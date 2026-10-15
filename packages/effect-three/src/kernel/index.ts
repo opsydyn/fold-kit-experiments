@@ -77,8 +77,11 @@ export {
   createPointerTracker,
   type Hit,
   type Picker,
+  type PlaneEquation,
+  pointOnPlane,
   type PointerInput,
   type PointerTracker,
+  type Ray,
   type SceneEvent,
 } from './pointer.ts';
 export {

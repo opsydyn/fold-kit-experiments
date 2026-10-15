@@ -165,6 +165,18 @@ test('the adapter proves the vertical slice in a real browser', async () => {
     false,
   ]);
 
+  // A press on the mesh captures the pointer: dragging off the canvas and releasing
+  // there still ends the drag, with a world-space ray.
+  const box = await canvas.boundingBox();
+  if (box === null) throw new Error('canvas not visible');
+  await page.mouse.move(box.x + 160, box.y + 120);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width + 40, box.y + box.height + 40, { steps: 4 });
+  await page.mouse.up();
+  await page.waitForFunction(() =>
+    (document.querySelector('#events')?.textContent ?? '').endsWith('DragEnd:cube:-1'),
+  );
+
   // A model change updates the existing scene: no remount, no new GPU resources.
   const statsBefore = (await readProbe(page)).stats;
   const red = centreColour(await canvas.screenshot());

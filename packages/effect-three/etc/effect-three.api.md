@@ -110,6 +110,7 @@ export const buildMaterial: (description: SurfaceMaterial) => HostMaterial;
 // @public
 const ButtonDetail: Schema.Struct<{
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -339,6 +340,16 @@ const DirectionalLightNode_2: Schema.TaggedStruct<"DirectionalLight", {
 }>;
 
 // @public
+const DragDetail: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly button: Schema.Int;
+    readonly ray: Schema.Struct<{
+        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
+}>;
+
+// @public
 export const ease: (options: {
     readonly seconds: number;
     readonly easing?: Easing;
@@ -456,6 +467,7 @@ export type GeometryReplaced = {
 
 // @public
 export const group: (options: TransformOptions & {
+    readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
 }) => GroupNode;
 
@@ -467,6 +479,7 @@ export type GroupNode = {
     readonly rotation: Rotation;
     readonly scale: Vec3;
     readonly transition: Transition;
+    readonly interactive: boolean;
     readonly children: ReadonlyArray<SceneNode>;
 };
 
@@ -501,6 +514,7 @@ const HemisphereLightNode_2: Schema.TaggedStruct<"HemisphereLight", {
 // @public
 export type Hit = {
     readonly key: string;
+    readonly path: ReadonlyArray<string>;
     readonly point: Vec3;
     readonly distance: number;
     readonly normal: Vec3;
@@ -510,6 +524,7 @@ export type Hit = {
 // @public
 const HitDetail: Schema.Struct<{
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1026,6 +1041,7 @@ const PhysicalMaterial_2: Schema.TaggedStruct<"Physical", {
 // @public (undocumented)
 export type Picker = {
     readonly pick: (x: number, y: number) => Hit | undefined;
+    readonly ray: (x: number, y: number) => Ray;
     readonly viewport: () => {
         readonly width: number;
         readonly height: number;
@@ -1037,6 +1053,12 @@ export const plane: (size?: {
     readonly width?: number;
     readonly height?: number;
 }) => PlaneGeometry;
+
+// @public
+export type PlaneEquation = {
+    readonly normal: Vec3;
+    readonly constant: number;
+};
 
 // @public
 export type PlaneGeometry = {
@@ -1129,6 +1151,21 @@ const PointLightNode_2: Schema.TaggedStruct<"PointLight", {
     readonly castShadow: Schema.Boolean;
     readonly shadowMapSize: Schema.Int;
     readonly shadowBias: Schema.Finite;
+}>;
+
+// @public
+export const pointOnPlane: (ray: Ray, plane: PlaneEquation) => Vec3 | undefined;
+
+// @public
+export type Ray = {
+    readonly origin: Vec3;
+    readonly direction: Vec3;
+};
+
+// @public
+const Ray_2: Schema.Struct<{
+    readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>;
 
 // @public (undocumented)
@@ -1578,11 +1615,29 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
 | {
     readonly _tag: 'PointerMissed';
     readonly button: number;
+}
+/**
+* The pointer moved while pressed on mesh `key`, anywhere: the press captures the
+* pointer, as React Three Fiber's `setPointerCapture` does, until release.
+*/
+| {
+    readonly _tag: 'Drag';
+    readonly key: string;
+    readonly button: number;
+    readonly ray: Ray;
+}
+/** A drag on `key` ended: released anywhere, or the pointer left. Only after a `Drag`. */
+| {
+    readonly _tag: 'DragEnd';
+    readonly key: string;
+    readonly button: number;
+    readonly ray: Ray;
 };
 
 // @public
 const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1591,12 +1646,14 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
 }>, Schema.TaggedStruct<"PointerMove", {
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"PointerDown", {
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1604,6 +1661,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly button: Schema.Int;
 }>, Schema.TaggedStruct<"PointerUp", {
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1611,6 +1669,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly button: Schema.Int;
 }>, Schema.TaggedStruct<"Click", {
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1618,6 +1677,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly button: Schema.Int;
 }>, Schema.TaggedStruct<"DoubleClick", {
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1625,12 +1685,14 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly button: Schema.Int;
 }>, Schema.TaggedStruct<"ContextMenu", {
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"Wheel", {
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1639,6 +1701,20 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly deltaY: Schema.Finite;
 }>, Schema.TaggedStruct<"PointerMissed", {
     readonly button: Schema.Int;
+}>, Schema.TaggedStruct<"Drag", {
+    readonly key: Schema.String;
+    readonly button: Schema.Int;
+    readonly ray: Schema.Struct<{
+        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
+}>, Schema.TaggedStruct<"DragEnd", {
+    readonly key: Schema.String;
+    readonly button: Schema.Int;
+    readonly ray: Schema.Struct<{
+        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
 }>]>;
 
 // @public (undocumented)
@@ -1769,6 +1845,8 @@ declare namespace SceneSchema {
         ButtonDetail,
         WheelDetail,
         MissDetail,
+        Ray_2 as Ray,
+        DragDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError
     }
@@ -2103,6 +2181,7 @@ export type Viewport = {
 // @public
 const WheelDetail: Schema.Struct<{
     readonly key: Schema.String;
+    readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;

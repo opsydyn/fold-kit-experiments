@@ -33,6 +33,9 @@ export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
 /** Detail of a click that hit no interactive mesh. */
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
 
+/** Detail of drag events: the captured mesh, the button and the pointer's world-space ray. */
+export type DragDetail = typeof SceneSchema.DragDetail.Type;
+
 /** Detail of pointer-leave events: the key that is no longer under the pointer. */
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 
@@ -59,6 +62,13 @@ export type ViewConfig<Message> = {
   readonly onPointerMissed?: (detail: MissDetail) => Message;
   /** The wheel over an interactive mesh. Page scrolling is not blocked. */
   readonly onWheel?: (detail: WheelDetail) => Message;
+  /**
+   * The pointer moved while pressed on a mesh, anywhere (the press captures it). Turn the
+   * ray into a point with `pointOnPlane` to drag along a plane.
+   */
+  readonly onDrag?: (detail: DragDetail) => Message;
+  /** A drag ended: released anywhere, or the pointer was cancelled. */
+  readonly onDragEnd?: (detail: DragDetail) => Message;
   /** A scene update was rejected; the scene keeps its last good state. */
   readonly onError?: (detail: { readonly error: SceneError }) => Message;
   /**
@@ -88,6 +98,8 @@ export const view = <Message>(
     Option.map(given(config.onPointerLeave), element.OnScenePointerLeave),
     Option.map(given(config.onPointerMissed), element.OnScenePointerMissed),
     Option.map(given(config.onWheel), element.OnSceneWheel),
+    Option.map(given(config.onDrag), element.OnSceneDrag),
+    Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
     Option.map(given(config.onError), element.OnSceneError),
     Option.map(given(config.onReconciled), element.OnSceneReconciled),
     Option.map(given(config.className), h.Class),

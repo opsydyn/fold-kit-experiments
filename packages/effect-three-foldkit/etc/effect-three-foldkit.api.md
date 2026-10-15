@@ -32,6 +32,9 @@ export const animationFrameScheduler: (host: AnimationFrameHost) => FrameSchedul
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
 
 // @public
+export const capturesPointer: (events: ReadonlyArray<SceneEvent>) => boolean;
+
+// @public
 export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
 
 // @public
@@ -46,7 +49,12 @@ export const domEventName: {
     readonly PointerLeave: 'scene-pointer-leave';
     readonly PointerMissed: 'scene-pointer-missed';
     readonly Wheel: 'scene-wheel';
+    readonly Drag: 'scene-drag';
+    readonly DragEnd: 'scene-drag-end';
 };
+
+// @public
+export type DragDetail = typeof SceneSchema.DragDetail.Type;
 
 // @public (undocumented)
 export type Environment = ReturnType<typeof makeEnvironment>;
@@ -251,6 +259,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
 }, {
     'scene-click': Schema.Struct<{
         readonly key: Schema.String;
+        readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -259,6 +268,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-double-click': Schema.Struct<{
         readonly key: Schema.String;
+        readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -267,6 +277,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-context-menu': Schema.Struct<{
         readonly key: Schema.String;
+        readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -274,6 +285,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-down': Schema.Struct<{
         readonly key: Schema.String;
+        readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -282,6 +294,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-up': Schema.Struct<{
         readonly key: Schema.String;
+        readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -290,6 +303,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-enter': Schema.Struct<{
         readonly key: Schema.String;
+        readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -297,6 +311,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-move': Schema.Struct<{
         readonly key: Schema.String;
+        readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -310,12 +325,29 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-wheel': Schema.Struct<{
         readonly key: Schema.String;
+        readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly uv: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
+    }>;
+    'scene-drag': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly button: Schema.Int;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
+    }>;
+    'scene-drag-end': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly button: Schema.Int;
+        readonly ray: Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
     }>;
     'scene-error': Schema.Struct<{
         readonly error: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKey", {
@@ -421,6 +453,8 @@ export type ViewConfig<Message> = {
     readonly onPointerLeave?: (detail: KeyDetail) => Message;
     readonly onPointerMissed?: (detail: MissDetail) => Message;
     readonly onWheel?: (detail: WheelDetail) => Message;
+    readonly onDrag?: (detail: DragDetail) => Message;
+    readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
     }) => Message;

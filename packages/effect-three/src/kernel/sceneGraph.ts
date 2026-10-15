@@ -104,8 +104,9 @@ export type SceneGraph = {
   /** The key of a hosted object. */
   readonly keyOf: (object: Object3D) => string | undefined;
   /**
-   * Hosted objects of interactive meshes. The array is cached until the set changes and
-   * is mutable only because three's `Raycaster.intersectObjects` requires it: don't modify it.
+   * Hosted objects of interactive meshes and groups (picking descends into groups). The
+   * array is cached until the set changes and is mutable only because three's
+   * `Raycaster.intersectObjects` requires it: don't modify it.
    */
   readonly interactiveObjects: () => Array<Object3D>;
   /** Fits the camera to a viewport of `width` by `height` CSS pixels. */
@@ -284,6 +285,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(entry.object.position, node.position);
         writeVec3(entry.object.scale, node.scale);
         trackRotation(entry, node);
+        trackInteractive(entry.object, node.interactive);
         return entry;
       }
       case 'Mesh': {
@@ -387,6 +389,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       return;
     }
     if (entry._tag === 'AmbientLight' && next._tag === 'AmbientLight') {

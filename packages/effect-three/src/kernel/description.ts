@@ -252,6 +252,11 @@ export type GroupNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /**
+   * Makes every mesh inside the group pickable, interactive or not. Events still report
+   * the mesh hit; its `path` names this group, so one handler can serve the whole group.
+   */
+  readonly interactive: boolean;
   readonly children: ReadonlyArray<SceneNode>;
 };
 

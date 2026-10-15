@@ -12,7 +12,7 @@
  *
  * @module
  */
-import { Raycaster, Vector2, Vector3 } from 'three';
+import { type Object3D, Raycaster, Vector2, Vector3 } from 'three';
 
 import type { Vec3 } from './description.ts';
 import type { SceneGraph } from './sceneGraph.ts';
@@ -52,10 +52,37 @@ export type PointerInput =
  */
 export type Hit = {
   readonly key: string;
+  /**
+   * Keys of the hit mesh's ancestor groups, nearest first. Match on it to handle every
+   * mesh in a group with one handler: React Three Fiber's bubbling, as data.
+   */
+  readonly path: ReadonlyArray<string>;
   readonly point: Vec3;
   readonly distance: number;
   readonly normal: Vec3;
   readonly uv: readonly [u: number, v: number];
+};
+
+/** A world-space ray from the camera through the pointer. `direction` is unit length. */
+export type Ray = { readonly origin: Vec3; readonly direction: Vec3 };
+
+/** A plane `normal · p + constant = 0`, as three.js's `Plane`. */
+export type PlaneEquation = { readonly normal: Vec3; readonly constant: number };
+
+/**
+ * Where a ray meets a plane, or `undefined` when it runs parallel or the plane is behind
+ * it. Turns drag rays into points: `pointOnPlane(ray, { normal: [0, 1, 0], constant: 0 })`
+ * is the point on the ground.
+ */
+export const pointOnPlane = (ray: Ray, plane: PlaneEquation): Vec3 | undefined => {
+  const [nx, ny, nz] = plane.normal;
+  const [ox, oy, oz] = ray.origin;
+  const [dx, dy, dz] = ray.direction;
+  const denominator = nx * dx + ny * dy + nz * dz;
+  if (Math.abs(denominator) < 1e-12) return undefined;
+  const t = -(nx * ox + ny * oy + nz * oz + plane.constant) / denominator;
+  if (t < 0) return undefined;
+  return [ox + dx * t, oy + dy * t, oz + dz * t];
 };
 
 /** A hit with a tag and extra fields, flattened into one object type. */
@@ -76,31 +103,63 @@ export type SceneEvent =
   | HitEvent<'ContextMenu'>
   | HitEvent<'Wheel', { readonly deltaX: number; readonly deltaY: number }>
   /** A click that hit no interactive mesh: useful for clearing a selection. */
-  | { readonly _tag: 'PointerMissed'; readonly button: number };
+  | { readonly _tag: 'PointerMissed'; readonly button: number }
+  /**
+   * The pointer moved while pressed on mesh `key`, anywhere: the press captures the
+   * pointer, as React Three Fiber's `setPointerCapture` does, until release.
+   */
+  | { readonly _tag: 'Drag'; readonly key: string; readonly button: number; readonly ray: Ray }
+  /** A drag on `key` ended: released anywhere, or the pointer left. Only after a `Drag`. */
+  | {
+      readonly _tag: 'DragEnd';
+      readonly key: string;
+      readonly button: number;
+      readonly ray: Ray;
+    };
 
 export type Picker = {
   /** Hit-tests at NDC `(x, y)`. Updates world matrices first, so it works headless. */
   readonly pick: (x: number, y: number) => Hit | undefined;
+  /** The world-space ray through NDC `(x, y)`. */
+  readonly ray: (x: number, y: number) => Ray;
   /** The picked graph's viewport in CSS pixels, for pixel thresholds. */
   readonly viewport: () => { readonly width: number; readonly height: number };
 };
 
 const toVec3 = (vector: Vector3): Vec3 => [vector.x, vector.y, vector.z];
 
-/** Creates a raycasting picker over a graph's interactive meshes. */
+/** Keys of an object's keyed ancestors, nearest first. */
+const pathOf = (graph: SceneGraph, object: Object3D): ReadonlyArray<string> => {
+  const path: Array<string> = [];
+  for (let parent = object.parent; parent !== null; parent = parent.parent) {
+    const key = graph.keyOf(parent);
+    if (key !== undefined) path.push(key);
+  }
+  return path;
+};
+
+/** Creates a raycasting picker over a graph's interactive meshes and groups. */
 export const createPicker = (graph: SceneGraph): Picker => {
   const raycaster = new Raycaster();
   const ndc = new Vector2();
   const normal = new Vector3();
+  const aim = (x: number, y: number): void => {
+    graph.scene.updateMatrixWorld();
+    graph.camera.updateMatrixWorld();
+    ndc.set(x, y);
+    raycaster.setFromCamera(ndc, graph.camera);
+  };
   return {
+    ray: (x, y) => {
+      aim(x, y);
+      return { origin: toVec3(raycaster.ray.origin), direction: toVec3(raycaster.ray.direction) };
+    },
     pick: (x, y) => {
       const targets = graph.interactiveObjects();
       if (targets.length === 0) return undefined;
-      graph.scene.updateMatrixWorld();
-      graph.camera.updateMatrixWorld();
-      ndc.set(x, y);
-      raycaster.setFromCamera(ndc, graph.camera);
-      for (const intersection of raycaster.intersectObjects(targets, false)) {
+      aim(x, y);
+      // Recursive, so an interactive group makes every mesh inside it pickable.
+      for (const intersection of raycaster.intersectObjects(targets, true)) {
         const key = graph.keyOf(intersection.object);
         if (key !== undefined) {
           normal.set(0, 0, 0);
@@ -111,6 +170,7 @@ export const createPicker = (graph: SceneGraph): Picker => {
           }
           return {
             key,
+            path: pathOf(graph, intersection.object),
             point: toVec3(intersection.point),
             distance: intersection.distance,
             normal: toVec3(normal),
@@ -153,6 +213,8 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
   // The latest press, kept after release: double-click and context-menu events follow it.
   let press: Press | undefined;
   let pressing = false;
+  // Whether the current press has dragged: only then does its release end a drag.
+  let dragged = false;
 
   const hover = (hit: Hit | undefined, events: Array<SceneEvent>): void => {
     const next = hit?.key;
@@ -189,29 +251,57 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     }
   };
 
+  /** The pressed mesh holding pointer capture, if any. */
+  const captured = (): { readonly key: string; readonly button: number } | undefined =>
+    pressing && press?.key !== undefined ? { key: press.key, button: press.button } : undefined;
+
+  /** Ends a drag that moved; a press released without moving was a click, not a drag. */
+  const endDrag = (
+    drag: { readonly key: string; readonly button: number } | undefined,
+    x: number,
+    y: number,
+    events: Array<SceneEvent>,
+  ): void => {
+    if (drag !== undefined && dragged) {
+      events.push({ _tag: 'DragEnd', ...drag, ray: picker.ray(x, y) });
+    }
+    dragged = false;
+  };
+
   const input = (event: PointerInput): ReadonlyArray<SceneEvent> => {
     const events: Array<SceneEvent> = [];
     if (event._tag === 'PointerLeave') {
+      // A cancelled or abandoned press still ends its drag, at the last known position.
+      if (position !== undefined) endDrag(captured(), position.x, position.y, events);
+      dragged = false;
       position = undefined;
       press = undefined;
       pressing = false;
       hover(undefined, events);
       return events;
     }
+    const drag = captured();
     position = { x: event.x, y: event.y };
     const hit = picker.pick(event.x, event.y);
     hover(hit, events);
     switch (event._tag) {
       case 'PointerMove':
         if (hit !== undefined) events.push({ _tag: 'PointerMove', ...hit });
+        if (drag !== undefined) {
+          dragged = true;
+          events.push({ _tag: 'Drag', ...drag, ray: picker.ray(event.x, event.y) });
+        }
         break;
       case 'PointerDown':
         press = { key: hit?.key, button: event.button, x: event.x, y: event.y };
         pressing = true;
+        dragged = false;
         if (hit !== undefined) events.push({ _tag: 'PointerDown', button: event.button, ...hit });
         break;
       case 'PointerUp':
         release(hit, event, events);
+        // Any release ends capture: a mouse's buttons share one pointer.
+        endDrag(drag, event.x, event.y, events);
         break;
       case 'DoubleClick':
         if (hit !== undefined && pressed(hit)) {

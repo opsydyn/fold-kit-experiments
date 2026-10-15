@@ -55,6 +55,10 @@ export const toPointerInput = (event: MouseEvent, rect: Rect): PointerInput | un
   }
 };
 
+/** True when a press landed on an interactive mesh, which then captures the pointer. */
+export const capturesPointer = (events: ReadonlyArray<SceneEvent>): boolean =>
+  events.some((event) => event._tag === 'PointerDown');
+
 /** True when the scene handled a context-menu input, so the browser menu should not open. */
 export const claimsContextMenu = (events: ReadonlyArray<SceneEvent>): boolean =>
   events.some((event) => event._tag === 'ContextMenu');
@@ -73,7 +77,7 @@ const eventTypes = [
 /**
  * Forwards pointer, mouse and wheel input from `element`. `onInput` returns the scene
  * events it produced: a context menu over an interactive mesh suppresses the browser's
- * menu, anywhere else it opens as usual. Wheel listening is passive, so page scrolling
+ * menu, anywhere else it opens as usual, and a press on a mesh captures the pointer. Wheel listening is passive, so page scrolling
  * is never blocked. Returns a function that removes every listener.
  */
 export const listenForPointer = (
@@ -86,6 +90,11 @@ export const listenForPointer = (
     if (input === undefined) return;
     const events = onInput(input);
     if (event.type === 'contextmenu' && claimsContextMenu(events)) event.preventDefault();
+    // Keep the drag's moves and release coming here even off the canvas, as React Three
+    // Fiber's setPointerCapture does. The browser releases capture on pointer up.
+    if (event instanceof PointerEvent && event.type === 'pointerdown' && capturesPointer(events)) {
+      element.setPointerCapture(event.pointerId);
+    }
   };
   for (const type of eventTypes)
     element.addEventListener(type, listener, { passive: type === 'wheel' });

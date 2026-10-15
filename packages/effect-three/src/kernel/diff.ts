@@ -99,6 +99,7 @@ export const changedFields = (
       if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
       if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
+      if (prev.interactive !== next.interactive) fields.push('interactive');
       return fields;
     }
     case 'Mesh': {

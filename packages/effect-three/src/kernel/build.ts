@@ -308,7 +308,10 @@ export type TransformOptions = {
 
 /** A group of child nodes. */
 export const group = (
-  options: TransformOptions & { readonly children?: ReadonlyArray<SceneNode> },
+  options: TransformOptions & {
+    readonly interactive?: boolean;
+    readonly children?: ReadonlyArray<SceneNode>;
+  },
 ): GroupNode => ({
   _tag: 'Group',
   key: options.key,
@@ -316,6 +319,7 @@ export const group = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  interactive: options.interactive ?? false,
   children: options.children ?? [],
 });
 

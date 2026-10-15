@@ -99,6 +99,8 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
         Message.GotSceneEvent({ name: `Wheel:${key}:${Math.sign(deltaY)}` }),
       onPointerMissed: ({ button }) => Message.GotSceneEvent({ name: `Missed:${button}` }),
       onPointerMove: () => Message.MovedOverNode(),
+      onDragEnd: ({ key, ray }) =>
+        Message.GotSceneEvent({ name: `DragEnd:${key}:${Math.sign(ray.direction[2])}` }),
       onReconciled: ({ ops }) => Message.GotReconciled({ updated: ops.updated }),
     },
     h,

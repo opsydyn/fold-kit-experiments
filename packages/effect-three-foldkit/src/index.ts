@@ -16,7 +16,13 @@
  * @module
  */
 export { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
-export { claimsContextMenu, type Rect, toNdc, toPointerInput } from './dom/pointer.ts';
+export {
+  capturesPointer,
+  claimsContextMenu,
+  type Rect,
+  toNdc,
+  toPointerInput,
+} from './dom/pointer.ts';
 export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
 export {
   domEventName,
@@ -35,6 +41,7 @@ export {
 export { makeSceneMount, type SceneMount } from './mount.ts';
 export {
   type ButtonDetail,
+  type DragDetail,
   type HitDetail,
   type KeyDetail,
   type MissDetail,

@@ -116,6 +116,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    interactive: Schema.Boolean,
     children: Children,
   }),
   Schema.TaggedStruct('Mesh', {

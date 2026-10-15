@@ -292,6 +292,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    interactive: Schema.Boolean,
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
   }),
   MeshNode,
@@ -348,6 +349,7 @@ export const KeyDetail = Schema.Struct({ key: Schema.String });
  */
 export const HitDetail = Schema.Struct({
   key: Schema.String,
+  path: Schema.Array(Schema.String),
   point: Vec3,
   distance: Schema.Finite,
   normal: Vec3,
@@ -367,6 +369,12 @@ export const WheelDetail = Schema.Struct({
 /** Detail of a click that hit no interactive mesh. */
 export const MissDetail = Schema.Struct({ button: Schema.Int });
 
+/** A world-space ray: an origin and a unit direction. */
+export const Ray = Schema.Struct({ origin: Vec3, direction: Vec3 });
+
+/** Detail of drag events: the captured mesh, the pressed button and the pointer's ray. */
+export const DragDetail = Schema.Struct({ key: Schema.String, button: Schema.Int, ray: Ray });
+
 /** A pointer interaction with an interactive mesh, or a miss. */
 export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('PointerEnter', HitDetail.fields),
@@ -379,6 +387,8 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('ContextMenu', HitDetail.fields),
   Schema.TaggedStruct('Wheel', WheelDetail.fields),
   Schema.TaggedStruct('PointerMissed', MissDetail.fields),
+  Schema.TaggedStruct('Drag', DragDetail.fields),
+  Schema.TaggedStruct('DragEnd', DragDetail.fields),
 ]);
 
 /** Why a scene description was rejected. */

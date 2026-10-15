@@ -59,7 +59,7 @@ const program = Effect.gen(function* () {
   yield* handle.update(nextDescription); // diff and apply; equal scenes cost no host changes
   handle.pointer({ _tag: 'PointerDown', x: 0, y: 0, button: 0 }); // normalised device coords
   // handle.events: Stream of PointerEnter | PointerMove | PointerLeave | PointerDown | PointerUp
-  //   | Click | DoubleClick | ContextMenu | Wheel | PointerMissed
+  //   | Click | DoubleClick | ContextMenu | Wheel | PointerMissed | Drag | DragEnd
 }).pipe(Effect.scoped);
 
 const environment = Layer.mergeAll(ResourceRegistry.layer, FrameSource.layer(scheduler));

@@ -14,6 +14,7 @@ import {
   HemisphereLight,
   Mesh,
   type Object3D,
+  PerspectiveCamera,
   PlaneGeometry,
   PointLight,
   RingGeometry,
@@ -112,7 +113,9 @@ const snapshotNode = (graph: SceneGraph, object: Object3D): NodeSnapshot => ({
 
 export const snapshot = (graph: SceneGraph): unknown => ({
   camera: {
-    fov: graph.camera.fov,
+    type: graph.camera.type,
+    lens: graph.camera instanceof PerspectiveCamera ? graph.camera.fov : graph.camera.zoom,
+    projection: graph.camera.projectionMatrix.toArray(),
     near: graph.camera.near,
     far: graph.camera.far,
     position: graph.camera.position.toArray(),

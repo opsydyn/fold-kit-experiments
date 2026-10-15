@@ -5,7 +5,7 @@
 ```ts
 
 import { BufferGeometry } from 'three';
-import type { Camera } from 'three';
+import type { Camera as Camera_2 } from 'three';
 import { Context } from 'effect';
 import { Effect } from 'effect';
 import type { Euler } from 'three';
@@ -13,6 +13,7 @@ import { Layer } from 'effect';
 import { Mesh } from 'three';
 import { MeshStandardMaterial } from 'three';
 import { Object3D } from 'three';
+import { OrthographicCamera as OrthographicCamera_2 } from 'three';
 import { PerspectiveCamera as PerspectiveCamera_2 } from 'three';
 import { Scene } from 'three';
 import { Schema } from 'effect';
@@ -87,7 +88,25 @@ const ButtonDetail: Schema.Struct<{
 }>;
 
 // @public
-export const cameraEquals: (a: PerspectiveCamera, b: PerspectiveCamera) => boolean;
+export type Camera = PerspectiveCamera | OrthographicCamera;
+
+// @public
+const Camera_3: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+    readonly fov: Schema.Finite;
+    readonly near: Schema.Finite;
+    readonly far: Schema.Finite;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"Orthographic", {
+    readonly zoom: Schema.Finite;
+    readonly near: Schema.Finite;
+    readonly far: Schema.Finite;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>]>;
+
+// @public
+export const cameraEquals: (a: Camera, b: Camera) => boolean;
 
 // @public
 export const capsule: (options?: {
@@ -456,6 +475,9 @@ const HitDetail: Schema.Struct<{
 }>;
 
 // @public
+export type HostCamera = PerspectiveCamera_2 | OrthographicCamera_2;
+
+// @public
 export type HostMesh = Mesh<BufferGeometry, MeshStandardMaterial>;
 
 // @public
@@ -637,7 +659,7 @@ export type NodeKind = SceneNode['_tag'];
 // @public
 export type Op = {
     readonly _tag: 'SetCamera';
-    readonly camera: PerspectiveCamera;
+    readonly camera: Camera;
 } | {
     readonly _tag: 'DefineResources';
     readonly resources: ResourceDefinitions;
@@ -667,10 +689,33 @@ export type Op = {
 };
 
 // @public
+export type OrthographicCamera = {
+    readonly _tag: 'Orthographic';
+    readonly zoom: number;
+    readonly near: number;
+    readonly far: number;
+    readonly position: Vec3;
+    readonly lookAt: Vec3;
+};
+
+// @public
+export const orthographicCamera: (options?: Partial<Omit<OrthographicCamera, '_tag'>>) => OrthographicCamera;
+
+// @public
+const OrthographicCamera_3: Schema.TaggedStruct<"Orthographic", {
+    readonly zoom: Schema.Finite;
+    readonly near: Schema.Finite;
+    readonly far: Schema.Finite;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+
+// @public
 export type ParentKey = string | null;
 
 // @public
 export type PerspectiveCamera = {
+    readonly _tag: 'Perspective';
     readonly fov: number;
     readonly near: number;
     readonly far: number;
@@ -679,10 +724,10 @@ export type PerspectiveCamera = {
 };
 
 // @public
-export const perspectiveCamera: (options?: Partial<PerspectiveCamera>) => PerspectiveCamera;
+export const perspectiveCamera: (options?: Partial<Omit<PerspectiveCamera, '_tag'>>) => PerspectiveCamera;
 
 // @public
-const PerspectiveCamera_3: Schema.Struct<{
+const PerspectiveCamera_3: Schema.TaggedStruct<"Perspective", {
     readonly fov: Schema.Finite;
     readonly near: Schema.Finite;
     readonly far: Schema.Finite;
@@ -990,7 +1035,7 @@ export const rotationEquals: (a: Rotation, b: Rotation) => boolean;
 
 // @public
 export const scene: (options: {
-    readonly camera?: PerspectiveCamera;
+    readonly camera?: Camera;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
 }) => SceneDescription;
@@ -1004,20 +1049,26 @@ export type SceneClock = {
 
 // @public
 export type SceneDescription = {
-    readonly camera: PerspectiveCamera;
+    readonly camera: Camera;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
 };
 
 // @public
 const SceneDescription_2: Schema.Struct<{
-    readonly camera: Schema.Struct<{
+    readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
         readonly fov: Schema.Finite;
         readonly near: Schema.Finite;
         readonly far: Schema.Finite;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-    }>;
+    }>, Schema.TaggedStruct<"Orthographic", {
+        readonly zoom: Schema.Finite;
+        readonly near: Schema.Finite;
+        readonly far: Schema.Finite;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>]>;
     readonly resources: Schema.Struct<{
         readonly geometries: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
@@ -1160,7 +1211,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
 // @public (undocumented)
 export type SceneGraph = {
     readonly scene: Scene;
-    readonly camera: PerspectiveCamera_2;
+    readonly camera: HostCamera;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -1215,7 +1266,7 @@ const SceneNode_2: Schema.Codec<SceneNode>;
 
 // @public
 export type SceneRenderer = {
-    readonly render: (scene: Scene, camera: Camera) => void;
+    readonly render: (scene: Scene, camera: Camera_2) => void;
     readonly setViewport: (viewport: Viewport) => void;
     readonly memory: () => RendererMemory;
     readonly dispose: () => void;
@@ -1267,6 +1318,8 @@ declare namespace SceneSchema {
         HemisphereLightNode_2 as HemisphereLightNode,
         SceneNode_2 as SceneNode,
         PerspectiveCamera_3 as PerspectiveCamera,
+        OrthographicCamera_3 as OrthographicCamera,
+        Camera_3 as Camera,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
         HitDetail,

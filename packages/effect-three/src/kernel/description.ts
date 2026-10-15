@@ -255,8 +255,9 @@ export type SceneNode =
 /** The node kinds the kernel knows how to host. */
 export type NodeKind = SceneNode['_tag'];
 
-/** The single active perspective camera. */
+/** A perspective camera: `fov` is the vertical field of view in degrees. */
 export type PerspectiveCamera = {
+  readonly _tag: 'Perspective';
   readonly fov: number;
   readonly near: number;
   readonly far: number;
@@ -264,9 +265,26 @@ export type PerspectiveCamera = {
   readonly lookAt: Vec3;
 };
 
+/**
+ * An orthographic camera. As in React Three Fiber, the frustum follows the viewport in
+ * CSS pixels and `zoom` is CSS pixels per world unit, so objects keep their on-screen
+ * size when the viewport resizes.
+ */
+export type OrthographicCamera = {
+  readonly _tag: 'Orthographic';
+  readonly zoom: number;
+  readonly near: number;
+  readonly far: number;
+  readonly position: Vec3;
+  readonly lookAt: Vec3;
+};
+
+/** The single active camera. */
+export type Camera = PerspectiveCamera | OrthographicCamera;
+
 /** A complete scene: camera, shared resources and root nodes. */
 export type SceneDescription = {
-  readonly camera: PerspectiveCamera;
+  readonly camera: Camera;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;
 };

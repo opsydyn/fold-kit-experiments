@@ -124,13 +124,19 @@ export type Rect = {
 // @public (undocumented)
 export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene", {
     scene: Schema.Struct<{
-        readonly camera: Schema.Struct<{
+        readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
             readonly fov: Schema.Finite;
             readonly near: Schema.Finite;
             readonly far: Schema.Finite;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
-        }>;
+        }>, Schema.TaggedStruct<"Orthographic", {
+            readonly zoom: Schema.Finite;
+            readonly near: Schema.Finite;
+            readonly far: Schema.Finite;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>]>;
         readonly resources: Schema.Struct<{
             readonly geometries: Schema.$Array<Schema.Struct<{
                 readonly id: Schema.String;
@@ -150,6 +156,27 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly radiusBottom: Schema.Finite;
                     readonly height: Schema.Finite;
                     readonly radialSegments: Schema.Int;
+                }>, Schema.TaggedStruct<"Torus", {
+                    readonly radius: Schema.Finite;
+                    readonly tube: Schema.Finite;
+                    readonly radialSegments: Schema.Int;
+                    readonly tubularSegments: Schema.Int;
+                }>, Schema.TaggedStruct<"Cone", {
+                    readonly radius: Schema.Finite;
+                    readonly height: Schema.Finite;
+                    readonly radialSegments: Schema.Int;
+                }>, Schema.TaggedStruct<"Capsule", {
+                    readonly radius: Schema.Finite;
+                    readonly height: Schema.Finite;
+                    readonly capSegments: Schema.Int;
+                    readonly radialSegments: Schema.Int;
+                }>, Schema.TaggedStruct<"Ring", {
+                    readonly innerRadius: Schema.Finite;
+                    readonly outerRadius: Schema.Finite;
+                    readonly thetaSegments: Schema.Int;
+                }>, Schema.TaggedStruct<"Circle", {
+                    readonly radius: Schema.Finite;
+                    readonly segments: Schema.Int;
                 }>]>;
             }>>;
             readonly materials: Schema.$Array<Schema.Struct<{

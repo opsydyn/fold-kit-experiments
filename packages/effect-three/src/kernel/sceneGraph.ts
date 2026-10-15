@@ -15,6 +15,7 @@ import {
   Mesh,
   type MeshStandardMaterial,
   type Object3D,
+  OrthographicCamera,
   PerspectiveCamera,
   PointLight,
   Scene,
@@ -29,7 +30,7 @@ import type {
   HemisphereLightNode,
   GroupNode,
   MeshNode,
-  PerspectiveCamera as CameraDescription,
+  Camera as CameraDescription,
   PointLightNode,
   SceneDescription,
   SceneNode,
@@ -77,7 +78,8 @@ export type SceneGraphOptions = {
 
 export type SceneGraph = {
   readonly scene: Scene;
-  readonly camera: PerspectiveCamera;
+  /** The active camera. Changing the description's camera kind replaces it. */
+  readonly camera: HostCamera;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -99,7 +101,7 @@ export type SceneGraph = {
    * is mutable only because three's `Raycaster.intersectObjects` requires it: don't modify it.
    */
   readonly interactiveObjects: () => Array<Object3D>;
-  /** Sets the camera aspect ratio for a viewport of `width` by `height` CSS pixels. */
+  /** Fits the camera to a viewport of `width` by `height` CSS pixels. */
   readonly resize: (width: number, height: number) => void;
   /** The last `resize`, in CSS pixels. `1 × 1` until the first resize. */
   readonly viewport: () => { readonly width: number; readonly height: number };
@@ -144,13 +146,46 @@ const writeHemisphereLight = (light: HemisphereLight, node: HemisphereLightNode)
   writeVec3(light.position, node.position);
 };
 
-const applyCamera = (camera: PerspectiveCamera, description: CameraDescription): void => {
-  camera.fov = description.fov;
+/** The three.js camera kinds the kernel hosts. */
+export type HostCamera = PerspectiveCamera | OrthographicCamera;
+
+type Viewport = { readonly width: number; readonly height: number };
+
+/**
+ * Fits a camera's projection to the viewport. Perspective cameras take its aspect ratio;
+ * orthographic frustums span it in CSS pixels, scaled by `zoom` (as React Three Fiber's
+ * `updateCamera` in `core/utils.tsx` at `d74622e`).
+ */
+const fitCamera = (camera: HostCamera, viewport: Viewport): void => {
+  if (camera instanceof OrthographicCamera) {
+    camera.left = viewport.width / -2;
+    camera.right = viewport.width / 2;
+    camera.top = viewport.height / 2;
+    camera.bottom = viewport.height / -2;
+  } else {
+    camera.aspect = viewport.width / viewport.height;
+  }
+  camera.updateProjectionMatrix();
+};
+
+/** A camera of the description's kind: `current` when it already is one, else a new one. */
+const cameraFor = (current: HostCamera, description: CameraDescription): HostCamera => {
+  if (description._tag === 'Perspective') {
+    return current instanceof PerspectiveCamera ? current : new PerspectiveCamera();
+  }
+  return current instanceof OrthographicCamera ? current : new OrthographicCamera();
+};
+
+const applyCamera = (camera: HostCamera, description: CameraDescription): void => {
+  if (camera instanceof PerspectiveCamera && description._tag === 'Perspective') {
+    camera.fov = description.fov;
+  } else if (camera instanceof OrthographicCamera && description._tag === 'Orthographic') {
+    camera.zoom = description.zoom;
+  }
   camera.near = description.near;
   camera.far = description.far;
   writeVec3(camera.position, description.position);
   camera.lookAt(description.lookAt[0], description.lookAt[1], description.lookAt[2]);
-  camera.updateProjectionMatrix();
 };
 
 /** Creates an empty scene graph. */
@@ -158,7 +193,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const store = options.store ?? createResourceStore();
   const ownsStore = options.store === undefined;
   const scene = new Scene();
-  const camera = new PerspectiveCamera();
+  let camera: HostCamera = new PerspectiveCamera();
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
@@ -345,7 +380,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const apply = (op: Op): void => {
     switch (op._tag) {
       case 'SetCamera':
+        camera = cameraFor(camera, op.camera);
         applyCamera(camera, op.camera);
+        fitCamera(camera, viewport);
         return;
       case 'DefineResources':
         store.define(op.resources);
@@ -474,7 +511,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   return {
     scene,
-    camera,
+    get camera() {
+      return camera;
+    },
     store,
     reconcile,
     tick,
@@ -489,8 +528,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     viewport: () => viewport,
     resize: (width, height) => {
       viewport = { width, height };
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
+      fitCamera(camera, viewport);
     },
     dispose,
   };

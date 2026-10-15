@@ -21,6 +21,7 @@ export {
   hemisphereLight,
   instant,
   mesh,
+  orthographicCamera,
   perspectiveCamera,
   plane,
   pointLight,
@@ -82,6 +83,7 @@ export {
 } from './renderer.ts';
 export {
   createSceneGraph,
+  type HostCamera,
   type HostMesh,
   type ReconcileResult,
   type SceneGraph,

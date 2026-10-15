@@ -20,6 +20,8 @@ type Proof = [
   Equals<typeof SceneSchema.ResourceDefinitions.Type, Kernel.ResourceDefinitions>,
   Equals<typeof SceneSchema.MeshNode.Type, Kernel.MeshNode>,
   Equals<typeof SceneSchema.PerspectiveCamera.Type, Kernel.PerspectiveCamera>,
+  Equals<typeof SceneSchema.OrthographicCamera.Type, Kernel.OrthographicCamera>,
+  Equals<typeof SceneSchema.Camera.Type, Kernel.Camera>,
   Equals<typeof SceneSchema.SceneDescription.Type, Kernel.SceneDescription>,
   Equals<typeof SceneSchema.SceneEvent.Type, Kernel.SceneEvent>,
   Equals<typeof SceneSchema.DescriptionError.Type, Kernel.DescriptionError>,

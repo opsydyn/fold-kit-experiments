@@ -223,8 +223,8 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   HemisphereLightNode,
 ]);
 
-/** The active perspective camera. */
-export const PerspectiveCamera = Schema.Struct({
+/** A perspective camera. */
+export const PerspectiveCamera = Schema.TaggedStruct('Perspective', {
   fov: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 180, exclusiveMinimum: true })),
   near: Positive,
   far: Positive,
@@ -232,9 +232,21 @@ export const PerspectiveCamera = Schema.Struct({
   lookAt: Vec3,
 });
 
+/** An orthographic camera; `zoom` is CSS pixels per world unit. */
+export const OrthographicCamera = Schema.TaggedStruct('Orthographic', {
+  zoom: Positive,
+  near: Positive,
+  far: Positive,
+  position: Vec3,
+  lookAt: Vec3,
+});
+
+/** The active camera. */
+export const Camera = Schema.Union([PerspectiveCamera, OrthographicCamera]);
+
 /** A complete scene description. */
 export const SceneDescription = Schema.Struct({
-  camera: PerspectiveCamera,
+  camera: Camera,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
 });

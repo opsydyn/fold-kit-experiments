@@ -7,6 +7,7 @@ import type {
   AmbientLightNode,
   Axis,
   BoxGeometry,
+  Camera,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -18,6 +19,7 @@ import type {
   GroupNode,
   MaterialRef,
   MeshNode,
+  OrthographicCamera,
   PerspectiveCamera,
   PlaneGeometry,
   PointLightNode,
@@ -331,7 +333,10 @@ export const hemisphereLight = (options: {
 });
 
 /** Perspective camera. Defaults: fov 50, near 0.1, far 100, at `[0, 0, 5]` looking at the origin. */
-export const perspectiveCamera = (options: Partial<PerspectiveCamera> = {}): PerspectiveCamera => ({
+export const perspectiveCamera = (
+  options: Partial<Omit<PerspectiveCamera, '_tag'>> = {},
+): PerspectiveCamera => ({
+  _tag: 'Perspective',
   fov: options.fov ?? 50,
   near: options.near ?? 0.1,
   far: options.far ?? 100,
@@ -339,9 +344,24 @@ export const perspectiveCamera = (options: Partial<PerspectiveCamera> = {}): Per
   lookAt: options.lookAt ?? origin,
 });
 
+/**
+ * Orthographic camera. Defaults (as React Three Fiber): zoom 1 (one CSS pixel per world
+ * unit, so set it), near 0.1, far 1000, at `[0, 0, 5]` looking at the origin.
+ */
+export const orthographicCamera = (
+  options: Partial<Omit<OrthographicCamera, '_tag'>> = {},
+): OrthographicCamera => ({
+  _tag: 'Orthographic',
+  zoom: options.zoom ?? 1,
+  near: options.near ?? 0.1,
+  far: options.far ?? 1000,
+  position: options.position ?? [0, 0, 5],
+  lookAt: options.lookAt ?? origin,
+});
+
 /** A scene description. */
 export const scene = (options: {
-  readonly camera?: PerspectiveCamera;
+  readonly camera?: Camera;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
 }): SceneDescription => ({

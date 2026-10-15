@@ -138,13 +138,22 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 ]);
 
 const sceneFields = {
-  camera: Schema.Struct({
-    fov: Schema.Literals([45, 60]),
-    near: Schema.Literals([0.1]),
-    far: Schema.Literals([100]),
-    position: Vec3,
-    lookAt: Vec3,
-  }),
+  camera: Schema.Union([
+    Schema.TaggedStruct('Perspective', {
+      fov: Schema.Literals([45, 60]),
+      near: Schema.Literals([0.1]),
+      far: Schema.Literals([100]),
+      position: Vec3,
+      lookAt: Vec3,
+    }),
+    Schema.TaggedStruct('Orthographic', {
+      zoom: Schema.Literals([1, 50]),
+      near: Schema.Literals([0.1]),
+      far: Schema.Literals([100]),
+      position: Vec3,
+      lookAt: Vec3,
+    }),
+  ]),
   resources: Schema.Struct({
     geometries: Schema.Tuple([
       Schema.Struct({ id: Schema.Literals(['g1']), geometry: Shape }),

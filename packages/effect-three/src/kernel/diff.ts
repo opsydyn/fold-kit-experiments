@@ -13,12 +13,7 @@
  *
  * @module
  */
-import type {
-  PerspectiveCamera,
-  ResourceDefinitions,
-  SceneDescription,
-  SceneNode,
-} from './description.ts';
+import type { Camera, ResourceDefinitions, SceneDescription, SceneNode } from './description.ts';
 import {
   cameraEquals,
   geometryRefEquals,
@@ -55,7 +50,7 @@ export type Field =
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
-  | { readonly _tag: 'SetCamera'; readonly camera: PerspectiveCamera }
+  | { readonly _tag: 'SetCamera'; readonly camera: Camera }
   | { readonly _tag: 'DefineResources'; readonly resources: ResourceDefinitions }
   | { readonly _tag: 'Create'; readonly node: SceneNode; readonly parent: ParentKey }
   | { readonly _tag: 'Replace'; readonly node: SceneNode; readonly parent: ParentKey }

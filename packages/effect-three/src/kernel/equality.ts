@@ -7,7 +7,7 @@
 import type {
   GeometryRef,
   MaterialRef,
-  PerspectiveCamera,
+  Camera,
   ResourceDefinitions,
   Rotation,
   ShapeGeometry,
@@ -126,14 +126,20 @@ export const materialRefEquals = (a: MaterialRef, b: MaterialRef): boolean => {
   return false;
 };
 
-/** Camera equality. */
-export const cameraEquals = (a: PerspectiveCamera, b: PerspectiveCamera): boolean =>
-  a === b ||
-  (Object.is(a.fov, b.fov) &&
+/** Camera equality: same kind, same lens and same placement. */
+export const cameraEquals = (a: Camera, b: Camera): boolean => {
+  if (a === b) return true;
+  const sameLens =
+    (a._tag === 'Perspective' && b._tag === 'Perspective' && Object.is(a.fov, b.fov)) ||
+    (a._tag === 'Orthographic' && b._tag === 'Orthographic' && Object.is(a.zoom, b.zoom));
+  return (
+    sameLens &&
     Object.is(a.near, b.near) &&
     Object.is(a.far, b.far) &&
     vec3Equals(a.position, b.position) &&
-    vec3Equals(a.lookAt, b.lookAt));
+    vec3Equals(a.lookAt, b.lookAt)
+  );
+};
 
 /** Order-sensitive equality of shared resource definitions. */
 export const resourcesEqual = (a: ResourceDefinitions, b: ResourceDefinitions): boolean => {

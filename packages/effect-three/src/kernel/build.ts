@@ -15,6 +15,8 @@ import type {
   CylinderGeometry,
   DirectionalLightNode,
   HemisphereLightNode,
+  Instance,
+  InstancesNode,
   LambertMaterial,
   Easing,
   GeometryRef,
@@ -344,6 +346,46 @@ export const mesh = (
   interactive: options.interactive ?? false,
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
+});
+
+/** One instance. Defaults: at the origin, unrotated, unit scale, white. */
+export const instance = (options: {
+  readonly key: string;
+  readonly position?: Vec3;
+  readonly rotation?: Vec3;
+  readonly scale?: Vec3;
+  readonly color?: Rgb;
+}): Instance => ({
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? origin,
+  scale: options.scale ?? unitScale,
+  color: options.color ?? 0xffffff,
+});
+
+/** Many instances of one geometry and material, drawn together. Not interactive by default. */
+export const instances = (
+  options: TransformOptions & {
+    readonly geometry: GeometryRef;
+    readonly material: MaterialRef;
+    readonly instances: ReadonlyArray<Instance>;
+    readonly interactive?: boolean;
+    readonly castShadow?: boolean;
+    readonly receiveShadow?: boolean;
+  },
+): InstancesNode => ({
+  _tag: 'Instances',
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? noRotation,
+  scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
+  geometry: options.geometry,
+  material: options.material,
+  interactive: options.interactive ?? false,
+  castShadow: options.castShadow ?? false,
+  receiveShadow: options.receiveShadow ?? false,
+  instances: options.instances,
 });
 
 /** Ambient light. Defaults: white, intensity 1. */

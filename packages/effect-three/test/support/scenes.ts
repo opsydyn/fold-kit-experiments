@@ -1,9 +1,24 @@
 /** Plain helpers for generated scenes (no Effect import). */
 import type { Field, GroupNode, SceneDescription, SceneNode } from '../../src/kernel/index.ts';
 
+/** Keeps the first item with each key. */
+function firstOfEachKey<A extends { readonly key: string }>(
+  items: ReadonlyArray<A>,
+): ReadonlyArray<A> {
+  const seen = new Set<string>();
+  const kept: Array<A> = [];
+  for (const item of items) {
+    if (seen.has(item.key)) continue;
+    seen.add(item.key);
+    kept.push(item);
+  }
+  return kept;
+}
+
 function dedupeNode(node: SceneNode, seen: Set<string>): ReadonlyArray<SceneNode> {
   if (seen.has(node.key)) return [];
   seen.add(node.key);
+  if (node._tag === 'Instances') return [{ ...node, instances: firstOfEachKey(node.instances) }];
   if (node._tag !== 'Group') return [node];
   const group: GroupNode = { ...node, children: dedupeNodes(node.children, seen) };
   return [group];
@@ -27,7 +42,7 @@ export const allNodes = (nodes: ReadonlyArray<SceneNode>): ReadonlyArray<SceneNo
 /** Resource counts implied by a description: what the store must hold live. */
 export const expectedResources = (description: SceneDescription) => {
   const meshes = allNodes(description.children).flatMap((node) =>
-    node._tag === 'Mesh' ? [node] : [],
+    node._tag === 'Mesh' || node._tag === 'Instances' ? [node] : [],
   );
   const sharedGeometryUsers = new Map<string, number>();
   const sharedMaterialUsers = new Map<string, number>();
@@ -58,6 +73,7 @@ export const perturb = (node: SceneNode): { readonly node: SceneNode; readonly f
   switch (node._tag) {
     case 'Group':
     case 'Mesh':
+    case 'Instances':
       return {
         node: { ...node, position: [node.position[0] + 100, node.position[1], node.position[2]] },
         field: 'position',

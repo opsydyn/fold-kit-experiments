@@ -52,6 +52,8 @@ export type PointerInput =
  */
 export type Hit = {
   readonly key: string;
+  /** For an `instances` node, the key of the instance hit. */
+  readonly instance?: string;
   /**
    * Keys of the hit mesh's ancestor groups, nearest first. Match on it to handle every
    * mesh in a group with one handler: React Three Fiber's bubbling, as data.
@@ -174,8 +176,13 @@ export const createPicker = (graph: SceneGraph): Picker => {
               .copy(intersection.face.normal)
               .transformDirection(intersection.object.matrixWorld);
           }
+          const instance =
+            intersection.instanceId === undefined
+              ? undefined
+              : graph.instanceKeyOf(intersection.object, intersection.instanceId);
           return {
             key,
+            ...(instance === undefined ? {} : { instance }),
             path: pathOf(graph, intersection.object),
             point: toVec3(intersection.point),
             distance: intersection.distance,

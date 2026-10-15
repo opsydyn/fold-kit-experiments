@@ -24,6 +24,7 @@ import {
   cameraEquals,
   renderSettingsEquals,
   geometryRefEquals,
+  instancesEqual,
   materialRefEquals,
   resourcesEqual,
   rotationEquals,
@@ -58,7 +59,8 @@ export type Field =
   | 'receiveShadow'
   | 'shadowMapSize'
   | 'shadowBias'
-  | 'shadowArea';
+  | 'shadowArea'
+  | 'instances';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -113,6 +115,20 @@ export const changedFields = (
       if (prev.interactive !== next.interactive) fields.push('interactive');
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
+      return fields;
+    }
+    case 'Instances': {
+      if (prev._tag !== 'Instances') return undefined;
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
+      if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
+      if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
+      if (!geometryRefEquals(prev.geometry, next.geometry)) fields.push('geometry');
+      if (!materialRefEquals(prev.material, next.material)) fields.push('material');
+      if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (prev.castShadow !== next.castShadow) fields.push('castShadow');
+      if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
+      if (!instancesEqual(prev.instances, next.instances)) fields.push('instances');
       return fields;
     }
     case 'AmbientLight': {

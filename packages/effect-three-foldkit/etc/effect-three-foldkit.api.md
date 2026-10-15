@@ -271,6 +271,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
 }, {
     'scene-click': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -284,6 +285,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-double-click': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -297,6 +299,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-context-menu': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -309,6 +312,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-down': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -322,6 +326,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-up': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -335,6 +340,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-enter': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -347,6 +353,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-move': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -365,6 +372,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-wheel': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -405,6 +413,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         }>, Schema.TaggedStruct<"UnknownSharedMaterial", {
             readonly nodeKey: Schema.String;
             readonly id: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateInstanceKey", {
+            readonly nodeKey: Schema.String;
+            readonly key: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
             readonly issue: Schema.String;
         }>]>;
@@ -446,6 +457,9 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
 }>, Schema.TaggedStruct<"UnknownSharedMaterial", {
     readonly nodeKey: Schema.String;
     readonly id: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateInstanceKey", {
+    readonly nodeKey: Schema.String;
+    readonly key: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {
     readonly issue: Schema.String;
 }>]>;

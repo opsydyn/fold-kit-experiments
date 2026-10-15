@@ -277,6 +277,40 @@ export type MeshNode = {
   readonly receiveShadow: boolean;
 };
 
+/**
+ * One copy of an instanced mesh. `key` is unique within its `instances` node and comes
+ * back in hit events. `color` multiplies the material's colour, so use a white material
+ * for exact per-instance colours. Rotation is fixed Euler angles: instances have no
+ * behaviours or transitions of their own.
+ */
+export type Instance = {
+  readonly key: string;
+  readonly position: Vec3;
+  readonly rotation: Vec3;
+  readonly scale: Vec3;
+  readonly color: Rgb;
+};
+
+/**
+ * Many copies of one geometry and material in a single draw call (three.js's
+ * `InstancedMesh`). The node itself is placed like a mesh; its instances are placed
+ * inside it. Changing instances rewrites only the slots that changed.
+ */
+export type InstancesNode = {
+  readonly _tag: 'Instances';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly rotation: Rotation;
+  readonly scale: Vec3;
+  readonly transition: Transition;
+  readonly geometry: GeometryRef;
+  readonly material: MaterialRef;
+  readonly interactive: boolean;
+  readonly castShadow: boolean;
+  readonly receiveShadow: boolean;
+  readonly instances: ReadonlyArray<Instance>;
+};
+
 /** Uniform ambient light. */
 export type AmbientLightNode = {
   readonly _tag: 'AmbientLight';
@@ -357,6 +391,7 @@ export type HemisphereLightNode = {
 export type SceneNode =
   | GroupNode
   | MeshNode
+  | InstancesNode
   | AmbientLightNode
   | DirectionalLightNode
   | PointLightNode

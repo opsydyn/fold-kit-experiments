@@ -6,6 +6,7 @@
  */
 import type {
   GeometryRef,
+  Instance,
   MaterialRef,
   Camera,
   RenderSettings,
@@ -104,6 +105,27 @@ export const geometryRefEquals = (a: GeometryRef, b: GeometryRef): boolean => {
     return a._tag === 'SharedGeometry' && b._tag === 'SharedGeometry' && a.id === b.id;
   }
   return shapeEquals(a, b);
+};
+
+/** Instance equality: same key, placement and colour. */
+export const instanceEquals = (a: Instance, b: Instance): boolean =>
+  a === b ||
+  (a.key === b.key &&
+    Object.is(a.color, b.color) &&
+    vec3Equals(a.position, b.position) &&
+    vec3Equals(a.rotation, b.rotation) &&
+    vec3Equals(a.scale, b.scale));
+
+/** Instance list equality, slot by slot. */
+export const instancesEqual = (a: ReadonlyArray<Instance>, b: ReadonlyArray<Instance>): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined || y === undefined || !instanceEquals(x, y)) return false;
+  }
+  return true;
 };
 
 /** Transition equality. */

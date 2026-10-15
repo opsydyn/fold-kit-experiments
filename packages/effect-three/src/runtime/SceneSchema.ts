@@ -216,6 +216,30 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   receiveShadow: Schema.Boolean,
 });
 
+/** One instance of an instances node. */
+export const Instance = Schema.Struct({
+  key: Schema.String,
+  position: Vec3,
+  rotation: Vec3,
+  scale: Vec3,
+  color: Rgb,
+});
+
+/** Many instances of one geometry and material. */
+export const InstancesNode = Schema.TaggedStruct('Instances', {
+  key: Schema.String,
+  position: Vec3,
+  rotation: Rotation,
+  scale: Vec3,
+  transition: Transition,
+  geometry: GeometryRef,
+  material: MaterialRef,
+  interactive: Schema.Boolean,
+  castShadow: Schema.Boolean,
+  receiveShadow: Schema.Boolean,
+  instances: Schema.Array(Instance),
+});
+
 /** Uniform ambient light. */
 export const AmbientLightNode = Schema.TaggedStruct('AmbientLight', {
   key: Schema.String,
@@ -296,6 +320,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
   }),
   MeshNode,
+  InstancesNode,
   AmbientLightNode,
   DirectionalLightNode,
   PointLightNode,
@@ -351,6 +376,7 @@ export const KeyDetail = Schema.Struct({ key: Schema.String });
  */
 export const HitDetail = Schema.Struct({
   key: Schema.String,
+  instance: Schema.optionalKey(Schema.String),
   path: Schema.Array(Schema.String),
   point: Vec3,
   distance: Schema.Finite,
@@ -403,4 +429,5 @@ export const DescriptionError = Schema.Union([
   }),
   Schema.TaggedStruct('UnknownSharedGeometry', { nodeKey: Schema.String, id: Schema.String }),
   Schema.TaggedStruct('UnknownSharedMaterial', { nodeKey: Schema.String, id: Schema.String }),
+  Schema.TaggedStruct('DuplicateInstanceKey', { nodeKey: Schema.String, key: Schema.String }),
 ]);

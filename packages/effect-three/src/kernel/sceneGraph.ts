@@ -29,6 +29,8 @@ import type {
   DirectionalLightNode,
   HemisphereLightNode,
   GroupNode,
+  Instance,
+  InstancesNode,
   MeshNode,
   Camera as CameraDescription,
   PointLightNode,
@@ -39,6 +41,7 @@ import type {
   Vec3,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
+import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostMaterial } from './materials.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
@@ -55,6 +58,8 @@ export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
 type Entry =
   | { readonly _tag: 'Group'; node: GroupNode; readonly object: Group }
   | { readonly _tag: 'Mesh'; node: MeshNode; readonly object: HostMesh }
+  // Mutable: growing past capacity swaps in a larger InstancedMesh under the same entry.
+  | { readonly _tag: 'Instances'; node: InstancesNode; object: HostInstances }
   | { readonly _tag: 'AmbientLight'; node: AmbientLightNode; readonly object: AmbientLight }
   | {
       readonly _tag: 'DirectionalLight';
@@ -68,6 +73,18 @@ type Entry =
       node: HemisphereLightNode;
       readonly object: HemisphereLight;
     };
+
+/** Entries with a transform: position, rotation, scale and transitions. */
+type Placed = Extract<Entry, { readonly _tag: 'Group' | 'Mesh' | 'Instances' }>;
+
+/** Entries drawing a geometry with a material. */
+type Surfaced = Extract<Entry, { readonly _tag: 'Mesh' | 'Instances' }>;
+
+const isPlaced = (entry: Entry): entry is Placed =>
+  entry._tag === 'Group' || entry._tag === 'Mesh' || entry._tag === 'Instances';
+
+const isSurfaced = (entry: Entry): entry is Surfaced =>
+  entry._tag === 'Mesh' || entry._tag === 'Instances';
 
 export type ReconcileResult =
   | { readonly _tag: 'Applied'; readonly ops: ReadonlyArray<Op> }
@@ -112,6 +129,8 @@ export type SceneGraph = {
   readonly object: (key: string) => Object3D | undefined;
   /** The key of a hosted object. */
   readonly keyOf: (object: Object3D) => string | undefined;
+  /** The key of instance `instanceId` of a hosted instances node, if it has one. */
+  readonly instanceKeyOf: (object: Object3D, instanceId: number) => string | undefined;
   /**
    * Hosted objects of interactive meshes and groups (picking descends into groups). The
    * array is cached until the set changes and is mutable only because three's
@@ -242,6 +261,8 @@ const applyCamera = (camera: HostCamera, description: CameraDescription): void =
   camera.lookAt(description.lookAt[0], description.lookAt[1], description.lookAt[2]);
 };
 
+const noInstances: ReadonlyArray<Instance> = [];
+
 /** Creates an empty scene graph. */
 export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph => {
   const store = options.store ?? createResourceStore();
@@ -270,13 +291,13 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const unsubscribeGeometry = store.onGeometryReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
-      if (entry._tag === 'Mesh' && entry.object.geometry === previous) entry.object.geometry = next;
+      if (isSurfaced(entry) && entry.object.geometry === previous) entry.object.geometry = next;
     }
   });
   const unsubscribeShared = store.onSharedChanged(invalidate);
   const unsubscribeMaterial = store.onMaterialReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
-      if (entry._tag === 'Mesh' && entry.object.material === previous) entry.object.material = next;
+      if (isSurfaced(entry) && entry.object.material === previous) entry.object.material = next;
     }
   });
 
@@ -288,7 +309,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     interactiveList = undefined;
   };
 
-  const trackRotation = (entry: Entry, node: GroupNode | MeshNode): void => {
+  const trackRotation = (entry: Entry, node: GroupNode | MeshNode | InstancesNode): void => {
     writeRotation(entry.object.rotation, node.rotation, elapsed);
     if (node.rotation._tag === 'Spin') spinning.add(entry);
     else spinning.delete(entry);
@@ -310,6 +331,22 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
           store.acquireMaterial(node.material),
         );
         const entry: Entry = { _tag: 'Mesh', node, object };
+        writeVec3(object.position, node.position);
+        writeVec3(object.scale, node.scale);
+        trackRotation(entry, node);
+        trackInteractive(object, node.interactive);
+        object.castShadow = node.castShadow;
+        object.receiveShadow = node.receiveShadow;
+        return entry;
+      }
+      case 'Instances': {
+        const object = createInstances(
+          store.acquireGeometry(node.geometry),
+          store.acquireMaterial(node.material),
+          node.instances.length,
+        );
+        writeInstances(object, noInstances, node.instances);
+        const entry: Entry = { _tag: 'Instances', node, object };
         writeVec3(object.position, node.position);
         writeVec3(object.scale, node.scale);
         trackRotation(entry, node);
@@ -348,10 +385,47 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     moving.delete(entry);
     reparented.delete(entry);
     trackInteractive(entry.object, false);
-    if (entry._tag === 'Mesh') {
+    if (isSurfaced(entry)) {
       store.releaseGeometry(entry.node.geometry, entry.object.geometry);
       store.releaseMaterial(entry.node.material, entry.object.material);
     }
+    // Frees the instance buffers on the GPU; geometry and material belong to the store.
+    if (entry._tag === 'Instances') entry.object.dispose();
+  };
+
+  /**
+   * Moves an instances entry into a larger InstancedMesh: same place in the tree, same
+   * transform and key, geometry and material carried over, every slot rewritten.
+   */
+  const growInstances = (
+    entry: Extract<Entry, { readonly _tag: 'Instances' }>,
+    next: InstancesNode,
+  ): void => {
+    const old = entry.object;
+    const grown = createInstances(old.geometry, old.material, next.instances.length);
+    grown.position.copy(old.position);
+    grown.quaternion.copy(old.quaternion);
+    grown.scale.copy(old.scale);
+    grown.castShadow = old.castShadow;
+    grown.receiveShadow = old.receiveShadow;
+    grown.name = old.name;
+    const parent = old.parent;
+    if (parent !== null) {
+      const slot = parent.children.indexOf(old);
+      old.removeFromParent();
+      parent.add(grown);
+      parent.children.pop();
+      parent.children.splice(slot, 0, grown);
+    }
+    const key = keys.get(old);
+    keys.delete(old);
+    if (key !== undefined) keys.set(grown, key);
+    const wasInteractive = interactive.has(old);
+    trackInteractive(old, false);
+    trackInteractive(grown, wasInteractive);
+    old.dispose();
+    entry.object = grown;
+    writeInstances(grown, noInstances, next.instances);
   };
 
   /**
@@ -359,7 +433,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
    * animating, otherwise by restarting the tween from the current rendered pose at the last
    * frame's time.
    */
-  const retarget = (entry: Entry, node: GroupNode | MeshNode): void => {
+  const retarget = (entry: Entry, node: GroupNode | MeshNode | InstancesNode): void => {
     if (!animating || node.transition._tag === 'Instant') {
       moving.delete(entry);
       writeVec3(entry.object.position, node.position);
@@ -375,7 +449,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     (fields.includes('transition') && moving.has(entry));
 
   const update = (entry: Entry, next: SceneNode, fields: ReadonlyArray<Field>): void => {
-    if (entry._tag === 'Mesh' && next._tag === 'Mesh') {
+    if (entry._tag === 'Instances' && next._tag === 'Instances' && fields.includes('instances')) {
+      if (fits(entry.object, next.instances.length)) {
+        writeInstances(entry.object, entry.node.instances, next.instances);
+      } else {
+        growInstances(entry, next);
+      }
+    }
+    if (
+      (entry._tag === 'Mesh' && next._tag === 'Mesh') ||
+      (entry._tag === 'Instances' && next._tag === 'Instances')
+    ) {
       const prev = entry.node;
       const mesh = entry.object;
       for (const field of fields) {
@@ -493,7 +577,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         const entry = entries.get(op.key);
         if (entry === undefined) throw new Error(`effect-three: missing node "${op.key}"`);
         const target = parentObject(op.parent);
-        if (entry._tag === 'Group' || entry._tag === 'Mesh') {
+        if (isPlaced(entry)) {
           // Keep the world position across the move; settle() then takes the node to its
           // new local position, instantly or along its transition.
           entry.object.getWorldPosition(worldPosition);
@@ -541,7 +625,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (result._tag === 'Invalid') return result;
     for (const op of result.ops) apply(op);
     for (const entry of reparented) {
-      if (entry._tag === 'Group' || entry._tag === 'Mesh') retarget(entry, entry.node);
+      if (isPlaced(entry)) retarget(entry, entry.node);
     }
     reparented.clear();
     index = result.index;
@@ -557,7 +641,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const tick = (elapsedSeconds: number): void => {
     elapsed = elapsedSeconds;
     for (const entry of spinning) {
-      if (entry._tag === 'Group' || entry._tag === 'Mesh') {
+      if (isPlaced(entry)) {
         writeRotation(entry.object.rotation, entry.node.rotation, elapsed);
       }
     }
@@ -613,6 +697,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     setAnimating,
     object: (key) => entries.get(key)?.object,
     keyOf: (object) => keys.get(object),
+    instanceKeyOf: (object, instanceId) => {
+      const key = keys.get(object);
+      const entry = key === undefined ? undefined : entries.get(key);
+      return entry?._tag === 'Instances' ? entry.node.instances[instanceId]?.key : undefined;
+    },
     interactiveObjects: () => {
       interactiveList ??= [...interactive];
       return interactiveList;

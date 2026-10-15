@@ -3,6 +3,8 @@ import {
   box,
   ease,
   group,
+  instance,
+  instances,
   mesh,
   scene,
   type SceneDescription,
@@ -59,3 +61,23 @@ export const spinningCube = scene({
     }),
   ],
 });
+
+/** `count` instances on a grid; `moved` (if any) sits elsewhere. Fresh objects every call. */
+export const instancedScene = (count: number, moved = -1): SceneDescription =>
+  scene({
+    resources,
+    children: [
+      instances({
+        key: 'crowd',
+        geometry: sharedGeometry('box'),
+        material: sharedMaterial('paint'),
+        interactive: true,
+        instances: Array.from({ length: count }, (_, index) =>
+          instance({
+            key: `i${index}`,
+            position: [index === moved ? 500 : index % 100, Math.floor(index / 100), 0],
+          }),
+        ),
+      }),
+    ],
+  });

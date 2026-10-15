@@ -137,6 +137,34 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     castShadow: Schema.Boolean,
     receiveShadow: Schema.Boolean,
   }),
+  Schema.TaggedStruct('Instances', {
+    key: Key,
+    position: Vec3,
+    rotation: Rotation,
+    scale: Vec3,
+    transition: Transition,
+    geometry: Schema.Union([
+      ...Shape.members,
+      Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
+    ]),
+    material: Schema.Union([
+      ...Surface.members,
+      Schema.TaggedStruct('SharedMaterial', { id: Schema.Literals(['m1', 'm2']) }),
+    ]),
+    interactive: Schema.Boolean,
+    castShadow: Schema.Boolean,
+    receiveShadow: Schema.Boolean,
+    // Up to 20 instances, so lists cross the 16-slot starting capacity and must grow.
+    instances: Schema.Array(
+      Schema.Struct({
+        key: Schema.String.check(Schema.isPattern(/^i[0-9]{1,2}$/)),
+        position: Vec3,
+        rotation: Vec3,
+        scale: Vec3,
+        color: Colour,
+      }),
+    ).check(Schema.isMaxLength(20)),
+  }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),
   Schema.TaggedStruct('PointLight', {
     key: Key,

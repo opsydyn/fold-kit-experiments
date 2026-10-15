@@ -7,6 +7,7 @@
 export type * from './description.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
 export { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
+export { capacityFor, type HostInstances } from './instances.ts';
 export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,
@@ -21,6 +22,8 @@ export {
   fixed,
   group,
   hemisphereLight,
+  instance,
+  instances,
   instant,
   lambert,
   mesh,
@@ -47,6 +50,8 @@ export { changedFields, diff, type DiffResult, type Field, type Op } from './dif
 export {
   cameraEquals,
   geometryRefEquals,
+  instanceEquals,
+  instancesEqual,
   materialRefEquals,
   resourcesEqual,
   renderSettingsEquals,

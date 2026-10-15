@@ -214,6 +214,10 @@ From the Foldkit style guide (adapted):
 
 **D3 parity rule:** All math and shape implementations in `packages/foldkit-viz/` must reference `d3-main/` in this repository as the source of truth. Never invent chart math from scratch — trace the D3 implementation.
 
+## effect-three conventions
+
+**R3F reference rule:** when adding a capability that React Three Fiber, Drei or three.js already has, trace their implementation first and use it as the behavioural reference. The pinned checkouts live at the root of the main checkout (`react-three-fiber-main/`, `drei-main/`, `three-effect-main/`, all git-ignored); three.js itself is `node_modules/three` at the pinned version, including `examples/jsm`. Cite the file and pinned commit in the ADR or PR. Reference, don't copy: our API stays a typed, closed, Model-driven catalogue. If code is ever ported, keep its licence notice (R3F, Drei and three are MIT; three-effect is Apache-2.0). Pins and refresh steps: `docs/effect-three/references.md`. Sequencing: `docs/effect-three/ROADMAP.md`.
+
 ## Foldkit version
 
 Currently on `foldkit@0.167.0` with stable Effect `4.0.0` and

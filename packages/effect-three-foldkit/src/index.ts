@@ -16,7 +16,14 @@
  * @module
  */
 export { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
-export { type Rect, toNdc, toPointerInput } from './dom/pointer.ts';
+export {
+  capturesPointer,
+  claimsContextMenu,
+  type Rect,
+  toNdc,
+  toPointerInput,
+} from './dom/pointer.ts';
+export { defaultPixelRatio, type PixelRatio, resolvePixelRatio } from './dom/viewport.ts';
 export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
 export {
   domEventName,
@@ -33,4 +40,13 @@ export {
   makeEnvironment,
 } from './environment.ts';
 export { makeSceneMount, type SceneMount } from './mount.ts';
-export { type ButtonDetail, type KeyDetail, view, type ViewConfig } from './view.ts';
+export {
+  type ButtonDetail,
+  type DragDetail,
+  type HitDetail,
+  type KeyDetail,
+  type MissDetail,
+  view,
+  type ViewConfig,
+  type WheelDetail,
+} from './view.ts';

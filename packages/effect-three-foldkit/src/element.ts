@@ -41,10 +41,17 @@ export const sceneElement = CustomElement.define({
   properties: { scene: SceneSchema.SceneDescription },
   events: {
     'scene-click': SceneSchema.ButtonDetail,
+    'scene-double-click': SceneSchema.ButtonDetail,
+    'scene-context-menu': SceneSchema.HitDetail,
     'scene-pointer-down': SceneSchema.ButtonDetail,
     'scene-pointer-up': SceneSchema.ButtonDetail,
-    'scene-pointer-enter': SceneSchema.KeyDetail,
+    'scene-pointer-enter': SceneSchema.HitDetail,
+    'scene-pointer-move': SceneSchema.HitDetail,
     'scene-pointer-leave': SceneSchema.KeyDetail,
+    'scene-pointer-missed': SceneSchema.MissDetail,
+    'scene-wheel': SceneSchema.WheelDetail,
+    'scene-drag': SceneSchema.DragDetail,
+    'scene-drag-end': SceneSchema.DragDetail,
     'scene-error': Schema.Struct({ error: SceneError }),
     'scene-reconciled': ReconciledDetail,
   },
@@ -53,10 +60,17 @@ export const sceneElement = CustomElement.define({
 /** The DOM event name for each kernel scene event. */
 export const domEventName = {
   Click: 'scene-click',
+  DoubleClick: 'scene-double-click',
+  ContextMenu: 'scene-context-menu',
   PointerDown: 'scene-pointer-down',
   PointerUp: 'scene-pointer-up',
   PointerEnter: 'scene-pointer-enter',
+  PointerMove: 'scene-pointer-move',
   PointerLeave: 'scene-pointer-leave',
+  PointerMissed: 'scene-pointer-missed',
+  Wheel: 'scene-wheel',
+  Drag: 'scene-drag',
+  DragEnd: 'scene-drag-end',
 } as const satisfies Record<SceneEvent['_tag'], keyof typeof sceneElement.events>;
 
 /** Outcome of mounting a scene. Map these into the app's Messages with `onLifecycle`. */

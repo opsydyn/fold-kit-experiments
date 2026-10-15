@@ -42,6 +42,11 @@ const description = scene({
 
 - **Keys are unique across the whole scene.** A node keeps its three.js object while its key and kind stay the same, including when it moves to another group. A different kind under the same key replaces the object in place.
 - **Descriptions are fully specified data.** The constructors fill in defaults, and nothing in a description is a closure or a three.js object.
+- **Shapes:** `box`, `sphere`, `plane`, `cylinder`, `torus`, `cone`, `capsule`, `ring` and `circle`, owned by one mesh or shared through `resources`. Parameter names and defaults are three.js's own.
+- **Materials:** `basic`, `lambert`, `phong`, `standard`, `physical` and `normalMaterial`, each with opacity, transparency, `side`, wireframe and (lit kinds) flat shading and emission. Defaults are three.js's own. Changing a material within its kind updates it in place; changing its kind replaces it.
+- **Shadows and render settings:** `scene({ render: renderSettings({ shadows: 'soft', toneMapping: 'aces' }) })`, then `castShadow`/`receiveShadow` on meshes and `castShadow` on directional, point and spot lights. Tone mapping defaults to `none` (React Three Fiber defaults to ACES) so colours render exactly as given.
+- **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
+- **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 
 ## Run it
 
@@ -53,7 +58,8 @@ const program = Effect.gen(function* () {
   const handle = yield* SceneRuntime.make({ scene: description, renderer, viewport });
   yield* handle.update(nextDescription); // diff and apply; equal scenes cost no host changes
   handle.pointer({ _tag: 'PointerDown', x: 0, y: 0, button: 0 }); // normalised device coords
-  // handle.events: Stream of PointerEnter | PointerLeave | PointerDown | PointerUp | Click
+  // handle.events: Stream of PointerEnter | PointerMove | PointerLeave | PointerDown | PointerUp
+  //   | Click | DoubleClick | ContextMenu | Wheel | PointerMissed | Drag | DragEnd
 }).pipe(Effect.scoped);
 
 const environment = Layer.mergeAll(ResourceRegistry.layer, FrameSource.layer(scheduler));
@@ -61,6 +67,7 @@ const environment = Layer.mergeAll(ResourceRegistry.layer, FrameSource.layer(sch
 
 - `renderer` is a `RendererFactory`: a plain object whose `create()` returns a renderer bound to one drawing surface. The WebGL2 implementation lives in the browser adapter. A WebGPU one can be added without touching the core.
 - `FrameSource.layer(scheduler)` takes any `FrameScheduler`: `requestAnimationFrame`, three's `setAnimationLoop`, or `createManualFrames()` in tests.
+- Pointer events follow React Three Fiber's semantics: click, double-click and context menu go only to the mesh that was pressed; a click that hits nothing and moves at most 2 CSS pixels is a `PointerMissed`. Hits carry the key, world-space point, distance, face normal and uv.
 - `make` is atomic. If the description is invalid (`InvalidScene`), the renderer can't be created (`RendererUnavailable`), or startup is interrupted, everything already acquired is released before it returns.
 
 ## Resource ownership
@@ -74,7 +81,24 @@ Borrowed resources (user-supplied three.js objects the library never disposes) a
 
 ## Animation
 
-Behaviours own animated properties: a mesh's rotation is either model-owned (`fixed`) or behaviour-owned (`spin`), never both. A behaviour's output is a pure function of scene time, so frames are deterministic and frame-rate independent. `handle.setAnimating(false)` freezes scene time (for `prefers-reduced-motion`) while frames keep rendering.
+Behaviours own animated properties: a mesh's rotation is either model-owned (`fixed`) or behaviour-owned (`spin`), never both. A behaviour's output is a pure function of scene time, so frames are deterministic and frame-rate independent.
+
+Transitions decide how `position` and `scale` reach new values. The Model always owns the target; a transition only shapes the journey:
+
+```ts
+mesh({
+  key: 'cube',
+  position: [model.column, 0, 0],
+  transition: ease({ seconds: 0.35, easing: 'easeOutBack' }), // default: instant()
+  geometry: box(),
+  material: standard({ color: 0x14b8a6 }),
+});
+```
+
+- A new target mid-flight restarts from the pose on screen, so nothing jumps. A node moving to another group keeps its world position and travels to its new place.
+- Easings: `linear`, `easeInOutCubic` (default), `easeOutCubic`, `easeOutBack`. Tweens run in the frame loop without allocating and never reach `update`.
+
+`handle.setAnimating(false)` freezes scene time (for `prefers-reduced-motion`) while frames keep rendering; transitions then land at once, including any in flight.
 
 ## Testing
 

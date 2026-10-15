@@ -11,6 +11,8 @@ export type Probe = {
   stats: () => unknown;
   /** GPU memory of the most recently created renderer. */
   rendererMemory: () => unknown;
+  /** `defaultPrevented` of each context menu, read after the scene's listener ran. */
+  contextMenus: Array<boolean>;
 };
 
 export const probe: Probe = {
@@ -19,6 +21,7 @@ export const probe: Probe = {
   intersectionObservers: 0,
   stats: () => undefined,
   rendererMemory: () => undefined,
+  contextMenus: [],
 };
 
 Reflect.set(globalThis, '__probe', probe);
@@ -47,3 +50,7 @@ class CountingIntersectionObserver extends IntersectionObserver {
 
 globalThis.ResizeObserver = CountingResizeObserver;
 globalThis.IntersectionObserver = CountingIntersectionObserver;
+
+window.addEventListener('contextmenu', (event) => {
+  probe.contextMenus.push(event.defaultPrevented);
+});

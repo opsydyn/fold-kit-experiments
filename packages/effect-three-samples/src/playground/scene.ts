@@ -1,12 +1,14 @@
 /**
  * Two shelves of keyed cubes. Each cube's position comes from its index on its shelf, so
  * reordering produces position updates plus one Order; moving a cube between shelves keeps
- * its three.js object (a Move, not a remove and re-create).
+ * its three.js object (a Move, not a remove and re-create). Every cube eases to its new
+ * place, so the Model stays the target while the scene shows the journey.
  */
 import {
   ambientLight,
   box,
   directionalLight,
+  ease,
   fixed,
   group,
   mesh,
@@ -24,6 +26,7 @@ import type { Cube, Model } from './model';
 
 const columns = 3;
 const spacing = 1.1;
+const glide = ease({ seconds: 0.35 });
 
 const hoverScale = (model: Model, key: string): number =>
   Option.match(
@@ -38,6 +41,7 @@ const cubeNode = (model: Model, cube: Cube, index: number): SceneNode => {
     position: [((index % columns) - 1) * spacing, Math.floor(index / columns) * spacing, 0],
     rotation: fixed([0.35, 0.6, 0]),
     scale: [scale, scale, scale],
+    transition: glide,
     geometry: sharedGeometry('cube'),
     material: sharedMaterial(cube.paint),
     interactive: true,

@@ -7,9 +7,12 @@
 import type {
   GeometryRef,
   MaterialRef,
-  PerspectiveCamera,
+  Camera,
+  RenderSettings,
   ResourceDefinitions,
   Rotation,
+  ShapeGeometry,
+  Transition,
   Vec3,
 } from './description.ts';
 
@@ -31,40 +34,126 @@ export const rotationEquals = (a: Rotation, b: Rotation): boolean => {
   return false;
 };
 
-/** Geometry reference equality: same ownership mode and same parameters or id. */
+/** Shape equality: same kind and same parameters. */
+export const shapeEquals = (a: ShapeGeometry, b: ShapeGeometry): boolean => {
+  if (a === b) return true;
+  switch (a._tag) {
+    case 'Box':
+      return (
+        b._tag === 'Box' &&
+        Object.is(a.width, b.width) &&
+        Object.is(a.height, b.height) &&
+        Object.is(a.depth, b.depth)
+      );
+    case 'Sphere':
+      return (
+        b._tag === 'Sphere' &&
+        Object.is(a.radius, b.radius) &&
+        a.widthSegments === b.widthSegments &&
+        a.heightSegments === b.heightSegments
+      );
+    case 'Plane':
+      return b._tag === 'Plane' && Object.is(a.width, b.width) && Object.is(a.height, b.height);
+    case 'Cylinder':
+      return (
+        b._tag === 'Cylinder' &&
+        Object.is(a.radiusTop, b.radiusTop) &&
+        Object.is(a.radiusBottom, b.radiusBottom) &&
+        Object.is(a.height, b.height) &&
+        a.radialSegments === b.radialSegments
+      );
+    case 'Torus':
+      return (
+        b._tag === 'Torus' &&
+        Object.is(a.radius, b.radius) &&
+        Object.is(a.tube, b.tube) &&
+        a.radialSegments === b.radialSegments &&
+        a.tubularSegments === b.tubularSegments
+      );
+    case 'Cone':
+      return (
+        b._tag === 'Cone' &&
+        Object.is(a.radius, b.radius) &&
+        Object.is(a.height, b.height) &&
+        a.radialSegments === b.radialSegments
+      );
+    case 'Capsule':
+      return (
+        b._tag === 'Capsule' &&
+        Object.is(a.radius, b.radius) &&
+        Object.is(a.height, b.height) &&
+        a.capSegments === b.capSegments &&
+        a.radialSegments === b.radialSegments
+      );
+    case 'Ring':
+      return (
+        b._tag === 'Ring' &&
+        Object.is(a.innerRadius, b.innerRadius) &&
+        Object.is(a.outerRadius, b.outerRadius) &&
+        a.thetaSegments === b.thetaSegments
+      );
+    case 'Circle':
+      return b._tag === 'Circle' && Object.is(a.radius, b.radius) && a.segments === b.segments;
+  }
+};
+
+/** Geometry reference equality: same ownership mode and same shape or id. */
 export const geometryRefEquals = (a: GeometryRef, b: GeometryRef): boolean => {
   if (a === b) return true;
-  if (a._tag === 'Box' && b._tag === 'Box') {
-    return (
-      Object.is(a.width, b.width) && Object.is(a.height, b.height) && Object.is(a.depth, b.depth)
-    );
+  if (a._tag === 'SharedGeometry' || b._tag === 'SharedGeometry') {
+    return a._tag === 'SharedGeometry' && b._tag === 'SharedGeometry' && a.id === b.id;
   }
-  if (a._tag === 'SharedGeometry' && b._tag === 'SharedGeometry') return a.id === b.id;
-  return false;
+  return shapeEquals(a, b);
 };
 
-/** Material reference equality: same ownership mode and same parameters or id. */
+/** Transition equality. */
+export const transitionEquals = (a: Transition, b: Transition): boolean => {
+  if (a === b) return true;
+  if (a._tag === 'Instant' || b._tag === 'Instant') return a._tag === b._tag;
+  return Object.is(a.seconds, b.seconds) && a.easing === b.easing;
+};
+
+/**
+ * Equality of two flat description records: same keys, each value `Object.is`-equal.
+ * Material descriptions are flat (numbers, booleans and string literals), so this is
+ * exact for them and needs no per-kind code.
+ */
+const sameFlatRecord = (a: object, b: object): boolean => {
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  for (const key of keys) {
+    if (!Object.is(Reflect.get(a, key), Reflect.get(b, key))) return false;
+  }
+  return true;
+};
+
+/** Material reference equality: same ownership mode and same kind and parameters, or id. */
 export const materialRefEquals = (a: MaterialRef, b: MaterialRef): boolean => {
   if (a === b) return true;
-  if (a._tag === 'Standard' && b._tag === 'Standard') {
-    return (
-      Object.is(a.color, b.color) &&
-      Object.is(a.roughness, b.roughness) &&
-      Object.is(a.metalness, b.metalness)
-    );
+  if (a._tag === 'SharedMaterial' || b._tag === 'SharedMaterial') {
+    return a._tag === 'SharedMaterial' && b._tag === 'SharedMaterial' && a.id === b.id;
   }
-  if (a._tag === 'SharedMaterial' && b._tag === 'SharedMaterial') return a.id === b.id;
-  return false;
+  return sameFlatRecord(a, b);
 };
 
-/** Camera equality. */
-export const cameraEquals = (a: PerspectiveCamera, b: PerspectiveCamera): boolean =>
-  a === b ||
-  (Object.is(a.fov, b.fov) &&
+/** Camera equality: same kind, same lens and same placement. */
+export const cameraEquals = (a: Camera, b: Camera): boolean => {
+  if (a === b) return true;
+  const sameLens =
+    (a._tag === 'Perspective' && b._tag === 'Perspective' && Object.is(a.fov, b.fov)) ||
+    (a._tag === 'Orthographic' && b._tag === 'Orthographic' && Object.is(a.zoom, b.zoom));
+  return (
+    sameLens &&
     Object.is(a.near, b.near) &&
     Object.is(a.far, b.far) &&
     vec3Equals(a.position, b.position) &&
-    vec3Equals(a.lookAt, b.lookAt));
+    vec3Equals(a.lookAt, b.lookAt)
+  );
+};
+
+/** Render settings equality. */
+export const renderSettingsEquals = (a: RenderSettings, b: RenderSettings): boolean =>
+  a === b || sameFlatRecord(a, b);
 
 /** Order-sensitive equality of shared resource definitions. */
 export const resourcesEqual = (a: ResourceDefinitions, b: ResourceDefinitions): boolean => {

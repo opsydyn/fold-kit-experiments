@@ -11,25 +11,35 @@ import {
   type BufferGeometry,
   DirectionalLight,
   Group,
+  HemisphereLight,
   Mesh,
-  type MeshStandardMaterial,
   type Object3D,
+  OrthographicCamera,
   PerspectiveCamera,
+  PointLight,
   Scene,
+  SpotLight,
+  Vector3,
 } from 'three';
 
 import { writeRotation } from './behaviours.ts';
+import { renderSettings } from './build.ts';
 import type {
   AmbientLightNode,
   DirectionalLightNode,
+  HemisphereLightNode,
   GroupNode,
   MeshNode,
-  PerspectiveCamera as CameraDescription,
+  Camera as CameraDescription,
+  PointLightNode,
+  RenderSettings,
   SceneDescription,
   SceneNode,
+  SpotLightNode,
   Vec3,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
+import type { HostMaterial } from './materials.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -37,9 +47,10 @@ import {
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
+import { applyTween, startTween, type Tween } from './tween.ts';
 
 /** The mesh type the kernel hosts. */
-export type HostMesh = Mesh<BufferGeometry, MeshStandardMaterial>;
+export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
 
 type Entry =
   | { readonly _tag: 'Group'; node: GroupNode; readonly object: Group }
@@ -49,6 +60,13 @@ type Entry =
       readonly _tag: 'DirectionalLight';
       node: DirectionalLightNode;
       readonly object: DirectionalLight;
+    }
+  | { readonly _tag: 'PointLight'; node: PointLightNode; readonly object: PointLight }
+  | { readonly _tag: 'SpotLight'; node: SpotLightNode; readonly object: SpotLight }
+  | {
+      readonly _tag: 'HemisphereLight';
+      node: HemisphereLightNode;
+      readonly object: HemisphereLight;
     };
 
 export type ReconcileResult =
@@ -62,7 +80,8 @@ export type SceneGraphOptions = {
 
 export type SceneGraph = {
   readonly scene: Scene;
-  readonly camera: PerspectiveCamera;
+  /** The active camera. Changing the description's camera kind replaces it. */
+  readonly camera: HostCamera;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -70,17 +89,30 @@ export type SceneGraph = {
   readonly tick: (elapsedSeconds: number) => void;
   /** Scene time of the last `tick`. */
   readonly elapsedSeconds: () => number;
+  /**
+   * The scene's current render settings. A new value (by reference) means they changed,
+   * so the frame loop can reconfigure the renderer without comparing fields.
+   */
+  readonly renderSettings: () => RenderSettings;
+  /**
+   * While not animating (reduced motion, a paused debugger), transitions land at once and
+   * any in flight finish, because frozen scene time would otherwise strand them mid-way.
+   */
+  readonly setAnimating: (animating: boolean) => void;
   /** The hosted object for a key. */
   readonly object: (key: string) => Object3D | undefined;
   /** The key of a hosted object. */
   readonly keyOf: (object: Object3D) => string | undefined;
   /**
-   * Hosted objects of interactive meshes. The array is cached until the set changes and
-   * is mutable only because three's `Raycaster.intersectObjects` requires it: don't modify it.
+   * Hosted objects of interactive meshes and groups (picking descends into groups). The
+   * array is cached until the set changes and is mutable only because three's
+   * `Raycaster.intersectObjects` requires it: don't modify it.
    */
   readonly interactiveObjects: () => Array<Object3D>;
-  /** Sets the camera aspect ratio for a viewport of `width` by `height`. */
+  /** Fits the camera to a viewport of `width` by `height` CSS pixels. */
   readonly resize: (width: number, height: number) => void;
+  /** The last `resize`, in CSS pixels. `1 × 1` until the first resize. */
+  readonly viewport: () => { readonly width: number; readonly height: number };
   /** Removes every node and releases its resources. Disposes the store if the graph owns it. */
   readonly dispose: () => void;
 };
@@ -92,13 +124,113 @@ const writeVec3 = (
   target.set(v[0], v[1], v[2]);
 };
 
-const applyCamera = (camera: PerspectiveCamera, description: CameraDescription): void => {
-  camera.fov = description.fov;
+type ShadowFields = {
+  readonly castShadow: boolean;
+  readonly shadowMapSize: number;
+  readonly shadowBias: number;
+};
+
+/** Writes a light's shadow settings. A new map size drops the old map so three reallocates it. */
+const writeShadow = (
+  light: DirectionalLight | PointLight | SpotLight,
+  fields: ShadowFields,
+): void => {
+  light.castShadow = fields.castShadow;
+  light.shadow.bias = fields.shadowBias;
+  if (light.shadow.mapSize.x !== fields.shadowMapSize) {
+    light.shadow.mapSize.set(fields.shadowMapSize, fields.shadowMapSize);
+    light.shadow.map?.dispose();
+    light.shadow.map = null;
+  }
+};
+
+const writeDirectionalLight = (light: DirectionalLight, node: DirectionalLightNode): void => {
+  light.color.setHex(node.color);
+  light.intensity = node.intensity;
+  writeVec3(light.position, node.position);
+  writeShadow(light, node);
+  const camera = light.shadow.camera;
+  if (camera.right !== node.shadowArea) {
+    camera.left = -node.shadowArea;
+    camera.right = node.shadowArea;
+    camera.top = node.shadowArea;
+    camera.bottom = -node.shadowArea;
+    camera.updateProjectionMatrix();
+  }
+};
+
+// Lights are cheap to write in full, so an update rewrites every field from the node.
+const writePointLight = (light: PointLight, node: PointLightNode): void => {
+  light.color.setHex(node.color);
+  light.intensity = node.intensity;
+  writeVec3(light.position, node.position);
+  light.distance = node.distance;
+  light.decay = node.decay;
+  writeShadow(light, node);
+};
+
+const writeSpotLight = (light: SpotLight, node: SpotLightNode): void => {
+  light.color.setHex(node.color);
+  light.intensity = node.intensity;
+  writeVec3(light.position, node.position);
+  light.distance = node.distance;
+  light.angle = node.angle;
+  light.penumbra = node.penumbra;
+  light.decay = node.decay;
+  writeShadow(light, node);
+  // The target is not in the scene graph (it is world space), so three never updates its
+  // matrix: do it here, once per change.
+  writeVec3(light.target.position, node.target);
+  light.target.updateMatrixWorld();
+};
+
+const writeHemisphereLight = (light: HemisphereLight, node: HemisphereLightNode): void => {
+  light.color.setHex(node.color);
+  light.groundColor.setHex(node.groundColor);
+  light.intensity = node.intensity;
+  writeVec3(light.position, node.position);
+};
+
+/** The three.js camera kinds the kernel hosts. */
+export type HostCamera = PerspectiveCamera | OrthographicCamera;
+
+type Viewport = { readonly width: number; readonly height: number };
+
+/**
+ * Fits a camera's projection to the viewport. Perspective cameras take its aspect ratio;
+ * orthographic frustums span it in CSS pixels, scaled by `zoom` (as React Three Fiber's
+ * `updateCamera` in `core/utils.tsx` at `d74622e`).
+ */
+const fitCamera = (camera: HostCamera, viewport: Viewport): void => {
+  if (camera instanceof OrthographicCamera) {
+    camera.left = viewport.width / -2;
+    camera.right = viewport.width / 2;
+    camera.top = viewport.height / 2;
+    camera.bottom = viewport.height / -2;
+  } else {
+    camera.aspect = viewport.width / viewport.height;
+  }
+  camera.updateProjectionMatrix();
+};
+
+/** A camera of the description's kind: `current` when it already is one, else a new one. */
+const cameraFor = (current: HostCamera, description: CameraDescription): HostCamera => {
+  if (description._tag === 'Perspective') {
+    return current instanceof PerspectiveCamera ? current : new PerspectiveCamera();
+  }
+  return current instanceof OrthographicCamera ? current : new OrthographicCamera();
+};
+
+const applyCamera = (camera: HostCamera, description: CameraDescription): void => {
+  if (camera instanceof PerspectiveCamera && description._tag === 'Perspective') {
+    camera.fov = description.fov;
+  } else if (camera instanceof OrthographicCamera && description._tag === 'Orthographic') {
+    camera.zoom = description.zoom;
+  }
   camera.near = description.near;
   camera.far = description.far;
   writeVec3(camera.position, description.position);
   camera.lookAt(description.lookAt[0], description.lookAt[1], description.lookAt[2]);
-  camera.updateProjectionMatrix();
 };
 
 /** Creates an empty scene graph. */
@@ -106,18 +238,29 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const store = options.store ?? createResourceStore();
   const ownsStore = options.store === undefined;
   const scene = new Scene();
-  const camera = new PerspectiveCamera();
+  let camera: HostCamera = new PerspectiveCamera();
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
+  const moving = new Map<Entry, Tween>();
+  const reparented = new Set<Entry>();
+  const worldPosition = new Vector3();
   const interactive = new Set<Object3D>();
   let interactiveList: Array<Object3D> | undefined;
   let index: SceneIndex = emptyIndex;
   let elapsed = 0;
+  let animating = true;
+  let settings: RenderSettings = renderSettings();
+  let viewport = { width: 1, height: 1 };
 
-  const unsubscribe = store.onGeometryReplaced(({ previous, next }) => {
+  const unsubscribeGeometry = store.onGeometryReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
       if (entry._tag === 'Mesh' && entry.object.geometry === previous) entry.object.geometry = next;
+    }
+  });
+  const unsubscribeMaterial = store.onMaterialReplaced(({ previous, next }) => {
+    for (const entry of entries.values()) {
+      if (entry._tag === 'Mesh' && entry.object.material === previous) entry.object.material = next;
     }
   });
 
@@ -142,6 +285,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(entry.object.position, node.position);
         writeVec3(entry.object.scale, node.scale);
         trackRotation(entry, node);
+        trackInteractive(entry.object, node.interactive);
         return entry;
       }
       case 'Mesh': {
@@ -154,20 +298,39 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.scale, node.scale);
         trackRotation(entry, node);
         trackInteractive(object, node.interactive);
+        object.castShadow = node.castShadow;
+        object.receiveShadow = node.receiveShadow;
         return entry;
       }
       case 'AmbientLight':
         return { _tag: 'AmbientLight', node, object: new AmbientLight(node.color, node.intensity) };
       case 'DirectionalLight': {
-        const object = new DirectionalLight(node.color, node.intensity);
-        writeVec3(object.position, node.position);
+        const object = new DirectionalLight();
+        writeDirectionalLight(object, node);
         return { _tag: 'DirectionalLight', node, object };
+      }
+      case 'PointLight': {
+        const object = new PointLight();
+        writePointLight(object, node);
+        return { _tag: 'PointLight', node, object };
+      }
+      case 'SpotLight': {
+        const object = new SpotLight();
+        writeSpotLight(object, node);
+        return { _tag: 'SpotLight', node, object };
+      }
+      case 'HemisphereLight': {
+        const object = new HemisphereLight();
+        writeHemisphereLight(object, node);
+        return { _tag: 'HemisphereLight', node, object };
       }
     }
   };
 
   const release = (entry: Entry): void => {
     spinning.delete(entry);
+    moving.delete(entry);
+    reparented.delete(entry);
     trackInteractive(entry.object, false);
     if (entry._tag === 'Mesh') {
       store.releaseGeometry(entry.node.geometry, entry.object.geometry);
@@ -175,35 +338,58 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
   };
 
+  /**
+   * Moves the object towards a new position and scale: at once for `Instant` or while not
+   * animating, otherwise by restarting the tween from the current rendered pose at the last
+   * frame's time.
+   */
+  const retarget = (entry: Entry, node: GroupNode | MeshNode): void => {
+    if (!animating || node.transition._tag === 'Instant') {
+      moving.delete(entry);
+      writeVec3(entry.object.position, node.position);
+      writeVec3(entry.object.scale, node.scale);
+      return;
+    }
+    moving.set(entry, startTween(entry.object, node, elapsed, node.transition));
+  };
+
+  const movesTransform = (entry: Entry, fields: ReadonlyArray<Field>): boolean =>
+    fields.includes('position') ||
+    fields.includes('scale') ||
+    (fields.includes('transition') && moving.has(entry));
+
   const update = (entry: Entry, next: SceneNode, fields: ReadonlyArray<Field>): void => {
     if (entry._tag === 'Mesh' && next._tag === 'Mesh') {
       const prev = entry.node;
       const mesh = entry.object;
       for (const field of fields) {
-        if (field === 'position') writeVec3(mesh.position, next.position);
-        else if (field === 'scale') writeVec3(mesh.scale, next.scale);
-        else if (field === 'geometry') {
+        if (field === 'geometry') {
           store.releaseGeometry(prev.geometry, mesh.geometry);
           mesh.geometry = store.acquireGeometry(next.geometry);
         } else if (field === 'material') {
-          if (prev.material._tag === 'Standard' && next.material._tag === 'Standard') {
+          const updatedInPlace =
+            prev.material._tag !== 'SharedMaterial' &&
+            next.material._tag !== 'SharedMaterial' &&
             store.updateOwnedMaterial(mesh.material, next.material);
-          } else {
+          if (!updatedInPlace) {
             store.releaseMaterial(prev.material, mesh.material);
             mesh.material = store.acquireMaterial(next.material);
           }
         }
       }
       entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
       if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
+      mesh.castShadow = next.castShadow;
+      mesh.receiveShadow = next.receiveShadow;
       return;
     }
     if (entry._tag === 'Group' && next._tag === 'Group') {
-      if (fields.includes('position')) writeVec3(entry.object.position, next.position);
-      if (fields.includes('scale')) writeVec3(entry.object.scale, next.scale);
       entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       return;
     }
     if (entry._tag === 'AmbientLight' && next._tag === 'AmbientLight') {
@@ -213,9 +399,22 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       return;
     }
     if (entry._tag === 'DirectionalLight' && next._tag === 'DirectionalLight') {
-      entry.object.color.setHex(next.color);
-      entry.object.intensity = next.intensity;
-      writeVec3(entry.object.position, next.position);
+      writeDirectionalLight(entry.object, next);
+      entry.node = next;
+      return;
+    }
+    if (entry._tag === 'PointLight' && next._tag === 'PointLight') {
+      writePointLight(entry.object, next);
+      entry.node = next;
+      return;
+    }
+    if (entry._tag === 'SpotLight' && next._tag === 'SpotLight') {
+      writeSpotLight(entry.object, next);
+      entry.node = next;
+      return;
+    }
+    if (entry._tag === 'HemisphereLight' && next._tag === 'HemisphereLight') {
+      writeHemisphereLight(entry.object, next);
       entry.node = next;
       return;
     }
@@ -238,7 +437,12 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const apply = (op: Op): void => {
     switch (op._tag) {
       case 'SetCamera':
+        camera = cameraFor(camera, op.camera);
         applyCamera(camera, op.camera);
+        fitCamera(camera, viewport);
+        return;
+      case 'SetRenderSettings':
+        settings = op.settings;
         return;
       case 'DefineResources':
         store.define(op.resources);
@@ -272,7 +476,18 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       case 'Move': {
         const entry = entries.get(op.key);
         if (entry === undefined) throw new Error(`effect-three: missing node "${op.key}"`);
-        parentObject(op.parent).add(entry.object);
+        const target = parentObject(op.parent);
+        if (entry._tag === 'Group' || entry._tag === 'Mesh') {
+          // Keep the world position across the move; settle() then takes the node to its
+          // new local position, instantly or along its transition.
+          entry.object.getWorldPosition(worldPosition);
+          target.add(entry.object);
+          target.updateWorldMatrix(true, false);
+          entry.object.position.copy(target.worldToLocal(worldPosition));
+          reparented.add(entry);
+        } else {
+          target.add(entry.object);
+        }
         return;
       }
       case 'Update': {
@@ -309,8 +524,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     const result = diff(index, next);
     if (result._tag === 'Invalid') return result;
     for (const op of result.ops) apply(op);
+    for (const entry of reparented) {
+      if (entry._tag === 'Group' || entry._tag === 'Mesh') retarget(entry, entry.node);
+    }
+    reparented.clear();
     index = result.index;
     return { _tag: 'Applied', ops: result.ops };
+  };
+
+  // Defined once so ticking allocates nothing; deleting during Map.forEach is safe.
+  const stepTween = (tween: Tween, entry: Entry): void => {
+    if (applyTween(entry.object, tween, elapsed)) moving.delete(entry);
   };
 
   const tick = (elapsedSeconds: number): void => {
@@ -320,6 +544,18 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeRotation(entry.object.rotation, entry.node.rotation, elapsed);
       }
     }
+    moving.forEach(stepTween);
+  };
+
+  const finishTween = (tween: Tween, entry: Entry): void => {
+    applyTween(entry.object, tween, Number.POSITIVE_INFINITY);
+  };
+
+  const setAnimating = (next: boolean): void => {
+    animating = next;
+    if (next) return;
+    moving.forEach(finishTween);
+    moving.clear();
   };
 
   const dispose = (): void => {
@@ -329,26 +565,32 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     entries.clear();
     index = emptyIndex;
-    unsubscribe();
+    unsubscribeGeometry();
+    unsubscribeMaterial();
     if (ownsStore) store.dispose();
   };
 
   return {
     scene,
-    camera,
+    get camera() {
+      return camera;
+    },
     store,
     reconcile,
     tick,
     elapsedSeconds: () => elapsed,
+    renderSettings: () => settings,
+    setAnimating,
     object: (key) => entries.get(key)?.object,
     keyOf: (object) => keys.get(object),
     interactiveObjects: () => {
       interactiveList ??= [...interactive];
       return interactiveList;
     },
+    viewport: () => viewport,
     resize: (width, height) => {
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
+      viewport = { width, height };
+      fitCamera(camera, viewport);
     },
     dispose,
   };

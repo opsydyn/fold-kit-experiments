@@ -6,6 +6,7 @@ import { TestClock } from 'effect/testing';
 import {
   ambientLight,
   box,
+  ease,
   type ManualFrames,
   mesh,
   recordingRendererFactory,
@@ -87,6 +88,34 @@ function* reducedMotionFreezesBehaviours(frames: ManualFrames) {
   expect(handle.graph.object('cube')?.rotation.y).toBeCloseTo(2, 9);
 }
 
+const easedCube = (x: number) =>
+  scene({
+    children: [
+      mesh({
+        key: 'cube',
+        geometry: box(),
+        material: standard({ color: 0 }),
+        position: [x, 0, 0],
+        transition: ease({ seconds: 1, easing: 'linear' }),
+      }),
+    ],
+  });
+
+function* reducedMotionLandsTransitionsAtOnce(frames: ManualFrames) {
+  const handle = yield* SceneRuntime.make({
+    scene: easedCube(0),
+    renderer: recordingRendererFactory(),
+    viewport,
+  });
+  yield* handle.update(easedCube(4));
+  yield* advanceFrames(frames, 25, 20);
+  expect(handle.graph.object('cube')?.position.x).toBeCloseTo(2, 9);
+  yield* handle.setAnimating(false);
+  expect(handle.graph.object('cube')?.position.x).toBe(4);
+  yield* handle.update(easedCube(-4));
+  expect(handle.graph.object('cube')?.position.x).toBe(-4);
+}
+
 function* updatesInPlace() {
   const handle = yield* SceneRuntime.make({
     scene: cubeScene({ color: 0xff0000 }),
@@ -165,9 +194,10 @@ function* hoverFollowsObjectsUnderAStillPointer(frames: ManualFrames) {
   yield* handle.update(cubeScene({ color: 1, position: [10, 0, 0] }));
   frames.step();
   const events = yield* handle.drainEvents;
-  expect(events).toEqual([
-    { _tag: 'PointerEnter', key: 'cube' },
-    { _tag: 'PointerLeave', key: 'cube' },
+  expect(events.map((event) => [event._tag, 'key' in event && event.key])).toEqual([
+    ['PointerEnter', 'cube'],
+    ['PointerMove', 'cube'],
+    ['PointerLeave', 'cube'],
   ]);
 }
 
@@ -232,6 +262,10 @@ function sceneRuntimeTests() {
   test('reduced motion freezes behaviours while frames keep rendering', () =>
     current.runtime.runPromise(
       Effect.gen(() => reducedMotionFreezesBehaviours(current.frames)).pipe(Effect.scoped),
+    ));
+  test('reduced motion lands eased changes at once, including any in flight', () =>
+    current.runtime.runPromise(
+      Effect.gen(() => reducedMotionLandsTransitionsAtOnce(current.frames)).pipe(Effect.scoped),
     ));
   test('updates reuse objects and invalid updates change nothing', () =>
     current.runtime.runPromise(Effect.gen(updatesInPlace).pipe(Effect.scoped)));

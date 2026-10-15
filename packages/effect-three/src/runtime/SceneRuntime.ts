@@ -53,8 +53,10 @@ const sceneGraph = (registry: ResourceRegistry['Service']) => () =>
 const viewportChange = (graph: SceneGraph, renderer: SceneRenderer, viewport: Viewport) => () =>
   applyViewport(graph, renderer, viewport);
 
-const animationChange = (sceneClock: SceneClock, animating: boolean) => () =>
+const animationChange = (sceneClock: SceneClock, graph: SceneGraph, animating: boolean) => () => {
   sceneClock.setAnimating(animating);
+  graph.setAnimating(animating);
+};
 
 const acquireGraph = (registry: ResourceRegistry['Service']) => {
   const create = Effect.sync(sceneGraph(registry));
@@ -111,8 +113,9 @@ function* startScene(options: SceneRuntimeOptions) {
       Effect.suspend(() => Effect.fromResult(toResult(graph.reconcile(scene)))),
     /** Resizes the camera aspect and the renderer's drawing surface. */
     resize: (viewport: Viewport) => Effect.sync(viewportChange(graph, renderer, viewport)),
-    /** Freezes (`false`) or resumes (`true`) behaviours. Frames keep rendering. */
-    setAnimating: (animating: boolean) => Effect.sync(animationChange(sceneClock, animating)),
+    /** Freezes (`false`) or resumes (`true`) behaviours; frozen, transitions land at once. Frames keep rendering. */
+    setAnimating: (animating: boolean) =>
+      Effect.sync(animationChange(sceneClock, graph, animating)),
     /** Routes pointer input. Synchronous, so DOM listeners can call it directly. */
     pointer: loop.pointer,
     /** Scene events, newest kept when the consumer falls behind. */

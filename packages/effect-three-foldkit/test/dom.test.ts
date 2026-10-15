@@ -10,11 +10,12 @@ import {
 } from '@opsydyn/effect-three';
 
 import { animationFrameScheduler } from '../src/dom/animationFrames.ts';
-import { createLatch, whileOpen } from '../src/dom/latch.ts';
+import { createLatch, routedWhileOpen } from '../src/dom/latch.ts';
 import { toNdc } from '../src/dom/pointer.ts';
 import { interceptProperty } from '../src/dom/property.ts';
 import { summarise } from '../src/dom/reconciled.ts';
 import { markTyped, typedScene } from '../src/dom/typedScenes.ts';
+import { observePixelRatio, resolvePixelRatio } from '../src/dom/viewport.ts';
 
 test('client coordinates map to normalised device coordinates', () => {
   const rect = { left: 100, top: 50, width: 200, height: 100 };
@@ -76,15 +77,16 @@ test('one animation-frame loop serves every subscriber and stops with the last',
   expect(pending.size).toBe(0);
 });
 
-test('whileOpen drops calls while the latch is closed', () => {
+test('routedWhileOpen drops input while the latch is closed and returns what it routed', () => {
   const latch = createLatch(true);
   const calls: Array<number> = [];
-  const forward = whileOpen(latch, (value: number) => calls.push(value));
-  forward(1);
+  const record = (value: number): ReadonlyArray<number> => [calls.push(value) && value * 10];
+  const route = routedWhileOpen(latch, record);
+  expect(route(1)).toEqual([10]);
   latch.set(false);
-  forward(2);
+  expect(route(2)).toEqual([]);
   latch.set(true);
-  forward(3);
+  expect(route(3)).toEqual([30]);
   expect(calls).toEqual([1, 3]);
 });
 
@@ -110,4 +112,33 @@ test('reconciled summaries count operations by kind', () => {
       materials: { live: 1, created: 1, disposed: 0 },
     },
   });
+});
+
+test('pixel ratios resolve as React Three Fiber resolves dpr', () => {
+  expect(resolvePixelRatio(3, [1, 2])).toBe(2);
+  expect(resolvePixelRatio(0.5, [1, 2])).toBe(1);
+  expect(resolvePixelRatio(1.5, [1, 2])).toBe(1.5);
+  expect(resolvePixelRatio(3, 1)).toBe(1);
+});
+
+test('a pixel ratio change is reported and the watch re-arms for the new ratio', () => {
+  const listeners = new Map<string, () => void>();
+  const view = {
+    devicePixelRatio: 1,
+    matchMedia: (query: string) => ({
+      addEventListener: (_type: string, listener: () => void) => listeners.set(query, listener),
+      removeEventListener: (_type: string, listener: () => void) => {
+        if (listeners.get(query) === listener) listeners.delete(query);
+      },
+    }),
+  };
+  let changes = 0;
+  const stop = observePixelRatio(view, () => changes++);
+  expect([...listeners.keys()]).toEqual(['(resolution: 1dppx)']);
+  view.devicePixelRatio = 2;
+  listeners.get('(resolution: 1dppx)')?.();
+  expect(changes).toBe(1);
+  expect([...listeners.keys()]).toEqual(['(resolution: 2dppx)']);
+  stop();
+  expect(listeners.size).toBe(0);
 });

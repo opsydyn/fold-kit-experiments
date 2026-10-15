@@ -11,6 +11,7 @@ import {
   type GatedFrames,
   type PointerInput,
   ResourceRegistry,
+  type SceneEvent,
   type SceneDescription,
   SceneRuntime,
   SceneSchema,
@@ -26,12 +27,13 @@ import {
   sceneErrorDispatch,
   sceneEventDispatch,
 } from './dom/canvas.ts';
-import { applying, createLatch, type Latch, whileOpen } from './dom/latch.ts';
+import { applying, createLatch, type Latch, routedWhileOpen } from './dom/latch.ts';
 import { listenForPointer } from './dom/pointer.ts';
 import { interceptProperty } from './dom/property.ts';
 import { typedScene } from './dom/typedScenes.ts';
 import {
   measureViewport,
+  observePixelRatio,
   observeReducedMotion,
   observeSize,
   observeVisibility,
@@ -78,12 +80,13 @@ const acquireInterception = (element: Element, updates: Queue.Queue<unknown>) =>
   return Effect.acquireRelease(intercept, (intercepted) => Effect.sync(intercepted.restore));
 };
 
-const pointerListening = (canvas: HTMLElement, onInput: (input: PointerInput) => void) => () =>
-  listenForPointer(canvas, onInput);
+const pointerListening =
+  (canvas: HTMLElement, onInput: (input: PointerInput) => ReadonlyArray<SceneEvent>) => () =>
+    listenForPointer(canvas, onInput);
 
 const acquirePointer = (canvas: HTMLElement, mounted: Mounted) => {
   const listen = Effect.sync(
-    pointerListening(canvas, whileOpen(mounted.live, mounted.handle.pointer)),
+    pointerListening(canvas, routedWhileOpen(mounted.live, mounted.handle.pointer)),
   );
   return Effect.acquireRelease(listen, Effect.sync);
 };
@@ -118,7 +121,11 @@ const applyUpdate = (mounted: Mounted) => (value: unknown) => {
 
 const resize = (mounted: Mounted) => () =>
   mounted.handle.resize(
-    measureViewport(mounted.element, mounted.environment.host.devicePixelRatio),
+    measureViewport(
+      mounted.element,
+      mounted.environment.host.devicePixelRatio,
+      mounted.environment.pixelRatio,
+    ),
   );
 
 const watchers = (
@@ -128,6 +135,7 @@ const watchers = (
 ) => {
   const dispatchEvent = sceneEventDispatch(mounted.element, mounted.live);
   const sizes = observed<void>((emit) => observeSize(mounted.element, emit));
+  const ratios = observed<void>((emit) => observePixelRatio(mounted.environment.host, emit));
   const visibility = observed<boolean>((emit) => observeVisibility(mounted.element, emit));
   const reducedMotion = observed<boolean>((emit) =>
     observeReducedMotion(mounted.environment.host, emit),
@@ -139,6 +147,7 @@ const watchers = (
       Effect.sync(applying(mounted.live.set, isLive(state))),
     ),
     Stream.runForEach(sizes, resize(mounted)),
+    Stream.runForEach(ratios, resize(mounted)),
     Stream.runForEach(visibility, (visible) =>
       Effect.sync(applying(mounted.frames.setOpen, visible)),
     ),
@@ -153,7 +162,7 @@ const sceneRuntimeFor =
     const started = SceneRuntime.make({
       scene,
       renderer: environment.renderer(canvas),
-      viewport: measureViewport(element, environment.host.devicePixelRatio),
+      viewport: measureViewport(element, environment.host.devicePixelRatio, environment.pixelRatio),
     }).pipe(
       Effect.provideService(FrameSource.FrameSource, FrameSource.fromScheduler(frames)),
       Effect.provideService(ResourceRegistry.ResourceRegistry, { store: environment.store }),

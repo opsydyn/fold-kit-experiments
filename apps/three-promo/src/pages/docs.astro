@@ -3,7 +3,7 @@ import SourceCode from '../components/SourceCode.astro';
 import Layout from '../layouts/Layout.astro';
 import { adapterSource, coreSource, decisions } from '../lib/links';
 import { sitePath } from '../lib/site-path';
-import { entry, installation, runtime, sharing, teaser, testing, view } from '../lib/snippets';
+import { entry, installation, runtime, sharing, teaser, testing, transitions, view } from '../lib/snippets';
 ---
 <Layout title="Guide — effect-three">
   <section class="page-intro">
@@ -27,10 +27,11 @@ import { entry, installation, runtime, sharing, teaser, testing, view } from '..
         <p>A scene is plain data: a camera, shared resources and keyed nodes. Constructors fill in defaults, so a description stays short.</p>
         <div class="code-panel"><SourceCode code={teaser} lang="ts" sourceId="scene.ts" /></div>
         <p>Rotation belongs either to the Model (<code>fixed</code>) or to a behaviour (<code>spin</code>), never both. Behaviours are pure functions of scene time, so frames are deterministic.</p>
+        <p>Meshes are built from <code>box</code>, <code>sphere</code>, <code>plane</code> or <code>cylinder</code> (a cone when one radius is zero).</p>
       </section>
       <section id="foldkit">
         <h2>Render it with Foldkit.</h2>
-        <p>Create one environment for the application, then render scenes from your view. Pointer interaction comes back as your own typed Messages; only the handlers you pass are bound.</p>
+        <p>Create one environment for the application, then render scenes from your view. Pointer interaction comes back as your own typed Messages: clicks, double-clicks, context menus, hover and movement, the wheel, and misses for clearing a selection. Only the handlers you pass are bound.</p>
         <div class="code-panel"><SourceCode code={entry} lang="ts" sourceId="entry.ts" /></div>
         <div class="code-panel"><SourceCode code={view} lang="ts" sourceId="view.ts" /></div>
         <p>Unmounting the element releases its renderer, WebGL context, GPU resources, listeners and frame subscription. While Foldkit DevTools time-travels, the scene shows the historical state and ignores pointer input.</p>
@@ -49,7 +50,11 @@ import { entry, installation, runtime, sharing, teaser, testing, view } from '..
       </section>
       <section id="animation">
         <h2>Animate without update.</h2>
-        <p>Behaviours run in the frame loop, outside Foldkit's update, so a spinning scene never causes a Model update. Scenes pause their frames when off screen, and <code>prefers-reduced-motion</code> freezes behaviours while frames keep rendering.</p>
+        <p>Behaviours run in the frame loop, outside Foldkit's update, so a spinning scene never causes a Model update. Scenes pause their frames when off screen.</p>
+        <p>Transitions ease <code>position</code> and <code>scale</code> to whatever the Model says next. A new target mid-flight starts from the pose on screen, and a node moving to another group keeps its place in the world while it travels.</p>
+        <div class="code-panel"><SourceCode code={transitions} lang="ts" sourceId="transitions.ts" /></div>
+        <p>Under <code>prefers-reduced-motion</code>, behaviours freeze and transitions land at once while frames keep rendering.</p>
+        <a class="text-link" href={sitePath('/examples/playground/')}>Watch cubes glide between shelves <span aria-hidden="true">→</span></a>
       </section>
       <section id="runtime">
         <h2>Use the runtime directly.</h2>

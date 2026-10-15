@@ -2,7 +2,28 @@
  * Serialisable snapshot of a hosted scene graph, read from the three.js objects
  * themselves, so convergence tests compare real host state rather than descriptions.
  */
-import { AmbientLight, BoxGeometry, DirectionalLight, Mesh, type Object3D } from 'three';
+import {
+  AmbientLight,
+  BoxGeometry,
+  type BufferGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
+  Color,
+  ConeGeometry,
+  CylinderGeometry,
+  DirectionalLight,
+  HemisphereLight,
+  type Material,
+  Mesh,
+  type Object3D,
+  PerspectiveCamera,
+  PlaneGeometry,
+  PointLight,
+  RingGeometry,
+  SphereGeometry,
+  SpotLight,
+  TorusGeometry,
+} from 'three';
 
 import type { SceneGraph } from '../../src/kernel/index.ts';
 
@@ -16,27 +37,109 @@ export type NodeSnapshot = {
   readonly children: ReadonlyArray<NodeSnapshot>;
 };
 
+/** The kind and parameters of a kernel-built geometry. */
+const shapeOf = (geometry: BufferGeometry): unknown => {
+  if (geometry instanceof BoxGeometry) return { type: 'Box', ...geometry.parameters };
+  if (geometry instanceof SphereGeometry) return { type: 'Sphere', ...geometry.parameters };
+  if (geometry instanceof PlaneGeometry) return { type: 'Plane', ...geometry.parameters };
+  if (geometry instanceof ConeGeometry) return { type: 'Cone', ...geometry.parameters };
+  if (geometry instanceof CylinderGeometry) return { type: 'Cylinder', ...geometry.parameters };
+  if (geometry instanceof TorusGeometry) return { type: 'Torus', ...geometry.parameters };
+  if (geometry instanceof CapsuleGeometry) return { type: 'Capsule', ...geometry.parameters };
+  if (geometry instanceof RingGeometry) return { type: 'Ring', ...geometry.parameters };
+  if (geometry instanceof CircleGeometry) return { type: 'Circle', ...geometry.parameters };
+  return 'unexpected geometry';
+};
+
+/** Hex colours and plain parameters of a hosted material, whatever its kind. */
+const materialOf = (material: Material): Record<string, unknown> => {
+  const detail: Record<string, unknown> = { type: material.type };
+  for (const key of materialKeys) {
+    const value: unknown = Reflect.get(material, key);
+    if (value instanceof Color) detail[key] = value.getHex();
+    else if (value !== undefined) detail[key] = value;
+  }
+  return detail;
+};
+
+const materialKeys = [
+  'color',
+  'emissive',
+  'specular',
+  'shininess',
+  'roughness',
+  'metalness',
+  'emissiveIntensity',
+  'clearcoat',
+  'clearcoatRoughness',
+  'transmission',
+  'ior',
+  'opacity',
+  'transparent',
+  'side',
+  'wireframe',
+  'flatShading',
+] as const;
+
+const shadowOf = (light: DirectionalLight | PointLight | SpotLight) => ({
+  castShadow: light.castShadow,
+  mapSize: light.shadow.mapSize.toArray(),
+  bias: light.shadow.bias,
+});
+
 const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
-  if (object instanceof Mesh && object.geometry instanceof BoxGeometry) {
-    const material: unknown = object.material;
-    const materialDetail =
-      material !== null && typeof material === 'object' && 'color' in material
-        ? {
-            shared: graph.store.sharedMaterialId(object.material),
-            color: object.material.color.getHex(),
-            roughness: object.material.roughness,
-            metalness: object.material.metalness,
-          }
-        : 'unexpected material';
+  if (object instanceof Mesh) {
+    const materialDetail = {
+      shared: graph.store.sharedMaterialId(object.material),
+      ...materialOf(object.material),
+    };
     return {
+      castShadow: object.castShadow,
+      receiveShadow: object.receiveShadow,
       geometry: {
         shared: graph.store.sharedGeometryId(object.geometry),
-        ...object.geometry.parameters,
+        shape: shapeOf(object.geometry),
       },
       material: materialDetail,
     };
   }
-  if (object instanceof AmbientLight || object instanceof DirectionalLight) {
+  if (object instanceof SpotLight) {
+    return {
+      ...shadowOf(object),
+      color: object.color.getHex(),
+      intensity: object.intensity,
+      target: object.target.position.toArray(),
+      distance: object.distance,
+      angle: object.angle,
+      penumbra: object.penumbra,
+      decay: object.decay,
+    };
+  }
+  if (object instanceof PointLight) {
+    return {
+      ...shadowOf(object),
+      color: object.color.getHex(),
+      intensity: object.intensity,
+      distance: object.distance,
+      decay: object.decay,
+    };
+  }
+  if (object instanceof HemisphereLight) {
+    return {
+      color: object.color.getHex(),
+      groundColor: object.groundColor.getHex(),
+      intensity: object.intensity,
+    };
+  }
+  if (object instanceof DirectionalLight) {
+    return {
+      ...shadowOf(object),
+      area: object.shadow.camera.right,
+      color: object.color.getHex(),
+      intensity: object.intensity,
+    };
+  }
+  if (object instanceof AmbientLight) {
     return { color: object.color.getHex(), intensity: object.intensity };
   }
   return null;
@@ -53,8 +156,11 @@ const snapshotNode = (graph: SceneGraph, object: Object3D): NodeSnapshot => ({
 });
 
 export const snapshot = (graph: SceneGraph): unknown => ({
+  render: graph.renderSettings(),
   camera: {
-    fov: graph.camera.fov,
+    type: graph.camera.type,
+    lens: graph.camera instanceof PerspectiveCamera ? graph.camera.fov : graph.camera.zoom,
+    projection: graph.camera.projectionMatrix.toArray(),
     near: graph.camera.near,
     far: graph.camera.far,
     position: graph.camera.position.toArray(),

@@ -5,12 +5,14 @@ import { type BufferGeometry, type Material, Mesh } from 'three';
 import {
   ambientLight,
   box,
+  createPicker,
   createResourceStore,
   createSceneGraph,
   directionalLight,
   group,
   mesh,
   type Op,
+  orthographicCamera,
   perspectiveCamera,
   scene,
   sharedGeometry,
@@ -72,7 +74,14 @@ describe('reconcile', () => {
         }),
       ),
     );
-    expect(tags(ops)).toEqual(['SetCamera', 'DefineResources', 'Create', 'Create', 'Create']);
+    expect(tags(ops)).toEqual([
+      'SetCamera',
+      'SetRenderSettings',
+      'DefineResources',
+      'Create',
+      'Create',
+      'Create',
+    ]);
     expect(graph.scene.children.map((child) => graph.keyOf(child))).toEqual([
       'ambient',
       'sun',
@@ -213,7 +222,52 @@ describe('reconcile', () => {
     const ops = applied(graph.reconcile(scene({ camera: perspectiveCamera({ fov: 70 }) })));
     expect(tags(ops)).toEqual(['SetCamera']);
     expect(graph.camera).toBe(camera);
-    expect(graph.camera.fov).toBe(70);
+    expect(graph.camera).toMatchObject({ type: 'PerspectiveCamera', fov: 70 });
+  });
+
+  test('switching camera kind replaces the camera and fits it to the viewport', () => {
+    const graph = createSceneGraph();
+    graph.reconcile(scene({}));
+    graph.resize(800, 400);
+    const perspective = graph.camera;
+    expect(perspective).toMatchObject({ aspect: 2 });
+
+    graph.reconcile(scene({ camera: orthographicCamera({ zoom: 50 }) }));
+    expect(graph.camera).not.toBe(perspective);
+    // As in React Three Fiber: the frustum spans the viewport in CSS pixels, scaled by zoom.
+    expect(graph.camera).toMatchObject({
+      type: 'OrthographicCamera',
+      zoom: 50,
+      left: -400,
+      right: 400,
+      top: 200,
+      bottom: -200,
+    });
+
+    graph.resize(1000, 600);
+    expect(graph.camera).toMatchObject({ left: -500, right: 500, top: 300, bottom: -300 });
+    const orthographic = graph.camera;
+    graph.reconcile(scene({ camera: orthographicCamera({ zoom: 80 }) }));
+    expect(graph.camera).toBe(orthographic);
+
+    graph.reconcile(scene({}));
+    expect(graph.camera).toMatchObject({ type: 'PerspectiveCamera', aspect: 1000 / 600 });
+  });
+
+  test('picking works through an orthographic camera', () => {
+    const graph = createSceneGraph();
+    graph.reconcile(
+      scene({
+        camera: orthographicCamera({ zoom: 100 }),
+        children: [cube('a'), mesh({ ...cube('b'), key: 'b', position: [3, 0, 0] })],
+      }),
+    );
+    graph.resize(1000, 500);
+    const picker = createPicker(graph);
+    expect(picker.pick(0, 0)?.key).toBe('a');
+    // 3 world units right at 100 px per unit is 300 px of a 500 px half-width: x = 0.6.
+    expect(picker.pick(0.6, 0)?.key).toBe('b');
+    expect(picker.pick(0.3, 0)).toBeUndefined();
   });
 });
 

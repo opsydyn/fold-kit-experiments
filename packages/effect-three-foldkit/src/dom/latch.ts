@@ -19,11 +19,14 @@ export const createLatch = (open: boolean): Latch => {
   };
 };
 
-/** Calls `f` only while `latch` is open. */
-export const whileOpen =
-  <A>(latch: Latch, f: (value: A) => void) =>
-  (value: A): void => {
-    if (latch.isOpen()) f(value);
+const nothing: ReadonlyArray<never> = [];
+
+/** Calls `route` only while `latch` is open, returning what it routed (nothing when shut). */
+export const routedWhileOpen =
+  <A, B>(latch: Latch, route: (value: A) => ReadonlyArray<B>) =>
+  (value: A): ReadonlyArray<B> => {
+    if (!latch.isOpen()) return nothing;
+    return route(value);
   };
 
 /** A thunk calling `f(value)`, so Effect code can write `Effect.sync(applying(f, value))`. */

@@ -6,19 +6,41 @@
  */
 export type * from './description.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
+export { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
+export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,
+  basic,
   box,
+  capsule,
+  circle,
+  cone,
+  cylinder,
   directionalLight,
+  ease,
   fixed,
   group,
+  hemisphereLight,
+  instant,
+  lambert,
   mesh,
+  normalMaterial,
+  orthographicCamera,
   perspectiveCamera,
+  phong,
+  physical,
+  plane,
+  pointLight,
+  renderSettings,
+  ring,
   scene,
   sharedGeometry,
   sharedMaterial,
+  sphere,
   spin,
+  spotLight,
   standard,
+  torus,
   type TransformOptions,
 } from './build.ts';
 export { changedFields, diff, type DiffResult, type Field, type Op } from './diff.ts';
@@ -27,12 +49,16 @@ export {
   geometryRefEquals,
   materialRefEquals,
   resourcesEqual,
+  renderSettingsEquals,
   rotationEquals,
+  shapeEquals,
+  transitionEquals,
   vec3Equals,
 } from './equality.ts';
 export {
   createResourceStore,
   type GeometryReplaced,
+  type MaterialReplaced,
   type ResourceCounts,
   type ResourceStats,
   type ResourceStore,
@@ -51,8 +77,11 @@ export {
   createPointerTracker,
   type Hit,
   type Picker,
+  type PlaneEquation,
+  pointOnPlane,
   type PointerInput,
   type PointerTracker,
+  type Ray,
   type SceneEvent,
 } from './pointer.ts';
 export {
@@ -66,6 +95,7 @@ export {
 } from './renderer.ts';
 export {
   createSceneGraph,
+  type HostCamera,
   type HostMesh,
   type ReconcileResult,
   type SceneGraph,

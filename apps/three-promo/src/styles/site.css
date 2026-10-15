@@ -574,8 +574,17 @@ nav a[aria-current='page'] {
 }
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+}
+/* An odd last card takes the full row rather than sitting alone in a half-empty one, at
+   the same height as the others: its image is cropped to twice their aspect ratio. */
+.gallery-grid > .example-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.gallery-grid > .example-card:last-child:nth-child(odd) .showcase-image {
+  aspect-ratio: 3552 / 762;
+  object-fit: cover;
 }
 .example-card {
   display: flex;
@@ -1122,6 +1131,9 @@ nav a[aria-current='page'] {
   }
   .gallery-grid {
     grid-template-columns: 1fr;
+  }
+  .gallery-grid > .example-card:last-child:nth-child(odd) .showcase-image {
+    aspect-ratio: auto;
   }
   .example-card {
     padding: 18px;

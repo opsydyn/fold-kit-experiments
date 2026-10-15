@@ -95,10 +95,13 @@ geometry imports.
   `/examples/datasets/`.
 - `/request-diagnostics`: interruptible HTTP work and route-exit cancellation;
   Query stale-response handling does not replace request interruption.
-- `/effect-three`: three effect-three samples. The reconciliation playground
+- `/effect-three`: five effect-three samples. The reconciliation playground
   reports every update's operations and live GPU resources; the sculpture rewinds
   with FoldKit DevTools time travel; shared resources shows reference-counted
-  geometry and materials, and releasing a scene's WebGL context on unmount.
+  geometry and materials, and releasing a scene's WebGL context on unmount; the 3D bar
+  chart places bars with foldkit-viz scales and eases them as the data changes; the
+  studio drags pieces in five material kinds under point, spot and hemisphere lights with
+  soft shadows.
 
 Promo examples include maintained source and standalone project exports.
 Comparison exports capture panel kinds, IDs, order, linking and the next ID

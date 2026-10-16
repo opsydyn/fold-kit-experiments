@@ -7,16 +7,21 @@
 import type {
   Animation,
   Behave,
+  Body,
   GeometryRef,
   Instance,
   MaterialRef,
   Overlay,
+  Physics,
   Camera,
+  ContactShadows,
+  Environment,
   PostEffect,
   RenderSettings,
   ResourceDefinitions,
   Rotation,
   ShapeGeometry,
+  Sky,
   TextBevel,
   Transition,
   Vec3,
@@ -290,3 +295,76 @@ const overlayEquals = (x: Overlay, y: Overlay): boolean =>
 export const overlaysEqual = (a: ReadonlyArray<Overlay>, b: ReadonlyArray<Overlay>): boolean =>
   a === b ||
   (a.length === b.length && a.every((x, i) => b[i] !== undefined && overlayEquals(x, b[i])));
+
+/** Environment equality. */
+export const environmentEquals = (a: Environment | null, b: Environment | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    a.map === b.map &&
+    a.background === b.background &&
+    Object.is(a.backgroundBlurriness, b.backgroundBlurriness) &&
+    Object.is(a.backgroundIntensity, b.backgroundIntensity) &&
+    Object.is(a.environmentIntensity, b.environmentIntensity));
+
+/** Sky equality. */
+export const skyEquals = (a: Sky | null, b: Sky | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    vec3Equals(a.sunPosition, b.sunPosition) &&
+    Object.is(a.turbidity, b.turbidity) &&
+    Object.is(a.rayleigh, b.rayleigh) &&
+    Object.is(a.mieCoefficient, b.mieCoefficient) &&
+    Object.is(a.mieDirectionalG, b.mieDirectionalG) &&
+    Object.is(a.clouds, b.clouds) &&
+    Object.is(a.distance, b.distance));
+
+/** Contact shadow equality. */
+export const contactShadowsEquals = (a: ContactShadows | null, b: ContactShadows | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    vec3Equals(a.position, b.position) &&
+    a.size[0] === b.size[0] &&
+    a.size[1] === b.size[1] &&
+    Object.is(a.near, b.near) &&
+    Object.is(a.far, b.far) &&
+    Object.is(a.blur, b.blur) &&
+    a.smooth === b.smooth &&
+    Object.is(a.opacity, b.opacity) &&
+    a.color === b.color &&
+    a.resolution === b.resolution);
+
+/** Body equality, field by field. */
+export const bodyEquals = (a: Body | null, b: Body | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    a.type === b.type &&
+    a.collider === b.collider &&
+    Object.is(a.mass, b.mass) &&
+    Object.is(a.friction, b.friction) &&
+    Object.is(a.restitution, b.restitution) &&
+    Object.is(a.linearDamping, b.linearDamping) &&
+    Object.is(a.angularDamping, b.angularDamping) &&
+    Object.is(a.gravityScale, b.gravityScale) &&
+    a.ccd === b.ccd &&
+    a.sensor === b.sensor &&
+    vec3Equals(a.linearVelocity, b.linearVelocity) &&
+    vec3Equals(a.angularVelocity, b.angularVelocity) &&
+    (a.impulse === b.impulse ||
+      (a.impulse !== null &&
+        b.impulse !== null &&
+        a.impulse.id === b.impulse.id &&
+        vec3Equals(a.impulse.impulse, b.impulse.impulse))));
+
+/** Physics world equality. */
+export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    vec3Equals(a.gravity, b.gravity) &&
+    a.paused === b.paused &&
+    Object.is(a.timeStep, b.timeStep) &&
+    a.interpolate === b.interpolate);

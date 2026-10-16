@@ -62,11 +62,13 @@ jobs:
         run: |
           bun run --filter @opsydyn/effect-three pack:check
           bun run --filter @opsydyn/effect-three-foldkit pack:check
+          bun run --filter @opsydyn/effect-three-rapier build
 
       - name: Public API reports are up to date
         run: |
           bun run --filter @opsydyn/effect-three api:check
           bun run --filter @opsydyn/effect-three-foldkit api:check
+          bun run --filter @opsydyn/effect-three-rapier api:check
 
       - name: Install Playwright Chromium (headless shell)
         working-directory: packages/effect-three-foldkit

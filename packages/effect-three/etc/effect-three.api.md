@@ -26,6 +26,7 @@ import { Scene } from 'three';
 import { Schema } from 'effect';
 import { Scope } from 'effect/Scope';
 import { Scope as Scope_2 } from 'effect';
+import { ShadowMaterial as ShadowMaterial_2 } from 'three';
 import { Stream } from 'effect';
 import { Texture } from 'three';
 import { Vector3 } from 'three';
@@ -140,6 +141,65 @@ export const bloom: (options?: {
     readonly radius?: number;
     readonly threshold?: number;
 }) => PostEffect;
+
+// @public
+export const body: (options?: Partial<Body_2>) => Body_2;
+
+// @public
+type Body_2 = {
+    readonly type: BodyType;
+    readonly collider: BodyCollider;
+    readonly mass: number | null;
+    readonly friction: number;
+    readonly restitution: number;
+    readonly linearDamping: number;
+    readonly angularDamping: number;
+    readonly gravityScale: number;
+    readonly ccd: boolean;
+    readonly sensor: boolean;
+    readonly linearVelocity: Vec3;
+    readonly angularVelocity: Vec3;
+    readonly impulse: {
+        readonly id: number;
+        readonly impulse: Vec3;
+    } | null;
+};
+export { Body_2 as Body }
+
+// @public
+const Body_3: Schema.Struct<{
+    readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
+    readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
+    readonly mass: Schema.NullOr<Schema.Finite>;
+    readonly friction: Schema.Finite;
+    readonly restitution: Schema.Finite;
+    readonly linearDamping: Schema.Finite;
+    readonly angularDamping: Schema.Finite;
+    readonly gravityScale: Schema.Finite;
+    readonly ccd: Schema.Boolean;
+    readonly sensor: Schema.Boolean;
+    readonly linearVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly angularVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly impulse: Schema.NullOr<Schema.Struct<{
+        readonly id: Schema.Finite;
+        readonly impulse: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+}>;
+
+// @public
+export type BodyCollider = 'cuboid' | 'ball' | 'hull' | 'trimesh';
+
+// @public
+export const bodyEquals: (a: Body_2 | null, b: Body_2 | null) => boolean;
+
+// @public
+export type BodyPose = {
+    readonly position: Vec3;
+    readonly quaternion: Quat;
+};
+
+// @public
+export type BodyType = 'dynamic' | 'fixed' | 'kinematic';
 
 // @public
 export const borrowed: (options: TransformOptions & {
@@ -317,6 +377,41 @@ export const clipRunning: (animation: Animation_2, duration: number, elapsed: nu
 export const clipTime: (animation: Animation_2, duration: number, elapsed: number) => number;
 
 // @public
+export const colliderFor: (geometry: BufferGeometry, collider: BodyCollider, scale: Vector3) => ColliderShape;
+
+// @public
+export type ColliderShape = {
+    readonly _tag: 'Cuboid';
+    readonly halfExtents: Vec3;
+    readonly offset: Vec3;
+} | {
+    readonly _tag: 'Ball';
+    readonly radius: number;
+    readonly offset: Vec3;
+} | {
+    readonly _tag: 'Hull';
+    readonly points: Float32Array;
+} | {
+    readonly _tag: 'Trimesh';
+    readonly vertices: Float32Array;
+    readonly indices: Uint32Array;
+};
+
+// @public
+export type Collision = {
+    readonly a: string;
+    readonly b: string;
+    readonly started: boolean;
+};
+
+// @public
+const CollisionDetail: Schema.Struct<{
+    readonly a: Schema.String;
+    readonly b: Schema.String;
+    readonly started: Schema.Boolean;
+}>;
+
+// @public
 export const cone: (options?: {
     readonly radius?: number;
     readonly height?: number;
@@ -337,6 +432,48 @@ const ConeGeometry_2: Schema.TaggedStruct<"Cone", {
     readonly height: Schema.Finite;
     readonly radialSegments: Schema.Int;
 }>;
+
+// @public
+export type ContactShadows = {
+    readonly position: Vec3;
+    readonly size: readonly [width: number, depth: number];
+    readonly near: number;
+    readonly far: number;
+    readonly blur: number;
+    readonly smooth: boolean;
+    readonly opacity: number;
+    readonly color: Rgb;
+    readonly resolution: number;
+};
+
+// @public
+export const contactShadows: (options?: {
+    readonly position?: Vec3;
+    readonly size?: number | readonly [number, number];
+    readonly near?: number;
+    readonly far?: number;
+    readonly blur?: number;
+    readonly smooth?: boolean;
+    readonly opacity?: number;
+    readonly color?: Rgb;
+    readonly resolution?: number;
+}) => ContactShadows;
+
+// @public
+const ContactShadows_2: Schema.Struct<{
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly near: Schema.Finite;
+    readonly far: Schema.Finite;
+    readonly blur: Schema.Finite;
+    readonly smooth: Schema.Boolean;
+    readonly opacity: Schema.Finite;
+    readonly color: Schema.Int;
+    readonly resolution: Schema.Int;
+}>;
+
+// @public
+export const contactShadowsEquals: (a: ContactShadows | null, b: ContactShadows | null) => boolean;
 
 // Warning: (ae-forgotten-export) The symbol "Paced" needs to be exported by the entry point index.d.ts
 //
@@ -561,7 +698,37 @@ export const effectsEqual: (a: ReadonlyArray<PostEffect>, b: ReadonlyArray<PostE
 export const emptyIndex: SceneIndex;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour';
+export type Environment = {
+    readonly map: string | null;
+    readonly background: boolean | 'only';
+    readonly backgroundBlurriness: number;
+    readonly backgroundIntensity: number;
+    readonly environmentIntensity: number;
+};
+
+// @public
+export const environment: (options?: {
+    readonly map?: string;
+    readonly background?: boolean | 'only';
+    readonly backgroundBlurriness?: number;
+    readonly backgroundIntensity?: number;
+    readonly environmentIntensity?: number;
+}) => Environment;
+
+// @public
+const Environment_2: Schema.Struct<{
+    readonly map: Schema.NullOr<Schema.String>;
+    readonly background: Schema.Union<readonly [Schema.Boolean, Schema.Literal<"only">]>;
+    readonly backgroundBlurriness: Schema.Finite;
+    readonly backgroundIntensity: Schema.Finite;
+    readonly environmentIntensity: Schema.Finite;
+}>;
+
+// @public
+export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
+
+// @public
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body';
 
 // @public
 export const film: (options?: {
@@ -807,6 +974,37 @@ export type Gestures = 'page' | 'scene';
 const Gestures_2: Schema.Literals<readonly ["page", "scene"]>;
 
 // @public
+export const grid: (options: {
+    readonly key: string;
+    readonly position?: Vec3;
+    readonly size?: number;
+    readonly divisions?: number;
+    readonly color?: Rgb;
+    readonly centerColor?: Rgb;
+}) => GridNode;
+
+// @public
+export type GridNode = {
+    readonly _tag: 'Grid';
+    readonly key: string;
+    readonly position: Vec3;
+    readonly size: number;
+    readonly divisions: number;
+    readonly color: Rgb;
+    readonly centerColor: Rgb;
+};
+
+// @public
+const GridNode_2: Schema.TaggedStruct<"Grid", {
+    readonly key: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly size: Schema.Finite;
+    readonly divisions: Schema.Int;
+    readonly color: Schema.Int;
+    readonly centerColor: Schema.Int;
+}>;
+
+// @public
 export const group: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -844,7 +1042,7 @@ export type HemisphereLightNode = {
     readonly position: Vec3;
 };
 
-// @public
+// @public (undocumented)
 const HemisphereLightNode_2: Schema.TaggedStruct<"HemisphereLight", {
     readonly key: Schema.String;
     readonly color: Schema.Int;
@@ -911,7 +1109,7 @@ export type HostedView = {
 export type HostInstances = InstancedMesh<BufferGeometry, HostMaterial>;
 
 // @public
-export type HostMaterial = MeshBasicMaterial | MeshLambertMaterial | MeshPhongMaterial | MeshStandardMaterial | MeshPhysicalMaterial | MeshNormalMaterial;
+export type HostMaterial = MeshBasicMaterial | MeshLambertMaterial | MeshPhongMaterial | MeshStandardMaterial | MeshPhysicalMaterial | MeshNormalMaterial | ShadowMaterial_2;
 
 // @public
 export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
@@ -1067,7 +1265,10 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
     }>, Schema.TaggedStruct<"SharedGeometry", {
         readonly id: Schema.String;
     }>]>;
-    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+        readonly color: Schema.Int;
+        readonly opacity: Schema.Finite;
+    }>, Schema.TaggedStruct<"Basic", {
         readonly opacity: Schema.Finite;
         readonly transparent: Schema.Boolean;
         readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -1231,7 +1432,10 @@ export type MaterialRef = SurfaceMaterial | {
 };
 
 // @public
-const MaterialRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+const MaterialRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+    readonly color: Schema.Int;
+    readonly opacity: Schema.Finite;
+}>, Schema.TaggedStruct<"Basic", {
     readonly opacity: Schema.Finite;
     readonly transparent: Schema.Boolean;
     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -1318,6 +1522,7 @@ export const mesh: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
+    readonly body?: Body_2 | null;
 }) => MeshNode;
 
 // @public
@@ -1334,9 +1539,10 @@ export type MeshNode = {
     readonly interactive: boolean;
     readonly castShadow: boolean;
     readonly receiveShadow: boolean;
+    readonly body: Body_2 | null;
 };
 
-// @public
+// @public (undocumented)
 const MeshNode_2: Schema.TaggedStruct<"Mesh", {
     readonly key: Schema.String;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1409,7 +1615,10 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
     }>, Schema.TaggedStruct<"SharedGeometry", {
         readonly id: Schema.String;
     }>]>;
-    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+        readonly color: Schema.Int;
+        readonly opacity: Schema.Finite;
+    }>, Schema.TaggedStruct<"Basic", {
         readonly opacity: Schema.Finite;
         readonly transparent: Schema.Boolean;
         readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -1476,6 +1685,24 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
     readonly interactive: Schema.Boolean;
     readonly castShadow: Schema.Boolean;
     readonly receiveShadow: Schema.Boolean;
+    readonly body: Schema.NullOr<Schema.Struct<{
+        readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
+        readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
+        readonly mass: Schema.NullOr<Schema.Finite>;
+        readonly friction: Schema.Finite;
+        readonly restitution: Schema.Finite;
+        readonly linearDamping: Schema.Finite;
+        readonly angularDamping: Schema.Finite;
+        readonly gravityScale: Schema.Finite;
+        readonly ccd: Schema.Boolean;
+        readonly sensor: Schema.Boolean;
+        readonly linearVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly angularVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly impulse: Schema.NullOr<Schema.Struct<{
+            readonly id: Schema.Finite;
+            readonly impulse: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+    }>>;
 }>;
 
 // @public
@@ -1813,6 +2040,48 @@ const PhysicalMaterial_2: Schema.TaggedStruct<"Physical", {
     readonly ior: Schema.Finite;
 }>;
 
+// @public
+export type Physics = {
+    readonly gravity: Vec3;
+    readonly paused: boolean;
+    readonly timeStep: number;
+    readonly interpolate: boolean;
+};
+
+// @public
+export const physics: (options?: Partial<Physics>) => Physics;
+
+// @public
+const Physics_2: Schema.Struct<{
+    readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly paused: Schema.Boolean;
+    readonly timeStep: Schema.Finite;
+    readonly interpolate: Schema.Boolean;
+}>;
+
+// @public
+export type PhysicsEngine = {
+    readonly createWorld: (physics: Physics) => PhysicsWorld;
+};
+
+// @public
+export const physicsEquals: (a: Physics | null, b: Physics | null) => boolean;
+
+// @public
+export type PhysicsWorld = {
+    readonly configure: (physics: Physics) => void;
+    readonly add: (key: string, body: Body_2, shape: ColliderShape, pose: BodyPose) => void;
+    readonly update: (key: string, body: Body_2) => void;
+    readonly teleport: (key: string, pose: BodyPose) => void;
+    readonly moveKinematic: (key: string, pose: BodyPose) => void;
+    readonly applyImpulse: (key: string, impulse: Vec3) => void;
+    readonly remove: (key: string) => void;
+    readonly step: (seconds: number) => ReadonlyArray<Collision>;
+    readonly pose: (key: string) => BodyPose | undefined;
+    readonly awake: () => boolean;
+    readonly dispose: () => void;
+};
+
 // @public (undocumented)
 export type Picker = {
     readonly pick: (x: number, y: number) => Hit | undefined;
@@ -1975,6 +2244,9 @@ const PostEffect_2: Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
     readonly intensity: Schema.Finite;
     readonly grayscale: Schema.Boolean;
 }>]>;
+
+// @public
+export type Quat = readonly [x: number, y: number, z: number, w: number];
 
 // @public
 export type Ray = {
@@ -2209,7 +2481,10 @@ const ResourceDefinitions_2: Schema.Struct<{
     }>>;
     readonly materials: Schema.$Array<Schema.Struct<{
         readonly id: Schema.String;
-        readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+        readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+            readonly color: Schema.Int;
+            readonly opacity: Schema.Finite;
+        }>, Schema.TaggedStruct<"Basic", {
             readonly opacity: Schema.Finite;
             readonly transparent: Schema.Boolean;
             readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -2383,6 +2658,10 @@ export const scene: (options: {
     readonly views?: ReadonlyArray<View>;
     readonly renderTextures?: ReadonlyArray<RenderTexture>;
     readonly overlays?: ReadonlyArray<Overlay>;
+    readonly environment?: Environment | null;
+    readonly sky?: Sky | null;
+    readonly contactShadows?: ContactShadows | null;
+    readonly physics?: Physics | null;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2402,6 +2681,10 @@ export type SceneDescription = {
     readonly views: ReadonlyArray<View>;
     readonly renderTextures: ReadonlyArray<RenderTexture>;
     readonly overlays: ReadonlyArray<Overlay>;
+    readonly environment: Environment | null;
+    readonly sky: Sky | null;
+    readonly contactShadows: ContactShadows | null;
+    readonly physics: Physics | null;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2481,6 +2764,39 @@ const SceneDescription_2: Schema.Struct<{
         readonly zIndexRange: Schema.Tuple<readonly [Schema.Int, Schema.Int]>;
         readonly view: Schema.NullOr<Schema.String>;
     }>>;
+    readonly environment: Schema.NullOr<Schema.Struct<{
+        readonly map: Schema.NullOr<Schema.String>;
+        readonly background: Schema.Union<readonly [Schema.Boolean, Schema.Literal<"only">]>;
+        readonly backgroundBlurriness: Schema.Finite;
+        readonly backgroundIntensity: Schema.Finite;
+        readonly environmentIntensity: Schema.Finite;
+    }>>;
+    readonly sky: Schema.NullOr<Schema.Struct<{
+        readonly sunPosition: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly turbidity: Schema.Finite;
+        readonly rayleigh: Schema.Finite;
+        readonly mieCoefficient: Schema.Finite;
+        readonly mieDirectionalG: Schema.Finite;
+        readonly clouds: Schema.Finite;
+        readonly distance: Schema.Finite;
+    }>>;
+    readonly contactShadows: Schema.NullOr<Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly near: Schema.Finite;
+        readonly far: Schema.Finite;
+        readonly blur: Schema.Finite;
+        readonly smooth: Schema.Boolean;
+        readonly opacity: Schema.Finite;
+        readonly color: Schema.Int;
+        readonly resolution: Schema.Int;
+    }>>;
+    readonly physics: Schema.NullOr<Schema.Struct<{
+        readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly paused: Schema.Boolean;
+        readonly timeStep: Schema.Finite;
+        readonly interpolate: Schema.Boolean;
+    }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
             readonly strength: Schema.Finite;
@@ -2557,7 +2873,10 @@ const SceneDescription_2: Schema.Struct<{
         }>>;
         readonly materials: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
-            readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+            readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+                readonly color: Schema.Int;
+                readonly opacity: Schema.Finite;
+            }>, Schema.TaggedStruct<"Basic", {
                 readonly opacity: Schema.Finite;
                 readonly transparent: Schema.Boolean;
                 readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -2668,6 +2987,17 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
 | {
     readonly _tag: 'Gesture';
     readonly gesture: Gesture;
+}
+/**
+* Two bodies began (`started`) or stopped touching, by their nodes' keys: Rapier's
+* collision events, as react-three-rapier's `onCollisionEnter` and `onCollisionExit`.
+* Not a pointer event: it travels with them so one stream carries everything.
+*/
+| {
+    readonly _tag: 'Collision';
+    readonly a: string;
+    readonly b: string;
+    readonly started: boolean;
 }
 /**
 * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
@@ -2851,6 +3181,10 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
     }>]>;
+}>, Schema.TaggedStruct<"Collision", {
+    readonly a: Schema.String;
+    readonly b: Schema.String;
+    readonly started: Schema.Boolean;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -2864,6 +3198,9 @@ export type SceneGraph = {
     readonly renderTextures: () => ReadonlyArray<HostedTexture>;
     readonly gestures: () => Gestures;
     readonly overlays: () => ReadonlyArray<Overlay>;
+    readonly environment: () => Environment | null;
+    readonly contactShadows: () => ContactShadows | null;
+    readonly collisions: () => ReadonlyArray<Collision>;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -2889,6 +3226,7 @@ export type SceneGraph = {
 export type SceneGraphOptions = {
     readonly store?: ResourceStore;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
+    readonly physics?: PhysicsEngine | undefined;
 };
 
 // @public
@@ -2922,7 +3260,7 @@ export type SceneLoopOptions = {
 };
 
 // @public
-export type SceneNode = GroupNode | MeshNode | InstancesNode | BorrowedNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
+export type SceneNode = GridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
 
 // @public
 const SceneNode_2: Schema.Codec<SceneNode>;
@@ -2931,6 +3269,7 @@ const SceneNode_2: Schema.Codec<SceneNode>;
 export type SceneRenderer = {
     readonly render: (scene: Scene, camera: Camera_2, area?: RenderArea, target?: RenderTarget) => void;
     readonly createTarget: (width: number, height: number) => RenderTarget;
+    readonly createEnvironment: () => RenderTarget;
     readonly configure: (settings: RenderSettings) => void;
     readonly setViewport: (viewport: Viewport) => void;
     readonly memory: () => RendererMemory;
@@ -2952,6 +3291,7 @@ type SceneRuntimeOptions = {
     readonly viewport: Viewport;
     readonly eventCapacity?: number;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
+    readonly physics?: PhysicsEngine | undefined;
     readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
 
@@ -2982,10 +3322,13 @@ declare namespace SceneSchema {
         StandardMaterial_2 as StandardMaterial,
         PhysicalMaterial_2 as PhysicalMaterial,
         NormalMaterial_2 as NormalMaterial,
+        ShadowMaterial_3 as ShadowMaterial,
         SurfaceMaterial_2 as SurfaceMaterial,
         GeometryRef_2 as GeometryRef,
         MaterialRef_2 as MaterialRef,
         ResourceDefinitions_2 as ResourceDefinitions,
+        Body_3 as Body,
+        Physics_2 as Physics,
         MeshNode_2 as MeshNode,
         Instance_2 as Instance,
         InstancesNode_2 as InstancesNode,
@@ -2995,6 +3338,7 @@ declare namespace SceneSchema {
         DirectionalLightNode_2 as DirectionalLightNode,
         PointLightNode_2 as PointLightNode,
         SpotLightNode_2 as SpotLightNode,
+        GridNode_2 as GridNode,
         HemisphereLightNode_2 as HemisphereLightNode,
         SceneNode_2 as SceneNode,
         PerspectiveCamera_3 as PerspectiveCamera,
@@ -3005,6 +3349,9 @@ declare namespace SceneSchema {
         View_2 as View,
         RenderTexture_2 as RenderTexture,
         Overlay_2 as Overlay,
+        Environment_2 as Environment,
+        Sky_2 as Sky,
+        ContactShadows_2 as ContactShadows,
         Gestures_2 as Gestures,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
@@ -3017,11 +3364,31 @@ declare namespace SceneSchema {
         PerformanceDetail,
         Modifiers_2 as Modifiers,
         Gesture_2 as Gesture,
+        CollisionDetail,
         GestureDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError
     }
 }
+
+// @public
+export type ShadowMaterial = {
+    readonly _tag: 'Shadow';
+    readonly color: Rgb;
+    readonly opacity: number;
+};
+
+// @public
+export const shadowMaterial: (options?: {
+    readonly color?: Rgb;
+    readonly opacity?: number;
+}) => ShadowMaterial;
+
+// @public
+const ShadowMaterial_3: Schema.TaggedStruct<"Shadow", {
+    readonly color: Schema.Int;
+    readonly opacity: Schema.Finite;
+}>;
 
 // @public
 export type ShadowMode = 'off' | 'basic' | 'percentage' | 'soft' | 'variance';
@@ -3090,6 +3457,34 @@ export const sharedGeometry: (id: string) => GeometryRef;
 
 // @public
 export const sharedMaterial: (id: string) => MaterialRef;
+
+// @public
+export type Sky = {
+    readonly sunPosition: Vec3;
+    readonly turbidity: number;
+    readonly rayleigh: number;
+    readonly mieCoefficient: number;
+    readonly mieDirectionalG: number;
+    readonly clouds: number;
+    readonly distance: number;
+};
+
+// @public
+export const sky: (options?: Partial<Sky>) => Sky;
+
+// @public
+const Sky_2: Schema.Struct<{
+    readonly sunPosition: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly turbidity: Schema.Finite;
+    readonly rayleigh: Schema.Finite;
+    readonly mieCoefficient: Schema.Finite;
+    readonly mieDirectionalG: Schema.Finite;
+    readonly clouds: Schema.Finite;
+    readonly distance: Schema.Finite;
+}>;
+
+// @public
+export const skyEquals: (a: Sky | null, b: Sky | null) => boolean;
 
 // @public
 export const sphere: (options?: {
@@ -3175,6 +3570,53 @@ const SpotLightNode_2: Schema.TaggedStruct<"SpotLight", {
 }>;
 
 // @public
+export type Stage = {
+    readonly lights: ReadonlyArray<SceneNode>;
+    readonly contactShadows: ContactShadows | null;
+    readonly environment: Environment | null;
+};
+
+// @public
+export const stage: (options: {
+    readonly radius: number;
+    readonly height: number;
+    readonly preset?: StagePreset | StageLighting;
+    readonly intensity?: number;
+    readonly shadows?: 'contact' | 'none';
+    readonly environment?: Environment | null;
+    readonly keyPrefix?: string;
+}) => Stage;
+
+// @public
+export type StageLighting = {
+    readonly main: Vec3;
+    readonly fill: Vec3;
+};
+
+// @public (undocumented)
+export type StagePreset = keyof typeof stagePresets;
+
+// @public
+export const stagePresets: {
+    rembrandt: {
+        main: [number, number, number];
+        fill: [number, number, number];
+    };
+    portrait: {
+        main: [number, number, number];
+        fill: [number, number, number];
+    };
+    upfront: {
+        main: [number, number, number];
+        fill: [number, number, number];
+    };
+    soft: {
+        main: [number, number, number];
+        fill: [number, number, number];
+    };
+};
+
+// @public
 export const standard: (options?: Partial<Omit<StandardMaterial, '_tag'>>) => StandardMaterial;
 
 // @public
@@ -3218,10 +3660,16 @@ export const startTween: (object: Object3D, target: {
 }) => Tween;
 
 // @public
-export type SurfaceMaterial = BasicMaterial | LambertMaterial | PhongMaterial | StandardMaterial | PhysicalMaterial | NormalMaterial;
+export const sunPositionFromAngles: (inclination: number, azimuth: number) => Vec3;
 
 // @public
-const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+export type SurfaceMaterial = ShadowMaterial | BasicMaterial | LambertMaterial | PhongMaterial | StandardMaterial | PhysicalMaterial | NormalMaterial;
+
+// @public
+const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+    readonly color: Schema.Int;
+    readonly opacity: Schema.Finite;
+}>, Schema.TaggedStruct<"Basic", {
     readonly opacity: Schema.Finite;
     readonly transparent: Schema.Boolean;
     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;

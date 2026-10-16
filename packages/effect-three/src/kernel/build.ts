@@ -7,15 +7,21 @@ import type {
   AmbientLightNode,
   Animation,
   BasicMaterial,
+  Body,
   Behave,
   BorrowedNode,
   Axis,
   BoxGeometry,
   Camera,
+  ContactShadows,
+  Environment,
   Gestures,
+  GridNode,
+  Sky,
   TextBevel,
   TextGeometry,
   Overlay,
+  Physics,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -31,6 +37,7 @@ import type {
   MaterialRef,
   MeshNode,
   NormalMaterial,
+  ShadowMaterial,
   OrthographicCamera,
   PhongMaterial,
   PhysicalMaterial,
@@ -340,6 +347,39 @@ export const normalMaterial = (
   flatShading: options.flatShading ?? false,
 });
 
+/**
+ * A shadow catcher: shows only the shadows cast onto it (three.js's `ShadowMaterial`).
+ * Defaults as three.js: black, opacity 1. Needs `render.shadows` and `receiveShadow`.
+ */
+export const shadowMaterial = (
+  options: { readonly color?: Rgb; readonly opacity?: number } = {},
+): ShadowMaterial => ({
+  _tag: 'Shadow',
+  color: options.color ?? 0x000000,
+  opacity: options.opacity ?? 1,
+});
+
+/**
+ * A grid of lines on the XZ plane (three.js's `GridHelper`). Defaults as three.js: 10
+ * across, 10 divisions, lines 0x888888 and centre lines 0x444444, at the origin.
+ */
+export const grid = (options: {
+  readonly key: string;
+  readonly position?: Vec3;
+  readonly size?: number;
+  readonly divisions?: number;
+  readonly color?: Rgb;
+  readonly centerColor?: Rgb;
+}): GridNode => ({
+  _tag: 'Grid',
+  key: options.key,
+  position: options.position ?? origin,
+  size: options.size ?? 10,
+  divisions: options.divisions ?? 10,
+  color: options.color ?? 0x888888,
+  centerColor: options.centerColor ?? 0x444444,
+});
+
 /** A reference to a shared geometry defined in the scene's resources. */
 export const sharedGeometry = (id: string): GeometryRef => ({ _tag: 'SharedGeometry', id });
 
@@ -383,6 +423,7 @@ export const mesh = (
     readonly interactive?: boolean;
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
+    readonly body?: Body | null;
   },
 ): MeshNode => ({
   _tag: 'Mesh',
@@ -397,6 +438,39 @@ export const mesh = (
   interactive: options.interactive ?? false,
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
+  body: options.body ?? null,
+});
+
+/**
+ * A rigid body for a mesh. Defaults as react-three-rapier's `RigidBody` and Rapier: dynamic,
+ * a cuboid collider from the bounding box, density 1, friction 0.5, restitution 0, no
+ * damping, gravity scale 1, no CCD, not a sensor, at rest, no impulse.
+ */
+export const body = (options: Partial<Body> = {}): Body => ({
+  type: options.type ?? 'dynamic',
+  collider: options.collider ?? 'cuboid',
+  mass: options.mass ?? null,
+  friction: options.friction ?? 0.5,
+  restitution: options.restitution ?? 0,
+  linearDamping: options.linearDamping ?? 0,
+  angularDamping: options.angularDamping ?? 0,
+  gravityScale: options.gravityScale ?? 1,
+  ccd: options.ccd ?? false,
+  sensor: options.sensor ?? false,
+  linearVelocity: options.linearVelocity ?? origin,
+  angularVelocity: options.angularVelocity ?? origin,
+  impulse: options.impulse ?? null,
+});
+
+/**
+ * A physics world. Defaults as react-three-rapier's `Physics`: Earth gravity
+ * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated.
+ */
+export const physics = (options: Partial<Physics> = {}): Physics => ({
+  gravity: options.gravity ?? [0, -9.81, 0],
+  paused: options.paused ?? false,
+  timeStep: options.timeStep ?? 1 / 60,
+  interpolate: options.interpolate ?? true,
 });
 
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */
@@ -714,6 +788,85 @@ export const renderTexture = (options: {
 });
 
 /** A scene description. */
+/**
+ * Image-based lighting (Drei's `Environment`). Defaults as Drei: lighting only, no blur,
+ * intensities 1. Without `map`, three.js's `RoomEnvironment`; with it, the equirectangular
+ * texture lent under that id.
+ */
+export const environment = (
+  options: {
+    readonly map?: string;
+    readonly background?: boolean | 'only';
+    readonly backgroundBlurriness?: number;
+    readonly backgroundIntensity?: number;
+    readonly environmentIntensity?: number;
+  } = {},
+): Environment => ({
+  map: options.map ?? null,
+  background: options.background ?? false,
+  backgroundBlurriness: options.backgroundBlurriness ?? 0,
+  backgroundIntensity: options.backgroundIntensity ?? 1,
+  environmentIntensity: options.environmentIntensity ?? 1,
+});
+
+/**
+ * Where Drei puts the sun from an inclination and azimuth, both 0 to 1
+ * (`calcPosFromAngles` in `src/core/Sky.tsx`).
+ */
+export const sunPositionFromAngles = (inclination: number, azimuth: number): Vec3 => {
+  const theta = Math.PI * (inclination - 0.5);
+  const phi = 2 * Math.PI * (azimuth - 0.5);
+  return [Math.cos(phi), Math.sin(theta), Math.sin(phi)];
+};
+
+/**
+ * A daylight sky. Defaults as Drei's `Sky`: the sun from inclination 0.6 and azimuth 0.1,
+ * turbidity 10, rayleigh 0.5, mie coefficient 0.005 and directional G 0.8, distance 1000,
+ * and no clouds. The sky is high dynamic range: use tone mapping (`aces`, as three.js's
+ * example and React Three Fiber's default), or it washes out to white.
+ */
+export const sky = (options: Partial<Sky> = {}): Sky => ({
+  sunPosition: options.sunPosition ?? sunPositionFromAngles(0.6, 0.1),
+  turbidity: options.turbidity ?? 10,
+  rayleigh: options.rayleigh ?? 0.5,
+  mieCoefficient: options.mieCoefficient ?? 0.005,
+  mieDirectionalG: options.mieDirectionalG ?? 0.8,
+  clouds: options.clouds ?? 0,
+  distance: options.distance ?? 1000,
+});
+
+/**
+ * Soft ground shadows (Drei's `ContactShadows`). Defaults as Drei: a 10 × 10 plane at the
+ * origin (Drei's `scale` 10), shadows from 0 to 10 units above, blur 1 with the smooth
+ * pass, opacity 1, black, 512 texels.
+ */
+export const contactShadows = (
+  options: {
+    readonly position?: Vec3;
+    readonly size?: number | readonly [number, number];
+    readonly near?: number;
+    readonly far?: number;
+    readonly blur?: number;
+    readonly smooth?: boolean;
+    readonly opacity?: number;
+    readonly color?: Rgb;
+    readonly resolution?: number;
+  } = {},
+): ContactShadows => {
+  const size = options.size ?? 10;
+  return {
+    position: options.position ?? origin,
+    size: typeof size === 'number' ? [size, size] : size,
+    near: options.near ?? 0,
+    far: options.far ?? 10,
+    blur: options.blur ?? 1,
+    smooth: options.smooth ?? true,
+    opacity: options.opacity ?? 1,
+    color: options.color ?? 0x000000,
+    resolution: options.resolution ?? 512,
+  };
+};
+
 const noOverlays: ReadonlyArray<Overlay> = [];
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
@@ -749,6 +902,11 @@ export const scene = (options: {
   readonly views?: ReadonlyArray<View>;
   readonly renderTextures?: ReadonlyArray<RenderTexture>;
   readonly overlays?: ReadonlyArray<Overlay>;
+  /** Optional staging: leave out or pass `null` for none, so a Model can switch it off. */
+  readonly environment?: Environment | null;
+  readonly sky?: Sky | null;
+  readonly contactShadows?: ContactShadows | null;
+  readonly physics?: Physics | null;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -758,6 +916,10 @@ export const scene = (options: {
   views: options.views ?? noViews,
   renderTextures: options.renderTextures ?? noRenderTextures,
   overlays: options.overlays ?? noOverlays,
+  environment: options.environment ?? null,
+  sky: options.sky ?? null,
+  contactShadows: options.contactShadows ?? null,
+  physics: options.physics ?? null,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

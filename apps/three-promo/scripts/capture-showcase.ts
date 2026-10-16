@@ -45,6 +45,8 @@ const shots: ReadonlyArray<Shot> = [
   { id: 'studio', prepare: async () => undefined },
   { id: 'city', prepare: async () => undefined },
   { id: 'workshop', prepare: async () => undefined },
+  // Rapier loads, then the toys fall and settle.
+  { id: 'toybox', prepare: (page) => page.waitForTimeout(5000) },
   { id: 'shared', prepare: async () => undefined },
 ];
 

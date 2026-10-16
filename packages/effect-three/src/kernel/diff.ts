@@ -26,6 +26,7 @@ import {
   renderSettingsEquals,
   animationEquals,
   behaviourEquals,
+  bodyEquals,
   geometryRefEquals,
   instancesEqual,
   materialRefEquals,
@@ -67,7 +68,11 @@ export type Field =
   | 'instances'
   | 'id'
   | 'animation'
-  | 'behaviour';
+  | 'behaviour'
+  | 'size'
+  | 'divisions'
+  | 'centerColor'
+  | 'body';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -128,6 +133,7 @@ export const changedFields = (
       if (prev.interactive !== next.interactive) fields.push('interactive');
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
+      if (!bodyEquals(prev.body, next.body)) fields.push('body');
       return fields;
     }
     case 'Instances': {
@@ -199,6 +205,15 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (!Object.is(prev.shadowMapSize, next.shadowMapSize)) fields.push('shadowMapSize');
       if (!Object.is(prev.shadowBias, next.shadowBias)) fields.push('shadowBias');
+      return fields;
+    }
+    case 'Grid': {
+      if (prev._tag !== 'Grid') return undefined;
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!Object.is(prev.size, next.size)) fields.push('size');
+      if (prev.divisions !== next.divisions) fields.push('divisions');
+      if (prev.color !== next.color) fields.push('color');
+      if (prev.centerColor !== next.centerColor) fields.push('centerColor');
       return fields;
     }
     case 'HemisphereLight': {

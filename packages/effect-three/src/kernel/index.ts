@@ -32,7 +32,14 @@ export {
   borrowed,
   box,
   capsule,
+  body,
   circle,
+  physics,
+  contactShadows,
+  grid,
+  sky,
+  sunPositionFromAngles,
+  environment,
   text,
   cone,
   cylinder,
@@ -48,6 +55,7 @@ export {
   lambert,
   mesh,
   normalMaterial,
+  shadowMaterial,
   orthographicCamera,
   perspectiveCamera,
   phong,
@@ -86,7 +94,12 @@ export {
   rotationEquals,
   shapeEquals,
   transitionEquals,
+  environmentEquals,
+  contactShadowsEquals,
+  bodyEquals,
   overlaysEqual,
+  physicsEquals,
+  skyEquals,
   viewsEqual,
   vec3Equals,
 } from './equality.ts';
@@ -120,6 +133,16 @@ export {
   rotateCamera,
 } from './orbit.ts';
 export { type OverlayPlacement, placeOverlays } from './overlays.ts';
+export {
+  type BodyPose,
+  type ColliderShape,
+  colliderFor,
+  type Collision,
+  type PhysicsEngine,
+  type PhysicsWorld,
+  type Quat,
+} from './physics.ts';
+export { type Stage, stage, type StageLighting, type StagePreset, stagePresets } from './stage.ts';
 export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
 export {
   createPicker,

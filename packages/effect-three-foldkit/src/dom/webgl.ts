@@ -14,9 +14,12 @@ import {
   LinearFilter,
   LinearSRGBColorSpace,
   LinearToneMapping,
+  Material,
   NeutralToneMapping,
   NoToneMapping,
+  type Object3D,
   PCFShadowMap,
+  PMREMGenerator,
   ReinhardToneMapping,
   type ShadowMapType,
   SRGBColorSpace,
@@ -27,6 +30,7 @@ import {
   type WebGLRendererParameters,
   WebGLRenderTarget,
 } from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 import { createPostProcessing } from './postprocessing.ts';
 
@@ -60,17 +64,35 @@ const colorSpaces = {
   linear: LinearSRGBColorSpace,
 } satisfies Record<RenderSettings['colorSpace'], ColorSpace>;
 
-/** Applies scene render settings; a change of shadow mode re-renders the shadow maps. */
-const configure = (renderer: WebGLRenderer, settings: RenderSettings): void => {
+/**
+ * Applies scene render settings; a change of shadow mode re-renders the shadow maps.
+ * Returns whether shadows were switched on or off, which materials must be recompiled for.
+ */
+const configure = (renderer: WebGLRenderer, settings: RenderSettings): boolean => {
   const shadowMap = renderer.shadowMap;
   const enabled = settings.shadows !== 'off';
+  const switched = shadowMap.enabled !== enabled;
   const type = enabled ? shadowTypes[settings.shadows] : shadowMap.type;
-  if (shadowMap.enabled !== enabled || shadowMap.type !== type) shadowMap.needsUpdate = true;
+  if (switched || shadowMap.type !== type) shadowMap.needsUpdate = true;
   shadowMap.enabled = enabled;
   shadowMap.type = type;
   renderer.toneMapping = toneMappings[settings.toneMapping];
   renderer.toneMappingExposure = settings.exposure;
   renderer.outputColorSpace = colorSpaces[settings.colorSpace];
+  return switched;
+};
+
+/**
+ * Flags every material in the scene for recompilation. three.js keeps a shader built
+ * with shadows sampling its last shadow map after `shadowMap.enabled` turns off (and
+ * without shadows after it turns on) until its material is updated.
+ */
+const recompileMaterials = (scene: Object3D): void => {
+  scene.traverse((object) => {
+    const material: unknown = Reflect.get(object, 'material');
+    const materials = Array.isArray(material) ? material : [material];
+    for (const each of materials) if (each instanceof Material) each.needsUpdate = true;
+  });
 };
 
 const drawingSize = new Vector2();
@@ -96,6 +118,19 @@ const createTarget = (
   return handle;
 };
 
+/**
+ * three.js's `RoomEnvironment`, prefiltered for image-based lighting, as three's examples
+ * set it up (`PMREMGenerator.fromScene(new RoomEnvironment(), 0.04)`).
+ */
+const createRoom = (renderer: WebGLRenderer): RenderTarget => {
+  const generator = new PMREMGenerator(renderer);
+  const room = new RoomEnvironment();
+  const target = generator.fromScene(room, 0.04);
+  room.dispose();
+  generator.dispose();
+  return { texture: target.texture, dispose: () => target.dispose() };
+};
+
 /** A factory for a WebGL2 renderer drawing into `canvas`. `create` throws if WebGL2 is unavailable. */
 export const webglRendererFactory = (
   canvas: HTMLCanvasElement,
@@ -109,6 +144,10 @@ export const webglRendererFactory = (
     let pixelRatio = 1;
     let resolution = 1;
     let scissored = false;
+    // Counts shadow switches; each scene drawn (main or render texture) recompiles its
+    // materials once after a switch.
+    let shadowSwitches = 0;
+    const compiledAt = new WeakMap<Object3D, number>();
     const applyPixelRatio = (): void => {
       if (renderer.getPixelRatio() !== pixelRatio * resolution) {
         renderer.setPixelRatio(pixelRatio * resolution);
@@ -118,14 +157,24 @@ export const webglRendererFactory = (
     };
     return {
       render: (scene, camera, area, target) => {
+        if (shadowSwitches > 0 && compiledAt.get(scene) !== shadowSwitches) {
+          recompileMaterials(scene);
+          compiledAt.set(scene, shadowSwitches);
+        }
         const webglTarget = target === undefined ? undefined : targets.get(target);
         if (webglTarget !== undefined) {
           // As Drei's RenderTexture draws (src/core/RenderTexture.tsx): into the target, then
           // back to whatever was bound. A target keeps its own viewport and scissor.
+          // Targets start transparent, whatever the canvas clears to: what the scene does
+          // not cover stays see-through (a render texture without a background, contact
+          // shadows away from objects).
           const previous = renderer.getRenderTarget();
+          const clearAlpha = renderer.getClearAlpha();
+          renderer.setClearAlpha(0);
           renderer.setRenderTarget(webglTarget);
           renderer.render(scene, camera);
           renderer.setRenderTarget(previous);
+          renderer.setClearAlpha(clearAlpha);
           return;
         }
         const { width, height } = renderer.getSize(drawingSize);
@@ -148,8 +197,9 @@ export const webglRendererFactory = (
         renderer.render(scene, camera);
       },
       createTarget: (width, height) => createTarget(targets, width, height),
+      createEnvironment: () => createRoom(renderer),
       configure: (settings) => {
-        configure(renderer, settings);
+        if (configure(renderer, settings)) shadowSwitches++;
         resolution = settings.resolution;
         post.configure(settings.effects);
         applyPixelRatio();

@@ -7,6 +7,7 @@
 import {
   type Behaviour,
   createResourceStore,
+  type PhysicsEngine,
   type RendererFactory,
   type ResourceStore,
 } from '@opsydyn/effect-three';
@@ -26,6 +27,12 @@ export type EnvironmentOptions = {
   readonly pixelRatio?: PixelRatio;
   /** Behaviours scenes may name with `behave(name)`, beside the built-in `float`. */
   readonly behaviours?: Readonly<Record<string, Behaviour>>;
+  /**
+   * The physics engine for scenes with `physics`, or the promise of one: pass
+   * `loadRapier()` from `@opsydyn/effect-three-rapier` as it is, and scenes start once it
+   * has loaded. Without one, bodies stay where they are described.
+   */
+  readonly physics?: PhysicsEngine | Promise<PhysicsEngine>;
 };
 
 /** Creates the shared environment for `host`. Call `dispose` when the app shuts down. */
@@ -39,6 +46,8 @@ export const makeEnvironment = (host: EnvironmentHost, options: EnvironmentOptio
     renderer: options.renderer ?? ((canvas: HTMLCanvasElement) => webglRendererFactory(canvas)),
     pixelRatio: options.pixelRatio ?? defaultPixelRatio,
     behaviours: options.behaviours ?? {},
+    /** The physics engine, once loaded; `undefined` when there is none. */
+    physics: Promise.resolve(options.physics),
     /** Loads textures and glTF models by URL and lends them to the store. */
     assets,
     /** Disposes every loaded asset and every GPU resource still held. */

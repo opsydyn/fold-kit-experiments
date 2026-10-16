@@ -9,6 +9,7 @@ import {
   createGatedFrames,
   FrameSource,
   type GatedFrames,
+  type PhysicsEngine,
   type PointerInput,
   ResourceRegistry,
   type SceneEvent,
@@ -16,7 +17,7 @@ import {
   SceneRuntime,
   SceneSchema,
 } from '@opsydyn/effect-three';
-import { type Cause, Effect, Option, Queue, Schema, Stream } from 'effect';
+import { type Cause, Data, Effect, Option, Queue, Schema, Stream } from 'effect';
 import { Mount } from 'foldkit';
 import type { ViewState } from 'foldkit/mount';
 
@@ -171,12 +172,18 @@ const watchers = (
   ];
 };
 
+/** The physics engine could not be loaded (Rapier's WebAssembly, say). */
+class PhysicsUnavailable extends Data.TaggedError('PhysicsUnavailable')<{
+  readonly cause: unknown;
+}> {}
+
 const sceneRuntimeFor =
   (
     environment: Environment,
     element: Element,
     canvas: HTMLCanvasElement,
     overlays: OverlayWriter,
+    physics: PhysicsEngine | undefined,
   ) =>
   (scene: SceneDescription) => {
     const frames = createGatedFrames(environment.frames);
@@ -184,6 +191,7 @@ const sceneRuntimeFor =
       scene,
       renderer: environment.renderer(canvas),
       behaviours: environment.behaviours,
+      physics,
       placeOverlays: overlays.place,
       viewport: measureViewport(element, environment.host.devicePixelRatio, environment.pixelRatio),
     }).pipe(
@@ -204,11 +212,16 @@ function* runScene(
   const initial = yield* decodeScene(intercepted.initial);
   const overlays = createOverlayWriter(element);
   yield* Effect.sync(containOverlays(element));
+  const physics = yield* Effect.tryPromise({
+    try: () => environment.physics,
+    catch: (cause) => new PhysicsUnavailable({ cause }),
+  });
   const { handle, frames } = yield* sceneRuntimeFor(
     environment,
     element,
     canvas,
     overlays,
+    physics,
   )(initial);
   const mounted: Mounted = {
     environment,
@@ -237,6 +250,7 @@ const recoverStart = {
   InvalidScene: ({ error }: { readonly error: { readonly _tag: string } }) =>
     Effect.succeed(failure(`invalid scene: ${error._tag}`)),
   RendererUnavailable: () => Effect.succeed(failure('renderer unavailable')),
+  PhysicsUnavailable: () => Effect.succeed(failure('physics unavailable')),
 };
 
 type ExecuteInput = {

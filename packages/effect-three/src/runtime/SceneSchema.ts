@@ -211,8 +211,12 @@ export const PhysicalMaterial = Schema.TaggedStruct('Physical', {
 /** Normal-coloured material parameters. */
 export const NormalMaterial = Schema.TaggedStruct('Normal', shaded);
 
+/** A shadow catcher: only the shadows cast onto it. */
+export const ShadowMaterial = Schema.TaggedStruct('Shadow', { color: Rgb, opacity: UnitInterval });
+
 /** Any material kind. */
 export const SurfaceMaterial = Schema.Union([
+  ShadowMaterial,
   BasicMaterial,
   LambertMaterial,
   PhongMaterial,
@@ -240,6 +244,31 @@ export const ResourceDefinitions = Schema.Struct({
 });
 
 /** A renderable mesh. */
+/** A rigid body for a mesh. */
+export const Body = Schema.Struct({
+  type: Schema.Literals(['dynamic', 'fixed', 'kinematic']),
+  collider: Schema.Literals(['cuboid', 'ball', 'hull', 'trimesh']),
+  mass: Schema.NullOr(Positive),
+  friction: NonNegative,
+  restitution: NonNegative,
+  linearDamping: NonNegative,
+  angularDamping: NonNegative,
+  gravityScale: Schema.Finite,
+  ccd: Schema.Boolean,
+  sensor: Schema.Boolean,
+  linearVelocity: Vec3,
+  angularVelocity: Vec3,
+  impulse: Schema.NullOr(Schema.Struct({ id: Schema.Finite, impulse: Vec3 })),
+});
+
+/** A physics world. */
+export const Physics = Schema.Struct({
+  gravity: Vec3,
+  paused: Schema.Boolean,
+  timeStep: Positive,
+  interpolate: Schema.Boolean,
+});
+
 export const MeshNode = Schema.TaggedStruct('Mesh', {
   key: Schema.String,
   position: Vec3,
@@ -252,6 +281,7 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   interactive: Schema.Boolean,
   castShadow: Schema.Boolean,
   receiveShadow: Schema.Boolean,
+  body: Schema.NullOr(Body),
 });
 
 /** One instance of an instances node. */
@@ -358,6 +388,16 @@ export const SpotLightNode = Schema.TaggedStruct('SpotLight', {
 });
 
 /** Hemisphere light. */
+/** A grid of lines on the XZ plane. */
+export const GridNode = Schema.TaggedStruct('Grid', {
+  key: Schema.String,
+  position: Vec3,
+  size: Positive,
+  divisions: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  color: Rgb,
+  centerColor: Rgb,
+});
+
 export const HemisphereLightNode = Schema.TaggedStruct('HemisphereLight', {
   key: Schema.String,
   color: Rgb,
@@ -386,6 +426,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   PointLightNode,
   SpotLightNode,
   HemisphereLightNode,
+  GridNode,
 ]);
 
 /** The fraction of the way a camera closes every sixtieth of a second: 0 jumps. */
@@ -475,6 +516,39 @@ export const Overlay = Schema.Struct({
   view: Schema.NullOr(Schema.String),
 });
 
+/** Image-based lighting and background. */
+export const Environment = Schema.Struct({
+  map: Schema.NullOr(Schema.String),
+  background: Schema.Union([Schema.Boolean, Schema.Literal('only')]),
+  backgroundBlurriness: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+  backgroundIntensity: NonNegative,
+  environmentIntensity: NonNegative,
+});
+
+/** A daylight sky. */
+export const Sky = Schema.Struct({
+  sunPosition: Vec3,
+  turbidity: NonNegative,
+  rayleigh: NonNegative,
+  mieCoefficient: NonNegative,
+  mieDirectionalG: UnitInterval,
+  clouds: UnitInterval,
+  distance: Positive,
+});
+
+/** Soft ground shadows. */
+export const ContactShadows = Schema.Struct({
+  position: Vec3,
+  size: Schema.Tuple([Positive, Positive]),
+  near: Schema.Finite,
+  far: Positive,
+  blur: NonNegative,
+  smooth: Schema.Boolean,
+  opacity: UnitInterval,
+  color: Rgb,
+  resolution: Schema.Int.check(Schema.isBetween({ minimum: 16, maximum: 4096 })),
+});
+
 /** Whether the scene claims the pointer's gestures from the page. */
 export const Gestures = Schema.Literals(['page', 'scene']);
 
@@ -484,6 +558,10 @@ export const SceneDescription = Schema.Struct({
   views: Schema.Array(View),
   renderTextures: Schema.Array(RenderTexture),
   overlays: Schema.Array(Overlay),
+  environment: Schema.NullOr(Environment),
+  sky: Schema.NullOr(Sky),
+  contactShadows: Schema.NullOr(ContactShadows),
+  physics: Schema.NullOr(Physics),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
@@ -573,6 +651,13 @@ export const Gesture = Schema.Union([
   }),
 ]);
 
+/** Detail of collision events: the two bodies' keys, and whether they began touching. */
+export const CollisionDetail = Schema.Struct({
+  a: Schema.String,
+  b: Schema.String,
+  started: Schema.Boolean,
+});
+
 /** Detail of gesture events. */
 export const GestureDetail = Schema.Struct({ gesture: Gesture });
 
@@ -591,6 +676,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('Drag', DragDetail.fields),
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
   Schema.TaggedStruct('Gesture', GestureDetail.fields),
+  Schema.TaggedStruct('Collision', CollisionDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 

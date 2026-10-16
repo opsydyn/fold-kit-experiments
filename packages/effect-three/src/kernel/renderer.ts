@@ -44,6 +44,11 @@ export type SceneRenderer = {
   readonly render: (scene: Scene, camera: Camera, area?: RenderArea, target?: RenderTarget) => void;
   /** Creates an offscreen target of `width` × `height` pixels to render into. */
   readonly createTarget: (width: number, height: number) => RenderTarget;
+  /**
+   * Creates the environment map of three.js's `RoomEnvironment`, prefiltered for this
+   * renderer (WebGL: `PMREMGenerator.fromScene(new RoomEnvironment(), 0.04)`).
+   */
+  readonly createEnvironment: () => RenderTarget;
   /** Applies scene-wide render settings. Called before the first frame and on each change. */
   readonly configure: (settings: RenderSettings) => void;
   readonly setViewport: (viewport: Viewport) => void;
@@ -84,6 +89,10 @@ const createRecordingRenderer = (): RecordingRenderer => {
       configured.push(settings);
     },
     createTarget: () => {
+      const texture = new Texture();
+      return { texture, dispose: () => texture.dispose() };
+    },
+    createEnvironment: () => {
       const texture = new Texture();
       return { texture, dispose: () => texture.dispose() };
     },

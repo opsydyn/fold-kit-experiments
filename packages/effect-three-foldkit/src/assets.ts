@@ -9,9 +9,16 @@
  */
 import type { ResourceStore } from '@opsydyn/effect-three';
 import { Data, Effect } from 'effect';
-import { type Object3D, SRGBColorSpace, type Texture, TextureLoader } from 'three';
+import {
+  EquirectangularReflectionMapping,
+  type Object3D,
+  SRGBColorSpace,
+  type Texture,
+  TextureLoader,
+} from 'three';
 import { type Font, FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 
 import { disposeModel, namesIn } from './dom/models.ts';
 
@@ -68,6 +75,17 @@ export const makeAssets = (store: ResourceStore) => {
       return info;
     };
 
+  /** Lends an HDR panorama for `environment({ map })`: linear, mapped for reflection. */
+  const lendEnvironment = (id: string) => (texture: Texture) => {
+    texture.mapping = EquirectangularReflectionMapping;
+    const withdraw = store.lendTexture(id, texture);
+    own(id, () => {
+      withdraw();
+      texture.dispose();
+    });
+    return id;
+  };
+
   const lendFont = (id: string) => (font: Font) => {
     // Fonts hold no GPU resources: withdrawing the loan frees them.
     own(id, store.lendFont(id, font));
@@ -95,6 +113,18 @@ export const makeAssets = (store: ResourceStore) => {
         catch: (cause) => new AssetLoadError({ url, cause }),
       });
       return Effect.map(load, lendModel(id));
+    },
+    /**
+     * Loads an equirectangular HDR panorama (`.hdr`, three.js's `HDRLoader`) and lends it
+     * under `id` for `environment({ map: id })`. Succeeds with the id. Image panoramas
+     * load with `loadTexture`; the scene maps them for reflection.
+     */
+    loadEnvironment: (id: string, url: string) => {
+      const load = Effect.tryPromise({
+        try: () => new HDRLoader().loadAsync(url),
+        catch: (cause) => new AssetLoadError({ url, cause }),
+      });
+      return Effect.map(load, lendEnvironment(id));
     },
     /**
      * Loads a typeface JSON font (three.js's `FontLoader` format, as Drei's `Text3D` takes)

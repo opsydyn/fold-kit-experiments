@@ -111,6 +111,8 @@ export const perturb = (node: SceneNode): { readonly node: SceneNode; readonly f
     case 'SpotLight':
     case 'HemisphereLight':
       return { node: { ...node, intensity: node.intensity + 1 }, field: 'intensity' };
+    case 'Grid':
+      return { node: { ...node, size: node.size + 1 }, field: 'size' };
   }
 };
 

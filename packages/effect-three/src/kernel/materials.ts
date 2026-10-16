@@ -18,6 +18,7 @@ import {
   MeshPhongMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  ShadowMaterial as ThreeShadowMaterial,
   type Side,
   type Texture,
 } from 'three';
@@ -29,6 +30,7 @@ import type {
   NormalMaterial,
   PhongMaterial,
   PhysicalMaterial,
+  ShadowMaterial,
   StandardMaterial,
   SurfaceMaterial,
 } from './description.ts';
@@ -40,7 +42,7 @@ const noTextures: Textures = () => undefined;
 
 /** Sets the colour map. Returns whether the shader must recompile (a map came or went). */
 const applyMap = (
-  material: Exclude<HostMaterial, MeshNormalMaterial>,
+  material: Exclude<HostMaterial, MeshNormalMaterial | ThreeShadowMaterial>,
   id: string | null,
   textures: Textures,
 ): boolean => {
@@ -57,7 +59,8 @@ export type HostMaterial =
   | MeshPhongMaterial
   | MeshStandardMaterial
   | MeshPhysicalMaterial
-  | MeshNormalMaterial;
+  | MeshNormalMaterial
+  | ThreeShadowMaterial;
 
 const sides = { front: FrontSide, back: BackSide, double: DoubleSide } satisfies Record<
   MaterialSide,
@@ -74,7 +77,10 @@ type SurfaceFields = {
 type Shaded = SurfaceFields & { readonly flatShading: boolean };
 
 /** Applies the fields every kind shares. Returns whether the shader must recompile. */
-const applySurface = (material: HostMaterial, description: SurfaceFields): boolean => {
+const applySurface = (
+  material: Exclude<HostMaterial, ThreeShadowMaterial>,
+  description: SurfaceFields,
+): boolean => {
   const side = sides[description.side];
   const recompile = material.transparent !== description.transparent || material.side !== side;
   material.opacity = description.opacity;
@@ -85,7 +91,7 @@ const applySurface = (material: HostMaterial, description: SurfaceFields): boole
 };
 
 const applyShaded = (
-  material: Exclude<HostMaterial, MeshBasicMaterial>,
+  material: Exclude<HostMaterial, MeshBasicMaterial | ThreeShadowMaterial>,
   description: Shaded,
   mapChanged = false,
 ): void => {
@@ -158,12 +164,22 @@ const applyNormal = (material: MeshNormalMaterial, description: NormalMaterial):
   applyShaded(material, description);
 };
 
+const applyShadow = (material: ThreeShadowMaterial, description: ShadowMaterial): void => {
+  material.color.setHex(description.color);
+  material.opacity = description.opacity;
+};
+
 /** Builds a new material for a description. */
 export const buildMaterial = (
   description: SurfaceMaterial,
   textures: Textures = noTextures,
 ): HostMaterial => {
   switch (description._tag) {
+    case 'Shadow': {
+      const material = new ThreeShadowMaterial();
+      applyShadow(material, description);
+      return material;
+    }
     case 'Basic': {
       const material = new MeshBasicMaterial();
       applyBasic(material, description, textures);
@@ -208,6 +224,10 @@ export const updateMaterial = (
 ): boolean => {
   // MeshPhysicalMaterial extends MeshStandardMaterial, so test the exact kind by type.
   switch (description._tag) {
+    case 'Shadow':
+      if (!(material instanceof ThreeShadowMaterial)) return false;
+      applyShadow(material, description);
+      return true;
     case 'Basic':
       if (!(material instanceof MeshBasicMaterial)) return false;
       applyBasic(material, description, textures);

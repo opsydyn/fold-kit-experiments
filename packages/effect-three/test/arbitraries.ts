@@ -122,6 +122,7 @@ const Surface = Schema.Union([
     ...shaded,
   }),
   Schema.TaggedStruct('Normal', shaded),
+  Schema.TaggedStruct('Shadow', { color: Colour, opacity: Unit }),
 ]);
 
 const Children = Schema.Array(Schema.suspend((): Schema.Codec<SceneNode> => Node)).check(
@@ -157,6 +158,23 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     interactive: Schema.Boolean,
     castShadow: Schema.Boolean,
     receiveShadow: Schema.Boolean,
+    body: Schema.NullOr(
+      Schema.Struct({
+        type: Schema.Literals(['dynamic', 'fixed', 'kinematic']),
+        collider: Schema.Literals(['cuboid', 'ball']),
+        mass: Schema.NullOr(Schema.Literals([2])),
+        friction: Schema.Literals([0.5]),
+        restitution: Schema.Literals([0, 0.5]),
+        linearDamping: Schema.Literals([0]),
+        angularDamping: Schema.Literals([0]),
+        gravityScale: Schema.Literals([1]),
+        ccd: Schema.Boolean,
+        sensor: Schema.Boolean,
+        linearVelocity: Vec3,
+        angularVelocity: Vec3,
+        impulse: Schema.NullOr(Schema.Struct({ id: Schema.Literals([1, 2]), impulse: Vec3 })),
+      }),
+    ),
   }),
   Schema.TaggedStruct('Instances', {
     key: Key,
@@ -232,6 +250,14 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     shadowMapSize: Schema.Literals([256, 512]),
     shadowBias: Schema.Literals([0, -0.001]),
   }),
+  Schema.TaggedStruct('Grid', {
+    key: Key,
+    position: Vec3,
+    size: Schema.Literals([4, 10]),
+    divisions: Schema.Literals([2, 10]),
+    color: Colour,
+    centerColor: Colour,
+  }),
   Schema.TaggedStruct('HemisphereLight', {
     key: Key,
     color: Colour,
@@ -254,6 +280,47 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  physics: Schema.NullOr(
+    Schema.Struct({
+      gravity: Schema.Tuple([Schema.Literals([0]), Schema.Literals([-9.81]), Schema.Literals([0])]),
+      paused: Schema.Boolean,
+      timeStep: Schema.Literals([1 / 60]),
+      interpolate: Schema.Boolean,
+    }),
+  ),
+  contactShadows: Schema.NullOr(
+    Schema.Struct({
+      position: Vec3,
+      size: Schema.Tuple([Schema.Literals([4, 10]), Schema.Literals([10])]),
+      near: Schema.Literals([-0.01, 0]),
+      far: Schema.Literals([10]),
+      blur: Schema.Literals([0, 1]),
+      smooth: Schema.Boolean,
+      opacity: Schema.Literals([0.5, 1]),
+      color: Colour,
+      resolution: Schema.Literals([64]),
+    }),
+  ),
+  sky: Schema.NullOr(
+    Schema.Struct({
+      sunPosition: Vec3,
+      turbidity: Schema.Literals([2, 10]),
+      rayleigh: Schema.Literals([0.5]),
+      mieCoefficient: Schema.Literals([0.005]),
+      mieDirectionalG: Schema.Literals([0.8]),
+      clouds: Schema.Literals([0, 0.4]),
+      distance: Schema.Literals([1000]),
+    }),
+  ),
+  environment: Schema.NullOr(
+    Schema.Struct({
+      map: Schema.NullOr(Schema.Literals(['env'])),
+      background: Schema.Union([Schema.Boolean, Schema.Literal('only')]),
+      backgroundBlurriness: Schema.Literals([0, 0.5]),
+      backgroundIntensity: Schema.Literals([1]),
+      environmentIntensity: Schema.Literals([0.5, 1]),
+    }),
+  ),
   overlays: Schema.Array(
     Schema.Struct({
       key: Schema.Literals(['o1', 'o2']),

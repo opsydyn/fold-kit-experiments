@@ -15,6 +15,7 @@ import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
 import type { Op } from '@opsydyn/effect-three';
 import type { Overlay } from '@opsydyn/effect-three';
+import { PhysicsEngine } from '@opsydyn/effect-three';
 import type { PointerInput } from '@opsydyn/effect-three';
 import { RendererFactory } from '@opsydyn/effect-three';
 import type { ResourceStats } from '@opsydyn/effect-three';
@@ -55,6 +56,9 @@ export const capturesPointer: (events: ReadonlyArray<SceneEvent>) => boolean;
 // @public
 export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
 
+// @public
+export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
+
 // @public (undocumented)
 export const defaultPixelRatio: PixelRatio;
 
@@ -73,6 +77,7 @@ export const domEventName: {
     readonly Drag: 'scene-drag';
     readonly DragEnd: 'scene-drag-end';
     readonly Gesture: 'scene-gesture';
+    readonly Collision: 'scene-collision';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -90,6 +95,7 @@ export type EnvironmentOptions = {
     readonly renderer?: (canvas: HTMLCanvasElement) => RendererFactory;
     readonly pixelRatio?: PixelRatio;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
+    readonly physics?: PhysicsEngine | Promise<PhysicsEngine>;
 };
 
 // @public
@@ -105,6 +111,7 @@ export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 export const makeAssets: (store: ResourceStore) => {
     loadTexture: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
     loadModel: (id: string, url: string) => Effect.Effect<ModelInfo, AssetLoadError, never>;
+    loadEnvironment: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
     loadFont: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
     unload: (id: string) => Effect.Effect<void, never, never>;
     dispose: () => void;
@@ -118,9 +125,11 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     renderer: (canvas: HTMLCanvasElement) => RendererFactory;
     pixelRatio: PixelRatio;
     behaviours: Readonly<Record<string, Behaviour>>;
+    physics: Promise<PhysicsEngine | undefined>;
     assets: {
         loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
+        loadEnvironment: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadFont: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         unload: (id: string) => Effect_2<void, never, never>;
         dispose: () => void;
@@ -273,6 +282,39 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly zIndexRange: Schema.Tuple<readonly [Schema.Int, Schema.Int]>;
             readonly view: Schema.NullOr<Schema.String>;
         }>>;
+        readonly environment: Schema.NullOr<Schema.Struct<{
+            readonly map: Schema.NullOr<Schema.String>;
+            readonly background: Schema.Union<readonly [Schema.Boolean, Schema.Literal<"only">]>;
+            readonly backgroundBlurriness: Schema.Finite;
+            readonly backgroundIntensity: Schema.Finite;
+            readonly environmentIntensity: Schema.Finite;
+        }>>;
+        readonly sky: Schema.NullOr<Schema.Struct<{
+            readonly sunPosition: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly turbidity: Schema.Finite;
+            readonly rayleigh: Schema.Finite;
+            readonly mieCoefficient: Schema.Finite;
+            readonly mieDirectionalG: Schema.Finite;
+            readonly clouds: Schema.Finite;
+            readonly distance: Schema.Finite;
+        }>>;
+        readonly contactShadows: Schema.NullOr<Schema.Struct<{
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+            readonly near: Schema.Finite;
+            readonly far: Schema.Finite;
+            readonly blur: Schema.Finite;
+            readonly smooth: Schema.Boolean;
+            readonly opacity: Schema.Finite;
+            readonly color: Schema.Int;
+            readonly resolution: Schema.Int;
+        }>>;
+        readonly physics: Schema.NullOr<Schema.Struct<{
+            readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly paused: Schema.Boolean;
+            readonly timeStep: Schema.Finite;
+            readonly interpolate: Schema.Boolean;
+        }>>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;
@@ -349,7 +391,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             }>>;
             readonly materials: Schema.$Array<Schema.Struct<{
                 readonly id: Schema.String;
-                readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+                readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+                    readonly color: Schema.Int;
+                    readonly opacity: Schema.Finite;
+                }>, Schema.TaggedStruct<"Basic", {
                     readonly opacity: Schema.Finite;
                     readonly transparent: Schema.Boolean;
                     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -600,6 +645,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly deltaY: Schema.Finite;
         }>]>;
     }>;
+    'scene-collision': Schema.Struct<{
+        readonly a: Schema.String;
+        readonly b: Schema.String;
+        readonly started: Schema.Boolean;
+    }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
         readonly factor: Schema.Finite;
@@ -747,6 +797,7 @@ export type ViewConfig<Message> = {
     readonly onDrag?: (detail: DragDetail) => Message;
     readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onGesture?: (gesture: Gesture) => Message;
+    readonly onCollision?: (detail: CollisionDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;

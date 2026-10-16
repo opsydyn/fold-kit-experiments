@@ -12,6 +12,7 @@ import {
   ConeGeometry,
   CylinderGeometry,
   DirectionalLight,
+  GridHelper,
   HemisphereLight,
   InstancedMesh,
   type Material,
@@ -26,6 +27,7 @@ import {
   Texture,
   TorusGeometry,
 } from 'three';
+import { Sky } from 'three/addons/objects/Sky.js';
 
 import type { SceneGraph } from '../../src/kernel/index.ts';
 
@@ -151,6 +153,15 @@ const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
       intensity: object.intensity,
     };
   }
+  if (object instanceof GridHelper) {
+    const sum = (name: string): number =>
+      Array.from(object.geometry.getAttribute(name).array).reduce((a, b) => a + Math.abs(b), 0);
+    return {
+      lines: object.geometry.getAttribute('position').count,
+      extent: sum('position'),
+      colours: sum('color'),
+    };
+  }
   if (object instanceof AmbientLight) {
     return { color: object.color.getHex(), intensity: object.intensity };
   }
@@ -166,6 +177,24 @@ const snapshotNode = (graph: SceneGraph, object: Object3D): NodeSnapshot => ({
   detail: detailOf(graph, object),
   children: object.children.map((child) => snapshotNode(graph, child)),
 });
+
+/** A sky's settings, read back from its shader. */
+const skySnapshot = (sky: Sky) => {
+  const value = (name: string): unknown => sky.material.uniforms[name]?.value;
+  const sun = value('sunPosition');
+  return {
+    turbidity: value('turbidity'),
+    rayleigh: value('rayleigh'),
+    mieCoefficient: value('mieCoefficient'),
+    mieDirectionalG: value('mieDirectionalG'),
+    clouds: value('cloudCoverage'),
+    sun:
+      sun instanceof Object && 'toArray' in sun && typeof sun.toArray === 'function'
+        ? sun.toArray()
+        : sun,
+    distance: sky.scale.x,
+  };
+};
 
 export const snapshot = (graph: SceneGraph): unknown => ({
   render: graph.renderSettings(),
@@ -190,5 +219,9 @@ export const snapshot = (graph: SceneGraph): unknown => ({
     position: graph.camera.position.toArray(),
     quaternion: graph.camera.quaternion.toArray(),
   },
-  children: graph.scene.children.map((child) => snapshotNode(graph, child)),
+  // The sky is the scene's, not a node: its place among the children does not matter.
+  sky: graph.scene.children.filter((child) => child instanceof Sky).map(skySnapshot),
+  children: graph.scene.children
+    .filter((child) => !(child instanceof Sky))
+    .map((child) => snapshotNode(graph, child)),
 });

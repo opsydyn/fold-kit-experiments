@@ -355,6 +355,7 @@ export default defineConfig({
     // effect-three packages run their own stricter config (oxlint-effect 2.x, all rules).
     'packages/effect-three/**',
     'packages/effect-three-foldkit/**',
+    'packages/effect-three-rapier/**',
     '**/dist/**',
     '**/artifacts/**',
     '**/docs/**',

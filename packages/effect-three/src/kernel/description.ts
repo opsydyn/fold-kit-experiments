@@ -236,8 +236,19 @@ export type NormalMaterial = {
   readonly flatShading: boolean;
 };
 
+/**
+ * Draws only the shadows falling on it, transparent elsewhere: three.js's
+ * `ShadowMaterial`, for grounding objects on a floor that is not drawn.
+ */
+export type ShadowMaterial = {
+  readonly _tag: 'Shadow';
+  readonly color: Rgb;
+  readonly opacity: number;
+};
+
 /** Any material the kernel can build. */
 export type SurfaceMaterial =
+  | ShadowMaterial
   | BasicMaterial
   | LambertMaterial
   | PhongMaterial
@@ -326,6 +337,61 @@ export type MeshNode = {
   readonly castShadow: boolean;
   /** Receives shadows, when the scene enables shadows. */
   readonly receiveShadow: boolean;
+  /** A rigid body simulating the mesh, when the scene has `physics`; `null` for none. */
+  readonly body: Body | null;
+};
+
+/**
+ * How a body moves, as react-three-rapier's `RigidBody` `type`:
+ *
+ * - `dynamic`: the simulation owns its pose from its starting transform.
+ * - `fixed`: it never moves; other bodies hit it.
+ * - `kinematic`: it follows the node's own transform (with its transition and behaviour),
+ *   pushing dynamic bodies out of the way.
+ */
+export type BodyType = 'dynamic' | 'fixed' | 'kinematic';
+
+/**
+ * The collider made from the mesh's geometry (react-three-rapier's `colliders`):
+ * `cuboid` its bounding box, `ball` its bounding sphere, `hull` the convex hull of its
+ * vertices, `trimesh` its triangles (for fixed bodies).
+ */
+export type BodyCollider = 'cuboid' | 'ball' | 'hull' | 'trimesh';
+
+/**
+ * A rigid body (react-three-rapier `RigidBody` at `ae5c3fe`). The node's transform is
+ * where a dynamic body starts; changing its position or rotation later teleports it there
+ * at rest. An `impulse` is applied once, when its `id` is new.
+ */
+export type Body = {
+  readonly type: BodyType;
+  readonly collider: BodyCollider;
+  /** Total mass; `null` for density 1 over the collider's volume (Rapier's default). */
+  readonly mass: number | null;
+  readonly friction: number;
+  readonly restitution: number;
+  readonly linearDamping: number;
+  readonly angularDamping: number;
+  readonly gravityScale: number;
+  /** Continuous collision detection, for fast small bodies. */
+  readonly ccd: boolean;
+  /** Reports overlaps as collisions without pushing anything. */
+  readonly sensor: boolean;
+  /** Velocities it starts with. */
+  readonly linearVelocity: Vec3;
+  readonly angularVelocity: Vec3;
+  readonly impulse: { readonly id: number; readonly impulse: Vec3 } | null;
+};
+
+/**
+ * The scene's physics world (react-three-rapier `Physics`): gravity, pausing, and the
+ * fixed step it advances by, interpolating poses between steps.
+ */
+export type Physics = {
+  readonly gravity: Vec3;
+  readonly paused: boolean;
+  readonly timeStep: number;
+  readonly interpolate: boolean;
 };
 
 /**
@@ -476,8 +542,24 @@ export type HemisphereLightNode = {
   readonly position: Vec3;
 };
 
+/**
+ * A square grid of lines on the XZ plane, three.js's `GridHelper`: `size` across, cut
+ * into `divisions` cells, with the two middle lines in `centerColor`. (Drei's `Grid` is a
+ * fading shader grid; this is the plain helper.)
+ */
+export type GridNode = {
+  readonly _tag: 'Grid';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly size: number;
+  readonly divisions: number;
+  readonly color: Rgb;
+  readonly centerColor: Rgb;
+};
+
 /** Any node in a scene. Keys are unique across the whole scene. */
 export type SceneNode =
+  | GridNode
   | GroupNode
   | MeshNode
   | InstancesNode
@@ -644,6 +726,63 @@ export type Overlay = {
   readonly view: string | null;
 };
 
+/**
+ * Image-based lighting and background, as Drei's `Environment` (`src/core/Environment.tsx`
+ * at `bf6f4ad`, `setEnvProps`). `map` names an equirectangular texture lent to the store;
+ * `null` uses three.js's `RoomEnvironment`, a neutral studio built in code (no files).
+ */
+export type Environment = {
+  readonly map: string | null;
+  /** Drei's `background`: `false` lights only, `true` also shows it, `'only'` only shows it. */
+  readonly background: boolean | 'only';
+  readonly backgroundBlurriness: number;
+  readonly backgroundIntensity: number;
+  readonly environmentIntensity: number;
+};
+
+/**
+ * A physically based daylight sky, three.js's `Sky` (Preetham), as Drei's `Sky`
+ * (`src/core/Sky.tsx` at `bf6f4ad`). Drawn at the camera's far plane, never picked.
+ */
+export type Sky = {
+  readonly sunPosition: Vec3;
+  readonly turbidity: number;
+  readonly rayleigh: number;
+  readonly mieCoefficient: number;
+  readonly mieDirectionalG: number;
+  /** three.js 0.186's cloud cover, 0 to 1. Clouds hold still: scene time does not move them. */
+  readonly clouds: number;
+  /** The size of the sky box (Drei's `distance`). */
+  readonly distance: number;
+};
+
+/**
+ * Soft shadows on the ground under everything, as Drei's `ContactShadows`
+ * (`src/core/ContactShadows.tsx` at `bf6f4ad`, after three.js's `webgl_shadow_contact`
+ * example): the scene's depth seen from below, blurred, on a plane. Redrawn with every
+ * frame the scene draws; needs no lights or shadow maps.
+ */
+export type ContactShadows = {
+  /** The middle of the shadow plane; it lies flat, facing up. */
+  readonly position: Vec3;
+  /** Width and depth of the plane, in world units (Drei's `width × scale`, `height × scale`). */
+  readonly size: readonly [width: number, depth: number];
+  /**
+   * Where the shadow camera starts seeing, above the plane (Drei's `near`). Negative takes
+   * in faces just below it, such as the flat bottoms of objects resting on the plane.
+   */
+  readonly near: number;
+  /** How far above the plane objects still cast a shadow (Drei's `far`). */
+  readonly far: number;
+  readonly blur: number;
+  /** A second, finer blur pass (Drei's `smooth`). */
+  readonly smooth: boolean;
+  readonly opacity: number;
+  readonly color: Rgb;
+  /** Texels across the shadow texture. */
+  readonly resolution: number;
+};
+
 export type SceneDescription = {
   readonly camera: Camera;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -657,6 +796,14 @@ export type SceneDescription = {
   readonly renderTextures: ReadonlyArray<RenderTexture>;
   /** Points to show HTML at, placed every frame the scene draws. */
   readonly overlays: ReadonlyArray<Overlay>;
+  /** Image-based lighting and background, or `null` for none. */
+  readonly environment: Environment | null;
+  /** A daylight sky behind everything, or `null` for none. */
+  readonly sky: Sky | null;
+  /** Soft shadows on the ground, or `null` for none. */
+  readonly contactShadows: ContactShadows | null;
+  /** A physics world for meshes with a `body`, or `null` for none. */
+  readonly physics: Physics | null;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

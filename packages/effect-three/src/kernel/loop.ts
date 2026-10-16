@@ -1,3 +1,6 @@
+import { EquirectangularReflectionMapping, type Texture, UVMapping } from 'three';
+
+import { createContactShadows } from './contactShadows.ts';
 import type { RenderSettings } from './description.ts';
 import { type OverlayPlacement, placeOverlays } from './overlays.ts';
 import { createPerformanceMonitor, type PerformanceOptions } from './performance.ts';
@@ -109,10 +112,56 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       for (const id of targets.keys()) if (!live.has(id)) release(id);
     }
   };
+  const contact = createContactShadows(graph, renderer);
+  // The room environment, made by the renderer while a scene asks for it.
+  let room: RenderTarget | undefined;
+
+  const releaseRoom = (): void => {
+    room?.dispose();
+    room = undefined;
+  };
+
+  /** The environment's texture: the room, or the lent map (set to reflect as a panorama). */
+  const environmentTexture = (map: string | null): Texture | null => {
+    if (map === null) {
+      room ??= renderer.createEnvironment();
+      return room.texture;
+    }
+    releaseRoom();
+    const texture = graph.store.texture(map) ?? null;
+    // As Drei's useEnvironment: an equirectangular image maps as a reflection panorama.
+    if (texture !== null && texture.mapping === UVMapping) {
+      texture.mapping = EquirectangularReflectionMapping;
+      texture.needsUpdate = true;
+    }
+    return texture;
+  };
+
+  /** Applies the scene's environment as Drei's `setEnvProps` does. */
+  const applyEnvironment = (): void => {
+    const environment = graph.environment();
+    const { scene } = graph;
+    if (environment === null) {
+      releaseRoom();
+      scene.environment = null;
+      scene.background = null;
+      return;
+    }
+    const texture = environmentTexture(environment.map);
+    scene.environment = environment.background === 'only' ? null : texture;
+    scene.background = environment.background === false ? null : texture;
+    scene.backgroundBlurriness = environment.backgroundBlurriness;
+    scene.backgroundIntensity = environment.backgroundIntensity;
+    scene.environmentIntensity = environment.environmentIntensity;
+  };
+
   return {
     frame: () => {
       graph.tick(elapsedSeconds());
       for (const event of tracker.frame()) emit(event);
+      for (const { a, b, started } of graph.collisions()) {
+        emit({ _tag: 'Collision', a, b, started });
+      }
       // Settings change only through reconcile, which replaces the value: compare by reference.
       const settings = graph.renderSettings();
       if (settings !== configured) {
@@ -120,6 +169,8 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
         configured = settings;
       }
       drawTextures();
+      applyEnvironment();
+      contact.draw();
       const views = graph.views();
       if (views.length === 0) renderer.render(graph.scene, graph.camera);
       for (const view of views) renderer.render(graph.scene, view.camera, view.area);
@@ -134,6 +185,8 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
     },
     dispose: () => {
       for (const id of targets.keys()) release(id);
+      releaseRoom();
+      contact.dispose();
     },
     wantsFrames: () => {
       const mode = graph.renderSettings().frames;

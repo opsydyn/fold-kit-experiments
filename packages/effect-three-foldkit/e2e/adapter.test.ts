@@ -272,6 +272,35 @@ test('assets load into the store, play, pick by part and unload from the GPU', a
   await page.close();
 }, 60_000);
 
+test('post-processing renders through effects and frees its targets when they go', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await page.goto(app.url('index.html'));
+  await waitForText(page, '#started', '1');
+  await page.click('#still');
+  await animationFrames(page, 5);
+  const canvas = page.locator('effect-three-scene canvas');
+  const plainFrame = await canvas.screenshot();
+  const before = await page.evaluate(gpuMemory);
+
+  await page.click('#glow');
+  await animationFrames(page, 5);
+  const glowingFrame = await canvas.screenshot();
+  expect(glowingFrame.equals(plainFrame)).toBe(false);
+  // The composer's render targets are GPU textures.
+  expect((await page.evaluate(gpuMemory)).textures).toBeGreaterThan(before.textures);
+
+  await page.click('#glow');
+  await animationFrames(page, 5);
+  expect((await page.evaluate(gpuMemory)).textures).toBe(before.textures);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
 test('repeated mount and unmount releases WebGL contexts and resources', async () => {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const warnings: Array<string> = [];

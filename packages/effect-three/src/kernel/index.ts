@@ -28,6 +28,7 @@ export {
   ambientLight,
   basic,
   behave,
+  bloom,
   borrowed,
   box,
   capsule,
@@ -36,6 +37,7 @@ export {
   cylinder,
   directionalLight,
   ease,
+  film,
   fixed,
   group,
   hemisphereLight,
@@ -63,12 +65,14 @@ export {
   standard,
   torus,
   type TransformOptions,
+  vignette,
 } from './build.ts';
 export { changedFields, diff, type DiffResult, type Field, type Op } from './diff.ts';
 export {
   cameraEquals,
   animationEquals,
   behaviourEquals,
+  effectsEqual,
   geometryRefEquals,
   instanceEquals,
   instancesEqual,

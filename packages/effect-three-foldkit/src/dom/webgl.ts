@@ -19,10 +19,13 @@ import {
   type ShadowMapType,
   SRGBColorSpace,
   type ToneMapping,
+  Vector2,
   VSMShadowMap,
   WebGLRenderer,
   type WebGLRendererParameters,
 } from 'three';
+
+import { createPostProcessing } from './postprocessing.ts';
 
 /** Options passed through to three's `WebGLRenderer`. The canvas is always the scene's own. */
 export type WebGLOptions = Omit<WebGLRendererParameters, 'canvas'>;
@@ -67,6 +70,8 @@ const configure = (renderer: WebGLRenderer, settings: RenderSettings): void => {
   renderer.outputColorSpace = colorSpaces[settings.colorSpace];
 };
 
+const drawingSize = new Vector2();
+
 /** A factory for a WebGL2 renderer drawing into `canvas`. `create` throws if WebGL2 is unavailable. */
 export const webglRendererFactory = (
   canvas: HTMLCanvasElement,
@@ -74,6 +79,7 @@ export const webglRendererFactory = (
 ): RendererFactory => ({
   create: () => {
     const renderer = new WebGLRenderer({ antialias: true, ...options, canvas });
+    const post = createPostProcessing(renderer);
     // The pixel ratio is the viewport's, scaled by the scene's resolution setting.
     let pixelRatio = 1;
     let resolution = 1;
@@ -81,18 +87,24 @@ export const webglRendererFactory = (
       if (renderer.getPixelRatio() !== pixelRatio * resolution) {
         renderer.setPixelRatio(pixelRatio * resolution);
       }
+      const { width, height } = renderer.getSize(drawingSize);
+      post.setSize(width, height, pixelRatio * resolution);
     };
     return {
-      render: (scene, camera) => renderer.render(scene, camera),
+      render: (scene, camera) => {
+        if (!post.render(scene, camera)) renderer.render(scene, camera);
+      },
       configure: (settings) => {
         configure(renderer, settings);
         resolution = settings.resolution;
+        post.configure(settings.effects);
         applyPixelRatio();
       },
       setViewport: (viewport) => {
         pixelRatio = viewport.pixelRatio;
         applyPixelRatio();
         renderer.setSize(viewport.width, viewport.height, false);
+        post.setSize(viewport.width, viewport.height, pixelRatio * resolution);
       },
       memory: () => ({
         geometries: renderer.info.memory.geometries,
@@ -101,6 +113,7 @@ export const webglRendererFactory = (
       // dispose() frees three's GPU objects but not the WebGL context. Browsers cap live
       // contexts (about 16 in Chromium), so release it now rather than at garbage collection.
       dispose: () => {
+        post.dispose();
         renderer.dispose();
         renderer.forceContextLoss();
       },

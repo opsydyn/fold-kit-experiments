@@ -46,6 +46,7 @@ const description = scene({
 - **Materials:** `basic`, `lambert`, `phong`, `standard`, `physical` and `normalMaterial`, each with opacity, transparency, `side`, wireframe and (lit kinds) flat shading and emission. Defaults are three.js's own. Changing a material within its kind updates it in place; changing its kind replaces it.
 - **Shadows and render settings:** `scene({ render: renderSettings({ shadows: 'soft', toneMapping: 'aces' }) })`, then `castShadow`/`receiveShadow` on meshes and `castShadow` on directional, point and spot lights. Tone mapping defaults to `none` (React Three Fiber defaults to ACES) so colours render exactly as given.
 - **Instancing:** `instances({ key, geometry, material, instances: [instance({ key, position, color })] })` draws many copies in one call. Updates rewrite only the instances that changed, and hits name the instance (`instance` on the event).
+- **Post-processing:** `renderSettings({ effects: [bloom({ strength: 1.5 }), vignette()] })` applies three.js's composer passes in order (`bloom`, `vignette`, `film`); with no effects the scene renders straight to the screen.
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 

@@ -507,8 +507,29 @@ export type ToneMapping = 'none' | 'linear' | 'reinhard' | 'cineon' | 'aces' | '
  */
 export type FrameMode = 'always' | 'demand' | 'never';
 
+/**
+ * A post-processing effect, applied in order after the scene renders (three.js's
+ * `EffectComposer` passes).
+ *
+ * - `Bloom`: bright areas glow (`UnrealBloomPass`): `strength`, `radius`, and the
+ *   luminance `threshold` above which pixels bloom.
+ * - `Vignette`: darkens the edges (`VignetteShader`): `offset` and `darkness`.
+ * - `Film`: animated grain (`FilmPass`): `intensity`, optionally `grayscale`.
+ */
+export type PostEffect =
+  | {
+      readonly _tag: 'Bloom';
+      readonly strength: number;
+      readonly radius: number;
+      readonly threshold: number;
+    }
+  | { readonly _tag: 'Vignette'; readonly offset: number; readonly darkness: number }
+  | { readonly _tag: 'Film'; readonly intensity: number; readonly grayscale: boolean };
+
 /** Scene-wide rendering settings, changeable at any time. */
 export type RenderSettings = {
+  /** Post-processing, in order. Empty renders straight to the screen. */
+  readonly effects: ReadonlyArray<PostEffect>;
   readonly frames: FrameMode;
   /**
    * Scales the drawing buffer's pixel ratio, from just above 0 to 1. Lower it when

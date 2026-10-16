@@ -388,8 +388,22 @@ export const OrthographicCamera = Schema.TaggedStruct('Orthographic', {
 /** The active camera. */
 export const Camera = Schema.Union([PerspectiveCamera, OrthographicCamera]);
 
+const NonNegativeFinite = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+
+/** A post-processing effect. */
+export const PostEffect = Schema.Union([
+  Schema.TaggedStruct('Bloom', {
+    strength: NonNegativeFinite,
+    radius: NonNegativeFinite,
+    threshold: NonNegativeFinite,
+  }),
+  Schema.TaggedStruct('Vignette', { offset: NonNegativeFinite, darkness: NonNegativeFinite }),
+  Schema.TaggedStruct('Film', { intensity: NonNegativeFinite, grayscale: Schema.Boolean }),
+]);
+
 /** Scene-wide render settings. */
 export const RenderSettings = Schema.Struct({
+  effects: Schema.Array(PostEffect),
   frames: Schema.Literals(['always', 'demand', 'never']),
   resolution: Schema.Finite.check(
     Schema.isBetween({ minimum: 0, maximum: 1, exclusiveMinimum: true }),

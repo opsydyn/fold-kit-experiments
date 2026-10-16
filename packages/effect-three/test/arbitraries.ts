@@ -244,6 +244,23 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   render: Schema.Struct({
+    effects: Schema.Array(
+      Schema.Union([
+        Schema.TaggedStruct('Bloom', {
+          strength: Schema.Literals([1, 2]),
+          radius: Schema.Literals([0.4]),
+          threshold: Schema.Literals([0.85]),
+        }),
+        Schema.TaggedStruct('Vignette', {
+          offset: Schema.Literals([1]),
+          darkness: Schema.Literals([1]),
+        }),
+        Schema.TaggedStruct('Film', {
+          intensity: Schema.Literals([0.5]),
+          grayscale: Schema.Boolean,
+        }),
+      ]),
+    ).check(Schema.isMaxLength(2)),
     frames: Schema.Literals(['always', 'demand', 'never']),
     resolution: Schema.Literals([0.5, 1]),
     shadows: Schema.Literals(['off', 'soft']),

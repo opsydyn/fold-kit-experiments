@@ -7,13 +7,21 @@ import {
   perspectiveCamera,
   scene,
   sharedGeometry,
+  bloom,
   borrowed,
   fixed,
   play,
+  renderSettings,
   type SceneNode,
   spin,
   standard,
+  vignette,
 } from '@opsydyn/effect-three';
+
+const glowing = renderSettings({
+  effects: [bloom({ strength: 2, threshold: 0 }), vignette({ darkness: 1.4 })],
+});
+const plain = renderSettings();
 
 const colours = { red: 0xd94040, blue: 0x3366ff } as const;
 const edges = { small: 1, large: 1.5 } as const;
@@ -25,7 +33,11 @@ export type Motion = keyof typeof motions;
 export type Size = keyof typeof edges;
 
 /** Extras the asset test switches on: the loaded robot, and a texture on the cube. */
-export type Extras = { readonly robot: boolean; readonly textured: boolean };
+export type Extras = {
+  readonly robot: boolean;
+  readonly textured: boolean;
+  readonly glow?: boolean;
+};
 
 const noExtras: Extras = { robot: false, textured: false };
 
@@ -48,6 +60,7 @@ export const sceneFor = (
 ) =>
   scene({
     camera: perspectiveCamera({ position: [0, 0, 4] }),
+    render: extras.glow === true ? glowing : plain,
     resources: {
       geometries: [
         {

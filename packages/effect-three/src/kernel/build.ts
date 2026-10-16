@@ -33,6 +33,7 @@ import type {
   PerspectiveCamera,
   PlaneGeometry,
   PointLightNode,
+  PostEffect,
   RenderSettings,
   RingGeometry,
   ResourceDefinitions,
@@ -569,6 +570,43 @@ export const orthographicCamera = (
   lookAt: options.lookAt ?? origin,
 });
 
+const noEffects: ReadonlyArray<PostEffect> = [];
+
+/**
+ * Bloom: bright areas glow. Defaults: strength 1 (as three.js), radius 0.4 and threshold
+ * 0.85, so only the brightest areas bloom (three.js leaves these two unset).
+ */
+export const bloom = (
+  options: {
+    readonly strength?: number;
+    readonly radius?: number;
+    readonly threshold?: number;
+  } = {},
+): PostEffect => ({
+  _tag: 'Bloom',
+  strength: options.strength ?? 1,
+  radius: options.radius ?? 0.4,
+  threshold: options.threshold ?? 0.85,
+});
+
+/** Vignette: darker edges. Defaults (as three.js's `VignetteShader`): offset 1, darkness 1. */
+export const vignette = (
+  options: { readonly offset?: number; readonly darkness?: number } = {},
+): PostEffect => ({
+  _tag: 'Vignette',
+  offset: options.offset ?? 1,
+  darkness: options.darkness ?? 1,
+});
+
+/** Film grain. Defaults (as three.js's `FilmPass`): intensity 0.5, in colour. */
+export const film = (
+  options: { readonly intensity?: number; readonly grayscale?: boolean } = {},
+): PostEffect => ({
+  _tag: 'Film',
+  intensity: options.intensity ?? 0.5,
+  grayscale: options.grayscale ?? false,
+});
+
 /**
  * Render settings. Defaults: frames on demand, full resolution, shadows off, no tone
  * mapping, exposure 1, sRGB output. Two deliberate differences from React Three Fiber:
@@ -580,6 +618,7 @@ export const orthographicCamera = (
  */
 export const renderSettings = (options: Partial<RenderSettings> = {}): RenderSettings => ({
   frames: options.frames ?? 'demand',
+  effects: options.effects ?? noEffects,
   resolution: options.resolution ?? 1,
   shadows: options.shadows ?? 'off',
   toneMapping: options.toneMapping ?? 'none',

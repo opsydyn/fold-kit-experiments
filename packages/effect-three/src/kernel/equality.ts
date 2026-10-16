@@ -11,6 +11,7 @@ import type {
   Instance,
   MaterialRef,
   Camera,
+  PostEffect,
   RenderSettings,
   ResourceDefinitions,
   Rotation,
@@ -190,7 +191,29 @@ export const cameraEquals = (a: Camera, b: Camera): boolean => {
 
 /** Render settings equality. */
 export const renderSettingsEquals = (a: RenderSettings, b: RenderSettings): boolean =>
-  a === b || sameFlatRecord(a, b);
+  a === b ||
+  (a.frames === b.frames &&
+    Object.is(a.resolution, b.resolution) &&
+    a.shadows === b.shadows &&
+    a.toneMapping === b.toneMapping &&
+    Object.is(a.exposure, b.exposure) &&
+    a.colorSpace === b.colorSpace &&
+    effectsEqual(a.effects, b.effects));
+
+/** Post-processing equality: the same effects, in order, with the same parameters. */
+export const effectsEqual = (
+  a: ReadonlyArray<PostEffect>,
+  b: ReadonlyArray<PostEffect>,
+): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined || y === undefined || !sameFlatRecord(x, y)) return false;
+  }
+  return true;
+};
 
 /** Order-sensitive equality of shared resource definitions. */
 export const resourcesEqual = (a: ResourceDefinitions, b: ResourceDefinitions): boolean => {

@@ -134,6 +134,13 @@ export type BehaviourPose = {
 };
 
 // @public
+export const bloom: (options?: {
+    readonly strength?: number;
+    readonly radius?: number;
+    readonly threshold?: number;
+}) => PostEffect;
+
+// @public
 export const borrowed: (options: TransformOptions & {
     readonly id: string;
     readonly interactive?: boolean;
@@ -509,10 +516,19 @@ export type Easing = 'linear' | 'easeInOutCubic' | 'easeOutCubic' | 'easeOutBack
 const Easing_2: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
 
 // @public
+export const effectsEqual: (a: ReadonlyArray<PostEffect>, b: ReadonlyArray<PostEffect>) => boolean;
+
+// @public
 export const emptyIndex: SceneIndex;
 
 // @public
 export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour';
+
+// @public
+export const film: (options?: {
+    readonly intensity?: number;
+    readonly grayscale?: boolean;
+}) => PostEffect;
 
 // @public
 export const fixed: (euler: Vec3) => Rotation;
@@ -1592,6 +1608,35 @@ const PointLightNode_2: Schema.TaggedStruct<"PointLight", {
 export const pointOnPlane: (ray: Ray, plane: PlaneEquation) => Vec3 | undefined;
 
 // @public
+export type PostEffect = {
+    readonly _tag: 'Bloom';
+    readonly strength: number;
+    readonly radius: number;
+    readonly threshold: number;
+} | {
+    readonly _tag: 'Vignette';
+    readonly offset: number;
+    readonly darkness: number;
+} | {
+    readonly _tag: 'Film';
+    readonly intensity: number;
+    readonly grayscale: boolean;
+};
+
+// @public
+const PostEffect_2: Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
+    readonly strength: Schema.Finite;
+    readonly radius: Schema.Finite;
+    readonly threshold: Schema.Finite;
+}>, Schema.TaggedStruct<"Vignette", {
+    readonly offset: Schema.Finite;
+    readonly darkness: Schema.Finite;
+}>, Schema.TaggedStruct<"Film", {
+    readonly intensity: Schema.Finite;
+    readonly grayscale: Schema.Boolean;
+}>]>;
+
+// @public
 export type Ray = {
     readonly origin: Vec3;
     readonly direction: Vec3;
@@ -1649,6 +1694,7 @@ export class RendererUnavailable extends RendererUnavailable_base<{
 
 // @public
 export type RenderSettings = {
+    readonly effects: ReadonlyArray<PostEffect>;
     readonly frames: FrameMode;
     readonly resolution: number;
     readonly shadows: ShadowMode;
@@ -1662,6 +1708,17 @@ export const renderSettings: (options?: Partial<RenderSettings>) => RenderSettin
 
 // @public
 const RenderSettings_2: Schema.Struct<{
+    readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
+        readonly strength: Schema.Finite;
+        readonly radius: Schema.Finite;
+        readonly threshold: Schema.Finite;
+    }>, Schema.TaggedStruct<"Vignette", {
+        readonly offset: Schema.Finite;
+        readonly darkness: Schema.Finite;
+    }>, Schema.TaggedStruct<"Film", {
+        readonly intensity: Schema.Finite;
+        readonly grayscale: Schema.Boolean;
+    }>]>>;
     readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
     readonly resolution: Schema.Finite;
     readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
@@ -1935,6 +1992,17 @@ const SceneDescription_2: Schema.Struct<{
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>]>;
     readonly render: Schema.Struct<{
+        readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
+            readonly strength: Schema.Finite;
+            readonly radius: Schema.Finite;
+            readonly threshold: Schema.Finite;
+        }>, Schema.TaggedStruct<"Vignette", {
+            readonly offset: Schema.Finite;
+            readonly darkness: Schema.Finite;
+        }>, Schema.TaggedStruct<"Film", {
+            readonly intensity: Schema.Finite;
+            readonly grayscale: Schema.Boolean;
+        }>]>>;
         readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
         readonly resolution: Schema.Finite;
         readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
@@ -2372,6 +2440,7 @@ declare namespace SceneSchema {
         PerspectiveCamera_3 as PerspectiveCamera,
         OrthographicCamera_3 as OrthographicCamera,
         Camera_3 as Camera,
+        PostEffect_2 as PostEffect,
         RenderSettings_2 as RenderSettings,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
@@ -2723,6 +2792,12 @@ export type Viewport = {
     readonly height: number;
     readonly pixelRatio: number;
 };
+
+// @public
+export const vignette: (options?: {
+    readonly offset?: number;
+    readonly darkness?: number;
+}) => PostEffect;
 
 // @public
 const WheelDetail: Schema.Struct<{

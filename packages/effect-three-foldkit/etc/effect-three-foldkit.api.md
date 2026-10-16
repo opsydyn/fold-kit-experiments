@@ -123,10 +123,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
-    readonly _tag: "StartedScene";
-} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
+} | {
+    readonly _tag: "StartedScene";
 }>;
 
 // @public
@@ -201,6 +201,17 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>]>;
         readonly render: Schema.Struct<{
+            readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
+                readonly strength: Schema.Finite;
+                readonly radius: Schema.Finite;
+                readonly threshold: Schema.Finite;
+            }>, Schema.TaggedStruct<"Vignette", {
+                readonly offset: Schema.Finite;
+                readonly darkness: Schema.Finite;
+            }>, Schema.TaggedStruct<"Film", {
+                readonly intensity: Schema.Finite;
+                readonly grayscale: Schema.Boolean;
+            }>]>>;
             readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
             readonly resolution: Schema.Finite;
             readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;

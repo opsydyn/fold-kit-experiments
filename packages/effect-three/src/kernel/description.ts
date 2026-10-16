@@ -558,6 +558,22 @@ export type ViewRect = {
  */
 export type View = { readonly key: string; readonly camera: Camera; readonly rect: ViewRect };
 
+/**
+ * A small scene rendered into a texture that materials use as `map: id`: Drei's
+ * `RenderTexture`, as data. Its nodes have their own key namespace and may use the
+ * scene's shared resources. It redraws only when it changes or animates.
+ */
+export type RenderTexture = {
+  readonly id: string;
+  /** Texture size in pixels. */
+  readonly width: number;
+  readonly height: number;
+  readonly camera: Camera;
+  /** A clear colour, or `null` for transparent. */
+  readonly background: Rgb | null;
+  readonly children: ReadonlyArray<SceneNode>;
+};
+
 /** A complete scene: camera, render settings, shared resources and root nodes. */
 export type SceneDescription = {
   readonly camera: Camera;
@@ -566,6 +582,8 @@ export type SceneDescription = {
    * full view with `camera`.
    */
   readonly views: ReadonlyArray<View>;
+  /** Scenes rendered into textures for materials to use. */
+  readonly renderTextures: ReadonlyArray<RenderTexture>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

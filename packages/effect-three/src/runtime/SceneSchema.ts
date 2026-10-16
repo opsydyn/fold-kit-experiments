@@ -426,10 +426,21 @@ export const View = Schema.Struct({
   }),
 });
 
+/** A scene rendered into a texture lent under `id`. */
+export const RenderTexture = Schema.Struct({
+  id: Schema.String,
+  width: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 8192 })),
+  height: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 8192 })),
+  camera: Camera,
+  background: Schema.NullOr(Rgb),
+  children: Schema.Array(SceneNode),
+});
+
 /** A complete scene description. */
 export const SceneDescription = Schema.Struct({
   camera: Camera,
   views: Schema.Array(View),
+  renderTextures: Schema.Array(RenderTexture),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
@@ -510,4 +521,5 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('DuplicateInstanceKey', { nodeKey: Schema.String, key: Schema.String }),
   Schema.TaggedStruct('UnknownBehaviour', { nodeKey: Schema.String, name: Schema.String }),
   Schema.TaggedStruct('DuplicateViewKey', { key: Schema.String }),
+  Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),
 ]);

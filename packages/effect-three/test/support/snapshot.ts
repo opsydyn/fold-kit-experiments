@@ -169,6 +169,12 @@ const snapshotNode = (graph: SceneGraph, object: Object3D): NodeSnapshot => ({
 
 export const snapshot = (graph: SceneGraph): unknown => ({
   render: graph.renderSettings(),
+  renderTextures: graph.renderTextures().map((texture) => ({
+    id: texture.id,
+    width: texture.width,
+    height: texture.height,
+    scene: snapshot(texture.graph),
+  })),
   views: graph.views().map((view) => ({
     key: view.key,
     area: view.area,

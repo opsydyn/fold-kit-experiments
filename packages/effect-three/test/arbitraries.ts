@@ -243,6 +243,22 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 ]);
 
 const sceneFields = {
+  renderTextures: Schema.Array(
+    Schema.Struct({
+      id: Schema.Literals(['rt-a', 'rt-b']),
+      width: Schema.Literals([64, 128]),
+      height: Schema.Literals([64]),
+      camera: Schema.TaggedStruct('Perspective', {
+        fov: Schema.Literals([50]),
+        near: Schema.Literals([0.1]),
+        far: Schema.Literals([100]),
+        position: Vec3,
+        lookAt: Vec3,
+      }),
+      background: Schema.NullOr(Colour),
+      children: Schema.Array(Node).check(Schema.isMaxLength(3)),
+    }),
+  ).check(Schema.isMaxLength(2)),
   views: Schema.Array(
     Schema.Struct({
       key: Schema.Literals(['left', 'right']),

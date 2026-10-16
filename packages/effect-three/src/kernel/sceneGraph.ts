@@ -8,6 +8,7 @@
  */
 import {
   AmbientLight,
+  Color,
   AnimationClip,
   AnimationMixer,
   type BufferGeometry,
@@ -42,6 +43,7 @@ import type {
   SceneDescription,
   SceneNode,
   SpotLightNode,
+  RenderTexture,
   Vec3,
   View,
   ViewRect,
@@ -60,6 +62,7 @@ import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
   emptyIndex,
+  indexScene,
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
@@ -122,6 +125,14 @@ const isPlaced = (entry: Entry): entry is Placed =>
 const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
 
+/** A render texture as hosted: its id, size and the nested graph that draws it. */
+export type HostedTexture = {
+  readonly id: string;
+  readonly graph: SceneGraph;
+  readonly width: number;
+  readonly height: number;
+};
+
 /** A view as hosted: its key, its camera and its rectangle in CSS pixels from the top left. */
 export type HostedView = {
   readonly key: string;
@@ -151,6 +162,8 @@ export type SceneGraph = {
   readonly camera: HostCamera;
   /** The scene's views, fitted to the viewport; empty when `camera` fills the canvas. */
   readonly views: () => ReadonlyArray<HostedView>;
+  /** Render textures, each a nested graph to draw into its texture (by the frame loop). */
+  readonly renderTextures: () => ReadonlyArray<HostedTexture>;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -322,6 +335,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const scene = new Scene();
   let camera: HostCamera = new PerspectiveCamera();
   let views: ReadonlyArray<HostedView> = [];
+  const textureGraphs = new Map<
+    string,
+    { readonly graph: SceneGraph; description: RenderTexture }
+  >();
+  let textureList: ReadonlyArray<HostedTexture> = [];
   let viewDescriptions: ReadonlyArray<View> = [];
 
   /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
@@ -875,7 +893,76 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
   };
 
+  /** The scene a render texture draws: its camera and nodes, with the parent's resources. */
+  const textureScene = (texture: RenderTexture, parent: SceneDescription): SceneDescription => ({
+    camera: texture.camera,
+    views: [],
+    renderTextures: [],
+    render: parent.render,
+    resources: parent.resources,
+    children: texture.children,
+  });
+
+  /** A hosted render texture as the loop sees it; none if it is not hosted. */
+  function hostedTexture(texture: RenderTexture): ReadonlyArray<HostedTexture> {
+    const hosted = textureGraphs.get(texture.id);
+    if (hosted === undefined) return [];
+    return [{ id: texture.id, graph: hosted.graph, width: texture.width, height: texture.height }];
+  }
+
+  /**
+   * Brings the hosted render textures in line with the description: nested graphs on the
+   * same store, created, reconciled or disposed. Returns their operations.
+   */
+  const syncTextures = (next: SceneDescription): ReadonlyArray<Op> => {
+    const ops: Array<Op> = [];
+    const kept = new Set<string>();
+    for (const texture of next.renderTextures) {
+      kept.add(texture.id);
+      const existing = textureGraphs.get(texture.id);
+      const hosted = existing ?? {
+        graph: createSceneGraph({
+          store,
+          ...(options.behaviours === undefined ? {} : { behaviours: options.behaviours }),
+        }),
+        description: texture,
+      };
+      const result = hosted.graph.reconcile(textureScene(texture, next));
+      const reframed =
+        existing === undefined ||
+        existing.description.width !== texture.width ||
+        existing.description.height !== texture.height ||
+        existing.description.background !== texture.background;
+      if (reframed) {
+        hosted.graph.resize(texture.width, texture.height);
+        hosted.graph.scene.background =
+          texture.background === null ? null : new Color(texture.background);
+      }
+      hosted.description = texture;
+      textureGraphs.set(texture.id, hosted);
+      const subOps = result._tag === 'Applied' ? result.ops : [];
+      if (reframed || subOps.length > 0) {
+        ops.push({ _tag: 'UpdateRenderTexture', id: texture.id, ops: subOps });
+      }
+    }
+    for (const [id, hosted] of textureGraphs) {
+      if (kept.has(id)) continue;
+      hosted.graph.dispose();
+      textureGraphs.delete(id);
+      ops.push({ _tag: 'RemoveRenderTexture', id });
+    }
+    // In the description's order, so a host draws them in the order they were written.
+    // In the description's order, so a host draws them in the order they were written.
+    textureList = next.renderTextures.flatMap((texture) => hostedTexture(texture));
+    return ops;
+  };
+
   const reconcile = (next: SceneDescription): ReconcileResult => {
+    // Validate every render texture's scene first, so a bad one changes nothing at all.
+    for (const texture of next.renderTextures) {
+      const checked = indexScene(textureScene(texture, next), knownBehaviours);
+      if (checked._tag === 'Invalid') return checked;
+    }
     const result = diff(index, next, knownBehaviours);
     if (result._tag === 'Invalid') return result;
     for (const op of result.ops) apply(op);
@@ -884,8 +971,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     reparented.clear();
     index = result.index;
-    if (result.ops.length > 0) invalidate();
-    return { _tag: 'Applied', ops: result.ops };
+    const ops = [...result.ops, ...syncTextures(next)];
+    if (ops.length > 0) invalidate();
+    return { _tag: 'Applied', ops };
   };
 
   // Defined once so ticking allocates nothing; deleting during Map.forEach is safe.
@@ -895,6 +983,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const tick = (elapsedSeconds: number): void => {
     elapsed = elapsedSeconds;
+    for (const texture of textureList) texture.graph.tick(elapsedSeconds);
     for (const entry of spinning) {
       if (isPlaced(entry)) {
         writeRotation(entry.object.rotation, entry.node.rotation, elapsed);
@@ -911,6 +1000,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const setAnimating = (next: boolean): void => {
     if (next !== animating) invalidate();
+    for (const texture of textureList) texture.graph.setAnimating(next);
     animating = next;
     if (next) return;
     moving.forEach(finishTween);
@@ -918,6 +1008,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   };
 
   const dispose = (): void => {
+    for (const texture of textureList) texture.graph.dispose();
+    textureGraphs.clear();
+    textureList = [];
     for (const entry of entries.values()) {
       entry.object.removeFromParent();
       release(entry);
@@ -938,6 +1031,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       return camera;
     },
     views: () => views,
+    renderTextures: () => textureList,
     store,
     reconcile,
     tick,
@@ -945,6 +1039,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     renderSettings: () => settings,
     needsFrame: () =>
       dirty ||
+      textureList.some((texture) => texture.graph.needsFrame()) ||
       (animating && (spinning.size > 0 || moving.size > 0 || behaving.size > 0 || clipsRunning())),
     drawn: () => {
       dirty = false;

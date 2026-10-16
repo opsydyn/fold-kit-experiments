@@ -40,6 +40,7 @@ const Model = Schema.Struct({
   robot: Schema.String,
   textured: Schema.Boolean,
   glow: Schema.Boolean,
+  screen: Schema.Boolean,
 });
 type Model = typeof Model.Type;
 
@@ -57,6 +58,7 @@ const Message = defineMessageUnion({
   ClickedUnloadModel: {},
   ClickedLoadTexture: {},
   ClickedToggleGlow: {},
+  ClickedToggleScreen: {},
   SettledModel: { outcome: Schema.String },
   SettledTexture: { ready: Schema.Boolean },
 });
@@ -126,6 +128,9 @@ const pureUpdate = (model: Model, message: Message) =>
     ClickedUnloadModel: () => ({ model, commands: [UnloadModel()] }),
     ClickedLoadTexture: () => ({ model, commands: [LoadTexture()] }),
     ClickedToggleGlow: () => ({ model: modifyFields(model, { glow: (glow) => !glow }) }),
+    ClickedToggleScreen: () => ({
+      model: modifyFields(model, { screen: (screen) => !screen }),
+    }),
     SettledModel: ({ outcome }) => ({ model: modifyFields(model, { robot: () => outcome }) }),
     SettledTexture: ({ ready }) => ({ model: modifyFields(model, { textured: () => ready }) }),
     GotSceneLifecycle: ({ lifecycle }) => ({ model: lifecycleUpdate(model, lifecycle) }),
@@ -146,6 +151,7 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
         robot: model.robot.startsWith('ready'),
         textured: model.textured,
         glow: model.glow,
+        screen: model.screen,
       }),
       mount: sceneMount,
       className: 'scene',
@@ -181,6 +187,7 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.button([h.Id('unload-model'), h.OnClick(Message.ClickedUnloadModel())], ['unload']),
       h.button([h.Id('load-texture'), h.OnClick(Message.ClickedLoadTexture())], ['texture']),
       h.button([h.Id('glow'), h.OnClick(Message.ClickedToggleGlow())], ['glow']),
+      h.button([h.Id('screen'), h.OnClick(Message.ClickedToggleScreen())], ['screen']),
       h.p([h.Id('robot')], [model.robot]),
       h.p([h.Id('clicks')], [String(model.clicks)]),
       h.p([h.Id('last-key')], [model.lastKey]),
@@ -211,6 +218,7 @@ const initialModel: Model = {
   robot: 'none',
   textured: false,
   glow: false,
+  screen: false,
 };
 
 Runtime.run(

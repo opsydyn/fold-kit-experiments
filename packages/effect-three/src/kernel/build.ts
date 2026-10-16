@@ -35,6 +35,7 @@ import type {
   PointLightNode,
   PostEffect,
   RenderSettings,
+  RenderTexture,
   RingGeometry,
   ResourceDefinitions,
   Rgb,
@@ -649,16 +650,40 @@ export const view = (options: {
   },
 });
 
+const noRenderTextures: ReadonlyArray<RenderTexture> = [];
+
+/**
+ * A scene rendered into a texture, lent under `id` for materials' `map`. Defaults:
+ * 512 × 512, the default camera, transparent.
+ */
+export const renderTexture = (options: {
+  readonly id: string;
+  readonly width?: number;
+  readonly height?: number;
+  readonly camera?: Camera;
+  readonly background?: Rgb | null;
+  readonly children?: ReadonlyArray<SceneNode>;
+}): RenderTexture => ({
+  id: options.id,
+  width: options.width ?? 512,
+  height: options.height ?? 512,
+  camera: options.camera ?? perspectiveCamera(),
+  background: options.background ?? null,
+  children: options.children ?? [],
+});
+
 /** A scene description. */
 export const scene = (options: {
   readonly camera?: Camera;
   readonly views?: ReadonlyArray<View>;
+  readonly renderTextures?: ReadonlyArray<RenderTexture>;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
 }): SceneDescription => ({
   camera: options.camera ?? perspectiveCamera(),
   views: options.views ?? noViews,
+  renderTextures: options.renderTextures ?? noRenderTextures,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

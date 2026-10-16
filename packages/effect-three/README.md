@@ -48,6 +48,7 @@ const description = scene({
 - **Instancing:** `instances({ key, geometry, material, instances: [instance({ key, position, color })] })` draws many copies in one call. Updates rewrite only the instances that changed, and hits name the instance (`instance` on the event).
 - **Views:** `scene({ views: [view({ key: 'front', camera, rect: { width: 0.5 } }), ...] })` draws several cameras into parts of one canvas; picks use the view under the pointer and report it as `view`.
 - **Post-processing:** `renderSettings({ effects: [bloom({ strength: 1.5 }), vignette()] })` applies three.js's composer passes in order (`bloom`, `vignette`, `film`); with no effects the scene renders straight to the screen.
+- **Render textures:** `scene({ renderTextures: [renderTexture({ id: 'screen', camera, children })] })` draws a little scene of its own into a texture that any material uses with `map: 'screen'`; it redraws only when its scene changes.
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 

@@ -1,6 +1,7 @@
 /**
  * The studio: five pieces on a floor, each in its own material kind, lit by a sky light,
  * a warm point light and a spot light that follows the selected piece and casts shadows.
+ * A monitor at the back shows the selected piece close up, through a render texture.
  */
 import {
   basic,
@@ -21,6 +22,7 @@ import {
   plane,
   pointLight,
   renderSettings,
+  renderTexture,
   scene,
   type SceneNode,
   sharedGeometry,
@@ -155,11 +157,54 @@ const viewsFor = { perspective: [], orthographic: [], split: splitViews } satisf
   ReadonlyArray<View>
 >;
 
+/** The selected piece alone, turned to show its finish; nothing when none is selected. */
+const closeUp = (model: Model): ReadonlyArray<SceneNode> =>
+  Option.match(
+    Option.flatMap(model.selected, (piece) =>
+      Option.fromNullishOr(model.placements.find((placement) => placement.piece === piece)),
+    ),
+    {
+      onNone: () => [],
+      onSome: (placement) => [
+        mesh({
+          key: 'close-up',
+          rotation: fixed([0.35, 0.6, 0]),
+          geometry: sharedGeometry(placement.piece),
+          material: finishMaterial[placement.finish](colour[placement.piece], 0x000000),
+        }),
+      ],
+    },
+  );
+
+/**
+ * The monitor's picture: its own little scene, drawn into the `monitor` texture only when
+ * the selection or its finish changes.
+ */
+const monitorPicture = (model: Model) =>
+  renderTexture({
+    id: 'monitor',
+    width: 384,
+    height: 240,
+    camera: perspectiveCamera({ fov: 35, position: [0, 0.5, 2.6], lookAt: [0, 0, 0] }),
+    background: 0x1d2128,
+    children: [
+      hemisphereLight({
+        key: 'monitor-sky',
+        color: 0xffffff,
+        groundColor: 0x55524c,
+        intensity: 1.4,
+      }),
+      pointLight({ key: 'monitor-key', intensity: 8, position: [1.5, 1.5, 2] }),
+      ...closeUp(model),
+    ],
+  });
+
 export const sceneFor = (model: Model) =>
   scene({
     camera: cameraFor[model.lens],
     views: viewsFor[model.lens],
     render: renderSettings({ shadows: model.shadows, toneMapping: model.tone }),
+    renderTextures: [monitorPicture(model)],
     resources: {
       geometries: [
         { id: 'torus', geometry: torus({ radius: 0.45, tube: 0.18, tubularSegments: 64 }) },
@@ -189,6 +234,12 @@ export const sceneFor = (model: Model) =>
         geometry: plane({ width: limit * 2 + 1.2, height: limit * 2 + 1.2 }),
         material: standard({ color: 0xd9d6cf, roughness: 0.95 }),
         receiveShadow: true,
+      }),
+      mesh({
+        key: 'monitor',
+        position: [0, 1.15, -limit - 0.4],
+        geometry: plane({ width: 3.2, height: 2 }),
+        material: basic({ map: 'monitor' }),
       }),
       ...model.placements.map((placement) => pieceNode(model, placement)),
     ],

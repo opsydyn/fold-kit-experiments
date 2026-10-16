@@ -5,7 +5,7 @@
 ```ts
 
 import { BufferGeometry } from 'three';
-import type { Camera as Camera_2 } from 'three';
+import { Camera as Camera_2 } from 'three';
 import { Context } from 'effect';
 import { Effect } from 'effect';
 import type { Euler } from 'three';
@@ -422,6 +422,9 @@ export type DescriptionError = {
 } | {
     readonly _tag: 'DuplicateViewKey';
     readonly key: string;
+} | {
+    readonly _tag: 'DuplicateRenderTextureId';
+    readonly id: string;
 };
 
 // @public
@@ -444,6 +447,8 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
     readonly name: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateViewKey", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
+    readonly id: Schema.String;
 }>]>;
 
 // @public
@@ -731,6 +736,14 @@ const HitDetail: Schema.Struct<{
 
 // @public
 export type HostCamera = PerspectiveCamera_2 | OrthographicCamera_2;
+
+// @public
+export type HostedTexture = {
+    readonly id: string;
+    readonly graph: SceneGraph;
+    readonly width: number;
+    readonly height: number;
+};
 
 // @public
 export type HostedView = {
@@ -1326,6 +1339,15 @@ export type Op = {
 } | {
     readonly _tag: 'SetViews';
     readonly views: ReadonlyArray<View>;
+}
+/** A render texture was created, resized or its scene changed (its own operations). */
+| {
+    readonly _tag: 'UpdateRenderTexture';
+    readonly id: string;
+    readonly ops: ReadonlyArray<Op>;
+} | {
+    readonly _tag: 'RemoveRenderTexture';
+    readonly id: string;
 } | {
     readonly _tag: 'SetRenderSettings';
     readonly settings: RenderSettings;
@@ -1761,6 +1783,54 @@ const RenderSettings_2: Schema.Struct<{
 // @public
 export const renderSettingsEquals: (a: RenderSettings, b: RenderSettings) => boolean;
 
+// @public
+export type RenderTarget = {
+    readonly texture: Texture;
+    readonly dispose: () => void;
+};
+
+// @public
+export type RenderTexture = {
+    readonly id: string;
+    readonly width: number;
+    readonly height: number;
+    readonly camera: Camera;
+    readonly background: Rgb | null;
+    readonly children: ReadonlyArray<SceneNode>;
+};
+
+// @public
+export const renderTexture: (options: {
+    readonly id: string;
+    readonly width?: number;
+    readonly height?: number;
+    readonly camera?: Camera;
+    readonly background?: Rgb | null;
+    readonly children?: ReadonlyArray<SceneNode>;
+}) => RenderTexture;
+
+// @public
+const RenderTexture_2: Schema.Struct<{
+    readonly id: Schema.String;
+    readonly width: Schema.Int;
+    readonly height: Schema.Int;
+    readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+        readonly fov: Schema.Finite;
+        readonly near: Schema.Finite;
+        readonly far: Schema.Finite;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>, Schema.TaggedStruct<"Orthographic", {
+        readonly zoom: Schema.Finite;
+        readonly near: Schema.Finite;
+        readonly far: Schema.Finite;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>]>;
+    readonly background: Schema.NullOr<Schema.Int>;
+    readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
+}>;
+
 // @public (undocumented)
 export const resetPose: (pose: BehaviourPose) => void;
 
@@ -1988,6 +2058,7 @@ export const rotationEquals: (a: Rotation, b: Rotation) => boolean;
 export const scene: (options: {
     readonly camera?: Camera;
     readonly views?: ReadonlyArray<View>;
+    readonly renderTextures?: ReadonlyArray<RenderTexture>;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2004,6 +2075,7 @@ export type SceneClock = {
 export type SceneDescription = {
     readonly camera: Camera;
     readonly views: ReadonlyArray<View>;
+    readonly renderTextures: ReadonlyArray<RenderTexture>;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2045,6 +2117,26 @@ const SceneDescription_2: Schema.Struct<{
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
         }>;
+    }>>;
+    readonly renderTextures: Schema.$Array<Schema.Struct<{
+        readonly id: Schema.String;
+        readonly width: Schema.Int;
+        readonly height: Schema.Int;
+        readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+            readonly fov: Schema.Finite;
+            readonly near: Schema.Finite;
+            readonly far: Schema.Finite;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>, Schema.TaggedStruct<"Orthographic", {
+            readonly zoom: Schema.Finite;
+            readonly near: Schema.Finite;
+            readonly far: Schema.Finite;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>]>;
+        readonly background: Schema.NullOr<Schema.Int>;
+        readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
     }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -2373,6 +2465,7 @@ export type SceneGraph = {
     readonly scene: Scene;
     readonly camera: HostCamera;
     readonly views: () => ReadonlyArray<HostedView>;
+    readonly renderTextures: () => ReadonlyArray<HostedTexture>;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -2415,6 +2508,7 @@ export type SceneIndex = {
 export type SceneLoop = {
     readonly frame: () => void;
     readonly wantsFrames: () => boolean;
+    readonly dispose: () => void;
     readonly pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
 };
 
@@ -2436,7 +2530,8 @@ const SceneNode_2: Schema.Codec<SceneNode>;
 
 // @public (undocumented)
 export type SceneRenderer = {
-    readonly render: (scene: Scene, camera: Camera_2, area?: RenderArea) => void;
+    readonly render: (scene: Scene, camera: Camera_2, area?: RenderArea, target?: RenderTarget) => void;
+    readonly createTarget: (width: number, height: number) => RenderTarget;
     readonly configure: (settings: RenderSettings) => void;
     readonly setViewport: (viewport: Viewport) => void;
     readonly memory: () => RendererMemory;
@@ -2507,6 +2602,7 @@ declare namespace SceneSchema {
         PostEffect_2 as PostEffect,
         RenderSettings_2 as RenderSettings,
         View_2 as View,
+        RenderTexture_2 as RenderTexture,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
         HitDetail,

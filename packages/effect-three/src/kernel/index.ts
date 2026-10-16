@@ -63,6 +63,7 @@ export {
   spin,
   spotLight,
   standard,
+  renderTexture,
   torus,
   type TransformOptions,
   view,
@@ -123,6 +124,7 @@ export {
   recordingRendererFactory,
   type RecordingRenderer,
   type RenderArea,
+  type RenderTarget,
   type RecordingRendererFactory,
   type RendererFactory,
   type RendererMemory,
@@ -132,6 +134,7 @@ export {
 export {
   createSceneGraph,
   type HostCamera,
+  type HostedTexture,
   type HostedView,
   type HostMesh,
   type ReconcileResult,

@@ -4,7 +4,7 @@
  *
  * @module
  */
-import type { Camera, Scene } from 'three';
+import { type Camera, type Scene, Texture } from 'three';
 
 import type { RenderSettings } from './description.ts';
 
@@ -30,12 +30,20 @@ export type RenderArea = {
   readonly height: number;
 };
 
+/** An offscreen surface: render into it, then use its texture. Dispose exactly once. */
+export type RenderTarget = {
+  readonly texture: Texture;
+  readonly dispose: () => void;
+};
+
 export type SceneRenderer = {
   /**
    * Draws the scene through `camera`, into `area` when given (clearing only that area),
    * otherwise across the whole surface.
    */
-  readonly render: (scene: Scene, camera: Camera, area?: RenderArea) => void;
+  readonly render: (scene: Scene, camera: Camera, area?: RenderArea, target?: RenderTarget) => void;
+  /** Creates an offscreen target of `width` × `height` pixels to render into. */
+  readonly createTarget: (width: number, height: number) => RenderTarget;
   /** Applies scene-wide render settings. Called before the first frame and on each change. */
   readonly configure: (settings: RenderSettings) => void;
   readonly setViewport: (viewport: Viewport) => void;
@@ -74,6 +82,10 @@ const createRecordingRenderer = (): RecordingRenderer => {
     },
     configure: (settings) => {
       configured.push(settings);
+    },
+    createTarget: () => {
+      const texture = new Texture();
+      return { texture, dispose: () => texture.dispose() };
     },
     setViewport: (next) => {
       viewport = next;

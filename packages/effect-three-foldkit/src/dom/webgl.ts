@@ -3,13 +3,15 @@
  *
  * @module
  */
-import type { RendererFactory, RenderSettings } from '@opsydyn/effect-three';
+import type { RendererFactory, RenderSettings, RenderTarget } from '@opsydyn/effect-three';
 import {
   ACESFilmicToneMapping,
   AgXToneMapping,
   BasicShadowMap,
   CineonToneMapping,
   type ColorSpace,
+  HalfFloatType,
+  LinearFilter,
   LinearSRGBColorSpace,
   LinearToneMapping,
   NeutralToneMapping,
@@ -23,6 +25,7 @@ import {
   VSMShadowMap,
   WebGLRenderer,
   type WebGLRendererParameters,
+  WebGLRenderTarget,
 } from 'three';
 
 import { createPostProcessing } from './postprocessing.ts';
@@ -72,6 +75,27 @@ const configure = (renderer: WebGLRenderer, settings: RenderSettings): void => {
 
 const drawingSize = new Vector2();
 
+/**
+ * A render texture's target, as Drei's `useFBO` makes one for `RenderTexture` (drei
+ * `bf6f4ad`, `src/core/Fbo.tsx`): half-float colour, linear filtering, multisampled, with
+ * a depth buffer.
+ */
+const createTarget = (
+  targets: WeakMap<RenderTarget, WebGLRenderTarget>,
+  width: number,
+  height: number,
+): RenderTarget => {
+  const target = new WebGLRenderTarget(width, height, {
+    minFilter: LinearFilter,
+    magFilter: LinearFilter,
+    type: HalfFloatType,
+    samples: 8,
+  });
+  const handle = { texture: target.texture, dispose: () => target.dispose() };
+  targets.set(handle, target);
+  return handle;
+};
+
 /** A factory for a WebGL2 renderer drawing into `canvas`. `create` throws if WebGL2 is unavailable. */
 export const webglRendererFactory = (
   canvas: HTMLCanvasElement,
@@ -80,6 +104,7 @@ export const webglRendererFactory = (
   create: () => {
     const renderer = new WebGLRenderer({ antialias: true, ...options, canvas });
     const post = createPostProcessing(renderer);
+    const targets = new WeakMap<RenderTarget, WebGLRenderTarget>();
     // The pixel ratio is the viewport's, scaled by the scene's resolution setting.
     let pixelRatio = 1;
     let resolution = 1;
@@ -92,7 +117,17 @@ export const webglRendererFactory = (
       post.setSize(width, height, pixelRatio * resolution);
     };
     return {
-      render: (scene, camera, area) => {
+      render: (scene, camera, area, target) => {
+        const webglTarget = target === undefined ? undefined : targets.get(target);
+        if (webglTarget !== undefined) {
+          // As Drei's RenderTexture draws (src/core/RenderTexture.tsx): into the target, then
+          // back to whatever was bound. A target keeps its own viewport and scissor.
+          const previous = renderer.getRenderTarget();
+          renderer.setRenderTarget(webglTarget);
+          renderer.render(scene, camera);
+          renderer.setRenderTarget(previous);
+          return;
+        }
         const { width, height } = renderer.getSize(drawingSize);
         if (area === undefined) {
           if (scissored) {
@@ -112,6 +147,7 @@ export const webglRendererFactory = (
         // Effects apply to the single full view only; views draw straight to the screen.
         renderer.render(scene, camera);
       },
+      createTarget: (width, height) => createTarget(targets, width, height),
       configure: (settings) => {
         configure(renderer, settings);
         resolution = settings.resolution;

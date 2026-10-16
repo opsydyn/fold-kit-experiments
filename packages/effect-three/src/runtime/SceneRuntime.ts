@@ -126,6 +126,7 @@ function* startScene(options: SceneRuntimeOptions) {
     },
     now: () => Number(clock.monotonicTimeNanosUnsafe()) / nanosPerMillisecond,
   });
+  yield* Effect.addFinalizer(() => Effect.sync(loop.dispose));
   const pacer = createFramePacer(loop);
   pacer.attach(yield* frames.subscribe(pacer.frame));
   yield* acquireInvalidation(graph, pacer.wake);

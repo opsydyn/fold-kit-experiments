@@ -222,6 +222,26 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly height: Schema.Finite;
             }>;
         }>>;
+        readonly renderTextures: Schema.$Array<Schema.Struct<{
+            readonly id: Schema.String;
+            readonly width: Schema.Int;
+            readonly height: Schema.Int;
+            readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+                readonly fov: Schema.Finite;
+                readonly near: Schema.Finite;
+                readonly far: Schema.Finite;
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>, Schema.TaggedStruct<"Orthographic", {
+                readonly zoom: Schema.Finite;
+                readonly near: Schema.Finite;
+                readonly far: Schema.Finite;
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>]>;
+            readonly background: Schema.NullOr<Schema.Int>;
+            readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
+        }>>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;
@@ -524,6 +544,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly name: Schema.String;
         }>, Schema.TaggedStruct<"DuplicateViewKey", {
             readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
+            readonly id: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
             readonly issue: Schema.String;
         }>]>;
@@ -573,6 +595,8 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
     readonly name: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateViewKey", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
+    readonly id: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {
     readonly issue: Schema.String;
 }>]>;

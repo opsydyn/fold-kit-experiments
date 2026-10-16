@@ -12,6 +12,7 @@ import {
   fixed,
   play,
   renderSettings,
+  renderTexture,
   type SceneNode,
   spin,
   standard,
@@ -37,9 +38,28 @@ export type Extras = {
   readonly robot: boolean;
   readonly textured: boolean;
   readonly glow?: boolean;
+  /** Shows a render texture on the cube: a small scene with a green background. */
+  readonly screen?: boolean;
 };
 
 const noExtras: Extras = { robot: false, textured: false };
+
+/** A render texture: its own little scene, drawn into a texture the cube uses as its map. */
+const screen = renderTexture({
+  id: 'screen',
+  width: 128,
+  height: 128,
+  camera: perspectiveCamera({ position: [0, 0, 3] }),
+  background: 0x20c040,
+  children: [
+    ambientLight({ key: 'screen-light', intensity: 1 }),
+    mesh({
+      key: 'screen-box',
+      geometry: box({ width: 0.5, height: 0.5, depth: 0.5 }),
+      material: standard({ color: 0xffffff }),
+    }),
+  ],
+});
 
 const robotNode: ReadonlyArray<SceneNode> = [
   borrowed({
@@ -61,6 +81,7 @@ export const sceneFor = (
   scene({
     camera: perspectiveCamera({ position: [0, 0, 4] }),
     render: extras.glow === true ? glowing : plain,
+    renderTextures: extras.screen === true ? [screen] : [],
     resources: {
       geometries: [
         {
@@ -76,9 +97,9 @@ export const sceneFor = (
         key: 'cube',
         geometry: sharedGeometry('cube'),
         material: standard({
-          color: colours[colour],
+          color: extras.screen === true ? 0xffffff : colours[colour],
           roughness: 0.6,
-          map: extras.textured ? 'checker' : null,
+          map: extras.screen === true ? 'screen' : extras.textured ? 'checker' : null,
         }),
         rotation: motions[motion],
         interactive: true,

@@ -246,12 +246,14 @@ const Camera_3: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
     readonly far: Schema.Finite;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly damping: Schema.Finite;
 }>, Schema.TaggedStruct<"Orthographic", {
     readonly zoom: Schema.Finite;
     readonly near: Schema.Finite;
     readonly far: Schema.Finite;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly damping: Schema.Finite;
 }>]>;
 
 // @public
@@ -396,6 +398,9 @@ const CylinderGeometry_2: Schema.TaggedStruct<"Cylinder", {
 }>;
 
 // @public
+export const defaultOrbit: OrbitOptions;
+
+// @public
 export type DescriptionError = {
     readonly _tag: 'DuplicateKey';
     readonly key: string;
@@ -500,6 +505,9 @@ const DirectionalLightNode_2: Schema.TaggedStruct<"DirectionalLight", {
     readonly shadowBias: Schema.Finite;
     readonly shadowArea: Schema.Finite;
 }>;
+
+// @public
+export const dollyCamera: (camera: Camera, scale: number, options?: OrbitOptions) => Camera;
 
 // @public
 const DragDetail: Schema.Struct<{
@@ -655,6 +663,115 @@ export type GeometryReplaced = {
     readonly previous: BufferGeometry;
     readonly next: BufferGeometry;
 };
+
+// @public
+export type Gesture = {
+    readonly _tag: 'Drag';
+    readonly button: number;
+    readonly modifiers: Modifiers;
+    readonly key?: string;
+    readonly view?: string;
+    readonly deltaX: number;
+    readonly deltaY: number;
+    readonly width: number;
+    readonly height: number;
+} | {
+    readonly _tag: 'Wheel';
+    readonly modifiers: Modifiers;
+    readonly view?: string;
+    readonly deltaX: number;
+    readonly deltaY: number;
+    readonly width: number;
+    readonly height: number;
+} | {
+    readonly _tag: 'Pinch';
+    readonly view?: string;
+    readonly scale: number;
+    readonly deltaX: number;
+    readonly deltaY: number;
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
+const Gesture_2: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
+    readonly view: Schema.optionalKey<Schema.String>;
+    readonly width: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly button: Schema.Int;
+    readonly modifiers: Schema.Struct<{
+        readonly shift: Schema.Boolean;
+        readonly control: Schema.Boolean;
+        readonly meta: Schema.Boolean;
+        readonly alt: Schema.Boolean;
+    }>;
+    readonly key: Schema.optionalKey<Schema.String>;
+    readonly deltaX: Schema.Finite;
+    readonly deltaY: Schema.Finite;
+}>, Schema.TaggedStruct<"Wheel", {
+    readonly view: Schema.optionalKey<Schema.String>;
+    readonly width: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly modifiers: Schema.Struct<{
+        readonly shift: Schema.Boolean;
+        readonly control: Schema.Boolean;
+        readonly meta: Schema.Boolean;
+        readonly alt: Schema.Boolean;
+    }>;
+    readonly deltaX: Schema.Finite;
+    readonly deltaY: Schema.Finite;
+}>, Schema.TaggedStruct<"Pinch", {
+    readonly view: Schema.optionalKey<Schema.String>;
+    readonly width: Schema.Finite;
+    readonly height: Schema.Finite;
+    readonly scale: Schema.Finite;
+    readonly deltaX: Schema.Finite;
+    readonly deltaY: Schema.Finite;
+}>]>;
+
+// @public
+const GestureDetail: Schema.Struct<{
+    readonly gesture: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
+        readonly view: Schema.optionalKey<Schema.String>;
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly button: Schema.Int;
+        readonly modifiers: Schema.Struct<{
+            readonly shift: Schema.Boolean;
+            readonly control: Schema.Boolean;
+            readonly meta: Schema.Boolean;
+            readonly alt: Schema.Boolean;
+        }>;
+        readonly key: Schema.optionalKey<Schema.String>;
+        readonly deltaX: Schema.Finite;
+        readonly deltaY: Schema.Finite;
+    }>, Schema.TaggedStruct<"Wheel", {
+        readonly view: Schema.optionalKey<Schema.String>;
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly modifiers: Schema.Struct<{
+            readonly shift: Schema.Boolean;
+            readonly control: Schema.Boolean;
+            readonly meta: Schema.Boolean;
+            readonly alt: Schema.Boolean;
+        }>;
+        readonly deltaX: Schema.Finite;
+        readonly deltaY: Schema.Finite;
+    }>, Schema.TaggedStruct<"Pinch", {
+        readonly view: Schema.optionalKey<Schema.String>;
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly scale: Schema.Finite;
+        readonly deltaX: Schema.Finite;
+        readonly deltaY: Schema.Finite;
+    }>]>;
+}>;
+
+// @public
+export type Gestures = 'page' | 'scene';
+
+// @public
+const Gestures_2: Schema.Literals<readonly ["page", "scene"]>;
 
 // @public
 export const group: (options: TransformOptions & {
@@ -1308,7 +1425,26 @@ const MissDetail: Schema.Struct<{
 }>;
 
 // @public
+export type Modifiers = {
+    readonly shift: boolean;
+    readonly control: boolean;
+    readonly meta: boolean;
+    readonly alt: boolean;
+};
+
+// @public
+const Modifiers_2: Schema.Struct<{
+    readonly shift: Schema.Boolean;
+    readonly control: Schema.Boolean;
+    readonly meta: Schema.Boolean;
+    readonly alt: Schema.Boolean;
+}>;
+
+// @public
 export type NodeKind = SceneNode['_tag'];
+
+// @public
+export const noModifiers: Modifiers;
 
 // @public
 export type NormalMaterial = {
@@ -1380,13 +1516,39 @@ export type Op = {
 };
 
 // @public
+export const orbit: (camera: Camera, gesture: Gesture, options?: OrbitOptions) => Camera;
+
+// @public
+export type OrbitOptions = {
+    readonly enableRotate: boolean;
+    readonly enableZoom: boolean;
+    readonly enablePan: boolean;
+    readonly rotateSpeed: number;
+    readonly zoomSpeed: number;
+    readonly panSpeed: number;
+    readonly screenSpacePanning: boolean;
+    readonly minDistance: number;
+    readonly maxDistance: number;
+    readonly minZoom: number;
+    readonly maxZoom: number;
+    readonly minPolarAngle: number;
+    readonly maxPolarAngle: number;
+    readonly minAzimuthAngle: number;
+    readonly maxAzimuthAngle: number;
+};
+
+// @public
+export const orbitOptions: (options?: Partial<OrbitOptions>) => OrbitOptions;
+
+// @public
 export type OrthographicCamera = {
     readonly _tag: 'Orthographic';
     readonly zoom: number;
     readonly near: number;
     readonly far: number;
     readonly position: Vec3;
-    readonly lookAt: Vec3;
+    readonly lookAt: Vec3 /** As on `PerspectiveCamera`. */;
+    readonly damping: number;
 };
 
 // @public
@@ -1399,7 +1561,14 @@ const OrthographicCamera_3: Schema.TaggedStruct<"Orthographic", {
     readonly far: Schema.Finite;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly damping: Schema.Finite;
 }>;
+
+// @public
+export const panCamera: (camera: Camera, deltaX: number, deltaY: number, area: {
+    readonly width: number;
+    readonly height: number;
+}, options?: OrbitOptions) => Camera;
 
 // @public
 export type ParentKey = string | null;
@@ -1439,7 +1608,13 @@ export type PerspectiveCamera = {
     readonly near: number;
     readonly far: number;
     readonly position: Vec3;
-    readonly lookAt: Vec3;
+    readonly lookAt: Vec3 /**
+    * How the rendered camera follows a new position, `lookAt` or zoom: 0 (the default)
+    * jumps; above 0 eases there round the target, closing that fraction of the remaining
+    * way every sixtieth of a second, as three.js's `OrbitControls.dampingFactor` (Drei's
+    * default is 0.05). Field of view, near and far always apply at once.
+    */;
+    readonly damping: number;
 };
 
 // @public
@@ -1452,6 +1627,7 @@ const PerspectiveCamera_3: Schema.TaggedStruct<"Perspective", {
     readonly far: Schema.Finite;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly damping: Schema.Finite;
 }>;
 
 // @public
@@ -1536,6 +1712,8 @@ export type Picker = {
         readonly width: number;
         readonly height: number;
     };
+    readonly region: (x: number, y: number) => Region;
+    readonly gestures: () => Gestures;
 };
 
 // @public
@@ -1574,16 +1752,20 @@ export type PointerInput = {
     readonly _tag: 'PointerMove';
     readonly x: number;
     readonly y: number;
+    readonly pointer?: number;
 } | {
     readonly _tag: 'PointerDown';
     readonly x: number;
     readonly y: number;
     readonly button: number;
+    readonly pointer?: number;
+    readonly modifiers?: Modifiers;
 } | {
     readonly _tag: 'PointerUp';
     readonly x: number;
     readonly y: number;
     readonly button: number;
+    readonly pointer?: number;
 } | {
     readonly _tag: 'DoubleClick';
     readonly x: number;
@@ -1599,6 +1781,7 @@ export type PointerInput = {
     readonly y: number;
     readonly deltaX: number;
     readonly deltaY: number;
+    readonly modifiers?: Modifiers;
 } | {
     readonly _tag: 'PointerLeave';
 };
@@ -1719,6 +1902,13 @@ export type RecordingRendererFactory = RendererFactory & {
 export const recordingRendererFactory: () => RecordingRendererFactory;
 
 // @public
+export type Region = {
+    readonly view?: string;
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
 export type RenderArea = {
     readonly x: number;
     readonly y: number;
@@ -1820,12 +2010,14 @@ const RenderTexture_2: Schema.Struct<{
         readonly far: Schema.Finite;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly damping: Schema.Finite;
     }>, Schema.TaggedStruct<"Orthographic", {
         readonly zoom: Schema.Finite;
         readonly near: Schema.Finite;
         readonly far: Schema.Finite;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly damping: Schema.Finite;
     }>]>;
     readonly background: Schema.NullOr<Schema.Int>;
     readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
@@ -2032,6 +2224,9 @@ const RingGeometry_2: Schema.TaggedStruct<"Ring", {
 }>;
 
 // @public
+export const rotateCamera: (camera: Camera, deltaX: number, deltaY: number, height: number, options?: OrbitOptions) => Camera;
+
+// @public
 export type Rotation = {
     readonly _tag: 'Fixed';
     readonly euler: Vec3;
@@ -2057,6 +2252,7 @@ export const rotationEquals: (a: Rotation, b: Rotation) => boolean;
 // @public
 export const scene: (options: {
     readonly camera?: Camera;
+    readonly gestures?: Gestures;
     readonly views?: ReadonlyArray<View>;
     readonly renderTextures?: ReadonlyArray<RenderTexture>;
     readonly render?: RenderSettings;
@@ -2071,9 +2267,10 @@ export type SceneClock = {
     readonly animating: () => boolean;
 };
 
-// @public
+// @public (undocumented)
 export type SceneDescription = {
     readonly camera: Camera;
+    readonly gestures: Gestures;
     readonly views: ReadonlyArray<View>;
     readonly renderTextures: ReadonlyArray<RenderTexture>;
     readonly render: RenderSettings;
@@ -2081,7 +2278,7 @@ export type SceneDescription = {
     readonly children: ReadonlyArray<SceneNode>;
 };
 
-// @public
+// @public (undocumented)
 const SceneDescription_2: Schema.Struct<{
     readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
         readonly fov: Schema.Finite;
@@ -2089,13 +2286,16 @@ const SceneDescription_2: Schema.Struct<{
         readonly far: Schema.Finite;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly damping: Schema.Finite;
     }>, Schema.TaggedStruct<"Orthographic", {
         readonly zoom: Schema.Finite;
         readonly near: Schema.Finite;
         readonly far: Schema.Finite;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly damping: Schema.Finite;
     }>]>;
+    readonly gestures: Schema.Literals<readonly ["page", "scene"]>;
     readonly views: Schema.$Array<Schema.Struct<{
         readonly key: Schema.String;
         readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
@@ -2104,12 +2304,14 @@ const SceneDescription_2: Schema.Struct<{
             readonly far: Schema.Finite;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly damping: Schema.Finite;
         }>, Schema.TaggedStruct<"Orthographic", {
             readonly zoom: Schema.Finite;
             readonly near: Schema.Finite;
             readonly far: Schema.Finite;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly damping: Schema.Finite;
         }>]>;
         readonly rect: Schema.Struct<{
             readonly x: Schema.Finite;
@@ -2128,12 +2330,14 @@ const SceneDescription_2: Schema.Struct<{
             readonly far: Schema.Finite;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly damping: Schema.Finite;
         }>, Schema.TaggedStruct<"Orthographic", {
             readonly zoom: Schema.Finite;
             readonly near: Schema.Finite;
             readonly far: Schema.Finite;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly damping: Schema.Finite;
         }>]>;
         readonly background: Schema.NullOr<Schema.Int>;
         readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
@@ -2308,6 +2512,11 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly button: number;
     readonly ray: Ray;
 }
+/** A drag, wheel or pinch on the canvas, when the scene claims gestures. */
+| {
+    readonly _tag: 'Gesture';
+    readonly gesture: Gesture;
+}
 /**
 * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
 * it travels with them so one stream carries everything the scene reports.
@@ -2455,6 +2664,41 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>;
+}>, Schema.TaggedStruct<"Gesture", {
+    readonly gesture: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
+        readonly view: Schema.optionalKey<Schema.String>;
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly button: Schema.Int;
+        readonly modifiers: Schema.Struct<{
+            readonly shift: Schema.Boolean;
+            readonly control: Schema.Boolean;
+            readonly meta: Schema.Boolean;
+            readonly alt: Schema.Boolean;
+        }>;
+        readonly key: Schema.optionalKey<Schema.String>;
+        readonly deltaX: Schema.Finite;
+        readonly deltaY: Schema.Finite;
+    }>, Schema.TaggedStruct<"Wheel", {
+        readonly view: Schema.optionalKey<Schema.String>;
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly modifiers: Schema.Struct<{
+            readonly shift: Schema.Boolean;
+            readonly control: Schema.Boolean;
+            readonly meta: Schema.Boolean;
+            readonly alt: Schema.Boolean;
+        }>;
+        readonly deltaX: Schema.Finite;
+        readonly deltaY: Schema.Finite;
+    }>, Schema.TaggedStruct<"Pinch", {
+        readonly view: Schema.optionalKey<Schema.String>;
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+        readonly scale: Schema.Finite;
+        readonly deltaX: Schema.Finite;
+        readonly deltaY: Schema.Finite;
+    }>]>;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -2466,6 +2710,7 @@ export type SceneGraph = {
     readonly camera: HostCamera;
     readonly views: () => ReadonlyArray<HostedView>;
     readonly renderTextures: () => ReadonlyArray<HostedTexture>;
+    readonly gestures: () => Gestures;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -2603,6 +2848,7 @@ declare namespace SceneSchema {
         RenderSettings_2 as RenderSettings,
         View_2 as View,
         RenderTexture_2 as RenderTexture,
+        Gestures_2 as Gestures,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
         HitDetail,
@@ -2612,6 +2858,9 @@ declare namespace SceneSchema {
         Ray_2 as Ray,
         DragDetail,
         PerformanceDetail,
+        Modifiers_2 as Modifiers,
+        Gesture_2 as Gesture,
+        GestureDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError
     }
@@ -2970,12 +3219,14 @@ const View_2: Schema.Struct<{
         readonly far: Schema.Finite;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly damping: Schema.Finite;
     }>, Schema.TaggedStruct<"Orthographic", {
         readonly zoom: Schema.Finite;
         readonly near: Schema.Finite;
         readonly far: Schema.Finite;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly damping: Schema.Finite;
     }>]>;
     readonly rect: Schema.Struct<{
         readonly x: Schema.Finite;

@@ -472,7 +472,13 @@ export type PerspectiveCamera = {
   readonly near: number;
   readonly far: number;
   readonly position: Vec3;
-  readonly lookAt: Vec3;
+  readonly lookAt: Vec3 /**
+   * How the rendered camera follows a new position, `lookAt` or zoom: 0 (the default)
+   * jumps; above 0 eases there round the target, closing that fraction of the remaining
+   * way every sixtieth of a second, as three.js's `OrbitControls.dampingFactor` (Drei's
+   * default is 0.05). Field of view, near and far always apply at once.
+   */;
+  readonly damping: number;
 };
 
 /**
@@ -486,7 +492,8 @@ export type OrthographicCamera = {
   readonly near: number;
   readonly far: number;
   readonly position: Vec3;
-  readonly lookAt: Vec3;
+  readonly lookAt: Vec3 /** As on `PerspectiveCamera`. */;
+  readonly damping: number;
 };
 
 /** The single active camera. */
@@ -575,8 +582,21 @@ export type RenderTexture = {
 };
 
 /** A complete scene: camera, render settings, shared resources and root nodes. */
+/**
+ * Who owns the pointer's gestures on the canvas.
+ *
+ * - `'page'` (the default): the wheel scrolls the page, touch pans it, the right button
+ *   opens the browser's menu, and the scene reports only events on interactive meshes.
+ * - `'scene'`: the scene claims them, as three.js's `OrbitControls` does when connected,
+ *   and reports every drag, wheel and pinch on the canvas as a `Gesture`, for controls
+ *   such as `orbit` to turn into a new camera.
+ */
+export type Gestures = 'page' | 'scene';
+
 export type SceneDescription = {
   readonly camera: Camera;
+  /** Whether the scene claims the pointer's gestures from the page. */
+  readonly gestures: Gestures;
   /**
    * Views to draw instead of `camera` filling the canvas. Empty (the default) draws one
    * full view with `camera`.

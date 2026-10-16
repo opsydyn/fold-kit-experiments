@@ -12,6 +12,7 @@ import type {
   Axis,
   BoxGeometry,
   Camera,
+  Gestures,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -546,7 +547,10 @@ export const hemisphereLight = (options: {
   position: options.position ?? [0, 1, 0],
 });
 
-/** Perspective camera. Defaults: fov 50, near 0.1, far 100, at `[0, 0, 5]` looking at the origin. */
+/**
+ * Perspective camera. Defaults: fov 50, near 0.1, far 100, at `[0, 0, 5]` looking at the
+ * origin, no damping.
+ */
 export const perspectiveCamera = (
   options: Partial<Omit<PerspectiveCamera, '_tag'>> = {},
 ): PerspectiveCamera => ({
@@ -556,6 +560,7 @@ export const perspectiveCamera = (
   far: options.far ?? 100,
   position: options.position ?? [0, 0, 5],
   lookAt: options.lookAt ?? origin,
+  damping: options.damping ?? 0,
 });
 
 /**
@@ -571,6 +576,7 @@ export const orthographicCamera = (
   far: options.far ?? 1000,
   position: options.position ?? [0, 0, 5],
   lookAt: options.lookAt ?? origin,
+  damping: options.damping ?? 0,
 });
 
 const noEffects: ReadonlyArray<PostEffect> = [];
@@ -675,6 +681,7 @@ export const renderTexture = (options: {
 /** A scene description. */
 export const scene = (options: {
   readonly camera?: Camera;
+  readonly gestures?: Gestures;
   readonly views?: ReadonlyArray<View>;
   readonly renderTextures?: ReadonlyArray<RenderTexture>;
   readonly render?: RenderSettings;
@@ -682,6 +689,7 @@ export const scene = (options: {
   readonly children?: ReadonlyArray<SceneNode>;
 }): SceneDescription => ({
   camera: options.camera ?? perspectiveCamera(),
+  gestures: options.gestures ?? 'page',
   views: options.views ?? noViews,
   renderTextures: options.renderTextures ?? noRenderTextures,
   render: options.render ?? defaultRenderSettings,

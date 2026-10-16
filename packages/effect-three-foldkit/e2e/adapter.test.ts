@@ -331,6 +331,81 @@ test('a render texture draws its own scene into the map that names it', async ()
   await page.close();
 }, 60_000);
 
+/** Runs in the page: the camera position the app shows, as numbers. */
+function cameraPosition(): ReadonlyArray<number> {
+  return (document.querySelector('#camera')?.textContent ?? '').split(',').map(Number);
+}
+
+/** Runs in the page: true once the shown camera has swung well to the left. */
+function swungLeft(): boolean {
+  const [x = 0] = (document.querySelector('#camera')?.textContent ?? '').split(',').map(Number);
+  return x < -1;
+}
+
+/** Runs in the page: true once the shown camera is closer to its target than `distance`. */
+function cameraCloserThan(distance: number): boolean {
+  const position = (document.querySelector('#camera')?.textContent ?? '').split(',').map(Number);
+  return Math.hypot(...position) < distance;
+}
+
+test('a scene that claims gestures orbits a Model camera and keeps the page still', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await page.goto(app.url('index.html'));
+  await waitForText(page, '#started', '1');
+  await page.click('#still');
+  // A tall page, so a wheel the scene does not claim scrolls it.
+  await page.evaluate(() => {
+    document.body.style.height = '4000px';
+  });
+  const canvas = page.locator('effect-three-scene canvas');
+  const box = await canvas.boundingBox();
+  if (box === null) throw new Error('no canvas');
+
+  // Unclaimed: the wheel is the page's, and so is touch.
+  await page.mouse.move(box.x + 20, box.y + 20);
+  await page.mouse.wheel(0, 200);
+  await page.waitForFunction(() => window.scrollY > 0);
+  expect(await canvas.evaluate((element) => element.style.touchAction)).toBe('');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForFunction(() => window.scrollY === 0);
+
+  await page.click('#orbit');
+  await waitForText(page, '#camera', '0.000,0.000,4.000');
+  expect(await canvas.evaluate((element) => element.style.touchAction)).toBe('none');
+  // The camera readout pushed the canvas down: measure it again.
+  const orbiting = await canvas.boundingBox();
+  if (orbiting === null) throw new Error('no canvas');
+
+  // A left drag across empty space turns the camera round the cube at the same distance.
+  await page.mouse.move(orbiting.x + 20, orbiting.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(orbiting.x + 100, orbiting.y + 20, { steps: 4 });
+  await page.mouse.up();
+  // Dragging right turns the scene right: the camera swings to the left.
+  await page.waitForFunction(swungLeft);
+  const turned = await page.evaluate(cameraPosition);
+  expect(Math.hypot(...turned)).toBeCloseTo(4, 2);
+
+  // The wheel dollies in, and the page stays where it is.
+  await page.mouse.wheel(0, -300);
+  await page.waitForFunction(cameraCloserThan, 3.99);
+  await animationFrames(page, 3);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+  // Released again, the page has its wheel back.
+  await page.click('#orbit');
+  await page.mouse.move(box.x + 20, box.y + 20);
+  await page.mouse.wheel(0, 200);
+  await page.waitForFunction(() => window.scrollY > 0);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
 test('repeated mount and unmount releases WebGL contexts and resources', async () => {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const warnings: Array<string> = [];

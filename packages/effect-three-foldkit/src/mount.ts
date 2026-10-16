@@ -28,7 +28,7 @@ import {
   sceneEventDispatch,
 } from './dom/canvas.ts';
 import { applying, createLatch, type Latch, routedWhileOpen } from './dom/latch.ts';
-import { listenForPointer } from './dom/pointer.ts';
+import { afterUpdate, claimsGestures, listenForPointer, touchActionSync } from './dom/pointer.ts';
 import { interceptProperty } from './dom/property.ts';
 import { typedScene } from './dom/typedScenes.ts';
 import {
@@ -47,6 +47,7 @@ type SceneHandle = SceneRuntime.SceneHandle;
 type Mounted = {
   readonly environment: Environment;
   readonly element: Element;
+  readonly canvas: HTMLCanvasElement;
   readonly handle: SceneHandle;
   readonly live: Latch;
   readonly frames: GatedFrames;
@@ -81,12 +82,21 @@ const acquireInterception = (element: Element, updates: Queue.Queue<unknown>) =>
 };
 
 const pointerListening =
-  (canvas: HTMLElement, onInput: (input: PointerInput) => ReadonlyArray<SceneEvent>) => () =>
-    listenForPointer(canvas, onInput);
+  (
+    canvas: HTMLElement,
+    onInput: (input: PointerInput) => ReadonlyArray<SceneEvent>,
+    claimsGestures: () => boolean,
+  ) =>
+  () =>
+    listenForPointer(canvas, onInput, claimsGestures);
 
 const acquirePointer = (canvas: HTMLElement, mounted: Mounted) => {
   const listen = Effect.sync(
-    pointerListening(canvas, routedWhileOpen(mounted.live, mounted.handle.pointer)),
+    pointerListening(
+      canvas,
+      routedWhileOpen(mounted.live, mounted.handle.pointer),
+      claimsGestures(mounted.handle.graph),
+    ),
   );
   return Effect.acquireRelease(listen, Effect.sync);
 };
@@ -104,7 +114,11 @@ const observed = <A>(observe: (emit: (value: A) => void) => () => void) =>
 
 const applyUpdate = (mounted: Mounted) => (value: unknown) => {
   const reportError = sceneErrorDispatch(mounted.element);
-  const reportReconciled = reconciledDispatch(mounted.element, mounted.environment.store);
+  const reportReconciled = afterUpdate(
+    reconciledDispatch(mounted.element, mounted.environment.store),
+    mounted.canvas,
+    mounted.handle.graph,
+  );
   const decoded = decodeScene(value);
   const applied = decoded.pipe(
     Effect.flatMap(mounted.handle.update),
@@ -181,8 +195,16 @@ function* runScene(
   const intercepted = yield* acquireInterception(element, updates);
   const initial = yield* decodeScene(intercepted.initial);
   const { handle, frames } = yield* sceneRuntimeFor(environment, element, canvas)(initial);
-  const mounted: Mounted = { environment, element, handle, frames, live: createLatch(true) };
+  const mounted: Mounted = {
+    environment,
+    element,
+    canvas,
+    handle,
+    frames,
+    live: createLatch(true),
+  };
   yield* acquirePointer(canvas, mounted);
+  yield* Effect.sync(touchActionSync(canvas, handle.graph));
   yield* Effect.sync(reconciledDispatch(element, environment.store)(handle.startupOps));
   const forks = watchers(mounted, updates, viewStateChanges).map((watcher) =>
     Effect.forkScoped(watcher),

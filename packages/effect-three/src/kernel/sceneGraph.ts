@@ -27,7 +27,8 @@ import {
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
-import { renderSettings } from './build.ts';
+import { renderSettings, scene as describeScene } from './build.ts';
+import { createCameraMotion } from './cameraMotion.ts';
 import type {
   AmbientLightNode,
   BorrowedNode,
@@ -43,6 +44,7 @@ import type {
   SceneDescription,
   SceneNode,
   SpotLightNode,
+  Gestures,
   RenderTexture,
   Vec3,
   View,
@@ -164,6 +166,8 @@ export type SceneGraph = {
   readonly views: () => ReadonlyArray<HostedView>;
   /** Render textures, each a nested graph to draw into its texture (by the frame loop). */
   readonly renderTextures: () => ReadonlyArray<HostedTexture>;
+  /** Whether the scene claims the pointer's gestures from the page. */
+  readonly gestures: () => Gestures;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -314,19 +318,28 @@ const cameraFor = (current: HostCamera, description: CameraDescription): HostCam
   return current instanceof OrthographicCamera ? current : new OrthographicCamera();
 };
 
-const applyCamera = (camera: HostCamera, description: CameraDescription): void => {
+/** Applies the lens: field of view, near and far. Position, aim and zoom are the pose. */
+const applyLens = (camera: HostCamera, description: CameraDescription): void => {
   if (camera instanceof PerspectiveCamera && description._tag === 'Perspective') {
     camera.fov = description.fov;
-  } else if (camera instanceof OrthographicCamera && description._tag === 'Orthographic') {
-    camera.zoom = description.zoom;
   }
   camera.near = description.near;
   camera.far = description.far;
+};
+
+/** Applies a description at once: lens and pose. */
+const applyCamera = (camera: HostCamera, description: CameraDescription): void => {
+  applyLens(camera, description);
+  if (camera instanceof OrthographicCamera && description._tag === 'Orthographic') {
+    camera.zoom = description.zoom;
+  }
   writeVec3(camera.position, description.position);
   camera.lookAt(description.lookAt[0], description.lookAt[1], description.lookAt[2]);
 };
 
 const noInstances: ReadonlyArray<Instance> = [];
+
+const emptyScene = describeScene({});
 
 /** Creates an empty scene graph. */
 export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph => {
@@ -341,6 +354,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   >();
   let textureList: ReadonlyArray<HostedTexture> = [];
   let viewDescriptions: ReadonlyArray<View> = [];
+  let gestures: Gestures = emptyScene.gestures;
+  const cameraMotion = createCameraMotion();
 
   /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
   const areaOf = (rect: ViewRect): HostedView['area'] => ({
@@ -806,11 +821,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const apply = (op: Op): void => {
     switch (op._tag) {
-      case 'SetCamera':
+      case 'SetCamera': {
+        const previous = camera;
         camera = cameraFor(camera, op.camera);
-        applyCamera(camera, op.camera);
+        applyLens(camera, op.camera);
+        // A new kind of camera has nothing on screen to travel from.
+        cameraMotion.aim(camera, op.camera, elapsed, camera !== previous || !animating);
         fitCamera(camera, viewport);
         return;
+      }
       case 'SetRenderSettings':
         settings = op.settings;
         return;
@@ -896,6 +915,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   /** The scene a render texture draws: its camera and nodes, with the parent's resources. */
   const textureScene = (texture: RenderTexture, parent: SceneDescription): SceneDescription => ({
     camera: texture.camera,
+    gestures: 'page',
     views: [],
     renderTextures: [],
     render: parent.render,
@@ -971,6 +991,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     reparented.clear();
     index = result.index;
+    // Gestures change how input is read, not what is drawn: no operation, no frame.
+    gestures = next.gestures;
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -992,6 +1014,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     moving.forEach(stepTween);
     for (const entry of playing) pose(entry);
     behaving.forEach(applyBehaviour);
+    cameraMotion.step(camera, elapsed);
   };
 
   const finishTween = (tween: Tween, entry: Entry): void => {
@@ -1005,6 +1028,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (next) return;
     moving.forEach(finishTween);
     moving.clear();
+    cameraMotion.settle(camera);
   };
 
   const dispose = (): void => {
@@ -1032,6 +1056,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     },
     views: () => views,
     renderTextures: () => textureList,
+    gestures: () => gestures,
     store,
     reconcile,
     tick,
@@ -1040,7 +1065,12 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     needsFrame: () =>
       dirty ||
       textureList.some((texture) => texture.graph.needsFrame()) ||
-      (animating && (spinning.size > 0 || moving.size > 0 || behaving.size > 0 || clipsRunning())),
+      (animating &&
+        (spinning.size > 0 ||
+          moving.size > 0 ||
+          behaving.size > 0 ||
+          clipsRunning() ||
+          cameraMotion.moving())),
     drawn: () => {
       dirty = false;
     },

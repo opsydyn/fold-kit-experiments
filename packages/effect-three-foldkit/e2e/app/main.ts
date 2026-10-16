@@ -1,4 +1,4 @@
-import type { RendererFactory } from '@opsydyn/effect-three';
+import { orbit, type RendererFactory, SceneSchema } from '@opsydyn/effect-three';
 import { Array as Arr, Effect, Option, Schema } from 'effect';
 import { Command, Runtime } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
@@ -9,7 +9,7 @@ import * as EffectThreeFoldkit from '../../src/index.ts';
 /** A minimal Foldkit app exercising the adapter end to end (application boundary). */
 import { checkerUrl } from './checker.ts';
 import { probe } from './instrument.ts';
-import { type Colour, type Motion, type Size, sceneFor } from './scene.ts';
+import { type Colour, homeCamera, type Motion, type Size, sceneFor } from './scene.ts';
 
 // Wraps the WebGL renderer so the test can read three's `renderer.info.memory`.
 const probedRenderer = (canvas: HTMLCanvasElement): RendererFactory => ({
@@ -41,6 +41,8 @@ const Model = Schema.Struct({
   textured: Schema.Boolean,
   glow: Schema.Boolean,
   screen: Schema.Boolean,
+  /** The orbiting camera, when the orbit test has switched it on. */
+  orbit: Schema.Option(SceneSchema.Camera),
 });
 type Model = typeof Model.Type;
 
@@ -59,6 +61,8 @@ const Message = defineMessageUnion({
   ClickedLoadTexture: {},
   ClickedToggleGlow: {},
   ClickedToggleScreen: {},
+  ClickedToggleOrbit: {},
+  GotGesture: { gesture: SceneSchema.Gesture },
   SettledModel: { outcome: Schema.String },
   SettledTexture: { ready: Schema.Boolean },
 });
@@ -102,6 +106,28 @@ const lifecycleUpdate = (model: Model, lifecycle: EffectThreeFoldkit.SceneLifecy
     FailedScene: () => modifyFields(model, { failed: (count) => count + 1 }),
   });
 
+type OrbitCamera = Model['orbit'];
+
+/** Orbiting starts from the home camera, and stops. */
+const toggledOrbit = (camera: OrbitCamera): OrbitCamera =>
+  Option.match(camera, { onNone: () => Option.some(homeCamera), onSome: Option.none });
+
+const orbitedBy =
+  (gesture: typeof SceneSchema.Gesture.Type) =>
+  (camera: OrbitCamera): OrbitCamera =>
+    Option.map(camera, (current) => orbit(current, gesture));
+
+/** The orbiting camera as a scene extra, when there is one. */
+const orbitExtra = (camera: OrbitCamera) =>
+  Option.match(camera, { onNone: () => ({}), onSome: (current) => ({ orbit: current }) });
+
+/** The orbiting camera's position, for the test to read. */
+const cameraReadout = (camera: OrbitCamera): string =>
+  Option.match(camera, {
+    onNone: () => '',
+    onSome: (current) => current.position.map((value) => value.toFixed(3)).join(','),
+  });
+
 const pureUpdate = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedToggleColour: () => ({
@@ -131,6 +157,10 @@ const pureUpdate = (model: Model, message: Message) =>
     ClickedToggleScreen: () => ({
       model: modifyFields(model, { screen: (screen) => !screen }),
     }),
+    ClickedToggleOrbit: () => ({ model: modifyFields(model, { orbit: toggledOrbit }) }),
+    GotGesture: ({ gesture }) => ({
+      model: modifyFields(model, { orbit: orbitedBy(gesture) }),
+    }),
     SettledModel: ({ outcome }) => ({ model: modifyFields(model, { robot: () => outcome }) }),
     SettledTexture: ({ ready }) => ({ model: modifyFields(model, { textured: () => ready }) }),
     GotSceneLifecycle: ({ lifecycle }) => ({ model: lifecycleUpdate(model, lifecycle) }),
@@ -152,6 +182,7 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
         textured: model.textured,
         glow: model.glow,
         screen: model.screen,
+        ...orbitExtra(model.orbit),
       }),
       mount: sceneMount,
       className: 'scene',
@@ -169,6 +200,7 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
       onDragEnd: ({ key, ray }) =>
         Message.GotSceneEvent({ name: `DragEnd:${key}:${Math.sign(ray.direction[2])}` }),
       onReconciled: ({ ops }) => Message.GotReconciled({ updated: ops.updated }),
+      onGesture: (gesture) => Message.GotGesture({ gesture }),
     },
     h,
   );
@@ -188,6 +220,8 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.button([h.Id('load-texture'), h.OnClick(Message.ClickedLoadTexture())], ['texture']),
       h.button([h.Id('glow'), h.OnClick(Message.ClickedToggleGlow())], ['glow']),
       h.button([h.Id('screen'), h.OnClick(Message.ClickedToggleScreen())], ['screen']),
+      h.button([h.Id('orbit'), h.OnClick(Message.ClickedToggleOrbit())], ['orbit']),
+      h.p([h.Id('camera')], [cameraReadout(model.orbit)]),
       h.p([h.Id('robot')], [model.robot]),
       h.p([h.Id('clicks')], [String(model.clicks)]),
       h.p([h.Id('last-key')], [model.lastKey]),
@@ -219,6 +253,7 @@ const initialModel: Model = {
   textured: false,
   glow: false,
   screen: false,
+  orbit: Option.none(),
 };
 
 Runtime.run(

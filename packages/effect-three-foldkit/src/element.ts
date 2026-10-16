@@ -52,6 +52,7 @@ export const sceneElement = CustomElement.define({
     'scene-wheel': SceneSchema.WheelDetail,
     'scene-drag': SceneSchema.DragDetail,
     'scene-drag-end': SceneSchema.DragDetail,
+    'scene-gesture': SceneSchema.GestureDetail,
     'scene-performance': SceneSchema.PerformanceDetail,
     'scene-error': Schema.Struct({ error: SceneError }),
     'scene-reconciled': ReconciledDetail,
@@ -72,6 +73,7 @@ export const domEventName = {
   Wheel: 'scene-wheel',
   Drag: 'scene-drag',
   DragEnd: 'scene-drag-end',
+  Gesture: 'scene-gesture',
   PerformanceChanged: 'scene-performance',
 } as const satisfies Record<SceneEvent['_tag'], keyof typeof sceneElement.events>;
 

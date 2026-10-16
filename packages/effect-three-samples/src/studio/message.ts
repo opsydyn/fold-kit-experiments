@@ -1,3 +1,4 @@
+import { SceneSchema } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
@@ -17,6 +18,8 @@ export const Message = defineMessageUnion({
   ClickedShadows: {},
   ClickedToneMapping: {},
   ClickedLens: {},
+  /** A drag, wheel or pinch on the canvas: it orbits the camera. */
+  MadeGesture: { gesture: SceneSchema.Gesture },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });
 export type Message = typeof Message.Type;

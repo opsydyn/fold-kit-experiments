@@ -367,6 +367,9 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   HemisphereLightNode,
 ]);
 
+/** The fraction of the way a camera closes every sixtieth of a second: 0 jumps. */
+const CameraDamping = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThan(1));
+
 /** A perspective camera. */
 export const PerspectiveCamera = Schema.TaggedStruct('Perspective', {
   fov: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 180, exclusiveMinimum: true })),
@@ -374,6 +377,7 @@ export const PerspectiveCamera = Schema.TaggedStruct('Perspective', {
   far: Positive,
   position: Vec3,
   lookAt: Vec3,
+  damping: CameraDamping,
 });
 
 /** An orthographic camera; `zoom` is CSS pixels per world unit. */
@@ -383,6 +387,7 @@ export const OrthographicCamera = Schema.TaggedStruct('Orthographic', {
   far: Positive,
   position: Vec3,
   lookAt: Vec3,
+  damping: CameraDamping,
 });
 
 /** The active camera. */
@@ -437,8 +442,12 @@ export const RenderTexture = Schema.Struct({
 });
 
 /** A complete scene description. */
+/** Whether the scene claims the pointer's gestures from the page. */
+export const Gestures = Schema.Literals(['page', 'scene']);
+
 export const SceneDescription = Schema.Struct({
   camera: Camera,
+  gestures: Gestures,
   views: Schema.Array(View),
   renderTextures: Schema.Array(RenderTexture),
   render: RenderSettings,
@@ -492,6 +501,47 @@ export const PerformanceDetail = Schema.Struct({
   factor: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
 });
 
+/** Modifier keys held during an input. */
+export const Modifiers = Schema.Struct({
+  shift: Schema.Boolean,
+  control: Schema.Boolean,
+  meta: Schema.Boolean,
+  alt: Schema.Boolean,
+});
+
+const regionFields = {
+  view: Schema.optionalKey(Schema.String),
+  width: Schema.Finite,
+  height: Schema.Finite,
+};
+
+/** A drag, wheel or pinch on the canvas: distances in CSS pixels since the last one. */
+export const Gesture = Schema.Union([
+  Schema.TaggedStruct('Drag', {
+    button: Schema.Int,
+    modifiers: Modifiers,
+    key: Schema.optionalKey(Schema.String),
+    ...regionFields,
+    deltaX: Schema.Finite,
+    deltaY: Schema.Finite,
+  }),
+  Schema.TaggedStruct('Wheel', {
+    modifiers: Modifiers,
+    ...regionFields,
+    deltaX: Schema.Finite,
+    deltaY: Schema.Finite,
+  }),
+  Schema.TaggedStruct('Pinch', {
+    ...regionFields,
+    scale: Schema.Finite,
+    deltaX: Schema.Finite,
+    deltaY: Schema.Finite,
+  }),
+]);
+
+/** Detail of gesture events. */
+export const GestureDetail = Schema.Struct({ gesture: Gesture });
+
 /** A pointer interaction with an interactive mesh, or a miss. */
 export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('PointerEnter', HitDetail.fields),
@@ -506,6 +556,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('PointerMissed', MissDetail.fields),
   Schema.TaggedStruct('Drag', DragDetail.fields),
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
+  Schema.TaggedStruct('Gesture', GestureDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 

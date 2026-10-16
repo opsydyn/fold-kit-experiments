@@ -49,6 +49,7 @@ const description = scene({
 - **Views:** `scene({ views: [view({ key: 'front', camera, rect: { width: 0.5 } }), ...] })` draws several cameras into parts of one canvas; picks use the view under the pointer and report it as `view`.
 - **Post-processing:** `renderSettings({ effects: [bloom({ strength: 1.5 }), vignette()] })` applies three.js's composer passes in order (`bloom`, `vignette`, `film`); with no effects the scene renders straight to the screen.
 - **Render textures:** `scene({ renderTextures: [renderTexture({ id: 'screen', camera, children })] })` draws a little scene of its own into a texture that any material uses with `map: 'screen'`; it redraws only when its scene changes.
+- **Orbit controls:** `scene({ gestures: 'scene', camera: model.camera })` claims drags, wheel and pinches from the page and reports each as a `Gesture`; `orbit(model.camera, gesture)` returns the next camera, as three.js's `OrbitControls` would move it. A camera's `damping` eases the rendered camera there. See [ADR-006](../../docs/effect-three/adr/006-controls-as-data.md).
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 
@@ -63,7 +64,7 @@ const program = Effect.gen(function* () {
   yield* handle.update(nextDescription); // diff and apply; equal scenes cost no host changes
   handle.pointer({ _tag: 'PointerDown', x: 0, y: 0, button: 0 }); // normalised device coords
   // handle.events: Stream of PointerEnter | PointerMove | PointerLeave | PointerDown | PointerUp
-  //   | Click | DoubleClick | ContextMenu | Wheel | PointerMissed | Drag | DragEnd
+  //   | Click | DoubleClick | ContextMenu | Wheel | PointerMissed | Drag | DragEnd | Gesture
 }).pipe(Effect.scoped);
 
 const environment = Layer.mergeAll(ResourceRegistry.layer, FrameSource.layer(scheduler));

@@ -9,6 +9,7 @@ import {
   sharedGeometry,
   bloom,
   borrowed,
+  type Camera,
   fixed,
   play,
   renderSettings,
@@ -40,7 +41,12 @@ export type Extras = {
   readonly glow?: boolean;
   /** Shows a render texture on the cube: a small scene with a green background. */
   readonly screen?: boolean;
+  /** An orbiting camera from the Model: the scene claims gestures while it is set. */
+  readonly orbit?: Camera;
 };
+
+/** Where the camera starts, and where the orbit test starts it. */
+export const homeCamera = perspectiveCamera({ position: [0, 0, 4] });
 
 const noExtras: Extras = { robot: false, textured: false };
 
@@ -79,7 +85,8 @@ export const sceneFor = (
   extras: Extras = noExtras,
 ) =>
   scene({
-    camera: perspectiveCamera({ position: [0, 0, 4] }),
+    camera: extras.orbit ?? homeCamera,
+    gestures: extras.orbit === undefined ? 'page' : 'scene',
     render: extras.glow === true ? glowing : plain,
     renderTextures: extras.screen === true ? [screen] : [],
     resources: {

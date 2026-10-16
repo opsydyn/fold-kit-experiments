@@ -49,7 +49,8 @@ const readout = (model: Model): string =>
       Option.fromNullishOr(model.placements.find((placement) => placement.piece === piece)),
     ),
     {
-      onNone: () => 'Drag a piece across the floor. Click one to light it.',
+      onNone: () =>
+        'Drag a piece across the floor, or the space around it to orbit. Click one to light it.',
       onSome: (placement) =>
         `${pieceName[placement.piece]}: ${finishName[placement.finish]}. Right-click to change the finish, double-click to send it home.`,
     },
@@ -77,6 +78,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
             Message.DraggedPiece({ key, origin: ray.origin, direction: ray.direction }),
           onDragEnd: () => Message.DroppedPiece(),
           onPointerMissed: () => Message.ClickedEmptySpace(),
+          onGesture: (gesture) => Message.MadeGesture({ gesture }),
         },
         h,
       ),

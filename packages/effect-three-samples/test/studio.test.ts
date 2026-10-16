@@ -85,3 +85,44 @@ test('the monitor shows the selected piece close up, in its finish, and nothing 
     piece?._tag === 'Mesh' ? piece.material : undefined,
   );
 });
+
+test('gestures on the floor orbit the camera; on a piece or over the plan they do not', () => {
+  const area = { width: 800, height: 600 };
+  const dragBy = (extra: { readonly key?: string; readonly view?: string }) =>
+    Message.MadeGesture({
+      gesture: {
+        _tag: 'Drag',
+        button: 0,
+        modifiers: { shift: false, control: false, meta: false, alt: false },
+        deltaX: 120,
+        deltaY: 0,
+        ...area,
+        ...extra,
+      },
+    });
+  const orbited = step(initial, dragBy({}));
+  expect(orbited.camera.position).not.toEqual(initial.camera.position);
+  expect(orbited.camera.lookAt).toEqual(initial.camera.lookAt);
+  expect(step(initial, dragBy({ key: pieceKey('ball') })).camera).toBe(initial.camera);
+  expect(step(initial, dragBy({ view: 'plan' })).camera).toBe(initial.camera);
+
+  // Never below the floor, however far it is dragged down.
+  const low = step(
+    initial,
+    Message.MadeGesture({
+      gesture: {
+        _tag: 'Drag',
+        button: 0,
+        modifiers: { shift: false, control: false, meta: false, alt: false },
+        deltaX: 0,
+        deltaY: -5000,
+        ...area,
+      },
+    }),
+  );
+  expect(low.camera.position[1]).toBeGreaterThan(low.camera.lookAt[1]);
+
+  // A new lens starts from its own camera.
+  const lensed = step(orbited, Message.ClickedLens());
+  expect(lensed.camera).toMatchObject({ _tag: 'Orthographic', position: [0, 5.2, 7.5] });
+});

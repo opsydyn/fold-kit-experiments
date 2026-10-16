@@ -71,6 +71,7 @@ export const domEventName: {
     readonly Wheel: 'scene-wheel';
     readonly Drag: 'scene-drag';
     readonly DragEnd: 'scene-drag-end';
+    readonly Gesture: 'scene-gesture';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -89,6 +90,9 @@ export type EnvironmentOptions = {
     readonly pixelRatio?: PixelRatio;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
 };
+
+// @public
+export type Gesture = typeof SceneSchema.Gesture.Type;
 
 // @public
 export type HitDetail = typeof SceneSchema.HitDetail.Type;
@@ -123,10 +127,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
+    readonly _tag: "StartedScene";
+} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
-} | {
-    readonly _tag: "StartedScene";
 }>;
 
 // @public
@@ -193,13 +197,16 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly far: Schema.Finite;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly damping: Schema.Finite;
         }>, Schema.TaggedStruct<"Orthographic", {
             readonly zoom: Schema.Finite;
             readonly near: Schema.Finite;
             readonly far: Schema.Finite;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly damping: Schema.Finite;
         }>]>;
+        readonly gestures: Schema.Literals<readonly ["page", "scene"]>;
         readonly views: Schema.$Array<Schema.Struct<{
             readonly key: Schema.String;
             readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
@@ -208,12 +215,14 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly far: Schema.Finite;
                 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly damping: Schema.Finite;
             }>, Schema.TaggedStruct<"Orthographic", {
                 readonly zoom: Schema.Finite;
                 readonly near: Schema.Finite;
                 readonly far: Schema.Finite;
                 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly damping: Schema.Finite;
             }>]>;
             readonly rect: Schema.Struct<{
                 readonly x: Schema.Finite;
@@ -232,12 +241,14 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly far: Schema.Finite;
                 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly damping: Schema.Finite;
             }>, Schema.TaggedStruct<"Orthographic", {
                 readonly zoom: Schema.Finite;
                 readonly near: Schema.Finite;
                 readonly far: Schema.Finite;
                 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly damping: Schema.Finite;
             }>]>;
             readonly background: Schema.NullOr<Schema.Int>;
             readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
@@ -520,6 +531,42 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>;
     }>;
+    'scene-gesture': Schema.Struct<{
+        readonly gesture: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
+            readonly view: Schema.optionalKey<Schema.String>;
+            readonly width: Schema.Finite;
+            readonly height: Schema.Finite;
+            readonly button: Schema.Int;
+            readonly modifiers: Schema.Struct<{
+                readonly shift: Schema.Boolean;
+                readonly control: Schema.Boolean;
+                readonly meta: Schema.Boolean;
+                readonly alt: Schema.Boolean;
+            }>;
+            readonly key: Schema.optionalKey<Schema.String>;
+            readonly deltaX: Schema.Finite;
+            readonly deltaY: Schema.Finite;
+        }>, Schema.TaggedStruct<"Wheel", {
+            readonly view: Schema.optionalKey<Schema.String>;
+            readonly width: Schema.Finite;
+            readonly height: Schema.Finite;
+            readonly modifiers: Schema.Struct<{
+                readonly shift: Schema.Boolean;
+                readonly control: Schema.Boolean;
+                readonly meta: Schema.Boolean;
+                readonly alt: Schema.Boolean;
+            }>;
+            readonly deltaX: Schema.Finite;
+            readonly deltaY: Schema.Finite;
+        }>, Schema.TaggedStruct<"Pinch", {
+            readonly view: Schema.optionalKey<Schema.String>;
+            readonly width: Schema.Finite;
+            readonly height: Schema.Finite;
+            readonly scale: Schema.Finite;
+            readonly deltaX: Schema.Finite;
+            readonly deltaY: Schema.Finite;
+        }>]>;
+    }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
         readonly factor: Schema.Finite;
@@ -650,6 +697,7 @@ export type ViewConfig<Message> = {
     readonly onWheel?: (detail: WheelDetail) => Message;
     readonly onDrag?: (detail: DragDetail) => Message;
     readonly onDragEnd?: (detail: DragDetail) => Message;
+    readonly onGesture?: (gesture: Gesture) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;

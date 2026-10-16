@@ -36,6 +36,12 @@ export type MissDetail = typeof SceneSchema.MissDetail.Type;
 /** Detail of drag events: the captured mesh, the button and the pointer's world-space ray. */
 export type DragDetail = typeof SceneSchema.DragDetail.Type;
 
+/**
+ * A drag, wheel or pinch on the canvas, when the scene claims gestures. Pass it to
+ * `orbit` to move a camera kept in the Model.
+ */
+export type Gesture = typeof SceneSchema.Gesture.Type;
+
 /** Detail of performance changes: the measured fps and the new factor, 0 to 1. */
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
 
@@ -73,6 +79,12 @@ export type ViewConfig<Message> = {
   /** A drag ended: released anywhere, or the pointer was cancelled. */
   readonly onDragEnd?: (detail: DragDetail) => Message;
   /**
+   * A drag, wheel or pinch anywhere on the canvas, reported while the scene claims
+   * gestures (`scene({ gestures: 'scene' })`). Apply it with `orbit` in `update`:
+   * the camera stays in the Model.
+   */
+  readonly onGesture?: (gesture: Gesture) => Message;
+  /**
    * Frames ran persistently slow or fast, and the performance factor moved (0 to 1).
    * Store it in the Model and lower `render.resolution` with it, as Drei's
    * `PerformanceMonitor` and `AdaptiveDpr` do together.
@@ -109,6 +121,9 @@ export const view = <Message>(
     Option.map(given(config.onWheel), element.OnSceneWheel),
     Option.map(given(config.onDrag), element.OnSceneDrag),
     Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
+    Option.map(given(config.onGesture), (toMessage) =>
+      element.OnSceneGesture((detail) => toMessage(detail.gesture)),
+    ),
     Option.map(given(config.onPerformanceChange), element.OnScenePerformance),
     Option.map(given(config.onError), element.OnSceneError),
     Option.map(given(config.onReconciled), element.OnSceneReconciled),

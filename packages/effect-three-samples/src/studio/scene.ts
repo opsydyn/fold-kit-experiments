@@ -15,7 +15,6 @@ import {
   lambert,
   type MaterialRef,
   mesh,
-  orthographicCamera,
   perspectiveCamera,
   phong,
   physical,
@@ -38,6 +37,7 @@ import { Option } from 'effect';
 
 import { lighten } from '../bars/colours';
 import { paintColour } from '../palette';
+import { planLens } from './cameras';
 import { type Finish, type Lens, limit, type Model, type Piece, type Placement } from './model';
 import { pieceKey } from './update';
 
@@ -125,37 +125,19 @@ const spotTarget = (model: Model): Vec3 =>
     (): Vec3 => [0, 0, 0],
   );
 
-const perspectiveLens = perspectiveCamera({
-  fov: 40,
-  position: [0, 5.2, 7.5],
-  lookAt: [0, 0.3, 0],
-});
-const orthographicLens = orthographicCamera({
-  zoom: 62,
-  position: [0, 5.2, 7.5],
-  lookAt: [0, 0.3, 0],
-});
-
-const cameraFor = {
-  perspective: perspectiveLens,
-  orthographic: orthographicLens,
-  split: perspectiveLens,
-} satisfies Record<Lens, Camera>;
-
-/** The split lens: the perspective view on the left, a plan from above on the right. */
-const splitViews = [
-  view({ key: 'front', camera: perspectiveLens, rect: { width: 0.5 } }),
-  view({
-    key: 'plan',
-    camera: orthographicCamera({ zoom: 40, position: [0, 12, 0.001], lookAt: [0, 0, 0] }),
-    rect: { x: 0.5, width: 0.5 },
-  }),
+/** The split lens: the orbiting view on the left, a plan from above on the right. */
+const splitViews = (camera: Camera): ReadonlyArray<View> => [
+  view({ key: 'front', camera, rect: { width: 0.5 } }),
+  view({ key: 'plan', camera: planLens, rect: { x: 0.5, width: 0.5 } }),
 ];
 
-const viewsFor = { perspective: [], orthographic: [], split: splitViews } satisfies Record<
-  Lens,
-  ReadonlyArray<View>
->;
+const noViews: ReadonlyArray<View> = [];
+
+const viewsFor = {
+  perspective: () => noViews,
+  orthographic: () => noViews,
+  split: splitViews,
+} satisfies Record<Lens, (camera: Camera) => ReadonlyArray<View>>;
 
 /** The selected piece alone, turned to show its finish; nothing when none is selected. */
 const closeUp = (model: Model): ReadonlyArray<SceneNode> =>
@@ -201,8 +183,9 @@ const monitorPicture = (model: Model) =>
 
 export const sceneFor = (model: Model) =>
   scene({
-    camera: cameraFor[model.lens],
-    views: viewsFor[model.lens],
+    camera: model.camera,
+    gestures: 'scene',
+    views: viewsFor[model.lens](model.camera),
     render: renderSettings({ shadows: model.shadows, toneMapping: model.tone }),
     renderTextures: [monitorPicture(model)],
     resources: {

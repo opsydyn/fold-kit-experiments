@@ -44,6 +44,7 @@ export { makeSceneMount, type SceneMount } from './mount.ts';
 export {
   type ButtonDetail,
   type DragDetail,
+  type Gesture,
   type HitDetail,
   type KeyDetail,
   type MissDetail,

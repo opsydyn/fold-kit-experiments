@@ -18,6 +18,7 @@ import type {
   ResourceDefinitions,
   Rotation,
   ShapeGeometry,
+  Sky,
   TextBevel,
   Transition,
   Vec3,
@@ -302,3 +303,16 @@ export const environmentEquals = (a: Environment | null, b: Environment | null):
     Object.is(a.backgroundBlurriness, b.backgroundBlurriness) &&
     Object.is(a.backgroundIntensity, b.backgroundIntensity) &&
     Object.is(a.environmentIntensity, b.environmentIntensity));
+
+/** Sky equality. */
+export const skyEquals = (a: Sky | null, b: Sky | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    vec3Equals(a.sunPosition, b.sunPosition) &&
+    Object.is(a.turbidity, b.turbidity) &&
+    Object.is(a.rayleigh, b.rayleigh) &&
+    Object.is(a.mieCoefficient, b.mieCoefficient) &&
+    Object.is(a.mieDirectionalG, b.mieDirectionalG) &&
+    Object.is(a.clouds, b.clouds) &&
+    Object.is(a.distance, b.distance));

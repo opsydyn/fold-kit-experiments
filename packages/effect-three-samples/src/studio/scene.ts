@@ -189,7 +189,7 @@ export const sceneFor = (model: Model) =>
     views: viewsFor[model.lens](model.camera),
     render: renderSettings({ shadows: model.shadows, toneMapping: model.tone }),
     // three's RoomEnvironment: soft studio reflections without an image file.
-    environment: environment({ environmentIntensity: 0.5 }),
+    environment: environment({ environmentIntensity: 0.35 }),
     renderTextures: [monitorPicture(model)],
     resources: {
       geometries: [

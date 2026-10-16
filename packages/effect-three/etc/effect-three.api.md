@@ -592,7 +592,7 @@ const Environment_2: Schema.Struct<{
 export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour';
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor';
 
 // @public
 export const film: (options?: {
@@ -838,6 +838,37 @@ export type Gestures = 'page' | 'scene';
 const Gestures_2: Schema.Literals<readonly ["page", "scene"]>;
 
 // @public
+export const grid: (options: {
+    readonly key: string;
+    readonly position?: Vec3;
+    readonly size?: number;
+    readonly divisions?: number;
+    readonly color?: Rgb;
+    readonly centerColor?: Rgb;
+}) => GridNode;
+
+// @public
+export type GridNode = {
+    readonly _tag: 'Grid';
+    readonly key: string;
+    readonly position: Vec3;
+    readonly size: number;
+    readonly divisions: number;
+    readonly color: Rgb;
+    readonly centerColor: Rgb;
+};
+
+// @public
+const GridNode_2: Schema.TaggedStruct<"Grid", {
+    readonly key: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly size: Schema.Finite;
+    readonly divisions: Schema.Int;
+    readonly color: Schema.Int;
+    readonly centerColor: Schema.Int;
+}>;
+
+// @public
 export const group: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -875,7 +906,7 @@ export type HemisphereLightNode = {
     readonly position: Vec3;
 };
 
-// @public
+// @public (undocumented)
 const HemisphereLightNode_2: Schema.TaggedStruct<"HemisphereLight", {
     readonly key: Schema.String;
     readonly color: Schema.Int;
@@ -2427,6 +2458,7 @@ export const scene: (options: {
     readonly renderTextures?: ReadonlyArray<RenderTexture>;
     readonly overlays?: ReadonlyArray<Overlay>;
     readonly environment?: Environment;
+    readonly sky?: Sky;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2447,6 +2479,7 @@ export type SceneDescription = {
     readonly renderTextures: ReadonlyArray<RenderTexture>;
     readonly overlays: ReadonlyArray<Overlay>;
     readonly environment: Environment | null;
+    readonly sky: Sky | null;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2532,6 +2565,15 @@ const SceneDescription_2: Schema.Struct<{
         readonly backgroundBlurriness: Schema.Finite;
         readonly backgroundIntensity: Schema.Finite;
         readonly environmentIntensity: Schema.Finite;
+    }>>;
+    readonly sky: Schema.NullOr<Schema.Struct<{
+        readonly sunPosition: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly turbidity: Schema.Finite;
+        readonly rayleigh: Schema.Finite;
+        readonly mieCoefficient: Schema.Finite;
+        readonly mieDirectionalG: Schema.Finite;
+        readonly clouds: Schema.Finite;
+        readonly distance: Schema.Finite;
     }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -2978,7 +3020,7 @@ export type SceneLoopOptions = {
 };
 
 // @public
-export type SceneNode = GroupNode | MeshNode | InstancesNode | BorrowedNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
+export type SceneNode = GridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
 
 // @public
 const SceneNode_2: Schema.Codec<SceneNode>;
@@ -3053,6 +3095,7 @@ declare namespace SceneSchema {
         DirectionalLightNode_2 as DirectionalLightNode,
         PointLightNode_2 as PointLightNode,
         SpotLightNode_2 as SpotLightNode,
+        GridNode_2 as GridNode,
         HemisphereLightNode_2 as HemisphereLightNode,
         SceneNode_2 as SceneNode,
         PerspectiveCamera_3 as PerspectiveCamera,
@@ -3064,6 +3107,7 @@ declare namespace SceneSchema {
         RenderTexture_2 as RenderTexture,
         Overlay_2 as Overlay,
         Environment_2 as Environment,
+        Sky_2 as Sky,
         Gestures_2 as Gestures,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
@@ -3168,6 +3212,34 @@ export const sharedGeometry: (id: string) => GeometryRef;
 
 // @public
 export const sharedMaterial: (id: string) => MaterialRef;
+
+// @public
+export type Sky = {
+    readonly sunPosition: Vec3;
+    readonly turbidity: number;
+    readonly rayleigh: number;
+    readonly mieCoefficient: number;
+    readonly mieDirectionalG: number;
+    readonly clouds: number;
+    readonly distance: number;
+};
+
+// @public
+export const sky: (options?: Partial<Sky>) => Sky;
+
+// @public
+const Sky_2: Schema.Struct<{
+    readonly sunPosition: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly turbidity: Schema.Finite;
+    readonly rayleigh: Schema.Finite;
+    readonly mieCoefficient: Schema.Finite;
+    readonly mieDirectionalG: Schema.Finite;
+    readonly clouds: Schema.Finite;
+    readonly distance: Schema.Finite;
+}>;
+
+// @public
+export const skyEquals: (a: Sky | null, b: Sky | null) => boolean;
 
 // @public
 export const sphere: (options?: {
@@ -3294,6 +3366,9 @@ export const startTween: (object: Object3D, target: {
     readonly seconds: number;
     readonly easing: Easing;
 }) => Tween;
+
+// @public
+export const sunPositionFromAngles: (inclination: number, azimuth: number) => Vec3;
 
 // @public
 export type SurfaceMaterial = ShadowMaterial | BasicMaterial | LambertMaterial | PhongMaterial | StandardMaterial | PhysicalMaterial | NormalMaterial;

@@ -282,6 +282,15 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly backgroundIntensity: Schema.Finite;
             readonly environmentIntensity: Schema.Finite;
         }>>;
+        readonly sky: Schema.NullOr<Schema.Struct<{
+            readonly sunPosition: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly turbidity: Schema.Finite;
+            readonly rayleigh: Schema.Finite;
+            readonly mieCoefficient: Schema.Finite;
+            readonly mieDirectionalG: Schema.Finite;
+            readonly clouds: Schema.Finite;
+            readonly distance: Schema.Finite;
+        }>>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;

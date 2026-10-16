@@ -362,6 +362,16 @@ export const SpotLightNode = Schema.TaggedStruct('SpotLight', {
 });
 
 /** Hemisphere light. */
+/** A grid of lines on the XZ plane. */
+export const GridNode = Schema.TaggedStruct('Grid', {
+  key: Schema.String,
+  position: Vec3,
+  size: Positive,
+  divisions: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  color: Rgb,
+  centerColor: Rgb,
+});
+
 export const HemisphereLightNode = Schema.TaggedStruct('HemisphereLight', {
   key: Schema.String,
   color: Rgb,
@@ -390,6 +400,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   PointLightNode,
   SpotLightNode,
   HemisphereLightNode,
+  GridNode,
 ]);
 
 /** The fraction of the way a camera closes every sixtieth of a second: 0 jumps. */
@@ -488,6 +499,17 @@ export const Environment = Schema.Struct({
   environmentIntensity: NonNegative,
 });
 
+/** A daylight sky. */
+export const Sky = Schema.Struct({
+  sunPosition: Vec3,
+  turbidity: NonNegative,
+  rayleigh: NonNegative,
+  mieCoefficient: NonNegative,
+  mieDirectionalG: UnitInterval,
+  clouds: UnitInterval,
+  distance: Positive,
+});
+
 /** Whether the scene claims the pointer's gestures from the page. */
 export const Gestures = Schema.Literals(['page', 'scene']);
 
@@ -498,6 +520,7 @@ export const SceneDescription = Schema.Struct({
   renderTextures: Schema.Array(RenderTexture),
   overlays: Schema.Array(Overlay),
   environment: Schema.NullOr(Environment),
+  sky: Schema.NullOr(Sky),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),

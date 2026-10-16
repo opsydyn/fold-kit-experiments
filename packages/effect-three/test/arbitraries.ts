@@ -233,6 +233,14 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     shadowMapSize: Schema.Literals([256, 512]),
     shadowBias: Schema.Literals([0, -0.001]),
   }),
+  Schema.TaggedStruct('Grid', {
+    key: Key,
+    position: Vec3,
+    size: Schema.Literals([4, 10]),
+    divisions: Schema.Literals([2, 10]),
+    color: Colour,
+    centerColor: Colour,
+  }),
   Schema.TaggedStruct('HemisphereLight', {
     key: Key,
     color: Colour,
@@ -255,6 +263,17 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  sky: Schema.NullOr(
+    Schema.Struct({
+      sunPosition: Vec3,
+      turbidity: Schema.Literals([2, 10]),
+      rayleigh: Schema.Literals([0.5]),
+      mieCoefficient: Schema.Literals([0.005]),
+      mieDirectionalG: Schema.Literals([0.8]),
+      clouds: Schema.Literals([0, 0.4]),
+      distance: Schema.Literals([1000]),
+    }),
+  ),
   environment: Schema.NullOr(
     Schema.Struct({
       map: Schema.NullOr(Schema.Literals(['env'])),

@@ -14,6 +14,8 @@ import type {
   Camera,
   Environment,
   Gestures,
+  GridNode,
+  Sky,
   TextBevel,
   TextGeometry,
   Overlay,
@@ -352,6 +354,27 @@ export const shadowMaterial = (
   _tag: 'Shadow',
   color: options.color ?? 0x000000,
   opacity: options.opacity ?? 1,
+});
+
+/**
+ * A grid of lines on the XZ plane (three.js's `GridHelper`). Defaults as three.js: 10
+ * across, 10 divisions, lines 0x888888 and centre lines 0x444444, at the origin.
+ */
+export const grid = (options: {
+  readonly key: string;
+  readonly position?: Vec3;
+  readonly size?: number;
+  readonly divisions?: number;
+  readonly color?: Rgb;
+  readonly centerColor?: Rgb;
+}): GridNode => ({
+  _tag: 'Grid',
+  key: options.key,
+  position: options.position ?? origin,
+  size: options.size ?? 10,
+  divisions: options.divisions ?? 10,
+  color: options.color ?? 0x888888,
+  centerColor: options.centerColor ?? 0x444444,
 });
 
 /** A reference to a shared geometry defined in the scene's resources. */
@@ -749,6 +772,32 @@ export const environment = (
   environmentIntensity: options.environmentIntensity ?? 1,
 });
 
+/**
+ * Where Drei puts the sun from an inclination and azimuth, both 0 to 1
+ * (`calcPosFromAngles` in `src/core/Sky.tsx`).
+ */
+export const sunPositionFromAngles = (inclination: number, azimuth: number): Vec3 => {
+  const theta = Math.PI * (inclination - 0.5);
+  const phi = 2 * Math.PI * (azimuth - 0.5);
+  return [Math.cos(phi), Math.sin(theta), Math.sin(phi)];
+};
+
+/**
+ * A daylight sky. Defaults as Drei's `Sky`: the sun from inclination 0.6 and azimuth 0.1,
+ * turbidity 10, rayleigh 0.5, mie coefficient 0.005 and directional G 0.8, distance 1000,
+ * and no clouds. The sky is high dynamic range: use tone mapping (`aces`, as three.js's
+ * example and React Three Fiber's default), or it washes out to white.
+ */
+export const sky = (options: Partial<Sky> = {}): Sky => ({
+  sunPosition: options.sunPosition ?? sunPositionFromAngles(0.6, 0.1),
+  turbidity: options.turbidity ?? 10,
+  rayleigh: options.rayleigh ?? 0.5,
+  mieCoefficient: options.mieCoefficient ?? 0.005,
+  mieDirectionalG: options.mieDirectionalG ?? 0.8,
+  clouds: options.clouds ?? 0,
+  distance: options.distance ?? 1000,
+});
+
 const noOverlays: ReadonlyArray<Overlay> = [];
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
@@ -785,6 +834,7 @@ export const scene = (options: {
   readonly renderTextures?: ReadonlyArray<RenderTexture>;
   readonly overlays?: ReadonlyArray<Overlay>;
   readonly environment?: Environment;
+  readonly sky?: Sky;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -795,6 +845,7 @@ export const scene = (options: {
   renderTextures: options.renderTextures ?? noRenderTextures,
   overlays: options.overlays ?? noOverlays,
   environment: options.environment ?? null,
+  sky: options.sky ?? null,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

@@ -487,8 +487,24 @@ export type HemisphereLightNode = {
   readonly position: Vec3;
 };
 
+/**
+ * A square grid of lines on the XZ plane, three.js's `GridHelper`: `size` across, cut
+ * into `divisions` cells, with the two middle lines in `centerColor`. (Drei's `Grid` is a
+ * fading shader grid; this is the plain helper.)
+ */
+export type GridNode = {
+  readonly _tag: 'Grid';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly size: number;
+  readonly divisions: number;
+  readonly color: Rgb;
+  readonly centerColor: Rgb;
+};
+
 /** Any node in a scene. Keys are unique across the whole scene. */
 export type SceneNode =
+  | GridNode
   | GroupNode
   | MeshNode
   | InstancesNode
@@ -669,6 +685,22 @@ export type Environment = {
   readonly environmentIntensity: number;
 };
 
+/**
+ * A physically based daylight sky, three.js's `Sky` (Preetham), as Drei's `Sky`
+ * (`src/core/Sky.tsx` at `bf6f4ad`). Drawn at the camera's far plane, never picked.
+ */
+export type Sky = {
+  readonly sunPosition: Vec3;
+  readonly turbidity: number;
+  readonly rayleigh: number;
+  readonly mieCoefficient: number;
+  readonly mieDirectionalG: number;
+  /** three.js 0.186's cloud cover, 0 to 1. Clouds hold still: scene time does not move them. */
+  readonly clouds: number;
+  /** The size of the sky box (Drei's `distance`). */
+  readonly distance: number;
+};
+
 export type SceneDescription = {
   readonly camera: Camera;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -684,6 +716,8 @@ export type SceneDescription = {
   readonly overlays: ReadonlyArray<Overlay>;
   /** Image-based lighting and background, or `null` for none. */
   readonly environment: Environment | null;
+  /** A daylight sky behind everything, or `null` for none. */
+  readonly sky: Sky | null;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

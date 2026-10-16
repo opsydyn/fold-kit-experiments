@@ -33,6 +33,9 @@ export {
   box,
   capsule,
   circle,
+  grid,
+  sky,
+  sunPositionFromAngles,
   environment,
   text,
   cone,
@@ -90,6 +93,7 @@ export {
   transitionEquals,
   environmentEquals,
   overlaysEqual,
+  skyEquals,
   viewsEqual,
   vec3Equals,
 } from './equality.ts';

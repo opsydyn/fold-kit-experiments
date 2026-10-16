@@ -14,6 +14,7 @@ import {
   type BufferGeometry,
   DirectionalLight,
   Group,
+  GridHelper,
   HemisphereLight,
   Mesh,
   type Object3D,
@@ -24,6 +25,7 @@ import {
   SpotLight,
   Vector3,
 } from 'three';
+import { Sky as SkyMesh } from 'three/addons/objects/Sky.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
@@ -33,6 +35,7 @@ import type {
   AmbientLightNode,
   BorrowedNode,
   DirectionalLightNode,
+  GridNode,
   HemisphereLightNode,
   GroupNode,
   Instance,
@@ -47,13 +50,14 @@ import type {
   Environment,
   Gestures,
   Overlay,
+  Sky,
   RenderTexture,
   Vec3,
   View,
   ViewRect,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
-import { environmentEquals, overlaysEqual } from './equality.ts';
+import { environmentEquals, overlaysEqual, skyEquals } from './equality.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostMaterial } from './materials.ts';
 import {
@@ -97,6 +101,13 @@ type Entry =
     }
   | { readonly _tag: 'PointLight'; node: PointLightNode; readonly object: PointLight }
   | { readonly _tag: 'SpotLight'; node: SpotLightNode; readonly object: SpotLight }
+  | {
+      readonly _tag: 'Grid';
+      node: GridNode;
+      /** Positions the grid; the lines inside are rebuilt when their shape changes. */
+      readonly object: Group;
+      helper: GridHelper;
+    }
   | {
       readonly _tag: 'HemisphereLight';
       node: HemisphereLightNode;
@@ -288,6 +299,15 @@ const writeSpotLight = (light: SpotLight, node: SpotLightNode): void => {
   light.target.updateMatrixWorld();
 };
 
+/** Lines for a grid node: three.js's `GridHelper` takes its shape when constructed. */
+const gridLines = (node: GridNode): GridHelper =>
+  new GridHelper(node.size, node.divisions, node.centerColor, node.color);
+
+const disposeGridLines = (lines: GridHelper): void => {
+  lines.removeFromParent();
+  lines.dispose();
+};
+
 const writeHemisphereLight = (light: HemisphereLight, node: HemisphereLightNode): void => {
   light.color.setHex(node.color);
   light.groundColor.setHex(node.groundColor);
@@ -364,6 +384,41 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let gestures: Gestures = emptyScene.gestures;
   let overlayList: ReadonlyArray<Overlay> = emptyScene.overlays;
   let environmentDescription: Environment | null = emptyScene.environment;
+  let skyDescription: Sky | null = emptyScene.sky;
+  let skyMesh: SkyMesh | undefined;
+
+  /** Shows, updates or removes the sky. It belongs to the scene, so it is never picked. */
+  const applySky = (description: Sky | null): void => {
+    if (description === null) {
+      removeSky();
+      return;
+    }
+    if (skyMesh === undefined) {
+      skyMesh = new SkyMesh();
+      skyMesh.raycast = () => undefined;
+      scene.add(skyMesh);
+    }
+    const { uniforms } = skyMesh.material;
+    const set = (name: string, value: unknown): void => {
+      const uniform = uniforms[name];
+      if (uniform !== undefined) uniform.value = value;
+    };
+    set('turbidity', description.turbidity);
+    set('rayleigh', description.rayleigh);
+    set('mieCoefficient', description.mieCoefficient);
+    set('mieDirectionalG', description.mieDirectionalG);
+    set('cloudCoverage', description.clouds);
+    set('sunPosition', new Vector3().fromArray(description.sunPosition));
+    skyMesh.scale.setScalar(description.distance);
+  };
+
+  function removeSky(): void {
+    if (skyMesh === undefined) return;
+    skyMesh.removeFromParent();
+    skyMesh.geometry.dispose();
+    skyMesh.material.dispose();
+    skyMesh = undefined;
+  }
   const cameraMotion = createCameraMotion();
 
   /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
@@ -522,6 +577,13 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeSpotLight(object, node);
         return { _tag: 'SpotLight', node, object };
       }
+      case 'Grid': {
+        const object = new Group();
+        const helper = gridLines(node);
+        object.add(helper);
+        writeVec3(object.position, node.position);
+        return { _tag: 'Grid', node, object, helper };
+      }
       case 'HemisphereLight': {
         const object = new HemisphereLight();
         writeHemisphereLight(object, node);
@@ -679,6 +741,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     // Frees the instance buffers on the GPU; geometry and material belong to the store.
     if (entry._tag === 'Instances') entry.object.dispose();
+    // A grid's lines are its own.
+    if (entry._tag === 'Grid') disposeGridLines(entry.helper);
     // A borrowed object belongs to the application: detach it, never dispose it.
     if (entry._tag === 'Borrowed') {
       stopPlayer(entry);
@@ -825,6 +889,16 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       return;
     }
+    if (entry._tag === 'Grid' && next._tag === 'Grid') {
+      writeVec3(entry.object.position, next.position);
+      if (fields.some((field) => field !== 'position')) {
+        disposeGridLines(entry.helper);
+        entry.helper = gridLines(next);
+        entry.object.add(entry.helper);
+      }
+      entry.node = next;
+      return;
+    }
     throw new Error(`effect-three: update kind mismatch for "${next.key}"`);
   };
 
@@ -942,6 +1016,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     renderTextures: [],
     overlays: [],
     environment: null,
+    sky: null,
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -1023,6 +1098,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // The frame loop applies the environment, which may need the renderer: ask for a frame.
     if (!environmentEquals(environmentDescription, next.environment)) invalidate();
     environmentDescription = next.environment;
+    if (!skyEquals(skyDescription, next.sky)) {
+      applySky(next.sky);
+      invalidate();
+    }
+    skyDescription = next.sky;
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -1062,6 +1142,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   };
 
   const dispose = (): void => {
+    removeSky();
     for (const texture of textureList) texture.graph.dispose();
     textureGraphs.clear();
     textureList = [];

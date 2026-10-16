@@ -33,6 +33,7 @@ export {
   box,
   capsule,
   circle,
+  text,
   cone,
   cylinder,
   directionalLight,

@@ -13,6 +13,8 @@ import type {
   BoxGeometry,
   Camera,
   Gestures,
+  TextBevel,
+  TextGeometry,
   Overlay,
   CapsuleGeometry,
   CircleGeometry,
@@ -187,6 +189,38 @@ export const circle = (
   _tag: 'Circle',
   radius: options.radius ?? 1,
   segments: options.segments ?? 32,
+});
+
+/**
+ * Text from the typeface font lent under `font`. Defaults as Drei's `Text3D`: size 1,
+ * depth 0.2, 8 curve segments, no bevel (a bevel given defaults to thickness 0.1, size
+ * 0.01, offset 0, 4 segments), not centred. Depth 0 draws flat text.
+ */
+export const text = (options: {
+  readonly text: string;
+  readonly font: string;
+  readonly size?: number;
+  readonly depth?: number;
+  readonly curveSegments?: number;
+  readonly bevel?: Partial<TextBevel>;
+  readonly center?: boolean;
+}): TextGeometry => ({
+  _tag: 'Text',
+  text: options.text,
+  font: options.font,
+  size: options.size ?? 1,
+  depth: options.depth ?? 0.2,
+  curveSegments: options.curveSegments ?? 8,
+  bevel:
+    options.bevel === undefined
+      ? null
+      : {
+          thickness: options.bevel.thickness ?? 0.1,
+          size: options.bevel.size ?? 0.01,
+          offset: options.bevel.offset ?? 0,
+          segments: options.bevel.segments ?? 4,
+        },
+  center: options.center ?? false,
 });
 
 /** Position and scale changes apply immediately. The default. */

@@ -1,0 +1,19 @@
+{
+  "familyName": "Block",
+  "resolution": 1000,
+  "ascender": 1000,
+  "descender": 0,
+  "underlinePosition": -100,
+  "underlineThickness": 50,
+  "original_font_information": { "license": "Written for these tests; public domain." },
+  "boundingBox": { "xMin": 0, "xMax": 1000, "yMin": 0, "yMax": 1000 },
+  "glyphs": {
+    "H": {
+      "ha": 1000,
+      "x_min": 0,
+      "x_max": 800,
+      "o": "m 0 0 l 200 0 l 200 1000 l 0 1000 m 600 0 l 800 0 l 800 1000 l 600 1000 m 200 400 l 600 400 l 600 600 l 200 600"
+    },
+    "I": { "ha": 400, "x_min": 0, "x_max": 200, "o": "m 0 0 l 200 0 l 200 1000 l 0 1000" }
+  }
+}

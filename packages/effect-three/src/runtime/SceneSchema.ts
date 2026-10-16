@@ -97,8 +97,29 @@ export const CircleGeometry = Schema.TaggedStruct('Circle', {
   segments: Segments,
 });
 
+const Steps = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
+
+/** Text from a lent typeface font. */
+export const TextGeometry = Schema.TaggedStruct('Text', {
+  text: Schema.String,
+  font: Schema.String,
+  size: Positive,
+  depth: NonNegative,
+  curveSegments: Steps,
+  bevel: Schema.NullOr(
+    Schema.Struct({
+      thickness: NonNegative,
+      size: NonNegative,
+      offset: Schema.Finite,
+      segments: Steps,
+    }),
+  ),
+  center: Schema.Boolean,
+});
+
 /** Any geometry shape. */
 export const ShapeGeometry = Schema.Union([
+  TextGeometry,
   BoxGeometry,
   SphereGeometry,
   PlaneGeometry,

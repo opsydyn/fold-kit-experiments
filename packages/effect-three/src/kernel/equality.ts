@@ -17,6 +17,7 @@ import type {
   ResourceDefinitions,
   Rotation,
   ShapeGeometry,
+  TextBevel,
   Transition,
   Vec3,
   View,
@@ -100,8 +101,28 @@ export const shapeEquals = (a: ShapeGeometry, b: ShapeGeometry): boolean => {
       );
     case 'Circle':
       return b._tag === 'Circle' && Object.is(a.radius, b.radius) && a.segments === b.segments;
+    case 'Text':
+      return (
+        b._tag === 'Text' &&
+        a.text === b.text &&
+        a.font === b.font &&
+        Object.is(a.size, b.size) &&
+        Object.is(a.depth, b.depth) &&
+        a.curveSegments === b.curveSegments &&
+        a.center === b.center &&
+        bevelEquals(a.bevel, b.bevel)
+      );
   }
 };
+
+const bevelEquals = (a: TextBevel | null, b: TextBevel | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    Object.is(a.thickness, b.thickness) &&
+    Object.is(a.size, b.size) &&
+    Object.is(a.offset, b.offset) &&
+    a.segments === b.segments);
 
 /** Geometry reference equality: same ownership mode and same shape or id. */
 export const geometryRefEquals = (a: GeometryRef, b: GeometryRef): boolean => {

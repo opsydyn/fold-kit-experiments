@@ -17,7 +17,7 @@
  */
 import {
   BoxGeometry,
-  type BufferGeometry,
+  BufferGeometry,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -27,9 +27,12 @@ import {
   type Texture,
   PlaneGeometry,
   RingGeometry,
+  ShapeGeometry as ShapeGeometry3,
   SphereGeometry,
   TorusGeometry,
 } from 'three';
+import { TextGeometry as ThreeTextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import type { Font } from 'three/addons/loaders/FontLoader.js';
 
 import type {
   GeometryRef,
@@ -37,6 +40,7 @@ import type {
   ResourceDefinitions,
   ShapeGeometry,
   SurfaceMaterial,
+  TextGeometry,
 } from './description.ts';
 import { geometryRefEquals, materialRefEquals } from './equality.ts';
 import { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
@@ -57,7 +61,7 @@ export type ResourceStats = {
 };
 
 /** A loan that changed: an object for `borrowed` nodes, or a texture for materials. */
-export type Loan = { readonly kind: 'object' | 'texture'; readonly id: string };
+export type Loan = { readonly kind: 'object' | 'texture' | 'font'; readonly id: string };
 
 /** Raised when a live shared geometry is replaced because its definition changed. */
 export type GeometryReplaced = {
@@ -102,6 +106,13 @@ export type ResourceStore = {
   readonly lendTexture: (id: string, texture: Texture) => () => void;
   /** The texture lent under `id`, if any. */
   readonly texture: (id: string) => Texture | undefined;
+  /**
+   * Lends a typeface font under `id` for text geometries naming it. Text already shown
+   * is rebuilt. Returns a function that withdraws the loan.
+   */
+  readonly lendFont: (id: string, font: Font) => () => void;
+  /** The font lent under `id`, if any. */
+  readonly font: (id: string) => Font | undefined;
   /** Subscribes to loans and withdrawals of objects and textures. Returns an unsubscribe. */
   readonly onLoanChanged: (listener: (loan: Loan) => void) => () => void;
   /** Subscribes to shared material replacement. Returns an unsubscribe function. */
@@ -147,9 +158,35 @@ const liveId = <A extends object>(
   return id;
 };
 
+/** Text from its font: flat shapes, or three's extruded `TextGeometry`. */
+const buildText = (shape: TextGeometry, font: Font | undefined): BufferGeometry => {
+  if (font === undefined) return new BufferGeometry();
+  const geometry =
+    shape.depth === 0 && shape.bevel === null
+      ? new ShapeGeometry3(font.generateShapes(shape.text, shape.size), shape.curveSegments)
+      : new ThreeTextGeometry(shape.text, {
+          font,
+          size: shape.size,
+          depth: shape.depth,
+          curveSegments: shape.curveSegments,
+          bevelEnabled: shape.bevel !== null,
+          bevelThickness: shape.bevel?.thickness ?? 0,
+          bevelSize: shape.bevel?.size ?? 0,
+          bevelOffset: shape.bevel?.offset ?? 0,
+          bevelSegments: shape.bevel?.segments ?? 1,
+        });
+  if (shape.center) geometry.center();
+  return geometry;
+};
+
 /** Builds the three.js geometry for a shape description. */
-const buildShape = (shape: ShapeGeometry): BufferGeometry => {
+const buildShape = (
+  shape: ShapeGeometry,
+  fontOf: (id: string) => Font | undefined,
+): BufferGeometry => {
   switch (shape._tag) {
+    case 'Text':
+      return buildText(shape, fontOf(shape.font));
     case 'Box':
       return new BoxGeometry(shape.width, shape.height, shape.depth);
     case 'Sphere':
@@ -201,6 +238,8 @@ export const createResourceStore = (): ResourceStore => {
   const loans = new Map<string, Object3D>();
   const textures = new Map<string, Texture>();
   const textureOf = (id: string): Texture | undefined => textures.get(id);
+  const fonts = new Map<string, Font>();
+  const fontOf = (id: string): Font | undefined => fonts.get(id);
   const loanListeners = new Set<(loan: Loan) => void>();
   const loanChanged = (loan: Loan): void => {
     // Shared materials belong to the store: re-apply those that use a changed texture.
@@ -210,6 +249,13 @@ export const createResourceStore = (): ResourceStore => {
         if (live !== undefined && 'map' in definition && definition.map === loan.id) {
           updateMaterial(live.value, definition, textureOf);
         }
+      }
+    }
+    // Shared text is the store's too: rebuild what uses a changed font.
+    if (loan.kind === 'font') {
+      for (const [id, definition] of geometryDefinitions) {
+        if (definition._tag === 'Text' && definition.font === loan.id)
+          replaceShared(id, definition);
       }
     }
     for (const listener of loanListeners) listener(loan);
@@ -222,7 +268,7 @@ export const createResourceStore = (): ResourceStore => {
 
   const makeGeometry = (description: ShapeGeometry): BufferGeometry => {
     geometryCounter.created++;
-    return buildShape(description);
+    return buildShape(description, fontOf);
   };
   const disposeGeometry = (geometry: BufferGeometry): void => {
     geometryCounter.disposed++;
@@ -237,21 +283,25 @@ export const createResourceStore = (): ResourceStore => {
     material.dispose();
   };
 
+  /** Rebuilds a live shared geometry and swaps it onto every user. */
+  function replaceShared(id: string, definition: ShapeGeometry): void {
+    const live = sharedGeometries.get(id);
+    if (live === undefined) return;
+    const previous = live.value;
+    const replacement = makeGeometry(definition);
+    sharedGeometryIds.set(replacement, id);
+    live.value = replacement;
+    for (const listener of replacedListeners) listener({ previous, next: replacement });
+    disposeGeometry(previous);
+    notifyChanged();
+  }
+
   const define = (definitions: ResourceDefinitions): void => {
     for (const { id, geometry } of definitions.geometries) {
       const before = geometryDefinitions.get(id);
       geometryDefinitions.set(id, geometry);
-      const live = sharedGeometries.get(id);
-      if (live === undefined || before === undefined || geometryRefEquals(before, geometry)) {
-        continue;
-      }
-      const previous = live.value;
-      const replacement = makeGeometry(geometry);
-      sharedGeometryIds.set(replacement, id);
-      live.value = replacement;
-      for (const listener of replacedListeners) listener({ previous, next: replacement });
-      disposeGeometry(previous);
-      notifyChanged();
+      if (before === undefined || geometryRefEquals(before, geometry)) continue;
+      replaceShared(id, geometry);
     }
     for (const { id, material } of definitions.materials) {
       const before = materialDefinitions.get(id);
@@ -385,6 +435,16 @@ export const createResourceStore = (): ResourceStore => {
       };
     },
     texture: textureOf,
+    lendFont: (id, font) => {
+      fonts.set(id, font);
+      loanChanged({ kind: 'font', id });
+      return () => {
+        if (fonts.get(id) !== font) return;
+        fonts.delete(id);
+        loanChanged({ kind: 'font', id });
+      };
+    },
+    font: fontOf,
     onLoanChanged: (listener) => {
       loanListeners.add(listener);
       return () => {

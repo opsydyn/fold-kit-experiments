@@ -106,7 +106,33 @@ export type CircleGeometry = {
 };
 
 /** Any geometry shape the kernel can build. */
+/** A bevel on extruded text, as three.js's `TextGeometry` options. */
+export type TextBevel = {
+  readonly thickness: number;
+  readonly size: number;
+  readonly offset: number;
+  readonly segments: number;
+};
+
+/**
+ * Text drawn from a typeface font lent to the store under `font`, as Drei's `Text3D`
+ * (three.js's `TextGeometry`). Flat (`ShapeGeometry`) when `depth` is 0 with no bevel.
+ * Until the font is lent the geometry is empty; lending it builds the text.
+ */
+export type TextGeometry = {
+  readonly _tag: 'Text';
+  readonly text: string;
+  readonly font: string;
+  readonly size: number;
+  readonly depth: number;
+  readonly curveSegments: number;
+  readonly bevel: TextBevel | null;
+  /** Centre the text on its origin, as `geometry.center()`; otherwise it starts there. */
+  readonly center: boolean;
+};
+
 export type ShapeGeometry =
+  | TextGeometry
   | BoxGeometry
   | SphereGeometry
   | PlaneGeometry

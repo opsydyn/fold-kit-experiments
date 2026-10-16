@@ -59,6 +59,16 @@ const Shape = Schema.Union([
     thetaSegments: Segments,
   }),
   Schema.TaggedStruct('Circle', { radius: Size, segments: Segments }),
+  // Never lent a font, so empty: the diff, equality and resource balance still apply.
+  Schema.TaggedStruct('Text', {
+    text: Schema.Literals(['a', 'bc']),
+    font: Schema.Literals(['f1']),
+    size: Size,
+    depth: Schema.Literals([0, 0.2]),
+    curveSegments: Schema.Literals([4]),
+    bevel: Schema.Null,
+    center: Schema.Boolean,
+  }),
 ]);
 const Behaviour = Schema.NullOr(
   Schema.Struct({

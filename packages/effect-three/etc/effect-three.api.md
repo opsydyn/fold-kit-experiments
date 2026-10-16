@@ -9,6 +9,7 @@ import { Camera as Camera_2 } from 'three';
 import { Context } from 'effect';
 import { Effect } from 'effect';
 import type { Euler } from 'three';
+import type { Font } from 'three/addons/loaders/FontLoader.js';
 import { InstancedMesh } from 'three';
 import { Layer } from 'effect';
 import { Mesh } from 'three';
@@ -633,7 +634,20 @@ export type GeometryRef = ShapeGeometry | {
 };
 
 // @public
-const GeometryRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
+const GeometryRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
+    readonly text: Schema.String;
+    readonly font: Schema.String;
+    readonly size: Schema.Finite;
+    readonly depth: Schema.Finite;
+    readonly curveSegments: Schema.Int;
+    readonly bevel: Schema.NullOr<Schema.Struct<{
+        readonly thickness: Schema.Finite;
+        readonly size: Schema.Finite;
+        readonly offset: Schema.Finite;
+        readonly segments: Schema.Int;
+    }>>;
+    readonly center: Schema.Boolean;
+}>, Schema.TaggedStruct<"Box", {
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
     readonly depth: Schema.Finite;
@@ -1000,7 +1014,20 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
         readonly name: Schema.String;
         readonly params: Schema.$Record<Schema.String, Schema.Finite>;
     }>>;
-    readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
+    readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
+        readonly text: Schema.String;
+        readonly font: Schema.String;
+        readonly size: Schema.Finite;
+        readonly depth: Schema.Finite;
+        readonly curveSegments: Schema.Int;
+        readonly bevel: Schema.NullOr<Schema.Struct<{
+            readonly thickness: Schema.Finite;
+            readonly size: Schema.Finite;
+            readonly offset: Schema.Finite;
+            readonly segments: Schema.Int;
+        }>>;
+        readonly center: Schema.Boolean;
+    }>, Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
         readonly depth: Schema.Finite;
@@ -1168,7 +1195,7 @@ const layer_2: Layer.Layer<ResourceRegistry_2, never, never>;
 
 // @public
 export type Loan = {
-    readonly kind: 'object' | 'texture';
+    readonly kind: 'object' | 'texture' | 'font';
     readonly id: string;
 };
 
@@ -1329,7 +1356,20 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
         readonly name: Schema.String;
         readonly params: Schema.$Record<Schema.String, Schema.Finite>;
     }>>;
-    readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
+    readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
+        readonly text: Schema.String;
+        readonly font: Schema.String;
+        readonly size: Schema.Finite;
+        readonly depth: Schema.Finite;
+        readonly curveSegments: Schema.Int;
+        readonly bevel: Schema.NullOr<Schema.Struct<{
+            readonly thickness: Schema.Finite;
+            readonly size: Schema.Finite;
+            readonly offset: Schema.Finite;
+            readonly segments: Schema.Int;
+        }>>;
+        readonly center: Schema.Boolean;
+    }>, Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
         readonly depth: Schema.Finite;
@@ -2115,7 +2155,20 @@ export type ResourceDefinitions = {
 const ResourceDefinitions_2: Schema.Struct<{
     readonly geometries: Schema.$Array<Schema.Struct<{
         readonly id: Schema.String;
-        readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
+        readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
+            readonly text: Schema.String;
+            readonly font: Schema.String;
+            readonly size: Schema.Finite;
+            readonly depth: Schema.Finite;
+            readonly curveSegments: Schema.Int;
+            readonly bevel: Schema.NullOr<Schema.Struct<{
+                readonly thickness: Schema.Finite;
+                readonly size: Schema.Finite;
+                readonly offset: Schema.Finite;
+                readonly segments: Schema.Int;
+            }>>;
+            readonly center: Schema.Boolean;
+        }>, Schema.TaggedStruct<"Box", {
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
             readonly depth: Schema.Finite;
@@ -2258,6 +2311,8 @@ export type ResourceStore = {
     readonly lent: (id: string) => Object3D | undefined;
     readonly lendTexture: (id: string, texture: Texture) => () => void;
     readonly texture: (id: string) => Texture | undefined;
+    readonly lendFont: (id: string, font: Font) => () => void;
+    readonly font: (id: string) => Font | undefined;
     readonly onLoanChanged: (listener: (loan: Loan) => void) => () => void;
     readonly onMaterialReplaced: (listener: (event: MaterialReplaced) => void) => () => void;
     readonly updateOwnedMaterial: (material: HostMaterial, next: SurfaceMaterial) => boolean;
@@ -2448,7 +2503,20 @@ const SceneDescription_2: Schema.Struct<{
     readonly resources: Schema.Struct<{
         readonly geometries: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
-            readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
+            readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
+                readonly text: Schema.String;
+                readonly font: Schema.String;
+                readonly size: Schema.Finite;
+                readonly depth: Schema.Finite;
+                readonly curveSegments: Schema.Int;
+                readonly bevel: Schema.NullOr<Schema.Struct<{
+                    readonly thickness: Schema.Finite;
+                    readonly size: Schema.Finite;
+                    readonly offset: Schema.Finite;
+                    readonly segments: Schema.Int;
+                }>>;
+                readonly center: Schema.Boolean;
+            }>, Schema.TaggedStruct<"Box", {
                 readonly width: Schema.Finite;
                 readonly height: Schema.Finite;
                 readonly depth: Schema.Finite;
@@ -2902,6 +2970,7 @@ declare namespace SceneSchema {
         CapsuleGeometry_2 as CapsuleGeometry,
         RingGeometry_2 as RingGeometry,
         CircleGeometry_2 as CircleGeometry,
+        TextGeometry_2 as TextGeometry,
         ShapeGeometry_2 as ShapeGeometry,
         Behave_2 as Behave,
         Easing_2 as Easing,
@@ -2960,11 +3029,24 @@ export type ShadowMode = 'off' | 'basic' | 'percentage' | 'soft' | 'variance';
 // @public
 export const shapeEquals: (a: ShapeGeometry, b: ShapeGeometry) => boolean;
 
-// @public
-export type ShapeGeometry = BoxGeometry | SphereGeometry | PlaneGeometry | CylinderGeometry | TorusGeometry | ConeGeometry | CapsuleGeometry | RingGeometry | CircleGeometry;
+// @public (undocumented)
+export type ShapeGeometry = TextGeometry | BoxGeometry | SphereGeometry | PlaneGeometry | CylinderGeometry | TorusGeometry | ConeGeometry | CapsuleGeometry | RingGeometry | CircleGeometry;
 
 // @public
-const ShapeGeometry_2: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
+const ShapeGeometry_2: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
+    readonly text: Schema.String;
+    readonly font: Schema.String;
+    readonly size: Schema.Finite;
+    readonly depth: Schema.Finite;
+    readonly curveSegments: Schema.Int;
+    readonly bevel: Schema.NullOr<Schema.Struct<{
+        readonly thickness: Schema.Finite;
+        readonly size: Schema.Finite;
+        readonly offset: Schema.Finite;
+        readonly segments: Schema.Int;
+    }>>;
+    readonly center: Schema.Boolean;
+}>, Schema.TaggedStruct<"Box", {
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
     readonly depth: Schema.Finite;
@@ -3201,6 +3283,53 @@ const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
     wireframe: Schema.Boolean;
     flatShading: Schema.Boolean;
 }>]>;
+
+// @public
+export const text: (options: {
+    readonly text: string;
+    readonly font: string;
+    readonly size?: number;
+    readonly depth?: number;
+    readonly curveSegments?: number;
+    readonly bevel?: Partial<TextBevel>;
+    readonly center?: boolean;
+}) => TextGeometry;
+
+// @public
+export type TextBevel = {
+    readonly thickness: number;
+    readonly size: number;
+    readonly offset: number;
+    readonly segments: number;
+};
+
+// @public
+export type TextGeometry = {
+    readonly _tag: 'Text';
+    readonly text: string;
+    readonly font: string;
+    readonly size: number;
+    readonly depth: number;
+    readonly curveSegments: number;
+    readonly bevel: TextBevel | null;
+    readonly center: boolean;
+};
+
+// @public
+const TextGeometry_2: Schema.TaggedStruct<"Text", {
+    readonly text: Schema.String;
+    readonly font: Schema.String;
+    readonly size: Schema.Finite;
+    readonly depth: Schema.Finite;
+    readonly curveSegments: Schema.Int;
+    readonly bevel: Schema.NullOr<Schema.Struct<{
+        readonly thickness: Schema.Finite;
+        readonly size: Schema.Finite;
+        readonly offset: Schema.Finite;
+        readonly segments: Schema.Int;
+    }>>;
+    readonly center: Schema.Boolean;
+}>;
 
 // @public
 export type Textures = (id: string) => Texture | undefined;

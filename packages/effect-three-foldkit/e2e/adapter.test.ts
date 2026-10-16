@@ -448,6 +448,28 @@ test('an overlay shows Model HTML at a point on a node, and follows it', async (
   await page.close();
 }, 60_000);
 
+test('text draws once its font loads from a Command', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await page.goto(app.url('index.html'));
+  await waitForText(page, '#started', '1');
+  await page.click('#still');
+  await animationFrames(page, 5);
+  const canvas = page.locator('effect-three-scene canvas');
+  const before = await canvas.screenshot();
+
+  await page.click('#load-font');
+  await waitForText(page, '#font', 'ready');
+  await animationFrames(page, 5);
+  expect((await canvas.screenshot()).equals(before)).toBe(false);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
 test('repeated mount and unmount releases WebGL contexts and resources', async () => {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const warnings: Array<string> = [];

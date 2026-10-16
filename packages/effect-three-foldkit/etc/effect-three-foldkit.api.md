@@ -105,6 +105,7 @@ export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 export const makeAssets: (store: ResourceStore) => {
     loadTexture: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
     loadModel: (id: string, url: string) => Effect.Effect<ModelInfo, AssetLoadError, never>;
+    loadFont: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
     unload: (id: string) => Effect.Effect<void, never, never>;
     dispose: () => void;
 };
@@ -120,6 +121,7 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     assets: {
         loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
+        loadFont: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         unload: (id: string) => Effect_2<void, never, never>;
         dispose: () => void;
     };
@@ -293,7 +295,20 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly resources: Schema.Struct<{
             readonly geometries: Schema.$Array<Schema.Struct<{
                 readonly id: Schema.String;
-                readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
+                readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
+                    readonly text: Schema.String;
+                    readonly font: Schema.String;
+                    readonly size: Schema.Finite;
+                    readonly depth: Schema.Finite;
+                    readonly curveSegments: Schema.Int;
+                    readonly bevel: Schema.NullOr<Schema.Struct<{
+                        readonly thickness: Schema.Finite;
+                        readonly size: Schema.Finite;
+                        readonly offset: Schema.Finite;
+                        readonly segments: Schema.Int;
+                    }>>;
+                    readonly center: Schema.Boolean;
+                }>, Schema.TaggedStruct<"Box", {
                     readonly width: Schema.Finite;
                     readonly height: Schema.Finite;
                     readonly depth: Schema.Finite;

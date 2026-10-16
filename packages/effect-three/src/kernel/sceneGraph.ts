@@ -595,8 +595,21 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
   };
 
+  /** Rebuilds owned text whose font's loan changed; shared text the store rebuilds. */
+  const refreshFont = (id: string): void => {
+    for (const entry of entries.values()) {
+      if (!isSurfaced(entry)) continue;
+      const geometry = entry.node.geometry;
+      if (geometry._tag === 'Text' && geometry.font === id) {
+        store.releaseGeometry(geometry, entry.object.geometry);
+        entry.object.geometry = store.acquireGeometry(geometry);
+      }
+    }
+  };
+
   const unsubscribeLoans = store.onLoanChanged((loan) => {
     if (loan.kind === 'texture') refreshTexture(loan.id);
+    else if (loan.kind === 'font') refreshFont(loan.id);
     else {
       for (const entry of entries.values()) {
         if (entry._tag === 'Borrowed' && entry.node.id === loan.id) showLoan(entry);

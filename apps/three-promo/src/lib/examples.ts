@@ -41,6 +41,14 @@ export const examples = [
     alt: 'City: a grid of ten thousand blue buildings, tallest in the centre, on a pale ground.',
   },
   {
+    id: 'workshop',
+    category: 'Assets',
+    title: 'Load it, play it, let it go',
+    description:
+      'A glTF robot and a tiled floor texture load through Foldkit Commands. Play its clips at any speed, click its parts, and unload it all from the GPU.',
+    alt: 'Workshop: a small blue robot with a coral arm raised, standing on a pale tiled floor.',
+  },
+  {
     id: 'shared',
     category: 'Resources',
     title: 'Share what the GPU holds',

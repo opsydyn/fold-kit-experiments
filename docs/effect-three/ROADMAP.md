@@ -61,8 +61,9 @@ one changed instance reconciling in ~0.27 ms (budget 2 ms).
 | GLTF models      | `useLoader` + `GLTFLoader` (`three/examples/jsm`)             | ✅     | `environment.assets.loadModel(id, url)` loads with three's `GLTFLoader` and lends the scene (with its clips) for a `borrowed` node; it reports part and clip names, and `unload` frees the model's GPU resources (checked against `renderer.info.memory` in a real browser).                                          | L    |
 | Animation clips  | Drei `useAnimations` (`drei-main/src/core/useAnimations.tsx`) | ✅     | `borrowed({ animation: play(clip, { speed, loop }) })`: playback is a pure function of scene time (driven with `AnimationMixer.setTime`), so it pauses, rewinds under DevTools time travel and keeps on-demand frames coming only while it changes the pose.                                                          | M    |
 
-**Exit:** a sample loads a textured GLTF model, plays a clip, and leaves no GPU resources
-behind after unmount (checked by the existing leak oracle).
+**Exit (met):** the workshop sample loads a textured scene (a generated glTF robot and a
+tiled floor texture) through Commands, plays its clips, and unloads them; the adapter's
+browser test proves unloading returns GPU geometry to its baseline.
 
 ## R4. Composition
 

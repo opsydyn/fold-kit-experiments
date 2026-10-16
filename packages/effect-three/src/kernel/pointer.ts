@@ -52,6 +52,10 @@ export type PointerInput =
  */
 export type Hit = {
   readonly key: string;
+  /** For an `instances` node, the key of the instance hit. */
+  readonly instance?: string;
+  /** For a `borrowed` node, the `name` of the object hit inside it, when it has one. */
+  readonly part?: string;
   /**
    * Keys of the hit mesh's ancestor groups, nearest first. Match on it to handle every
    * mesh in a group with one handler: React Three Fiber's bubbling, as data.
@@ -117,7 +121,12 @@ export type SceneEvent =
       readonly key: string;
       readonly button: number;
       readonly ray: Ray;
-    };
+    }
+  /**
+   * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
+   * it travels with them so one stream carries everything the scene reports.
+   */
+  | { readonly _tag: 'PerformanceChanged'; readonly fps: number; readonly factor: number };
 
 export type Picker = {
   /** Hit-tests at NDC `(x, y)`. Updates world matrices first, so it works headless. */
@@ -129,6 +138,21 @@ export type Picker = {
 };
 
 const toVec3 = (vector: Vector3): Vec3 => [vector.x, vector.y, vector.z];
+
+/**
+ * The nearest object with a key: the object itself for kernel-built meshes, or the
+ * borrowed node wrapping an application object.
+ */
+const keyedOwner = (graph: SceneGraph, object: Object3D): Object3D | undefined => {
+  for (let current: Object3D | null = object; current !== null; current = current.parent) {
+    if (graph.keyOf(current) !== undefined) return current;
+  }
+  return undefined;
+};
+
+/** The name of the part hit inside a borrowed object, when the hit is inside one. */
+const partOf = (owner: Object3D, hit: Object3D): { readonly part?: string } =>
+  owner === hit || hit.name === '' ? {} : { part: hit.name };
 
 /** Keys of an object's keyed ancestors, nearest first. */
 const pathOf = (graph: SceneGraph, object: Object3D): ReadonlyArray<string> => {
@@ -166,17 +190,24 @@ export const createPicker = (graph: SceneGraph): Picker => {
       aim(x, y);
       // Recursive, so an interactive group makes every mesh inside it pickable.
       for (const intersection of raycaster.intersectObjects(targets, true)) {
-        const key = graph.keyOf(intersection.object);
-        if (key !== undefined) {
+        const owner = keyedOwner(graph, intersection.object);
+        const key = owner === undefined ? undefined : graph.keyOf(owner);
+        if (owner !== undefined && key !== undefined) {
           normal.set(0, 0, 0);
           if (intersection.face) {
             normal
               .copy(intersection.face.normal)
               .transformDirection(intersection.object.matrixWorld);
           }
+          const instance =
+            intersection.instanceId === undefined
+              ? undefined
+              : graph.instanceKeyOf(intersection.object, intersection.instanceId);
           return {
             key,
-            path: pathOf(graph, intersection.object),
+            ...(instance === undefined ? {} : { instance }),
+            ...partOf(owner, intersection.object),
+            path: pathOf(graph, owner),
             point: toVec3(intersection.point),
             distance: intersection.distance,
             normal: toVec3(normal),

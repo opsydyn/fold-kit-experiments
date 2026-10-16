@@ -292,7 +292,7 @@ test('root tests include the hook while strict checks and workspace tests stay i
   );
   // The effect-three packages add their stricter package-local lint between the two.
   expect(manifest.scripts.check).toBe(
-    'NODE_OPTIONS="--experimental-strip-types" oxlint . && bun run --filter \'@opsydyn/effect-three*\' check && oxfmt --check .',
+    'NODE_OPTIONS="--experimental-strip-types" oxlint . && bun run --filter \'@opsydyn/effect-three*\' check && oxfmt --check . && bun tools/check-catalog.ts',
   );
   const ci = Bun.YAML.parse(await Bun.file(join(root, '.github/workflows/ci.yml')).text());
   expect(ci.jobs.check.steps.filter((step) => step.run).map((step) => step.run)).toEqual([

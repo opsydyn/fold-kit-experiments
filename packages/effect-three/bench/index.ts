@@ -14,7 +14,7 @@ import {
 } from '../src/kernel/index.ts';
 import { decodeScene, runtimeMountCycle } from './effectCases.ts';
 import { heapGrowthPerCall, type Measurement, measure } from './measure.ts';
-import { spinningCube, wideScene } from './scenes.ts';
+import { instancedScene, spinningCube, wideScene } from './scenes.ts';
 
 type Row = Measurement & { readonly budgetMs?: number; readonly note?: string };
 
@@ -108,7 +108,26 @@ record({ ...measure('runtime mount + unmount', runtimeMountCycle(spinningCube)),
   });
 }
 
-// 7. Per-frame hover re-test with the pointer over the scene (reported, no budget).
+// 7. Instancing: 10,000 instances, one moved, against an equal scene of fresh objects.
+{
+  const { step } = alternating(instancedScene(10_000), instancedScene(10_000, 5_000));
+  const result = step();
+  const note = result._tag === 'Applied' ? `${result.ops.length} op, 1 slot` : result.error._tag;
+  record({
+    ...measure('one instance moved, 10,000 instances', step, { batch: 5 }),
+    budgetMs: 2,
+    note,
+  });
+}
+{
+  const { step } = alternating(instancedScene(10_000), instancedScene(10_000));
+  record({
+    ...measure('no-op reconcile, 10,000 instances', step, { batch: 5 }),
+    budgetMs: 2,
+  });
+}
+
+// 8. Per-frame hover re-test with the pointer over the scene (reported, no budget).
 {
   const graph = createSceneGraph();
   graph.reconcile(wideScene(100));
@@ -118,7 +137,7 @@ record({ ...measure('runtime mount + unmount', runtimeMountCycle(spinningCube)),
   record(measure('hover re-test, 100 interactive meshes', () => tracker.frame()));
 }
 
-// 8. Schema decode at the adapter boundary (reported, no budget). Only values assigned to
+// 9. Schema decode at the adapter boundary (reported, no budget). Only values assigned to
 // the element outside the typed `view` helper pay this; typed scenes skip it.
 record({
   ...measure('schema decode, 1,000 meshes', decodeScene(wideScene(1000)), { batch: 5 }),

@@ -10,6 +10,7 @@ import {
   type ResourceStore,
 } from '@opsydyn/effect-three';
 
+import { makeAssets } from './assets.ts';
 import { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
 import { defaultPixelRatio, type PixelRatio } from './dom/viewport.ts';
 import { webglRendererFactory } from './dom/webgl.ts';
@@ -27,14 +28,20 @@ export type EnvironmentOptions = {
 /** Creates the shared environment for `host`. Call `dispose` when the app shuts down. */
 export const makeEnvironment = (host: EnvironmentHost, options: EnvironmentOptions = {}) => {
   const store: ResourceStore = createResourceStore();
+  const assets = makeAssets(store);
   return {
     host,
     store,
     frames: animationFrameScheduler(host),
     renderer: options.renderer ?? ((canvas: HTMLCanvasElement) => webglRendererFactory(canvas)),
     pixelRatio: options.pixelRatio ?? defaultPixelRatio,
-    /** Disposes every GPU resource still held. */
-    dispose: store.dispose,
+    /** Loads textures and glTF models by URL and lends them to the store. */
+    assets,
+    /** Disposes every loaded asset and every GPU resource still held. */
+    dispose: () => {
+      assets.dispose();
+      store.dispose();
+    },
   };
 };
 

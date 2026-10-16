@@ -45,6 +45,7 @@ const description = scene({
 - **Shapes:** `box`, `sphere`, `plane`, `cylinder`, `torus`, `cone`, `capsule`, `ring` and `circle`, owned by one mesh or shared through `resources`. Parameter names and defaults are three.js's own.
 - **Materials:** `basic`, `lambert`, `phong`, `standard`, `physical` and `normalMaterial`, each with opacity, transparency, `side`, wireframe and (lit kinds) flat shading and emission. Defaults are three.js's own. Changing a material within its kind updates it in place; changing its kind replaces it.
 - **Shadows and render settings:** `scene({ render: renderSettings({ shadows: 'soft', toneMapping: 'aces' }) })`, then `castShadow`/`receiveShadow` on meshes and `castShadow` on directional, point and spot lights. Tone mapping defaults to `none` (React Three Fiber defaults to ACES) so colours render exactly as given.
+- **Instancing:** `instances({ key, geometry, material, instances: [instance({ key, position, color })] })` draws many copies in one call. Updates rewrite only the instances that changed, and hits name the instance (`instance` on the event).
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 
@@ -77,7 +78,14 @@ const environment = Layer.mergeAll(ResourceRegistry.layer, FrameSource.layer(sch
 | Owned  | `geometry: box(...)`, `material: standard(...)`                          | Created for one mesh, disposed with it. Owned material changes are applied in place.                                                                                                                                                                                        |
 | Shared | `sharedGeometry(id)`, `sharedMaterial(id)` plus a `resources` definition | Created on first use, reference-counted across every scene using the same `ResourceRegistry`, disposed when the last user releases it. Changing a shared material updates it in place; changing a shared geometry swaps a new one onto every user and disposes the old one. |
 
-Borrowed resources (user-supplied three.js objects the library never disposes) are planned but not yet implemented.
+Borrowed objects and textures are the application's own: lend them to the store and the library shows them but never disposes them.
+
+```ts
+const withdraw = store.lend('car', gltf.scene); // then: borrowed({ key: 'car', id: 'car' })
+store.lendTexture('bricks', texture); // then: standard({ map: 'bricks' })
+```
+
+A `borrowed` node may name an id before it is lent, so a description can refer to a model that is still loading; it appears when lent and disappears when withdrawn. Hits inside a borrowed object carry the `part` name of the mesh hit.
 
 ## Animation
 
@@ -97,6 +105,10 @@ mesh({
 
 - A new target mid-flight restarts from the pose on screen, so nothing jumps. A node moving to another group keeps its world position and travels to its new place.
 - Easings: `linear`, `easeInOutCubic` (default), `easeOutCubic`, `easeOutBack`. Tweens run in the frame loop without allocating and never reach `update`.
+
+Frames render on demand by default: a scene draws after any change and while anything animates, then stops requesting frames until the next change, so nothing ever calls `invalidate`. `render: renderSettings({ frames: 'always' })` draws every display frame, as React Three Fiber's default does; `frames: 'never'` draws only on `handle.advance`.
+
+When frames run persistently slow, the scene emits `PerformanceChanged { fps, factor }` (Drei's `PerformanceMonitor` algorithm). Store the factor in the Model and pass it back as `renderSettings({ resolution })` to lower the pixel ratio until frames recover.
 
 `handle.setAnimating(false)` freezes scene time (for `prefers-reduced-motion`) while frames keep rendering; transitions then land at once, including any in flight.
 

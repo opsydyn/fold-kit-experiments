@@ -82,8 +82,11 @@ function* reducedMotionFreezesBehaviours(frames: ManualFrames) {
   yield* handle.setAnimating(false);
   yield* advanceFrames(frames, 50, 20);
   expect(handle.graph.object('cube')?.rotation.y).toBeCloseTo(1, 9);
-  expect(renderers.created()[0]?.renders()).toBe(100);
+  // One frame draws the frozen pose; then, with nothing changing, the scene sleeps.
+  expect(renderers.created()[0]?.renders()).toBe(51);
+  expect(frames.subscribers()).toBe(0);
   yield* handle.setAnimating(true);
+  expect(frames.subscribers()).toBe(1);
   yield* advanceFrames(frames, 50, 20);
   expect(handle.graph.object('cube')?.rotation.y).toBeCloseTo(2, 9);
 }
@@ -218,8 +221,9 @@ function* failedStartsLeakNothing(frames: ManualFrames) {
 }
 
 // A frame source whose subscription never completes: startup parks inside `make`.
+const noControl = { wake: () => undefined, sleep: () => undefined };
 const stalledFrames = Layer.succeed(FrameSource.FrameSource, {
-  subscribe: () => Effect.sleep('1 hour'),
+  subscribe: () => Effect.sleep('1 hour').pipe(Effect.map(() => noControl)),
 });
 
 const stalledEnvironment = Layer.mergeAll(ResourceRegistry.layer, stalledFrames, TestClock.layer());
@@ -259,7 +263,7 @@ function sceneRuntimeTests() {
     current.runtime.runPromise(
       Effect.gen(() => rendersAndAnimatesWithoutEvents(current.frames)).pipe(Effect.scoped),
     ));
-  test('reduced motion freezes behaviours while frames keep rendering', () =>
+  test('reduced motion freezes behaviours, then the still scene stops drawing', () =>
     current.runtime.runPromise(
       Effect.gen(() => reducedMotionFreezesBehaviours(current.frames)).pipe(Effect.scoped),
     ));

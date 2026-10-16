@@ -74,11 +74,24 @@ export const webglRendererFactory = (
 ): RendererFactory => ({
   create: () => {
     const renderer = new WebGLRenderer({ antialias: true, ...options, canvas });
+    // The pixel ratio is the viewport's, scaled by the scene's resolution setting.
+    let pixelRatio = 1;
+    let resolution = 1;
+    const applyPixelRatio = (): void => {
+      if (renderer.getPixelRatio() !== pixelRatio * resolution) {
+        renderer.setPixelRatio(pixelRatio * resolution);
+      }
+    };
     return {
       render: (scene, camera) => renderer.render(scene, camera),
-      configure: (settings) => configure(renderer, settings),
+      configure: (settings) => {
+        configure(renderer, settings);
+        resolution = settings.resolution;
+        applyPixelRatio();
+      },
       setViewport: (viewport) => {
-        renderer.setPixelRatio(viewport.pixelRatio);
+        pixelRatio = viewport.pixelRatio;
+        applyPixelRatio();
         renderer.setSize(viewport.width, viewport.height, false);
       },
       memory: () => ({

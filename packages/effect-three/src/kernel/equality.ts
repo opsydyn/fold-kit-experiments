@@ -5,7 +5,9 @@
  * @module
  */
 import type {
+  Animation,
   GeometryRef,
+  Instance,
   MaterialRef,
   Camera,
   RenderSettings,
@@ -105,6 +107,36 @@ export const geometryRefEquals = (a: GeometryRef, b: GeometryRef): boolean => {
   }
   return shapeEquals(a, b);
 };
+
+/** Instance equality: same key, placement and colour. */
+export const instanceEquals = (a: Instance, b: Instance): boolean =>
+  a === b ||
+  (a.key === b.key &&
+    Object.is(a.color, b.color) &&
+    vec3Equals(a.position, b.position) &&
+    vec3Equals(a.rotation, b.rotation) &&
+    vec3Equals(a.scale, b.scale));
+
+/** Instance list equality, slot by slot. */
+export const instancesEqual = (a: ReadonlyArray<Instance>, b: ReadonlyArray<Instance>): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined || y === undefined || !instanceEquals(x, y)) return false;
+  }
+  return true;
+};
+
+/** Animation equality: both none, or the same clip, speed and looping. */
+export const animationEquals = (a: Animation | null, b: Animation | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    a.clip === b.clip &&
+    Object.is(a.speed, b.speed) &&
+    a.loop === b.loop);
 
 /** Transition equality. */
 export const transitionEquals = (a: Transition, b: Transition): boolean => {

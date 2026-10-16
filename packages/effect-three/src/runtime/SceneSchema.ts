@@ -122,6 +122,9 @@ export const Transition = Schema.Union([
 /** Which faces a material draws. */
 export const MaterialSide = Schema.Literals(['front', 'back', 'double']);
 
+/** A texture lent to the store, by id, or `null` for none. */
+const TextureId = Schema.NullOr(Schema.String);
+
 const surface = {
   opacity: UnitInterval,
   transparent: Schema.Boolean,
@@ -132,11 +135,16 @@ const surface = {
 const shaded = { ...surface, flatShading: Schema.Boolean };
 
 /** Unlit material parameters. */
-export const BasicMaterial = Schema.TaggedStruct('Basic', { color: Rgb, ...surface });
+export const BasicMaterial = Schema.TaggedStruct('Basic', {
+  color: Rgb,
+  map: TextureId,
+  ...surface,
+});
 
 /** Matte material parameters. */
 export const LambertMaterial = Schema.TaggedStruct('Lambert', {
   color: Rgb,
+  map: TextureId,
   emissive: Rgb,
   ...shaded,
 });
@@ -144,6 +152,7 @@ export const LambertMaterial = Schema.TaggedStruct('Lambert', {
 /** Shiny material parameters. */
 export const PhongMaterial = Schema.TaggedStruct('Phong', {
   color: Rgb,
+  map: TextureId,
   emissive: Rgb,
   specular: Rgb,
   shininess: NonNegative,
@@ -152,6 +161,7 @@ export const PhongMaterial = Schema.TaggedStruct('Phong', {
 
 const pbr = {
   color: Rgb,
+  map: TextureId,
   roughness: UnitInterval,
   metalness: UnitInterval,
   emissive: Rgb,
@@ -214,6 +224,48 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   interactive: Schema.Boolean,
   castShadow: Schema.Boolean,
   receiveShadow: Schema.Boolean,
+});
+
+/** One instance of an instances node. */
+export const Instance = Schema.Struct({
+  key: Schema.String,
+  position: Vec3,
+  rotation: Vec3,
+  scale: Vec3,
+  color: Rgb,
+});
+
+/** Many instances of one geometry and material. */
+export const InstancesNode = Schema.TaggedStruct('Instances', {
+  key: Schema.String,
+  position: Vec3,
+  rotation: Rotation,
+  scale: Vec3,
+  transition: Transition,
+  geometry: GeometryRef,
+  material: MaterialRef,
+  interactive: Schema.Boolean,
+  castShadow: Schema.Boolean,
+  receiveShadow: Schema.Boolean,
+  instances: Schema.Array(Instance),
+});
+
+/** An application object lent to the store under `id`. */
+export const Animation = Schema.Struct({
+  clip: Schema.String,
+  speed: Schema.Finite,
+  loop: Schema.Boolean,
+});
+
+export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
+  key: Schema.String,
+  id: Schema.String,
+  animation: Schema.NullOr(Animation),
+  position: Vec3,
+  rotation: Rotation,
+  scale: Vec3,
+  transition: Transition,
+  interactive: Schema.Boolean,
 });
 
 /** Uniform ambient light. */
@@ -296,6 +348,8 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
   }),
   MeshNode,
+  InstancesNode,
+  BorrowedNode,
   AmbientLightNode,
   DirectionalLightNode,
   PointLightNode,
@@ -326,6 +380,10 @@ export const Camera = Schema.Union([PerspectiveCamera, OrthographicCamera]);
 
 /** Scene-wide render settings. */
 export const RenderSettings = Schema.Struct({
+  frames: Schema.Literals(['always', 'demand', 'never']),
+  resolution: Schema.Finite.check(
+    Schema.isBetween({ minimum: 0, maximum: 1, exclusiveMinimum: true }),
+  ),
   shadows: Schema.Literals(['off', 'basic', 'percentage', 'soft', 'variance']),
   toneMapping: Schema.Literals(['none', 'linear', 'reinhard', 'cineon', 'aces', 'agx', 'neutral']),
   exposure: Positive,
@@ -350,6 +408,8 @@ export const KeyDetail = Schema.Struct({ key: Schema.String });
  */
 export const HitDetail = Schema.Struct({
   key: Schema.String,
+  instance: Schema.optionalKey(Schema.String),
+  part: Schema.optionalKey(Schema.String),
   path: Schema.Array(Schema.String),
   point: Vec3,
   distance: Schema.Finite,
@@ -377,6 +437,12 @@ export const Ray = HitDetail.fields.ray;
 /** Detail of drag events: the captured mesh, the pressed button and the pointer's ray. */
 export const DragDetail = Schema.Struct({ key: Schema.String, button: Schema.Int, ray: Ray });
 
+/** Detail of performance changes: the fps average and the new factor (0 to 1). */
+export const PerformanceDetail = Schema.Struct({
+  fps: Schema.Finite,
+  factor: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+});
+
 /** A pointer interaction with an interactive mesh, or a miss. */
 export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('PointerEnter', HitDetail.fields),
@@ -391,6 +457,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('PointerMissed', MissDetail.fields),
   Schema.TaggedStruct('Drag', DragDetail.fields),
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
+  Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 
 /** Why a scene description was rejected. */
@@ -402,4 +469,5 @@ export const DescriptionError = Schema.Union([
   }),
   Schema.TaggedStruct('UnknownSharedGeometry', { nodeKey: Schema.String, id: Schema.String }),
   Schema.TaggedStruct('UnknownSharedMaterial', { nodeKey: Schema.String, id: Schema.String }),
+  Schema.TaggedStruct('DuplicateInstanceKey', { nodeKey: Schema.String, key: Schema.String }),
 ]);

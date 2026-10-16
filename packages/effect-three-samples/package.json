@@ -5,28 +5,33 @@
   "type": "module",
   "exports": {
     "./bars": "./src/bars/main.ts",
+    "./city": "./src/city/main.ts",
     "./hero": "./src/hero/main.ts",
     "./playground": "./src/playground/main.ts",
     "./sculpture": "./src/sculpture/main.ts",
     "./studio": "./src/studio/main.ts",
+    "./workshop": "./src/workshop/main.ts",
     "./shared": "./src/shared/main.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"
   },
   "scripts": {
     "test": "bun test ./test",
+    "make:assets": "bun scripts/make-robot.ts ../../apps/three-promo/public/models/robot.glb ../../apps/web/public/models/robot.glb ../effect-three-foldkit/e2e/app/robot.glb && bun scripts/make-tiles.ts ../../apps/three-promo/public/models/tiles.png ../../apps/web/public/models/tiles.png",
     "typecheck": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && tsc --noEmit"
   },
   "dependencies": {
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/effect-three-foldkit": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
-    "effect": "4.0.0",
-    "foldkit": "0.167.0",
-    "three": "0.186.1"
+    "effect": "catalog:",
+    "foldkit": "catalog:",
+    "three": "catalog:"
   },
   "devDependencies": {
-    "bun-types": "^1.3.14",
-    "typescript": "^6.0.3"
+    "@types/pngjs": "catalog:",
+    "bun-types": "catalog:",
+    "pngjs": "catalog:",
+    "typescript": "catalog:"
   }
 }

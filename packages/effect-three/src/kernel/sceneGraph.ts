@@ -8,6 +8,8 @@
  */
 import {
   AmbientLight,
+  AnimationClip,
+  AnimationMixer,
   type BufferGeometry,
   DirectionalLight,
   Group,
@@ -22,13 +24,17 @@ import {
   Vector3,
 } from 'three';
 
+import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
 import { renderSettings } from './build.ts';
 import type {
   AmbientLightNode,
+  BorrowedNode,
   DirectionalLightNode,
   HemisphereLightNode,
   GroupNode,
+  Instance,
+  InstancesNode,
   MeshNode,
   Camera as CameraDescription,
   PointLightNode,
@@ -39,6 +45,7 @@ import type {
   Vec3,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
+import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostMaterial } from './materials.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
@@ -55,6 +62,16 @@ export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
 type Entry =
   | { readonly _tag: 'Group'; node: GroupNode; readonly object: Group }
   | { readonly _tag: 'Mesh'; node: MeshNode; readonly object: HostMesh }
+  // Mutable: growing past capacity swaps in a larger InstancedMesh under the same entry.
+  | { readonly _tag: 'Instances'; node: InstancesNode; object: HostInstances }
+  // `shown` is the lent object (or a clone of it) inside the wrapper, when one is lent.
+  | {
+      readonly _tag: 'Borrowed';
+      node: BorrowedNode;
+      readonly object: Group;
+      shown: Object3D | undefined;
+      player: Player | undefined;
+    }
   | { readonly _tag: 'AmbientLight'; node: AmbientLightNode; readonly object: AmbientLight }
   | {
       readonly _tag: 'DirectionalLight';
@@ -68,6 +85,33 @@ type Entry =
       node: HemisphereLightNode;
       readonly object: HemisphereLight;
     };
+
+/** Entries with a transform: position, rotation, scale and transitions. */
+/** A clip playing on a borrowed object: its mixer, length and scene-time start. */
+type Borrowing = Extract<Entry, { readonly _tag: 'Borrowed' }>;
+
+type Player = {
+  readonly mixer: AnimationMixer;
+  readonly duration: number;
+  readonly startedAt: number;
+};
+
+/** Descriptions with a transform. */
+type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode;
+
+type Placed = Extract<Entry, { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' }>;
+
+/** Entries drawing a geometry with a material. */
+type Surfaced = Extract<Entry, { readonly _tag: 'Mesh' | 'Instances' }>;
+
+const isPlaced = (entry: Entry): entry is Placed =>
+  entry._tag === 'Group' ||
+  entry._tag === 'Mesh' ||
+  entry._tag === 'Instances' ||
+  entry._tag === 'Borrowed';
+
+const isSurfaced = (entry: Entry): entry is Surfaced =>
+  entry._tag === 'Mesh' || entry._tag === 'Instances';
 
 export type ReconcileResult =
   | { readonly _tag: 'Applied'; readonly ops: ReadonlyArray<Op> }
@@ -99,10 +143,21 @@ export type SceneGraph = {
    * any in flight finish, because frozen scene time would otherwise strand them mid-way.
    */
   readonly setAnimating: (animating: boolean) => void;
+  /**
+   * Whether the next frame would draw something new: after any change (reconcile, resize,
+   * animation toggle, a shared resource changed elsewhere) or while something animates.
+   */
+  readonly needsFrame: () => boolean;
+  /** Marks the current state as drawn. The frame loop calls it after each render. */
+  readonly drawn: () => void;
+  /** Calls `listener` whenever the graph changes in a way that needs a frame. */
+  readonly onInvalidated: (listener: () => void) => () => void;
   /** The hosted object for a key. */
   readonly object: (key: string) => Object3D | undefined;
   /** The key of a hosted object. */
   readonly keyOf: (object: Object3D) => string | undefined;
+  /** The key of instance `instanceId` of a hosted instances node, if it has one. */
+  readonly instanceKeyOf: (object: Object3D, instanceId: number) => string | undefined;
   /**
    * Hosted objects of interactive meshes and groups (picking descends into groups). The
    * array is cached until the set changes and is mutable only because three's
@@ -233,6 +288,8 @@ const applyCamera = (camera: HostCamera, description: CameraDescription): void =
   camera.lookAt(description.lookAt[0], description.lookAt[1], description.lookAt[2]);
 };
 
+const noInstances: ReadonlyArray<Instance> = [];
+
 /** Creates an empty scene graph. */
 export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph => {
   const store = options.store ?? createResourceStore();
@@ -242,6 +299,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
+  const playing = new Set<Borrowing>();
   const moving = new Map<Entry, Tween>();
   const reparented = new Set<Entry>();
   const worldPosition = new Vector3();
@@ -250,17 +308,24 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let index: SceneIndex = emptyIndex;
   let elapsed = 0;
   let animating = true;
+  let dirty = true;
+  const invalidationListeners = new Set<() => void>();
+  const invalidate = (): void => {
+    dirty = true;
+    for (const listener of invalidationListeners) listener();
+  };
   let settings: RenderSettings = renderSettings();
   let viewport = { width: 1, height: 1 };
 
   const unsubscribeGeometry = store.onGeometryReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
-      if (entry._tag === 'Mesh' && entry.object.geometry === previous) entry.object.geometry = next;
+      if (isSurfaced(entry) && entry.object.geometry === previous) entry.object.geometry = next;
     }
   });
+  const unsubscribeShared = store.onSharedChanged(invalidate);
   const unsubscribeMaterial = store.onMaterialReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
-      if (entry._tag === 'Mesh' && entry.object.material === previous) entry.object.material = next;
+      if (isSurfaced(entry) && entry.object.material === previous) entry.object.material = next;
     }
   });
 
@@ -272,7 +337,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     interactiveList = undefined;
   };
 
-  const trackRotation = (entry: Entry, node: GroupNode | MeshNode): void => {
+  const trackRotation = (entry: Entry, node: PlacedNode): void => {
     writeRotation(entry.object.rotation, node.rotation, elapsed);
     if (node.rotation._tag === 'Spin') spinning.add(entry);
     else spinning.delete(entry);
@@ -302,6 +367,37 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         object.receiveShadow = node.receiveShadow;
         return entry;
       }
+      case 'Instances': {
+        const object = createInstances(
+          store.acquireGeometry(node.geometry),
+          store.acquireMaterial(node.material),
+          node.instances.length,
+        );
+        writeInstances(object, noInstances, node.instances);
+        const entry: Entry = { _tag: 'Instances', node, object };
+        writeVec3(object.position, node.position);
+        writeVec3(object.scale, node.scale);
+        trackRotation(entry, node);
+        trackInteractive(object, node.interactive);
+        object.castShadow = node.castShadow;
+        object.receiveShadow = node.receiveShadow;
+        return entry;
+      }
+      case 'Borrowed': {
+        const entry: Borrowing = {
+          _tag: 'Borrowed',
+          node,
+          object: new Group(),
+          shown: undefined,
+          player: undefined,
+        };
+        writeVec3(entry.object.position, node.position);
+        writeVec3(entry.object.scale, node.scale);
+        trackRotation(entry, node);
+        trackInteractive(entry.object, node.interactive);
+        showLoan(entry);
+        return entry;
+      }
       case 'AmbientLight':
         return { _tag: 'AmbientLight', node, object: new AmbientLight(node.color, node.intensity) };
       case 'DirectionalLight': {
@@ -327,15 +423,137 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
   };
 
+  /**
+   * Shows what is lent under the entry's id: the object itself, or a clone when another
+   * borrowed node already shows it (an object can have only one parent).
+   */
+  const showLoan = (entry: Borrowing): void => {
+    stopPlayer(entry);
+    entry.shown?.removeFromParent();
+    entry.shown = undefined;
+    const lent = store.lent(entry.node.id);
+    if (lent === undefined) return;
+    const shown = lent.parent === null ? lent : lent.clone();
+    entry.object.add(shown);
+    entry.shown = shown;
+    startPlayer(entry);
+  };
+
+  const stopPlayer = (entry: Borrowing): void => {
+    if (entry.player === undefined) return;
+    entry.player.mixer.stopAllAction();
+    if (entry.shown !== undefined) entry.player.mixer.uncacheRoot(entry.shown);
+    entry.player = undefined;
+    playing.delete(entry);
+  };
+
+  /** Starts the node's clip on what it shows, from now in scene time, if both exist. */
+  const startPlayer = (entry: Borrowing): void => {
+    stopPlayer(entry);
+    const animation = entry.node.animation;
+    const shown = entry.shown;
+    if (animation === null || shown === undefined) return;
+    const clip = AnimationClip.findByName(shown.animations, animation.clip);
+    if (clip === null) return;
+    const mixer = new AnimationMixer(shown);
+    mixer.clipAction(clip).play();
+    entry.player = { mixer, duration: clip.duration, startedAt: elapsed };
+    playing.add(entry);
+    pose(entry);
+  };
+
+  /** Shows the clip's pose for the current scene time. */
+  const pose = (entry: Borrowing): void => {
+    const animation = entry.node.animation;
+    if (entry.player === undefined || animation === null) return;
+    const since = elapsed - entry.player.startedAt;
+    entry.player.mixer.setTime(clipTime(animation, entry.player.duration, since));
+  };
+
+  /** Whether any clip still changes its pose, so frames are needed. */
+  const clipsRunning = (): boolean => {
+    for (const entry of playing) {
+      const animation = entry.node.animation;
+      if (entry.player === undefined || animation === null) continue;
+      const since = elapsed - entry.player.startedAt;
+      if (clipRunning(animation, entry.player.duration, since)) return true;
+    }
+    return false;
+  };
+
+  /** Re-applies owned materials that use a texture whose loan changed. */
+  const refreshTexture = (id: string): void => {
+    for (const entry of entries.values()) {
+      if (!isSurfaced(entry)) continue;
+      const material = entry.node.material;
+      if (material._tag !== 'SharedMaterial' && 'map' in material && material.map === id) {
+        store.updateOwnedMaterial(entry.object.material, material);
+      }
+    }
+  };
+
+  const unsubscribeLoans = store.onLoanChanged((loan) => {
+    if (loan.kind === 'texture') refreshTexture(loan.id);
+    else {
+      for (const entry of entries.values()) {
+        if (entry._tag === 'Borrowed' && entry.node.id === loan.id) showLoan(entry);
+      }
+    }
+    invalidate();
+  });
+
   const release = (entry: Entry): void => {
     spinning.delete(entry);
     moving.delete(entry);
     reparented.delete(entry);
     trackInteractive(entry.object, false);
-    if (entry._tag === 'Mesh') {
+    if (isSurfaced(entry)) {
       store.releaseGeometry(entry.node.geometry, entry.object.geometry);
       store.releaseMaterial(entry.node.material, entry.object.material);
     }
+    // Frees the instance buffers on the GPU; geometry and material belong to the store.
+    if (entry._tag === 'Instances') entry.object.dispose();
+    // A borrowed object belongs to the application: detach it, never dispose it.
+    if (entry._tag === 'Borrowed') {
+      stopPlayer(entry);
+      entry.shown?.removeFromParent();
+      entry.shown = undefined;
+    }
+  };
+
+  /**
+   * Moves an instances entry into a larger InstancedMesh: same place in the tree, same
+   * transform and key, geometry and material carried over, every slot rewritten.
+   */
+  const growInstances = (
+    entry: Extract<Entry, { readonly _tag: 'Instances' }>,
+    next: InstancesNode,
+  ): void => {
+    const old = entry.object;
+    const grown = createInstances(old.geometry, old.material, next.instances.length);
+    grown.position.copy(old.position);
+    grown.quaternion.copy(old.quaternion);
+    grown.scale.copy(old.scale);
+    grown.castShadow = old.castShadow;
+    grown.receiveShadow = old.receiveShadow;
+    grown.name = old.name;
+    const parent = old.parent;
+    if (parent !== null) {
+      const slot = parent.children.indexOf(old);
+      old.removeFromParent();
+      parent.add(grown);
+      parent.children.pop();
+      parent.children.splice(slot, 0, grown);
+    }
+    const key = keys.get(old);
+    keys.delete(old);
+    if (key !== undefined) keys.set(grown, key);
+    const wasInteractive = interactive.has(old);
+    trackInteractive(old, false);
+    trackInteractive(grown, wasInteractive);
+    old.dispose();
+    entry.object = grown;
+    writeInstances(grown, noInstances, next.instances);
   };
 
   /**
@@ -343,7 +561,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
    * animating, otherwise by restarting the tween from the current rendered pose at the last
    * frame's time.
    */
-  const retarget = (entry: Entry, node: GroupNode | MeshNode): void => {
+  const retarget = (entry: Entry, node: PlacedNode): void => {
     if (!animating || node.transition._tag === 'Instant') {
       moving.delete(entry);
       writeVec3(entry.object.position, node.position);
@@ -359,7 +577,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     (fields.includes('transition') && moving.has(entry));
 
   const update = (entry: Entry, next: SceneNode, fields: ReadonlyArray<Field>): void => {
-    if (entry._tag === 'Mesh' && next._tag === 'Mesh') {
+    if (entry._tag === 'Instances' && next._tag === 'Instances' && fields.includes('instances')) {
+      if (fits(entry.object, next.instances.length)) {
+        writeInstances(entry.object, entry.node.instances, next.instances);
+      } else {
+        growInstances(entry, next);
+      }
+    }
+    if (
+      (entry._tag === 'Mesh' && next._tag === 'Mesh') ||
+      (entry._tag === 'Instances' && next._tag === 'Instances')
+    ) {
       const prev = entry.node;
       const mesh = entry.object;
       for (const field of fields) {
@@ -383,6 +611,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
       mesh.castShadow = next.castShadow;
       mesh.receiveShadow = next.receiveShadow;
+      return;
+    }
+    if (entry._tag === 'Borrowed' && next._tag === 'Borrowed') {
+      entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
+      if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
+      if (fields.includes('id')) showLoan(entry);
+      else if (fields.includes('animation')) startPlayer(entry);
       return;
     }
     if (entry._tag === 'Group' && next._tag === 'Group') {
@@ -477,7 +714,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         const entry = entries.get(op.key);
         if (entry === undefined) throw new Error(`effect-three: missing node "${op.key}"`);
         const target = parentObject(op.parent);
-        if (entry._tag === 'Group' || entry._tag === 'Mesh') {
+        if (isPlaced(entry)) {
           // Keep the world position across the move; settle() then takes the node to its
           // new local position, instantly or along its transition.
           entry.object.getWorldPosition(worldPosition);
@@ -525,10 +762,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (result._tag === 'Invalid') return result;
     for (const op of result.ops) apply(op);
     for (const entry of reparented) {
-      if (entry._tag === 'Group' || entry._tag === 'Mesh') retarget(entry, entry.node);
+      if (isPlaced(entry)) retarget(entry, entry.node);
     }
     reparented.clear();
     index = result.index;
+    if (result.ops.length > 0) invalidate();
     return { _tag: 'Applied', ops: result.ops };
   };
 
@@ -540,11 +778,12 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const tick = (elapsedSeconds: number): void => {
     elapsed = elapsedSeconds;
     for (const entry of spinning) {
-      if (entry._tag === 'Group' || entry._tag === 'Mesh') {
+      if (isPlaced(entry)) {
         writeRotation(entry.object.rotation, entry.node.rotation, elapsed);
       }
     }
     moving.forEach(stepTween);
+    for (const entry of playing) pose(entry);
   };
 
   const finishTween = (tween: Tween, entry: Entry): void => {
@@ -552,6 +791,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   };
 
   const setAnimating = (next: boolean): void => {
+    if (next !== animating) invalidate();
     animating = next;
     if (next) return;
     moving.forEach(finishTween);
@@ -567,6 +807,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     index = emptyIndex;
     unsubscribeGeometry();
     unsubscribeMaterial();
+    unsubscribeShared();
+    unsubscribeLoans();
+    invalidationListeners.clear();
     if (ownsStore) store.dispose();
   };
 
@@ -580,9 +823,25 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     tick,
     elapsedSeconds: () => elapsed,
     renderSettings: () => settings,
+    needsFrame: () =>
+      dirty || (animating && (spinning.size > 0 || moving.size > 0 || clipsRunning())),
+    drawn: () => {
+      dirty = false;
+    },
+    onInvalidated: (listener) => {
+      invalidationListeners.add(listener);
+      return () => {
+        invalidationListeners.delete(listener);
+      };
+    },
     setAnimating,
     object: (key) => entries.get(key)?.object,
     keyOf: (object) => keys.get(object),
+    instanceKeyOf: (object, instanceId) => {
+      const key = keys.get(object);
+      const entry = key === undefined ? undefined : entries.get(key);
+      return entry?._tag === 'Instances' ? entry.node.instances[instanceId]?.key : undefined;
+    },
     interactiveObjects: () => {
       interactiveList ??= [...interactive];
       return interactiveList;
@@ -591,6 +850,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     resize: (width, height) => {
       viewport = { width, height };
       fitCamera(camera, viewport);
+      invalidate();
     },
     dispose,
   };

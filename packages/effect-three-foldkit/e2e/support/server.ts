@@ -20,7 +20,12 @@ export async function serveApp(distName: string, pages: ReadonlyArray<string>): 
   if (!build.success) throw new AggregateError(build.logs, 'e2e app build failed');
   const server = Bun.serve({
     port: 0,
-    fetch: (request) => new Response(Bun.file(distDir + new URL(request.url).pathname.slice(1))),
+    // Built bundles first, then static files (such as models) straight from the app folder.
+    fetch: async (request) => {
+      const path = new URL(request.url).pathname.slice(1);
+      const built = Bun.file(distDir + path);
+      return new Response((await built.exists()) ? built : Bun.file(appDir + path));
+    },
   });
   return {
     url: (page) => `http://localhost:${server.port}/${page}`,

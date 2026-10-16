@@ -5,12 +5,21 @@
  * @module
  */
 export type * from './description.ts';
+export { clipRunning, clipTime } from './animation.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
-export { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
+export { buildMaterial, type HostMaterial, type Textures, updateMaterial } from './materials.ts';
+export { capacityFor, type HostInstances } from './instances.ts';
+export {
+  createPerformanceMonitor,
+  type PerformanceChange,
+  type PerformanceMonitor,
+  type PerformanceOptions,
+} from './performance.ts';
 export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,
   basic,
+  borrowed,
   box,
   capsule,
   circle,
@@ -21,6 +30,8 @@ export {
   fixed,
   group,
   hemisphereLight,
+  instance,
+  instances,
   instant,
   lambert,
   mesh,
@@ -28,6 +39,7 @@ export {
   orthographicCamera,
   perspectiveCamera,
   phong,
+  play,
   physical,
   plane,
   pointLight,
@@ -46,7 +58,10 @@ export {
 export { changedFields, diff, type DiffResult, type Field, type Op } from './diff.ts';
 export {
   cameraEquals,
+  animationEquals,
   geometryRefEquals,
+  instanceEquals,
+  instancesEqual,
   materialRefEquals,
   resourcesEqual,
   renderSettingsEquals,
@@ -58,6 +73,7 @@ export {
 export {
   createResourceStore,
   type GeometryReplaced,
+  type Loan,
   type MaterialReplaced,
   type ResourceCounts,
   type ResourceStats,
@@ -65,7 +81,10 @@ export {
 } from './resources.ts';
 export { createSceneClock, type SceneClock } from './clock.ts';
 export {
+  createFramePacer,
   createGatedFrames,
+  type FrameControl,
+  type FramePacer,
   createManualFrames,
   type FrameScheduler,
   type GatedFrames,

@@ -23,6 +23,8 @@ import {
   ConeGeometry,
   CylinderGeometry,
   Material,
+  type Object3D,
+  type Texture,
   PlaneGeometry,
   RingGeometry,
   SphereGeometry,
@@ -54,6 +56,9 @@ export type ResourceStats = {
   readonly sharedMaterialUsers: ReadonlyMap<string, number>;
 };
 
+/** A loan that changed: an object for `borrowed` nodes, or a texture for materials. */
+export type Loan = { readonly kind: 'object' | 'texture'; readonly id: string };
+
 /** Raised when a live shared geometry is replaced because its definition changed. */
 export type GeometryReplaced = {
   readonly previous: BufferGeometry;
@@ -76,6 +81,29 @@ export type ResourceStore = {
   readonly releaseMaterial: (ref: MaterialRef, material: HostMaterial) => void;
   /** Subscribes to shared geometry replacement. Returns an unsubscribe function. */
   readonly onGeometryReplaced: (listener: (event: GeometryReplaced) => void) => () => void;
+  /**
+   * Subscribes to any change to a live shared resource (updated in place or replaced),
+   * so scenes using it know to draw again. Returns an unsubscribe function.
+   */
+  readonly onSharedChanged: (listener: () => void) => () => void;
+  /**
+   * Lends an application-owned three.js object under `id`, replacing any earlier loan.
+   * Scenes show it wherever a `borrowed` node names `id`. The store never disposes it.
+   * Returns a function that withdraws this loan (and nothing lent since).
+   */
+  readonly lend: (id: string, object: Object3D) => () => void;
+  /** The object lent under `id`, if any. */
+  readonly lent: (id: string) => Object3D | undefined;
+  /**
+   * Lends an application-owned texture under `id`, for materials' `map`. Materials using
+   * it update at once, owned and shared alike. The store never disposes it. Returns a
+   * function that withdraws this loan.
+   */
+  readonly lendTexture: (id: string, texture: Texture) => () => void;
+  /** The texture lent under `id`, if any. */
+  readonly texture: (id: string) => Texture | undefined;
+  /** Subscribes to loans and withdrawals of objects and textures. Returns an unsubscribe. */
+  readonly onLoanChanged: (listener: (loan: Loan) => void) => () => void;
   /** Subscribes to shared material replacement. Returns an unsubscribe function. */
   readonly onMaterialReplaced: (listener: (event: MaterialReplaced) => void) => () => void;
   /**
@@ -169,6 +197,26 @@ export const createResourceStore = (): ResourceStore => {
   const owned = new Set<BufferGeometry | HostMaterial>();
   const replacedListeners = new Set<(event: GeometryReplaced) => void>();
   const materialListeners = new Set<(event: MaterialReplaced) => void>();
+  const changeListeners = new Set<() => void>();
+  const loans = new Map<string, Object3D>();
+  const textures = new Map<string, Texture>();
+  const textureOf = (id: string): Texture | undefined => textures.get(id);
+  const loanListeners = new Set<(loan: Loan) => void>();
+  const loanChanged = (loan: Loan): void => {
+    // Shared materials belong to the store: re-apply those that use a changed texture.
+    if (loan.kind === 'texture') {
+      for (const [id, definition] of materialDefinitions) {
+        const live = sharedMaterials.get(id);
+        if (live !== undefined && 'map' in definition && definition.map === loan.id) {
+          updateMaterial(live.value, definition, textureOf);
+        }
+      }
+    }
+    for (const listener of loanListeners) listener(loan);
+  };
+  const notifyChanged = (): void => {
+    for (const listener of changeListeners) listener();
+  };
   const geometryCounter: Counter = { created: 0, disposed: 0 };
   const materialCounter: Counter = { created: 0, disposed: 0 };
 
@@ -182,7 +230,7 @@ export const createResourceStore = (): ResourceStore => {
   };
   const makeMaterial = (description: SurfaceMaterial): HostMaterial => {
     materialCounter.created++;
-    return buildMaterial(description);
+    return buildMaterial(description, textureOf);
   };
   const disposeMaterial = (material: HostMaterial): void => {
     materialCounter.disposed++;
@@ -203,6 +251,7 @@ export const createResourceStore = (): ResourceStore => {
       live.value = replacement;
       for (const listener of replacedListeners) listener({ previous, next: replacement });
       disposeGeometry(previous);
+      notifyChanged();
     }
     for (const { id, material } of definitions.materials) {
       const before = materialDefinitions.get(id);
@@ -211,13 +260,17 @@ export const createResourceStore = (): ResourceStore => {
       if (live === undefined || before === undefined || materialRefEquals(before, material)) {
         continue;
       }
-      if (updateMaterial(live.value, material)) continue;
+      if (updateMaterial(live.value, material, textureOf)) {
+        notifyChanged();
+        continue;
+      }
       const previous = live.value;
       const replacement = makeMaterial(material);
       sharedMaterialIds.set(replacement, id);
       live.value = replacement;
       for (const listener of materialListeners) listener({ previous, next: replacement });
       disposeMaterial(previous);
+      notifyChanged();
     }
   };
 
@@ -305,11 +358,43 @@ export const createResourceStore = (): ResourceStore => {
     releaseGeometry,
     acquireMaterial,
     releaseMaterial,
-    updateOwnedMaterial: updateMaterial,
+    updateOwnedMaterial: (material, next) => updateMaterial(material, next, textureOf),
     onGeometryReplaced: (listener) => {
       replacedListeners.add(listener);
       return () => {
         replacedListeners.delete(listener);
+      };
+    },
+    lend: (id, object) => {
+      loans.set(id, object);
+      loanChanged({ kind: 'object', id });
+      return () => {
+        if (loans.get(id) !== object) return;
+        loans.delete(id);
+        loanChanged({ kind: 'object', id });
+      };
+    },
+    lent: (id) => loans.get(id),
+    lendTexture: (id, texture) => {
+      textures.set(id, texture);
+      loanChanged({ kind: 'texture', id });
+      return () => {
+        if (textures.get(id) !== texture) return;
+        textures.delete(id);
+        loanChanged({ kind: 'texture', id });
+      };
+    },
+    texture: textureOf,
+    onLoanChanged: (listener) => {
+      loanListeners.add(listener);
+      return () => {
+        loanListeners.delete(listener);
+      };
+    },
+    onSharedChanged: (listener) => {
+      changeListeners.add(listener);
+      return () => {
+        changeListeners.delete(listener);
       };
     },
     onMaterialReplaced: (listener) => {

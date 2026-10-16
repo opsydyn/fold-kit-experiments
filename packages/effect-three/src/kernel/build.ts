@@ -5,7 +5,9 @@
  */
 import type {
   AmbientLightNode,
+  Animation,
   BasicMaterial,
+  BorrowedNode,
   Axis,
   BoxGeometry,
   Camera,
@@ -15,6 +17,8 @@ import type {
   CylinderGeometry,
   DirectionalLightNode,
   HemisphereLightNode,
+  Instance,
+  InstancesNode,
   LambertMaterial,
   Easing,
   GeometryRef,
@@ -197,6 +201,7 @@ export const ease = (options: {
 export const basic = (options: Partial<Omit<BasicMaterial, '_tag'>> = {}): BasicMaterial => ({
   _tag: 'Basic',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   opacity: options.opacity ?? 1,
   transparent: options.transparent ?? false,
   side: options.side ?? 'front',
@@ -209,6 +214,7 @@ export const basic = (options: Partial<Omit<BasicMaterial, '_tag'>> = {}): Basic
 export const lambert = (options: Partial<Omit<LambertMaterial, '_tag'>> = {}): LambertMaterial => ({
   _tag: 'Lambert',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   emissive: options.emissive ?? 0x000000,
   opacity: options.opacity ?? 1,
   transparent: options.transparent ?? false,
@@ -223,6 +229,7 @@ export const lambert = (options: Partial<Omit<LambertMaterial, '_tag'>> = {}): L
 export const phong = (options: Partial<Omit<PhongMaterial, '_tag'>> = {}): PhongMaterial => ({
   _tag: 'Phong',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   emissive: options.emissive ?? 0x000000,
   specular: options.specular ?? 0x111111,
   shininess: options.shininess ?? 30,
@@ -241,6 +248,7 @@ export const standard = (
 ): StandardMaterial => ({
   _tag: 'Standard',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   roughness: options.roughness ?? 1,
   metalness: options.metalness ?? 0,
   emissive: options.emissive ?? 0x000000,
@@ -261,6 +269,7 @@ export const physical = (
 ): PhysicalMaterial => ({
   _tag: 'Physical',
   color: options.color ?? 0xffffff,
+  map: options.map ?? null,
   roughness: options.roughness ?? 1,
   metalness: options.metalness ?? 0,
   emissive: options.emissive ?? 0x000000,
@@ -344,6 +353,71 @@ export const mesh = (
   interactive: options.interactive ?? false,
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
+});
+
+/** One instance. Defaults: at the origin, unrotated, unit scale, white. */
+export const instance = (options: {
+  readonly key: string;
+  readonly position?: Vec3;
+  readonly rotation?: Vec3;
+  readonly scale?: Vec3;
+  readonly color?: Rgb;
+}): Instance => ({
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? origin,
+  scale: options.scale ?? unitScale,
+  color: options.color ?? 0xffffff,
+});
+
+/** Many instances of one geometry and material, drawn together. Not interactive by default. */
+export const instances = (
+  options: TransformOptions & {
+    readonly geometry: GeometryRef;
+    readonly material: MaterialRef;
+    readonly instances: ReadonlyArray<Instance>;
+    readonly interactive?: boolean;
+    readonly castShadow?: boolean;
+    readonly receiveShadow?: boolean;
+  },
+): InstancesNode => ({
+  _tag: 'Instances',
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? noRotation,
+  scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
+  geometry: options.geometry,
+  material: options.material,
+  interactive: options.interactive ?? false,
+  castShadow: options.castShadow ?? false,
+  receiveShadow: options.receiveShadow ?? false,
+  instances: options.instances,
+});
+
+/** Plays an animation clip by name. Defaults: normal speed, looping. */
+export const play = (
+  clip: string,
+  options: { readonly speed?: number; readonly loop?: boolean } = {},
+): Animation => ({ clip, speed: options.speed ?? 1, loop: options.loop ?? true });
+
+/** An object lent to the resource store under `id`. Not interactive by default. */
+export const borrowed = (
+  options: TransformOptions & {
+    readonly id: string;
+    readonly interactive?: boolean;
+    readonly animation?: Animation | null;
+  },
+): BorrowedNode => ({
+  _tag: 'Borrowed',
+  key: options.key,
+  id: options.id,
+  animation: options.animation ?? null,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? noRotation,
+  scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
+  interactive: options.interactive ?? false,
 });
 
 /** Ambient light. Defaults: white, intensity 1. */
@@ -484,11 +558,17 @@ export const orthographicCamera = (
 });
 
 /**
- * Render settings. Defaults: shadows off, no tone mapping, exposure 1, sRGB output.
- * React Three Fiber defaults to ACES tone mapping; this keeps colours exactly as given,
- * so a validated palette renders as validated. Pass `toneMapping: 'aces'` to match R3F.
+ * Render settings. Defaults: frames on demand, full resolution, shadows off, no tone
+ * mapping, exposure 1, sRGB output. Two deliberate differences from React Three Fiber:
+ *
+ * - Frames default to `demand`, not `always`. Every visual change passes through the
+ *   kernel, which knows when a frame is needed, so nothing has to call `invalidate` and
+ *   idle scenes stop drawing.
+ * - Tone mapping defaults to `none`, not ACES, so a validated palette renders as given.
  */
 export const renderSettings = (options: Partial<RenderSettings> = {}): RenderSettings => ({
+  frames: options.frames ?? 'demand',
+  resolution: options.resolution ?? 1,
   shadows: options.shadows ?? 'off',
   toneMapping: options.toneMapping ?? 'none',
   exposure: options.exposure ?? 1,

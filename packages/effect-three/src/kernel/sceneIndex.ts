@@ -23,7 +23,8 @@ export type DescriptionError =
       readonly id: string;
     }
   | { readonly _tag: 'UnknownSharedGeometry'; readonly nodeKey: string; readonly id: string }
-  | { readonly _tag: 'UnknownSharedMaterial'; readonly nodeKey: string; readonly id: string };
+  | { readonly _tag: 'UnknownSharedMaterial'; readonly nodeKey: string; readonly id: string }
+  | { readonly _tag: 'DuplicateInstanceKey'; readonly nodeKey: string; readonly key: string };
 
 /** A validated scene. Keys are unique across the whole scene. */
 export type SceneIndex = {
@@ -48,6 +49,18 @@ export type IndexResult =
   | { readonly _tag: 'Invalid'; readonly error: DescriptionError };
 
 /** Validates and flattens a description. */
+/** The first instance key used twice, if any. */
+const firstDuplicateInstance = (
+  instances: ReadonlyArray<{ readonly key: string }>,
+): string | undefined => {
+  const seen = new Set<string>();
+  for (const { key } of instances) {
+    if (seen.has(key)) return key;
+    seen.add(key);
+  }
+  return undefined;
+};
+
 export const indexScene = (description: SceneDescription): IndexResult => {
   const geometryIds = new Set<string>();
   for (const { id } of description.resources.geometries) {
@@ -77,7 +90,7 @@ export const indexScene = (description: SceneDescription): IndexResult => {
     const { node, parent } = item;
     if (nodes.has(node.key))
       return { _tag: 'Invalid', error: { _tag: 'DuplicateKey', key: node.key } };
-    if (node._tag === 'Mesh') {
+    if (node._tag === 'Mesh' || node._tag === 'Instances') {
       if (node.geometry._tag === 'SharedGeometry' && !geometryIds.has(node.geometry.id)) {
         return {
           _tag: 'Invalid',
@@ -88,6 +101,15 @@ export const indexScene = (description: SceneDescription): IndexResult => {
         return {
           _tag: 'Invalid',
           error: { _tag: 'UnknownSharedMaterial', nodeKey: node.key, id: node.material.id },
+        };
+      }
+    }
+    if (node._tag === 'Instances') {
+      const duplicate = firstDuplicateInstance(node.instances);
+      if (duplicate !== undefined) {
+        return {
+          _tag: 'Invalid',
+          error: { _tag: 'DuplicateInstanceKey', nodeKey: node.key, key: duplicate },
         };
       }
     }

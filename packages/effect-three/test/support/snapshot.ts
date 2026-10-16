@@ -13,6 +13,7 @@ import {
   CylinderGeometry,
   DirectionalLight,
   HemisphereLight,
+  InstancedMesh,
   type Material,
   Mesh,
   type Object3D,
@@ -22,6 +23,7 @@ import {
   RingGeometry,
   SphereGeometry,
   SpotLight,
+  Texture,
   TorusGeometry,
 } from 'three';
 
@@ -57,6 +59,7 @@ const materialOf = (material: Material): Record<string, unknown> => {
   for (const key of materialKeys) {
     const value: unknown = Reflect.get(material, key);
     if (value instanceof Color) detail[key] = value.getHex();
+    else if (value instanceof Texture) detail[key] = value.uuid;
     else if (value !== undefined) detail[key] = value;
   }
   return detail;
@@ -64,6 +67,7 @@ const materialOf = (material: Material): Record<string, unknown> => {
 
 const materialKeys = [
   'color',
+  'map',
   'emissive',
   'specular',
   'shininess',
@@ -87,6 +91,13 @@ const shadowOf = (light: DirectionalLight | PointLight | SpotLight) => ({
   bias: light.shadow.bias,
 });
 
+/** The live slots of an instanced mesh, not its capacity: count, matrices and colours. */
+const instancesOf = (mesh: InstancedMesh) => ({
+  count: mesh.count,
+  matrices: Array.from(mesh.instanceMatrix.array.slice(0, mesh.count * 16)),
+  colors: Array.from(mesh.instanceColor?.array.slice(0, mesh.count * 3) ?? []),
+});
+
 const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
   if (object instanceof Mesh) {
     const materialDetail = {
@@ -94,6 +105,7 @@ const detailOf = (graph: SceneGraph, object: Object3D): unknown => {
       ...materialOf(object.material),
     };
     return {
+      ...(object instanceof InstancedMesh ? { instances: instancesOf(object) } : {}),
       castShadow: object.castShadow,
       receiveShadow: object.receiveShadow,
       geometry: {

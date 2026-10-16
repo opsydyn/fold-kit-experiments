@@ -23,6 +23,6 @@
 
 The effect-three packages need nothing but Bun. Node 22+ is allowed only for a tool that can't run under Bun, and as of this ADR there is none.
 
-The surrounding fold-kit-experiments workspace still requires Node ≥ 22.12 for Astro, Vite and its integration tests. That doesn't affect these packages.
+The surrounding fold-kit-experiments workspace still requires Node ≥ 22.22 for Astro, Vite and its integration tests. That doesn't affect these packages.
 
 TypeScript 7 and oxlint 1.88 are package-local devDependencies. The rest of the workspace stays on TypeScript 6 and oxlint 1.79.

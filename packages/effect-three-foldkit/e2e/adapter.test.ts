@@ -31,6 +31,7 @@ type Probe = {
     readonly geometries: { readonly live: number; readonly created: number };
     readonly materials: { readonly live: number; readonly created: number };
   };
+  readonly frameRequests: number;
 };
 
 /** Runs in the page: a serialisable copy of `window.__probe`. */
@@ -41,6 +42,7 @@ function probeSnapshot(): Probe {
     resizeObservers: probe.resizeObservers,
     intersectionObservers: probe.intersectionObservers,
     stats: probe.stats(),
+    frameRequests: probe.frameRequests,
   };
 }
 
@@ -192,6 +194,17 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   // onReconciled reports the in-place change as exactly one Update.
   await waitForText(page, '#last-updated', '1');
 
+  // On demand, a scene that holds still stops asking for frames altogether; spinning
+  // again resumes them. (Waiting uses timers: the test must not request frames itself.)
+  await page.click('#still');
+  await page.waitForTimeout(300);
+  const idle = (await readProbe(page)).frameRequests;
+  await page.waitForTimeout(500);
+  expect((await readProbe(page)).frameRequests).toBe(idle);
+  await page.click('#still');
+  await page.waitForTimeout(300);
+  expect((await readProbe(page)).frameRequests).toBeGreaterThan(idle + 5);
+
   // Unmount releases owned resources, listeners and observers.
   await page.click('#visible');
   await page.waitForFunction(() => document.querySelector('effect-three-scene') === null);
@@ -206,6 +219,54 @@ test('the adapter proves the vertical slice in a real browser', async () => {
   await page.click('#visible');
   await waitForText(page, '#started', '2');
   expect((await readProbe(page)).stats.geometries.live).toBe(1);
+
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
+/** three's GPU memory counters for the scene's renderer. */
+function gpuMemory(): { readonly geometries: number; readonly textures: number } {
+  return Reflect.get(globalThis, '__probe').rendererMemory();
+}
+
+test('assets load into the store, play, pick by part and unload from the GPU', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(app.url('index.html'));
+  await waitForText(page, '#started', '1');
+  await page.click('#still');
+  await animationFrames(page, 3);
+  const before = await page.evaluate(gpuMemory);
+
+  // A glTF model loads through a Foldkit Command and appears through a borrowed node.
+  await page.click('#load-model');
+  await waitForText(page, '#robot', 'ready:wave,roll');
+  await animationFrames(page, 5);
+  const loaded = await page.evaluate(gpuMemory);
+  expect(loaded.geometries).toBeGreaterThan(before.geometries + 5);
+
+  // The robot sits at (1.4, -0.44) in the world: (250, 148) on the 320 × 240 canvas.
+  const canvas = page.locator('effect-three-scene canvas');
+  await canvas.click({ position: { x: 250, y: 148 } });
+  await waitForText(page, '#last-key', 'robot/body');
+
+  // Its wave clip plays, so the on-demand scene keeps drawing while the cube holds still.
+  const idleCheck = (await readProbe(page)).frameRequests;
+  await page.waitForTimeout(300);
+  expect((await readProbe(page)).frameRequests).toBeGreaterThan(idleCheck + 5);
+
+  // Unloading withdraws the model and frees its GPU geometry.
+  await page.click('#unload-model');
+  await waitForText(page, '#robot', 'unloaded');
+  await animationFrames(page, 3);
+  expect((await page.evaluate(gpuMemory)).geometries).toBe(before.geometries);
+
+  // A texture becomes the cube's map.
+  await page.click('#load-texture');
+  await page.waitForFunction(
+    () => Reflect.get(globalThis, '__probe').rendererMemory().textures > 0,
+  );
 
   expect(errors).toEqual([]);
   await page.close();

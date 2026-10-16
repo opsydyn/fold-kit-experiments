@@ -5,6 +5,8 @@
 ```ts
 
 import { CustomElement } from 'foldkit';
+import { Effect } from 'effect';
+import { Effect as Effect_2 } from 'effect/Effect';
 import { FrameScheduler } from '@opsydyn/effect-three';
 import type { Html } from 'foldkit/html';
 import type { HtmlBuilder } from 'foldkit/html';
@@ -20,13 +22,27 @@ import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
+import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
+import { YieldableError } from 'effect/Cause';
 
 // @public
 export type AnimationFrameHost = Pick<Window, 'requestAnimationFrame' | 'cancelAnimationFrame'>;
 
 // @public
 export const animationFrameScheduler: (host: AnimationFrameHost) => FrameScheduler;
+
+// Warning: (ae-forgotten-export) The symbol "AssetLoadError_base" needs to be exported by the entry point index.d.ts
+//
+// @public
+export class AssetLoadError extends AssetLoadError_base<{
+    readonly url: string;
+    readonly cause: unknown;
+}> {
+}
+
+// @public (undocumented)
+export type Assets = ReturnType<typeof makeAssets>;
 
 // @public
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
@@ -54,6 +70,7 @@ export const domEventName: {
     readonly Wheel: 'scene-wheel';
     readonly Drag: 'scene-drag';
     readonly DragEnd: 'scene-drag-end';
+    readonly PerformanceChanged: 'scene-performance';
 };
 
 // @public
@@ -78,12 +95,26 @@ export type HitDetail = typeof SceneSchema.HitDetail.Type;
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 
 // @public
+export const makeAssets: (store: ResourceStore) => {
+    loadTexture: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
+    loadModel: (id: string, url: string) => Effect.Effect<ModelInfo, AssetLoadError, never>;
+    unload: (id: string) => Effect.Effect<void, never, never>;
+    dispose: () => void;
+};
+
+// @public
 export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptions) => {
     host: EnvironmentHost;
     store: ResourceStore;
     frames: FrameScheduler;
     renderer: (canvas: HTMLCanvasElement) => RendererFactory;
     pixelRatio: PixelRatio;
+    assets: {
+        loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
+        loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
+        unload: (id: string) => Effect_2<void, never, never>;
+        dispose: () => void;
+    };
     dispose: () => void;
 };
 
@@ -97,6 +128,16 @@ export const makeSceneMount: (environment: Environment) => Mount.MountDefinition
 
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
+
+// @public
+export type ModelInfo = {
+    readonly id: string;
+    readonly parts: ReadonlyArray<string>;
+    readonly clips: ReadonlyArray<string>;
+};
+
+// @public
+export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
 
 // @public
 export type PixelRatio = number | readonly [min: number, max: number];
@@ -157,6 +198,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>]>;
         readonly render: Schema.Struct<{
+            readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
+            readonly resolution: Schema.Finite;
             readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
             readonly toneMapping: Schema.Literals<readonly ["none", "linear", "reinhard", "cineon", "aces", "agx", "neutral"]>;
             readonly exposure: Schema.Finite;
@@ -212,6 +255,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
                     readonly wireframe: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                 }>, Schema.TaggedStruct<"Lambert", {
                     readonly opacity: Schema.Finite;
                     readonly transparent: Schema.Boolean;
@@ -219,6 +263,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                     readonly emissive: Schema.Int;
                 }>, Schema.TaggedStruct<"Phong", {
                     readonly opacity: Schema.Finite;
@@ -227,6 +272,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                     readonly emissive: Schema.Int;
                     readonly specular: Schema.Int;
                     readonly shininess: Schema.Finite;
@@ -237,6 +283,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                     readonly roughness: Schema.Finite;
                     readonly metalness: Schema.Finite;
                     readonly emissive: Schema.Int;
@@ -248,6 +295,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly flatShading: Schema.Boolean;
                     readonly color: Schema.Int;
+                    readonly map: Schema.NullOr<Schema.String>;
                     readonly roughness: Schema.Finite;
                     readonly metalness: Schema.Finite;
                     readonly emissive: Schema.Int;
@@ -270,6 +318,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
 }, {
     'scene-click': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -283,6 +333,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-double-click': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -296,6 +348,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-context-menu': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -308,6 +362,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-down': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -321,6 +377,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-up': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -334,6 +392,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-enter': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -346,6 +406,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-pointer-move': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -364,6 +426,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-wheel': Schema.Struct<{
         readonly key: Schema.String;
+        readonly instance: Schema.optionalKey<Schema.String>;
+        readonly part: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -392,6 +456,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>;
     }>;
+    'scene-performance': Schema.Struct<{
+        readonly fps: Schema.Finite;
+        readonly factor: Schema.Finite;
+    }>;
     'scene-error': Schema.Struct<{
         readonly error: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKey", {
             readonly key: Schema.String;
@@ -404,6 +472,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         }>, Schema.TaggedStruct<"UnknownSharedMaterial", {
             readonly nodeKey: Schema.String;
             readonly id: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateInstanceKey", {
+            readonly nodeKey: Schema.String;
+            readonly key: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
             readonly issue: Schema.String;
         }>]>;
@@ -445,6 +516,9 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
 }>, Schema.TaggedStruct<"UnknownSharedMaterial", {
     readonly nodeKey: Schema.String;
     readonly id: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateInstanceKey", {
+    readonly nodeKey: Schema.String;
+    readonly key: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {
     readonly issue: Schema.String;
 }>]>;
@@ -498,6 +572,7 @@ export type ViewConfig<Message> = {
     readonly onWheel?: (detail: WheelDetail) => Message;
     readonly onDrag?: (detail: DragDetail) => Message;
     readonly onDragEnd?: (detail: DragDetail) => Message;
+    readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
     }) => Message;

@@ -7,6 +7,10 @@ import {
   perspectiveCamera,
   scene,
   sharedGeometry,
+  borrowed,
+  fixed,
+  play,
+  type SceneNode,
   spin,
   standard,
 } from '@opsydyn/effect-three';
@@ -14,10 +18,34 @@ import {
 const colours = { red: 0xd94040, blue: 0x3366ff } as const;
 const edges = { small: 1, large: 1.5 } as const;
 
+const motions = { spin: spin({ axis: 'y', radiansPerSecond: 1 }), still: fixed([0, 0.6, 0]) };
+
 export type Colour = keyof typeof colours;
+export type Motion = keyof typeof motions;
 export type Size = keyof typeof edges;
 
-export const sceneFor = (colour: Colour, size: Size = 'small') =>
+/** Extras the asset test switches on: the loaded robot, and a texture on the cube. */
+export type Extras = { readonly robot: boolean; readonly textured: boolean };
+
+const noExtras: Extras = { robot: false, textured: false };
+
+const robotNode: ReadonlyArray<SceneNode> = [
+  borrowed({
+    key: 'robot',
+    id: 'robot',
+    position: [1.4, -1.2, 0],
+    scale: [0.8, 0.8, 0.8],
+    animation: play('wave'),
+    interactive: true,
+  }),
+];
+
+export const sceneFor = (
+  colour: Colour,
+  size: Size = 'small',
+  motion: Motion = 'spin',
+  extras: Extras = noExtras,
+) =>
   scene({
     camera: perspectiveCamera({ position: [0, 0, 4] }),
     resources: {
@@ -34,9 +62,14 @@ export const sceneFor = (colour: Colour, size: Size = 'small') =>
       mesh({
         key: 'cube',
         geometry: sharedGeometry('cube'),
-        material: standard({ color: colours[colour], roughness: 0.6 }),
-        rotation: spin({ axis: 'y', radiansPerSecond: 1 }),
+        material: standard({
+          color: colours[colour],
+          roughness: 0.6,
+          map: extras.textured ? 'checker' : null,
+        }),
+        rotation: motions[motion],
         interactive: true,
       }),
+      ...(extras.robot ? robotNode : []),
     ],
   });

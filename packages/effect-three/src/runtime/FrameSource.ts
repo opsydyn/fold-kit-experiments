@@ -6,17 +6,29 @@
  */
 import { Context, Effect, Layer } from 'effect';
 
-import type { FrameScheduler } from '../kernel/index.ts';
+import { createGatedFrames, type FrameControl, type FrameScheduler } from '../kernel/index.ts';
 
-const registration = (scheduler: FrameScheduler, onFrame: () => void) => () =>
-  scheduler.subscribe(onFrame);
+const registration = (scheduler: FrameScheduler, onFrame: () => void) => () => {
+  const gate = createGatedFrames(scheduler);
+  const unsubscribe = gate.subscribe(onFrame);
+  const control: FrameControl = {
+    wake: () => gate.setOpen(true),
+    sleep: () => gate.setOpen(false),
+  };
+  return { control, unsubscribe };
+};
 
 /** The frame source service for `scheduler`, for providing directly with `provideService`. */
 export const fromScheduler = (scheduler: FrameScheduler) => ({
-  /** Calls `onFrame` once per frame until the current scope closes. */
+  /**
+   * Calls `onFrame` once per frame until the current scope closes, while awake. Returns
+   * the control that puts the subscription to sleep and wakes it.
+   */
   subscribe: (onFrame: () => void) => {
     const register = Effect.sync(registration(scheduler, onFrame));
-    return Effect.acquireRelease(register, Effect.sync).pipe(Effect.asVoid);
+    return Effect.acquireRelease(register, (registered) =>
+      Effect.sync(registered.unsubscribe),
+    ).pipe(Effect.map((registered) => registered.control));
   },
 });
 

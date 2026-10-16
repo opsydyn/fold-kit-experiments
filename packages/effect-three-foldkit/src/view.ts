@@ -36,6 +36,9 @@ export type MissDetail = typeof SceneSchema.MissDetail.Type;
 /** Detail of drag events: the captured mesh, the button and the pointer's world-space ray. */
 export type DragDetail = typeof SceneSchema.DragDetail.Type;
 
+/** Detail of performance changes: the measured fps and the new factor, 0 to 1. */
+export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
+
 /** Detail of pointer-leave events: the key that is no longer under the pointer. */
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 
@@ -69,6 +72,12 @@ export type ViewConfig<Message> = {
   readonly onDrag?: (detail: DragDetail) => Message;
   /** A drag ended: released anywhere, or the pointer was cancelled. */
   readonly onDragEnd?: (detail: DragDetail) => Message;
+  /**
+   * Frames ran persistently slow or fast, and the performance factor moved (0 to 1).
+   * Store it in the Model and lower `render.resolution` with it, as Drei's
+   * `PerformanceMonitor` and `AdaptiveDpr` do together.
+   */
+  readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
   /** A scene update was rejected; the scene keeps its last good state. */
   readonly onError?: (detail: { readonly error: SceneError }) => Message;
   /**
@@ -100,6 +109,7 @@ export const view = <Message>(
     Option.map(given(config.onWheel), element.OnSceneWheel),
     Option.map(given(config.onDrag), element.OnSceneDrag),
     Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
+    Option.map(given(config.onPerformanceChange), element.OnScenePerformance),
     Option.map(given(config.onError), element.OnSceneError),
     Option.map(given(config.onReconciled), element.OnSceneReconciled),
     Option.map(given(config.className), h.Class),

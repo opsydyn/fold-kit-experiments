@@ -43,6 +43,8 @@ const shots: ReadonlyArray<Shot> = [
   { id: 'sculpture', prepare: placeBlocks },
   { id: 'bars', prepare: async () => undefined },
   { id: 'studio', prepare: async () => undefined },
+  { id: 'city', prepare: async () => undefined },
+  { id: 'workshop', prepare: async () => undefined },
   { id: 'shared', prepare: async () => undefined },
 ];
 

@@ -38,7 +38,7 @@ const loaded = (model: Model, info: RobotInfo): string =>
 
 const readout = (model: Model): string =>
   match(model.robot, {
-    onIdle: () => 'Unloaded: the model and texture are gone from the GPU.',
+    onIdle: () => 'Unloaded: the model, texture and sign font are gone.',
     onLoading: () => 'Loading the robot…',
     onRefreshing: (info) => loaded(model, info),
     onFailure: (error) => error,

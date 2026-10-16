@@ -12,6 +12,7 @@
     ".superpowers/**",
     "apps/web/src/apps/earthquake-globe/fixtures/usgs-week.geojson",
     "docs/effect-three/brief.md",
-    "packages/*/etc/*.api.md"
+    "packages/*/etc/*.api.md",
+    "apps/*/public/models/*.typeface.json"
   ]
 }

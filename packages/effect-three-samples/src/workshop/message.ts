@@ -7,6 +7,7 @@ import { Clip, type RobotInfo } from './model';
 export const Message = defineMessageUnion({
   SettledRobot: { result: Schema.Unknown },
   SettledFloor: { result: Schema.Unknown },
+  SettledFont: { result: Schema.Unknown },
   CompletedUnload: {},
   ClickedClip: { clip: Schema.NullOr(Clip) },
   ChangedSpeed: { speed: Schema.Number },
@@ -19,6 +20,9 @@ export type SettledRobot = Omit<typeof Message.SettledRobot.Type, 'result'> & {
   readonly result: Result.Result<RobotInfo, string>;
 };
 export type SettledFloor = Omit<typeof Message.SettledFloor.Type, 'result'> & {
+  readonly result: Result.Result<string, string>;
+};
+export type SettledFont = Omit<typeof Message.SettledFont.Type, 'result'> & {
   readonly result: Result.Result<string, string>;
 };
 export type Message = typeof Message.Type;

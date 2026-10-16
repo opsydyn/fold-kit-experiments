@@ -3,16 +3,17 @@ import { settle } from 'foldkit/asyncData';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
-import { LoadFloor, LoadRobot, UnloadAssets } from './command';
+import { LoadFloor, LoadFont, LoadRobot, UnloadAssets } from './command';
 import { Message } from './message';
 import { initialModel, type Model, type RobotInfo } from './model';
 
 type AppReturn = Return<Model, Message>;
 
-/** Commands that load both assets from the model's asset base. */
+/** Commands that load the assets from the model's asset base. */
 const loads = (model: Model) => [
   LoadRobot({ url: `${model.assetBase}robot.glb` }),
   LoadFloor({ url: `${model.assetBase}tiles.png` }),
+  LoadFont({ url: `${model.assetBase}inter-bold.typeface.json` }),
 ];
 
 export const init = (props: { readonly assetBase?: string } = {}) => {
@@ -34,15 +35,32 @@ export const update = (model: Model, message: Message): AppReturn =>
       const result = rawResult as Result.Result<string, string>;
       return { model: { ...model, floor: settle(model.floor, result) } };
     },
+    SettledFont: ({ result: rawResult }) => {
+      // SAFETY: SettledFont is only built by LoadFont, from a Result<string, string>.
+      // oxlint-disable-next-line linteffect/no-model-overlay-cast
+      const result = rawResult as Result.Result<string, string>;
+      return { model: { ...model, font: settle(model.font, result) } };
+    },
     ClickedClip: ({ clip }) => ({ model: modifyFields(model, { clip: () => clip }) }),
     ChangedSpeed: ({ speed }) => ({ model: modifyFields(model, { speed: () => speed }) }),
     ClickedPart: ({ part }) => ({ model: modifyFields(model, { part: () => Option.some(part) }) }),
     ClickedUnload: () => ({ model, commands: [UnloadAssets()] }),
     CompletedUnload: () => ({
-      model: { ...model, robot: { _tag: 'Idle' }, floor: { _tag: 'Idle' }, part: Option.none() },
+      model: {
+        ...model,
+        robot: { _tag: 'Idle' },
+        floor: { _tag: 'Idle' },
+        font: { _tag: 'Idle' },
+        part: Option.none(),
+      },
     }),
     ClickedReload: () => {
-      const loading: Model = { ...model, robot: { _tag: 'Loading' }, floor: { _tag: 'Loading' } };
+      const loading: Model = {
+        ...model,
+        robot: { _tag: 'Loading' },
+        floor: { _tag: 'Loading' },
+        font: { _tag: 'Loading' },
+      };
       return { model: loading, commands: loads(loading) };
     },
     ReceivedSceneLifecycle: () => ({ model }),

@@ -1,7 +1,8 @@
 /**
- * The workshop: the loaded robot on a tiled floor. The robot is a borrowed node, so it
- * appears when its model is lent and disappears when unloaded; the floor uses the lent
- * texture as its map once it has settled.
+ * The workshop: the loaded robot on a tiled floor under a sign. The robot is a borrowed
+ * node, so it appears when its model is lent and disappears when unloaded; the floor uses
+ * the lent texture as its map once it has settled; the sign is text in the lent font,
+ * empty until the font arrives.
  */
 import {
   type Animation,
@@ -15,6 +16,7 @@ import {
   play,
   scene,
   standard,
+  text,
 } from '@opsydyn/effect-three';
 import { Option } from 'effect';
 import { matchData } from 'foldkit/asyncData';
@@ -46,6 +48,19 @@ export const sceneFor = (model: Model) =>
         rotation: fixed([-Math.PI / 2, 0, 0]),
         geometry: plane({ width: 8, height: 8 }),
         material: standard({ color: 0xffffff, roughness: 0.9, map: floorMap(model) }),
+      }),
+      mesh({
+        key: 'sign',
+        position: [0, 2.85, -2.6],
+        geometry: text({
+          text: 'WORKSHOP',
+          font: assetIds.font,
+          size: 0.42,
+          depth: 0.12,
+          bevel: { thickness: 0.02, size: 0.012 },
+          center: true,
+        }),
+        material: standard({ color: 0xf2a541, roughness: 0.35, metalness: 0.2 }),
       }),
       borrowed({
         key: 'robot',

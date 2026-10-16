@@ -31,6 +31,16 @@ export const LoadFloor = Command.define('LoadFloor', {
     ),
 });
 
+export const LoadFont = Command.define('LoadFont', {
+  args: { url: Schema.String },
+  messages: [Message.SettledFont],
+  execute: ({ url }) =>
+    environment.assets.loadFont(assetIds.font, url).pipe(
+      Effect.match({ onSuccess: (id) => Result.succeed(id), onFailure: failure }),
+      Effect.map((result) => Message.SettledFont({ result })),
+    ),
+});
+
 export const UnloadAssets = Command.define('UnloadAssets', {
   messages: [Message.CompletedUnload],
   // Suspended: the environment is only touched when the command runs.
@@ -38,6 +48,7 @@ export const UnloadAssets = Command.define('UnloadAssets', {
     Effect.all([
       environment.assets.unload(assetIds.robot),
       environment.assets.unload(assetIds.floor),
+      environment.assets.unload(assetIds.font),
     ]),
   ).pipe(Effect.map(() => Message.CompletedUnload())),
 });

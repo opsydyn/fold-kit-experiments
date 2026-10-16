@@ -17,23 +17,31 @@ export const Model = Schema.Struct({
   assetBase: Schema.String,
   robot: Schema.Unknown,
   floor: Schema.Unknown,
+  font: Schema.Unknown,
   clip: Schema.NullOr(Clip),
   speed: Schema.Number,
   part: Schema.Option(Schema.String),
 });
-export type Model = Omit<typeof Model.Type, 'robot' | 'floor'> & {
+export type Model = Omit<typeof Model.Type, 'robot' | 'floor' | 'font'> & {
   readonly robot: AsyncData<RobotInfo, string>;
   /** The floor texture, settled to its id once lent. */
   readonly floor: AsyncData<string, string>;
+  /** The sign's font (Inter Bold, OFL), settled to its id once lent. */
+  readonly font: AsyncData<string, string>;
 };
 
 /** Ids the assets are lent under in the shared store. */
-export const assetIds = { robot: 'workshop-robot', floor: 'workshop-floor' } as const;
+export const assetIds = {
+  robot: 'workshop-robot',
+  floor: 'workshop-floor',
+  font: 'workshop-font',
+} as const;
 
 export const initialModel = (assetBase: string): Model => ({
   assetBase,
   robot: { _tag: 'Loading' },
   floor: { _tag: 'Loading' },
+  font: { _tag: 'Loading' },
   clip: 'wave',
   speed: 1,
   part: Option.none(),

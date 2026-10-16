@@ -24,6 +24,7 @@ import {
   cameraEquals,
   renderSettingsEquals,
   animationEquals,
+  behaviourEquals,
   geometryRefEquals,
   instancesEqual,
   materialRefEquals,
@@ -63,7 +64,8 @@ export type Field =
   | 'shadowArea'
   | 'instances'
   | 'id'
-  | 'animation';
+  | 'animation'
+  | 'behaviour';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -100,6 +102,7 @@ export const changedFields = (
   switch (next._tag) {
     case 'Group': {
       if (prev._tag !== 'Group') return undefined;
+      if (!behaviourEquals(prev.behaviour, next.behaviour)) fields.push('behaviour');
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
       if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
@@ -109,6 +112,7 @@ export const changedFields = (
     }
     case 'Mesh': {
       if (prev._tag !== 'Mesh') return undefined;
+      if (!behaviourEquals(prev.behaviour, next.behaviour)) fields.push('behaviour');
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
       if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
@@ -122,6 +126,7 @@ export const changedFields = (
     }
     case 'Instances': {
       if (prev._tag !== 'Instances') return undefined;
+      if (!behaviourEquals(prev.behaviour, next.behaviour)) fields.push('behaviour');
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
       if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
@@ -136,6 +141,7 @@ export const changedFields = (
     }
     case 'Borrowed': {
       if (prev._tag !== 'Borrowed') return undefined;
+      if (!behaviourEquals(prev.behaviour, next.behaviour)) fields.push('behaviour');
       if (!vec3Equals(prev.position, next.position)) fields.push('position');
       if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
@@ -206,10 +212,19 @@ const sameKeys = (a: ReadonlyArray<string>, b: ReadonlyArray<string>): boolean =
   return true;
 };
 
-/** Diffs a validated previous scene against the next description. */
-export const diff = (prev: SceneIndex, next: SceneDescription): DiffResult => {
+const noBehaviours: ReadonlySet<string> = new Set();
+
+/**
+ * Diffs a validated previous scene against the next description. `behaviours` are the
+ * names registered with the scene; naming any other is invalid.
+ */
+export const diff = (
+  prev: SceneIndex,
+  next: SceneDescription,
+  behaviours: ReadonlySet<string> = noBehaviours,
+): DiffResult => {
   if (prev.description === next) return { _tag: 'Diffed', ops: [], index: prev };
-  const indexed = indexScene(next);
+  const indexed = indexScene(next, behaviours);
   if (indexed._tag === 'Invalid') return indexed;
   const index = indexed.index;
   const ops: Array<Op> = [];

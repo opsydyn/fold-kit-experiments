@@ -47,6 +47,13 @@ import type {
 import { diff, type Field, type Op } from './diff.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostMaterial } from './materials.ts';
+import {
+  type Behaviour,
+  type BehaviourPose,
+  builtinBehaviours,
+  createPose,
+  resetPose,
+} from './motion.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -120,6 +127,8 @@ export type ReconcileResult =
 export type SceneGraphOptions = {
   /** A store shared with other graphs. When omitted the graph owns a private store. */
   readonly store?: ResourceStore;
+  /** Behaviours nodes may name, in addition to the built-in ones (`float`). */
+  readonly behaviours?: Readonly<Record<string, Behaviour>>;
 };
 
 export type SceneGraph = {
@@ -300,6 +309,16 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
   const playing = new Set<Borrowing>();
+  const registry: Readonly<Record<string, Behaviour>> = {
+    ...builtinBehaviours,
+    ...options.behaviours,
+  };
+  const knownBehaviours: ReadonlySet<string> = new Set(Object.keys(registry));
+  // Each behaving entry keeps the pose last applied, so it can be taken off again.
+  const behaving = new Map<
+    Placed,
+    { readonly behaviour: Behaviour; readonly pose: BehaviourPose }
+  >();
   const moving = new Map<Entry, Tween>();
   const reparented = new Set<Entry>();
   const worldPosition = new Vector3();
@@ -350,6 +369,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(entry.object.position, node.position);
         writeVec3(entry.object.scale, node.scale);
         trackRotation(entry, node);
+        trackBehaviour(entry, node);
         trackInteractive(entry.object, node.interactive);
         return entry;
       }
@@ -362,6 +382,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         writeVec3(object.scale, node.scale);
         trackRotation(entry, node);
+        trackBehaviour(entry, node);
         trackInteractive(object, node.interactive);
         object.castShadow = node.castShadow;
         object.receiveShadow = node.receiveShadow;
@@ -378,6 +399,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         writeVec3(object.scale, node.scale);
         trackRotation(entry, node);
+        trackBehaviour(entry, node);
         trackInteractive(object, node.interactive);
         object.castShadow = node.castShadow;
         object.receiveShadow = node.receiveShadow;
@@ -394,6 +416,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(entry.object.position, node.position);
         writeVec3(entry.object.scale, node.scale);
         trackRotation(entry, node);
+        trackBehaviour(entry, node);
         trackInteractive(entry.object, node.interactive);
         showLoan(entry);
         return entry;
@@ -502,7 +525,53 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     invalidate();
   });
 
+  /** Removes the last behaviour pose from the object, leaving its base transform. */
+  const liftPose = (entry: Entry): void => {
+    const motion = isPlaced(entry) ? behaving.get(entry) : undefined;
+    if (motion === undefined) return;
+    entry.object.position.sub(motion.pose.offset);
+    const { x, y, z } = motion.pose.scale;
+    if (x !== 0 && y !== 0 && z !== 0) entry.object.scale.divide(motion.pose.scale);
+    resetPose(motion.pose);
+  };
+
+  /** Starts, changes or stops the node's behaviour. */
+  const trackBehaviour = (entry: Placed, node: PlacedNode): void => {
+    liftPose(entry);
+    behaving.delete(entry);
+    if (node.behaviour === null) {
+      trackRotation(entry, node);
+      return;
+    }
+    const behaviour = registry[node.behaviour.name];
+    if (behaviour !== undefined) behaving.set(entry, { behaviour, pose: createPose() });
+  };
+
+  /** Composes the node's behaviour pose on top of its base transform for this frame. */
+  const applyBehaviour = (
+    motion: { readonly behaviour: Behaviour; readonly pose: BehaviourPose },
+    entry: Placed,
+  ): void => {
+    const node = entry.node;
+    if (node.behaviour === null) return;
+    const object = entry.object;
+    // Tweens have written this frame's base already; otherwise the base is the target.
+    if (!moving.has(entry)) {
+      writeVec3(object.position, node.position);
+      writeVec3(object.scale, node.scale);
+    }
+    writeRotation(object.rotation, node.rotation, elapsed);
+    resetPose(motion.pose);
+    motion.behaviour(motion.pose, elapsed, node.behaviour.params);
+    object.position.add(motion.pose.offset);
+    object.scale.multiply(motion.pose.scale);
+    object.rotation.x += motion.pose.rotation.x;
+    object.rotation.y += motion.pose.rotation.y;
+    object.rotation.z += motion.pose.rotation.z;
+  };
+
   const release = (entry: Entry): void => {
+    if (isPlaced(entry)) behaving.delete(entry);
     spinning.delete(entry);
     moving.delete(entry);
     reparented.delete(entry);
@@ -562,6 +631,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
    * frame's time.
    */
   const retarget = (entry: Entry, node: PlacedNode): void => {
+    liftPose(entry);
     if (!animating || node.transition._tag === 'Instant') {
       moving.delete(entry);
       writeVec3(entry.object.position, node.position);
@@ -608,6 +678,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
       mesh.castShadow = next.castShadow;
       mesh.receiveShadow = next.receiveShadow;
@@ -617,6 +688,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       if (fields.includes('id')) showLoan(entry);
       else if (fields.includes('animation')) startPlayer(entry);
@@ -626,6 +698,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       return;
     }
@@ -758,7 +831,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   };
 
   const reconcile = (next: SceneDescription): ReconcileResult => {
-    const result = diff(index, next);
+    const result = diff(index, next, knownBehaviours);
     if (result._tag === 'Invalid') return result;
     for (const op of result.ops) apply(op);
     for (const entry of reparented) {
@@ -784,6 +857,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     moving.forEach(stepTween);
     for (const entry of playing) pose(entry);
+    behaving.forEach(applyBehaviour);
   };
 
   const finishTween = (tween: Tween, entry: Entry): void => {
@@ -824,7 +898,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     elapsedSeconds: () => elapsed,
     renderSettings: () => settings,
     needsFrame: () =>
-      dirty || (animating && (spinning.size > 0 || moving.size > 0 || clipsRunning())),
+      dirty ||
+      (animating && (spinning.size > 0 || moving.size > 0 || behaving.size > 0 || clipsRunning())),
     drawn: () => {
       dirty = false;
     },

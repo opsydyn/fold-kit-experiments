@@ -162,6 +162,7 @@ const sceneRuntimeFor =
     const started = SceneRuntime.make({
       scene,
       renderer: environment.renderer(canvas),
+      behaviours: environment.behaviours,
       viewport: measureViewport(element, environment.host.devicePixelRatio, environment.pixelRatio),
     }).pipe(
       Effect.provideService(FrameSource.FrameSource, FrameSource.fromScheduler(frames)),

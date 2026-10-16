@@ -27,6 +27,7 @@ import { Scope } from 'effect/Scope';
 import { Scope as Scope_2 } from 'effect';
 import { Stream } from 'effect';
 import { Texture } from 'three';
+import { Vector3 } from 'three';
 import type { Vector3Tuple } from 'three';
 import { VoidIfEmpty } from 'effect/Types';
 import { YieldableError } from 'effect/Cause';
@@ -105,6 +106,34 @@ const BasicMaterial_2: Schema.TaggedStruct<"Basic", {
 }>;
 
 // @public
+export type Behave = {
+    readonly name: string;
+    readonly params: Readonly<Record<string, number>>;
+};
+
+// @public
+export const behave: (name: string, params?: Readonly<Record<string, number>>) => Behave;
+
+// @public
+const Behave_2: Schema.Struct<{
+    readonly name: Schema.String;
+    readonly params: Schema.$Record<Schema.String, Schema.Finite>;
+}>;
+
+// @public
+export type Behaviour = (pose: BehaviourPose, seconds: number, params: Readonly<Record<string, number>>) => void;
+
+// @public
+export const behaviourEquals: (a: Behave | null, b: Behave | null) => boolean;
+
+// @public
+export type BehaviourPose = {
+    readonly offset: Vector3;
+    readonly rotation: Vector3;
+    readonly scale: Vector3;
+};
+
+// @public
 export const borrowed: (options: TransformOptions & {
     readonly id: string;
     readonly interactive?: boolean;
@@ -120,6 +149,7 @@ export type BorrowedNode = {
     readonly rotation: Rotation;
     readonly scale: Vec3;
     readonly transition: Transition;
+    readonly behaviour: Behave | null;
     readonly interactive: boolean;
     readonly animation: Animation_2 | null;
 };
@@ -146,6 +176,10 @@ const BorrowedNode_2: Schema.TaggedStruct<"Borrowed", {
         readonly seconds: Schema.Finite;
         readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
     }>]>;
+    readonly behaviour: Schema.NullOr<Schema.Struct<{
+        readonly name: Schema.String;
+        readonly params: Schema.$Record<Schema.String, Schema.Finite>;
+    }>>;
     readonly interactive: Schema.Boolean;
 }>;
 
@@ -173,6 +207,9 @@ const BoxGeometry_2: Schema.TaggedStruct<"Box", {
 
 // @public
 export const buildMaterial: (description: SurfaceMaterial, textures?: Textures) => HostMaterial;
+
+// @public
+export const builtinBehaviours: Readonly<Record<string, Behaviour>>;
 
 // @public
 const ButtonDetail: Schema.Struct<{
@@ -311,6 +348,9 @@ export const createPicker: (graph: SceneGraph) => Picker;
 export const createPointerTracker: (picker: Picker) => PointerTracker;
 
 // @public
+export const createPose: () => BehaviourPose;
+
+// @public
 export const createResourceStore: () => ResourceStore;
 
 // @public
@@ -367,6 +407,10 @@ export type DescriptionError = {
     readonly _tag: 'DuplicateInstanceKey';
     readonly nodeKey: string;
     readonly key: string;
+} | {
+    readonly _tag: 'UnknownBehaviour';
+    readonly nodeKey: string;
+    readonly name: string;
 };
 
 // @public
@@ -384,10 +428,13 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
 }>, Schema.TaggedStruct<"DuplicateInstanceKey", {
     readonly nodeKey: Schema.String;
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownBehaviour", {
+    readonly nodeKey: Schema.String;
+    readonly name: Schema.String;
 }>]>;
 
 // @public
-export const diff: (prev: SceneIndex, next: SceneDescription) => DiffResult;
+export const diff: (prev: SceneIndex, next: SceneDescription, behaviours?: ReadonlySet<string>) => DiffResult;
 
 // @public (undocumented)
 export type DiffResult = {
@@ -465,10 +512,13 @@ const Easing_2: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCu
 export const emptyIndex: SceneIndex;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation';
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour';
 
 // @public
 export const fixed: (euler: Vec3) => Rotation;
+
+// @public
+export const float: Behaviour;
 
 // @public
 export type FrameControl = {
@@ -593,6 +643,7 @@ export type GroupNode = {
     readonly rotation: Rotation;
     readonly scale: Vec3;
     readonly transition: Transition;
+    readonly behaviour: Behave | null;
     readonly interactive: boolean;
     readonly children: ReadonlyArray<SceneNode>;
 };
@@ -682,7 +733,7 @@ export type IndexResult = {
 };
 
 // @public (undocumented)
-export const indexScene: (description: SceneDescription) => IndexResult;
+export const indexScene: (description: SceneDescription, behaviours?: ReadonlySet<string>) => IndexResult;
 
 // @public
 export type Instance = {
@@ -735,6 +786,7 @@ export type InstancesNode = {
     readonly rotation: Rotation;
     readonly scale: Vec3;
     readonly transition: Transition;
+    readonly behaviour: Behave | null;
     readonly geometry: GeometryRef;
     readonly material: MaterialRef;
     readonly interactive: boolean;
@@ -759,6 +811,10 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
         readonly seconds: Schema.Finite;
         readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
     }>]>;
+    readonly behaviour: Schema.NullOr<Schema.Struct<{
+        readonly name: Schema.String;
+        readonly params: Schema.$Record<Schema.String, Schema.Finite>;
+    }>>;
     readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
@@ -1060,6 +1116,7 @@ export type MeshNode = {
     readonly rotation: Rotation;
     readonly scale: Vec3;
     readonly transition: Transition;
+    readonly behaviour: Behave | null;
     readonly geometry: GeometryRef;
     readonly material: MaterialRef;
     readonly interactive: boolean;
@@ -1083,6 +1140,10 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
         readonly seconds: Schema.Finite;
         readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
     }>]>;
+    readonly behaviour: Schema.NullOr<Schema.Struct<{
+        readonly name: Schema.String;
+        readonly params: Schema.$Record<Schema.String, Schema.Finite>;
+    }>>;
     readonly geometry: Schema.Union<readonly [Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
@@ -1611,6 +1672,9 @@ const RenderSettings_2: Schema.Struct<{
 
 // @public
 export const renderSettingsEquals: (a: RenderSettings, b: RenderSettings) => boolean;
+
+// @public (undocumented)
+export const resetPose: (pose: BehaviourPose) => void;
 
 // @public
 export type ResourceCounts = {
@@ -2201,6 +2265,7 @@ export type SceneGraph = {
 // @public (undocumented)
 export type SceneGraphOptions = {
     readonly store?: ResourceStore;
+    readonly behaviours?: Readonly<Record<string, Behaviour>>;
 };
 
 // @public
@@ -2260,6 +2325,7 @@ type SceneRuntimeOptions = {
     readonly renderer: RendererFactory;
     readonly viewport: Viewport;
     readonly eventCapacity?: number;
+    readonly behaviours?: Readonly<Record<string, Behaviour>>;
 };
 
 declare namespace SceneSchema {
@@ -2278,6 +2344,7 @@ declare namespace SceneSchema {
         RingGeometry_2 as RingGeometry,
         CircleGeometry_2 as CircleGeometry,
         ShapeGeometry_2 as ShapeGeometry,
+        Behave_2 as Behave,
         Easing_2 as Easing,
         Transition_2 as Transition,
         MaterialSide_2 as MaterialSide,
@@ -2605,7 +2672,8 @@ export type TransformOptions = {
     readonly position?: Vec3;
     readonly rotation?: Rotation;
     readonly scale?: Vec3;
-    readonly transition?: Transition;
+    readonly transition?: Transition /** A registered behaviour to apply on top of the transform. */;
+    readonly behaviour?: Behave | null;
 };
 
 // @public

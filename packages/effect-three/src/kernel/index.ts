@@ -6,6 +6,14 @@
  */
 export type * from './description.ts';
 export { clipRunning, clipTime } from './animation.ts';
+export {
+  type Behaviour,
+  type BehaviourPose,
+  builtinBehaviours,
+  createPose,
+  float,
+  resetPose,
+} from './motion.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
 export { buildMaterial, type HostMaterial, type Textures, updateMaterial } from './materials.ts';
 export { capacityFor, type HostInstances } from './instances.ts';
@@ -19,6 +27,7 @@ export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,
   basic,
+  behave,
   borrowed,
   box,
   capsule,
@@ -59,6 +68,7 @@ export { changedFields, diff, type DiffResult, type Field, type Op } from './dif
 export {
   cameraEquals,
   animationEquals,
+  behaviourEquals,
   geometryRefEquals,
   instanceEquals,
   instancesEqual,

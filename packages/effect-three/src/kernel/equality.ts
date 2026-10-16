@@ -6,6 +6,7 @@
  */
 import type {
   Animation,
+  Behave,
   GeometryRef,
   Instance,
   MaterialRef,
@@ -128,6 +129,10 @@ export const instancesEqual = (a: ReadonlyArray<Instance>, b: ReadonlyArray<Inst
   }
   return true;
 };
+
+/** Behaviour equality: both none, or the same name and parameters. */
+export const behaviourEquals = (a: Behave | null, b: Behave | null): boolean =>
+  a === b || (a !== null && b !== null && a.name === b.name && sameFlatRecord(a.params, b.params));
 
 /** Animation equality: both none, or the same clip, speed and looping. */
 export const animationEquals = (a: Animation | null, b: Animation | null): boolean =>

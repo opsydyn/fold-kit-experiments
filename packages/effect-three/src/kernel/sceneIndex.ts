@@ -24,7 +24,8 @@ export type DescriptionError =
     }
   | { readonly _tag: 'UnknownSharedGeometry'; readonly nodeKey: string; readonly id: string }
   | { readonly _tag: 'UnknownSharedMaterial'; readonly nodeKey: string; readonly id: string }
-  | { readonly _tag: 'DuplicateInstanceKey'; readonly nodeKey: string; readonly key: string };
+  | { readonly _tag: 'DuplicateInstanceKey'; readonly nodeKey: string; readonly key: string }
+  | { readonly _tag: 'UnknownBehaviour'; readonly nodeKey: string; readonly name: string };
 
 /** A validated scene. Keys are unique across the whole scene. */
 export type SceneIndex = {
@@ -61,7 +62,10 @@ const firstDuplicateInstance = (
   return undefined;
 };
 
-export const indexScene = (description: SceneDescription): IndexResult => {
+export const indexScene = (
+  description: SceneDescription,
+  behaviours: ReadonlySet<string> = new Set(),
+): IndexResult => {
   const geometryIds = new Set<string>();
   for (const { id } of description.resources.geometries) {
     if (geometryIds.has(id)) {
@@ -103,6 +107,12 @@ export const indexScene = (description: SceneDescription): IndexResult => {
           error: { _tag: 'UnknownSharedMaterial', nodeKey: node.key, id: node.material.id },
         };
       }
+    }
+    if ('behaviour' in node && node.behaviour !== null && !behaviours.has(node.behaviour.name)) {
+      return {
+        _tag: 'Invalid',
+        error: { _tag: 'UnknownBehaviour', nodeKey: node.key, name: node.behaviour.name },
+      };
     }
     if (node._tag === 'Instances') {
       const duplicate = firstDuplicateInstance(node.instances);

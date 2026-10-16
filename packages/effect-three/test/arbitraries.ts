@@ -60,6 +60,12 @@ const Shape = Schema.Union([
   }),
   Schema.TaggedStruct('Circle', { radius: Size, segments: Segments }),
 ]);
+const Behaviour = Schema.NullOr(
+  Schema.Struct({
+    name: Schema.Literals(['float']),
+    params: Schema.Record(Schema.String, Schema.Literals([0.5, 2])),
+  }),
+);
 const Transition = Schema.Union([
   Schema.TaggedStruct('Instant', {}),
   Schema.TaggedStruct('Ease', {
@@ -119,6 +125,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Behaviour,
     interactive: Schema.Boolean,
     children: Children,
   }),
@@ -128,6 +135,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Behaviour,
     geometry: Schema.Union([
       ...Shape.members,
       Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
@@ -146,6 +154,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Behaviour,
     geometry: Schema.Union([
       ...Shape.members,
       Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
@@ -182,6 +191,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Behaviour,
     interactive: Schema.Boolean,
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),

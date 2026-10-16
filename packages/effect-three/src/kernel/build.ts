@@ -7,6 +7,7 @@ import type {
   AmbientLightNode,
   Animation,
   BasicMaterial,
+  Behave,
   BorrowedNode,
   Axis,
   BoxGeometry,
@@ -312,7 +313,8 @@ export type TransformOptions = {
   readonly rotation?: Rotation;
   readonly scale?: Vec3;
   /** How position and scale changes are shown. Defaults to `instant()`. */
-  readonly transition?: Transition;
+  readonly transition?: Transition /** A registered behaviour to apply on top of the transform. */;
+  readonly behaviour?: Behave | null;
 };
 
 /** A group of child nodes. */
@@ -328,6 +330,7 @@ export const group = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
   children: options.children ?? [],
 });
@@ -348,6 +351,7 @@ export const mesh = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
   geometry: options.geometry,
   material: options.material,
   interactive: options.interactive ?? false,
@@ -387,12 +391,19 @@ export const instances = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
   geometry: options.geometry,
   material: options.material,
   interactive: options.interactive ?? false,
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
   instances: options.instances,
+});
+
+/** Applies a registered behaviour by name. Parameters default to the behaviour's own. */
+export const behave = (name: string, params: Readonly<Record<string, number>> = {}): Behave => ({
+  name,
+  params,
 });
 
 /** Plays an animation clip by name. Defaults: normal speed, looping. */
@@ -417,6 +428,7 @@ export const borrowed = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
 });
 

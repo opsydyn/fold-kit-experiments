@@ -91,6 +91,13 @@ A `borrowed` node may name an id before it is lent, so a description can refer t
 
 Behaviours own animated properties: a mesh's rotation is either model-owned (`fixed`) or behaviour-owned (`spin`), never both. A behaviour's output is a pure function of scene time, so frames are deterministic and frame-rate independent.
 
+Behaviours replace React Three Fiber's `useFrame` with data: a node names one, `behaviour: behave('float', { speed: 2 })`, and the behaviour (a pure function of scene time registered with the scene) adds a position offset, a rotation and a scale factor on top of the node's transform each frame. `float` (Drei's `Float`) is built in; register your own through `SceneRuntime.make({ behaviours })` or `makeEnvironment(window, { behaviours })`:
+
+```ts
+const orbit: Behaviour = (pose, seconds, params) =>
+  pose.offset.set(Math.cos(seconds) * (params['radius'] ?? 1), 0, Math.sin(seconds));
+```
+
 Transitions decide how `position` and `scale` reach new values. The Model always owns the target; a transition only shapes the journey:
 
 ```ts

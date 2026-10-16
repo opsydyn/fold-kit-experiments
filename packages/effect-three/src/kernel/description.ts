@@ -239,6 +239,17 @@ export type ResourceDefinitions = {
   readonly materials: ReadonlyArray<MaterialDefinition>;
 };
 
+/**
+ * Names a behaviour registered with the scene, with its numeric parameters: React Three
+ * Fiber's `useFrame` animation, as data. The behaviour is a pure function of scene time
+ * and these parameters, adding a position offset, a rotation and a scale factor on top
+ * of the node's own transform (eased or not), as Drei's `Float` does with an inner group.
+ */
+export type Behave = {
+  readonly name: string;
+  readonly params: Readonly<Record<string, number>>;
+};
+
 /** How a transition progresses from 0 to 1. */
 export type Easing = 'linear' | 'easeInOutCubic' | 'easeOutCubic' | 'easeOutBack';
 
@@ -262,6 +273,8 @@ export type GroupNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /** A registered behaviour moving the node on top of its transform, or `null`. */
+  readonly behaviour: Behave | null;
   /**
    * Makes every mesh inside the group pickable, interactive or not. Events still report
    * the mesh hit; its `path` names this group, so one handler can serve the whole group.
@@ -278,6 +291,8 @@ export type MeshNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /** A registered behaviour moving the node on top of its transform, or `null`. */
+  readonly behaviour: Behave | null;
   readonly geometry: GeometryRef;
   readonly material: MaterialRef;
   readonly interactive: boolean;
@@ -313,6 +328,8 @@ export type InstancesNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /** A registered behaviour moving the node on top of its transform, or `null`. */
+  readonly behaviour: Behave | null;
   readonly geometry: GeometryRef;
   readonly material: MaterialRef;
   readonly interactive: boolean;
@@ -336,6 +353,8 @@ export type BorrowedNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /** A registered behaviour moving the node on top of its transform, or `null`. */
+  readonly behaviour: Behave | null;
   /** Makes every mesh inside the object pickable; hits name the part by its `name`. */
   readonly interactive: boolean;
   /** An animation clip of the lent object to play, or `null` for none. */

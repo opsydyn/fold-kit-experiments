@@ -110,6 +110,12 @@ export const ShapeGeometry = Schema.Union([
   CircleGeometry,
 ]);
 
+/** A registered behaviour, by name, with numeric parameters. */
+export const Behave = Schema.Struct({
+  name: Schema.String,
+  params: Schema.Record(Schema.String, Schema.Finite),
+});
+
 /** How a transition progresses. */
 export const Easing = Schema.Literals(['linear', 'easeInOutCubic', 'easeOutCubic', 'easeOutBack']);
 
@@ -219,6 +225,7 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   rotation: Rotation,
   scale: Vec3,
   transition: Transition,
+  behaviour: Schema.NullOr(Behave),
   geometry: GeometryRef,
   material: MaterialRef,
   interactive: Schema.Boolean,
@@ -242,6 +249,7 @@ export const InstancesNode = Schema.TaggedStruct('Instances', {
   rotation: Rotation,
   scale: Vec3,
   transition: Transition,
+  behaviour: Schema.NullOr(Behave),
   geometry: GeometryRef,
   material: MaterialRef,
   interactive: Schema.Boolean,
@@ -265,6 +273,7 @@ export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
   rotation: Rotation,
   scale: Vec3,
   transition: Transition,
+  behaviour: Schema.NullOr(Behave),
   interactive: Schema.Boolean,
 });
 
@@ -344,6 +353,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Schema.NullOr(Behave),
     interactive: Schema.Boolean,
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
   }),
@@ -470,4 +480,5 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('UnknownSharedGeometry', { nodeKey: Schema.String, id: Schema.String }),
   Schema.TaggedStruct('UnknownSharedMaterial', { nodeKey: Schema.String, id: Schema.String }),
   Schema.TaggedStruct('DuplicateInstanceKey', { nodeKey: Schema.String, key: Schema.String }),
+  Schema.TaggedStruct('UnknownBehaviour', { nodeKey: Schema.String, name: Schema.String }),
 ]);

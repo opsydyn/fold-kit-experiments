@@ -4,6 +4,7 @@
 
 ```ts
 
+import { Behaviour } from '@opsydyn/effect-three';
 import { CustomElement } from 'foldkit';
 import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
@@ -86,6 +87,7 @@ export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | '
 export type EnvironmentOptions = {
     readonly renderer?: (canvas: HTMLCanvasElement) => RendererFactory;
     readonly pixelRatio?: PixelRatio;
+    readonly behaviours?: Readonly<Record<string, Behaviour>>;
 };
 
 // @public
@@ -109,6 +111,7 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     frames: FrameScheduler;
     renderer: (canvas: HTMLCanvasElement) => RendererFactory;
     pixelRatio: PixelRatio;
+    behaviours: Readonly<Record<string, Behaviour>>;
     assets: {
         loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
@@ -475,6 +478,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         }>, Schema.TaggedStruct<"DuplicateInstanceKey", {
             readonly nodeKey: Schema.String;
             readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"UnknownBehaviour", {
+            readonly nodeKey: Schema.String;
+            readonly name: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
             readonly issue: Schema.String;
         }>]>;
@@ -519,6 +525,9 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
 }>, Schema.TaggedStruct<"DuplicateInstanceKey", {
     readonly nodeKey: Schema.String;
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownBehaviour", {
+    readonly nodeKey: Schema.String;
+    readonly name: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {
     readonly issue: Schema.String;
 }>]>;

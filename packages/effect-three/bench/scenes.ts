@@ -1,5 +1,6 @@
 /** Benchmark scenes: `count` interactive meshes in groups of ten, sharing resources. */
 import {
+  behave,
   box,
   ease,
   group,
@@ -80,4 +81,19 @@ export const instancedScene = (count: number, moved = -1): SceneDescription =>
         ),
       }),
     ],
+  });
+
+/** `count` meshes, each floating with its own phase. */
+export const floatingScene = (count: number): SceneDescription =>
+  scene({
+    resources,
+    children: Array.from({ length: count }, (_, index) =>
+      mesh({
+        key: `f${index}`,
+        position: [index % 30, Math.floor(index / 30), 0],
+        geometry: sharedGeometry('box'),
+        material: sharedMaterial('paint'),
+        behaviour: behave('float', { phase: index }),
+      }),
+    ),
   });

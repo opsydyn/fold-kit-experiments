@@ -26,7 +26,7 @@ export const Grab = Schema.Struct({
 });
 export type Grab = typeof Grab.Type;
 
-export const Lens = Schema.Literals(['perspective', 'orthographic']);
+export const Lens = Schema.Literals(['perspective', 'orthographic', 'split']);
 export type Lens = typeof Lens.Type;
 
 export const Shadows = Schema.Literals(['soft', 'off']);

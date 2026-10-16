@@ -22,8 +22,20 @@ export type RendererMemory = {
 };
 
 /** A live renderer bound to one drawing surface. */
+/** A rectangle of the drawing surface in CSS pixels, from the top left. */
+export type RenderArea = {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+};
+
 export type SceneRenderer = {
-  readonly render: (scene: Scene, camera: Camera) => void;
+  /**
+   * Draws the scene through `camera`, into `area` when given (clearing only that area),
+   * otherwise across the whole surface.
+   */
+  readonly render: (scene: Scene, camera: Camera, area?: RenderArea) => void;
   /** Applies scene-wide render settings. Called before the first frame and on each change. */
   readonly configure: (settings: RenderSettings) => void;
   readonly setViewport: (viewport: Viewport) => void;

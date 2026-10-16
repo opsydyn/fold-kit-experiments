@@ -32,6 +32,7 @@ const dedupeNodes = (
 /** Drops every subtree whose key already appeared earlier in pre-order. */
 export const withUniqueKeys = (description: SceneDescription): SceneDescription => ({
   ...description,
+  views: firstOfEachKey(description.views),
   children: dedupeNodes(description.children, new Set()),
 });
 

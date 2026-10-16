@@ -18,6 +18,7 @@ import type {
   ShapeGeometry,
   Transition,
   Vec3,
+  View,
 } from './description.ts';
 
 /** Component-wise equality using `Object.is`, so `NaN` equals `NaN` and `0` differs from `-0`. */
@@ -211,6 +212,21 @@ export const effectsEqual = (
     const x = a[i];
     const y = b[i];
     if (x === undefined || y === undefined || !sameFlatRecord(x, y)) return false;
+  }
+  return true;
+};
+
+/** View list equality: the same views, in order, with equal cameras and rects. */
+export const viewsEqual = (a: ReadonlyArray<View>, b: ReadonlyArray<View>): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined || y === undefined) return false;
+    if (x.key !== y.key || !cameraEquals(x.camera, y.camera) || !sameFlatRecord(x.rect, y.rect)) {
+      return false;
+    }
   }
   return true;
 };

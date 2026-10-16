@@ -66,5 +66,6 @@ test('toggles flip shadows, tone mapping and the camera lens; a miss clears the 
     Message.ClickedLens(),
   ].reduce(step, step(initial, Message.ClickedPiece({ key: pieceKey('cone') })));
   expect(toggled).toMatchObject({ shadows: 'off', tone: 'aces', lens: 'orthographic' });
+  expect(step(toggled, Message.ClickedLens()).lens).toBe('split');
   expect(Option.isNone(step(toggled, Message.ClickedEmptySpace()).selected)).toBe(true);
 });

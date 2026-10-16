@@ -47,6 +47,8 @@ import type {
   StandardMaterial,
   Transition,
   Vec3,
+  View,
+  ViewRect,
 } from './description.ts';
 
 const origin: Vec3 = [0, 0, 0];
@@ -628,14 +630,35 @@ export const renderSettings = (options: Partial<RenderSettings> = {}): RenderSet
 
 const defaultRenderSettings = renderSettings();
 
+const fullRect: ViewRect = { x: 0, y: 0, width: 1, height: 1 };
+const noViews: ReadonlyArray<View> = [];
+
+/** A view of the scene through `camera` into `rect` of the canvas (default: all of it). */
+export const view = (options: {
+  readonly key: string;
+  readonly camera: Camera;
+  readonly rect?: Partial<ViewRect>;
+}): View => ({
+  key: options.key,
+  camera: options.camera,
+  rect: {
+    x: options.rect?.x ?? fullRect.x,
+    y: options.rect?.y ?? fullRect.y,
+    width: options.rect?.width ?? fullRect.width,
+    height: options.rect?.height ?? fullRect.height,
+  },
+});
+
 /** A scene description. */
 export const scene = (options: {
   readonly camera?: Camera;
+  readonly views?: ReadonlyArray<View>;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
 }): SceneDescription => ({
   camera: options.camera ?? perspectiveCamera(),
+  views: options.views ?? noViews,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

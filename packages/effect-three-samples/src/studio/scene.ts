@@ -29,6 +29,8 @@ import {
   standard,
   torus,
   type Vec3,
+  type View,
+  view,
 } from '@opsydyn/effect-three';
 import { Option } from 'effect';
 
@@ -121,15 +123,42 @@ const spotTarget = (model: Model): Vec3 =>
     (): Vec3 => [0, 0, 0],
   );
 
+const perspectiveLens = perspectiveCamera({
+  fov: 40,
+  position: [0, 5.2, 7.5],
+  lookAt: [0, 0.3, 0],
+});
+const orthographicLens = orthographicCamera({
+  zoom: 62,
+  position: [0, 5.2, 7.5],
+  lookAt: [0, 0.3, 0],
+});
+
 const cameraFor = {
-  perspective: () => perspectiveCamera({ fov: 40, position: [0, 5.2, 7.5], lookAt: [0, 0.3, 0] }),
-  orthographic: () =>
-    orthographicCamera({ zoom: 62, position: [0, 5.2, 7.5], lookAt: [0, 0.3, 0] }),
-} satisfies Record<Lens, () => Camera>;
+  perspective: perspectiveLens,
+  orthographic: orthographicLens,
+  split: perspectiveLens,
+} satisfies Record<Lens, Camera>;
+
+/** The split lens: the perspective view on the left, a plan from above on the right. */
+const splitViews = [
+  view({ key: 'front', camera: perspectiveLens, rect: { width: 0.5 } }),
+  view({
+    key: 'plan',
+    camera: orthographicCamera({ zoom: 40, position: [0, 12, 0.001], lookAt: [0, 0, 0] }),
+    rect: { x: 0.5, width: 0.5 },
+  }),
+];
+
+const viewsFor = { perspective: [], orthographic: [], split: splitViews } satisfies Record<
+  Lens,
+  ReadonlyArray<View>
+>;
 
 export const sceneFor = (model: Model) =>
   scene({
-    camera: cameraFor[model.lens](),
+    camera: cameraFor[model.lens],
+    views: viewsFor[model.lens],
     render: renderSettings({ shadows: model.shadows, toneMapping: model.tone }),
     resources: {
       geometries: [

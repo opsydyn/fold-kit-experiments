@@ -83,6 +83,7 @@ export const webglRendererFactory = (
     // The pixel ratio is the viewport's, scaled by the scene's resolution setting.
     let pixelRatio = 1;
     let resolution = 1;
+    let scissored = false;
     const applyPixelRatio = (): void => {
       if (renderer.getPixelRatio() !== pixelRatio * resolution) {
         renderer.setPixelRatio(pixelRatio * resolution);
@@ -91,8 +92,25 @@ export const webglRendererFactory = (
       post.setSize(width, height, pixelRatio * resolution);
     };
     return {
-      render: (scene, camera) => {
-        if (!post.render(scene, camera)) renderer.render(scene, camera);
+      render: (scene, camera, area) => {
+        const { width, height } = renderer.getSize(drawingSize);
+        if (area === undefined) {
+          if (scissored) {
+            renderer.setScissorTest(false);
+            renderer.setViewport(0, 0, width, height);
+            scissored = false;
+          }
+          if (!post.render(scene, camera)) renderer.render(scene, camera);
+          return;
+        }
+        // three's viewport and scissor origin is the bottom left; areas are from the top.
+        const bottom = height - area.y - area.height;
+        renderer.setViewport(area.x, bottom, area.width, area.height);
+        renderer.setScissor(area.x, bottom, area.width, area.height);
+        renderer.setScissorTest(true);
+        scissored = true;
+        // Effects apply to the single full view only; views draw straight to the screen.
+        renderer.render(scene, camera);
       },
       configure: (settings) => {
         configure(renderer, settings);

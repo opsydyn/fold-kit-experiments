@@ -19,6 +19,7 @@ import type {
   ResourceDefinitions,
   SceneDescription,
   SceneNode,
+  View,
 } from './description.ts';
 import {
   cameraEquals,
@@ -31,6 +32,7 @@ import {
   resourcesEqual,
   rotationEquals,
   transitionEquals,
+  viewsEqual,
   vec3Equals,
 } from './equality.ts';
 import {
@@ -70,6 +72,7 @@ export type Field =
 /** A single change to apply to the hosted scene graph. */
 export type Op =
   | { readonly _tag: 'SetCamera'; readonly camera: Camera }
+  | { readonly _tag: 'SetViews'; readonly views: ReadonlyArray<View> }
   | { readonly _tag: 'SetRenderSettings'; readonly settings: RenderSettings }
   | { readonly _tag: 'DefineResources'; readonly resources: ResourceDefinitions }
   | { readonly _tag: 'Create'; readonly node: SceneNode; readonly parent: ParentKey }
@@ -232,6 +235,9 @@ export const diff = (
   const prevDescription = prev.description;
   if (prevDescription === null || !cameraEquals(prevDescription.camera, next.camera)) {
     ops.push({ _tag: 'SetCamera', camera: next.camera });
+  }
+  if (prevDescription === null || !viewsEqual(prevDescription.views, next.views)) {
+    ops.push({ _tag: 'SetViews', views: next.views });
   }
   if (prevDescription === null || !renderSettingsEquals(prevDescription.render, next.render)) {
     ops.push({ _tag: 'SetRenderSettings', settings: next.render });

@@ -414,9 +414,22 @@ export const RenderSettings = Schema.Struct({
   colorSpace: Schema.Literals(['srgb', 'linear']),
 });
 
+/** A view of the scene into part of the canvas. */
+export const View = Schema.Struct({
+  key: Schema.String,
+  camera: Camera,
+  rect: Schema.Struct({
+    x: Schema.Finite,
+    y: Schema.Finite,
+    width: Schema.Finite.check(Schema.isGreaterThan(0)),
+    height: Schema.Finite.check(Schema.isGreaterThan(0)),
+  }),
+});
+
 /** A complete scene description. */
 export const SceneDescription = Schema.Struct({
   camera: Camera,
+  views: Schema.Array(View),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
@@ -434,6 +447,7 @@ export const HitDetail = Schema.Struct({
   key: Schema.String,
   instance: Schema.optionalKey(Schema.String),
   part: Schema.optionalKey(Schema.String),
+  view: Schema.optionalKey(Schema.String),
   path: Schema.Array(Schema.String),
   point: Vec3,
   distance: Schema.Finite,
@@ -495,4 +509,5 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('UnknownSharedMaterial', { nodeKey: Schema.String, id: Schema.String }),
   Schema.TaggedStruct('DuplicateInstanceKey', { nodeKey: Schema.String, key: Schema.String }),
   Schema.TaggedStruct('UnknownBehaviour', { nodeKey: Schema.String, name: Schema.String }),
+  Schema.TaggedStruct('DuplicateViewKey', { key: Schema.String }),
 ]);

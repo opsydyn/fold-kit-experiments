@@ -65,6 +65,7 @@ export {
   standard,
   torus,
   type TransformOptions,
+  view,
   vignette,
 } from './build.ts';
 export { changedFields, diff, type DiffResult, type Field, type Op } from './diff.ts';
@@ -82,6 +83,7 @@ export {
   rotationEquals,
   shapeEquals,
   transitionEquals,
+  viewsEqual,
   vec3Equals,
 } from './equality.ts';
 export {
@@ -120,6 +122,7 @@ export {
 export {
   recordingRendererFactory,
   type RecordingRenderer,
+  type RenderArea,
   type RecordingRendererFactory,
   type RendererFactory,
   type RendererMemory,
@@ -129,6 +132,7 @@ export {
 export {
   createSceneGraph,
   type HostCamera,
+  type HostedView,
   type HostMesh,
   type ReconcileResult,
   type SceneGraph,

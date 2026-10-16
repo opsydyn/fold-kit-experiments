@@ -60,7 +60,9 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
         renderer.configure(settings);
         configured = settings;
       }
-      renderer.render(graph.scene, graph.camera);
+      const views = graph.views();
+      if (views.length === 0) renderer.render(graph.scene, graph.camera);
+      for (const view of views) renderer.render(graph.scene, view.camera, view.area);
       graph.drawn();
       const change = monitor.sample(now());
       if (change !== undefined) emit({ _tag: 'PerformanceChanged', ...change });

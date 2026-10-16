@@ -223,6 +223,7 @@ const ButtonDetail: Schema.Struct<{
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -418,6 +419,9 @@ export type DescriptionError = {
     readonly _tag: 'UnknownBehaviour';
     readonly nodeKey: string;
     readonly name: string;
+} | {
+    readonly _tag: 'DuplicateViewKey';
+    readonly key: string;
 };
 
 // @public
@@ -438,6 +442,8 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
 }>, Schema.TaggedStruct<"UnknownBehaviour", {
     readonly nodeKey: Schema.String;
     readonly name: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateViewKey", {
+    readonly key: Schema.String;
 }>]>;
 
 // @public
@@ -697,6 +703,7 @@ export type Hit = {
     readonly key: string;
     readonly instance?: string;
     readonly part?: string;
+    readonly view?: string;
     readonly path: ReadonlyArray<string>;
     readonly point: Vec3;
     readonly distance: number;
@@ -710,6 +717,7 @@ const HitDetail: Schema.Struct<{
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -723,6 +731,18 @@ const HitDetail: Schema.Struct<{
 
 // @public
 export type HostCamera = PerspectiveCamera_2 | OrthographicCamera_2;
+
+// @public
+export type HostedView = {
+    readonly key: string;
+    readonly camera: HostCamera;
+    readonly area: {
+        readonly x: number;
+        readonly y: number;
+        readonly width: number;
+        readonly height: number;
+    };
+};
 
 // @public
 export type HostInstances = InstancedMesh<BufferGeometry, HostMaterial>;
@@ -1304,6 +1324,9 @@ export type Op = {
     readonly _tag: 'SetCamera';
     readonly camera: Camera;
 } | {
+    readonly _tag: 'SetViews';
+    readonly views: ReadonlyArray<View>;
+} | {
     readonly _tag: 'SetRenderSettings';
     readonly settings: RenderSettings;
 } | {
@@ -1674,6 +1697,14 @@ export type RecordingRendererFactory = RendererFactory & {
 export const recordingRendererFactory: () => RecordingRendererFactory;
 
 // @public
+export type RenderArea = {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
 export type RendererFactory = {
     readonly create: () => SceneRenderer;
 };
@@ -1956,6 +1987,7 @@ export const rotationEquals: (a: Rotation, b: Rotation) => boolean;
 // @public
 export const scene: (options: {
     readonly camera?: Camera;
+    readonly views?: ReadonlyArray<View>;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -1971,6 +2003,7 @@ export type SceneClock = {
 // @public
 export type SceneDescription = {
     readonly camera: Camera;
+    readonly views: ReadonlyArray<View>;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -1991,6 +2024,28 @@ const SceneDescription_2: Schema.Struct<{
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>]>;
+    readonly views: Schema.$Array<Schema.Struct<{
+        readonly key: Schema.String;
+        readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+            readonly fov: Schema.Finite;
+            readonly near: Schema.Finite;
+            readonly far: Schema.Finite;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>, Schema.TaggedStruct<"Orthographic", {
+            readonly zoom: Schema.Finite;
+            readonly near: Schema.Finite;
+            readonly far: Schema.Finite;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>]>;
+        readonly rect: Schema.Struct<{
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
+            readonly width: Schema.Finite;
+            readonly height: Schema.Finite;
+        }>;
+    }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
             readonly strength: Schema.Finite;
@@ -2176,6 +2231,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -2191,6 +2247,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -2204,6 +2261,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -2218,6 +2276,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -2232,6 +2291,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -2246,6 +2306,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -2260,6 +2321,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -2273,6 +2335,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;
@@ -2309,6 +2372,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
 export type SceneGraph = {
     readonly scene: Scene;
     readonly camera: HostCamera;
+    readonly views: () => ReadonlyArray<HostedView>;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -2370,9 +2434,9 @@ export type SceneNode = GroupNode | MeshNode | InstancesNode | BorrowedNode | Am
 // @public
 const SceneNode_2: Schema.Codec<SceneNode>;
 
-// @public
+// @public (undocumented)
 export type SceneRenderer = {
-    readonly render: (scene: Scene, camera: Camera_2) => void;
+    readonly render: (scene: Scene, camera: Camera_2, area?: RenderArea) => void;
     readonly configure: (settings: RenderSettings) => void;
     readonly setViewport: (viewport: Viewport) => void;
     readonly memory: () => RendererMemory;
@@ -2442,6 +2506,7 @@ declare namespace SceneSchema {
         Camera_3 as Camera,
         PostEffect_2 as PostEffect,
         RenderSettings_2 as RenderSettings,
+        View_2 as View,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
         HitDetail,
@@ -2787,11 +2852,60 @@ const Vec3_2: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite
 export const vec3Equals: (a: Vec3, b: Vec3) => boolean;
 
 // @public
+export type View = {
+    readonly key: string;
+    readonly camera: Camera;
+    readonly rect: ViewRect;
+};
+
+// @public
+export const view: (options: {
+    readonly key: string;
+    readonly camera: Camera;
+    readonly rect?: Partial<ViewRect>;
+}) => View;
+
+// @public
+const View_2: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+        readonly fov: Schema.Finite;
+        readonly near: Schema.Finite;
+        readonly far: Schema.Finite;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>, Schema.TaggedStruct<"Orthographic", {
+        readonly zoom: Schema.Finite;
+        readonly near: Schema.Finite;
+        readonly far: Schema.Finite;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>]>;
+    readonly rect: Schema.Struct<{
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+    }>;
+}>;
+
+// @public
 export type Viewport = {
     readonly width: number;
     readonly height: number;
     readonly pixelRatio: number;
 };
+
+// @public
+export type ViewRect = {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
+export const viewsEqual: (a: ReadonlyArray<View>, b: ReadonlyArray<View>) => boolean;
 
 // @public
 export const vignette: (options?: {
@@ -2804,6 +2918,7 @@ const WheelDetail: Schema.Struct<{
     readonly key: Schema.String;
     readonly instance: Schema.optionalKey<Schema.String>;
     readonly part: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
     readonly path: Schema.$Array<Schema.String>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly distance: Schema.Finite;

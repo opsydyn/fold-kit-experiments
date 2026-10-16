@@ -43,6 +43,8 @@ import type {
   SceneNode,
   SpotLightNode,
   Vec3,
+  View,
+  ViewRect,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
@@ -120,6 +122,18 @@ const isPlaced = (entry: Entry): entry is Placed =>
 const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
 
+/** A view as hosted: its key, its camera and its rectangle in CSS pixels from the top left. */
+export type HostedView = {
+  readonly key: string;
+  readonly camera: HostCamera;
+  readonly area: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
+};
+
 export type ReconcileResult =
   | { readonly _tag: 'Applied'; readonly ops: ReadonlyArray<Op> }
   | { readonly _tag: 'Invalid'; readonly error: DescriptionError };
@@ -135,6 +149,8 @@ export type SceneGraph = {
   readonly scene: Scene;
   /** The active camera. Changing the description's camera kind replaces it. */
   readonly camera: HostCamera;
+  /** The scene's views, fitted to the viewport; empty when `camera` fills the canvas. */
+  readonly views: () => ReadonlyArray<HostedView>;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -305,6 +321,32 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const ownsStore = options.store === undefined;
   const scene = new Scene();
   let camera: HostCamera = new PerspectiveCamera();
+  let views: ReadonlyArray<HostedView> = [];
+  let viewDescriptions: ReadonlyArray<View> = [];
+
+  /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
+  const areaOf = (rect: ViewRect): HostedView['area'] => ({
+    x: rect.x * viewport.width,
+    y: rect.y * viewport.height,
+    width: Math.max(1, rect.width * viewport.width),
+    height: Math.max(1, rect.height * viewport.height),
+  });
+
+  /** Hosts one described view, reusing `previous` when its kind is unchanged. */
+  const hostView = (description: View, previous: HostCamera | undefined): HostedView => {
+    const hostedCamera = cameraFor(previous ?? new PerspectiveCamera(), description.camera);
+    applyCamera(hostedCamera, description.camera);
+    const area = areaOf(description.rect);
+    fitCamera(hostedCamera, area);
+    return { key: description.key, camera: hostedCamera, area };
+  };
+
+  /** Hosts the described views, reusing each key's camera when its kind is unchanged. */
+  const hostViews = (described: ReadonlyArray<View>): void => {
+    const previous = new Map(views.map((hosted) => [hosted.key, hosted.camera]));
+    viewDescriptions = described;
+    views = described.map((description) => hostView(description, previous.get(description.key)));
+  };
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
@@ -754,6 +796,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       case 'SetRenderSettings':
         settings = op.settings;
         return;
+      case 'SetViews':
+        hostViews(op.views);
+        return;
       case 'DefineResources':
         store.define(op.resources);
         return;
@@ -892,6 +937,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     get camera() {
       return camera;
     },
+    views: () => views,
     store,
     reconcile,
     tick,
@@ -925,6 +971,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     resize: (width, height) => {
       viewport = { width, height };
       fitCamera(camera, viewport);
+      hostViews(viewDescriptions);
       invalidate();
     },
     dispose,

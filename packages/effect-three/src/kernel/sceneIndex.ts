@@ -25,7 +25,8 @@ export type DescriptionError =
   | { readonly _tag: 'UnknownSharedGeometry'; readonly nodeKey: string; readonly id: string }
   | { readonly _tag: 'UnknownSharedMaterial'; readonly nodeKey: string; readonly id: string }
   | { readonly _tag: 'DuplicateInstanceKey'; readonly nodeKey: string; readonly key: string }
-  | { readonly _tag: 'UnknownBehaviour'; readonly nodeKey: string; readonly name: string };
+  | { readonly _tag: 'UnknownBehaviour'; readonly nodeKey: string; readonly name: string }
+  | { readonly _tag: 'DuplicateViewKey'; readonly key: string };
 
 /** A validated scene. Keys are unique across the whole scene. */
 export type SceneIndex = {
@@ -66,6 +67,10 @@ export const indexScene = (
   description: SceneDescription,
   behaviours: ReadonlySet<string> = new Set(),
 ): IndexResult => {
+  const duplicateView = firstDuplicateInstance(description.views);
+  if (duplicateView !== undefined) {
+    return { _tag: 'Invalid', error: { _tag: 'DuplicateViewKey', key: duplicateView } };
+  }
   const geometryIds = new Set<string>();
   for (const { id } of description.resources.geometries) {
     if (geometryIds.has(id)) {

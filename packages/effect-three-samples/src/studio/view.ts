@@ -24,9 +24,11 @@ const finishName = {
   flat: 'flat (basic, unlit)',
 } satisfies Record<Finish, string>;
 
+/** The button names the lens it switches to. */
 const lensLabel = {
   perspective: 'Orthographic camera',
-  orthographic: 'Perspective camera',
+  orthographic: 'Split view',
+  split: 'Perspective camera',
 } satisfies Record<Lens, string>;
 
 const shadowsOn = { soft: true, off: false } satisfies Record<Shadows, boolean>;

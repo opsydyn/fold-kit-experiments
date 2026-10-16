@@ -105,10 +105,12 @@ const withPiece = (key: string, model: Model, apply: (piece: Piece) => Model): A
   return { model: next };
 };
 
-const otherLens = { perspective: 'orthographic', orthographic: 'perspective' } satisfies Record<
-  Lens,
-  Lens
->;
+/** Lenses cycle: perspective, orthographic, then a split of both. */
+const otherLens = {
+  perspective: 'orthographic',
+  orthographic: 'split',
+  split: 'perspective',
+} satisfies Record<Lens, Lens>;
 const otherShadows = { soft: 'off', off: 'soft' } satisfies Record<Shadows, Shadows>;
 const otherTone = { none: 'aces', aces: 'none' } satisfies Record<Tone, Tone>;
 

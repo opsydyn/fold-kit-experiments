@@ -544,9 +544,28 @@ export type RenderSettings = {
   readonly colorSpace: 'srgb' | 'linear';
 };
 
+/** Part of the canvas, as fractions (0 to 1) of its width and height from the top left. */
+export type ViewRect = {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+};
+
+/**
+ * Another camera drawing the scene into part of the canvas: Drei's `View` and R3F's
+ * split-screen portals, as data. Views draw in order, later ones on top.
+ */
+export type View = { readonly key: string; readonly camera: Camera; readonly rect: ViewRect };
+
 /** A complete scene: camera, render settings, shared resources and root nodes. */
 export type SceneDescription = {
   readonly camera: Camera;
+  /**
+   * Views to draw instead of `camera` filling the canvas. Empty (the default) draws one
+   * full view with `camera`.
+   */
+  readonly views: ReadonlyArray<View>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

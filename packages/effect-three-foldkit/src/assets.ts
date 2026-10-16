@@ -1,8 +1,8 @@
 /**
- * Loading textures and glTF models by URL, as Effects an application runs from a Foldkit
- * Command and settles into `AsyncData`. Each asset is lent to the shared resource store
- * under an id: materials use a texture with `map: id`, and a `borrowed({ id })` node shows
- * a model. The environment owns what it loads: loading an id again replaces and disposes
+ * Loading textures, glTF models and typeface fonts by URL, as Effects an application runs
+ * from a Foldkit Command and settles into `AsyncData`. Each asset is lent to the shared
+ * resource store under an id: materials use a texture with `map: id`, a `borrowed({ id })`
+ * node shows a model, and `text({ font: id })` geometry draws with a font. The environment owns what it loads: loading an id again replaces and disposes
  * the earlier asset, and `unload` or the environment's `dispose` frees it.
  *
  * @module
@@ -10,6 +10,7 @@
 import type { ResourceStore } from '@opsydyn/effect-three';
 import { Data, Effect } from 'effect';
 import { type Object3D, SRGBColorSpace, type Texture, TextureLoader } from 'three';
+import { type Font, FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 import { disposeModel, namesIn } from './dom/models.ts';
@@ -67,6 +68,12 @@ export const makeAssets = (store: ResourceStore) => {
       return info;
     };
 
+  const lendFont = (id: string) => (font: Font) => {
+    // Fonts hold no GPU resources: withdrawing the loan frees them.
+    own(id, store.lendFont(id, font));
+    return id;
+  };
+
   const releaseAll = (): void => {
     for (const release of releases.values()) release();
     releases.clear();
@@ -88,6 +95,17 @@ export const makeAssets = (store: ResourceStore) => {
         catch: (cause) => new AssetLoadError({ url, cause }),
       });
       return Effect.map(load, lendModel(id));
+    },
+    /**
+     * Loads a typeface JSON font (three.js's `FontLoader` format, as Drei's `Text3D` takes)
+     * and lends it under `id`. Succeeds with the id.
+     */
+    loadFont: (id: string, url: string) => {
+      const load = Effect.tryPromise({
+        try: () => new FontLoader().loadAsync(url),
+        catch: (cause) => new AssetLoadError({ url, cause }),
+      });
+      return Effect.map(load, lendFont(id));
     },
     /** Withdraws and disposes the asset loaded under `id`, if any. */
     unload: (id: string) =>

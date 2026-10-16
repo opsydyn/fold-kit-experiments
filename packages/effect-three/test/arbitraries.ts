@@ -59,6 +59,16 @@ const Shape = Schema.Union([
     thetaSegments: Segments,
   }),
   Schema.TaggedStruct('Circle', { radius: Size, segments: Segments }),
+  // Never lent a font, so empty: the diff, equality and resource balance still apply.
+  Schema.TaggedStruct('Text', {
+    text: Schema.Literals(['a', 'bc']),
+    font: Schema.Literals(['f1']),
+    size: Size,
+    depth: Schema.Literals([0, 0.2]),
+    curveSegments: Schema.Literals([4]),
+    bevel: Schema.Null,
+    center: Schema.Boolean,
+  }),
 ]);
 const Behaviour = Schema.NullOr(
   Schema.Struct({
@@ -243,6 +253,19 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 ]);
 
 const sceneFields = {
+  gestures: Schema.Literals(['page', 'scene']),
+  overlays: Schema.Array(
+    Schema.Struct({
+      key: Schema.Literals(['o1', 'o2']),
+      node: Schema.Null,
+      position: Vec3,
+      center: Schema.Boolean,
+      distanceFactor: Schema.NullOr(Schema.Literals([10])),
+      occlude: Schema.Boolean,
+      zIndexRange: Schema.Tuple([Schema.Literals([100]), Schema.Literals([0])]),
+      view: Schema.Null,
+    }),
+  ).check(Schema.isMaxLength(2)),
   renderTextures: Schema.Array(
     Schema.Struct({
       id: Schema.Literals(['rt-a', 'rt-b']),
@@ -254,6 +277,7 @@ const sceneFields = {
         far: Schema.Literals([100]),
         position: Vec3,
         lookAt: Vec3,
+        damping: Schema.Literals([0, 0.1]),
       }),
       background: Schema.NullOr(Colour),
       children: Schema.Array(Node).check(Schema.isMaxLength(3)),
@@ -268,6 +292,7 @@ const sceneFields = {
         far: Schema.Literals([100]),
         position: Vec3,
         lookAt: Vec3,
+        damping: Schema.Literals([0]),
       }),
       rect: Schema.Struct({
         x: Schema.Literals([0, 0.5]),
@@ -309,6 +334,7 @@ const sceneFields = {
       far: Schema.Literals([100]),
       position: Vec3,
       lookAt: Vec3,
+      damping: Schema.Literals([0, 0.1]),
     }),
     Schema.TaggedStruct('Orthographic', {
       zoom: Schema.Literals([1, 50]),
@@ -316,6 +342,7 @@ const sceneFields = {
       far: Schema.Literals([100]),
       position: Vec3,
       lookAt: Vec3,
+      damping: Schema.Literals([0, 0.1]),
     }),
   ]),
   resources: Schema.Struct({

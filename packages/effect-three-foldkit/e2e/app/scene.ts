@@ -9,10 +9,12 @@ import {
   sharedGeometry,
   bloom,
   borrowed,
+  type Camera,
   fixed,
   play,
   renderSettings,
   renderTexture,
+  text,
   type SceneNode,
   spin,
   standard,
@@ -40,7 +42,14 @@ export type Extras = {
   readonly glow?: boolean;
   /** Shows a render texture on the cube: a small scene with a green background. */
   readonly screen?: boolean;
+  /** A title in the loaded block font, above the cube. */
+  readonly title?: boolean;
+  /** An orbiting camera from the Model: the scene claims gestures while it is set. */
+  readonly orbit?: Camera;
 };
+
+/** Where the camera starts, and where the orbit test starts it. */
+export const homeCamera = perspectiveCamera({ position: [0, 0, 4] });
 
 const noExtras: Extras = { robot: false, textured: false };
 
@@ -61,6 +70,16 @@ const screen = renderTexture({
   ],
 });
 
+/** "HI" in the block font: empty until the font is lent, then drawn. */
+const titleNode: ReadonlyArray<SceneNode> = [
+  mesh({
+    key: 'title',
+    position: [0, 1.1, 0],
+    geometry: text({ text: 'HI', font: 'block', size: 0.6, depth: 0.1, center: true }),
+    material: standard({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1 }),
+  }),
+];
+
 const robotNode: ReadonlyArray<SceneNode> = [
   borrowed({
     key: 'robot',
@@ -79,7 +98,8 @@ export const sceneFor = (
   extras: Extras = noExtras,
 ) =>
   scene({
-    camera: perspectiveCamera({ position: [0, 0, 4] }),
+    camera: extras.orbit ?? homeCamera,
+    gestures: extras.orbit === undefined ? 'page' : 'scene',
     render: extras.glow === true ? glowing : plain,
     renderTextures: extras.screen === true ? [screen] : [],
     resources: {
@@ -105,5 +125,6 @@ export const sceneFor = (
         interactive: true,
       }),
       ...(extras.robot ? robotNode : []),
+      ...(extras.title === true ? titleNode : []),
     ],
   });

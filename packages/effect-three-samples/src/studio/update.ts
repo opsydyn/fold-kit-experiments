@@ -1,8 +1,9 @@
-import { pointOnPlane, type Vec3 } from '@opsydyn/effect-three';
+import { type Gesture, orbit, pointOnPlane, type Vec3 } from '@opsydyn/effect-three';
 import { Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
+import { homeCamera, studioOrbit, viewKey } from './cameras';
 import { Message } from './message';
 import {
   finishes,
@@ -114,6 +115,26 @@ const otherLens = {
 const otherShadows = { soft: 'off', off: 'soft' } satisfies Record<Shadows, Shadows>;
 const otherTone = { none: 'aces', aces: 'none' } satisfies Record<Tone, Tone>;
 
+/**
+ * Whether a gesture moves the camera: not one that began on a piece (that drags the
+ * piece), and not one over the plan, which stays put.
+ */
+const orbits = (gesture: Gesture): boolean =>
+  !('key' in gesture && gesture.key !== undefined) && gesture.view !== viewKey.plan;
+
+/** The camera after a gesture, when the gesture is one that orbits. */
+const orbitBy = (model: Model, gesture: Gesture): Model =>
+  Option.match(Option.liftPredicate(gesture, orbits), {
+    onNone: () => model,
+    onSome: (orbiting) => ({ ...model, camera: orbit(model.camera, orbiting, studioOrbit) }),
+  });
+
+/** The next lens, from its own starting camera. */
+const nextLens = (model: Model): Model => {
+  const lens = otherLens[model.lens];
+  return { ...model, lens, camera: homeCamera[lens] };
+};
+
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     HoveredPiece: ({ key }) =>
@@ -144,6 +165,7 @@ export const update = (model: Model, message: Message): AppReturn =>
       model: modifyFields(model, { shadows: (shadows) => otherShadows[shadows] }),
     }),
     ClickedToneMapping: () => ({ model: modifyFields(model, { tone: (tone) => otherTone[tone] }) }),
-    ClickedLens: () => ({ model: modifyFields(model, { lens: (lens) => otherLens[lens] }) }),
+    ClickedLens: () => ({ model: nextLens(model) }),
+    MadeGesture: ({ gesture }) => ({ model: orbitBy(model, gesture) }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

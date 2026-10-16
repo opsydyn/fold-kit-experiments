@@ -1,4 +1,4 @@
-import type { RendererFactory } from '@opsydyn/effect-three';
+import { orbit, overlay, type RendererFactory, SceneSchema } from '@opsydyn/effect-three';
 import { Array as Arr, Effect, Option, Schema } from 'effect';
 import { Command, Runtime } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
@@ -9,7 +9,7 @@ import * as EffectThreeFoldkit from '../../src/index.ts';
 /** A minimal Foldkit app exercising the adapter end to end (application boundary). */
 import { checkerUrl } from './checker.ts';
 import { probe } from './instrument.ts';
-import { type Colour, type Motion, type Size, sceneFor } from './scene.ts';
+import { type Colour, homeCamera, type Motion, type Size, sceneFor } from './scene.ts';
 
 // Wraps the WebGL renderer so the test can read three's `renderer.info.memory`.
 const probedRenderer = (canvas: HTMLCanvasElement): RendererFactory => ({
@@ -41,6 +41,11 @@ const Model = Schema.Struct({
   textured: Schema.Boolean,
   glow: Schema.Boolean,
   screen: Schema.Boolean,
+  /** The orbiting camera, when the orbit test has switched it on. */
+  orbit: Schema.Option(SceneSchema.Camera),
+  label: Schema.Boolean,
+  /** The block font: how its load went. */
+  font: Schema.Literals(['none', 'loading', 'ready', 'failed']),
 });
 type Model = typeof Model.Type;
 
@@ -59,12 +64,33 @@ const Message = defineMessageUnion({
   ClickedLoadTexture: {},
   ClickedToggleGlow: {},
   ClickedToggleScreen: {},
+  ClickedToggleOrbit: {},
+  ClickedToggleLabel: {},
+  ClickedLoadFont: {},
+  SettledFont: { ready: Schema.Boolean },
+  GotGesture: { gesture: SceneSchema.Gesture },
   SettledModel: { outcome: Schema.String },
   SettledTexture: { ready: Schema.Boolean },
 });
 type Message = typeof Message.Type;
 
 /** Loads the robot: settles as `ready:<clips>` or `failed`. */
+/** Loads the block font for the title: settles as ready or not. */
+const LoadFont = Command.define('LoadFont', {
+  messages: [Message.SettledFont],
+  execute: environment.assets.loadFont('block', 'block.typeface.json').pipe(
+    Effect.match({
+      onSuccess: () => Message.SettledFont({ ready: true }),
+      onFailure: () => Message.SettledFont({ ready: false }),
+    }),
+  ),
+});
+
+const fontOutcome = { true: 'ready', false: 'failed' } as const;
+
+/** The title shows once the font has been asked for: empty until it arrives. */
+const titleShown = { none: false, loading: true, ready: true, failed: true } as const;
+
 const LoadModel = Command.define('LoadModel', {
   messages: [Message.SettledModel],
   execute: environment.assets.loadModel('robot', 'robot.glb').pipe(
@@ -102,6 +128,28 @@ const lifecycleUpdate = (model: Model, lifecycle: EffectThreeFoldkit.SceneLifecy
     FailedScene: () => modifyFields(model, { failed: (count) => count + 1 }),
   });
 
+type OrbitCamera = Model['orbit'];
+
+/** Orbiting starts from the home camera, and stops. */
+const toggledOrbit = (camera: OrbitCamera): OrbitCamera =>
+  Option.match(camera, { onNone: () => Option.some(homeCamera), onSome: Option.none });
+
+const orbitedBy =
+  (gesture: typeof SceneSchema.Gesture.Type) =>
+  (camera: OrbitCamera): OrbitCamera =>
+    Option.map(camera, (current) => orbit(current, gesture));
+
+/** The orbiting camera as a scene extra, when there is one. */
+const orbitExtra = (camera: OrbitCamera) =>
+  Option.match(camera, { onNone: () => ({}), onSome: (current) => ({ orbit: current }) });
+
+/** The orbiting camera's position, for the test to read. */
+const cameraReadout = (camera: OrbitCamera): string =>
+  Option.match(camera, {
+    onNone: () => '',
+    onSome: (current) => current.position.map((value) => value.toFixed(3)).join(','),
+  });
+
 const pureUpdate = (model: Model, message: Message) =>
   Message.match(message, {
     ClickedToggleColour: () => ({
@@ -131,6 +179,18 @@ const pureUpdate = (model: Model, message: Message) =>
     ClickedToggleScreen: () => ({
       model: modifyFields(model, { screen: (screen) => !screen }),
     }),
+    ClickedToggleOrbit: () => ({ model: modifyFields(model, { orbit: toggledOrbit }) }),
+    ClickedToggleLabel: () => ({ model: modifyFields(model, { label: (label) => !label }) }),
+    ClickedLoadFont: () => ({
+      model: modifyFields(model, { font: () => 'loading' as const }),
+      commands: [LoadFont()],
+    }),
+    SettledFont: ({ ready }) => ({
+      model: modifyFields(model, { font: () => fontOutcome[`${ready}`] }),
+    }),
+    GotGesture: ({ gesture }) => ({
+      model: modifyFields(model, { orbit: orbitedBy(gesture) }),
+    }),
     SettledModel: ({ outcome }) => ({ model: modifyFields(model, { robot: () => outcome }) }),
     SettledTexture: ({ ready }) => ({ model: modifyFields(model, { textured: () => ready }) }),
     GotSceneLifecycle: ({ lifecycle }) => ({ model: lifecycleUpdate(model, lifecycle) }),
@@ -144,6 +204,18 @@ function update(model: Model, message: Message) {
   return pureUpdate(model, message);
 }
 
+const cubeLabel = (model: Model, h: HtmlBuilder<Message>) => ({
+  overlay: overlay({ key: 'cube-label', node: 'cube', position: [0, 1, 0], center: true }),
+  content: h.span([h.Id('cube-label')], [model.colour]),
+});
+
+/** A label above the cube, centred, in the cube's colour name, while switched on. */
+const labelsFor = (model: Model, h: HtmlBuilder<Message>) =>
+  Option.liftPredicate(model, (shown) => shown.label).pipe(
+    Option.map((shown) => cubeLabel(shown, h)),
+    Option.toArray,
+  );
+
 const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
   EffectThreeFoldkit.view(
     {
@@ -152,6 +224,8 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
         textured: model.textured,
         glow: model.glow,
         screen: model.screen,
+        title: titleShown[model.font],
+        ...orbitExtra(model.orbit),
       }),
       mount: sceneMount,
       className: 'scene',
@@ -169,6 +243,8 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
       onDragEnd: ({ key, ray }) =>
         Message.GotSceneEvent({ name: `DragEnd:${key}:${Math.sign(ray.direction[2])}` }),
       onReconciled: ({ ops }) => Message.GotReconciled({ updated: ops.updated }),
+      onGesture: (gesture) => Message.GotGesture({ gesture }),
+      overlays: labelsFor(model, h),
     },
     h,
   );
@@ -188,6 +264,11 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.button([h.Id('load-texture'), h.OnClick(Message.ClickedLoadTexture())], ['texture']),
       h.button([h.Id('glow'), h.OnClick(Message.ClickedToggleGlow())], ['glow']),
       h.button([h.Id('screen'), h.OnClick(Message.ClickedToggleScreen())], ['screen']),
+      h.button([h.Id('orbit'), h.OnClick(Message.ClickedToggleOrbit())], ['orbit']),
+      h.button([h.Id('label'), h.OnClick(Message.ClickedToggleLabel())], ['label']),
+      h.button([h.Id('load-font'), h.OnClick(Message.ClickedLoadFont())], ['font']),
+      h.p([h.Id('font')], [model.font]),
+      h.p([h.Id('camera')], [cameraReadout(model.orbit)]),
       h.p([h.Id('robot')], [model.robot]),
       h.p([h.Id('clicks')], [String(model.clicks)]),
       h.p([h.Id('last-key')], [model.lastKey]),
@@ -219,6 +300,9 @@ const initialModel: Model = {
   textured: false,
   glow: false,
   screen: false,
+  orbit: Option.none(),
+  label: false,
+  font: 'none',
 };
 
 Runtime.run(

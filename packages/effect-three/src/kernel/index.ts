@@ -33,6 +33,7 @@ export {
   box,
   capsule,
   circle,
+  text,
   cone,
   cylinder,
   directionalLight,
@@ -63,6 +64,7 @@ export {
   spin,
   spotLight,
   standard,
+  overlay,
   renderTexture,
   torus,
   type TransformOptions,
@@ -84,6 +86,7 @@ export {
   rotationEquals,
   shapeEquals,
   transitionEquals,
+  overlaysEqual,
   viewsEqual,
   vec3Equals,
 } from './equality.ts';
@@ -107,17 +110,31 @@ export {
   type GatedFrames,
   type ManualFrames,
 } from './frames.ts';
+export {
+  defaultOrbit,
+  dollyCamera,
+  orbit,
+  type OrbitOptions,
+  orbitOptions,
+  panCamera,
+  rotateCamera,
+} from './orbit.ts';
+export { type OverlayPlacement, placeOverlays } from './overlays.ts';
 export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
 export {
   createPicker,
   createPointerTracker,
+  type Gesture,
   type Hit,
+  type Modifiers,
+  noModifiers,
   type Picker,
   type PlaneEquation,
   pointOnPlane,
   type PointerInput,
   type PointerTracker,
   type Ray,
+  type Region,
   type SceneEvent,
 } from './pointer.ts';
 export {

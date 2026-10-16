@@ -106,7 +106,33 @@ export type CircleGeometry = {
 };
 
 /** Any geometry shape the kernel can build. */
+/** A bevel on extruded text, as three.js's `TextGeometry` options. */
+export type TextBevel = {
+  readonly thickness: number;
+  readonly size: number;
+  readonly offset: number;
+  readonly segments: number;
+};
+
+/**
+ * Text drawn from a typeface font lent to the store under `font`, as Drei's `Text3D`
+ * (three.js's `TextGeometry`). Flat (`ShapeGeometry`) when `depth` is 0 with no bevel.
+ * Until the font is lent the geometry is empty; lending it builds the text.
+ */
+export type TextGeometry = {
+  readonly _tag: 'Text';
+  readonly text: string;
+  readonly font: string;
+  readonly size: number;
+  readonly depth: number;
+  readonly curveSegments: number;
+  readonly bevel: TextBevel | null;
+  /** Centre the text on its origin, as `geometry.center()`; otherwise it starts there. */
+  readonly center: boolean;
+};
+
 export type ShapeGeometry =
+  | TextGeometry
   | BoxGeometry
   | SphereGeometry
   | PlaneGeometry
@@ -472,7 +498,13 @@ export type PerspectiveCamera = {
   readonly near: number;
   readonly far: number;
   readonly position: Vec3;
-  readonly lookAt: Vec3;
+  readonly lookAt: Vec3 /**
+   * How the rendered camera follows a new position, `lookAt` or zoom: 0 (the default)
+   * jumps; above 0 eases there round the target, closing that fraction of the remaining
+   * way every sixtieth of a second, as three.js's `OrbitControls.dampingFactor` (Drei's
+   * default is 0.05). Field of view, near and far always apply at once.
+   */;
+  readonly damping: number;
 };
 
 /**
@@ -486,7 +518,8 @@ export type OrthographicCamera = {
   readonly near: number;
   readonly far: number;
   readonly position: Vec3;
-  readonly lookAt: Vec3;
+  readonly lookAt: Vec3 /** As on `PerspectiveCamera`. */;
+  readonly damping: number;
 };
 
 /** The single active camera. */
@@ -575,8 +608,46 @@ export type RenderTexture = {
 };
 
 /** A complete scene: camera, render settings, shared resources and root nodes. */
+/**
+ * Who owns the pointer's gestures on the canvas.
+ *
+ * - `'page'` (the default): the wheel scrolls the page, touch pans it, the right button
+ *   opens the browser's menu, and the scene reports only events on interactive meshes.
+ * - `'scene'`: the scene claims them, as three.js's `OrbitControls` does when connected,
+ *   and reports every drag, wheel and pinch on the canvas as a `Gesture`, for controls
+ *   such as `orbit` to turn into a new camera.
+ */
+export type Gestures = 'page' | 'scene';
+
+/**
+ * A point the application shows HTML at, as Drei's `Html` (`src/web/Html.tsx` at
+ * `bf6f4ad`, without `transform`). The scene works out where the point is on the canvas
+ * each frame it draws; the host moves the application's HTML there.
+ */
+export type Overlay = {
+  readonly key: string;
+  /** The node the position is relative to, moving with it; `null` for world space. */
+  readonly node: string | null;
+  readonly position: Vec3;
+  /** Centre the HTML on the point (Drei's `center`); otherwise its top left is there. */
+  readonly center: boolean;
+  /**
+   * Scale the HTML with distance, as Drei's `distanceFactor`: at a distance where the
+   * view is `distanceFactor` units tall it shows at its own size. `null` keeps its size.
+   */
+  readonly distanceFactor: number | null;
+  /** Hide the HTML while a mesh is in front of the point (Drei's `occlude`). */
+  readonly occlude: boolean;
+  /** z-index for points at the camera's near and far planes (Drei's `zIndexRange`). */
+  readonly zIndexRange: readonly [near: number, far: number];
+  /** With views: the view it is shown in. `null`: the camera, or the first view. */
+  readonly view: string | null;
+};
+
 export type SceneDescription = {
   readonly camera: Camera;
+  /** Whether the scene claims the pointer's gestures from the page. */
+  readonly gestures: Gestures;
   /**
    * Views to draw instead of `camera` filling the canvas. Empty (the default) draws one
    * full view with `camera`.
@@ -584,6 +655,8 @@ export type SceneDescription = {
   readonly views: ReadonlyArray<View>;
   /** Scenes rendered into textures for materials to use. */
   readonly renderTextures: ReadonlyArray<RenderTexture>;
+  /** Points to show HTML at, placed every frame the scene draws. */
+  readonly overlays: ReadonlyArray<Overlay>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

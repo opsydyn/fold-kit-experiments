@@ -1,4 +1,5 @@
 import type { RenderSettings } from './description.ts';
+import { type OverlayPlacement, placeOverlays } from './overlays.ts';
 import { createPerformanceMonitor, type PerformanceOptions } from './performance.ts';
 /**
  * The per-frame step and pointer routing for one scene. Plain synchronous code: the
@@ -26,6 +27,11 @@ export type SceneLoopOptions = {
   readonly now?: () => number;
   /** Tuning for the frame-rate monitor. */
   readonly performance?: PerformanceOptions;
+  /**
+   * Receives where the scene's overlays are after each drawn frame, for the host to move
+   * their HTML there; once with none after the last overlay goes. Must not throw.
+   */
+  readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
 
 export type SceneLoop = {
@@ -52,6 +58,8 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
   const monitor = createPerformanceMonitor(options.performance);
   const now = options.now ?? Date.now;
   let configured: RenderSettings | undefined;
+  // Whether overlays were placed last frame, so their going is reported once.
+  let placedAny = false;
   // One offscreen target per render texture, its texture lent to the store under its id.
   const targets = new Map<
     string,
@@ -116,6 +124,11 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       if (views.length === 0) renderer.render(graph.scene, graph.camera);
       for (const view of views) renderer.render(graph.scene, view.camera, view.area);
       graph.drawn();
+      const overlays = graph.overlays();
+      if (options.placeOverlays !== undefined && (overlays.length > 0 || placedAny)) {
+        options.placeOverlays(placeOverlays(graph));
+        placedAny = overlays.length > 0;
+      }
       const change = monitor.sample(now());
       if (change !== undefined) emit({ _tag: 'PerformanceChanged', ...change });
     },

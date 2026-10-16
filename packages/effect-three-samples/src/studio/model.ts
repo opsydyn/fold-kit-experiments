@@ -1,4 +1,7 @@
+import { SceneSchema } from '@opsydyn/effect-three';
 import { Option, Schema } from 'effect';
+
+import { homeCamera } from './cameras';
 
 /** The pieces on the studio floor. */
 export const Piece = Schema.Literals(['torus', 'capsule', 'cone', 'ball', 'crate']);
@@ -43,6 +46,8 @@ export const Model = Schema.Struct({
   shadows: Shadows,
   tone: Tone,
   lens: Lens,
+  /** The camera, orbited by gestures on the canvas. */
+  camera: SceneSchema.Camera,
 });
 export type Model = typeof Model.Type;
 
@@ -72,6 +77,7 @@ export const init = () => ({
     shadows: 'soft',
     tone: 'none',
     lens: 'perspective',
+    camera: homeCamera.perspective,
   } satisfies Model,
 });
 

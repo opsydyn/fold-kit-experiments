@@ -14,6 +14,7 @@ import {
   createFramePacer,
   createSceneLoop,
   type Op,
+  type OverlayPlacement,
   type ReconcileResult,
   type RendererFactory,
   type SceneDescription,
@@ -35,10 +36,13 @@ export type SceneRuntimeOptions = {
   readonly eventCapacity?: number;
   /** Behaviours nodes may name, beside the built-in ones. */
   readonly behaviours?: Readonly<Record<string, Behaviour>>;
+  /** Receives where the overlays are after each drawn frame, to move their HTML there. */
+  readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
 
 const defaultEventCapacity = 64;
 const noBehaviours: Readonly<Record<string, Behaviour>> = {};
+const ignorePlacements = (_placements: ReadonlyArray<OverlayPlacement>): void => undefined;
 const nanosPerMillisecond = 1_000_000;
 const nanosPerSecond = 1_000_000_000;
 
@@ -125,6 +129,7 @@ function* startScene(options: SceneRuntimeOptions) {
       Queue.offerUnsafe(events, event);
     },
     now: () => Number(clock.monotonicTimeNanosUnsafe()) / nanosPerMillisecond,
+    placeOverlays: options.placeOverlays ?? ignorePlacements,
   });
   yield* Effect.addFinalizer(() => Effect.sync(loop.dispose));
   const pacer = createFramePacer(loop);

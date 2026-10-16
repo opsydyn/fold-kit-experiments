@@ -12,6 +12,10 @@ import type {
   Axis,
   BoxGeometry,
   Camera,
+  Gestures,
+  TextBevel,
+  TextGeometry,
+  Overlay,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -185,6 +189,38 @@ export const circle = (
   _tag: 'Circle',
   radius: options.radius ?? 1,
   segments: options.segments ?? 32,
+});
+
+/**
+ * Text from the typeface font lent under `font`. Defaults as Drei's `Text3D`: size 1,
+ * depth 0.2, 8 curve segments, no bevel (a bevel given defaults to thickness 0.1, size
+ * 0.01, offset 0, 4 segments), not centred. Depth 0 draws flat text.
+ */
+export const text = (options: {
+  readonly text: string;
+  readonly font: string;
+  readonly size?: number;
+  readonly depth?: number;
+  readonly curveSegments?: number;
+  readonly bevel?: Partial<TextBevel>;
+  readonly center?: boolean;
+}): TextGeometry => ({
+  _tag: 'Text',
+  text: options.text,
+  font: options.font,
+  size: options.size ?? 1,
+  depth: options.depth ?? 0.2,
+  curveSegments: options.curveSegments ?? 8,
+  bevel:
+    options.bevel === undefined
+      ? null
+      : {
+          thickness: options.bevel.thickness ?? 0.1,
+          size: options.bevel.size ?? 0.01,
+          offset: options.bevel.offset ?? 0,
+          segments: options.bevel.segments ?? 4,
+        },
+  center: options.center ?? false,
 });
 
 /** Position and scale changes apply immediately. The default. */
@@ -546,7 +582,10 @@ export const hemisphereLight = (options: {
   position: options.position ?? [0, 1, 0],
 });
 
-/** Perspective camera. Defaults: fov 50, near 0.1, far 100, at `[0, 0, 5]` looking at the origin. */
+/**
+ * Perspective camera. Defaults: fov 50, near 0.1, far 100, at `[0, 0, 5]` looking at the
+ * origin, no damping.
+ */
 export const perspectiveCamera = (
   options: Partial<Omit<PerspectiveCamera, '_tag'>> = {},
 ): PerspectiveCamera => ({
@@ -556,6 +595,7 @@ export const perspectiveCamera = (
   far: options.far ?? 100,
   position: options.position ?? [0, 0, 5],
   lookAt: options.lookAt ?? origin,
+  damping: options.damping ?? 0,
 });
 
 /**
@@ -571,6 +611,7 @@ export const orthographicCamera = (
   far: options.far ?? 1000,
   position: options.position ?? [0, 0, 5],
   lookAt: options.lookAt ?? origin,
+  damping: options.damping ?? 0,
 });
 
 const noEffects: ReadonlyArray<PostEffect> = [];
@@ -673,17 +714,50 @@ export const renderTexture = (options: {
 });
 
 /** A scene description. */
+const noOverlays: ReadonlyArray<Overlay> = [];
+
+/** Drei's `zIndexRange` default: near points on top, far ones at 0. */
+const defaultZIndexRange: readonly [number, number] = [16777271, 0];
+
+/**
+ * A point to show HTML at (Drei's `Html`). Defaults: world space at the origin, not
+ * centred, constant size, never occluded, Drei's z-index range, the main camera.
+ */
+export const overlay = (options: {
+  readonly key: string;
+  readonly node?: string;
+  readonly position?: Vec3;
+  readonly center?: boolean;
+  readonly distanceFactor?: number;
+  readonly occlude?: boolean;
+  readonly zIndexRange?: readonly [number, number];
+  readonly view?: string;
+}): Overlay => ({
+  key: options.key,
+  node: options.node ?? null,
+  position: options.position ?? origin,
+  center: options.center ?? false,
+  distanceFactor: options.distanceFactor ?? null,
+  occlude: options.occlude ?? false,
+  zIndexRange: options.zIndexRange ?? defaultZIndexRange,
+  view: options.view ?? null,
+});
+
 export const scene = (options: {
   readonly camera?: Camera;
+  readonly gestures?: Gestures;
   readonly views?: ReadonlyArray<View>;
   readonly renderTextures?: ReadonlyArray<RenderTexture>;
+  readonly overlays?: ReadonlyArray<Overlay>;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
 }): SceneDescription => ({
   camera: options.camera ?? perspectiveCamera(),
+  gestures: options.gestures ?? 'page',
   views: options.views ?? noViews,
   renderTextures: options.renderTextures ?? noRenderTextures,
+  overlays: options.overlays ?? noOverlays,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

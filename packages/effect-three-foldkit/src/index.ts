@@ -41,9 +41,11 @@ export {
   makeEnvironment,
 } from './environment.ts';
 export { makeSceneMount, type SceneMount } from './mount.ts';
+export { type OverlayView } from './overlayView.ts';
 export {
   type ButtonDetail,
   type DragDetail,
+  type Gesture,
   type HitDetail,
   type KeyDetail,
   type MissDetail,

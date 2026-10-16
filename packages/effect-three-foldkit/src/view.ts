@@ -17,6 +17,7 @@ import {
   type SceneLifecycle,
 } from './element.ts';
 import type { SceneMount } from './mount.ts';
+import { overlayLayer, type OverlayView, withOverlays } from './overlayView.ts';
 
 /**
  * Where the pointer met an interactive mesh: key, world-space point, distance from the
@@ -35,6 +36,12 @@ export type MissDetail = typeof SceneSchema.MissDetail.Type;
 
 /** Detail of drag events: the captured mesh, the button and the pointer's world-space ray. */
 export type DragDetail = typeof SceneSchema.DragDetail.Type;
+
+/**
+ * A drag, wheel or pinch on the canvas, when the scene claims gestures. Pass it to
+ * `orbit` to move a camera kept in the Model.
+ */
+export type Gesture = typeof SceneSchema.Gesture.Type;
 
 /** Detail of performance changes: the measured fps and the new factor, 0 to 1. */
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
@@ -73,6 +80,12 @@ export type ViewConfig<Message> = {
   /** A drag ended: released anywhere, or the pointer was cancelled. */
   readonly onDragEnd?: (detail: DragDetail) => Message;
   /**
+   * A drag, wheel or pinch anywhere on the canvas, reported while the scene claims
+   * gestures (`scene({ gestures: 'scene' })`). Apply it with `orbit` in `update`:
+   * the camera stays in the Model.
+   */
+  readonly onGesture?: (gesture: Gesture) => Message;
+  /**
    * Frames ran persistently slow or fast, and the performance factor moved (0 to 1).
    * Store it in the Model and lower `render.resolution` with it, as Drei's
    * `PerformanceMonitor` and `AdaptiveDpr` do together.
@@ -85,6 +98,12 @@ export type ViewConfig<Message> = {
    * Fires at startup and after every update that changed something, never for no-ops.
    */
   readonly onReconciled?: (detail: ReconciledDetail) => Message;
+  /**
+   * HTML at points in the scene, as Drei's `Html`: each `overlay` says where (a point,
+   * perhaps on a node), `content` what. The scene moves the HTML there every frame it
+   * draws; the content is ordinary view HTML, rendered from the Model.
+   */
+  readonly overlays?: ReadonlyArray<OverlayView>;
   readonly className?: string;
 };
 
@@ -109,11 +128,19 @@ export const view = <Message>(
     Option.map(given(config.onWheel), element.OnSceneWheel),
     Option.map(given(config.onDrag), element.OnSceneDrag),
     Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
+    Option.map(given(config.onGesture), (toMessage) =>
+      element.OnSceneGesture((detail) => toMessage(detail.gesture)),
+    ),
     Option.map(given(config.onPerformanceChange), element.OnScenePerformance),
     Option.map(given(config.onError), element.OnSceneError),
     Option.map(given(config.onReconciled), element.OnSceneReconciled),
     Option.map(given(config.className), h.Class),
   ]);
   const lifecycle = Mount.mapMessage(config.mount(), config.onLifecycle);
-  return element([element.Scene(markTyped(config.scene)), h.OnMount(lifecycle), ...optional], []);
+  const overlays = config.overlays ?? [];
+  const scene = markTyped(withOverlays(config.scene, overlays));
+  return element(
+    [element.Scene(scene), h.OnMount(lifecycle), ...optional],
+    overlayLayer(h, overlays),
+  );
 };

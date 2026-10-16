@@ -14,19 +14,44 @@
  */
 import { type Object3D, Raycaster, Vector2, Vector3 } from 'three';
 
-import type { Vec3 } from './description.ts';
+import type { Gestures, Vec3 } from './description.ts';
 import type { SceneGraph } from './sceneGraph.ts';
 
-/** Pointer input in normalised device coordinates. `button` follows `MouseEvent.button`. */
+/** Modifier keys held during an input, as on `MouseEvent`. */
+export type Modifiers = {
+  readonly shift: boolean;
+  readonly control: boolean;
+  readonly meta: boolean;
+  readonly alt: boolean;
+};
+
+/**
+ * Pointer input in normalised device coordinates. `button` follows `MouseEvent.button`.
+ * `pointer` is the input's `PointerEvent.pointerId` (0 when absent): with two pointers
+ * pressed (two fingers), the second only takes part in pinches.
+ */
 export type PointerInput =
-  | { readonly _tag: 'PointerMove'; readonly x: number; readonly y: number }
+  | {
+      readonly _tag: 'PointerMove';
+      readonly x: number;
+      readonly y: number;
+      readonly pointer?: number;
+    }
   | {
       readonly _tag: 'PointerDown';
       readonly x: number;
       readonly y: number;
       readonly button: number;
+      readonly pointer?: number;
+      readonly modifiers?: Modifiers;
     }
-  | { readonly _tag: 'PointerUp'; readonly x: number; readonly y: number; readonly button: number }
+  | {
+      readonly _tag: 'PointerUp';
+      readonly x: number;
+      readonly y: number;
+      readonly button: number;
+      readonly pointer?: number;
+    }
   | {
       readonly _tag: 'DoubleClick';
       readonly x: number;
@@ -38,10 +63,59 @@ export type PointerInput =
       readonly _tag: 'Wheel';
       readonly x: number;
       readonly y: number;
+      /** In CSS pixels: line and page deltas are converted, as three.js's controls do. */
       readonly deltaX: number;
       readonly deltaY: number;
+      readonly modifiers?: Modifiers;
     }
   | { readonly _tag: 'PointerLeave' };
+
+/**
+ * A gesture on the canvas, reported when the scene claims gestures (`gestures: 'scene'`).
+ * Distances are CSS pixels, right and down positive, since the previous gesture event;
+ * `width` and `height` are the CSS size of the canvas, or of the view the gesture began
+ * in, for turning pixels into angles and distances. `view` names that view.
+ *
+ * - `Drag`: the pointer moved while pressed, with the button and modifiers of the press.
+ *   `key` names the interactive mesh the press landed on, if any, so a Model can leave
+ *   the camera alone while that mesh is dragged.
+ * - `Wheel`: the wheel turned, anywhere over the canvas.
+ * - `Pinch`: two pointers moved: `scale` is their new distance over the old (above 1
+ *   when spreading), and the deltas are how far their midpoint moved.
+ */
+export type Gesture =
+  | {
+      readonly _tag: 'Drag';
+      readonly button: number;
+      readonly modifiers: Modifiers;
+      readonly key?: string;
+      readonly view?: string;
+      readonly deltaX: number;
+      readonly deltaY: number;
+      readonly width: number;
+      readonly height: number;
+    }
+  | {
+      readonly _tag: 'Wheel';
+      readonly modifiers: Modifiers;
+      readonly view?: string;
+      readonly deltaX: number;
+      readonly deltaY: number;
+      readonly width: number;
+      readonly height: number;
+    }
+  | {
+      readonly _tag: 'Pinch';
+      readonly view?: string;
+      readonly scale: number;
+      readonly deltaX: number;
+      readonly deltaY: number;
+      readonly width: number;
+      readonly height: number;
+    };
+
+/** No modifier keys held. */
+export const noModifiers: Modifiers = { shift: false, control: false, meta: false, alt: false };
 
 /**
  * The nearest interactive mesh under a point.
@@ -124,6 +198,8 @@ export type SceneEvent =
       readonly button: number;
       readonly ray: Ray;
     }
+  /** A drag, wheel or pinch on the canvas, when the scene claims gestures. */
+  | { readonly _tag: 'Gesture'; readonly gesture: Gesture }
   /**
    * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
    * it travels with them so one stream carries everything the scene reports.
@@ -137,7 +213,17 @@ export type Picker = {
   readonly ray: (x: number, y: number) => Ray;
   /** The picked graph's viewport in CSS pixels, for pixel thresholds. */
   readonly viewport: () => { readonly width: number; readonly height: number };
+  /**
+   * The CSS size of what is under NDC `(x, y)`: the view there, with its key, or the
+   * whole canvas.
+   */
+  readonly region: (x: number, y: number) => Region;
+  /** Whether the scene claims the pointer's gestures. */
+  readonly gestures: () => Gestures;
 };
+
+/** A part of the canvas in CSS pixels: a view, named by `view`, or the whole canvas. */
+export type Region = { readonly view?: string; readonly width: number; readonly height: number };
 
 const toVec3 = (vector: Vector3): Vec3 => [vector.x, vector.y, vector.z];
 
@@ -211,6 +297,21 @@ export const createPicker = (graph: SceneGraph): Picker => {
       aim(x, y);
       return currentRay();
     },
+    region: (x, y) => {
+      const { width, height } = graph.viewport();
+      const px = ((x + 1) / 2) * width;
+      const py = ((1 - y) / 2) * height;
+      const view = graph
+        .views()
+        .findLast(
+          ({ area }) =>
+            px >= area.x && px <= area.x + area.width && py >= area.y && py <= area.y + area.height,
+        );
+      return view === undefined
+        ? { width, height }
+        : { view: view.key, width: view.area.width, height: view.area.height };
+    },
+    gestures: graph.gestures,
     pick: (x, y) => {
       const targets = graph.interactiveObjects();
       if (targets.length === 0) return undefined;
@@ -273,9 +374,26 @@ type Press = {
   readonly y: number;
 };
 
+/** The press a gesture began with: its button, modifiers, mesh and region. */
+type GesturePress = Region & {
+  readonly button: number;
+  readonly modifiers: Modifiers;
+  readonly key?: string;
+};
+
+type Point = { readonly x: number; readonly y: number };
+
+const pointerOf = (input: PointerInput): number =>
+  'pointer' in input && input.pointer !== undefined ? input.pointer : 0;
+
 /** Creates the pointer state machine for one scene. */
 export const createPointerTracker = (picker: Picker): PointerTracker => {
   let position: { x: number; y: number } | undefined;
+  // Pressed pointers in NDC, for gestures. The first pressed is primary and drives the
+  // press, click and drag machinery; others only take part in pinches.
+  const pressedPointers = new Map<number, Point>();
+  let primary: number | undefined;
+  let gesturePress: GesturePress | undefined;
   let hovered: string | undefined;
   // The latest press, kept after release: double-click and context-menu events follow it.
   let press: Press | undefined;
@@ -335,9 +453,110 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     dragged = false;
   };
 
+  /** NDC distance to CSS pixels on the canvas, down positive. */
+  const pixels = (from: Point, to: Point): Point => {
+    const { width, height } = picker.viewport();
+    return { x: ((to.x - from.x) * width) / 2, y: (-(to.y - from.y) * height) / 2 };
+  };
+
+  const pixelDistance = (a: Point, b: Point): number => {
+    const { x, y } = pixels(a, b);
+    return Math.hypot(x, y);
+  };
+
+  /** A gesture press begins: the first pointer down while the scene claims gestures. */
+  const beginGesture = (
+    event: Extract<PointerInput, { readonly _tag: 'PointerDown' }>,
+    id: number,
+    key: string | undefined,
+  ): void => {
+    if (picker.gestures() !== 'scene') return;
+    pressedPointers.clear();
+    primary = id;
+    pressedPointers.set(id, { x: event.x, y: event.y });
+    gesturePress = {
+      ...picker.region(event.x, event.y),
+      button: event.button,
+      modifiers: event.modifiers ?? noModifiers,
+      ...(key === undefined ? {} : { key }),
+    };
+  };
+
+  /** Moves pointer `id` to `to`: a drag with one pointer pressed, a pinch with two. */
+  const moveGesture = (id: number, to: Point, events: Array<SceneEvent>): void => {
+    const from = pressedPointers.get(id);
+    if (from === undefined || gesturePress === undefined) return;
+    pressedPointers.set(id, to);
+    const { view, width, height } = gesturePress;
+    const region = { ...(view === undefined ? {} : { view }), width, height };
+    const moved = pixels(from, to);
+    const other = [...pressedPointers].find(([pointer]) => pointer !== id)?.[1];
+    if (other === undefined) {
+      if (id !== primary) return;
+      const { button, modifiers, key } = gesturePress;
+      events.push({
+        _tag: 'Gesture',
+        gesture: {
+          _tag: 'Drag',
+          button,
+          modifiers,
+          ...(key === undefined ? {} : { key }),
+          ...region,
+          deltaX: moved.x,
+          deltaY: moved.y,
+        },
+      });
+      return;
+    }
+    const before = pixelDistance(from, other);
+    const after = pixelDistance(to, other);
+    events.push({
+      _tag: 'Gesture',
+      gesture: {
+        _tag: 'Pinch',
+        ...region,
+        scale: before === 0 ? 1 : after / before,
+        // The midpoint moves half as far as the one pointer that moved.
+        deltaX: moved.x / 2,
+        deltaY: moved.y / 2,
+      },
+    });
+  };
+
+  const endGestures = (): void => {
+    pressedPointers.clear();
+    primary = undefined;
+    gesturePress = undefined;
+  };
+
+  /**
+   * Input from a pointer other than the primary one while that is pressed: it joins,
+   * pinches or leaves, and touches nothing else.
+   */
+  const secondary = (event: PointerInput, id: number): ReadonlyArray<SceneEvent> => {
+    const events: Array<SceneEvent> = [];
+    if (event._tag === 'PointerDown' && gesturePress !== undefined) {
+      pressedPointers.set(id, { x: event.x, y: event.y });
+    } else if (event._tag === 'PointerMove') {
+      moveGesture(id, event, events);
+    } else if (event._tag === 'PointerUp') {
+      pressedPointers.delete(id);
+    }
+    return events;
+  };
+
+  const isSecondary = (event: PointerInput, id: number): boolean =>
+    primary !== undefined &&
+    id !== primary &&
+    (event._tag === 'PointerDown' ||
+      ((event._tag === 'PointerMove' || event._tag === 'PointerUp') && pressedPointers.has(id)));
+
   const input = (event: PointerInput): ReadonlyArray<SceneEvent> => {
+    const id = pointerOf(event);
+    if (isSecondary(event, id)) return secondary(event, id);
     const events: Array<SceneEvent> = [];
     if (event._tag === 'PointerLeave') {
+      endGestures();
       // A cancelled or abandoned press still ends its drag, at the last known position.
       if (position !== undefined) endDrag(captured(), position.x, position.y, events);
       dragged = false;
@@ -358,17 +577,20 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
           dragged = true;
           events.push({ _tag: 'Drag', ...drag, ray: picker.ray(event.x, event.y) });
         }
+        moveGesture(id, event, events);
         break;
       case 'PointerDown':
         press = { key: hit?.key, button: event.button, x: event.x, y: event.y };
         pressing = true;
         dragged = false;
         if (hit !== undefined) events.push({ _tag: 'PointerDown', button: event.button, ...hit });
+        beginGesture(event, id, hit?.key);
         break;
       case 'PointerUp':
         release(hit, event, events);
         // Any release ends capture: a mouse's buttons share one pointer.
         endDrag(drag, event.x, event.y, events);
+        endGestures();
         break;
       case 'DoubleClick':
         if (hit !== undefined && pressed(hit)) {
@@ -381,6 +603,18 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
       case 'Wheel':
         if (hit !== undefined) {
           events.push({ _tag: 'Wheel', deltaX: event.deltaX, deltaY: event.deltaY, ...hit });
+        }
+        if (picker.gestures() === 'scene') {
+          events.push({
+            _tag: 'Gesture',
+            gesture: {
+              _tag: 'Wheel',
+              modifiers: event.modifiers ?? noModifiers,
+              ...picker.region(event.x, event.y),
+              deltaX: event.deltaX,
+              deltaY: event.deltaY,
+            },
+          });
         }
         break;
     }

@@ -28,9 +28,11 @@ import {
   sceneEventDispatch,
 } from './dom/canvas.ts';
 import { applying, createLatch, type Latch, routedWhileOpen } from './dom/latch.ts';
-import { listenForPointer } from './dom/pointer.ts';
+import { containOverlays, createOverlayWriter, type OverlayWriter } from './dom/overlays.ts';
+import { claimsGestures, listenForPointer, touchActionSync } from './dom/pointer.ts';
 import { interceptProperty } from './dom/property.ts';
 import { typedScene } from './dom/typedScenes.ts';
+import { afterUpdate } from './dom/updates.ts';
 import {
   measureViewport,
   observePixelRatio,
@@ -47,6 +49,8 @@ type SceneHandle = SceneRuntime.SceneHandle;
 type Mounted = {
   readonly environment: Environment;
   readonly element: Element;
+  readonly canvas: HTMLCanvasElement;
+  readonly overlays: OverlayWriter;
   readonly handle: SceneHandle;
   readonly live: Latch;
   readonly frames: GatedFrames;
@@ -81,12 +85,21 @@ const acquireInterception = (element: Element, updates: Queue.Queue<unknown>) =>
 };
 
 const pointerListening =
-  (canvas: HTMLElement, onInput: (input: PointerInput) => ReadonlyArray<SceneEvent>) => () =>
-    listenForPointer(canvas, onInput);
+  (
+    canvas: HTMLElement,
+    onInput: (input: PointerInput) => ReadonlyArray<SceneEvent>,
+    claimsGestures: () => boolean,
+  ) =>
+  () =>
+    listenForPointer(canvas, onInput, claimsGestures);
 
 const acquirePointer = (canvas: HTMLElement, mounted: Mounted) => {
   const listen = Effect.sync(
-    pointerListening(canvas, routedWhileOpen(mounted.live, mounted.handle.pointer)),
+    pointerListening(
+      canvas,
+      routedWhileOpen(mounted.live, mounted.handle.pointer),
+      claimsGestures(mounted.handle.graph),
+    ),
   );
   return Effect.acquireRelease(listen, Effect.sync);
 };
@@ -104,7 +117,10 @@ const observed = <A>(observe: (emit: (value: A) => void) => () => void) =>
 
 const applyUpdate = (mounted: Mounted) => (value: unknown) => {
   const reportError = sceneErrorDispatch(mounted.element);
-  const reportReconciled = reconciledDispatch(mounted.element, mounted.environment.store);
+  const reportReconciled = afterUpdate(
+    reconciledDispatch(mounted.element, mounted.environment.store),
+    [touchActionSync(mounted.canvas, mounted.handle.graph), mounted.overlays.rewrite],
+  );
   const decoded = decodeScene(value);
   const applied = decoded.pipe(
     Effect.flatMap(mounted.handle.update),
@@ -156,13 +172,19 @@ const watchers = (
 };
 
 const sceneRuntimeFor =
-  (environment: Environment, element: Element, canvas: HTMLCanvasElement) =>
+  (
+    environment: Environment,
+    element: Element,
+    canvas: HTMLCanvasElement,
+    overlays: OverlayWriter,
+  ) =>
   (scene: SceneDescription) => {
     const frames = createGatedFrames(environment.frames);
     const started = SceneRuntime.make({
       scene,
       renderer: environment.renderer(canvas),
       behaviours: environment.behaviours,
+      placeOverlays: overlays.place,
       viewport: measureViewport(element, environment.host.devicePixelRatio, environment.pixelRatio),
     }).pipe(
       Effect.provideService(FrameSource.FrameSource, FrameSource.fromScheduler(frames)),
@@ -180,9 +202,25 @@ function* runScene(
   const updates = yield* acquireSceneUpdates();
   const intercepted = yield* acquireInterception(element, updates);
   const initial = yield* decodeScene(intercepted.initial);
-  const { handle, frames } = yield* sceneRuntimeFor(environment, element, canvas)(initial);
-  const mounted: Mounted = { environment, element, handle, frames, live: createLatch(true) };
+  const overlays = createOverlayWriter(element);
+  yield* Effect.sync(containOverlays(element));
+  const { handle, frames } = yield* sceneRuntimeFor(
+    environment,
+    element,
+    canvas,
+    overlays,
+  )(initial);
+  const mounted: Mounted = {
+    environment,
+    element,
+    canvas,
+    overlays,
+    handle,
+    frames,
+    live: createLatch(true),
+  };
   yield* acquirePointer(canvas, mounted);
+  yield* Effect.sync(touchActionSync(canvas, handle.graph));
   yield* Effect.sync(reconciledDispatch(element, environment.store)(handle.startupOps));
   const forks = watchers(mounted, updates, viewStateChanges).map((watcher) =>
     Effect.forkScoped(watcher),

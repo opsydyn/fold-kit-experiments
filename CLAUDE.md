@@ -40,6 +40,15 @@ bun run --filter @opsydyn/web dev     # single workspace
 bun dev:three-promo                   # effect-three promo → localhost:4323
 ```
 
+## Dependencies
+
+Shared dependency versions live once, in the root `package.json` catalogs
+(`workspaces.catalog`, plus `workspaces.catalogs.strict` for the effect-three packages'
+TypeScript 7 and oxlint). In private workspaces write `"catalog:"` (or
+`"catalog:strict"`), never a version. The npm-published `astro-foldkit` and
+`foldkit-viz` keep literal versions equal to the catalog's (`npm publish` cannot resolve
+`catalog:`). `bun run check` enforces both via `tools/check-catalog.ts`.
+
 ## Linting — oxlint + oxfmt
 
 Biome was removed. The project uses oxlint (linter) and oxfmt (formatter).

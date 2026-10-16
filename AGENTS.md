@@ -14,7 +14,13 @@ Bun workspace monorepo. Five active workspaces:
 | `@opsydyn/dataset-explorer` | `packages/dataset-explorer/` | Private shared FoldKit example          |
 | `@opsydyn/promo`            | `apps/promo/`                | Static Astro promo site for Foldkit Viz |
 
-**Stack:** FoldKit 0.167.0 · Effect 4.0.0 · Astro 7.2.8 · TypeScript · bun · oxlint · oxfmt
+**Stack:** FoldKit 0.167.0 · Effect 4.0.0 · Astro 7.4.0 · TypeScript · bun · oxlint · oxfmt
+
+**Dependencies:** shared versions are declared once, in the root `package.json`
+catalogs. Private workspaces use `"catalog:"` (or `"catalog:strict"` for the
+effect-three packages' TypeScript 7 and oxlint); the npm-published `astro-foldkit` and
+`foldkit-viz` keep literal versions equal to the catalog's. `bun run check` enforces
+this with `tools/check-catalog.ts`.
 
 ## Before you write code
 

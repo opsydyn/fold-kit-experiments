@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { Effect } from 'effect';
 
+import workspace from '../../../package.json';
 import astroPackage from '../../../packages/astro-foldkit/package.json';
 import datasetPackage from '../../../packages/dataset-explorer/package.json';
 import { OpenPlayground } from '../src/examples/datasets/launcher/command';
@@ -12,7 +13,9 @@ import { datasetProject } from '../src/lib/dataset-project';
 
 test('dataset starter uses the maintained source runtime and matching Vite plugin', () => {
   const manifest = JSON.parse(datasetProject({}, [])['package.json']);
-  expect(manifest.dependencies.foldkit).toBe(datasetPackage.dependencies.foldkit);
+  // The dataset explorer takes FoldKit from the workspace catalog.
+  expect(datasetPackage.dependencies.foldkit).toBe('catalog:');
+  expect(manifest.dependencies.foldkit).toBe(workspace.workspaces.catalog.foldkit);
   expect(manifest.devDependencies['@foldkit/vite-plugin']).toBe(
     astroPackage.dependencies['@foldkit/vite-plugin'].replace(/^\^/, ''),
   );

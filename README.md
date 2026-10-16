@@ -63,7 +63,7 @@ fold-kit-experiments/
 ## Prerequisites
 
 - [Bun](https://bun.sh) ≥ 1.4
-- Node ≥ 22.12 (for Astro, Vite and integration tests)
+- Node ≥ 22.22 (Astro 7.4's minimum; also used by Vite and integration tests)
 
 ## Getting started
 
@@ -79,7 +79,8 @@ The demo's `/greeting` route proves request SSR and `/greeting-static` proves
 SSG through `definePage`. Existing chart routes remain `lazyApp` / `defineApp`
 client islands.
 
-The workspace targets FoldKit `0.167.0`, Effect `4.0.0` and Astro `7.2.8`.
+The workspace targets FoldKit `0.167.0`, Effect `4.0.0` and Astro `7.4.0`. Shared dependency
+versions are declared once, in the root `package.json` catalogs (see [Dependencies](#dependencies)).
 See the [migration guide](docs/migrations/foldkit-0.167.md) before upgrading an
 existing consumer; the optional FoldKit peers in Viz remain optional for pure
 geometry imports.
@@ -109,6 +110,19 @@ Comparison exports capture panel kinds, IDs, order, linking and the next ID
 counter, not transient measurements or inspection. See the
 [qualification record](docs/superpowers/specs/2026-10-08-keyed-chart-comparison-qualification.md)
 for automated coverage and outstanding browser acceptance.
+
+## Dependencies
+
+Versions used by more than one workspace are declared once, in the root `package.json`:
+`workspaces.catalog` for everything shared, and `workspaces.catalogs.strict` for the
+TypeScript 7 and oxlint versions only the effect-three packages use. Private workspaces
+refer to them as `"catalog:"` or `"catalog:strict"`; to upgrade a shared dependency,
+change the catalog and run `bun install`.
+
+The two packages published to npm (`astro-foldkit` and `foldkit-viz`) keep literal
+versions, because CI publishes with `npm publish`, which does not resolve `catalog:`.
+`bun run check` runs `tools/check-catalog.ts`, which fails if a shared dependency is
+declared outside the catalog or a published package's version drifts from it.
 
 ## Commands
 

@@ -28,6 +28,7 @@ test('comparison standalone installs, typechecks and builds with captured struct
       },
     );
     expect(files['package.json']).not.toContain('workspace:');
+    expect(files['package.json']).not.toContain('catalog:');
     expect(files['package.json']).not.toContain('#example/');
     for (const [name, content] of Object.entries(files)) {
       await mkdir(dirname(join(directory, name)), { recursive: true });

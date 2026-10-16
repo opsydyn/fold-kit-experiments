@@ -37,7 +37,7 @@ import { Option } from 'effect';
 
 import { lighten } from '../bars/colours';
 import { paintColour } from '../palette';
-import { planLens } from './cameras';
+import { planLens, viewKey } from './cameras';
 import { type Finish, type Lens, limit, type Model, type Piece, type Placement } from './model';
 import { pieceKey } from './update';
 
@@ -127,8 +127,8 @@ const spotTarget = (model: Model): Vec3 =>
 
 /** The split lens: the orbiting view on the left, a plan from above on the right. */
 const splitViews = (camera: Camera): ReadonlyArray<View> => [
-  view({ key: 'front', camera, rect: { width: 0.5 } }),
-  view({ key: 'plan', camera: planLens, rect: { x: 0.5, width: 0.5 } }),
+  view({ key: viewKey.front, camera, rect: { width: 0.5 } }),
+  view({ key: viewKey.plan, camera: planLens, rect: { x: 0.5, width: 0.5 } }),
 ];
 
 const noViews: ReadonlyArray<View> = [];

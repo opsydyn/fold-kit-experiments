@@ -161,12 +161,3 @@ export const touchActionSync = (element: HTMLElement, owner: GestureOwner) => ()
   const touchAction = claimsGestures(owner)() ? 'none' : '';
   if (element.style.touchAction !== touchAction) element.style.touchAction = touchAction;
 };
-
-/** After an update: report it, then match the canvas's touch handling to the new claim. */
-export const afterUpdate =
-  <A>(report: (value: A) => () => void, element: HTMLElement, owner: GestureOwner) =>
-  (value: A) =>
-  (): void => {
-    report(value)();
-    touchActionSync(element, owner)();
-  };

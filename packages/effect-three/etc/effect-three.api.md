@@ -430,6 +430,17 @@ export type DescriptionError = {
 } | {
     readonly _tag: 'DuplicateRenderTextureId';
     readonly id: string;
+} | {
+    readonly _tag: 'DuplicateOverlayKey';
+    readonly key: string;
+} | {
+    readonly _tag: 'UnknownOverlayNode';
+    readonly key: string;
+    readonly node: string;
+} | {
+    readonly _tag: 'UnknownOverlayView';
+    readonly key: string;
+    readonly view: string;
 };
 
 // @public
@@ -452,6 +463,14 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
     readonly name: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateViewKey", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateOverlayKey", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownOverlayNode", {
+    readonly key: Schema.String;
+    readonly node: Schema.String;
+}>, Schema.TaggedStruct<"UnknownOverlayView", {
+    readonly key: Schema.String;
+    readonly view: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
     readonly id: Schema.String;
 }>]>;
@@ -1565,6 +1584,56 @@ const OrthographicCamera_3: Schema.TaggedStruct<"Orthographic", {
 }>;
 
 // @public
+export type Overlay = {
+    readonly key: string;
+    readonly node: string | null;
+    readonly position: Vec3;
+    readonly center: boolean;
+    readonly distanceFactor: number | null;
+    readonly occlude: boolean;
+    readonly zIndexRange: readonly [near: number, far: number];
+    readonly view: string | null;
+};
+
+// @public
+export const overlay: (options: {
+    readonly key: string;
+    readonly node?: string;
+    readonly position?: Vec3;
+    readonly center?: boolean;
+    readonly distanceFactor?: number;
+    readonly occlude?: boolean;
+    readonly zIndexRange?: readonly [number, number];
+    readonly view?: string;
+}) => Overlay;
+
+// @public
+const Overlay_2: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly node: Schema.NullOr<Schema.String>;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly center: Schema.Boolean;
+    readonly distanceFactor: Schema.NullOr<Schema.Finite>;
+    readonly occlude: Schema.Boolean;
+    readonly zIndexRange: Schema.Tuple<readonly [Schema.Int, Schema.Int]>;
+    readonly view: Schema.NullOr<Schema.String>;
+}>;
+
+// @public
+export type OverlayPlacement = {
+    readonly key: string;
+    readonly x: number;
+    readonly y: number;
+    readonly scale: number;
+    readonly zIndex: number;
+    readonly visible: boolean;
+    readonly center: boolean;
+};
+
+// @public
+export const overlaysEqual: (a: ReadonlyArray<Overlay>, b: ReadonlyArray<Overlay>) => boolean;
+
+// @public
 export const panCamera: (camera: Camera, deltaX: number, deltaY: number, area: {
     readonly width: number;
     readonly height: number;
@@ -1715,6 +1784,9 @@ export type Picker = {
     readonly region: (x: number, y: number) => Region;
     readonly gestures: () => Gestures;
 };
+
+// @public
+export const placeOverlays: (graph: SceneGraph) => ReadonlyArray<OverlayPlacement>;
 
 // @public
 export const plane: (size?: {
@@ -2249,12 +2321,13 @@ const Rotation_2: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
 // @public
 export const rotationEquals: (a: Rotation, b: Rotation) => boolean;
 
-// @public
+// @public (undocumented)
 export const scene: (options: {
     readonly camera?: Camera;
     readonly gestures?: Gestures;
     readonly views?: ReadonlyArray<View>;
     readonly renderTextures?: ReadonlyArray<RenderTexture>;
+    readonly overlays?: ReadonlyArray<Overlay>;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2273,6 +2346,7 @@ export type SceneDescription = {
     readonly gestures: Gestures;
     readonly views: ReadonlyArray<View>;
     readonly renderTextures: ReadonlyArray<RenderTexture>;
+    readonly overlays: ReadonlyArray<Overlay>;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2341,6 +2415,16 @@ const SceneDescription_2: Schema.Struct<{
         }>]>;
         readonly background: Schema.NullOr<Schema.Int>;
         readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
+    }>>;
+    readonly overlays: Schema.$Array<Schema.Struct<{
+        readonly key: Schema.String;
+        readonly node: Schema.NullOr<Schema.String>;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly center: Schema.Boolean;
+        readonly distanceFactor: Schema.NullOr<Schema.Finite>;
+        readonly occlude: Schema.Boolean;
+        readonly zIndexRange: Schema.Tuple<readonly [Schema.Int, Schema.Int]>;
+        readonly view: Schema.NullOr<Schema.String>;
     }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -2711,6 +2795,7 @@ export type SceneGraph = {
     readonly views: () => ReadonlyArray<HostedView>;
     readonly renderTextures: () => ReadonlyArray<HostedTexture>;
     readonly gestures: () => Gestures;
+    readonly overlays: () => ReadonlyArray<Overlay>;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -2765,6 +2850,7 @@ export type SceneLoopOptions = {
     readonly emit: (event: SceneEvent) => void;
     readonly now?: () => number;
     readonly performance?: PerformanceOptions;
+    readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
 
 // @public
@@ -2798,6 +2884,7 @@ type SceneRuntimeOptions = {
     readonly viewport: Viewport;
     readonly eventCapacity?: number;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
+    readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
 
 declare namespace SceneSchema {
@@ -2848,6 +2935,7 @@ declare namespace SceneSchema {
         RenderSettings_2 as RenderSettings,
         View_2 as View,
         RenderTexture_2 as RenderTexture,
+        Overlay_2 as Overlay,
         Gestures_2 as Gestures,
         SceneDescription_2 as SceneDescription,
         KeyDetail,

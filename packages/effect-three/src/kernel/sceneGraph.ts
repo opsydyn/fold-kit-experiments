@@ -45,12 +45,14 @@ import type {
   SceneNode,
   SpotLightNode,
   Gestures,
+  Overlay,
   RenderTexture,
   Vec3,
   View,
   ViewRect,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
+import { overlaysEqual } from './equality.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostMaterial } from './materials.ts';
 import {
@@ -168,6 +170,8 @@ export type SceneGraph = {
   readonly renderTextures: () => ReadonlyArray<HostedTexture>;
   /** Whether the scene claims the pointer's gestures from the page. */
   readonly gestures: () => Gestures;
+  /** Points to show HTML at; the frame loop places them after drawing. */
+  readonly overlays: () => ReadonlyArray<Overlay>;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -355,6 +359,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let textureList: ReadonlyArray<HostedTexture> = [];
   let viewDescriptions: ReadonlyArray<View> = [];
   let gestures: Gestures = emptyScene.gestures;
+  let overlayList: ReadonlyArray<Overlay> = emptyScene.overlays;
   const cameraMotion = createCameraMotion();
 
   /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
@@ -918,6 +923,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     gestures: 'page',
     views: [],
     renderTextures: [],
+    overlays: [],
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -993,6 +999,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     index = result.index;
     // Gestures change how input is read, not what is drawn: no operation, no frame.
     gestures = next.gestures;
+    // Overlays are placed when a frame is drawn: a change needs one, but no operation.
+    if (!overlaysEqual(overlayList, next.overlays)) invalidate();
+    overlayList = next.overlays;
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -1057,6 +1066,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     views: () => views,
     renderTextures: () => textureList,
     gestures: () => gestures,
+    overlays: () => overlayList,
     store,
     reconcile,
     tick,

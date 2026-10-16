@@ -442,6 +442,18 @@ export const RenderTexture = Schema.Struct({
 });
 
 /** A complete scene description. */
+/** A point to show HTML at. */
+export const Overlay = Schema.Struct({
+  key: Schema.String,
+  node: Schema.NullOr(Schema.String),
+  position: Vec3,
+  center: Schema.Boolean,
+  distanceFactor: Schema.NullOr(Positive),
+  occlude: Schema.Boolean,
+  zIndexRange: Schema.Tuple([Schema.Int, Schema.Int]),
+  view: Schema.NullOr(Schema.String),
+});
+
 /** Whether the scene claims the pointer's gestures from the page. */
 export const Gestures = Schema.Literals(['page', 'scene']);
 
@@ -450,6 +462,7 @@ export const SceneDescription = Schema.Struct({
   gestures: Gestures,
   views: Schema.Array(View),
   renderTextures: Schema.Array(RenderTexture),
+  overlays: Schema.Array(Overlay),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
@@ -572,5 +585,8 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('DuplicateInstanceKey', { nodeKey: Schema.String, key: Schema.String }),
   Schema.TaggedStruct('UnknownBehaviour', { nodeKey: Schema.String, name: Schema.String }),
   Schema.TaggedStruct('DuplicateViewKey', { key: Schema.String }),
+  Schema.TaggedStruct('DuplicateOverlayKey', { key: Schema.String }),
+  Schema.TaggedStruct('UnknownOverlayNode', { key: Schema.String, node: Schema.String }),
+  Schema.TaggedStruct('UnknownOverlayView', { key: Schema.String, view: Schema.String }),
   Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),
 ]);

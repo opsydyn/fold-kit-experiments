@@ -3,7 +3,7 @@ import { Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
-import { homeCamera, studioOrbit } from './cameras';
+import { homeCamera, studioOrbit, viewKey } from './cameras';
 import { Message } from './message';
 import {
   finishes,
@@ -120,7 +120,7 @@ const otherTone = { none: 'aces', aces: 'none' } satisfies Record<Tone, Tone>;
  * piece), and not one over the plan, which stays put.
  */
 const orbits = (gesture: Gesture): boolean =>
-  !('key' in gesture && gesture.key !== undefined) && gesture.view !== 'plan';
+  !('key' in gesture && gesture.key !== undefined) && gesture.view !== viewKey.plan;
 
 /** The camera after a gesture, when the gesture is one that orbits. */
 const orbitBy = (model: Model, gesture: Gesture): Model =>

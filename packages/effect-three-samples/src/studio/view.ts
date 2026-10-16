@@ -1,11 +1,13 @@
+import { overlay } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { sceneMount } from '../environment';
 import { Message } from './message';
-import type { Finish, Lens, Model, Piece, Shadows, Tone } from './model';
+import type { Finish, Lens, Model, Piece, Placement, Shadows, Tone } from './model';
 import { sceneFor } from './scene';
+import { pieceKey } from './update';
 
 const pieceName = {
   torus: 'Torus',
@@ -43,18 +45,33 @@ const toggle = (h: HtmlBuilder<Message>, label: string, on: boolean, message: Me
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
   h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
 
-const readout = (model: Model): string =>
-  Option.match(
-    Option.flatMap(model.selected, (piece) =>
-      Option.fromNullishOr(model.placements.find((placement) => placement.piece === piece)),
-    ),
-    {
-      onNone: () =>
-        'Drag a piece across the floor, or the space around it to orbit. Click one to light it.',
-      onSome: (placement) =>
-        `${pieceName[placement.piece]}: ${finishName[placement.finish]}. Right-click to change the finish, double-click to send it home.`,
-    },
+const selectedPlacement = (model: Model): Option.Option<Placement> =>
+  Option.flatMap(model.selected, (piece) =>
+    Option.fromNullishOr(model.placements.find((placement) => placement.piece === piece)),
   );
+
+/** A tag floating over the selected piece: its name and finish, from the Model. */
+const tagFor = (h: HtmlBuilder<Message>) => (placement: Placement) => ({
+  overlay: overlay({
+    key: 'selected-tag',
+    node: pieceKey(placement.piece),
+    position: [0, 0.9, 0],
+    center: true,
+  }),
+  content: h.span([h.Class('e3-tag')], [`${pieceName[placement.piece]} · ${placement.finish}`]),
+  pointerEvents: 'none' as const,
+});
+
+const tags = (model: Model, h: HtmlBuilder<Message>) =>
+  Option.toArray(Option.map(selectedPlacement(model), tagFor(h)));
+
+const readout = (model: Model): string =>
+  Option.match(selectedPlacement(model), {
+    onNone: () =>
+      'Drag a piece across the floor, or the space around it to orbit. Click one to light it.',
+    onSome: (placement) =>
+      `${pieceName[placement.piece]}: ${finishName[placement.finish]}. Right-click to change the finish, double-click to send it home.`,
+  });
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Studio — effect-three',
@@ -79,6 +96,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           onDragEnd: () => Message.DroppedPiece(),
           onPointerMissed: () => Message.ClickedEmptySpace(),
           onGesture: (gesture) => Message.MadeGesture({ gesture }),
+          overlays: tags(model, h),
         },
         h,
       ),

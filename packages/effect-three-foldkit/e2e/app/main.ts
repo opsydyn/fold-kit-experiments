@@ -1,4 +1,4 @@
-import { orbit, type RendererFactory, SceneSchema } from '@opsydyn/effect-three';
+import { orbit, overlay, type RendererFactory, SceneSchema } from '@opsydyn/effect-three';
 import { Array as Arr, Effect, Option, Schema } from 'effect';
 import { Command, Runtime } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
@@ -43,6 +43,7 @@ const Model = Schema.Struct({
   screen: Schema.Boolean,
   /** The orbiting camera, when the orbit test has switched it on. */
   orbit: Schema.Option(SceneSchema.Camera),
+  label: Schema.Boolean,
 });
 type Model = typeof Model.Type;
 
@@ -62,6 +63,7 @@ const Message = defineMessageUnion({
   ClickedToggleGlow: {},
   ClickedToggleScreen: {},
   ClickedToggleOrbit: {},
+  ClickedToggleLabel: {},
   GotGesture: { gesture: SceneSchema.Gesture },
   SettledModel: { outcome: Schema.String },
   SettledTexture: { ready: Schema.Boolean },
@@ -158,6 +160,7 @@ const pureUpdate = (model: Model, message: Message) =>
       model: modifyFields(model, { screen: (screen) => !screen }),
     }),
     ClickedToggleOrbit: () => ({ model: modifyFields(model, { orbit: toggledOrbit }) }),
+    ClickedToggleLabel: () => ({ model: modifyFields(model, { label: (label) => !label }) }),
     GotGesture: ({ gesture }) => ({
       model: modifyFields(model, { orbit: orbitedBy(gesture) }),
     }),
@@ -173,6 +176,18 @@ function update(model: Model, message: Message) {
   probe.updates++;
   return pureUpdate(model, message);
 }
+
+const cubeLabel = (model: Model, h: HtmlBuilder<Message>) => ({
+  overlay: overlay({ key: 'cube-label', node: 'cube', position: [0, 1, 0], center: true }),
+  content: h.span([h.Id('cube-label')], [model.colour]),
+});
+
+/** A label above the cube, centred, in the cube's colour name, while switched on. */
+const labelsFor = (model: Model, h: HtmlBuilder<Message>) =>
+  Option.liftPredicate(model, (shown) => shown.label).pipe(
+    Option.map((shown) => cubeLabel(shown, h)),
+    Option.toArray,
+  );
 
 const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
   EffectThreeFoldkit.view(
@@ -201,6 +216,7 @@ const sceneView = (model: Model, h: HtmlBuilder<Message>): Html =>
         Message.GotSceneEvent({ name: `DragEnd:${key}:${Math.sign(ray.direction[2])}` }),
       onReconciled: ({ ops }) => Message.GotReconciled({ updated: ops.updated }),
       onGesture: (gesture) => Message.GotGesture({ gesture }),
+      overlays: labelsFor(model, h),
     },
     h,
   );
@@ -221,6 +237,7 @@ const view = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.button([h.Id('glow'), h.OnClick(Message.ClickedToggleGlow())], ['glow']),
       h.button([h.Id('screen'), h.OnClick(Message.ClickedToggleScreen())], ['screen']),
       h.button([h.Id('orbit'), h.OnClick(Message.ClickedToggleOrbit())], ['orbit']),
+      h.button([h.Id('label'), h.OnClick(Message.ClickedToggleLabel())], ['label']),
       h.p([h.Id('camera')], [cameraReadout(model.orbit)]),
       h.p([h.Id('robot')], [model.robot]),
       h.p([h.Id('clicks')], [String(model.clicks)]),
@@ -254,6 +271,7 @@ const initialModel: Model = {
   glow: false,
   screen: false,
   orbit: Option.none(),
+  label: false,
 };
 
 Runtime.run(

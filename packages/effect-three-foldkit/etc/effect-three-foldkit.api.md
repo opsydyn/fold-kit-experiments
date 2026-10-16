@@ -14,6 +14,7 @@ import type { HtmlBuilder } from 'foldkit/html';
 import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
 import type { Op } from '@opsydyn/effect-three';
+import type { Overlay } from '@opsydyn/effect-three';
 import type { PointerInput } from '@opsydyn/effect-three';
 import { RendererFactory } from '@opsydyn/effect-three';
 import type { ResourceStats } from '@opsydyn/effect-three';
@@ -144,6 +145,13 @@ export type ModelInfo = {
 };
 
 // @public
+export type OverlayView = {
+    readonly overlay: Overlay;
+    readonly content: Html;
+    readonly pointerEvents?: 'auto' | 'none';
+};
+
+// @public
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
 
 // @public
@@ -252,6 +260,16 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             }>]>;
             readonly background: Schema.NullOr<Schema.Int>;
             readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
+        }>>;
+        readonly overlays: Schema.$Array<Schema.Struct<{
+            readonly key: Schema.String;
+            readonly node: Schema.NullOr<Schema.String>;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly center: Schema.Boolean;
+            readonly distanceFactor: Schema.NullOr<Schema.Finite>;
+            readonly occlude: Schema.Boolean;
+            readonly zIndexRange: Schema.Tuple<readonly [Schema.Int, Schema.Int]>;
+            readonly view: Schema.NullOr<Schema.String>;
         }>>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -591,6 +609,14 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly name: Schema.String;
         }>, Schema.TaggedStruct<"DuplicateViewKey", {
             readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateOverlayKey", {
+            readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"UnknownOverlayNode", {
+            readonly key: Schema.String;
+            readonly node: Schema.String;
+        }>, Schema.TaggedStruct<"UnknownOverlayView", {
+            readonly key: Schema.String;
+            readonly view: Schema.String;
         }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
             readonly id: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
@@ -642,6 +668,14 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
     readonly name: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateViewKey", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateOverlayKey", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownOverlayNode", {
+    readonly key: Schema.String;
+    readonly node: Schema.String;
+}>, Schema.TaggedStruct<"UnknownOverlayView", {
+    readonly key: Schema.String;
+    readonly view: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
     readonly id: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {
@@ -703,6 +737,7 @@ export type ViewConfig<Message> = {
         readonly error: SceneError;
     }) => Message;
     readonly onReconciled?: (detail: ReconciledDetail) => Message;
+    readonly overlays?: ReadonlyArray<OverlayView>;
     readonly className?: string;
 };
 

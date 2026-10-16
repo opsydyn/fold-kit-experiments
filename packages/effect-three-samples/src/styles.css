@@ -54,6 +54,16 @@
   font-size: 0.875rem;
 }
 
+.e3-tag {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: var(--surface, #1a1a2e);
+  padding: 0.2rem 0.6rem;
+  color: var(--text, #e8e8f0);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 .e3-button:hover {
   border-color: var(--blue, #3d79fa);
 }

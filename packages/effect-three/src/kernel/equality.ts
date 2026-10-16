@@ -10,6 +10,7 @@ import type {
   GeometryRef,
   Instance,
   MaterialRef,
+  Overlay,
   Camera,
   PostEffect,
   RenderSettings,
@@ -251,3 +252,20 @@ export const resourcesEqual = (a: ResourceDefinitions, b: ResourceDefinitions): 
   }
   return true;
 };
+
+/** Overlay equality, field by field. */
+const overlayEquals = (x: Overlay, y: Overlay): boolean =>
+  x.key === y.key &&
+  x.node === y.node &&
+  vec3Equals(x.position, y.position) &&
+  x.center === y.center &&
+  Object.is(x.distanceFactor, y.distanceFactor) &&
+  x.occlude === y.occlude &&
+  x.zIndexRange[0] === y.zIndexRange[0] &&
+  x.zIndexRange[1] === y.zIndexRange[1] &&
+  x.view === y.view;
+
+/** Overlay list equality: the same overlays, in order, with equal fields. */
+export const overlaysEqual = (a: ReadonlyArray<Overlay>, b: ReadonlyArray<Overlay>): boolean =>
+  a === b ||
+  (a.length === b.length && a.every((x, i) => b[i] !== undefined && overlayEquals(x, b[i])));

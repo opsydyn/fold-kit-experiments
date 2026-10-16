@@ -63,6 +63,7 @@ export {
   spin,
   spotLight,
   standard,
+  overlay,
   renderTexture,
   torus,
   type TransformOptions,
@@ -84,6 +85,7 @@ export {
   rotationEquals,
   shapeEquals,
   transitionEquals,
+  overlaysEqual,
   viewsEqual,
   vec3Equals,
 } from './equality.ts';
@@ -116,6 +118,7 @@ export {
   panCamera,
   rotateCamera,
 } from './orbit.ts';
+export { type OverlayPlacement, placeOverlays } from './overlays.ts';
 export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
 export {
   createPicker,

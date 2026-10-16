@@ -17,6 +17,7 @@ import {
   type SceneLifecycle,
 } from './element.ts';
 import type { SceneMount } from './mount.ts';
+import { overlayLayer, type OverlayView, withOverlays } from './overlayView.ts';
 
 /**
  * Where the pointer met an interactive mesh: key, world-space point, distance from the
@@ -97,6 +98,12 @@ export type ViewConfig<Message> = {
    * Fires at startup and after every update that changed something, never for no-ops.
    */
   readonly onReconciled?: (detail: ReconciledDetail) => Message;
+  /**
+   * HTML at points in the scene, as Drei's `Html`: each `overlay` says where (a point,
+   * perhaps on a node), `content` what. The scene moves the HTML there every frame it
+   * draws; the content is ordinary view HTML, rendered from the Model.
+   */
+  readonly overlays?: ReadonlyArray<OverlayView>;
   readonly className?: string;
 };
 
@@ -130,5 +137,10 @@ export const view = <Message>(
     Option.map(given(config.className), h.Class),
   ]);
   const lifecycle = Mount.mapMessage(config.mount(), config.onLifecycle);
-  return element([element.Scene(markTyped(config.scene)), h.OnMount(lifecycle), ...optional], []);
+  const overlays = config.overlays ?? [];
+  const scene = markTyped(withOverlays(config.scene, overlays));
+  return element(
+    [element.Scene(scene), h.OnMount(lifecycle), ...optional],
+    overlayLayer(h, overlays),
+  );
 };

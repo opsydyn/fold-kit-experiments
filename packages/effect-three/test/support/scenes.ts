@@ -47,6 +47,7 @@ const dedupeNodes = (
 export const withUniqueKeys = (description: SceneDescription): SceneDescription => ({
   ...description,
   views: firstOfEachKey(description.views),
+  overlays: firstOfEachKey(description.overlays),
   // Each render texture is its own key namespace; ids are unique across the scene.
   renderTextures: firstOfEachId(description.renderTextures).map((texture) => ({
     ...texture,

@@ -27,7 +27,10 @@ export type DescriptionError =
   | { readonly _tag: 'DuplicateInstanceKey'; readonly nodeKey: string; readonly key: string }
   | { readonly _tag: 'UnknownBehaviour'; readonly nodeKey: string; readonly name: string }
   | { readonly _tag: 'DuplicateViewKey'; readonly key: string }
-  | { readonly _tag: 'DuplicateRenderTextureId'; readonly id: string };
+  | { readonly _tag: 'DuplicateRenderTextureId'; readonly id: string }
+  | { readonly _tag: 'DuplicateOverlayKey'; readonly key: string }
+  | { readonly _tag: 'UnknownOverlayNode'; readonly key: string; readonly node: string }
+  | { readonly _tag: 'UnknownOverlayView'; readonly key: string; readonly view: string };
 
 /** A validated scene. Keys are unique across the whole scene. */
 export type SceneIndex = {
@@ -77,6 +80,20 @@ export const indexScene = (
   const duplicateView = firstDuplicateInstance(description.views);
   if (duplicateView !== undefined) {
     return { _tag: 'Invalid', error: { _tag: 'DuplicateViewKey', key: duplicateView } };
+  }
+  const duplicateOverlay = firstDuplicateInstance(description.overlays);
+  if (duplicateOverlay !== undefined) {
+    return { _tag: 'Invalid', error: { _tag: 'DuplicateOverlayKey', key: duplicateOverlay } };
+  }
+  const viewKeys = new Set(description.views.map((view) => view.key));
+  const strayView = description.overlays.find(
+    (overlay) => overlay.view !== null && !viewKeys.has(overlay.view),
+  );
+  if (strayView?.view != null) {
+    return {
+      _tag: 'Invalid',
+      error: { _tag: 'UnknownOverlayView', key: strayView.key, view: strayView.view },
+    };
   }
   const geometryIds = new Set<string>();
   for (const { id } of description.resources.geometries) {
@@ -145,6 +162,15 @@ export const indexScene = (
         if (child !== undefined) stack.push({ node: child, parent: node.key });
       }
     }
+  }
+  const strayNode = description.overlays.find(
+    (overlay) => overlay.node !== null && !nodes.has(overlay.node),
+  );
+  if (strayNode?.node != null) {
+    return {
+      _tag: 'Invalid',
+      error: { _tag: 'UnknownOverlayNode', key: strayNode.key, node: strayNode.node },
+    };
   }
   return { _tag: 'Indexed', index: { description, nodes, children, preOrder } };
 };

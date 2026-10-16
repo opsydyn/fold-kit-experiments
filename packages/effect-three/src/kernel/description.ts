@@ -593,6 +593,31 @@ export type RenderTexture = {
  */
 export type Gestures = 'page' | 'scene';
 
+/**
+ * A point the application shows HTML at, as Drei's `Html` (`src/web/Html.tsx` at
+ * `bf6f4ad`, without `transform`). The scene works out where the point is on the canvas
+ * each frame it draws; the host moves the application's HTML there.
+ */
+export type Overlay = {
+  readonly key: string;
+  /** The node the position is relative to, moving with it; `null` for world space. */
+  readonly node: string | null;
+  readonly position: Vec3;
+  /** Centre the HTML on the point (Drei's `center`); otherwise its top left is there. */
+  readonly center: boolean;
+  /**
+   * Scale the HTML with distance, as Drei's `distanceFactor`: at a distance where the
+   * view is `distanceFactor` units tall it shows at its own size. `null` keeps its size.
+   */
+  readonly distanceFactor: number | null;
+  /** Hide the HTML while a mesh is in front of the point (Drei's `occlude`). */
+  readonly occlude: boolean;
+  /** z-index for points at the camera's near and far planes (Drei's `zIndexRange`). */
+  readonly zIndexRange: readonly [near: number, far: number];
+  /** With views: the view it is shown in. `null`: the camera, or the first view. */
+  readonly view: string | null;
+};
+
 export type SceneDescription = {
   readonly camera: Camera;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -604,6 +629,8 @@ export type SceneDescription = {
   readonly views: ReadonlyArray<View>;
   /** Scenes rendered into textures for materials to use. */
   readonly renderTextures: ReadonlyArray<RenderTexture>;
+  /** Points to show HTML at, placed every frame the scene draws. */
+  readonly overlays: ReadonlyArray<Overlay>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

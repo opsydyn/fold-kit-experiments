@@ -27,6 +27,9 @@ export const orthographicLens = orthographicCamera({
   damping,
 });
 
+/** The split lens's views: the orbiting front, and the plan. */
+export const viewKey = { front: 'front', plan: 'plan' } as const;
+
 /** The plan from above, in the split lens. It stays put. */
 export const planLens = orthographicCamera({
   zoom: 40,

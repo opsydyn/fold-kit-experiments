@@ -244,6 +244,18 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  overlays: Schema.Array(
+    Schema.Struct({
+      key: Schema.Literals(['o1', 'o2']),
+      node: Schema.Null,
+      position: Vec3,
+      center: Schema.Boolean,
+      distanceFactor: Schema.NullOr(Schema.Literals([10])),
+      occlude: Schema.Boolean,
+      zIndexRange: Schema.Tuple([Schema.Literals([100]), Schema.Literals([0])]),
+      view: Schema.Null,
+    }),
+  ).check(Schema.isMaxLength(2)),
   renderTextures: Schema.Array(
     Schema.Struct({
       id: Schema.Literals(['rt-a', 'rt-b']),

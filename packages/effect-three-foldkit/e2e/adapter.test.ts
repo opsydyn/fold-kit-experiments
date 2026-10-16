@@ -406,6 +406,48 @@ test('a scene that claims gestures orbits a Model camera and keeps the page stil
   await page.close();
 }, 60_000);
 
+test('an overlay shows Model HTML at a point on a node, and follows it', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await page.goto(app.url('index.html'));
+  await waitForText(page, '#started', '1');
+  await page.click('#still');
+  await page.click('#label');
+  const label = page.locator('[data-effect-three-overlay="cube-label"]');
+  await page.waitForFunction(
+    () =>
+      document.querySelector<HTMLElement>('[data-effect-three-overlay="cube-label"]')?.style
+        .visibility === 'visible',
+  );
+  const canvas = await page.locator('effect-three-scene canvas').boundingBox();
+  const placed = await page.locator('#cube-label').boundingBox();
+  if (canvas === null || placed === null) throw new Error('missing boxes');
+  // Centred over the cube, a unit above it: in the middle, above the canvas's centre.
+  expect(placed.x + placed.width / 2).toBeCloseTo(canvas.x + canvas.width / 2, 0);
+  expect(placed.y + placed.height / 2).toBeLessThan(canvas.y + canvas.height / 2 - 20);
+  expect(await page.locator('#cube-label').textContent()).toBe('red');
+
+  // The content is the Model's: a new colour re-renders it, still placed.
+  await page.click('#colour');
+  await waitForText(page, '#cube-label', 'blue');
+  expect(await label.evaluate((element) => element.style.visibility)).toBe('visible');
+
+  // A larger cube keeps the label at the same point on the cube's node.
+  await page.click('#size');
+  await animationFrames(page, 3);
+  const after = await page.locator('#cube-label').boundingBox();
+  expect(after?.y).toBeCloseTo(placed.y, 0);
+
+  await page.click('#label');
+  await page.waitForFunction(() => document.querySelector('#cube-label') === null);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
 test('repeated mount and unmount releases WebGL contexts and resources', async () => {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const warnings: Array<string> = [];

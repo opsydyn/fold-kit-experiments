@@ -4,6 +4,7 @@
 
 ```ts
 
+import { Behaviour } from '@opsydyn/effect-three';
 import { CustomElement } from 'foldkit';
 import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
@@ -86,6 +87,7 @@ export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | '
 export type EnvironmentOptions = {
     readonly renderer?: (canvas: HTMLCanvasElement) => RendererFactory;
     readonly pixelRatio?: PixelRatio;
+    readonly behaviours?: Readonly<Record<string, Behaviour>>;
 };
 
 // @public
@@ -109,6 +111,7 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     frames: FrameScheduler;
     renderer: (canvas: HTMLCanvasElement) => RendererFactory;
     pixelRatio: PixelRatio;
+    behaviours: Readonly<Record<string, Behaviour>>;
     assets: {
         loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
@@ -120,10 +123,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
-    readonly _tag: "StartedScene";
-} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
+} | {
+    readonly _tag: "StartedScene";
 }>;
 
 // @public
@@ -197,7 +200,60 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>]>;
+        readonly views: Schema.$Array<Schema.Struct<{
+            readonly key: Schema.String;
+            readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+                readonly fov: Schema.Finite;
+                readonly near: Schema.Finite;
+                readonly far: Schema.Finite;
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>, Schema.TaggedStruct<"Orthographic", {
+                readonly zoom: Schema.Finite;
+                readonly near: Schema.Finite;
+                readonly far: Schema.Finite;
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>]>;
+            readonly rect: Schema.Struct<{
+                readonly x: Schema.Finite;
+                readonly y: Schema.Finite;
+                readonly width: Schema.Finite;
+                readonly height: Schema.Finite;
+            }>;
+        }>>;
+        readonly renderTextures: Schema.$Array<Schema.Struct<{
+            readonly id: Schema.String;
+            readonly width: Schema.Int;
+            readonly height: Schema.Int;
+            readonly camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+                readonly fov: Schema.Finite;
+                readonly near: Schema.Finite;
+                readonly far: Schema.Finite;
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>, Schema.TaggedStruct<"Orthographic", {
+                readonly zoom: Schema.Finite;
+                readonly near: Schema.Finite;
+                readonly far: Schema.Finite;
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>]>;
+            readonly background: Schema.NullOr<Schema.Int>;
+            readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
+        }>>;
         readonly render: Schema.Struct<{
+            readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
+                readonly strength: Schema.Finite;
+                readonly radius: Schema.Finite;
+                readonly threshold: Schema.Finite;
+            }>, Schema.TaggedStruct<"Vignette", {
+                readonly offset: Schema.Finite;
+                readonly darkness: Schema.Finite;
+            }>, Schema.TaggedStruct<"Film", {
+                readonly intensity: Schema.Finite;
+                readonly grayscale: Schema.Boolean;
+            }>]>>;
             readonly frames: Schema.Literals<readonly ["always", "demand", "never"]>;
             readonly resolution: Schema.Finite;
             readonly shadows: Schema.Literals<readonly ["off", "basic", "percentage", "soft", "variance"]>;
@@ -320,6 +376,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
         readonly part: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -335,6 +392,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
         readonly part: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -350,6 +408,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
         readonly part: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -364,6 +423,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
         readonly part: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -379,6 +439,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
         readonly part: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -394,6 +455,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
         readonly part: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -408,6 +470,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
         readonly part: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -428,6 +491,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly instance: Schema.optionalKey<Schema.String>;
         readonly part: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
         readonly path: Schema.$Array<Schema.String>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly distance: Schema.Finite;
@@ -475,6 +539,13 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         }>, Schema.TaggedStruct<"DuplicateInstanceKey", {
             readonly nodeKey: Schema.String;
             readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"UnknownBehaviour", {
+            readonly nodeKey: Schema.String;
+            readonly name: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateViewKey", {
+            readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
+            readonly id: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
             readonly issue: Schema.String;
         }>]>;
@@ -519,6 +590,13 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
 }>, Schema.TaggedStruct<"DuplicateInstanceKey", {
     readonly nodeKey: Schema.String;
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownBehaviour", {
+    readonly nodeKey: Schema.String;
+    readonly name: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateViewKey", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
+    readonly id: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {
     readonly issue: Schema.String;
 }>]>;

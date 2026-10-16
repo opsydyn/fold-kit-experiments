@@ -239,6 +239,17 @@ export type ResourceDefinitions = {
   readonly materials: ReadonlyArray<MaterialDefinition>;
 };
 
+/**
+ * Names a behaviour registered with the scene, with its numeric parameters: React Three
+ * Fiber's `useFrame` animation, as data. The behaviour is a pure function of scene time
+ * and these parameters, adding a position offset, a rotation and a scale factor on top
+ * of the node's own transform (eased or not), as Drei's `Float` does with an inner group.
+ */
+export type Behave = {
+  readonly name: string;
+  readonly params: Readonly<Record<string, number>>;
+};
+
 /** How a transition progresses from 0 to 1. */
 export type Easing = 'linear' | 'easeInOutCubic' | 'easeOutCubic' | 'easeOutBack';
 
@@ -262,6 +273,8 @@ export type GroupNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /** A registered behaviour moving the node on top of its transform, or `null`. */
+  readonly behaviour: Behave | null;
   /**
    * Makes every mesh inside the group pickable, interactive or not. Events still report
    * the mesh hit; its `path` names this group, so one handler can serve the whole group.
@@ -278,6 +291,8 @@ export type MeshNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /** A registered behaviour moving the node on top of its transform, or `null`. */
+  readonly behaviour: Behave | null;
   readonly geometry: GeometryRef;
   readonly material: MaterialRef;
   readonly interactive: boolean;
@@ -313,6 +328,8 @@ export type InstancesNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /** A registered behaviour moving the node on top of its transform, or `null`. */
+  readonly behaviour: Behave | null;
   readonly geometry: GeometryRef;
   readonly material: MaterialRef;
   readonly interactive: boolean;
@@ -336,6 +353,8 @@ export type BorrowedNode = {
   readonly rotation: Rotation;
   readonly scale: Vec3;
   readonly transition: Transition;
+  /** A registered behaviour moving the node on top of its transform, or `null`. */
+  readonly behaviour: Behave | null;
   /** Makes every mesh inside the object pickable; hits name the part by its `name`. */
   readonly interactive: boolean;
   /** An animation clip of the lent object to play, or `null` for none. */
@@ -488,8 +507,29 @@ export type ToneMapping = 'none' | 'linear' | 'reinhard' | 'cineon' | 'aces' | '
  */
 export type FrameMode = 'always' | 'demand' | 'never';
 
+/**
+ * A post-processing effect, applied in order after the scene renders (three.js's
+ * `EffectComposer` passes).
+ *
+ * - `Bloom`: bright areas glow (`UnrealBloomPass`): `strength`, `radius`, and the
+ *   luminance `threshold` above which pixels bloom.
+ * - `Vignette`: darkens the edges (`VignetteShader`): `offset` and `darkness`.
+ * - `Film`: animated grain (`FilmPass`): `intensity`, optionally `grayscale`.
+ */
+export type PostEffect =
+  | {
+      readonly _tag: 'Bloom';
+      readonly strength: number;
+      readonly radius: number;
+      readonly threshold: number;
+    }
+  | { readonly _tag: 'Vignette'; readonly offset: number; readonly darkness: number }
+  | { readonly _tag: 'Film'; readonly intensity: number; readonly grayscale: boolean };
+
 /** Scene-wide rendering settings, changeable at any time. */
 export type RenderSettings = {
+  /** Post-processing, in order. Empty renders straight to the screen. */
+  readonly effects: ReadonlyArray<PostEffect>;
   readonly frames: FrameMode;
   /**
    * Scales the drawing buffer's pixel ratio, from just above 0 to 1. Lower it when
@@ -504,9 +544,46 @@ export type RenderSettings = {
   readonly colorSpace: 'srgb' | 'linear';
 };
 
+/** Part of the canvas, as fractions (0 to 1) of its width and height from the top left. */
+export type ViewRect = {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+};
+
+/**
+ * Another camera drawing the scene into part of the canvas: Drei's `View` and R3F's
+ * split-screen portals, as data. Views draw in order, later ones on top.
+ */
+export type View = { readonly key: string; readonly camera: Camera; readonly rect: ViewRect };
+
+/**
+ * A small scene rendered into a texture that materials use as `map: id`: Drei's
+ * `RenderTexture`, as data. Its nodes have their own key namespace and may use the
+ * scene's shared resources. It redraws only when it changes or animates.
+ */
+export type RenderTexture = {
+  readonly id: string;
+  /** Texture size in pixels. */
+  readonly width: number;
+  readonly height: number;
+  readonly camera: Camera;
+  /** A clear colour, or `null` for transparent. */
+  readonly background: Rgb | null;
+  readonly children: ReadonlyArray<SceneNode>;
+};
+
 /** A complete scene: camera, render settings, shared resources and root nodes. */
 export type SceneDescription = {
   readonly camera: Camera;
+  /**
+   * Views to draw instead of `camera` filling the canvas. Empty (the default) draws one
+   * full view with `camera`.
+   */
+  readonly views: ReadonlyArray<View>;
+  /** Scenes rendered into textures for materials to use. */
+  readonly renderTextures: ReadonlyArray<RenderTexture>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

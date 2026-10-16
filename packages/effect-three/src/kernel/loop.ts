@@ -12,7 +12,7 @@ import {
   type PointerInput,
   type SceneEvent,
 } from './pointer.ts';
-import type { SceneRenderer } from './renderer.ts';
+import type { RenderTarget, SceneRenderer } from './renderer.ts';
 import type { SceneGraph } from './sceneGraph.ts';
 
 export type SceneLoopOptions = {
@@ -36,6 +36,8 @@ export type SceneLoop = {
    * in `demand` mode, never in `never` mode (frames then come only from `advance`).
    */
   readonly wantsFrames: () => boolean;
+  /** Releases the render textures' targets and withdraws their textures. */
+  readonly dispose: () => void;
   /**
    * Routes pointer input to hit testing, emits the resulting events and returns them, so
    * a DOM listener can decide synchronously whether the scene handled its event.
@@ -50,6 +52,55 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
   const monitor = createPerformanceMonitor(options.performance);
   const now = options.now ?? Date.now;
   let configured: RenderSettings | undefined;
+  // One offscreen target per render texture, its texture lent to the store under its id.
+  const targets = new Map<
+    string,
+    {
+      readonly target: RenderTarget;
+      readonly width: number;
+      readonly height: number;
+      readonly withdraw: () => void;
+      fresh: boolean;
+    }
+  >();
+
+  const release = (id: string): void => {
+    const held = targets.get(id);
+    if (held === undefined) return;
+    held.withdraw();
+    held.target.dispose();
+    targets.delete(id);
+  };
+
+  /** Draws each render texture whose scene changed or animates, into its own target. */
+  const drawTextures = (): void => {
+    const textures = graph.renderTextures();
+    for (const texture of textures) {
+      const held = targets.get(texture.id);
+      if (held === undefined || held.width !== texture.width || held.height !== texture.height) {
+        release(texture.id);
+        const target = renderer.createTarget(texture.width, texture.height);
+        const withdraw = graph.store.lendTexture(texture.id, target.texture);
+        targets.set(texture.id, {
+          target,
+          width: texture.width,
+          height: texture.height,
+          withdraw,
+          fresh: true,
+        });
+      }
+      const current = targets.get(texture.id);
+      if (current !== undefined && (current.fresh || texture.graph.needsFrame())) {
+        renderer.render(texture.graph.scene, texture.graph.camera, undefined, current.target);
+        texture.graph.drawn();
+        current.fresh = false;
+      }
+    }
+    if (targets.size > textures.length) {
+      const live = new Set(textures.map((texture) => texture.id));
+      for (const id of targets.keys()) if (!live.has(id)) release(id);
+    }
+  };
   return {
     frame: () => {
       graph.tick(elapsedSeconds());
@@ -60,10 +111,16 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
         renderer.configure(settings);
         configured = settings;
       }
-      renderer.render(graph.scene, graph.camera);
+      drawTextures();
+      const views = graph.views();
+      if (views.length === 0) renderer.render(graph.scene, graph.camera);
+      for (const view of views) renderer.render(graph.scene, view.camera, view.area);
       graph.drawn();
       const change = monitor.sample(now());
       if (change !== undefined) emit({ _tag: 'PerformanceChanged', ...change });
+    },
+    dispose: () => {
+      for (const id of targets.keys()) release(id);
     },
     wantsFrames: () => {
       const mode = graph.renderSettings().frames;

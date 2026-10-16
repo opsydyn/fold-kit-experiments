@@ -6,16 +6,19 @@
  */
 import type {
   Animation,
+  Behave,
   GeometryRef,
   Instance,
   MaterialRef,
   Camera,
+  PostEffect,
   RenderSettings,
   ResourceDefinitions,
   Rotation,
   ShapeGeometry,
   Transition,
   Vec3,
+  View,
 } from './description.ts';
 
 /** Component-wise equality using `Object.is`, so `NaN` equals `NaN` and `0` differs from `-0`. */
@@ -129,6 +132,10 @@ export const instancesEqual = (a: ReadonlyArray<Instance>, b: ReadonlyArray<Inst
   return true;
 };
 
+/** Behaviour equality: both none, or the same name and parameters. */
+export const behaviourEquals = (a: Behave | null, b: Behave | null): boolean =>
+  a === b || (a !== null && b !== null && a.name === b.name && sameFlatRecord(a.params, b.params));
+
 /** Animation equality: both none, or the same clip, speed and looping. */
 export const animationEquals = (a: Animation | null, b: Animation | null): boolean =>
   a === b ||
@@ -185,7 +192,44 @@ export const cameraEquals = (a: Camera, b: Camera): boolean => {
 
 /** Render settings equality. */
 export const renderSettingsEquals = (a: RenderSettings, b: RenderSettings): boolean =>
-  a === b || sameFlatRecord(a, b);
+  a === b ||
+  (a.frames === b.frames &&
+    Object.is(a.resolution, b.resolution) &&
+    a.shadows === b.shadows &&
+    a.toneMapping === b.toneMapping &&
+    Object.is(a.exposure, b.exposure) &&
+    a.colorSpace === b.colorSpace &&
+    effectsEqual(a.effects, b.effects));
+
+/** Post-processing equality: the same effects, in order, with the same parameters. */
+export const effectsEqual = (
+  a: ReadonlyArray<PostEffect>,
+  b: ReadonlyArray<PostEffect>,
+): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined || y === undefined || !sameFlatRecord(x, y)) return false;
+  }
+  return true;
+};
+
+/** View list equality: the same views, in order, with equal cameras and rects. */
+export const viewsEqual = (a: ReadonlyArray<View>, b: ReadonlyArray<View>): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined || y === undefined) return false;
+    if (x.key !== y.key || !cameraEquals(x.camera, y.camera) || !sameFlatRecord(x.rect, y.rect)) {
+      return false;
+    }
+  }
+  return true;
+};
 
 /** Order-sensitive equality of shared resource definitions. */
 export const resourcesEqual = (a: ResourceDefinitions, b: ResourceDefinitions): boolean => {

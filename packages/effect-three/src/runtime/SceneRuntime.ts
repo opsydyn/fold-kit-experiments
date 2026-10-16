@@ -10,6 +10,7 @@ import { Clock, Effect, Exit, Match, Queue, Result, Scope, Stream } from 'effect
 import {
   createSceneClock,
   createSceneGraph,
+  type Behaviour,
   createFramePacer,
   createSceneLoop,
   type Op,
@@ -32,9 +33,12 @@ export type SceneRuntimeOptions = {
   readonly viewport: Viewport;
   /** Events kept when the consumer falls behind; older events are dropped. Default 64. */
   readonly eventCapacity?: number;
+  /** Behaviours nodes may name, beside the built-in ones. */
+  readonly behaviours?: Readonly<Record<string, Behaviour>>;
 };
 
 const defaultEventCapacity = 64;
+const noBehaviours: Readonly<Record<string, Behaviour>> = {};
 const nanosPerMillisecond = 1_000_000;
 const nanosPerSecond = 1_000_000_000;
 
@@ -49,8 +53,9 @@ const applyViewport = (graph: SceneGraph, renderer: SceneRenderer, viewport: Vie
   renderer.setViewport(viewport);
 };
 
-const sceneGraph = (registry: ResourceRegistry['Service']) => () =>
-  createSceneGraph({ store: registry.store });
+const sceneGraph =
+  (registry: ResourceRegistry['Service'], behaviours: Readonly<Record<string, Behaviour>>) => () =>
+    createSceneGraph({ store: registry.store, behaviours });
 
 /**
  * Reconciles at the current scene time. An idle scene draws no frames, so its last tick
@@ -69,8 +74,11 @@ const animationChange = (sceneClock: SceneClock, graph: SceneGraph, animating: b
   graph.setAnimating(animating);
 };
 
-const acquireGraph = (registry: ResourceRegistry['Service']) => {
-  const create = Effect.sync(sceneGraph(registry));
+const acquireGraph = (
+  registry: ResourceRegistry['Service'],
+  behaviours: Readonly<Record<string, Behaviour>>,
+) => {
+  const create = Effect.sync(sceneGraph(registry, behaviours));
   return Effect.acquireRelease(create, (graph) => Effect.sync(graph.dispose));
 };
 
@@ -100,7 +108,7 @@ function* startScene(options: SceneRuntimeOptions) {
   const frames = yield* FrameSource;
   const clock = yield* Clock.Clock;
 
-  const graph = yield* acquireGraph(registry);
+  const graph = yield* acquireGraph(registry, options.behaviours ?? noBehaviours);
   const startupOps = yield* Effect.fromResult(toResult(graph.reconcile(options.scene)));
   const renderer = yield* acquireRenderer(options.renderer);
   applyViewport(graph, renderer, options.viewport);
@@ -118,6 +126,7 @@ function* startScene(options: SceneRuntimeOptions) {
     },
     now: () => Number(clock.monotonicTimeNanosUnsafe()) / nanosPerMillisecond,
   });
+  yield* Effect.addFinalizer(() => Effect.sync(loop.dispose));
   const pacer = createFramePacer(loop);
   pacer.attach(yield* frames.subscribe(pacer.frame));
   yield* acquireInvalidation(graph, pacer.wake);

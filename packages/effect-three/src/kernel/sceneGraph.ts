@@ -8,6 +8,7 @@
  */
 import {
   AmbientLight,
+  Color,
   AnimationClip,
   AnimationMixer,
   type BufferGeometry,
@@ -42,15 +43,26 @@ import type {
   SceneDescription,
   SceneNode,
   SpotLightNode,
+  RenderTexture,
   Vec3,
+  View,
+  ViewRect,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostMaterial } from './materials.ts';
+import {
+  type Behaviour,
+  type BehaviourPose,
+  builtinBehaviours,
+  createPose,
+  resetPose,
+} from './motion.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
   emptyIndex,
+  indexScene,
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
@@ -113,6 +125,26 @@ const isPlaced = (entry: Entry): entry is Placed =>
 const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
 
+/** A render texture as hosted: its id, size and the nested graph that draws it. */
+export type HostedTexture = {
+  readonly id: string;
+  readonly graph: SceneGraph;
+  readonly width: number;
+  readonly height: number;
+};
+
+/** A view as hosted: its key, its camera and its rectangle in CSS pixels from the top left. */
+export type HostedView = {
+  readonly key: string;
+  readonly camera: HostCamera;
+  readonly area: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
+};
+
 export type ReconcileResult =
   | { readonly _tag: 'Applied'; readonly ops: ReadonlyArray<Op> }
   | { readonly _tag: 'Invalid'; readonly error: DescriptionError };
@@ -120,12 +152,18 @@ export type ReconcileResult =
 export type SceneGraphOptions = {
   /** A store shared with other graphs. When omitted the graph owns a private store. */
   readonly store?: ResourceStore;
+  /** Behaviours nodes may name, in addition to the built-in ones (`float`). */
+  readonly behaviours?: Readonly<Record<string, Behaviour>>;
 };
 
 export type SceneGraph = {
   readonly scene: Scene;
   /** The active camera. Changing the description's camera kind replaces it. */
   readonly camera: HostCamera;
+  /** The scene's views, fitted to the viewport; empty when `camera` fills the canvas. */
+  readonly views: () => ReadonlyArray<HostedView>;
+  /** Render textures, each a nested graph to draw into its texture (by the frame loop). */
+  readonly renderTextures: () => ReadonlyArray<HostedTexture>;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -296,10 +334,51 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const ownsStore = options.store === undefined;
   const scene = new Scene();
   let camera: HostCamera = new PerspectiveCamera();
+  let views: ReadonlyArray<HostedView> = [];
+  const textureGraphs = new Map<
+    string,
+    { readonly graph: SceneGraph; description: RenderTexture }
+  >();
+  let textureList: ReadonlyArray<HostedTexture> = [];
+  let viewDescriptions: ReadonlyArray<View> = [];
+
+  /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
+  const areaOf = (rect: ViewRect): HostedView['area'] => ({
+    x: rect.x * viewport.width,
+    y: rect.y * viewport.height,
+    width: Math.max(1, rect.width * viewport.width),
+    height: Math.max(1, rect.height * viewport.height),
+  });
+
+  /** Hosts one described view, reusing `previous` when its kind is unchanged. */
+  const hostView = (description: View, previous: HostCamera | undefined): HostedView => {
+    const hostedCamera = cameraFor(previous ?? new PerspectiveCamera(), description.camera);
+    applyCamera(hostedCamera, description.camera);
+    const area = areaOf(description.rect);
+    fitCamera(hostedCamera, area);
+    return { key: description.key, camera: hostedCamera, area };
+  };
+
+  /** Hosts the described views, reusing each key's camera when its kind is unchanged. */
+  const hostViews = (described: ReadonlyArray<View>): void => {
+    const previous = new Map(views.map((hosted) => [hosted.key, hosted.camera]));
+    viewDescriptions = described;
+    views = described.map((description) => hostView(description, previous.get(description.key)));
+  };
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
   const playing = new Set<Borrowing>();
+  const registry: Readonly<Record<string, Behaviour>> = {
+    ...builtinBehaviours,
+    ...options.behaviours,
+  };
+  const knownBehaviours: ReadonlySet<string> = new Set(Object.keys(registry));
+  // Each behaving entry keeps the pose last applied, so it can be taken off again.
+  const behaving = new Map<
+    Placed,
+    { readonly behaviour: Behaviour; readonly pose: BehaviourPose }
+  >();
   const moving = new Map<Entry, Tween>();
   const reparented = new Set<Entry>();
   const worldPosition = new Vector3();
@@ -350,6 +429,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(entry.object.position, node.position);
         writeVec3(entry.object.scale, node.scale);
         trackRotation(entry, node);
+        trackBehaviour(entry, node);
         trackInteractive(entry.object, node.interactive);
         return entry;
       }
@@ -362,6 +442,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         writeVec3(object.scale, node.scale);
         trackRotation(entry, node);
+        trackBehaviour(entry, node);
         trackInteractive(object, node.interactive);
         object.castShadow = node.castShadow;
         object.receiveShadow = node.receiveShadow;
@@ -378,6 +459,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         writeVec3(object.scale, node.scale);
         trackRotation(entry, node);
+        trackBehaviour(entry, node);
         trackInteractive(object, node.interactive);
         object.castShadow = node.castShadow;
         object.receiveShadow = node.receiveShadow;
@@ -394,6 +476,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(entry.object.position, node.position);
         writeVec3(entry.object.scale, node.scale);
         trackRotation(entry, node);
+        trackBehaviour(entry, node);
         trackInteractive(entry.object, node.interactive);
         showLoan(entry);
         return entry;
@@ -502,7 +585,53 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     invalidate();
   });
 
+  /** Removes the last behaviour pose from the object, leaving its base transform. */
+  const liftPose = (entry: Entry): void => {
+    const motion = isPlaced(entry) ? behaving.get(entry) : undefined;
+    if (motion === undefined) return;
+    entry.object.position.sub(motion.pose.offset);
+    const { x, y, z } = motion.pose.scale;
+    if (x !== 0 && y !== 0 && z !== 0) entry.object.scale.divide(motion.pose.scale);
+    resetPose(motion.pose);
+  };
+
+  /** Starts, changes or stops the node's behaviour. */
+  const trackBehaviour = (entry: Placed, node: PlacedNode): void => {
+    liftPose(entry);
+    behaving.delete(entry);
+    if (node.behaviour === null) {
+      trackRotation(entry, node);
+      return;
+    }
+    const behaviour = registry[node.behaviour.name];
+    if (behaviour !== undefined) behaving.set(entry, { behaviour, pose: createPose() });
+  };
+
+  /** Composes the node's behaviour pose on top of its base transform for this frame. */
+  const applyBehaviour = (
+    motion: { readonly behaviour: Behaviour; readonly pose: BehaviourPose },
+    entry: Placed,
+  ): void => {
+    const node = entry.node;
+    if (node.behaviour === null) return;
+    const object = entry.object;
+    // Tweens have written this frame's base already; otherwise the base is the target.
+    if (!moving.has(entry)) {
+      writeVec3(object.position, node.position);
+      writeVec3(object.scale, node.scale);
+    }
+    writeRotation(object.rotation, node.rotation, elapsed);
+    resetPose(motion.pose);
+    motion.behaviour(motion.pose, elapsed, node.behaviour.params);
+    object.position.add(motion.pose.offset);
+    object.scale.multiply(motion.pose.scale);
+    object.rotation.x += motion.pose.rotation.x;
+    object.rotation.y += motion.pose.rotation.y;
+    object.rotation.z += motion.pose.rotation.z;
+  };
+
   const release = (entry: Entry): void => {
+    if (isPlaced(entry)) behaving.delete(entry);
     spinning.delete(entry);
     moving.delete(entry);
     reparented.delete(entry);
@@ -562,6 +691,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
    * frame's time.
    */
   const retarget = (entry: Entry, node: PlacedNode): void => {
+    liftPose(entry);
     if (!animating || node.transition._tag === 'Instant') {
       moving.delete(entry);
       writeVec3(entry.object.position, node.position);
@@ -608,6 +738,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
       mesh.castShadow = next.castShadow;
       mesh.receiveShadow = next.receiveShadow;
@@ -617,6 +748,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       if (fields.includes('id')) showLoan(entry);
       else if (fields.includes('animation')) startPlayer(entry);
@@ -626,6 +758,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       return;
     }
@@ -680,6 +813,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         return;
       case 'SetRenderSettings':
         settings = op.settings;
+        return;
+      case 'SetViews':
+        hostViews(op.views);
         return;
       case 'DefineResources':
         store.define(op.resources);
@@ -757,8 +893,77 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
   };
 
+  /** The scene a render texture draws: its camera and nodes, with the parent's resources. */
+  const textureScene = (texture: RenderTexture, parent: SceneDescription): SceneDescription => ({
+    camera: texture.camera,
+    views: [],
+    renderTextures: [],
+    render: parent.render,
+    resources: parent.resources,
+    children: texture.children,
+  });
+
+  /** A hosted render texture as the loop sees it; none if it is not hosted. */
+  function hostedTexture(texture: RenderTexture): ReadonlyArray<HostedTexture> {
+    const hosted = textureGraphs.get(texture.id);
+    if (hosted === undefined) return [];
+    return [{ id: texture.id, graph: hosted.graph, width: texture.width, height: texture.height }];
+  }
+
+  /**
+   * Brings the hosted render textures in line with the description: nested graphs on the
+   * same store, created, reconciled or disposed. Returns their operations.
+   */
+  const syncTextures = (next: SceneDescription): ReadonlyArray<Op> => {
+    const ops: Array<Op> = [];
+    const kept = new Set<string>();
+    for (const texture of next.renderTextures) {
+      kept.add(texture.id);
+      const existing = textureGraphs.get(texture.id);
+      const hosted = existing ?? {
+        graph: createSceneGraph({
+          store,
+          ...(options.behaviours === undefined ? {} : { behaviours: options.behaviours }),
+        }),
+        description: texture,
+      };
+      const result = hosted.graph.reconcile(textureScene(texture, next));
+      const reframed =
+        existing === undefined ||
+        existing.description.width !== texture.width ||
+        existing.description.height !== texture.height ||
+        existing.description.background !== texture.background;
+      if (reframed) {
+        hosted.graph.resize(texture.width, texture.height);
+        hosted.graph.scene.background =
+          texture.background === null ? null : new Color(texture.background);
+      }
+      hosted.description = texture;
+      textureGraphs.set(texture.id, hosted);
+      const subOps = result._tag === 'Applied' ? result.ops : [];
+      if (reframed || subOps.length > 0) {
+        ops.push({ _tag: 'UpdateRenderTexture', id: texture.id, ops: subOps });
+      }
+    }
+    for (const [id, hosted] of textureGraphs) {
+      if (kept.has(id)) continue;
+      hosted.graph.dispose();
+      textureGraphs.delete(id);
+      ops.push({ _tag: 'RemoveRenderTexture', id });
+    }
+    // In the description's order, so a host draws them in the order they were written.
+    // In the description's order, so a host draws them in the order they were written.
+    textureList = next.renderTextures.flatMap((texture) => hostedTexture(texture));
+    return ops;
+  };
+
   const reconcile = (next: SceneDescription): ReconcileResult => {
-    const result = diff(index, next);
+    // Validate every render texture's scene first, so a bad one changes nothing at all.
+    for (const texture of next.renderTextures) {
+      const checked = indexScene(textureScene(texture, next), knownBehaviours);
+      if (checked._tag === 'Invalid') return checked;
+    }
+    const result = diff(index, next, knownBehaviours);
     if (result._tag === 'Invalid') return result;
     for (const op of result.ops) apply(op);
     for (const entry of reparented) {
@@ -766,8 +971,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     reparented.clear();
     index = result.index;
-    if (result.ops.length > 0) invalidate();
-    return { _tag: 'Applied', ops: result.ops };
+    const ops = [...result.ops, ...syncTextures(next)];
+    if (ops.length > 0) invalidate();
+    return { _tag: 'Applied', ops };
   };
 
   // Defined once so ticking allocates nothing; deleting during Map.forEach is safe.
@@ -777,6 +983,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const tick = (elapsedSeconds: number): void => {
     elapsed = elapsedSeconds;
+    for (const texture of textureList) texture.graph.tick(elapsedSeconds);
     for (const entry of spinning) {
       if (isPlaced(entry)) {
         writeRotation(entry.object.rotation, entry.node.rotation, elapsed);
@@ -784,6 +991,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     moving.forEach(stepTween);
     for (const entry of playing) pose(entry);
+    behaving.forEach(applyBehaviour);
   };
 
   const finishTween = (tween: Tween, entry: Entry): void => {
@@ -792,6 +1000,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const setAnimating = (next: boolean): void => {
     if (next !== animating) invalidate();
+    for (const texture of textureList) texture.graph.setAnimating(next);
     animating = next;
     if (next) return;
     moving.forEach(finishTween);
@@ -799,6 +1008,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   };
 
   const dispose = (): void => {
+    for (const texture of textureList) texture.graph.dispose();
+    textureGraphs.clear();
+    textureList = [];
     for (const entry of entries.values()) {
       entry.object.removeFromParent();
       release(entry);
@@ -818,13 +1030,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     get camera() {
       return camera;
     },
+    views: () => views,
+    renderTextures: () => textureList,
     store,
     reconcile,
     tick,
     elapsedSeconds: () => elapsed,
     renderSettings: () => settings,
     needsFrame: () =>
-      dirty || (animating && (spinning.size > 0 || moving.size > 0 || clipsRunning())),
+      dirty ||
+      textureList.some((texture) => texture.graph.needsFrame()) ||
+      (animating && (spinning.size > 0 || moving.size > 0 || behaving.size > 0 || clipsRunning())),
     drawn: () => {
       dirty = false;
     },
@@ -850,6 +1066,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     resize: (width, height) => {
       viewport = { width, height };
       fitCamera(camera, viewport);
+      hostViews(viewDescriptions);
       invalidate();
     },
     dispose,

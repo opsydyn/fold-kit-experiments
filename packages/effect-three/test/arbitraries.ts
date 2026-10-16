@@ -60,6 +60,12 @@ const Shape = Schema.Union([
   }),
   Schema.TaggedStruct('Circle', { radius: Size, segments: Segments }),
 ]);
+const Behaviour = Schema.NullOr(
+  Schema.Struct({
+    name: Schema.Literals(['float']),
+    params: Schema.Record(Schema.String, Schema.Literals([0.5, 2])),
+  }),
+);
 const Transition = Schema.Union([
   Schema.TaggedStruct('Instant', {}),
   Schema.TaggedStruct('Ease', {
@@ -119,6 +125,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Behaviour,
     interactive: Schema.Boolean,
     children: Children,
   }),
@@ -128,6 +135,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Behaviour,
     geometry: Schema.Union([
       ...Shape.members,
       Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
@@ -146,6 +154,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Behaviour,
     geometry: Schema.Union([
       ...Shape.members,
       Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
@@ -182,6 +191,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Behaviour,
     interactive: Schema.Boolean,
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),
@@ -233,7 +243,58 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 ]);
 
 const sceneFields = {
+  renderTextures: Schema.Array(
+    Schema.Struct({
+      id: Schema.Literals(['rt-a', 'rt-b']),
+      width: Schema.Literals([64, 128]),
+      height: Schema.Literals([64]),
+      camera: Schema.TaggedStruct('Perspective', {
+        fov: Schema.Literals([50]),
+        near: Schema.Literals([0.1]),
+        far: Schema.Literals([100]),
+        position: Vec3,
+        lookAt: Vec3,
+      }),
+      background: Schema.NullOr(Colour),
+      children: Schema.Array(Node).check(Schema.isMaxLength(3)),
+    }),
+  ).check(Schema.isMaxLength(2)),
+  views: Schema.Array(
+    Schema.Struct({
+      key: Schema.Literals(['left', 'right']),
+      camera: Schema.TaggedStruct('Perspective', {
+        fov: Schema.Literals([45]),
+        near: Schema.Literals([0.1]),
+        far: Schema.Literals([100]),
+        position: Vec3,
+        lookAt: Vec3,
+      }),
+      rect: Schema.Struct({
+        x: Schema.Literals([0, 0.5]),
+        y: Schema.Literals([0]),
+        width: Schema.Literals([0.5]),
+        height: Schema.Literals([1]),
+      }),
+    }),
+  ).check(Schema.isMaxLength(2)),
   render: Schema.Struct({
+    effects: Schema.Array(
+      Schema.Union([
+        Schema.TaggedStruct('Bloom', {
+          strength: Schema.Literals([1, 2]),
+          radius: Schema.Literals([0.4]),
+          threshold: Schema.Literals([0.85]),
+        }),
+        Schema.TaggedStruct('Vignette', {
+          offset: Schema.Literals([1]),
+          darkness: Schema.Literals([1]),
+        }),
+        Schema.TaggedStruct('Film', {
+          intensity: Schema.Literals([0.5]),
+          grayscale: Schema.Boolean,
+        }),
+      ]),
+    ).check(Schema.isMaxLength(2)),
     frames: Schema.Literals(['always', 'demand', 'never']),
     resolution: Schema.Literals([0.5, 1]),
     shadows: Schema.Literals(['off', 'soft']),

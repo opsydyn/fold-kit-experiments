@@ -110,6 +110,12 @@ export const ShapeGeometry = Schema.Union([
   CircleGeometry,
 ]);
 
+/** A registered behaviour, by name, with numeric parameters. */
+export const Behave = Schema.Struct({
+  name: Schema.String,
+  params: Schema.Record(Schema.String, Schema.Finite),
+});
+
 /** How a transition progresses. */
 export const Easing = Schema.Literals(['linear', 'easeInOutCubic', 'easeOutCubic', 'easeOutBack']);
 
@@ -219,6 +225,7 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   rotation: Rotation,
   scale: Vec3,
   transition: Transition,
+  behaviour: Schema.NullOr(Behave),
   geometry: GeometryRef,
   material: MaterialRef,
   interactive: Schema.Boolean,
@@ -242,6 +249,7 @@ export const InstancesNode = Schema.TaggedStruct('Instances', {
   rotation: Rotation,
   scale: Vec3,
   transition: Transition,
+  behaviour: Schema.NullOr(Behave),
   geometry: GeometryRef,
   material: MaterialRef,
   interactive: Schema.Boolean,
@@ -265,6 +273,7 @@ export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
   rotation: Rotation,
   scale: Vec3,
   transition: Transition,
+  behaviour: Schema.NullOr(Behave),
   interactive: Schema.Boolean,
 });
 
@@ -344,6 +353,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     rotation: Rotation,
     scale: Vec3,
     transition: Transition,
+    behaviour: Schema.NullOr(Behave),
     interactive: Schema.Boolean,
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
   }),
@@ -378,8 +388,22 @@ export const OrthographicCamera = Schema.TaggedStruct('Orthographic', {
 /** The active camera. */
 export const Camera = Schema.Union([PerspectiveCamera, OrthographicCamera]);
 
+const NonNegativeFinite = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
+
+/** A post-processing effect. */
+export const PostEffect = Schema.Union([
+  Schema.TaggedStruct('Bloom', {
+    strength: NonNegativeFinite,
+    radius: NonNegativeFinite,
+    threshold: NonNegativeFinite,
+  }),
+  Schema.TaggedStruct('Vignette', { offset: NonNegativeFinite, darkness: NonNegativeFinite }),
+  Schema.TaggedStruct('Film', { intensity: NonNegativeFinite, grayscale: Schema.Boolean }),
+]);
+
 /** Scene-wide render settings. */
 export const RenderSettings = Schema.Struct({
+  effects: Schema.Array(PostEffect),
   frames: Schema.Literals(['always', 'demand', 'never']),
   resolution: Schema.Finite.check(
     Schema.isBetween({ minimum: 0, maximum: 1, exclusiveMinimum: true }),
@@ -390,9 +414,33 @@ export const RenderSettings = Schema.Struct({
   colorSpace: Schema.Literals(['srgb', 'linear']),
 });
 
+/** A view of the scene into part of the canvas. */
+export const View = Schema.Struct({
+  key: Schema.String,
+  camera: Camera,
+  rect: Schema.Struct({
+    x: Schema.Finite,
+    y: Schema.Finite,
+    width: Schema.Finite.check(Schema.isGreaterThan(0)),
+    height: Schema.Finite.check(Schema.isGreaterThan(0)),
+  }),
+});
+
+/** A scene rendered into a texture lent under `id`. */
+export const RenderTexture = Schema.Struct({
+  id: Schema.String,
+  width: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 8192 })),
+  height: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 8192 })),
+  camera: Camera,
+  background: Schema.NullOr(Rgb),
+  children: Schema.Array(SceneNode),
+});
+
 /** A complete scene description. */
 export const SceneDescription = Schema.Struct({
   camera: Camera,
+  views: Schema.Array(View),
+  renderTextures: Schema.Array(RenderTexture),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
@@ -410,6 +458,7 @@ export const HitDetail = Schema.Struct({
   key: Schema.String,
   instance: Schema.optionalKey(Schema.String),
   part: Schema.optionalKey(Schema.String),
+  view: Schema.optionalKey(Schema.String),
   path: Schema.Array(Schema.String),
   point: Vec3,
   distance: Schema.Finite,
@@ -470,4 +519,7 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('UnknownSharedGeometry', { nodeKey: Schema.String, id: Schema.String }),
   Schema.TaggedStruct('UnknownSharedMaterial', { nodeKey: Schema.String, id: Schema.String }),
   Schema.TaggedStruct('DuplicateInstanceKey', { nodeKey: Schema.String, key: Schema.String }),
+  Schema.TaggedStruct('UnknownBehaviour', { nodeKey: Schema.String, name: Schema.String }),
+  Schema.TaggedStruct('DuplicateViewKey', { key: Schema.String }),
+  Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),
 ]);

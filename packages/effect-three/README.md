@@ -46,6 +46,9 @@ const description = scene({
 - **Materials:** `basic`, `lambert`, `phong`, `standard`, `physical` and `normalMaterial`, each with opacity, transparency, `side`, wireframe and (lit kinds) flat shading and emission. Defaults are three.js's own. Changing a material within its kind updates it in place; changing its kind replaces it.
 - **Shadows and render settings:** `scene({ render: renderSettings({ shadows: 'soft', toneMapping: 'aces' }) })`, then `castShadow`/`receiveShadow` on meshes and `castShadow` on directional, point and spot lights. Tone mapping defaults to `none` (React Three Fiber defaults to ACES) so colours render exactly as given.
 - **Instancing:** `instances({ key, geometry, material, instances: [instance({ key, position, color })] })` draws many copies in one call. Updates rewrite only the instances that changed, and hits name the instance (`instance` on the event).
+- **Views:** `scene({ views: [view({ key: 'front', camera, rect: { width: 0.5 } }), ...] })` draws several cameras into parts of one canvas; picks use the view under the pointer and report it as `view`.
+- **Post-processing:** `renderSettings({ effects: [bloom({ strength: 1.5 }), vignette()] })` applies three.js's composer passes in order (`bloom`, `vignette`, `film`); with no effects the scene renders straight to the screen.
+- **Render textures:** `scene({ renderTextures: [renderTexture({ id: 'screen', camera, children })] })` draws a little scene of its own into a texture that any material uses with `map: 'screen'`; it redraws only when its scene changes.
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 
@@ -90,6 +93,13 @@ A `borrowed` node may name an id before it is lent, so a description can refer t
 ## Animation
 
 Behaviours own animated properties: a mesh's rotation is either model-owned (`fixed`) or behaviour-owned (`spin`), never both. A behaviour's output is a pure function of scene time, so frames are deterministic and frame-rate independent.
+
+Behaviours replace React Three Fiber's `useFrame` with data: a node names one, `behaviour: behave('float', { speed: 2 })`, and the behaviour (a pure function of scene time registered with the scene) adds a position offset, a rotation and a scale factor on top of the node's transform each frame. `float` (Drei's `Float`) is built in; register your own through `SceneRuntime.make({ behaviours })` or `makeEnvironment(window, { behaviours })`:
+
+```ts
+const orbit: Behaviour = (pose, seconds, params) =>
+  pose.offset.set(Math.cos(seconds) * (params['radius'] ?? 1), 0, Math.sin(seconds));
+```
 
 Transitions decide how `position` and `scale` reach new values. The Model always owns the target; a transition only shapes the journey:
 

@@ -15,6 +15,20 @@ function firstOfEachKey<A extends { readonly key: string }>(
   return kept;
 }
 
+/** Keeps the first item with each id. */
+function firstOfEachId<A extends { readonly id: string }>(
+  items: ReadonlyArray<A>,
+): ReadonlyArray<A> {
+  const seen = new Set<string>();
+  const kept: Array<A> = [];
+  for (const item of items) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    kept.push(item);
+  }
+  return kept;
+}
+
 function dedupeNode(node: SceneNode, seen: Set<string>): ReadonlyArray<SceneNode> {
   if (seen.has(node.key)) return [];
   seen.add(node.key);
@@ -32,6 +46,12 @@ const dedupeNodes = (
 /** Drops every subtree whose key already appeared earlier in pre-order. */
 export const withUniqueKeys = (description: SceneDescription): SceneDescription => ({
   ...description,
+  views: firstOfEachKey(description.views),
+  // Each render texture is its own key namespace; ids are unique across the scene.
+  renderTextures: firstOfEachId(description.renderTextures).map((texture) => ({
+    ...texture,
+    children: dedupeNodes(texture.children, new Set()),
+  })),
   children: dedupeNodes(description.children, new Set()),
 });
 
@@ -41,7 +61,12 @@ export const allNodes = (nodes: ReadonlyArray<SceneNode>): ReadonlyArray<SceneNo
 
 /** Resource counts implied by a description: what the store must hold live. */
 export const expectedResources = (description: SceneDescription) => {
-  const meshes = allNodes(description.children).flatMap((node) =>
+  // Render textures draw nested scenes on the same store: their meshes hold resources too.
+  const everyNode = [
+    ...allNodes(description.children),
+    ...description.renderTextures.flatMap((texture) => allNodes(texture.children)),
+  ];
+  const meshes = everyNode.flatMap((node) =>
     node._tag === 'Mesh' || node._tag === 'Instances' ? [node] : [],
   );
   const sharedGeometryUsers = new Map<string, number>();

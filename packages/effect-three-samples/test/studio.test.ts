@@ -4,6 +4,7 @@ import { Option } from 'effect';
 
 import { Message } from '../src/studio/message';
 import { home, init, limit, type Model } from '../src/studio/model';
+import { sceneFor } from '../src/studio/scene';
 import { pieceKey, update } from '../src/studio/update';
 
 const initial = init().model;
@@ -66,5 +67,21 @@ test('toggles flip shadows, tone mapping and the camera lens; a miss clears the 
     Message.ClickedLens(),
   ].reduce(step, step(initial, Message.ClickedPiece({ key: pieceKey('cone') })));
   expect(toggled).toMatchObject({ shadows: 'off', tone: 'aces', lens: 'orthographic' });
+  expect(step(toggled, Message.ClickedLens()).lens).toBe('split');
   expect(Option.isNone(step(toggled, Message.ClickedEmptySpace()).selected)).toBe(true);
+});
+
+test('the monitor shows the selected piece close up, in its finish, and nothing otherwise', () => {
+  const pictureOf = (model: Model) => sceneFor(model).renderTextures[0]?.children ?? [];
+  const keysOf = (model: Model) => pictureOf(model).map((node) => node.key);
+  expect(keysOf(initial)).not.toContain('close-up');
+
+  const selected = step(initial, Message.ClickedPiece({ key: pieceKey('cone') }));
+  expect(keysOf(selected)).toContain('close-up');
+  const closeUp = pictureOf(selected).find((node) => node.key === 'close-up');
+  const piece = sceneFor(selected).children.find((node) => node.key === pieceKey('cone'));
+  expect(closeUp?._tag === 'Mesh' && piece?._tag === 'Mesh').toBe(true);
+  expect(closeUp?._tag === 'Mesh' ? closeUp.material : null).toEqual(
+    piece?._tag === 'Mesh' ? piece.material : undefined,
+  );
 });

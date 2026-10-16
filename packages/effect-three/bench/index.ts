@@ -14,7 +14,7 @@ import {
 } from '../src/kernel/index.ts';
 import { decodeScene, runtimeMountCycle } from './effectCases.ts';
 import { heapGrowthPerCall, type Measurement, measure } from './measure.ts';
-import { instancedScene, spinningCube, wideScene } from './scenes.ts';
+import { floatingScene, instancedScene, spinningCube, wideScene } from './scenes.ts';
 
 type Row = Measurement & { readonly budgetMs?: number; readonly note?: string };
 
@@ -103,6 +103,23 @@ record({ ...measure('runtime mount + unmount', runtimeMountCycle(spinningCube)),
   const bytes = heapGrowthPerCall(frame, 10_000);
   record({
     ...measure('frame: 1,000 eased meshes', frame, { batch: 100 }),
+    budgetMs: 0.5,
+    note: `${bytes.toFixed(1)} B/frame heap growth`,
+  });
+}
+
+// 6b. Per-frame kernel overhead with 1,000 meshes floating (a registered behaviour each).
+{
+  const graph = createSceneGraph();
+  graph.reconcile(floatingScene(1000));
+  let time = 0;
+  const frame = (): void => {
+    time += 1 / 60;
+    graph.tick(time);
+  };
+  const bytes = heapGrowthPerCall(frame, 10_000);
+  record({
+    ...measure('frame: 1,000 floating meshes', frame, { batch: 100 }),
     budgetMs: 0.5,
     note: `${bytes.toFixed(1)} B/frame heap growth`,
   });

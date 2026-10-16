@@ -7,6 +7,7 @@ import type {
   AmbientLightNode,
   Animation,
   BasicMaterial,
+  Behave,
   BorrowedNode,
   Axis,
   BoxGeometry,
@@ -32,7 +33,9 @@ import type {
   PerspectiveCamera,
   PlaneGeometry,
   PointLightNode,
+  PostEffect,
   RenderSettings,
+  RenderTexture,
   RingGeometry,
   ResourceDefinitions,
   Rgb,
@@ -45,6 +48,8 @@ import type {
   StandardMaterial,
   Transition,
   Vec3,
+  View,
+  ViewRect,
 } from './description.ts';
 
 const origin: Vec3 = [0, 0, 0];
@@ -312,7 +317,8 @@ export type TransformOptions = {
   readonly rotation?: Rotation;
   readonly scale?: Vec3;
   /** How position and scale changes are shown. Defaults to `instant()`. */
-  readonly transition?: Transition;
+  readonly transition?: Transition /** A registered behaviour to apply on top of the transform. */;
+  readonly behaviour?: Behave | null;
 };
 
 /** A group of child nodes. */
@@ -328,6 +334,7 @@ export const group = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
   children: options.children ?? [],
 });
@@ -348,6 +355,7 @@ export const mesh = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
   geometry: options.geometry,
   material: options.material,
   interactive: options.interactive ?? false,
@@ -387,12 +395,19 @@ export const instances = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
   geometry: options.geometry,
   material: options.material,
   interactive: options.interactive ?? false,
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
   instances: options.instances,
+});
+
+/** Applies a registered behaviour by name. Parameters default to the behaviour's own. */
+export const behave = (name: string, params: Readonly<Record<string, number>> = {}): Behave => ({
+  name,
+  params,
 });
 
 /** Plays an animation clip by name. Defaults: normal speed, looping. */
@@ -417,6 +432,7 @@ export const borrowed = (
   rotation: options.rotation ?? noRotation,
   scale: options.scale ?? unitScale,
   transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
 });
 
@@ -557,6 +573,43 @@ export const orthographicCamera = (
   lookAt: options.lookAt ?? origin,
 });
 
+const noEffects: ReadonlyArray<PostEffect> = [];
+
+/**
+ * Bloom: bright areas glow. Defaults: strength 1 (as three.js), radius 0.4 and threshold
+ * 0.85, so only the brightest areas bloom (three.js leaves these two unset).
+ */
+export const bloom = (
+  options: {
+    readonly strength?: number;
+    readonly radius?: number;
+    readonly threshold?: number;
+  } = {},
+): PostEffect => ({
+  _tag: 'Bloom',
+  strength: options.strength ?? 1,
+  radius: options.radius ?? 0.4,
+  threshold: options.threshold ?? 0.85,
+});
+
+/** Vignette: darker edges. Defaults (as three.js's `VignetteShader`): offset 1, darkness 1. */
+export const vignette = (
+  options: { readonly offset?: number; readonly darkness?: number } = {},
+): PostEffect => ({
+  _tag: 'Vignette',
+  offset: options.offset ?? 1,
+  darkness: options.darkness ?? 1,
+});
+
+/** Film grain. Defaults (as three.js's `FilmPass`): intensity 0.5, in colour. */
+export const film = (
+  options: { readonly intensity?: number; readonly grayscale?: boolean } = {},
+): PostEffect => ({
+  _tag: 'Film',
+  intensity: options.intensity ?? 0.5,
+  grayscale: options.grayscale ?? false,
+});
+
 /**
  * Render settings. Defaults: frames on demand, full resolution, shadows off, no tone
  * mapping, exposure 1, sRGB output. Two deliberate differences from React Three Fiber:
@@ -568,6 +621,7 @@ export const orthographicCamera = (
  */
 export const renderSettings = (options: Partial<RenderSettings> = {}): RenderSettings => ({
   frames: options.frames ?? 'demand',
+  effects: options.effects ?? noEffects,
   resolution: options.resolution ?? 1,
   shadows: options.shadows ?? 'off',
   toneMapping: options.toneMapping ?? 'none',
@@ -577,14 +631,59 @@ export const renderSettings = (options: Partial<RenderSettings> = {}): RenderSet
 
 const defaultRenderSettings = renderSettings();
 
+const fullRect: ViewRect = { x: 0, y: 0, width: 1, height: 1 };
+const noViews: ReadonlyArray<View> = [];
+
+/** A view of the scene through `camera` into `rect` of the canvas (default: all of it). */
+export const view = (options: {
+  readonly key: string;
+  readonly camera: Camera;
+  readonly rect?: Partial<ViewRect>;
+}): View => ({
+  key: options.key,
+  camera: options.camera,
+  rect: {
+    x: options.rect?.x ?? fullRect.x,
+    y: options.rect?.y ?? fullRect.y,
+    width: options.rect?.width ?? fullRect.width,
+    height: options.rect?.height ?? fullRect.height,
+  },
+});
+
+const noRenderTextures: ReadonlyArray<RenderTexture> = [];
+
+/**
+ * A scene rendered into a texture, lent under `id` for materials' `map`. Defaults:
+ * 512 × 512, the default camera, transparent.
+ */
+export const renderTexture = (options: {
+  readonly id: string;
+  readonly width?: number;
+  readonly height?: number;
+  readonly camera?: Camera;
+  readonly background?: Rgb | null;
+  readonly children?: ReadonlyArray<SceneNode>;
+}): RenderTexture => ({
+  id: options.id,
+  width: options.width ?? 512,
+  height: options.height ?? 512,
+  camera: options.camera ?? perspectiveCamera(),
+  background: options.background ?? null,
+  children: options.children ?? [],
+});
+
 /** A scene description. */
 export const scene = (options: {
   readonly camera?: Camera;
+  readonly views?: ReadonlyArray<View>;
+  readonly renderTextures?: ReadonlyArray<RenderTexture>;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
 }): SceneDescription => ({
   camera: options.camera ?? perspectiveCamera(),
+  views: options.views ?? noViews,
+  renderTextures: options.renderTextures ?? noRenderTextures,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

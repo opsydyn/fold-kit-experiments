@@ -76,6 +76,7 @@ describe('reconcile', () => {
     );
     expect(tags(ops)).toEqual([
       'SetCamera',
+      'SetViews',
       'SetRenderSettings',
       'DefineResources',
       'Create',

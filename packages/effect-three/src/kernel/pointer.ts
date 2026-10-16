@@ -56,6 +56,8 @@ export type Hit = {
   readonly instance?: string;
   /** For a `borrowed` node, the `name` of the object hit inside it, when it has one. */
   readonly part?: string;
+  /** With several views, the key of the view the pointer was over. */
+  readonly view?: string;
   /**
    * Keys of the hit mesh's ancestor groups, nearest first. Match on it to handle every
    * mesh in a group with one handler: React Three Fiber's bubbling, as data.
@@ -169,11 +171,36 @@ export const createPicker = (graph: SceneGraph): Picker => {
   const raycaster = new Raycaster();
   const ndc = new Vector2();
   const normal = new Vector3();
-  const aim = (x: number, y: number): void => {
+  /**
+   * Aims the ray through canvas NDC `(x, y)`: with the main camera, or with the camera of
+   * the topmost view under the point, in that view's own NDC. Returns the view's key, or
+   * `false` when views exist but none is under the point.
+   */
+  const aim = (x: number, y: number): string | undefined | false => {
     graph.scene.updateMatrixWorld();
-    graph.camera.updateMatrixWorld();
-    ndc.set(x, y);
-    raycaster.setFromCamera(ndc, graph.camera);
+    const views = graph.views();
+    if (views.length === 0) {
+      graph.camera.updateMatrixWorld();
+      ndc.set(x, y);
+      raycaster.setFromCamera(ndc, graph.camera);
+      return undefined;
+    }
+    const { width, height } = graph.viewport();
+    const px = ((x + 1) / 2) * width;
+    const py = ((1 - y) / 2) * height;
+    for (let i = views.length - 1; i >= 0; i--) {
+      const view = views[i];
+      if (view === undefined) continue;
+      const { area } = view;
+      if (px < area.x || px > area.x + area.width || py < area.y || py > area.y + area.height) {
+        continue;
+      }
+      view.camera.updateMatrixWorld();
+      ndc.set(((px - area.x) / area.width) * 2 - 1, -(((py - area.y) / area.height) * 2 - 1));
+      raycaster.setFromCamera(ndc, view.camera);
+      return view.key;
+    }
+    return false;
   };
   const currentRay = (): Ray => ({
     origin: toVec3(raycaster.ray.origin),
@@ -187,7 +214,8 @@ export const createPicker = (graph: SceneGraph): Picker => {
     pick: (x, y) => {
       const targets = graph.interactiveObjects();
       if (targets.length === 0) return undefined;
-      aim(x, y);
+      const view = aim(x, y);
+      if (view === false) return undefined;
       // Recursive, so an interactive group makes every mesh inside it pickable.
       for (const intersection of raycaster.intersectObjects(targets, true)) {
         const owner = keyedOwner(graph, intersection.object);
@@ -207,6 +235,7 @@ export const createPicker = (graph: SceneGraph): Picker => {
             key,
             ...(instance === undefined ? {} : { instance }),
             ...partOf(owner, intersection.object),
+            ...(view === undefined ? {} : { view }),
             path: pathOf(graph, owner),
             point: toVec3(intersection.point),
             distance: intersection.distance,

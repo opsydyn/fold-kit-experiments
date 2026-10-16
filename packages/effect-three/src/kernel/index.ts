@@ -6,6 +6,14 @@
  */
 export type * from './description.ts';
 export { clipRunning, clipTime } from './animation.ts';
+export {
+  type Behaviour,
+  type BehaviourPose,
+  builtinBehaviours,
+  createPose,
+  float,
+  resetPose,
+} from './motion.ts';
 export { spinAngle, writeRotation } from './behaviours.ts';
 export { buildMaterial, type HostMaterial, type Textures, updateMaterial } from './materials.ts';
 export { capacityFor, type HostInstances } from './instances.ts';
@@ -19,6 +27,8 @@ export { applyTween, easeProgress, startTween, type Tween } from './tween.ts';
 export {
   ambientLight,
   basic,
+  behave,
+  bloom,
   borrowed,
   box,
   capsule,
@@ -27,6 +37,7 @@ export {
   cylinder,
   directionalLight,
   ease,
+  film,
   fixed,
   group,
   hemisphereLight,
@@ -52,13 +63,18 @@ export {
   spin,
   spotLight,
   standard,
+  renderTexture,
   torus,
   type TransformOptions,
+  view,
+  vignette,
 } from './build.ts';
 export { changedFields, diff, type DiffResult, type Field, type Op } from './diff.ts';
 export {
   cameraEquals,
   animationEquals,
+  behaviourEquals,
+  effectsEqual,
   geometryRefEquals,
   instanceEquals,
   instancesEqual,
@@ -68,6 +84,7 @@ export {
   rotationEquals,
   shapeEquals,
   transitionEquals,
+  viewsEqual,
   vec3Equals,
 } from './equality.ts';
 export {
@@ -106,6 +123,8 @@ export {
 export {
   recordingRendererFactory,
   type RecordingRenderer,
+  type RenderArea,
+  type RenderTarget,
   type RecordingRendererFactory,
   type RendererFactory,
   type RendererMemory,
@@ -115,6 +134,8 @@ export {
 export {
   createSceneGraph,
   type HostCamera,
+  type HostedTexture,
+  type HostedView,
   type HostMesh,
   type ReconcileResult,
   type SceneGraph,

@@ -29,6 +29,7 @@ import { Sky as SkyMesh } from 'three/addons/objects/Sky.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
+import { type BodiedMesh, createBodyHost } from './bodies.ts';
 import { renderSettings, scene as describeScene } from './build.ts';
 import { createCameraMotion } from './cameraMotion.ts';
 import type {
@@ -68,6 +69,7 @@ import {
   createPose,
   resetPose,
 } from './motion.ts';
+import type { Collision, PhysicsEngine } from './physics.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -171,6 +173,8 @@ export type SceneGraphOptions = {
   readonly store?: ResourceStore;
   /** Behaviours nodes may name, in addition to the built-in ones (`float`). */
   readonly behaviours?: Readonly<Record<string, Behaviour>>;
+  /** Simulates meshes with a `body` when the scene has `physics`; without it they stay put. */
+  readonly physics?: PhysicsEngine | undefined;
 };
 
 export type SceneGraph = {
@@ -189,6 +193,8 @@ export type SceneGraph = {
   readonly environment: () => Environment | null;
   /** Soft ground shadows; the frame loop draws them. */
   readonly contactShadows: () => ContactShadows | null;
+  /** Collisions between bodies since the last call, for the frame loop to report. */
+  readonly collisions: () => ReadonlyArray<Collision>;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -424,6 +430,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     skyMesh = undefined;
   }
   const cameraMotion = createCameraMotion();
+  const bodyHost = createBodyHost(options.physics, scene);
+
+  /** Every hosted mesh, for the body host to find those with bodies. */
+  function* hostedMeshes(): Generator<BodiedMesh> {
+    for (const [key, entry] of entries) {
+      if (entry._tag === 'Mesh') yield { key, node: entry.node, object: entry.object };
+    }
+  }
 
   /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
   const areaOf = (rect: ViewRect): HostedView['area'] => ({
@@ -1022,6 +1036,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     environment: null,
     sky: null,
     contactShadows: null,
+    physics: null,
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -1111,6 +1126,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // The frame loop draws contact shadows with the renderer: a change needs a frame.
     if (!contactShadowsEquals(contactDescription, next.contactShadows)) invalidate();
     contactDescription = next.contactShadows;
+    bodyHost.sync(next.physics, hostedMeshes());
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -1133,6 +1149,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     for (const entry of playing) pose(entry);
     behaving.forEach(applyBehaviour);
     cameraMotion.step(camera, elapsed);
+    // Last: a dynamic body's pose is the simulation's, whatever else moved the mesh.
+    bodyHost.tick(elapsed, animating);
   };
 
   const finishTween = (tween: Tween, entry: Entry): void => {
@@ -1151,6 +1169,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   const dispose = (): void => {
     removeSky();
+    bodyHost.dispose();
     for (const texture of textureList) texture.graph.dispose();
     textureGraphs.clear();
     textureList = [];
@@ -1179,6 +1198,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     overlays: () => overlayList,
     environment: () => environmentDescription,
     contactShadows: () => contactDescription,
+    collisions: bodyHost.drainCollisions,
     store,
     reconcile,
     tick,
@@ -1192,7 +1212,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
           moving.size > 0 ||
           behaving.size > 0 ||
           clipsRunning() ||
-          cameraMotion.moving())),
+          cameraMotion.moving() ||
+          bodyHost.needsFrame())),
     drawn: () => {
       dirty = false;
     },

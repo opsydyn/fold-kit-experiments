@@ -26,6 +26,7 @@ import {
   renderSettingsEquals,
   animationEquals,
   behaviourEquals,
+  bodyEquals,
   geometryRefEquals,
   instancesEqual,
   materialRefEquals,
@@ -70,7 +71,8 @@ export type Field =
   | 'behaviour'
   | 'size'
   | 'divisions'
-  | 'centerColor';
+  | 'centerColor'
+  | 'body';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -131,6 +133,7 @@ export const changedFields = (
       if (prev.interactive !== next.interactive) fields.push('interactive');
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
+      if (!bodyEquals(prev.body, next.body)) fields.push('body');
       return fields;
     }
     case 'Instances': {

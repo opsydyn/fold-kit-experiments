@@ -15,6 +15,7 @@ import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
 import type { Op } from '@opsydyn/effect-three';
 import type { Overlay } from '@opsydyn/effect-three';
+import { PhysicsEngine } from '@opsydyn/effect-three';
 import type { PointerInput } from '@opsydyn/effect-three';
 import { RendererFactory } from '@opsydyn/effect-three';
 import type { ResourceStats } from '@opsydyn/effect-three';
@@ -55,6 +56,9 @@ export const capturesPointer: (events: ReadonlyArray<SceneEvent>) => boolean;
 // @public
 export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
 
+// @public
+export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
+
 // @public (undocumented)
 export const defaultPixelRatio: PixelRatio;
 
@@ -73,6 +77,7 @@ export const domEventName: {
     readonly Drag: 'scene-drag';
     readonly DragEnd: 'scene-drag-end';
     readonly Gesture: 'scene-gesture';
+    readonly Collision: 'scene-collision';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -90,6 +95,7 @@ export type EnvironmentOptions = {
     readonly renderer?: (canvas: HTMLCanvasElement) => RendererFactory;
     readonly pixelRatio?: PixelRatio;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
+    readonly physics?: PhysicsEngine | Promise<PhysicsEngine>;
 };
 
 // @public
@@ -119,6 +125,7 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     renderer: (canvas: HTMLCanvasElement) => RendererFactory;
     pixelRatio: PixelRatio;
     behaviours: Readonly<Record<string, Behaviour>>;
+    physics: Promise<PhysicsEngine | undefined>;
     assets: {
         loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
@@ -301,6 +308,12 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly opacity: Schema.Finite;
             readonly color: Schema.Int;
             readonly resolution: Schema.Int;
+        }>>;
+        readonly physics: Schema.NullOr<Schema.Struct<{
+            readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly paused: Schema.Boolean;
+            readonly timeStep: Schema.Finite;
+            readonly interpolate: Schema.Boolean;
         }>>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -632,6 +645,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly deltaY: Schema.Finite;
         }>]>;
     }>;
+    'scene-collision': Schema.Struct<{
+        readonly a: Schema.String;
+        readonly b: Schema.String;
+        readonly started: Schema.Boolean;
+    }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
         readonly factor: Schema.Finite;
@@ -779,6 +797,7 @@ export type ViewConfig<Message> = {
     readonly onDrag?: (detail: DragDetail) => Message;
     readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onGesture?: (gesture: Gesture) => Message;
+    readonly onCollision?: (detail: CollisionDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;

@@ -158,6 +158,23 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     interactive: Schema.Boolean,
     castShadow: Schema.Boolean,
     receiveShadow: Schema.Boolean,
+    body: Schema.NullOr(
+      Schema.Struct({
+        type: Schema.Literals(['dynamic', 'fixed', 'kinematic']),
+        collider: Schema.Literals(['cuboid', 'ball']),
+        mass: Schema.NullOr(Schema.Literals([2])),
+        friction: Schema.Literals([0.5]),
+        restitution: Schema.Literals([0, 0.5]),
+        linearDamping: Schema.Literals([0]),
+        angularDamping: Schema.Literals([0]),
+        gravityScale: Schema.Literals([1]),
+        ccd: Schema.Boolean,
+        sensor: Schema.Boolean,
+        linearVelocity: Vec3,
+        angularVelocity: Vec3,
+        impulse: Schema.NullOr(Schema.Struct({ id: Schema.Literals([1, 2]), impulse: Vec3 })),
+      }),
+    ),
   }),
   Schema.TaggedStruct('Instances', {
     key: Key,
@@ -263,6 +280,14 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  physics: Schema.NullOr(
+    Schema.Struct({
+      gravity: Schema.Tuple([Schema.Literals([0]), Schema.Literals([-9.81]), Schema.Literals([0])]),
+      paused: Schema.Boolean,
+      timeStep: Schema.Literals([1 / 60]),
+      interpolate: Schema.Boolean,
+    }),
+  ),
   contactShadows: Schema.NullOr(
     Schema.Struct({
       position: Vec3,

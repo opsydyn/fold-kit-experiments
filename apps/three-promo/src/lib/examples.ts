@@ -41,6 +41,14 @@ export const examples = [
     alt: 'City: a grid of ten thousand blue buildings, tallest in the centre, on a pale ground.',
   },
   {
+    id: 'toybox',
+    category: 'Physics',
+    title: 'Throw the toys around',
+    description:
+      'Crates and balls drop into a tray and tumble to rest under Rapier. Click to kick them, drop more, or tidy up. Bodies are data; the simulation owns where they are.',
+    alt: 'Toybox: coloured crates and balls scattered in a pale tray, casting soft contact shadows.',
+  },
+  {
     id: 'workshop',
     category: 'Assets',
     title: 'Load it, play it, let it go',

@@ -7,10 +7,12 @@
 import type {
   Animation,
   Behave,
+  Body,
   GeometryRef,
   Instance,
   MaterialRef,
   Overlay,
+  Physics,
   Camera,
   ContactShadows,
   Environment,
@@ -333,3 +335,36 @@ export const contactShadowsEquals = (a: ContactShadows | null, b: ContactShadows
     Object.is(a.opacity, b.opacity) &&
     a.color === b.color &&
     a.resolution === b.resolution);
+
+/** Body equality, field by field. */
+export const bodyEquals = (a: Body | null, b: Body | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    a.type === b.type &&
+    a.collider === b.collider &&
+    Object.is(a.mass, b.mass) &&
+    Object.is(a.friction, b.friction) &&
+    Object.is(a.restitution, b.restitution) &&
+    Object.is(a.linearDamping, b.linearDamping) &&
+    Object.is(a.angularDamping, b.angularDamping) &&
+    Object.is(a.gravityScale, b.gravityScale) &&
+    a.ccd === b.ccd &&
+    a.sensor === b.sensor &&
+    vec3Equals(a.linearVelocity, b.linearVelocity) &&
+    vec3Equals(a.angularVelocity, b.angularVelocity) &&
+    (a.impulse === b.impulse ||
+      (a.impulse !== null &&
+        b.impulse !== null &&
+        a.impulse.id === b.impulse.id &&
+        vec3Equals(a.impulse.impulse, b.impulse.impulse))));
+
+/** Physics world equality. */
+export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    vec3Equals(a.gravity, b.gravity) &&
+    a.paused === b.paused &&
+    Object.is(a.timeStep, b.timeStep) &&
+    a.interpolate === b.interpolate);

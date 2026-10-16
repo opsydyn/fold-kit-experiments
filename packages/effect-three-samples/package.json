@@ -10,6 +10,7 @@
     "./playground": "./src/playground/main.ts",
     "./sculpture": "./src/sculpture/main.ts",
     "./studio": "./src/studio/main.ts",
+    "./toybox": "./src/toybox/main.ts",
     "./workshop": "./src/workshop/main.ts",
     "./shared": "./src/shared/main.ts",
     "./styles.css": "./src/styles.css",
@@ -23,6 +24,7 @@
   "dependencies": {
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/effect-three-foldkit": "workspace:*",
+    "@opsydyn/effect-three-rapier": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
     "effect": "catalog:",
     "foldkit": "catalog:",

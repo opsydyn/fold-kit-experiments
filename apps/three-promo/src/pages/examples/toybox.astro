@@ -1,0 +1,20 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/toybox/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/toybox/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/toybox/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/toybox/update.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/toybox/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/toybox/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="Toybox — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">PHYSICS</p><h1>Throw the toys around.</h1><p>Crates and balls drop into a tray and tumble to rest, simulated by Rapier. Click a toy to kick it, drop another, or tidy up and watch them all fall again. Drag around them to orbit. Each toy is a mesh with a body described as data; Rapier owns where it is, and frames stop when everything comes to rest.</p></section>
+  <Sample client:load noMeta />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Bodies as data.</h2><p>The Model says what each toy is and where it was dropped, never where it is now: that belongs to the simulation, stepped on scene time with fixed steps, as react-three-rapier steps it. A kick is data too, an impulse with a new id that the simulation applies once. Collisions come back as Messages.</p><a class="text-link" href={samplesSource + '/toybox'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

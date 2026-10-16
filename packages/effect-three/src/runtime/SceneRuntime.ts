@@ -15,6 +15,7 @@ import {
   createSceneLoop,
   type Op,
   type OverlayPlacement,
+  type PhysicsEngine,
   type ReconcileResult,
   type RendererFactory,
   type SceneDescription,
@@ -36,6 +37,8 @@ export type SceneRuntimeOptions = {
   readonly eventCapacity?: number;
   /** Behaviours nodes may name, beside the built-in ones. */
   readonly behaviours?: Readonly<Record<string, Behaviour>>;
+  /** The physics engine for meshes with a `body`; without one, bodies stay put. */
+  readonly physics?: PhysicsEngine | undefined;
   /** Receives where the overlays are after each drawn frame, to move their HTML there. */
   readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
@@ -58,8 +61,13 @@ const applyViewport = (graph: SceneGraph, renderer: SceneRenderer, viewport: Vie
 };
 
 const sceneGraph =
-  (registry: ResourceRegistry['Service'], behaviours: Readonly<Record<string, Behaviour>>) => () =>
-    createSceneGraph({ store: registry.store, behaviours });
+  (
+    registry: ResourceRegistry['Service'],
+    behaviours: Readonly<Record<string, Behaviour>>,
+    physics: PhysicsEngine | undefined,
+  ) =>
+  () =>
+    createSceneGraph({ store: registry.store, behaviours, physics });
 
 /**
  * Reconciles at the current scene time. An idle scene draws no frames, so its last tick
@@ -81,8 +89,9 @@ const animationChange = (sceneClock: SceneClock, graph: SceneGraph, animating: b
 const acquireGraph = (
   registry: ResourceRegistry['Service'],
   behaviours: Readonly<Record<string, Behaviour>>,
+  physics: PhysicsEngine | undefined,
 ) => {
-  const create = Effect.sync(sceneGraph(registry, behaviours));
+  const create = Effect.sync(sceneGraph(registry, behaviours, physics));
   return Effect.acquireRelease(create, (graph) => Effect.sync(graph.dispose));
 };
 
@@ -112,7 +121,7 @@ function* startScene(options: SceneRuntimeOptions) {
   const frames = yield* FrameSource;
   const clock = yield* Clock.Clock;
 
-  const graph = yield* acquireGraph(registry, options.behaviours ?? noBehaviours);
+  const graph = yield* acquireGraph(registry, options.behaviours ?? noBehaviours, options.physics);
   const startupOps = yield* Effect.fromResult(toResult(graph.reconcile(options.scene)));
   const renderer = yield* acquireRenderer(options.renderer);
   applyViewport(graph, renderer, options.viewport);

@@ -337,6 +337,61 @@ export type MeshNode = {
   readonly castShadow: boolean;
   /** Receives shadows, when the scene enables shadows. */
   readonly receiveShadow: boolean;
+  /** A rigid body simulating the mesh, when the scene has `physics`; `null` for none. */
+  readonly body: Body | null;
+};
+
+/**
+ * How a body moves, as react-three-rapier's `RigidBody` `type`:
+ *
+ * - `dynamic`: the simulation owns its pose from its starting transform.
+ * - `fixed`: it never moves; other bodies hit it.
+ * - `kinematic`: it follows the node's own transform (with its transition and behaviour),
+ *   pushing dynamic bodies out of the way.
+ */
+export type BodyType = 'dynamic' | 'fixed' | 'kinematic';
+
+/**
+ * The collider made from the mesh's geometry (react-three-rapier's `colliders`):
+ * `cuboid` its bounding box, `ball` its bounding sphere, `hull` the convex hull of its
+ * vertices, `trimesh` its triangles (for fixed bodies).
+ */
+export type BodyCollider = 'cuboid' | 'ball' | 'hull' | 'trimesh';
+
+/**
+ * A rigid body (react-three-rapier `RigidBody` at `ae5c3fe`). The node's transform is
+ * where a dynamic body starts; changing its position or rotation later teleports it there
+ * at rest. An `impulse` is applied once, when its `id` is new.
+ */
+export type Body = {
+  readonly type: BodyType;
+  readonly collider: BodyCollider;
+  /** Total mass; `null` for density 1 over the collider's volume (Rapier's default). */
+  readonly mass: number | null;
+  readonly friction: number;
+  readonly restitution: number;
+  readonly linearDamping: number;
+  readonly angularDamping: number;
+  readonly gravityScale: number;
+  /** Continuous collision detection, for fast small bodies. */
+  readonly ccd: boolean;
+  /** Reports overlaps as collisions without pushing anything. */
+  readonly sensor: boolean;
+  /** Velocities it starts with. */
+  readonly linearVelocity: Vec3;
+  readonly angularVelocity: Vec3;
+  readonly impulse: { readonly id: number; readonly impulse: Vec3 } | null;
+};
+
+/**
+ * The scene's physics world (react-three-rapier `Physics`): gravity, pausing, and the
+ * fixed step it advances by, interpolating poses between steps.
+ */
+export type Physics = {
+  readonly gravity: Vec3;
+  readonly paused: boolean;
+  readonly timeStep: number;
+  readonly interpolate: boolean;
 };
 
 /**
@@ -747,6 +802,8 @@ export type SceneDescription = {
   readonly sky: Sky | null;
   /** Soft shadows on the ground, or `null` for none. */
   readonly contactShadows: ContactShadows | null;
+  /** A physics world for meshes with a `body`, or `null` for none. */
+  readonly physics: Physics | null;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

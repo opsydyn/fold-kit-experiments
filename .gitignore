@@ -40,4 +40,5 @@ d3-main/
 # effect-three reference checkouts (see docs/effect-three/references.md)
 react-three-fiber-main/
 drei-main/
+react-three-rapier-main/
 three-effect-main/

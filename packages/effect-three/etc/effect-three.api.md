@@ -143,6 +143,65 @@ export const bloom: (options?: {
 }) => PostEffect;
 
 // @public
+export const body: (options?: Partial<Body_2>) => Body_2;
+
+// @public
+type Body_2 = {
+    readonly type: BodyType;
+    readonly collider: BodyCollider;
+    readonly mass: number | null;
+    readonly friction: number;
+    readonly restitution: number;
+    readonly linearDamping: number;
+    readonly angularDamping: number;
+    readonly gravityScale: number;
+    readonly ccd: boolean;
+    readonly sensor: boolean;
+    readonly linearVelocity: Vec3;
+    readonly angularVelocity: Vec3;
+    readonly impulse: {
+        readonly id: number;
+        readonly impulse: Vec3;
+    } | null;
+};
+export { Body_2 as Body }
+
+// @public
+const Body_3: Schema.Struct<{
+    readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
+    readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
+    readonly mass: Schema.NullOr<Schema.Finite>;
+    readonly friction: Schema.Finite;
+    readonly restitution: Schema.Finite;
+    readonly linearDamping: Schema.Finite;
+    readonly angularDamping: Schema.Finite;
+    readonly gravityScale: Schema.Finite;
+    readonly ccd: Schema.Boolean;
+    readonly sensor: Schema.Boolean;
+    readonly linearVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly angularVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly impulse: Schema.NullOr<Schema.Struct<{
+        readonly id: Schema.Finite;
+        readonly impulse: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+}>;
+
+// @public
+export type BodyCollider = 'cuboid' | 'ball' | 'hull' | 'trimesh';
+
+// @public
+export const bodyEquals: (a: Body_2 | null, b: Body_2 | null) => boolean;
+
+// @public
+export type BodyPose = {
+    readonly position: Vec3;
+    readonly quaternion: Quat;
+};
+
+// @public
+export type BodyType = 'dynamic' | 'fixed' | 'kinematic';
+
+// @public
 export const borrowed: (options: TransformOptions & {
     readonly id: string;
     readonly interactive?: boolean;
@@ -316,6 +375,41 @@ export const clipRunning: (animation: Animation_2, duration: number, elapsed: nu
 
 // @public
 export const clipTime: (animation: Animation_2, duration: number, elapsed: number) => number;
+
+// @public
+export const colliderFor: (geometry: BufferGeometry, collider: BodyCollider, scale: Vector3) => ColliderShape;
+
+// @public
+export type ColliderShape = {
+    readonly _tag: 'Cuboid';
+    readonly halfExtents: Vec3;
+    readonly offset: Vec3;
+} | {
+    readonly _tag: 'Ball';
+    readonly radius: number;
+    readonly offset: Vec3;
+} | {
+    readonly _tag: 'Hull';
+    readonly points: Float32Array;
+} | {
+    readonly _tag: 'Trimesh';
+    readonly vertices: Float32Array;
+    readonly indices: Uint32Array;
+};
+
+// @public
+export type Collision = {
+    readonly a: string;
+    readonly b: string;
+    readonly started: boolean;
+};
+
+// @public
+const CollisionDetail: Schema.Struct<{
+    readonly a: Schema.String;
+    readonly b: Schema.String;
+    readonly started: Schema.Boolean;
+}>;
 
 // @public
 export const cone: (options?: {
@@ -634,7 +728,7 @@ const Environment_2: Schema.Struct<{
 export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor';
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body';
 
 // @public
 export const film: (options?: {
@@ -1428,6 +1522,7 @@ export const mesh: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
+    readonly body?: Body_2 | null;
 }) => MeshNode;
 
 // @public
@@ -1444,9 +1539,10 @@ export type MeshNode = {
     readonly interactive: boolean;
     readonly castShadow: boolean;
     readonly receiveShadow: boolean;
+    readonly body: Body_2 | null;
 };
 
-// @public
+// @public (undocumented)
 const MeshNode_2: Schema.TaggedStruct<"Mesh", {
     readonly key: Schema.String;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1589,6 +1685,24 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
     readonly interactive: Schema.Boolean;
     readonly castShadow: Schema.Boolean;
     readonly receiveShadow: Schema.Boolean;
+    readonly body: Schema.NullOr<Schema.Struct<{
+        readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
+        readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
+        readonly mass: Schema.NullOr<Schema.Finite>;
+        readonly friction: Schema.Finite;
+        readonly restitution: Schema.Finite;
+        readonly linearDamping: Schema.Finite;
+        readonly angularDamping: Schema.Finite;
+        readonly gravityScale: Schema.Finite;
+        readonly ccd: Schema.Boolean;
+        readonly sensor: Schema.Boolean;
+        readonly linearVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly angularVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly impulse: Schema.NullOr<Schema.Struct<{
+            readonly id: Schema.Finite;
+            readonly impulse: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+    }>>;
 }>;
 
 // @public
@@ -1926,6 +2040,48 @@ const PhysicalMaterial_2: Schema.TaggedStruct<"Physical", {
     readonly ior: Schema.Finite;
 }>;
 
+// @public
+export type Physics = {
+    readonly gravity: Vec3;
+    readonly paused: boolean;
+    readonly timeStep: number;
+    readonly interpolate: boolean;
+};
+
+// @public
+export const physics: (options?: Partial<Physics>) => Physics;
+
+// @public
+const Physics_2: Schema.Struct<{
+    readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly paused: Schema.Boolean;
+    readonly timeStep: Schema.Finite;
+    readonly interpolate: Schema.Boolean;
+}>;
+
+// @public
+export type PhysicsEngine = {
+    readonly createWorld: (physics: Physics) => PhysicsWorld;
+};
+
+// @public
+export const physicsEquals: (a: Physics | null, b: Physics | null) => boolean;
+
+// @public
+export type PhysicsWorld = {
+    readonly configure: (physics: Physics) => void;
+    readonly add: (key: string, body: Body_2, shape: ColliderShape, pose: BodyPose) => void;
+    readonly update: (key: string, body: Body_2) => void;
+    readonly teleport: (key: string, pose: BodyPose) => void;
+    readonly moveKinematic: (key: string, pose: BodyPose) => void;
+    readonly applyImpulse: (key: string, impulse: Vec3) => void;
+    readonly remove: (key: string) => void;
+    readonly step: (seconds: number) => ReadonlyArray<Collision>;
+    readonly pose: (key: string) => BodyPose | undefined;
+    readonly awake: () => boolean;
+    readonly dispose: () => void;
+};
+
 // @public (undocumented)
 export type Picker = {
     readonly pick: (x: number, y: number) => Hit | undefined;
@@ -2088,6 +2244,9 @@ const PostEffect_2: Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
     readonly intensity: Schema.Finite;
     readonly grayscale: Schema.Boolean;
 }>]>;
+
+// @public
+export type Quat = readonly [x: number, y: number, z: number, w: number];
 
 // @public
 export type Ray = {
@@ -2502,6 +2661,7 @@ export const scene: (options: {
     readonly environment?: Environment | null;
     readonly sky?: Sky | null;
     readonly contactShadows?: ContactShadows | null;
+    readonly physics?: Physics | null;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2524,6 +2684,7 @@ export type SceneDescription = {
     readonly environment: Environment | null;
     readonly sky: Sky | null;
     readonly contactShadows: ContactShadows | null;
+    readonly physics: Physics | null;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2629,6 +2790,12 @@ const SceneDescription_2: Schema.Struct<{
         readonly opacity: Schema.Finite;
         readonly color: Schema.Int;
         readonly resolution: Schema.Int;
+    }>>;
+    readonly physics: Schema.NullOr<Schema.Struct<{
+        readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly paused: Schema.Boolean;
+        readonly timeStep: Schema.Finite;
+        readonly interpolate: Schema.Boolean;
     }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -2822,6 +2989,17 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly gesture: Gesture;
 }
 /**
+* Two bodies began (`started`) or stopped touching, by their nodes' keys: Rapier's
+* collision events, as react-three-rapier's `onCollisionEnter` and `onCollisionExit`.
+* Not a pointer event: it travels with them so one stream carries everything.
+*/
+| {
+    readonly _tag: 'Collision';
+    readonly a: string;
+    readonly b: string;
+    readonly started: boolean;
+}
+/**
 * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
 * it travels with them so one stream carries everything the scene reports.
 */
@@ -3003,6 +3181,10 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
     }>]>;
+}>, Schema.TaggedStruct<"Collision", {
+    readonly a: Schema.String;
+    readonly b: Schema.String;
+    readonly started: Schema.Boolean;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -3018,6 +3200,7 @@ export type SceneGraph = {
     readonly overlays: () => ReadonlyArray<Overlay>;
     readonly environment: () => Environment | null;
     readonly contactShadows: () => ContactShadows | null;
+    readonly collisions: () => ReadonlyArray<Collision>;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -3043,6 +3226,7 @@ export type SceneGraph = {
 export type SceneGraphOptions = {
     readonly store?: ResourceStore;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
+    readonly physics?: PhysicsEngine | undefined;
 };
 
 // @public
@@ -3107,6 +3291,7 @@ type SceneRuntimeOptions = {
     readonly viewport: Viewport;
     readonly eventCapacity?: number;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
+    readonly physics?: PhysicsEngine | undefined;
     readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
 
@@ -3142,6 +3327,8 @@ declare namespace SceneSchema {
         GeometryRef_2 as GeometryRef,
         MaterialRef_2 as MaterialRef,
         ResourceDefinitions_2 as ResourceDefinitions,
+        Body_3 as Body,
+        Physics_2 as Physics,
         MeshNode_2 as MeshNode,
         Instance_2 as Instance,
         InstancesNode_2 as InstancesNode,
@@ -3177,6 +3364,7 @@ declare namespace SceneSchema {
         PerformanceDetail,
         Modifiers_2 as Modifiers,
         Gesture_2 as Gesture,
+        CollisionDetail,
         GestureDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError

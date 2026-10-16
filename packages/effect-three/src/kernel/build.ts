@@ -7,6 +7,7 @@ import type {
   AmbientLightNode,
   Animation,
   BasicMaterial,
+  Body,
   Behave,
   BorrowedNode,
   Axis,
@@ -20,6 +21,7 @@ import type {
   TextBevel,
   TextGeometry,
   Overlay,
+  Physics,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -421,6 +423,7 @@ export const mesh = (
     readonly interactive?: boolean;
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
+    readonly body?: Body | null;
   },
 ): MeshNode => ({
   _tag: 'Mesh',
@@ -435,6 +438,39 @@ export const mesh = (
   interactive: options.interactive ?? false,
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
+  body: options.body ?? null,
+});
+
+/**
+ * A rigid body for a mesh. Defaults as react-three-rapier's `RigidBody` and Rapier: dynamic,
+ * a cuboid collider from the bounding box, density 1, friction 0.5, restitution 0, no
+ * damping, gravity scale 1, no CCD, not a sensor, at rest, no impulse.
+ */
+export const body = (options: Partial<Body> = {}): Body => ({
+  type: options.type ?? 'dynamic',
+  collider: options.collider ?? 'cuboid',
+  mass: options.mass ?? null,
+  friction: options.friction ?? 0.5,
+  restitution: options.restitution ?? 0,
+  linearDamping: options.linearDamping ?? 0,
+  angularDamping: options.angularDamping ?? 0,
+  gravityScale: options.gravityScale ?? 1,
+  ccd: options.ccd ?? false,
+  sensor: options.sensor ?? false,
+  linearVelocity: options.linearVelocity ?? origin,
+  angularVelocity: options.angularVelocity ?? origin,
+  impulse: options.impulse ?? null,
+});
+
+/**
+ * A physics world. Defaults as react-three-rapier's `Physics`: Earth gravity
+ * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated.
+ */
+export const physics = (options: Partial<Physics> = {}): Physics => ({
+  gravity: options.gravity ?? [0, -9.81, 0],
+  paused: options.paused ?? false,
+  timeStep: options.timeStep ?? 1 / 60,
+  interpolate: options.interpolate ?? true,
 });
 
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */
@@ -870,6 +906,7 @@ export const scene = (options: {
   readonly environment?: Environment | null;
   readonly sky?: Sky | null;
   readonly contactShadows?: ContactShadows | null;
+  readonly physics?: Physics | null;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -882,6 +919,7 @@ export const scene = (options: {
   environment: options.environment ?? null,
   sky: options.sky ?? null,
   contactShadows: options.contactShadows ?? null,
+  physics: options.physics ?? null,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

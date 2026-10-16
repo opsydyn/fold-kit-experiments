@@ -244,6 +244,31 @@ export const ResourceDefinitions = Schema.Struct({
 });
 
 /** A renderable mesh. */
+/** A rigid body for a mesh. */
+export const Body = Schema.Struct({
+  type: Schema.Literals(['dynamic', 'fixed', 'kinematic']),
+  collider: Schema.Literals(['cuboid', 'ball', 'hull', 'trimesh']),
+  mass: Schema.NullOr(Positive),
+  friction: NonNegative,
+  restitution: NonNegative,
+  linearDamping: NonNegative,
+  angularDamping: NonNegative,
+  gravityScale: Schema.Finite,
+  ccd: Schema.Boolean,
+  sensor: Schema.Boolean,
+  linearVelocity: Vec3,
+  angularVelocity: Vec3,
+  impulse: Schema.NullOr(Schema.Struct({ id: Schema.Finite, impulse: Vec3 })),
+});
+
+/** A physics world. */
+export const Physics = Schema.Struct({
+  gravity: Vec3,
+  paused: Schema.Boolean,
+  timeStep: Positive,
+  interpolate: Schema.Boolean,
+});
+
 export const MeshNode = Schema.TaggedStruct('Mesh', {
   key: Schema.String,
   position: Vec3,
@@ -256,6 +281,7 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   interactive: Schema.Boolean,
   castShadow: Schema.Boolean,
   receiveShadow: Schema.Boolean,
+  body: Schema.NullOr(Body),
 });
 
 /** One instance of an instances node. */
@@ -535,6 +561,7 @@ export const SceneDescription = Schema.Struct({
   environment: Schema.NullOr(Environment),
   sky: Schema.NullOr(Sky),
   contactShadows: Schema.NullOr(ContactShadows),
+  physics: Schema.NullOr(Physics),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
@@ -624,6 +651,13 @@ export const Gesture = Schema.Union([
   }),
 ]);
 
+/** Detail of collision events: the two bodies' keys, and whether they began touching. */
+export const CollisionDetail = Schema.Struct({
+  a: Schema.String,
+  b: Schema.String,
+  started: Schema.Boolean,
+});
+
 /** Detail of gesture events. */
 export const GestureDetail = Schema.Struct({ gesture: Gesture });
 
@@ -642,6 +676,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('Drag', DragDetail.fields),
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
   Schema.TaggedStruct('Gesture', GestureDetail.fields),
+  Schema.TaggedStruct('Collision', CollisionDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 

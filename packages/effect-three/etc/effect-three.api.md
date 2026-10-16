@@ -3382,6 +3382,53 @@ const SpotLightNode_2: Schema.TaggedStruct<"SpotLight", {
 }>;
 
 // @public
+export type Stage = {
+    readonly lights: ReadonlyArray<SceneNode>;
+    readonly contactShadows: ContactShadows | null;
+    readonly environment: Environment | null;
+};
+
+// @public
+export const stage: (options: {
+    readonly radius: number;
+    readonly height: number;
+    readonly preset?: StagePreset | StageLighting;
+    readonly intensity?: number;
+    readonly shadows?: 'contact' | 'none';
+    readonly environment?: Environment | null;
+    readonly keyPrefix?: string;
+}) => Stage;
+
+// @public
+export type StageLighting = {
+    readonly main: Vec3;
+    readonly fill: Vec3;
+};
+
+// @public (undocumented)
+export type StagePreset = keyof typeof stagePresets;
+
+// @public
+export const stagePresets: {
+    rembrandt: {
+        main: [number, number, number];
+        fill: [number, number, number];
+    };
+    portrait: {
+        main: [number, number, number];
+        fill: [number, number, number];
+    };
+    upfront: {
+        main: [number, number, number];
+        fill: [number, number, number];
+    };
+    soft: {
+        main: [number, number, number];
+        fill: [number, number, number];
+    };
+};
+
+// @public
 export const standard: (options?: Partial<Omit<StandardMaterial, '_tag'>>) => StandardMaterial;
 
 // @public

@@ -53,6 +53,7 @@ const description = scene({
 - **HTML overlays:** `overlay({ key: 'tag', node: 'cone', position: [0, 1, 0], center: true })` is a point the scene places after every drawn frame, as Drei's `Html`; the Foldkit view's `overlays: [{ overlay, content }]` moves Model-rendered HTML there.
 - **Text:** `text({ text: 'Hello', font: 'inter', depth: 0.2 })` is extruded (or, at depth 0, flat) text from a typeface JSON font lent with `store.lendFont` (`assets.loadFont` in Foldkit), as Drei's `Text3D`.
 - **Staging:** `scene({ environment: environment(), sky: sky() })` adds image-based lighting (three's `RoomEnvironment`, or a lent panorama with `map`) and a daylight sky, as Drei's `Environment` and `Sky`; `grid({ key })` draws three's `GridHelper`, `contactShadows()` draws Drei's soft ground shadows, and `shadowMaterial()` shows only the shadows cast onto it.
+- **Stage:** `const { lights, contactShadows, environment } = stage({ radius: 1.2, height: 2 })` is Drei's `Stage` lighting (presets `rembrandt`, `portrait`, `upfront`, `soft`) for content centred on the origin; spread the parts into `scene`.
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 

@@ -129,6 +129,7 @@ export {
   rotateCamera,
 } from './orbit.ts';
 export { type OverlayPlacement, placeOverlays } from './overlays.ts';
+export { type Stage, stage, type StageLighting, type StagePreset, stagePresets } from './stage.ts';
 export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
 export {
   createPicker,

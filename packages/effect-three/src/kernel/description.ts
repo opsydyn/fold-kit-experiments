@@ -701,6 +701,33 @@ export type Sky = {
   readonly distance: number;
 };
 
+/**
+ * Soft shadows on the ground under everything, as Drei's `ContactShadows`
+ * (`src/core/ContactShadows.tsx` at `bf6f4ad`, after three.js's `webgl_shadow_contact`
+ * example): the scene's depth seen from below, blurred, on a plane. Redrawn with every
+ * frame the scene draws; needs no lights or shadow maps.
+ */
+export type ContactShadows = {
+  /** The middle of the shadow plane; it lies flat, facing up. */
+  readonly position: Vec3;
+  /** Width and depth of the plane, in world units (Drei's `width × scale`, `height × scale`). */
+  readonly size: readonly [width: number, depth: number];
+  /**
+   * Where the shadow camera starts seeing, above the plane (Drei's `near`). Negative takes
+   * in faces just below it, such as the flat bottoms of objects resting on the plane.
+   */
+  readonly near: number;
+  /** How far above the plane objects still cast a shadow (Drei's `far`). */
+  readonly far: number;
+  readonly blur: number;
+  /** A second, finer blur pass (Drei's `smooth`). */
+  readonly smooth: boolean;
+  readonly opacity: number;
+  readonly color: Rgb;
+  /** Texels across the shadow texture. */
+  readonly resolution: number;
+};
+
 export type SceneDescription = {
   readonly camera: Camera;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -718,6 +745,8 @@ export type SceneDescription = {
   readonly environment: Environment | null;
   /** A daylight sky behind everything, or `null` for none. */
   readonly sky: Sky | null;
+  /** Soft shadows on the ground, or `null` for none. */
+  readonly contactShadows: ContactShadows | null;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

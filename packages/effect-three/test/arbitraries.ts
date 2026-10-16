@@ -263,6 +263,19 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  contactShadows: Schema.NullOr(
+    Schema.Struct({
+      position: Vec3,
+      size: Schema.Tuple([Schema.Literals([4, 10]), Schema.Literals([10])]),
+      near: Schema.Literals([-0.01, 0]),
+      far: Schema.Literals([10]),
+      blur: Schema.Literals([0, 1]),
+      smooth: Schema.Boolean,
+      opacity: Schema.Literals([0.5, 1]),
+      color: Colour,
+      resolution: Schema.Literals([64]),
+    }),
+  ),
   sky: Schema.NullOr(
     Schema.Struct({
       sunPosition: Vec3,

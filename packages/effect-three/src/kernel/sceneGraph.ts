@@ -47,6 +47,7 @@ import type {
   SceneDescription,
   SceneNode,
   SpotLightNode,
+  ContactShadows,
   Environment,
   Gestures,
   Overlay,
@@ -57,7 +58,7 @@ import type {
   ViewRect,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
-import { environmentEquals, overlaysEqual, skyEquals } from './equality.ts';
+import { contactShadowsEquals, environmentEquals, overlaysEqual, skyEquals } from './equality.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostMaterial } from './materials.ts';
 import {
@@ -186,6 +187,8 @@ export type SceneGraph = {
   readonly overlays: () => ReadonlyArray<Overlay>;
   /** Image-based lighting and background; the frame loop applies it. */
   readonly environment: () => Environment | null;
+  /** Soft ground shadows; the frame loop draws them. */
+  readonly contactShadows: () => ContactShadows | null;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -385,6 +388,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let overlayList: ReadonlyArray<Overlay> = emptyScene.overlays;
   let environmentDescription: Environment | null = emptyScene.environment;
   let skyDescription: Sky | null = emptyScene.sky;
+  let contactDescription: ContactShadows | null = emptyScene.contactShadows;
   let skyMesh: SkyMesh | undefined;
 
   /** Shows, updates or removes the sky. It belongs to the scene, so it is never picked. */
@@ -1017,6 +1021,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     overlays: [],
     environment: null,
     sky: null,
+    contactShadows: null,
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -1103,6 +1108,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       invalidate();
     }
     skyDescription = next.sky;
+    // The frame loop draws contact shadows with the renderer: a change needs a frame.
+    if (!contactShadowsEquals(contactDescription, next.contactShadows)) invalidate();
+    contactDescription = next.contactShadows;
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -1170,6 +1178,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     gestures: () => gestures,
     overlays: () => overlayList,
     environment: () => environmentDescription,
+    contactShadows: () => contactDescription,
     store,
     reconcile,
     tick,

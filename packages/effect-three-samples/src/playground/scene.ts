@@ -8,6 +8,7 @@
 import {
   ambientLight,
   box,
+  contactShadows,
   directionalLight,
   ease,
   fixed,
@@ -68,6 +69,16 @@ export const sceneFor = (model: Model) =>
     // The Preetham sky is high dynamic range: it needs tone mapping, as in three's example.
     sky: sky({ sunPosition: sun, turbidity: 4, rayleigh: 1.2 }),
     render: renderSettings({ toneMapping: 'aces', exposure: 0.85 }),
+    // Soft shadows under the shelves, just above the grid; the turned cubes' lowest corners
+    // dip below the plane, so the shadow camera starts a little under it.
+    contactShadows: contactShadows({
+      position: [0, -1.17, 0],
+      size: 14,
+      near: -0.4,
+      far: 1.2,
+      blur: 2,
+      opacity: 0.85,
+    }),
     resources: {
       geometries: [{ id: 'cube', geometry: box({ width: 0.85, height: 0.85, depth: 0.85 }) }],
       materials: paints.map((paint) => ({

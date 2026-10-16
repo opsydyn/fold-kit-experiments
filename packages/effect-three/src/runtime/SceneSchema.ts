@@ -510,6 +510,19 @@ export const Sky = Schema.Struct({
   distance: Positive,
 });
 
+/** Soft ground shadows. */
+export const ContactShadows = Schema.Struct({
+  position: Vec3,
+  size: Schema.Tuple([Positive, Positive]),
+  near: Schema.Finite,
+  far: Positive,
+  blur: NonNegative,
+  smooth: Schema.Boolean,
+  opacity: UnitInterval,
+  color: Rgb,
+  resolution: Schema.Int.check(Schema.isBetween({ minimum: 16, maximum: 4096 })),
+});
+
 /** Whether the scene claims the pointer's gestures from the page. */
 export const Gestures = Schema.Literals(['page', 'scene']);
 
@@ -521,6 +534,7 @@ export const SceneDescription = Schema.Struct({
   overlays: Schema.Array(Overlay),
   environment: Schema.NullOr(Environment),
   sky: Schema.NullOr(Sky),
+  contactShadows: Schema.NullOr(ContactShadows),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),

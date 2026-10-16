@@ -1,5 +1,6 @@
 import { EquirectangularReflectionMapping, type Texture, UVMapping } from 'three';
 
+import { createContactShadows } from './contactShadows.ts';
 import type { RenderSettings } from './description.ts';
 import { type OverlayPlacement, placeOverlays } from './overlays.ts';
 import { createPerformanceMonitor, type PerformanceOptions } from './performance.ts';
@@ -111,6 +112,7 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       for (const id of targets.keys()) if (!live.has(id)) release(id);
     }
   };
+  const contact = createContactShadows(graph, renderer);
   // The room environment, made by the renderer while a scene asks for it.
   let room: RenderTarget | undefined;
 
@@ -165,6 +167,7 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       }
       drawTextures();
       applyEnvironment();
+      contact.draw();
       const views = graph.views();
       if (views.length === 0) renderer.render(graph.scene, graph.camera);
       for (const view of views) renderer.render(graph.scene, view.camera, view.area);
@@ -180,6 +183,7 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
     dispose: () => {
       for (const id of targets.keys()) release(id);
       releaseRoom();
+      contact.dispose();
     },
     wantsFrames: () => {
       const mode = graph.renderSettings().frames;

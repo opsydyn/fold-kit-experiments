@@ -12,6 +12,7 @@ import type {
   Axis,
   BoxGeometry,
   Camera,
+  ContactShadows,
   Environment,
   Gestures,
   GridNode,
@@ -798,6 +799,38 @@ export const sky = (options: Partial<Sky> = {}): Sky => ({
   distance: options.distance ?? 1000,
 });
 
+/**
+ * Soft ground shadows (Drei's `ContactShadows`). Defaults as Drei: a 10 × 10 plane at the
+ * origin (Drei's `scale` 10), shadows from 0 to 10 units above, blur 1 with the smooth
+ * pass, opacity 1, black, 512 texels.
+ */
+export const contactShadows = (
+  options: {
+    readonly position?: Vec3;
+    readonly size?: number | readonly [number, number];
+    readonly near?: number;
+    readonly far?: number;
+    readonly blur?: number;
+    readonly smooth?: boolean;
+    readonly opacity?: number;
+    readonly color?: Rgb;
+    readonly resolution?: number;
+  } = {},
+): ContactShadows => {
+  const size = options.size ?? 10;
+  return {
+    position: options.position ?? origin,
+    size: typeof size === 'number' ? [size, size] : size,
+    near: options.near ?? 0,
+    far: options.far ?? 10,
+    blur: options.blur ?? 1,
+    smooth: options.smooth ?? true,
+    opacity: options.opacity ?? 1,
+    color: options.color ?? 0x000000,
+    resolution: options.resolution ?? 512,
+  };
+};
+
 const noOverlays: ReadonlyArray<Overlay> = [];
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
@@ -833,8 +866,10 @@ export const scene = (options: {
   readonly views?: ReadonlyArray<View>;
   readonly renderTextures?: ReadonlyArray<RenderTexture>;
   readonly overlays?: ReadonlyArray<Overlay>;
-  readonly environment?: Environment;
-  readonly sky?: Sky;
+  /** Optional staging: leave out or pass `null` for none, so a Model can switch it off. */
+  readonly environment?: Environment | null;
+  readonly sky?: Sky | null;
+  readonly contactShadows?: ContactShadows | null;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -846,6 +881,7 @@ export const scene = (options: {
   overlays: options.overlays ?? noOverlays,
   environment: options.environment ?? null,
   sky: options.sky ?? null,
+  contactShadows: options.contactShadows ?? null,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

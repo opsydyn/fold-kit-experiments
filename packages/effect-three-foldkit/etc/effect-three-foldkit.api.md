@@ -291,6 +291,17 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly clouds: Schema.Finite;
             readonly distance: Schema.Finite;
         }>>;
+        readonly contactShadows: Schema.NullOr<Schema.Struct<{
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+            readonly near: Schema.Finite;
+            readonly far: Schema.Finite;
+            readonly blur: Schema.Finite;
+            readonly smooth: Schema.Boolean;
+            readonly opacity: Schema.Finite;
+            readonly color: Schema.Int;
+            readonly resolution: Schema.Int;
+        }>>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;

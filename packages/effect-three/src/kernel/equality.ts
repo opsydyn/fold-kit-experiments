@@ -12,6 +12,7 @@ import type {
   MaterialRef,
   Overlay,
   Camera,
+  ContactShadows,
   Environment,
   PostEffect,
   RenderSettings,
@@ -316,3 +317,19 @@ export const skyEquals = (a: Sky | null, b: Sky | null): boolean =>
     Object.is(a.mieDirectionalG, b.mieDirectionalG) &&
     Object.is(a.clouds, b.clouds) &&
     Object.is(a.distance, b.distance));
+
+/** Contact shadow equality. */
+export const contactShadowsEquals = (a: ContactShadows | null, b: ContactShadows | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    vec3Equals(a.position, b.position) &&
+    a.size[0] === b.size[0] &&
+    a.size[1] === b.size[1] &&
+    Object.is(a.near, b.near) &&
+    Object.is(a.far, b.far) &&
+    Object.is(a.blur, b.blur) &&
+    a.smooth === b.smooth &&
+    Object.is(a.opacity, b.opacity) &&
+    a.color === b.color &&
+    a.resolution === b.resolution);

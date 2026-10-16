@@ -339,6 +339,48 @@ const ConeGeometry_2: Schema.TaggedStruct<"Cone", {
     readonly radialSegments: Schema.Int;
 }>;
 
+// @public
+export type ContactShadows = {
+    readonly position: Vec3;
+    readonly size: readonly [width: number, depth: number];
+    readonly near: number;
+    readonly far: number;
+    readonly blur: number;
+    readonly smooth: boolean;
+    readonly opacity: number;
+    readonly color: Rgb;
+    readonly resolution: number;
+};
+
+// @public
+export const contactShadows: (options?: {
+    readonly position?: Vec3;
+    readonly size?: number | readonly [number, number];
+    readonly near?: number;
+    readonly far?: number;
+    readonly blur?: number;
+    readonly smooth?: boolean;
+    readonly opacity?: number;
+    readonly color?: Rgb;
+    readonly resolution?: number;
+}) => ContactShadows;
+
+// @public
+const ContactShadows_2: Schema.Struct<{
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly near: Schema.Finite;
+    readonly far: Schema.Finite;
+    readonly blur: Schema.Finite;
+    readonly smooth: Schema.Boolean;
+    readonly opacity: Schema.Finite;
+    readonly color: Schema.Int;
+    readonly resolution: Schema.Int;
+}>;
+
+// @public
+export const contactShadowsEquals: (a: ContactShadows | null, b: ContactShadows | null) => boolean;
+
 // Warning: (ae-forgotten-export) The symbol "Paced" needs to be exported by the entry point index.d.ts
 //
 // @public
@@ -2457,8 +2499,9 @@ export const scene: (options: {
     readonly views?: ReadonlyArray<View>;
     readonly renderTextures?: ReadonlyArray<RenderTexture>;
     readonly overlays?: ReadonlyArray<Overlay>;
-    readonly environment?: Environment;
-    readonly sky?: Sky;
+    readonly environment?: Environment | null;
+    readonly sky?: Sky | null;
+    readonly contactShadows?: ContactShadows | null;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2480,6 +2523,7 @@ export type SceneDescription = {
     readonly overlays: ReadonlyArray<Overlay>;
     readonly environment: Environment | null;
     readonly sky: Sky | null;
+    readonly contactShadows: ContactShadows | null;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2574,6 +2618,17 @@ const SceneDescription_2: Schema.Struct<{
         readonly mieDirectionalG: Schema.Finite;
         readonly clouds: Schema.Finite;
         readonly distance: Schema.Finite;
+    }>>;
+    readonly contactShadows: Schema.NullOr<Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly near: Schema.Finite;
+        readonly far: Schema.Finite;
+        readonly blur: Schema.Finite;
+        readonly smooth: Schema.Boolean;
+        readonly opacity: Schema.Finite;
+        readonly color: Schema.Int;
+        readonly resolution: Schema.Int;
     }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -2962,6 +3017,7 @@ export type SceneGraph = {
     readonly gestures: () => Gestures;
     readonly overlays: () => ReadonlyArray<Overlay>;
     readonly environment: () => Environment | null;
+    readonly contactShadows: () => ContactShadows | null;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -3108,6 +3164,7 @@ declare namespace SceneSchema {
         Overlay_2 as Overlay,
         Environment_2 as Environment,
         Sky_2 as Sky,
+        ContactShadows_2 as ContactShadows,
         Gestures_2 as Gestures,
         SceneDescription_2 as SceneDescription,
         KeyDetail,

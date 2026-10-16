@@ -12,6 +12,7 @@ import type {
   Axis,
   BoxGeometry,
   Camera,
+  Environment,
   Gestures,
   TextBevel,
   TextGeometry,
@@ -31,6 +32,7 @@ import type {
   MaterialRef,
   MeshNode,
   NormalMaterial,
+  ShadowMaterial,
   OrthographicCamera,
   PhongMaterial,
   PhysicalMaterial,
@@ -338,6 +340,18 @@ export const normalMaterial = (
   side: options.side ?? 'front',
   wireframe: options.wireframe ?? false,
   flatShading: options.flatShading ?? false,
+});
+
+/**
+ * A shadow catcher: shows only the shadows cast onto it (three.js's `ShadowMaterial`).
+ * Defaults as three.js: black, opacity 1. Needs `render.shadows` and `receiveShadow`.
+ */
+export const shadowMaterial = (
+  options: { readonly color?: Rgb; readonly opacity?: number } = {},
+): ShadowMaterial => ({
+  _tag: 'Shadow',
+  color: options.color ?? 0x000000,
+  opacity: options.opacity ?? 1,
 });
 
 /** A reference to a shared geometry defined in the scene's resources. */
@@ -714,6 +728,27 @@ export const renderTexture = (options: {
 });
 
 /** A scene description. */
+/**
+ * Image-based lighting (Drei's `Environment`). Defaults as Drei: lighting only, no blur,
+ * intensities 1. Without `map`, three.js's `RoomEnvironment`; with it, the equirectangular
+ * texture lent under that id.
+ */
+export const environment = (
+  options: {
+    readonly map?: string;
+    readonly background?: boolean | 'only';
+    readonly backgroundBlurriness?: number;
+    readonly backgroundIntensity?: number;
+    readonly environmentIntensity?: number;
+  } = {},
+): Environment => ({
+  map: options.map ?? null,
+  background: options.background ?? false,
+  backgroundBlurriness: options.backgroundBlurriness ?? 0,
+  backgroundIntensity: options.backgroundIntensity ?? 1,
+  environmentIntensity: options.environmentIntensity ?? 1,
+});
+
 const noOverlays: ReadonlyArray<Overlay> = [];
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
@@ -749,6 +784,7 @@ export const scene = (options: {
   readonly views?: ReadonlyArray<View>;
   readonly renderTextures?: ReadonlyArray<RenderTexture>;
   readonly overlays?: ReadonlyArray<Overlay>;
+  readonly environment?: Environment;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -758,6 +794,7 @@ export const scene = (options: {
   views: options.views ?? noViews,
   renderTextures: options.renderTextures ?? noRenderTextures,
   overlays: options.overlays ?? noOverlays,
+  environment: options.environment ?? null,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

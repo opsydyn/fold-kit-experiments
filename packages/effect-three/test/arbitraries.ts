@@ -122,6 +122,7 @@ const Surface = Schema.Union([
     ...shaded,
   }),
   Schema.TaggedStruct('Normal', shaded),
+  Schema.TaggedStruct('Shadow', { color: Colour, opacity: Unit }),
 ]);
 
 const Children = Schema.Array(Schema.suspend((): Schema.Codec<SceneNode> => Node)).check(
@@ -254,6 +255,15 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  environment: Schema.NullOr(
+    Schema.Struct({
+      map: Schema.NullOr(Schema.Literals(['env'])),
+      background: Schema.Union([Schema.Boolean, Schema.Literal('only')]),
+      backgroundBlurriness: Schema.Literals([0, 0.5]),
+      backgroundIntensity: Schema.Literals([1]),
+      environmentIntensity: Schema.Literals([0.5, 1]),
+    }),
+  ),
   overlays: Schema.Array(
     Schema.Struct({
       key: Schema.Literals(['o1', 'o2']),

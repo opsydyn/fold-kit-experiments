@@ -236,8 +236,19 @@ export type NormalMaterial = {
   readonly flatShading: boolean;
 };
 
+/**
+ * Draws only the shadows falling on it, transparent elsewhere: three.js's
+ * `ShadowMaterial`, for grounding objects on a floor that is not drawn.
+ */
+export type ShadowMaterial = {
+  readonly _tag: 'Shadow';
+  readonly color: Rgb;
+  readonly opacity: number;
+};
+
 /** Any material the kernel can build. */
 export type SurfaceMaterial =
+  | ShadowMaterial
   | BasicMaterial
   | LambertMaterial
   | PhongMaterial
@@ -644,6 +655,20 @@ export type Overlay = {
   readonly view: string | null;
 };
 
+/**
+ * Image-based lighting and background, as Drei's `Environment` (`src/core/Environment.tsx`
+ * at `bf6f4ad`, `setEnvProps`). `map` names an equirectangular texture lent to the store;
+ * `null` uses three.js's `RoomEnvironment`, a neutral studio built in code (no files).
+ */
+export type Environment = {
+  readonly map: string | null;
+  /** Drei's `background`: `false` lights only, `true` also shows it, `'only'` only shows it. */
+  readonly background: boolean | 'only';
+  readonly backgroundBlurriness: number;
+  readonly backgroundIntensity: number;
+  readonly environmentIntensity: number;
+};
+
 export type SceneDescription = {
   readonly camera: Camera;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -657,6 +682,8 @@ export type SceneDescription = {
   readonly renderTextures: ReadonlyArray<RenderTexture>;
   /** Points to show HTML at, placed every frame the scene draws. */
   readonly overlays: ReadonlyArray<Overlay>;
+  /** Image-based lighting and background, or `null` for none. */
+  readonly environment: Environment | null;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

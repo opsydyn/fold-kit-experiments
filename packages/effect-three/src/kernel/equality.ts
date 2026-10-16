@@ -12,6 +12,7 @@ import type {
   MaterialRef,
   Overlay,
   Camera,
+  Environment,
   PostEffect,
   RenderSettings,
   ResourceDefinitions,
@@ -290,3 +291,14 @@ const overlayEquals = (x: Overlay, y: Overlay): boolean =>
 export const overlaysEqual = (a: ReadonlyArray<Overlay>, b: ReadonlyArray<Overlay>): boolean =>
   a === b ||
   (a.length === b.length && a.every((x, i) => b[i] !== undefined && overlayEquals(x, b[i])));
+
+/** Environment equality. */
+export const environmentEquals = (a: Environment | null, b: Environment | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    a.map === b.map &&
+    a.background === b.background &&
+    Object.is(a.backgroundBlurriness, b.backgroundBlurriness) &&
+    Object.is(a.backgroundIntensity, b.backgroundIntensity) &&
+    Object.is(a.environmentIntensity, b.environmentIntensity));

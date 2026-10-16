@@ -26,6 +26,7 @@ import { Scene } from 'three';
 import { Schema } from 'effect';
 import { Scope } from 'effect/Scope';
 import { Scope as Scope_2 } from 'effect';
+import { ShadowMaterial as ShadowMaterial_2 } from 'three';
 import { Stream } from 'effect';
 import { Texture } from 'three';
 import { Vector3 } from 'three';
@@ -561,6 +562,36 @@ export const effectsEqual: (a: ReadonlyArray<PostEffect>, b: ReadonlyArray<PostE
 export const emptyIndex: SceneIndex;
 
 // @public
+export type Environment = {
+    readonly map: string | null;
+    readonly background: boolean | 'only';
+    readonly backgroundBlurriness: number;
+    readonly backgroundIntensity: number;
+    readonly environmentIntensity: number;
+};
+
+// @public
+export const environment: (options?: {
+    readonly map?: string;
+    readonly background?: boolean | 'only';
+    readonly backgroundBlurriness?: number;
+    readonly backgroundIntensity?: number;
+    readonly environmentIntensity?: number;
+}) => Environment;
+
+// @public
+const Environment_2: Schema.Struct<{
+    readonly map: Schema.NullOr<Schema.String>;
+    readonly background: Schema.Union<readonly [Schema.Boolean, Schema.Literal<"only">]>;
+    readonly backgroundBlurriness: Schema.Finite;
+    readonly backgroundIntensity: Schema.Finite;
+    readonly environmentIntensity: Schema.Finite;
+}>;
+
+// @public
+export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
+
+// @public
 export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour';
 
 // @public
@@ -911,7 +942,7 @@ export type HostedView = {
 export type HostInstances = InstancedMesh<BufferGeometry, HostMaterial>;
 
 // @public
-export type HostMaterial = MeshBasicMaterial | MeshLambertMaterial | MeshPhongMaterial | MeshStandardMaterial | MeshPhysicalMaterial | MeshNormalMaterial;
+export type HostMaterial = MeshBasicMaterial | MeshLambertMaterial | MeshPhongMaterial | MeshStandardMaterial | MeshPhysicalMaterial | MeshNormalMaterial | ShadowMaterial_2;
 
 // @public
 export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
@@ -1067,7 +1098,10 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
     }>, Schema.TaggedStruct<"SharedGeometry", {
         readonly id: Schema.String;
     }>]>;
-    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+        readonly color: Schema.Int;
+        readonly opacity: Schema.Finite;
+    }>, Schema.TaggedStruct<"Basic", {
         readonly opacity: Schema.Finite;
         readonly transparent: Schema.Boolean;
         readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -1231,7 +1265,10 @@ export type MaterialRef = SurfaceMaterial | {
 };
 
 // @public
-const MaterialRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+const MaterialRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+    readonly color: Schema.Int;
+    readonly opacity: Schema.Finite;
+}>, Schema.TaggedStruct<"Basic", {
     readonly opacity: Schema.Finite;
     readonly transparent: Schema.Boolean;
     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -1409,7 +1446,10 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
     }>, Schema.TaggedStruct<"SharedGeometry", {
         readonly id: Schema.String;
     }>]>;
-    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+    readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+        readonly color: Schema.Int;
+        readonly opacity: Schema.Finite;
+    }>, Schema.TaggedStruct<"Basic", {
         readonly opacity: Schema.Finite;
         readonly transparent: Schema.Boolean;
         readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -2209,7 +2249,10 @@ const ResourceDefinitions_2: Schema.Struct<{
     }>>;
     readonly materials: Schema.$Array<Schema.Struct<{
         readonly id: Schema.String;
-        readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+        readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+            readonly color: Schema.Int;
+            readonly opacity: Schema.Finite;
+        }>, Schema.TaggedStruct<"Basic", {
             readonly opacity: Schema.Finite;
             readonly transparent: Schema.Boolean;
             readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -2383,6 +2426,7 @@ export const scene: (options: {
     readonly views?: ReadonlyArray<View>;
     readonly renderTextures?: ReadonlyArray<RenderTexture>;
     readonly overlays?: ReadonlyArray<Overlay>;
+    readonly environment?: Environment;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2402,6 +2446,7 @@ export type SceneDescription = {
     readonly views: ReadonlyArray<View>;
     readonly renderTextures: ReadonlyArray<RenderTexture>;
     readonly overlays: ReadonlyArray<Overlay>;
+    readonly environment: Environment | null;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2481,6 +2526,13 @@ const SceneDescription_2: Schema.Struct<{
         readonly zIndexRange: Schema.Tuple<readonly [Schema.Int, Schema.Int]>;
         readonly view: Schema.NullOr<Schema.String>;
     }>>;
+    readonly environment: Schema.NullOr<Schema.Struct<{
+        readonly map: Schema.NullOr<Schema.String>;
+        readonly background: Schema.Union<readonly [Schema.Boolean, Schema.Literal<"only">]>;
+        readonly backgroundBlurriness: Schema.Finite;
+        readonly backgroundIntensity: Schema.Finite;
+        readonly environmentIntensity: Schema.Finite;
+    }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
             readonly strength: Schema.Finite;
@@ -2557,7 +2609,10 @@ const SceneDescription_2: Schema.Struct<{
         }>>;
         readonly materials: Schema.$Array<Schema.Struct<{
             readonly id: Schema.String;
-            readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+            readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+                readonly color: Schema.Int;
+                readonly opacity: Schema.Finite;
+            }>, Schema.TaggedStruct<"Basic", {
                 readonly opacity: Schema.Finite;
                 readonly transparent: Schema.Boolean;
                 readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
@@ -2864,6 +2919,7 @@ export type SceneGraph = {
     readonly renderTextures: () => ReadonlyArray<HostedTexture>;
     readonly gestures: () => Gestures;
     readonly overlays: () => ReadonlyArray<Overlay>;
+    readonly environment: () => Environment | null;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -2931,6 +2987,7 @@ const SceneNode_2: Schema.Codec<SceneNode>;
 export type SceneRenderer = {
     readonly render: (scene: Scene, camera: Camera_2, area?: RenderArea, target?: RenderTarget) => void;
     readonly createTarget: (width: number, height: number) => RenderTarget;
+    readonly createEnvironment: () => RenderTarget;
     readonly configure: (settings: RenderSettings) => void;
     readonly setViewport: (viewport: Viewport) => void;
     readonly memory: () => RendererMemory;
@@ -2982,6 +3039,7 @@ declare namespace SceneSchema {
         StandardMaterial_2 as StandardMaterial,
         PhysicalMaterial_2 as PhysicalMaterial,
         NormalMaterial_2 as NormalMaterial,
+        ShadowMaterial_3 as ShadowMaterial,
         SurfaceMaterial_2 as SurfaceMaterial,
         GeometryRef_2 as GeometryRef,
         MaterialRef_2 as MaterialRef,
@@ -3005,6 +3063,7 @@ declare namespace SceneSchema {
         View_2 as View,
         RenderTexture_2 as RenderTexture,
         Overlay_2 as Overlay,
+        Environment_2 as Environment,
         Gestures_2 as Gestures,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
@@ -3022,6 +3081,25 @@ declare namespace SceneSchema {
         DescriptionError_2 as DescriptionError
     }
 }
+
+// @public
+export type ShadowMaterial = {
+    readonly _tag: 'Shadow';
+    readonly color: Rgb;
+    readonly opacity: number;
+};
+
+// @public
+export const shadowMaterial: (options?: {
+    readonly color?: Rgb;
+    readonly opacity?: number;
+}) => ShadowMaterial;
+
+// @public
+const ShadowMaterial_3: Schema.TaggedStruct<"Shadow", {
+    readonly color: Schema.Int;
+    readonly opacity: Schema.Finite;
+}>;
 
 // @public
 export type ShadowMode = 'off' | 'basic' | 'percentage' | 'soft' | 'variance';
@@ -3218,10 +3296,13 @@ export const startTween: (object: Object3D, target: {
 }) => Tween;
 
 // @public
-export type SurfaceMaterial = BasicMaterial | LambertMaterial | PhongMaterial | StandardMaterial | PhysicalMaterial | NormalMaterial;
+export type SurfaceMaterial = ShadowMaterial | BasicMaterial | LambertMaterial | PhongMaterial | StandardMaterial | PhysicalMaterial | NormalMaterial;
 
 // @public
-const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+    readonly color: Schema.Int;
+    readonly opacity: Schema.Finite;
+}>, Schema.TaggedStruct<"Basic", {
     readonly opacity: Schema.Finite;
     readonly transparent: Schema.Boolean;
     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;

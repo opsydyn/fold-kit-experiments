@@ -17,6 +17,7 @@ import {
   NeutralToneMapping,
   NoToneMapping,
   PCFShadowMap,
+  PMREMGenerator,
   ReinhardToneMapping,
   type ShadowMapType,
   SRGBColorSpace,
@@ -27,6 +28,7 @@ import {
   type WebGLRendererParameters,
   WebGLRenderTarget,
 } from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 import { createPostProcessing } from './postprocessing.ts';
 
@@ -96,6 +98,19 @@ const createTarget = (
   return handle;
 };
 
+/**
+ * three.js's `RoomEnvironment`, prefiltered for image-based lighting, as three's examples
+ * set it up (`PMREMGenerator.fromScene(new RoomEnvironment(), 0.04)`).
+ */
+const createRoom = (renderer: WebGLRenderer): RenderTarget => {
+  const generator = new PMREMGenerator(renderer);
+  const room = new RoomEnvironment();
+  const target = generator.fromScene(room, 0.04);
+  room.dispose();
+  generator.dispose();
+  return { texture: target.texture, dispose: () => target.dispose() };
+};
+
 /** A factory for a WebGL2 renderer drawing into `canvas`. `create` throws if WebGL2 is unavailable. */
 export const webglRendererFactory = (
   canvas: HTMLCanvasElement,
@@ -148,6 +163,7 @@ export const webglRendererFactory = (
         renderer.render(scene, camera);
       },
       createTarget: (width, height) => createTarget(targets, width, height),
+      createEnvironment: () => createRoom(renderer),
       configure: (settings) => {
         configure(renderer, settings);
         resolution = settings.resolution;

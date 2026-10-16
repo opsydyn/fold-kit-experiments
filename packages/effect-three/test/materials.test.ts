@@ -10,6 +10,7 @@ import {
   MeshPhongMaterial,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
+  ShadowMaterial,
 } from 'three';
 
 import {
@@ -22,6 +23,7 @@ import {
   phong,
   physical,
   scene,
+  shadowMaterial,
   sharedMaterial,
   type SurfaceMaterial,
   standard,
@@ -59,6 +61,25 @@ test('material defaults match three.js', () => {
     expect(readBack(description, reference)).toEqual(fields);
     reference.dispose();
   }
+});
+
+test('a shadow catcher has three.js ShadowMaterial defaults and updates in place', () => {
+  const reference = new ShadowMaterial();
+  expect(shadowMaterial()).toEqual({
+    _tag: 'Shadow',
+    color: reference.color.getHex(),
+    opacity: reference.opacity,
+  });
+  const graph = createSceneGraph();
+  graph.reconcile(painted(shadowMaterial()));
+  const built = materialOf(graph, 'a');
+  expect(built).toBeInstanceOf(ShadowMaterial);
+  expect(built.transparent).toBe(true);
+  graph.reconcile(painted(shadowMaterial({ color: 0x223344, opacity: 0.4 })));
+  expect(materialOf(graph, 'a')).toBe(built);
+  expect([Reflect.get(built, 'color').getHex(), built.opacity]).toEqual([0x223344, 0.4]);
+  graph.dispose();
+  reference.dispose();
 });
 
 const materialOf = (graph: ReturnType<typeof createSceneGraph>, key: string): Material => {

@@ -211,8 +211,12 @@ export const PhysicalMaterial = Schema.TaggedStruct('Physical', {
 /** Normal-coloured material parameters. */
 export const NormalMaterial = Schema.TaggedStruct('Normal', shaded);
 
+/** A shadow catcher: only the shadows cast onto it. */
+export const ShadowMaterial = Schema.TaggedStruct('Shadow', { color: Rgb, opacity: UnitInterval });
+
 /** Any material kind. */
 export const SurfaceMaterial = Schema.Union([
+  ShadowMaterial,
   BasicMaterial,
   LambertMaterial,
   PhongMaterial,
@@ -475,6 +479,15 @@ export const Overlay = Schema.Struct({
   view: Schema.NullOr(Schema.String),
 });
 
+/** Image-based lighting and background. */
+export const Environment = Schema.Struct({
+  map: Schema.NullOr(Schema.String),
+  background: Schema.Union([Schema.Boolean, Schema.Literal('only')]),
+  backgroundBlurriness: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
+  backgroundIntensity: NonNegative,
+  environmentIntensity: NonNegative,
+});
+
 /** Whether the scene claims the pointer's gestures from the page. */
 export const Gestures = Schema.Literals(['page', 'scene']);
 
@@ -484,6 +497,7 @@ export const SceneDescription = Schema.Struct({
   views: Schema.Array(View),
   renderTextures: Schema.Array(RenderTexture),
   overlays: Schema.Array(Overlay),
+  environment: Schema.NullOr(Environment),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),

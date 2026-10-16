@@ -105,6 +105,7 @@ export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
 export const makeAssets: (store: ResourceStore) => {
     loadTexture: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
     loadModel: (id: string, url: string) => Effect.Effect<ModelInfo, AssetLoadError, never>;
+    loadEnvironment: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
     loadFont: (id: string, url: string) => Effect.Effect<string, AssetLoadError, never>;
     unload: (id: string) => Effect.Effect<void, never, never>;
     dispose: () => void;
@@ -121,6 +122,7 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     assets: {
         loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
+        loadEnvironment: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadFont: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         unload: (id: string) => Effect_2<void, never, never>;
         dispose: () => void;
@@ -273,6 +275,13 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly zIndexRange: Schema.Tuple<readonly [Schema.Int, Schema.Int]>;
             readonly view: Schema.NullOr<Schema.String>;
         }>>;
+        readonly environment: Schema.NullOr<Schema.Struct<{
+            readonly map: Schema.NullOr<Schema.String>;
+            readonly background: Schema.Union<readonly [Schema.Boolean, Schema.Literal<"only">]>;
+            readonly backgroundBlurriness: Schema.Finite;
+            readonly backgroundIntensity: Schema.Finite;
+            readonly environmentIntensity: Schema.Finite;
+        }>>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;
@@ -349,7 +358,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             }>>;
             readonly materials: Schema.$Array<Schema.Struct<{
                 readonly id: Schema.String;
-                readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Basic", {
+                readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+                    readonly color: Schema.Int;
+                    readonly opacity: Schema.Finite;
+                }>, Schema.TaggedStruct<"Basic", {
                     readonly opacity: Schema.Finite;
                     readonly transparent: Schema.Boolean;
                     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;

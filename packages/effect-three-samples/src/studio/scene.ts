@@ -1,7 +1,8 @@
 /**
  * The studio: five pieces on a floor, each in its own material kind, lit by a sky light,
  * a warm point light and a spot light that follows the selected piece and casts shadows.
- * A monitor at the back shows the selected piece close up, through a render texture.
+ * A monitor at the back shows the selected piece close up, through a render texture, and
+ * a room environment gives the glossy and metal finishes something to reflect.
  */
 import {
   basic,
@@ -10,6 +11,7 @@ import {
   capsule,
   cone,
   ease,
+  environment,
   fixed,
   hemisphereLight,
   lambert,
@@ -74,10 +76,9 @@ const finishMaterial = {
   matte: (color: number, glow: number) => lambert({ color, emissive: glow }),
   glossy: (color: number, glow: number) =>
     phong({ color, emissive: glow, specular: 0x444444, shininess: 80 }),
-  // Fully metallic surfaces reflect only their environment; with no environment map they
-  // render nearly black, so this metal is partly dielectric.
+  // Fully metallic: it reflects the room environment the studio is lit by.
   metal: (color: number, glow: number) =>
-    standard({ color, emissive: glow, metalness: 0.6, roughness: 0.3 }),
+    standard({ color, emissive: glow, metalness: 1, roughness: 0.25 }),
   lacquer: (color: number, glow: number) =>
     physical({ color, emissive: glow, roughness: 0.45, clearcoat: 1, clearcoatRoughness: 0.05 }),
   flat: (color: number, glow: number) => basic({ color: lighten(color, glow / 0xffffff) }),
@@ -187,6 +188,8 @@ export const sceneFor = (model: Model) =>
     gestures: 'scene',
     views: viewsFor[model.lens](model.camera),
     render: renderSettings({ shadows: model.shadows, toneMapping: model.tone }),
+    // three's RoomEnvironment: soft studio reflections without an image file.
+    environment: environment({ environmentIntensity: 0.5 }),
     renderTextures: [monitorPicture(model)],
     resources: {
       geometries: [

@@ -44,6 +44,7 @@ import type {
   SceneDescription,
   SceneNode,
   SpotLightNode,
+  Environment,
   Gestures,
   Overlay,
   RenderTexture,
@@ -52,7 +53,7 @@ import type {
   ViewRect,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
-import { overlaysEqual } from './equality.ts';
+import { environmentEquals, overlaysEqual } from './equality.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostMaterial } from './materials.ts';
 import {
@@ -172,6 +173,8 @@ export type SceneGraph = {
   readonly gestures: () => Gestures;
   /** Points to show HTML at; the frame loop places them after drawing. */
   readonly overlays: () => ReadonlyArray<Overlay>;
+  /** Image-based lighting and background; the frame loop applies it. */
+  readonly environment: () => Environment | null;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -360,6 +363,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let viewDescriptions: ReadonlyArray<View> = [];
   let gestures: Gestures = emptyScene.gestures;
   let overlayList: ReadonlyArray<Overlay> = emptyScene.overlays;
+  let environmentDescription: Environment | null = emptyScene.environment;
   const cameraMotion = createCameraMotion();
 
   /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
@@ -937,6 +941,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     views: [],
     renderTextures: [],
     overlays: [],
+    environment: null,
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -1015,6 +1020,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // Overlays are placed when a frame is drawn: a change needs one, but no operation.
     if (!overlaysEqual(overlayList, next.overlays)) invalidate();
     overlayList = next.overlays;
+    // The frame loop applies the environment, which may need the renderer: ask for a frame.
+    if (!environmentEquals(environmentDescription, next.environment)) invalidate();
+    environmentDescription = next.environment;
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -1080,6 +1088,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     renderTextures: () => textureList,
     gestures: () => gestures,
     overlays: () => overlayList,
+    environment: () => environmentDescription,
     store,
     reconcile,
     tick,

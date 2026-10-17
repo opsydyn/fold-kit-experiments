@@ -19,6 +19,11 @@ import type {
   GridNode,
   Sky,
   Xr,
+  LabelAlign,
+  LabelAnchorX,
+  LabelAnchorY,
+  LabelNode,
+  TextAlign,
   TextBevel,
   TextGeometry,
   Overlay,
@@ -206,7 +211,9 @@ export const circle = (
 /**
  * Text from the typeface font lent under `font`. Defaults as Drei's `Text3D`: size 1,
  * depth 0.2, 8 curve segments, no bevel (a bevel given defaults to thickness 0.1, size
- * 0.01, offset 0, 4 segments), not centred. Depth 0 draws flat text.
+ * 0.01, offset 0, 4 segments), not centred. Depth 0 draws flat text. Letter spacing (in
+ * ems), line height (a multiple of the font's) and alignment default to the font's own
+ * layout, left aligned; unlike Drei, where three ignores them, they apply.
  */
 export const text = (options: {
   readonly text: string;
@@ -216,6 +223,9 @@ export const text = (options: {
   readonly curveSegments?: number;
   readonly bevel?: Partial<TextBevel>;
   readonly center?: boolean;
+  readonly letterSpacing?: number;
+  readonly lineHeight?: number;
+  readonly align?: TextAlign;
 }): TextGeometry => ({
   _tag: 'Text',
   text: options.text,
@@ -233,6 +243,9 @@ export const text = (options: {
           segments: options.bevel.segments ?? 4,
         },
   center: options.center ?? false,
+  letterSpacing: options.letterSpacing ?? 0,
+  lineHeight: options.lineHeight ?? 1,
+  align: options.align ?? 'left',
 });
 
 /** Position and scale changes apply immediately. The default. */
@@ -633,6 +646,56 @@ export const borrowed = (
   behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
   body: options.body ?? null,
+});
+
+/**
+ * Text drawn from distance fields (Drei's `Text`). Defaults as Drei's: size 1, anchored at
+ * its centre and middle, troika's default font; white, no outline, left-aligned lines,
+ * never wrapped, the font's own line height. Not interactive by default.
+ */
+export const label = (
+  options: TransformOptions & {
+    readonly text: string;
+    readonly font?: string | null;
+    readonly fontSize?: number;
+    readonly color?: Rgb;
+    readonly fillOpacity?: number;
+    readonly anchorX?: LabelAnchorX;
+    readonly anchorY?: LabelAnchorY;
+    readonly maxWidth?: number | null;
+    readonly lineHeight?: number | null;
+    readonly letterSpacing?: number;
+    readonly textAlign?: LabelAlign;
+    readonly outlineWidth?: number;
+    readonly outlineColor?: Rgb;
+    readonly outlineOpacity?: number;
+    readonly outlineBlur?: number;
+    readonly interactive?: boolean;
+  },
+): LabelNode => ({
+  _tag: 'Label',
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? noRotation,
+  scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
+  interactive: options.interactive ?? false,
+  text: options.text,
+  font: options.font ?? null,
+  fontSize: options.fontSize ?? 1,
+  color: options.color ?? 0xffffff,
+  fillOpacity: options.fillOpacity ?? 1,
+  anchorX: options.anchorX ?? 'center',
+  anchorY: options.anchorY ?? 'middle',
+  maxWidth: options.maxWidth ?? null,
+  lineHeight: options.lineHeight ?? null,
+  letterSpacing: options.letterSpacing ?? 0,
+  textAlign: options.textAlign ?? 'left',
+  outlineWidth: options.outlineWidth ?? 0,
+  outlineColor: options.outlineColor ?? 0x000000,
+  outlineOpacity: options.outlineOpacity ?? 1,
+  outlineBlur: options.outlineBlur ?? 0,
 });
 
 /** Ambient light. Defaults: white, intensity 1. */

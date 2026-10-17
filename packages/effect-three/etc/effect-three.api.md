@@ -832,7 +832,9 @@ const Environment_2: Schema.Struct<{
 export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
 
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body';
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body'
+/** A label's text or any of its type settings. */
+| 'text';
 
 // @public
 export const film: (options?: {
@@ -930,6 +932,9 @@ const GeometryRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
         readonly segments: Schema.Int;
     }>>;
     readonly center: Schema.Boolean;
+    readonly letterSpacing: Schema.Finite;
+    readonly lineHeight: Schema.Finite;
+    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
 }>, Schema.TaggedStruct<"Box", {
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
@@ -1222,6 +1227,13 @@ const HitDetail: Schema.Struct<{
 export type HostCamera = PerspectiveCamera_2 | OrthographicCamera_2;
 
 // @public
+export type HostedLabel = {
+    readonly object: Object3D;
+    readonly update: (label: LabelNode) => void;
+    readonly dispose: () => void;
+};
+
+// @public
 export type HostedTexture = {
     readonly id: string;
     readonly graph: SceneGraph;
@@ -1363,6 +1375,9 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
             readonly segments: Schema.Int;
         }>>;
         readonly center: Schema.Boolean;
+        readonly letterSpacing: Schema.Finite;
+        readonly lineHeight: Schema.Finite;
+        readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
     }>, Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
@@ -1632,6 +1647,105 @@ const KeyDetail: Schema.Struct<{
 }>;
 
 // @public
+export const label: (options: TransformOptions & {
+    readonly text: string;
+    readonly font?: string | null;
+    readonly fontSize?: number;
+    readonly color?: Rgb;
+    readonly fillOpacity?: number;
+    readonly anchorX?: LabelAnchorX;
+    readonly anchorY?: LabelAnchorY;
+    readonly maxWidth?: number | null;
+    readonly lineHeight?: number | null;
+    readonly letterSpacing?: number;
+    readonly textAlign?: LabelAlign;
+    readonly outlineWidth?: number;
+    readonly outlineColor?: Rgb;
+    readonly outlineOpacity?: number;
+    readonly outlineBlur?: number;
+    readonly interactive?: boolean;
+}) => LabelNode;
+
+// @public
+export type LabelAlign = 'left' | 'right' | 'center' | 'justify';
+
+// @public
+export type LabelAnchorX = 'left' | 'center' | 'right' | number;
+
+// @public
+export type LabelAnchorY = 'top' | 'top-baseline' | 'middle' | 'bottom-baseline' | 'bottom' | number;
+
+// @public
+export type LabelEngine = {
+    readonly create: (label: LabelNode, ready: () => void) => HostedLabel;
+};
+
+// @public
+export type LabelNode = {
+    readonly _tag: 'Label';
+    readonly key: string;
+    readonly position: Vec3;
+    readonly rotation: Rotation;
+    readonly scale: Vec3;
+    readonly transition: Transition;
+    readonly behaviour: Behave | null;
+    readonly interactive: boolean;
+    readonly text: string;
+    readonly font: string | null;
+    readonly fontSize: number;
+    readonly color: Rgb;
+    readonly fillOpacity: number;
+    readonly anchorX: LabelAnchorX;
+    readonly anchorY: LabelAnchorY;
+    readonly maxWidth: number | null;
+    readonly lineHeight: number | null;
+    readonly letterSpacing: number;
+    readonly textAlign: LabelAlign;
+    readonly outlineWidth: number;
+    readonly outlineColor: Rgb;
+    readonly outlineOpacity: number;
+    readonly outlineBlur: number;
+};
+
+// @public
+const LabelNode_2: Schema.TaggedStruct<"Label", {
+    readonly key: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+        readonly euler: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>, Schema.TaggedStruct<"Spin", {
+        readonly axis: Schema.Literals<readonly ["x", "y", "z"]>;
+        readonly radiansPerSecond: Schema.Finite;
+        readonly phase: Schema.Finite;
+    }>]>;
+    readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly transition: Schema.Union<readonly [Schema.TaggedStruct<"Instant", {}>, Schema.TaggedStruct<"Ease", {
+        readonly seconds: Schema.Finite;
+        readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
+    }>]>;
+    readonly behaviour: Schema.NullOr<Schema.Struct<{
+        readonly name: Schema.String;
+        readonly params: Schema.$Record<Schema.String, Schema.Finite>;
+    }>>;
+    readonly interactive: Schema.Boolean;
+    readonly text: Schema.String;
+    readonly font: Schema.NullOr<Schema.String>;
+    readonly fontSize: Schema.Finite;
+    readonly color: Schema.Int;
+    readonly fillOpacity: Schema.Finite;
+    readonly anchorX: Schema.Union<readonly [Schema.Literals<readonly ["left", "center", "right"]>, Schema.Finite]>;
+    readonly anchorY: Schema.Union<readonly [Schema.Literals<readonly ["top", "top-baseline", "middle", "bottom-baseline", "bottom"]>, Schema.Finite]>;
+    readonly maxWidth: Schema.NullOr<Schema.Finite>;
+    readonly lineHeight: Schema.NullOr<Schema.Finite>;
+    readonly letterSpacing: Schema.Finite;
+    readonly textAlign: Schema.Literals<readonly ["left", "right", "center", "justify"]>;
+    readonly outlineWidth: Schema.Finite;
+    readonly outlineColor: Schema.Int;
+    readonly outlineOpacity: Schema.Finite;
+    readonly outlineBlur: Schema.Finite;
+}>;
+
+// @public
 export const lambert: (options?: Partial<Omit<LambertMaterial, '_tag'>>) => LambertMaterial;
 
 // @public
@@ -1855,6 +1969,9 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
             readonly segments: Schema.Int;
         }>>;
         readonly center: Schema.Boolean;
+        readonly letterSpacing: Schema.Finite;
+        readonly lineHeight: Schema.Finite;
+        readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
     }>, Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
@@ -2788,6 +2905,9 @@ const ResourceDefinitions_2: Schema.Struct<{
                 readonly segments: Schema.Int;
             }>>;
             readonly center: Schema.Boolean;
+            readonly letterSpacing: Schema.Finite;
+            readonly lineHeight: Schema.Finite;
+            readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
         }>, Schema.TaggedStruct<"Box", {
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
@@ -3230,6 +3350,9 @@ const SceneDescription_2: Schema.Struct<{
                     readonly segments: Schema.Int;
                 }>>;
                 readonly center: Schema.Boolean;
+                readonly letterSpacing: Schema.Finite;
+                readonly lineHeight: Schema.Finite;
+                readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
             }>, Schema.TaggedStruct<"Box", {
                 readonly width: Schema.Finite;
                 readonly height: Schema.Finite;
@@ -3652,6 +3775,7 @@ export type SceneGraphOptions = {
     readonly store?: ResourceStore;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
     readonly physics?: PhysicsEngine | undefined;
+    readonly labels?: LabelEngine | undefined;
 };
 
 // @public
@@ -3686,7 +3810,7 @@ export type SceneLoopOptions = {
 };
 
 // @public
-export type SceneNode = GridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
+export type SceneNode = GridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
 
 // @public
 const SceneNode_2: Schema.Codec<SceneNode>;
@@ -3718,6 +3842,7 @@ type SceneRuntimeOptions = {
     readonly eventCapacity?: number;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
     readonly physics?: PhysicsEngine | undefined;
+    readonly labels?: LabelEngine | undefined;
     readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
 
@@ -3764,6 +3889,7 @@ declare namespace SceneSchema {
         InstancesNode_2 as InstancesNode,
         Animation_3 as Animation,
         BorrowedNode_2 as BorrowedNode,
+        LabelNode_2 as LabelNode,
         AmbientLightNode_2 as AmbientLightNode,
         DirectionalLightNode_2 as DirectionalLightNode,
         PointLightNode_2 as PointLightNode,
@@ -3852,6 +3978,9 @@ const ShapeGeometry_2: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
         readonly segments: Schema.Int;
     }>>;
     readonly center: Schema.Boolean;
+    readonly letterSpacing: Schema.Finite;
+    readonly lineHeight: Schema.Finite;
+    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
 }>, Schema.TaggedStruct<"Box", {
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
@@ -4190,7 +4319,13 @@ export const text: (options: {
     readonly curveSegments?: number;
     readonly bevel?: Partial<TextBevel>;
     readonly center?: boolean;
+    readonly letterSpacing?: number;
+    readonly lineHeight?: number;
+    readonly align?: TextAlign;
 }) => TextGeometry;
+
+// @public
+export type TextAlign = 'left' | 'center' | 'right';
 
 // @public
 export type TextBevel = {
@@ -4210,6 +4345,9 @@ export type TextGeometry = {
     readonly curveSegments: number;
     readonly bevel: TextBevel | null;
     readonly center: boolean;
+    readonly letterSpacing: number;
+    readonly lineHeight: number;
+    readonly align: TextAlign;
 };
 
 // @public
@@ -4226,6 +4364,9 @@ const TextGeometry_2: Schema.TaggedStruct<"Text", {
         readonly segments: Schema.Int;
     }>>;
     readonly center: Schema.Boolean;
+    readonly letterSpacing: Schema.Finite;
+    readonly lineHeight: Schema.Finite;
+    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
 }>;
 
 // @public

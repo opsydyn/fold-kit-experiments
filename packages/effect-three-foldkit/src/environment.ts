@@ -7,6 +7,7 @@
 import {
   type Behaviour,
   createResourceStore,
+  type LabelEngine,
   type PhysicsEngine,
   type RendererFactory,
   type ResourceStore,
@@ -37,6 +38,11 @@ export type EnvironmentOptions = {
    * has loaded. Without one, bodies stay where they are described.
    */
   readonly physics?: PhysicsEngine | Promise<PhysicsEngine>;
+  /**
+   * Draws `label` nodes: pass `troikaLabels()` from `@opsydyn/effect-three-troika`.
+   * Without one, labels are empty.
+   */
+  readonly labels?: LabelEngine;
 };
 
 /** Creates the shared environment for `host`. Call `dispose` when the app shuts down. */
@@ -53,6 +59,8 @@ export const makeEnvironment = (host: EnvironmentHost, options: EnvironmentOptio
     behaviours: options.behaviours ?? {},
     /** The physics engine, once loaded; `undefined` when there is none. */
     physics: Promise.resolve(options.physics),
+    /** The label engine; `undefined` when there is none. */
+    labels: options.labels,
     /** Loads textures and glTF models by URL and lends them to the store. */
     assets,
     /** Enters and leaves immersive (WebXR) sessions, from Commands. */

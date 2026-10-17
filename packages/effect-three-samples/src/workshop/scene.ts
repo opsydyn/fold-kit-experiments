@@ -2,7 +2,8 @@
  * The workshop: the loaded robot on a tiled floor under a sign. The robot is a borrowed
  * node, so it appears when its model is lent and disappears when unloaded; the floor uses
  * the lent texture as its map once it has settled; the sign is text in the lent font,
- * empty until the font arrives.
+ * empty until the font arrives. The caption under it is a distance-field label naming the
+ * clip playing, drawn by troika from a WOFF font.
  */
 import {
   type Animation,
@@ -10,6 +11,7 @@ import {
   directionalLight,
   fixed,
   hemisphereLight,
+  label,
   mesh,
   perspectiveCamera,
   plane,
@@ -29,6 +31,12 @@ const floorMap = (model: Model): string | null =>
     onEmpty: () => null,
     onFailure: () => null,
     onData: () => assetIds.floor,
+  });
+
+const captionOf = (model: Model): string =>
+  Option.match(Option.fromNullishOr(model.clip), {
+    onNone: () => 'Standing still',
+    onSome: (clip) => `Playing “${clip}” at ${model.speed}×`,
   });
 
 const animationOf = (model: Model): Animation | null =>
@@ -61,6 +69,16 @@ export const sceneFor = (model: Model) =>
           center: true,
         }),
         material: standard({ color: 0xf2a541, roughness: 0.35, metalness: 0.2 }),
+      }),
+      label({
+        key: 'caption',
+        position: [0, 2.42, -2.6],
+        text: captionOf(model),
+        font: `${model.assetBase}inter-latin-400-normal.woff`,
+        fontSize: 0.24,
+        color: 0xf2a541,
+        outlineWidth: 0.014,
+        outlineColor: 0x2b2a28,
       }),
       borrowed({
         key: 'robot',

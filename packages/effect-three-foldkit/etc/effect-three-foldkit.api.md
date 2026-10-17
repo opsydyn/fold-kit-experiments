@@ -11,6 +11,7 @@ import { Effect as Effect_2 } from 'effect/Effect';
 import { FrameScheduler } from '@opsydyn/effect-three';
 import type { Html } from 'foldkit/html';
 import type { HtmlBuilder } from 'foldkit/html';
+import { LabelEngine } from '@opsydyn/effect-three';
 import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
 import type { Op } from '@opsydyn/effect-three';
@@ -99,6 +100,7 @@ export type EnvironmentOptions = {
     readonly pixelRatio?: PixelRatio;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
     readonly physics?: PhysicsEngine | Promise<PhysicsEngine>;
+    readonly labels?: LabelEngine;
 };
 
 // @public
@@ -129,6 +131,7 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     pixelRatio: PixelRatio;
     behaviours: Readonly<Record<string, Behaviour>>;
     physics: Promise<PhysicsEngine | undefined>;
+    labels: LabelEngine | undefined;
     assets: {
         loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
@@ -399,6 +402,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                         readonly segments: Schema.Int;
                     }>>;
                     readonly center: Schema.Boolean;
+                    readonly letterSpacing: Schema.Finite;
+                    readonly lineHeight: Schema.Finite;
+                    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
                 }>, Schema.TaggedStruct<"Box", {
                     readonly width: Schema.Finite;
                     readonly height: Schema.Finite;
@@ -924,7 +930,7 @@ export class XrUnavailable extends XrUnavailable_base<{
 
 // Warnings were encountered during analysis:
 //
-// src/environment.ts:61:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
+// src/environment.ts:69:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

@@ -115,6 +115,9 @@ export const TextGeometry = Schema.TaggedStruct('Text', {
     }),
   ),
   center: Schema.Boolean,
+  letterSpacing: Schema.Finite,
+  lineHeight: NonNegative,
+  align: Schema.Literals(['left', 'center', 'right']),
 });
 
 /** Any geometry shape. */
@@ -365,6 +368,35 @@ export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
   body: Schema.NullOr(Body),
 });
 
+/** Distance-field text. */
+export const LabelNode = Schema.TaggedStruct('Label', {
+  key: Schema.String,
+  position: Vec3,
+  rotation: Rotation,
+  scale: Vec3,
+  transition: Transition,
+  behaviour: Schema.NullOr(Behave),
+  interactive: Schema.Boolean,
+  text: Schema.String,
+  font: Schema.NullOr(Schema.String),
+  fontSize: Positive,
+  color: Rgb,
+  fillOpacity: NonNegative,
+  anchorX: Schema.Union([Schema.Literals(['left', 'center', 'right']), Schema.Finite]),
+  anchorY: Schema.Union([
+    Schema.Literals(['top', 'top-baseline', 'middle', 'bottom-baseline', 'bottom']),
+    Schema.Finite,
+  ]),
+  maxWidth: Schema.NullOr(Positive),
+  lineHeight: Schema.NullOr(Positive),
+  letterSpacing: Schema.Finite,
+  textAlign: Schema.Literals(['left', 'right', 'center', 'justify']),
+  outlineWidth: NonNegative,
+  outlineColor: Rgb,
+  outlineOpacity: NonNegative,
+  outlineBlur: NonNegative,
+});
+
 /** Uniform ambient light. */
 export const AmbientLightNode = Schema.TaggedStruct('AmbientLight', {
   key: Schema.String,
@@ -459,6 +491,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   MeshNode,
   InstancesNode,
   BorrowedNode,
+  LabelNode,
   AmbientLightNode,
   DirectionalLightNode,
   PointLightNode,

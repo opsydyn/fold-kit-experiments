@@ -213,6 +213,7 @@ const sceneRuntimeFor =
       renderer: environment.renderer(canvas),
       behaviours: environment.behaviours,
       physics,
+      labels: environment.labels,
       placeOverlays: overlays.place,
       viewport: measureViewport(element, environment.host.devicePixelRatio, environment.pixelRatio),
     }).pipe(

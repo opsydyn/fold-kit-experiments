@@ -4,7 +4,7 @@ Project conventions and agent guidance for this monorepo.
 
 ## Quick orientation
 
-Bun workspace monorepo. Ten workspaces in active use:
+Bun workspace monorepo. Eleven workspaces in active use:
 
 | Workspace                       | Path                             | Purpose                                                    |
 | ------------------------------- | -------------------------------- | ---------------------------------------------------------- |
@@ -16,10 +16,11 @@ Bun workspace monorepo. Ten workspaces in active use:
 | `@opsydyn/effect-three`         | `packages/effect-three/`         | Effect-native declarative Three.js core (private)          |
 | `@opsydyn/effect-three-foldkit` | `packages/effect-three-foldkit/` | Foldkit adapter for effect-three (private)                 |
 | `@opsydyn/effect-three-rapier`  | `packages/effect-three-rapier/`  | Rapier physics engine for effect-three (private)           |
+| `@opsydyn/effect-three-troika`  | `packages/effect-three-troika/`  | Troika distance-field text for effect-three (private)      |
 | `@opsydyn/effect-three-samples` | `packages/effect-three-samples/` | Private effect-three samples for apps/web and three-promo  |
 | `@opsydyn/three-promo`          | `apps/three-promo/`              | effect-three promo site (same layout and styling as promo) |
 
-The effect-three packages (core, Foldkit adapter, Rapier) run a **stricter, package-local lint policy** (`oxlint.strict.ts`, `@opsydyn/oxlint-effect@2.0.1`, all rules, TypeScript 7). Read `docs/effect-three/PLAN.md` and `docs/effect-three/adr/` before changing them.
+The effect-three packages (core, Foldkit adapter, Rapier, troika) run a **stricter, package-local lint policy** (`oxlint.strict.ts`, `@opsydyn/oxlint-effect@2.0.1`, all rules, TypeScript 7). Read `docs/effect-three/PLAN.md` and `docs/effect-three/adr/` before changing them.
 
 **Stack:** Foldkit (Elm Architecture on Effect-TS) · Astro · TypeScript · bun · oxlint · oxfmt
 

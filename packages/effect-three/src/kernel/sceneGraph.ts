@@ -42,6 +42,7 @@ import type {
   GroupNode,
   Instance,
   InstancesNode,
+  LabelNode,
   MeshNode,
   Camera as CameraDescription,
   PointLightNode,
@@ -64,6 +65,7 @@ import type {
 import { diff, type Field, type Op } from './diff.ts';
 import { contactShadowsEquals, environmentEquals, overlaysEqual, skyEquals } from './equality.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
+import type { HostedLabel, LabelEngine } from './labels.ts';
 import type { HostMaterial } from './materials.ts';
 import {
   type Behaviour,
@@ -99,6 +101,13 @@ type Entry =
       shown: Object3D | undefined;
       player: Player | undefined;
     }
+  // `hosted` is what the label engine drew, inside the wrapper; none without an engine.
+  | {
+      readonly _tag: 'Label';
+      node: LabelNode;
+      readonly object: Group;
+      readonly hosted: HostedLabel | undefined;
+    }
   | { readonly _tag: 'AmbientLight'; node: AmbientLightNode; readonly object: AmbientLight }
   | {
       readonly _tag: 'DirectionalLight';
@@ -131,9 +140,12 @@ type Player = {
 };
 
 /** Descriptions with a transform. */
-type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode;
+type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode;
 
-type Placed = Extract<Entry, { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' }>;
+type Placed = Extract<
+  Entry,
+  { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' | 'Label' }
+>;
 
 /** Entries drawing a geometry with a material. */
 type Surfaced = Extract<Entry, { readonly _tag: 'Mesh' | 'Instances' }>;
@@ -142,7 +154,8 @@ const isPlaced = (entry: Entry): entry is Placed =>
   entry._tag === 'Group' ||
   entry._tag === 'Mesh' ||
   entry._tag === 'Instances' ||
-  entry._tag === 'Borrowed';
+  entry._tag === 'Borrowed' ||
+  entry._tag === 'Label';
 
 const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
@@ -178,6 +191,8 @@ export type SceneGraphOptions = {
   readonly behaviours?: Readonly<Record<string, Behaviour>>;
   /** Simulates meshes with a `body` when the scene has `physics`; without it they stay put. */
   readonly physics?: PhysicsEngine | undefined;
+  /** Draws `label` nodes (distance-field text); without it they are empty. */
+  readonly labels?: LabelEngine | undefined;
 };
 
 export type SceneGraph = {
@@ -593,6 +608,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         showLoan(entry);
         return entry;
       }
+      case 'Label': {
+        const hosted = options.labels?.create(node, invalidate);
+        const entry: Entry = { _tag: 'Label', node, object: new Group(), hosted };
+        if (hosted !== undefined) entry.object.add(hosted.object);
+        writeVec3(entry.object.position, node.position);
+        writeVec3(entry.object.scale, node.scale);
+        trackRotation(entry, node);
+        trackBehaviour(entry, node);
+        trackInteractive(entry.object, node.interactive);
+        return entry;
+      }
       case 'AmbientLight':
         return { _tag: 'AmbientLight', node, object: new AmbientLight(node.color, node.intensity) };
       case 'DirectionalLight': {
@@ -778,6 +804,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'Instances') entry.object.dispose();
     // A grid's lines are its own.
     if (entry._tag === 'Grid') disposeGridLines(entry.helper);
+    if (entry._tag === 'Label') entry.hosted?.dispose();
     // A borrowed object belongs to the application: detach it, never dispose it.
     if (entry._tag === 'Borrowed') {
       stopPlayer(entry);
@@ -894,6 +921,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       if (fields.includes('id')) showLoan(entry);
       else if (fields.includes('animation')) startPlayer(entry);
+      return;
+    }
+    if (entry._tag === 'Label' && next._tag === 'Label') {
+      entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
+      if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
+      if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
+      if (fields.includes('text')) entry.hosted?.update(next);
       return;
     }
     if (entry._tag === 'Group' && next._tag === 'Group') {

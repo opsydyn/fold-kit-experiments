@@ -129,7 +129,16 @@ export type TextGeometry = {
   readonly bevel: TextBevel | null;
   /** Centre the text on its origin, as `geometry.center()`; otherwise it starts there. */
   readonly center: boolean;
+  /** Extra space after each letter, in ems (multiples of `size`). */
+  readonly letterSpacing: number;
+  /** Line spacing as a multiple of the font's own. */
+  readonly lineHeight: number;
+  /** Where each line sits within the widest. */
+  readonly align: TextAlign;
 };
+
+/** Where each line of text sits within the widest: troika's `textAlign`. */
+export type TextAlign = 'left' | 'center' | 'right';
 
 export type ShapeGeometry =
   | TextGeometry
@@ -509,6 +518,60 @@ export type BorrowedNode = {
   readonly body: Body | null;
 };
 
+/** Where a label's origin is along its width: an edge, the middle, or a fraction of it. */
+export type LabelAnchorX = 'left' | 'center' | 'right' | number;
+
+/** Where a label's origin is along its height: an edge, a baseline, the middle, or a fraction. */
+export type LabelAnchorY =
+  | 'top'
+  | 'top-baseline'
+  | 'middle'
+  | 'bottom-baseline'
+  | 'bottom'
+  | number;
+
+/** How a label's lines line up within its block. */
+export type LabelAlign = 'left' | 'right' | 'center' | 'justify';
+
+/**
+ * Crisp text at any size, drawn from glyph distance fields: Drei's `Text` (troika's
+ * `Text`, `bf6f4ad` `src/core/Text.tsx`). `font` is the URL of a TTF, OTF or WOFF file,
+ * or `null` for troika's default. A label is drawn by the scene graph's label engine (in
+ * Foldkit, the environment's); without one it is empty. Fonts load and glyphs build in the
+ * background, and the scene redraws when they are ready.
+ */
+export type LabelNode = {
+  readonly _tag: 'Label';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly rotation: Rotation;
+  readonly scale: Vec3;
+  readonly transition: Transition;
+  readonly behaviour: Behave | null;
+  /** Makes the label pickable, over its glyphs' bounds. */
+  readonly interactive: boolean;
+  readonly text: string;
+  readonly font: string | null;
+  /** The em height, in scene units. */
+  readonly fontSize: number;
+  readonly color: Rgb;
+  readonly fillOpacity: number;
+  readonly anchorX: LabelAnchorX;
+  readonly anchorY: LabelAnchorY;
+  /** Wraps lines longer than this, in scene units; `null` never wraps. */
+  readonly maxWidth: number | null;
+  /** Line spacing as a multiple of `fontSize`; `null` for the font's own ("normal"). */
+  readonly lineHeight: number | null;
+  /** Extra space between letters, in ems. */
+  readonly letterSpacing: number;
+  readonly textAlign: LabelAlign;
+  /** An outline around the glyphs, in scene units (0 for none), and its look. */
+  readonly outlineWidth: number;
+  readonly outlineColor: Rgb;
+  readonly outlineOpacity: number;
+  readonly outlineBlur: number;
+};
+
 /**
  * Plays the clip named `clip` from the borrowed object's `animations`. Playback is a
  * function of scene time, like `spin`: it pauses with the scene and rewinds with it.
@@ -620,6 +683,7 @@ export type SceneNode =
   | MeshNode
   | InstancesNode
   | BorrowedNode
+  | LabelNode
   | AmbientLightNode
   | DirectionalLightNode
   | PointLightNode

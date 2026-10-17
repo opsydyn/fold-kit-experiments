@@ -28,6 +28,7 @@ import {
   behaviourEquals,
   bodyEquals,
   geometryRefEquals,
+  labelTypeEquals,
   instancesEqual,
   materialRefEquals,
   resourcesEqual,
@@ -72,7 +73,9 @@ export type Field =
   | 'size'
   | 'divisions'
   | 'centerColor'
-  | 'body';
+  | 'body'
+  /** A label's text or any of its type settings. */
+  | 'text';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -164,6 +167,17 @@ export const changedFields = (
       if (!animationEquals(prev.animation, next.animation)) fields.push('animation');
       if (prev.interactive !== next.interactive) fields.push('interactive');
       if (!bodyEquals(prev.body, next.body)) fields.push('body');
+      return fields;
+    }
+    case 'Label': {
+      if (prev._tag !== 'Label') return undefined;
+      if (!behaviourEquals(prev.behaviour, next.behaviour)) fields.push('behaviour');
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
+      if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
+      if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
+      if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (!labelTypeEquals(prev, next)) fields.push('text');
       return fields;
     }
     case 'AmbientLight': {

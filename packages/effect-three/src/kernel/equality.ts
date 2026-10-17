@@ -14,6 +14,7 @@ import type {
   Joint,
   JointKind,
   JointLimits,
+  LabelNode,
   MaterialRef,
   Overlay,
   Physics,
@@ -120,6 +121,9 @@ export const shapeEquals = (a: ShapeGeometry, b: ShapeGeometry): boolean => {
         Object.is(a.depth, b.depth) &&
         a.curveSegments === b.curveSegments &&
         a.center === b.center &&
+        Object.is(a.letterSpacing, b.letterSpacing) &&
+        Object.is(a.lineHeight, b.lineHeight) &&
+        a.align === b.align &&
         bevelEquals(a.bevel, b.bevel)
       );
   }
@@ -412,6 +416,24 @@ const jointsEqual = (a: ReadonlyArray<Joint>, b: ReadonlyArray<Joint>): boolean 
   }
   return true;
 };
+
+/** Label text and type settings equality: everything but the transform and picking. */
+export const labelTypeEquals = (a: LabelNode, b: LabelNode): boolean =>
+  a.text === b.text &&
+  a.font === b.font &&
+  Object.is(a.fontSize, b.fontSize) &&
+  a.color === b.color &&
+  Object.is(a.fillOpacity, b.fillOpacity) &&
+  Object.is(a.anchorX, b.anchorX) &&
+  Object.is(a.anchorY, b.anchorY) &&
+  Object.is(a.maxWidth, b.maxWidth) &&
+  Object.is(a.lineHeight, b.lineHeight) &&
+  Object.is(a.letterSpacing, b.letterSpacing) &&
+  a.textAlign === b.textAlign &&
+  Object.is(a.outlineWidth, b.outlineWidth) &&
+  a.outlineColor === b.outlineColor &&
+  Object.is(a.outlineOpacity, b.outlineOpacity) &&
+  Object.is(a.outlineBlur, b.outlineBlur);
 
 /** Physics world equality. */
 export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>

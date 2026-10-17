@@ -1,4 +1,5 @@
 inter-bold.typeface.json: Inter Bold, subset to printable ASCII.
+inter-latin-400-normal.woff: Inter Regular, Latin subset, from @fontsource/inter 5.3.0.
 Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

@@ -1,0 +1,53 @@
+{
+  "name": "@opsydyn/effect-three-troika",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Troika distance-field text for @opsydyn/effect-three: crisp labels described as data.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/opsydyn/fold-kit-experiments.git",
+    "directory": "packages/effect-three-troika"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+    "lint": "bunx --bun oxlint --config oxlint.strict.ts",
+    "check": "bun run lint",
+    "test": "bun test --pass-with-no-tests ./src ./test",
+    "build": "tsc -b && bun build ./src/index.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
+    "api:report": "api-extractor run --local",
+    "api:check": "api-extractor run"
+  },
+  "dependencies": {
+    "@opsydyn/effect-three": "workspace:*",
+    "troika-three-text": "0.52.5"
+  },
+  "devDependencies": {
+    "@microsoft/api-extractor": "catalog:",
+    "@opsydyn/oxlint-effect": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/three": "catalog:",
+    "oxlint": "catalog:strict",
+    "oxlint-tsgolint": "catalog:",
+    "three": "catalog:",
+    "typescript": "catalog:strict"
+  },
+  "peerDependencies": {
+    "three": ">=0.186.0 <0.187.0"
+  }
+}

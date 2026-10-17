@@ -68,3 +68,39 @@ test('contact shadows darken the floor around what rests on it, and go when remo
   expect(errors).toEqual([]);
   await page.close();
 }, 60_000);
+
+/** Runs in the page: shows the shader grid scene. */
+function showGrid(): void {
+  Reflect.get(globalThis, '__staging').showGrid();
+}
+
+/** The pixel's RGB at a canvas pixel. */
+const rgbAt = (png: PNG, x: number, y: number): readonly [number, number, number] => {
+  const i = (y * png.width + x) * 4;
+  return [png.data[i] ?? 0, png.data[i + 1] ?? 0, png.data[i + 2] ?? 0];
+};
+
+test('the shader grid draws cell and section lines, and nothing past its plane', async () => {
+  const page = await browser.newPage({ viewport: { width: 500, height: 500 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await page.goto(app.url('staging.html'));
+  await page.waitForFunction(stagingReady);
+  await page.evaluate(showGrid);
+  await frames(page);
+  const png = PNG.sync.read(await page.locator('canvas').screenshot());
+  // 40 pixels a unit, the origin at (200, 200): a section line (every 2 units) at x = 280
+  // is red; a cell line (odd units) at x = 240 is dark; between lines is the white floor.
+  const [red, green] = rgbAt(png, 280, 230);
+  expect(red).toBeGreaterThan(200);
+  expect(green).toBeLessThan(120);
+  expect(rgbAt(png, 240, 230)[0]).toBeLessThan(200);
+  expect(rgbAt(png, 260, 230)).toEqual([255, 255, 255]);
+  // The plane is 8 across: beyond x = 360 (4 units) there are no lines.
+  expect(rgbAt(png, 380, 230)).toEqual([255, 255, 255]);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);

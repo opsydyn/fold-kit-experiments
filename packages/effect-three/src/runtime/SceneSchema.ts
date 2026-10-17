@@ -115,6 +115,9 @@ export const TextGeometry = Schema.TaggedStruct('Text', {
     }),
   ),
   center: Schema.Boolean,
+  letterSpacing: Schema.Finite,
+  lineHeight: NonNegative,
+  align: Schema.Literals(['left', 'center', 'right']),
 });
 
 /** Any geometry shape. */
@@ -262,11 +265,46 @@ export const Body = Schema.Struct({
 });
 
 /** A physics world. */
+/** A body a joint holds: a node's, or one instance's. */
+export const BodyRef = Schema.Struct({
+  key: Schema.String,
+  instance: Schema.NullOr(Schema.String),
+});
+
+/** A joint's range of motion. */
+export const JointLimits = Schema.Tuple([Schema.Finite, Schema.Finite]);
+
+/** How a joint holds its bodies. */
+export const JointKind = Schema.Union([
+  Schema.TaggedStruct('Fixed', { frameA: Vec3, frameB: Vec3 }),
+  Schema.TaggedStruct('Spherical', {}),
+  Schema.TaggedStruct('Revolute', { axis: Vec3, limits: Schema.NullOr(JointLimits) }),
+  Schema.TaggedStruct('Prismatic', { axis: Vec3, limits: Schema.NullOr(JointLimits) }),
+  Schema.TaggedStruct('Rope', { length: Schema.Finite }),
+  Schema.TaggedStruct('Spring', {
+    restLength: Schema.Finite,
+    stiffness: Schema.Finite,
+    damping: Schema.Finite,
+  }),
+]);
+
+/** A joint between two bodies. */
+export const Joint = Schema.Struct({
+  key: Schema.String,
+  a: BodyRef,
+  b: BodyRef,
+  anchorA: Vec3,
+  anchorB: Vec3,
+  kind: JointKind,
+  contacts: Schema.Boolean,
+});
+
 export const Physics = Schema.Struct({
   gravity: Vec3,
   paused: Schema.Boolean,
   timeStep: Positive,
   interpolate: Schema.Boolean,
+  joints: Schema.Array(Joint),
 });
 
 export const MeshNode = Schema.TaggedStruct('Mesh', {
@@ -307,6 +345,7 @@ export const InstancesNode = Schema.TaggedStruct('Instances', {
   castShadow: Schema.Boolean,
   receiveShadow: Schema.Boolean,
   instances: Schema.Array(Instance),
+  body: Schema.NullOr(Body),
 });
 
 /** An application object lent to the store under `id`. */
@@ -326,6 +365,36 @@ export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
   transition: Transition,
   behaviour: Schema.NullOr(Behave),
   interactive: Schema.Boolean,
+  body: Schema.NullOr(Body),
+});
+
+/** Distance-field text. */
+export const LabelNode = Schema.TaggedStruct('Label', {
+  key: Schema.String,
+  position: Vec3,
+  rotation: Rotation,
+  scale: Vec3,
+  transition: Transition,
+  behaviour: Schema.NullOr(Behave),
+  interactive: Schema.Boolean,
+  text: Schema.String,
+  font: Schema.NullOr(Schema.String),
+  fontSize: Positive,
+  color: Rgb,
+  fillOpacity: NonNegative,
+  anchorX: Schema.Union([Schema.Literals(['left', 'center', 'right']), Schema.Finite]),
+  anchorY: Schema.Union([
+    Schema.Literals(['top', 'top-baseline', 'middle', 'bottom-baseline', 'bottom']),
+    Schema.Finite,
+  ]),
+  maxWidth: Schema.NullOr(Positive),
+  lineHeight: Schema.NullOr(Positive),
+  letterSpacing: Schema.Finite,
+  textAlign: Schema.Literals(['left', 'right', 'center', 'justify']),
+  outlineWidth: NonNegative,
+  outlineColor: Rgb,
+  outlineOpacity: NonNegative,
+  outlineBlur: NonNegative,
 });
 
 /** Uniform ambient light. */
@@ -398,6 +467,26 @@ export const GridNode = Schema.TaggedStruct('Grid', {
   centerColor: Rgb,
 });
 
+/** Drei's shader grid. */
+export const ShaderGridNode = Schema.TaggedStruct('ShaderGrid', {
+  key: Schema.String,
+  position: Vec3,
+  rotation: Vec3,
+  size: Schema.Tuple([Positive, Positive]),
+  cellSize: Positive,
+  cellThickness: NonNegative,
+  cellColor: Rgb,
+  sectionSize: Positive,
+  sectionThickness: NonNegative,
+  sectionColor: Rgb,
+  infinite: Schema.Boolean,
+  followCamera: Schema.Boolean,
+  fadeDistance: Positive,
+  fadeStrength: NonNegative,
+  fadeFrom: Schema.Finite,
+  side: Schema.Literals(['front', 'back', 'double']),
+});
+
 export const HemisphereLightNode = Schema.TaggedStruct('HemisphereLight', {
   key: Schema.String,
   color: Rgb,
@@ -417,10 +506,13 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     behaviour: Schema.NullOr(Behave),
     interactive: Schema.Boolean,
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
+    body: Schema.NullOr(Body),
   }),
   MeshNode,
   InstancesNode,
   BorrowedNode,
+  LabelNode,
+  ShaderGridNode,
   AmbientLightNode,
   DirectionalLightNode,
   PointLightNode,
@@ -555,6 +647,8 @@ export const Xr = Schema.Struct({
   heading: Schema.Finite,
   referenceSpace: Schema.Literals(['local-floor', 'local', 'bounded-floor']),
   framebufferScale: Positive,
+  hitTest: Schema.Boolean,
+  showInputs: Schema.Boolean,
 });
 
 /** Whether the scene claims the pointer's gestures from the page. */
@@ -571,6 +665,7 @@ export const SceneDescription = Schema.Struct({
   contactShadows: Schema.NullOr(ContactShadows),
   physics: Schema.NullOr(Physics),
   xr: Schema.NullOr(Xr),
+  measure: Schema.Array(Schema.String),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
@@ -634,6 +729,8 @@ const regionFields = {
   view: Schema.optionalKey(Schema.String),
   width: Schema.Finite,
   height: Schema.Finite,
+  x: Schema.Finite,
+  y: Schema.Finite,
 };
 
 /** A drag, wheel or pinch on the canvas: distances in CSS pixels since the last one. */
@@ -660,12 +757,38 @@ export const Gesture = Schema.Union([
   }),
 ]);
 
-/** Detail of collision events: the two bodies' keys, and whether they began touching. */
+/**
+ * Detail of collision events: the two bodies' keys (and instances', for bodies on
+ * instances), and whether they began touching.
+ */
 export const CollisionDetail = Schema.Struct({
   a: Schema.String,
+  aInstance: Schema.optionalKey(Schema.String),
   b: Schema.String,
+  bInstance: Schema.optionalKey(Schema.String),
   started: Schema.Boolean,
 });
+
+const XrHand = Schema.Literals(['left', 'right', 'none']);
+
+/** Detail of XR stick events: a thumbstick pushed past halfway, or let back. */
+export const XrStickDetail = Schema.Struct({
+  hand: XrHand,
+  direction: Schema.Literals(['center', 'left', 'right', 'forward', 'back']),
+});
+
+/** Detail of XR button events: a controller button pressed or released. */
+export const XrButtonDetail = Schema.Struct({
+  hand: XrHand,
+  button: Schema.Literals(['trigger', 'squeeze', 'touchpad', 'thumbstick', 'primary', 'secondary']),
+  pressed: Schema.Boolean,
+});
+
+/** Detail of XR surface events: in AR, where a select met a real surface. */
+export const XrSurfaceDetail = Schema.Struct({ hand: XrHand, point: Vec3, normal: Vec3 });
+
+/** Detail of measured events: a node's world bounding box. */
+export const MeasuredDetail = Schema.Struct({ key: Schema.String, min: Vec3, max: Vec3 });
 
 /** Detail of gesture events. */
 export const GestureDetail = Schema.Struct({ gesture: Gesture });
@@ -686,6 +809,10 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
   Schema.TaggedStruct('Gesture', GestureDetail.fields),
   Schema.TaggedStruct('Collision', CollisionDetail.fields),
+  Schema.TaggedStruct('Measured', MeasuredDetail.fields),
+  Schema.TaggedStruct('XrStick', XrStickDetail.fields),
+  Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
+  Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 
@@ -704,5 +831,8 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('DuplicateOverlayKey', { key: Schema.String }),
   Schema.TaggedStruct('UnknownOverlayNode', { key: Schema.String, node: Schema.String }),
   Schema.TaggedStruct('UnknownOverlayView', { key: Schema.String, view: Schema.String }),
+  Schema.TaggedStruct('UnknownMeasuredNode', { key: Schema.String }),
+  Schema.TaggedStruct('DuplicateJointKey', { key: Schema.String }),
+  Schema.TaggedStruct('UnknownJointBody', { joint: Schema.String, body: Schema.String }),
   Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),
 ]);

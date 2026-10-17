@@ -20,6 +20,12 @@ export const Message = defineMessageUnion({
   ClickedLens: {},
   /** A drag, wheel or pinch on the canvas: it orbits the camera. */
   MadeGesture: { gesture: SceneSchema.Gesture },
+  PressedArrow: {
+    key: Schema.Literals(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']),
+    turning: Schema.Boolean,
+  },
+  MeasuredPiece: { key: Schema.String, min: Vec3, max: Vec3 },
+  ClickedFrame: {},
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });
 export type Message = typeof Message.Type;

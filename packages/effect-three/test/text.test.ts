@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { Box3, type BufferGeometry, Mesh } from 'three';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
 import {
   createResourceStore,
@@ -22,6 +23,20 @@ const geometryOf = (graph: ReturnType<typeof createSceneGraph>, key: string) => 
   const object = graph.object(key);
   return object instanceof Mesh ? (object.geometry as BufferGeometry) : undefined;
 };
+
+/** The leftmost x of the vertices above or below y = −1: the first line, or the rest. */
+const leftOf = (geometry: BufferGeometry | undefined, below: boolean): number => {
+  const positions = geometry?.getAttribute('position');
+  let left = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < (positions?.count ?? 0); i++) {
+    if (positions !== undefined && positions.getY(i) < -1 === below) {
+      left = Math.min(left, positions.getX(i));
+    }
+  }
+  return left;
+};
+const firstLineLeft = (geometry: BufferGeometry | undefined) => leftOf(geometry, false);
+const lowestLineLeft = (geometry: BufferGeometry | undefined) => leftOf(geometry, true);
 
 const sign = (options: Partial<Parameters<typeof text>[0]> = {}) =>
   scene({
@@ -100,4 +115,35 @@ test('shared text is rebuilt when its font arrives and swapped onto every user',
   graph.dispose();
   store.dispose();
   expect(store.stats().geometries.live).toBe(0);
+});
+
+test('at the defaults, text is laid out exactly as three lays it out', () => {
+  const graph = createSceneGraph();
+  const font = blockFont();
+  graph.store.lendFont('block', font);
+  graph.reconcile(sign({ text: 'HI\nIH' }));
+  const ours = geometryOf(graph, 'sign')?.getAttribute('position').array;
+  const three = new TextGeometry('HI\nIH', { font, size: 2, depth: 0.2, curveSegments: 8 });
+  expect(Array.from(ours ?? [])).toEqual(Array.from(three.getAttribute('position').array));
+  graph.dispose();
+});
+
+test('letter spacing adds ems after each letter; line height and alignment place lines', () => {
+  const graph = createSceneGraph();
+  graph.store.lendFont('block', blockFont());
+  // H advances 2, then half an em (1 unit) of spacing: I spans 3 to 3.4.
+  graph.reconcile(sign({ letterSpacing: 0.5 }));
+  expect(boundsOf(geometryOf(graph, 'sign')).max.x).toBeCloseTo(3.4, 6);
+
+  // Lines 2 × (1000 + 50) / 1000 × 2 = 4.2 apart; I (advance 0.8) right-aligned to H's 2.
+  graph.reconcile(sign({ text: 'H\nI', lineHeight: 2, align: 'right', depth: 0 }));
+  const bounds = boundsOf(geometryOf(graph, 'sign'));
+  expect(bounds.min.y).toBeCloseTo(-4.2, 6);
+  expect(bounds.min.x).toBeCloseTo(0, 6);
+  expect(firstLineLeft(geometryOf(graph, 'sign'))).toBeCloseTo(0, 6);
+  // Right-aligned, I's line (advance 0.8) is indented by 1.2; centred, by 0.6.
+  expect(lowestLineLeft(geometryOf(graph, 'sign'))).toBeCloseTo(1.2, 6);
+  graph.reconcile(sign({ text: 'H\nI', align: 'center', depth: 0 }));
+  expect(lowestLineLeft(geometryOf(graph, 'sign'))).toBeCloseTo(0.6, 6);
+  graph.dispose();
 });

@@ -6,17 +6,18 @@
 import type {
   Body,
   BodyPose,
+  Collider,
   Collision,
-  ColliderShape,
   Physics,
   PhysicsEngine,
+  PhysicsJoint,
   PhysicsWorld,
   Vec3,
 } from '../../src/kernel/index.ts';
 
 type FakeBody = {
   body: Body;
-  shape: ColliderShape;
+  colliders: ReadonlyArray<Collider>;
   pose: BodyPose;
   velocity: [number, number, number];
 };
@@ -25,6 +26,10 @@ export type FakeWorld = PhysicsWorld & {
   readonly calls: Array<string>;
   readonly bodies: Map<string, FakeBody>;
   readonly queue: Array<Collision>;
+  readonly joints: Map<
+    string,
+    { readonly joint: PhysicsJoint; readonly a: string; readonly b: string }
+  >;
   disposed: boolean;
 };
 
@@ -36,18 +41,20 @@ export const fakePhysics = () => {
       const bodies = new Map<string, FakeBody>();
       const calls: Array<string> = [];
       const queue: Array<Collision> = [];
+      const joints: FakeWorld['joints'] = new Map();
       const world: FakeWorld = {
         calls,
         bodies,
         queue,
+        joints,
         disposed: false,
         configure: (physics) => {
           calls.push('configure');
           gravity = physics.gravity;
         },
-        add: (key, body, shape, pose) => {
+        add: (key, body, colliders, pose) => {
           calls.push(`add ${key}`);
-          bodies.set(key, { body, shape, pose, velocity: [...body.linearVelocity] });
+          bodies.set(key, { body, colliders, pose, velocity: [...body.linearVelocity] });
         },
         update: (key, body) => {
           calls.push(`update ${key}`);
@@ -81,6 +88,15 @@ export const fakePhysics = () => {
         remove: (key) => {
           calls.push(`remove ${key}`);
           bodies.delete(key);
+          for (const [id, held] of joints) if (held.a === key || held.b === key) joints.delete(id);
+        },
+        addJoint: (id, joint, a, b) => {
+          calls.push(`join ${id}`);
+          joints.set(id, { joint, a, b });
+        },
+        removeJoint: (id) => {
+          calls.push(`unjoin ${id}`);
+          joints.delete(id);
         },
         step: (seconds) => {
           for (const held of bodies.values()) {

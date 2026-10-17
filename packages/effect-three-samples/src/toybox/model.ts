@@ -1,4 +1,4 @@
-import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
+import { perspectiveCamera, SceneSchema, xr } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
 
 import { Paint, paintAt } from '../palette';
@@ -39,10 +39,14 @@ export const Model = Schema.Struct({
   nextId: Schema.Number,
   /** Tidying up starts a new round: every toy gets a new key and drops again. */
   round: Schema.Number,
-  /** Collisions that began, as the simulation reported them. */
+  /** Collisions that began between toys and anything but marbles, as the simulation reported them. */
   bumps: Schema.Number,
+  /** Marbles poured in: one instanced node, a body per marble. */
+  marbles: Schema.Number,
   camera: SceneSchema.Camera,
   vr: Vr,
+  /** Where the player stands in VR: thumbsticks turn and step, by changing it. */
+  player: SceneSchema.Xr,
 });
 export type Model = typeof Model.Type;
 
@@ -66,6 +70,10 @@ export const toyAt = (id: number): Toy => ({
 
 export const firstToys = 8;
 
+/** Marbles per pour, and most in the box. */
+export const pour = 16;
+export const mostMarbles = 96;
+
 export const homeCamera = perspectiveCamera({
   fov: 40,
   position: [0, 6.5, 8.5],
@@ -78,6 +86,9 @@ export const initialModel: Model = {
   nextId: firstToys,
   round: 0,
   bumps: 0,
+  marbles: 0,
   camera: homeCamera,
   vr: 'checking',
+  // In front of the tray, facing it.
+  player: xr({ origin: [0, 0, 4.2] }),
 };

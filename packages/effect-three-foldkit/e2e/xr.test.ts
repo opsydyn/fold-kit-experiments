@@ -123,3 +123,135 @@ test('a session presents from the origin, drives frames, takes controller clicks
   expect(errors).toEqual([]);
   await page.close();
 }, 60_000);
+
+function events(): ReadonlyArray<string> {
+  return Reflect.get(globalThis, '__xr').events();
+}
+function drags(): number {
+  return Reflect.get(globalThis, '__xr').drags();
+}
+function inputs(): { readonly rays: number; readonly joints: number } {
+  return Reflect.get(globalThis, '__xr').inputs();
+}
+function enterAr(): Promise<void> {
+  return Reflect.get(globalThis, '__xr').enterAr();
+}
+function aimAtFloor(): void {
+  Reflect.get(globalThis, '__xr').aimDown(1);
+}
+function stickLeft(): void {
+  Reflect.get(globalThis, '__xr').stick(-1, 0);
+}
+function stickCentre(): void {
+  Reflect.get(globalThis, '__xr').stick(0, 0);
+}
+function grip(): void {
+  Reflect.get(globalThis, '__xr').squeeze(1);
+}
+function useHands(): void {
+  Reflect.get(globalThis, '__xr').inputMode('hand');
+}
+
+/** Opens the XR page and enters `mode`, waiting for the session to start. */
+const presentIn = async (enterMode: () => Promise<void>) => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(app.url('xr.html'));
+  await page.waitForFunction(xrReady);
+  await inPage(page, enterMode);
+  await page.waitForFunction(sessionsReported, 1);
+  return { page, errors };
+};
+
+const settle = (page: Page) => page.waitForTimeout(150);
+
+/** The left controller pointed well above everything, out of the way. */
+function leftAway(): void {
+  Reflect.get(globalThis, '__xr').aimLeft(4);
+}
+function clearEvents(): void {
+  Reflect.get(globalThis, '__xr').clearEvents();
+}
+
+/** Points both controllers above everything and forgets what happened before. */
+const pointAway = async (page: Page) => {
+  await inPage(page, leftAway);
+  await inPage(page, aimOver);
+  await settle(page);
+  await inPage(page, clearEvents);
+};
+
+test('controllers hover, drag, push sticks and press buttons; their rays are drawn', async () => {
+  const { page, errors } = await presentIn(enter);
+  await pointAway(page);
+  await inPage(page, aimAtCube);
+  await settle(page);
+  expect(await inPage(page, events)).toEqual(['pointer-enter cube']);
+  // Both controllers' rays are drawn.
+  expect(await inPage(page, inputs)).toEqual({ rays: 2, joints: 0 });
+
+  // Pulled on the cube and moved off it: dragged every frame, left, and the drag ends.
+  await inPage(page, pull);
+  await settle(page);
+  await inPage(page, aimOver);
+  await settle(page);
+  expect(await inPage(page, drags)).toBeGreaterThan(2);
+  await inPage(page, release);
+  await settle(page);
+  // The thumbstick pushed left and let back; the grip squeezed.
+  await inPage(page, stickLeft);
+  await settle(page);
+  await inPage(page, stickCentre);
+  await settle(page);
+  await inPage(page, grip);
+  await settle(page);
+  expect(await inPage(page, events)).toEqual([
+    'pointer-enter cube',
+    'xr-button right trigger true',
+    'pointer-leave cube',
+    'drag-end cube 0',
+    'xr-button right trigger false',
+    'xr-stick right left',
+    'xr-stick right center',
+    'xr-button right squeeze true',
+  ]);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
+test('tracked hands are drawn joint by joint, and their pinches select', async () => {
+  const { page, errors } = await presentIn(enter);
+  await inPage(page, useHands);
+  await settle(page);
+  // Two hands of 25 joints each; a hand points from its wrist, so no rays.
+  expect(await inPage(page, inputs)).toEqual({ rays: 0, joints: 50 });
+  // A pinch is a select: the right hand points at the cube, so pinching clicks it.
+  await inPage(page, clearEvents);
+  await inPage(page, () => Reflect.get(globalThis, '__xr').pinch(1));
+  await settle(page);
+  await inPage(page, () => Reflect.get(globalThis, '__xr').pinch(0));
+  await settle(page);
+  expect(await inPage(page, events)).toEqual(['click cube 0']);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);
+
+test('in AR, a select reports where its ray met the real floor', async () => {
+  const { page, errors } = await presentIn(enterAr);
+  expect(await inPage(page, sessions)).toEqual(['immersive-ar']);
+  await pointAway(page);
+  await inPage(page, aimAtFloor);
+  await settle(page);
+  await inPage(page, pull);
+  await settle(page);
+  await inPage(page, release);
+  await settle(page);
+  // Straight down from 0.2 right and 0.3 ahead of the player, who stands at x = 2 facing
+  // +x: the floor at (2.3, 0, 0.2) in the scene.
+  expect((await inPage(page, events)).filter((line) => line.startsWith('xr-surface'))).toEqual([
+    'xr-surface right 2.3,0.0,0.2',
+  ]);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);

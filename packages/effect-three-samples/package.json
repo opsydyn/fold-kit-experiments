@@ -25,6 +25,7 @@
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/effect-three-foldkit": "workspace:*",
     "@opsydyn/effect-three-rapier": "workspace:*",
+    "@opsydyn/effect-three-troika": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
     "effect": "catalog:",
     "foldkit": "catalog:",

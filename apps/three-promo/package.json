@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild-packages": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && bun run --filter @opsydyn/effect-three-rapier build",
+    "prebuild-packages": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && bun run --filter @opsydyn/effect-three-rapier build && bun run --filter @opsydyn/effect-three-troika build",
     "dev": "bun run prebuild-packages && astro dev",
     "build": "bun run prebuild-packages && astro build",
     "preview": "astro preview",
@@ -17,6 +17,7 @@
     "@opsydyn/effect-three-foldkit": "workspace:*",
     "@opsydyn/effect-three-rapier": "workspace:*",
     "@opsydyn/effect-three-samples": "workspace:*",
+    "@opsydyn/effect-three-troika": "workspace:*",
     "astro": "catalog:",
     "effect": "catalog:",
     "foldkit": "catalog:",

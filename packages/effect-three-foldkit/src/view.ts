@@ -47,6 +47,18 @@ export type Gesture = typeof SceneSchema.Gesture.Type;
 /** Detail of collision events: the two bodies' keys, and whether they began touching. */
 export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 
+/** Detail of measured events: a node's world bounding box. */
+export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
+
+/** Detail of XR stick events: a thumbstick pushed past halfway in a direction, or let back. */
+export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
+
+/** Detail of XR button events: a controller button pressed or released. */
+export type XrButtonDetail = typeof SceneSchema.XrButtonDetail.Type;
+
+/** Detail of XR surface events: in AR, where a select met a real surface, and its normal. */
+export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
+
 /** Detail of performance changes: the measured fps and the new factor, 0 to 1. */
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
 
@@ -95,10 +107,28 @@ export type ViewConfig<Message> = {
    */
   readonly onCollision?: (detail: CollisionDetail) => Message;
   /**
+   * A node listed in the scene's `measure` has a new world bounding box (Drei's `Bounds`
+   * measuring, as a Message): fit the camera to it with `fitCamera`.
+   */
+  readonly onMeasured?: (detail: MeasuredDetail) => Message;
+  /**
    * An immersive session began presenting this scene (`mode`), or ended (`mode: null`),
    * whether the app or the user (through the headset) ended it.
    */
   readonly onXRSession?: (detail: XrSessionDetail) => Message;
+  /**
+   * In a session, a thumbstick pushed past halfway in a direction, or let back to the
+   * centre: snap turn and teleport by changing the scene's `xr({ heading, origin })`, as
+   * pmndrs/xr's controller locomotion does.
+   */
+  readonly onXRStick?: (detail: XrStickDetail) => Message;
+  /** In a session, a controller button pressed or released (`xr-standard` mapping). */
+  readonly onXRButton?: (detail: XrButtonDetail) => Message;
+  /**
+   * In AR with `xr({ hitTest: true })`, a select whose ray met a real surface: place
+   * things there.
+   */
+  readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
   /**
    * Frames ran persistently slow or fast, and the performance factor moved (0 to 1).
    * Store it in the Model and lower `render.resolution` with it, as Drei's
@@ -143,7 +173,11 @@ export const view = <Message>(
     Option.map(given(config.onDrag), element.OnSceneDrag),
     Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
     Option.map(given(config.onCollision), element.OnSceneCollision),
+    Option.map(given(config.onMeasured), element.OnSceneMeasured),
     Option.map(given(config.onXRSession), element.OnSceneXr),
+    Option.map(given(config.onXRStick), element.OnSceneXrStick),
+    Option.map(given(config.onXRButton), element.OnSceneXrButton),
+    Option.map(given(config.onXRSurface), element.OnSceneXrSurface),
     Option.map(given(config.onGesture), (toMessage) =>
       element.OnSceneGesture((detail) => toMessage(detail.gesture)),
     ),

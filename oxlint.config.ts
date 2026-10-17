@@ -356,6 +356,7 @@ export default defineConfig({
     'packages/effect-three/**',
     'packages/effect-three-foldkit/**',
     'packages/effect-three-rapier/**',
+    'packages/effect-three-troika/**',
     '**/dist/**',
     '**/artifacts/**',
     '**/docs/**',

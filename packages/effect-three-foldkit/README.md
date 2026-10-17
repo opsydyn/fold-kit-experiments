@@ -36,10 +36,14 @@ EffectThreeFoldkit.view(
 
 - **Updates are in place.** Foldkit hands the element a new scene on every render, and the core diffs it, so unchanged scenes cost no host changes and changed ones reuse their three.js objects.
 - **Animation never touches the Model.** Behaviours such as `spin` run in the frame loop, outside Foldkit's `update`.
-- **Events are typed and opt-in:** `onClick`, `onDoubleClick`, `onContextMenu`, `onPointerDown`, `onPointerUp`, `onPointerEnter`, `onPointerMove`, `onPointerLeave`, `onPointerMissed`, `onWheel`, `onDrag`, `onDragEnd`, `onError` and `onReconciled`. Only the handlers you pass are bound. Hits carry the mesh key, world-space point, distance, face normal and uv.
+- **Events are typed and opt-in:** `onClick`, `onDoubleClick`, `onContextMenu`, `onPointerDown`, `onPointerUp`, `onPointerEnter`, `onPointerMove`, `onPointerLeave`, `onPointerMissed`, `onWheel`, `onDrag`, `onDragEnd`, `onGesture`, `onCollision`, `onMeasured`, `onXRSession`, `onXRStick`, `onXRButton`, `onXRSurface`, `onPerformanceChange`, `onError` and `onReconciled`. Only the handlers you pass are bound. Hits carry the mesh key (and instance), world-space point, distance, face normal and uv.
+- **Controls:** with `scene({ gestures: 'scene' })`, `onGesture` reports drags, the wheel and pinches; `orbit(model.camera, gesture)` moves a camera kept in the Model ([ADR-006](../../docs/effect-three/adr/006-controls-as-data.md)).
+- **HTML overlays:** `overlays: [{ overlay, content }]` places Model-rendered HTML at points in the scene every drawn frame, as Drei's `Html`.
 - **Groups and drags:** hits carry their ancestor `path`, and an `interactive` group makes every mesh inside it pickable. A press on a mesh captures the pointer, so `onDrag` keeps firing off the mesh and off the canvas; pair its `ray` with `pointOnPlane` to drag along a plane.
 - **Pixel ratio:** `makeEnvironment(window, { pixelRatio: [1, 2] })` takes a fixed ratio or a `[min, max]` range around the device's (the default is `[1, 2]`, as React Three Fiber's `dpr`), and re-measures when the device ratio changes.
-- **Assets:** `environment.assets.loadModel(id, url)` and `loadTexture(id, url)` load glTF models and textures as Effects for Commands (settle them into `AsyncData`), lend them to the store, and own them: loading an id again replaces and disposes the old asset, and `unload(id)` frees it. Show a model with `borrowed({ id, animation: play('wave') })`; use a texture with `map: id`.
+- **Assets:** `environment.assets.loadModel(id, url)`, `loadTexture(id, url)`, `loadFont(id, url)` and `loadEnvironment(id, url)` load glTF models, textures, typeface fonts and HDR panoramas as Effects for Commands (settle them into `AsyncData`), lend them to the store, and own them: loading an id again replaces and disposes the old asset, and `unload(id)` frees it. Show a model with `borrowed({ id, animation: play('wave') })`; use a texture with `map: id`, a font with `text({ font: id })`, a panorama with `environment({ map: id })` (Drei's presets: `environmentPresetUrl('city')`).
+- **Engines:** `makeEnvironment(window, { physics: loadRapier(), labels: troikaLabels() })` adds the Rapier physics engine ([`effect-three-rapier`](../effect-three-rapier/README.md); scenes wait for it to load) and the troika label engine ([`effect-three-troika`](../effect-three-troika/README.md)). Without them, bodies stay put and labels are empty.
+- **XR:** `environment.xr.supported(mode)`, `enter(mode)` and `exit` are Effects for Commands; `enter` (from a click) presents the mounted scene that describes `xr`, in VR or AR. Controllers and hands hover, click and drag; sticks, buttons and AR surfaces arrive through `onXRStick`, `onXRButton` and `onXRSurface` ([ADR-008](../../docs/effect-three/adr/008-immersive-sessions.md)).
 - **Browser defaults:** a context menu over an interactive mesh keeps the browser's menu shut; elsewhere it opens as usual. Wheel listening is passive, so the page still scrolls.
 - **Update telemetry:** `onReconciled` reports what each update did (created, updated, moved, removed, replaced, reordered) and the GPU resources held afterwards. It fires at startup and after updates that changed something, never for no-ops, so storing it in the Model can't loop.
 - **Lifecycle:** `StartedScene` once the scene is running, or `FailedScene { reason }` (malformed or invalid scene, or no WebGL2).
@@ -59,7 +63,13 @@ EffectThreeFoldkit.view(
 
 ## Options
 
-`makeEnvironment(window, { renderer })` takes an optional renderer factory per canvas (WebGL2 by default). Use it for a WebGPU renderer or for test instrumentation.
+`makeEnvironment(window, options)` takes:
+
+- `renderer`: a renderer factory per canvas (WebGL2 by default), for a WebGPU renderer or test instrumentation;
+- `pixelRatio`: fixed, or `[min, max]` around the device's;
+- `behaviours`: behaviours scenes may name with `behave(name)`, beside `float`;
+- `physics`: a physics engine, or the promise of one (`loadRapier()`);
+- `labels`: a label engine (`troikaLabels()`).
 
 ## Development
 
@@ -80,4 +90,7 @@ The browser tests prove the vertical slice end to end:
 - 20 mount/unmount cycles without WebGL context warnings;
 - golden frames on a paused fake clock (`UPDATE_GOLDENS=1` rewrites them);
 - three's renderer memory returning to baseline;
-- the time-travel pause gate.
+- the time-travel pause gate;
+- contact shadows and the shader grid, by pixel;
+- troika labels drawn once their font loads, and redrawn on change;
+- WebXR sessions under Meta's IWER: presenting from the origin, controller hover, drag, sticks and buttons, tracked hands and pinches, and AR hit tests against a synthetic floor.

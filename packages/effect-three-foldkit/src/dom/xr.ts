@@ -12,18 +12,30 @@
  *
  * @module
  */
-import type { Ray, SelectInput, Xr } from '@opsydyn/effect-three';
-import type { WebGLRenderer } from 'three';
+import type { Xr, XrInput } from '@opsydyn/effect-three';
+import { Group, type Object3D, type WebGLRenderer } from 'three';
+
+import { rayOf, trackInputs, type XrInputs } from './xrInputs.ts';
 
 /** Where an immersive session can come from: `navigator.xr`, or an emulator's. */
 export type XrSystem = Pick<XRSystem, 'requestSession' | 'isSessionSupported'>;
 
-/** The session request for a scene's settings: its reference space required. */
-export const sessionInit = (settings: Xr): XRSessionInit => ({
+/** The immersive session modes. */
+export type XrMode = 'immersive-vr' | 'immersive-ar';
+
+/**
+ * The session request for a scene's settings: its reference space required, other
+ * floors and hand tracking optional, and in AR hit testing when the scene asks for it
+ * (pmndrs/xr's `buildXRSessionInit` asks for every feature it may use, optionally).
+ */
+export const sessionInit = (settings: Xr, mode: XrMode = 'immersive-vr'): XRSessionInit => ({
   requiredFeatures: [settings.referenceSpace],
-  optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'].filter(
-    (feature) => feature !== settings.referenceSpace,
-  ),
+  optionalFeatures: [
+    ...['local-floor', 'bounded-floor', 'hand-tracking'].filter(
+      (feature) => feature !== settings.referenceSpace,
+    ),
+    ...(mode === 'immersive-ar' && settings.hitTest ? ['hit-test'] : []),
+  ],
 });
 
 /**
@@ -42,42 +54,27 @@ const originOffset = (settings: Xr): XRRigidTransform => {
   );
 };
 
-/** A target ray pose as a world-space ray: from its position along its −z. */
-const rayOf = (pose: XRPose): Ray => {
-  const { position, orientation } = pose.transform;
-  const { x, y, z, w } = orientation;
-  // −z rotated by the orientation quaternion.
-  return {
-    origin: [position.x, position.y, position.z],
-    direction: [-2 * (x * z + w * y), -2 * (y * z - w * x), -(1 - 2 * (x * x + y * y))],
-  };
-};
-
 /**
- * Forwards each controller's select as a ray in the presented space (the scene's, since
- * the reference space is offset to the player's origin). Returns a function that stops.
+ * Forwards each source's select as a ray in the presented space (the scene's, since the
+ * reference space is offset to the player's origin); a select ending in AR also reports
+ * the surface its ray met. Returns a function that stops.
  */
 const listenForSelects = (
   session: XRSession,
   space: () => XRReferenceSpace | null,
-  select: (input: SelectInput) => void,
+  inputs: XrInputs,
+  input: (input: XrInput) => void,
 ): (() => void) => {
-  const sources = new Map<XRInputSource, number>();
-  const sourceId = (source: XRInputSource): number => {
-    const known = sources.get(source);
-    if (known !== undefined) return known;
-    sources.set(source, sources.size);
-    return sources.size - 1;
-  };
-  const forward = (tag: SelectInput['_tag']) => (event: XRInputSourceEvent) => {
+  const forward = (tag: 'SelectStart' | 'SelectEnd') => (event: XRInputSourceEvent) => {
     const reference = space();
     const pose =
       reference === null
         ? undefined
         : event.frame.getPose(event.inputSource.targetRaySpace, reference);
     if (pose !== undefined && pose !== null) {
-      select({ _tag: tag, source: sourceId(event.inputSource), ray: rayOf(pose) });
+      input({ _tag: tag, source: inputs.idOf(event.inputSource), ray: rayOf(pose) });
     }
+    if (tag === 'SelectEnd') inputs.selected(event.inputSource);
   };
   const started = forward('SelectStart');
   const ended = forward('SelectEnd');
@@ -96,15 +93,17 @@ export type Presentation = {
 };
 
 /**
- * Presents into `session`: frames come from the session (`draw` is called for each) until
- * it ends, when `ended` is called and the page's own frames take over again.
+ * Presents into `session`: frames come from the session (each read for input, then drawn
+ * with `draw`) until it ends, when `ended` is called and the page's own frames take over
+ * again. Input sources are drawn into `scene` while it presents.
  */
 export const present = async (
   renderer: WebGLRenderer,
   session: XRSession,
   settings: Xr,
+  scene: Object3D,
   draw: () => void,
-  select: (input: SelectInput) => void,
+  input: (input: XrInput) => void,
   ended: () => void,
 ): Promise<Presentation> => {
   const { xr } = renderer;
@@ -115,16 +114,25 @@ export const present = async (
   const base = xr.getReferenceSpace();
   let current = settings;
   const place = (next: Xr): void => {
-    current = next;
     if (base !== null) xr.setReferenceSpace(base.getOffsetReferenceSpace(originOffset(next)));
   };
   place(settings);
-  xr.setAnimationLoop(draw);
-  const stopSelects = listenForSelects(session, () => xr.getReferenceSpace(), select);
+  const shown = new Group();
+  shown.name = 'xr-inputs';
+  scene.add(shown);
+  const inputs = trackInputs(session, shown, () => current, input);
+  xr.setAnimationLoop((_time, frame) => {
+    const space = xr.getReferenceSpace();
+    if (frame !== undefined && space !== null) inputs.frame(frame, space);
+    draw();
+  });
+  const stopSelects = listenForSelects(session, () => xr.getReferenceSpace(), inputs, input);
   session.addEventListener(
     'end',
     () => {
       stopSelects();
+      inputs.stop();
+      shown.removeFromParent();
       xr.setAnimationLoop(null);
       xr.enabled = false;
       ended();
@@ -137,6 +145,7 @@ export const present = async (
       const moved =
         next.origin.some((value, i) => value !== current.origin[i]) ||
         next.heading !== current.heading;
+      current = next;
       if (moved) place(next);
     },
   };

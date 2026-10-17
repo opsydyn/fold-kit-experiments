@@ -1,7 +1,8 @@
 /**
  * An immersive session in a headless browser: Meta's IWER emulates a Quest 3 behind
- * `navigator.xr`, and the test enters, moves the headset and exits through
- * `window.__xr`. The scene places the player two units along +x, turned to face +x.
+ * `navigator.xr`, and the test enters, moves the headset and controllers, and exits
+ * through `window.__xr`. The scene places the player two units along +x, turned to face
+ * +x; a synthetic floor at y = 0 answers AR hit tests.
  */
 import { box, mesh, scene, standard, xr } from '@opsydyn/effect-three';
 import { Effect, Queue, Stream } from 'effect';
@@ -9,11 +10,23 @@ import type { ViewState } from 'foldkit/mount';
 import { metaQuest3, XRDevice } from 'iwer';
 
 import * as EffectThreeFoldkit from '../../src/index.ts';
-import { aimStraight, headOf, keyOf, modeOf, rendererFinder, shimOffsetSpaces } from './xrProbe.ts';
+import {
+  aimDown,
+  aimStraight,
+  describeEvent,
+  FloorEnvironment,
+  headOf,
+  inputsShown,
+  keyOf,
+  modeOf,
+  rendererFinder,
+  shimOffsetSpaces,
+} from './xrProbe.ts';
 
 shimOffsetSpaces();
 const device = new XRDevice(metaQuest3);
 device.installRuntime({ forceInstall: true });
+device.installSEM(FloorEnvironment);
 
 const environment = EffectThreeFoldkit.makeEnvironment(window);
 const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
@@ -21,7 +34,7 @@ const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
 const described = scene({
-  xr: xr({ origin: [2, 0, 0], heading: -Math.PI / 2 }),
+  xr: xr({ origin: [2, 0, 0], heading: -Math.PI / 2, hitTest: true }),
   children: [
     mesh({
       key: 'cube',
@@ -40,6 +53,22 @@ element.addEventListener('scene-xr', (event) => sessions.push(modeOf(event)));
 
 const clicks: Array<string> = [];
 element.addEventListener('scene-click', (event) => clicks.push(keyOf(event)));
+
+const watched = [
+  'scene-pointer-enter',
+  'scene-pointer-leave',
+  'scene-drag-end',
+  'scene-xr-stick',
+  'scene-xr-button',
+  'scene-xr-surface',
+  'scene-pointer-missed',
+  'scene-click',
+];
+const events: Array<string> = [];
+for (const type of watched)
+  element.addEventListener(type, (event) => events.push(describeEvent(event)));
+let drags = 0;
+element.addEventListener('scene-drag', () => drags++);
 
 const viewStates = Effect.runSync(Queue.sliding<ViewState>(4));
 Queue.offerUnsafe(viewStates, 'Live');
@@ -68,4 +97,25 @@ Reflect.set(globalThis, '__xr', {
   aimRight: (y: number) => aimStraight(device.controllers.right, y),
   /** Pulls (1) or releases (0) the right controller's trigger: a select. */
   trigger: (value: number) => device.controllers.right?.updateButtonValue('trigger', value),
+  enterAr: () => Effect.runPromise(environment.xr.enter('immersive-ar')),
+  /** Points the left controller straight ahead from `y`. */
+  aimLeft: (y: number) => aimStraight(device.controllers.left, y),
+  /** Points the right controller straight down from `y`. */
+  aimDown: (y: number) => aimDown(device.controllers.right, y),
+  /** Pushes the right thumbstick to `(x, y)`. */
+  stick: (x: number, y: number) => device.controllers.right?.updateAxes('thumbstick', x, y),
+  /** Grips (1) or lets go (0) with the right controller. */
+  squeeze: (value: number) => device.controllers.right?.updateButtonValue('squeeze', value),
+  /** Switches between controllers and tracked hands. */
+  inputMode: (mode: 'controller' | 'hand') => {
+    device.primaryInputMode = mode;
+  },
+  /** Pinches (1) or opens (0) the right hand. */
+  pinch: (value: number) => device.hands.right?.updatePinchValue(value),
+  events: () => events,
+  clearEvents: () => {
+    events.length = 0;
+  },
+  drags: () => drags,
+  inputs: () => inputsShown(Reflect.get(globalThis, '__observedScenes') ?? []),
 });

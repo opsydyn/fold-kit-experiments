@@ -25,6 +25,20 @@ interpolate }) })`, with react-three-rapier's and Rapier's defaults.
 - **The simulation owns a dynamic body's pose.** The description says where it starts;
   changing its position or rotation later teleports it there at rest. A kinematic body
   follows its node's transform (transitions and behaviours included); a fixed one stays.
+- **A body sits on a mesh, a group, a borrowed model or each instance.** A group's or
+  model's colliders are its visible meshes, each placed relative to the body
+  (react-three-rapier's `createColliderPropsFromChildren`); a model lent later gets them
+  then. An `instances` node's `body` makes one body per instance (`InstancedRigidBodies`),
+  its pose written back to the instance's matrix, and collisions name the instance
+  (`aInstance`, `bInstance`). A collider signature, rounded so that a turning body's
+  matrices never read as a new shape, decides when a body must be remade.
+- **Joints are data too.** `physics({ joints: [joint({ key, a, b, anchorA, anchorB, kind,
+contacts })] })` with `fixedJoint`, `sphericalJoint`, `revoluteJoint`, `prismaticJoint`,
+  `ropeJoint` and `springJoint` (react-three-rapier's `use*Joint` hooks, `ae5c3fe`
+  `src/hooks/joints.ts`). A body is named by node key, or `bodyRef(key, instance)`. A
+  joint is made once both its bodies exist, and again whenever either is remade. A hinge's
+  limits are set on the made joint: Rapier's `JointData` (0.21) keeps limits for
+  prismatic joints only, so react-three-rapier's revolute limits are lost.
 - **Kicks are data with an identity.** `impulse: { id, impulse }` is applied once, when
   its `id` is new, so re-rendering never applies it twice.
 - **The kernel steps, an engine simulates.** The kernel works out colliders from the
@@ -48,5 +62,8 @@ interpolate }) })`, with react-three-rapier's and Rapier's defaults.
   the app (what exists, where it was dropped, the kicks, the collisions it counted).
 - Dynamic bodies ignore their node's transitions and behaviours: the simulation writes
   their pose last.
-- Not yet: joints, instanced bodies (react-three-rapier's `InstancedRigidBodies`), bodies
-  on groups and borrowed models, compound colliders, contact forces, and the debug view.
+- An app that turns every collision into a Message reconciles on every contact. Nothing
+  may change then: before signatures were rounded, a turning body's decomposed scale
+  (`0.99999994`) remade it each reconcile, each remake began a new contact, and so on.
+  A Rapier test now reconciles the same scene every frame and expects one contact.
+- Not yet: explicit collider shapes, joint motors, contact forces, and the debug view.

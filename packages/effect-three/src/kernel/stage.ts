@@ -4,8 +4,10 @@
  * and scaled by the content's size, contact shadows at its base, and an environment.
  *
  * Drei's `Stage` measures and centres its children and can fit the camera to them. Here
- * the content's size is data the application knows (or measures once), and the content
- * is centred on the origin, as Drei's `Center` would leave it.
+ * that is a loop through the Model, as controls are (ADR-006): measure the content
+ * (`scene({ measure })` reports its box), place it at `centerOffset(box)` as Drei's
+ * `Center` would, light it with `stage(stageBounds(box))`, and frame it with `fitCamera`
+ * as Drei's `Bounds` would.
  *
  * @module
  */
@@ -17,6 +19,7 @@ import {
   spotLight,
 } from './build.ts';
 import type { ContactShadows, Environment, SceneNode, Vec3 } from './description.ts';
+import type { Box } from './orbit.ts';
 
 /** Where the main and fill lights sit, in multiples of the content's radius. */
 export type StageLighting = { readonly main: Vec3; readonly fill: Vec3 };
@@ -86,4 +89,69 @@ export const stage = (options: {
       : null,
     environment: options.environment === undefined ? environmentOf() : options.environment,
   };
+};
+
+/**
+ * Which way to align content instead of centring it, per axis, as Drei's `Center` props:
+ * `top` stands it on y = 0 (on top of the origin), `bottom` hangs it below; `left` puts
+ * it left of x = 0, `right` right of it; `front` before z = 0, `back` behind. `disableY`
+ * leaves that axis as it is.
+ */
+export type CenterAlign = {
+  readonly top?: boolean;
+  readonly bottom?: boolean;
+  readonly left?: boolean;
+  readonly right?: boolean;
+  readonly front?: boolean;
+  readonly back?: boolean;
+  readonly disableX?: boolean;
+  readonly disableY?: boolean;
+  readonly disableZ?: boolean;
+};
+
+/**
+ * One axis of Drei's `Center`: the shift that puts the box's middle at 0, moved half its
+ * size up the axis (`above`, so its low side is at 0) or down it (`below`).
+ */
+const alignAxis = (
+  min: number,
+  max: number,
+  above: boolean | undefined,
+  below: boolean | undefined,
+  disabled: boolean | undefined,
+): number => {
+  if (disabled === true) return 0;
+  const half = (max - min) / 2;
+  const shift = above === true ? half : below === true ? -half : 0;
+  return -(min + max) / 2 + shift;
+};
+
+/**
+ * Where to put content whose box (as measured where it is drawn now, at no offset) is
+ * `box` so that it is centred on the origin, or aligned by `align`: Drei's `Center`
+ * (`src/core/Center.tsx` at `bf6f4ad`), which sets its inner group to this position.
+ */
+export const centerOffset = (box: Box, align: CenterAlign = {}): Vec3 => [
+  alignAxis(box.min[0], box.max[0], align.right, align.left, align.disableX),
+  alignAxis(box.min[1], box.max[1], align.top, align.bottom, align.disableY),
+  alignAxis(box.min[2], box.max[2], align.front, align.back, align.disableZ),
+];
+
+/**
+ * The sizes Drei's `Stage` takes from `Center`'s report: the box's bounding sphere radius
+ * (half its diagonal) and its width, height and depth. Pass to `stage` for lights and
+ * shadows scaled to the content.
+ */
+export const stageBounds = (
+  box: Box,
+): {
+  readonly radius: number;
+  readonly width: number;
+  readonly height: number;
+  readonly depth: number;
+} => {
+  const width = box.max[0] - box.min[0];
+  const height = box.max[1] - box.min[1];
+  const depth = box.max[2] - box.min[2];
+  return { radius: Math.hypot(width, height, depth) / 2, width, height, depth };
 };

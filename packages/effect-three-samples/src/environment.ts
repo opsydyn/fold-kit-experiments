@@ -5,9 +5,11 @@
  * The canvas is transparent, so the host page's surface colour and theme show through.
  */
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+import { troikaLabels } from '@opsydyn/effect-three-troika';
 
 export const environment = EffectThreeFoldkit.makeEnvironment(window, {
   renderer: (canvas) => EffectThreeFoldkit.webglRendererFactory(canvas, { alpha: true }),
+  labels: troikaLabels(),
 });
 
 export const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);

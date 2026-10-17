@@ -68,6 +68,9 @@ const Shape = Schema.Union([
     curveSegments: Schema.Literals([4]),
     bevel: Schema.Null,
     center: Schema.Boolean,
+    letterSpacing: Schema.Literals([0, 0.1]),
+    lineHeight: Schema.Literals([1]),
+    align: Schema.Literals(['left', 'center']),
   }),
 ]);
 const Behaviour = Schema.NullOr(
@@ -139,6 +142,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     behaviour: Behaviour,
     interactive: Schema.Boolean,
     children: Children,
+    body: Schema.Null,
   }),
   Schema.TaggedStruct('Mesh', {
     key: Key,
@@ -204,6 +208,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
         color: Colour,
       }),
     ).check(Schema.isMaxLength(20)),
+    body: Schema.Null,
   }),
   Schema.TaggedStruct('Borrowed', {
     key: Key,
@@ -220,7 +225,33 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     scale: Vec3,
     transition: Transition,
     behaviour: Behaviour,
+    body: Schema.Null,
     interactive: Schema.Boolean,
+  }),
+  // Without a label engine labels are empty wrappers: the diff and transforms still apply.
+  Schema.TaggedStruct('Label', {
+    key: Key,
+    position: Vec3,
+    rotation: Rotation,
+    scale: Vec3,
+    transition: Transition,
+    behaviour: Behaviour,
+    interactive: Schema.Boolean,
+    text: Schema.Literals(['a', 'bc']),
+    font: Schema.Null,
+    fontSize: Size,
+    color: Colour,
+    fillOpacity: Schema.Literals([1]),
+    anchorX: Schema.Literals(['center', 0.5]),
+    anchorY: Schema.Literals(['middle']),
+    maxWidth: Schema.NullOr(Size),
+    lineHeight: Schema.Null,
+    letterSpacing: Schema.Literals([0, 0.1]),
+    textAlign: Schema.Literals(['left', 'center']),
+    outlineWidth: Schema.Literals([0, 0.05]),
+    outlineColor: Colour,
+    outlineOpacity: Schema.Literals([1]),
+    outlineBlur: Schema.Literals([0]),
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),
   Schema.TaggedStruct('PointLight', {
@@ -258,6 +289,24 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     color: Colour,
     centerColor: Colour,
   }),
+  Schema.TaggedStruct('ShaderGrid', {
+    key: Key,
+    position: Vec3,
+    rotation: Vec3,
+    size: Schema.Tuple([Size, Size]),
+    cellSize: Schema.Literals([0.5, 1]),
+    cellThickness: Schema.Literals([0.5]),
+    cellColor: Colour,
+    sectionSize: Schema.Literals([1, 2]),
+    sectionThickness: Schema.Literals([1]),
+    sectionColor: Colour,
+    infinite: Schema.Boolean,
+    followCamera: Schema.Boolean,
+    fadeDistance: Schema.Literals([100]),
+    fadeStrength: Schema.Literals([1]),
+    fadeFrom: Schema.Literals([0, 1]),
+    side: Schema.Literals(['back', 'double']),
+  }),
   Schema.TaggedStruct('HemisphereLight', {
     key: Key,
     color: Colour,
@@ -280,12 +329,15 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  measure: Schema.Array(Schema.String).check(Schema.isMaxLength(0)),
   xr: Schema.NullOr(
     Schema.Struct({
       origin: Vec3,
       heading: Schema.Literals([0, 1]),
       referenceSpace: Schema.Literals(['local-floor', 'local']),
       framebufferScale: Schema.Literals([1]),
+      hitTest: Schema.Boolean,
+      showInputs: Schema.Boolean,
     }),
   ),
   physics: Schema.NullOr(
@@ -294,6 +346,7 @@ const sceneFields = {
       paused: Schema.Boolean,
       timeStep: Schema.Literals([1 / 60]),
       interpolate: Schema.Boolean,
+      joints: Schema.Tuple([]),
     }),
   ),
   contactShadows: Schema.NullOr(

@@ -19,10 +19,21 @@ import type {
   GridNode,
   Sky,
   Xr,
+  LabelAlign,
+  LabelAnchorX,
+  LabelAnchorY,
+  LabelNode,
+  MaterialSide,
+  ShaderGridNode,
+  TextAlign,
   TextBevel,
   TextGeometry,
   Overlay,
   Physics,
+  BodyRef,
+  Joint,
+  JointKind,
+  JointLimits,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -202,7 +213,9 @@ export const circle = (
 /**
  * Text from the typeface font lent under `font`. Defaults as Drei's `Text3D`: size 1,
  * depth 0.2, 8 curve segments, no bevel (a bevel given defaults to thickness 0.1, size
- * 0.01, offset 0, 4 segments), not centred. Depth 0 draws flat text.
+ * 0.01, offset 0, 4 segments), not centred. Depth 0 draws flat text. Letter spacing (in
+ * ems), line height (a multiple of the font's) and alignment default to the font's own
+ * layout, left aligned; unlike Drei, where three ignores them, they apply.
  */
 export const text = (options: {
   readonly text: string;
@@ -212,6 +225,9 @@ export const text = (options: {
   readonly curveSegments?: number;
   readonly bevel?: Partial<TextBevel>;
   readonly center?: boolean;
+  readonly letterSpacing?: number;
+  readonly lineHeight?: number;
+  readonly align?: TextAlign;
 }): TextGeometry => ({
   _tag: 'Text',
   text: options.text,
@@ -229,6 +245,9 @@ export const text = (options: {
           segments: options.bevel.segments ?? 4,
         },
   center: options.center ?? false,
+  letterSpacing: options.letterSpacing ?? 0,
+  lineHeight: options.lineHeight ?? 1,
+  align: options.align ?? 'left',
 });
 
 /** Position and scale changes apply immediately. The default. */
@@ -381,6 +400,48 @@ export const grid = (options: {
   centerColor: options.centerColor ?? 0x444444,
 });
 
+/**
+ * Drei's `Grid`, with its defaults: a 1 × 1 plane (pass `size`, or `infinite`), cells 0.5
+ * apart in black at thickness 0.5, sections 1 apart in `#2080ff` at thickness 1, fading
+ * over 100 units from the camera at strength 1, drawn on the back side.
+ */
+export const shaderGrid = (options: {
+  readonly key: string;
+  readonly position?: Vec3;
+  readonly rotation?: Vec3;
+  readonly size?: readonly [width: number, height: number];
+  readonly cellSize?: number;
+  readonly cellThickness?: number;
+  readonly cellColor?: Rgb;
+  readonly sectionSize?: number;
+  readonly sectionThickness?: number;
+  readonly sectionColor?: Rgb;
+  readonly infinite?: boolean;
+  readonly followCamera?: boolean;
+  readonly fadeDistance?: number;
+  readonly fadeStrength?: number;
+  readonly fadeFrom?: number;
+  readonly side?: MaterialSide;
+}): ShaderGridNode => ({
+  _tag: 'ShaderGrid',
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? origin,
+  size: options.size ?? [1, 1],
+  cellSize: options.cellSize ?? 0.5,
+  cellThickness: options.cellThickness ?? 0.5,
+  cellColor: options.cellColor ?? 0x000000,
+  sectionSize: options.sectionSize ?? 1,
+  sectionThickness: options.sectionThickness ?? 1,
+  sectionColor: options.sectionColor ?? 0x2080ff,
+  infinite: options.infinite ?? false,
+  followCamera: options.followCamera ?? false,
+  fadeDistance: options.fadeDistance ?? 100,
+  fadeStrength: options.fadeStrength ?? 1,
+  fadeFrom: options.fadeFrom ?? 1,
+  side: options.side ?? 'back',
+});
+
 /** A reference to a shared geometry defined in the scene's resources. */
 export const sharedGeometry = (id: string): GeometryRef => ({ _tag: 'SharedGeometry', id });
 
@@ -403,6 +464,7 @@ export const group = (
   options: TransformOptions & {
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
+    readonly body?: Body | null;
   },
 ): GroupNode => ({
   _tag: 'Group',
@@ -414,6 +476,7 @@ export const group = (
   behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
   children: options.children ?? [],
+  body: options.body ?? null,
 });
 
 /** A mesh. Not interactive unless `interactive` is true. */
@@ -463,26 +526,96 @@ export const body = (options: Partial<Body> = {}): Body => ({
   impulse: options.impulse ?? null,
 });
 
+const noJoints: ReadonlyArray<Joint> = [];
+
 /**
  * A physics world. Defaults as react-three-rapier's `Physics`: Earth gravity
- * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated.
+ * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated; no joints.
  */
 export const physics = (options: Partial<Physics> = {}): Physics => ({
   gravity: options.gravity ?? [0, -9.81, 0],
   paused: options.paused ?? false,
   timeStep: options.timeStep ?? 1 / 60,
   interpolate: options.interpolate ?? true,
+  joints: options.joints ?? noJoints,
 });
+
+/** A node's body (`instance` omitted), or one instance's of an instances node. */
+export const bodyRef = (key: string, instance: string | null = null): BodyRef => ({
+  key,
+  instance,
+});
+
+const refOf = (ref: string | BodyRef): BodyRef => (typeof ref === 'string' ? bodyRef(ref) : ref);
+
+/**
+ * A joint between two bodies, named by node key or `bodyRef`. Anchors default to each
+ * body's origin; the bodies still collide with each other unless `contacts` is false.
+ */
+export const joint = (options: {
+  readonly key: string;
+  readonly a: string | BodyRef;
+  readonly b: string | BodyRef;
+  readonly anchorA?: Vec3;
+  readonly anchorB?: Vec3;
+  readonly kind: JointKind;
+  readonly contacts?: boolean;
+}): Joint => ({
+  key: options.key,
+  a: refOf(options.a),
+  b: refOf(options.b),
+  anchorA: options.anchorA ?? origin,
+  anchorB: options.anchorB ?? origin,
+  kind: options.kind,
+  contacts: options.contacts ?? true,
+});
+
+/** Holds two bodies still relative to each other. Frames default to unturned. */
+export const fixedJoint = (
+  options: { readonly frameA?: Vec3; readonly frameB?: Vec3 } = {},
+): JointKind => ({
+  _tag: 'Fixed',
+  frameA: options.frameA ?? origin,
+  frameB: options.frameB ?? origin,
+});
+
+/** A ball and socket at the anchors. */
+export const sphericalJoint = (): JointKind => ({ _tag: 'Spherical' });
+
+/** A hinge about `axis` (each body's own), limited to `limits` radians if given. */
+export const revoluteJoint = (options: {
+  readonly axis: Vec3;
+  readonly limits?: JointLimits | null;
+}): JointKind => ({ _tag: 'Revolute', axis: options.axis, limits: options.limits ?? null });
+
+/** A slider along `axis`, limited to `limits` if given. */
+export const prismaticJoint = (options: {
+  readonly axis: Vec3;
+  readonly limits?: JointLimits | null;
+}): JointKind => ({ _tag: 'Prismatic', axis: options.axis, limits: options.limits ?? null });
+
+/** Keeps the anchors at most `length` apart. */
+export const ropeJoint = (length: number): JointKind => ({ _tag: 'Rope', length });
+
+/** Pulls the anchors towards `restLength` apart. */
+export const springJoint = (options: {
+  readonly restLength: number;
+  readonly stiffness: number;
+  readonly damping: number;
+}): JointKind => ({ _tag: 'Spring', ...options });
 
 /**
  * Immersive presentation for a scene. Defaults: the player at the scene's origin facing
- * −z, `local-floor` (as pmndrs/xr), the device's framebuffer scale.
+ * −z, `local-floor` (as pmndrs/xr), the device's framebuffer scale, inputs drawn (rays
+ * and hand joints, where pmndrs/xr draws controller and hand models), no AR hit tests.
  */
 export const xr = (options: Partial<Xr> = {}): Xr => ({
   origin: options.origin ?? origin,
   heading: options.heading ?? 0,
   referenceSpace: options.referenceSpace ?? 'local-floor',
   framebufferScale: options.framebufferScale ?? 1,
+  hitTest: options.hitTest ?? false,
+  showInputs: options.showInputs ?? true,
 });
 
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */
@@ -509,6 +642,7 @@ export const instances = (
     readonly interactive?: boolean;
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
+    readonly body?: Body | null;
   },
 ): InstancesNode => ({
   _tag: 'Instances',
@@ -524,6 +658,7 @@ export const instances = (
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
   instances: options.instances,
+  body: options.body ?? null,
 });
 
 /** Applies a registered behaviour by name. Parameters default to the behaviour's own. */
@@ -544,6 +679,7 @@ export const borrowed = (
     readonly id: string;
     readonly interactive?: boolean;
     readonly animation?: Animation | null;
+    readonly body?: Body | null;
   },
 ): BorrowedNode => ({
   _tag: 'Borrowed',
@@ -556,6 +692,57 @@ export const borrowed = (
   transition: options.transition ?? instantTransition,
   behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
+  body: options.body ?? null,
+});
+
+/**
+ * Text drawn from distance fields (Drei's `Text`). Defaults as Drei's: size 1, anchored at
+ * its centre and middle, troika's default font; white, no outline, left-aligned lines,
+ * never wrapped, the font's own line height. Not interactive by default.
+ */
+export const label = (
+  options: TransformOptions & {
+    readonly text: string;
+    readonly font?: string | null;
+    readonly fontSize?: number;
+    readonly color?: Rgb;
+    readonly fillOpacity?: number;
+    readonly anchorX?: LabelAnchorX;
+    readonly anchorY?: LabelAnchorY;
+    readonly maxWidth?: number | null;
+    readonly lineHeight?: number | null;
+    readonly letterSpacing?: number;
+    readonly textAlign?: LabelAlign;
+    readonly outlineWidth?: number;
+    readonly outlineColor?: Rgb;
+    readonly outlineOpacity?: number;
+    readonly outlineBlur?: number;
+    readonly interactive?: boolean;
+  },
+): LabelNode => ({
+  _tag: 'Label',
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? noRotation,
+  scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
+  interactive: options.interactive ?? false,
+  text: options.text,
+  font: options.font ?? null,
+  fontSize: options.fontSize ?? 1,
+  color: options.color ?? 0xffffff,
+  fillOpacity: options.fillOpacity ?? 1,
+  anchorX: options.anchorX ?? 'center',
+  anchorY: options.anchorY ?? 'middle',
+  maxWidth: options.maxWidth ?? null,
+  lineHeight: options.lineHeight ?? null,
+  letterSpacing: options.letterSpacing ?? 0,
+  textAlign: options.textAlign ?? 'left',
+  outlineWidth: options.outlineWidth ?? 0,
+  outlineColor: options.outlineColor ?? 0x000000,
+  outlineOpacity: options.outlineOpacity ?? 1,
+  outlineBlur: options.outlineBlur ?? 0,
 });
 
 /** Ambient light. Defaults: white, intensity 1. */
@@ -880,6 +1067,7 @@ export const contactShadows = (
 };
 
 const noOverlays: ReadonlyArray<Overlay> = [];
+const noMeasures: ReadonlyArray<string> = [];
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
 const defaultZIndexRange: readonly [number, number] = [16777271, 0];
@@ -920,6 +1108,7 @@ export const scene = (options: {
   readonly contactShadows?: ContactShadows | null;
   readonly physics?: Physics | null;
   readonly xr?: Xr | null;
+  readonly measure?: ReadonlyArray<string>;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -934,6 +1123,7 @@ export const scene = (options: {
   contactShadows: options.contactShadows ?? null,
   physics: options.physics ?? null,
   xr: options.xr ?? null,
+  measure: options.measure ?? noMeasures,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

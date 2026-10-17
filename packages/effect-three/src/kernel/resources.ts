@@ -22,6 +22,7 @@ import {
   CircleGeometry,
   ConeGeometry,
   CylinderGeometry,
+  ExtrudeGeometry,
   Material,
   type Object3D,
   type Texture,
@@ -31,7 +32,6 @@ import {
   SphereGeometry,
   TorusGeometry,
 } from 'three';
-import { TextGeometry as ThreeTextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import type { Font } from 'three/addons/loaders/FontLoader.js';
 
 import type {
@@ -44,6 +44,7 @@ import type {
 } from './description.ts';
 import { geometryRefEquals, materialRefEquals } from './equality.ts';
 import { buildMaterial, type HostMaterial, updateMaterial } from './materials.ts';
+import { layoutText } from './textLayout.ts';
 
 /** Lifetime counters for one resource type. `live` is `created - disposed`. */
 export type ResourceCounts = {
@@ -158,15 +159,17 @@ const liveId = <A extends object>(
   return id;
 };
 
-/** Text from its font: flat shapes, or three's extruded `TextGeometry`. */
+/**
+ * Text from its font: flat shapes, or extruded as three's `TextGeometry` extrudes them
+ * (its options, from shapes laid out with spacing and alignment).
+ */
 const buildText = (shape: TextGeometry, font: Font | undefined): BufferGeometry => {
   if (font === undefined) return new BufferGeometry();
+  const shapes = [...layoutText(font, shape.text, shape)];
   const geometry =
     shape.depth === 0 && shape.bevel === null
-      ? new ShapeGeometry3(font.generateShapes(shape.text, shape.size), shape.curveSegments)
-      : new ThreeTextGeometry(shape.text, {
-          font,
-          size: shape.size,
+      ? new ShapeGeometry3(shapes, shape.curveSegments)
+      : new ExtrudeGeometry(shapes, {
           depth: shape.depth,
           curveSegments: shape.curveSegments,
           bevelEnabled: shape.bevel !== null,

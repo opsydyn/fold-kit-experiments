@@ -117,7 +117,8 @@ const xrRegistration = (mounted: Mounted) => () =>
       gate: mounted.gate,
       settings: mounted.handle.graph.xr,
       draw: mounted.handle.drawNow,
-      select: mounted.handle.select,
+      scene: mounted.handle.graph.scene,
+      input: mounted.handle.xrInput,
     }),
   );
 
@@ -213,6 +214,7 @@ const sceneRuntimeFor =
       renderer: environment.renderer(canvas),
       behaviours: environment.behaviours,
       physics,
+      labels: environment.labels,
       placeOverlays: overlays.place,
       viewport: measureViewport(element, environment.host.devicePixelRatio, environment.pixelRatio),
     }).pipe(

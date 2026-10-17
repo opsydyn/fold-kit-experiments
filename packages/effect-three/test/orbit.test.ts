@@ -12,6 +12,7 @@ import {
   type Gesture,
   noModifiers,
   orbit,
+  orbitKey,
   type OrbitOptions,
   orbitOptions,
   orthographicCamera,
@@ -20,6 +21,8 @@ import {
 } from '../src/kernel/index.ts';
 
 const area = { width: 800, height: 600 };
+/** A gesture's area, and where in it the pointer is: the middle. */
+const region = { ...area, x: 0, y: 0 };
 
 /** A host camera placed and fitted as the kernel places and fits it. */
 const hostOf = (camera: Camera): PerspectiveCamera | OrthographicCamera => {
@@ -53,17 +56,32 @@ const handle = (controls: OrbitControls, name: string, ...args: ReadonlyArray<un
 
 const at = (x: number, y: number) => ({ clientX: x, clientY: y });
 
+/** A gesture's cursor (−1 to 1, y up) in client pixels. */
+const clientOf = (gesture: Gesture) => ({
+  clientX: ((gesture.x + 1) / 2) * area.width,
+  clientY: ((1 - gesture.y) / 2) * area.height,
+});
+
 /** What three's controls make of a gesture. */
 const oracle = (camera: Camera, gesture: Gesture, options: Partial<OrbitOptions>): Result => {
   const host = hostOf(camera);
   const controls = new OrbitControls(host);
-  Reflect.set(controls, 'domElement', { clientWidth: area.width, clientHeight: area.height });
+  Reflect.set(controls, 'domElement', {
+    clientWidth: area.width,
+    clientHeight: area.height,
+    getBoundingClientRect: () => ({ left: 0, top: 0, ...area }),
+  });
   Object.assign(controls, options);
   controls.target.fromArray(camera.lookAt);
   controls.update();
   host.updateMatrixWorld();
   if (gesture._tag === 'Wheel') {
-    const event = { deltaMode: 0, deltaY: gesture.deltaY, ctrlKey: gesture.modifiers.control };
+    const event = {
+      deltaMode: 0,
+      deltaY: gesture.deltaY,
+      ctrlKey: gesture.modifiers.control,
+      ...clientOf(gesture),
+    };
     handle(
       controls,
       '_handleMouseWheel',
@@ -75,8 +93,18 @@ const oracle = (camera: Camera, gesture: Gesture, options: Partial<OrbitOptions>
       gesture.modifiers.shift && action !== 'Dolly'
         ? ({ Rotate: 'Pan', Pan: 'Rotate' } as const)[action]
         : action;
-    handle(controls, `_handleMouseDown${swapped}`, at(0, 0));
-    handle(controls, `_handleMouseMove${swapped}`, at(gesture.deltaX, gesture.deltaY));
+    // Pressed where the gesture says (a dolly aims there); moved by the deltas.
+    const press = clientOf(gesture);
+    handle(controls, `_handleMouseDown${swapped}`, press);
+    // three 0.186's _handleMouseDownDolly aims at (clientX, clientX), a typo; aim it at the
+    // press point, as orbit does.
+    if (swapped === 'Dolly')
+      handle(controls, '_updateZoomParameters', press.clientX, press.clientY);
+    handle(
+      controls,
+      `_handleMouseMove${swapped}`,
+      at(press.clientX + gesture.deltaX, press.clientY + gesture.deltaY),
+    );
   }
   return {
     position: host.position.toArray(),
@@ -101,21 +129,35 @@ const expectClose = (actual: Result, expected: Result): void => {
   expect(actual.zoom).toBeCloseTo(expected.zoom, 6);
 };
 
-const drag = (button: number, deltaX: number, deltaY: number, shift = false): Gesture => ({
+const drag = (
+  button: number,
+  deltaX: number,
+  deltaY: number,
+  shift = false,
+  cursor: readonly [number, number] = [0, 0],
+): Gesture => ({
   _tag: 'Drag',
   button,
   modifiers: { ...noModifiers, shift },
   deltaX,
   deltaY,
   ...area,
+  x: cursor[0],
+  y: cursor[1],
 });
 
-const wheel = (deltaY: number, control = false): Gesture => ({
+const wheel = (
+  deltaY: number,
+  control = false,
+  cursor: readonly [number, number] = [0, 0],
+): Gesture => ({
   _tag: 'Wheel',
   modifiers: { ...noModifiers, control },
   deltaX: 0,
   deltaY,
   ...area,
+  x: cursor[0],
+  y: cursor[1],
 });
 
 /** A small deterministic generator (mulberry32), so failures replay. */
@@ -165,8 +207,57 @@ test('every drag and wheel step matches three.js OrbitControls', () => {
   }
 });
 
+test('zooming toward the cursor matches OrbitControls with zoomToCursor', () => {
+  const next = random(11);
+  for (const camera of cameras) {
+    for (const options of [
+      { zoomToCursor: true },
+      { zoomToCursor: true, screenSpacePanning: false },
+      { zoomToCursor: true, minDistance: 3, maxDistance: 12, minZoom: 30, maxZoom: 80 },
+    ]) {
+      for (let i = 0; i < 12; i++) {
+        const cursor = [next() * 2 - 1, next() * 2 - 1] as const;
+        const delta = (next() - 0.5) * 600;
+        for (const gesture of [wheel(delta, false, cursor), drag(1, 0, delta, false, cursor)]) {
+          expectClose(
+            resultOf(orbit(camera, gesture, orbitOptions(options))),
+            oracle(camera, gesture, options),
+          );
+        }
+      }
+    }
+  }
+});
+
+test('arrow keys pan, and turn with a modifier, as OrbitControls does', () => {
+  for (const camera of cameras) {
+    for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'] as const) {
+      for (const shift of [false, true]) {
+        const host = hostOf(camera);
+        const controls = new OrbitControls(host);
+        Reflect.set(controls, 'domElement', { clientWidth: area.width, clientHeight: area.height });
+        controls.target.fromArray(camera.lookAt);
+        controls.update();
+        host.updateMatrixWorld();
+        handle(controls, '_handleKeyDown', {
+          code: key,
+          shiftKey: shift,
+          ctrlKey: false,
+          metaKey: false,
+          preventDefault: () => undefined,
+        });
+        expectClose(resultOf(orbitKey(camera, key, { ...noModifiers, shift }, area)), {
+          position: host.position.toArray(),
+          target: controls.target.toArray(),
+          zoom: host.zoom,
+        });
+      }
+    }
+  }
+});
+
 test('a pinch spreading to twice the distance halves it, or doubles an orthographic zoom', () => {
-  const pinch: Gesture = { _tag: 'Pinch', scale: 2, deltaX: 0, deltaY: 0, ...area };
+  const pinch: Gesture = { _tag: 'Pinch', scale: 2, deltaX: 0, deltaY: 0, ...region };
   const near = orbit(perspectiveCamera({ position: [0, 0, 8] }), pinch);
   expect(near.position[2]).toBeCloseTo(4, 9);
   const zoomed = orbit(orthographicCamera({ zoom: 10, position: [0, 0, 8] }), pinch);

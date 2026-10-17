@@ -3,7 +3,7 @@
  * renderer. Kept apart from the Effect code that mounts the scene.
  */
 import { type XRDevice, XRReferenceSpace } from 'iwer';
-import type { WebGLRenderer } from 'three';
+import { InstancedMesh, Line, Object3D, type WebGLRenderer } from 'three';
 
 import { webglRendererOf } from '../../src/dom/webgl.ts';
 
@@ -55,4 +55,81 @@ export const aimStraight = (controller: XRDevice['controllers']['right'], y: num
   controller.quaternion.y = 0;
   controller.quaternion.z = 0;
   controller.quaternion.w = 1;
+};
+
+/** Points an emulated controller straight down, 0.3 forward at `y`, 0.2 to the right. */
+export const aimDown = (controller: XRDevice['controllers']['right'], y: number): void => {
+  if (controller === undefined) return;
+  aimStraight(controller, y);
+  // A quarter turn about x (−90°) turns −z to −y.
+  controller.quaternion.x = -Math.SQRT1_2;
+  controller.quaternion.w = Math.SQRT1_2;
+};
+
+/**
+ * A synthetic environment for the emulator's hit tests: a floor at y = 0 in its global
+ * space. IWER asks one for every hit test (a ray as a matrix: its position, looking down
+ * −z) and expects the hit poses back (+y the surface normal).
+ */
+export class FloorEnvironment {
+  readonly version = 'floor';
+  planesVisible = false;
+  boundingBoxesVisible = false;
+  meshesVisible = false;
+  readonly environmentCanvas = document.createElement('canvas');
+  readonly trackedPlanes = new Set<never>();
+  readonly trackedMeshes = new Set<never>();
+  render(): void {}
+  loadEnvironment(): void {}
+  loadDefaultEnvironment(): void {}
+  deleteAll(): void {}
+  computeDepthBuffer(): null {
+    return null;
+  }
+  computeHitTestResults(ray: ArrayLike<number>): Array<Float32Array> {
+    const [ox = 0, oy = 0, oz = 0] = [ray[12], ray[13], ray[14]];
+    const [dx = 0, dy = 0, dz = 0] = [-(ray[8] ?? 0), -(ray[9] ?? 0), -(ray[10] ?? 0)];
+    if (dy >= 0) return [];
+    const t = -oy / dy;
+    const hit = new Float32Array(16);
+    hit[0] = 1;
+    hit[5] = 1;
+    hit[10] = 1;
+    hit[15] = 1;
+    hit[12] = ox + dx * t;
+    hit[13] = 0;
+    hit[14] = oz + dz * t;
+    return [hit];
+  }
+}
+
+/** A short line for each scene event the XR test watches: its type and what it names. */
+export const describeEvent = (event: Event): string => {
+  const detail: unknown = event instanceof CustomEvent ? event.detail : undefined;
+  const field = (name: string): unknown =>
+    typeof detail === 'object' && detail !== null ? Reflect.get(detail, name) : undefined;
+  const parts = [field('key'), field('hand'), field('direction'), field('button'), field('pressed')]
+    .filter((part) => part !== undefined)
+    .map(String);
+  const point = field('point');
+  if (event.type === 'scene-xr-surface' && Array.isArray(point)) {
+    parts.push(point.map((value: number) => value.toFixed(1)).join(','));
+  }
+  return [event.type.replace('scene-', ''), ...parts].join(' ');
+};
+
+/** What the session draws for its inputs: visible rays, and hand joint spheres placed. */
+export const inputsShown = (
+  scenes: ReadonlyArray<unknown>,
+): { readonly rays: number; readonly joints: number } => {
+  let rays = 0;
+  let joints = 0;
+  for (const scene of scenes) {
+    if (!(scene instanceof Object3D)) continue;
+    scene.getObjectByName('xr-inputs')?.traverse((object) => {
+      if (object instanceof Line && object.visible) rays++;
+      if (object instanceof InstancedMesh) joints += object.count;
+    });
+  }
+  return { rays, joints };
 };

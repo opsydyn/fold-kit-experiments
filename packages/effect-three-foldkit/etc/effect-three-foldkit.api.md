@@ -11,8 +11,10 @@ import { Effect as Effect_2 } from 'effect/Effect';
 import { FrameScheduler } from '@opsydyn/effect-three';
 import type { Html } from 'foldkit/html';
 import type { HtmlBuilder } from 'foldkit/html';
+import { LabelEngine } from '@opsydyn/effect-three';
 import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
+import type { Object3D } from 'three';
 import type { Op } from '@opsydyn/effect-three';
 import type { Overlay } from '@opsydyn/effect-three';
 import { PhysicsEngine } from '@opsydyn/effect-three';
@@ -25,10 +27,10 @@ import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
-import type { SelectInput } from '@opsydyn/effect-three';
 import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
 import type { Xr } from '@opsydyn/effect-three';
+import type { XrInput } from '@opsydyn/effect-three';
 import { YieldableError } from 'effect/Cause';
 
 // @public
@@ -80,6 +82,10 @@ export const domEventName: {
     readonly DragEnd: 'scene-drag-end';
     readonly Gesture: 'scene-gesture';
     readonly Collision: 'scene-collision';
+    readonly Measured: 'scene-measured';
+    readonly XrStick: 'scene-xr-stick';
+    readonly XrButton: 'scene-xr-button';
+    readonly XrSurface: 'scene-xr-surface';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -98,6 +104,7 @@ export type EnvironmentOptions = {
     readonly pixelRatio?: PixelRatio;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
     readonly physics?: PhysicsEngine | Promise<PhysicsEngine>;
+    readonly labels?: LabelEngine;
 };
 
 // @public
@@ -128,6 +135,7 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
     pixelRatio: PixelRatio;
     behaviours: Readonly<Record<string, Behaviour>>;
     physics: Promise<PhysicsEngine | undefined>;
+    labels: LabelEngine | undefined;
     assets: {
         loadTexture: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadModel: (id: string, url: string) => Effect_2<ModelInfo, AssetLoadError, never>;
@@ -147,11 +155,14 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
-    readonly _tag: "StartedScene";
-} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
+} | {
+    readonly _tag: "StartedScene";
 }>;
+
+// @public
+export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
@@ -322,13 +333,46 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly paused: Schema.Boolean;
             readonly timeStep: Schema.Finite;
             readonly interpolate: Schema.Boolean;
+            readonly joints: Schema.$Array<Schema.Struct<{
+                readonly key: Schema.String;
+                readonly a: Schema.Struct<{
+                    readonly key: Schema.String;
+                    readonly instance: Schema.NullOr<Schema.String>;
+                }>;
+                readonly b: Schema.Struct<{
+                    readonly key: Schema.String;
+                    readonly instance: Schema.NullOr<Schema.String>;
+                }>;
+                readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+                    readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                    readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+                    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+                }>, Schema.TaggedStruct<"Prismatic", {
+                    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+                }>, Schema.TaggedStruct<"Rope", {
+                    readonly length: Schema.Finite;
+                }>, Schema.TaggedStruct<"Spring", {
+                    readonly restLength: Schema.Finite;
+                    readonly stiffness: Schema.Finite;
+                    readonly damping: Schema.Finite;
+                }>]>;
+                readonly contacts: Schema.Boolean;
+            }>>;
         }>>;
         readonly xr: Schema.NullOr<Schema.Struct<{
             readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly heading: Schema.Finite;
             readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
             readonly framebufferScale: Schema.Finite;
+            readonly hitTest: Schema.Boolean;
+            readonly showInputs: Schema.Boolean;
         }>>;
+        readonly measure: Schema.$Array<Schema.String>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;
@@ -364,6 +408,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                         readonly segments: Schema.Int;
                     }>>;
                     readonly center: Schema.Boolean;
+                    readonly letterSpacing: Schema.Finite;
+                    readonly lineHeight: Schema.Finite;
+                    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
                 }>, Schema.TaggedStruct<"Box", {
                     readonly width: Schema.Finite;
                     readonly height: Schema.Finite;
@@ -628,6 +675,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly view: Schema.optionalKey<Schema.String>;
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
             readonly button: Schema.Int;
             readonly modifiers: Schema.Struct<{
                 readonly shift: Schema.Boolean;
@@ -642,6 +691,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly view: Schema.optionalKey<Schema.String>;
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
             readonly modifiers: Schema.Struct<{
                 readonly shift: Schema.Boolean;
                 readonly control: Schema.Boolean;
@@ -654,6 +705,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly view: Schema.optionalKey<Schema.String>;
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
             readonly scale: Schema.Finite;
             readonly deltaX: Schema.Finite;
             readonly deltaY: Schema.Finite;
@@ -661,11 +714,32 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-collision': Schema.Struct<{
         readonly a: Schema.String;
+        readonly aInstance: Schema.optionalKey<Schema.String>;
         readonly b: Schema.String;
+        readonly bInstance: Schema.optionalKey<Schema.String>;
         readonly started: Schema.Boolean;
+    }>;
+    'scene-measured': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>;
     'scene-xr': Schema.Struct<{
         readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
+    }>;
+    'scene-xr-stick': Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+        readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
+    }>;
+    'scene-xr-button': Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+        readonly button: Schema.Literals<readonly ["trigger", "squeeze", "touchpad", "thumbstick", "primary", "secondary"]>;
+        readonly pressed: Schema.Boolean;
+    }>;
+    'scene-xr-surface': Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
@@ -699,6 +773,13 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         }>, Schema.TaggedStruct<"UnknownOverlayView", {
             readonly key: Schema.String;
             readonly view: Schema.String;
+        }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
+            readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateJointKey", {
+            readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"UnknownJointBody", {
+            readonly joint: Schema.String;
+            readonly body: Schema.String;
         }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
             readonly id: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
@@ -758,6 +839,13 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
 }>, Schema.TaggedStruct<"UnknownOverlayView", {
     readonly key: Schema.String;
     readonly view: Schema.String;
+}>, Schema.TaggedStruct<"UnknownMeasuredNode", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateJointKey", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownJointBody", {
+    readonly joint: Schema.String;
+    readonly body: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
     readonly id: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {
@@ -815,7 +903,11 @@ export type ViewConfig<Message> = {
     readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onGesture?: (gesture: Gesture) => Message;
     readonly onCollision?: (detail: CollisionDetail) => Message;
+    readonly onMeasured?: (detail: MeasuredDetail) => Message;
     readonly onXRSession?: (detail: XrSessionDetail) => Message;
+    readonly onXRStick?: (detail: XrStickDetail) => Message;
+    readonly onXRButton?: (detail: XrButtonDetail) => Message;
+    readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
@@ -834,6 +926,9 @@ export const webglRendererFactory: (canvas: HTMLCanvasElement, options?: WebGLOp
 // @public
 export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
 
+// @public
+export type XrButtonDetail = typeof SceneSchema.XrButtonDetail.Type;
+
 // Warning: (ae-forgotten-export) The symbol "makeXr" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -850,6 +945,12 @@ export const XrSessionDetail: Schema.Struct<{
 // @public (undocumented)
 export type XrSessionDetail = typeof XrSessionDetail.Type;
 
+// @public
+export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
+
+// @public
+export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
+
 // Warning: (ae-forgotten-export) The symbol "XrUnavailable_base" needs to be exported by the entry point index.d.ts
 //
 // @public
@@ -861,7 +962,7 @@ export class XrUnavailable extends XrUnavailable_base<{
 
 // Warnings were encountered during analysis:
 //
-// src/environment.ts:61:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
+// src/environment.ts:69:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

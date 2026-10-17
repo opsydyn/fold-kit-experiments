@@ -60,7 +60,11 @@ export const sceneElement = CustomElement.define({
     'scene-drag-end': SceneSchema.DragDetail,
     'scene-gesture': SceneSchema.GestureDetail,
     'scene-collision': SceneSchema.CollisionDetail,
+    'scene-measured': SceneSchema.MeasuredDetail,
     'scene-xr': XrSessionDetail,
+    'scene-xr-stick': SceneSchema.XrStickDetail,
+    'scene-xr-button': SceneSchema.XrButtonDetail,
+    'scene-xr-surface': SceneSchema.XrSurfaceDetail,
     'scene-performance': SceneSchema.PerformanceDetail,
     'scene-error': Schema.Struct({ error: SceneError }),
     'scene-reconciled': ReconciledDetail,
@@ -83,6 +87,10 @@ export const domEventName = {
   DragEnd: 'scene-drag-end',
   Gesture: 'scene-gesture',
   Collision: 'scene-collision',
+  Measured: 'scene-measured',
+  XrStick: 'scene-xr-stick',
+  XrButton: 'scene-xr-button',
+  XrSurface: 'scene-xr-surface',
   PerformanceChanged: 'scene-performance',
 } as const satisfies Record<SceneEvent['_tag'], keyof typeof sceneElement.events>;
 

@@ -101,6 +101,7 @@ export const perturb = (node: SceneNode): { readonly node: SceneNode; readonly f
     case 'Mesh':
     case 'Instances':
     case 'Borrowed':
+    case 'Label':
       return {
         node: { ...node, position: [node.position[0] + 100, node.position[1], node.position[2]] },
         field: 'position',
@@ -113,6 +114,8 @@ export const perturb = (node: SceneNode): { readonly node: SceneNode; readonly f
       return { node: { ...node, intensity: node.intensity + 1 }, field: 'intensity' };
     case 'Grid':
       return { node: { ...node, size: node.size + 1 }, field: 'size' };
+    case 'ShaderGrid':
+      return { node: { ...node, cellSize: node.cellSize + 1 }, field: 'grid' };
   }
 };
 

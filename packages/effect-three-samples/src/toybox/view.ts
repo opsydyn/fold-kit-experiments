@@ -22,7 +22,7 @@ const vrButton = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   vrButtons[model.vr](h);
 
 const readout = (model: Model): string =>
-  `${model.toys.length} toys, ${model.bumps} bumps. Click a toy to kick it; drag around them to orbit.`;
+  `${model.toys.length} toys, ${model.marbles} marbles, ${model.bumps} bumps. Click a toy to kick it; drag around them to orbit.`;
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: 'Toybox — effect-three',
@@ -36,9 +36,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           className: 'e3-stage',
           onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
           onClick: ({ key, ray }) => Message.ClickedToy({ key, direction: ray.direction }),
-          onCollision: () => Message.Bumped(),
+          onCollision: ({ started, aInstance, bInstance }) =>
+            Message.Bumped({ started, marble: aInstance !== undefined || bInstance !== undefined }),
           onGesture: (gesture) => Message.MadeGesture({ gesture }),
           onXRSession: ({ mode }) => Message.ChangedVrSession({ presenting: mode !== null }),
+          onXRStick: (stick) => Message.PushedStick({ stick }),
         },
         h,
       ),
@@ -47,6 +49,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [h.Class('e3-controls')],
         [
           button(h, 'Drop a toy', Message.ClickedDrop()),
+          button(h, 'Pour marbles', Message.ClickedPour()),
           button(h, 'Tidy up', Message.ClickedTidy()),
           ...vrButton(model, h),
         ],
@@ -55,7 +58,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [h.Class('e3-note')],
         [
           'Each toy is a mesh with a dynamic body; Rapier owns where it is. The Model keeps ',
-          'where it was dropped and its kicks, each with a new id, applied once.',
+          'where it was dropped and its kicks, each with a new id, applied once. The marbles ',
+          'are one instanced mesh with a body per instance; the chain is links held by ',
+          'spherical joints.',
         ],
       ),
     ],

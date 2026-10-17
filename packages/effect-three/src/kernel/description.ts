@@ -129,7 +129,16 @@ export type TextGeometry = {
   readonly bevel: TextBevel | null;
   /** Centre the text on its origin, as `geometry.center()`; otherwise it starts there. */
   readonly center: boolean;
+  /** Extra space after each letter, in ems (multiples of `size`). */
+  readonly letterSpacing: number;
+  /** Line spacing as a multiple of the font's own. */
+  readonly lineHeight: number;
+  /** Where each line sits within the widest. */
+  readonly align: TextAlign;
 };
+
+/** Where each line of text sits within the widest: troika's `textAlign`. */
+export type TextAlign = 'left' | 'center' | 'right';
 
 export type ShapeGeometry =
   | TextGeometry
@@ -318,6 +327,8 @@ export type GroupNode = {
    */
   readonly interactive: boolean;
   readonly children: ReadonlyArray<SceneNode>;
+  /** A rigid body whose colliders are every mesh inside the group, or `null`. */
+  readonly body: Body | null;
 };
 
 /** A renderable mesh. `interactive` meshes take part in pointer hit testing. */
@@ -392,6 +403,53 @@ export type Physics = {
   readonly paused: boolean;
   readonly timeStep: number;
   readonly interpolate: boolean;
+  /** Joints between bodies, each active while both its bodies exist. */
+  readonly joints: ReadonlyArray<Joint>;
+};
+
+/** A body a joint holds: a node's, or one instance's of an instances node. */
+export type BodyRef = { readonly key: string; readonly instance: string | null };
+
+/** A joint's range of motion, `[min, max]`: radians for a revolute joint, units for a prismatic one. */
+export type JointLimits = readonly [min: number, max: number];
+
+/**
+ * How a joint holds its two bodies: Rapier's impulse joints, as react-three-rapier's
+ * `useFixedJoint`, `useSphericalJoint`, `useRevoluteJoint`, `usePrismaticJoint`,
+ * `useRopeJoint` and `useSpringJoint` make them (`ae5c3fe`, `src/hooks/joints.ts`).
+ */
+export type JointKind =
+  /** No relative motion: each body's frame (Euler angles) at its anchor coincide. */
+  | { readonly _tag: 'Fixed'; readonly frameA: Vec3; readonly frameB: Vec3 }
+  /** The anchors coincide; any rotation about them (a ball and socket). */
+  | { readonly _tag: 'Spherical' }
+  /** The anchors coincide; rotation about `axis` only (a hinge). */
+  | { readonly _tag: 'Revolute'; readonly axis: Vec3; readonly limits: JointLimits | null }
+  /** Sliding along `axis` only. */
+  | { readonly _tag: 'Prismatic'; readonly axis: Vec3; readonly limits: JointLimits | null }
+  /** The anchors at most `length` apart. */
+  | { readonly _tag: 'Rope'; readonly length: number }
+  /** A force pulling the anchors towards `restLength` apart. */
+  | {
+      readonly _tag: 'Spring';
+      readonly restLength: number;
+      readonly stiffness: number;
+      readonly damping: number;
+    };
+
+/**
+ * A joint between bodies `a` and `b`. Each anchor is in its body's own space: from the
+ * node's origin, turned with it, unscaled.
+ */
+export type Joint = {
+  readonly key: string;
+  readonly a: BodyRef;
+  readonly b: BodyRef;
+  readonly anchorA: Vec3;
+  readonly anchorB: Vec3;
+  readonly kind: JointKind;
+  /** Whether the two bodies still collide with each other (Rapier's default: they do). */
+  readonly contacts: boolean;
 };
 
 /**
@@ -428,6 +486,11 @@ export type InstancesNode = {
   readonly castShadow: boolean;
   readonly receiveShadow: boolean;
   readonly instances: ReadonlyArray<Instance>;
+  /**
+   * A rigid body for every instance, all with these settings, or `null`: react-three-rapier's
+   * `InstancedRigidBodies`. Each instance's collider is the geometry at its scale.
+   */
+  readonly body: Body | null;
 };
 
 /**
@@ -451,6 +514,62 @@ export type BorrowedNode = {
   readonly interactive: boolean;
   /** An animation clip of the lent object to play, or `null` for none. */
   readonly animation: Animation | null;
+  /** A rigid body whose colliders are the model's meshes, once it is lent; or `null`. */
+  readonly body: Body | null;
+};
+
+/** Where a label's origin is along its width: an edge, the middle, or a fraction of it. */
+export type LabelAnchorX = 'left' | 'center' | 'right' | number;
+
+/** Where a label's origin is along its height: an edge, a baseline, the middle, or a fraction. */
+export type LabelAnchorY =
+  | 'top'
+  | 'top-baseline'
+  | 'middle'
+  | 'bottom-baseline'
+  | 'bottom'
+  | number;
+
+/** How a label's lines line up within its block. */
+export type LabelAlign = 'left' | 'right' | 'center' | 'justify';
+
+/**
+ * Crisp text at any size, drawn from glyph distance fields: Drei's `Text` (troika's
+ * `Text`, `bf6f4ad` `src/core/Text.tsx`). `font` is the URL of a TTF, OTF or WOFF file,
+ * or `null` for troika's default. A label is drawn by the scene graph's label engine (in
+ * Foldkit, the environment's); without one it is empty. Fonts load and glyphs build in the
+ * background, and the scene redraws when they are ready.
+ */
+export type LabelNode = {
+  readonly _tag: 'Label';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly rotation: Rotation;
+  readonly scale: Vec3;
+  readonly transition: Transition;
+  readonly behaviour: Behave | null;
+  /** Makes the label pickable, over its glyphs' bounds. */
+  readonly interactive: boolean;
+  readonly text: string;
+  readonly font: string | null;
+  /** The em height, in scene units. */
+  readonly fontSize: number;
+  readonly color: Rgb;
+  readonly fillOpacity: number;
+  readonly anchorX: LabelAnchorX;
+  readonly anchorY: LabelAnchorY;
+  /** Wraps lines longer than this, in scene units; `null` never wraps. */
+  readonly maxWidth: number | null;
+  /** Line spacing as a multiple of `fontSize`; `null` for the font's own ("normal"). */
+  readonly lineHeight: number | null;
+  /** Extra space between letters, in ems. */
+  readonly letterSpacing: number;
+  readonly textAlign: LabelAlign;
+  /** An outline around the glyphs, in scene units (0 for none), and its look. */
+  readonly outlineWidth: number;
+  readonly outlineColor: Rgb;
+  readonly outlineOpacity: number;
+  readonly outlineBlur: number;
 };
 
 /**
@@ -557,13 +676,42 @@ export type GridNode = {
   readonly centerColor: Rgb;
 };
 
+/**
+ * Drei's `Grid`: a plane whose shader draws cell lines and section lines on the XZ plane,
+ * fading with distance from the camera's foot on it. `size` is the plane's
+ * `[width, height]`; `infinite` stretches it as far as the fade reaches, and
+ * `followCamera` slides it under the camera. `fadeFrom` 1 fades from the camera, 0 from
+ * the grid's origin. Its rotation is fixed Euler angles.
+ */
+export type ShaderGridNode = {
+  readonly _tag: 'ShaderGrid';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly rotation: Vec3;
+  readonly size: readonly [width: number, height: number];
+  readonly cellSize: number;
+  readonly cellThickness: number;
+  readonly cellColor: Rgb;
+  readonly sectionSize: number;
+  readonly sectionThickness: number;
+  readonly sectionColor: Rgb;
+  readonly infinite: boolean;
+  readonly followCamera: boolean;
+  readonly fadeDistance: number;
+  readonly fadeStrength: number;
+  readonly fadeFrom: number;
+  readonly side: MaterialSide;
+};
+
 /** Any node in a scene. Keys are unique across the whole scene. */
 export type SceneNode =
   | GridNode
+  | ShaderGridNode
   | GroupNode
   | MeshNode
   | InstancesNode
   | BorrowedNode
+  | LabelNode
   | AmbientLightNode
   | DirectionalLightNode
   | PointLightNode
@@ -798,6 +946,13 @@ export type Xr = {
   readonly referenceSpace: 'local-floor' | 'local' | 'bounded-floor';
   /** Framebuffer scale relative to the device's default (1); lower is faster. */
   readonly framebufferScale: number;
+  /**
+   * In AR, report where a select's ray meets a real surface (`XrSurface` events), from the
+   * session's hit tests: tap to place, as pmndrs/xr's `useXRHitTest`.
+   */
+  readonly hitTest: boolean;
+  /** Draw each input source's pointing ray and each tracked hand's joints. */
+  readonly showInputs: boolean;
 };
 
 export type SceneDescription = {
@@ -823,6 +978,11 @@ export type SceneDescription = {
   readonly physics: Physics | null;
   /** How the scene is presented in an immersive session, or `null` if it never is. */
   readonly xr: Xr | null;
+  /**
+   * Nodes whose world bounding box the scene reports (`Measured` events) whenever it
+   * changes: what Drei's `Bounds` measures, for `fitCamera`. Loaded models included.
+   */
+  readonly measure: ReadonlyArray<string>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

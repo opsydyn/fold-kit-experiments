@@ -51,4 +51,6 @@ export const studioOrbit = orbitOptions({
   maxDistance: 16,
   minZoom: 35,
   maxZoom: 140,
+  // Scroll toward what is under the pointer, as OrbitControls' zoomToCursor.
+  zoomToCursor: true,
 });

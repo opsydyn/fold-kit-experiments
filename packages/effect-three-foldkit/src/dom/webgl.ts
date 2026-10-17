@@ -8,6 +8,7 @@ import {
   ACESFilmicToneMapping,
   AgXToneMapping,
   BasicShadowMap,
+  type Camera,
   CineonToneMapping,
   type ColorSpace,
   HalfFloatType,
@@ -21,6 +22,7 @@ import {
   PCFShadowMap,
   PMREMGenerator,
   ReinhardToneMapping,
+  type Scene,
   type ShadowMapType,
   SRGBColorSpace,
   type ToneMapping,
@@ -138,6 +140,23 @@ const renderers = new WeakMap<HTMLCanvasElement, WebGLRenderer>();
 export const webglRendererOf = (canvas: HTMLCanvasElement): WebGLRenderer | undefined =>
   renderers.get(canvas);
 
+/**
+ * Draws a frame of an immersive session. In AR the room shows through: three clears to
+ * transparent there, but a background (an environment shown as one) would cover it, so it
+ * is left out of the frame.
+ */
+const drawPresenting = (renderer: WebGLRenderer, scene: Scene, camera: Camera): void => {
+  const passthrough = renderer.xr.getEnvironmentBlendMode() !== 'opaque';
+  if (!passthrough || scene.background === null) {
+    renderer.render(scene, camera);
+    return;
+  }
+  const background = scene.background;
+  scene.background = null;
+  renderer.render(scene, camera);
+  scene.background = background;
+};
+
 /** A factory for a WebGL2 renderer drawing into `canvas`. `create` throws if WebGL2 is unavailable. */
 export const webglRendererFactory = (
   canvas: HTMLCanvasElement,
@@ -192,7 +211,7 @@ export const webglRendererFactory = (
         }
         // Presenting in XR, three draws the headset's views itself: no areas, no effects.
         if (renderer.xr.isPresenting) {
-          renderer.render(scene, camera);
+          drawPresenting(renderer, scene, camera);
           return;
         }
         const { width, height } = renderer.getSize(drawingSize);

@@ -21,7 +21,16 @@
  *
  * @module
  */
-import { Matrix4, Spherical, Vector3 } from 'three';
+import {
+  MathUtils,
+  Matrix4,
+  OrthographicCamera,
+  PerspectiveCamera,
+  Plane,
+  Ray,
+  Spherical,
+  Vector3,
+} from 'three';
 
 import type { Camera, Vec3 } from './description.ts';
 import type { Gesture, Modifiers } from './pointer.ts';
@@ -48,6 +57,11 @@ export type OrbitOptions = {
   /** Radians around the vertical axis; infinite (the default) for no limit. */
   readonly minAzimuthAngle: number;
   readonly maxAzimuthAngle: number;
+  /** Dolly toward the point under the pointer rather than the target (`zoomToCursor`). */
+  readonly zoomToCursor: boolean;
+  /** Pixels an arrow key pans by, and turns an arrow key with a modifier makes. */
+  readonly keyPanSpeed: number;
+  readonly keyRotateSpeed: number;
 };
 
 /** three.js's `OrbitControls` defaults. */
@@ -67,6 +81,9 @@ export const defaultOrbit: OrbitOptions = {
   maxPolarAngle: Math.PI,
   minAzimuthAngle: -Infinity,
   maxAzimuthAngle: Infinity,
+  zoomToCursor: false,
+  keyPanSpeed: 7,
+  keyRotateSpeed: 1,
 };
 
 /** Orbit options: three.js's defaults with yours on top. */
@@ -217,15 +234,110 @@ export const panCamera = (
   return place(camera, options, zoomOf(camera, options));
 };
 
+/** Where on a gesture's area the pointer is: its size, and `x`, `y` from −1 to 1, y up. */
+export type Cursor = {
+  readonly width: number;
+  readonly height: number;
+  readonly x: number;
+  readonly y: number;
+};
+
+/** OrbitControls' `_TILT_LIMIT`: steeper than 70° from up, a ground target is not moved. */
+const tiltLimit = Math.cos(70 * MathUtils.DEG2RAD);
+
+const pointer = new Vector3();
+const before = new Vector3();
+const forward = new Vector3();
+const groundRay = new Ray();
+const ground = new Plane();
+
+/** A three.js camera placed as `spherical` around `target` puts it, fitted to `cursor`'s area. */
+const hostCamera = (camera: Camera, cursor: Cursor, zoom: number) => {
+  const host =
+    camera._tag === 'Perspective'
+      ? new PerspectiveCamera(
+          camera.fov,
+          cursor.width / Math.max(1, cursor.height),
+          camera.near,
+          camera.far,
+        )
+      : new OrthographicCamera(
+          cursor.width / -2,
+          cursor.width / 2,
+          cursor.height / 2,
+          cursor.height / -2,
+          camera.near,
+          camera.far,
+        );
+  if (host instanceof OrthographicCamera) host.zoom = zoom;
+  host.updateProjectionMatrix();
+  host.position.setFromSpherical(spherical).add(target);
+  host.lookAt(target);
+  host.updateMatrixWorld();
+  return host;
+};
+
+/**
+ * Dollies toward the point under the cursor by `scale` (below 1 moves closer), as
+ * OrbitControls does with `zoomToCursor`: a perspective camera moves along the pointer's
+ * ray; an orthographic one zooms and shifts so the point under the cursor stays there.
+ * The target then follows, `radius` ahead along the view (or on the ground, when panning
+ * along it and the view is not too steep). A middle-button drag aims where it was
+ * pressed: three 0.186's `_handleMouseDownDolly` passes `clientX` for both coordinates, a
+ * typo this does not copy.
+ */
+export const dollyCameraToward = (
+  camera: Camera,
+  scale: number,
+  cursor: Cursor,
+  options: OrbitOptions = defaultOrbit,
+): Camera => {
+  readSpherical(camera, options);
+  const host = hostCamera(camera, cursor, zoomOf(camera, options));
+  let radius = spherical.radius;
+  if (host instanceof PerspectiveCamera) {
+    pointer.set(cursor.x, cursor.y, 1).unproject(host).sub(host.position).normalize();
+    const next = clampDistance(radius * scale, options);
+    host.position.addScaledVector(pointer, radius - next);
+    radius = next;
+  } else {
+    before.set(cursor.x, cursor.y, 0).unproject(host);
+    host.zoom = clampZoom(host.zoom / scale, options);
+    host.updateProjectionMatrix();
+    pointer.set(cursor.x, cursor.y, 0).unproject(host);
+    host.position.sub(pointer).add(before);
+  }
+  host.updateMatrixWorld();
+  forward.set(0, 0, -1).transformDirection(host.matrix);
+  if (options.screenSpacePanning) {
+    target.copy(forward).multiplyScalar(radius).add(host.position);
+  } else if (Math.abs(worldUp.dot(forward)) >= tiltLimit) {
+    groundRay.set(host.position, forward);
+    ground.setFromNormalAndCoplanarPoint(worldUp, target);
+    groundRay.intersectPlane(ground, target);
+  }
+  const lookAt = toVec3(target);
+  const placed = toVec3(host.position);
+  return camera._tag === 'Perspective'
+    ? { ...camera, position: placed, lookAt }
+    : { ...camera, position: placed, lookAt, zoom: host.zoom };
+};
+
 /** `0.95 ^ (zoomSpeed * |delta| / 100)`: OrbitControls' `_getZoomScale`. */
 const zoomScale = (delta: number, options: OrbitOptions): number =>
   0.95 ** (options.zoomSpeed * Math.abs(delta * 0.01));
 
+/** Dollies by `scale`, toward the cursor when the options ask for it. */
+const dollyAt = (camera: Camera, scale: number, cursor: Cursor, options: OrbitOptions): Camera =>
+  options.zoomToCursor
+    ? dollyCameraToward(camera, scale, cursor, options)
+    : dollyCamera(camera, scale, options);
+
 /** A dolly by a wheel or vertical drag of `delta` pixels: up or forward moves closer. */
-const dollyBy = (camera: Camera, delta: number, options: OrbitOptions): Camera => {
+const dollyBy = (camera: Camera, delta: number, cursor: Cursor, options: OrbitOptions): Camera => {
   if (delta === 0 || !options.enableZoom) return camera;
   const scale = zoomScale(delta, options);
-  return dollyCamera(camera, delta < 0 ? scale : 1 / scale, options);
+  return dollyAt(camera, delta < 0 ? scale : 1 / scale, cursor, options);
 };
 
 const modified = (modifiers: Modifiers): boolean =>
@@ -253,7 +365,7 @@ const drag = (camera: Camera, gesture: DragGesture, options: OrbitOptions): Came
         ? panBy(camera, gesture, options)
         : rotateBy(camera, gesture, options);
     case 1:
-      return dollyBy(camera, gesture.deltaY, options);
+      return dollyBy(camera, gesture.deltaY, gesture, options);
     case 2:
       return modified(gesture.modifiers)
         ? rotateBy(camera, gesture, options)
@@ -285,14 +397,144 @@ export const orbit = (
       return dollyBy(
         camera,
         gesture.modifiers.control ? gesture.deltaY * 10 : gesture.deltaY,
+        gesture,
         options,
       );
     case 'Pinch': {
       const dollied =
         options.enableZoom && gesture.scale > 0
-          ? dollyCamera(camera, 1 / gesture.scale ** options.zoomSpeed, options)
+          ? dollyAt(camera, 1 / gesture.scale ** options.zoomSpeed, gesture, options)
           : camera;
       return panBy(dollied, gesture, options);
     }
   }
+};
+
+/** The arrow keys OrbitControls listens to (`keys`). */
+export type OrbitKey = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight';
+
+/**
+ * The camera after an arrow key, as OrbitControls' `_handleKeyDown`: up, down, left and
+ * right pan by `keyPanSpeed` pixels, or with shift, control or meta held turn by
+ * `keyRotateSpeed`. Map key presses to Messages (a Foldkit key subscription) and apply it.
+ */
+export const orbitKey = (
+  camera: Camera,
+  key: OrbitKey,
+  modifiers: Modifiers,
+  area: { readonly width: number; readonly height: number },
+  options: OrbitOptions = defaultOrbit,
+): Camera => {
+  const turn = (twoPi * options.keyRotateSpeed) / Math.max(1, area.height);
+  const step = options.keyPanSpeed;
+  const rotating = modified(modifiers);
+  if (rotating && !options.enableRotate) return camera;
+  if (!rotating && !options.enablePan) return camera;
+  // A turn here is in radians; rotateCamera takes pixels over the area's height.
+  const turned = (left: number, up: number): Camera => {
+    readSpherical(camera, options);
+    spherical.theta -= left;
+    spherical.phi -= up;
+    return place(camera, options, zoomOf(camera, options));
+  };
+  switch (key) {
+    case 'ArrowUp':
+      return rotating ? turned(0, turn) : panCamera(camera, 0, step, area, options);
+    case 'ArrowDown':
+      return rotating ? turned(0, -turn) : panCamera(camera, 0, -step, area, options);
+    case 'ArrowLeft':
+      return rotating ? turned(turn, 0) : panCamera(camera, step, 0, area, options);
+    case 'ArrowRight':
+      return rotating ? turned(-turn, 0) : panCamera(camera, -step, 0, area, options);
+  }
+};
+
+/** A world-space box, as `Measured` events report a node's. */
+export type Box = { readonly min: Vec3; readonly max: Vec3 };
+
+const corner = new Vector3();
+const view = new Matrix4();
+
+/**
+ * How far from a box's centre a camera must be to fit it, as Drei's `Bounds`
+ * (`src/core/Bounds.tsx` at `bf6f4ad`, `getSize`): the larger of the distances that fit
+ * its largest side vertically and horizontally, times `margin`.
+ */
+const fitDistance = (
+  camera: Camera,
+  box: Box,
+  area: { readonly width: number; readonly height: number },
+  margin: number,
+): number => {
+  const largest = Math.max(
+    box.max[0] - box.min[0],
+    box.max[1] - box.min[1],
+    box.max[2] - box.min[2],
+  );
+  if (camera._tag === 'Orthographic') return margin * largest * 4;
+  const height = largest / (2 * Math.atan((Math.PI * camera.fov) / 360));
+  const width = height / (area.width / Math.max(1, area.height));
+  return margin * Math.max(height, width);
+};
+
+const centreOf = (box: Box): Vec3 => [
+  (box.min[0] + box.max[0]) / 2,
+  (box.min[1] + box.max[1]) / 2,
+  (box.min[2] + box.max[2]) / 2,
+];
+
+/**
+ * The camera framing a box, as Drei's `Bounds` `fit` (margin 1.2 by default). A
+ * perspective camera keeps its direction and moves to the distance that fits the box,
+ * looking at its centre; an orthographic one keeps its place and zooms so the box's
+ * corners, seen from it, fit the area. Set the camera's `damping` to ease there.
+ */
+export const fitCamera = (
+  camera: Camera,
+  box: Box,
+  area: { readonly width: number; readonly height: number },
+  margin = 1.2,
+): Camera => {
+  const centre = centreOf(box);
+  if (camera._tag === 'Orthographic') {
+    position.fromArray(camera.position);
+    target.fromArray(camera.lookAt);
+    view.lookAt(position, target, worldUp).setPosition(position).invert();
+    let halfWidth = 0;
+    let halfHeight = 0;
+    for (const x of [box.min[0], box.max[0]])
+      for (const y of [box.min[1], box.max[1]])
+        for (const z of [box.min[2], box.max[2]]) {
+          corner.set(x, y, z).applyMatrix4(view);
+          halfWidth = Math.max(halfWidth, Math.abs(corner.x));
+          halfHeight = Math.max(halfHeight, Math.abs(corner.y));
+        }
+    const zoom =
+      Math.min(
+        area.height / Math.max(1e-9, 2 * halfHeight),
+        area.width / Math.max(1e-9, 2 * halfWidth),
+      ) / margin;
+    return { ...camera, zoom };
+  }
+  position.fromArray(camera.position);
+  target.fromArray(centre);
+  forward.copy(position).sub(target);
+  if (forward.lengthSq() === 0) forward.set(0, 0, 1);
+  forward.normalize();
+  position.copy(target).addScaledVector(forward, fitDistance(camera, box, area, margin));
+  return { ...camera, position: toVec3(position), lookAt: centre };
+};
+
+/**
+ * Near and far planes that suit a box at its fitting distance, as Drei's `Bounds` `clip`:
+ * a hundredth of it and a hundred times it.
+ */
+export const clipCamera = (
+  camera: Camera,
+  box: Box,
+  area: { readonly width: number; readonly height: number },
+  margin = 1.2,
+): Camera => {
+  const distance = fitDistance(camera, box, area, margin);
+  return { ...camera, near: distance / 100, far: distance * 100 };
 };

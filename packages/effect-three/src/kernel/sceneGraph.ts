@@ -29,7 +29,8 @@ import { Sky as SkyMesh } from 'three/addons/objects/Sky.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
-import { type BodiedMesh, createBodyHost } from './bodies.ts';
+import { type BodyCollision, createBodyHost } from './bodies.ts';
+import { type BodySource, instanceSources, nodeSource } from './bodySources.ts';
 import { renderSettings, scene as describeScene } from './build.ts';
 import { createCameraMotion } from './cameraMotion.ts';
 import type {
@@ -41,6 +42,8 @@ import type {
   GroupNode,
   Instance,
   InstancesNode,
+  LabelNode,
+  ShaderGridNode,
   MeshNode,
   Camera as CameraDescription,
   PointLightNode,
@@ -52,6 +55,7 @@ import type {
   Environment,
   Gestures,
   Overlay,
+  Physics,
   Sky,
   Xr,
   RenderTexture,
@@ -62,6 +66,7 @@ import type {
 import { diff, type Field, type Op } from './diff.ts';
 import { contactShadowsEquals, environmentEquals, overlaysEqual, skyEquals } from './equality.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
+import type { HostedLabel, LabelEngine } from './labels.ts';
 import type { HostMaterial } from './materials.ts';
 import {
   type Behaviour,
@@ -70,7 +75,7 @@ import {
   createPose,
   resetPose,
 } from './motion.ts';
-import type { Collision, PhysicsEngine } from './physics.ts';
+import type { PhysicsEngine } from './physics.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -79,6 +84,12 @@ import {
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
+import {
+  createShaderGrid,
+  disposeShaderGrid,
+  type HostShaderGrid,
+  updateShaderGrid,
+} from './shaderGrid.ts';
 import { applyTween, startTween, type Tween } from './tween.ts';
 
 /** The mesh type the kernel hosts. */
@@ -97,6 +108,13 @@ type Entry =
       shown: Object3D | undefined;
       player: Player | undefined;
     }
+  // `hosted` is what the label engine drew, inside the wrapper; none without an engine.
+  | {
+      readonly _tag: 'Label';
+      node: LabelNode;
+      readonly object: Group;
+      readonly hosted: HostedLabel | undefined;
+    }
   | { readonly _tag: 'AmbientLight'; node: AmbientLightNode; readonly object: AmbientLight }
   | {
       readonly _tag: 'DirectionalLight';
@@ -112,6 +130,7 @@ type Entry =
       readonly object: Group;
       helper: GridHelper;
     }
+  | { readonly _tag: 'ShaderGrid'; node: ShaderGridNode; readonly object: HostShaderGrid }
   | {
       readonly _tag: 'HemisphereLight';
       node: HemisphereLightNode;
@@ -129,9 +148,12 @@ type Player = {
 };
 
 /** Descriptions with a transform. */
-type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode;
+type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode;
 
-type Placed = Extract<Entry, { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' }>;
+type Placed = Extract<
+  Entry,
+  { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' | 'Label' }
+>;
 
 /** Entries drawing a geometry with a material. */
 type Surfaced = Extract<Entry, { readonly _tag: 'Mesh' | 'Instances' }>;
@@ -140,7 +162,8 @@ const isPlaced = (entry: Entry): entry is Placed =>
   entry._tag === 'Group' ||
   entry._tag === 'Mesh' ||
   entry._tag === 'Instances' ||
-  entry._tag === 'Borrowed';
+  entry._tag === 'Borrowed' ||
+  entry._tag === 'Label';
 
 const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
@@ -176,6 +199,8 @@ export type SceneGraphOptions = {
   readonly behaviours?: Readonly<Record<string, Behaviour>>;
   /** Simulates meshes with a `body` when the scene has `physics`; without it they stay put. */
   readonly physics?: PhysicsEngine | undefined;
+  /** Draws `label` nodes (distance-field text); without it they are empty. */
+  readonly labels?: LabelEngine | undefined;
 };
 
 export type SceneGraph = {
@@ -195,9 +220,11 @@ export type SceneGraph = {
   /** Soft ground shadows; the frame loop draws them. */
   readonly contactShadows: () => ContactShadows | null;
   /** Collisions between bodies since the last call, for the frame loop to report. */
-  readonly collisions: () => ReadonlyArray<Collision>;
+  readonly collisions: () => ReadonlyArray<BodyCollision>;
   /** How the scene is presented immersively, for the host; `null` if it never is. */
   readonly xr: () => Xr | null;
+  /** Keys of the nodes whose bounds the frame loop reports. */
+  readonly measured: () => ReadonlyArray<string>;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -399,6 +426,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let skyDescription: Sky | null = emptyScene.sky;
   let contactDescription: ContactShadows | null = emptyScene.contactShadows;
   let xrDescription: Xr | null = emptyScene.xr;
+  let measured: ReadonlyArray<string> = emptyScene.measure;
   let skyMesh: SkyMesh | undefined;
 
   /** Shows, updates or removes the sky. It belongs to the scene, so it is never picked. */
@@ -436,12 +464,18 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const cameraMotion = createCameraMotion();
   const bodyHost = createBodyHost(options.physics, scene);
 
-  /** Every hosted mesh, for the body host to find those with bodies. */
-  function* hostedMeshes(): Generator<BodiedMesh> {
+  /** Every body the hosted nodes describe: one per bodied node, one per bodied instance. */
+  function* bodySources(): Generator<BodySource> {
     for (const [key, entry] of entries) {
-      if (entry._tag === 'Mesh') yield { key, node: entry.node, object: entry.object };
+      if (entry._tag === 'Mesh' || entry._tag === 'Group' || entry._tag === 'Borrowed') {
+        const source = nodeSource(key, entry.node, entry.object);
+        if (source !== undefined) yield source;
+      } else if (entry._tag === 'Instances') {
+        yield* instanceSources(key, entry.node, entry, entry.object);
+      }
     }
   }
+  let physicsDescription: Physics | null = null;
 
   /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
   const areaOf = (rect: ViewRect): HostedView['area'] => ({
@@ -582,6 +616,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         showLoan(entry);
         return entry;
       }
+      case 'Label': {
+        const hosted = options.labels?.create(node, invalidate);
+        const entry: Entry = { _tag: 'Label', node, object: new Group(), hosted };
+        if (hosted !== undefined) entry.object.add(hosted.object);
+        writeVec3(entry.object.position, node.position);
+        writeVec3(entry.object.scale, node.scale);
+        trackRotation(entry, node);
+        trackBehaviour(entry, node);
+        trackInteractive(entry.object, node.interactive);
+        return entry;
+      }
       case 'AmbientLight':
         return { _tag: 'AmbientLight', node, object: new AmbientLight(node.color, node.intensity) };
       case 'DirectionalLight': {
@@ -606,6 +651,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         return { _tag: 'Grid', node, object, helper };
       }
+      case 'ShaderGrid':
+        return { _tag: 'ShaderGrid', node, object: createShaderGrid(node) };
       case 'HemisphereLight': {
         const object = new HemisphereLight();
         writeHemisphereLight(object, node);
@@ -703,6 +750,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         if (entry._tag === 'Borrowed' && entry.node.id === loan.id) showLoan(entry);
       }
     }
+    // A model or font arriving changes what bodies are made of: remake their colliders.
+    if (loan.kind !== 'texture') bodyHost.sync(physicsDescription, bodySources());
     invalidate();
   });
 
@@ -765,6 +814,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'Instances') entry.object.dispose();
     // A grid's lines are its own.
     if (entry._tag === 'Grid') disposeGridLines(entry.helper);
+    if (entry._tag === 'ShaderGrid') disposeShaderGrid(entry.object);
+    if (entry._tag === 'Label') entry.hosted?.dispose();
     // A borrowed object belongs to the application: detach it, never dispose it.
     if (entry._tag === 'Borrowed') {
       stopPlayer(entry);
@@ -803,9 +854,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     const wasInteractive = interactive.has(old);
     trackInteractive(old, false);
     trackInteractive(grown, wasInteractive);
+    // Keep each slot as it is shown (a simulated pose, say) and write only what changed.
+    const kept = Math.min(entry.node.instances.length, next.instances.length);
+    grown.instanceMatrix.array.set(old.instanceMatrix.array.subarray(0, kept * 16));
+    if (old.instanceColor !== null && grown.instanceColor !== null) {
+      grown.instanceColor.array.set(old.instanceColor.array.subarray(0, kept * 3));
+    }
     old.dispose();
     entry.object = grown;
-    writeInstances(grown, noInstances, next.instances);
+    writeInstances(grown, entry.node.instances.slice(0, kept), next.instances);
   };
 
   /**
@@ -877,6 +934,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       else if (fields.includes('animation')) startPlayer(entry);
       return;
     }
+    if (entry._tag === 'Label' && next._tag === 'Label') {
+      entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
+      if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
+      if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
+      if (fields.includes('text')) entry.hosted?.update(next);
+      return;
+    }
     if (entry._tag === 'Group' && next._tag === 'Group') {
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
@@ -908,6 +974,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     if (entry._tag === 'HemisphereLight' && next._tag === 'HemisphereLight') {
       writeHemisphereLight(entry.object, next);
+      entry.node = next;
+      return;
+    }
+    if (entry._tag === 'ShaderGrid' && next._tag === 'ShaderGrid') {
+      updateShaderGrid(entry.object, entry.node, next);
       entry.node = next;
       return;
     }
@@ -1042,6 +1113,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     contactShadows: null,
     physics: null,
     xr: null,
+    measure: [],
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -1131,9 +1203,13 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // The frame loop draws contact shadows with the renderer: a change needs a frame.
     if (!contactShadowsEquals(contactDescription, next.contactShadows)) invalidate();
     contactDescription = next.contactShadows;
-    bodyHost.sync(next.physics, hostedMeshes());
+    physicsDescription = next.physics;
+    bodyHost.sync(next.physics, bodySources());
     // Read by the host when it presents the scene immersively: no operation, no frame.
     xrDescription = next.xr;
+    // Measured after the next drawn frame; a new list needs one.
+    if (next.measure.join('\u0000') !== measured.join('\u0000')) invalidate();
+    measured = next.measure;
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -1207,6 +1283,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     contactShadows: () => contactDescription,
     collisions: bodyHost.drainCollisions,
     xr: () => xrDescription,
+    measured: () => measured,
     store,
     reconcile,
     tick,

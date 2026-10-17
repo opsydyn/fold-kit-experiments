@@ -50,12 +50,15 @@ const description = scene({
 - **Post-processing:** `renderSettings({ effects: [bloom({ strength: 1.5 }), vignette()] })` applies three.js's composer passes in order (`bloom`, `vignette`, `film`); with no effects the scene renders straight to the screen.
 - **Render textures:** `scene({ renderTextures: [renderTexture({ id: 'screen', camera, children })] })` draws a little scene of its own into a texture that any material uses with `map: 'screen'`; it redraws only when its scene changes.
 - **Orbit controls:** `scene({ gestures: 'scene', camera: model.camera })` claims drags, wheel and pinches from the page and reports each as a `Gesture`; `orbit(model.camera, gesture)` returns the next camera, as three.js's `OrbitControls` would move it. A camera's `damping` eases the rendered camera there. See [ADR-006](../../docs/effect-three/adr/006-controls-as-data.md).
+- **Fitting:** `scene({ measure: ['model'] })` reports the node's world box as a `Measured` event whenever it changes; `fitCamera(camera, box, area)` frames it as Drei's `Bounds` does, and `orbitKey` moves the camera for arrow keys.
 - **HTML overlays:** `overlay({ key: 'tag', node: 'cone', position: [0, 1, 0], center: true })` is a point the scene places after every drawn frame, as Drei's `Html`; the Foldkit view's `overlays: [{ overlay, content }]` moves Model-rendered HTML there.
-- **Text:** `text({ text: 'Hello', font: 'inter', depth: 0.2 })` is extruded (or, at depth 0, flat) text from a typeface JSON font lent with `store.lendFont` (`assets.loadFont` in Foldkit), as Drei's `Text3D`.
+- **Text:** `text({ text: 'Hello', font: 'inter', depth: 0.2 })` is extruded (or, at depth 0, flat) text from a typeface JSON font lent with `store.lendFont` (`assets.loadFont` in Foldkit), as Drei's `Text3D`, with `letterSpacing`, `lineHeight` and `align` applied (three ignores them).
+- **Labels:** `label({ key: 'title', text: 'Hello', font: '/inter.woff', fontSize: 0.5 })` is crisp distance-field text at any size, as Drei's `Text`: wrapping (`maxWidth`), anchors, alignment, spacing and outlines. Pass an engine (`troikaLabels()` from `@opsydyn/effect-three-troika`); fonts are TTF, OTF or WOFF (troika 0.52 cannot read WOFF2).
 - **Staging:** `scene({ environment: environment(), sky: sky() })` adds image-based lighting (three's `RoomEnvironment`, or a lent panorama with `map`) and a daylight sky, as Drei's `Environment` and `Sky`; `grid({ key })` draws three's `GridHelper`, `contactShadows()` draws Drei's soft ground shadows, and `shadowMaterial()` shows only the shadows cast onto it.
-- **Stage:** `const { lights, contactShadows, environment } = stage({ radius: 1.2, height: 2 })` is Drei's `Stage` lighting (presets `rembrandt`, `portrait`, `upfront`, `soft`) for content centred on the origin; spread the parts into `scene`.
+- **Stage:** `const { lights, contactShadows, environment } = stage({ radius: 1.2, height: 2 })` is Drei's `Stage` lighting (presets `rembrandt`, `portrait`, `upfront`, `soft`) for content centred on the origin; spread the parts into `scene`. Measure the content (`scene({ measure })`), place it at `centerOffset(box)` (Drei's `Center`), light it with `stage(stageBounds(box))` and frame it with `fitCamera`.
+- **Grids and presets:** `shaderGrid({ key, infinite: true })` is Drei's fading shader `Grid`; `environmentPresetUrl('sunset')` is one of Drei's ten environment HDRs, for `assets.loadEnvironment`.
 - **Physics:** `mesh({ body: body({ collider: 'ball', restitution: 0.6 }) })` under `scene({ physics: physics() })` makes a rigid body the simulation moves; kicks are `impulse: { id, impulse }`, applied once per id, and collisions arrive as `Collision` events. Pass an engine (`loadRapier()` from `@opsydyn/effect-three-rapier`) to the scene graph or the Foldkit environment. See [ADR-007](../../docs/effect-three/adr/007-physics-as-a-pose-source.md).
-- **XR:** `scene({ xr: xr({ origin: [0, 0, 4] }) })` lets a scene be presented in a WebXR session; in Foldkit, run `environment.xr.enter('immersive-vr')` from a click's Command. The session drives frames, the player stands at `origin`, and controller selects arrive as `Click` events along their rays. See [ADR-008](../../docs/effect-three/adr/008-immersive-sessions.md).
+- **XR:** `scene({ xr: xr({ origin: [0, 0, 4] }) })` lets a scene be presented in a WebXR session; in Foldkit, run `environment.xr.enter('immersive-vr')` from a click's Command. The session drives frames, the player stands at `origin`, and controllers and hands hover, click and drag along their rays. Thumbsticks arrive as `XrStick` events (`locomote(model.xr, stick)` snap-turns and steps), buttons as `XrButton`, and in AR with `xr({ hitTest: true })` a select reports the real surface it met (`XrSurface`). See [ADR-008](../../docs/effect-three/adr/008-immersive-sessions.md).
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
 
@@ -160,7 +163,7 @@ Current benchmark results (Apple Silicon, 1,000 meshes):
 
 | Case                         | Median                 | Budget |
 | ---------------------------- | ---------------------- | ------ |
-| No-op reconcile              | ~120 µs                | 200 µs |
-| One changed property         | ~130 µs, 1 op          | 500 µs |
-| Runtime mount + unmount      | ~17 µs                 | 1 ms   |
-| Frame with one animated mesh | ~31 ns, no heap growth | 50 µs  |
+| No-op reconcile              | ~160 µs                | 200 µs |
+| One changed property         | ~165 µs, 1 op          | 500 µs |
+| Runtime mount + unmount      | ~22 µs                 | 1 ms   |
+| Frame with one animated mesh | ~55 ns, no heap growth | 50 µs  |

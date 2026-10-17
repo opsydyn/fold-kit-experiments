@@ -190,6 +190,15 @@ const Body_3: Schema.Struct<{
 export type BodyCollider = 'cuboid' | 'ball' | 'hull' | 'trimesh';
 
 // @public
+export type BodyCollision = {
+    readonly a: string;
+    readonly aInstance?: string;
+    readonly b: string;
+    readonly bInstance?: string;
+    readonly started: boolean;
+};
+
+// @public
 export const bodyEquals: (a: Body_2 | null, b: Body_2 | null) => boolean;
 
 // @public
@@ -199,6 +208,21 @@ export type BodyPose = {
 };
 
 // @public
+export type BodyRef = {
+    readonly key: string;
+    readonly instance: string | null;
+};
+
+// @public
+export const bodyRef: (key: string, instance?: string | null) => BodyRef;
+
+// @public
+const BodyRef_2: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly instance: Schema.NullOr<Schema.String>;
+}>;
+
+// @public
 export type BodyType = 'dynamic' | 'fixed' | 'kinematic';
 
 // @public
@@ -206,6 +230,7 @@ export const borrowed: (options: TransformOptions & {
     readonly id: string;
     readonly interactive?: boolean;
     readonly animation?: Animation_2 | null;
+    readonly body?: Body_2 | null;
 }) => BorrowedNode;
 
 // @public
@@ -220,6 +245,7 @@ export type BorrowedNode = {
     readonly behaviour: Behave | null;
     readonly interactive: boolean;
     readonly animation: Animation_2 | null;
+    readonly body: Body_2 | null;
 };
 
 // @public (undocumented)
@@ -249,7 +275,31 @@ const BorrowedNode_2: Schema.TaggedStruct<"Borrowed", {
         readonly params: Schema.$Record<Schema.String, Schema.Finite>;
     }>>;
     readonly interactive: Schema.Boolean;
+    readonly body: Schema.NullOr<Schema.Struct<{
+        readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
+        readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
+        readonly mass: Schema.NullOr<Schema.Finite>;
+        readonly friction: Schema.Finite;
+        readonly restitution: Schema.Finite;
+        readonly linearDamping: Schema.Finite;
+        readonly angularDamping: Schema.Finite;
+        readonly gravityScale: Schema.Finite;
+        readonly ccd: Schema.Boolean;
+        readonly sensor: Schema.Boolean;
+        readonly linearVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly angularVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly impulse: Schema.NullOr<Schema.Struct<{
+            readonly id: Schema.Finite;
+            readonly impulse: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+    }>>;
 }>;
+
+// @public
+export type Box = {
+    readonly min: Vec3;
+    readonly max: Vec3;
+};
 
 // @public
 export const box: (size?: {
@@ -349,6 +399,22 @@ const CapsuleGeometry_2: Schema.TaggedStruct<"Capsule", {
 }>;
 
 // @public
+export type CenterAlign = {
+    readonly top?: boolean;
+    readonly bottom?: boolean;
+    readonly left?: boolean;
+    readonly right?: boolean;
+    readonly front?: boolean;
+    readonly back?: boolean;
+    readonly disableX?: boolean;
+    readonly disableY?: boolean;
+    readonly disableZ?: boolean;
+};
+
+// @public
+export const centerOffset: (box: Box, align?: CenterAlign) => Vec3;
+
+// @public
 export const changedFields: (prev: SceneNode, next: SceneNode) => ReadonlyArray<Field> | undefined;
 
 // @public
@@ -371,23 +437,37 @@ const CircleGeometry_2: Schema.TaggedStruct<"Circle", {
 }>;
 
 // @public
+export const clipCamera: (camera: Camera, box: Box, area: {
+    readonly width: number;
+    readonly height: number;
+}, margin?: number) => Camera;
+
+// @public
 export const clipRunning: (animation: Animation_2, duration: number, elapsed: number) => boolean;
 
 // @public
 export const clipTime: (animation: Animation_2, duration: number, elapsed: number) => number;
 
 // @public
-export const colliderFor: (geometry: BufferGeometry, collider: BodyCollider, scale: Vector3) => ColliderShape;
+export type Collider = {
+    readonly shape: ColliderShape;
+    readonly translation: Vec3;
+    readonly rotation: Quat;
+};
+
+// @public
+export const colliderFor: (geometry: BufferGeometry, collider: BodyCollider, scale: Vector3) => Collider;
+
+// @public
+export const collidersFor: (body: Object3D, collider: BodyCollider) => ReadonlyArray<Collider>;
 
 // @public
 export type ColliderShape = {
     readonly _tag: 'Cuboid';
     readonly halfExtents: Vec3;
-    readonly offset: Vec3;
 } | {
     readonly _tag: 'Ball';
     readonly radius: number;
-    readonly offset: Vec3;
 } | {
     readonly _tag: 'Hull';
     readonly points: Float32Array;
@@ -396,6 +476,9 @@ export type ColliderShape = {
     readonly vertices: Float32Array;
     readonly indices: Uint32Array;
 };
+
+// @public
+export const colliderSignature: (body: Object3D) => string;
 
 // @public
 export type Collision = {
@@ -407,7 +490,9 @@ export type Collision = {
 // @public
 const CollisionDetail: Schema.Struct<{
     readonly a: Schema.String;
+    readonly aInstance: Schema.optionalKey<Schema.String>;
     readonly b: Schema.String;
+    readonly bInstance: Schema.optionalKey<Schema.String>;
     readonly started: Schema.Boolean;
 }>;
 
@@ -511,7 +596,15 @@ export const createSceneGraph: (options?: SceneGraphOptions) => SceneGraph;
 export const createSceneLoop: (options: SceneLoopOptions) => SceneLoop;
 
 // @public
-export const createSelectTracker: (picker: Picker) => (input: SelectInput) => ReadonlyArray<SceneEvent>;
+export const createXrTracker: (picker: Picker) => (input: XrInput) => ReadonlyArray<SceneEvent>;
+
+// @public
+export type Cursor = {
+    readonly width: number;
+    readonly height: number;
+    readonly x: number;
+    readonly y: number;
+};
 
 // @public
 export const cylinder: (options?: {
@@ -582,6 +675,20 @@ export type DescriptionError = {
     readonly _tag: 'UnknownOverlayView';
     readonly key: string;
     readonly view: string;
+} | {
+    readonly _tag: 'UnknownMeasuredNode';
+    readonly key: string;
+}
+/** Two joints share a key. */
+| {
+    readonly _tag: 'DuplicateJointKey';
+    readonly key: string;
+}
+/** A joint names a node that is not in the scene. */
+| {
+    readonly _tag: 'UnknownJointBody';
+    readonly joint: string;
+    readonly body: string;
 };
 
 // @public
@@ -612,6 +719,13 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
 }>, Schema.TaggedStruct<"UnknownOverlayView", {
     readonly key: Schema.String;
     readonly view: Schema.String;
+}>, Schema.TaggedStruct<"UnknownMeasuredNode", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateJointKey", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownJointBody", {
+    readonly joint: Schema.String;
+    readonly body: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
     readonly id: Schema.String;
 }>]>;
@@ -668,6 +782,9 @@ const DirectionalLightNode_2: Schema.TaggedStruct<"DirectionalLight", {
 
 // @public
 export const dollyCamera: (camera: Camera, scale: number, options?: OrbitOptions) => Camera;
+
+// @public
+export const dollyCameraToward: (camera: Camera, scale: number, cursor: Cursor, options?: OrbitOptions) => Camera;
 
 // @public
 const DragDetail: Schema.Struct<{
@@ -730,8 +847,32 @@ const Environment_2: Schema.Struct<{
 // @public
 export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
 
+// @public (undocumented)
+export type EnvironmentPreset = keyof typeof environmentPresets;
+
 // @public
-export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body';
+export const environmentPresets: {
+    apartment: string;
+    city: string;
+    dawn: string;
+    forest: string;
+    lobby: string;
+    night: string;
+    park: string;
+    studio: string;
+    sunset: string;
+    warehouse: string;
+};
+
+// @public
+export const environmentPresetUrl: (preset: EnvironmentPreset) => string;
+
+// @public
+export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body'
+/** A label's text or any of its type settings. */
+| 'text'
+/** A shader grid's look: anything but where it is. */
+| 'grid';
 
 // @public
 export const film: (options?: {
@@ -740,7 +881,19 @@ export const film: (options?: {
 }) => PostEffect;
 
 // @public
+export const fitCamera: (camera: Camera, box: Box, area: {
+    readonly width: number;
+    readonly height: number;
+}, margin?: number) => Camera;
+
+// @public
 export const fixed: (euler: Vec3) => Rotation;
+
+// @public
+export const fixedJoint: (options?: {
+    readonly frameA?: Vec3;
+    readonly frameB?: Vec3;
+}) => JointKind;
 
 // @public
 export const float: Behaviour;
@@ -817,6 +970,9 @@ const GeometryRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
         readonly segments: Schema.Int;
     }>>;
     readonly center: Schema.Boolean;
+    readonly letterSpacing: Schema.Finite;
+    readonly lineHeight: Schema.Finite;
+    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
 }>, Schema.TaggedStruct<"Box", {
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
@@ -878,6 +1034,8 @@ export type Gesture = {
     readonly deltaY: number;
     readonly width: number;
     readonly height: number;
+    readonly x: number;
+    readonly y: number;
 } | {
     readonly _tag: 'Wheel';
     readonly modifiers: Modifiers;
@@ -886,6 +1044,8 @@ export type Gesture = {
     readonly deltaY: number;
     readonly width: number;
     readonly height: number;
+    readonly x: number;
+    readonly y: number;
 } | {
     readonly _tag: 'Pinch';
     readonly view?: string;
@@ -894,6 +1054,8 @@ export type Gesture = {
     readonly deltaY: number;
     readonly width: number;
     readonly height: number;
+    readonly x: number;
+    readonly y: number;
 };
 
 // @public
@@ -901,6 +1063,8 @@ const Gesture_2: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
     readonly view: Schema.optionalKey<Schema.String>;
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
+    readonly x: Schema.Finite;
+    readonly y: Schema.Finite;
     readonly button: Schema.Int;
     readonly modifiers: Schema.Struct<{
         readonly shift: Schema.Boolean;
@@ -915,6 +1079,8 @@ const Gesture_2: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
     readonly view: Schema.optionalKey<Schema.String>;
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
+    readonly x: Schema.Finite;
+    readonly y: Schema.Finite;
     readonly modifiers: Schema.Struct<{
         readonly shift: Schema.Boolean;
         readonly control: Schema.Boolean;
@@ -927,6 +1093,8 @@ const Gesture_2: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
     readonly view: Schema.optionalKey<Schema.String>;
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
+    readonly x: Schema.Finite;
+    readonly y: Schema.Finite;
     readonly scale: Schema.Finite;
     readonly deltaX: Schema.Finite;
     readonly deltaY: Schema.Finite;
@@ -938,6 +1106,8 @@ const GestureDetail: Schema.Struct<{
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly button: Schema.Int;
         readonly modifiers: Schema.Struct<{
             readonly shift: Schema.Boolean;
@@ -952,6 +1122,8 @@ const GestureDetail: Schema.Struct<{
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly modifiers: Schema.Struct<{
             readonly shift: Schema.Boolean;
             readonly control: Schema.Boolean;
@@ -964,6 +1136,8 @@ const GestureDetail: Schema.Struct<{
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly scale: Schema.Finite;
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
@@ -1011,6 +1185,7 @@ const GridNode_2: Schema.TaggedStruct<"Grid", {
 export const group: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
+    readonly body?: Body_2 | null;
 }) => GroupNode;
 
 // @public
@@ -1024,6 +1199,7 @@ export type GroupNode = {
     readonly behaviour: Behave | null;
     readonly interactive: boolean;
     readonly children: ReadonlyArray<SceneNode>;
+    readonly body: Body_2 | null;
 };
 
 // @public
@@ -1089,6 +1265,13 @@ const HitDetail: Schema.Struct<{
 export type HostCamera = PerspectiveCamera_2 | OrthographicCamera_2;
 
 // @public
+export type HostedLabel = {
+    readonly object: Object3D;
+    readonly update: (label: LabelNode) => void;
+    readonly dispose: () => void;
+};
+
+// @public
 export type HostedTexture = {
     readonly id: string;
     readonly graph: SceneGraph;
@@ -1132,7 +1315,7 @@ export type IndexResult = {
     readonly error: DescriptionError;
 };
 
-// @public (undocumented)
+// @public
 export const indexScene: (description: SceneDescription, behaviours?: ReadonlySet<string>) => IndexResult;
 
 // @public
@@ -1173,6 +1356,7 @@ export const instances: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
+    readonly body?: Body_2 | null;
 }) => InstancesNode;
 
 // @public
@@ -1193,6 +1377,7 @@ export type InstancesNode = {
     readonly castShadow: boolean;
     readonly receiveShadow: boolean;
     readonly instances: ReadonlyArray<Instance>;
+    readonly body: Body_2 | null;
 };
 
 // @public
@@ -1228,6 +1413,9 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
             readonly segments: Schema.Int;
         }>>;
         readonly center: Schema.Boolean;
+        readonly letterSpacing: Schema.Finite;
+        readonly lineHeight: Schema.Finite;
+        readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
     }>, Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
@@ -1345,6 +1533,24 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
         readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly color: Schema.Int;
     }>>;
+    readonly body: Schema.NullOr<Schema.Struct<{
+        readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
+        readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
+        readonly mass: Schema.NullOr<Schema.Finite>;
+        readonly friction: Schema.Finite;
+        readonly restitution: Schema.Finite;
+        readonly linearDamping: Schema.Finite;
+        readonly angularDamping: Schema.Finite;
+        readonly gravityScale: Schema.Finite;
+        readonly ccd: Schema.Boolean;
+        readonly sensor: Schema.Boolean;
+        readonly linearVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly angularVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly impulse: Schema.NullOr<Schema.Struct<{
+            readonly id: Schema.Finite;
+            readonly impulse: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+    }>>;
 }>;
 
 // @public
@@ -1359,8 +1565,222 @@ export class InvalidScene extends InvalidScene_base<{
 }
 
 // @public
+export type Joint = {
+    readonly key: string;
+    readonly a: BodyRef;
+    readonly b: BodyRef;
+    readonly anchorA: Vec3;
+    readonly anchorB: Vec3;
+    readonly kind: JointKind;
+    readonly contacts: boolean;
+};
+
+// @public
+export const joint: (options: {
+    readonly key: string;
+    readonly a: string | BodyRef;
+    readonly b: string | BodyRef;
+    readonly anchorA?: Vec3;
+    readonly anchorB?: Vec3;
+    readonly kind: JointKind;
+    readonly contacts?: boolean;
+}) => Joint;
+
+// @public
+const Joint_2: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly a: Schema.Struct<{
+        readonly key: Schema.String;
+        readonly instance: Schema.NullOr<Schema.String>;
+    }>;
+    readonly b: Schema.Struct<{
+        readonly key: Schema.String;
+        readonly instance: Schema.NullOr<Schema.String>;
+    }>;
+    readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+        readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+        readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+    }>, Schema.TaggedStruct<"Prismatic", {
+        readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+    }>, Schema.TaggedStruct<"Rope", {
+        readonly length: Schema.Finite;
+    }>, Schema.TaggedStruct<"Spring", {
+        readonly restLength: Schema.Finite;
+        readonly stiffness: Schema.Finite;
+        readonly damping: Schema.Finite;
+    }>]>;
+    readonly contacts: Schema.Boolean;
+}>;
+
+// @public
+export type JointKind =
+/** No relative motion: each body's frame (Euler angles) at its anchor coincide. */
+    {
+    readonly _tag: 'Fixed';
+    readonly frameA: Vec3;
+    readonly frameB: Vec3;
+}
+/** The anchors coincide; any rotation about them (a ball and socket). */
+| {
+    readonly _tag: 'Spherical';
+}
+/** The anchors coincide; rotation about `axis` only (a hinge). */
+| {
+    readonly _tag: 'Revolute';
+    readonly axis: Vec3;
+    readonly limits: JointLimits | null;
+}
+/** Sliding along `axis` only. */
+| {
+    readonly _tag: 'Prismatic';
+    readonly axis: Vec3;
+    readonly limits: JointLimits | null;
+}
+/** The anchors at most `length` apart. */
+| {
+    readonly _tag: 'Rope';
+    readonly length: number;
+}
+/** A force pulling the anchors towards `restLength` apart. */
+| {
+    readonly _tag: 'Spring';
+    readonly restLength: number;
+    readonly stiffness: number;
+    readonly damping: number;
+};
+
+// @public
+const JointKind_2: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+    readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+}>, Schema.TaggedStruct<"Prismatic", {
+    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+}>, Schema.TaggedStruct<"Rope", {
+    readonly length: Schema.Finite;
+}>, Schema.TaggedStruct<"Spring", {
+    readonly restLength: Schema.Finite;
+    readonly stiffness: Schema.Finite;
+    readonly damping: Schema.Finite;
+}>]>;
+
+// @public
+export type JointLimits = readonly [min: number, max: number];
+
+// @public
+const JointLimits_2: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+
+// @public
 const KeyDetail: Schema.Struct<{
     readonly key: Schema.String;
+}>;
+
+// @public
+export const label: (options: TransformOptions & {
+    readonly text: string;
+    readonly font?: string | null;
+    readonly fontSize?: number;
+    readonly color?: Rgb;
+    readonly fillOpacity?: number;
+    readonly anchorX?: LabelAnchorX;
+    readonly anchorY?: LabelAnchorY;
+    readonly maxWidth?: number | null;
+    readonly lineHeight?: number | null;
+    readonly letterSpacing?: number;
+    readonly textAlign?: LabelAlign;
+    readonly outlineWidth?: number;
+    readonly outlineColor?: Rgb;
+    readonly outlineOpacity?: number;
+    readonly outlineBlur?: number;
+    readonly interactive?: boolean;
+}) => LabelNode;
+
+// @public
+export type LabelAlign = 'left' | 'right' | 'center' | 'justify';
+
+// @public
+export type LabelAnchorX = 'left' | 'center' | 'right' | number;
+
+// @public
+export type LabelAnchorY = 'top' | 'top-baseline' | 'middle' | 'bottom-baseline' | 'bottom' | number;
+
+// @public
+export type LabelEngine = {
+    readonly create: (label: LabelNode, ready: () => void) => HostedLabel;
+};
+
+// @public
+export type LabelNode = {
+    readonly _tag: 'Label';
+    readonly key: string;
+    readonly position: Vec3;
+    readonly rotation: Rotation;
+    readonly scale: Vec3;
+    readonly transition: Transition;
+    readonly behaviour: Behave | null;
+    readonly interactive: boolean;
+    readonly text: string;
+    readonly font: string | null;
+    readonly fontSize: number;
+    readonly color: Rgb;
+    readonly fillOpacity: number;
+    readonly anchorX: LabelAnchorX;
+    readonly anchorY: LabelAnchorY;
+    readonly maxWidth: number | null;
+    readonly lineHeight: number | null;
+    readonly letterSpacing: number;
+    readonly textAlign: LabelAlign;
+    readonly outlineWidth: number;
+    readonly outlineColor: Rgb;
+    readonly outlineOpacity: number;
+    readonly outlineBlur: number;
+};
+
+// @public
+const LabelNode_2: Schema.TaggedStruct<"Label", {
+    readonly key: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+        readonly euler: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>, Schema.TaggedStruct<"Spin", {
+        readonly axis: Schema.Literals<readonly ["x", "y", "z"]>;
+        readonly radiansPerSecond: Schema.Finite;
+        readonly phase: Schema.Finite;
+    }>]>;
+    readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly transition: Schema.Union<readonly [Schema.TaggedStruct<"Instant", {}>, Schema.TaggedStruct<"Ease", {
+        readonly seconds: Schema.Finite;
+        readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
+    }>]>;
+    readonly behaviour: Schema.NullOr<Schema.Struct<{
+        readonly name: Schema.String;
+        readonly params: Schema.$Record<Schema.String, Schema.Finite>;
+    }>>;
+    readonly interactive: Schema.Boolean;
+    readonly text: Schema.String;
+    readonly font: Schema.NullOr<Schema.String>;
+    readonly fontSize: Schema.Finite;
+    readonly color: Schema.Int;
+    readonly fillOpacity: Schema.Finite;
+    readonly anchorX: Schema.Union<readonly [Schema.Literals<readonly ["left", "center", "right"]>, Schema.Finite]>;
+    readonly anchorY: Schema.Union<readonly [Schema.Literals<readonly ["top", "top-baseline", "middle", "bottom-baseline", "bottom"]>, Schema.Finite]>;
+    readonly maxWidth: Schema.NullOr<Schema.Finite>;
+    readonly lineHeight: Schema.NullOr<Schema.Finite>;
+    readonly letterSpacing: Schema.Finite;
+    readonly textAlign: Schema.Literals<readonly ["left", "right", "center", "justify"]>;
+    readonly outlineWidth: Schema.Finite;
+    readonly outlineColor: Schema.Int;
+    readonly outlineOpacity: Schema.Finite;
+    readonly outlineBlur: Schema.Finite;
 }>;
 
 // @public
@@ -1404,6 +1824,19 @@ export type Loan = {
 };
 
 // @public
+export const locomote: (settings: Xr, stick: {
+    readonly hand: XrHand;
+    readonly direction: XrStickDirection;
+}, options?: LocomotionOptions) => Xr;
+
+// @public (undocumented)
+export type LocomotionOptions = {
+    readonly snapDegrees?: number;
+    readonly step?: number;
+    readonly turnHand?: Exclude<XrHand, 'none'>;
+};
+
+// @public
 const make: (options: SceneRuntimeOptions) => Effect.Effect<{
     graph: SceneGraph;
     startupOps: readonly Op[];
@@ -1413,7 +1846,7 @@ const make: (options: SceneRuntimeOptions) => Effect.Effect<{
     advance: Effect.Effect<void, never, never>;
     drawNow: () => void;
     pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
-    select: (input: SelectInput) => ReadonlyArray<SceneEvent>;
+    xrInput: (input: XrInput) => ReadonlyArray<SceneEvent>;
     events: Stream.Stream<SceneEvent, never, never>;
     drainEvents: Effect.Effect<SceneEvent[], never, never>;
 }, InvalidScene | RendererUnavailable, FrameSource_2 | ResourceRegistry_2 | Scope_2.Scope>;
@@ -1521,6 +1954,13 @@ export type MaterialSide = 'front' | 'back' | 'double';
 const MaterialSide_2: Schema.Literals<readonly ["front", "back", "double"]>;
 
 // @public
+const MeasuredDetail: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+
+// @public
 export const mesh: (options: TransformOptions & {
     readonly geometry: GeometryRef;
     readonly material: MaterialRef;
@@ -1580,6 +2020,9 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
             readonly segments: Schema.Int;
         }>>;
         readonly center: Schema.Boolean;
+        readonly letterSpacing: Schema.Finite;
+        readonly lineHeight: Schema.Finite;
+        readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
     }>, Schema.TaggedStruct<"Box", {
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
@@ -1810,6 +2253,15 @@ export type Op = {
 export const orbit: (camera: Camera, gesture: Gesture, options?: OrbitOptions) => Camera;
 
 // @public
+export type OrbitKey = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight';
+
+// @public
+export const orbitKey: (camera: Camera, key: OrbitKey, modifiers: Modifiers, area: {
+    readonly width: number;
+    readonly height: number;
+}, options?: OrbitOptions) => Camera;
+
+// @public
 export type OrbitOptions = {
     readonly enableRotate: boolean;
     readonly enableZoom: boolean;
@@ -1826,6 +2278,9 @@ export type OrbitOptions = {
     readonly maxPolarAngle: number;
     readonly minAzimuthAngle: number;
     readonly maxAzimuthAngle: number;
+    readonly zoomToCursor: boolean;
+    readonly keyPanSpeed: number;
+    readonly keyRotateSpeed: number;
 };
 
 // @public
@@ -2051,17 +2506,48 @@ export type Physics = {
     readonly paused: boolean;
     readonly timeStep: number;
     readonly interpolate: boolean;
+    readonly joints: ReadonlyArray<Joint>;
 };
 
 // @public
 export const physics: (options?: Partial<Physics>) => Physics;
 
-// @public
+// @public (undocumented)
 const Physics_2: Schema.Struct<{
     readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly paused: Schema.Boolean;
     readonly timeStep: Schema.Finite;
     readonly interpolate: Schema.Boolean;
+    readonly joints: Schema.$Array<Schema.Struct<{
+        readonly key: Schema.String;
+        readonly a: Schema.Struct<{
+            readonly key: Schema.String;
+            readonly instance: Schema.NullOr<Schema.String>;
+        }>;
+        readonly b: Schema.Struct<{
+            readonly key: Schema.String;
+            readonly instance: Schema.NullOr<Schema.String>;
+        }>;
+        readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+            readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+            readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+        }>, Schema.TaggedStruct<"Prismatic", {
+            readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+        }>, Schema.TaggedStruct<"Rope", {
+            readonly length: Schema.Finite;
+        }>, Schema.TaggedStruct<"Spring", {
+            readonly restLength: Schema.Finite;
+            readonly stiffness: Schema.Finite;
+            readonly damping: Schema.Finite;
+        }>]>;
+        readonly contacts: Schema.Boolean;
+    }>>;
 }>;
 
 // @public
@@ -2073,14 +2559,30 @@ export type PhysicsEngine = {
 export const physicsEquals: (a: Physics | null, b: Physics | null) => boolean;
 
 // @public
+export type PhysicsJoint = {
+    readonly anchorA: Vec3;
+    readonly anchorB: Vec3;
+    readonly contacts: boolean;
+    readonly kind: Exclude<JointKind, {
+        readonly _tag: 'Fixed';
+    }> | {
+        readonly _tag: 'Fixed';
+        readonly frameA: Quat;
+        readonly frameB: Quat;
+    };
+};
+
+// @public
 export type PhysicsWorld = {
     readonly configure: (physics: Physics) => void;
-    readonly add: (key: string, body: Body_2, shape: ColliderShape, pose: BodyPose) => void;
+    readonly add: (key: string, body: Body_2, colliders: ReadonlyArray<Collider>, pose: BodyPose) => void;
     readonly update: (key: string, body: Body_2) => void;
     readonly teleport: (key: string, pose: BodyPose) => void;
     readonly moveKinematic: (key: string, pose: BodyPose) => void;
     readonly applyImpulse: (key: string, impulse: Vec3) => void;
     readonly remove: (key: string) => void;
+    readonly addJoint: (id: string, joint: PhysicsJoint, a: string, b: string) => void;
+    readonly removeJoint: (id: string) => void;
     readonly step: (seconds: number) => ReadonlyArray<Collision>;
     readonly pose: (key: string) => BodyPose | undefined;
     readonly awake: () => boolean;
@@ -2252,6 +2754,12 @@ const PostEffect_2: Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
 }>]>;
 
 // @public
+export const prismaticJoint: (options: {
+    readonly axis: Vec3;
+    readonly limits?: JointLimits | null;
+}) => JointKind;
+
+// @public
 export type Quat = readonly [x: number, y: number, z: number, w: number];
 
 // @public
@@ -2296,6 +2804,8 @@ export type Region = {
     readonly view?: string;
     readonly width: number;
     readonly height: number;
+    readonly x: number;
+    readonly y: number;
 };
 
 // @public
@@ -2446,6 +2956,9 @@ const ResourceDefinitions_2: Schema.Struct<{
                 readonly segments: Schema.Int;
             }>>;
             readonly center: Schema.Boolean;
+            readonly letterSpacing: Schema.Finite;
+            readonly lineHeight: Schema.Finite;
+            readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
         }>, Schema.TaggedStruct<"Box", {
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
@@ -2604,6 +3117,12 @@ export type ResourceStore = {
 };
 
 // @public
+export const revoluteJoint: (options: {
+    readonly axis: Vec3;
+    readonly limits?: JointLimits | null;
+}) => JointKind;
+
+// @public
 export type Rgb = number;
 
 // @public
@@ -2630,6 +3149,9 @@ const RingGeometry_2: Schema.TaggedStruct<"Ring", {
     readonly outerRadius: Schema.Finite;
     readonly thetaSegments: Schema.Int;
 }>;
+
+// @public
+export const ropeJoint: (length: number) => JointKind;
 
 // @public
 export const rotateCamera: (camera: Camera, deltaX: number, deltaY: number, height: number, options?: OrbitOptions) => Camera;
@@ -2669,6 +3191,7 @@ export const scene: (options: {
     readonly contactShadows?: ContactShadows | null;
     readonly physics?: Physics | null;
     readonly xr?: Xr | null;
+    readonly measure?: ReadonlyArray<string>;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2693,6 +3216,7 @@ export type SceneDescription = {
     readonly contactShadows: ContactShadows | null;
     readonly physics: Physics | null;
     readonly xr: Xr | null;
+    readonly measure: ReadonlyArray<string>;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2804,13 +3328,46 @@ const SceneDescription_2: Schema.Struct<{
         readonly paused: Schema.Boolean;
         readonly timeStep: Schema.Finite;
         readonly interpolate: Schema.Boolean;
+        readonly joints: Schema.$Array<Schema.Struct<{
+            readonly key: Schema.String;
+            readonly a: Schema.Struct<{
+                readonly key: Schema.String;
+                readonly instance: Schema.NullOr<Schema.String>;
+            }>;
+            readonly b: Schema.Struct<{
+                readonly key: Schema.String;
+                readonly instance: Schema.NullOr<Schema.String>;
+            }>;
+            readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+                readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+                readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+            }>, Schema.TaggedStruct<"Prismatic", {
+                readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+            }>, Schema.TaggedStruct<"Rope", {
+                readonly length: Schema.Finite;
+            }>, Schema.TaggedStruct<"Spring", {
+                readonly restLength: Schema.Finite;
+                readonly stiffness: Schema.Finite;
+                readonly damping: Schema.Finite;
+            }>]>;
+            readonly contacts: Schema.Boolean;
+        }>>;
     }>>;
     readonly xr: Schema.NullOr<Schema.Struct<{
         readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly heading: Schema.Finite;
         readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
         readonly framebufferScale: Schema.Finite;
+        readonly hitTest: Schema.Boolean;
+        readonly showInputs: Schema.Boolean;
     }>>;
+    readonly measure: Schema.$Array<Schema.String>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
             readonly strength: Schema.Finite;
@@ -2846,6 +3403,9 @@ const SceneDescription_2: Schema.Struct<{
                     readonly segments: Schema.Int;
                 }>>;
                 readonly center: Schema.Boolean;
+                readonly letterSpacing: Schema.Finite;
+                readonly lineHeight: Schema.Finite;
+                readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
             }>, Schema.TaggedStruct<"Box", {
                 readonly width: Schema.Finite;
                 readonly height: Schema.Finite;
@@ -3002,16 +3562,49 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly _tag: 'Gesture';
     readonly gesture: Gesture;
 }
+/** In an immersive session, a thumbstick pushed past halfway in a direction, or let back. */
+| {
+    readonly _tag: 'XrStick';
+    readonly hand: XrHand;
+    readonly direction: XrStickDirection;
+}
+/** In an immersive session, a controller button pressed or released. */
+| {
+    readonly _tag: 'XrButton';
+    readonly hand: XrHand;
+    readonly button: XrButtonName;
+    readonly pressed: boolean;
+}
+/** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
+| {
+    readonly _tag: 'XrSurface';
+    readonly hand: XrHand;
+    readonly point: Vec3;
+    readonly normal: Vec3;
+}
 /**
-* Two bodies began (`started`) or stopped touching, by their nodes' keys: Rapier's
-* collision events, as react-three-rapier's `onCollisionEnter` and `onCollisionExit`.
-* Not a pointer event: it travels with them so one stream carries everything.
+* Two bodies began (`started`) or stopped touching, by their nodes' keys (and, for a body
+* on an instance, the instance's): Rapier's collision events, as react-three-rapier's
+* `onCollisionEnter` and `onCollisionExit`. Not a pointer event: it travels with them so
+* one stream carries everything.
 */
 | {
     readonly _tag: 'Collision';
     readonly a: string;
+    readonly aInstance?: string;
     readonly b: string;
+    readonly bInstance?: string;
     readonly started: boolean;
+}
+/**
+* A measured node's world bounding box changed (`scene({ measure })`): Drei's `Bounds`
+* `box.setFromObject`, reported rather than read. Not a pointer event either.
+*/
+| {
+    readonly _tag: 'Measured';
+    readonly key: string;
+    readonly min: Vec3;
+    readonly max: Vec3;
 }
 /**
 * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
@@ -3165,6 +3758,8 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly button: Schema.Int;
         readonly modifiers: Schema.Struct<{
             readonly shift: Schema.Boolean;
@@ -3179,6 +3774,8 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly modifiers: Schema.Struct<{
             readonly shift: Schema.Boolean;
             readonly control: Schema.Boolean;
@@ -3191,14 +3788,33 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly scale: Schema.Finite;
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
     }>]>;
 }>, Schema.TaggedStruct<"Collision", {
     readonly a: Schema.String;
+    readonly aInstance: Schema.optionalKey<Schema.String>;
     readonly b: Schema.String;
+    readonly bInstance: Schema.optionalKey<Schema.String>;
     readonly started: Schema.Boolean;
+}>, Schema.TaggedStruct<"Measured", {
+    readonly key: Schema.String;
+    readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"XrStick", {
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
+}>, Schema.TaggedStruct<"XrButton", {
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly button: Schema.Literals<readonly ["trigger", "squeeze", "touchpad", "thumbstick", "primary", "secondary"]>;
+    readonly pressed: Schema.Boolean;
+}>, Schema.TaggedStruct<"XrSurface", {
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -3214,8 +3830,9 @@ export type SceneGraph = {
     readonly overlays: () => ReadonlyArray<Overlay>;
     readonly environment: () => Environment | null;
     readonly contactShadows: () => ContactShadows | null;
-    readonly collisions: () => ReadonlyArray<Collision>;
+    readonly collisions: () => ReadonlyArray<BodyCollision>;
     readonly xr: () => Xr | null;
+    readonly measured: () => ReadonlyArray<string>;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -3242,6 +3859,7 @@ export type SceneGraphOptions = {
     readonly store?: ResourceStore;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
     readonly physics?: PhysicsEngine | undefined;
+    readonly labels?: LabelEngine | undefined;
 };
 
 // @public
@@ -3261,7 +3879,7 @@ export type SceneLoop = {
     readonly wantsFrames: () => boolean;
     readonly dispose: () => void;
     readonly pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
-    readonly select: (input: SelectInput) => ReadonlyArray<SceneEvent>;
+    readonly xrInput: (input: XrInput) => ReadonlyArray<SceneEvent>;
 };
 
 // @public (undocumented)
@@ -3276,7 +3894,7 @@ export type SceneLoopOptions = {
 };
 
 // @public
-export type SceneNode = GridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
+export type SceneNode = GridNode | ShaderGridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
 
 // @public
 const SceneNode_2: Schema.Codec<SceneNode>;
@@ -3308,6 +3926,7 @@ type SceneRuntimeOptions = {
     readonly eventCapacity?: number;
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
     readonly physics?: PhysicsEngine | undefined;
+    readonly labels?: LabelEngine | undefined;
     readonly placeOverlays?: (placements: ReadonlyArray<OverlayPlacement>) => void;
 };
 
@@ -3344,17 +3963,23 @@ declare namespace SceneSchema {
         MaterialRef_2 as MaterialRef,
         ResourceDefinitions_2 as ResourceDefinitions,
         Body_3 as Body,
+        BodyRef_2 as BodyRef,
+        JointLimits_2 as JointLimits,
+        JointKind_2 as JointKind,
+        Joint_2 as Joint,
         Physics_2 as Physics,
         MeshNode_2 as MeshNode,
         Instance_2 as Instance,
         InstancesNode_2 as InstancesNode,
         Animation_3 as Animation,
         BorrowedNode_2 as BorrowedNode,
+        LabelNode_2 as LabelNode,
         AmbientLightNode_2 as AmbientLightNode,
         DirectionalLightNode_2 as DirectionalLightNode,
         PointLightNode_2 as PointLightNode,
         SpotLightNode_2 as SpotLightNode,
         GridNode_2 as GridNode,
+        ShaderGridNode_2 as ShaderGridNode,
         HemisphereLightNode_2 as HemisphereLightNode,
         SceneNode_2 as SceneNode,
         PerspectiveCamera_3 as PerspectiveCamera,
@@ -3382,6 +4007,10 @@ declare namespace SceneSchema {
         Modifiers_2 as Modifiers,
         Gesture_2 as Gesture,
         CollisionDetail,
+        XrStickDetail,
+        XrButtonDetail,
+        XrSurfaceDetail,
+        MeasuredDetail,
         GestureDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError
@@ -3389,11 +4018,65 @@ declare namespace SceneSchema {
 }
 
 // @public
-export type SelectInput = {
-    readonly _tag: 'SelectStart' | 'SelectEnd';
-    readonly source: number;
-    readonly ray: Ray;
+export const shaderGrid: (options: {
+    readonly key: string;
+    readonly position?: Vec3;
+    readonly rotation?: Vec3;
+    readonly size?: readonly [width: number, height: number];
+    readonly cellSize?: number;
+    readonly cellThickness?: number;
+    readonly cellColor?: Rgb;
+    readonly sectionSize?: number;
+    readonly sectionThickness?: number;
+    readonly sectionColor?: Rgb;
+    readonly infinite?: boolean;
+    readonly followCamera?: boolean;
+    readonly fadeDistance?: number;
+    readonly fadeStrength?: number;
+    readonly fadeFrom?: number;
+    readonly side?: MaterialSide;
+}) => ShaderGridNode;
+
+// @public
+export type ShaderGridNode = {
+    readonly _tag: 'ShaderGrid';
+    readonly key: string;
+    readonly position: Vec3;
+    readonly rotation: Vec3;
+    readonly size: readonly [width: number, height: number];
+    readonly cellSize: number;
+    readonly cellThickness: number;
+    readonly cellColor: Rgb;
+    readonly sectionSize: number;
+    readonly sectionThickness: number;
+    readonly sectionColor: Rgb;
+    readonly infinite: boolean;
+    readonly followCamera: boolean;
+    readonly fadeDistance: number;
+    readonly fadeStrength: number;
+    readonly fadeFrom: number;
+    readonly side: MaterialSide;
 };
+
+// @public
+const ShaderGridNode_2: Schema.TaggedStruct<"ShaderGrid", {
+    readonly key: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly cellSize: Schema.Finite;
+    readonly cellThickness: Schema.Finite;
+    readonly cellColor: Schema.Int;
+    readonly sectionSize: Schema.Finite;
+    readonly sectionThickness: Schema.Finite;
+    readonly sectionColor: Schema.Int;
+    readonly infinite: Schema.Boolean;
+    readonly followCamera: Schema.Boolean;
+    readonly fadeDistance: Schema.Finite;
+    readonly fadeStrength: Schema.Finite;
+    readonly fadeFrom: Schema.Finite;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+}>;
 
 // @public
 export type ShadowMaterial = {
@@ -3437,6 +4120,9 @@ const ShapeGeometry_2: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
         readonly segments: Schema.Int;
     }>>;
     readonly center: Schema.Boolean;
+    readonly letterSpacing: Schema.Finite;
+    readonly lineHeight: Schema.Finite;
+    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
 }>, Schema.TaggedStruct<"Box", {
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
@@ -3533,6 +4219,9 @@ const SphereGeometry_2: Schema.TaggedStruct<"Sphere", {
 }>;
 
 // @public
+export const sphericalJoint: () => JointKind;
+
+// @public
 export const spin: (options: {
     readonly axis: Axis;
     readonly radiansPerSecond: number;
@@ -3594,6 +4283,13 @@ const SpotLightNode_2: Schema.TaggedStruct<"SpotLight", {
 }>;
 
 // @public
+export const springJoint: (options: {
+    readonly restLength: number;
+    readonly stiffness: number;
+    readonly damping: number;
+}) => JointKind;
+
+// @public
 export type Stage = {
     readonly lights: ReadonlyArray<SceneNode>;
     readonly contactShadows: ContactShadows | null;
@@ -3610,6 +4306,14 @@ export const stage: (options: {
     readonly environment?: Environment | null;
     readonly keyPrefix?: string;
 }) => Stage;
+
+// @public
+export const stageBounds: (box: Box) => {
+    readonly radius: number;
+    readonly width: number;
+    readonly height: number;
+    readonly depth: number;
+};
 
 // @public
 export type StageLighting = {
@@ -3757,6 +4461,9 @@ const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
 }>]>;
 
 // @public
+export const teleport: (settings: Xr, point: Vec3) => Xr;
+
+// @public
 export const text: (options: {
     readonly text: string;
     readonly font: string;
@@ -3765,7 +4472,13 @@ export const text: (options: {
     readonly curveSegments?: number;
     readonly bevel?: Partial<TextBevel>;
     readonly center?: boolean;
+    readonly letterSpacing?: number;
+    readonly lineHeight?: number;
+    readonly align?: TextAlign;
 }) => TextGeometry;
+
+// @public
+export type TextAlign = 'left' | 'center' | 'right';
 
 // @public
 export type TextBevel = {
@@ -3785,6 +4498,9 @@ export type TextGeometry = {
     readonly curveSegments: number;
     readonly bevel: TextBevel | null;
     readonly center: boolean;
+    readonly letterSpacing: number;
+    readonly lineHeight: number;
+    readonly align: TextAlign;
 };
 
 // @public
@@ -3801,6 +4517,9 @@ const TextGeometry_2: Schema.TaggedStruct<"Text", {
         readonly segments: Schema.Int;
     }>>;
     readonly center: Schema.Boolean;
+    readonly letterSpacing: Schema.Finite;
+    readonly lineHeight: Schema.Finite;
+    readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
 }>;
 
 // @public
@@ -3977,6 +4696,8 @@ export type Xr = {
     readonly heading: number;
     readonly referenceSpace: 'local-floor' | 'local' | 'bounded-floor';
     readonly framebufferScale: number;
+    readonly hitTest: boolean;
+    readonly showInputs: boolean;
 };
 
 // @public
@@ -3988,10 +4709,80 @@ const Xr_2: Schema.Struct<{
     readonly heading: Schema.Finite;
     readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
     readonly framebufferScale: Schema.Finite;
+    readonly hitTest: Schema.Boolean;
+    readonly showInputs: Schema.Boolean;
 }>;
 
 // @public
+const XrButtonDetail: Schema.Struct<{
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly button: Schema.Literals<readonly ["trigger", "squeeze", "touchpad", "thumbstick", "primary", "secondary"]>;
+    readonly pressed: Schema.Boolean;
+}>;
+
+// @public
+export type XrButtonName = 'trigger' | 'squeeze' | 'touchpad' | 'thumbstick' | 'primary' | 'secondary';
+
+// @public
 export const xrEquals: (a: Xr | null, b: Xr | null) => boolean;
+
+// @public
+export type XrHand = 'left' | 'right' | 'none';
+
+// @public
+export type XrInput =
+/** A select (the trigger, or a pinch) beginning or ending, along the source's ray. */
+    {
+    readonly _tag: 'SelectStart' | 'SelectEnd';
+    readonly source: number;
+    readonly ray: Ray;
+}
+/** Where the source points this frame. */
+| {
+    readonly _tag: 'Aim';
+    readonly source: number;
+    readonly ray: Ray;
+}
+/** The source went away (put down, or the session ended). */
+| {
+    readonly _tag: 'Lost';
+    readonly source: number;
+} | {
+    readonly _tag: 'Stick';
+    readonly source: number;
+    readonly hand: XrHand;
+    readonly direction: XrStickDirection;
+} | {
+    readonly _tag: 'Button';
+    readonly source: number;
+    readonly hand: XrHand;
+    readonly button: XrButtonName;
+    readonly pressed: boolean;
+}
+/** In AR, a select whose ray met a real surface: where, and the surface's normal. */
+| {
+    readonly _tag: 'Surface';
+    readonly source: number;
+    readonly hand: XrHand;
+    readonly point: Vec3;
+    readonly normal: Vec3;
+};
+
+// @public
+const XrStickDetail: Schema.Struct<{
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
+}>;
+
+// @public
+export type XrStickDirection = 'center' | 'left' | 'right' | 'forward' | 'back';
+
+// @public
+const XrSurfaceDetail: Schema.Struct<{
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
 
 // (No @packageDocumentation comment for this package)
 

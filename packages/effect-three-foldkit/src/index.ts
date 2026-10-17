@@ -52,9 +52,13 @@ export {
   type Gesture,
   type HitDetail,
   type KeyDetail,
+  type MeasuredDetail,
   type MissDetail,
   type PerformanceDetail,
   view,
   type ViewConfig,
   type WheelDetail,
+  type XrButtonDetail,
+  type XrStickDetail,
+  type XrSurfaceDetail,
 } from './view.ts';

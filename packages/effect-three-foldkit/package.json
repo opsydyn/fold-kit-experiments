@@ -25,7 +25,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "typecheck": "tsc -b && tsc -p tsconfig.test.json",
+    "typecheck": "tsc -b . ../effect-three-troika && tsc -p tsconfig.test.json",
     "lint": "bunx --bun oxlint --config oxlint.strict.ts",
     "check": "bun run lint",
     "test": "bun test --pass-with-no-tests ./src ./test",
@@ -41,7 +41,9 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
     "@effect/platform-browser": "catalog:",
+    "@fontsource/inter": "catalog:",
     "@microsoft/api-extractor": "catalog:",
+    "@opsydyn/effect-three-troika": "workspace:*",
     "@opsydyn/oxlint-effect": "catalog:",
     "@types/bun": "catalog:",
     "@types/pngjs": "catalog:",

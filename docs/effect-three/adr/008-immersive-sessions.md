@@ -33,10 +33,26 @@ framebufferScale }) })`. The kernel only holds it; its renderer contract stays f
   to the headset's views.
 - **The origin is an offset reference space.** The player stands at `origin` facing
   `heading`, as three.js's teleport example offsets the space; a new origin moves them.
-- **Controllers speak the pointer vocabulary.** A controller's select becomes
-  `PointerDown`, `PointerUp` and `Click` on what its ray hits (`pickRay`), or
-  `PointerMissed`, as @react-three/xr's pointers do. `onXRSession` reports sessions starting
-  and ending, whoever ends them.
+- **Controllers and hands speak the pointer vocabulary.** Every frame each input source's
+  target ray is an `Aim`: what it points at gets `PointerEnter` and `PointerLeave` (per
+  source). A select (trigger or pinch) becomes `PointerDown`, `PointerUp` and `Click` on
+  what its ray hits (`pickRay`), or `PointerMissed`; held on a mesh it captures it, and
+  once the ray has turned a degree or moved a centimetre it `Drag`s it until `DragEnd`, as
+  @react-three/xr's pointers do (hands never hold still, and a select that does not move
+  is a click). A source put down leaves, and ends its drag. `onXRSession` reports
+  sessions starting and ending, whoever ends them.
+- **Sticks and buttons are discrete events; locomotion is a function.** A thumbstick
+  pushed past halfway (back under a third to centre) is an `XrStick`; `xr-standard`
+  buttons pressed and released are `XrButton`s. `locomote(xr, stick)` is pmndrs/xr's
+  controller locomotion as a step: the right stick snap-turns 45°, the left steps a metre
+  along the facing; `teleport(xr, point)` stands the player there. The Model keeps `xr`.
+- **AR shows the room.** A session whose environment blend mode is not opaque leaves
+  any scene background out of its frames (three already clears to transparent). With
+  `xr({ hitTest: true })` it asks for hit testing (optionally) and a select reports where
+  its ray met a real surface as `XrSurface { point, normal }`: tap to place.
+- **Inputs are drawn.** `xr({ showInputs })` (on by default) draws each source's ray and
+  each tracked hand's 25 joints as spheres, as three's `XRHandPrimitiveModel`, in a group
+  the kernel leaves alone; pmndrs/xr loads controller and hand models from a CDN instead.
 
 ## Consequences
 
@@ -45,5 +61,8 @@ framebufferScale }) })`. The kernel only holds it; its renderer contract stays f
 - Tests run real sessions headlessly with IWER (a test-only dependency). iwer 2.5.0 loses
   offset reference spaces (it treats the `XRRigidTransform` as a matrix), so the test page
   shims that one emulator method.
-- Not yet: AR features (hit testing, anchors, planes, DOM overlay), hand-tracking joints as
-  data, controller hover and drag, teleport and locomotion helpers.
+- Tests drive controllers, sticks, a squeeze, tracked hands and their pinches, and an AR
+  session whose hit tests a synthetic floor answers (IWER asks a "synthetic environment
+  module" for them; the test page installs one that intersects y = 0).
+- Smooth (gliding) locomotion would mean a Message per frame; steps and snap turns do
+  not. Not yet: anchors, planes and meshes, DOM overlay, and joint poses as data.

@@ -5,7 +5,7 @@ export const examples = [
     category: 'Reconciliation',
     title: 'Watch every update',
     description:
-      'Add, move, reorder, repaint and remove keyed cubes, and watch them glide into place. A live panel shows exactly which operations each update takes and which GPU resources stay alive.',
+      'Add, move, reorder, repaint and remove keyed cubes, and watch them glide into place on a fading grid. A live panel shows exactly which operations each update takes and which GPU resources stay alive.',
     alt: 'Reconciliation playground: two shelves of coloured cubes above a panel counting created, updated and moved objects.',
   },
   {
@@ -29,7 +29,7 @@ export const examples = [
     category: 'Light and material',
     title: 'Drag it into the light',
     description:
-      'Five geometries in five material kinds, under a sky light, a point light and a spot that casts soft shadows. Drag pieces across the floor and change their finish.',
+      'Five geometries in five material kinds, under a sky light, a point light and a spot that casts soft shadows. Drag pieces across the floor, orbit and frame them, and change their finish.',
     alt: 'Studio: a torus, capsule, cone, ball and crate in different finishes on a pale floor, casting soft shadows under a spot light.',
   },
   {
@@ -45,7 +45,7 @@ export const examples = [
     category: 'Physics',
     title: 'Throw the toys around',
     description:
-      'Crates and balls drop into a tray and tumble to rest under Rapier. Click to kick them, drop more, or tidy up. Bodies are data; the simulation owns where they are.',
+      'Crates and balls tumble into a tray under Rapier, a chain swings on joints, and marbles pour in with a body each. Click to kick; in VR, turn and step with the thumbsticks. Bodies are data; the simulation owns where they are.',
     alt: 'Toybox: coloured crates and balls scattered in a pale tray, casting soft contact shadows.',
   },
   {
@@ -53,7 +53,7 @@ export const examples = [
     category: 'Assets',
     title: 'Load it, play it, let it go',
     description:
-      'A glTF robot and a tiled floor texture load through Foldkit Commands. Play its clips at any speed, click its parts, and unload it all from the GPU.',
+      'A glTF robot, a tiled floor texture and two fonts load through Foldkit Commands. Play its clips at any speed under a crisp troika caption, click its parts, and unload it all from the GPU.',
     alt: 'Workshop: a small blue robot with a coral arm raised, standing on a pale tiled floor.',
   },
   {

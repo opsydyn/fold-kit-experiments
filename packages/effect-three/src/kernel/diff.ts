@@ -28,6 +28,8 @@ import {
   behaviourEquals,
   bodyEquals,
   geometryRefEquals,
+  labelTypeEquals,
+  shaderGridLookEquals,
   instancesEqual,
   materialRefEquals,
   resourcesEqual,
@@ -72,7 +74,11 @@ export type Field =
   | 'size'
   | 'divisions'
   | 'centerColor'
-  | 'body';
+  | 'body'
+  /** A label's text or any of its type settings. */
+  | 'text'
+  /** A shader grid's look: anything but where it is. */
+  | 'grid';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -119,6 +125,7 @@ export const changedFields = (
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
       if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
       if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (!bodyEquals(prev.body, next.body)) fields.push('body');
       return fields;
     }
     case 'Mesh': {
@@ -149,6 +156,7 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
       if (!instancesEqual(prev.instances, next.instances)) fields.push('instances');
+      if (!bodyEquals(prev.body, next.body)) fields.push('body');
       return fields;
     }
     case 'Borrowed': {
@@ -161,6 +169,18 @@ export const changedFields = (
       if (prev.id !== next.id) fields.push('id');
       if (!animationEquals(prev.animation, next.animation)) fields.push('animation');
       if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (!bodyEquals(prev.body, next.body)) fields.push('body');
+      return fields;
+    }
+    case 'Label': {
+      if (prev._tag !== 'Label') return undefined;
+      if (!behaviourEquals(prev.behaviour, next.behaviour)) fields.push('behaviour');
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
+      if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
+      if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
+      if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (!labelTypeEquals(prev, next)) fields.push('text');
       return fields;
     }
     case 'AmbientLight': {
@@ -205,6 +225,13 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (!Object.is(prev.shadowMapSize, next.shadowMapSize)) fields.push('shadowMapSize');
       if (!Object.is(prev.shadowBias, next.shadowBias)) fields.push('shadowBias');
+      return fields;
+    }
+    case 'ShaderGrid': {
+      if (prev._tag !== 'ShaderGrid') return undefined;
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!vec3Equals(prev.rotation, next.rotation)) fields.push('rotation');
+      if (!shaderGridLookEquals(prev, next)) fields.push('grid');
       return fields;
     }
     case 'Grid': {

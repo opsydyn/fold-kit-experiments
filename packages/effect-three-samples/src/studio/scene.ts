@@ -186,6 +186,8 @@ export const sceneFor = (model: Model) =>
   scene({
     camera: model.camera,
     gestures: 'scene',
+    // Each piece's box, for framing them all.
+    measure: model.placements.map((placement) => pieceKey(placement.piece)),
     views: viewsFor[model.lens](model.camera),
     render: renderSettings({ shadows: model.shadows, toneMapping: model.tone }),
     // three's RoomEnvironment: soft studio reflections without an image file.

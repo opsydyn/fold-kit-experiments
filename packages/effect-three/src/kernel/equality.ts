@@ -8,8 +8,14 @@ import type {
   Animation,
   Behave,
   Body,
+  BodyRef,
   GeometryRef,
   Instance,
+  Joint,
+  JointKind,
+  JointLimits,
+  LabelNode,
+  ShaderGridNode,
   MaterialRef,
   Overlay,
   Physics,
@@ -116,6 +122,9 @@ export const shapeEquals = (a: ShapeGeometry, b: ShapeGeometry): boolean => {
         Object.is(a.depth, b.depth) &&
         a.curveSegments === b.curveSegments &&
         a.center === b.center &&
+        Object.is(a.letterSpacing, b.letterSpacing) &&
+        Object.is(a.lineHeight, b.lineHeight) &&
+        a.align === b.align &&
         bevelEquals(a.bevel, b.bevel)
       );
   }
@@ -360,6 +369,90 @@ export const bodyEquals = (a: Body | null, b: Body | null): boolean =>
         a.impulse.id === b.impulse.id &&
         vec3Equals(a.impulse.impulse, b.impulse.impulse))));
 
+const limitsEqual = (a: JointLimits | null, b: JointLimits | null): boolean =>
+  a === b || (a !== null && b !== null && Object.is(a[0], b[0]) && Object.is(a[1], b[1]));
+
+/** Joint kind equality. */
+const jointKindEquals = (a: JointKind, b: JointKind): boolean => {
+  switch (a._tag) {
+    case 'Fixed':
+      return b._tag === 'Fixed' && vec3Equals(a.frameA, b.frameA) && vec3Equals(a.frameB, b.frameB);
+    case 'Spherical':
+      return b._tag === 'Spherical';
+    case 'Revolute':
+    case 'Prismatic':
+      return b._tag === a._tag && vec3Equals(a.axis, b.axis) && limitsEqual(a.limits, b.limits);
+    case 'Rope':
+      return b._tag === 'Rope' && Object.is(a.length, b.length);
+    case 'Spring':
+      return (
+        b._tag === 'Spring' &&
+        Object.is(a.restLength, b.restLength) &&
+        Object.is(a.stiffness, b.stiffness) &&
+        Object.is(a.damping, b.damping)
+      );
+  }
+};
+
+const refEquals = (a: BodyRef, b: BodyRef): boolean => a.key === b.key && a.instance === b.instance;
+
+/** Joint equality. */
+export const jointEquals = (a: Joint, b: Joint): boolean =>
+  a === b ||
+  (a.key === b.key &&
+    refEquals(a.a, b.a) &&
+    refEquals(a.b, b.b) &&
+    vec3Equals(a.anchorA, b.anchorA) &&
+    vec3Equals(a.anchorB, b.anchorB) &&
+    jointKindEquals(a.kind, b.kind) &&
+    a.contacts === b.contacts);
+
+const jointsEqual = (a: ReadonlyArray<Joint>, b: ReadonlyArray<Joint>): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined || y === undefined || !jointEquals(x, y)) return false;
+  }
+  return true;
+};
+
+/** Label text and type settings equality: everything but the transform and picking. */
+export const labelTypeEquals = (a: LabelNode, b: LabelNode): boolean =>
+  a.text === b.text &&
+  a.font === b.font &&
+  Object.is(a.fontSize, b.fontSize) &&
+  a.color === b.color &&
+  Object.is(a.fillOpacity, b.fillOpacity) &&
+  Object.is(a.anchorX, b.anchorX) &&
+  Object.is(a.anchorY, b.anchorY) &&
+  Object.is(a.maxWidth, b.maxWidth) &&
+  Object.is(a.lineHeight, b.lineHeight) &&
+  Object.is(a.letterSpacing, b.letterSpacing) &&
+  a.textAlign === b.textAlign &&
+  Object.is(a.outlineWidth, b.outlineWidth) &&
+  a.outlineColor === b.outlineColor &&
+  Object.is(a.outlineOpacity, b.outlineOpacity) &&
+  Object.is(a.outlineBlur, b.outlineBlur);
+
+/** Shader grid equality, apart from its position and rotation. */
+export const shaderGridLookEquals = (a: ShaderGridNode, b: ShaderGridNode): boolean =>
+  Object.is(a.size[0], b.size[0]) &&
+  Object.is(a.size[1], b.size[1]) &&
+  Object.is(a.cellSize, b.cellSize) &&
+  Object.is(a.cellThickness, b.cellThickness) &&
+  a.cellColor === b.cellColor &&
+  Object.is(a.sectionSize, b.sectionSize) &&
+  Object.is(a.sectionThickness, b.sectionThickness) &&
+  a.sectionColor === b.sectionColor &&
+  a.infinite === b.infinite &&
+  a.followCamera === b.followCamera &&
+  Object.is(a.fadeDistance, b.fadeDistance) &&
+  Object.is(a.fadeStrength, b.fadeStrength) &&
+  Object.is(a.fadeFrom, b.fadeFrom) &&
+  a.side === b.side;
+
 /** Physics world equality. */
 export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
   a === b ||
@@ -368,7 +461,8 @@ export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
     vec3Equals(a.gravity, b.gravity) &&
     a.paused === b.paused &&
     Object.is(a.timeStep, b.timeStep) &&
-    a.interpolate === b.interpolate);
+    a.interpolate === b.interpolate &&
+    jointsEqual(a.joints, b.joints));
 
 /** Immersive presentation equality. */
 export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
@@ -378,4 +472,6 @@ export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
     vec3Equals(a.origin, b.origin) &&
     Object.is(a.heading, b.heading) &&
     a.referenceSpace === b.referenceSpace &&
-    Object.is(a.framebufferScale, b.framebufferScale));
+    Object.is(a.framebufferScale, b.framebufferScale) &&
+    a.hitTest === b.hitTest &&
+    a.showInputs === b.showInputs);

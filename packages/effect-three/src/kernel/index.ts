@@ -36,6 +36,16 @@ export {
   circle,
   xr,
   physics,
+  shaderGrid,
+  label,
+  bodyRef,
+  joint,
+  fixedJoint,
+  sphericalJoint,
+  revoluteJoint,
+  prismaticJoint,
+  ropeJoint,
+  springJoint,
   contactShadows,
   grid,
   sky,
@@ -126,9 +136,16 @@ export {
   type ManualFrames,
 } from './frames.ts';
 export {
+  type Box,
+  clipCamera,
+  type Cursor,
   defaultOrbit,
   dollyCamera,
+  dollyCameraToward,
+  fitCamera,
   orbit,
+  type OrbitKey,
+  orbitKey,
   type OrbitOptions,
   orbitOptions,
   panCamera,
@@ -137,19 +154,46 @@ export {
 export { type OverlayPlacement, placeOverlays } from './overlays.ts';
 export {
   type BodyPose,
+  type Collider,
   type ColliderShape,
   colliderFor,
+  collidersFor,
+  colliderSignature,
   type Collision,
   type PhysicsEngine,
+  type PhysicsJoint,
   type PhysicsWorld,
   type Quat,
 } from './physics.ts';
-export { type Stage, stage, type StageLighting, type StagePreset, stagePresets } from './stage.ts';
+export type { BodyCollision } from './bodies.ts';
+export { type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
+export {
+  createXrTracker,
+  type XrButtonName,
+  type XrHand,
+  type XrInput,
+  type XrStickDirection,
+} from './xrInput.ts';
+export type { HostedLabel, LabelEngine } from './labels.ts';
+export {
+  type EnvironmentPreset,
+  environmentPresets,
+  environmentPresetUrl,
+} from './environmentPresets.ts';
+export {
+  type CenterAlign,
+  centerOffset,
+  type Stage,
+  stage,
+  stageBounds,
+  type StageLighting,
+  type StagePreset,
+  stagePresets,
+} from './stage.ts';
 export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
 export {
   createPicker,
   createPointerTracker,
-  createSelectTracker,
   type Gesture,
   type Hit,
   type Modifiers,
@@ -162,7 +206,6 @@ export {
   type Ray,
   type Region,
   type SceneEvent,
-  type SelectInput,
 } from './pointer.ts';
 export {
   recordingRendererFactory,

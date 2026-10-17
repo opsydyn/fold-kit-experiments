@@ -13,6 +13,7 @@ import {
   scene,
   sphere,
   basic,
+  shaderGrid,
 } from '@opsydyn/effect-three';
 import { Effect, Option, Queue, Stream } from 'effect';
 import type { ViewState } from 'foldkit/mount';
@@ -53,6 +54,30 @@ const stagingScene = (shadows: Option.Option<ContactShadows>) =>
     ],
   });
 
+/** The white floor under Drei's shader grid: black cells a unit apart, red sections two. */
+const gridScene = () =>
+  scene({
+    camera: orthographicCamera({ zoom: 40, position: [0, 10, 0.001], lookAt: [0, 0, 0] }),
+    children: [
+      mesh({
+        key: 'floor',
+        position: [0, -0.01, 0],
+        rotation: fixed([-Math.PI / 2, 0, 0]),
+        geometry: plane({ width: 10, height: 10 }),
+        material: basic({ color: 0xffffff }),
+      }),
+      shaderGrid({
+        key: 'grid',
+        size: [8, 8],
+        cellSize: 1,
+        cellThickness: 1,
+        sectionSize: 2,
+        sectionThickness: 2,
+        sectionColor: 0xff0000,
+      }),
+    ],
+  });
+
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
 const bare = stagingScene(Option.none());
@@ -72,4 +97,5 @@ Reflect.set(globalThis, '__staging', {
     const shadows = Option.map(Option.fromNullishOr(options), contactShadows);
     Reflect.set(element, 'scene', stagingScene(shadows));
   },
+  showGrid: () => Reflect.set(element, 'scene', gridScene()),
 });

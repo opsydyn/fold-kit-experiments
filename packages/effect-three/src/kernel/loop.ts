@@ -1,4 +1,4 @@
-import { EquirectangularReflectionMapping, type Texture, UVMapping } from 'three';
+import { Box3, EquirectangularReflectionMapping, type Texture, UVMapping } from 'three';
 
 import { createContactShadows } from './contactShadows.ts';
 import type { RenderSettings } from './description.ts';
@@ -13,13 +13,12 @@ import { createPerformanceMonitor, type PerformanceOptions } from './performance
 import {
   createPicker,
   createPointerTracker,
-  createSelectTracker,
   type PointerInput,
   type SceneEvent,
-  type SelectInput,
 } from './pointer.ts';
 import type { RenderTarget, SceneRenderer } from './renderer.ts';
 import type { SceneGraph } from './sceneGraph.ts';
+import { createXrTracker, type XrInput } from './xrInput.ts';
 
 export type SceneLoopOptions = {
   readonly graph: SceneGraph;
@@ -54,8 +53,8 @@ export type SceneLoop = {
    * a DOM listener can decide synchronously whether the scene handled its event.
    */
   readonly pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
-  /** Routes an XR controller's select to hit testing along its ray, emitting the events. */
-  readonly select: (input: SelectInput) => ReadonlyArray<SceneEvent>;
+  /** Routes XR input (aims, selects, sticks, buttons, surfaces), emitting the events. */
+  readonly xrInput: (input: XrInput) => ReadonlyArray<SceneEvent>;
 };
 
 /** Creates the frame step and pointer router for one scene. */
@@ -63,7 +62,7 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
   const { graph, renderer, elapsedSeconds, emit } = options;
   const picker = createPicker(graph);
   const tracker = createPointerTracker(picker);
-  const selects = createSelectTracker(picker);
+  const xrTracker = createXrTracker(picker);
   const monitor = createPerformanceMonitor(options.performance);
   const now = options.now ?? Date.now;
   let configured: RenderSettings | undefined;
@@ -161,13 +160,31 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
     scene.environmentIntensity = environment.environmentIntensity;
   };
 
+  // The last box reported for each measured key, so only changes are reported.
+  const reported = new Map<string, Box3>();
+  const box = new Box3();
+
+  const measure = (): void => {
+    const keys = graph.measured();
+    if (keys.length === 0 && reported.size === 0) return;
+    for (const key of keys) {
+      const object = graph.object(key);
+      if (object === undefined) continue;
+      box.setFromObject(object);
+      if (box.isEmpty()) continue;
+      const last = reported.get(key);
+      if (last !== undefined && last.equals(box)) continue;
+      reported.set(key, box.clone());
+      emit({ _tag: 'Measured', key, min: box.min.toArray(), max: box.max.toArray() });
+    }
+    for (const key of reported.keys()) if (!keys.includes(key)) reported.delete(key);
+  };
+
   return {
     frame: () => {
       graph.tick(elapsedSeconds());
       for (const event of tracker.frame()) emit(event);
-      for (const { a, b, started } of graph.collisions()) {
-        emit({ _tag: 'Collision', a, b, started });
-      }
+      for (const collision of graph.collisions()) emit({ _tag: 'Collision', ...collision });
       // Settings change only through reconcile, which replaces the value: compare by reference.
       const settings = graph.renderSettings();
       if (settings !== configured) {
@@ -181,6 +198,7 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       if (views.length === 0) renderer.render(graph.scene, graph.camera);
       for (const view of views) renderer.render(graph.scene, view.camera, view.area);
       graph.drawn();
+      measure();
       const overlays = graph.overlays();
       if (options.placeOverlays !== undefined && (overlays.length > 0 || placedAny)) {
         options.placeOverlays(placeOverlays(graph));
@@ -203,8 +221,8 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       for (const event of events) emit(event);
       return events;
     },
-    select: (input) => {
-      const events = selects(input);
+    xrInput: (input) => {
+      const events = xrTracker(input);
       for (const event of events) emit(event);
       return events;
     },

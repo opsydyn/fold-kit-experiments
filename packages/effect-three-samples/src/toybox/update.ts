@@ -3,8 +3,9 @@ import { Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
+import { CheckVr, EnterVr, ExitVr } from './command';
 import { Message } from './message';
-import { homeCamera, type Model, toyAt, type Toy } from './model';
+import { homeCamera, initialModel, type Model, toyAt, type Toy } from './model';
 
 type AppReturn = Return<Model, Message>;
 
@@ -65,6 +66,11 @@ const orbited = (model: Model, gesture: Gesture): Model =>
     ? model
     : { ...model, camera: orbit(model.camera, gesture, orbitLimits) };
 
+export const init = () => ({ model: initialModel, commands: [CheckVr()] });
+
+const vrAvailability = { true: 'ready', false: 'unavailable' } as const;
+const vrSession = { true: 'presenting', false: 'ready' } as const;
+
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     ClickedToy: ({ key, direction }) => ({ model: kick(model, key, direction) }),
@@ -72,6 +78,18 @@ export const update = (model: Model, message: Message): AppReturn =>
     ClickedTidy: () => ({ model: tidied(model) }),
     Bumped: () => ({ model: modifyFields(model, { bumps: (bumps) => bumps + 1 }) }),
     MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
+    CheckedVr: ({ supported }) => ({
+      model: modifyFields(model, { vr: () => vrAvailability[`${supported}`] }),
+    }),
+    ClickedEnterVr: () => ({
+      model: modifyFields(model, { vr: () => 'entering' as const }),
+      commands: [EnterVr()],
+    }),
+    ClickedExitVr: () => ({ model, commands: [ExitVr()] }),
+    FailedVr: () => ({ model: modifyFields(model, { vr: () => 'ready' as const }) }),
+    ChangedVrSession: ({ presenting }) => ({
+      model: modifyFields(model, { vr: () => vrSession[`${presenting}`] }),
+    }),
     ReceivedSceneLifecycle: () => ({ model }),
   });
 

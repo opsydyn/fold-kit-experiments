@@ -14,6 +14,7 @@ import {
   type SceneNode,
   sphere,
   standard,
+  xr,
 } from '@opsydyn/effect-three';
 
 import { paintColour } from '../palette';
@@ -77,6 +78,8 @@ export const sceneFor = (model: Model) =>
     camera: model.camera,
     gestures: 'scene',
     physics: physics(),
+    // In VR the player stands in front of the tray, facing it.
+    xr: xr({ origin: [0, 0, 4.2] }),
     environment: environment({ environmentIntensity: 0.6 }),
     contactShadows: contactShadows({
       position: [0, 0.01, 0],

@@ -7,11 +7,12 @@
  * reference space type and framebuffer scale before `setSession`; `init.ts`
  * `buildXRSessionInit`: the reference space required, other features optional). The
  * player's origin is an offset reference space, as three.js's teleport example moves
- * the viewer.
+ * the viewer. Controller selects become rays, as `@react-three/xr`'s pointers hit-test
+ * along each controller's target ray.
  *
  * @module
  */
-import type { Xr } from '@opsydyn/effect-three';
+import type { Ray, SelectInput, Xr } from '@opsydyn/effect-three';
 import type { WebGLRenderer } from 'three';
 
 /** Where an immersive session can come from: `navigator.xr`, or an emulator's. */
@@ -41,6 +42,53 @@ const originOffset = (settings: Xr): XRRigidTransform => {
   );
 };
 
+/** A target ray pose as a world-space ray: from its position along its −z. */
+const rayOf = (pose: XRPose): Ray => {
+  const { position, orientation } = pose.transform;
+  const { x, y, z, w } = orientation;
+  // −z rotated by the orientation quaternion.
+  return {
+    origin: [position.x, position.y, position.z],
+    direction: [-2 * (x * z + w * y), -2 * (y * z - w * x), -(1 - 2 * (x * x + y * y))],
+  };
+};
+
+/**
+ * Forwards each controller's select as a ray in the presented space (the scene's, since
+ * the reference space is offset to the player's origin). Returns a function that stops.
+ */
+const listenForSelects = (
+  session: XRSession,
+  space: () => XRReferenceSpace | null,
+  select: (input: SelectInput) => void,
+): (() => void) => {
+  const sources = new Map<XRInputSource, number>();
+  const sourceId = (source: XRInputSource): number => {
+    const known = sources.get(source);
+    if (known !== undefined) return known;
+    sources.set(source, sources.size);
+    return sources.size - 1;
+  };
+  const forward = (tag: SelectInput['_tag']) => (event: XRInputSourceEvent) => {
+    const reference = space();
+    const pose =
+      reference === null
+        ? undefined
+        : event.frame.getPose(event.inputSource.targetRaySpace, reference);
+    if (pose !== undefined && pose !== null) {
+      select({ _tag: tag, source: sourceId(event.inputSource), ray: rayOf(pose) });
+    }
+  };
+  const started = forward('SelectStart');
+  const ended = forward('SelectEnd');
+  session.addEventListener('selectstart', started);
+  session.addEventListener('selectend', ended);
+  return () => {
+    session.removeEventListener('selectstart', started);
+    session.removeEventListener('selectend', ended);
+  };
+};
+
 export type Presentation = {
   /** Applies new settings mid-session: a new origin or heading moves the player. */
   readonly update: (settings: Xr) => void;
@@ -56,6 +104,7 @@ export const present = async (
   session: XRSession,
   settings: Xr,
   draw: () => void,
+  select: (input: SelectInput) => void,
   ended: () => void,
 ): Promise<Presentation> => {
   const { xr } = renderer;
@@ -71,9 +120,11 @@ export const present = async (
   };
   place(settings);
   xr.setAnimationLoop(draw);
+  const stopSelects = listenForSelects(session, () => xr.getReferenceSpace(), select);
   session.addEventListener(
     'end',
     () => {
+      stopSelects();
       xr.setAnimationLoop(null);
       xr.enabled = false;
       ended();

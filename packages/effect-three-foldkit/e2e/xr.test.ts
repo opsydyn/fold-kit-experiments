@@ -47,6 +47,23 @@ function head(): ReadonlyArray<number> | null {
 function lookForward(): void {
   Reflect.get(globalThis, '__xr').moveHead(0, 1.6, -0.5);
 }
+/** The right controller ahead at the cube's height, offset to its right. */
+function aimAtCube(): void {
+  Reflect.get(globalThis, '__xr').aimRight(1.5);
+}
+/** The right controller ahead, well above the cube. */
+function aimOver(): void {
+  Reflect.get(globalThis, '__xr').aimRight(3);
+}
+function pull(): void {
+  Reflect.get(globalThis, '__xr').trigger(1);
+}
+function release(): void {
+  Reflect.get(globalThis, '__xr').trigger(0);
+}
+function clicks(): ReadonlyArray<string> {
+  return Reflect.get(globalThis, '__xr').clicks();
+}
 /** Whether `count` session changes have been reported. */
 function sessionsReported(count: number): boolean {
   return Reflect.get(globalThis, '__xr').sessions().length === count;
@@ -54,7 +71,7 @@ function sessionsReported(count: number): boolean {
 
 const inPage = <A>(page: Page, run: () => A) => page.evaluate(run);
 
-test('a session presents the scene from the described origin, drives frames, and ends', async () => {
+test('a session presents from the origin, drives frames, takes controller clicks, and ends', async () => {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors: Array<string> = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -81,6 +98,23 @@ test('a session presents the scene from the described origin, drives frames, and
   expect(x).toBeCloseTo(2.5, 1);
   expect(y).toBeCloseTo(1.6, 1);
   expect(z).toBeCloseTo(0, 1);
+
+  // A controller pointed at the cube and its trigger pulled and released: a click on it.
+  await inPage(page, aimAtCube);
+  await page.waitForTimeout(100);
+  await inPage(page, pull);
+  await page.waitForTimeout(100);
+  await inPage(page, release);
+  await page.waitForFunction(() => Reflect.get(globalThis, '__xr').clicks().length === 1);
+  expect(await inPage(page, clicks)).toEqual(['cube']);
+  // Pointed over it, nothing is clicked.
+  await inPage(page, aimOver);
+  await page.waitForTimeout(100);
+  await inPage(page, pull);
+  await page.waitForTimeout(100);
+  await inPage(page, release);
+  await page.waitForTimeout(200);
+  expect(await inPage(page, clicks)).toEqual(['cube']);
 
   await inPage(page, exit);
   await page.waitForFunction(sessionsReported, 2);

@@ -4,7 +4,7 @@
  *
  * @module
  */
-import type { GatedFrames, Xr } from '@opsydyn/effect-three';
+import type { GatedFrames, SelectInput, SceneEvent, Xr } from '@opsydyn/effect-three';
 
 import type { Latch } from './latch.ts';
 import type { XrMode, XrTarget } from './xrHub.ts';
@@ -44,10 +44,15 @@ export const xrTarget = (scene: {
   readonly gate: FrameGate;
   readonly settings: () => Xr | null;
   readonly draw: () => void;
+  readonly select: (input: SelectInput) => ReadonlyArray<SceneEvent>;
 }): XrTarget => ({
   canvas: scene.canvas,
   settings: scene.settings,
   draw: scene.draw,
+  // Dropped while time travel pauses the scene, as pointer input is.
+  select: (input) => {
+    if (scene.live.isOpen()) scene.select(input);
+  },
   presenting: (mode) => {
     scene.gate.setPresenting(mode !== null);
     // Back on the page's frames: draw once, as React Three Fiber invalidates on session end.

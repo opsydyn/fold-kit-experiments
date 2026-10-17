@@ -11,6 +11,11 @@ export const Message = defineMessageUnion({
   ClickedTidy: {},
   Bumped: {},
   MadeGesture: { gesture: SceneSchema.Gesture },
+  CheckedVr: { supported: Schema.Boolean },
+  ClickedEnterVr: {},
+  ClickedExitVr: {},
+  FailedVr: {},
+  ChangedVrSession: { presenting: Schema.Boolean },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });
 export type Message = typeof Message.Type;

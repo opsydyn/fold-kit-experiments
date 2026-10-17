@@ -2,7 +2,7 @@
  * Plain helpers for the XR page: the emulator shim, and reading the presented scene's
  * renderer. Kept apart from the Effect code that mounts the scene.
  */
-import { XRReferenceSpace } from 'iwer';
+import { type XRDevice, XRReferenceSpace } from 'iwer';
 import type { WebGLRenderer } from 'three';
 
 import { webglRendererOf } from '../../src/dom/webgl.ts';
@@ -20,6 +20,10 @@ function offsetByMatrix(this: XRReferenceSpace, offset: XRRigidTransform): XRRef
 export const shimOffsetSpaces = (): void => {
   Reflect.set(XRReferenceSpace.prototype, 'getOffsetReferenceSpace', offsetByMatrix);
 };
+
+/** The key a `scene-click` event reports. */
+export const keyOf = (event: Event): string =>
+  event instanceof CustomEvent ? event.detail.key : '';
 
 /** The mode a `scene-xr` event reports. */
 export const modeOf = (event: Event): string | null =>
@@ -39,4 +43,16 @@ export const rendererFinder = (element: Element) => {
 export const headOf = (renderer: WebGLRenderer | undefined): ReadonlyArray<number> | null => {
   if (renderer === undefined) return null;
   return renderer.xr.getCamera().matrixWorld.elements.slice(12, 15);
+};
+
+/** Points an emulated controller straight ahead (−z in its space), 0.3 forward at `y`. */
+export const aimStraight = (controller: XRDevice['controllers']['right'], y: number): void => {
+  if (controller === undefined) return;
+  controller.position.x = 0.2;
+  controller.position.y = y;
+  controller.position.z = -0.3;
+  controller.quaternion.x = 0;
+  controller.quaternion.y = 0;
+  controller.quaternion.z = 0;
+  controller.quaternion.w = 1;
 };

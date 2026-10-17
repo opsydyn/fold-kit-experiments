@@ -27,6 +27,13 @@ export const Toy = Schema.Struct({
 });
 export type Toy = typeof Toy.Type;
 
+/**
+ * Virtual reality: whether the browser can present it, and whether it is. The button
+ * shows only when it can.
+ */
+export const Vr = Schema.Literals(['checking', 'unavailable', 'ready', 'entering', 'presenting']);
+export type Vr = typeof Vr.Type;
+
 export const Model = Schema.Struct({
   toys: Schema.Array(Toy),
   nextId: Schema.Number,
@@ -35,6 +42,7 @@ export const Model = Schema.Struct({
   /** Collisions that began, as the simulation reported them. */
   bumps: Schema.Number,
   camera: SceneSchema.Camera,
+  vr: Vr,
 });
 export type Model = typeof Model.Type;
 
@@ -65,12 +73,11 @@ export const homeCamera = perspectiveCamera({
   damping: 0.1,
 });
 
-export const init = () => ({
-  model: {
-    toys: Array.from({ length: firstToys }, (_, id) => toyAt(id)),
-    nextId: firstToys,
-    round: 0,
-    bumps: 0,
-    camera: homeCamera,
-  } satisfies Model,
-});
+export const initialModel: Model = {
+  toys: Array.from({ length: firstToys }, (_, id) => toyAt(id)),
+  nextId: firstToys,
+  round: 0,
+  bumps: 0,
+  camera: homeCamera,
+  vr: 'checking',
+};

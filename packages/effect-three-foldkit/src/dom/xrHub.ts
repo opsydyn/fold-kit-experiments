@@ -4,7 +4,7 @@
  *
  * @module
  */
-import type { Xr } from '@opsydyn/effect-three';
+import type { SelectInput, Xr } from '@opsydyn/effect-three';
 
 import { webglRendererOf } from './webgl.ts';
 import { type Presentation, present, sessionInit, type XrSystem } from './xr.ts';
@@ -19,6 +19,8 @@ export type XrTarget = {
   readonly settings: () => Xr | null;
   /** Draws one frame now (the session calls it for each of its frames). */
   readonly draw: () => void;
+  /** A controller's select, along its ray in the scene. */
+  readonly select: (input: SelectInput) => void;
   /** The session began presenting this scene in `mode`, or (with `null`) ended. */
   readonly presenting: (mode: XrMode | null) => void;
 };
@@ -70,7 +72,14 @@ export const createXrHub = (system: () => XrSystem | undefined): XrHub => {
       current = undefined;
       target.presenting(null);
     };
-    const presentation = await present(renderer, session, chosen.settings, draw, ended);
+    const presentation = await present(
+      renderer,
+      session,
+      chosen.settings,
+      draw,
+      target.select,
+      ended,
+    );
     current = { target, presentation };
     target.presenting(mode);
   };

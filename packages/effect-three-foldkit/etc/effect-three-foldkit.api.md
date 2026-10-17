@@ -25,6 +25,7 @@ import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
+import type { SelectInput } from '@opsydyn/effect-three';
 import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
 import type { Xr } from '@opsydyn/effect-three';

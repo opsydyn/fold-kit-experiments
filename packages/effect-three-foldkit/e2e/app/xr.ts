@@ -9,7 +9,7 @@ import type { ViewState } from 'foldkit/mount';
 import { metaQuest3, XRDevice } from 'iwer';
 
 import * as EffectThreeFoldkit from '../../src/index.ts';
-import { headOf, modeOf, rendererFinder, shimOffsetSpaces } from './xrProbe.ts';
+import { aimStraight, headOf, keyOf, modeOf, rendererFinder, shimOffsetSpaces } from './xrProbe.ts';
 
 shimOffsetSpaces();
 const device = new XRDevice(metaQuest3);
@@ -22,13 +22,24 @@ const element = document.createElement('effect-three-scene');
 element.className = 'scene';
 const described = scene({
   xr: xr({ origin: [2, 0, 0], heading: -Math.PI / 2 }),
-  children: [mesh({ key: 'cube', position: [4, 1.5, 0], geometry: box(), material: standard() })],
+  children: [
+    mesh({
+      key: 'cube',
+      position: [4, 1.5, 0],
+      geometry: box(),
+      material: standard(),
+      interactive: true,
+    }),
+  ],
 });
 Reflect.set(element, 'scene', described);
 document.body.append(element);
 
 const sessions: Array<string | null> = [];
 element.addEventListener('scene-xr', (event) => sessions.push(modeOf(event)));
+
+const clicks: Array<string> = [];
+element.addEventListener('scene-click', (event) => clicks.push(keyOf(event)));
 
 const viewStates = Effect.runSync(Queue.sliding<ViewState>(4));
 Queue.offerUnsafe(viewStates, 'Live');
@@ -52,4 +63,9 @@ Reflect.set(globalThis, '__xr', {
     device.position.z = z;
   },
   head: () => headOf(renderer()),
+  clicks: () => clicks,
+  /** Points the right controller straight ahead (−z in the headset's space) from `y`. */
+  aimRight: (y: number) => aimStraight(device.controllers.right, y),
+  /** Pulls (1) or releases (0) the right controller's trigger: a select. */
+  trigger: (value: number) => device.controllers.right?.updateButtonValue('trigger', value),
 });

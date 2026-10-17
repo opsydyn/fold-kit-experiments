@@ -131,6 +131,13 @@ const createRoom = (renderer: WebGLRenderer): RenderTarget => {
   return { texture: target.texture, dispose: () => target.dispose() };
 };
 
+/** Each canvas's three.js renderer, for presenting it in a WebXR session. */
+const renderers = new WeakMap<HTMLCanvasElement, WebGLRenderer>();
+
+/** The three.js renderer drawing into `canvas`, if one does. */
+export const webglRendererOf = (canvas: HTMLCanvasElement): WebGLRenderer | undefined =>
+  renderers.get(canvas);
+
 /** A factory for a WebGL2 renderer drawing into `canvas`. `create` throws if WebGL2 is unavailable. */
 export const webglRendererFactory = (
   canvas: HTMLCanvasElement,
@@ -138,6 +145,7 @@ export const webglRendererFactory = (
 ): RendererFactory => ({
   create: () => {
     const renderer = new WebGLRenderer({ antialias: true, ...options, canvas });
+    renderers.set(canvas, renderer);
     const post = createPostProcessing(renderer);
     const targets = new WeakMap<RenderTarget, WebGLRenderTarget>();
     // The pixel ratio is the viewport's, scaled by the scene's resolution setting.
@@ -168,13 +176,23 @@ export const webglRendererFactory = (
           // Targets start transparent, whatever the canvas clears to: what the scene does
           // not cover stays see-through (a render texture without a background, contact
           // shadows away from objects).
+          // Offscreen passes keep their own camera, even while presenting in XR (three
+          // would otherwise draw them from the headset).
           const previous = renderer.getRenderTarget();
           const clearAlpha = renderer.getClearAlpha();
+          const xrEnabled = renderer.xr.enabled;
+          renderer.xr.enabled = false;
           renderer.setClearAlpha(0);
           renderer.setRenderTarget(webglTarget);
           renderer.render(scene, camera);
           renderer.setRenderTarget(previous);
           renderer.setClearAlpha(clearAlpha);
+          renderer.xr.enabled = xrEnabled;
+          return;
+        }
+        // Presenting in XR, three draws the headset's views itself: no areas, no effects.
+        if (renderer.xr.isPresenting) {
+          renderer.render(scene, camera);
           return;
         }
         const { width, height } = renderer.getSize(drawingSize);
@@ -217,6 +235,8 @@ export const webglRendererFactory = (
       // dispose() frees three's GPU objects but not the WebGL context. Browsers cap live
       // contexts (about 16 in Chromium), so release it now rather than at garbage collection.
       dispose: () => {
+        renderers.delete(canvas);
+        void renderer.xr.getSession()?.end();
         post.dispose();
         renderer.dispose();
         renderer.forceContextLoss();

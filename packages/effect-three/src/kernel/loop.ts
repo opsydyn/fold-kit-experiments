@@ -13,8 +13,10 @@ import { createPerformanceMonitor, type PerformanceOptions } from './performance
 import {
   createPicker,
   createPointerTracker,
+  createSelectTracker,
   type PointerInput,
   type SceneEvent,
+  type SelectInput,
 } from './pointer.ts';
 import type { RenderTarget, SceneRenderer } from './renderer.ts';
 import type { SceneGraph } from './sceneGraph.ts';
@@ -52,12 +54,16 @@ export type SceneLoop = {
    * a DOM listener can decide synchronously whether the scene handled its event.
    */
   readonly pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
+  /** Routes an XR controller's select to hit testing along its ray, emitting the events. */
+  readonly select: (input: SelectInput) => ReadonlyArray<SceneEvent>;
 };
 
 /** Creates the frame step and pointer router for one scene. */
 export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
   const { graph, renderer, elapsedSeconds, emit } = options;
-  const tracker = createPointerTracker(createPicker(graph));
+  const picker = createPicker(graph);
+  const tracker = createPointerTracker(picker);
+  const selects = createSelectTracker(picker);
   const monitor = createPerformanceMonitor(options.performance);
   const now = options.now ?? Date.now;
   let configured: RenderSettings | undefined;
@@ -194,6 +200,11 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
     },
     pointer: (input) => {
       const events = tracker.input(input);
+      for (const event of events) emit(event);
+      return events;
+    },
+    select: (input) => {
+      const events = selects(input);
       for (const event of events) emit(event);
       return events;
     },

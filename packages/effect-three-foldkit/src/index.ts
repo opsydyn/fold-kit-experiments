@@ -32,7 +32,10 @@ export {
   SceneError,
   sceneElement,
   SceneLifecycle,
+  XrSessionDetail,
 } from './element.ts';
+export { type XrMode } from './dom/xrHub.ts';
+export { type XrControls, XrUnavailable } from './xr.ts';
 export { summarise } from './dom/reconciled.ts';
 export {
   type Environment,

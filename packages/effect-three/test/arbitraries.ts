@@ -280,6 +280,14 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  xr: Schema.NullOr(
+    Schema.Struct({
+      origin: Vec3,
+      heading: Schema.Literals([0, 1]),
+      referenceSpace: Schema.Literals(['local-floor', 'local']),
+      framebufferScale: Schema.Literals([1]),
+    }),
+  ),
   physics: Schema.NullOr(
     Schema.Struct({
       gravity: Schema.Tuple([Schema.Literals([0]), Schema.Literals([-9.81]), Schema.Literals([0])]),

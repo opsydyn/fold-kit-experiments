@@ -16,9 +16,13 @@ import { makeAssets } from './assets.ts';
 import { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
 import { defaultPixelRatio, type PixelRatio } from './dom/viewport.ts';
 import { webglRendererFactory } from './dom/webgl.ts';
+import { createXrHub } from './dom/xrHub.ts';
+import { makeXr } from './xr.ts';
 
 /** The browser APIs the adapter uses; normally `window`. */
-export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | 'devicePixelRatio'>;
+export type EnvironmentHost = AnimationFrameHost &
+  Pick<Window, 'matchMedia' | 'devicePixelRatio'> &
+  Partial<Pick<Window, 'navigator'>>;
 
 export type EnvironmentOptions = {
   /** Creates each scene's renderer from its canvas. Defaults to WebGL2. */
@@ -39,6 +43,7 @@ export type EnvironmentOptions = {
 export const makeEnvironment = (host: EnvironmentHost, options: EnvironmentOptions = {}) => {
   const store: ResourceStore = createResourceStore();
   const assets = makeAssets(store);
+  const xrHub = createXrHub(() => host.navigator?.xr);
   return {
     host,
     store,
@@ -50,6 +55,10 @@ export const makeEnvironment = (host: EnvironmentHost, options: EnvironmentOptio
     physics: Promise.resolve(options.physics),
     /** Loads textures and glTF models by URL and lends them to the store. */
     assets,
+    /** Enters and leaves immersive (WebXR) sessions, from Commands. */
+    xr: makeXr(xrHub),
+    /** The page's presentable scenes and its session; scene mounts register here. */
+    xrHub,
     /** Disposes every loaded asset and every GPU resource still held. */
     dispose: () => {
       assets.dispose();

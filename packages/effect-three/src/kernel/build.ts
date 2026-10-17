@@ -18,6 +18,7 @@ import type {
   Gestures,
   GridNode,
   Sky,
+  Xr,
   TextBevel,
   TextGeometry,
   Overlay,
@@ -473,6 +474,17 @@ export const physics = (options: Partial<Physics> = {}): Physics => ({
   interpolate: options.interpolate ?? true,
 });
 
+/**
+ * Immersive presentation for a scene. Defaults: the player at the scene's origin facing
+ * −z, `local-floor` (as pmndrs/xr), the device's framebuffer scale.
+ */
+export const xr = (options: Partial<Xr> = {}): Xr => ({
+  origin: options.origin ?? origin,
+  heading: options.heading ?? 0,
+  referenceSpace: options.referenceSpace ?? 'local-floor',
+  framebufferScale: options.framebufferScale ?? 1,
+});
+
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */
 export const instance = (options: {
   readonly key: string;
@@ -907,6 +919,7 @@ export const scene = (options: {
   readonly sky?: Sky | null;
   readonly contactShadows?: ContactShadows | null;
   readonly physics?: Physics | null;
+  readonly xr?: Xr | null;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -920,6 +933,7 @@ export const scene = (options: {
   sky: options.sky ?? null,
   contactShadows: options.contactShadows ?? null,
   physics: options.physics ?? null,
+  xr: options.xr ?? null,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

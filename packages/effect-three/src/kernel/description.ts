@@ -783,6 +783,23 @@ export type ContactShadows = {
   readonly resolution: number;
 };
 
+/**
+ * Immersive presentation (WebXR), as `@react-three/xr`'s store and `XROrigin`
+ * (pmndrs/xr at `0e1acd8`). Data only: an application enters a session from a user
+ * gesture through its host (the Foldkit environment's `xr.enter`), and the scene that
+ * describes `xr` is the one presented.
+ */
+export type Xr = {
+  /** Where the player stands: the reference space's origin in the scene, on the floor. */
+  readonly origin: Vec3;
+  /** Which way the player faces at the origin: radians about +y (0 looks down −z). */
+  readonly heading: number;
+  /** The reference space requested (pmndrs/xr's default is `local-floor`). */
+  readonly referenceSpace: 'local-floor' | 'local' | 'bounded-floor';
+  /** Framebuffer scale relative to the device's default (1); lower is faster. */
+  readonly framebufferScale: number;
+};
+
 export type SceneDescription = {
   readonly camera: Camera;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -804,6 +821,8 @@ export type SceneDescription = {
   readonly contactShadows: ContactShadows | null;
   /** A physics world for meshes with a `body`, or `null` for none. */
   readonly physics: Physics | null;
+  /** How the scene is presented in an immersive session, or `null` if it never is. */
+  readonly xr: Xr | null;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

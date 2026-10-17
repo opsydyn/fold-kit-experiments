@@ -53,6 +53,7 @@ import type {
   Gestures,
   Overlay,
   Sky,
+  Xr,
   RenderTexture,
   Vec3,
   View,
@@ -195,6 +196,8 @@ export type SceneGraph = {
   readonly contactShadows: () => ContactShadows | null;
   /** Collisions between bodies since the last call, for the frame loop to report. */
   readonly collisions: () => ReadonlyArray<Collision>;
+  /** How the scene is presented immersively, for the host; `null` if it never is. */
+  readonly xr: () => Xr | null;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -395,6 +398,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let environmentDescription: Environment | null = emptyScene.environment;
   let skyDescription: Sky | null = emptyScene.sky;
   let contactDescription: ContactShadows | null = emptyScene.contactShadows;
+  let xrDescription: Xr | null = emptyScene.xr;
   let skyMesh: SkyMesh | undefined;
 
   /** Shows, updates or removes the sky. It belongs to the scene, so it is never picked. */
@@ -1037,6 +1041,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     sky: null,
     contactShadows: null,
     physics: null,
+    xr: null,
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -1127,6 +1132,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (!contactShadowsEquals(contactDescription, next.contactShadows)) invalidate();
     contactDescription = next.contactShadows;
     bodyHost.sync(next.physics, hostedMeshes());
+    // Read by the host when it presents the scene immersively: no operation, no frame.
+    xrDescription = next.xr;
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -1199,6 +1206,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     environment: () => environmentDescription,
     contactShadows: () => contactDescription,
     collisions: bodyHost.drainCollisions,
+    xr: () => xrDescription,
     store,
     reconcile,
     tick,

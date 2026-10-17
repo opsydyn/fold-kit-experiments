@@ -36,6 +36,12 @@ export const ReconciledDetail = Schema.Struct({
 });
 export type ReconciledDetail = typeof ReconciledDetail.Type;
 
+/** An immersive session began presenting the scene in `mode`, or ended (`null`). */
+export const XrSessionDetail = Schema.Struct({
+  mode: Schema.NullOr(Schema.Literals(['immersive-vr', 'immersive-ar'])),
+});
+export type XrSessionDetail = typeof XrSessionDetail.Type;
+
 export const sceneElement = CustomElement.define({
   tag: 'effect-three-scene',
   properties: { scene: SceneSchema.SceneDescription },
@@ -54,6 +60,7 @@ export const sceneElement = CustomElement.define({
     'scene-drag-end': SceneSchema.DragDetail,
     'scene-gesture': SceneSchema.GestureDetail,
     'scene-collision': SceneSchema.CollisionDetail,
+    'scene-xr': XrSessionDetail,
     'scene-performance': SceneSchema.PerformanceDetail,
     'scene-error': Schema.Struct({ error: SceneError }),
     'scene-reconciled': ReconciledDetail,

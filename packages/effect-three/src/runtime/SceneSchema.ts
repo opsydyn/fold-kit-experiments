@@ -549,6 +549,14 @@ export const ContactShadows = Schema.Struct({
   resolution: Schema.Int.check(Schema.isBetween({ minimum: 16, maximum: 4096 })),
 });
 
+/** Immersive presentation. */
+export const Xr = Schema.Struct({
+  origin: Vec3,
+  heading: Schema.Finite,
+  referenceSpace: Schema.Literals(['local-floor', 'local', 'bounded-floor']),
+  framebufferScale: Positive,
+});
+
 /** Whether the scene claims the pointer's gestures from the page. */
 export const Gestures = Schema.Literals(['page', 'scene']);
 
@@ -562,6 +570,7 @@ export const SceneDescription = Schema.Struct({
   sky: Schema.NullOr(Sky),
   contactShadows: Schema.NullOr(ContactShadows),
   physics: Schema.NullOr(Physics),
+  xr: Schema.NullOr(Xr),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),

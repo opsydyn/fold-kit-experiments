@@ -34,6 +34,7 @@ export {
   capsule,
   body,
   circle,
+  xr,
   physics,
   contactShadows,
   grid,
@@ -98,6 +99,7 @@ export {
   contactShadowsEquals,
   bodyEquals,
   overlaysEqual,
+  xrEquals,
   physicsEquals,
   skyEquals,
   viewsEqual,
@@ -147,6 +149,7 @@ export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.t
 export {
   createPicker,
   createPointerTracker,
+  createSelectTracker,
   type Gesture,
   type Hit,
   type Modifiers,
@@ -159,6 +162,7 @@ export {
   type Ray,
   type Region,
   type SceneEvent,
+  type SelectInput,
 } from './pointer.ts';
 export {
   recordingRendererFactory,

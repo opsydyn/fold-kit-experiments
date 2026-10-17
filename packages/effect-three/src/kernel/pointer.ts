@@ -222,6 +222,8 @@ export type Picker = {
   readonly pick: (x: number, y: number) => Hit | undefined;
   /** The world-space ray through NDC `(x, y)`. */
   readonly ray: (x: number, y: number) => Ray;
+  /** Hit-tests along a world-space ray: an XR controller's, say. */
+  readonly pickRay: (ray: Ray) => Hit | undefined;
   /** The picked graph's viewport in CSS pixels, for pixel thresholds. */
   readonly viewport: () => { readonly width: number; readonly height: number };
   /**
@@ -299,6 +301,42 @@ export const createPicker = (graph: SceneGraph): Picker => {
     }
     return false;
   };
+  // A world-space ray's origin and direction, as `Raycaster.set` takes them.
+  const rayOrigin = new Vector3();
+  const rayDirection = new Vector3();
+
+  /** The nearest keyed hit along the raycaster's ray, reporting `view` when there is one. */
+  const nearestHit = (view: string | undefined): Hit | undefined => {
+    // Recursive, so an interactive group makes every mesh inside it pickable.
+    for (const intersection of raycaster.intersectObjects(graph.interactiveObjects(), true)) {
+      const owner = keyedOwner(graph, intersection.object);
+      const key = owner === undefined ? undefined : graph.keyOf(owner);
+      if (owner !== undefined && key !== undefined) {
+        normal.set(0, 0, 0);
+        if (intersection.face) {
+          normal.copy(intersection.face.normal).transformDirection(intersection.object.matrixWorld);
+        }
+        const instance =
+          intersection.instanceId === undefined
+            ? undefined
+            : graph.instanceKeyOf(intersection.object, intersection.instanceId);
+        return {
+          key,
+          ...(instance === undefined ? {} : { instance }),
+          ...partOf(owner, intersection.object),
+          ...(view === undefined ? {} : { view }),
+          path: pathOf(graph, owner),
+          point: toVec3(intersection.point),
+          distance: intersection.distance,
+          normal: toVec3(normal),
+          uv: [intersection.uv?.x ?? 0, intersection.uv?.y ?? 0],
+          ray: currentRay(),
+        };
+      }
+    }
+    return undefined;
+  };
+
   const currentRay = (): Ray => ({
     origin: toVec3(raycaster.ray.origin),
     direction: toVec3(raycaster.ray.direction),
@@ -324,40 +362,19 @@ export const createPicker = (graph: SceneGraph): Picker => {
     },
     gestures: graph.gestures,
     pick: (x, y) => {
-      const targets = graph.interactiveObjects();
-      if (targets.length === 0) return undefined;
+      if (graph.interactiveObjects().length === 0) return undefined;
       const view = aim(x, y);
       if (view === false) return undefined;
-      // Recursive, so an interactive group makes every mesh inside it pickable.
-      for (const intersection of raycaster.intersectObjects(targets, true)) {
-        const owner = keyedOwner(graph, intersection.object);
-        const key = owner === undefined ? undefined : graph.keyOf(owner);
-        if (owner !== undefined && key !== undefined) {
-          normal.set(0, 0, 0);
-          if (intersection.face) {
-            normal
-              .copy(intersection.face.normal)
-              .transformDirection(intersection.object.matrixWorld);
-          }
-          const instance =
-            intersection.instanceId === undefined
-              ? undefined
-              : graph.instanceKeyOf(intersection.object, intersection.instanceId);
-          return {
-            key,
-            ...(instance === undefined ? {} : { instance }),
-            ...partOf(owner, intersection.object),
-            ...(view === undefined ? {} : { view }),
-            path: pathOf(graph, owner),
-            point: toVec3(intersection.point),
-            distance: intersection.distance,
-            normal: toVec3(normal),
-            uv: [intersection.uv?.x ?? 0, intersection.uv?.y ?? 0],
-            ray: currentRay(),
-          };
-        }
-      }
-      return undefined;
+      return nearestHit(view);
+    },
+    pickRay: (ray) => {
+      if (graph.interactiveObjects().length === 0) return undefined;
+      graph.scene.updateMatrixWorld();
+      raycaster.set(
+        rayOrigin.fromArray(ray.origin),
+        rayDirection.fromArray(ray.direction).normalize(),
+      );
+      return nearestHit(undefined);
     },
     viewport: graph.viewport,
   };
@@ -640,4 +657,37 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
   };
 
   return { input, frame };
+};
+
+/**
+ * An XR controller's select (its trigger, or a pinch) beginning or ending, along its
+ * world-space target ray. `source` tells controllers apart.
+ */
+export type SelectInput = {
+  readonly _tag: 'SelectStart' | 'SelectEnd';
+  readonly source: number;
+  readonly ray: Ray;
+};
+
+/**
+ * Turns controller selects into the scene's pointer vocabulary, as `@react-three/xr`'s
+ * pointers do (pmndrs/xr at `0e1acd8`): a select starting on a mesh is its `PointerDown`,
+ * ending on it its `PointerUp`, and ending on the mesh it started on a `Click` (button 0).
+ * A select that starts and ends on nothing is a `PointerMissed`.
+ */
+export const createSelectTracker = (picker: Picker) => {
+  const pressed = new Map<number, string | undefined>();
+  return (input: SelectInput): ReadonlyArray<SceneEvent> => {
+    const hit = picker.pickRay(input.ray);
+    if (input._tag === 'SelectStart') {
+      pressed.set(input.source, hit?.key);
+      return hit === undefined ? none : [{ _tag: 'PointerDown', button: 0, ...hit }];
+    }
+    const from = pressed.get(input.source);
+    pressed.delete(input.source);
+    if (hit === undefined)
+      return from === undefined ? [{ _tag: 'PointerMissed', button: 0 }] : none;
+    const released: SceneEvent = { _tag: 'PointerUp', button: 0, ...hit };
+    return from === hit.key ? [released, { _tag: 'Click', button: 0, ...hit }] : [released];
+  };
 };

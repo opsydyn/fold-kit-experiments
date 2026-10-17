@@ -9,6 +9,18 @@ import { sceneFor } from './scene';
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
   h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
 
+/** Shown only where the browser can present VR; in VR, the way back out. */
+const vrButtons = {
+  checking: () => [],
+  unavailable: () => [],
+  ready: (h: HtmlBuilder<Message>) => [button(h, 'Enter VR', Message.ClickedEnterVr())],
+  entering: (h: HtmlBuilder<Message>) => [button(h, 'Entering VR…', Message.ClickedExitVr())],
+  presenting: (h: HtmlBuilder<Message>) => [button(h, 'Exit VR', Message.ClickedExitVr())],
+} satisfies Record<Model['vr'], (h: HtmlBuilder<Message>) => ReadonlyArray<Html>>;
+
+const vrButton = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+  vrButtons[model.vr](h);
+
 const readout = (model: Model): string =>
   `${model.toys.length} toys, ${model.bumps} bumps. Click a toy to kick it; drag around them to orbit.`;
 
@@ -26,6 +38,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           onClick: ({ key, ray }) => Message.ClickedToy({ key, direction: ray.direction }),
           onCollision: () => Message.Bumped(),
           onGesture: (gesture) => Message.MadeGesture({ gesture }),
+          onXRSession: ({ mode }) => Message.ChangedVrSession({ presenting: mode !== null }),
         },
         h,
       ),
@@ -35,6 +48,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         [
           button(h, 'Drop a toy', Message.ClickedDrop()),
           button(h, 'Tidy up', Message.ClickedTidy()),
+          ...vrButton(model, h),
         ],
       ),
       h.p(

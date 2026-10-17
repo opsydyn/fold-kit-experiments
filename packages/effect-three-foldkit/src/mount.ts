@@ -41,6 +41,7 @@ import {
   observeSize,
   observeVisibility,
 } from './dom/viewport.ts';
+import { createFrameGate, type FrameGate, xrTarget } from './dom/xrTarget.ts';
 import { SceneLifecycle } from './element.ts';
 import type { Environment } from './environment.ts';
 
@@ -55,6 +56,7 @@ type Mounted = {
   readonly handle: SceneHandle;
   readonly live: Latch;
   readonly frames: GatedFrames;
+  readonly gate: FrameGate;
 };
 
 const decodeUnknownScene = Schema.decodeUnknownEffect(SceneSchema.SceneDescription);
@@ -103,6 +105,25 @@ const acquirePointer = (canvas: HTMLElement, mounted: Mounted) => {
     ),
   );
   return Effect.acquireRelease(listen, Effect.sync);
+};
+
+/** Makes the scene presentable in the page's immersive sessions while it is mounted. */
+const xrRegistration = (mounted: Mounted) => () =>
+  mounted.environment.xrHub.register(
+    xrTarget({
+      element: mounted.element,
+      canvas: mounted.canvas,
+      live: mounted.live,
+      gate: mounted.gate,
+      settings: mounted.handle.graph.xr,
+      draw: mounted.handle.drawNow,
+      select: mounted.handle.select,
+    }),
+  );
+
+const acquireXrTarget = (mounted: Mounted) => {
+  const register = Effect.sync(xrRegistration(mounted));
+  return Effect.acquireRelease(register, Effect.sync);
 };
 
 /** A stream of values from a DOM observer that returns a disconnect function. */
@@ -166,7 +187,7 @@ const watchers = (
     Stream.runForEach(sizes, resize(mounted)),
     Stream.runForEach(ratios, resize(mounted)),
     Stream.runForEach(visibility, (visible) =>
-      Effect.sync(applying(mounted.frames.setOpen, visible)),
+      Effect.sync(applying(mounted.gate.setVisible, visible)),
     ),
     Stream.runForEach(reducedMotion, (reduced) => mounted.handle.setAnimating(!reduced)),
   ];
@@ -230,9 +251,11 @@ function* runScene(
     overlays,
     handle,
     frames,
+    gate: createFrameGate(frames),
     live: createLatch(true),
   };
   yield* acquirePointer(canvas, mounted);
+  yield* acquireXrTarget(mounted);
   yield* Effect.sync(touchActionSync(canvas, handle.graph));
   yield* Effect.sync(reconciledDispatch(element, environment.store)(handle.startupOps));
   const forks = watchers(mounted, updates, viewStateChanges).map((watcher) =>

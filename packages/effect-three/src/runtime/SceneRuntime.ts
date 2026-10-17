@@ -166,8 +166,15 @@ function* startScene(options: SceneRuntimeOptions) {
      * `frames: 'never'` scenes and frame-exact capture.
      */
     advance: Effect.sync(pacer.advance),
+    /**
+     * Draws one frame now, synchronously, for a host's own frame source to call directly:
+     * an immersive (WebXR) session's animation loop.
+     */
+    drawNow: pacer.advance,
     /** Routes pointer input. Synchronous, so DOM listeners can call it directly. */
     pointer: loop.pointer,
+    /** Routes an XR controller's select, along its ray. Synchronous, as `pointer`. */
+    select: loop.select,
     /** Scene events, newest kept when the consumer falls behind. */
     events: Stream.fromQueue(events),
     /** Removes and returns every pending event without waiting. */

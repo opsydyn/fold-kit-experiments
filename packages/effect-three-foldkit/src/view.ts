@@ -15,6 +15,7 @@ import {
   type SceneError,
   sceneElement,
   type SceneLifecycle,
+  type XrSessionDetail,
 } from './element.ts';
 import type { SceneMount } from './mount.ts';
 import { overlayLayer, type OverlayView, withOverlays } from './overlayView.ts';
@@ -94,6 +95,11 @@ export type ViewConfig<Message> = {
    */
   readonly onCollision?: (detail: CollisionDetail) => Message;
   /**
+   * An immersive session began presenting this scene (`mode`), or ended (`mode: null`),
+   * whether the app or the user (through the headset) ended it.
+   */
+  readonly onXRSession?: (detail: XrSessionDetail) => Message;
+  /**
    * Frames ran persistently slow or fast, and the performance factor moved (0 to 1).
    * Store it in the Model and lower `render.resolution` with it, as Drei's
    * `PerformanceMonitor` and `AdaptiveDpr` do together.
@@ -137,6 +143,7 @@ export const view = <Message>(
     Option.map(given(config.onDrag), element.OnSceneDrag),
     Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
     Option.map(given(config.onCollision), element.OnSceneCollision),
+    Option.map(given(config.onXRSession), element.OnSceneXr),
     Option.map(given(config.onGesture), (toMessage) =>
       element.OnSceneGesture((detail) => toMessage(detail.gesture)),
     ),

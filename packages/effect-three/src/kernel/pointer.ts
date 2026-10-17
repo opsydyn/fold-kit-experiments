@@ -209,14 +209,17 @@ export type SceneEvent =
   /** A drag, wheel or pinch on the canvas, when the scene claims gestures. */
   | { readonly _tag: 'Gesture'; readonly gesture: Gesture }
   /**
-   * Two bodies began (`started`) or stopped touching, by their nodes' keys: Rapier's
-   * collision events, as react-three-rapier's `onCollisionEnter` and `onCollisionExit`.
-   * Not a pointer event: it travels with them so one stream carries everything.
+   * Two bodies began (`started`) or stopped touching, by their nodes' keys (and, for a body
+   * on an instance, the instance's): Rapier's collision events, as react-three-rapier's
+   * `onCollisionEnter` and `onCollisionExit`. Not a pointer event: it travels with them so
+   * one stream carries everything.
    */
   | {
       readonly _tag: 'Collision';
       readonly a: string;
+      readonly aInstance?: string;
       readonly b: string;
+      readonly bInstance?: string;
       readonly started: boolean;
     }
   /**

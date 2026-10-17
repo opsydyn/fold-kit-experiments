@@ -36,10 +36,13 @@ export type Collider = {
   readonly rotation: Quat;
 };
 
-/** Two bodies began (`started`) or stopped touching, by their nodes' keys. */
+/**
+ * Two bodies began (`started`) or stopped touching, by the ids they were added with: a
+ * node's key, or for an instance the node's and instance's keys joined by a NUL.
+ */
 export type Collision = { readonly a: string; readonly b: string; readonly started: boolean };
 
-/** One physics world, keyed by node. Every method is synchronous. */
+/** One physics world, its bodies keyed by id. Every method is synchronous. */
 export type PhysicsWorld = {
   readonly configure: (physics: Physics) => void;
   /** Adds a body with its colliders (none, for a model not yet loaded). */

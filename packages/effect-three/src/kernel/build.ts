@@ -511,6 +511,7 @@ export const instances = (
     readonly interactive?: boolean;
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
+    readonly body?: Body | null;
   },
 ): InstancesNode => ({
   _tag: 'Instances',
@@ -526,6 +527,7 @@ export const instances = (
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
   instances: options.instances,
+  body: options.body ?? null,
 });
 
 /** Applies a registered behaviour by name. Parameters default to the behaviour's own. */

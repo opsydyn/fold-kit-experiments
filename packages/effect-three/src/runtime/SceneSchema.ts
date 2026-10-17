@@ -307,6 +307,7 @@ export const InstancesNode = Schema.TaggedStruct('Instances', {
   castShadow: Schema.Boolean,
   receiveShadow: Schema.Boolean,
   instances: Schema.Array(Instance),
+  body: Schema.NullOr(Body),
 });
 
 /** An application object lent to the store under `id`. */
@@ -665,10 +666,15 @@ export const Gesture = Schema.Union([
   }),
 ]);
 
-/** Detail of collision events: the two bodies' keys, and whether they began touching. */
+/**
+ * Detail of collision events: the two bodies' keys (and instances', for bodies on
+ * instances), and whether they began touching.
+ */
 export const CollisionDetail = Schema.Struct({
   a: Schema.String,
+  aInstance: Schema.optionalKey(Schema.String),
   b: Schema.String,
+  bInstance: Schema.optionalKey(Schema.String),
   started: Schema.Boolean,
 });
 

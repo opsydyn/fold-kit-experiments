@@ -190,6 +190,15 @@ const Body_3: Schema.Struct<{
 export type BodyCollider = 'cuboid' | 'ball' | 'hull' | 'trimesh';
 
 // @public
+export type BodyCollision = {
+    readonly a: string;
+    readonly aInstance?: string;
+    readonly b: string;
+    readonly bInstance?: string;
+    readonly started: boolean;
+};
+
+// @public
 export const bodyEquals: (a: Body_2 | null, b: Body_2 | null) => boolean;
 
 // @public
@@ -450,7 +459,9 @@ export type Collision = {
 // @public
 const CollisionDetail: Schema.Struct<{
     readonly a: Schema.String;
+    readonly aInstance: Schema.optionalKey<Schema.String>;
     readonly b: Schema.String;
+    readonly bInstance: Schema.optionalKey<Schema.String>;
     readonly started: Schema.Boolean;
 }>;
 
@@ -1258,6 +1269,7 @@ export const instances: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
+    readonly body?: Body_2 | null;
 }) => InstancesNode;
 
 // @public
@@ -1278,6 +1290,7 @@ export type InstancesNode = {
     readonly castShadow: boolean;
     readonly receiveShadow: boolean;
     readonly instances: ReadonlyArray<Instance>;
+    readonly body: Body_2 | null;
 };
 
 // @public
@@ -1429,6 +1442,24 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
         readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly color: Schema.Int;
+    }>>;
+    readonly body: Schema.NullOr<Schema.Struct<{
+        readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
+        readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
+        readonly mass: Schema.NullOr<Schema.Finite>;
+        readonly friction: Schema.Finite;
+        readonly restitution: Schema.Finite;
+        readonly linearDamping: Schema.Finite;
+        readonly angularDamping: Schema.Finite;
+        readonly gravityScale: Schema.Finite;
+        readonly ccd: Schema.Boolean;
+        readonly sensor: Schema.Boolean;
+        readonly linearVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly angularVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly impulse: Schema.NullOr<Schema.Struct<{
+            readonly id: Schema.Finite;
+            readonly impulse: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
     }>>;
 }>;
 
@@ -3112,14 +3143,17 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly gesture: Gesture;
 }
 /**
-* Two bodies began (`started`) or stopped touching, by their nodes' keys: Rapier's
-* collision events, as react-three-rapier's `onCollisionEnter` and `onCollisionExit`.
-* Not a pointer event: it travels with them so one stream carries everything.
+* Two bodies began (`started`) or stopped touching, by their nodes' keys (and, for a body
+* on an instance, the instance's): Rapier's collision events, as react-three-rapier's
+* `onCollisionEnter` and `onCollisionExit`. Not a pointer event: it travels with them so
+* one stream carries everything.
 */
 | {
     readonly _tag: 'Collision';
     readonly a: string;
+    readonly aInstance?: string;
     readonly b: string;
+    readonly bInstance?: string;
     readonly started: boolean;
 }
 /**
@@ -3322,7 +3356,9 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     }>]>;
 }>, Schema.TaggedStruct<"Collision", {
     readonly a: Schema.String;
+    readonly aInstance: Schema.optionalKey<Schema.String>;
     readonly b: Schema.String;
+    readonly bInstance: Schema.optionalKey<Schema.String>;
     readonly started: Schema.Boolean;
 }>, Schema.TaggedStruct<"Measured", {
     readonly key: Schema.String;
@@ -3343,7 +3379,7 @@ export type SceneGraph = {
     readonly overlays: () => ReadonlyArray<Overlay>;
     readonly environment: () => Environment | null;
     readonly contactShadows: () => ContactShadows | null;
-    readonly collisions: () => ReadonlyArray<Collision>;
+    readonly collisions: () => ReadonlyArray<BodyCollision>;
     readonly xr: () => Xr | null;
     readonly measured: () => ReadonlyArray<string>;
     readonly store: ResourceStore;

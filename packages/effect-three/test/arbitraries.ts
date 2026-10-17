@@ -205,6 +205,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
         color: Colour,
       }),
     ).check(Schema.isMaxLength(20)),
+    body: Schema.Null,
   }),
   Schema.TaggedStruct('Borrowed', {
     key: Key,

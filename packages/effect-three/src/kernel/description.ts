@@ -430,6 +430,11 @@ export type InstancesNode = {
   readonly castShadow: boolean;
   readonly receiveShadow: boolean;
   readonly instances: ReadonlyArray<Instance>;
+  /**
+   * A rigid body for every instance, all with these settings, or `null`: react-three-rapier's
+   * `InstancedRigidBodies`. Each instance's collider is the geometry at its scale.
+   */
+  readonly body: Body | null;
 };
 
 /**

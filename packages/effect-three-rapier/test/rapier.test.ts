@@ -6,6 +6,8 @@ import {
   createSceneGraph,
   createSceneLoop,
   group,
+  instance,
+  instances,
   mesh,
   type MeshNode,
   physics,
@@ -16,10 +18,18 @@ import {
   sphere,
   standard,
 } from '@opsydyn/effect-three';
+import { InstancedMesh, Matrix4, Vector3 } from 'three';
 
 import { loadRapier } from '../src/index.ts';
 
 let engine: PhysicsEngine;
+const matrix = new Matrix4();
+
+/** The height of instance `slot` of an instanced mesh. */
+function heightAt(mesh: InstancedMesh, slot: number): number {
+  mesh.getMatrixAt(slot, matrix);
+  return new Vector3().setFromMatrixPosition(matrix).y;
+}
 
 beforeAll(async () => {
   engine = await loadRapier();
@@ -138,5 +148,45 @@ test('a group body falls as one: a dumbbell rests on both ends', () => {
   // Both balls on the floor: the group's middle sits a radius up, level.
   expect(dumbbell?.position.y).toBeCloseTo(0.4, 2);
   expect(Math.abs(dumbbell?.rotation.z ?? 1)).toBeLessThan(0.01);
+  graph.dispose();
+});
+
+test('instanced balls stack: each instance is a body, resting on the one below', () => {
+  const graph = createSceneGraph({ physics: engine });
+  const column = instances({
+    key: 'column',
+    geometry: sphere({ radius: 0.5 }),
+    material: standard(),
+    instances: [1, 3, 5].map((y, i) => instance({ key: `b${i}`, position: [0, y, 0] })),
+    body: body({ collider: 'ball' }),
+  });
+  const events: Array<SceneEvent> = [];
+  const loop = createSceneLoop({
+    graph,
+    renderer: recordingRendererFactory().create(),
+    elapsedSeconds: () => 0,
+    emit: (event) => events.push(event),
+  });
+  graph.reconcile(scene({ physics: physics(), children: [floor, column] }));
+  graph.tick(0);
+  for (let frame = 1; frame <= 4 * 60; frame++) graph.tick(frame / 60);
+  loop.frame();
+  const mesh = graph.object('column');
+  if (!(mesh instanceof InstancedMesh)) throw new Error('not instanced');
+  const heights = [0, 1, 2].map((slot) => heightAt(mesh, slot));
+  // A frictionless stack of balls topples; each rests on the floor or another ball.
+  for (const y of heights) expect(y).toBeGreaterThan(0.45);
+  expect(Math.min(...heights)).toBeCloseTo(0.5, 1);
+  // The bottom ball hits the floor; Rapier may name either body first.
+  const pairs = events.flatMap((event) =>
+    event._tag === 'Collision'
+      ? [
+          [`${event.a}/${event.aInstance ?? ''}`, `${event.b}/${event.bInstance ?? ''}`]
+            .sort()
+            .join(' '),
+        ]
+      : [],
+  );
+  expect(pairs).toContain('column/b0 floor/');
   graph.dispose();
 });

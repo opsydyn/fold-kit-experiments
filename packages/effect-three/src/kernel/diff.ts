@@ -150,6 +150,7 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
       if (!instancesEqual(prev.instances, next.instances)) fields.push('instances');
+      if (!bodyEquals(prev.body, next.body)) fields.push('body');
       return fields;
     }
     case 'Borrowed': {

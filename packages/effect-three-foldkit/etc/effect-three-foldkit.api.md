@@ -672,7 +672,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     }>;
     'scene-collision': Schema.Struct<{
         readonly a: Schema.String;
+        readonly aInstance: Schema.optionalKey<Schema.String>;
         readonly b: Schema.String;
+        readonly bInstance: Schema.optionalKey<Schema.String>;
         readonly started: Schema.Boolean;
     }>;
     'scene-measured': Schema.Struct<{

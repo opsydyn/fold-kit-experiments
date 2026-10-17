@@ -29,7 +29,8 @@ import { Sky as SkyMesh } from 'three/addons/objects/Sky.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
-import { type BodiedMesh, createBodyHost } from './bodies.ts';
+import { type BodyCollision, createBodyHost } from './bodies.ts';
+import { type BodySource, instanceSources, nodeSource } from './bodySources.ts';
 import { renderSettings, scene as describeScene } from './build.ts';
 import { createCameraMotion } from './cameraMotion.ts';
 import type {
@@ -71,7 +72,7 @@ import {
   createPose,
   resetPose,
 } from './motion.ts';
-import type { Collision, PhysicsEngine } from './physics.ts';
+import type { PhysicsEngine } from './physics.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -196,7 +197,7 @@ export type SceneGraph = {
   /** Soft ground shadows; the frame loop draws them. */
   readonly contactShadows: () => ContactShadows | null;
   /** Collisions between bodies since the last call, for the frame loop to report. */
-  readonly collisions: () => ReadonlyArray<Collision>;
+  readonly collisions: () => ReadonlyArray<BodyCollision>;
   /** How the scene is presented immersively, for the host; `null` if it never is. */
   readonly xr: () => Xr | null;
   /** Keys of the nodes whose bounds the frame loop reports. */
@@ -440,11 +441,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const cameraMotion = createCameraMotion();
   const bodyHost = createBodyHost(options.physics, scene);
 
-  /** Every hosted node that can have a body, for the body host to find those that do. */
-  function* hostedMeshes(): Generator<BodiedMesh> {
+  /** Every body the hosted nodes describe: one per bodied node, one per bodied instance. */
+  function* bodySources(): Generator<BodySource> {
     for (const [key, entry] of entries) {
       if (entry._tag === 'Mesh' || entry._tag === 'Group' || entry._tag === 'Borrowed') {
-        yield { key, node: entry.node, object: entry.object };
+        const source = nodeSource(key, entry.node, entry.object);
+        if (source !== undefined) yield source;
+      } else if (entry._tag === 'Instances') {
+        yield* instanceSources(key, entry.node, entry, entry.object);
       }
     }
   }
@@ -711,7 +715,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       }
     }
     // A model or font arriving changes what bodies are made of: remake their colliders.
-    if (loan.kind !== 'texture') bodyHost.sync(physicsDescription, hostedMeshes());
+    if (loan.kind !== 'texture') bodyHost.sync(physicsDescription, bodySources());
     invalidate();
   });
 
@@ -812,9 +816,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     const wasInteractive = interactive.has(old);
     trackInteractive(old, false);
     trackInteractive(grown, wasInteractive);
+    // Keep each slot as it is shown (a simulated pose, say) and write only what changed.
+    const kept = Math.min(entry.node.instances.length, next.instances.length);
+    grown.instanceMatrix.array.set(old.instanceMatrix.array.subarray(0, kept * 16));
+    if (old.instanceColor !== null && grown.instanceColor !== null) {
+      grown.instanceColor.array.set(old.instanceColor.array.subarray(0, kept * 3));
+    }
     old.dispose();
     entry.object = grown;
-    writeInstances(grown, noInstances, next.instances);
+    writeInstances(grown, entry.node.instances.slice(0, kept), next.instances);
   };
 
   /**
@@ -1142,7 +1152,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (!contactShadowsEquals(contactDescription, next.contactShadows)) invalidate();
     contactDescription = next.contactShadows;
     physicsDescription = next.physics;
-    bodyHost.sync(next.physics, hostedMeshes());
+    bodyHost.sync(next.physics, bodySources());
     // Read by the host when it presents the scene immersively: no operation, no frame.
     xrDescription = next.xr;
     // Measured after the next drawn frame; a new list needs one.

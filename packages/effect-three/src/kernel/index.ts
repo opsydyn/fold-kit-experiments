@@ -154,6 +154,7 @@ export {
   type PhysicsWorld,
   type Quat,
 } from './physics.ts';
+export type { BodyCollision } from './bodies.ts';
 export { type Stage, stage, type StageLighting, type StagePreset, stagePresets } from './stage.ts';
 export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
 export {

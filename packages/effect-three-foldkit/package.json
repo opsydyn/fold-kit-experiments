@@ -48,6 +48,7 @@
     "@types/three": "catalog:",
     "effect": "catalog:",
     "foldkit": "catalog:",
+    "iwer": "2.5.0",
     "oxlint": "catalog:strict",
     "oxlint-tsgolint": "catalog:",
     "pixelmatch": "catalog:",

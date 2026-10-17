@@ -27,6 +27,7 @@ import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
 import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
+import type { Xr } from '@opsydyn/effect-three';
 import { YieldableError } from 'effect/Cause';
 
 // @public
@@ -88,7 +89,7 @@ export type DragDetail = typeof SceneSchema.DragDetail.Type;
 export type Environment = ReturnType<typeof makeEnvironment>;
 
 // @public
-export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | 'devicePixelRatio'>;
+export type EnvironmentHost = AnimationFrameHost & Pick<Window, 'matchMedia' | 'devicePixelRatio'> & Partial<Pick<Window, 'navigator'>>;
 
 // @public (undocumented)
 export type EnvironmentOptions = {
@@ -134,6 +135,12 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
         unload: (id: string) => Effect_2<void, never, never>;
         dispose: () => void;
     };
+    xr: {
+        supported: (mode: XrMode) => Effect_2<boolean, never, never>;
+        enter: (mode: XrMode) => Effect_2<void, XrUnavailable, never>;
+        exit: Effect_2<void, never, never>;
+    };
+    xrHub: XrHub;
     dispose: () => void;
 };
 
@@ -314,6 +321,12 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly paused: Schema.Boolean;
             readonly timeStep: Schema.Finite;
             readonly interpolate: Schema.Boolean;
+        }>>;
+        readonly xr: Schema.NullOr<Schema.Struct<{
+            readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly heading: Schema.Finite;
+            readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
+            readonly framebufferScale: Schema.Finite;
         }>>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -650,6 +663,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly b: Schema.String;
         readonly started: Schema.Boolean;
     }>;
+    'scene-xr': Schema.Struct<{
+        readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
+    }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
         readonly factor: Schema.Finite;
@@ -798,6 +814,7 @@ export type ViewConfig<Message> = {
     readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onGesture?: (gesture: Gesture) => Message;
     readonly onCollision?: (detail: CollisionDetail) => Message;
+    readonly onXRSession?: (detail: XrSessionDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
@@ -815,6 +832,35 @@ export const webglRendererFactory: (canvas: HTMLCanvasElement, options?: WebGLOp
 
 // @public
 export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
+
+// Warning: (ae-forgotten-export) The symbol "makeXr" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+export type XrControls = ReturnType<typeof makeXr>;
+
+// @public
+export type XrMode = 'immersive-vr' | 'immersive-ar';
+
+// @public
+export const XrSessionDetail: Schema.Struct<{
+    readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
+}>;
+
+// @public (undocumented)
+export type XrSessionDetail = typeof XrSessionDetail.Type;
+
+// Warning: (ae-forgotten-export) The symbol "XrUnavailable_base" needs to be exported by the entry point index.d.ts
+//
+// @public
+export class XrUnavailable extends XrUnavailable_base<{
+    readonly mode: XrMode;
+    readonly cause: unknown;
+}> {
+}
+
+// Warnings were encountered during analysis:
+//
+// src/environment.ts:61:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

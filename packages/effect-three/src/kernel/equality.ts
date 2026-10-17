@@ -22,6 +22,7 @@ import type {
   Rotation,
   ShapeGeometry,
   Sky,
+  Xr,
   TextBevel,
   Transition,
   Vec3,
@@ -368,3 +369,13 @@ export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
     a.paused === b.paused &&
     Object.is(a.timeStep, b.timeStep) &&
     a.interpolate === b.interpolate);
+
+/** Immersive presentation equality. */
+export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    vec3Equals(a.origin, b.origin) &&
+    Object.is(a.heading, b.heading) &&
+    a.referenceSpace === b.referenceSpace &&
+    Object.is(a.framebufferScale, b.framebufferScale));

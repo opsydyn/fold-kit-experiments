@@ -1408,6 +1408,7 @@ const make: (options: SceneRuntimeOptions) => Effect.Effect<{
     resize: (viewport: Viewport) => Effect.Effect<void, never, never>;
     setAnimating: (animating: boolean) => Effect.Effect<void, never, never>;
     advance: Effect.Effect<void, never, never>;
+    drawNow: () => void;
     pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
     events: Stream.Stream<SceneEvent, never, never>;
     drainEvents: Effect.Effect<SceneEvent[], never, never>;
@@ -2662,6 +2663,7 @@ export const scene: (options: {
     readonly sky?: Sky | null;
     readonly contactShadows?: ContactShadows | null;
     readonly physics?: Physics | null;
+    readonly xr?: Xr | null;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2685,6 +2687,7 @@ export type SceneDescription = {
     readonly sky: Sky | null;
     readonly contactShadows: ContactShadows | null;
     readonly physics: Physics | null;
+    readonly xr: Xr | null;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2796,6 +2799,12 @@ const SceneDescription_2: Schema.Struct<{
         readonly paused: Schema.Boolean;
         readonly timeStep: Schema.Finite;
         readonly interpolate: Schema.Boolean;
+    }>>;
+    readonly xr: Schema.NullOr<Schema.Struct<{
+        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly heading: Schema.Finite;
+        readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
+        readonly framebufferScale: Schema.Finite;
     }>>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -3201,6 +3210,7 @@ export type SceneGraph = {
     readonly environment: () => Environment | null;
     readonly contactShadows: () => ContactShadows | null;
     readonly collisions: () => ReadonlyArray<Collision>;
+    readonly xr: () => Xr | null;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -3352,6 +3362,7 @@ declare namespace SceneSchema {
         Environment_2 as Environment,
         Sky_2 as Sky,
         ContactShadows_2 as ContactShadows,
+        Xr_2 as Xr,
         Gestures_2 as Gestures,
         SceneDescription_2 as SceneDescription,
         KeyDetail,
@@ -3946,6 +3957,28 @@ const WheelDetail: Schema.Struct<{
 
 // @public
 export const writeRotation: (target: Euler, rotation: Rotation, elapsedSeconds: number) => void;
+
+// @public
+export type Xr = {
+    readonly origin: Vec3;
+    readonly heading: number;
+    readonly referenceSpace: 'local-floor' | 'local' | 'bounded-floor';
+    readonly framebufferScale: number;
+};
+
+// @public
+export const xr: (options?: Partial<Xr>) => Xr;
+
+// @public
+const Xr_2: Schema.Struct<{
+    readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly heading: Schema.Finite;
+    readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
+    readonly framebufferScale: Schema.Finite;
+}>;
+
+// @public
+export const xrEquals: (a: Xr | null, b: Xr | null) => boolean;
 
 // (No @packageDocumentation comment for this package)
 

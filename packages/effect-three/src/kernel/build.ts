@@ -880,6 +880,7 @@ export const contactShadows = (
 };
 
 const noOverlays: ReadonlyArray<Overlay> = [];
+const noMeasures: ReadonlyArray<string> = [];
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
 const defaultZIndexRange: readonly [number, number] = [16777271, 0];
@@ -920,6 +921,7 @@ export const scene = (options: {
   readonly contactShadows?: ContactShadows | null;
   readonly physics?: Physics | null;
   readonly xr?: Xr | null;
+  readonly measure?: ReadonlyArray<string>;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -934,6 +936,7 @@ export const scene = (options: {
   contactShadows: options.contactShadows ?? null,
   physics: options.physics ?? null,
   xr: options.xr ?? null,
+  measure: options.measure ?? noMeasures,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

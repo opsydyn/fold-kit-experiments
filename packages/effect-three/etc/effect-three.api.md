@@ -252,6 +252,12 @@ const BorrowedNode_2: Schema.TaggedStruct<"Borrowed", {
 }>;
 
 // @public
+export type Box = {
+    readonly min: Vec3;
+    readonly max: Vec3;
+};
+
+// @public
 export const box: (size?: {
     readonly width?: number;
     readonly height?: number;
@@ -369,6 +375,12 @@ const CircleGeometry_2: Schema.TaggedStruct<"Circle", {
     readonly radius: Schema.Finite;
     readonly segments: Schema.Int;
 }>;
+
+// @public
+export const clipCamera: (camera: Camera, box: Box, area: {
+    readonly width: number;
+    readonly height: number;
+}, margin?: number) => Camera;
 
 // @public
 export const clipRunning: (animation: Animation_2, duration: number, elapsed: number) => boolean;
@@ -514,6 +526,14 @@ export const createSceneLoop: (options: SceneLoopOptions) => SceneLoop;
 export const createSelectTracker: (picker: Picker) => (input: SelectInput) => ReadonlyArray<SceneEvent>;
 
 // @public
+export type Cursor = {
+    readonly width: number;
+    readonly height: number;
+    readonly x: number;
+    readonly y: number;
+};
+
+// @public
 export const cylinder: (options?: {
     readonly radiusTop?: number;
     readonly radiusBottom?: number;
@@ -582,6 +602,9 @@ export type DescriptionError = {
     readonly _tag: 'UnknownOverlayView';
     readonly key: string;
     readonly view: string;
+} | {
+    readonly _tag: 'UnknownMeasuredNode';
+    readonly key: string;
 };
 
 // @public
@@ -612,6 +635,8 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
 }>, Schema.TaggedStruct<"UnknownOverlayView", {
     readonly key: Schema.String;
     readonly view: Schema.String;
+}>, Schema.TaggedStruct<"UnknownMeasuredNode", {
+    readonly key: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
     readonly id: Schema.String;
 }>]>;
@@ -668,6 +693,9 @@ const DirectionalLightNode_2: Schema.TaggedStruct<"DirectionalLight", {
 
 // @public
 export const dollyCamera: (camera: Camera, scale: number, options?: OrbitOptions) => Camera;
+
+// @public
+export const dollyCameraToward: (camera: Camera, scale: number, cursor: Cursor, options?: OrbitOptions) => Camera;
 
 // @public
 const DragDetail: Schema.Struct<{
@@ -738,6 +766,12 @@ export const film: (options?: {
     readonly intensity?: number;
     readonly grayscale?: boolean;
 }) => PostEffect;
+
+// @public
+export const fitCamera: (camera: Camera, box: Box, area: {
+    readonly width: number;
+    readonly height: number;
+}, margin?: number) => Camera;
 
 // @public
 export const fixed: (euler: Vec3) => Rotation;
@@ -878,6 +912,8 @@ export type Gesture = {
     readonly deltaY: number;
     readonly width: number;
     readonly height: number;
+    readonly x: number;
+    readonly y: number;
 } | {
     readonly _tag: 'Wheel';
     readonly modifiers: Modifiers;
@@ -886,6 +922,8 @@ export type Gesture = {
     readonly deltaY: number;
     readonly width: number;
     readonly height: number;
+    readonly x: number;
+    readonly y: number;
 } | {
     readonly _tag: 'Pinch';
     readonly view?: string;
@@ -894,6 +932,8 @@ export type Gesture = {
     readonly deltaY: number;
     readonly width: number;
     readonly height: number;
+    readonly x: number;
+    readonly y: number;
 };
 
 // @public
@@ -901,6 +941,8 @@ const Gesture_2: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
     readonly view: Schema.optionalKey<Schema.String>;
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
+    readonly x: Schema.Finite;
+    readonly y: Schema.Finite;
     readonly button: Schema.Int;
     readonly modifiers: Schema.Struct<{
         readonly shift: Schema.Boolean;
@@ -915,6 +957,8 @@ const Gesture_2: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
     readonly view: Schema.optionalKey<Schema.String>;
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
+    readonly x: Schema.Finite;
+    readonly y: Schema.Finite;
     readonly modifiers: Schema.Struct<{
         readonly shift: Schema.Boolean;
         readonly control: Schema.Boolean;
@@ -927,6 +971,8 @@ const Gesture_2: Schema.Union<readonly [Schema.TaggedStruct<"Drag", {
     readonly view: Schema.optionalKey<Schema.String>;
     readonly width: Schema.Finite;
     readonly height: Schema.Finite;
+    readonly x: Schema.Finite;
+    readonly y: Schema.Finite;
     readonly scale: Schema.Finite;
     readonly deltaX: Schema.Finite;
     readonly deltaY: Schema.Finite;
@@ -938,6 +984,8 @@ const GestureDetail: Schema.Struct<{
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly button: Schema.Int;
         readonly modifiers: Schema.Struct<{
             readonly shift: Schema.Boolean;
@@ -952,6 +1000,8 @@ const GestureDetail: Schema.Struct<{
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly modifiers: Schema.Struct<{
             readonly shift: Schema.Boolean;
             readonly control: Schema.Boolean;
@@ -964,6 +1014,8 @@ const GestureDetail: Schema.Struct<{
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly scale: Schema.Finite;
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
@@ -1521,6 +1573,13 @@ export type MaterialSide = 'front' | 'back' | 'double';
 const MaterialSide_2: Schema.Literals<readonly ["front", "back", "double"]>;
 
 // @public
+const MeasuredDetail: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+
+// @public
 export const mesh: (options: TransformOptions & {
     readonly geometry: GeometryRef;
     readonly material: MaterialRef;
@@ -1810,6 +1869,15 @@ export type Op = {
 export const orbit: (camera: Camera, gesture: Gesture, options?: OrbitOptions) => Camera;
 
 // @public
+export type OrbitKey = 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight';
+
+// @public
+export const orbitKey: (camera: Camera, key: OrbitKey, modifiers: Modifiers, area: {
+    readonly width: number;
+    readonly height: number;
+}, options?: OrbitOptions) => Camera;
+
+// @public
 export type OrbitOptions = {
     readonly enableRotate: boolean;
     readonly enableZoom: boolean;
@@ -1826,6 +1894,9 @@ export type OrbitOptions = {
     readonly maxPolarAngle: number;
     readonly minAzimuthAngle: number;
     readonly maxAzimuthAngle: number;
+    readonly zoomToCursor: boolean;
+    readonly keyPanSpeed: number;
+    readonly keyRotateSpeed: number;
 };
 
 // @public
@@ -2296,6 +2367,8 @@ export type Region = {
     readonly view?: string;
     readonly width: number;
     readonly height: number;
+    readonly x: number;
+    readonly y: number;
 };
 
 // @public
@@ -2669,6 +2742,7 @@ export const scene: (options: {
     readonly contactShadows?: ContactShadows | null;
     readonly physics?: Physics | null;
     readonly xr?: Xr | null;
+    readonly measure?: ReadonlyArray<string>;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -2693,6 +2767,7 @@ export type SceneDescription = {
     readonly contactShadows: ContactShadows | null;
     readonly physics: Physics | null;
     readonly xr: Xr | null;
+    readonly measure: ReadonlyArray<string>;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -2811,6 +2886,7 @@ const SceneDescription_2: Schema.Struct<{
         readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
         readonly framebufferScale: Schema.Finite;
     }>>;
+    readonly measure: Schema.$Array<Schema.String>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
             readonly strength: Schema.Finite;
@@ -3014,6 +3090,16 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly started: boolean;
 }
 /**
+* A measured node's world bounding box changed (`scene({ measure })`): Drei's `Bounds`
+* `box.setFromObject`, reported rather than read. Not a pointer event either.
+*/
+| {
+    readonly _tag: 'Measured';
+    readonly key: string;
+    readonly min: Vec3;
+    readonly max: Vec3;
+}
+/**
 * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
 * it travels with them so one stream carries everything the scene reports.
 */
@@ -3165,6 +3251,8 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly button: Schema.Int;
         readonly modifiers: Schema.Struct<{
             readonly shift: Schema.Boolean;
@@ -3179,6 +3267,8 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly modifiers: Schema.Struct<{
             readonly shift: Schema.Boolean;
             readonly control: Schema.Boolean;
@@ -3191,6 +3281,8 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly view: Schema.optionalKey<Schema.String>;
         readonly width: Schema.Finite;
         readonly height: Schema.Finite;
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
         readonly scale: Schema.Finite;
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
@@ -3199,6 +3291,10 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly a: Schema.String;
     readonly b: Schema.String;
     readonly started: Schema.Boolean;
+}>, Schema.TaggedStruct<"Measured", {
+    readonly key: Schema.String;
+    readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -3216,6 +3312,7 @@ export type SceneGraph = {
     readonly contactShadows: () => ContactShadows | null;
     readonly collisions: () => ReadonlyArray<Collision>;
     readonly xr: () => Xr | null;
+    readonly measured: () => ReadonlyArray<string>;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -3382,6 +3479,7 @@ declare namespace SceneSchema {
         Modifiers_2 as Modifiers,
         Gesture_2 as Gesture,
         CollisionDetail,
+        MeasuredDetail,
         GestureDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError

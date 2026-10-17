@@ -126,9 +126,16 @@ export {
   type ManualFrames,
 } from './frames.ts';
 export {
+  type Box,
+  clipCamera,
+  type Cursor,
   defaultOrbit,
   dollyCamera,
+  dollyCameraToward,
+  fitCamera,
   orbit,
+  type OrbitKey,
+  orbitKey,
   type OrbitOptions,
   orbitOptions,
   panCamera,

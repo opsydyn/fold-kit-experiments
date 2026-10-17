@@ -1,4 +1,13 @@
-import { type Gesture, orbit, pointOnPlane, type Vec3 } from '@opsydyn/effect-three';
+import {
+  type Box,
+  fitCamera,
+  type Gesture,
+  noModifiers,
+  orbit,
+  orbitKey,
+  pointOnPlane,
+  type Vec3,
+} from '@opsydyn/effect-three';
 import { Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
@@ -129,6 +138,51 @@ const orbitBy = (model: Model, gesture: Gesture): Model =>
     onSome: (orbiting) => ({ ...model, camera: orbit(model.camera, orbiting, studioOrbit) }),
   });
 
+/** Gestures carry the stage's size: keep it, for arrow keys. */
+const withStage = (model: Model, gesture: Gesture): Model => ({
+  ...model,
+  stage: { width: gesture.width, height: gesture.height },
+});
+
+/** A piece's newly measured box, replacing its last. */
+const measured = (model: Model, key: string, min: Vec3, max: Vec3): Model =>
+  Option.match(pieceOf(key), {
+    onNone: () => model,
+    onSome: (piece) => ({
+      ...model,
+      bounds: [...model.bounds.filter((box) => box.piece !== piece), { piece, min, max }],
+    }),
+  });
+
+/** Per axis, `pick` (Math.min or Math.max) across the points. */
+const across = (points: ReadonlyArray<Vec3>, pick: (...values: Array<number>) => number): Vec3 => [
+  pick(...points.map((point) => point[0])),
+  pick(...points.map((point) => point[1])),
+  pick(...points.map((point) => point[2])),
+];
+
+/** The box around every piece, or nothing before they are measured. */
+const allPieces = (model: Model): Option.Option<Box> =>
+  Option.liftPredicate(model.bounds, (bounds) => bounds.length > 0).pipe(
+    Option.map((bounds) => ({
+      min: across(
+        bounds.map((box) => box.min),
+        Math.min,
+      ),
+      max: across(
+        bounds.map((box) => box.max),
+        Math.max,
+      ),
+    })),
+  );
+
+/** The camera framing every piece, as Drei's Bounds fits, eased by its damping. */
+const framed = (model: Model): Model =>
+  Option.match(allPieces(model), {
+    onNone: () => model,
+    onSome: (box) => ({ ...model, camera: fitCamera(model.camera, box, model.stage) }),
+  });
+
 /** The next lens, from its own starting camera. */
 const nextLens = (model: Model): Model => {
   const lens = otherLens[model.lens];
@@ -166,6 +220,20 @@ export const update = (model: Model, message: Message): AppReturn =>
     }),
     ClickedToneMapping: () => ({ model: modifyFields(model, { tone: (tone) => otherTone[tone] }) }),
     ClickedLens: () => ({ model: nextLens(model) }),
-    MadeGesture: ({ gesture }) => ({ model: orbitBy(model, gesture) }),
+    MadeGesture: ({ gesture }) => ({ model: orbitBy(withStage(model, gesture), gesture) }),
+    PressedArrow: ({ key, turning }) => ({
+      model: {
+        ...model,
+        camera: orbitKey(
+          model.camera,
+          key,
+          { ...noModifiers, shift: turning },
+          model.stage,
+          studioOrbit,
+        ),
+      },
+    }),
+    MeasuredPiece: ({ key, min, max }) => ({ model: measured(model, key, min, max) }),
+    ClickedFrame: () => ({ model: framed(model) }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

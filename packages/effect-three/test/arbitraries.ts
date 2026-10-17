@@ -280,6 +280,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
+  measure: Schema.Array(Schema.String).check(Schema.isMaxLength(0)),
   xr: Schema.NullOr(
     Schema.Struct({
       origin: Vec3,

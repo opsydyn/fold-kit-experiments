@@ -49,6 +49,8 @@ test('orbiting ignores gestures that began on a toy', () => {
     deltaY: 0,
     width: 800,
     height: 600,
+    x: 0,
+    y: 0,
   } satisfies Gesture;
   const onToy = Message.MadeGesture({
     gesture: { ...gesture, _tag: 'Drag', button: 0, key: 'toy:0:0', modifiers: gesture.modifiers },

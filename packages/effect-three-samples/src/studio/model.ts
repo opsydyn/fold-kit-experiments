@@ -3,6 +3,8 @@ import { Option, Schema } from 'effect';
 
 import { homeCamera } from './cameras';
 
+const Vec3 = Schema.Tuple([Schema.Number, Schema.Number, Schema.Number]);
+
 /** The pieces on the studio floor. */
 export const Piece = Schema.Literals(['torus', 'capsule', 'cone', 'ball', 'crate']);
 export type Piece = typeof Piece.Type;
@@ -48,6 +50,10 @@ export const Model = Schema.Struct({
   lens: Lens,
   /** The camera, orbited by gestures on the canvas. */
   camera: SceneSchema.Camera,
+  /** The stage's size in CSS pixels, as gestures last reported it, for arrow keys. */
+  stage: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
+  /** Each piece's world bounding box, as the scene last measured it. */
+  bounds: Schema.Array(Schema.Struct({ piece: Piece, min: Vec3, max: Vec3 })),
 });
 export type Model = typeof Model.Type;
 
@@ -78,6 +84,8 @@ export const init = () => ({
     tone: 'none',
     lens: 'perspective',
     camera: homeCamera.perspective,
+    stage: { width: 960, height: 540 },
+    bounds: [],
   } satisfies Model,
 });
 

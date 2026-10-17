@@ -47,5 +47,8 @@ and tests would no longer see where the camera is.
   same mouse and wheel handlers, to six decimal places.
 - A gesture that starts on an interactive mesh also orbits unless the application ignores
   it, as in R3F without `stopPropagation`.
-- Not yet: zoom to cursor, auto-rotate, keyboard listening (apps can map keys to the
-  exported steps) and damping for view cameras, which still jump.
+- Since added: zoom to cursor (gestures carry where they happened; a middle-drag aims at
+  its press point, where three 0.186 has a typo), `orbitKey` for the arrow keys (an app
+  maps focused key presses to Messages), and Drei's `Bounds` as measuring events plus
+  `fitCamera` and `clipCamera`.
+- Not yet: auto-rotate, and damping for view cameras, which still jump.

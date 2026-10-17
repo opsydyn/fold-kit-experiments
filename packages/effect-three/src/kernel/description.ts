@@ -823,6 +823,11 @@ export type SceneDescription = {
   readonly physics: Physics | null;
   /** How the scene is presented in an immersive session, or `null` if it never is. */
   readonly xr: Xr | null;
+  /**
+   * Nodes whose world bounding box the scene reports (`Measured` events) whenever it
+   * changes: what Drei's `Bounds` measures, for `fitCamera`. Loaded models included.
+   */
+  readonly measure: ReadonlyArray<string>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

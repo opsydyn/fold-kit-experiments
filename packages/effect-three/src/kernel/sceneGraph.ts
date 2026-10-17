@@ -198,6 +198,8 @@ export type SceneGraph = {
   readonly collisions: () => ReadonlyArray<Collision>;
   /** How the scene is presented immersively, for the host; `null` if it never is. */
   readonly xr: () => Xr | null;
+  /** Keys of the nodes whose bounds the frame loop reports. */
+  readonly measured: () => ReadonlyArray<string>;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -399,6 +401,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let skyDescription: Sky | null = emptyScene.sky;
   let contactDescription: ContactShadows | null = emptyScene.contactShadows;
   let xrDescription: Xr | null = emptyScene.xr;
+  let measured: ReadonlyArray<string> = emptyScene.measure;
   let skyMesh: SkyMesh | undefined;
 
   /** Shows, updates or removes the sky. It belongs to the scene, so it is never picked. */
@@ -1042,6 +1045,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     contactShadows: null,
     physics: null,
     xr: null,
+    measure: [],
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -1134,6 +1138,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     bodyHost.sync(next.physics, hostedMeshes());
     // Read by the host when it presents the scene immersively: no operation, no frame.
     xrDescription = next.xr;
+    // Measured after the next drawn frame; a new list needs one.
+    if (next.measure.join('\u0000') !== measured.join('\u0000')) invalidate();
+    measured = next.measure;
     const ops = [...result.ops, ...syncTextures(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
@@ -1207,6 +1214,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     contactShadows: () => contactDescription,
     collisions: bodyHost.drainCollisions,
     xr: () => xrDescription,
+    measured: () => measured,
     store,
     reconcile,
     tick,

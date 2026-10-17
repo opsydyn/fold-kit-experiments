@@ -87,7 +87,7 @@ test('the monitor shows the selected piece close up, in its finish, and nothing 
 });
 
 test('gestures on the floor orbit the camera; on a piece or over the plan they do not', () => {
-  const area = { width: 800, height: 600 };
+  const area = { width: 800, height: 600, x: 0, y: 0 };
   const dragBy = (extra: { readonly key?: string; readonly view?: string }) =>
     Message.MadeGesture({
       gesture: {
@@ -125,4 +125,25 @@ test('gestures on the floor orbit the camera; on a piece or over the plan they d
   // A new lens starts from its own camera.
   const lensed = step(orbited, Message.ClickedLens());
   expect(lensed.camera).toMatchObject({ _tag: 'Orthographic', position: [0, 5.2, 7.5] });
+});
+
+test('arrow keys move the camera; framing fits it to every measured piece', () => {
+  const panned = step(initial, Message.PressedArrow({ key: 'ArrowLeft', turning: false }));
+  expect(panned.camera.lookAt).not.toEqual(initial.camera.lookAt);
+  const turned = step(initial, Message.PressedArrow({ key: 'ArrowLeft', turning: true }));
+  expect(turned.camera.lookAt).toEqual(initial.camera.lookAt);
+  expect(turned.camera.position).not.toEqual(initial.camera.position);
+
+  // Before anything is measured, framing changes nothing.
+  expect(step(initial, Message.ClickedFrame()).camera).toBe(initial.camera);
+  const measured = [
+    Message.MeasuredPiece({ key: pieceKey('torus'), min: [-3, 0, -1], max: [-2, 1, 0] }),
+    Message.MeasuredPiece({ key: pieceKey('crate'), min: [2, 0, -1], max: [3, 1, 0] }),
+    // A new box for the crate replaces its old one.
+    Message.MeasuredPiece({ key: pieceKey('crate'), min: [2, 0, -1], max: [4, 1, 0] }),
+  ].reduce(step, initial);
+  expect(measured.bounds).toHaveLength(2);
+  const framed = step(measured, Message.ClickedFrame());
+  // Looking at the middle of everything measured: x from −3 to 4, y 0 to 1, z −1 to 0.
+  expect(framed.camera.lookAt).toEqual([0.5, 0.5, -0.5]);
 });

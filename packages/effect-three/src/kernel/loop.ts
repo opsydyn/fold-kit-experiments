@@ -1,4 +1,4 @@
-import { EquirectangularReflectionMapping, type Texture, UVMapping } from 'three';
+import { Box3, EquirectangularReflectionMapping, type Texture, UVMapping } from 'three';
 
 import { createContactShadows } from './contactShadows.ts';
 import type { RenderSettings } from './description.ts';
@@ -161,6 +161,26 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
     scene.environmentIntensity = environment.environmentIntensity;
   };
 
+  // The last box reported for each measured key, so only changes are reported.
+  const reported = new Map<string, Box3>();
+  const box = new Box3();
+
+  const measure = (): void => {
+    const keys = graph.measured();
+    if (keys.length === 0 && reported.size === 0) return;
+    for (const key of keys) {
+      const object = graph.object(key);
+      if (object === undefined) continue;
+      box.setFromObject(object);
+      if (box.isEmpty()) continue;
+      const last = reported.get(key);
+      if (last !== undefined && last.equals(box)) continue;
+      reported.set(key, box.clone());
+      emit({ _tag: 'Measured', key, min: box.min.toArray(), max: box.max.toArray() });
+    }
+    for (const key of reported.keys()) if (!keys.includes(key)) reported.delete(key);
+  };
+
   return {
     frame: () => {
       graph.tick(elapsedSeconds());
@@ -181,6 +201,7 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       if (views.length === 0) renderer.render(graph.scene, graph.camera);
       for (const view of views) renderer.render(graph.scene, view.camera, view.area);
       graph.drawn();
+      measure();
       const overlays = graph.overlays();
       if (options.placeOverlays !== undefined && (overlays.length > 0 || placedAny)) {
         options.placeOverlays(placeOverlays(graph));

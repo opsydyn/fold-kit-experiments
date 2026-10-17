@@ -65,6 +65,14 @@ const tagFor = (h: HtmlBuilder<Message>) => (placement: Placement) => ({
 const tags = (model: Model, h: HtmlBuilder<Message>) =>
   Option.toArray(Option.map(selectedPlacement(model), tagFor(h)));
 
+const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'] as const;
+
+/** Arrow keys move the camera while the stage has focus (shift turns); others pass. */
+const arrowKey = (key: string, modifiers: { readonly shiftKey: boolean }): Option.Option<Message> =>
+  Option.map(Option.fromNullishOr(arrows.find((arrow) => arrow === key)), (arrow) =>
+    Message.PressedArrow({ key: arrow, turning: modifiers.shiftKey }),
+  );
+
 const readout = (model: Model): string =>
   Option.match(selectedPlacement(model), {
     onNone: () =>
@@ -78,27 +86,37 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   body: h.div(
     [h.Class('e3-sample')],
     [
-      EffectThreeFoldkit.view(
-        {
-          scene: sceneFor(model),
-          mount: sceneMount,
-          className: 'e3-stage',
-          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onPointerEnter: ({ key }) => Message.HoveredPiece({ key }),
-          onPointerLeave: ({ key }) => Message.LeftPiece({ key }),
-          onClick: ({ key }) => Message.ClickedPiece({ key }),
-          onDoubleClick: ({ key }) => Message.DoubleClickedPiece({ key }),
-          onContextMenu: ({ key }) => Message.OpenedPieceMenu({ key }),
-          onPointerDown: ({ key, ray }) =>
-            Message.PressedPiece({ key, origin: ray.origin, direction: ray.direction }),
-          onDrag: ({ key, ray }) =>
-            Message.DraggedPiece({ key, origin: ray.origin, direction: ray.direction }),
-          onDragEnd: () => Message.DroppedPiece(),
-          onPointerMissed: () => Message.ClickedEmptySpace(),
-          onGesture: (gesture) => Message.MadeGesture({ gesture }),
-          overlays: tags(model, h),
-        },
-        h,
+      h.div(
+        [
+          h.Tabindex(0),
+          h.AriaLabel('Studio scene. Arrow keys pan the camera; with shift they turn it.'),
+          h.OnKeyDownPreventDefault(arrowKey),
+        ],
+        [
+          EffectThreeFoldkit.view(
+            {
+              scene: sceneFor(model),
+              mount: sceneMount,
+              className: 'e3-stage',
+              onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
+              onPointerEnter: ({ key }) => Message.HoveredPiece({ key }),
+              onPointerLeave: ({ key }) => Message.LeftPiece({ key }),
+              onClick: ({ key }) => Message.ClickedPiece({ key }),
+              onDoubleClick: ({ key }) => Message.DoubleClickedPiece({ key }),
+              onContextMenu: ({ key }) => Message.OpenedPieceMenu({ key }),
+              onPointerDown: ({ key, ray }) =>
+                Message.PressedPiece({ key, origin: ray.origin, direction: ray.direction }),
+              onDrag: ({ key, ray }) =>
+                Message.DraggedPiece({ key, origin: ray.origin, direction: ray.direction }),
+              onDragEnd: () => Message.DroppedPiece(),
+              onPointerMissed: () => Message.ClickedEmptySpace(),
+              onGesture: (gesture) => Message.MadeGesture({ gesture }),
+              onMeasured: ({ key, min, max }) => Message.MeasuredPiece({ key, min, max }),
+              overlays: tags(model, h),
+            },
+            h,
+          ),
+        ],
       ),
       h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
       h.div(
@@ -107,6 +125,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           toggle(h, 'Shadows', shadowsOn[model.shadows], Message.ClickedShadows()),
           toggle(h, 'Filmic tone mapping', filmicOn[model.tone], Message.ClickedToneMapping()),
           button(h, lensLabel[model.lens], Message.ClickedLens()),
+          button(h, 'Frame the pieces', Message.ClickedFrame()),
         ],
       ),
       h.p(

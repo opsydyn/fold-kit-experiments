@@ -74,7 +74,9 @@ export type PointerInput =
  * A gesture on the canvas, reported when the scene claims gestures (`gestures: 'scene'`).
  * Distances are CSS pixels, right and down positive, since the previous gesture event;
  * `width` and `height` are the CSS size of the canvas, or of the view the gesture began
- * in, for turning pixels into angles and distances. `view` names that view.
+ * in, for turning pixels into angles and distances. `view` names that view. `x` and `y`
+ * locate the gesture in it (−1 to 1, y up): where a drag was pressed, the wheel turned,
+ * or a pinch's midpoint is, for zooming toward the cursor.
  *
  * - `Drag`: the pointer moved while pressed, with the button and modifiers of the press.
  *   `key` names the interactive mesh the press landed on, if any, so a Model can leave
@@ -94,6 +96,8 @@ export type Gesture =
       readonly deltaY: number;
       readonly width: number;
       readonly height: number;
+      readonly x: number;
+      readonly y: number;
     }
   | {
       readonly _tag: 'Wheel';
@@ -103,6 +107,8 @@ export type Gesture =
       readonly deltaY: number;
       readonly width: number;
       readonly height: number;
+      readonly x: number;
+      readonly y: number;
     }
   | {
       readonly _tag: 'Pinch';
@@ -112,6 +118,8 @@ export type Gesture =
       readonly deltaY: number;
       readonly width: number;
       readonly height: number;
+      readonly x: number;
+      readonly y: number;
     };
 
 /** No modifier keys held. */
@@ -212,6 +220,16 @@ export type SceneEvent =
       readonly started: boolean;
     }
   /**
+   * A measured node's world bounding box changed (`scene({ measure })`): Drei's `Bounds`
+   * `box.setFromObject`, reported rather than read. Not a pointer event either.
+   */
+  | {
+      readonly _tag: 'Measured';
+      readonly key: string;
+      readonly min: Vec3;
+      readonly max: Vec3;
+    }
+  /**
    * The frame-rate monitor moved the performance factor (0 to 1). Not a pointer event:
    * it travels with them so one stream carries everything the scene reports.
    */
@@ -236,7 +254,14 @@ export type Picker = {
 };
 
 /** A part of the canvas in CSS pixels: a view, named by `view`, or the whole canvas. */
-export type Region = { readonly view?: string; readonly width: number; readonly height: number };
+export type Region = {
+  readonly view?: string;
+  readonly width: number;
+  readonly height: number;
+  /** The point in the region's own normalised coordinates: −1 to 1, y up. */
+  readonly x: number;
+  readonly y: number;
+};
 
 const toVec3 = (vector: Vector3): Vec3 => [vector.x, vector.y, vector.z];
 
@@ -357,8 +382,14 @@ export const createPicker = (graph: SceneGraph): Picker => {
             px >= area.x && px <= area.x + area.width && py >= area.y && py <= area.y + area.height,
         );
       return view === undefined
-        ? { width, height }
-        : { view: view.key, width: view.area.width, height: view.area.height };
+        ? { width, height, x, y }
+        : {
+            view: view.key,
+            width: view.area.width,
+            height: view.area.height,
+            x: ((px - view.area.x) / view.area.width) * 2 - 1,
+            y: 1 - ((py - view.area.y) / view.area.height) * 2,
+          };
     },
     gestures: graph.gestures,
     pick: (x, y) => {
@@ -515,8 +546,8 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     const from = pressedPointers.get(id);
     if (from === undefined || gesturePress === undefined) return;
     pressedPointers.set(id, to);
-    const { view, width, height } = gesturePress;
-    const region = { ...(view === undefined ? {} : { view }), width, height };
+    const { view, width, height, x, y } = gesturePress;
+    const region = { ...(view === undefined ? {} : { view }), width, height, x, y };
     const moved = pixels(from, to);
     const other = [...pressedPointers].find(([pointer]) => pointer !== id)?.[1];
     if (other === undefined) {
@@ -538,11 +569,14 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     }
     const before = pixelDistance(from, other);
     const after = pixelDistance(to, other);
+    const middle = picker.region((to.x + other.x) / 2, (to.y + other.y) / 2);
     events.push({
       _tag: 'Gesture',
       gesture: {
         _tag: 'Pinch',
         ...region,
+        x: middle.x,
+        y: middle.y,
         scale: before === 0 ? 1 : after / before,
         // The midpoint moves half as far as the one pointer that moved.
         deltaX: moved.x / 2,

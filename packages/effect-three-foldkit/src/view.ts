@@ -47,6 +47,9 @@ export type Gesture = typeof SceneSchema.Gesture.Type;
 /** Detail of collision events: the two bodies' keys, and whether they began touching. */
 export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 
+/** Detail of measured events: a node's world bounding box. */
+export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
+
 /** Detail of performance changes: the measured fps and the new factor, 0 to 1. */
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
 
@@ -94,6 +97,11 @@ export type ViewConfig<Message> = {
    * `onCollisionExit`, for the whole scene). Needs `physics` and an engine.
    */
   readonly onCollision?: (detail: CollisionDetail) => Message;
+  /**
+   * A node listed in the scene's `measure` has a new world bounding box (Drei's `Bounds`
+   * measuring, as a Message): fit the camera to it with `fitCamera`.
+   */
+  readonly onMeasured?: (detail: MeasuredDetail) => Message;
   /**
    * An immersive session began presenting this scene (`mode`), or ended (`mode: null`),
    * whether the app or the user (through the headset) ended it.
@@ -143,6 +151,7 @@ export const view = <Message>(
     Option.map(given(config.onDrag), element.OnSceneDrag),
     Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
     Option.map(given(config.onCollision), element.OnSceneCollision),
+    Option.map(given(config.onMeasured), element.OnSceneMeasured),
     Option.map(given(config.onXRSession), element.OnSceneXr),
     Option.map(given(config.onGesture), (toMessage) =>
       element.OnSceneGesture((detail) => toMessage(detail.gesture)),

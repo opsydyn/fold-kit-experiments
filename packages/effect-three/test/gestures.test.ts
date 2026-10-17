@@ -58,6 +58,9 @@ test('a claimed canvas reports drags in CSS pixels, with the press button and mo
       modifiers: shift,
       width: 800,
       height: 600,
+      // Where it was pressed.
+      x: 0.9,
+      y: 0.9,
       deltaX: expect.closeTo(-40, 9),
       deltaY: expect.closeTo(30, 9),
     },
@@ -70,7 +73,16 @@ test('a claimed canvas reports drags in CSS pixels, with the press button and mo
       tracker.input({ _tag: 'Wheel', x: 0, y: 0, deltaX: 0, deltaY: -120, modifiers: shift }),
     ),
   ).toEqual([
-    { _tag: 'Wheel', modifiers: shift, width: 800, height: 600, deltaX: 0, deltaY: -120 },
+    {
+      _tag: 'Wheel',
+      modifiers: shift,
+      width: 800,
+      height: 600,
+      x: 0,
+      y: 0,
+      deltaX: 0,
+      deltaY: -120,
+    },
   ]);
 });
 
@@ -93,6 +105,9 @@ test('a second pointer pinches: the scale of their spread and the midpoint movem
       _tag: 'Pinch',
       width: 800,
       height: 600,
+      // Midway between the fingers.
+      x: expect.closeTo(0.25, 9),
+      y: expect.closeTo(0.5, 9),
       scale: expect.closeTo(1.5, 9),
       deltaX: expect.closeTo(100, 9),
       deltaY: expect.closeTo(0, 9),
@@ -123,7 +138,8 @@ test('with views, a gesture reports the view it began in and that view’s size'
   const tracker = createPointerTracker(createPicker(graph));
   tracker.input({ _tag: 'PointerDown', x: 0.5, y: 0, button: 0 });
   expect(gesturesIn(tracker.input({ _tag: 'PointerMove', x: -0.5, y: 0 }))).toMatchObject([
-    { _tag: 'Drag', view: 'right', width: 400, height: 600, deltaX: -400 },
+    // Pressed in the middle of the right view.
+    { _tag: 'Drag', view: 'right', width: 400, height: 600, deltaX: -400, x: 0, y: 0 },
   ]);
 });
 

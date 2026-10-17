@@ -80,6 +80,7 @@ export const domEventName: {
     readonly DragEnd: 'scene-drag-end';
     readonly Gesture: 'scene-gesture';
     readonly Collision: 'scene-collision';
+    readonly Measured: 'scene-measured';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -152,6 +153,9 @@ export const makeSceneMount: (environment: Environment) => Mount.MountDefinition
     readonly _tag: "FailedScene";
     readonly reason: string;
 }>;
+
+// @public
+export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
@@ -329,6 +333,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
             readonly framebufferScale: Schema.Finite;
         }>>;
+        readonly measure: Schema.$Array<Schema.String>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;
@@ -628,6 +633,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly view: Schema.optionalKey<Schema.String>;
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
             readonly button: Schema.Int;
             readonly modifiers: Schema.Struct<{
                 readonly shift: Schema.Boolean;
@@ -642,6 +649,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly view: Schema.optionalKey<Schema.String>;
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
             readonly modifiers: Schema.Struct<{
                 readonly shift: Schema.Boolean;
                 readonly control: Schema.Boolean;
@@ -654,6 +663,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly view: Schema.optionalKey<Schema.String>;
             readonly width: Schema.Finite;
             readonly height: Schema.Finite;
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
             readonly scale: Schema.Finite;
             readonly deltaX: Schema.Finite;
             readonly deltaY: Schema.Finite;
@@ -663,6 +674,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly a: Schema.String;
         readonly b: Schema.String;
         readonly started: Schema.Boolean;
+    }>;
+    'scene-measured': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>;
     'scene-xr': Schema.Struct<{
         readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
@@ -699,6 +715,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         }>, Schema.TaggedStruct<"UnknownOverlayView", {
             readonly key: Schema.String;
             readonly view: Schema.String;
+        }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
+            readonly key: Schema.String;
         }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
             readonly id: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
@@ -758,6 +776,8 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
 }>, Schema.TaggedStruct<"UnknownOverlayView", {
     readonly key: Schema.String;
     readonly view: Schema.String;
+}>, Schema.TaggedStruct<"UnknownMeasuredNode", {
+    readonly key: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
     readonly id: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {
@@ -815,6 +835,7 @@ export type ViewConfig<Message> = {
     readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onGesture?: (gesture: Gesture) => Message;
     readonly onCollision?: (detail: CollisionDetail) => Message;
+    readonly onMeasured?: (detail: MeasuredDetail) => Message;
     readonly onXRSession?: (detail: XrSessionDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {

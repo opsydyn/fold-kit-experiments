@@ -571,6 +571,7 @@ export const SceneDescription = Schema.Struct({
   contactShadows: Schema.NullOr(ContactShadows),
   physics: Schema.NullOr(Physics),
   xr: Schema.NullOr(Xr),
+  measure: Schema.Array(Schema.String),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
@@ -634,6 +635,8 @@ const regionFields = {
   view: Schema.optionalKey(Schema.String),
   width: Schema.Finite,
   height: Schema.Finite,
+  x: Schema.Finite,
+  y: Schema.Finite,
 };
 
 /** A drag, wheel or pinch on the canvas: distances in CSS pixels since the last one. */
@@ -667,6 +670,9 @@ export const CollisionDetail = Schema.Struct({
   started: Schema.Boolean,
 });
 
+/** Detail of measured events: a node's world bounding box. */
+export const MeasuredDetail = Schema.Struct({ key: Schema.String, min: Vec3, max: Vec3 });
+
 /** Detail of gesture events. */
 export const GestureDetail = Schema.Struct({ gesture: Gesture });
 
@@ -686,6 +692,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
   Schema.TaggedStruct('Gesture', GestureDetail.fields),
   Schema.TaggedStruct('Collision', CollisionDetail.fields),
+  Schema.TaggedStruct('Measured', MeasuredDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 
@@ -704,5 +711,6 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('DuplicateOverlayKey', { key: Schema.String }),
   Schema.TaggedStruct('UnknownOverlayNode', { key: Schema.String, node: Schema.String }),
   Schema.TaggedStruct('UnknownOverlayView', { key: Schema.String, view: Schema.String }),
+  Schema.TaggedStruct('UnknownMeasuredNode', { key: Schema.String }),
   Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),
 ]);

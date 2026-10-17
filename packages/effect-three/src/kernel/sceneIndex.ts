@@ -30,7 +30,8 @@ export type DescriptionError =
   | { readonly _tag: 'DuplicateRenderTextureId'; readonly id: string }
   | { readonly _tag: 'DuplicateOverlayKey'; readonly key: string }
   | { readonly _tag: 'UnknownOverlayNode'; readonly key: string; readonly node: string }
-  | { readonly _tag: 'UnknownOverlayView'; readonly key: string; readonly view: string };
+  | { readonly _tag: 'UnknownOverlayView'; readonly key: string; readonly view: string }
+  | { readonly _tag: 'UnknownMeasuredNode'; readonly key: string };
 
 /** A validated scene. Keys are unique across the whole scene. */
 export type SceneIndex = {
@@ -171,6 +172,10 @@ export const indexScene = (
       _tag: 'Invalid',
       error: { _tag: 'UnknownOverlayNode', key: strayNode.key, node: strayNode.node },
     };
+  }
+  const unmeasurable = description.measure.find((key) => !nodes.has(key));
+  if (unmeasurable !== undefined) {
+    return { _tag: 'Invalid', error: { _tag: 'UnknownMeasuredNode', key: unmeasurable } };
   }
   return { _tag: 'Indexed', index: { description, nodes, children, preOrder } };
 };

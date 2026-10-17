@@ -52,6 +52,7 @@ export {
   type Gesture,
   type HitDetail,
   type KeyDetail,
+  type MeasuredDetail,
   type MissDetail,
   type PerformanceDetail,
   view,

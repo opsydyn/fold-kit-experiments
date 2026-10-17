@@ -58,4 +58,7 @@ export {
   view,
   type ViewConfig,
   type WheelDetail,
+  type XrButtonDetail,
+  type XrStickDetail,
+  type XrSurfaceDetail,
 } from './view.ts';

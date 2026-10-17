@@ -166,6 +166,14 @@ export {
   type Quat,
 } from './physics.ts';
 export type { BodyCollision } from './bodies.ts';
+export { type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
+export {
+  createXrTracker,
+  type XrButtonName,
+  type XrHand,
+  type XrInput,
+  type XrStickDirection,
+} from './xrInput.ts';
 export type { HostedLabel, LabelEngine } from './labels.ts';
 export {
   type EnvironmentPreset,
@@ -186,7 +194,6 @@ export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.t
 export {
   createPicker,
   createPointerTracker,
-  createSelectTracker,
   type Gesture,
   type Hit,
   type Modifiers,
@@ -199,7 +206,6 @@ export {
   type Ray,
   type Region,
   type SceneEvent,
-  type SelectInput,
 } from './pointer.ts';
 export {
   recordingRendererFactory,

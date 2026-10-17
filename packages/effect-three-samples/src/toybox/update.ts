@@ -1,4 +1,4 @@
-import { type Gesture, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
+import { type Gesture, locomote, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
 import { Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
@@ -95,6 +95,10 @@ export const update = (model: Model, message: Message): AppReturn =>
     FailedVr: () => ({ model: modifyFields(model, { vr: () => 'ready' as const }) }),
     ChangedVrSession: ({ presenting }) => ({
       model: modifyFields(model, { vr: () => vrSession[`${presenting}`] }),
+    }),
+    // pmndrs/xr's controller locomotion, as data: the right stick turns, the left steps.
+    PushedStick: ({ stick }) => ({
+      model: modifyFields(model, { player: (player) => locomote(player, stick) }),
     }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

@@ -946,6 +946,13 @@ export type Xr = {
   readonly referenceSpace: 'local-floor' | 'local' | 'bounded-floor';
   /** Framebuffer scale relative to the device's default (1); lower is faster. */
   readonly framebufferScale: number;
+  /**
+   * In AR, report where a select's ray meets a real surface (`XrSurface` events), from the
+   * session's hit tests: tap to place, as pmndrs/xr's `useXRHitTest`.
+   */
+  readonly hitTest: boolean;
+  /** Draw each input source's pointing ray and each tracked hand's joints. */
+  readonly showInputs: boolean;
 };
 
 export type SceneDescription = {

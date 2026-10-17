@@ -184,8 +184,8 @@ function* startScene(options: SceneRuntimeOptions) {
     drawNow: pacer.advance,
     /** Routes pointer input. Synchronous, so DOM listeners can call it directly. */
     pointer: loop.pointer,
-    /** Routes an XR controller's select, along its ray. Synchronous, as `pointer`. */
-    select: loop.select,
+    /** Routes XR input: aims, selects, sticks, buttons and surfaces. Synchronous, as `pointer`. */
+    xrInput: loop.xrInput,
     /** Scene events, newest kept when the consumer falls behind. */
     events: Stream.fromQueue(events),
     /** Removes and returns every pending event without waiting. */

@@ -19,7 +19,6 @@ import {
   sphere,
   sphericalJoint,
   standard,
-  xr,
 } from '@opsydyn/effect-three';
 
 import { paintAt, paintColour } from '../palette';
@@ -152,8 +151,8 @@ export const sceneFor = (model: Model) =>
     camera: model.camera,
     gestures: 'scene',
     physics: physics({ joints: chainJoints }),
-    // In VR the player stands in front of the tray, facing it.
-    xr: xr({ origin: [0, 0, 4.2] }),
+    // In VR the player stands where the Model says: in front of the tray, to begin with.
+    xr: model.player,
     environment: environment({ environmentIntensity: 0.6 }),
     contactShadows: contactShadows({
       position: [0, 0.01, 0],

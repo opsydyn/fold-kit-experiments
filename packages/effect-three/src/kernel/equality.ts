@@ -472,4 +472,6 @@ export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
     vec3Equals(a.origin, b.origin) &&
     Object.is(a.heading, b.heading) &&
     a.referenceSpace === b.referenceSpace &&
-    Object.is(a.framebufferScale, b.framebufferScale));
+    Object.is(a.framebufferScale, b.framebufferScale) &&
+    a.hitTest === b.hitTest &&
+    a.showInputs === b.showInputs);

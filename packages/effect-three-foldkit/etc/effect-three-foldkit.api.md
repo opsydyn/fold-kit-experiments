@@ -14,6 +14,7 @@ import type { HtmlBuilder } from 'foldkit/html';
 import { LabelEngine } from '@opsydyn/effect-three';
 import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
+import type { Object3D } from 'three';
 import type { Op } from '@opsydyn/effect-three';
 import type { Overlay } from '@opsydyn/effect-three';
 import { PhysicsEngine } from '@opsydyn/effect-three';
@@ -26,10 +27,10 @@ import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
-import type { SelectInput } from '@opsydyn/effect-three';
 import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
 import type { Xr } from '@opsydyn/effect-three';
+import type { XrInput } from '@opsydyn/effect-three';
 import { YieldableError } from 'effect/Cause';
 
 // @public
@@ -82,6 +83,9 @@ export const domEventName: {
     readonly Gesture: 'scene-gesture';
     readonly Collision: 'scene-collision';
     readonly Measured: 'scene-measured';
+    readonly XrStick: 'scene-xr-stick';
+    readonly XrButton: 'scene-xr-button';
+    readonly XrSurface: 'scene-xr-surface';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -151,10 +155,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
-    readonly _tag: "StartedScene";
-} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
+} | {
+    readonly _tag: "StartedScene";
 }>;
 
 // @public
@@ -365,6 +369,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly heading: Schema.Finite;
             readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
             readonly framebufferScale: Schema.Finite;
+            readonly hitTest: Schema.Boolean;
+            readonly showInputs: Schema.Boolean;
         }>>;
         readonly measure: Schema.$Array<Schema.String>;
         readonly render: Schema.Struct<{
@@ -721,6 +727,20 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-xr': Schema.Struct<{
         readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
     }>;
+    'scene-xr-stick': Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+        readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
+    }>;
+    'scene-xr-button': Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+        readonly button: Schema.Literals<readonly ["trigger", "squeeze", "touchpad", "thumbstick", "primary", "secondary"]>;
+        readonly pressed: Schema.Boolean;
+    }>;
+    'scene-xr-surface': Schema.Struct<{
+        readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
         readonly factor: Schema.Finite;
@@ -885,6 +905,9 @@ export type ViewConfig<Message> = {
     readonly onCollision?: (detail: CollisionDetail) => Message;
     readonly onMeasured?: (detail: MeasuredDetail) => Message;
     readonly onXRSession?: (detail: XrSessionDetail) => Message;
+    readonly onXRStick?: (detail: XrStickDetail) => Message;
+    readonly onXRButton?: (detail: XrButtonDetail) => Message;
+    readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
@@ -903,6 +926,9 @@ export const webglRendererFactory: (canvas: HTMLCanvasElement, options?: WebGLOp
 // @public
 export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
 
+// @public
+export type XrButtonDetail = typeof SceneSchema.XrButtonDetail.Type;
+
 // Warning: (ae-forgotten-export) The symbol "makeXr" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -918,6 +944,12 @@ export const XrSessionDetail: Schema.Struct<{
 
 // @public (undocumented)
 export type XrSessionDetail = typeof XrSessionDetail.Type;
+
+// @public
+export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
+
+// @public
+export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
 
 // Warning: (ae-forgotten-export) The symbol "XrUnavailable_base" needs to be exported by the entry point index.d.ts
 //

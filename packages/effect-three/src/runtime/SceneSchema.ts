@@ -647,6 +647,8 @@ export const Xr = Schema.Struct({
   heading: Schema.Finite,
   referenceSpace: Schema.Literals(['local-floor', 'local', 'bounded-floor']),
   framebufferScale: Positive,
+  hitTest: Schema.Boolean,
+  showInputs: Schema.Boolean,
 });
 
 /** Whether the scene claims the pointer's gestures from the page. */
@@ -767,6 +769,24 @@ export const CollisionDetail = Schema.Struct({
   started: Schema.Boolean,
 });
 
+const XrHand = Schema.Literals(['left', 'right', 'none']);
+
+/** Detail of XR stick events: a thumbstick pushed past halfway, or let back. */
+export const XrStickDetail = Schema.Struct({
+  hand: XrHand,
+  direction: Schema.Literals(['center', 'left', 'right', 'forward', 'back']),
+});
+
+/** Detail of XR button events: a controller button pressed or released. */
+export const XrButtonDetail = Schema.Struct({
+  hand: XrHand,
+  button: Schema.Literals(['trigger', 'squeeze', 'touchpad', 'thumbstick', 'primary', 'secondary']),
+  pressed: Schema.Boolean,
+});
+
+/** Detail of XR surface events: in AR, where a select met a real surface. */
+export const XrSurfaceDetail = Schema.Struct({ hand: XrHand, point: Vec3, normal: Vec3 });
+
 /** Detail of measured events: a node's world bounding box. */
 export const MeasuredDetail = Schema.Struct({ key: Schema.String, min: Vec3, max: Vec3 });
 
@@ -790,6 +810,9 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('Gesture', GestureDetail.fields),
   Schema.TaggedStruct('Collision', CollisionDetail.fields),
   Schema.TaggedStruct('Measured', MeasuredDetail.fields),
+  Schema.TaggedStruct('XrStick', XrStickDetail.fields),
+  Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
+  Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 

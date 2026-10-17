@@ -596,7 +596,7 @@ export const createSceneGraph: (options?: SceneGraphOptions) => SceneGraph;
 export const createSceneLoop: (options: SceneLoopOptions) => SceneLoop;
 
 // @public
-export const createSelectTracker: (picker: Picker) => (input: SelectInput) => ReadonlyArray<SceneEvent>;
+export const createXrTracker: (picker: Picker) => (input: XrInput) => ReadonlyArray<SceneEvent>;
 
 // @public
 export type Cursor = {
@@ -1824,6 +1824,19 @@ export type Loan = {
 };
 
 // @public
+export const locomote: (settings: Xr, stick: {
+    readonly hand: XrHand;
+    readonly direction: XrStickDirection;
+}, options?: LocomotionOptions) => Xr;
+
+// @public (undocumented)
+export type LocomotionOptions = {
+    readonly snapDegrees?: number;
+    readonly step?: number;
+    readonly turnHand?: Exclude<XrHand, 'none'>;
+};
+
+// @public
 const make: (options: SceneRuntimeOptions) => Effect.Effect<{
     graph: SceneGraph;
     startupOps: readonly Op[];
@@ -1833,7 +1846,7 @@ const make: (options: SceneRuntimeOptions) => Effect.Effect<{
     advance: Effect.Effect<void, never, never>;
     drawNow: () => void;
     pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
-    select: (input: SelectInput) => ReadonlyArray<SceneEvent>;
+    xrInput: (input: XrInput) => ReadonlyArray<SceneEvent>;
     events: Stream.Stream<SceneEvent, never, never>;
     drainEvents: Effect.Effect<SceneEvent[], never, never>;
 }, InvalidScene | RendererUnavailable, FrameSource_2 | ResourceRegistry_2 | Scope_2.Scope>;
@@ -3351,6 +3364,8 @@ const SceneDescription_2: Schema.Struct<{
         readonly heading: Schema.Finite;
         readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
         readonly framebufferScale: Schema.Finite;
+        readonly hitTest: Schema.Boolean;
+        readonly showInputs: Schema.Boolean;
     }>>;
     readonly measure: Schema.$Array<Schema.String>;
     readonly render: Schema.Struct<{
@@ -3546,6 +3561,26 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
 | {
     readonly _tag: 'Gesture';
     readonly gesture: Gesture;
+}
+/** In an immersive session, a thumbstick pushed past halfway in a direction, or let back. */
+| {
+    readonly _tag: 'XrStick';
+    readonly hand: XrHand;
+    readonly direction: XrStickDirection;
+}
+/** In an immersive session, a controller button pressed or released. */
+| {
+    readonly _tag: 'XrButton';
+    readonly hand: XrHand;
+    readonly button: XrButtonName;
+    readonly pressed: boolean;
+}
+/** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
+| {
+    readonly _tag: 'XrSurface';
+    readonly hand: XrHand;
+    readonly point: Vec3;
+    readonly normal: Vec3;
 }
 /**
 * Two bodies began (`started`) or stopped touching, by their nodes' keys (and, for a body
@@ -3769,6 +3804,17 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"XrStick", {
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
+}>, Schema.TaggedStruct<"XrButton", {
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly button: Schema.Literals<readonly ["trigger", "squeeze", "touchpad", "thumbstick", "primary", "secondary"]>;
+    readonly pressed: Schema.Boolean;
+}>, Schema.TaggedStruct<"XrSurface", {
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -3833,7 +3879,7 @@ export type SceneLoop = {
     readonly wantsFrames: () => boolean;
     readonly dispose: () => void;
     readonly pointer: (input: PointerInput) => ReadonlyArray<SceneEvent>;
-    readonly select: (input: SelectInput) => ReadonlyArray<SceneEvent>;
+    readonly xrInput: (input: XrInput) => ReadonlyArray<SceneEvent>;
 };
 
 // @public (undocumented)
@@ -3961,19 +4007,15 @@ declare namespace SceneSchema {
         Modifiers_2 as Modifiers,
         Gesture_2 as Gesture,
         CollisionDetail,
+        XrStickDetail,
+        XrButtonDetail,
+        XrSurfaceDetail,
         MeasuredDetail,
         GestureDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError
     }
 }
-
-// @public
-export type SelectInput = {
-    readonly _tag: 'SelectStart' | 'SelectEnd';
-    readonly source: number;
-    readonly ray: Ray;
-};
 
 // @public
 export const shaderGrid: (options: {
@@ -4419,6 +4461,9 @@ const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
 }>]>;
 
 // @public
+export const teleport: (settings: Xr, point: Vec3) => Xr;
+
+// @public
 export const text: (options: {
     readonly text: string;
     readonly font: string;
@@ -4651,6 +4696,8 @@ export type Xr = {
     readonly heading: number;
     readonly referenceSpace: 'local-floor' | 'local' | 'bounded-floor';
     readonly framebufferScale: number;
+    readonly hitTest: boolean;
+    readonly showInputs: boolean;
 };
 
 // @public
@@ -4662,10 +4709,80 @@ const Xr_2: Schema.Struct<{
     readonly heading: Schema.Finite;
     readonly referenceSpace: Schema.Literals<readonly ["local-floor", "local", "bounded-floor"]>;
     readonly framebufferScale: Schema.Finite;
+    readonly hitTest: Schema.Boolean;
+    readonly showInputs: Schema.Boolean;
 }>;
 
 // @public
+const XrButtonDetail: Schema.Struct<{
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly button: Schema.Literals<readonly ["trigger", "squeeze", "touchpad", "thumbstick", "primary", "secondary"]>;
+    readonly pressed: Schema.Boolean;
+}>;
+
+// @public
+export type XrButtonName = 'trigger' | 'squeeze' | 'touchpad' | 'thumbstick' | 'primary' | 'secondary';
+
+// @public
 export const xrEquals: (a: Xr | null, b: Xr | null) => boolean;
+
+// @public
+export type XrHand = 'left' | 'right' | 'none';
+
+// @public
+export type XrInput =
+/** A select (the trigger, or a pinch) beginning or ending, along the source's ray. */
+    {
+    readonly _tag: 'SelectStart' | 'SelectEnd';
+    readonly source: number;
+    readonly ray: Ray;
+}
+/** Where the source points this frame. */
+| {
+    readonly _tag: 'Aim';
+    readonly source: number;
+    readonly ray: Ray;
+}
+/** The source went away (put down, or the session ended). */
+| {
+    readonly _tag: 'Lost';
+    readonly source: number;
+} | {
+    readonly _tag: 'Stick';
+    readonly source: number;
+    readonly hand: XrHand;
+    readonly direction: XrStickDirection;
+} | {
+    readonly _tag: 'Button';
+    readonly source: number;
+    readonly hand: XrHand;
+    readonly button: XrButtonName;
+    readonly pressed: boolean;
+}
+/** In AR, a select whose ray met a real surface: where, and the surface's normal. */
+| {
+    readonly _tag: 'Surface';
+    readonly source: number;
+    readonly hand: XrHand;
+    readonly point: Vec3;
+    readonly normal: Vec3;
+};
+
+// @public
+const XrStickDetail: Schema.Struct<{
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
+}>;
+
+// @public
+export type XrStickDirection = 'center' | 'left' | 'right' | 'forward' | 'back';
+
+// @public
+const XrSurfaceDetail: Schema.Struct<{
+    readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
+    readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
 
 // (No @packageDocumentation comment for this package)
 

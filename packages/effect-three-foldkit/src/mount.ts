@@ -117,7 +117,8 @@ const xrRegistration = (mounted: Mounted) => () =>
       gate: mounted.gate,
       settings: mounted.handle.graph.xr,
       draw: mounted.handle.drawNow,
-      select: mounted.handle.select,
+      scene: mounted.handle.graph.scene,
+      input: mounted.handle.xrInput,
     }),
   );
 

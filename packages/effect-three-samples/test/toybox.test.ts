@@ -106,3 +106,15 @@ test('bumps count collisions that begin, leaving out marbles', () => {
   ].reduce<Model>(step, start);
   expect(bumped.bumps).toBe(1);
 });
+
+test('in VR, the right stick snap-turns the player and the left steps them forward', () => {
+  const turned = step(start, Message.PushedStick({ stick: { hand: 'right', direction: 'right' } }));
+  expect(turned.player.heading).toBeCloseTo(-Math.PI / 4, 9);
+  const stepped = step(
+    start,
+    Message.PushedStick({ stick: { hand: 'left', direction: 'forward' } }),
+  );
+  // Facing the tray (−z) from z = 4.2: a step brings the player a metre closer.
+  expect(stepped.player.origin[2]).toBeCloseTo(3.2, 9);
+  expect(sceneFor(stepped).xr?.origin[2]).toBeCloseTo(3.2, 9);
+});

@@ -336,6 +336,8 @@ const sceneFields = {
       heading: Schema.Literals([0, 1]),
       referenceSpace: Schema.Literals(['local-floor', 'local']),
       framebufferScale: Schema.Literals([1]),
+      hitTest: Schema.Boolean,
+      showInputs: Schema.Boolean,
     }),
   ),
   physics: Schema.NullOr(

@@ -4,13 +4,13 @@
  *
  * @module
  */
-import type { SelectInput, Xr } from '@opsydyn/effect-three';
+import type { Xr, XrInput } from '@opsydyn/effect-three';
+import type { Object3D } from 'three';
 
 import { webglRendererOf } from './webgl.ts';
-import { type Presentation, present, sessionInit, type XrSystem } from './xr.ts';
+import { type Presentation, present, sessionInit, type XrMode, type XrSystem } from './xr.ts';
 
-/** The immersive session modes. */
-export type XrMode = 'immersive-vr' | 'immersive-ar';
+export type { XrMode } from './xr.ts';
 
 /** A mounted scene that can be presented. */
 export type XrTarget = {
@@ -19,8 +19,10 @@ export type XrTarget = {
   readonly settings: () => Xr | null;
   /** Draws one frame now (the session calls it for each of its frames). */
   readonly draw: () => void;
-  /** A controller's select, along its ray in the scene. */
-  readonly select: (input: SelectInput) => void;
+  /** The scene's three.js root, where input sources are drawn while it presents. */
+  readonly scene: Object3D;
+  /** Input from the session: aims, selects, sticks, buttons and surfaces. */
+  readonly input: (input: XrInput) => void;
   /** The session began presenting this scene in `mode`, or (with `null`) ended. */
   readonly presenting: (mode: XrMode | null) => void;
 };
@@ -60,7 +62,7 @@ export const createXrHub = (system: () => XrSystem | undefined): XrHub => {
     if (chosen === undefined) throw new Error('no mounted scene describes xr');
     const renderer = webglRendererOf(chosen.target.canvas);
     if (renderer === undefined) throw new Error('the scene is not drawn with WebGL');
-    const session = await xr.requestSession(mode, sessionInit(chosen.settings));
+    const session = await xr.requestSession(mode, sessionInit(chosen.settings, mode));
     const { target } = chosen;
     // Each frame: follow the description (a new origin moves the player), then draw.
     const draw = (): void => {
@@ -76,8 +78,9 @@ export const createXrHub = (system: () => XrSystem | undefined): XrHub => {
       renderer,
       session,
       chosen.settings,
+      target.scene,
       draw,
-      target.select,
+      target.input,
       ended,
     );
     current = { target, presentation };

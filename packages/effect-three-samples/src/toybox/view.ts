@@ -40,6 +40,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
             Message.Bumped({ started, marble: aInstance !== undefined || bInstance !== undefined }),
           onGesture: (gesture) => Message.MadeGesture({ gesture }),
           onXRSession: ({ mode }) => Message.ChangedVrSession({ presenting: mode !== null }),
+          onXRStick: (stick) => Message.PushedStick({ stick }),
         },
         h,
       ),

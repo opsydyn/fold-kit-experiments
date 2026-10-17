@@ -16,6 +16,7 @@ import { type Object3D, Raycaster, Vector2, Vector3 } from 'three';
 
 import type { Gestures, Vec3 } from './description.ts';
 import type { SceneGraph } from './sceneGraph.ts';
+import type { XrButtonName, XrHand, XrStickDirection } from './xrInput.ts';
 
 /** Modifier keys held during an input, as on `MouseEvent`. */
 export type Modifiers = {
@@ -208,6 +209,22 @@ export type SceneEvent =
     }
   /** A drag, wheel or pinch on the canvas, when the scene claims gestures. */
   | { readonly _tag: 'Gesture'; readonly gesture: Gesture }
+  /** In an immersive session, a thumbstick pushed past halfway in a direction, or let back. */
+  | { readonly _tag: 'XrStick'; readonly hand: XrHand; readonly direction: XrStickDirection }
+  /** In an immersive session, a controller button pressed or released. */
+  | {
+      readonly _tag: 'XrButton';
+      readonly hand: XrHand;
+      readonly button: XrButtonName;
+      readonly pressed: boolean;
+    }
+  /** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
+  | {
+      readonly _tag: 'XrSurface';
+      readonly hand: XrHand;
+      readonly point: Vec3;
+      readonly normal: Vec3;
+    }
   /**
    * Two bodies began (`started`) or stopped touching, by their nodes' keys (and, for a body
    * on an instance, the instance's): Rapier's collision events, as react-three-rapier's
@@ -694,37 +711,4 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
   };
 
   return { input, frame };
-};
-
-/**
- * An XR controller's select (its trigger, or a pinch) beginning or ending, along its
- * world-space target ray. `source` tells controllers apart.
- */
-export type SelectInput = {
-  readonly _tag: 'SelectStart' | 'SelectEnd';
-  readonly source: number;
-  readonly ray: Ray;
-};
-
-/**
- * Turns controller selects into the scene's pointer vocabulary, as `@react-three/xr`'s
- * pointers do (pmndrs/xr at `0e1acd8`): a select starting on a mesh is its `PointerDown`,
- * ending on it its `PointerUp`, and ending on the mesh it started on a `Click` (button 0).
- * A select that starts and ends on nothing is a `PointerMissed`.
- */
-export const createSelectTracker = (picker: Picker) => {
-  const pressed = new Map<number, string | undefined>();
-  return (input: SelectInput): ReadonlyArray<SceneEvent> => {
-    const hit = picker.pickRay(input.ray);
-    if (input._tag === 'SelectStart') {
-      pressed.set(input.source, hit?.key);
-      return hit === undefined ? none : [{ _tag: 'PointerDown', button: 0, ...hit }];
-    }
-    const from = pressed.get(input.source);
-    pressed.delete(input.source);
-    if (hit === undefined)
-      return from === undefined ? [{ _tag: 'PointerMissed', button: 0 }] : none;
-    const released: SceneEvent = { _tag: 'PointerUp', button: 0, ...hit };
-    return from === hit.key ? [released, { _tag: 'Click', button: 0, ...hit }] : [released];
-  };
 };

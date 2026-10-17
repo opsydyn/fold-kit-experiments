@@ -606,13 +606,16 @@ export const springJoint = (options: {
 
 /**
  * Immersive presentation for a scene. Defaults: the player at the scene's origin facing
- * −z, `local-floor` (as pmndrs/xr), the device's framebuffer scale.
+ * −z, `local-floor` (as pmndrs/xr), the device's framebuffer scale, inputs drawn (rays
+ * and hand joints, where pmndrs/xr draws controller and hand models), no AR hit tests.
  */
 export const xr = (options: Partial<Xr> = {}): Xr => ({
   origin: options.origin ?? origin,
   heading: options.heading ?? 0,
   referenceSpace: options.referenceSpace ?? 'local-floor',
   framebufferScale: options.framebufferScale ?? 1,
+  hitTest: options.hitTest ?? false,
+  showInputs: options.showInputs ?? true,
 });
 
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */

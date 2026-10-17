@@ -36,6 +36,7 @@ export {
   circle,
   xr,
   physics,
+  shaderGrid,
   label,
   bodyRef,
   joint,
@@ -166,7 +167,21 @@ export {
 } from './physics.ts';
 export type { BodyCollision } from './bodies.ts';
 export type { HostedLabel, LabelEngine } from './labels.ts';
-export { type Stage, stage, type StageLighting, type StagePreset, stagePresets } from './stage.ts';
+export {
+  type EnvironmentPreset,
+  environmentPresets,
+  environmentPresetUrl,
+} from './environmentPresets.ts';
+export {
+  type CenterAlign,
+  centerOffset,
+  type Stage,
+  stage,
+  stageBounds,
+  type StageLighting,
+  type StagePreset,
+  stagePresets,
+} from './stage.ts';
 export { createSceneLoop, type SceneLoop, type SceneLoopOptions } from './loop.ts';
 export {
   createPicker,

@@ -29,6 +29,7 @@ import {
   bodyEquals,
   geometryRefEquals,
   labelTypeEquals,
+  shaderGridLookEquals,
   instancesEqual,
   materialRefEquals,
   resourcesEqual,
@@ -75,7 +76,9 @@ export type Field =
   | 'centerColor'
   | 'body'
   /** A label's text or any of its type settings. */
-  | 'text';
+  | 'text'
+  /** A shader grid's look: anything but where it is. */
+  | 'grid';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -222,6 +225,13 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (!Object.is(prev.shadowMapSize, next.shadowMapSize)) fields.push('shadowMapSize');
       if (!Object.is(prev.shadowBias, next.shadowBias)) fields.push('shadowBias');
+      return fields;
+    }
+    case 'ShaderGrid': {
+      if (prev._tag !== 'ShaderGrid') return undefined;
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!vec3Equals(prev.rotation, next.rotation)) fields.push('rotation');
+      if (!shaderGridLookEquals(prev, next)) fields.push('grid');
       return fields;
     }
     case 'Grid': {

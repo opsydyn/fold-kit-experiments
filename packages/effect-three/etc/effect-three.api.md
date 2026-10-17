@@ -399,6 +399,22 @@ const CapsuleGeometry_2: Schema.TaggedStruct<"Capsule", {
 }>;
 
 // @public
+export type CenterAlign = {
+    readonly top?: boolean;
+    readonly bottom?: boolean;
+    readonly left?: boolean;
+    readonly right?: boolean;
+    readonly front?: boolean;
+    readonly back?: boolean;
+    readonly disableX?: boolean;
+    readonly disableY?: boolean;
+    readonly disableZ?: boolean;
+};
+
+// @public
+export const centerOffset: (box: Box, align?: CenterAlign) => Vec3;
+
+// @public
 export const changedFields: (prev: SceneNode, next: SceneNode) => ReadonlyArray<Field> | undefined;
 
 // @public
@@ -831,10 +847,32 @@ const Environment_2: Schema.Struct<{
 // @public
 export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
 
+// @public (undocumented)
+export type EnvironmentPreset = keyof typeof environmentPresets;
+
+// @public
+export const environmentPresets: {
+    apartment: string;
+    city: string;
+    dawn: string;
+    forest: string;
+    lobby: string;
+    night: string;
+    park: string;
+    studio: string;
+    sunset: string;
+    warehouse: string;
+};
+
+// @public
+export const environmentPresetUrl: (preset: EnvironmentPreset) => string;
+
 // @public
 export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body'
 /** A label's text or any of its type settings. */
-| 'text';
+| 'text'
+/** A shader grid's look: anything but where it is. */
+| 'grid';
 
 // @public
 export const film: (options?: {
@@ -3810,7 +3848,7 @@ export type SceneLoopOptions = {
 };
 
 // @public
-export type SceneNode = GridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
+export type SceneNode = GridNode | ShaderGridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
 
 // @public
 const SceneNode_2: Schema.Codec<SceneNode>;
@@ -3895,6 +3933,7 @@ declare namespace SceneSchema {
         PointLightNode_2 as PointLightNode,
         SpotLightNode_2 as SpotLightNode,
         GridNode_2 as GridNode,
+        ShaderGridNode_2 as ShaderGridNode,
         HemisphereLightNode_2 as HemisphereLightNode,
         SceneNode_2 as SceneNode,
         PerspectiveCamera_3 as PerspectiveCamera,
@@ -3935,6 +3974,67 @@ export type SelectInput = {
     readonly source: number;
     readonly ray: Ray;
 };
+
+// @public
+export const shaderGrid: (options: {
+    readonly key: string;
+    readonly position?: Vec3;
+    readonly rotation?: Vec3;
+    readonly size?: readonly [width: number, height: number];
+    readonly cellSize?: number;
+    readonly cellThickness?: number;
+    readonly cellColor?: Rgb;
+    readonly sectionSize?: number;
+    readonly sectionThickness?: number;
+    readonly sectionColor?: Rgb;
+    readonly infinite?: boolean;
+    readonly followCamera?: boolean;
+    readonly fadeDistance?: number;
+    readonly fadeStrength?: number;
+    readonly fadeFrom?: number;
+    readonly side?: MaterialSide;
+}) => ShaderGridNode;
+
+// @public
+export type ShaderGridNode = {
+    readonly _tag: 'ShaderGrid';
+    readonly key: string;
+    readonly position: Vec3;
+    readonly rotation: Vec3;
+    readonly size: readonly [width: number, height: number];
+    readonly cellSize: number;
+    readonly cellThickness: number;
+    readonly cellColor: Rgb;
+    readonly sectionSize: number;
+    readonly sectionThickness: number;
+    readonly sectionColor: Rgb;
+    readonly infinite: boolean;
+    readonly followCamera: boolean;
+    readonly fadeDistance: number;
+    readonly fadeStrength: number;
+    readonly fadeFrom: number;
+    readonly side: MaterialSide;
+};
+
+// @public
+const ShaderGridNode_2: Schema.TaggedStruct<"ShaderGrid", {
+    readonly key: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly size: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly cellSize: Schema.Finite;
+    readonly cellThickness: Schema.Finite;
+    readonly cellColor: Schema.Int;
+    readonly sectionSize: Schema.Finite;
+    readonly sectionThickness: Schema.Finite;
+    readonly sectionColor: Schema.Int;
+    readonly infinite: Schema.Boolean;
+    readonly followCamera: Schema.Boolean;
+    readonly fadeDistance: Schema.Finite;
+    readonly fadeStrength: Schema.Finite;
+    readonly fadeFrom: Schema.Finite;
+    readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+}>;
 
 // @public
 export type ShadowMaterial = {
@@ -4164,6 +4264,14 @@ export const stage: (options: {
     readonly environment?: Environment | null;
     readonly keyPrefix?: string;
 }) => Stage;
+
+// @public
+export const stageBounds: (box: Box) => {
+    readonly radius: number;
+    readonly width: number;
+    readonly height: number;
+    readonly depth: number;
+};
 
 // @public
 export type StageLighting = {

@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
 
 import { label } from '@opsydyn/effect-three';
-import { Text } from 'troika-three-text';
+// Its ES build, as bundlers pick it (`module`): Bun would load the UMD `main`, whose
+// `require('three')` can meet three's ES build mid-load.
+import { Text } from 'troika-three-text/dist/troika-three-text.esm.js';
 
 import { troikaLabels } from '../src/index.ts';
 

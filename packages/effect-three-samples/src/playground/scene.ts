@@ -3,7 +3,7 @@
  * reordering produces position updates plus one Order; moving a cube between shelves keeps
  * its three.js object (a Move, not a remove and re-create). Every cube eases to its new
  * place, so the Model stays the target while the scene shows the journey. They stand on
- * a grid under a daylight sky whose sun is the scene's directional light.
+ * Drei's fading grid under a daylight sky whose sun is the scene's directional light.
  */
 import {
   ambientLight,
@@ -12,7 +12,7 @@ import {
   directionalLight,
   ease,
   fixed,
-  grid,
+  shaderGrid,
   group,
   mesh,
   perspectiveCamera,
@@ -89,13 +89,16 @@ export const sceneFor = (model: Model) =>
     children: [
       ambientLight({ key: 'ambient', intensity: 0.55 }),
       directionalLight({ key: 'sun', intensity: 2, position: sun }),
-      grid({
+      shaderGrid({
         key: 'floor',
         position: [0, -1.18, 0],
-        size: 14,
-        divisions: 28,
-        color: 0xb9c2d0,
-        centerColor: 0x8a94a6,
+        infinite: true,
+        cellSize: 0.5,
+        cellColor: 0xb9c2d0,
+        sectionSize: 2,
+        sectionColor: 0x8a94a6,
+        fadeDistance: 18,
+        fadeStrength: 1.5,
       }),
       shelf(model, 'left-shelf', -2.2, model.left),
       shelf(model, 'right-shelf', 2.2, model.right),

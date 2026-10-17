@@ -467,6 +467,26 @@ export const GridNode = Schema.TaggedStruct('Grid', {
   centerColor: Rgb,
 });
 
+/** Drei's shader grid. */
+export const ShaderGridNode = Schema.TaggedStruct('ShaderGrid', {
+  key: Schema.String,
+  position: Vec3,
+  rotation: Vec3,
+  size: Schema.Tuple([Positive, Positive]),
+  cellSize: Positive,
+  cellThickness: NonNegative,
+  cellColor: Rgb,
+  sectionSize: Positive,
+  sectionThickness: NonNegative,
+  sectionColor: Rgb,
+  infinite: Schema.Boolean,
+  followCamera: Schema.Boolean,
+  fadeDistance: Positive,
+  fadeStrength: NonNegative,
+  fadeFrom: Schema.Finite,
+  side: Schema.Literals(['front', 'back', 'double']),
+});
+
 export const HemisphereLightNode = Schema.TaggedStruct('HemisphereLight', {
   key: Schema.String,
   color: Rgb,
@@ -492,6 +512,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
   InstancesNode,
   BorrowedNode,
   LabelNode,
+  ShaderGridNode,
   AmbientLightNode,
   DirectionalLightNode,
   PointLightNode,

@@ -23,6 +23,8 @@ import type {
   LabelAnchorX,
   LabelAnchorY,
   LabelNode,
+  MaterialSide,
+  ShaderGridNode,
   TextAlign,
   TextBevel,
   TextGeometry,
@@ -396,6 +398,48 @@ export const grid = (options: {
   divisions: options.divisions ?? 10,
   color: options.color ?? 0x888888,
   centerColor: options.centerColor ?? 0x444444,
+});
+
+/**
+ * Drei's `Grid`, with its defaults: a 1 × 1 plane (pass `size`, or `infinite`), cells 0.5
+ * apart in black at thickness 0.5, sections 1 apart in `#2080ff` at thickness 1, fading
+ * over 100 units from the camera at strength 1, drawn on the back side.
+ */
+export const shaderGrid = (options: {
+  readonly key: string;
+  readonly position?: Vec3;
+  readonly rotation?: Vec3;
+  readonly size?: readonly [width: number, height: number];
+  readonly cellSize?: number;
+  readonly cellThickness?: number;
+  readonly cellColor?: Rgb;
+  readonly sectionSize?: number;
+  readonly sectionThickness?: number;
+  readonly sectionColor?: Rgb;
+  readonly infinite?: boolean;
+  readonly followCamera?: boolean;
+  readonly fadeDistance?: number;
+  readonly fadeStrength?: number;
+  readonly fadeFrom?: number;
+  readonly side?: MaterialSide;
+}): ShaderGridNode => ({
+  _tag: 'ShaderGrid',
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? origin,
+  size: options.size ?? [1, 1],
+  cellSize: options.cellSize ?? 0.5,
+  cellThickness: options.cellThickness ?? 0.5,
+  cellColor: options.cellColor ?? 0x000000,
+  sectionSize: options.sectionSize ?? 1,
+  sectionThickness: options.sectionThickness ?? 1,
+  sectionColor: options.sectionColor ?? 0x2080ff,
+  infinite: options.infinite ?? false,
+  followCamera: options.followCamera ?? false,
+  fadeDistance: options.fadeDistance ?? 100,
+  fadeStrength: options.fadeStrength ?? 1,
+  fadeFrom: options.fadeFrom ?? 1,
+  side: options.side ?? 'back',
 });
 
 /** A reference to a shared geometry defined in the scene's resources. */

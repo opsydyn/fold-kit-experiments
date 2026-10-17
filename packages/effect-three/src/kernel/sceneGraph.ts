@@ -43,6 +43,7 @@ import type {
   Instance,
   InstancesNode,
   LabelNode,
+  ShaderGridNode,
   MeshNode,
   Camera as CameraDescription,
   PointLightNode,
@@ -83,6 +84,12 @@ import {
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
+import {
+  createShaderGrid,
+  disposeShaderGrid,
+  type HostShaderGrid,
+  updateShaderGrid,
+} from './shaderGrid.ts';
 import { applyTween, startTween, type Tween } from './tween.ts';
 
 /** The mesh type the kernel hosts. */
@@ -123,6 +130,7 @@ type Entry =
       readonly object: Group;
       helper: GridHelper;
     }
+  | { readonly _tag: 'ShaderGrid'; node: ShaderGridNode; readonly object: HostShaderGrid }
   | {
       readonly _tag: 'HemisphereLight';
       node: HemisphereLightNode;
@@ -643,6 +651,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         return { _tag: 'Grid', node, object, helper };
       }
+      case 'ShaderGrid':
+        return { _tag: 'ShaderGrid', node, object: createShaderGrid(node) };
       case 'HemisphereLight': {
         const object = new HemisphereLight();
         writeHemisphereLight(object, node);
@@ -804,6 +814,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'Instances') entry.object.dispose();
     // A grid's lines are its own.
     if (entry._tag === 'Grid') disposeGridLines(entry.helper);
+    if (entry._tag === 'ShaderGrid') disposeShaderGrid(entry.object);
     if (entry._tag === 'Label') entry.hosted?.dispose();
     // A borrowed object belongs to the application: detach it, never dispose it.
     if (entry._tag === 'Borrowed') {
@@ -963,6 +974,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
     if (entry._tag === 'HemisphereLight' && next._tag === 'HemisphereLight') {
       writeHemisphereLight(entry.object, next);
+      entry.node = next;
+      return;
+    }
+    if (entry._tag === 'ShaderGrid' && next._tag === 'ShaderGrid') {
+      updateShaderGrid(entry.object, entry.node, next);
       entry.node = next;
       return;
     }

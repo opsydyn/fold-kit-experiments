@@ -15,6 +15,7 @@ import type {
   JointKind,
   JointLimits,
   LabelNode,
+  ShaderGridNode,
   MaterialRef,
   Overlay,
   Physics,
@@ -434,6 +435,23 @@ export const labelTypeEquals = (a: LabelNode, b: LabelNode): boolean =>
   a.outlineColor === b.outlineColor &&
   Object.is(a.outlineOpacity, b.outlineOpacity) &&
   Object.is(a.outlineBlur, b.outlineBlur);
+
+/** Shader grid equality, apart from its position and rotation. */
+export const shaderGridLookEquals = (a: ShaderGridNode, b: ShaderGridNode): boolean =>
+  Object.is(a.size[0], b.size[0]) &&
+  Object.is(a.size[1], b.size[1]) &&
+  Object.is(a.cellSize, b.cellSize) &&
+  Object.is(a.cellThickness, b.cellThickness) &&
+  a.cellColor === b.cellColor &&
+  Object.is(a.sectionSize, b.sectionSize) &&
+  Object.is(a.sectionThickness, b.sectionThickness) &&
+  a.sectionColor === b.sectionColor &&
+  a.infinite === b.infinite &&
+  a.followCamera === b.followCamera &&
+  Object.is(a.fadeDistance, b.fadeDistance) &&
+  Object.is(a.fadeStrength, b.fadeStrength) &&
+  Object.is(a.fadeFrom, b.fadeFrom) &&
+  a.side === b.side;
 
 /** Physics world equality. */
 export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>

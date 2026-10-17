@@ -114,6 +114,8 @@ export const perturb = (node: SceneNode): { readonly node: SceneNode; readonly f
       return { node: { ...node, intensity: node.intensity + 1 }, field: 'intensity' };
     case 'Grid':
       return { node: { ...node, size: node.size + 1 }, field: 'size' };
+    case 'ShaderGrid':
+      return { node: { ...node, cellSize: node.cellSize + 1 }, field: 'grid' };
   }
 };
 

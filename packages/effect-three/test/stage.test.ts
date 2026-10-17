@@ -1,13 +1,21 @@
 import { expect, test } from 'bun:test';
 
+import { Box3, Group } from 'three';
+
 import {
+  basic,
   box,
+  centerOffset,
   createSceneGraph,
+  environmentPresets,
+  environmentPresetUrl,
   mesh,
   scene,
   stage,
+  stageBounds,
   stagePresets,
   standard,
+  type Vec3,
 } from '../src/kernel/index.ts';
 
 test('a stage lights as Drei’s Stage does, scaled by the content’s radius', () => {
@@ -59,4 +67,47 @@ test('a stage spreads into a valid scene', () => {
   );
   expect(result._tag).toBe('Applied');
   graph.dispose();
+});
+
+test('centerOffset is Drei’s Center: the middle to the origin, or a side, per axis', () => {
+  const box = { min: [1, 2, 3], max: [3, 6, 7] } as const;
+  expect(centerOffset(box)).toEqual([-2, -4, -5]);
+  // `top` stands it on y = 0; `left` puts its right side at x = 0; `front`, its back at z = 0.
+  expect(centerOffset(box, { top: true, left: true, front: true })).toEqual([-3, -2, -3]);
+  expect(centerOffset(box, { bottom: true, right: true, back: true })).toEqual([-1, -6, -7]);
+  expect(centerOffset(box, { disableX: true, disableY: true, disableZ: true })).toEqual([0, 0, 0]);
+  // Stage's sizes: the bounding sphere's radius is half the diagonal.
+  expect(stageBounds(box)).toEqual({ radius: 3, width: 2, height: 4, depth: 4 });
+});
+
+test('content placed at its centre offset sits centred on the origin, or on the floor', () => {
+  const graph = createSceneGraph();
+  const model = (position: Vec3) =>
+    scene({
+      children: [
+        mesh({
+          key: 'model',
+          position,
+          geometry: box({ width: 2, height: 4, depth: 1 }),
+          material: basic(),
+        }),
+      ],
+    });
+  // Measured where it is drawn at no offset: a box around its own geometry.
+  graph.reconcile(model([0, 0, 0]));
+  const measured = new Box3().setFromObject(graph.object('model') ?? new Group());
+  const toBox = (b: Box3) => ({ min: b.min.toArray(), max: b.max.toArray() });
+  graph.reconcile(model(centerOffset(toBox(measured), { top: true })));
+  graph.scene.updateMatrixWorld();
+  const placed = new Box3().setFromObject(graph.object('model') ?? new Group());
+  expect(placed.min.toArray()).toEqual([-1, 0, -0.5]);
+  expect(placed.max.toArray()).toEqual([1, 4, 0.5]);
+  graph.dispose();
+});
+
+test('environment presets are Drei’s files at the asset commit Drei pins', () => {
+  expect(Object.keys(environmentPresets)).toHaveLength(10);
+  expect(environmentPresetUrl('city')).toBe(
+    'https://raw.githack.com/pmndrs/drei-assets/456060a26bbeb8fdf79326f224b6d99b8bcce736/hdri/potsdamer_platz_1k.hdr',
+  );
 });

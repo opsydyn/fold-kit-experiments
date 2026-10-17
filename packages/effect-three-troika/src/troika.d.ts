@@ -3,7 +3,7 @@
  * from JSDoc, in `dist/types`) are not named by its `package.json` and do not declare
  * `Text` a `Mesh`, which it is.
  */
-declare module 'troika-three-text' {
+declare module 'troika-three-text/dist/troika-three-text.esm.js' {
   import type { Mesh } from 'three';
 
   export class Text extends Mesh {

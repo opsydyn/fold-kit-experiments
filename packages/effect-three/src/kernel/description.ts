@@ -676,9 +676,37 @@ export type GridNode = {
   readonly centerColor: Rgb;
 };
 
+/**
+ * Drei's `Grid`: a plane whose shader draws cell lines and section lines on the XZ plane,
+ * fading with distance from the camera's foot on it. `size` is the plane's
+ * `[width, height]`; `infinite` stretches it as far as the fade reaches, and
+ * `followCamera` slides it under the camera. `fadeFrom` 1 fades from the camera, 0 from
+ * the grid's origin. Its rotation is fixed Euler angles.
+ */
+export type ShaderGridNode = {
+  readonly _tag: 'ShaderGrid';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly rotation: Vec3;
+  readonly size: readonly [width: number, height: number];
+  readonly cellSize: number;
+  readonly cellThickness: number;
+  readonly cellColor: Rgb;
+  readonly sectionSize: number;
+  readonly sectionThickness: number;
+  readonly sectionColor: Rgb;
+  readonly infinite: boolean;
+  readonly followCamera: boolean;
+  readonly fadeDistance: number;
+  readonly fadeStrength: number;
+  readonly fadeFrom: number;
+  readonly side: MaterialSide;
+};
+
 /** Any node in a scene. Keys are unique across the whole scene. */
 export type SceneNode =
   | GridNode
+  | ShaderGridNode
   | GroupNode
   | MeshNode
   | InstancesNode

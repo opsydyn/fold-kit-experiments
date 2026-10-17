@@ -1,0 +1,14 @@
+---
+import SampleApp from '../../apps/effect-three-toybox/app';
+import * as barStyles from '../../apps/bar/bar.css';
+import Layout from '../../layouts/Layout.astro';
+import * as layoutStyles from '../../layouts/layout.css';
+---
+
+<Layout title="Toybox: physics, joints and VR — effect-three">
+  <h1 class={layoutStyles.heading}>Toybox: physics, joints and VR</h1>
+  <p><a href="/effect-three">← All effect-three samples</a></p>
+  <div class={barStyles.card} style="max-width:880px">
+    <SampleApp client:load />
+  </div>
+</Layout>

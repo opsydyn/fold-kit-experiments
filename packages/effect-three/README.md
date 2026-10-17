@@ -163,7 +163,7 @@ Current benchmark results (Apple Silicon, 1,000 meshes):
 
 | Case                         | Median                 | Budget |
 | ---------------------------- | ---------------------- | ------ |
-| No-op reconcile              | ~120 µs                | 200 µs |
-| One changed property         | ~130 µs, 1 op          | 500 µs |
-| Runtime mount + unmount      | ~17 µs                 | 1 ms   |
-| Frame with one animated mesh | ~31 ns, no heap growth | 50 µs  |
+| No-op reconcile              | ~160 µs                | 200 µs |
+| One changed property         | ~165 µs, 1 op          | 500 µs |
+| Runtime mount + unmount      | ~22 µs                 | 1 ms   |
+| Frame with one animated mesh | ~55 ns, no heap growth | 50 µs  |

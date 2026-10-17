@@ -262,11 +262,46 @@ export const Body = Schema.Struct({
 });
 
 /** A physics world. */
+/** A body a joint holds: a node's, or one instance's. */
+export const BodyRef = Schema.Struct({
+  key: Schema.String,
+  instance: Schema.NullOr(Schema.String),
+});
+
+/** A joint's range of motion. */
+export const JointLimits = Schema.Tuple([Schema.Finite, Schema.Finite]);
+
+/** How a joint holds its bodies. */
+export const JointKind = Schema.Union([
+  Schema.TaggedStruct('Fixed', { frameA: Vec3, frameB: Vec3 }),
+  Schema.TaggedStruct('Spherical', {}),
+  Schema.TaggedStruct('Revolute', { axis: Vec3, limits: Schema.NullOr(JointLimits) }),
+  Schema.TaggedStruct('Prismatic', { axis: Vec3, limits: Schema.NullOr(JointLimits) }),
+  Schema.TaggedStruct('Rope', { length: Schema.Finite }),
+  Schema.TaggedStruct('Spring', {
+    restLength: Schema.Finite,
+    stiffness: Schema.Finite,
+    damping: Schema.Finite,
+  }),
+]);
+
+/** A joint between two bodies. */
+export const Joint = Schema.Struct({
+  key: Schema.String,
+  a: BodyRef,
+  b: BodyRef,
+  anchorA: Vec3,
+  anchorB: Vec3,
+  kind: JointKind,
+  contacts: Schema.Boolean,
+});
+
 export const Physics = Schema.Struct({
   gravity: Vec3,
   paused: Schema.Boolean,
   timeStep: Positive,
   interpolate: Schema.Boolean,
+  joints: Schema.Array(Joint),
 });
 
 export const MeshNode = Schema.TaggedStruct('Mesh', {
@@ -720,5 +755,7 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('UnknownOverlayNode', { key: Schema.String, node: Schema.String }),
   Schema.TaggedStruct('UnknownOverlayView', { key: Schema.String, view: Schema.String }),
   Schema.TaggedStruct('UnknownMeasuredNode', { key: Schema.String }),
+  Schema.TaggedStruct('DuplicateJointKey', { key: Schema.String }),
+  Schema.TaggedStruct('UnknownJointBody', { joint: Schema.String, body: Schema.String }),
   Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),
 ]);

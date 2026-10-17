@@ -298,6 +298,7 @@ const sceneFields = {
       paused: Schema.Boolean,
       timeStep: Schema.Literals([1 / 60]),
       interpolate: Schema.Boolean,
+      joints: Schema.Tuple([]),
     }),
   ),
   contactShadows: Schema.NullOr(

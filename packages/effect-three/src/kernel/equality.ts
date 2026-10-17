@@ -8,8 +8,12 @@ import type {
   Animation,
   Behave,
   Body,
+  BodyRef,
   GeometryRef,
   Instance,
+  Joint,
+  JointKind,
+  JointLimits,
   MaterialRef,
   Overlay,
   Physics,
@@ -360,6 +364,55 @@ export const bodyEquals = (a: Body | null, b: Body | null): boolean =>
         a.impulse.id === b.impulse.id &&
         vec3Equals(a.impulse.impulse, b.impulse.impulse))));
 
+const limitsEqual = (a: JointLimits | null, b: JointLimits | null): boolean =>
+  a === b || (a !== null && b !== null && Object.is(a[0], b[0]) && Object.is(a[1], b[1]));
+
+/** Joint kind equality. */
+const jointKindEquals = (a: JointKind, b: JointKind): boolean => {
+  switch (a._tag) {
+    case 'Fixed':
+      return b._tag === 'Fixed' && vec3Equals(a.frameA, b.frameA) && vec3Equals(a.frameB, b.frameB);
+    case 'Spherical':
+      return b._tag === 'Spherical';
+    case 'Revolute':
+    case 'Prismatic':
+      return b._tag === a._tag && vec3Equals(a.axis, b.axis) && limitsEqual(a.limits, b.limits);
+    case 'Rope':
+      return b._tag === 'Rope' && Object.is(a.length, b.length);
+    case 'Spring':
+      return (
+        b._tag === 'Spring' &&
+        Object.is(a.restLength, b.restLength) &&
+        Object.is(a.stiffness, b.stiffness) &&
+        Object.is(a.damping, b.damping)
+      );
+  }
+};
+
+const refEquals = (a: BodyRef, b: BodyRef): boolean => a.key === b.key && a.instance === b.instance;
+
+/** Joint equality. */
+export const jointEquals = (a: Joint, b: Joint): boolean =>
+  a === b ||
+  (a.key === b.key &&
+    refEquals(a.a, b.a) &&
+    refEquals(a.b, b.b) &&
+    vec3Equals(a.anchorA, b.anchorA) &&
+    vec3Equals(a.anchorB, b.anchorB) &&
+    jointKindEquals(a.kind, b.kind) &&
+    a.contacts === b.contacts);
+
+const jointsEqual = (a: ReadonlyArray<Joint>, b: ReadonlyArray<Joint>): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (x === undefined || y === undefined || !jointEquals(x, y)) return false;
+  }
+  return true;
+};
+
 /** Physics world equality. */
 export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
   a === b ||
@@ -368,7 +421,8 @@ export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
     vec3Equals(a.gravity, b.gravity) &&
     a.paused === b.paused &&
     Object.is(a.timeStep, b.timeStep) &&
-    a.interpolate === b.interpolate);
+    a.interpolate === b.interpolate &&
+    jointsEqual(a.joints, b.joints));
 
 /** Immersive presentation equality. */
 export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>

@@ -9,7 +9,9 @@ export const Message = defineMessageUnion({
   ClickedToy: { key: Schema.String, direction: Vec3 },
   ClickedDrop: {},
   ClickedTidy: {},
-  Bumped: {},
+  ClickedPour: {},
+  /** Two bodies began or stopped touching; `marble` if either was a marble. */
+  Bumped: { started: Schema.Boolean, marble: Schema.Boolean },
   MadeGesture: { gesture: SceneSchema.Gesture },
   CheckedVr: { supported: Schema.Boolean },
   ClickedEnterVr: {},

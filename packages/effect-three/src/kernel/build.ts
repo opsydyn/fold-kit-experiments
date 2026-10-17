@@ -23,6 +23,10 @@ import type {
   TextGeometry,
   Overlay,
   Physics,
+  BodyRef,
+  Joint,
+  JointKind,
+  JointLimits,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -465,16 +469,83 @@ export const body = (options: Partial<Body> = {}): Body => ({
   impulse: options.impulse ?? null,
 });
 
+const noJoints: ReadonlyArray<Joint> = [];
+
 /**
  * A physics world. Defaults as react-three-rapier's `Physics`: Earth gravity
- * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated.
+ * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated; no joints.
  */
 export const physics = (options: Partial<Physics> = {}): Physics => ({
   gravity: options.gravity ?? [0, -9.81, 0],
   paused: options.paused ?? false,
   timeStep: options.timeStep ?? 1 / 60,
   interpolate: options.interpolate ?? true,
+  joints: options.joints ?? noJoints,
 });
+
+/** A node's body (`instance` omitted), or one instance's of an instances node. */
+export const bodyRef = (key: string, instance: string | null = null): BodyRef => ({
+  key,
+  instance,
+});
+
+const refOf = (ref: string | BodyRef): BodyRef => (typeof ref === 'string' ? bodyRef(ref) : ref);
+
+/**
+ * A joint between two bodies, named by node key or `bodyRef`. Anchors default to each
+ * body's origin; the bodies still collide with each other unless `contacts` is false.
+ */
+export const joint = (options: {
+  readonly key: string;
+  readonly a: string | BodyRef;
+  readonly b: string | BodyRef;
+  readonly anchorA?: Vec3;
+  readonly anchorB?: Vec3;
+  readonly kind: JointKind;
+  readonly contacts?: boolean;
+}): Joint => ({
+  key: options.key,
+  a: refOf(options.a),
+  b: refOf(options.b),
+  anchorA: options.anchorA ?? origin,
+  anchorB: options.anchorB ?? origin,
+  kind: options.kind,
+  contacts: options.contacts ?? true,
+});
+
+/** Holds two bodies still relative to each other. Frames default to unturned. */
+export const fixedJoint = (
+  options: { readonly frameA?: Vec3; readonly frameB?: Vec3 } = {},
+): JointKind => ({
+  _tag: 'Fixed',
+  frameA: options.frameA ?? origin,
+  frameB: options.frameB ?? origin,
+});
+
+/** A ball and socket at the anchors. */
+export const sphericalJoint = (): JointKind => ({ _tag: 'Spherical' });
+
+/** A hinge about `axis` (each body's own), limited to `limits` radians if given. */
+export const revoluteJoint = (options: {
+  readonly axis: Vec3;
+  readonly limits?: JointLimits | null;
+}): JointKind => ({ _tag: 'Revolute', axis: options.axis, limits: options.limits ?? null });
+
+/** A slider along `axis`, limited to `limits` if given. */
+export const prismaticJoint = (options: {
+  readonly axis: Vec3;
+  readonly limits?: JointLimits | null;
+}): JointKind => ({ _tag: 'Prismatic', axis: options.axis, limits: options.limits ?? null });
+
+/** Keeps the anchors at most `length` apart. */
+export const ropeJoint = (length: number): JointKind => ({ _tag: 'Rope', length });
+
+/** Pulls the anchors towards `restLength` apart. */
+export const springJoint = (options: {
+  readonly restLength: number;
+  readonly stiffness: number;
+  readonly damping: number;
+}): JointKind => ({ _tag: 'Spring', ...options });
 
 /**
  * Immersive presentation for a scene. Defaults: the player at the scene's origin facing

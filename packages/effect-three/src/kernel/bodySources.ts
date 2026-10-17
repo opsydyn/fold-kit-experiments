@@ -25,6 +25,10 @@ import {
   collidersFor,
 } from './physics.ts';
 
+/** The id of a node's body (`instance` null) or an instance's, in the physics world. */
+export const bodyId = (key: string, instance: string | null): string =>
+  instance === null ? key : `${key}\u0000${instance}`;
+
 /** A node a body can sit on directly. */
 export type BodiedNode = MeshNode | GroupNode | BorrowedNode;
 
@@ -126,7 +130,7 @@ const instanceSource = (
   instance: Instance,
   slot: number,
 ): BodySource => ({
-  id: `${key}\u0000${instance.key}`,
+  id: bodyId(key, instance.key),
   key,
   instance: instance.key,
   body,

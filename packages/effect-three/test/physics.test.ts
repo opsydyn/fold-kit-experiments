@@ -1,28 +1,45 @@
 import { expect, test } from 'bun:test';
 
-import { BoxGeometry, Group, InstancedMesh, Matrix4, Mesh, SphereGeometry, Vector3 } from 'three';
+import {
+  BoxGeometry,
+  Euler,
+  Group,
+  InstancedMesh,
+  Matrix4,
+  Mesh,
+  Quaternion,
+  SphereGeometry,
+  Vector3,
+} from 'three';
 
 import {
   body,
+  bodyRef,
   borrowed,
   box,
   colliderFor,
   createSceneGraph,
   createSceneLoop,
   fixed,
+  fixedJoint,
   group,
   type Instance,
   instance,
   instances,
+  indexScene,
+  type Joint,
+  joint,
   type MeshNode,
   mesh,
   physics,
   recordingRendererFactory,
+  ropeJoint,
   scene,
   type SceneEvent,
   type SceneGraph,
   type SceneNode,
   sphere,
+  sphericalJoint,
   standard,
 } from '../src/kernel/index.ts';
 import { fakePhysics } from './support/fakePhysics.ts';
@@ -322,5 +339,112 @@ test('collisions name the instance as well as the node', () => {
     b: 'crate',
     started: true,
   });
+  graph.dispose();
+});
+
+const anchor = crate({ key: 'anchor', position: [0, 5, 0], body: body({ type: 'fixed' }) });
+const bob = crate({ key: 'bob', position: [2, 5, 0] });
+const hinge = (options: Partial<Parameters<typeof joint>[0]> = {}) =>
+  joint({
+    key: 'hinge',
+    a: 'anchor',
+    b: 'bob',
+    anchorB: [-2, 0, 0],
+    kind: sphericalJoint(),
+    ...options,
+  });
+const jointed = (
+  joints: ReadonlyArray<Joint>,
+  children: ReadonlyArray<SceneNode> = [anchor, bob],
+) => scene({ physics: physics({ joints }), children });
+
+test('a joint is made once both its bodies exist, and again when either is remade', () => {
+  const { graph, current } = setup();
+  graph.reconcile(jointed([hinge()]));
+  expect(current()?.calls).toEqual(['add anchor', 'add bob', 'join hinge']);
+  expect(current()?.joints.get('hinge')).toEqual({
+    joint: {
+      anchorA: [0, 0, 0],
+      anchorB: [-2, 0, 0],
+      contacts: true,
+      kind: { _tag: 'Spherical' },
+    },
+    a: 'anchor',
+    b: 'bob',
+  });
+  // The same description again: nothing. A new collider kind remakes `bob`, and the joint.
+  graph.reconcile(jointed([hinge()]));
+  expect(current()?.calls).toHaveLength(3);
+  graph.reconcile(
+    jointed(
+      [hinge()],
+      [anchor, crate({ key: 'bob', position: [2, 5, 0], body: body({ collider: 'ball' }) })],
+    ),
+  );
+  expect(current()?.calls.slice(3)).toEqual([
+    'remove bob',
+    'add bob',
+    'unjoin hinge',
+    'join hinge',
+  ]);
+
+  // A changed joint is remade; one whose body goes is dropped; one no longer described goes.
+  graph.reconcile(jointed([hinge({ kind: ropeJoint(3) })]));
+  expect(current()?.calls.slice(-2)).toEqual(['unjoin hinge', 'join hinge']);
+  graph.reconcile(
+    jointed([hinge()], [anchor, crate({ key: 'bob', position: [2, 5, 0], body: null })]),
+  );
+  expect(current()?.calls.slice(-2)).toEqual(['remove bob', 'unjoin hinge']);
+  graph.reconcile(jointed([hinge()]));
+  expect(current()?.calls.slice(-2)).toEqual(['add bob', 'join hinge']);
+  graph.reconcile(jointed([]));
+  expect(current()?.calls.at(-1)).toBe('unjoin hinge');
+  expect(current()?.calls.filter((call) => call === 'configure')).toEqual([]);
+  graph.dispose();
+});
+
+test('a fixed joint gets its frames as quaternions; joints can hold instances', () => {
+  const { graph, current } = setup();
+  const welded = joint({
+    key: 'weld',
+    a: 'anchor',
+    b: bodyRef('balls', 'b'),
+    kind: fixedJoint({ frameB: [0, Math.PI, 0] }),
+  });
+  graph.reconcile(jointed([welded], [anchor, balls([ball('a', 5), ball('b', 10)])]));
+  const made = current()?.joints.get('weld');
+  expect(made?.b).toBe('balls\u0000b');
+  const kind = made?.joint.kind;
+  expect(kind?._tag === 'Fixed' ? kind.frameB[1] : 0).toBeCloseTo(1, 9);
+  graph.dispose();
+});
+
+test('joints are validated: keys unique, bodies named in the scene', () => {
+  const graph = createSceneGraph();
+  expect(graph.reconcile(jointed([hinge(), hinge()]))._tag).toBe('Invalid');
+  expect(indexScene(jointed([hinge(), hinge()]))).toMatchObject({
+    _tag: 'Invalid',
+    error: { _tag: 'DuplicateJointKey', key: 'hinge' },
+  });
+  expect(indexScene(jointed([hinge({ b: 'ghost' })]))).toMatchObject({
+    _tag: 'Invalid',
+    error: { _tag: 'UnknownJointBody', joint: 'hinge', body: 'ghost' },
+  });
+  graph.dispose();
+});
+
+test('a body turned by the simulation keeps its colliders: rounding is not a reshape', () => {
+  const { graph, current } = setup();
+  const description = world([crate({ scale: [1.3, 1.3, 1.3] })]);
+  graph.reconcile(description);
+  graph.tick(0);
+  const held = current()?.bodies.get('crate');
+  if (held === undefined) throw new Error('no body');
+  // The simulation turns it; the description, and so a reconcile, says nothing new.
+  const turn = new Quaternion().setFromEuler(new Euler(0.3, 0.7, 1.1));
+  held.pose = { ...held.pose, quaternion: [turn.x, turn.y, turn.z, turn.w] };
+  for (let frame = 1; frame <= 10; frame++) graph.tick(frame / 60);
+  graph.reconcile(description);
+  expect(current()?.calls).toEqual(['add crate']);
   graph.dispose();
 });

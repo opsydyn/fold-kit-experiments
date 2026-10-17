@@ -208,6 +208,21 @@ export type BodyPose = {
 };
 
 // @public
+export type BodyRef = {
+    readonly key: string;
+    readonly instance: string | null;
+};
+
+// @public
+export const bodyRef: (key: string, instance?: string | null) => BodyRef;
+
+// @public
+const BodyRef_2: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly instance: Schema.NullOr<Schema.String>;
+}>;
+
+// @public
 export type BodyType = 'dynamic' | 'fixed' | 'kinematic';
 
 // @public
@@ -647,6 +662,17 @@ export type DescriptionError = {
 } | {
     readonly _tag: 'UnknownMeasuredNode';
     readonly key: string;
+}
+/** Two joints share a key. */
+| {
+    readonly _tag: 'DuplicateJointKey';
+    readonly key: string;
+}
+/** A joint names a node that is not in the scene. */
+| {
+    readonly _tag: 'UnknownJointBody';
+    readonly joint: string;
+    readonly body: string;
 };
 
 // @public
@@ -679,6 +705,11 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
     readonly view: Schema.String;
 }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateJointKey", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownJointBody", {
+    readonly joint: Schema.String;
+    readonly body: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
     readonly id: Schema.String;
 }>]>;
@@ -817,6 +848,12 @@ export const fitCamera: (camera: Camera, box: Box, area: {
 
 // @public
 export const fixed: (euler: Vec3) => Rotation;
+
+// @public
+export const fixedJoint: (options?: {
+    readonly frameA?: Vec3;
+    readonly frameB?: Vec3;
+}) => JointKind;
 
 // @public
 export const float: Behaviour;
@@ -1228,7 +1265,7 @@ export type IndexResult = {
     readonly error: DescriptionError;
 };
 
-// @public (undocumented)
+// @public
 export const indexScene: (description: SceneDescription, behaviours?: ReadonlySet<string>) => IndexResult;
 
 // @public
@@ -1473,6 +1510,121 @@ export class InvalidScene extends InvalidScene_base<{
     readonly error: DescriptionError;
 }> {
 }
+
+// @public
+export type Joint = {
+    readonly key: string;
+    readonly a: BodyRef;
+    readonly b: BodyRef;
+    readonly anchorA: Vec3;
+    readonly anchorB: Vec3;
+    readonly kind: JointKind;
+    readonly contacts: boolean;
+};
+
+// @public
+export const joint: (options: {
+    readonly key: string;
+    readonly a: string | BodyRef;
+    readonly b: string | BodyRef;
+    readonly anchorA?: Vec3;
+    readonly anchorB?: Vec3;
+    readonly kind: JointKind;
+    readonly contacts?: boolean;
+}) => Joint;
+
+// @public
+const Joint_2: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly a: Schema.Struct<{
+        readonly key: Schema.String;
+        readonly instance: Schema.NullOr<Schema.String>;
+    }>;
+    readonly b: Schema.Struct<{
+        readonly key: Schema.String;
+        readonly instance: Schema.NullOr<Schema.String>;
+    }>;
+    readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+        readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+        readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+    }>, Schema.TaggedStruct<"Prismatic", {
+        readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+    }>, Schema.TaggedStruct<"Rope", {
+        readonly length: Schema.Finite;
+    }>, Schema.TaggedStruct<"Spring", {
+        readonly restLength: Schema.Finite;
+        readonly stiffness: Schema.Finite;
+        readonly damping: Schema.Finite;
+    }>]>;
+    readonly contacts: Schema.Boolean;
+}>;
+
+// @public
+export type JointKind =
+/** No relative motion: each body's frame (Euler angles) at its anchor coincide. */
+    {
+    readonly _tag: 'Fixed';
+    readonly frameA: Vec3;
+    readonly frameB: Vec3;
+}
+/** The anchors coincide; any rotation about them (a ball and socket). */
+| {
+    readonly _tag: 'Spherical';
+}
+/** The anchors coincide; rotation about `axis` only (a hinge). */
+| {
+    readonly _tag: 'Revolute';
+    readonly axis: Vec3;
+    readonly limits: JointLimits | null;
+}
+/** Sliding along `axis` only. */
+| {
+    readonly _tag: 'Prismatic';
+    readonly axis: Vec3;
+    readonly limits: JointLimits | null;
+}
+/** The anchors at most `length` apart. */
+| {
+    readonly _tag: 'Rope';
+    readonly length: number;
+}
+/** A force pulling the anchors towards `restLength` apart. */
+| {
+    readonly _tag: 'Spring';
+    readonly restLength: number;
+    readonly stiffness: number;
+    readonly damping: number;
+};
+
+// @public
+const JointKind_2: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+    readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+}>, Schema.TaggedStruct<"Prismatic", {
+    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+}>, Schema.TaggedStruct<"Rope", {
+    readonly length: Schema.Finite;
+}>, Schema.TaggedStruct<"Spring", {
+    readonly restLength: Schema.Finite;
+    readonly stiffness: Schema.Finite;
+    readonly damping: Schema.Finite;
+}>]>;
+
+// @public
+export type JointLimits = readonly [min: number, max: number];
+
+// @public
+const JointLimits_2: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
 
 // @public
 const KeyDetail: Schema.Struct<{
@@ -2186,17 +2338,48 @@ export type Physics = {
     readonly paused: boolean;
     readonly timeStep: number;
     readonly interpolate: boolean;
+    readonly joints: ReadonlyArray<Joint>;
 };
 
 // @public
 export const physics: (options?: Partial<Physics>) => Physics;
 
-// @public
+// @public (undocumented)
 const Physics_2: Schema.Struct<{
     readonly gravity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly paused: Schema.Boolean;
     readonly timeStep: Schema.Finite;
     readonly interpolate: Schema.Boolean;
+    readonly joints: Schema.$Array<Schema.Struct<{
+        readonly key: Schema.String;
+        readonly a: Schema.Struct<{
+            readonly key: Schema.String;
+            readonly instance: Schema.NullOr<Schema.String>;
+        }>;
+        readonly b: Schema.Struct<{
+            readonly key: Schema.String;
+            readonly instance: Schema.NullOr<Schema.String>;
+        }>;
+        readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+            readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+            readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+        }>, Schema.TaggedStruct<"Prismatic", {
+            readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+        }>, Schema.TaggedStruct<"Rope", {
+            readonly length: Schema.Finite;
+        }>, Schema.TaggedStruct<"Spring", {
+            readonly restLength: Schema.Finite;
+            readonly stiffness: Schema.Finite;
+            readonly damping: Schema.Finite;
+        }>]>;
+        readonly contacts: Schema.Boolean;
+    }>>;
 }>;
 
 // @public
@@ -2208,6 +2391,20 @@ export type PhysicsEngine = {
 export const physicsEquals: (a: Physics | null, b: Physics | null) => boolean;
 
 // @public
+export type PhysicsJoint = {
+    readonly anchorA: Vec3;
+    readonly anchorB: Vec3;
+    readonly contacts: boolean;
+    readonly kind: Exclude<JointKind, {
+        readonly _tag: 'Fixed';
+    }> | {
+        readonly _tag: 'Fixed';
+        readonly frameA: Quat;
+        readonly frameB: Quat;
+    };
+};
+
+// @public
 export type PhysicsWorld = {
     readonly configure: (physics: Physics) => void;
     readonly add: (key: string, body: Body_2, colliders: ReadonlyArray<Collider>, pose: BodyPose) => void;
@@ -2216,6 +2413,8 @@ export type PhysicsWorld = {
     readonly moveKinematic: (key: string, pose: BodyPose) => void;
     readonly applyImpulse: (key: string, impulse: Vec3) => void;
     readonly remove: (key: string) => void;
+    readonly addJoint: (id: string, joint: PhysicsJoint, a: string, b: string) => void;
+    readonly removeJoint: (id: string) => void;
     readonly step: (seconds: number) => ReadonlyArray<Collision>;
     readonly pose: (key: string) => BodyPose | undefined;
     readonly awake: () => boolean;
@@ -2385,6 +2584,12 @@ const PostEffect_2: Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
     readonly intensity: Schema.Finite;
     readonly grayscale: Schema.Boolean;
 }>]>;
+
+// @public
+export const prismaticJoint: (options: {
+    readonly axis: Vec3;
+    readonly limits?: JointLimits | null;
+}) => JointKind;
 
 // @public
 export type Quat = readonly [x: number, y: number, z: number, w: number];
@@ -2741,6 +2946,12 @@ export type ResourceStore = {
 };
 
 // @public
+export const revoluteJoint: (options: {
+    readonly axis: Vec3;
+    readonly limits?: JointLimits | null;
+}) => JointKind;
+
+// @public
 export type Rgb = number;
 
 // @public
@@ -2767,6 +2978,9 @@ const RingGeometry_2: Schema.TaggedStruct<"Ring", {
     readonly outerRadius: Schema.Finite;
     readonly thetaSegments: Schema.Int;
 }>;
+
+// @public
+export const ropeJoint: (length: number) => JointKind;
 
 // @public
 export const rotateCamera: (camera: Camera, deltaX: number, deltaY: number, height: number, options?: OrbitOptions) => Camera;
@@ -2943,6 +3157,36 @@ const SceneDescription_2: Schema.Struct<{
         readonly paused: Schema.Boolean;
         readonly timeStep: Schema.Finite;
         readonly interpolate: Schema.Boolean;
+        readonly joints: Schema.$Array<Schema.Struct<{
+            readonly key: Schema.String;
+            readonly a: Schema.Struct<{
+                readonly key: Schema.String;
+                readonly instance: Schema.NullOr<Schema.String>;
+            }>;
+            readonly b: Schema.Struct<{
+                readonly key: Schema.String;
+                readonly instance: Schema.NullOr<Schema.String>;
+            }>;
+            readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+                readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+                readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+            }>, Schema.TaggedStruct<"Prismatic", {
+                readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+            }>, Schema.TaggedStruct<"Rope", {
+                readonly length: Schema.Finite;
+            }>, Schema.TaggedStruct<"Spring", {
+                readonly restLength: Schema.Finite;
+                readonly stiffness: Schema.Finite;
+                readonly damping: Schema.Finite;
+            }>]>;
+            readonly contacts: Schema.Boolean;
+        }>>;
     }>>;
     readonly xr: Schema.NullOr<Schema.Struct<{
         readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -3510,6 +3754,10 @@ declare namespace SceneSchema {
         MaterialRef_2 as MaterialRef,
         ResourceDefinitions_2 as ResourceDefinitions,
         Body_3 as Body,
+        BodyRef_2 as BodyRef,
+        JointLimits_2 as JointLimits,
+        JointKind_2 as JointKind,
+        Joint_2 as Joint,
         Physics_2 as Physics,
         MeshNode_2 as MeshNode,
         Instance_2 as Instance,
@@ -3700,6 +3948,9 @@ const SphereGeometry_2: Schema.TaggedStruct<"Sphere", {
 }>;
 
 // @public
+export const sphericalJoint: () => JointKind;
+
+// @public
 export const spin: (options: {
     readonly axis: Axis;
     readonly radiansPerSecond: number;
@@ -3759,6 +4010,13 @@ const SpotLightNode_2: Schema.TaggedStruct<"SpotLight", {
     readonly shadowMapSize: Schema.Int;
     readonly shadowBias: Schema.Finite;
 }>;
+
+// @public
+export const springJoint: (options: {
+    readonly restLength: number;
+    readonly stiffness: number;
+    readonly damping: number;
+}) => JointKind;
 
 // @public
 export type Stage = {

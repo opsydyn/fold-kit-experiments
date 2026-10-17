@@ -3,7 +3,7 @@
  *
  * @module
  */
-import type { SceneDescription, SceneNode } from './description.ts';
+import type { Joint, SceneDescription, SceneNode } from './description.ts';
 
 /** Parent of a node: another node's key, or `null` for the scene root. */
 export type ParentKey = string | null;
@@ -31,7 +31,11 @@ export type DescriptionError =
   | { readonly _tag: 'DuplicateOverlayKey'; readonly key: string }
   | { readonly _tag: 'UnknownOverlayNode'; readonly key: string; readonly node: string }
   | { readonly _tag: 'UnknownOverlayView'; readonly key: string; readonly view: string }
-  | { readonly _tag: 'UnknownMeasuredNode'; readonly key: string };
+  | { readonly _tag: 'UnknownMeasuredNode'; readonly key: string }
+  /** Two joints share a key. */
+  | { readonly _tag: 'DuplicateJointKey'; readonly key: string }
+  /** A joint names a node that is not in the scene. */
+  | { readonly _tag: 'UnknownJointBody'; readonly joint: string; readonly body: string };
 
 /** A validated scene. Keys are unique across the whole scene. */
 export type SceneIndex = {
@@ -55,7 +59,6 @@ export type IndexResult =
   | { readonly _tag: 'Indexed'; readonly index: SceneIndex }
   | { readonly _tag: 'Invalid'; readonly error: DescriptionError };
 
-/** Validates and flattens a description. */
 /** The first instance key used twice, if any. */
 const firstDuplicateInstance = (
   instances: ReadonlyArray<{ readonly key: string }>,
@@ -68,6 +71,22 @@ const firstDuplicateInstance = (
   return undefined;
 };
 
+/** The first joint error: a key used twice, or a body naming no node. */
+const jointsError = (
+  joints: ReadonlyArray<Joint>,
+  nodes: ReadonlyMap<string, IndexedNode>,
+): DescriptionError | undefined => {
+  const duplicate = firstDuplicateInstance(joints);
+  if (duplicate !== undefined) return { _tag: 'DuplicateJointKey', key: duplicate };
+  for (const joint of joints) {
+    for (const { key } of [joint.a, joint.b]) {
+      if (!nodes.has(key)) return { _tag: 'UnknownJointBody', joint: joint.key, body: key };
+    }
+  }
+  return undefined;
+};
+
+/** Validates and flattens a description. */
 export const indexScene = (
   description: SceneDescription,
   behaviours: ReadonlySet<string> = new Set(),
@@ -177,5 +196,7 @@ export const indexScene = (
   if (unmeasurable !== undefined) {
     return { _tag: 'Invalid', error: { _tag: 'UnknownMeasuredNode', key: unmeasurable } };
   }
+  const jointError = jointsError(description.physics?.joints ?? [], nodes);
+  if (jointError !== undefined) return { _tag: 'Invalid', error: jointError };
   return { _tag: 'Indexed', index: { description, nodes, children, preOrder } };
 };

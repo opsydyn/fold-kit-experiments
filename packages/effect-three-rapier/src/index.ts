@@ -9,7 +9,8 @@
  *
  * Bodies are described on meshes (`body()`) under a scene's `physics()`; this package
  * only turns those descriptions into Rapier bodies and colliders, as react-three-rapier's
- * `RigidBody` does (`ae5c3fe`, `src/utils/utils-rigidbody.ts` and `utils-collider.ts`).
+ * `RigidBody` does (`ae5c3fe`, `src/utils/utils-rigidbody.ts` and `utils-collider.ts`),
+ * and joints into impulse joints, as its joint hooks do (`src/hooks/joints.ts`).
  *
  * Rapier (`@dimforge/rapier3d-compat`) is Apache-2.0; its WebAssembly is embedded, so
  * nothing extra is fetched.
@@ -24,7 +25,9 @@ import type {
   ColliderShape,
   Collision,
   Physics,
+  JointLimits,
   PhysicsEngine,
+  PhysicsJoint,
   PhysicsWorld,
   Vec3,
 } from '@opsydyn/effect-three';
@@ -86,6 +89,40 @@ const motion = (rigidBody: RAPIER.RigidBody, body: Body): void => {
   rigidBody.enableCcd(body.ccd);
 };
 
+/** The limits a joint has, if it is a hinge or slider with limits. */
+const limitsOf = (joint: PhysicsJoint): JointLimits | null =>
+  joint.kind._tag === 'Revolute' || joint.kind._tag === 'Prismatic' ? joint.kind.limits : null;
+
+/**
+ * Limits a hinge or slider once made. React-three-rapier sets them on the joint data, but
+ * Rapier's `JointData.intoRaw` (0.21) passes them on for prismatic joints only, so a
+ * hinge's would be lost: they are set on the joint instead.
+ */
+const limit = (made: RAPIER.ImpulseJoint, limits: JointLimits | null): void => {
+  if (limits !== null && made instanceof RAPIER.UnitImpulseJoint) made.setLimits(...limits);
+};
+
+/** Rapier's joint data for a joint, anchors in each body's space. */
+const jointData = (rapier: Rapier, joint: PhysicsJoint): RAPIER.JointData => {
+  const a = vector(joint.anchorA);
+  const b = vector(joint.anchorB);
+  const { kind } = joint;
+  switch (kind._tag) {
+    case 'Fixed':
+      return rapier.JointData.fixed(a, rotation(kind.frameA), b, rotation(kind.frameB));
+    case 'Spherical':
+      return rapier.JointData.spherical(a, b);
+    case 'Revolute':
+      return rapier.JointData.revolute(a, b, vector(kind.axis));
+    case 'Prismatic':
+      return rapier.JointData.prismatic(a, b, vector(kind.axis));
+    case 'Rope':
+      return rapier.JointData.rope(kind.length, a, b);
+    case 'Spring':
+      return rapier.JointData.spring(kind.restLength, kind.stiffness, kind.damping, a, b);
+  }
+};
+
 type Held = {
   readonly rigidBody: RAPIER.RigidBody;
   readonly colliders: ReadonlyArray<RAPIER.Collider>;
@@ -98,6 +135,10 @@ const createWorld =
     const events = new rapier.EventQueue(true);
     const bodies = new Map<string, Held>();
     const keysByCollider = new Map<number, string>();
+    const joints = new Map<
+      string,
+      { readonly joint: RAPIER.ImpulseJoint; readonly a: string; readonly b: string }
+    >();
 
     const add: PhysicsWorld['add'] = (key, body, colliders, pose) => {
       const desc = new rapier.RigidBodyDesc(bodyTypes[body.type])
@@ -122,8 +163,33 @@ const createWorld =
       const held = bodies.get(key);
       if (held === undefined) return;
       for (const collider of held.colliders) keysByCollider.delete(collider.handle);
+      // Rapier removes the body's joints with it; forget them, as their handles are reused.
+      for (const [id, joined] of joints)
+        if (joined.a === key || joined.b === key) joints.delete(id);
       world.removeRigidBody(held.rigidBody);
       bodies.delete(key);
+    };
+
+    const addJoint: PhysicsWorld['addJoint'] = (id, joint, a, b) => {
+      const first = bodies.get(a);
+      const second = bodies.get(b);
+      if (first === undefined || second === undefined) return;
+      const made = world.createImpulseJoint(
+        jointData(rapier, joint),
+        first.rigidBody,
+        second.rigidBody,
+        true,
+      );
+      limit(made, limitsOf(joint));
+      made.setContactsEnabled(joint.contacts);
+      joints.set(id, { joint: made, a, b });
+    };
+
+    const removeJoint: PhysicsWorld['removeJoint'] = (id) => {
+      const joined = joints.get(id);
+      if (joined === undefined) return;
+      world.removeImpulseJoint(joined.joint, true);
+      joints.delete(id);
     };
 
     const collisionsOf = (): ReadonlyArray<Collision> => {
@@ -165,6 +231,8 @@ const createWorld =
         bodies.get(key)?.rigidBody.applyImpulse(vector(impulse), true);
       },
       remove,
+      addJoint,
+      removeJoint,
       step: (seconds) => {
         world.timestep = seconds;
         world.step(events);
@@ -186,6 +254,7 @@ const createWorld =
       dispose: () => {
         bodies.clear();
         keysByCollider.clear();
+        joints.clear();
         events.free();
         world.free();
       },

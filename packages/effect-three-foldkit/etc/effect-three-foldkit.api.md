@@ -326,6 +326,36 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly paused: Schema.Boolean;
             readonly timeStep: Schema.Finite;
             readonly interpolate: Schema.Boolean;
+            readonly joints: Schema.$Array<Schema.Struct<{
+                readonly key: Schema.String;
+                readonly a: Schema.Struct<{
+                    readonly key: Schema.String;
+                    readonly instance: Schema.NullOr<Schema.String>;
+                }>;
+                readonly b: Schema.Struct<{
+                    readonly key: Schema.String;
+                    readonly instance: Schema.NullOr<Schema.String>;
+                }>;
+                readonly anchorA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly anchorB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly kind: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+                    readonly frameA: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                    readonly frameB: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
+                    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+                }>, Schema.TaggedStruct<"Prismatic", {
+                    readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                    readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+                }>, Schema.TaggedStruct<"Rope", {
+                    readonly length: Schema.Finite;
+                }>, Schema.TaggedStruct<"Spring", {
+                    readonly restLength: Schema.Finite;
+                    readonly stiffness: Schema.Finite;
+                    readonly damping: Schema.Finite;
+                }>]>;
+                readonly contacts: Schema.Boolean;
+            }>>;
         }>>;
         readonly xr: Schema.NullOr<Schema.Struct<{
             readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -719,6 +749,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly view: Schema.String;
         }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
             readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateJointKey", {
+            readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"UnknownJointBody", {
+            readonly joint: Schema.String;
+            readonly body: Schema.String;
         }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
             readonly id: Schema.String;
         }>, Schema.TaggedStruct<"MalformedScene", {
@@ -780,6 +815,11 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
     readonly view: Schema.String;
 }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateJointKey", {
+    readonly key: Schema.String;
+}>, Schema.TaggedStruct<"UnknownJointBody", {
+    readonly joint: Schema.String;
+    readonly body: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateRenderTextureId", {
     readonly id: Schema.String;
 }>, Schema.TaggedStruct<"MalformedScene", {

@@ -75,3 +75,34 @@ test('VR: offered only when supported, and following the session', () => {
   // The scene stands the player in front of the tray.
   expect(sceneFor(start).xr?.origin).toEqual([0, 0, 4.2]);
 });
+
+test('marbles pour in batches up to a cap, one instances node with a body per marble', () => {
+  const poured = Array.from({ length: 8 }).reduce<Model>(
+    (model) => step(model, Message.ClickedPour()),
+    start,
+  );
+  expect(poured.marbles).toBe(96);
+  const node = sceneFor(poured).children.find((child) => child.key === 'marbles:0');
+  expect(node?._tag === 'Instances' && node.instances.length).toBe(96);
+  expect(node?._tag === 'Instances' && node.body?.collider).toBe('ball');
+});
+
+test('the chain hangs by a spherical joint per link, the first from the hook', () => {
+  const joints = sceneFor(start).physics?.joints ?? [];
+  expect(joints.map((held) => [held.a.key, held.b.key])).toEqual([
+    ['chain:hook', 'chain:0'],
+    ['chain:0', 'chain:1'],
+    ['chain:1', 'chain:2'],
+    ['chain:2', 'chain:3'],
+    ['chain:3', 'chain:4'],
+  ]);
+});
+
+test('bumps count collisions that begin, leaving out marbles', () => {
+  const bumped = [
+    Message.Bumped({ started: true, marble: false }),
+    Message.Bumped({ started: false, marble: false }),
+    Message.Bumped({ started: true, marble: true }),
+  ].reduce<Model>(step, start);
+  expect(bumped.bumps).toBe(1);
+});

@@ -394,6 +394,53 @@ export type Physics = {
   readonly paused: boolean;
   readonly timeStep: number;
   readonly interpolate: boolean;
+  /** Joints between bodies, each active while both its bodies exist. */
+  readonly joints: ReadonlyArray<Joint>;
+};
+
+/** A body a joint holds: a node's, or one instance's of an instances node. */
+export type BodyRef = { readonly key: string; readonly instance: string | null };
+
+/** A joint's range of motion, `[min, max]`: radians for a revolute joint, units for a prismatic one. */
+export type JointLimits = readonly [min: number, max: number];
+
+/**
+ * How a joint holds its two bodies: Rapier's impulse joints, as react-three-rapier's
+ * `useFixedJoint`, `useSphericalJoint`, `useRevoluteJoint`, `usePrismaticJoint`,
+ * `useRopeJoint` and `useSpringJoint` make them (`ae5c3fe`, `src/hooks/joints.ts`).
+ */
+export type JointKind =
+  /** No relative motion: each body's frame (Euler angles) at its anchor coincide. */
+  | { readonly _tag: 'Fixed'; readonly frameA: Vec3; readonly frameB: Vec3 }
+  /** The anchors coincide; any rotation about them (a ball and socket). */
+  | { readonly _tag: 'Spherical' }
+  /** The anchors coincide; rotation about `axis` only (a hinge). */
+  | { readonly _tag: 'Revolute'; readonly axis: Vec3; readonly limits: JointLimits | null }
+  /** Sliding along `axis` only. */
+  | { readonly _tag: 'Prismatic'; readonly axis: Vec3; readonly limits: JointLimits | null }
+  /** The anchors at most `length` apart. */
+  | { readonly _tag: 'Rope'; readonly length: number }
+  /** A force pulling the anchors towards `restLength` apart. */
+  | {
+      readonly _tag: 'Spring';
+      readonly restLength: number;
+      readonly stiffness: number;
+      readonly damping: number;
+    };
+
+/**
+ * A joint between bodies `a` and `b`. Each anchor is in its body's own space: from the
+ * node's origin, turned with it, unscaled.
+ */
+export type Joint = {
+  readonly key: string;
+  readonly a: BodyRef;
+  readonly b: BodyRef;
+  readonly anchorA: Vec3;
+  readonly anchorB: Vec3;
+  readonly kind: JointKind;
+  /** Whether the two bodies still collide with each other (Rapier's default: they do). */
+  readonly contacts: boolean;
 };
 
 /**

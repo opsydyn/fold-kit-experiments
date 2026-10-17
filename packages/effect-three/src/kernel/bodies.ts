@@ -10,12 +10,12 @@
  *
  * @module
  */
-import { Quaternion, type Scene } from 'three';
+import { Euler, Quaternion, type Scene } from 'three';
 
-import type { BodySource } from './bodySources.ts';
-import type { Body, Physics } from './description.ts';
-import { bodyEquals, physicsEquals } from './equality.ts';
-import type { BodyPose, PhysicsEngine, PhysicsWorld } from './physics.ts';
+import { bodyId, type BodySource } from './bodySources.ts';
+import type { Body, Joint, Physics, Vec3 } from './description.ts';
+import { bodyEquals, jointEquals, physicsEquals } from './equality.ts';
+import type { BodyPose, PhysicsEngine, PhysicsJoint, PhysicsWorld, Quat } from './physics.ts';
 
 /** Two bodies began (`started`) or stopped touching: their nodes' keys, and instances'. */
 export type BodyCollision = {
@@ -50,6 +50,23 @@ export type BodyHost = {
 
 const from = new Quaternion();
 const to = new Quaternion();
+const euler = new Euler();
+
+const quatOf = (angles: Vec3): Quat => {
+  from.setFromEuler(euler.fromArray([...angles]));
+  return [from.x, from.y, from.z, from.w];
+};
+
+/** A joint for the engine: a fixed joint's frames turned into quaternions. */
+const physicsJoint = ({ anchorA, anchorB, kind, contacts }: Joint): PhysicsJoint => ({
+  anchorA,
+  anchorB,
+  contacts,
+  kind:
+    kind._tag === 'Fixed'
+      ? { _tag: 'Fixed', frameA: quatOf(kind.frameA), frameB: quatOf(kind.frameB) }
+      : kind,
+});
 
 /** The pose `alpha` of the way from `a` to `b`: positions lerped, rotations slerped. */
 const between = (a: BodyPose, b: BodyPose, alpha: number): BodyPose => {
@@ -99,6 +116,10 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
   let world: PhysicsWorld | undefined;
   let settings: Physics | null = null;
   const hosted = new Map<string, Hosted>();
+  /** Joints made, by key. */
+  const joined = new Map<string, Joint>();
+  /** Bodies (re)made by the current sync: their joints went with the old ones. */
+  const fresh = new Set<string>();
   let collisions: Array<BodyCollision> = [];
   let last: number | undefined;
   let accumulator = 0;
@@ -108,6 +129,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     world = undefined;
     settings = null;
     hosted.clear();
+    joined.clear();
     accumulator = 0;
     last = undefined;
   };
@@ -117,6 +139,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     active.add(source.id, source.body, source.colliders(), pose);
     if (source.body.impulse !== null) active.applyImpulse(source.id, source.body.impulse.impulse);
     hosted.set(source.id, { source, signature, previous: pose, current: pose, shown: pose });
+    fresh.add(source.id);
   };
 
   const syncBody = (active: PhysicsWorld, source: BodySource): void => {
@@ -147,15 +170,53 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     existing.source = source;
   };
 
+  /** Makes each joint whose bodies both exist, again when either was remade or it changed. */
+  const syncJoints = (active: PhysicsWorld, joints: ReadonlyArray<Joint>): void => {
+    const seen = new Set<string>();
+    for (const joint of joints) {
+      seen.add(joint.key);
+      const a = bodyId(joint.a.key, joint.a.instance);
+      const b = bodyId(joint.b.key, joint.b.instance);
+      const ready = hosted.has(a) && hosted.has(b);
+      const made = joined.get(joint.key);
+      if (
+        made !== undefined &&
+        ready &&
+        !fresh.has(a) &&
+        !fresh.has(b) &&
+        jointEquals(made, joint)
+      ) {
+        continue;
+      }
+      if (made !== undefined) {
+        active.removeJoint(joint.key);
+        joined.delete(joint.key);
+      }
+      if (ready) {
+        active.addJoint(joint.key, physicsJoint(joint), a, b);
+        joined.set(joint.key, joint);
+      }
+    }
+    for (const key of joined.keys()) {
+      if (seen.has(key)) continue;
+      active.removeJoint(key);
+      joined.delete(key);
+    }
+  };
+
   const sync: BodyHost['sync'] = (physics, sources) => {
     if (physics === null || engine === undefined) {
       dispose();
       return;
     }
     if (world === undefined) world = engine.createWorld(physics);
-    else if (!physicsEquals(settings, physics)) world.configure(physics);
+    // Joints are made below, not configured.
+    else if (!physicsEquals(settings && { ...settings, joints: physics.joints }, physics)) {
+      world.configure(physics);
+    }
     settings = physics;
     scene.updateMatrixWorld();
+    fresh.clear();
     const seen = new Set<string>();
     for (const source of sources) {
       seen.add(source.id);
@@ -166,6 +227,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       world.remove(id);
       hosted.delete(id);
     }
+    syncJoints(world, physics.joints);
   };
 
   const kinematicTargets = (active: PhysicsWorld): void => {

@@ -5,7 +5,7 @@ import type { Return } from 'foldkit/update';
 
 import { CheckVr, EnterVr, ExitVr } from './command';
 import { Message } from './message';
-import { homeCamera, initialModel, type Model, toyAt, type Toy } from './model';
+import { homeCamera, initialModel, type Model, mostMarbles, pour, toyAt, type Toy } from './model';
 
 type AppReturn = Return<Model, Message>;
 
@@ -76,7 +76,13 @@ export const update = (model: Model, message: Message): AppReturn =>
     ClickedToy: ({ key, direction }) => ({ model: kick(model, key, direction) }),
     ClickedDrop: () => ({ model: dropped(model) }),
     ClickedTidy: () => ({ model: tidied(model) }),
-    Bumped: () => ({ model: modifyFields(model, { bumps: (bumps) => bumps + 1 }) }),
+    ClickedPour: () => ({
+      model: modifyFields(model, { marbles: (marbles) => Math.min(mostMarbles, marbles + pour) }),
+    }),
+    Bumped: ({ started, marble }) => ({
+      // Toys bumping into things; marbles roll in and out of contact all the time.
+      model: modifyFields(model, { bumps: (bumps) => bumps + Number(started && !marble) }),
+    }),
     MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
     CheckedVr: ({ supported }) => ({
       model: modifyFields(model, { vr: () => vrAvailability[`${supported}`] }),

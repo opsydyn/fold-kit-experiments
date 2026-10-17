@@ -14,7 +14,7 @@
  */
 import { type BufferGeometry, Matrix4, type Mesh, type Object3D, Quaternion, Vector3 } from 'three';
 
-import type { Body, BodyCollider, Physics, Vec3 } from './description.ts';
+import type { Body, BodyCollider, JointKind, Physics, Vec3 } from './description.ts';
 
 /** A quaternion, `[x, y, z, w]`. */
 export type Quat = readonly [x: number, y: number, z: number, w: number];
@@ -42,6 +42,16 @@ export type Collider = {
  */
 export type Collision = { readonly a: string; readonly b: string; readonly started: boolean };
 
+/** A joint as an engine makes it: a fixed joint's frames as quaternions. */
+export type PhysicsJoint = {
+  readonly anchorA: Vec3;
+  readonly anchorB: Vec3;
+  readonly contacts: boolean;
+  readonly kind:
+    | Exclude<JointKind, { readonly _tag: 'Fixed' }>
+    | { readonly _tag: 'Fixed'; readonly frameA: Quat; readonly frameB: Quat };
+};
+
 /** One physics world, its bodies keyed by id. Every method is synchronous. */
 export type PhysicsWorld = {
   readonly configure: (physics: Physics) => void;
@@ -59,7 +69,12 @@ export type PhysicsWorld = {
   /** Where a kinematic body is to be after the next step. */
   readonly moveKinematic: (key: string, pose: BodyPose) => void;
   readonly applyImpulse: (key: string, impulse: Vec3) => void;
+  /** Removes a body, and any joint holding it. */
   readonly remove: (key: string) => void;
+  /** Joins bodies `a` and `b` (both added). */
+  readonly addJoint: (id: string, joint: PhysicsJoint, a: string, b: string) => void;
+  /** Removes a joint; nothing if it is gone already (with one of its bodies). */
+  readonly removeJoint: (id: string) => void;
   /** Advances by `seconds` and returns the collisions that began or ended. */
   readonly step: (seconds: number) => ReadonlyArray<Collision>;
   readonly pose: (key: string) => BodyPose | undefined;
@@ -181,12 +196,18 @@ function placedCollider(child: Mesh, collider: BodyCollider): Collider {
   return { shape, translation: toVec3(where), rotation: [turn.x, turn.y, turn.z, turn.w] };
 }
 
+/**
+ * A number as signature text, to five places with `-0` as `0`: the simulation turns a body,
+ * and its matrices pick up rounding that must not read as a change of shape.
+ */
+const settled = (value: number): string => (Math.round(value * 1e5) / 1e5 || 0).toString();
+
 /** A mesh's geometry and placement in the body whose inverse is `bodyInverse`. */
 function meshSignature(child: Mesh): string {
   relative.copy(child.matrixWorld).premultiply(bodyInverse);
   child.matrixWorld.decompose(worldPosition, worldTurn, worldScale);
-  const placed = relative.elements.map((value) => value.toFixed(6)).join(',');
-  return `${child.geometry.uuid}:${placed}:${worldScale.toArray().join(',')}`;
+  const placed = relative.elements.map(settled).join(',');
+  return `${child.geometry.uuid}:${placed}:${worldScale.toArray().map(settled).join(',')}`;
 }
 
 /** The visible meshes in `body`, itself included. */

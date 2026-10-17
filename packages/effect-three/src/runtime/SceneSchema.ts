@@ -326,6 +326,7 @@ export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
   transition: Transition,
   behaviour: Schema.NullOr(Behave),
   interactive: Schema.Boolean,
+  body: Schema.NullOr(Body),
 });
 
 /** Uniform ambient light. */
@@ -417,6 +418,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     behaviour: Schema.NullOr(Behave),
     interactive: Schema.Boolean,
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
+    body: Schema.NullOr(Body),
   }),
   MeshNode,
   InstancesNode,

@@ -5,6 +5,7 @@ import {
   box,
   createSceneGraph,
   createSceneLoop,
+  group,
   mesh,
   type MeshNode,
   physics,
@@ -105,5 +106,37 @@ test('an impulse with a new id kicks a resting ball once; collisions are reporte
   );
   const kicked = run(graph, 1, 1);
   expect(Math.max(...kicked)).toBeGreaterThan(1.5);
+  graph.dispose();
+});
+
+test('a group body falls as one: a dumbbell rests on both ends', () => {
+  const graph = createSceneGraph({ physics: engine });
+  graph.reconcile(
+    scene({
+      physics: physics(),
+      children: [
+        floor,
+        group({
+          key: 'dumbbell',
+          position: [0, 2, 0],
+          body: body({ collider: 'ball' }),
+          children: [-1, 1].map((x) =>
+            mesh({
+              key: `end-${x}`,
+              position: [x, 0, 0],
+              geometry: sphere({ radius: 0.4 }),
+              material: standard(),
+            }),
+          ),
+        }),
+      ],
+    }),
+  );
+  graph.tick(0);
+  for (let frame = 1; frame <= 240; frame++) graph.tick(frame / 60);
+  const dumbbell = graph.object('dumbbell');
+  // Both balls on the floor: the group's middle sits a radius up, level.
+  expect(dumbbell?.position.y).toBeCloseTo(0.4, 2);
+  expect(Math.abs(dumbbell?.rotation.z ?? 1)).toBeLessThan(0.01);
   graph.dispose();
 });

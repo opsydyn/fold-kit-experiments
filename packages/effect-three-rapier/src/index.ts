@@ -20,6 +20,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import type {
   Body,
   BodyPose,
+  Collider,
   ColliderShape,
   Collision,
   Physics,
@@ -42,12 +43,12 @@ const bodyTypes = {
 } satisfies Record<Body['type'], RAPIER.RigidBodyType>;
 
 /** The collider description for a shape; a hull Rapier cannot build becomes a small ball. */
-const colliderDesc = (rapier: Rapier, shape: ColliderShape): RAPIER.ColliderDesc => {
+const shapeDesc = (rapier: Rapier, shape: ColliderShape): RAPIER.ColliderDesc => {
   switch (shape._tag) {
     case 'Cuboid':
-      return rapier.ColliderDesc.cuboid(...shape.halfExtents).setTranslation(...shape.offset);
+      return rapier.ColliderDesc.cuboid(...shape.halfExtents);
     case 'Ball':
-      return rapier.ColliderDesc.ball(shape.radius).setTranslation(...shape.offset);
+      return rapier.ColliderDesc.ball(shape.radius);
     case 'Hull':
       return rapier.ColliderDesc.convexHull(shape.points) ?? rapier.ColliderDesc.ball(1e-3);
     case 'Trimesh':
@@ -55,13 +56,25 @@ const colliderDesc = (rapier: Rapier, shape: ColliderShape): RAPIER.ColliderDesc
   }
 };
 
-/** Applies a body's surface and mass settings to its collider. */
-const surface = (collider: RAPIER.Collider, body: Body): void => {
-  collider.setFriction(body.friction);
-  collider.setRestitution(body.restitution);
-  collider.setSensor(body.sensor);
-  if (body.mass === null) collider.setDensity(1);
-  else collider.setMass(body.mass);
+/** A collider placed in its body, reporting collisions. */
+const colliderDesc = (rapier: Rapier, collider: Collider): RAPIER.ColliderDesc =>
+  shapeDesc(rapier, collider.shape)
+    .setTranslation(...collider.translation)
+    .setRotation(rotation(collider.rotation))
+    .setActiveEvents(rapier.ActiveEvents.COLLISION_EVENTS);
+
+/**
+ * Applies a body's surface and mass settings to its colliders. A given mass is shared
+ * among them; otherwise each has density 1.
+ */
+const surface = (colliders: ReadonlyArray<RAPIER.Collider>, body: Body): void => {
+  for (const collider of colliders) {
+    collider.setFriction(body.friction);
+    collider.setRestitution(body.restitution);
+    collider.setSensor(body.sensor);
+    if (body.mass === null) collider.setDensity(1);
+    else collider.setMass(body.mass / colliders.length);
+  }
 };
 
 /** Applies a body's motion settings. */
@@ -73,7 +86,10 @@ const motion = (rigidBody: RAPIER.RigidBody, body: Body): void => {
   rigidBody.enableCcd(body.ccd);
 };
 
-type Held = { readonly rigidBody: RAPIER.RigidBody; readonly collider: RAPIER.Collider };
+type Held = {
+  readonly rigidBody: RAPIER.RigidBody;
+  readonly colliders: ReadonlyArray<RAPIER.Collider>;
+};
 
 const createWorld =
   (rapier: Rapier) =>
@@ -83,7 +99,7 @@ const createWorld =
     const bodies = new Map<string, Held>();
     const keysByCollider = new Map<number, string>();
 
-    const add: PhysicsWorld['add'] = (key, body, shape, pose) => {
+    const add: PhysicsWorld['add'] = (key, body, colliders, pose) => {
       const desc = new rapier.RigidBodyDesc(bodyTypes[body.type])
         .setTranslation(...pose.position)
         .setRotation(rotation(pose.quaternion))
@@ -94,19 +110,18 @@ const createWorld =
         .setGravityScale(body.gravityScale)
         .setCcdEnabled(body.ccd);
       const rigidBody = world.createRigidBody(desc);
-      const collider = world.createCollider(
-        colliderDesc(rapier, shape).setActiveEvents(rapier.ActiveEvents.COLLISION_EVENTS),
-        rigidBody,
+      const made = colliders.map((collider) =>
+        world.createCollider(colliderDesc(rapier, collider), rigidBody),
       );
-      surface(collider, body);
-      bodies.set(key, { rigidBody, collider });
-      keysByCollider.set(collider.handle, key);
+      surface(made, body);
+      bodies.set(key, { rigidBody, colliders: made });
+      for (const collider of made) keysByCollider.set(collider.handle, key);
     };
 
     const remove: PhysicsWorld['remove'] = (key) => {
       const held = bodies.get(key);
       if (held === undefined) return;
-      keysByCollider.delete(held.collider.handle);
+      for (const collider of held.colliders) keysByCollider.delete(collider.handle);
       world.removeRigidBody(held.rigidBody);
       bodies.delete(key);
     };
@@ -130,7 +145,7 @@ const createWorld =
         const held = bodies.get(key);
         if (held === undefined) return;
         motion(held.rigidBody, body);
-        surface(held.collider, body);
+        surface(held.colliders, body);
       },
       teleport: (key, pose) => {
         const held = bodies.get(key);

@@ -119,6 +119,7 @@ export const changedFields = (
       if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
       if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
       if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (!bodyEquals(prev.body, next.body)) fields.push('body');
       return fields;
     }
     case 'Mesh': {
@@ -161,6 +162,7 @@ export const changedFields = (
       if (prev.id !== next.id) fields.push('id');
       if (!animationEquals(prev.animation, next.animation)) fields.push('animation');
       if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (!bodyEquals(prev.body, next.body)) fields.push('body');
       return fields;
     }
     case 'AmbientLight': {

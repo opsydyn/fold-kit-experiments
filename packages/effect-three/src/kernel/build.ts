@@ -403,6 +403,7 @@ export const group = (
   options: TransformOptions & {
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
+    readonly body?: Body | null;
   },
 ): GroupNode => ({
   _tag: 'Group',
@@ -414,6 +415,7 @@ export const group = (
   behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
   children: options.children ?? [],
+  body: options.body ?? null,
 });
 
 /** A mesh. Not interactive unless `interactive` is true. */
@@ -544,6 +546,7 @@ export const borrowed = (
     readonly id: string;
     readonly interactive?: boolean;
     readonly animation?: Animation | null;
+    readonly body?: Body | null;
   },
 ): BorrowedNode => ({
   _tag: 'Borrowed',
@@ -556,6 +559,7 @@ export const borrowed = (
   transition: options.transition ?? instantTransition,
   behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
+  body: options.body ?? null,
 });
 
 /** Ambient light. Defaults: white, intensity 1. */

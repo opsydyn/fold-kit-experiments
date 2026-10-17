@@ -318,6 +318,8 @@ export type GroupNode = {
    */
   readonly interactive: boolean;
   readonly children: ReadonlyArray<SceneNode>;
+  /** A rigid body whose colliders are every mesh inside the group, or `null`. */
+  readonly body: Body | null;
 };
 
 /** A renderable mesh. `interactive` meshes take part in pointer hit testing. */
@@ -451,6 +453,8 @@ export type BorrowedNode = {
   readonly interactive: boolean;
   /** An animation clip of the lent object to play, or `null` for none. */
   readonly animation: Animation | null;
+  /** A rigid body whose colliders are the model's meshes, once it is lent; or `null`. */
+  readonly body: Body | null;
 };
 
 /**

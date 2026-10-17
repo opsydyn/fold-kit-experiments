@@ -206,6 +206,7 @@ export const borrowed: (options: TransformOptions & {
     readonly id: string;
     readonly interactive?: boolean;
     readonly animation?: Animation_2 | null;
+    readonly body?: Body_2 | null;
 }) => BorrowedNode;
 
 // @public
@@ -220,6 +221,7 @@ export type BorrowedNode = {
     readonly behaviour: Behave | null;
     readonly interactive: boolean;
     readonly animation: Animation_2 | null;
+    readonly body: Body_2 | null;
 };
 
 // @public (undocumented)
@@ -249,6 +251,24 @@ const BorrowedNode_2: Schema.TaggedStruct<"Borrowed", {
         readonly params: Schema.$Record<Schema.String, Schema.Finite>;
     }>>;
     readonly interactive: Schema.Boolean;
+    readonly body: Schema.NullOr<Schema.Struct<{
+        readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
+        readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
+        readonly mass: Schema.NullOr<Schema.Finite>;
+        readonly friction: Schema.Finite;
+        readonly restitution: Schema.Finite;
+        readonly linearDamping: Schema.Finite;
+        readonly angularDamping: Schema.Finite;
+        readonly gravityScale: Schema.Finite;
+        readonly ccd: Schema.Boolean;
+        readonly sensor: Schema.Boolean;
+        readonly linearVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly angularVelocity: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly impulse: Schema.NullOr<Schema.Struct<{
+            readonly id: Schema.Finite;
+            readonly impulse: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+    }>>;
 }>;
 
 // @public
@@ -389,17 +409,25 @@ export const clipRunning: (animation: Animation_2, duration: number, elapsed: nu
 export const clipTime: (animation: Animation_2, duration: number, elapsed: number) => number;
 
 // @public
-export const colliderFor: (geometry: BufferGeometry, collider: BodyCollider, scale: Vector3) => ColliderShape;
+export type Collider = {
+    readonly shape: ColliderShape;
+    readonly translation: Vec3;
+    readonly rotation: Quat;
+};
+
+// @public
+export const colliderFor: (geometry: BufferGeometry, collider: BodyCollider, scale: Vector3) => Collider;
+
+// @public
+export const collidersFor: (body: Object3D, collider: BodyCollider) => ReadonlyArray<Collider>;
 
 // @public
 export type ColliderShape = {
     readonly _tag: 'Cuboid';
     readonly halfExtents: Vec3;
-    readonly offset: Vec3;
 } | {
     readonly _tag: 'Ball';
     readonly radius: number;
-    readonly offset: Vec3;
 } | {
     readonly _tag: 'Hull';
     readonly points: Float32Array;
@@ -408,6 +436,9 @@ export type ColliderShape = {
     readonly vertices: Float32Array;
     readonly indices: Uint32Array;
 };
+
+// @public
+export const colliderSignature: (body: Object3D) => string;
 
 // @public
 export type Collision = {
@@ -1063,6 +1094,7 @@ const GridNode_2: Schema.TaggedStruct<"Grid", {
 export const group: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
+    readonly body?: Body_2 | null;
 }) => GroupNode;
 
 // @public
@@ -1076,6 +1108,7 @@ export type GroupNode = {
     readonly behaviour: Behave | null;
     readonly interactive: boolean;
     readonly children: ReadonlyArray<SceneNode>;
+    readonly body: Body_2 | null;
 };
 
 // @public
@@ -2146,7 +2179,7 @@ export const physicsEquals: (a: Physics | null, b: Physics | null) => boolean;
 // @public
 export type PhysicsWorld = {
     readonly configure: (physics: Physics) => void;
-    readonly add: (key: string, body: Body_2, shape: ColliderShape, pose: BodyPose) => void;
+    readonly add: (key: string, body: Body_2, colliders: ReadonlyArray<Collider>, pose: BodyPose) => void;
     readonly update: (key: string, body: Body_2) => void;
     readonly teleport: (key: string, pose: BodyPose) => void;
     readonly moveKinematic: (key: string, pose: BodyPose) => void;

@@ -9,30 +9,34 @@
  *
  * @module
  */
-import { Euler, Matrix4, type Mesh, type Object3D, Quaternion, type Scene, Vector3 } from 'three';
+import { Euler, Matrix4, type Object3D, Quaternion, type Scene, Vector3 } from 'three';
 
-import type { Body, MeshNode, Physics } from './description.ts';
-import {
-  bodyEquals,
-  geometryRefEquals,
-  physicsEquals,
-  rotationEquals,
-  vec3Equals,
-} from './equality.ts';
+import type { Body, BorrowedNode, GroupNode, MeshNode, Physics } from './description.ts';
+import { bodyEquals, physicsEquals, rotationEquals, vec3Equals } from './equality.ts';
 import {
   type BodyPose,
+  colliderSignature,
+  collidersFor,
   type Collision,
-  colliderFor,
   type PhysicsEngine,
   type PhysicsWorld,
 } from './physics.ts';
 
-/** A mesh that may have a body: its key, description and hosted object. */
-export type BodiedMesh = { readonly key: string; readonly node: MeshNode; readonly object: Mesh };
+/** A node that may have a body: a mesh, a group or a borrowed model. */
+export type BodiedNode = MeshNode | GroupNode | BorrowedNode;
+
+/** A node that may have a body: its key, description and hosted object. */
+export type BodiedMesh = {
+  readonly key: string;
+  readonly node: BodiedNode;
+  readonly object: Object3D;
+};
 
 type Hosted = {
-  readonly object: Mesh;
-  node: MeshNode;
+  readonly object: Object3D;
+  node: BodiedNode;
+  /** What its colliders were made from; a change makes them again. */
+  signature: string;
   previous: BodyPose;
   current: BodyPose;
 };
@@ -66,16 +70,11 @@ const poseOf = (object: Object3D): BodyPose => {
   };
 };
 
-const worldScale = (object: Object3D): Vector3 => {
-  object.matrixWorld.decompose(position, quaternion, scale);
-  return scale.clone();
-};
-
 /**
  * The world pose a node's description puts it at: its position and fixed rotation (or
  * the rotation shown, for a spin) in its parent's space.
  */
-const describedPose = (object: Object3D, node: MeshNode): BodyPose => {
+const describedPose = (object: Object3D, node: BodiedNode): BodyPose => {
   position.fromArray(node.position);
   if (node.rotation._tag === 'Fixed')
     quaternion.setFromEuler(euler.fromArray([...node.rotation.euler]));
@@ -116,17 +115,15 @@ const between = (a: BodyPose, b: BodyPose, alpha: number): BodyPose => {
   };
 };
 
-/** A change that needs a new collider: its kind, the geometry or the mesh's scale. */
-const reshaped = (a: MeshNode, b: MeshNode): boolean =>
-  a.body?.collider !== b.body?.collider ||
-  !geometryRefEquals(a.geometry, b.geometry) ||
-  !vec3Equals(a.scale, b.scale);
+/** A change that needs new colliders: another kind, or meshes made or placed otherwise. */
+const reshaped = (hosted: Hosted, node: BodiedNode, signature: string): boolean =>
+  hosted.node.body?.collider !== node.body?.collider || hosted.signature !== signature;
 
 /** Body settings other than its impulse differ. */
 const resettled = (a: Body, b: Body): boolean =>
   !bodyEquals({ ...a, impulse: null }, { ...b, impulse: null });
 
-const moved = (a: MeshNode, b: MeshNode): boolean =>
+const moved = (a: BodiedNode, b: BodiedNode): boolean =>
   !vec3Equals(a.position, b.position) || !rotationEquals(a.rotation, b.rotation);
 
 /** Creates the body host for a scene. Without an engine, bodies are ignored. */
@@ -147,22 +144,28 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     last = undefined;
   };
 
-  const add = (active: PhysicsWorld, { key, node, object }: BodiedMesh, body: Body): void => {
+  const add = (
+    active: PhysicsWorld,
+    { key, node, object }: BodiedMesh,
+    body: Body,
+    signature: string,
+  ): void => {
     const pose = poseOf(object);
-    active.add(key, body, colliderFor(object.geometry, body.collider, worldScale(object)), pose);
+    active.add(key, body, collidersFor(object, body.collider), pose);
     if (body.impulse !== null) active.applyImpulse(key, body.impulse.impulse);
-    hosted.set(key, { object, node, previous: pose, current: pose });
+    hosted.set(key, { object, node, signature, previous: pose, current: pose });
   };
 
   const syncBody = (active: PhysicsWorld, mesh: BodiedMesh, body: Body): void => {
     const existing = hosted.get(mesh.key);
+    const signature = colliderSignature(mesh.object);
     if (
       existing === undefined ||
       existing.object !== mesh.object ||
-      reshaped(existing.node, mesh.node)
+      reshaped(existing, mesh.node, signature)
     ) {
       if (existing !== undefined) active.remove(mesh.key);
-      add(active, mesh, body);
+      add(active, mesh, body, signature);
       return;
     }
     const before = existing.node.body;

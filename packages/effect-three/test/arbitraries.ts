@@ -139,6 +139,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     behaviour: Behaviour,
     interactive: Schema.Boolean,
     children: Children,
+    body: Schema.Null,
   }),
   Schema.TaggedStruct('Mesh', {
     key: Key,
@@ -220,6 +221,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     scale: Vec3,
     transition: Transition,
     behaviour: Behaviour,
+    body: Schema.Null,
     interactive: Schema.Boolean,
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),

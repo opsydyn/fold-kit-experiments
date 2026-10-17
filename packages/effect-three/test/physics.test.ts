@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
 
 import { Vector3 } from 'three';
-import { BoxGeometry, SphereGeometry } from 'three';
+import { BoxGeometry, Group, Mesh, SphereGeometry } from 'three';
 
 import {
   body,
+  borrowed,
   box,
   colliderFor,
   createSceneGraph,
@@ -47,11 +48,13 @@ test('a dynamic body falls on scene time, in fixed steps, with poses interpolate
   graph.tick(0);
   expect(current()?.calls).toEqual(['add crate']);
   // A cuboid from the unit box's bounding box.
-  expect(current()?.bodies.get('crate')?.shape).toEqual({
-    _tag: 'Cuboid',
-    halfExtents: [0.5, 0.5, 0.5],
-    offset: [0, 0, 0],
-  });
+  expect(current()?.bodies.get('crate')?.colliders).toEqual([
+    {
+      shape: { _tag: 'Cuboid', halfExtents: [0.5, 0.5, 0.5] },
+      translation: [0, 0, 0],
+      rotation: [0, 0, 0, 1],
+    },
+  ]);
   for (let frame = 1; frame <= 60; frame++) graph.tick(frame / 60);
   const y = graph.object('crate')?.position.y ?? 0;
   // About ½·9.81·1² down after a second of frames.
@@ -159,12 +162,11 @@ test('removing bodies or the world frees them; collisions reach the event stream
 });
 
 test('colliders scale with the mesh: a ball by its largest scale', () => {
-  const ball = colliderFor(new SphereGeometry(1), 'ball', new Vector3(1, 3, 2));
+  const ball = colliderFor(new SphereGeometry(1), 'ball', new Vector3(1, 3, 2)).shape;
   expect(ball._tag === 'Ball' && ball.radius).toBeCloseTo(3, 6);
-  expect(colliderFor(new BoxGeometry(2, 4, 6), 'cuboid', new Vector3(1, 0.5, 2))).toEqual({
+  expect(colliderFor(new BoxGeometry(2, 4, 6), 'cuboid', new Vector3(1, 0.5, 2)).shape).toEqual({
     _tag: 'Cuboid',
     halfExtents: [1, 1, 6],
-    offset: [0, 0, 0],
   });
 });
 
@@ -174,5 +176,60 @@ test('without an engine, bodies stay where the description puts them', () => {
   graph.tick(0);
   graph.tick(1);
   expect(graph.object('crate')?.position.y).toBe(10);
+  graph.dispose();
+});
+
+test('a body on a group has a collider per mesh inside it, placed in the group', () => {
+  const { graph, current } = setup();
+  graph.reconcile(
+    scene({
+      physics: physics(),
+      children: [
+        group({
+          key: 'dumbbell',
+          position: [0, 5, 0],
+          body: body(),
+          children: [
+            mesh({ key: 'left', position: [-1, 0, 0], geometry: box(), material: standard() }),
+            mesh({
+              key: 'right',
+              position: [1, 0, 0],
+              rotation: fixed([0, Math.PI / 2, 0]),
+              scale: [2, 2, 2],
+              geometry: box(),
+              material: standard(),
+            }),
+          ],
+        }),
+      ],
+    }),
+  );
+  const colliders = current()?.bodies.get('dumbbell')?.colliders ?? [];
+  expect(colliders.map((collider) => collider.translation)).toEqual([
+    [-1, 0, 0],
+    [1, 0, 0],
+  ]);
+  // The right block's collider is its world size, turned as it is.
+  expect(colliders[1]?.shape).toEqual({ _tag: 'Cuboid', halfExtents: [1, 1, 1] });
+  expect(colliders[1]?.rotation[1]).toBeCloseTo(Math.SQRT1_2, 9);
+  graph.dispose();
+});
+
+test('a borrowed model gets colliders when it is lent, and loses them when withdrawn', () => {
+  const { graph, current } = setup();
+  graph.reconcile(
+    scene({
+      physics: physics(),
+      children: [borrowed({ key: 'robot', id: 'robot', position: [0, 3, 0], body: body() })],
+    }),
+  );
+  expect(current()?.bodies.get('robot')?.colliders).toEqual([]);
+  const model = new Group();
+  model.add(new Mesh(new BoxGeometry(1, 2, 1)));
+  const withdraw = graph.store.lend('robot', model);
+  expect(current()?.bodies.get('robot')?.colliders).toHaveLength(1);
+  expect(current()?.calls.slice(-2)).toEqual(['remove robot', 'add robot']);
+  withdraw();
+  expect(current()?.bodies.get('robot')?.colliders).toEqual([]);
   graph.dispose();
 });

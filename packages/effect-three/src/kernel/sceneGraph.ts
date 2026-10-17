@@ -52,6 +52,7 @@ import type {
   Environment,
   Gestures,
   Overlay,
+  Physics,
   Sky,
   Xr,
   RenderTexture,
@@ -439,12 +440,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const cameraMotion = createCameraMotion();
   const bodyHost = createBodyHost(options.physics, scene);
 
-  /** Every hosted mesh, for the body host to find those with bodies. */
+  /** Every hosted node that can have a body, for the body host to find those that do. */
   function* hostedMeshes(): Generator<BodiedMesh> {
     for (const [key, entry] of entries) {
-      if (entry._tag === 'Mesh') yield { key, node: entry.node, object: entry.object };
+      if (entry._tag === 'Mesh' || entry._tag === 'Group' || entry._tag === 'Borrowed') {
+        yield { key, node: entry.node, object: entry.object };
+      }
     }
   }
+  let physicsDescription: Physics | null = null;
 
   /** The view's rectangle in CSS pixels, from its fractional rect and the viewport. */
   const areaOf = (rect: ViewRect): HostedView['area'] => ({
@@ -706,6 +710,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         if (entry._tag === 'Borrowed' && entry.node.id === loan.id) showLoan(entry);
       }
     }
+    // A model or font arriving changes what bodies are made of: remake their colliders.
+    if (loan.kind !== 'texture') bodyHost.sync(physicsDescription, hostedMeshes());
     invalidate();
   });
 
@@ -1135,6 +1141,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // The frame loop draws contact shadows with the renderer: a change needs a frame.
     if (!contactShadowsEquals(contactDescription, next.contactShadows)) invalidate();
     contactDescription = next.contactShadows;
+    physicsDescription = next.physics;
     bodyHost.sync(next.physics, hostedMeshes());
     // Read by the host when it presents the scene immersively: no operation, no frame.
     xrDescription = next.xr;

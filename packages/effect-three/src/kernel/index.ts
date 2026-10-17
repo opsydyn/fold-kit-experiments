@@ -144,8 +144,11 @@ export {
 export { type OverlayPlacement, placeOverlays } from './overlays.ts';
 export {
   type BodyPose,
+  type Collider,
   type ColliderShape,
   colliderFor,
+  collidersFor,
+  colliderSignature,
   type Collision,
   type PhysicsEngine,
   type PhysicsWorld,

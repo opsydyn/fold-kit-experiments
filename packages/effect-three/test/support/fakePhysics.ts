@@ -6,8 +6,8 @@
 import type {
   Body,
   BodyPose,
+  Collider,
   Collision,
-  ColliderShape,
   Physics,
   PhysicsEngine,
   PhysicsWorld,
@@ -16,7 +16,7 @@ import type {
 
 type FakeBody = {
   body: Body;
-  shape: ColliderShape;
+  colliders: ReadonlyArray<Collider>;
   pose: BodyPose;
   velocity: [number, number, number];
 };
@@ -45,9 +45,9 @@ export const fakePhysics = () => {
           calls.push('configure');
           gravity = physics.gravity;
         },
-        add: (key, body, shape, pose) => {
+        add: (key, body, colliders, pose) => {
           calls.push(`add ${key}`);
-          bodies.set(key, { body, shape, pose, velocity: [...body.linearVelocity] });
+          bodies.set(key, { body, colliders, pose, velocity: [...body.linearVelocity] });
         },
         update: (key, body) => {
           calls.push(`update ${key}`);

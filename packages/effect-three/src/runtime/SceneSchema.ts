@@ -9,7 +9,7 @@
  */
 import { Schema } from 'effect';
 
-import type { SceneNode as KernelSceneNode } from '../kernel/description.ts';
+import { handJoints, type SceneNode as KernelSceneNode } from '../kernel/description.ts';
 
 const NonNegative = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
 const Positive = Schema.Finite.check(Schema.isGreaterThan(0));
@@ -293,6 +293,17 @@ export const Body = Schema.Struct({
 });
 
 /** A physics world. */
+const Handedness = Schema.Literals(['left', 'right']);
+
+/** A space an immersive session tracks, for a group to follow. */
+export const XrSpace = Schema.Union([
+  Schema.TaggedStruct('Head', {}),
+  Schema.TaggedStruct('Joint', { hand: Handedness, joint: Schema.Literals(handJoints) }),
+  Schema.TaggedStruct('Controller', { hand: Handedness, space: Schema.Literals(['grip', 'ray']) }),
+  Schema.TaggedStruct('Anchor', { id: Schema.String }),
+  Schema.TaggedStruct('Plane', { id: Schema.String }),
+]);
+
 /** A body a joint holds: a node's, or one instance's. */
 export const BodyRef = Schema.Struct({
   key: Schema.String,
@@ -552,6 +563,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     interactive: Schema.Boolean,
     children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
     body: Schema.NullOr(Body),
+    follow: Schema.NullOr(XrSpace),
   }),
   MeshNode,
   InstancesNode,
@@ -687,6 +699,9 @@ export const ContactShadows = Schema.Struct({
 });
 
 /** Immersive presentation. */
+/** An anchor the description places in the scene. */
+export const XrAnchor = Schema.Struct({ id: Schema.String, position: Vec3, rotation: Vec3 });
+
 export const Xr = Schema.Struct({
   origin: Vec3,
   heading: Schema.Finite,
@@ -694,6 +709,9 @@ export const Xr = Schema.Struct({
   framebufferScale: Positive,
   hitTest: Schema.Boolean,
   showInputs: Schema.Boolean,
+  anchors: Schema.Array(XrAnchor),
+  planes: Schema.Boolean,
+  domOverlay: Schema.Boolean,
   glide: Schema.NullOr(
     Schema.Struct({
       speed: NonNegative,
@@ -845,6 +863,19 @@ export const XrMovedDetail = Schema.Struct({ origin: Vec3, heading: Schema.Finit
 /** Detail of XR surface events: in AR, where a select met a real surface. */
 export const XrSurfaceDetail = Schema.Struct({ hand: XrHand, point: Vec3, normal: Vec3 });
 
+/** A detected plane, in the scene's space. */
+export const XrPlane = Schema.Struct({
+  id: Schema.String,
+  orientation: Schema.Literals(['horizontal', 'vertical']),
+  label: Schema.String,
+  position: Vec3,
+  rotation: Vec3,
+  polygon: Schema.Array(Vec3),
+});
+
+/** Detail of XR planes events: every plane the session has detected, as it is now. */
+export const XrPlanesDetail = Schema.Struct({ planes: Schema.Array(XrPlane) });
+
 /** Detail of contact force events: the two bodies, and how hard they pushed. */
 export const ContactForceDetail = Schema.Struct({
   a: Schema.String,
@@ -887,6 +918,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
   Schema.TaggedStruct('XrMoved', XrMovedDetail.fields),
+  Schema.TaggedStruct('XrPlanes', XrPlanesDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 

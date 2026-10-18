@@ -9,6 +9,7 @@ import type { Object3D } from 'three';
 
 import { presentableRendererOf } from './renderSettings.ts';
 import { type Presentation, present, sessionInit, type XrMode, type XrSystem } from './xr.ts';
+import type { Follow } from './xrSpaces.ts';
 
 export type { XrMode } from './xr.ts';
 
@@ -21,6 +22,10 @@ export type XrTarget = {
   readonly draw: () => void;
   /** The scene's three.js root, where input sources are drawn while it presents. */
   readonly scene: Object3D;
+  /** The scene's element: the DOM overlay's root, when the scene asks for one. */
+  readonly element: Element;
+  /** Places the groups that follow tracked spaces. */
+  readonly follow: Follow;
   /** Input from the session: aims, selects, sticks, buttons and surfaces. */
   readonly input: (input: XrInput) => void;
   /** The session began presenting this scene in `mode`, or (with `null`) ended. */
@@ -62,7 +67,10 @@ export const createXrHub = (system: () => XrSystem | undefined): XrHub => {
     if (chosen === undefined) throw new Error('no mounted scene describes xr');
     const renderer = presentableRendererOf(chosen.target.canvas);
     if (renderer === undefined) throw new Error('the scene is not drawn by a three.js renderer');
-    const session = await xr.requestSession(mode, sessionInit(chosen.settings, mode));
+    const session = await xr.requestSession(
+      mode,
+      sessionInit(chosen.settings, mode, chosen.target.element),
+    );
     const { target } = chosen;
     // Each frame: follow the description (a new origin moves the player), then draw.
     const draw = (): void => {
@@ -78,9 +86,7 @@ export const createXrHub = (system: () => XrSystem | undefined): XrHub => {
       renderer,
       session,
       chosen.settings,
-      target.scene,
-      draw,
-      target.input,
+      { scene: target.scene, draw, follow: target.follow, input: target.input },
       ended,
     );
     current = { target, presentation };

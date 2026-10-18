@@ -67,6 +67,7 @@ export const sceneElement = CustomElement.define({
     'scene-xr-button': SceneSchema.XrButtonDetail,
     'scene-xr-surface': SceneSchema.XrSurfaceDetail,
     'scene-xr-moved': SceneSchema.XrMovedDetail,
+    'scene-xr-planes': SceneSchema.XrPlanesDetail,
     'scene-performance': SceneSchema.PerformanceDetail,
     'scene-error': Schema.Struct({ error: SceneError }),
     'scene-reconciled': ReconciledDetail,
@@ -95,6 +96,7 @@ export const domEventName = {
   XrButton: 'scene-xr-button',
   XrSurface: 'scene-xr-surface',
   XrMoved: 'scene-xr-moved',
+  XrPlanes: 'scene-xr-planes',
   PerformanceChanged: 'scene-performance',
 } as const satisfies Record<SceneEvent['_tag'], keyof typeof sceneElement.events>;
 

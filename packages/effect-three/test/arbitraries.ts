@@ -143,6 +143,12 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     interactive: Schema.Boolean,
     children: Children,
     body: Schema.Null,
+    follow: Schema.NullOr(
+      Schema.Union([
+        Schema.TaggedStruct('Head', {}),
+        Schema.TaggedStruct('Anchor', { id: Schema.Literals(['a1', 'a2']) }),
+      ]),
+    ),
   }),
   Schema.TaggedStruct('Mesh', {
     key: Key,
@@ -359,6 +365,11 @@ const sceneFields = {
       framebufferScale: Schema.Literals([1]),
       hitTest: Schema.Boolean,
       showInputs: Schema.Boolean,
+      anchors: Schema.Array(
+        Schema.Struct({ id: Schema.Literals(['a1', 'a2']), position: Vec3, rotation: Vec3 }),
+      ).check(Schema.isMaxLength(2)),
+      planes: Schema.Boolean,
+      domOverlay: Schema.Boolean,
       glide: Schema.NullOr(
         Schema.Struct({
           speed: Schema.Literals([2]),

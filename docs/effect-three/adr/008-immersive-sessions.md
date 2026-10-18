@@ -1,11 +1,12 @@
 # ADR-008: Immersive sessions are Commands; the scene says where the player stands
 
 - Status: Accepted (2026-10-17).
-- Evidence: `packages/effect-three-foldkit/src/dom/xr.ts`, `dom/xrHub.ts`, `src/xr.ts`;
+- Evidence: `packages/effect-three-foldkit/src/dom/xr.ts`, `dom/xrHub.ts`, `dom/xrSpaces.ts`,
+  `src/xr.ts`;
   `packages/effect-three/src/kernel/pointer.ts` (`pickRay`, `createSelectTracker`);
   `e2e/xr.test.ts` (a real WebXR session under Meta's IWER emulating a Quest 3).
 - References: React Three Fiber `core/configuration.ts` and `core/loop.ts` at `d74622e`;
-  pmndrs/xr at `0e1acd8` (`packages/xr/src/store.ts`, `init.ts`, `emulate.ts`).
+  pmndrs/xr at `0e1acd8` (`packages/xr/src/store.ts`, `init.ts`, `emulate.ts`, `space.ts`, `anchor.ts`, `plane.ts`).
 
 ## Context
 
@@ -50,6 +51,27 @@ framebufferScale }) })`. The kernel only holds it; its renderer contract stays f
   any scene background out of its frames (three already clears to transparent). With
   `xr({ hitTest: true })` it asks for hit testing (optionally) and a select reports where
   its ray met a real surface as `XrSurface { point, normal }`: tap to place.
+- **Tracked spaces are places groups follow.** `group({ follow })` puts a group on the
+  head (`headSpace()`), a hand joint (`jointSpace(hand, joint)`), a controller's grip or
+  ray (`controllerSpace(hand, space)`), an anchor or a detected plane, each frame, in the
+  world, whatever its parent; it is hidden while the session has no pose for the space
+  (and outside a session), and its own transform returns when it stops following.
+  pmndrs/xr's `createGetXRSpaceMatrix` (`space.ts`) places objects on spaces the same
+  way. This covers joint poses as data without a Message per frame: the Model says what
+  rides on a fingertip, and the session moves it.
+- **Anchors and planes are data both ways.** `xr({ anchors: [xrAnchor({ id, position,
+rotation })] })` asks the session to anchor those places (`frame.createAnchor` in the
+  player's space, as pmndrs/xr's `requestXRAnchor`): made when listed, made again when
+  moved, deleted when gone, and followed with `anchorSpace(id)`. An anchor stays where it
+  was in the room as the session learns it, so after a glide it may no longer be where
+  the scene first said. `xr({ planes: true })` asks for plane detection and reports
+  every detected plane (id, orientation, label, pose in the scene, outline) as
+  `XrPlanes` whenever what it reports changes, compared by content because runtimes
+  differ on `lastChangedTime` (IWER moves it every frame); `planeSpace(id)` follows one.
+- **DOM overlay is the scene's element.** `xr({ domOverlay: true })` asks for
+  `dom-overlay` (optionally) rooted on the scene's element, as `buildXRSessionInit` roots
+  it on the element it is given; anchors are always asked for, optionally, since a scene
+  may place them mid-session.
 - **Inputs are drawn.** `xr({ showInputs })` (on by default) draws each source's ray and
   each tracked hand's 25 joints as spheres, as three's `XRHandPrimitiveModel`, in a group
   the kernel leaves alone; pmndrs/xr loads controller and hand models from a CDN instead.
@@ -67,5 +89,8 @@ framebufferScale }) })`. The kernel only holds it; its renderer contract stays f
 - Gliding is the session's (`xr({ glide })`, after pmndrs/xr's controller locomotion: the
   left stick moves where the head faces, the right turns, smoothly or by snaps), so it
   needs no Message per frame; `XrMoved` reports where it stopped and `glided(xr, moved)`
-  keeps that in the Model, which wins whenever it changes the origin itself. Not yet:
-  anchors, planes and meshes, DOM overlay, and joint poses as data.
+  keeps that in the Model, which wins whenever it changes the origin itself.
+- The IWER tests follow the head, a controller grip, a fingertip (once hands replace
+  the controllers), an anchor and a detected table (the synthetic environment tracks one
+  plane), and see every following group hidden when the session ends. IWER has no DOM
+  overlay, so that is checked only in the session request. Not yet: detected meshes.

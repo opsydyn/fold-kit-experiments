@@ -57,6 +57,9 @@ const AmbientLightNode_2: Schema.TaggedStruct<"AmbientLight", {
 }>;
 
 // @public
+export const anchorSpace: (id: string) => XrSpace;
+
+// @public
 type Animation_2 = {
     readonly clip: string;
     readonly speed: number;
@@ -752,6 +755,9 @@ const ContactShadows_2: Schema.Struct<{
 // @public
 export const contactShadowsEquals: (a: ContactShadows | null, b: ContactShadows | null) => boolean;
 
+// @public
+export const controllerSpace: (hand: Handedness, space?: 'grip' | 'ray') => XrSpace;
+
 // Warning: (ae-forgotten-export) The symbol "Paced" needs to be exported by the entry point index.d.ts
 //
 // @public
@@ -1084,7 +1090,9 @@ export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry
 /** A label's text or any of its type settings. */
 | 'text'
 /** A shader grid's look: anything but where it is. */
-| 'grid';
+| 'grid'
+/** The tracked space a group follows. */
+| 'follow';
 
 // @public
 export const film: (options?: {
@@ -1407,6 +1415,7 @@ export const group: (options: TransformOptions & {
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
     readonly body?: Body_2 | null;
+    readonly follow?: XrSpace | null;
 }) => GroupNode;
 
 // @public
@@ -1421,7 +1430,20 @@ export type GroupNode = {
     readonly interactive: boolean;
     readonly children: ReadonlyArray<SceneNode>;
     readonly body: Body_2 | null;
+    readonly follow: XrSpace | null;
 };
+
+// @public
+export type Handedness = 'left' | 'right';
+
+// @public (undocumented)
+export type HandJoint = (typeof handJoints)[number];
+
+// @public
+export const handJoints: readonly ['wrist', 'thumb-metacarpal', 'thumb-phalanx-proximal', 'thumb-phalanx-distal', 'thumb-tip', 'index-finger-metacarpal', 'index-finger-phalanx-proximal', 'index-finger-phalanx-intermediate', 'index-finger-phalanx-distal', 'index-finger-tip', 'middle-finger-metacarpal', 'middle-finger-phalanx-proximal', 'middle-finger-phalanx-intermediate', 'middle-finger-phalanx-distal', 'middle-finger-tip', 'ring-finger-metacarpal', 'ring-finger-phalanx-proximal', 'ring-finger-phalanx-intermediate', 'ring-finger-phalanx-distal', 'ring-finger-tip', 'pinky-finger-metacarpal', 'pinky-finger-phalanx-proximal', 'pinky-finger-phalanx-intermediate', 'pinky-finger-phalanx-distal', 'pinky-finger-tip'];
+
+// @public
+export const headSpace: () => XrSpace;
 
 // @public
 export const hemisphereLight: (options: {
@@ -2001,6 +2023,9 @@ const JointMotor_2: Schema.Struct<{
     readonly stiffness: Schema.Finite;
     readonly damping: Schema.Finite;
 }>;
+
+// @public
+export const jointSpace: (hand: Handedness, joint: HandJoint) => XrSpace;
 
 // @public
 const KeyDetail: Schema.Struct<{
@@ -2998,6 +3023,9 @@ const PlaneGeometry_2: Schema.TaggedStruct<"Plane", {
 }>;
 
 // @public
+export const planeSpace: (id: string) => XrSpace;
+
+// @public
 export const play: (clip: string, options?: {
     readonly speed?: number;
     readonly loop?: boolean;
@@ -3760,6 +3788,13 @@ const SceneDescription_2: Schema.Struct<{
         readonly framebufferScale: Schema.Finite;
         readonly hitTest: Schema.Boolean;
         readonly showInputs: Schema.Boolean;
+        readonly anchors: Schema.$Array<Schema.Struct<{
+            readonly id: Schema.String;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+        readonly planes: Schema.Boolean;
+        readonly domOverlay: Schema.Boolean;
         readonly glide: Schema.NullOr<Schema.Struct<{
             readonly speed: Schema.Finite;
             readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
@@ -3983,6 +4018,11 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly _tag: 'XrMoved';
     readonly origin: Vec3;
     readonly heading: number;
+}
+/** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
+| {
+    readonly _tag: 'XrPlanes';
+    readonly planes: ReadonlyArray<XrPlane>;
 }
 /** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
 | {
@@ -4259,6 +4299,15 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
 }>, Schema.TaggedStruct<"XrMoved", {
     readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly heading: Schema.Finite;
+}>, Schema.TaggedStruct<"XrPlanes", {
+    readonly planes: Schema.$Array<Schema.Struct<{
+        readonly id: Schema.String;
+        readonly orientation: Schema.Literals<readonly ["horizontal", "vertical"]>;
+        readonly label: Schema.String;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly polygon: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+    }>>;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -4279,6 +4328,7 @@ export type SceneGraph = {
     readonly contactForces: () => ReadonlyArray<BodyContactForce>;
     readonly xr: () => Xr | null;
     readonly measured: () => ReadonlyArray<string>;
+    readonly follow: (locate: (space: XrSpace) => BodyPose | undefined) => void;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
     readonly tick: (elapsedSeconds: number) => void;
@@ -4413,6 +4463,7 @@ declare namespace SceneSchema {
         ColliderDescription_2 as ColliderDescription,
         InteractionGroups_2 as InteractionGroups,
         Body_3 as Body,
+        XrSpace_2 as XrSpace,
         BodyRef_2 as BodyRef,
         JointMotor_2 as JointMotor,
         JointLimits_2 as JointLimits,
@@ -4444,6 +4495,7 @@ declare namespace SceneSchema {
         Environment_2 as Environment,
         Sky_2 as Sky,
         ContactShadows_2 as ContactShadows,
+        XrAnchor_2 as XrAnchor,
         Xr_2 as Xr,
         Gestures_2 as Gestures,
         SceneDescription_2 as SceneDescription,
@@ -4462,6 +4514,8 @@ declare namespace SceneSchema {
         XrButtonDetail,
         XrMovedDetail,
         XrSurfaceDetail,
+        XrPlane_2 as XrPlane,
+        XrPlanesDetail,
         ContactForceDetail,
         MeasuredDetail,
         GestureDetail,
@@ -5160,13 +5214,16 @@ export type Xr = {
     readonly framebufferScale: number;
     readonly hitTest: boolean;
     readonly showInputs: boolean;
+    readonly anchors: ReadonlyArray<XrAnchor>;
+    readonly planes: boolean;
+    readonly domOverlay: boolean;
     readonly glide: XrGlide | null;
 };
 
 // @public
 export const xr: (options?: Partial<Xr>) => Xr;
 
-// @public
+// @public (undocumented)
 const Xr_2: Schema.Struct<{
     readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly heading: Schema.Finite;
@@ -5174,12 +5231,40 @@ const Xr_2: Schema.Struct<{
     readonly framebufferScale: Schema.Finite;
     readonly hitTest: Schema.Boolean;
     readonly showInputs: Schema.Boolean;
+    readonly anchors: Schema.$Array<Schema.Struct<{
+        readonly id: Schema.String;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+    readonly planes: Schema.Boolean;
+    readonly domOverlay: Schema.Boolean;
     readonly glide: Schema.NullOr<Schema.Struct<{
         readonly speed: Schema.Finite;
         readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
         readonly turnSpeed: Schema.Finite;
         readonly snapDegrees: Schema.Finite;
     }>>;
+}>;
+
+// @public
+export type XrAnchor = {
+    readonly id: string;
+    readonly position: Vec3;
+    readonly rotation: Vec3;
+};
+
+// @public
+export const xrAnchor: (options: {
+    readonly id: string;
+    readonly position: Vec3;
+    readonly rotation?: Vec3;
+}) => XrAnchor;
+
+// @public
+const XrAnchor_2: Schema.Struct<{
+    readonly id: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>;
 
 // @public
@@ -5242,6 +5327,11 @@ export type XrInput =
     readonly origin: Vec3;
     readonly heading: number;
 }
+/** The detected planes changed: all of them, as they are now. */
+| {
+    readonly _tag: 'Planes';
+    readonly planes: ReadonlyArray<XrPlane>;
+}
 /** In AR, a select whose ray met a real surface: where, and the surface's normal. */
 | {
     readonly _tag: 'Surface';
@@ -5256,6 +5346,70 @@ const XrMovedDetail: Schema.Struct<{
     readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly heading: Schema.Finite;
 }>;
+
+// @public
+export type XrPlane = {
+    readonly id: string;
+    readonly orientation: 'horizontal' | 'vertical';
+    readonly label: string;
+    readonly position: Vec3;
+    readonly rotation: Vec3;
+    readonly polygon: ReadonlyArray<Vec3>;
+};
+
+// @public
+const XrPlane_2: Schema.Struct<{
+    readonly id: Schema.String;
+    readonly orientation: Schema.Literals<readonly ["horizontal", "vertical"]>;
+    readonly label: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly polygon: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+}>;
+
+// @public
+const XrPlanesDetail: Schema.Struct<{
+    readonly planes: Schema.$Array<Schema.Struct<{
+        readonly id: Schema.String;
+        readonly orientation: Schema.Literals<readonly ["horizontal", "vertical"]>;
+        readonly label: Schema.String;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly polygon: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+    }>>;
+}>;
+
+// @public
+export type XrSpace = {
+    readonly _tag: 'Head';
+} | {
+    readonly _tag: 'Joint';
+    readonly hand: Handedness;
+    readonly joint: HandJoint;
+} | {
+    readonly _tag: 'Controller';
+    readonly hand: Handedness;
+    readonly space: 'grip' | 'ray';
+} | {
+    readonly _tag: 'Anchor';
+    readonly id: string;
+} | {
+    readonly _tag: 'Plane';
+    readonly id: string;
+};
+
+// @public
+const XrSpace_2: Schema.Union<readonly [Schema.TaggedStruct<"Head", {}>, Schema.TaggedStruct<"Joint", {
+    readonly hand: Schema.Literals<readonly ["left", "right"]>;
+    readonly joint: Schema.Literals<readonly ["wrist", "thumb-metacarpal", "thumb-phalanx-proximal", "thumb-phalanx-distal", "thumb-tip", "index-finger-metacarpal", "index-finger-phalanx-proximal", "index-finger-phalanx-intermediate", "index-finger-phalanx-distal", "index-finger-tip", "middle-finger-metacarpal", "middle-finger-phalanx-proximal", "middle-finger-phalanx-intermediate", "middle-finger-phalanx-distal", "middle-finger-tip", "ring-finger-metacarpal", "ring-finger-phalanx-proximal", "ring-finger-phalanx-intermediate", "ring-finger-phalanx-distal", "ring-finger-tip", "pinky-finger-metacarpal", "pinky-finger-phalanx-proximal", "pinky-finger-phalanx-intermediate", "pinky-finger-phalanx-distal", "pinky-finger-tip"]>;
+}>, Schema.TaggedStruct<"Controller", {
+    readonly hand: Schema.Literals<readonly ["left", "right"]>;
+    readonly space: Schema.Literals<readonly ["grip", "ray"]>;
+}>, Schema.TaggedStruct<"Anchor", {
+    readonly id: Schema.String;
+}>, Schema.TaggedStruct<"Plane", {
+    readonly id: Schema.String;
+}>]>;
 
 // @public
 const XrStickDetail: Schema.Struct<{

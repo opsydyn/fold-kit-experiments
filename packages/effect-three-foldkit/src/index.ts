@@ -62,6 +62,7 @@ export {
   type WheelDetail,
   type XrButtonDetail,
   type XrMovedDetail,
+  type XrPlanesDetail,
   type XrStickDetail,
   type XrSurfaceDetail,
 } from './view.ts';

@@ -16,6 +16,8 @@ import type {
   JointLimits,
   JointMotor,
   InteractionGroups,
+  XrAnchor,
+  XrSpace,
   ColliderDescription,
   ColliderShapeDescription,
   LabelNode,
@@ -537,6 +539,13 @@ export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
     a.debug === b.debug &&
     jointsEqual(a.joints, b.joints));
 
+/** Anchor equality (`b` may be missing). */
+const xrAnchorEquals = (a: XrAnchor, b: XrAnchor | undefined): boolean =>
+  b !== undefined &&
+  a.id === b.id &&
+  vec3Equals(a.position, b.position) &&
+  vec3Equals(a.rotation, b.rotation);
+
 /** Immersive presentation equality. */
 export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
   a === b ||
@@ -554,4 +563,25 @@ export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
         Object.is(a.glide.speed, b.glide.speed) &&
         a.glide.turn === b.glide.turn &&
         Object.is(a.glide.turnSpeed, b.glide.turnSpeed) &&
-        Object.is(a.glide.snapDegrees, b.glide.snapDegrees))));
+        Object.is(a.glide.snapDegrees, b.glide.snapDegrees))) &&
+    a.planes === b.planes &&
+    a.domOverlay === b.domOverlay &&
+    a.anchors.length === b.anchors.length &&
+    a.anchors.every((anchor, i) => xrAnchorEquals(anchor, b.anchors[i])));
+
+/** Tracked space equality. */
+export const xrSpaceEquals = (a: XrSpace | null, b: XrSpace | null): boolean => {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  switch (a._tag) {
+    case 'Head':
+      return b._tag === 'Head';
+    case 'Joint':
+      return b._tag === 'Joint' && a.hand === b.hand && a.joint === b.joint;
+    case 'Controller':
+      return b._tag === 'Controller' && a.hand === b.hand && a.space === b.space;
+    case 'Anchor':
+    case 'Plane':
+      return b._tag === a._tag && a.id === b.id;
+  }
+};

@@ -29,7 +29,7 @@ import {
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
 import { type BodyCollision, type BodyContactForce, createBodyHost } from './bodies.ts';
-import { type BodySource, instanceSources, nodeSource } from './bodySources.ts';
+import { type BodySource, instanceSources, nodeSource, placeObject } from './bodySources.ts';
 import { renderSettings, scene as describeScene } from './build.ts';
 import { createCameraMotion } from './cameraMotion.ts';
 import type {
@@ -57,6 +57,7 @@ import type {
   Physics,
   Sky,
   Xr,
+  XrSpace,
   RenderTexture,
   Vec3,
   View,
@@ -74,7 +75,7 @@ import {
   createPose,
   resetPose,
 } from './motion.ts';
-import type { PhysicsEngine } from './physics.ts';
+import type { BodyPose, PhysicsEngine } from './physics.ts';
 import type { HostedShaderGrid, HostedSky, RenderKit } from './renderKit.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
@@ -234,6 +235,12 @@ export type SceneGraph = {
   readonly xr: () => Xr | null;
   /** Keys of the nodes whose bounds the frame loop reports. */
   readonly measured: () => ReadonlyArray<string>;
+  /**
+   * Places the groups that follow tracked spaces where `locate` says each space is (in the
+   * scene), hiding those it cannot find. A presenting session calls it every frame, and
+   * once with nothing found when it ends.
+   */
+  readonly follow: (locate: (space: XrSpace) => BodyPose | undefined) => void;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -565,6 +572,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         trackRotation(entry, node);
         trackBehaviour(entry, node);
         trackInteractive(entry.object, node.interactive);
+        // A group following a tracked space shows only once the space is found.
+        if (node.follow !== null) entry.object.visible = false;
         return entry;
       }
       case 'Mesh': {
@@ -952,6 +961,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('rotation')) trackRotation(entry, next);
       if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
+      if (fields.includes('follow')) {
+        // Back to its own transform, or hidden until the new space is found.
+        entry.object.visible = next.follow === null;
+        if (next.follow === null) {
+          writeVec3(entry.object.position, next.position);
+          trackRotation(entry, next);
+        }
+      }
       return;
     }
     if (entry._tag === 'AmbientLight' && next._tag === 'AmbientLight') {
@@ -1291,6 +1308,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     contactForces: bodyHost.drainContactForces,
     xr: () => xrDescription,
     measured: () => measured,
+    follow: (locate) => {
+      scene.updateMatrixWorld();
+      for (const entry of entries.values()) {
+        if (entry._tag !== 'Group' || entry.node.follow === null) continue;
+        const pose = locate(entry.node.follow);
+        entry.object.visible = pose !== undefined;
+        if (pose !== undefined) placeObject(entry.object, pose);
+      }
+    },
     store,
     reconcile,
     tick,

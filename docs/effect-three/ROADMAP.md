@@ -150,7 +150,9 @@ targets today.
   sky, shader grid and contact shadows are `webglKit` in `@opsydyn/effect-three/webgl`.
 - ✅ Smooth locomotion without a Message per frame: `xr({ glide })` glides the player with
   the sticks in the session and reports `XrMoved` when they let go.
-- XR anchors, planes and DOM overlay; joint poses as data.
+- ✅ XR anchors, planes and DOM overlay; joint poses as data: `group({ follow })` rides
+  a tracked space (head, hand joint, controller, anchor, plane), `xr({ anchors, planes,
+domOverlay })`, and `XrPlanes` events ([ADR-008](adr/008-immersive-sessions.md)).
 - ✅ Collision groups and per-collider events in physics: `body({ collisionGroups,
 solverGroups })` with `interactionGroups`, and collisions naming each body's part.
 

@@ -77,7 +77,11 @@ import type {
   Vec3,
   View,
   ViewRect,
+  XrAnchor,
   XrGlide,
+  XrSpace,
+  Handedness,
+  HandJoint,
 } from './description.ts';
 
 const origin: Vec3 = [0, 0, 0];
@@ -470,6 +474,7 @@ export const group = (
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
     readonly body?: Body | null;
+    readonly follow?: XrSpace | null;
   },
 ): GroupNode => ({
   _tag: 'Group',
@@ -482,6 +487,41 @@ export const group = (
   interactive: options.interactive ?? false,
   children: options.children ?? [],
   body: options.body ?? null,
+  follow: options.follow ?? null,
+});
+
+/** The head (the viewer), for content that stays in view. */
+export const headSpace = (): XrSpace => ({ _tag: 'Head' });
+
+/** A tracked hand's joint (`index-finger-tip`, say). */
+export const jointSpace = (hand: Handedness, joint: HandJoint): XrSpace => ({
+  _tag: 'Joint',
+  hand,
+  joint,
+});
+
+/** A controller's grip (where it is held) or its pointing ray. */
+export const controllerSpace = (hand: Handedness, space: 'grip' | 'ray' = 'grip'): XrSpace => ({
+  _tag: 'Controller',
+  hand,
+  space,
+});
+
+/** An anchor the scene placed with `xr({ anchors })`. */
+export const anchorSpace = (id: string): XrSpace => ({ _tag: 'Anchor', id });
+
+/** A detected plane, by the id an `XrPlanes` event gave it. */
+export const planeSpace = (id: string): XrSpace => ({ _tag: 'Plane', id });
+
+/** An anchor at a place in the scene (Euler rotation, unturned by default). */
+export const xrAnchor = (options: {
+  readonly id: string;
+  readonly position: Vec3;
+  readonly rotation?: Vec3;
+}): XrAnchor => ({
+  id: options.id,
+  position: options.position,
+  rotation: options.rotation ?? origin,
 });
 
 /** A mesh. Not interactive unless `interactive` is true. */
@@ -711,6 +751,8 @@ export const springJoint = (options: {
   readonly damping: number;
 }): JointKind => ({ _tag: 'Spring', ...options });
 
+const noAnchors: ReadonlyArray<XrAnchor> = [];
+
 /**
  * Gliding with the thumbsticks while presenting. Defaults as pmndrs/xr's
  * `useXRControllerLocomotion`: 2 m/s, a snap turn of 45° (smooth turns at 2 rad/s).
@@ -735,6 +777,9 @@ export const xr = (options: Partial<Xr> = {}): Xr => ({
   hitTest: options.hitTest ?? false,
   showInputs: options.showInputs ?? true,
   glide: options.glide ?? null,
+  anchors: options.anchors ?? noAnchors,
+  planes: options.planes ?? false,
+  domOverlay: options.domOverlay ?? false,
 });
 
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */

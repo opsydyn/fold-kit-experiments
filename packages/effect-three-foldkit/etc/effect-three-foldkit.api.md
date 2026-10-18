@@ -5,6 +5,7 @@
 ```ts
 
 import { Behaviour } from '@opsydyn/effect-three';
+import type { BodyPose } from '@opsydyn/effect-three';
 import { CustomElement } from 'foldkit';
 import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
@@ -31,6 +32,7 @@ import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
 import type { Xr } from '@opsydyn/effect-three';
 import type { XrInput } from '@opsydyn/effect-three';
+import type { XrSpace } from '@opsydyn/effect-three';
 import { YieldableError } from 'effect/Cause';
 
 // @public
@@ -91,6 +93,7 @@ export const domEventName: {
     readonly XrButton: 'scene-xr-button';
     readonly XrSurface: 'scene-xr-surface';
     readonly XrMoved: 'scene-xr-moved';
+    readonly XrPlanes: 'scene-xr-planes';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -389,6 +392,13 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly framebufferScale: Schema.Finite;
             readonly hitTest: Schema.Boolean;
             readonly showInputs: Schema.Boolean;
+            readonly anchors: Schema.$Array<Schema.Struct<{
+                readonly id: Schema.String;
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>>;
+            readonly planes: Schema.Boolean;
+            readonly domOverlay: Schema.Boolean;
             readonly glide: Schema.NullOr<Schema.Struct<{
                 readonly speed: Schema.Finite;
                 readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
@@ -783,6 +793,16 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly heading: Schema.Finite;
     }>;
+    'scene-xr-planes': Schema.Struct<{
+        readonly planes: Schema.$Array<Schema.Struct<{
+            readonly id: Schema.String;
+            readonly orientation: Schema.Literals<readonly ["horizontal", "vertical"]>;
+            readonly label: Schema.String;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly polygon: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+        }>>;
+    }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
         readonly factor: Schema.Finite;
@@ -952,6 +972,7 @@ export type ViewConfig<Message> = {
     readonly onXRButton?: (detail: XrButtonDetail) => Message;
     readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
     readonly onXRMoved?: (detail: XrMovedDetail) => Message;
+    readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
@@ -993,6 +1014,9 @@ export type XrMode = 'immersive-vr' | 'immersive-ar';
 
 // @public
 export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
+
+// @public
+export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
 
 // @public
 export const XrSessionDetail: Schema.Struct<{

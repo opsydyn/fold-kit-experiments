@@ -29,6 +29,7 @@ import {
   bodyEquals,
   geometryRefEquals,
   labelTypeEquals,
+  xrSpaceEquals,
   shaderGridLookEquals,
   instancesEqual,
   materialRefEquals,
@@ -78,7 +79,9 @@ export type Field =
   /** A label's text or any of its type settings. */
   | 'text'
   /** A shader grid's look: anything but where it is. */
-  | 'grid';
+  | 'grid'
+  /** The tracked space a group follows. */
+  | 'follow';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -126,6 +129,7 @@ export const changedFields = (
       if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
       if (prev.interactive !== next.interactive) fields.push('interactive');
       if (!bodyEquals(prev.body, next.body)) fields.push('body');
+      if (!xrSpaceEquals(prev.follow, next.follow)) fields.push('follow');
       return fields;
     }
     case 'Mesh': {

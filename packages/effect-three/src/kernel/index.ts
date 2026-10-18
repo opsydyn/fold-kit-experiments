@@ -5,6 +5,7 @@
  * @module
  */
 export type * from './description.ts';
+export { handJoints } from './description.ts';
 export { clipRunning, clipTime } from './animation.ts';
 export {
   type Behaviour,
@@ -36,6 +37,12 @@ export {
   circle,
   xr,
   glide,
+  xrAnchor,
+  headSpace,
+  jointSpace,
+  controllerSpace,
+  anchorSpace,
+  planeSpace,
   physics,
   cuboidCollider,
   ballCollider,
@@ -192,6 +199,7 @@ export {
   type XrButtonName,
   type XrHand,
   type XrInput,
+  type XrPlane,
   type XrStickDirection,
 } from './xrInput.ts';
 export type { HostedLabel, LabelEngine } from './labels.ts';

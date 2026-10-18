@@ -21,8 +21,10 @@ import {
   keyOf,
   modeOf,
   framesDrawn,
+  followedIn,
   rendererFinder,
   shimOffsetSpaces,
+  spacesFromAddress,
 } from './xrProbe.ts';
 
 shimOffsetSpaces();
@@ -37,14 +39,18 @@ const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
+const spaces = spacesFromAddress(location.search);
 const described = scene({
   xr: xr({
     origin: [2, 0, 0],
     heading: -Math.PI / 2,
     hitTest: true,
     glide: glideFromAddress(location.search),
+    anchors: spaces.anchors,
+    planes: spaces.planes,
   }),
   children: [
+    ...spaces.children,
     mesh({
       key: 'cube',
       position: [4, 1.5, 0],
@@ -72,6 +78,7 @@ const watched = [
   'scene-xr-surface',
   'scene-pointer-missed',
   'scene-xr-moved',
+  'scene-xr-planes',
   'scene-click',
 ];
 const events: Array<string> = [];
@@ -130,4 +137,5 @@ Reflect.set(globalThis, '__xr', {
   },
   drags: () => drags,
   inputs: () => inputsShown(Reflect.get(globalThis, '__observedScenes') ?? []),
+  followed: () => followedIn(Reflect.get(globalThis, '__observedScenes') ?? []),
 });

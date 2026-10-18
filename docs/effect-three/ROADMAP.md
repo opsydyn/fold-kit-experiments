@@ -13,11 +13,21 @@ traces the reference before designing (the R3F reference rule in `CLAUDE.md`).
 **Status key:** ✅ done · 🟡 partial · ❌ missing · ⏸ designed for, not built.
 **Sizes:** S ≈ ≤1 day · M ≈ 2–4 days · L ≈ a week or more.
 
-## Where we are (2026-10-15)
+## Where we are (2026-10-18)
 
-Phases 0–5 of the [plan](PLAN.md) are complete, plus eased transitions and four
-geometries (`feat/effect-three-transitions`). The hosted catalogue is groups, meshes,
-ambient and directional lights, and one perspective camera.
+R1 to R4 are done, and R5 is done except the last of physics: everything in the tables
+below is ✅ but that row. A scene can hold meshes (nine shapes and text), instances,
+groups, borrowed glTF models with their clips, labels, five kinds of light, grids, and
+perspective or orthographic cameras in one or more views; render textures,
+post-processing, environment lighting, sky and contact shadows; rigid bodies and joints;
+and an XR presentation. Pointer, gesture, collision, measurement and XR input all come
+back as typed Messages. Physics still lacks explicit collider shapes, joint motors,
+contact forces and a debug view.
+
+The packages are `@opsydyn/effect-three` (kernel and runtime), `-foldkit` (the
+adapter), `-rapier` (physics engine) and `-troika` (label engine), all private and
+pre-release. Samples live in `@opsydyn/effect-three-samples`, shown by `apps/web` and
+the promo site.
 
 ## R1. Expressiveness: say more in a scene
 

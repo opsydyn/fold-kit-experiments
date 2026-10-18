@@ -49,6 +49,17 @@ export type XrPlane = {
   readonly polygon: ReadonlyArray<Vec3>;
 };
 
+/**
+ * A mesh the session detected (`xr({ meshes: true })`): furniture, a wall, the room. Its
+ * pose is in the scene's space; its geometry is lent for `xrMesh(id)` rather than sent.
+ */
+export type XrMesh = {
+  readonly id: string;
+  readonly label: string;
+  readonly position: Vec3;
+  readonly rotation: Vec3;
+};
+
 /** Input from an immersive session, each from an input source (`source` tells them apart). */
 export type XrInput =
   /** A select (the trigger, or a pinch) beginning or ending, along the source's ray. */
@@ -74,6 +85,8 @@ export type XrInput =
   | { readonly _tag: 'Moved'; readonly origin: Vec3; readonly heading: number }
   /** The detected planes changed: all of them, as they are now. */
   | { readonly _tag: 'Planes'; readonly planes: ReadonlyArray<XrPlane> }
+  /** The detected meshes changed: all of them, as they are now. */
+  | { readonly _tag: 'Meshes'; readonly meshes: ReadonlyArray<XrMesh> }
   /** In AR, a select whose ray met a real surface: where, and the surface's normal. */
   | {
       readonly _tag: 'Surface';
@@ -208,6 +221,8 @@ export const createXrTracker = (picker: Picker) => {
         return [{ _tag: 'XrMoved', origin: input.origin, heading: input.heading }];
       case 'Planes':
         return [{ _tag: 'XrPlanes', planes: input.planes }];
+      case 'Meshes':
+        return [{ _tag: 'XrMeshes', meshes: input.meshes }];
       case 'Surface':
         return [{ _tag: 'XrSurface', hand: input.hand, point: input.point, normal: input.normal }];
     }

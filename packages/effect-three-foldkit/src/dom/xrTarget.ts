@@ -9,7 +9,7 @@ import type { Object3D } from 'three';
 
 import type { Latch } from './latch.ts';
 import type { XrMode, XrTarget } from './xrHub.ts';
-import type { Follow } from './xrSpaces.ts';
+import type { Follow, LendGeometry } from './xrSpaces.ts';
 
 /**
  * The page's frames for a scene: open while it is visible and no session presents it
@@ -48,11 +48,13 @@ export const xrTarget = (scene: {
   readonly draw: () => void;
   readonly scene: Object3D;
   readonly follow: Follow;
+  readonly lend: LendGeometry;
   readonly input: (input: XrInput) => ReadonlyArray<SceneEvent>;
 }): XrTarget => ({
   canvas: scene.canvas,
   element: scene.element,
   follow: scene.follow,
+  lend: scene.lend,
   settings: scene.settings,
   draw: scene.draw,
   scene: scene.scene,

@@ -6,9 +6,11 @@ import {
   controllerSpace,
   headSpace,
   jointSpace,
+  meshSpace,
   planeSpace,
   xr,
   xrAnchor,
+  xrMeshGeometryId,
   type XrInput,
   type XrSpace,
 } from '@opsydyn/effect-three';
@@ -76,6 +78,11 @@ const fakes = () => {
   };
 };
 
+const noLend = () => () => undefined;
+
+/** Withdraws `id` from the loans `lent` records. */
+const withdrawer = (lent: Map<string, unknown>, id: string) => () => lent.delete(id);
+
 const rounded = (pose: BodyPose | undefined) =>
   pose?.position.map((v) => Math.round(v * 1e6) / 1e6);
 
@@ -111,6 +118,7 @@ test('heads, joints and controllers are located in the frame; what is missing is
       for (const [name, target] of asked) located.set(name, locate(target));
     },
     () => undefined,
+    noLend,
   );
   spaces.frame(frame, inSpace);
   expect(rounded(located.get('head'))).toEqual([0, 1.6, 0]);
@@ -133,6 +141,7 @@ test('anchors are made where the scene puts them, again when moved, deleted when
       found = locate(anchorSpace('a1'));
     },
     () => undefined,
+    noLend,
   );
   spaces.frame(frame, inSpace);
   // Made this frame; found once the session has made it.
@@ -166,6 +175,7 @@ test('planes are reported when found and when they change, and can be followed',
       followed = locate(planeSpace('plane-0'));
     },
     (input) => reports.push(input),
+    noLend,
   );
   spaces.frame(frame, inSpace);
   expect(reports).toEqual([{ _tag: 'Planes', planes: [] }]);
@@ -209,4 +219,55 @@ test('planes are reported when found and when they change, and can be followed',
   // Ending hides every following group.
   spaces.stop();
   expect(followed).toBeUndefined();
+});
+
+test('detected meshes are reported, their geometry lent, and taken back when lost', () => {
+  const { session, frame, space: inSpace } = fakes();
+  const couch = {
+    meshSpace: space('couch', [1, 0, -2]),
+    vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
+    indices: new Uint32Array([0, 1, 2]),
+    lastChangedTime: 1,
+    semanticLabel: 'couch',
+  };
+  const detected = new Set([couch]);
+  Reflect.set(frame, 'detectedMeshes', detected);
+  const reports: Array<XrInput> = [];
+  const lent = new Map<string, unknown>();
+  let followed: BodyPose | undefined;
+  const spaces = trackSpaces(
+    session,
+    () => xr({ meshes: true }),
+    (locate) => {
+      followed = locate(meshSpace('mesh-0'));
+    },
+    (input) => reports.push(input),
+    (id, geometry) => withdrawer(lent.set(id, geometry), id),
+  );
+  spaces.frame(frame, inSpace);
+  spaces.frame(frame, inSpace);
+  expect(reports).toHaveLength(1);
+  const report = reports[0];
+  const found = report?._tag === 'Meshes' ? report.meshes[0] : undefined;
+  expect(found).toMatchObject({ id: 'mesh-0', label: 'couch', position: [1, 0, -2] });
+  expect(rounded(followed)).toEqual([1, 0, -2]);
+  // Its geometry is lent once, under the id `xrMesh('mesh-0')` names, until it is lost.
+  expect([...lent.keys()]).toEqual([xrMeshGeometryId('mesh-0')]);
+  const geometry = lent.get(xrMeshGeometryId('mesh-0'));
+  couch.lastChangedTime = 2;
+  spaces.frame(frame, inSpace);
+  expect(lent.get(xrMeshGeometryId('mesh-0'))).toBe(geometry);
+  detected.clear();
+  spaces.frame(frame, inSpace);
+  expect(lent.size).toBe(0);
+  expect(reports.at(-1)).toEqual({ _tag: 'Meshes', meshes: [] });
+  expect(followed).toBeUndefined();
+  spaces.stop();
+});
+
+test('the session asks for mesh detection when the scene does', () => {
+  expect(sessionInit(xr({ meshes: true }), 'immersive-ar').optionalFeatures).toContain(
+    'mesh-detection',
+  );
+  expect(sessionInit(xr(), 'immersive-ar').optionalFeatures).not.toContain('mesh-detection');
 });

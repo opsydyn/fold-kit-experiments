@@ -152,6 +152,9 @@ export const geometryRefEquals = (a: GeometryRef, b: GeometryRef): boolean => {
   if (a._tag === 'SharedGeometry' || b._tag === 'SharedGeometry') {
     return a._tag === 'SharedGeometry' && b._tag === 'SharedGeometry' && a.id === b.id;
   }
+  if (a._tag === 'LentGeometry' || b._tag === 'LentGeometry') {
+    return a._tag === 'LentGeometry' && b._tag === 'LentGeometry' && a.id === b.id;
+  }
   return shapeEquals(a, b);
 };
 
@@ -577,6 +580,7 @@ export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
         Object.is(a.glide.turnSpeed, b.glide.turnSpeed) &&
         Object.is(a.glide.snapDegrees, b.glide.snapDegrees))) &&
     a.planes === b.planes &&
+    a.meshes === b.meshes &&
     a.domOverlay === b.domOverlay &&
     a.anchors.length === b.anchors.length &&
     a.anchors.every((anchor, i) => xrAnchorEquals(anchor, b.anchors[i])));
@@ -594,6 +598,7 @@ export const xrSpaceEquals = (a: XrSpace | null, b: XrSpace | null): boolean => 
       return b._tag === 'Controller' && a.hand === b.hand && a.space === b.space;
     case 'Anchor':
     case 'Plane':
+    case 'Mesh':
       return b._tag === a._tag && a.id === b.id;
   }
 };

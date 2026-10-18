@@ -93,4 +93,11 @@ rotation })] })` asks the session to anchor those places (`frame.createAnchor` i
 - The IWER tests follow the head, a controller grip, a fingertip (once hands replace
   the controllers), an anchor and a detected table (the synthetic environment tracks one
   plane), and see every following group hidden when the session ends. IWER has no DOM
-  overlay, so that is checked only in the session request. Not yet: detected meshes.
+  overlay, so that is checked only in the session request.
+- Detected meshes (`xr({ meshes: true })`, `mesh-detection`) are reported as `XrMeshes`
+  (id, label, pose) and followed with `meshSpace(id)`, as planes are, but their geometry
+  is lent to the scene's store rather than sent: `xrMesh(id)` draws it with any
+  material, built from `vertices` and `indices` as pmndrs/xr's `updateXRMeshGeometry`
+  builds it, again only when the arrays change (IWER moves `lastChangedTime` every
+  frame), and taken back when the mesh is lost or the session ends. The IWER test's
+  environment detects a one-triangle couch.

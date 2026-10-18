@@ -119,6 +119,7 @@ const xrRegistration = (mounted: Mounted) => () =>
       draw: mounted.handle.drawNow,
       scene: mounted.handle.graph.scene,
       follow: mounted.handle.graph.follow,
+      lend: mounted.handle.graph.store.lendGeometry,
       input: mounted.handle.xrInput,
     }),
   );

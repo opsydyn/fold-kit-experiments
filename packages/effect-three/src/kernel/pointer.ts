@@ -16,7 +16,7 @@ import { type Object3D, Raycaster, Vector2, Vector3 } from 'three';
 
 import type { Gestures, Vec3 } from './description.ts';
 import type { SceneGraph } from './sceneGraph.ts';
-import type { XrButtonName, XrHand, XrPlane, XrStickDirection } from './xrInput.ts';
+import type { XrButtonName, XrHand, XrMesh, XrPlane, XrStickDirection } from './xrInput.ts';
 
 /** Modifier keys held during an input, as on `MouseEvent`. */
 export type Modifiers = {
@@ -231,6 +231,8 @@ export type SceneEvent =
   | { readonly _tag: 'XrMoved'; readonly origin: Vec3; readonly heading: number }
   /** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
   | { readonly _tag: 'XrPlanes'; readonly planes: ReadonlyArray<XrPlane> }
+  /** The session's detected meshes changed (`xr({ meshes: true })`): all of them, now. */
+  | { readonly _tag: 'XrMeshes'; readonly meshes: ReadonlyArray<XrMesh> }
   /** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
   | {
       readonly _tag: 'XrSurface';

@@ -775,9 +775,21 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     }
   };
 
+  /** Shows a newly lent (or withdrawn) geometry on the meshes that name it. */
+  const refreshLentGeometry = (id: string): void => {
+    for (const entry of entries.values()) {
+      if (!isSurfaced(entry)) continue;
+      const geometry = entry.node.geometry;
+      if (geometry._tag === 'LentGeometry' && geometry.id === id) {
+        entry.object.geometry = store.acquireGeometry(geometry);
+      }
+    }
+  };
+
   const unsubscribeLoans = store.onLoanChanged((loan) => {
     if (loan.kind === 'texture') refreshTexture(loan.id);
     else if (loan.kind === 'font') refreshFont(loan.id);
+    else if (loan.kind === 'geometry') refreshLentGeometry(loan.id);
     else {
       for (const entry of entries.values()) {
         if (entry._tag === 'Borrowed' && entry.node.id === loan.id) showLoan(entry);

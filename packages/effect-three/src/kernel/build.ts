@@ -454,6 +454,8 @@ export const shaderGrid = (options: {
 
 /** A reference to a shared geometry defined in the scene's resources. */
 export const sharedGeometry = (id: string): GeometryRef => ({ _tag: 'SharedGeometry', id });
+/** A geometry lent under `id` (`store.lendGeometry`): empty until it is lent. */
+export const lentGeometry = (id: string): GeometryRef => ({ _tag: 'LentGeometry', id });
 
 /** A reference to a shared material defined in the scene's resources. */
 export const sharedMaterial = (id: string): MaterialRef => ({ _tag: 'SharedMaterial', id });
@@ -513,6 +515,17 @@ export const anchorSpace = (id: string): XrSpace => ({ _tag: 'Anchor', id });
 
 /** A detected plane, by the id an `XrPlanes` event gave it. */
 export const planeSpace = (id: string): XrSpace => ({ _tag: 'Plane', id });
+/** A mesh the session detected (`xr({ meshes: true })`), by its id from `XrMeshes`. */
+export const meshSpace = (id: string): XrSpace => ({ _tag: 'Mesh', id });
+
+/** The id a detected mesh's geometry is lent under, for `xrMesh` and the adapter. */
+export const xrMeshGeometryId = (id: string): string => `xr-mesh/${id}`;
+
+/**
+ * A detected mesh's geometry (`xr({ meshes: true })`), in its own space: put it in a
+ * group following `meshSpace(id)`. Empty until the session has detected it.
+ */
+export const xrMesh = (id: string): GeometryRef => lentGeometry(xrMeshGeometryId(id));
 
 /** An anchor at a place in the scene (Euler rotation, unturned by default). */
 export const xrAnchor = (options: {
@@ -780,6 +793,7 @@ export const xr = (options: Partial<Xr> = {}): Xr => ({
   glide: options.glide ?? null,
   anchors: options.anchors ?? noAnchors,
   planes: options.planes ?? false,
+  meshes: options.meshes ?? false,
   domOverlay: options.domOverlay ?? false,
 });
 

@@ -71,6 +71,9 @@ export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
 /** Detail of XR planes events: every plane the session detected, as it is now. */
 export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
 
+/** Detail of XR meshes events: every mesh the session detected, as it is now. */
+export type XrMeshesDetail = typeof SceneSchema.XrMeshesDetail.Type;
+
 /** Detail of XR surface events: in AR, where a select met a real surface, and its normal. */
 export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
 
@@ -173,6 +176,12 @@ export type ViewConfig<Message> = {
    */
   readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
   /**
+   * With `xr({ meshes: true })`, the detected meshes changed: every mesh, as it is now.
+   * Draw one with `group({ follow: meshSpace(id), children: [mesh({ geometry: xrMesh(id),
+   * material })] })`: its geometry is lent to the scene, not sent.
+   */
+  readonly onXRMeshes?: (detail: XrMeshesDetail) => Message;
+  /**
    * Frames ran persistently slow or fast, and the performance factor moved (0 to 1).
    * Store it in the Model and lower `render.resolution` with it, as Drei's
    * `PerformanceMonitor` and `AdaptiveDpr` do together.
@@ -225,6 +234,7 @@ export const view = <Message>(
     Option.map(given(config.onXRSurface), element.OnSceneXrSurface),
     Option.map(given(config.onXRMoved), element.OnSceneXrMoved),
     Option.map(given(config.onXRPlanes), element.OnSceneXrPlanes),
+    Option.map(given(config.onXRMeshes), element.OnSceneXrMeshes),
     Option.map(given(config.onAutoRotated), element.OnSceneAutoRotated),
     Option.map(given(config.onGesture), (toMessage) =>
       element.OnSceneGesture((detail) => toMessage(detail.gesture)),

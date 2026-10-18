@@ -79,11 +79,11 @@ export const expectedResources = (description: SceneDescription) => {
   let ownedGeometries = 0;
   let ownedMaterials = 0;
   for (const mesh of meshes) {
-    if (mesh.geometry._tag !== 'SharedGeometry') ownedGeometries++;
-    else {
+    // A lent geometry is the lender's: the store neither counts nor disposes it.
+    if (mesh.geometry._tag === 'SharedGeometry') {
       const id = mesh.geometry.id;
       sharedGeometryUsers.set(id, (sharedGeometryUsers.get(id) ?? 0) + 1);
-    }
+    } else if (mesh.geometry._tag !== 'LentGeometry') ownedGeometries++;
     if (mesh.material._tag !== 'SharedMaterial') ownedMaterials++;
     else {
       const id = mesh.material.id;

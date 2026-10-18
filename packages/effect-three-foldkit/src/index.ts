@@ -63,6 +63,7 @@ export {
   type ViewConfig,
   type WheelDetail,
   type XrButtonDetail,
+  type XrMeshesDetail,
   type XrMovedDetail,
   type XrPlanesDetail,
   type XrStickDetail,

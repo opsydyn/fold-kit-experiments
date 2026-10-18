@@ -8,9 +8,11 @@ import {
   headSpace,
   jointSpace,
   mesh,
+  meshSpace,
   planeSpace,
   standard,
   xrAnchor,
+  xrMesh,
   type XrAnchor,
   type XrGlide,
   type XrSpace,
@@ -20,13 +22,14 @@ import {
  * renderer. Kept apart from the Effect code that mounts the scene.
  */
 import {
+  NativeMesh,
   NativePlane,
   type XRDevice,
   XRReferenceSpace,
   XRRigidTransform,
   XRSemanticLabels,
 } from 'iwer';
-import { InstancedMesh, Line, Object3D, Vector3, type WebGLRenderer } from 'three';
+import { InstancedMesh, Line, Mesh, Object3D, Vector3, type WebGLRenderer } from 'three';
 import type { WebGPURenderer } from 'three/webgpu';
 
 type ThreeRenderer = WebGLRenderer | WebGPURenderer;
@@ -116,7 +119,15 @@ export class FloorEnvironment {
       XRSemanticLabels.Table,
     ),
   ]);
-  readonly trackedMeshes = new Set<never>();
+  /** A couch: one triangle, half a metre up, two metres left of the global origin. */
+  readonly trackedMeshes = new Set([
+    new NativeMesh(
+      new XRRigidTransform({ x: -2, y: 0.5, z: 0 }),
+      new Float32Array([-0.5, 0, 0, 0.5, 0, 0, 0, 0.4, 0]),
+      new Uint32Array([0, 1, 2]),
+      XRSemanticLabels.Couch,
+    ),
+  ]);
   render(): void {}
   loadEnvironment(): void {}
   loadDefaultEnvironment(): void {}
@@ -158,10 +169,10 @@ export const describeEvent = (event: Event): string => {
     event.type
   ];
   if (Array.isArray(place)) parts.push(place.map((value: number) => fixed(value, 1)).join(','));
-  // Each plane reported: its id, label and where it is.
-  const planes = field('planes');
-  if (Array.isArray(planes)) {
-    for (const plane of planes) {
+  // Each plane or mesh reported: its id, label and where it is.
+  for (const found of [field('planes'), field('meshes')]) {
+    if (!Array.isArray(found)) continue;
+    for (const plane of found) {
       const at = Reflect.get(plane, 'position').map((value: number) => fixed(value, 1));
       parts.push(`${Reflect.get(plane, 'id')}:${Reflect.get(plane, 'label')}@${at.join(',')}`);
     }
@@ -203,24 +214,33 @@ const following: ReadonlyArray<readonly [string, XrSpace]> = [
   ['on-grip', controllerSpace('left')],
   ['on-anchor', anchorSpace('a1')],
   ['on-plane', planeSpace('plane-0')],
+  ['on-mesh', meshSpace('mesh-0')],
 ];
+
+/** A detected mesh is drawn as itself (its lent geometry); everything else, a small cube. */
+const shapeOf = (follow: XrSpace) =>
+  follow._tag === 'Mesh' ? xrMesh(follow.id) : box({ width: 0.05, height: 0.05, depth: 0.05 });
 
 /**
  * With `?spaces` in the page's address: an anchor a metre ahead of the player at head
- * height, plane detection, and a small cube on each followed space. Otherwise none.
+ * height, plane and mesh detection, and a small cube on each followed space (the mesh
+ * itself on the detected mesh). Otherwise none.
  */
 export const spacesFromAddress = (
   search: string,
 ): {
   readonly anchors: ReadonlyArray<XrAnchor>;
   readonly planes: boolean;
+  readonly meshes: boolean;
   readonly children: ReadonlyArray<GroupNode>;
 } => {
-  if (!new URLSearchParams(search).has('spaces'))
-    return { anchors: [], planes: false, children: [] };
+  if (!new URLSearchParams(search).has('spaces')) {
+    return { anchors: [], planes: false, meshes: false, children: [] };
+  }
   return {
     anchors: [xrAnchor({ id: 'a1', position: [3, 1.5, 0] })],
     planes: true,
+    meshes: true,
     children: following.map(([key, follow]) =>
       group({
         key,
@@ -228,7 +248,7 @@ export const spacesFromAddress = (
         children: [
           mesh({
             key: `${key}-cube`,
-            geometry: box({ width: 0.05, height: 0.05, depth: 0.05 }),
+            geometry: shapeOf(follow),
             material: standard(),
           }),
         ],
@@ -250,4 +270,14 @@ export const followedIn = (scenes: ReadonlyArray<unknown>): Record<string, strin
     }
   }
   return shown;
+};
+
+/** How many vertices the scene's `key` mesh draws: a lent geometry shows once lent. */
+export const verticesIn = (scenes: ReadonlyArray<unknown>, key: string): number => {
+  for (const scene of scenes) {
+    if (!(scene instanceof Object3D)) continue;
+    const object = scene.getObjectByName(key);
+    if (object instanceof Mesh) return object.geometry.getAttribute('position')?.count ?? 0;
+  }
+  return 0;
 };

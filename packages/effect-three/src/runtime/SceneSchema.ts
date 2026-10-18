@@ -232,6 +232,7 @@ export const SurfaceMaterial = Schema.Union([
 export const GeometryRef = Schema.Union([
   ...ShapeGeometry.members,
   Schema.TaggedStruct('SharedGeometry', { id: Schema.String }),
+  Schema.TaggedStruct('LentGeometry', { id: Schema.String }),
 ]);
 
 /** An owned material or a reference to a shared one. */
@@ -302,6 +303,7 @@ export const XrSpace = Schema.Union([
   Schema.TaggedStruct('Controller', { hand: Handedness, space: Schema.Literals(['grip', 'ray']) }),
   Schema.TaggedStruct('Anchor', { id: Schema.String }),
   Schema.TaggedStruct('Plane', { id: Schema.String }),
+  Schema.TaggedStruct('Mesh', { id: Schema.String }),
 ]);
 
 /** A body a joint holds: a node's, or one instance's. */
@@ -718,6 +720,7 @@ export const Xr = Schema.Struct({
   showInputs: Schema.Boolean,
   anchors: Schema.Array(XrAnchor),
   planes: Schema.Boolean,
+  meshes: Schema.Boolean,
   domOverlay: Schema.Boolean,
   glide: Schema.NullOr(
     Schema.Struct({
@@ -883,6 +886,17 @@ export const XrPlane = Schema.Struct({
 /** Detail of XR planes events: every plane the session has detected, as it is now. */
 export const XrPlanesDetail = Schema.Struct({ planes: Schema.Array(XrPlane) });
 
+/** A detected mesh, in the scene's space: its geometry is lent for `xrMesh(id)`. */
+export const XrMesh = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  position: Vec3,
+  rotation: Vec3,
+});
+
+/** Detail of XR meshes events: every mesh the session has detected, as it is now. */
+export const XrMeshesDetail = Schema.Struct({ meshes: Schema.Array(XrMesh) });
+
 /** Detail of contact force events: the two bodies, and how hard they pushed. */
 export const ContactForceDetail = Schema.Struct({
   a: Schema.String,
@@ -943,6 +957,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
   Schema.TaggedStruct('XrMoved', XrMovedDetail.fields),
   Schema.TaggedStruct('XrPlanes', XrPlanesDetail.fields),
+  Schema.TaggedStruct('XrMeshes', XrMeshesDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 

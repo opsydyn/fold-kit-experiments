@@ -62,7 +62,10 @@ export type ResourceStats = {
 };
 
 /** A loan that changed: an object for `borrowed` nodes, or a texture for materials. */
-export type Loan = { readonly kind: 'object' | 'texture' | 'font'; readonly id: string };
+export type Loan = {
+  readonly kind: 'object' | 'texture' | 'font' | 'geometry';
+  readonly id: string;
+};
 
 /** Raised when a live shared geometry is replaced because its definition changed. */
 export type GeometryReplaced = {
@@ -114,6 +117,12 @@ export type ResourceStore = {
   readonly lendFont: (id: string, font: Font) => () => void;
   /** The font lent under `id`, if any. */
   readonly font: (id: string) => Font | undefined;
+  /**
+   * Lends an application-owned geometry under `id`, for meshes whose geometry is
+   * `lentGeometry(id)`; they show it at once, and nothing once it is withdrawn. The store
+   * never disposes it. Returns a function that withdraws this loan.
+   */
+  readonly lendGeometry: (id: string, geometry: BufferGeometry) => () => void;
   /** Subscribes to loans and withdrawals of objects and textures. Returns an unsubscribe. */
   readonly onLoanChanged: (listener: (loan: Loan) => void) => () => void;
   /** Subscribes to shared material replacement. Returns an unsubscribe function. */
@@ -227,6 +236,9 @@ const buildShape = (
 };
 
 /** Creates an empty resource store. */
+/** What a mesh shows while its lent geometry is not lent: nothing. Shared, never disposed. */
+const notLent = new BufferGeometry();
+
 export const createResourceStore = (): ResourceStore => {
   const geometryDefinitions = new Map<string, ShapeGeometry>();
   const materialDefinitions = new Map<string, SurfaceMaterial>();
@@ -243,6 +255,7 @@ export const createResourceStore = (): ResourceStore => {
   const textureOf = (id: string): Texture | undefined => textures.get(id);
   const fonts = new Map<string, Font>();
   const fontOf = (id: string): Font | undefined => fonts.get(id);
+  const lentGeometries = new Map<string, BufferGeometry>();
   const loanListeners = new Set<(loan: Loan) => void>();
   const loanChanged = (loan: Loan): void => {
     // Shared materials belong to the store: re-apply those that use a changed texture.
@@ -328,6 +341,8 @@ export const createResourceStore = (): ResourceStore => {
   };
 
   const acquireGeometry = (ref: GeometryRef): BufferGeometry => {
+    // A lent geometry is the lender's: shown as it is, never counted or disposed.
+    if (ref._tag === 'LentGeometry') return lentGeometries.get(ref.id) ?? notLent;
     if (ref._tag !== 'SharedGeometry') {
       const geometry = makeGeometry(ref);
       owned.add(geometry);
@@ -348,6 +363,7 @@ export const createResourceStore = (): ResourceStore => {
   };
 
   const releaseGeometry = (ref: GeometryRef, geometry: BufferGeometry): void => {
+    if (ref._tag === 'LentGeometry') return;
     if (ref._tag !== 'SharedGeometry') {
       if (owned.delete(geometry)) disposeGeometry(geometry);
       return;
@@ -448,6 +464,15 @@ export const createResourceStore = (): ResourceStore => {
       };
     },
     font: fontOf,
+    lendGeometry: (id, geometry) => {
+      lentGeometries.set(id, geometry);
+      loanChanged({ kind: 'geometry', id });
+      return () => {
+        if (lentGeometries.get(id) !== geometry) return;
+        lentGeometries.delete(id);
+        loanChanged({ kind: 'geometry', id });
+      };
+    },
     onLoanChanged: (listener) => {
       loanListeners.add(listener);
       return () => {

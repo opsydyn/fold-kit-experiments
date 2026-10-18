@@ -319,6 +319,10 @@ test('groups follow the head, a hand, a controller, an anchor and a detected pla
   const [gripX = 0, gripY = 0] = placeOf(shown, 'on-grip') ?? [];
   expect(gripY).toBeGreaterThan(3.5);
   expect(Math.abs(gripX - 2.3)).toBeLessThan(0.3);
+  // The couch, two metres left of the device's origin at 0.5: (2, 0.5, −2) in the scene,
+  // drawn with its own lent geometry (three vertices).
+  expect(placeOf(shown, 'on-mesh')).toEqual([2, 0.5, -2]);
+  expect(await inPage(page, () => Reflect.get(globalThis, '__xr').meshVertices())).toBe(3);
   // No tracked hands yet: the fingertip's group waits, hidden.
   expect(shown['on-tip']).toBe('hidden');
   await inPage(page, useHands);
@@ -330,7 +334,9 @@ test('groups follow the head, a hand, a controller, an anchor and a detected pla
   // Ending the session hides every following group.
   await inPage(page, exit);
   await page.waitForFunction(sessionsReported, 2);
-  expect(Object.values(await inPage(page, followed))).toEqual(Array(5).fill('hidden'));
+  expect(Object.values(await inPage(page, followed))).toEqual(Array(6).fill('hidden'));
+  // The couch's geometry is taken back with the session.
+  expect(await inPage(page, () => Reflect.get(globalThis, '__xr').meshVertices())).toBe(0);
   expect(errors).toEqual([]);
   await page.close();
 }, 60_000);
@@ -341,7 +347,7 @@ function planesReported(): boolean {
     .some((line: string) => line.startsWith('xr-planes'));
 }
 
-test('with planes, the detected planes are reported once, where they are in the scene', async () => {
+test('with planes and meshes, what was detected is reported once, where it is in the scene', async () => {
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   await page.goto(app.url('xr.html?spaces'));
   await page.waitForFunction(xrReady);
@@ -351,5 +357,7 @@ test('with planes, the detected planes are reported once, where they are in the 
   const planes = (await inPage(page, events)).filter((line) => line.startsWith('xr-planes'));
   // The emulator moves each plane's change time on every frame; it is reported once.
   expect(planes).toEqual(['xr-planes plane-0:table@3.0,0.7,0.0']);
+  const meshes = (await inPage(page, events)).filter((line) => line.startsWith('xr-meshes'));
+  expect(meshes).toEqual(['xr-meshes mesh-0:couch@2.0,0.5,-2.0']);
   await page.close();
 }, 60_000);

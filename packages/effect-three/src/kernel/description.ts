@@ -266,7 +266,14 @@ export type SurfaceMaterial =
   | NormalMaterial;
 
 /** A geometry owned by one mesh (a shape) or shared by id (`SharedGeometry`). */
-export type GeometryRef = ShapeGeometry | { readonly _tag: 'SharedGeometry'; readonly id: string };
+export type GeometryRef =
+  | ShapeGeometry
+  | { readonly _tag: 'SharedGeometry'; readonly id: string }
+  /**
+   * A geometry the application (or an adapter) lends under `id` with
+   * `store.lendGeometry`: drawn while lent, empty until then. Never disposed by the scene.
+   */
+  | { readonly _tag: 'LentGeometry'; readonly id: string };
 
 /** A material owned by one mesh, or shared by id (`SharedMaterial`). */
 export type MaterialRef =
@@ -373,15 +380,17 @@ export type Handedness = 'left' | 'right';
 
 /**
  * A space an immersive session tracks: the head, a hand's joint, a controller's grip or
- * pointing ray, an anchor the scene placed (`xr({ anchors })`), or a detected plane
- * (`xr({ planes: true })`, ids from `XrPlanes` events).
+ * pointing ray, an anchor the scene placed (`xr({ anchors })`), a detected plane
+ * (`xr({ planes: true })`, ids from `XrPlanes` events) or a detected mesh
+ * (`xr({ meshes: true })`, ids from `XrMeshes` events).
  */
 export type XrSpace =
   | { readonly _tag: 'Head' }
   | { readonly _tag: 'Joint'; readonly hand: Handedness; readonly joint: HandJoint }
   | { readonly _tag: 'Controller'; readonly hand: Handedness; readonly space: 'grip' | 'ray' }
   | { readonly _tag: 'Anchor'; readonly id: string }
-  | { readonly _tag: 'Plane'; readonly id: string };
+  | { readonly _tag: 'Plane'; readonly id: string }
+  | { readonly _tag: 'Mesh'; readonly id: string };
 
 /** A renderable mesh. `interactive` meshes take part in pointer hit testing. */
 export type MeshNode = {
@@ -1121,6 +1130,12 @@ export type Xr = {
   readonly anchors: ReadonlyArray<XrAnchor>;
   /** Detect the room's planes (floors, walls, tables) and report them as `XrPlanes` events. */
   readonly planes: boolean;
+  /**
+   * Detect the room's meshes (furniture, walls, the room as a whole) and report them as
+   * `XrMeshes` events; each one's geometry is lent for `xrMesh(id)`, followed with
+   * `meshSpace(id)`.
+   */
+  readonly meshes: boolean;
   /** Keep the scene's HTML overlays shown during an AR session (WebXR's DOM overlay). */
   readonly domOverlay: boolean;
   /**

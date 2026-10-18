@@ -160,6 +160,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     geometry: Schema.Union([
       ...Shape.members,
       Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
+      Schema.TaggedStruct('LentGeometry', { id: Schema.Literals(['lent']) }),
     ]),
     material: Schema.Union([
       ...Surface.members,
@@ -380,6 +381,7 @@ const sceneFields = {
         Schema.Struct({ id: Schema.Literals(['a1', 'a2']), position: Vec3, rotation: Vec3 }),
       ).check(Schema.isMaxLength(2)),
       planes: Schema.Boolean,
+      meshes: Schema.Boolean,
       domOverlay: Schema.Boolean,
       glide: Schema.NullOr(
         Schema.Struct({

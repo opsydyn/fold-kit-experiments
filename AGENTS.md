@@ -26,9 +26,10 @@ this with `tools/check-catalog.ts`.
 ## Before you write code
 
 For consumer-facing package work, read the relevant independent skill:
-`skills/astro-foldkit/SKILL.md` for Astro integration, or
-`skills/foldkit-viz/SKILL.md` for chart geometry and rendering. Load both only
-when the task uses both packages. Their bundled examples work outside this repo.
+`skills/astro-foldkit/SKILL.md` for Astro integration,
+`skills/foldkit-viz/SKILL.md` for chart geometry and rendering, or
+`skills/effect-three/SKILL.md` for 3D scenes (core, FoldKit adapter, Rapier,
+troika). Load more than one only when the task uses those packages together. Their bundled examples work outside this repo.
 
 1. Run `bun typecheck` — understand baseline errors before touching anything
 2. Run `bun run check` — understand baseline lint/format state

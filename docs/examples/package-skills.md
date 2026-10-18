@@ -1,9 +1,10 @@
 # Package Skill Qualification
 
-Two independent skills are maintained in this repository:
+Three independent skills are maintained in this repository:
 
 - [astro-foldkit](../../skills/astro-foldkit/SKILL.md)
 - [foldkit-viz](../../skills/foldkit-viz/SKILL.md)
+- [effect-three](../../skills/effect-three/SKILL.md)
 
 Each folder is self-contained: its entrypoint, agent UI metadata, references and
 assets travel together. Neither is globally installed by this change, bundled
@@ -17,11 +18,13 @@ installing. This avoids workspace links masking missing dependencies. Each
 manifest pins direct dependencies; generate a lockfile in the consumer and
 retain it there. These starter assets intentionally carry no monorepo lockfile.
 
-| Example                                     | Commands in copied directory                                                                                  | Qualification                                                                                              |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `skills/astro-foldkit/assets/counter`       | `bun install`, `bun run check`, `bun run test`, `bun run build`                                               | Published integration 0.8.1, Astro 7.2.8, FoldKit 0.167.0, Effect 4.0.0; three tests and two static routes |
-| `skills/foldkit-viz/assets/scatter`         | `bun install`, `bun run check`, `bun run test`                                                                | Published Viz 0.11.0; four geometry tests; no Astro, FoldKit or Effect installed                           |
-| `skills/foldkit-viz/assets/foldkit-view.ts` | Typecheck in a separate Viz 0.11.0 / FoldKit 0.167.0 / Effect 4.0.0 consumer; render using the parent builder | Compiled and rendered via FoldKit server rendering; SVG title/path present and no non-finite geometry      |
+| Example                                       | Commands in copied directory                                                                                                       | Qualification                                                                                                                            |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `skills/astro-foldkit/assets/counter`         | `bun install`, `bun run check`, `bun run test`, `bun run build`                                                                    | Published integration 0.8.1, Astro 7.2.8, FoldKit 0.167.0, Effect 4.0.0; three tests and two static routes                               |
+| `skills/foldkit-viz/assets/scatter`           | `bun install`, `bun run check`, `bun run test`                                                                                     | Published Viz 0.11.0; four geometry tests; no Astro, FoldKit or Effect installed                                                         |
+| `skills/foldkit-viz/assets/foldkit-view.ts`   | Typecheck in a separate Viz 0.11.0 / FoldKit 0.167.0 / Effect 4.0.0 consumer; render using the parent builder                      | Compiled and rendered via FoldKit server rendering; SVG title/path present and no non-finite geometry                                    |
+| `skills/effect-three/assets/headless`         | `npm install`, `npm run check`, `npm test`                                                                                         | Published effect-three 0.1.0, three 0.186.1, Effect 4.0.0; three Node tests (identity, release, atomic rejection); no browser or FoldKit |
+| `skills/effect-three/assets/foldkit-scene.ts` | Typecheck beside `headless/src/scene.ts` in a consumer with the four effect-three 0.1.0 packages, FoldKit 0.167.0 and Effect 4.0.0 | Compiled against the published packages; not rendered (it needs a WebGL2 browser)                                                        |
 
 These checks were executed when authoring the skills. They are not part of the
 root workspace test script: skill assets are outside the workspace globs, and

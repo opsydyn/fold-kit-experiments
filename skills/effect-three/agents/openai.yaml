@@ -1,0 +1,4 @@
+interface:
+  display_name: 'effect-three'
+  short_description: 'Declarative Three.js scenes kept in a Foldkit Model'
+  default_prompt: 'Use $effect-three to build a 3D scene derived from the Model, with typed events, owned resources and headless tests.'

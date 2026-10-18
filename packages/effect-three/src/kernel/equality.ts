@@ -14,6 +14,9 @@ import type {
   Joint,
   JointKind,
   JointLimits,
+  JointMotor,
+  ColliderDescription,
+  ColliderShapeDescription,
   LabelNode,
   ShaderGridNode,
   MaterialRef,
@@ -367,7 +370,9 @@ export const bodyEquals = (a: Body | null, b: Body | null): boolean =>
       (a.impulse !== null &&
         b.impulse !== null &&
         a.impulse.id === b.impulse.id &&
-        vec3Equals(a.impulse.impulse, b.impulse.impulse))));
+        vec3Equals(a.impulse.impulse, b.impulse.impulse))) &&
+    collidersEqual(a.colliders, b.colliders) &&
+    Object.is(a.contactForces, b.contactForces));
 
 const limitsEqual = (a: JointLimits | null, b: JointLimits | null): boolean =>
   a === b || (a !== null && b !== null && Object.is(a[0], b[0]) && Object.is(a[1], b[1]));
@@ -381,7 +386,12 @@ const jointKindEquals = (a: JointKind, b: JointKind): boolean => {
       return b._tag === 'Spherical';
     case 'Revolute':
     case 'Prismatic':
-      return b._tag === a._tag && vec3Equals(a.axis, b.axis) && limitsEqual(a.limits, b.limits);
+      return (
+        b._tag === a._tag &&
+        vec3Equals(a.axis, b.axis) &&
+        limitsEqual(a.limits, b.limits) &&
+        motorEquals(a.motor, b.motor)
+      );
     case 'Rope':
       return b._tag === 'Rope' && Object.is(a.length, b.length);
     case 'Spring':
@@ -392,6 +402,53 @@ const jointKindEquals = (a: JointKind, b: JointKind): boolean => {
         Object.is(a.damping, b.damping)
       );
   }
+};
+
+const motorEquals = (a: JointMotor | null, b: JointMotor | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    Object.is(a.position, b.position) &&
+    Object.is(a.velocity, b.velocity) &&
+    Object.is(a.stiffness, b.stiffness) &&
+    Object.is(a.damping, b.damping));
+
+const colliderShapeEquals = (a: ColliderShapeDescription, b: ColliderShapeDescription): boolean => {
+  switch (a._tag) {
+    case 'Cuboid':
+      return b._tag === 'Cuboid' && vec3Equals(a.halfExtents, b.halfExtents);
+    case 'Ball':
+      return b._tag === 'Ball' && Object.is(a.radius, b.radius);
+    case 'Capsule':
+    case 'Cylinder':
+    case 'Cone':
+      return (
+        b._tag === a._tag && Object.is(a.halfHeight, b.halfHeight) && Object.is(a.radius, b.radius)
+      );
+  }
+};
+
+/** Equality of a body's own colliders (`null` for colliders from its geometry). */
+export const collidersEqual = (
+  a: ReadonlyArray<ColliderDescription> | null,
+  b: ReadonlyArray<ColliderDescription> | null,
+): boolean => {
+  if (a === b) return true;
+  if (a === null || b === null || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (
+      x === undefined ||
+      y === undefined ||
+      !colliderShapeEquals(x.shape, y.shape) ||
+      !vec3Equals(x.position, y.position) ||
+      !vec3Equals(x.rotation, y.rotation)
+    ) {
+      return false;
+    }
+  }
+  return true;
 };
 
 const refEquals = (a: BodyRef, b: BodyRef): boolean => a.key === b.key && a.instance === b.instance;
@@ -462,6 +519,7 @@ export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
     a.paused === b.paused &&
     Object.is(a.timeStep, b.timeStep) &&
     a.interpolate === b.interpolate &&
+    a.debug === b.debug &&
     jointsEqual(a.joints, b.joints));
 
 /** Immersive presentation equality. */

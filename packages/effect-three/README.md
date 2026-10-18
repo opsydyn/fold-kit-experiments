@@ -57,7 +57,7 @@ const description = scene({
 - **Staging:** `scene({ environment: environment(), sky: sky() })` adds image-based lighting (three's `RoomEnvironment`, or a lent panorama with `map`) and a daylight sky, as Drei's `Environment` and `Sky`; `grid({ key })` draws three's `GridHelper`, `contactShadows()` draws Drei's soft ground shadows, and `shadowMaterial()` shows only the shadows cast onto it.
 - **Stage:** `const { lights, contactShadows, environment } = stage({ radius: 1.2, height: 2 })` is Drei's `Stage` lighting (presets `rembrandt`, `portrait`, `upfront`, `soft`) for content centred on the origin; spread the parts into `scene`. Measure the content (`scene({ measure })`), place it at `centerOffset(box)` (Drei's `Center`), light it with `stage(stageBounds(box))` and frame it with `fitCamera`.
 - **Grids and presets:** `shaderGrid({ key, infinite: true })` is Drei's fading shader `Grid`; `environmentPresetUrl('sunset')` is one of Drei's ten environment HDRs, for `assets.loadEnvironment`.
-- **Physics:** `mesh({ body: body({ collider: 'ball', restitution: 0.6 }) })` under `scene({ physics: physics() })` makes a rigid body the simulation moves; kicks are `impulse: { id, impulse }`, applied once per id, and collisions arrive as `Collision` events. Pass an engine (`loadRapier()` from `@opsydyn/effect-three-rapier`) to the scene graph or the Foldkit environment. See [ADR-007](../../docs/effect-three/adr/007-physics-as-a-pose-source.md).
+- **Physics:** `mesh({ body: body({ collider: 'ball', restitution: 0.6 }) })` under `scene({ physics: physics() })` makes a rigid body the simulation moves; kicks are `impulse: { id, impulse }`, applied once per id, and collisions arrive as `Collision` events. Bodies sit on groups, models and instances too, take colliders of their own (`colliders: [capsuleCollider(…)]`) and report `ContactForce` over a threshold; joints (with motors) go in `physics({ joints })`, and `physics({ debug: true })` draws the colliders. Pass an engine (`loadRapier()` from `@opsydyn/effect-three-rapier`) to the scene graph or the Foldkit environment. See [ADR-007](../../docs/effect-three/adr/007-physics-as-a-pose-source.md).
 - **XR:** `scene({ xr: xr({ origin: [0, 0, 4] }) })` lets a scene be presented in a WebXR session; in Foldkit, run `environment.xr.enter('immersive-vr')` from a click's Command. The session drives frames, the player stands at `origin`, and controllers and hands hover, click and drag along their rays. Thumbsticks arrive as `XrStick` events (`locomote(model.xr, stick)` snap-turns and steps), buttons as `XrButton`, and in AR with `xr({ hitTest: true })` a select reports the real surface it met (`XrSurface`). See [ADR-008](../../docs/effect-three/adr/008-immersive-sessions.md).
 - **Cameras:** `perspectiveCamera({ fov })` or `orthographicCamera({ zoom })`. As in React Three Fiber, an orthographic frustum follows the viewport in CSS pixels, with `zoom` in pixels per world unit.
 - **Lights:** `ambientLight`, `directionalLight`, `pointLight`, `spotLight` (aimed at a world-space `target`) and `hemisphereLight`, with three.js defaults.
@@ -163,7 +163,7 @@ Current benchmark results (Apple Silicon, 1,000 meshes):
 
 | Case                         | Median                 | Budget |
 | ---------------------------- | ---------------------- | ------ |
-| No-op reconcile              | ~160 µs                | 200 µs |
-| One changed property         | ~165 µs, 1 op          | 500 µs |
+| No-op reconcile              | ~95 µs                 | 200 µs |
+| One changed property         | ~95 µs, 1 op           | 500 µs |
 | Runtime mount + unmount      | ~22 µs                 | 1 ms   |
 | Frame with one animated mesh | ~55 ns, no heap growth | 50 µs  |

@@ -1,8 +1,9 @@
 # @opsydyn/effect-three-rapier
 
 Rapier physics for `@opsydyn/effect-three`. Bodies are described on meshes, groups, loaded
-models and instances, and joints in `physics({ joints })`; this package is the engine that
-simulates them ([ADR-007](../../docs/effect-three/adr/007-physics-as-a-pose-source.md)).
+models and instances (with colliders from their geometry or their own), and joints (with
+motors) in `physics({ joints })`; this package is the engine that simulates them, reports
+collisions and contact forces, and draws its debug lines ([ADR-007](../../docs/effect-three/adr/007-physics-as-a-pose-source.md)).
 
 ```ts
 import { body, box, mesh, physics, scene, standard } from '@opsydyn/effect-three';

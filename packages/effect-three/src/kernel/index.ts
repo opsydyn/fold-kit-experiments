@@ -36,6 +36,13 @@ export {
   circle,
   xr,
   physics,
+  cuboidCollider,
+  ballCollider,
+  capsuleCollider,
+  cylinderCollider,
+  coneCollider,
+  velocityMotor,
+  positionMotor,
   shaderGrid,
   label,
   bodyRef,
@@ -160,12 +167,15 @@ export {
   collidersFor,
   colliderSignature,
   type Collision,
+  type ContactForce,
+  type DebugLines,
+  describedColliders,
   type PhysicsEngine,
   type PhysicsJoint,
   type PhysicsWorld,
   type Quat,
 } from './physics.ts';
-export type { BodyCollision } from './bodies.ts';
+export type { BodyCollision, BodyContactForce } from './bodies.ts';
 export { type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
 export {
   createXrTracker,

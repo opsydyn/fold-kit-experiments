@@ -76,6 +76,9 @@ export const update = (model: Model, message: Message): AppReturn =>
     ClickedToy: ({ key, direction }) => ({ model: kick(model, key, direction) }),
     ClickedDrop: () => ({ model: dropped(model) }),
     ClickedTidy: () => ({ model: tidied(model) }),
+    ToggledColliders: () => ({
+      model: modifyFields(model, { showColliders: (shown) => !shown }),
+    }),
     ClickedPour: () => ({
       model: modifyFields(model, { marbles: (marbles) => Math.min(mostMarbles, marbles + pour) }),
     }),

@@ -48,6 +48,7 @@ export { type OverlayView } from './overlayView.ts';
 export {
   type ButtonDetail,
   type CollisionDetail,
+  type ContactForceDetail,
   type DragDetail,
   type Gesture,
   type HitDetail,

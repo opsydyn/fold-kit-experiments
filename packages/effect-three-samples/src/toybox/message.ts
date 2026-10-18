@@ -10,6 +10,7 @@ export const Message = defineMessageUnion({
   ClickedDrop: {},
   ClickedTidy: {},
   ClickedPour: {},
+  ToggledColliders: {},
   /** Two bodies began or stopped touching; `marble` if either was a marble. */
   Bumped: { started: Schema.Boolean, marble: Schema.Boolean },
   MadeGesture: { gesture: SceneSchema.Gesture },

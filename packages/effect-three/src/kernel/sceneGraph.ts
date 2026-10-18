@@ -29,7 +29,7 @@ import { Sky as SkyMesh } from 'three/addons/objects/Sky.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
-import { type BodyCollision, createBodyHost } from './bodies.ts';
+import { type BodyCollision, type BodyContactForce, createBodyHost } from './bodies.ts';
 import { type BodySource, instanceSources, nodeSource } from './bodySources.ts';
 import { renderSettings, scene as describeScene } from './build.ts';
 import { createCameraMotion } from './cameraMotion.ts';
@@ -221,6 +221,8 @@ export type SceneGraph = {
   readonly contactShadows: () => ContactShadows | null;
   /** Collisions between bodies since the last call, for the frame loop to report. */
   readonly collisions: () => ReadonlyArray<BodyCollision>;
+  /** Contact forces over their bodies' thresholds since the last call. */
+  readonly contactForces: () => ReadonlyArray<BodyContactForce>;
   /** How the scene is presented immersively, for the host; `null` if it never is. */
   readonly xr: () => Xr | null;
   /** Keys of the nodes whose bounds the frame loop reports. */
@@ -1203,6 +1205,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // The frame loop draws contact shadows with the renderer: a change needs a frame.
     if (!contactShadowsEquals(contactDescription, next.contactShadows)) invalidate();
     contactDescription = next.contactShadows;
+    // The debug lines appear or go with the next frame: ask for one, for an asleep world.
+    if ((physicsDescription?.debug ?? false) !== (next.physics?.debug ?? false)) invalidate();
     physicsDescription = next.physics;
     bodyHost.sync(next.physics, bodySources());
     // Read by the host when it presents the scene immersively: no operation, no frame.
@@ -1282,6 +1286,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     environment: () => environmentDescription,
     contactShadows: () => contactDescription,
     collisions: bodyHost.drainCollisions,
+    contactForces: bodyHost.drainContactForces,
     xr: () => xrDescription,
     measured: () => measured,
     store,

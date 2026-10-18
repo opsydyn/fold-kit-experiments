@@ -185,6 +185,7 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       graph.tick(elapsedSeconds());
       for (const event of tracker.frame()) emit(event);
       for (const collision of graph.collisions()) emit({ _tag: 'Collision', ...collision });
+      for (const force of graph.contactForces()) emit({ _tag: 'ContactForce', ...force });
       // Settings change only through reconcile, which replaces the value: compare by reference.
       const settings = graph.renderSettings();
       if (settings !== configured) {

@@ -248,6 +248,21 @@ export const ResourceDefinitions = Schema.Struct({
 
 /** A renderable mesh. */
 /** A rigid body for a mesh. */
+const Upright = { halfHeight: Positive, radius: Positive };
+
+/** A collider of a body's own, placed in it. */
+export const ColliderDescription = Schema.Struct({
+  shape: Schema.Union([
+    Schema.TaggedStruct('Cuboid', { halfExtents: Vec3 }),
+    Schema.TaggedStruct('Ball', { radius: Positive }),
+    Schema.TaggedStruct('Capsule', Upright),
+    Schema.TaggedStruct('Cylinder', Upright),
+    Schema.TaggedStruct('Cone', Upright),
+  ]),
+  position: Vec3,
+  rotation: Vec3,
+});
+
 export const Body = Schema.Struct({
   type: Schema.Literals(['dynamic', 'fixed', 'kinematic']),
   collider: Schema.Literals(['cuboid', 'ball', 'hull', 'trimesh']),
@@ -262,6 +277,8 @@ export const Body = Schema.Struct({
   linearVelocity: Vec3,
   angularVelocity: Vec3,
   impulse: Schema.NullOr(Schema.Struct({ id: Schema.Finite, impulse: Vec3 })),
+  colliders: Schema.NullOr(Schema.Array(ColliderDescription)),
+  contactForces: Schema.NullOr(NonNegative),
 });
 
 /** A physics world. */
@@ -271,6 +288,14 @@ export const BodyRef = Schema.Struct({
   instance: Schema.NullOr(Schema.String),
 });
 
+/** A joint's motor: a target position and velocity, and how hard it pursues each. */
+export const JointMotor = Schema.Struct({
+  position: Schema.Finite,
+  velocity: Schema.Finite,
+  stiffness: NonNegative,
+  damping: NonNegative,
+});
+
 /** A joint's range of motion. */
 export const JointLimits = Schema.Tuple([Schema.Finite, Schema.Finite]);
 
@@ -278,8 +303,16 @@ export const JointLimits = Schema.Tuple([Schema.Finite, Schema.Finite]);
 export const JointKind = Schema.Union([
   Schema.TaggedStruct('Fixed', { frameA: Vec3, frameB: Vec3 }),
   Schema.TaggedStruct('Spherical', {}),
-  Schema.TaggedStruct('Revolute', { axis: Vec3, limits: Schema.NullOr(JointLimits) }),
-  Schema.TaggedStruct('Prismatic', { axis: Vec3, limits: Schema.NullOr(JointLimits) }),
+  Schema.TaggedStruct('Revolute', {
+    axis: Vec3,
+    limits: Schema.NullOr(JointLimits),
+    motor: Schema.NullOr(JointMotor),
+  }),
+  Schema.TaggedStruct('Prismatic', {
+    axis: Vec3,
+    limits: Schema.NullOr(JointLimits),
+    motor: Schema.NullOr(JointMotor),
+  }),
   Schema.TaggedStruct('Rope', { length: Schema.Finite }),
   Schema.TaggedStruct('Spring', {
     restLength: Schema.Finite,
@@ -304,6 +337,7 @@ export const Physics = Schema.Struct({
   paused: Schema.Boolean,
   timeStep: Positive,
   interpolate: Schema.Boolean,
+  debug: Schema.Boolean,
   joints: Schema.Array(Joint),
 });
 
@@ -787,6 +821,18 @@ export const XrButtonDetail = Schema.Struct({
 /** Detail of XR surface events: in AR, where a select met a real surface. */
 export const XrSurfaceDetail = Schema.Struct({ hand: XrHand, point: Vec3, normal: Vec3 });
 
+/** Detail of contact force events: the two bodies, and how hard they pushed. */
+export const ContactForceDetail = Schema.Struct({
+  a: Schema.String,
+  aInstance: Schema.optionalKey(Schema.String),
+  b: Schema.String,
+  bInstance: Schema.optionalKey(Schema.String),
+  totalForce: Vec3,
+  totalForceMagnitude: Schema.Finite,
+  maxForceDirection: Vec3,
+  maxForceMagnitude: Schema.Finite,
+});
+
 /** Detail of measured events: a node's world bounding box. */
 export const MeasuredDetail = Schema.Struct({ key: Schema.String, min: Vec3, max: Vec3 });
 
@@ -810,6 +856,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('Gesture', GestureDetail.fields),
   Schema.TaggedStruct('Collision', CollisionDetail.fields),
   Schema.TaggedStruct('Measured', MeasuredDetail.fields),
+  Schema.TaggedStruct('ContactForce', ContactForceDetail.fields),
   Schema.TaggedStruct('XrStick', XrStickDetail.fields),
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),

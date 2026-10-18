@@ -240,6 +240,21 @@ export type SceneEvent =
       readonly started: boolean;
     }
   /**
+   * Two bodies pushed on each other harder than a body's `contactForces` threshold during
+   * a step: react-three-rapier's `onContactForce` payload, named as collisions are.
+   */
+  | {
+      readonly _tag: 'ContactForce';
+      readonly a: string;
+      readonly aInstance?: string;
+      readonly b: string;
+      readonly bInstance?: string;
+      readonly totalForce: Vec3;
+      readonly totalForceMagnitude: number;
+      readonly maxForceDirection: Vec3;
+      readonly maxForceMagnitude: number;
+    }
+  /**
    * A measured node's world bounding box changed (`scene({ measure })`): Drei's `Bounds`
    * `box.setFromObject`, reported rather than read. Not a pointer event either.
    */

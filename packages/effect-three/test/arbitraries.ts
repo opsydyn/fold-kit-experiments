@@ -177,6 +177,19 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
         linearVelocity: Vec3,
         angularVelocity: Vec3,
         impulse: Schema.NullOr(Schema.Struct({ id: Schema.Literals([1, 2]), impulse: Vec3 })),
+        colliders: Schema.NullOr(
+          Schema.Tuple([
+            Schema.Struct({
+              shape: Schema.TaggedStruct('Capsule', {
+                halfHeight: Schema.Literals([0.5]),
+                radius: Schema.Literals([0.25]),
+              }),
+              position: Vec3,
+              rotation: Vec3,
+            }),
+          ]),
+        ),
+        contactForces: Schema.NullOr(Schema.Literals([10])),
       }),
     ),
   }),
@@ -346,6 +359,7 @@ const sceneFields = {
       paused: Schema.Boolean,
       timeStep: Schema.Literals([1 / 60]),
       interpolate: Schema.Boolean,
+      debug: Schema.Boolean,
       joints: Schema.Tuple([]),
     }),
   ),

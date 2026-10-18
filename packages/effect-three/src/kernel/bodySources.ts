@@ -23,6 +23,7 @@ import {
   colliderFor,
   colliderSignature,
   collidersFor,
+  describedColliders,
 } from './physics.ts';
 
 /** The id of a node's body (`instance` null) or an instance's, in the physics world. */
@@ -72,6 +73,19 @@ const toPose = (from: Matrix4): BodyPose => {
   };
 };
 
+/** A world matrix's scale. */
+const worldScale = (from: Matrix4): Vector3 => {
+  from.decompose(position, quaternion, ownScale);
+  return ownScale;
+};
+
+/** A world matrix's scale as text, to five places (a turning body's matrix rounds). */
+const scaleText = (from: Matrix4): string =>
+  worldScale(from)
+    .toArray()
+    .map((value) => (Math.round(value * 1e5) / 1e5 || 0).toString())
+    .join(',');
+
 const rotationText = (rotation: Rotation): string =>
   rotation._tag === 'Fixed' ? rotation.euler.join(',') : 'spin';
 
@@ -97,8 +111,13 @@ export const nodeSource = (
     body,
     holder: object,
     placement: `${node.position.join(',')}|${rotationText(node.rotation)}`,
-    signature: () => colliderSignature(object),
-    colliders: () => collidersFor(object, body.collider),
+    // Colliders of its own depend on its scale only; others, on its meshes.
+    signature: () =>
+      body.colliders === null ? colliderSignature(object) : `own:${scaleText(object.matrixWorld)}`,
+    colliders: () =>
+      body.colliders === null
+        ? collidersFor(object, body.collider)
+        : describedColliders(body.colliders, worldScale(object.matrixWorld)),
     pose: () => toPose(object.matrixWorld),
     described: () => {
       position.fromArray(node.position);
@@ -139,9 +158,10 @@ const instanceSource = (
   signature: () => `${mesh.geometry.uuid}:${instance.scale.join(',')}`,
   colliders: () => {
     mesh.matrixWorld.decompose(position, quaternion, ownScale);
-    return [
-      colliderFor(mesh.geometry, body.collider, ownScale.multiply(scale.fromArray(instance.scale))),
-    ];
+    ownScale.multiply(scale.fromArray(instance.scale));
+    return body.colliders === null
+      ? [colliderFor(mesh.geometry, body.collider, ownScale)]
+      : describedColliders(body.colliders, ownScale);
   },
   pose: () => {
     mesh.getMatrixAt(slot, local);

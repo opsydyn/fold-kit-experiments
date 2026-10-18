@@ -4,10 +4,16 @@ import { Group, Mesh, PlaneGeometry } from 'three';
 
 import {
   createSceneGraph,
+  createSceneLoop,
   type LabelEngine,
   type LabelNode,
   label,
+  type MaterialRef,
+  recordingRendererFactory,
+  type SceneEvent,
   scene,
+  sharedMaterial,
+  standard,
 } from '../src/kernel/index.ts';
 import { webglKit } from '../src/webgl/index.ts';
 
@@ -22,6 +28,14 @@ const fakeLabels = () => {
       return {
         object: new Mesh(new PlaneGeometry()),
         update: (next) => calls.push(`update ${next.text}`),
+        setMaterial: (material) => {
+          if (material !== undefined) calls.push(`material ${material.type}`);
+        },
+        // Half a unit of width per character, one tall.
+        layout: () => ({
+          block: [-node.text.length / 4, -0.5, node.text.length / 4, 0.5],
+          visible: [-node.text.length / 4, -0.4, node.text.length / 4, 0.4],
+        }),
         dispose: () => calls.push('dispose'),
       };
     },
@@ -80,5 +94,61 @@ test('a render kit that cannot draw labels gets none from the engine', () => {
   graph.reconcile(sign());
   expect(calls).toEqual([]);
   expect(graph.object('sign')?.children).toEqual([]);
+  graph.dispose();
+});
+
+test('a label lends its material to the engine, swaps it, and gives it back', () => {
+  const { engine, calls } = fakeLabels();
+  const graph = createSceneGraph({ labels: engine });
+  const shared = {
+    geometries: [],
+    materials: [{ id: 'gold', material: standard({ metalness: 1 }) }],
+  };
+  const lit = (material: MaterialRef | null) =>
+    scene({ resources: shared, children: [label({ key: 'sign', text: 'Hello', material })] });
+  graph.reconcile(lit(standard({ roughness: 0.2 })));
+  expect(calls).toEqual(['create Hello', 'material MeshStandardMaterial']);
+  // Its own material changes in place, as a mesh's does: nothing new to lend.
+  graph.reconcile(lit(standard({ roughness: 0.8 })));
+  expect(calls).toHaveLength(2);
+  expect(graph.store.stats().materials.live).toBe(1);
+  // A shared one replaces it; back to the engine's own frees it.
+  graph.reconcile(lit(sharedMaterial('gold')));
+  expect(calls.at(-1)).toBe('material MeshStandardMaterial');
+  expect(graph.store.stats().sharedMaterialUsers.get('gold')).toBe(1);
+  graph.reconcile(lit(null));
+  expect(graph.store.stats().materials.live).toBe(0);
+  expect(graph.reconcile(lit(sharedMaterial('missing')))).toEqual({
+    _tag: 'Invalid',
+    error: { _tag: 'UnknownSharedMaterial', nodeKey: 'sign', id: 'missing' },
+  });
+  graph.dispose();
+});
+
+test('a measured label reports its laid-out size, once per change', () => {
+  const { engine } = fakeLabels();
+  const graph = createSceneGraph({ labels: engine });
+  const events: Array<SceneEvent> = [];
+  const loop = createSceneLoop({
+    graph,
+    renderer: recordingRendererFactory().create(),
+    elapsedSeconds: () => 0,
+    emit: (event) => events.push(event),
+  });
+  const sized = (text: string) =>
+    scene({ measure: ['sign'], children: [label({ key: 'sign', text, scale: [2, 2, 2] })] });
+  graph.reconcile(sized('Hello'));
+  loop.frame();
+  loop.frame();
+  const laidOut = () => events.filter((event) => event._tag === 'LabelMeasured');
+  // In its own units, before its scale: five characters, half a unit each.
+  expect(laidOut()).toEqual([
+    {
+      _tag: 'LabelMeasured',
+      key: 'sign',
+      block: [-1.25, -0.5, 1.25, 0.5],
+      visible: [-1.25, -0.4, 1.25, 0.4],
+    },
+  ]);
   graph.dispose();
 });

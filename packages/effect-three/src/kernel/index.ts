@@ -35,6 +35,7 @@ export {
   capsule,
   body,
   circle,
+  colorRange,
   xr,
   glide,
   xrAnchor,
@@ -203,7 +204,7 @@ export {
   type XrPlane,
   type XrStickDirection,
 } from './xrInput.ts';
-export type { HostedLabel, LabelEngine } from './labels.ts';
+export type { HostedLabel, LabelEngine, LabelLayout } from './labels.ts';
 export {
   type EnvironmentPreset,
   environmentPresets,

@@ -149,6 +149,16 @@ export const indexScene = (
     const { node } = item;
     if (nodes.has(node.key))
       return { _tag: 'Invalid', error: { _tag: 'DuplicateKey', key: node.key } };
+    if (
+      node._tag === 'Label' &&
+      node.material?._tag === 'SharedMaterial' &&
+      !materialIds.has(node.material.id)
+    ) {
+      return {
+        _tag: 'Invalid',
+        error: { _tag: 'UnknownSharedMaterial', nodeKey: node.key, id: node.material.id },
+      };
+    }
     if (node._tag === 'Mesh' || node._tag === 'Instances') {
       if (node.geometry._tag === 'SharedGeometry' && !geometryIds.has(node.geometry.id)) {
         return {

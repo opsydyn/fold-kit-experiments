@@ -70,6 +70,10 @@ export const expectedResources = (description: SceneDescription) => {
   const meshes = everyNode.flatMap((node) =>
     node._tag === 'Mesh' || node._tag === 'Instances' ? [node] : [],
   );
+  // A label with a material holds it as a mesh does, engine or not.
+  const labelMaterials = everyNode.flatMap((node) =>
+    node._tag === 'Label' && node.material !== null ? [node.material] : [],
+  );
   const sharedGeometryUsers = new Map<string, number>();
   const sharedMaterialUsers = new Map<string, number>();
   let ownedGeometries = 0;
@@ -85,6 +89,10 @@ export const expectedResources = (description: SceneDescription) => {
       const id = mesh.material.id;
       sharedMaterialUsers.set(id, (sharedMaterialUsers.get(id) ?? 0) + 1);
     }
+  }
+  for (const material of labelMaterials) {
+    if (material._tag !== 'SharedMaterial') ownedMaterials++;
+    else sharedMaterialUsers.set(material.id, (sharedMaterialUsers.get(material.id) ?? 0) + 1);
   }
   return {
     liveGeometries: ownedGeometries + sharedGeometryUsers.size,

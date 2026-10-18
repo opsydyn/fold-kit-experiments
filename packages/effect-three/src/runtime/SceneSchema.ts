@@ -451,6 +451,11 @@ export const LabelNode = Schema.TaggedStruct('Label', {
   outlineColor: Rgb,
   outlineOpacity: NonNegative,
   outlineBlur: NonNegative,
+  colorRanges: Schema.Array(
+    Schema.Struct({ start: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)), color: Rgb }),
+  ),
+  curveRadius: Schema.Finite,
+  material: Schema.NullOr(MaterialRef),
 });
 
 /** Uniform ambient light. */
@@ -892,6 +897,15 @@ export const ContactForceDetail = Schema.Struct({
   maxForceMagnitude: Schema.Finite,
 });
 
+const Rect = Schema.Tuple([Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]);
+
+/** Detail of label measured events: a label's laid-out size in its own units. */
+export const LabelMeasuredDetail = Schema.Struct({
+  key: Schema.String,
+  block: Rect,
+  visible: Rect,
+});
+
 /** Detail of measured events: a node's world bounding box. */
 export const MeasuredDetail = Schema.Struct({ key: Schema.String, min: Vec3, max: Vec3 });
 
@@ -922,6 +936,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('AutoRotated', AutoRotatedDetail.fields),
   Schema.TaggedStruct('Collision', CollisionDetail.fields),
   Schema.TaggedStruct('Measured', MeasuredDetail.fields),
+  Schema.TaggedStruct('LabelMeasured', LabelMeasuredDetail.fields),
   Schema.TaggedStruct('ContactForce', ContactForceDetail.fields),
   Schema.TaggedStruct('XrStick', XrStickDetail.fields),
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),

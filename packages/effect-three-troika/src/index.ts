@@ -15,7 +15,8 @@
  *
  * @module
  */
-import type { HostedLabel, LabelEngine, LabelNode } from '@opsydyn/effect-three';
+import type { HostedLabel, LabelEngine, LabelLayout, LabelNode } from '@opsydyn/effect-three';
+import type { Material } from 'three';
 // Its ES build, as bundlers pick it (`module`): Bun would load the UMD `main`, whose
 // `require('three')` can meet three's ES build mid-load.
 import { Text } from 'troika-three-text/dist/troika-three-text.esm.js';
@@ -40,6 +41,25 @@ const apply = (text: Text, label: LabelNode): void => {
   text.outlineColor = label.outlineColor;
   text.outlineOpacity = label.outlineOpacity;
   text.outlineBlur = label.outlineBlur;
+  text.colorRanges = colorRangesOf(label);
+  text.curveRadius = label.curveRadius;
+};
+
+/** A label's colour ranges as troika takes them: an object from start index to colour. */
+const colorRangesOf = (label: LabelNode): Record<number, number> | null => {
+  if (label.colorRanges.length === 0) return null;
+  const ranges: Record<number, number> = {};
+  for (const { start, color } of label.colorRanges) ranges[start] = color;
+  return ranges;
+};
+
+/** troika's laid-out bounds, once `sync` has laid the text out. */
+const layoutOf = (text: Text): LabelLayout | undefined => {
+  const info = text.textRenderInfo;
+  if (info === null) return undefined;
+  const [a = 0, b = 0, c = 0, d = 0] = info.blockBounds;
+  const [e = 0, f = 0, g = 0, h = 0] = info.visibleBounds;
+  return { block: [a, b, c, d], visible: [e, f, g, h] };
 };
 
 const host = (label: LabelNode, ready: () => void): HostedLabel => {
@@ -53,6 +73,11 @@ const host = (label: LabelNode, ready: () => void): HostedLabel => {
       apply(text, next);
       text.sync(ready);
     },
+    // troika derives its text material from the one lent, and frees it with it.
+    setMaterial: (material: Material | undefined) => {
+      text.material = material;
+    },
+    layout: () => layoutOf(text),
     dispose: () => text.dispose(),
   };
 };

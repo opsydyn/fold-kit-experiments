@@ -272,6 +272,17 @@ export type SceneEvent =
       readonly maxForceMagnitude: number;
     }
   /**
+   * A measured label's laid-out size changed (`scene({ measure })`, after its glyphs are
+   * laid out): in its own units, before its scale, for sizing what goes behind it, as
+   * Drei's `Text` `onSync` reads troika's `textRenderInfo`.
+   */
+  | {
+      readonly _tag: 'LabelMeasured';
+      readonly key: string;
+      readonly block: readonly [number, number, number, number];
+      readonly visible: readonly [number, number, number, number];
+    }
+  /**
    * A measured node's world bounding box changed (`scene({ measure })`): Drei's `Bounds`
    * `box.setFromObject`, reported rather than read. Not a pointer event either.
    */

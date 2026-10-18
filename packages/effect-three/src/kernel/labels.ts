@@ -9,9 +9,19 @@
  *
  * @module
  */
-import type { Object3D } from 'three';
+import type { Material, Object3D } from 'three';
 
 import type { LabelNode } from './description.ts';
+
+/**
+ * A label's laid-out size in its own units (before its scale), as `[minX, minY, maxX,
+ * maxY]`: `block` the whole text block, line height included, and `visible` tight round
+ * the glyphs (troika's `blockBounds` and `visibleBounds`).
+ */
+export type LabelLayout = {
+  readonly block: readonly [number, number, number, number];
+  readonly visible: readonly [number, number, number, number];
+};
 
 /** One label as an engine draws it. */
 export type HostedLabel = {
@@ -19,6 +29,13 @@ export type HostedLabel = {
   readonly object: Object3D;
   /** Applies new text or type settings; `ready` is called again when they are drawn. */
   readonly update: (label: LabelNode) => void;
+  /**
+   * Draws the glyphs with a material the scene lends (`label({ material })`), or the
+   * engine's own with `undefined`. The scene owns it: the engine never disposes it.
+   */
+  readonly setMaterial: (material: Material | undefined) => void;
+  /** The text's laid-out size, once it has been laid out. */
+  readonly layout: () => LabelLayout | undefined;
   readonly dispose: () => void;
 };
 

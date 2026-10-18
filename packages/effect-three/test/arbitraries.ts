@@ -279,6 +279,17 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     outlineColor: Colour,
     outlineOpacity: Schema.Literals([1]),
     outlineBlur: Schema.Literals([0]),
+    colorRanges: Schema.Union([
+      Schema.Tuple([]),
+      Schema.Tuple([Schema.Struct({ start: Schema.Literals([0, 1]), color: Colour })]),
+    ]),
+    curveRadius: Schema.Literals([0, 2]),
+    material: Schema.NullOr(
+      Schema.Union([
+        ...Surface.members,
+        Schema.TaggedStruct('SharedMaterial', { id: Schema.Literals(['m1', 'm2']) }),
+      ]),
+    ),
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),
   Schema.TaggedStruct('PointLight', {

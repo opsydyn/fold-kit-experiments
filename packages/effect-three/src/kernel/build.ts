@@ -22,6 +22,7 @@ import type {
   LabelAlign,
   LabelAnchorX,
   LabelAnchorY,
+  LabelColorRange,
   LabelNode,
   MaterialSide,
   ShaderGridNode,
@@ -864,6 +865,8 @@ export const borrowed = (
  * its centre and middle, troika's default font; white, no outline, left-aligned lines,
  * never wrapped, the font's own line height. Not interactive by default.
  */
+const noColorRanges: ReadonlyArray<LabelColorRange> = [];
+
 export const label = (
   options: TransformOptions & {
     readonly text: string;
@@ -881,6 +884,9 @@ export const label = (
     readonly outlineColor?: Rgb;
     readonly outlineOpacity?: number;
     readonly outlineBlur?: number;
+    readonly colorRanges?: ReadonlyArray<LabelColorRange>;
+    readonly curveRadius?: number;
+    readonly material?: MaterialRef | null;
     readonly interactive?: boolean;
   },
 ): LabelNode => ({
@@ -907,7 +913,13 @@ export const label = (
   outlineColor: options.outlineColor ?? 0x000000,
   outlineOpacity: options.outlineOpacity ?? 1,
   outlineBlur: options.outlineBlur ?? 0,
+  colorRanges: options.colorRanges ?? noColorRanges,
+  curveRadius: options.curveRadius ?? 0,
+  material: options.material ?? null,
 });
+
+/** A run of a label's characters in `color`, from character index `start`. */
+export const colorRange = (start: number, color: Rgb): LabelColorRange => ({ start, color });
 
 /** Ambient light. Defaults: white, intensity 1. */
 export const ambientLight = (options: {

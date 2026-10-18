@@ -167,10 +167,23 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
   const reported = new Map<string, Box3>();
   const box = new Box3();
 
+  // The last layout reported for each measured label.
+  const laidOut = new Map<string, string>();
+
+  const measureLabel = (key: string): void => {
+    const layout = graph.labelLayout(key);
+    if (layout === undefined) return;
+    const signature = [...layout.block, ...layout.visible].join(',');
+    if (laidOut.get(key) === signature) return;
+    laidOut.set(key, signature);
+    emit({ _tag: 'LabelMeasured', key, block: layout.block, visible: layout.visible });
+  };
+
   const measure = (): void => {
     const keys = graph.measured();
-    if (keys.length === 0 && reported.size === 0) return;
+    if (keys.length === 0 && reported.size === 0 && laidOut.size === 0) return;
     for (const key of keys) {
+      measureLabel(key);
       const object = graph.object(key);
       if (object === undefined) continue;
       box.setFromObject(object);
@@ -181,6 +194,7 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       emit({ _tag: 'Measured', key, min: box.min.toArray(), max: box.max.toArray() });
     }
     for (const key of reported.keys()) if (!keys.includes(key)) reported.delete(key);
+    for (const key of laidOut.keys()) if (!keys.includes(key)) laidOut.delete(key);
   };
 
   return {

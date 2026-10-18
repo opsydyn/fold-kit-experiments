@@ -56,6 +56,9 @@ export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 /** Detail of auto-rotated events: where a camera turning by itself got to. */
 export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
 
+/** Detail of label measured events: a label's laid-out size in its own units. */
+export type LabelMeasuredDetail = typeof SceneSchema.LabelMeasuredDetail.Type;
+
 /** Detail of XR stick events: a thumbstick pushed past halfway in a direction, or let back. */
 export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
 
@@ -136,6 +139,11 @@ export type ViewConfig<Message> = {
    */
   readonly onMeasured?: (detail: MeasuredDetail) => Message;
   /**
+   * A measured label (`scene({ measure })`) was laid out anew: its block and tight glyph
+   * bounds in its own units, before its scale, to size what goes behind it.
+   */
+  readonly onLabelMeasured?: (detail: LabelMeasuredDetail) => Message;
+  /**
    * An immersive session began presenting this scene (`mode`), or ended (`mode: null`),
    * whether the app or the user (through the headset) ended it.
    */
@@ -210,6 +218,7 @@ export const view = <Message>(
     Option.map(given(config.onCollision), element.OnSceneCollision),
     Option.map(given(config.onContactForce), element.OnSceneContactForce),
     Option.map(given(config.onMeasured), element.OnSceneMeasured),
+    Option.map(given(config.onLabelMeasured), element.OnSceneLabelMeasured),
     Option.map(given(config.onXRSession), element.OnSceneXr),
     Option.map(given(config.onXRStick), element.OnSceneXrStick),
     Option.map(given(config.onXRButton), element.OnSceneXrButton),

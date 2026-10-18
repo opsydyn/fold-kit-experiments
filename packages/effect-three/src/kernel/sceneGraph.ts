@@ -42,6 +42,7 @@ import type {
   Instance,
   InstancesNode,
   LabelNode,
+  MaterialRef,
   ShaderGridNode,
   MeshNode,
   Camera as CameraDescription,
@@ -66,7 +67,7 @@ import type {
 import { diff, type Field, type Op } from './diff.ts';
 import { contactShadowsEquals, environmentEquals, overlaysEqual, skyEquals } from './equality.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
-import type { HostedLabel, LabelEngine } from './labels.ts';
+import type { HostedLabel, LabelEngine, LabelLayout } from './labels.ts';
 import type { HostMaterial } from './materials.ts';
 import {
   type Behaviour,
@@ -109,6 +110,8 @@ type Entry =
       node: LabelNode;
       readonly object: Group;
       readonly hosted: HostedLabel | undefined;
+      /** The material lent to the engine (`label({ material })`), held from the store. */
+      material: HostMaterial | undefined;
     }
   | { readonly _tag: 'AmbientLight'; node: AmbientLightNode; readonly object: AmbientLight }
   | {
@@ -242,6 +245,8 @@ export type SceneGraph = {
   readonly xr: () => Xr | null;
   /** Keys of the nodes whose bounds the frame loop reports. */
   readonly measured: () => ReadonlyArray<string>;
+  /** A label's laid-out size, once its engine has laid it out. */
+  readonly labelLayout: (key: string) => LabelLayout | undefined;
   /**
    * Places the groups that follow tracked spaces where `locate` says each space is (in the
    * scene), hiding those it cannot find. A presenting session calls it every frame, and
@@ -556,6 +561,10 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const unsubscribeMaterial = store.onMaterialReplaced(({ previous, next }) => {
     for (const entry of entries.values()) {
       if (isSurfaced(entry) && entry.object.material === previous) entry.object.material = next;
+      if (entry._tag === 'Label' && entry.material === previous) {
+        entry.material = next;
+        entry.hosted?.setMaterial(next);
+      }
     }
   });
 
@@ -638,7 +647,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         // A renderer that cannot draw the engine's labels (WebGPU and troika) gets none.
         const hosted =
           options.kit?.drawsLabels === false ? undefined : options.labels?.create(node, invalidate);
-        const entry: Entry = { _tag: 'Label', node, object: new Group(), hosted };
+        const material = node.material === null ? undefined : store.acquireMaterial(node.material);
+        hosted?.setMaterial(material);
+        const entry: Entry = { _tag: 'Label', node, object: new Group(), hosted, material };
         if (hosted !== undefined) entry.object.add(hosted.object);
         writeVec3(entry.object.position, node.position);
         writeVec3(entry.object.scale, node.scale);
@@ -837,7 +848,12 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // A grid's lines are its own.
     if (entry._tag === 'Grid') disposeGridLines(entry.helper);
     if (entry._tag === 'ShaderGrid') entry.hosted?.dispose();
-    if (entry._tag === 'Label') entry.hosted?.dispose();
+    if (entry._tag === 'Label') {
+      entry.hosted?.dispose();
+      if (entry.node.material !== null && entry.material !== undefined) {
+        store.releaseMaterial(entry.node.material, entry.material);
+      }
+    }
     // A borrowed object belongs to the application: detach it, never dispose it.
     if (entry._tag === 'Borrowed') {
       stopPlayer(entry);
@@ -908,6 +924,27 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     fields.includes('scale') ||
     (fields.includes('transition') && moving.has(entry));
 
+  /** Lends a label its next material: updated in place when both are its own, as a mesh's. */
+  const relendLabelMaterial = (
+    entry: Extract<Entry, { readonly _tag: 'Label' }>,
+    next: MaterialRef | null,
+  ): void => {
+    const prev = entry.node.material;
+    if (
+      prev !== null &&
+      next !== null &&
+      entry.material !== undefined &&
+      prev._tag !== 'SharedMaterial' &&
+      next._tag !== 'SharedMaterial' &&
+      store.updateOwnedMaterial(entry.material, next)
+    ) {
+      return;
+    }
+    if (prev !== null && entry.material !== undefined) store.releaseMaterial(prev, entry.material);
+    entry.material = next === null ? undefined : store.acquireMaterial(next);
+    entry.hosted?.setMaterial(entry.material);
+  };
+
   const update = (entry: Entry, next: SceneNode, fields: ReadonlyArray<Field>): void => {
     if (entry._tag === 'Instances' && next._tag === 'Instances' && fields.includes('instances')) {
       if (fits(entry.object, next.instances.length)) {
@@ -957,6 +994,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       return;
     }
     if (entry._tag === 'Label' && next._tag === 'Label') {
+      if (fields.includes('material')) relendLabelMaterial(entry, next.material);
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
@@ -1328,6 +1366,10 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     contactForces: bodyHost.drainContactForces,
     xr: () => xrDescription,
     measured: () => measured,
+    labelLayout: (key) => {
+      const entry = entries.get(key);
+      return entry?._tag === 'Label' ? entry.hosted?.layout() : undefined;
+    },
     follow: (locate) => {
       scene.updateMatrixWorld();
       for (const entry of entries.values()) {

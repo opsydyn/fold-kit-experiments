@@ -80,3 +80,53 @@ test('a label is drawn once its font has loaded, and redrawn when its text chang
   expect(errors).toEqual([]);
   await page.close();
 }, 60_000);
+
+function showStyled(): void {
+  Reflect.get(globalThis, '__labels').styled();
+}
+function labelMeasured(): ReadonlyArray<{
+  readonly key: string;
+  readonly block: ReadonlyArray<number>;
+}> {
+  return Reflect.get(globalThis, '__labels').measured();
+}
+
+/** Pixels clearly red, and clearly blue, in the canvas. */
+const redAndBlue = (png: PNG): { readonly red: number; readonly blue: number } => {
+  let red = 0;
+  let blue = 0;
+  for (let i = 0; i < png.data.length; i += 4) {
+    const [r = 0, g = 0, b = 0] = [png.data[i], png.data[i + 1], png.data[i + 2]];
+    if (r > 150 && g < 80 && b < 80) red++;
+    if (b > 150 && r < 80 && g < 80) blue++;
+  }
+  return { red, blue };
+};
+
+test('colour ranges, a curve and a lit material draw; a measured label says its size', async () => {
+  const page = await browser.newPage({ viewport: { width: 500, height: 500 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(app.url('labels.html'));
+  await page.waitForFunction(labelsReady);
+  await page.evaluate(showStyled);
+  await page.waitForFunction(() => Reflect.get(globalThis, '__labels').measured().length > 0);
+  const [laidOut] = await page.evaluate(labelMeasured);
+  // Four glyphs at an em of 2: a block some units wide, two high or more, centred.
+  const [minX = 0, minY = 0, maxX = 0, maxY = 0] = laidOut?.block ?? [];
+  expect(laidOut?.key).toBe('sign');
+  expect(maxX - minX).toBeGreaterThan(3);
+  expect(maxY - minY).toBeGreaterThanOrEqual(2);
+  expect(minX + maxX).toBeCloseTo(0, 1);
+  // The first two letters red, the last two blue.
+  const canvas = page.locator('canvas');
+  let colours = { red: 0, blue: 0 };
+  for (let attempt = 0; attempt < 50 && (colours.red < 50 || colours.blue < 50); attempt++) {
+    colours = redAndBlue(PNG.sync.read(await canvas.screenshot()));
+    await page.waitForTimeout(100);
+  }
+  expect(colours.red).toBeGreaterThan(50);
+  expect(colours.blue).toBeGreaterThan(50);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);

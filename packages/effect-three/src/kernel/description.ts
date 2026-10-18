@@ -701,7 +701,26 @@ export type LabelNode = {
   readonly outlineColor: Rgb;
   readonly outlineOpacity: number;
   readonly outlineBlur: number;
+  /**
+   * Colours for runs of characters, overriding `color` from each `start` (a character
+   * index) to the next: troika's `colorRanges`, as a list.
+   */
+  readonly colorRanges: ReadonlyArray<LabelColorRange>;
+  /**
+   * Curves the text round a vertical cylinder this far away, in scene units: positive in
+   * front (concave), negative behind (convex), 0 flat. troika's `curveRadius`.
+   */
+  readonly curveRadius: number;
+  /**
+   * A material for the glyphs to be drawn with (lit by the scene, say), as troika takes a
+   * base material and derives its text material from it; `color` still colours them.
+   * `null` for troika's own unlit one.
+   */
+  readonly material: MaterialRef | null;
 };
+
+/** A run of a label's characters in another colour, from character index `start`. */
+export type LabelColorRange = { readonly start: number; readonly color: Rgb };
 
 /**
  * Plays the clip named `clip` from the borrowed object's `animations`. Playback is a

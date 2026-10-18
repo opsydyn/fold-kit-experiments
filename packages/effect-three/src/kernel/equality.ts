@@ -20,6 +20,7 @@ import type {
   XrSpace,
   ColliderDescription,
   ColliderShapeDescription,
+  LabelColorRange,
   LabelNode,
   ShaderGridNode,
   MaterialRef,
@@ -509,7 +510,17 @@ export const labelTypeEquals = (a: LabelNode, b: LabelNode): boolean =>
   Object.is(a.outlineWidth, b.outlineWidth) &&
   a.outlineColor === b.outlineColor &&
   Object.is(a.outlineOpacity, b.outlineOpacity) &&
-  Object.is(a.outlineBlur, b.outlineBlur);
+  Object.is(a.outlineBlur, b.outlineBlur) &&
+  Object.is(a.curveRadius, b.curveRadius) &&
+  a.colorRanges.length === b.colorRanges.length &&
+  a.colorRanges.every((range, i) => colorRangeEquals(range, b.colorRanges[i]));
+
+const colorRangeEquals = (a: LabelColorRange, b: LabelColorRange | undefined): boolean =>
+  b !== undefined && a.start === b.start && a.color === b.color;
+
+/** A label's material reference equality (`null` for troika's own). */
+export const labelMaterialEquals = (a: MaterialRef | null, b: MaterialRef | null): boolean =>
+  a === b || (a !== null && b !== null && materialRefEquals(a, b));
 
 /** Shader grid equality, apart from its position and rotation. */
 export const shaderGridLookEquals = (a: ShaderGridNode, b: ShaderGridNode): boolean =>

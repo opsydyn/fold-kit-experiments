@@ -12,6 +12,7 @@
     "./studio": "./src/studio/main.ts",
     "./toybox": "./src/toybox/main.ts",
     "./workshop": "./src/workshop/main.ts",
+    "./marbles": "./src/marbles/main.ts",
     "./shared": "./src/shared/main.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"

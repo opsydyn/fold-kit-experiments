@@ -29,6 +29,11 @@
   height: 440px;
 }
 
+/* Tall machines and rooms: more height on wide screens, never taller than the viewport. */
+.e3-stage-tall {
+  height: min(560px, 75vh);
+}
+
 .e3-stage-placeholder {
   display: grid;
   place-items: center;

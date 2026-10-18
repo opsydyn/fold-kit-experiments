@@ -49,6 +49,14 @@ export const examples = [
     alt: 'Toybox: coloured crates and balls scattered in a pale tray, casting soft contact shadows.',
   },
   {
+    id: 'marbles',
+    category: 'Physics',
+    title: 'Sort them by colour',
+    description:
+      'Gold and teal marbles ride a motor-driven wheel onto a grate only teal marbles can touch. Collision groups sort them, named sensors count each bin, and contact forces measure every knock.',
+    alt: 'Marble machine: gold and teal marbles behind glass, on a coral paddle wheel above two labelled bins.',
+  },
+  {
     id: 'workshop',
     category: 'Assets',
     title: 'Load it, play it, let it go',

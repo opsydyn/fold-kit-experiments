@@ -1,0 +1,20 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/marbles/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/marbles/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/marbles/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/marbles/update.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/marbles/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/marbles/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="Marble machine — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">PHYSICS</p><h1>Sort them by colour.</h1><p>Gold and teal marbles roll down a ramp onto a paddle wheel, then over a grate that holds the teal ones and lets the gold ones fall through. The wheel turns on a revolute joint driven by a motor: speed it up, slow it down or reverse it from the Model. The grate's collision groups decide which marbles it meets, named sensor colliders count what lands in each bin, and contact forces report how hard the marbles knock the wheel. The camera turns slowly on its own; drag to take over, and it carries on from where it was.</p></section>
+  <Sample client:load noMeta assetBase={sitePath('/models/')} />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Joints, groups and sensors as data.</h2><p>The motor's speed is a number in the Model; the grate's collision groups and the bins' named sensors are fields on bodies. Rapier simulates, and what happens comes back as Messages: which bin a marble entered, and how hard the wheel was hit.</p><a class="text-link" href={samplesSource + '/marbles'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

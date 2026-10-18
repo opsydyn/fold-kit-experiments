@@ -59,6 +59,9 @@ export type IndexResult =
   | { readonly _tag: 'Indexed'; readonly index: SceneIndex }
   | { readonly _tag: 'Invalid'; readonly error: DescriptionError };
 
+/** A node waiting to be indexed: its index entry, and the list its key joins. */
+type Stacked = IndexedNode & { readonly siblings: Array<string> };
+
 /** The first instance key used twice, if any. */
 const firstDuplicateInstance = (
   instances: ReadonlyArray<{ readonly key: string }>,
@@ -131,16 +134,19 @@ export const indexScene = (
   }
 
   const nodes = new Map<string, IndexedNode>();
-  const children = new Map<ParentKey, Array<string>>([[null, []]]);
+  const rootChildren: Array<string> = [];
+  const children = new Map<ParentKey, Array<string>>([[null, rootChildren]]);
   const preOrder: Array<string> = [];
-  // Explicit stack instead of recursion: deep scenes cannot overflow the call stack.
-  const stack: Array<{ readonly node: SceneNode; readonly parent: ParentKey }> = [];
+  // Explicit stack instead of recursion: deep scenes cannot overflow the call stack. Each
+  // item becomes the node's index entry, and carries its parent's child list, so indexing
+  // a node allocates nothing else.
+  const stack: Array<Stacked> = [];
   for (let i = description.children.length - 1; i >= 0; i--) {
     const node = description.children[i];
-    if (node !== undefined) stack.push({ node, parent: null });
+    if (node !== undefined) stack.push({ node, parent: null, siblings: rootChildren });
   }
   for (let item = stack.pop(); item !== undefined; item = stack.pop()) {
-    const { node, parent } = item;
+    const { node } = item;
     if (nodes.has(node.key))
       return { _tag: 'Invalid', error: { _tag: 'DuplicateKey', key: node.key } };
     if (node._tag === 'Mesh' || node._tag === 'Instances') {
@@ -172,14 +178,15 @@ export const indexScene = (
         };
       }
     }
-    nodes.set(node.key, { node, parent });
+    nodes.set(node.key, item);
     preOrder.push(node.key);
-    children.get(parent)?.push(node.key);
+    item.siblings.push(node.key);
     if (node._tag === 'Group') {
-      children.set(node.key, []);
+      const siblings: Array<string> = [];
+      children.set(node.key, siblings);
       for (let i = node.children.length - 1; i >= 0; i--) {
         const child = node.children[i];
-        if (child !== undefined) stack.push({ node: child, parent: node.key });
+        if (child !== undefined) stack.push({ node: child, parent: node.key, siblings });
       }
     }
   }

@@ -254,11 +254,31 @@ export const changedFields = (
   }
 };
 
-const sameKeys = (a: ReadonlyArray<string>, b: ReadonlyArray<string>): boolean => {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
+/**
+ * Whether a parent's children end up in `keys` order without an `Order`: its previous
+ * children still under it, in previous order, then those appended by this diff. Compared
+ * in place, as it runs for every parent on every reconcile.
+ */
+const inOrder = (
+  previous: ReadonlyArray<string>,
+  appended: ReadonlyArray<string>,
+  keys: ReadonlyArray<string>,
+  stays: (key: string) => boolean,
+): boolean => {
+  let at = 0;
+  for (const key of previous) {
+    if (!stays(key)) continue;
+    if (keys[at] !== key) return false;
+    at++;
+  }
+  for (const key of appended) {
+    if (keys[at] !== key) return false;
+    at++;
+  }
+  return at === keys.length;
 };
+
+const noKeys: ReadonlyArray<string> = [];
 
 const noBehaviours: ReadonlySet<string> = new Set();
 
@@ -300,6 +320,8 @@ export const diff = (
   };
   // Parents whose hosted object was created by this diff: their children arrive in order.
   const freshParents = new Set<string>();
+  // Whether any node changed parent (moved, or replaced under another).
+  let reparented = false;
 
   for (const key of index.preOrder) {
     const current = index.nodes.get(key);
@@ -314,30 +336,41 @@ export const diff = (
     const fields = changedFields(before.node, current.node);
     if (fields === undefined) {
       ops.push({ _tag: 'Replace', node: current.node, parent: current.parent });
-      if (before.parent !== current.parent) append(current.parent, key);
+      if (before.parent !== current.parent) {
+        reparented = true;
+        append(current.parent, key);
+      }
       continue;
     }
     if (before.parent !== current.parent) {
+      reparented = true;
       ops.push({ _tag: 'Move', key, parent: current.parent });
       append(current.parent, key);
     }
     if (fields.length > 0) ops.push({ _tag: 'Update', node: current.node, fields });
   }
 
-  for (const key of prev.preOrder) {
-    if (!index.nodes.has(key)) ops.push({ _tag: 'Remove', key });
+  // With nothing created and as many nodes as before, every previous key is still here.
+  let removed = false;
+  if (freshParents.size > 0 || index.nodes.size !== prev.nodes.size) {
+    for (const key of prev.preOrder) {
+      if (index.nodes.has(key)) continue;
+      removed = true;
+      ops.push({ _tag: 'Remove', key });
+    }
   }
+  // Nothing moved or removed: every previous child is still under its parent.
+  const settled = !reparented && !removed;
 
   // After the steps above each parent holds its surviving children in previous order,
   // followed by appended children in next order. Reorder only where that is wrong.
   for (const [parent, keys] of index.children) {
     if (parent !== null && freshParents.has(parent)) continue;
-    const survivors: Array<string> = [];
-    for (const key of prev.children.get(parent) ?? []) {
-      if (index.nodes.get(key)?.parent === parent) survivors.push(key);
+    const stays = (key: string): boolean => settled || index.nodes.get(key)?.parent === parent;
+    const previous = prev.children.get(parent) ?? noKeys;
+    if (!inOrder(previous, appended.get(parent) ?? noKeys, keys, stays)) {
+      ops.push({ _tag: 'Order', parent, keys });
     }
-    const predicted = survivors.concat(appended.get(parent) ?? []);
-    if (!sameKeys(predicted, keys)) ops.push({ _tag: 'Order', parent, keys });
   }
 
   return { _tag: 'Diffed', ops, index };

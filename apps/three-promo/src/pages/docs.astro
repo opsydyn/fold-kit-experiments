@@ -40,7 +40,7 @@ import { entry, installation, runtime, sharing, teaser, testing, transitions, vi
       <section id="identity">
         <h2>Keys keep objects alive.</h2>
         <p>Keys are unique across the whole scene. A node keeps its Three.js object while its key and kind stay the same, including when it moves to another group. A structurally equal scene costs no host changes at all, which matters because Foldkit sends a fresh scene on every render.</p>
-        <p>Updating 1,000 meshes takes about 160 µs when nothing changed and about 165 µs when one property did, with exactly one operation applied.</p>
+        <p>Updating 1,000 meshes takes under 100 µs, whether nothing changed or one property did; then exactly one operation is applied.</p>
       </section>
       <section id="resources">
         <h2>Share what the GPU holds.</h2>

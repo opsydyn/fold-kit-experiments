@@ -1,0 +1,19 @@
+{
+  "name": "effect-three-skill-headless",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "tsc",
+    "test": "npm run build && node --test test/scene.test.mjs"
+  },
+  "dependencies": {
+    "@opsydyn/effect-three": "0.1.0",
+    "effect": "4.0.0",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "0.186.0",
+    "typescript": "6.0.3"
+  }
+}

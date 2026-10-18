@@ -6,12 +6,16 @@ FoldKit is an Elm Architecture runtime for the browser built on [Effect](https:/
 
 ## Packages
 
-| Package                                                           | Description                                                                                     |
-| :---------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/)               | Astro integration — client islands plus opt-in FoldKit SSR/SSG page owners                      |
-| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)                   | D3-quality visualisation primitives for FoldKit — no D3 dependency                              |
-| [`@opsydyn/effect-three`](packages/effect-three/)                 | Effect-native declarative Three.js: keyed scene updates, scoped GPU resources (0.x)             |
-| [`@opsydyn/effect-three-foldkit`](packages/effect-three-foldkit/) | FoldKit adapter for effect-three: scene element, typed pointer Messages, WebGL2 or WebGPU (0.x) |
+All six are published to npm. The four effect-three packages are released together at one version.
+
+| Package                                                           | npm                                                                                                                               | Description                                                                                    |
+| :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
+| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/)               | [![npm](https://img.shields.io/npm/v/@opsydyn/astro-foldkit)](https://www.npmjs.com/package/@opsydyn/astro-foldkit)               | Astro integration — client islands plus opt-in FoldKit SSR/SSG page owners                     |
+| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)                   | [![npm](https://img.shields.io/npm/v/@opsydyn/foldkit-viz)](https://www.npmjs.com/package/@opsydyn/foldkit-viz)                   | D3-quality visualisation primitives for FoldKit — no D3 dependency                             |
+| [`@opsydyn/effect-three`](packages/effect-three/)                 | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three)](https://www.npmjs.com/package/@opsydyn/effect-three)                 | Effect-native declarative Three.js: keyed scene updates, scoped GPU resources, headless kernel |
+| [`@opsydyn/effect-three-foldkit`](packages/effect-three-foldkit/) | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-foldkit)](https://www.npmjs.com/package/@opsydyn/effect-three-foldkit) | FoldKit adapter for effect-three: scene element, typed scene Messages, WebGL2 or WebGPU, WebXR |
+| [`@opsydyn/effect-three-rapier`](packages/effect-three-rapier/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-rapier)](https://www.npmjs.com/package/@opsydyn/effect-three-rapier)   | Rapier physics for effect-three: bodies, colliders, joints and motors described as data        |
+| [`@opsydyn/effect-three-troika`](packages/effect-three-troika/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-troika)](https://www.npmjs.com/package/@opsydyn/effect-three-troika)   | troika distance-field labels for effect-three: crisp text at any size, described as data       |
 
 ## effect-three
 
@@ -21,23 +25,26 @@ resources, frame loops, listeners), and pointer input comes back as typed FoldKi
 Messages. Animation runs in the frame loop and never reaches `update`.
 
 - **Try it:** the [effect-three promo site](https://opsydyn.github.io/fold-kit-experiments/three/), or `/effect-three` in the demo app (the sculpture sample has FoldKit DevTools time travel).
-- **Read it:** the package READMEs ([core](packages/effect-three/README.md), [FoldKit adapter](packages/effect-three-foldkit/README.md)), and the [plan, decisions and benchmarks](docs/effect-three/).
+- **Read it:** the package READMEs ([core](packages/effect-three/README.md), [FoldKit adapter](packages/effect-three-foldkit/README.md), [Rapier](packages/effect-three-rapier/README.md), [troika](packages/effect-three-troika/README.md)), and the [plan, decisions and benchmarks](docs/effect-three/).
 - **Samples:** [`packages/effect-three-samples`](packages/effect-three-samples/) is shared by the demo app and the promo site.
 
-Both library packages run a stricter, package-local lint policy (every
+The four effect-three packages run a stricter, package-local lint policy (every
 `@opsydyn/oxlint-effect` rule, TypeScript 7, no disables) and have their own
 browser and visual tests (`bun run --filter @opsydyn/effect-three-foldkit test:e2e`).
 
 ## Agent Skills
 
-Two independent consumer skills are maintained alongside the packages:
+Three independent consumer skills are maintained alongside the packages:
 
 - [astro-foldkit](skills/astro-foldkit/SKILL.md): Astro islands, typed props,
   server-rendered pages, hydration and lifecycle boundaries.
 - [foldkit-viz](skills/foldkit-viz/SKILL.md): pure geometry, optional FoldKit
   rendering, chart interaction and accessibility; no Astro dependency.
+- [effect-three](skills/effect-three/SKILL.md): 3D scenes derived from the Model,
+  the FoldKit adapter, Rapier physics and troika labels, Model-owned cameras and XR,
+  WebGL or WebGPU, and headless tests; no Astro dependency.
 
-Install either complete skill folder through your agent host's skill installer,
+Install any complete skill folder through your agent host's skill installer,
 preserving its `SKILL.md`, `agents`, `references` and `assets`. They are not
 installed by the npm packages and do not require each other. Each includes a
 standalone pinned example; see the [qualification notes](docs/examples/package-skills.md)

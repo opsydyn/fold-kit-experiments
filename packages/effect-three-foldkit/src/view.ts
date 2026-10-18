@@ -47,6 +47,9 @@ export type Gesture = typeof SceneSchema.Gesture.Type;
 /** Detail of collision events: the two bodies' keys, and whether they began touching. */
 export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 
+/** Detail of contact force events: the two bodies, and how hard they pushed. */
+export type ContactForceDetail = typeof SceneSchema.ContactForceDetail.Type;
+
 /** Detail of measured events: a node's world bounding box. */
 export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 
@@ -106,6 +109,12 @@ export type ViewConfig<Message> = {
    * `onCollisionExit`, for the whole scene). Needs `physics` and an engine.
    */
   readonly onCollision?: (detail: CollisionDetail) => Message;
+  /**
+   * Two bodies pushed on each other harder than a body's `contactForces` threshold during
+   * a step (react-three-rapier's `onContactForce`). Rapier reports every such step, so
+   * set the threshold high.
+   */
+  readonly onContactForce?: (detail: ContactForceDetail) => Message;
   /**
    * A node listed in the scene's `measure` has a new world bounding box (Drei's `Bounds`
    * measuring, as a Message): fit the camera to it with `fitCamera`.
@@ -173,6 +182,7 @@ export const view = <Message>(
     Option.map(given(config.onDrag), element.OnSceneDrag),
     Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
     Option.map(given(config.onCollision), element.OnSceneCollision),
+    Option.map(given(config.onContactForce), element.OnSceneContactForce),
     Option.map(given(config.onMeasured), element.OnSceneMeasured),
     Option.map(given(config.onXRSession), element.OnSceneXr),
     Option.map(given(config.onXRStick), element.OnSceneXrStick),

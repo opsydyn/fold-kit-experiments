@@ -51,6 +51,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           button(h, 'Drop a toy', Message.ClickedDrop()),
           button(h, 'Pour marbles', Message.ClickedPour()),
           button(h, 'Tidy up', Message.ClickedTidy()),
+          button(
+            h,
+            model.showColliders ? 'Hide colliders' : 'Show colliders',
+            Message.ToggledColliders(),
+          ),
           ...vrButton(model, h),
         ],
       ),

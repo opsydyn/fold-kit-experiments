@@ -39,6 +39,20 @@ contacts })] })` with `fixedJoint`, `sphericalJoint`, `revoluteJoint`, `prismati
   joint is made once both its bodies exist, and again whenever either is remade. A hinge's
   limits are set on the made joint: Rapier's `JointData` (0.21) keeps limits for
   prismatic joints only, so react-three-rapier's revolute limits are lost.
+- **Colliders of a body's own, when its geometry is wrong for it.** `body({ colliders:
+[cuboidCollider(…), ballCollider(…), capsuleCollider(…), cylinderCollider(…),
+coneCollider(…)] })` replaces the colliders worked out from geometry, as
+  react-three-rapier's `colliders={false}` with collider children. Sizes are in the
+  body's units and scale with it, each length along its own axis (react-three-rapier's
+  `scaleColliderArgs` scales by argument position instead).
+- **Motors and forces are data too.** A hinge or slider's `motor` (`velocityMotor`,
+  `positionMotor`) is Rapier's `configureMotor`, set on the made joint. `body({
+contactForces: threshold })` turns on Rapier's contact force events, reported as
+  `ContactForce { a, b, totalForce, totalForceMagnitude, maxForceDirection,
+maxForceMagnitude }` (react-three-rapier's `onContactForce`); Rapier reports every
+  step a contact pushes that hard, so the threshold matters.
+- **The world can draw itself.** `physics({ debug: true })` draws Rapier's
+  `debugRender()` lines each frame, as react-three-rapier's `Debug`.
 - **Kicks are data with an identity.** `impulse: { id, impulse }` is applied once, when
   its `id` is new, so re-rendering never applies it twice.
 - **The kernel steps, an engine simulates.** The kernel works out colliders from the
@@ -66,4 +80,5 @@ contacts })] })` with `fixedJoint`, `sphericalJoint`, `revoluteJoint`, `prismati
   may change then: before signatures were rounded, a turning body's decomposed scale
   (`0.99999994`) remade it each reconcile, each remake began a new contact, and so on.
   A Rapier test now reconciles the same scene every frame and expects one contact.
-- Not yet: explicit collider shapes, joint motors, contact forces, and the debug view.
+- Not built: heightfields and rounded shapes, collision groups and filtering, character
+  controllers, and per-collider events. The roadmap row is complete.

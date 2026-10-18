@@ -63,6 +63,9 @@ export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
 // @public
 export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 
+// @public
+export type ContactForceDetail = typeof SceneSchema.ContactForceDetail.Type;
+
 // @public (undocumented)
 export const defaultPixelRatio: PixelRatio;
 
@@ -82,6 +85,7 @@ export const domEventName: {
     readonly DragEnd: 'scene-drag-end';
     readonly Gesture: 'scene-gesture';
     readonly Collision: 'scene-collision';
+    readonly ContactForce: 'scene-contact-force';
     readonly Measured: 'scene-measured';
     readonly XrStick: 'scene-xr-stick';
     readonly XrButton: 'scene-xr-button';
@@ -333,6 +337,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly paused: Schema.Boolean;
             readonly timeStep: Schema.Finite;
             readonly interpolate: Schema.Boolean;
+            readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;
                 readonly a: Schema.Struct<{
@@ -351,9 +356,21 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 }>, Schema.TaggedStruct<"Spherical", {}>, Schema.TaggedStruct<"Revolute", {
                     readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                     readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+                    readonly motor: Schema.NullOr<Schema.Struct<{
+                        readonly position: Schema.Finite;
+                        readonly velocity: Schema.Finite;
+                        readonly stiffness: Schema.Finite;
+                        readonly damping: Schema.Finite;
+                    }>>;
                 }>, Schema.TaggedStruct<"Prismatic", {
                     readonly axis: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                     readonly limits: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>>;
+                    readonly motor: Schema.NullOr<Schema.Struct<{
+                        readonly position: Schema.Finite;
+                        readonly velocity: Schema.Finite;
+                        readonly stiffness: Schema.Finite;
+                        readonly damping: Schema.Finite;
+                    }>>;
                 }>, Schema.TaggedStruct<"Rope", {
                     readonly length: Schema.Finite;
                 }>, Schema.TaggedStruct<"Spring", {
@@ -719,6 +736,16 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly bInstance: Schema.optionalKey<Schema.String>;
         readonly started: Schema.Boolean;
     }>;
+    'scene-contact-force': Schema.Struct<{
+        readonly a: Schema.String;
+        readonly aInstance: Schema.optionalKey<Schema.String>;
+        readonly b: Schema.String;
+        readonly bInstance: Schema.optionalKey<Schema.String>;
+        readonly totalForce: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly totalForceMagnitude: Schema.Finite;
+        readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly maxForceMagnitude: Schema.Finite;
+    }>;
     'scene-measured': Schema.Struct<{
         readonly key: Schema.String;
         readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -903,6 +930,7 @@ export type ViewConfig<Message> = {
     readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onGesture?: (gesture: Gesture) => Message;
     readonly onCollision?: (detail: CollisionDetail) => Message;
+    readonly onContactForce?: (detail: ContactForceDetail) => Message;
     readonly onMeasured?: (detail: MeasuredDetail) => Message;
     readonly onXRSession?: (detail: XrSessionDetail) => Message;
     readonly onXRStick?: (detail: XrStickDetail) => Message;

@@ -34,6 +34,9 @@ import type {
   Joint,
   JointKind,
   JointLimits,
+  JointMotor,
+  ColliderDescription,
+  ColliderShapeDescription,
   CapsuleGeometry,
   CircleGeometry,
   ConeGeometry,
@@ -524,6 +527,76 @@ export const body = (options: Partial<Body> = {}): Body => ({
   linearVelocity: options.linearVelocity ?? origin,
   angularVelocity: options.angularVelocity ?? origin,
   impulse: options.impulse ?? null,
+  colliders: options.colliders ?? null,
+  contactForces: options.contactForces ?? null,
+});
+
+const placedCollider = (
+  shape: ColliderShapeDescription,
+  options: { readonly position?: Vec3; readonly rotation?: Vec3 },
+): ColliderDescription => ({
+  shape,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? origin,
+});
+
+/** A box collider, `halfExtents` from its middle, as react-three-rapier's `CuboidCollider`. */
+export const cuboidCollider = (options: {
+  readonly halfExtents: Vec3;
+  readonly position?: Vec3;
+  readonly rotation?: Vec3;
+}): ColliderDescription =>
+  placedCollider({ _tag: 'Cuboid', halfExtents: options.halfExtents }, options);
+
+/** A ball collider, as `BallCollider`. */
+export const ballCollider = (options: {
+  readonly radius: number;
+  readonly position?: Vec3;
+}): ColliderDescription => placedCollider({ _tag: 'Ball', radius: options.radius }, options);
+
+type Upright = {
+  readonly halfHeight: number;
+  readonly radius: number;
+  readonly position?: Vec3;
+  readonly rotation?: Vec3;
+};
+
+/** A capsule collider along y: `halfHeight` of cylinder, capped by `radius`. */
+export const capsuleCollider = (options: Upright): ColliderDescription =>
+  placedCollider(
+    { _tag: 'Capsule', halfHeight: options.halfHeight, radius: options.radius },
+    options,
+  );
+
+/** A cylinder collider along y. */
+export const cylinderCollider = (options: Upright): ColliderDescription =>
+  placedCollider(
+    { _tag: 'Cylinder', halfHeight: options.halfHeight, radius: options.radius },
+    options,
+  );
+
+/** A cone collider along y, its point up. */
+export const coneCollider = (options: Upright): ColliderDescription =>
+  placedCollider({ _tag: 'Cone', halfHeight: options.halfHeight, radius: options.radius }, options);
+
+/** A motor turning (or sliding) at `velocity`, with `factor` how hard it holds the speed. */
+export const velocityMotor = (velocity: number, factor = 1): JointMotor => ({
+  position: 0,
+  velocity,
+  stiffness: 0,
+  damping: factor,
+});
+
+/** A motor holding `position`, as a spring of `stiffness` damped by `damping`. */
+export const positionMotor = (
+  position: number,
+  stiffness: number,
+  damping: number,
+): JointMotor => ({
+  position,
+  velocity: 0,
+  stiffness,
+  damping,
 });
 
 const noJoints: ReadonlyArray<Joint> = [];
@@ -537,6 +610,7 @@ export const physics = (options: Partial<Physics> = {}): Physics => ({
   paused: options.paused ?? false,
   timeStep: options.timeStep ?? 1 / 60,
   interpolate: options.interpolate ?? true,
+  debug: options.debug ?? false,
   joints: options.joints ?? noJoints,
 });
 
@@ -582,17 +656,29 @@ export const fixedJoint = (
 /** A ball and socket at the anchors. */
 export const sphericalJoint = (): JointKind => ({ _tag: 'Spherical' });
 
-/** A hinge about `axis` (each body's own), limited to `limits` radians if given. */
+/** A hinge about `axis` (each body's own), limited to `limits` radians and driven by `motor` if given. */
 export const revoluteJoint = (options: {
   readonly axis: Vec3;
   readonly limits?: JointLimits | null;
-}): JointKind => ({ _tag: 'Revolute', axis: options.axis, limits: options.limits ?? null });
+  readonly motor?: JointMotor | null;
+}): JointKind => ({
+  _tag: 'Revolute',
+  axis: options.axis,
+  limits: options.limits ?? null,
+  motor: options.motor ?? null,
+});
 
-/** A slider along `axis`, limited to `limits` if given. */
+/** A slider along `axis`, limited to `limits` and driven by `motor` if given. */
 export const prismaticJoint = (options: {
   readonly axis: Vec3;
   readonly limits?: JointLimits | null;
-}): JointKind => ({ _tag: 'Prismatic', axis: options.axis, limits: options.limits ?? null });
+  readonly motor?: JointMotor | null;
+}): JointKind => ({
+  _tag: 'Prismatic',
+  axis: options.axis,
+  limits: options.limits ?? null,
+  motor: options.motor ?? null,
+});
 
 /** Keeps the anchors at most `length` apart. */
 export const ropeJoint = (length: number): JointKind => ({ _tag: 'Rope', length });

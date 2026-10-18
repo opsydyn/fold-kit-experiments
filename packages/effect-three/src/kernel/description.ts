@@ -370,6 +370,25 @@ export type BodyType = 'dynamic' | 'fixed' | 'kinematic';
 export type BodyCollider = 'cuboid' | 'ball' | 'hull' | 'trimesh';
 
 /**
+ * A collider's own shape, as react-three-rapier's collider components take one
+ * (`CuboidCollider`, `BallCollider`, `CapsuleCollider`, `CylinderCollider`,
+ * `ConeCollider`): sizes in the body's units. Capsules, cylinders and cones stand along y.
+ */
+export type ColliderShapeDescription =
+  | { readonly _tag: 'Cuboid'; readonly halfExtents: Vec3 }
+  | { readonly _tag: 'Ball'; readonly radius: number }
+  | { readonly _tag: 'Capsule'; readonly halfHeight: number; readonly radius: number }
+  | { readonly _tag: 'Cylinder'; readonly halfHeight: number; readonly radius: number }
+  | { readonly _tag: 'Cone'; readonly halfHeight: number; readonly radius: number };
+
+/** A collider placed in its body: where its middle is and how it is turned (Euler). */
+export type ColliderDescription = {
+  readonly shape: ColliderShapeDescription;
+  readonly position: Vec3;
+  readonly rotation: Vec3;
+};
+
+/**
  * A rigid body (react-three-rapier `RigidBody` at `ae5c3fe`). The node's transform is
  * where a dynamic body starts; changing its position or rotation later teleports it there
  * at rest. An `impulse` is applied once, when its `id` is new.
@@ -392,6 +411,18 @@ export type Body = {
   readonly linearVelocity: Vec3;
   readonly angularVelocity: Vec3;
   readonly impulse: { readonly id: number; readonly impulse: Vec3 } | null;
+  /**
+   * Colliders of its own, replacing those worked out from its geometry (`collider`), as
+   * react-three-rapier's `colliders={false}` with collider children; `null` for those.
+   * Sized in the body's units and scaled with it.
+   */
+  readonly colliders: ReadonlyArray<ColliderDescription> | null;
+  /**
+   * Report contact forces above this many newtons as `ContactForce` events
+   * (react-three-rapier's `onContactForce`, Rapier's `contactForceEventThreshold`); `null`
+   * for none. Rapier reports every step a contact pushes that hard, so set it high.
+   */
+  readonly contactForces: number | null;
 };
 
 /**
@@ -403,6 +434,8 @@ export type Physics = {
   readonly paused: boolean;
   readonly timeStep: number;
   readonly interpolate: boolean;
+  /** Draw every collider and joint as lines, as react-three-rapier's `<Physics debug>`. */
+  readonly debug: boolean;
   /** Joints between bodies, each active while both its bodies exist. */
   readonly joints: ReadonlyArray<Joint>;
 };
@@ -414,6 +447,19 @@ export type BodyRef = { readonly key: string; readonly instance: string | null }
 export type JointLimits = readonly [min: number, max: number];
 
 /**
+ * Drives a hinge or slider toward `position` (radians or units) at `velocity`, as Rapier's
+ * `configureMotor(targetPos, targetVel, stiffness, damping)`: a spring of `stiffness` pulls
+ * toward the position, and `damping` toward the velocity. A velocity motor has stiffness 0;
+ * a position motor, velocity 0.
+ */
+export type JointMotor = {
+  readonly position: number;
+  readonly velocity: number;
+  readonly stiffness: number;
+  readonly damping: number;
+};
+
+/**
  * How a joint holds its two bodies: Rapier's impulse joints, as react-three-rapier's
  * `useFixedJoint`, `useSphericalJoint`, `useRevoluteJoint`, `usePrismaticJoint`,
  * `useRopeJoint` and `useSpringJoint` make them (`ae5c3fe`, `src/hooks/joints.ts`).
@@ -423,10 +469,20 @@ export type JointKind =
   | { readonly _tag: 'Fixed'; readonly frameA: Vec3; readonly frameB: Vec3 }
   /** The anchors coincide; any rotation about them (a ball and socket). */
   | { readonly _tag: 'Spherical' }
-  /** The anchors coincide; rotation about `axis` only (a hinge). */
-  | { readonly _tag: 'Revolute'; readonly axis: Vec3; readonly limits: JointLimits | null }
-  /** Sliding along `axis` only. */
-  | { readonly _tag: 'Prismatic'; readonly axis: Vec3; readonly limits: JointLimits | null }
+  /** The anchors coincide; rotation about `axis` only (a hinge), driven by `motor`. */
+  | {
+      readonly _tag: 'Revolute';
+      readonly axis: Vec3;
+      readonly limits: JointLimits | null;
+      readonly motor: JointMotor | null;
+    }
+  /** Sliding along `axis` only, driven by `motor`. */
+  | {
+      readonly _tag: 'Prismatic';
+      readonly axis: Vec3;
+      readonly limits: JointLimits | null;
+      readonly motor: JointMotor | null;
+    }
   /** The anchors at most `length` apart. */
   | { readonly _tag: 'Rope'; readonly length: number }
   /** A force pulling the anchors towards `restLength` apart. */

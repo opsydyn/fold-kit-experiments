@@ -118,3 +118,10 @@ test('in VR, the right stick snap-turns the player and the left steps them forwa
   expect(stepped.player.origin[2]).toBeCloseTo(3.2, 9);
   expect(sceneFor(stepped).xr?.origin[2]).toBeCloseTo(3.2, 9);
 });
+
+test('showing colliders turns on the physics world’s debug lines', () => {
+  expect(sceneFor(start).physics?.debug).toBe(false);
+  const shown = step(start, Message.ToggledColliders());
+  expect(sceneFor(shown).physics?.debug).toBe(true);
+  expect(step(shown, Message.ToggledColliders()).showColliders).toBe(false);
+});

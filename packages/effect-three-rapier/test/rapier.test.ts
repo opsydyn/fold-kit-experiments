@@ -3,6 +3,8 @@ import { beforeAll, expect, test } from 'bun:test';
 import {
   body,
   box,
+  capsuleCollider,
+  cylinder,
   createSceneGraph,
   createSceneLoop,
   group,
@@ -23,8 +25,9 @@ import {
   sphericalJoint,
   standard,
   type Vec3,
+  velocityMotor,
 } from '@opsydyn/effect-three';
-import { InstancedMesh, Matrix4, Vector3 } from 'three';
+import { Euler, InstancedMesh, LineSegments, Matrix4, Quaternion, Vector3 } from 'three';
 
 import { loadRapier } from '../src/index.ts';
 
@@ -325,4 +328,105 @@ function collisions(contacts: boolean): number {
 test('a joint without contacts lets its bodies overlap without colliding', () => {
   expect(collisions(true)).toBeGreaterThan(0);
   expect(collisions(false)).toBe(0);
+});
+
+test('a body’s own capsule collider, not its box, rests on the floor', () => {
+  const graph = createSceneGraph({ physics: engine });
+  graph.reconcile(
+    scene({
+      physics: physics(),
+      children: [
+        floor,
+        mesh({
+          key: 'ball',
+          position: [0, 3, 0],
+          geometry: box(),
+          material: standard(),
+          // A capsule standing 0.5 + 0.25 high from its middle: it rests at y = 0.75, where
+          // the unit box would rest at 0.5.
+          body: body({ colliders: [capsuleCollider({ halfHeight: 0.5, radius: 0.25 })] }),
+        }),
+      ],
+    }),
+  );
+  graph.tick(0);
+  const heights = run(graph, 0, 3);
+  expect(heights.at(-1)).toBeCloseTo(0.75, 1);
+  graph.dispose();
+});
+
+test('a body with a threshold reports how hard it lands', () => {
+  const graph = createSceneGraph({ physics: engine });
+  const events: Array<SceneEvent> = [];
+  const loop = createSceneLoop({
+    graph,
+    renderer: recordingRendererFactory().create(),
+    elapsedSeconds: () => 0,
+    emit: (event) => events.push(event),
+  });
+  graph.reconcile(
+    scene({ physics: physics(), children: [floor, ball({ contactForces: 1, mass: 5 }, 2)] }),
+  );
+  graph.tick(0);
+  run(graph, 0, 2);
+  loop.frame();
+  const forces = events.filter((event) => event._tag === 'ContactForce');
+  expect(forces.length).toBeGreaterThan(0);
+  const strongest = Math.max(
+    ...forces.map((event) => (event._tag === 'ContactForce' ? event.totalForceMagnitude : 0)),
+  );
+  // At rest a 5 kg ball presses 5 × 9.81 ≈ 49 N into the floor; landing presses harder.
+  expect(strongest).toBeGreaterThan(40);
+  graph.dispose();
+});
+
+test('a velocity motor turns a wheel on its hinge', () => {
+  const graph = createSceneGraph({ physics: engine });
+  const hinge = joint({
+    key: 'axle',
+    a: 'post',
+    b: 'wheel',
+    kind: revoluteJoint({ axis: [0, 0, 1], motor: velocityMotor(3, 10) }),
+    contacts: false,
+  });
+  graph.reconcile(
+    scene({
+      physics: physics({ gravity: [0, 0, 0], joints: [hinge] }),
+      children: [
+        mesh({
+          key: 'post',
+          position: [0, 2, 0],
+          geometry: box({ width: 0.1, height: 0.1, depth: 0.1 }),
+          material: standard(),
+          body: body({ type: 'fixed' }),
+        }),
+        mesh({
+          key: 'wheel',
+          position: [0, 2, 0],
+          geometry: cylinder({ radiusTop: 0.5, radiusBottom: 0.5, height: 0.1 }),
+          material: standard(),
+          body: body({ collider: 'hull' }),
+        }),
+      ],
+    }),
+  );
+  graph.tick(0);
+  const angleOf = (): number =>
+    new Euler().setFromQuaternion(graph.object('wheel')?.quaternion ?? new Quaternion()).z;
+  expect(angleOf()).toBeCloseTo(0, 5);
+  // At about 3 rad/s about z, half a second turns it well over a radian, in place.
+  for (let frame = 1; frame <= 30; frame++) graph.tick(frame / 60);
+  expect(Math.abs(angleOf())).toBeGreaterThan(1);
+  const spin = graph.object('wheel');
+  expect(spin?.position.y).toBeCloseTo(2, 2);
+  graph.dispose();
+});
+
+test('the debug view draws Rapier’s lines for the colliders', () => {
+  const graph = createSceneGraph({ physics: engine });
+  graph.reconcile(scene({ physics: physics({ debug: true }), children: [floor, ball()] }));
+  const lines = graph.scene.getObjectByName('physics-debug');
+  const drawn = lines instanceof LineSegments ? lines.geometry.getAttribute('position').count : 0;
+  expect(drawn).toBeGreaterThan(10);
+  graph.dispose();
 });

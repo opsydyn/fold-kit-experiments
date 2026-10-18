@@ -150,7 +150,7 @@ export const sceneFor = (model: Model) =>
   scene({
     camera: model.camera,
     gestures: 'scene',
-    physics: physics({ joints: chainJoints }),
+    physics: physics({ joints: chainJoints, debug: model.showColliders }),
     // In VR the player stands where the Model says: in front of the tray, to begin with.
     xr: model.player,
     environment: environment({ environmentIntensity: 0.6 }),

@@ -12,9 +12,25 @@
  *
  * @module
  */
-import { type BufferGeometry, Matrix4, type Mesh, type Object3D, Quaternion, Vector3 } from 'three';
+import {
+  type BufferGeometry,
+  Euler,
+  Matrix4,
+  type Mesh,
+  type Object3D,
+  Quaternion,
+  Vector3,
+} from 'three';
 
-import type { Body, BodyCollider, JointKind, Physics, Vec3 } from './description.ts';
+import type {
+  Body,
+  BodyCollider,
+  ColliderDescription,
+  ColliderShapeDescription,
+  JointKind,
+  Physics,
+  Vec3,
+} from './description.ts';
 
 /** A quaternion, `[x, y, z, w]`. */
 export type Quat = readonly [x: number, y: number, z: number, w: number];
@@ -27,6 +43,10 @@ export type ColliderShape =
   | { readonly _tag: 'Cuboid'; readonly halfExtents: Vec3 }
   | { readonly _tag: 'Ball'; readonly radius: number }
   | { readonly _tag: 'Hull'; readonly points: Float32Array }
+  /** Along y: a cylinder `halfHeight` each way, capped by `radius` (Rapier's capsule). */
+  | { readonly _tag: 'Capsule'; readonly halfHeight: number; readonly radius: number }
+  | { readonly _tag: 'Cylinder'; readonly halfHeight: number; readonly radius: number }
+  | { readonly _tag: 'Cone'; readonly halfHeight: number; readonly radius: number }
   | { readonly _tag: 'Trimesh'; readonly vertices: Float32Array; readonly indices: Uint32Array };
 
 /** A collider placed in its body's space: one per mesh in the body. */
@@ -51,6 +71,22 @@ export type PhysicsJoint = {
     | Exclude<JointKind, { readonly _tag: 'Fixed' }>
     | { readonly _tag: 'Fixed'; readonly frameA: Quat; readonly frameB: Quat };
 };
+
+/**
+ * Two bodies pushing on each other harder than a body's `contactForces` threshold in one
+ * step, by the ids they were added with: Rapier's contact force event.
+ */
+export type ContactForce = {
+  readonly a: string;
+  readonly b: string;
+  readonly totalForce: Vec3;
+  readonly totalForceMagnitude: number;
+  readonly maxForceDirection: Vec3;
+  readonly maxForceMagnitude: number;
+};
+
+/** Lines drawing a world's colliders and joints: segment ends, and RGBA per end. */
+export type DebugLines = { readonly vertices: Float32Array; readonly colors: Float32Array };
 
 /** One physics world, its bodies keyed by id. Every method is synchronous. */
 export type PhysicsWorld = {
@@ -77,6 +113,10 @@ export type PhysicsWorld = {
   readonly removeJoint: (id: string) => void;
   /** Advances by `seconds` and returns the collisions that began or ended. */
   readonly step: (seconds: number) => ReadonlyArray<Collision>;
+  /** Contact forces over their bodies' thresholds in the steps since the last call. */
+  readonly contactForces: () => ReadonlyArray<ContactForce>;
+  /** The world as lines, for `physics({ debug: true })`. */
+  readonly debugLines: () => DebugLines;
   readonly pose: (key: string) => BodyPose | undefined;
   /** Whether any dynamic body is still moving (not asleep). */
   readonly awake: () => boolean;
@@ -175,6 +215,54 @@ export const colliderFor = (
   const { shape, offset } = shapeFor(geometry, collider, scale);
   return { shape, translation: toVec3(offset), rotation: [0, 0, 0, 1] };
 };
+
+const turn3 = new Quaternion();
+const turnEuler = new Euler();
+const largest = (a: number, b: number): number => Math.max(Math.abs(a), Math.abs(b));
+
+/** A described shape at world `scale`: lengths along an axis by that axis's scale. */
+const scaledShape = (shape: ColliderShapeDescription, scale: Vector3): ColliderShape => {
+  switch (shape._tag) {
+    case 'Cuboid': {
+      const [x, y, z] = shape.halfExtents;
+      return { _tag: 'Cuboid', halfExtents: [x * scale.x, y * scale.y, z * scale.z] };
+    }
+    case 'Ball':
+      return {
+        _tag: 'Ball',
+        radius: shape.radius * Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z)),
+      };
+    case 'Capsule':
+    case 'Cylinder':
+    case 'Cone':
+      return {
+        _tag: shape._tag,
+        halfHeight: shape.halfHeight * Math.abs(scale.y),
+        radius: shape.radius * largest(scale.x, scale.z),
+      };
+  }
+};
+
+/**
+ * A body's own colliders at its world `scale`: each shape scaled, its position too. Unlike
+ * react-three-rapier's `scaleColliderArgs`, which scales arguments by position (x, y, z,
+ * x, x), each length scales along its own axis.
+ */
+export const describedColliders = (
+  colliders: ReadonlyArray<ColliderDescription>,
+  scale: Vector3,
+): ReadonlyArray<Collider> => colliders.map((collider) => describedCollider(collider, scale));
+
+/** One of a body's own colliders at its world `scale`. */
+function describedCollider(collider: ColliderDescription, scale: Vector3): Collider {
+  const [x, y, z] = collider.position;
+  turn3.setFromEuler(turnEuler.fromArray([...collider.rotation]));
+  return {
+    shape: scaledShape(collider.shape, scale),
+    translation: [x * scale.x, y * scale.y, z * scale.z],
+    rotation: [turn3.x, turn3.y, turn3.z, turn3.w],
+  };
+}
 
 const relative = new Matrix4();
 const bodyInverse = new Matrix4();

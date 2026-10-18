@@ -5,6 +5,7 @@ import {
   Euler,
   Group,
   InstancedMesh,
+  LineSegments,
   Matrix4,
   Mesh,
   Quaternion,
@@ -15,6 +16,8 @@ import {
 import {
   body,
   bodyRef,
+  capsuleCollider,
+  cuboidCollider,
   borrowed,
   box,
   colliderFor,
@@ -33,6 +36,7 @@ import {
   mesh,
   physics,
   recordingRendererFactory,
+  revoluteJoint,
   ropeJoint,
   scene,
   type SceneEvent,
@@ -41,6 +45,7 @@ import {
   sphere,
   sphericalJoint,
   standard,
+  velocityMotor,
 } from '../src/kernel/index.ts';
 import { fakePhysics } from './support/fakePhysics.ts';
 
@@ -446,5 +451,109 @@ test('a body turned by the simulation keeps its colliders: rounding is not a res
   for (let frame = 1; frame <= 10; frame++) graph.tick(frame / 60);
   graph.reconcile(description);
   expect(current()?.calls).toEqual(['add crate']);
+  graph.dispose();
+});
+
+test('a body’s own colliders replace its geometry’s, scaled with it; changing them remakes it', () => {
+  const { graph, current } = setup();
+  const own = (halfHeight: number) =>
+    world([
+      crate({
+        scale: [2, 2, 2],
+        body: body({
+          colliders: [
+            capsuleCollider({ halfHeight, radius: 0.25, position: [0, 0.5, 0] }),
+            cuboidCollider({ halfExtents: [1, 0.1, 1], rotation: [0, Math.PI / 2, 0] }),
+          ],
+        }),
+      }),
+    ]);
+  graph.reconcile(own(0.5));
+  const [capsule, cuboid] = current()?.bodies.get('crate')?.colliders ?? [];
+  // Scaled by the crate's scale of 2: the capsule's sizes and its offset.
+  expect(capsule).toMatchObject({
+    shape: { _tag: 'Capsule', halfHeight: 1, radius: 0.5 },
+    translation: [0, 1, 0],
+  });
+  expect(cuboid?.shape).toEqual({ _tag: 'Cuboid', halfExtents: [2, 0.2, 2] });
+  expect(cuboid?.rotation[1]).toBeCloseTo(Math.SQRT1_2, 9);
+  graph.reconcile(own(0.5));
+  expect(current()?.calls).toEqual(['add crate']);
+  graph.reconcile(own(0.75));
+  expect(current()?.calls).toEqual(['add crate', 'remove crate', 'add crate']);
+  graph.dispose();
+});
+
+test('contact forces reach the event stream, named by node and instance', () => {
+  const { graph, current } = setup();
+  graph.reconcile(world([crate({ body: body({ contactForces: 50 }) }), balls([ball('a', 5)])]));
+  const emitted: Array<SceneEvent> = [];
+  const loop = createSceneLoop({
+    graph,
+    renderer: recordingRendererFactory().create(),
+    elapsedSeconds: () => 1,
+    emit: (event) => emitted.push(event),
+  });
+  current()?.forces.push({
+    a: 'crate',
+    b: 'balls\u0000a',
+    totalForce: [0, 80, 0],
+    totalForceMagnitude: 80,
+    maxForceDirection: [0, 1, 0],
+    maxForceMagnitude: 80,
+  });
+  graph.tick(0);
+  graph.tick(1 / 60);
+  loop.frame();
+  expect(emitted).toContainEqual({
+    _tag: 'ContactForce',
+    a: 'crate',
+    b: 'balls',
+    bInstance: 'a',
+    totalForce: [0, 80, 0],
+    totalForceMagnitude: 80,
+    maxForceDirection: [0, 1, 0],
+    maxForceMagnitude: 80,
+  });
+  graph.dispose();
+});
+
+test('the debug view draws the world’s lines while asked, and goes when not', () => {
+  const { graph } = setup();
+  const debugLines = () => graph.scene.getObjectByName('physics-debug');
+  graph.reconcile(scene({ physics: physics({ debug: true }), children: [crate()] }));
+  const lines = debugLines();
+  expect(lines).toBeInstanceOf(LineSegments);
+  // The fake engine draws a unit line up from each body: the crate is at y = 10.
+  const positions =
+    lines instanceof LineSegments ? lines.geometry.getAttribute('position') : undefined;
+  expect(positions?.getY(0)).toBe(10);
+  graph.tick(0);
+  graph.tick(0.5);
+  expect(positions?.getY(0)).toBeLessThan(10);
+  graph.reconcile(scene({ physics: physics(), children: [crate()] }));
+  expect(debugLines()).toBeUndefined();
+  // In a still (paused) world, turning the lines on asks for the frame that shows them.
+  graph.reconcile(scene({ physics: physics({ paused: true }), children: [crate()] }));
+  graph.drawn();
+  expect(graph.needsFrame()).toBe(false);
+  graph.reconcile(scene({ physics: physics({ paused: true, debug: true }), children: [crate()] }));
+  expect(graph.needsFrame()).toBe(true);
+  graph.dispose();
+});
+
+test('a motor travels with its joint to the engine, and a new motor remakes the joint', () => {
+  const { graph, current } = setup();
+  const driven = (velocity: number) =>
+    jointed([hinge({ kind: revoluteJoint({ axis: [0, 0, 1], motor: velocityMotor(velocity) }) })]);
+  graph.reconcile(driven(2));
+  expect(current()?.joints.get('hinge')?.joint.kind).toEqual({
+    _tag: 'Revolute',
+    axis: [0, 0, 1],
+    limits: null,
+    motor: { position: 0, velocity: 2, stiffness: 0, damping: 1 },
+  });
+  graph.reconcile(driven(3));
+  expect(current()?.calls.slice(-2)).toEqual(['unjoin hinge', 'join hinge']);
   graph.dispose();
 });

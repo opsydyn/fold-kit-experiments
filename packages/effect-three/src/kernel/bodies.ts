@@ -14,8 +14,9 @@ import { Euler, Quaternion, type Scene } from 'three';
 
 import { bodyId, type BodySource } from './bodySources.ts';
 import type { Body, Joint, Physics, Vec3 } from './description.ts';
-import { bodyEquals, jointEquals, physicsEquals } from './equality.ts';
+import { bodyEquals, collidersEqual, jointEquals, physicsEquals } from './equality.ts';
 import type { BodyPose, PhysicsEngine, PhysicsJoint, PhysicsWorld, Quat } from './physics.ts';
+import { createPhysicsDebug } from './physicsDebug.ts';
 
 /** Two bodies began (`started`) or stopped touching: their nodes' keys, and instances'. */
 export type BodyCollision = {
@@ -24,6 +25,22 @@ export type BodyCollision = {
   readonly b: string;
   readonly bInstance?: string;
   readonly started: boolean;
+};
+
+/**
+ * Two bodies pushing on each other harder than a threshold: their nodes' keys (and
+ * instances'), and Rapier's contact force payload, as react-three-rapier's
+ * `onContactForce`.
+ */
+export type BodyContactForce = {
+  readonly a: string;
+  readonly aInstance?: string;
+  readonly b: string;
+  readonly bInstance?: string;
+  readonly totalForce: Vec3;
+  readonly totalForceMagnitude: number;
+  readonly maxForceDirection: Vec3;
+  readonly maxForceMagnitude: number;
 };
 
 type Hosted = {
@@ -45,6 +62,8 @@ export type BodyHost = {
   readonly needsFrame: () => boolean;
   /** Collisions since the last call. */
   readonly drainCollisions: () => ReadonlyArray<BodyCollision>;
+  /** Contact forces over their thresholds since the last call. */
+  readonly drainContactForces: () => ReadonlyArray<BodyContactForce>;
   readonly dispose: () => void;
 };
 
@@ -88,18 +107,19 @@ const between = (a: BodyPose, b: BodyPose, alpha: number): BodyPose => {
 const remade = (hosted: Hosted, source: BodySource, signature: string): boolean =>
   hosted.source.holder !== source.holder ||
   hosted.source.body.collider !== source.body.collider ||
+  !collidersEqual(hosted.source.body.colliders, source.body.colliders) ||
   hosted.signature !== signature;
 
 /** Body settings other than its impulse differ. */
 const resettled = (a: Body, b: Body): boolean =>
   !bodyEquals({ ...a, impulse: null }, { ...b, impulse: null });
 
-/** A collision between bodies `a` and `b` (by id), named by their nodes and instances. */
+/** Bodies `a` and `b` (by id) named by their nodes, and instances when they are ones. */
 const named = (
   a: BodySource | undefined,
   b: BodySource | undefined,
-  ids: { readonly a: string; readonly b: string; readonly started: boolean },
-): BodyCollision => {
+  ids: { readonly a: string; readonly b: string },
+): Pick<BodyCollision, 'a' | 'aInstance' | 'b' | 'bInstance'> => {
   const aInstance = a?.instance;
   const bInstance = b?.instance;
   return {
@@ -107,7 +127,6 @@ const named = (
     ...(aInstance === undefined ? {} : { aInstance }),
     b: b?.key ?? ids.b,
     ...(bInstance === undefined ? {} : { bInstance }),
-    started: ids.started,
   };
 };
 
@@ -121,10 +140,19 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
   /** Bodies (re)made by the current sync: their joints went with the old ones. */
   const fresh = new Set<string>();
   let collisions: Array<BodyCollision> = [];
+  let contactForces: Array<BodyContactForce> = [];
+  const debug = createPhysicsDebug(scene);
   let last: number | undefined;
   let accumulator = 0;
 
+  /** Draws the world's lines while the description asks for them. */
+  const drawDebug = (): void => {
+    if (world !== undefined && settings?.debug === true) debug.show(world.debugLines());
+    else debug.hide();
+  };
+
   const dispose = (): void => {
+    debug.hide();
     world?.dispose();
     world = undefined;
     settings = null;
@@ -228,6 +256,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       hosted.delete(id);
     }
     syncJoints(world, physics.joints);
+    drawDebug();
   };
 
   const kinematicTargets = (active: PhysicsWorld): void => {
@@ -240,9 +269,17 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     for (const body of hosted.values()) body.previous = body.current;
     kinematicTargets(active);
     for (const collision of active.step(seconds)) {
-      collisions.push(
-        named(hosted.get(collision.a)?.source, hosted.get(collision.b)?.source, collision),
-      );
+      collisions.push({
+        ...named(hosted.get(collision.a)?.source, hosted.get(collision.b)?.source, collision),
+        started: collision.started,
+      });
+    }
+    for (const force of active.contactForces()) {
+      const { a, b, ...payload } = force;
+      contactForces.push({
+        ...named(hosted.get(a)?.source, hosted.get(b)?.source, force),
+        ...payload,
+      });
     }
     for (const [id, body] of hosted) body.current = active.pose(id) ?? body.current;
   };
@@ -265,6 +302,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
         body.source.place(body.shown);
       }
     }
+    if (settings.debug) drawDebug();
   };
 
   return {
@@ -275,6 +313,12 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       if (collisions.length === 0) return collisions;
       const drained = collisions;
       collisions = [];
+      return drained;
+    },
+    drainContactForces: () => {
+      if (contactForces.length === 0) return contactForces;
+      const drained = contactForces;
+      contactForces = [];
       return drained;
     },
     dispose,

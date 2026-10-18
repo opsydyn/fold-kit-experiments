@@ -8,6 +8,7 @@ import type {
   BodyPose,
   Collider,
   Collision,
+  ContactForce,
   Physics,
   PhysicsEngine,
   PhysicsJoint,
@@ -26,6 +27,7 @@ export type FakeWorld = PhysicsWorld & {
   readonly calls: Array<string>;
   readonly bodies: Map<string, FakeBody>;
   readonly queue: Array<Collision>;
+  readonly forces: Array<ContactForce>;
   readonly joints: Map<
     string,
     { readonly joint: PhysicsJoint; readonly a: string; readonly b: string }
@@ -41,12 +43,32 @@ export const fakePhysics = () => {
       const bodies = new Map<string, FakeBody>();
       const calls: Array<string> = [];
       const queue: Array<Collision> = [];
+      const forces: Array<ContactForce> = [];
       const joints: FakeWorld['joints'] = new Map();
       const world: FakeWorld = {
         calls,
         bodies,
         queue,
+        forces,
         joints,
+        contactForces: () => forces.splice(0),
+        // One line per body: from its position, a unit up.
+        debugLines: () => {
+          const vertices = new Float32Array(bodies.size * 6);
+          [...bodies.values()].forEach(
+            (
+              {
+                pose: {
+                  position: [x, y, z],
+                },
+              },
+              i,
+            ) => {
+              vertices.set([x, y, z, x, y + 1, z], i * 6);
+            },
+          );
+          return { vertices, colors: new Float32Array(bodies.size * 8).fill(1) };
+        },
         disposed: false,
         configure: (physics) => {
           calls.push('configure');

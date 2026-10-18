@@ -25,7 +25,9 @@ import type {
   ColliderShape,
   Collision,
   Physics,
+  ContactForce,
   JointLimits,
+  JointMotor,
   PhysicsEngine,
   PhysicsJoint,
   PhysicsWorld,
@@ -54,17 +56,40 @@ const shapeDesc = (rapier: Rapier, shape: ColliderShape): RAPIER.ColliderDesc =>
       return rapier.ColliderDesc.ball(shape.radius);
     case 'Hull':
       return rapier.ColliderDesc.convexHull(shape.points) ?? rapier.ColliderDesc.ball(1e-3);
+    case 'Capsule':
+      return rapier.ColliderDesc.capsule(shape.halfHeight, shape.radius);
+    case 'Cylinder':
+      return rapier.ColliderDesc.cylinder(shape.halfHeight, shape.radius);
+    case 'Cone':
+      return rapier.ColliderDesc.cone(shape.halfHeight, shape.radius);
     case 'Trimesh':
       return rapier.ColliderDesc.trimesh(shape.vertices, shape.indices);
   }
 };
 
-/** A collider placed in its body, reporting collisions. */
+/** A collider placed in its body. */
 const colliderDesc = (rapier: Rapier, collider: Collider): RAPIER.ColliderDesc =>
   shapeDesc(rapier, collider.shape)
     .setTranslation(...collider.translation)
-    .setRotation(rotation(collider.rotation))
-    .setActiveEvents(rapier.ActiveEvents.COLLISION_EVENTS);
+    .setRotation(rotation(collider.rotation));
+
+/**
+ * The events a body's colliders report: collisions always, contact forces over its
+ * threshold when it has one (react-three-rapier's `onContactForce` turns on
+ * `CONTACT_FORCE_EVENTS`).
+ */
+const reporting = (colliders: ReadonlyArray<RAPIER.Collider>, body: Body): void => {
+  for (const collider of colliders) {
+    if (body.contactForces === null) {
+      collider.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+      continue;
+    }
+    collider.setActiveEvents(
+      RAPIER.ActiveEvents.COLLISION_EVENTS | RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS,
+    );
+    collider.setContactForceEventThreshold(body.contactForces);
+  }
+};
 
 /**
  * Applies a body's surface and mass settings to its colliders. A given mass is shared
@@ -92,6 +117,17 @@ const motion = (rigidBody: RAPIER.RigidBody, body: Body): void => {
 /** The limits a joint has, if it is a hinge or slider with limits. */
 const limitsOf = (joint: PhysicsJoint): JointLimits | null =>
   joint.kind._tag === 'Revolute' || joint.kind._tag === 'Prismatic' ? joint.kind.limits : null;
+
+/** The motor a joint has, if it is a hinge or slider with one. */
+const motorOf = (joint: PhysicsJoint): JointMotor | null =>
+  joint.kind._tag === 'Revolute' || joint.kind._tag === 'Prismatic' ? joint.kind.motor : null;
+
+/** Drives a hinge or slider once made: Rapier's `configureMotor`, set on the joint. */
+const drive = (made: RAPIER.ImpulseJoint, motor: JointMotor | null): void => {
+  if (motor !== null && made instanceof RAPIER.UnitImpulseJoint) {
+    made.configureMotor(motor.position, motor.velocity, motor.stiffness, motor.damping);
+  }
+};
 
 /**
  * Limits a hinge or slider once made. React-three-rapier sets them on the joint data, but
@@ -155,6 +191,7 @@ const createWorld =
         world.createCollider(colliderDesc(rapier, collider), rigidBody),
       );
       surface(made, body);
+      reporting(made, body);
       bodies.set(key, { rigidBody, colliders: made });
       for (const collider of made) keysByCollider.set(collider.handle, key);
     };
@@ -181,6 +218,7 @@ const createWorld =
         true,
       );
       limit(made, limitsOf(joint));
+      drive(made, motorOf(joint));
       made.setContactsEnabled(joint.contacts);
       joints.set(id, { joint: made, a, b });
     };
@@ -202,6 +240,25 @@ const createWorld =
       return collisions;
     };
 
+    /** Contact force events since the last call, kept across steps until asked for. */
+    let forces: Array<ContactForce> = [];
+    function recordForce(event: RAPIER.TempContactForceEvent): void {
+      const a = keysByCollider.get(event.collider1());
+      const b = keysByCollider.get(event.collider2());
+      if (a === undefined || b === undefined) return;
+      const total = event.totalForce();
+      const direction = event.maxForceDirection();
+      forces.push({
+        a,
+        b,
+        totalForce: [total.x, total.y, total.z],
+        totalForceMagnitude: event.totalForceMagnitude(),
+        maxForceDirection: [direction.x, direction.y, direction.z],
+        maxForceMagnitude: event.maxForceMagnitude(),
+      });
+    }
+    const drainForces = (): void => events.drainContactForceEvents(recordForce);
+
     return {
       configure: (physics) => {
         world.gravity = vector(physics.gravity);
@@ -212,6 +269,7 @@ const createWorld =
         if (held === undefined) return;
         motion(held.rigidBody, body);
         surface(held.colliders, body);
+        reporting(held.colliders, body);
       },
       teleport: (key, pose) => {
         const held = bodies.get(key);
@@ -236,7 +294,18 @@ const createWorld =
       step: (seconds) => {
         world.timestep = seconds;
         world.step(events);
+        drainForces();
         return collisionsOf();
+      },
+      contactForces: () => {
+        const drained = forces;
+        forces = [];
+        return drained;
+      },
+      // react-three-rapier's Debug: Rapier's own line rendering of colliders and joints.
+      debugLines: () => {
+        const { vertices, colors } = world.debugRender();
+        return { vertices, colors };
       },
       pose: (key) => {
         const held = bodies.get(key);

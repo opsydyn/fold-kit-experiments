@@ -43,6 +43,8 @@ export const Model = Schema.Struct({
   bumps: Schema.Number,
   /** Marbles poured in: one instanced node, a body per marble. */
   marbles: Schema.Number,
+  /** Whether the physics world draws its colliders and joints as lines. */
+  showColliders: Schema.Boolean,
   camera: SceneSchema.Camera,
   vr: Vr,
   /** Where the player stands in VR: thumbsticks turn and step, by changing it. */
@@ -87,6 +89,7 @@ export const initialModel: Model = {
   round: 0,
   bumps: 0,
   marbles: 0,
+  showColliders: false,
   camera: homeCamera,
   vr: 'checking',
   // In front of the tray, facing it.

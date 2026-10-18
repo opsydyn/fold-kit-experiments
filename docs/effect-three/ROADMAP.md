@@ -199,9 +199,10 @@ WebGPU path), and DOM overlay is checked only in the session request.
   renderers, before choosing.
 - Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
   `WebGPURenderer`, and the DOM overlay; they retire the three documented limits.
-- A Drei catalogue audit (S to scope): `Line`/`Trail`, `Billboard`, `Decal`, `Outlines`,
-  `Sparkles`/`Stars`/`Cloud`, transmission materials; decide what belongs in the typed
-  catalogue.
+- ✅ A Drei catalogue audit ([drei-audit.md](drei-audit.md)): every component is covered,
+  a Model pattern, a sized candidate, or out of scope with a reason. Next from it: the S
+  candidates (`Billboard`, `RoundedBox` and `Backdrop`, `Detailed`, `CameraShake`,
+  `Clone`), then `line` and `points` families (M), then transform gizmos as submodels.
 
 ## Beyond parity
 

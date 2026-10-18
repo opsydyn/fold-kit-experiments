@@ -81,6 +81,12 @@ test('a label is drawn once its font has loaded, and redrawn when its text chang
   await page.close();
 }, 60_000);
 
+/** Runs in the page: whether the last layout reported is the new text's, centred. */
+function newLayoutShown(): boolean {
+  const [minX = 0, , maxX = 0] = Reflect.get(globalThis, '__labels').measured().at(-1)?.block ?? [];
+  return maxX - minX > 3 && Math.abs(minX + maxX) < 0.1;
+}
+
 function showStyled(): void {
   Reflect.get(globalThis, '__labels').styled();
 }
@@ -110,8 +116,10 @@ test('colour ranges, a curve and a lit material draw; a measured label says its 
   await page.goto(app.url('labels.html'));
   await page.waitForFunction(labelsReady);
   await page.evaluate(showStyled);
-  await page.waitForFunction(() => Reflect.get(globalThis, '__labels').measured().length > 0);
-  const [laidOut] = await page.evaluate(labelMeasured);
+  // The label keeps its key, so it is laid out again: the first report may still be the
+  // old text's ("HI", left-anchored) until troika has laid out the new one, centred.
+  await page.waitForFunction(newLayoutShown);
+  const laidOut = (await page.evaluate(labelMeasured)).at(-1);
   // Four glyphs at an em of 2: a block some units wide, two high or more, centred.
   const [minX = 0, minY = 0, maxX = 0, maxY = 0] = laidOut?.block ?? [];
   expect(laidOut?.key).toBe('sign');

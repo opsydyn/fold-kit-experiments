@@ -57,6 +57,14 @@ export const examples = [
     alt: 'Marble machine: gold and teal marbles behind glass, on a coral paddle wheel above two labelled bins.',
   },
   {
+    id: 'gallery',
+    category: 'Labels',
+    title: 'Every word is data',
+    description:
+      'A curved title, a code plaque coloured by colour ranges, and spotlit type with a lit material. Panels are sized from each label’s measured layout: write on the wall and watch yours grow.',
+    alt: 'Type gallery: a dark curved wall with a gold-and-white title and spotlit plaques of text, one showing coloured code.',
+  },
+  {
     id: 'workshop',
     category: 'Assets',
     title: 'Load it, play it, let it go',

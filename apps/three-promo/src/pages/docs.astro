@@ -3,7 +3,22 @@ import SourceCode from '../components/SourceCode.astro';
 import Layout from '../layouts/Layout.astro';
 import { adapterSource, coreSource, decisions, rapierSource, troikaSource } from '../lib/links';
 import { sitePath } from '../lib/site-path';
-import { entry, installation, runtime, sharing, teaser, testing, transitions, view } from '../lib/snippets';
+import {
+  autoRotate,
+  entry,
+  installation,
+  labelSnippet,
+  lending,
+  physicsSnippet,
+  renderers,
+  runtime,
+  sharing,
+  teaser,
+  testing,
+  transitions,
+  view,
+  xrSnippet,
+} from '../lib/snippets';
 ---
 <Layout title="Guide — effect-three">
   <section class="page-intro">
@@ -13,14 +28,14 @@ import { entry, installation, runtime, sharing, teaser, testing, transitions, vi
   </section>
   <div class="docs-layout">
     <nav class="docs-nav" aria-label="On this page">
-      <a href="#installation">Installation</a><a href="#first-scene">Your first scene</a><a href="#foldkit">Using Foldkit</a><a href="#identity">Keys and identity</a><a href="#resources">Resources</a><a href="#animation">Animation</a><a href="#controls">Controls</a><a href="#physics">Physics</a><a href="#text">Text and labels</a><a href="#staging">Staging</a><a href="#xr">XR</a><a href="#runtime">Without Foldkit</a><a href="#testing">Testing</a><a href="#architecture">Architecture</a>
+      <a href="#installation">Installation</a><a href="#first-scene">Your first scene</a><a href="#foldkit">Using Foldkit</a><a href="#identity">Keys and identity</a><a href="#resources">Resources</a><a href="#animation">Animation</a><a href="#controls">Controls</a><a href="#physics">Physics</a><a href="#text">Text and labels</a><a href="#staging">Staging</a><a href="#renderers">Renderers</a><a href="#xr">XR</a><a href="#runtime">Without Foldkit</a><a href="#testing">Testing</a><a href="#architecture">Architecture</a>
     </nav>
     <article class="docs-content">
       <section id="installation">
         <h2>Install the packages.</h2>
         <p>The core works anywhere Effect does. The Foldkit adapter adds the browser pieces: the renderers (WebGL, or WebGPU with <code>webgpuRendererFactory</code>), the animation-frame loop and the scene element.</p>
         <div class="code-panel"><SourceCode code={installation} lang="sh" sourceId="installation.sh" /></div>
-        <p>Working in this monorepo? Use <code>workspace:*</code> for the dependencies. Add <code>@opsydyn/effect-three-rapier</code> for physics and <code>@opsydyn/effect-three-troika</code> for labels when a scene needs them. All the packages are pre-release.</p>
+        <p>Add <code>@opsydyn/effect-three-rapier</code> for physics and <code>@opsydyn/effect-three-troika</code> for labels when a scene needs them. The four packages are released together at one version, and the adapters take the core as a peer at exactly that version, so install matching versions. They are <code>0.x</code>: the public surface is what the API reports in each package's <code>etc/</code> record, and a change that breaks it bumps the minor version.</p>
       </section>
       <section id="first-scene">
         <h2>Describe a scene.</h2>
@@ -46,6 +61,8 @@ import { entry, installation, runtime, sharing, teaser, testing, transitions, vi
         <h2>Share what the GPU holds.</h2>
         <p>Declare a geometry or material once in <code>resources</code>, then refer to it by id. Shared resources are reference-counted across every scene on the page and disposed when their last user goes. Owned resources live and die with their mesh.</p>
         <div class="code-panel"><SourceCode code={sharing} lang="ts" sourceId="shared.ts" /></div>
+        <p>What the application owns, it lends: loaded models, textures and geometries go to the store under an id, scenes show them wherever a description names that id (even before it is lent), and nothing the application lends is ever disposed by the scene.</p>
+        <div class="code-panel"><SourceCode code={lending} lang="ts" sourceId="lending.ts" /></div>
         <a class="text-link" href={sitePath('/examples/shared/')}>Try shared resources <span aria-hidden="true">→</span></a>
       </section>
       <section id="animation">
@@ -59,27 +76,45 @@ import { entry, installation, runtime, sharing, teaser, testing, transitions, vi
       <section id="controls">
         <h2>Keep the camera in the Model.</h2>
         <p>With <code>{"scene({ gestures: 'scene' })"}</code> the scene claims drags, the wheel and pinches, and reports each as a <code>Gesture</code> Message. <code>orbit(model.camera, gesture)</code> returns the next camera, as three.js's <code>OrbitControls</code> would move it, zooming toward the pointer if you ask. <code>orbitKey</code> handles arrow keys, and <code>fitCamera</code> frames a box the scene measured for you, as Drei's <code>Bounds</code> does.</p>
+        <p>A camera's <code>damping</code> eases the rendered camera to the Model's, views included. <code>autoRotate</code> turns it round its target by itself until someone touches it; before that gesture, an <code>AutoRotated</code> Message says where it got to, so the Model keeps it and the orbit carries on from there.</p>
+        <div class="code-panel"><SourceCode code={autoRotate} lang="ts" sourceId="camera.ts" /></div>
         <a class="text-link" href={sitePath('/examples/studio/')}>Orbit the studio <span aria-hidden="true">→</span></a>
       </section>
       <section id="physics">
         <h2>Describe bodies; let Rapier move them.</h2>
-        <p>Give a mesh, group, loaded model or instances node a <code>body()</code> under <code>{"scene({ physics: physics() })"}</code>, and pass <code>loadRapier()</code> from <code>@opsydyn/effect-three-rapier</code> to the environment. Colliders come from geometry. Kicks are impulses with an id, applied once. Joints (fixed, spherical, revolute, prismatic, rope, spring, with motors) are data in <code>{"physics({ joints })"}</code>. Give a body colliders of its own when its geometry is the wrong shape. Collisions and contact forces return as Messages naming the node, and the instance when there is one, and <code>{"physics({ debug: true })"}</code> draws every collider.</p>
+        <p>Give a mesh, group, loaded model or instances node a <code>body()</code> under <code>{"scene({ physics: physics() })"}</code>, and pass <code>loadRapier()</code> from <code>@opsydyn/effect-three-rapier</code> to the environment. Colliders come from geometry. Kicks are impulses with an id, applied once. Joints (fixed, spherical, revolute, prismatic, rope, spring, with motors) are data in <code>{"physics({ joints })"}</code>. Give a body colliders of its own when its geometry is the wrong shape. Collisions and contact forces return as Messages naming the node, the instance when there is one, and the collider's <code>name</code> as its part; <code>{"physics({ debug: true })"}</code> draws every collider.</p>
+        <p>Collision groups (<code>interactionGroups</code>) decide which bodies meet, sensors report bodies entering and leaving without stopping them, and <code>contactForces</code> sets the threshold above which a body reports how hard it was pushed.</p>
+        <div class="code-panel"><SourceCode code={physicsSnippet} lang="ts" sourceId="machine.ts" /></div>
         <a class="text-link" href={sitePath('/examples/toybox/')}>Throw the toys around <span aria-hidden="true">→</span></a>
+        <a class="text-link" href={sitePath('/examples/marbles/')}>Sort marbles by colour <span aria-hidden="true">→</span></a>
+        <a class="text-link" href={sitePath('/examples/bowling/')}>Bowl a frame <span aria-hidden="true">→</span></a>
       </section>
       <section id="text">
         <h2>Set text two ways.</h2>
         <p><code>text()</code> is geometry from a typeface font, as Drei's <code>Text3D</code>: extruded or flat, with letter spacing, line height and alignment. <code>label()</code> is crisp distance-field text at any size, as Drei's <code>Text</code>, drawn by troika once you pass <code>troikaLabels()</code> from <code>@opsydyn/effect-three-troika</code>. Labels wrap and take anchors and outlines; give them a TTF, OTF or WOFF font.</p>
+        <p>Colour runs (<code>colorRanges</code>), curves (<code>curveRadius</code>) and a scene <code>material</code> to light the glyphs are fields too. A label named in <code>{"scene({ measure })"}</code> reports its laid-out size as <code>LabelMeasured</code>, so the Model can size what goes behind it.</p>
+        <div class="code-panel"><SourceCode code={labelSnippet} lang="ts" sourceId="label.ts" /></div>
         <a class="text-link" href={sitePath('/examples/workshop/')}>See both in the workshop <span aria-hidden="true">→</span></a>
+        <a class="text-link" href={sitePath('/examples/gallery/')}>Walk the type gallery <span aria-hidden="true">→</span></a>
       </section>
       <section id="staging">
         <h2>Light and stage it.</h2>
         <p><code>environment()</code>, <code>sky()</code> and <code>contactShadows()</code> are Drei's staging as scene fields, and <code>shaderGrid()</code> is its fading grid. <code>stage()</code> returns Drei's <code>Stage</code> lighting to spread into a scene. Centre content with <code>centerOffset</code> on a measured box, and load one of Drei's environment presets with <code>environmentPresetUrl</code>.</p>
         <a class="text-link" href={sitePath('/examples/playground/')}>Stand on the fading grid <span aria-hidden="true">→</span></a>
       </section>
+      <section id="renderers">
+        <h2>WebGL or WebGPU.</h2>
+        <p>The default renderer is WebGL 2. <code>webgpuRendererFactory</code> uses three's <code>WebGPURenderer</code>: WebGPU where the browser has it, its WebGL 2 backend otherwise. Each renderer brings a render kit, so skies, shader grids, contact shadows and post-processing have WebGL and TSL versions, and the same scene draws on either.</p>
+        <div class="code-panel"><SourceCode code={renderers} lang="ts" sourceId="renderer.ts" /></div>
+        <p>Known limits: labels are not drawn under WebGPU (troika has no WebGPU path), WebXR on <code>WebGPURenderer</code> is wired but untested, and the DOM overlay is checked only in the session request. Every example takes <code>?renderer=webgpu</code> in its address.</p>
+      </section>
       <section id="xr">
         <h2>Step into it.</h2>
-        <p>A scene with <code>{"xr({ origin, heading })"}</code> can be presented in WebXR. Enter and exit with <code>environment.xr</code> Effects from your Commands. Controllers and hands hover, click and drag along their rays. Thumbsticks and buttons arrive as Messages: <code>locomote</code> turns and steps the player by returning new <code>xr</code> settings for your Model. In AR, <code>{"xr({ hitTest: true })"}</code> reports the real surfaces a select points at.</p>
+        <p>A scene with <code>{"xr({ origin, heading })"}</code> can be presented in WebXR. Enter and exit with <code>environment.xr</code> Effects from your Commands. Controllers and hands hover, click and drag along their rays. Thumbsticks and buttons arrive as Messages: <code>locomote</code> turns and steps the player by returning new <code>xr</code> settings for your Model. In AR, <code>{"xr({ hitTest: true })"}</code> reports the real surfaces a select points at. <code>{"xr({ glide })"}</code> moves the player with the sticks inside the session, and <code>XrMoved</code> says where they stopped.</p>
+        <p>Groups can ride tracked things with <code>follow</code>: the head, a hand joint, a controller, an anchor the scene placed with <code>{"xr({ anchors })"}</code>, or a plane or mesh the session detected (<code>XrPlanes</code> and <code>XrMeshes</code> Messages, with <code>planes: true</code> and <code>meshes: true</code>). A detected mesh's geometry is lent to the scene, so <code>xrMesh(id)</code> draws it with any material. <code>{"xr({ domOverlay: true })"}</code> keeps HTML overlays in AR.</p>
+        <div class="code-panel"><SourceCode code={xrSnippet} lang="ts" sourceId="room.ts" /></div>
         <a class="text-link" href={sitePath('/examples/toybox/')}>Enter VR in the toybox <span aria-hidden="true">→</span></a>
+        <a class="text-link" href={sitePath('/examples/room/')}>Step into the room <span aria-hidden="true">→</span></a>
       </section>
       <section id="runtime">
         <h2>Use the runtime directly.</h2>
@@ -97,9 +132,9 @@ import { entry, installation, runtime, sharing, teaser, testing, transitions, vi
           {[
             [coreSource + '/src/kernel', 'Kernel', 'Plain TypeScript: descriptions, keyed diff, applier, resources and behaviours. It never imports Effect.', 'effect-three/kernel'],
             [coreSource + '/src/runtime', 'Runtime', 'Effect services, scopes and typed errors around the kernel.', 'effect-three'],
-            [adapterSource, 'Foldkit adapter', 'The scene element, WebGL renderer, frame loop, XR sessions and DOM bridge.', 'effect-three-foldkit'],
+            [adapterSource, 'Foldkit adapter', 'The scene element, WebGL and WebGPU renderers, frame loop, assets, XR sessions and DOM bridge.', 'effect-three-foldkit'],
             [rapierSource, 'Rapier physics', 'The physics engine: bodies, colliders and joints described in scenes, simulated by Rapier.', 'effect-three-rapier'],
-            [troikaSource, 'Troika labels', 'The label engine: distance-field text drawn by troika.', 'effect-three-troika'],
+            [troikaSource, 'Troika labels', 'The label engine: distance-field text drawn by troika, with colour runs, curves, materials and measured layouts.', 'effect-three-troika'],
             [decisions, 'Decisions', 'The plan, architecture decision records and benchmark results.', 'docs/effect-three'],
           ].map(([href, name, description, path]) => <a href={href}>
             <h3>{name} <span aria-hidden="true">↗</span></h3><p>{description}</p><code>{path}</code>

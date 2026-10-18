@@ -49,6 +49,38 @@ export const examples = [
     alt: 'Toybox: coloured crates and balls scattered in a pale tray, casting soft contact shadows.',
   },
   {
+    id: 'marbles',
+    category: 'Physics',
+    title: 'Sort them by colour',
+    description:
+      'Gold and teal marbles ride a motor-driven wheel onto a grate only teal marbles can touch. Collision groups sort them, named sensors count each bin, and contact forces measure every knock.',
+    alt: 'Marble machine: gold and teal marbles behind glass, on a coral paddle wheel above two labelled bins.',
+  },
+  {
+    id: 'gallery',
+    category: 'Labels',
+    title: 'Every word is data',
+    description:
+      'A curved title, a code plaque coloured by colour ranges, and spotlit type with a lit material. Panels are sized from each label’s measured layout: write on the wall and watch yours grow.',
+    alt: 'Type gallery: a dark curved wall with a gold-and-white title and spotlit plaques of text, one showing coloured code.',
+  },
+  {
+    id: 'bowling',
+    category: 'Physics and labels',
+    title: 'Ten frames, all data',
+    description:
+      'Aim, set the line and roll. Named sensors at each pin’s head say which pins went down, a pit sensor says the ball went through, and a troika scoreboard keeps ten-pin score.',
+    alt: 'Bowling: a blue ball rolling down a polished wooden lane towards ten white pins, under a dark scoreboard.',
+  },
+  {
+    id: 'room',
+    category: 'WebXR',
+    title: 'Step into the room',
+    description:
+      'Furnish a room with plants on the page, glide through it in VR, or plant in your own room in AR, where each plant is an anchor and detected planes and meshes are drawn from Messages.',
+    alt: 'XR room: a sofa, table and lamp in a warm room, with potted plants on the rug.',
+  },
+  {
     id: 'workshop',
     category: 'Assets',
     title: 'Load it, play it, let it go',

@@ -29,6 +29,11 @@
   height: 440px;
 }
 
+/* Tall machines and rooms: more height on wide screens, never taller than the viewport. */
+.e3-stage-tall {
+  height: min(560px, 75vh);
+}
+
 .e3-stage-placeholder {
   display: grid;
   place-items: center;
@@ -124,6 +129,21 @@
 .e3-range {
   flex: 1 1 12rem;
   accent-color: var(--blue, #3d79fa);
+}
+
+.e3-text {
+  font: inherit;
+  color: var(--text, #e8e8f0);
+  background: var(--surface, #12121f);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  width: min(28rem, 70vw);
+}
+
+.e3-text:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
 }
 
 .e3-readout {

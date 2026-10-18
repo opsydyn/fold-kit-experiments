@@ -1,0 +1,21 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/gallery/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/gallery/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/gallery/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/gallery/update.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/gallery/scene.ts?raw';
+import highlightSource from '@opsydyn/effect-three-samples/src/gallery/highlight.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/gallery/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'scene.ts', content: sceneSource }, { name: 'highlight.ts', content: highlightSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="Type gallery — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">LABELS</p><h1>Every word is data.</h1><p>A dark gallery whose wall curves round you, hung with distance-field labels drawn by troika. The title follows the wall's curve, the code plaque is coloured by colour ranges, and with the lights on every label takes a lit material, so the spotlights show on the type. Each plaque's panel is sized from its label's measured layout, which comes back as a Message: write on the wall and watch the panel grow as your note wraps. Click a plaque to walk up to it; drag to look around.</p></section>
+  <Sample client:load noMeta assetBase={sitePath('/models/')} />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Text you can describe.</h2><p>Colour runs, curves and materials are fields on a label, so the Model decides them like anything else. troika lays the text out in a worker; the scene reports each layout, and the Model sizes what goes behind it.</p><a class="text-link" href={samplesSource + '/gallery'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

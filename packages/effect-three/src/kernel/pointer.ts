@@ -16,7 +16,7 @@ import { type Object3D, Raycaster, Vector2, Vector3 } from 'three';
 
 import type { Gestures, Vec3 } from './description.ts';
 import type { SceneGraph } from './sceneGraph.ts';
-import type { XrButtonName, XrHand, XrStickDirection } from './xrInput.ts';
+import type { XrButtonName, XrHand, XrPlane, XrStickDirection } from './xrInput.ts';
 
 /** Modifier keys held during an input, as on `MouseEvent`. */
 export type Modifiers = {
@@ -218,6 +218,13 @@ export type SceneEvent =
       readonly button: XrButtonName;
       readonly pressed: boolean;
     }
+  /**
+   * Gliding with the sticks (`xr({ glide })`) stopped: where the player stands, to keep
+   * in the Model's `xr({ origin, heading })`.
+   */
+  | { readonly _tag: 'XrMoved'; readonly origin: Vec3; readonly heading: number }
+  /** The session's detected planes changed (`xr({ planes: true })`): all of them, now. */
+  | { readonly _tag: 'XrPlanes'; readonly planes: ReadonlyArray<XrPlane> }
   /** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
   | {
       readonly _tag: 'XrSurface';
@@ -235,8 +242,10 @@ export type SceneEvent =
       readonly _tag: 'Collision';
       readonly a: string;
       readonly aInstance?: string;
+      readonly aPart?: string;
       readonly b: string;
       readonly bInstance?: string;
+      readonly bPart?: string;
       readonly started: boolean;
     }
   /**
@@ -247,8 +256,10 @@ export type SceneEvent =
       readonly _tag: 'ContactForce';
       readonly a: string;
       readonly aInstance?: string;
+      readonly aPart?: string;
       readonly b: string;
       readonly bInstance?: string;
+      readonly bPart?: string;
       readonly totalForce: Vec3;
       readonly totalForceMagnitude: number;
       readonly maxForceDirection: Vec3;

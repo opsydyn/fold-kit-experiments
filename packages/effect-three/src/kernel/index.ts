@@ -5,6 +5,7 @@
  * @module
  */
 export type * from './description.ts';
+export { handJoints } from './description.ts';
 export { clipRunning, clipTime } from './animation.ts';
 export {
   type Behaviour,
@@ -35,6 +36,13 @@ export {
   body,
   circle,
   xr,
+  glide,
+  xrAnchor,
+  headSpace,
+  jointSpace,
+  controllerSpace,
+  anchorSpace,
+  planeSpace,
   physics,
   cuboidCollider,
   ballCollider,
@@ -42,6 +50,7 @@ export {
   cylinderCollider,
   coneCollider,
   velocityMotor,
+  interactionGroups,
   positionMotor,
   shaderGrid,
   label,
@@ -170,18 +179,27 @@ export {
   type ContactForce,
   type DebugLines,
   describedColliders,
+  interactionBits,
   type PhysicsEngine,
   type PhysicsJoint,
   type PhysicsWorld,
   type Quat,
 } from './physics.ts';
 export type { BodyCollision, BodyContactForce } from './bodies.ts';
-export { type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
+export type {
+  ContactShadowPasses,
+  HostedShaderGrid,
+  HostedSky,
+  RenderKit,
+  ShadowedScene,
+} from './renderKit.ts';
+export { glided, type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
 export {
   createXrTracker,
   type XrButtonName,
   type XrHand,
   type XrInput,
+  type XrPlane,
   type XrStickDirection,
 } from './xrInput.ts';
 export type { HostedLabel, LabelEngine } from './labels.ts';

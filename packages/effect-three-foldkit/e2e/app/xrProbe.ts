@@ -1,11 +1,37 @@
+import {
+  anchorSpace,
+  box,
+  controllerSpace,
+  glide,
+  group,
+  type GroupNode,
+  headSpace,
+  jointSpace,
+  mesh,
+  planeSpace,
+  standard,
+  xrAnchor,
+  type XrAnchor,
+  type XrGlide,
+  type XrSpace,
+} from '@opsydyn/effect-three';
 /**
  * Plain helpers for the XR page: the emulator shim, and reading the presented scene's
  * renderer. Kept apart from the Effect code that mounts the scene.
  */
-import { type XRDevice, XRReferenceSpace } from 'iwer';
-import { InstancedMesh, Line, Object3D, type WebGLRenderer } from 'three';
+import {
+  NativePlane,
+  type XRDevice,
+  XRReferenceSpace,
+  XRRigidTransform,
+  XRSemanticLabels,
+} from 'iwer';
+import { InstancedMesh, Line, Object3D, Vector3, type WebGLRenderer } from 'three';
+import type { WebGPURenderer } from 'three/webgpu';
 
-import { webglRendererOf } from '../../src/dom/webgl.ts';
+type ThreeRenderer = WebGLRenderer | WebGPURenderer;
+
+import { threeRendererOf } from '../../src/dom/renderSettings.ts';
 
 const offsetSpace = Reflect.get(XRReferenceSpace.prototype, 'getOffsetReferenceSpace');
 
@@ -31,16 +57,16 @@ export const modeOf = (event: Event): string | null =>
 
 /** The scene's renderer, found once: the emulator moves the canvas while presenting. */
 export const rendererFinder = (element: Element) => {
-  let renderer: WebGLRenderer | undefined;
-  return (): WebGLRenderer | undefined => {
+  let renderer: ThreeRenderer | undefined;
+  return (): ThreeRenderer | undefined => {
     const canvas = element.querySelector('canvas');
-    if (renderer === undefined && canvas !== null) renderer = webglRendererOf(canvas);
+    if (renderer === undefined && canvas !== null) renderer = threeRendererOf(canvas);
     return renderer;
   };
 };
 
 /** Where the headset's camera is in the scene, as three.js places it. */
-export const headOf = (renderer: WebGLRenderer | undefined): ReadonlyArray<number> | null => {
+export const headOf = (renderer: ThreeRenderer | undefined): ReadonlyArray<number> | null => {
   if (renderer === undefined) return null;
   return renderer.xr.getCamera().matrixWorld.elements.slice(12, 15);
 };
@@ -77,7 +103,19 @@ export class FloorEnvironment {
   boundingBoxesVisible = false;
   meshesVisible = false;
   readonly environmentCanvas = document.createElement('canvas');
-  readonly trackedPlanes = new Set<never>();
+  /** A table, 0.7 up and a metre ahead of the global origin. */
+  readonly trackedPlanes = new Set([
+    new NativePlane(
+      new XRRigidTransform({ x: 0, y: 0.7, z: -1 }),
+      [
+        new DOMPointReadOnly(-0.5, 0, -0.4),
+        new DOMPointReadOnly(0.5, 0, -0.4),
+        new DOMPointReadOnly(0.5, 0, 0.4),
+        new DOMPointReadOnly(-0.5, 0, 0.4),
+      ],
+      XRSemanticLabels.Table,
+    ),
+  ]);
   readonly trackedMeshes = new Set<never>();
   render(): void {}
   loadEnvironment(): void {}
@@ -103,6 +141,10 @@ export class FloorEnvironment {
   }
 }
 
+/** `value` to `digits` places, with no `-0` for a value that rounds to nothing. */
+const fixed = (value: number, digits: number): string =>
+  (Math.abs(value) < 0.5 * 10 ** -digits ? 0 : value).toFixed(digits);
+
 /** A short line for each scene event the XR test watches: its type and what it names. */
 export const describeEvent = (event: Event): string => {
   const detail: unknown = event instanceof CustomEvent ? event.detail : undefined;
@@ -111,9 +153,18 @@ export const describeEvent = (event: Event): string => {
   const parts = [field('key'), field('hand'), field('direction'), field('button'), field('pressed')]
     .filter((part) => part !== undefined)
     .map(String);
-  const point = field('point');
-  if (event.type === 'scene-xr-surface' && Array.isArray(point)) {
-    parts.push(point.map((value: number) => value.toFixed(1)).join(','));
+  // Where surfaces and glides ended (pointer events' hit points are left out).
+  const place = { 'scene-xr-surface': field('point'), 'scene-xr-moved': field('origin') }[
+    event.type
+  ];
+  if (Array.isArray(place)) parts.push(place.map((value: number) => fixed(value, 1)).join(','));
+  // Each plane reported: its id, label and where it is.
+  const planes = field('planes');
+  if (Array.isArray(planes)) {
+    for (const plane of planes) {
+      const at = Reflect.get(plane, 'position').map((value: number) => fixed(value, 1));
+      parts.push(`${Reflect.get(plane, 'id')}:${Reflect.get(plane, 'label')}@${at.join(',')}`);
+    }
   }
   return [event.type.replace('scene-', ''), ...parts].join(' ');
 };
@@ -132,4 +183,71 @@ export const inputsShown = (
     });
   }
   return { rays, joints };
+};
+
+/** Frames the renderer has drawn: WebGL's `info.render.frame`, WebGPU's `frameCalls`. */
+export const framesDrawn = (renderer: ThreeRenderer | undefined): number => {
+  const render = renderer?.info.render;
+  if (render === undefined) return 0;
+  return 'frameCalls' in render ? render.frameCalls : render.frame;
+};
+
+/** Gliding with the sticks when the page's address has `?glide`; otherwise none. */
+export const glideFromAddress = (search: string): XrGlide | null =>
+  new URLSearchParams(search).has('glide') ? glide() : null;
+
+/** The groups the `?spaces` page has follow tracked spaces, by key. */
+const following: ReadonlyArray<readonly [string, XrSpace]> = [
+  ['on-head', headSpace()],
+  ['on-tip', jointSpace('right', 'index-finger-tip')],
+  ['on-grip', controllerSpace('left')],
+  ['on-anchor', anchorSpace('a1')],
+  ['on-plane', planeSpace('plane-0')],
+];
+
+/**
+ * With `?spaces` in the page's address: an anchor a metre ahead of the player at head
+ * height, plane detection, and a small cube on each followed space. Otherwise none.
+ */
+export const spacesFromAddress = (
+  search: string,
+): {
+  readonly anchors: ReadonlyArray<XrAnchor>;
+  readonly planes: boolean;
+  readonly children: ReadonlyArray<GroupNode>;
+} => {
+  if (!new URLSearchParams(search).has('spaces'))
+    return { anchors: [], planes: false, children: [] };
+  return {
+    anchors: [xrAnchor({ id: 'a1', position: [3, 1.5, 0] })],
+    planes: true,
+    children: following.map(([key, follow]) =>
+      group({
+        key,
+        follow,
+        children: [
+          mesh({
+            key: `${key}-cube`,
+            geometry: box({ width: 0.05, height: 0.05, depth: 0.05 }),
+            material: standard(),
+          }),
+        ],
+      }),
+    ),
+  };
+};
+
+/** Each followed group: whether it shows, and where it is in the scene (to a centimetre). */
+export const followedIn = (scenes: ReadonlyArray<unknown>): Record<string, string> => {
+  const shown: Record<string, string> = {};
+  for (const scene of scenes) {
+    if (!(scene instanceof Object3D)) continue;
+    for (const [key] of following) {
+      const object = scene.getObjectByName(key);
+      if (object === undefined) continue;
+      const at = object.getWorldPosition(new Vector3()).toArray();
+      shown[key] = object.visible ? at.map((value) => fixed(value, 2)).join(',') : 'hidden';
+    }
+  }
+  return shown;
 };

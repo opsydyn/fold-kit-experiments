@@ -7,8 +7,10 @@
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { troikaLabels } from '@opsydyn/effect-three-troika';
 
+import { rendererForPage } from './renderer';
+
 export const environment = EffectThreeFoldkit.makeEnvironment(window, {
-  renderer: (canvas) => EffectThreeFoldkit.webglRendererFactory(canvas, { alpha: true }),
+  renderer: rendererForPage(window),
   labels: troikaLabels(),
 });
 

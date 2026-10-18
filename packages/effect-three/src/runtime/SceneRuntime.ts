@@ -5,7 +5,7 @@
  *
  * @module
  */
-import { Clock, Effect, Exit, Match, Queue, Result, Scope, Stream } from 'effect';
+import { Clock, Effect, Exit, Match, Option, Queue, Result, Scope, Stream } from 'effect';
 
 import {
   createSceneClock,
@@ -63,8 +63,8 @@ const applyViewport = (graph: SceneGraph, renderer: SceneRenderer, viewport: Vie
   renderer.setViewport(viewport);
 };
 
-/** The engines a scene graph hands work to. */
-type Engines = Pick<SceneRuntimeOptions, 'physics' | 'labels'>;
+/** The engines a scene graph hands work to, and the renderer whose kit shades it. */
+type Engines = Pick<SceneRuntimeOptions, 'physics' | 'labels' | 'renderer'>;
 
 const sceneGraph =
   (
@@ -78,6 +78,7 @@ const sceneGraph =
       behaviours,
       physics: engines.physics,
       labels: engines.labels,
+      kit: engines.renderer.kit,
     });
 
 /**
@@ -114,6 +115,14 @@ const acquireRenderer = (factory: RendererFactory) => {
   return Effect.acquireRelease(create, (renderer) => Effect.sync(renderer.dispose));
 };
 
+/** Waits for a renderer that starts asynchronously (WebGPU); a failed start is unavailable. */
+const awaitReady = (renderer: SceneRenderer) =>
+  Option.match(Option.fromNullishOr(renderer.ready), {
+    onNone: () => Effect.void,
+    onSome: (ready) =>
+      Effect.tryPromise({ try: ready, catch: (cause) => new RendererUnavailable({ cause }) }),
+  });
+
 const invalidationListening = (graph: SceneGraph, onInvalidated: () => void) => () =>
   graph.onInvalidated(onInvalidated);
 
@@ -135,6 +144,7 @@ function* startScene(options: SceneRuntimeOptions) {
   const graph = yield* acquireGraph(registry, options.behaviours ?? noBehaviours, options);
   const startupOps = yield* Effect.fromResult(toResult(graph.reconcile(options.scene)));
   const renderer = yield* acquireRenderer(options.renderer);
+  yield* awaitReady(renderer);
   applyViewport(graph, renderer, options.viewport);
   const events = yield* acquireEvents(options.eventCapacity ?? defaultEventCapacity);
 

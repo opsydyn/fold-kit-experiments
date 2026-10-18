@@ -140,6 +140,8 @@ type Tracked = {
   readonly id: number;
   visual: Visual | undefined;
   stick: XrStickDirection;
+  /** The thumbstick's axes this frame, `[x, y]`. */
+  axes: readonly [number, number];
   readonly pressed: Array<boolean>;
   hitTest: XRHitTestSource | undefined;
   /** Where its ray last met a real surface. */
@@ -169,6 +171,11 @@ export type XrInputs = {
   readonly selected: (source: XRInputSource) => void;
   /** Ends tracking: every source is lost, and the visuals go. */
   readonly stop: () => void;
+  /** Each hand's thumbstick this frame (`[0, 0]` without one). */
+  readonly sticks: () => {
+    readonly left: readonly [number, number];
+    readonly right: readonly [number, number];
+  };
 };
 
 /**
@@ -191,6 +198,7 @@ export const trackInputs = (
       id: nextId++,
       visual: undefined,
       stick: 'center',
+      axes: [0, 0],
       pressed: [],
       hitTest: undefined,
       surface: undefined,
@@ -227,7 +235,8 @@ export const trackInputs = (
         input({ _tag: 'Button', source: state.id, hand, button, pressed });
       }
     });
-    const direction = stickDirection(pad.axes[2] ?? 0, pad.axes[3] ?? 0, state.stick);
+    state.axes = [pad.axes[2] ?? 0, pad.axes[3] ?? 0];
+    const direction = stickDirection(state.axes[0], state.axes[1], state.stick);
     if (direction !== state.stick) {
       state.stick = direction;
       input({ _tag: 'Stick', source: state.id, hand, direction });
@@ -285,6 +294,13 @@ export const trackInputs = (
       const state = tracked.get(source);
       if (state?.surface === undefined) return;
       input({ _tag: 'Surface', source: state.id, hand: handOf(source), ...state.surface });
+    },
+    sticks: () => {
+      const axesOf = (hand: XrHand): readonly [number, number] => {
+        for (const [source, state] of tracked) if (source.handedness === hand) return state.axes;
+        return [0, 0];
+      };
+      return { left: axesOf('left'), right: axesOf('right') };
     },
     stop: () => {
       for (const [source, state] of tracked) forget(source, state);

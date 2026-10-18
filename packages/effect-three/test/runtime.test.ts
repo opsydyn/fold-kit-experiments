@@ -220,6 +220,31 @@ function* failedStartsLeakNothing(frames: ManualFrames) {
   expect(frames.subscribers()).toBe(0);
 }
 
+/** A recording renderer that starts asynchronously, as WebGPU's does, settling as told. */
+const startingRenderer = (settle: Promise<void>) => {
+  const recording = recordingRendererFactory();
+  const factory: RendererFactory = {
+    create: () => ({ ...recording.create(), ready: () => settle }),
+  };
+  return { factory, recording };
+};
+
+function* asynchronousStartsWaitForTheRenderer(frames: ManualFrames) {
+  const { factory } = startingRenderer(Promise.resolve());
+  const handle = yield* SceneRuntime.make({
+    scene: cubeScene({ color: 1 }),
+    renderer: factory,
+    viewport,
+  });
+  yield* advanceFrames(frames, 2, 20);
+  expect(handle.graph.object('cube')).toBeDefined();
+  const failed = startingRenderer(Promise.reject(new Error('no adapter')));
+  const unavailable = yield* Effect.flip(
+    SceneRuntime.make({ scene: cubeScene({ color: 1 }), renderer: failed.factory, viewport }),
+  );
+  expect(unavailable._tag).toBe('RendererUnavailable');
+}
+
 // A frame source whose subscription never completes: startup parks inside `make`.
 const noControl = { wake: () => undefined, sleep: () => undefined };
 const stalledFrames = Layer.succeed(FrameSource.FrameSource, {
@@ -286,6 +311,10 @@ function sceneRuntimeTests() {
   test('hover follows objects moving under a still pointer', () =>
     current.runtime.runPromise(
       Effect.gen(() => hoverFollowsObjectsUnderAStillPointer(current.frames)).pipe(Effect.scoped),
+    ));
+  test('a renderer that starts asynchronously is waited for; a failed start is unavailable', () =>
+    current.runtime.runPromise(
+      Effect.gen(() => asynchronousStartsWaitForTheRenderer(current.frames)).pipe(Effect.scoped),
     ));
   test('failed starts release everything they acquired', () =>
     current.runtime.runPromise(

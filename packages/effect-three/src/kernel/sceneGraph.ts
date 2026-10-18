@@ -25,12 +25,11 @@ import {
   SpotLight,
   Vector3,
 } from 'three';
-import { Sky as SkyMesh } from 'three/addons/objects/Sky.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
 import { type BodyCollision, type BodyContactForce, createBodyHost } from './bodies.ts';
-import { type BodySource, instanceSources, nodeSource } from './bodySources.ts';
+import { type BodySource, instanceSources, nodeSource, placeObject } from './bodySources.ts';
 import { renderSettings, scene as describeScene } from './build.ts';
 import { createCameraMotion } from './cameraMotion.ts';
 import type {
@@ -58,6 +57,7 @@ import type {
   Physics,
   Sky,
   Xr,
+  XrSpace,
   RenderTexture,
   Vec3,
   View,
@@ -75,7 +75,8 @@ import {
   createPose,
   resetPose,
 } from './motion.ts';
-import type { PhysicsEngine } from './physics.ts';
+import type { BodyPose, PhysicsEngine } from './physics.ts';
+import type { HostedShaderGrid, HostedSky, RenderKit } from './renderKit.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -84,12 +85,6 @@ import {
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
-import {
-  createShaderGrid,
-  disposeShaderGrid,
-  type HostShaderGrid,
-  updateShaderGrid,
-} from './shaderGrid.ts';
 import { applyTween, startTween, type Tween } from './tween.ts';
 
 /** The mesh type the kernel hosts. */
@@ -130,7 +125,13 @@ type Entry =
       readonly object: Group;
       helper: GridHelper;
     }
-  | { readonly _tag: 'ShaderGrid'; node: ShaderGridNode; readonly object: HostShaderGrid }
+  // `hosted` is what the render kit drew; without a kit the grid is an empty group.
+  | {
+      readonly _tag: 'ShaderGrid';
+      node: ShaderGridNode;
+      readonly object: Object3D;
+      readonly hosted: HostedShaderGrid | undefined;
+    }
   | {
       readonly _tag: 'HemisphereLight';
       node: HemisphereLightNode;
@@ -201,10 +202,17 @@ export type SceneGraphOptions = {
   readonly physics?: PhysicsEngine | undefined;
   /** Draws `label` nodes (distance-field text); without it they are empty. */
   readonly labels?: LabelEngine | undefined;
+  /**
+   * The renderer's shaded parts (sky, shader grids, contact shadows); without it they are
+   * not drawn. `webglKit` from `@opsydyn/effect-three/webgl` for three's WebGL renderer.
+   */
+  readonly kit?: RenderKit | undefined;
 };
 
 export type SceneGraph = {
   readonly scene: Scene;
+  /** The render kit the graph was made with, for the frame loop's contact shadows. */
+  readonly kit: RenderKit | undefined;
   /** The active camera. Changing the description's camera kind replaces it. */
   readonly camera: HostCamera;
   /** The scene's views, fitted to the viewport; empty when `camera` fills the canvas. */
@@ -227,6 +235,12 @@ export type SceneGraph = {
   readonly xr: () => Xr | null;
   /** Keys of the nodes whose bounds the frame loop reports. */
   readonly measured: () => ReadonlyArray<string>;
+  /**
+   * Places the groups that follow tracked spaces where `locate` says each space is (in the
+   * scene), hiding those it cannot find. A presenting session calls it every frame, and
+   * once with nothing found when it ends.
+   */
+  readonly follow: (locate: (space: XrSpace) => BodyPose | undefined) => void;
   readonly store: ResourceStore;
   /** Diffs against the last applied description and applies the result. */
   readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -429,39 +443,29 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let contactDescription: ContactShadows | null = emptyScene.contactShadows;
   let xrDescription: Xr | null = emptyScene.xr;
   let measured: ReadonlyArray<string> = emptyScene.measure;
-  let skyMesh: SkyMesh | undefined;
+  let hostedSky: HostedSky | undefined;
 
-  /** Shows, updates or removes the sky. It belongs to the scene, so it is never picked. */
+  /**
+   * Shows, updates or removes the sky, drawn by the render kit (none without one). It
+   * belongs to the scene, never picked.
+   */
   const applySky = (description: Sky | null): void => {
     if (description === null) {
       removeSky();
       return;
     }
-    if (skyMesh === undefined) {
-      skyMesh = new SkyMesh();
-      skyMesh.raycast = () => undefined;
-      scene.add(skyMesh);
+    if (hostedSky === undefined) {
+      hostedSky = options.kit?.sky();
+      if (hostedSky !== undefined) scene.add(hostedSky.object);
     }
-    const { uniforms } = skyMesh.material;
-    const set = (name: string, value: unknown): void => {
-      const uniform = uniforms[name];
-      if (uniform !== undefined) uniform.value = value;
-    };
-    set('turbidity', description.turbidity);
-    set('rayleigh', description.rayleigh);
-    set('mieCoefficient', description.mieCoefficient);
-    set('mieDirectionalG', description.mieDirectionalG);
-    set('cloudCoverage', description.clouds);
-    set('sunPosition', new Vector3().fromArray(description.sunPosition));
-    skyMesh.scale.setScalar(description.distance);
+    hostedSky?.update(description);
   };
 
   function removeSky(): void {
-    if (skyMesh === undefined) return;
-    skyMesh.removeFromParent();
-    skyMesh.geometry.dispose();
-    skyMesh.material.dispose();
-    skyMesh = undefined;
+    if (hostedSky === undefined) return;
+    hostedSky.object.removeFromParent();
+    hostedSky.dispose();
+    hostedSky = undefined;
   }
   const cameraMotion = createCameraMotion();
   const bodyHost = createBodyHost(options.physics, scene);
@@ -568,6 +572,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         trackRotation(entry, node);
         trackBehaviour(entry, node);
         trackInteractive(entry.object, node.interactive);
+        // A group following a tracked space shows only once the space is found.
+        if (node.follow !== null) entry.object.visible = false;
         return entry;
       }
       case 'Mesh': {
@@ -619,7 +625,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         return entry;
       }
       case 'Label': {
-        const hosted = options.labels?.create(node, invalidate);
+        // A renderer that cannot draw the engine's labels (WebGPU and troika) gets none.
+        const hosted =
+          options.kit?.drawsLabels === false ? undefined : options.labels?.create(node, invalidate);
         const entry: Entry = { _tag: 'Label', node, object: new Group(), hosted };
         if (hosted !== undefined) entry.object.add(hosted.object);
         writeVec3(entry.object.position, node.position);
@@ -653,8 +661,10 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         return { _tag: 'Grid', node, object, helper };
       }
-      case 'ShaderGrid':
-        return { _tag: 'ShaderGrid', node, object: createShaderGrid(node) };
+      case 'ShaderGrid': {
+        const hosted = options.kit?.shaderGrid(node);
+        return { _tag: 'ShaderGrid', node, object: hosted?.object ?? new Group(), hosted };
+      }
       case 'HemisphereLight': {
         const object = new HemisphereLight();
         writeHemisphereLight(object, node);
@@ -816,7 +826,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'Instances') entry.object.dispose();
     // A grid's lines are its own.
     if (entry._tag === 'Grid') disposeGridLines(entry.helper);
-    if (entry._tag === 'ShaderGrid') disposeShaderGrid(entry.object);
+    if (entry._tag === 'ShaderGrid') entry.hosted?.dispose();
     if (entry._tag === 'Label') entry.hosted?.dispose();
     // A borrowed object belongs to the application: detach it, never dispose it.
     if (entry._tag === 'Borrowed') {
@@ -951,6 +961,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('rotation')) trackRotation(entry, next);
       if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
+      if (fields.includes('follow')) {
+        // Back to its own transform, or hidden until the new space is found.
+        entry.object.visible = next.follow === null;
+        if (next.follow === null) {
+          writeVec3(entry.object.position, next.position);
+          trackRotation(entry, next);
+        }
+      }
       return;
     }
     if (entry._tag === 'AmbientLight' && next._tag === 'AmbientLight') {
@@ -980,7 +998,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       return;
     }
     if (entry._tag === 'ShaderGrid' && next._tag === 'ShaderGrid') {
-      updateShaderGrid(entry.object, entry.node, next);
+      entry.hosted?.update(entry.node, next);
       entry.node = next;
       return;
     }
@@ -1276,6 +1294,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   return {
     scene,
+    kit: options.kit,
     get camera() {
       return camera;
     },
@@ -1289,6 +1308,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     contactForces: bodyHost.drainContactForces,
     xr: () => xrDescription,
     measured: () => measured,
+    follow: (locate) => {
+      scene.updateMatrixWorld();
+      for (const entry of entries.values()) {
+        if (entry._tag !== 'Group' || entry.node.follow === null) continue;
+        const pose = locate(entry.node.follow);
+        entry.object.visible = pose !== undefined;
+        if (pose !== undefined) placeObject(entry.object, pose);
+      }
+    },
     store,
     reconcile,
     tick,

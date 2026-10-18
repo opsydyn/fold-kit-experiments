@@ -18,7 +18,7 @@ import { entry, installation, runtime, sharing, teaser, testing, transitions, vi
     <article class="docs-content">
       <section id="installation">
         <h2>Install the packages.</h2>
-        <p>The core works anywhere Effect does. The Foldkit adapter adds the browser pieces: the WebGL renderer, the animation-frame loop and the scene element.</p>
+        <p>The core works anywhere Effect does. The Foldkit adapter adds the browser pieces: the renderers (WebGL, or WebGPU with <code>webgpuRendererFactory</code>), the animation-frame loop and the scene element.</p>
         <div class="code-panel"><SourceCode code={installation} lang="sh" sourceId="installation.sh" /></div>
         <p>Working in this monorepo? Use <code>workspace:*</code> for the dependencies. Add <code>@opsydyn/effect-three-rapier</code> for physics and <code>@opsydyn/effect-three-troika</code> for labels when a scene needs them. All the packages are pre-release.</p>
       </section>

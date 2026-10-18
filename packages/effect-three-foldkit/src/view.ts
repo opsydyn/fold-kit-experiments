@@ -59,6 +59,12 @@ export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
 /** Detail of XR button events: a controller button pressed or released. */
 export type XrButtonDetail = typeof SceneSchema.XrButtonDetail.Type;
 
+/** Detail of XR moved events: where gliding left the player. */
+export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
+
+/** Detail of XR planes events: every plane the session detected, as it is now. */
+export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
+
 /** Detail of XR surface events: in AR, where a select met a real surface, and its normal. */
 export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
 
@@ -139,6 +145,17 @@ export type ViewConfig<Message> = {
    */
   readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
   /**
+   * Gliding with the sticks (`xr({ glide })`) stopped: keep where the player now stands
+   * with `glided(model.xr, detail)`.
+   */
+  readonly onXRMoved?: (detail: XrMovedDetail) => Message;
+  /**
+   * With `xr({ planes: true })`, the detected planes changed (found, reshaped, lost, or
+   * seen from where the player moved to): every plane, as it is now. Follow one with
+   * `group({ follow: planeSpace(id) })`.
+   */
+  readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
+  /**
    * Frames ran persistently slow or fast, and the performance factor moved (0 to 1).
    * Store it in the Model and lower `render.resolution` with it, as Drei's
    * `PerformanceMonitor` and `AdaptiveDpr` do together.
@@ -188,6 +205,8 @@ export const view = <Message>(
     Option.map(given(config.onXRStick), element.OnSceneXrStick),
     Option.map(given(config.onXRButton), element.OnSceneXrButton),
     Option.map(given(config.onXRSurface), element.OnSceneXrSurface),
+    Option.map(given(config.onXRMoved), element.OnSceneXrMoved),
+    Option.map(given(config.onXRPlanes), element.OnSceneXrPlanes),
     Option.map(given(config.onGesture), (toMessage) =>
       element.OnSceneGesture((detail) => toMessage(detail.gesture)),
     ),

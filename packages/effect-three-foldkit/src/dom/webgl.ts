@@ -4,30 +4,15 @@
  * @module
  */
 import type { RendererFactory, RenderSettings, RenderTarget } from '@opsydyn/effect-three';
+import { webglKit } from '@opsydyn/effect-three/webgl';
 import {
-  ACESFilmicToneMapping,
-  AgXToneMapping,
-  BasicShadowMap,
   type Camera,
-  CineonToneMapping,
-  type ColorSpace,
   HalfFloatType,
   LinearFilter,
-  LinearSRGBColorSpace,
-  LinearToneMapping,
-  Material,
-  NeutralToneMapping,
-  NoToneMapping,
   type Object3D,
-  PCFShadowMap,
   PMREMGenerator,
-  ReinhardToneMapping,
   type Scene,
-  type ShadowMapType,
-  SRGBColorSpace,
-  type ToneMapping,
   Vector2,
-  VSMShadowMap,
   WebGLRenderer,
   type WebGLRendererParameters,
   WebGLRenderTarget,
@@ -35,36 +20,17 @@ import {
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 import { createPostProcessing } from './postprocessing.ts';
+import {
+  colorSpaces,
+  forgetPresentable,
+  recompileMaterials,
+  registerPresentable,
+  shadowTypes,
+  toneMappings,
+} from './renderSettings.ts';
 
 /** Options passed through to three's `WebGLRenderer`. The canvas is always the scene's own. */
 export type WebGLOptions = Omit<WebGLRendererParameters, 'canvas'>;
-
-/**
- * Shadow map types by React Three Fiber's names (`core/configuration.ts` at `d74622e`).
- * three 0.186 folded PCF soft into PCF (softness is per light), so `soft` maps to PCF
- * here; R3F's PCFSoftShadowMap would only log a removal warning on this version.
- */
-const shadowTypes = {
-  basic: BasicShadowMap,
-  percentage: PCFShadowMap,
-  soft: PCFShadowMap,
-  variance: VSMShadowMap,
-} satisfies Record<Exclude<RenderSettings['shadows'], 'off'>, ShadowMapType>;
-
-const toneMappings = {
-  none: NoToneMapping,
-  linear: LinearToneMapping,
-  reinhard: ReinhardToneMapping,
-  cineon: CineonToneMapping,
-  aces: ACESFilmicToneMapping,
-  agx: AgXToneMapping,
-  neutral: NeutralToneMapping,
-} satisfies Record<RenderSettings['toneMapping'], ToneMapping>;
-
-const colorSpaces = {
-  srgb: SRGBColorSpace,
-  linear: LinearSRGBColorSpace,
-} satisfies Record<RenderSettings['colorSpace'], ColorSpace>;
 
 /**
  * Applies scene render settings; a change of shadow mode re-renders the shadow maps.
@@ -82,19 +48,6 @@ const configure = (renderer: WebGLRenderer, settings: RenderSettings): boolean =
   renderer.toneMappingExposure = settings.exposure;
   renderer.outputColorSpace = colorSpaces[settings.colorSpace];
   return switched;
-};
-
-/**
- * Flags every material in the scene for recompilation. three.js keeps a shader built
- * with shadows sampling its last shadow map after `shadowMap.enabled` turns off (and
- * without shadows after it turns on) until its material is updated.
- */
-const recompileMaterials = (scene: Object3D): void => {
-  scene.traverse((object) => {
-    const material: unknown = Reflect.get(object, 'material');
-    const materials = Array.isArray(material) ? material : [material];
-    for (const each of materials) if (each instanceof Material) each.needsUpdate = true;
-  });
 };
 
 const drawingSize = new Vector2();
@@ -133,13 +86,6 @@ const createRoom = (renderer: WebGLRenderer): RenderTarget => {
   return { texture: target.texture, dispose: () => target.dispose() };
 };
 
-/** Each canvas's three.js renderer, for presenting it in a WebXR session. */
-const renderers = new WeakMap<HTMLCanvasElement, WebGLRenderer>();
-
-/** The three.js renderer drawing into `canvas`, if one does. */
-export const webglRendererOf = (canvas: HTMLCanvasElement): WebGLRenderer | undefined =>
-  renderers.get(canvas);
-
 /**
  * Draws a frame of an immersive session. In AR the room shows through: three clears to
  * transparent there, but a background (an environment shown as one) would cover it, so it
@@ -162,9 +108,14 @@ export const webglRendererFactory = (
   canvas: HTMLCanvasElement,
   options: WebGLOptions = {},
 ): RendererFactory => ({
+  // The GLSL parts of a scene (sky, shader grid, contact shadows) go with this renderer.
+  kit: webglKit,
   create: () => {
     const renderer = new WebGLRenderer({ antialias: true, ...options, canvas });
-    renderers.set(canvas, renderer);
+    registerPresentable(canvas, renderer, {
+      xr: renderer.xr,
+      setXrLoop: (callback) => renderer.xr.setAnimationLoop(callback),
+    });
     const post = createPostProcessing(renderer);
     const targets = new WeakMap<RenderTarget, WebGLRenderTarget>();
     // The pixel ratio is the viewport's, scaled by the scene's resolution setting.
@@ -254,7 +205,7 @@ export const webglRendererFactory = (
       // dispose() frees three's GPU objects but not the WebGL context. Browsers cap live
       // contexts (about 16 in Chromium), so release it now rather than at garbage collection.
       dispose: () => {
-        renderers.delete(canvas);
+        forgetPresentable(canvas);
         void renderer.xr.getSession()?.end();
         post.dispose();
         renderer.dispose();

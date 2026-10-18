@@ -24,7 +24,8 @@ import {
   Vector3,
 } from 'three';
 
-import type { MaterialSide, ShaderGridNode } from './description.ts';
+import type { MaterialSide, ShaderGridNode } from '../kernel/description.ts';
+import type { HostedShaderGrid } from '../kernel/renderKit.ts';
 
 /** The mesh a shader grid is hosted as. */
 export type HostShaderGrid = Mesh<PlaneGeometry, ShaderMaterial>;
@@ -182,4 +183,14 @@ export const updateShaderGrid = (
 export const disposeShaderGrid = (mesh: HostShaderGrid): void => {
   mesh.geometry.dispose();
   mesh.material.dispose();
+};
+
+/** The WebGL kit's shader grid: the mesh, updated in place and freed with it. */
+export const hostShaderGrid = (node: ShaderGridNode): HostedShaderGrid => {
+  const mesh = createShaderGrid(node);
+  return {
+    object: mesh,
+    update: (previous, next) => updateShaderGrid(mesh, previous, next),
+    dispose: () => disposeShaderGrid(mesh),
+  };
 };

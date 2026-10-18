@@ -35,6 +35,7 @@ import type {
   JointKind,
   JointLimits,
   JointMotor,
+  InteractionGroups,
   ColliderDescription,
   ColliderShapeDescription,
   CapsuleGeometry,
@@ -76,6 +77,11 @@ import type {
   Vec3,
   View,
   ViewRect,
+  XrAnchor,
+  XrGlide,
+  XrSpace,
+  Handedness,
+  HandJoint,
 } from './description.ts';
 
 const origin: Vec3 = [0, 0, 0];
@@ -468,6 +474,7 @@ export const group = (
     readonly interactive?: boolean;
     readonly children?: ReadonlyArray<SceneNode>;
     readonly body?: Body | null;
+    readonly follow?: XrSpace | null;
   },
 ): GroupNode => ({
   _tag: 'Group',
@@ -480,6 +487,41 @@ export const group = (
   interactive: options.interactive ?? false,
   children: options.children ?? [],
   body: options.body ?? null,
+  follow: options.follow ?? null,
+});
+
+/** The head (the viewer), for content that stays in view. */
+export const headSpace = (): XrSpace => ({ _tag: 'Head' });
+
+/** A tracked hand's joint (`index-finger-tip`, say). */
+export const jointSpace = (hand: Handedness, joint: HandJoint): XrSpace => ({
+  _tag: 'Joint',
+  hand,
+  joint,
+});
+
+/** A controller's grip (where it is held) or its pointing ray. */
+export const controllerSpace = (hand: Handedness, space: 'grip' | 'ray' = 'grip'): XrSpace => ({
+  _tag: 'Controller',
+  hand,
+  space,
+});
+
+/** An anchor the scene placed with `xr({ anchors })`. */
+export const anchorSpace = (id: string): XrSpace => ({ _tag: 'Anchor', id });
+
+/** A detected plane, by the id an `XrPlanes` event gave it. */
+export const planeSpace = (id: string): XrSpace => ({ _tag: 'Plane', id });
+
+/** An anchor at a place in the scene (Euler rotation, unturned by default). */
+export const xrAnchor = (options: {
+  readonly id: string;
+  readonly position: Vec3;
+  readonly rotation?: Vec3;
+}): XrAnchor => ({
+  id: options.id,
+  position: options.position,
+  rotation: options.rotation ?? origin,
 });
 
 /** A mesh. Not interactive unless `interactive` is true. */
@@ -529,15 +571,30 @@ export const body = (options: Partial<Body> = {}): Body => ({
   impulse: options.impulse ?? null,
   colliders: options.colliders ?? null,
   contactForces: options.contactForces ?? null,
+  collisionGroups: options.collisionGroups ?? null,
+  solverGroups: options.solverGroups ?? null,
+});
+
+/**
+ * Collision groups, as react-three-rapier's `interactionGroups(memberships, filters)`:
+ * in `memberships` (0 to 15), interacting with `filters` (every group when omitted).
+ */
+export const interactionGroups = (
+  memberships: number | ReadonlyArray<number>,
+  filters?: number | ReadonlyArray<number>,
+): InteractionGroups => ({
+  memberships: typeof memberships === 'number' ? [memberships] : memberships,
+  filters: filters === undefined ? null : typeof filters === 'number' ? [filters] : filters,
 });
 
 const placedCollider = (
   shape: ColliderShapeDescription,
-  options: { readonly position?: Vec3; readonly rotation?: Vec3 },
+  options: { readonly position?: Vec3; readonly rotation?: Vec3; readonly name?: string | null },
 ): ColliderDescription => ({
   shape,
   position: options.position ?? origin,
   rotation: options.rotation ?? origin,
+  name: options.name ?? null,
 });
 
 /** A box collider, `halfExtents` from its middle, as react-three-rapier's `CuboidCollider`. */
@@ -545,6 +602,7 @@ export const cuboidCollider = (options: {
   readonly halfExtents: Vec3;
   readonly position?: Vec3;
   readonly rotation?: Vec3;
+  readonly name?: string | null;
 }): ColliderDescription =>
   placedCollider({ _tag: 'Cuboid', halfExtents: options.halfExtents }, options);
 
@@ -552,6 +610,7 @@ export const cuboidCollider = (options: {
 export const ballCollider = (options: {
   readonly radius: number;
   readonly position?: Vec3;
+  readonly name?: string | null;
 }): ColliderDescription => placedCollider({ _tag: 'Ball', radius: options.radius }, options);
 
 type Upright = {
@@ -559,6 +618,8 @@ type Upright = {
   readonly radius: number;
   readonly position?: Vec3;
   readonly rotation?: Vec3;
+  /** The name collisions report this collider by. */
+  readonly name?: string | null;
 };
 
 /** A capsule collider along y: `halfHeight` of cylinder, capped by `radius`. */
@@ -690,6 +751,19 @@ export const springJoint = (options: {
   readonly damping: number;
 }): JointKind => ({ _tag: 'Spring', ...options });
 
+const noAnchors: ReadonlyArray<XrAnchor> = [];
+
+/**
+ * Gliding with the thumbsticks while presenting. Defaults as pmndrs/xr's
+ * `useXRControllerLocomotion`: 2 m/s, a snap turn of 45° (smooth turns at 2 rad/s).
+ */
+export const glide = (options: Partial<XrGlide> = {}): XrGlide => ({
+  speed: options.speed ?? 2,
+  turn: options.turn ?? 'snap',
+  turnSpeed: options.turnSpeed ?? 2,
+  snapDegrees: options.snapDegrees ?? 45,
+});
+
 /**
  * Immersive presentation for a scene. Defaults: the player at the scene's origin facing
  * −z, `local-floor` (as pmndrs/xr), the device's framebuffer scale, inputs drawn (rays
@@ -702,6 +776,10 @@ export const xr = (options: Partial<Xr> = {}): Xr => ({
   framebufferScale: options.framebufferScale ?? 1,
   hitTest: options.hitTest ?? false,
   showInputs: options.showInputs ?? true,
+  glide: options.glide ?? null,
+  anchors: options.anchors ?? noAnchors,
+  planes: options.planes ?? false,
+  domOverlay: options.domOverlay ?? false,
 });
 
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */

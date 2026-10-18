@@ -90,7 +90,7 @@ const rotationText = (rotation: Rotation): string =>
   rotation._tag === 'Fixed' ? rotation.euler.join(',') : 'spin';
 
 /** A world pose written to an object in its parent's space, keeping its scale. */
-const placeObject = (object: Object3D, pose: BodyPose): void => {
+export const placeObject = (object: Object3D, pose: BodyPose): void => {
   object.matrixWorld.decompose(position, quaternion, scale);
   matrix.compose(position.fromArray(pose.position), quaternion.fromArray(pose.quaternion), scale);
   if (object.parent !== null) matrix.premultiply(inverse.copy(object.parent.matrixWorld).invert());

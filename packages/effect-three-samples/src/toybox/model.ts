@@ -1,4 +1,4 @@
-import { perspectiveCamera, SceneSchema, xr } from '@opsydyn/effect-three';
+import { glide, perspectiveCamera, SceneSchema, xr } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
 
 import { Paint, paintAt } from '../palette';
@@ -47,7 +47,7 @@ export const Model = Schema.Struct({
   showColliders: Schema.Boolean,
   camera: SceneSchema.Camera,
   vr: Vr,
-  /** Where the player stands in VR: thumbsticks turn and step, by changing it. */
+  /** Where the player stands in VR: the sticks glide them, and the Model keeps where. */
   player: SceneSchema.Xr,
 });
 export type Model = typeof Model.Type;
@@ -93,5 +93,5 @@ export const initialModel: Model = {
   camera: homeCamera,
   vr: 'checking',
   // In front of the tray, facing it.
-  player: xr({ origin: [0, 0, 4.2] }),
+  player: xr({ origin: [0, 0, 4.2], glide: glide() }),
 };

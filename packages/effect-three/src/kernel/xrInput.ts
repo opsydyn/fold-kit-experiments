@@ -34,6 +34,21 @@ export type XrButtonName =
   | 'primary'
   | 'secondary';
 
+/**
+ * A plane the session detected (`xr({ planes: true })`): a floor, wall or table, in the
+ * scene's space. `polygon` is its outline in its own space (on its x–z plane); `label` is
+ * what the device took it for (`floor`, `wall`, `table`…), or `''` when it did not say.
+ * Follow one with `group({ follow: planeSpace(id) })`.
+ */
+export type XrPlane = {
+  readonly id: string;
+  readonly orientation: 'horizontal' | 'vertical';
+  readonly label: string;
+  readonly position: Vec3;
+  readonly rotation: Vec3;
+  readonly polygon: ReadonlyArray<Vec3>;
+};
+
 /** Input from an immersive session, each from an input source (`source` tells them apart). */
 export type XrInput =
   /** A select (the trigger, or a pinch) beginning or ending, along the source's ray. */
@@ -55,6 +70,10 @@ export type XrInput =
       readonly button: XrButtonName;
       readonly pressed: boolean;
     }
+  /** Gliding (`xr({ glide })`) stopped: where the player stands now, for the Model. */
+  | { readonly _tag: 'Moved'; readonly origin: Vec3; readonly heading: number }
+  /** The detected planes changed: all of them, as they are now. */
+  | { readonly _tag: 'Planes'; readonly planes: ReadonlyArray<XrPlane> }
   /** In AR, a select whose ray met a real surface: where, and the surface's normal. */
   | {
       readonly _tag: 'Surface';
@@ -185,6 +204,10 @@ export const createXrTracker = (picker: Picker) => {
         return [
           { _tag: 'XrButton', hand: input.hand, button: input.button, pressed: input.pressed },
         ];
+      case 'Moved':
+        return [{ _tag: 'XrMoved', origin: input.origin, heading: input.heading }];
+      case 'Planes':
+        return [{ _tag: 'XrPlanes', planes: input.planes }];
       case 'Surface':
         return [{ _tag: 'XrSurface', hand: input.hand, point: input.point, normal: input.normal }];
     }

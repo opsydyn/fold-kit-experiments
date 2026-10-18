@@ -1,4 +1,4 @@
-import { type Gesture, locomote, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
+import { type Gesture, glided, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
 import { Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
@@ -99,9 +99,10 @@ export const update = (model: Model, message: Message): AppReturn =>
     ChangedVrSession: ({ presenting }) => ({
       model: modifyFields(model, { vr: () => vrSession[`${presenting}`] }),
     }),
-    // pmndrs/xr's controller locomotion, as data: the right stick turns, the left steps.
-    PushedStick: ({ stick }) => ({
-      model: modifyFields(model, { player: (player) => locomote(player, stick) }),
+    // The session glides the player with the sticks (pmndrs/xr's controller locomotion);
+    // when they let go, the Model keeps where they stand.
+    Glided: ({ moved }) => ({
+      model: modifyFields(model, { player: (player) => glided(player, moved) }),
     }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

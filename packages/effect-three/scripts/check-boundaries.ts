@@ -7,6 +7,8 @@ type Rule = {
   readonly glob: string;
   readonly forbidden: ReadonlyArray<RegExp>;
   readonly why: string;
+  /** Text the files must not contain at all, beyond imports. */
+  readonly forbiddenText?: ReadonlyArray<RegExp>;
 };
 
 const rules: ReadonlyArray<Rule> = [
@@ -19,6 +21,12 @@ const rules: ReadonlyArray<Rule> = [
     glob: 'src/kernel/**/*.ts',
     forbidden: [/^effect(\/|$)/, /^@effect\//],
     why: 'kernel is the non-Effect hot path (ADR-003)',
+  },
+  {
+    glob: 'src/kernel/**/*.ts',
+    forbidden: [/^three\/addons\/(shaders|postprocessing)\//, /^three\/addons\/objects\/Sky/],
+    forbiddenText: [/\bShaderMaterial\b/, /\bonBeforeCompile\b/, /\bglsl\b/],
+    why: 'kernel is renderer-neutral: shaded parts belong to a render kit (src/webgl)',
   },
 ];
 
@@ -34,6 +42,10 @@ for (const rule of rules) {
       if (rule.forbidden.some((re) => re.test(specifier))) {
         violations.push(`${file}: imports "${specifier}" (${rule.why})`);
       }
+    }
+    for (const re of rule.forbiddenText ?? []) {
+      const found = re.exec(source);
+      if (found !== null) violations.push(`${file}: contains "${found[0]}" (${rule.why})`);
     }
   }
 }

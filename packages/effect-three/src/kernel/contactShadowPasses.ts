@@ -1,5 +1,6 @@
 /**
- * Contact shadows, drawn by the frame loop with the scene's renderer.
+ * Contact shadows, drawn by the frame loop with the scene's renderer: the passes, shared
+ * by every render kit, which supplies the materials (`ShadowMaterials`).
  *
  * Behavioural reference: Drei `src/core/ContactShadows.tsx` at `bf6f4ad`, itself after
  * three.js's `webgl_shadow_contact` example by mrdoob (both MIT). As there, every drawn
@@ -8,8 +9,8 @@
  * 1. renders the scene from below with an orthographic camera into a texture, through a
  *    depth material that turns nearness to the ground into shadow (alpha `1 − depth`,
  *    colour `color · depth · 2`), with the background off and the shadow plane hidden;
- * 2. blurs it with three's horizontal and vertical blur shaders (`blur / 256`), twice
- *    with `smooth` (the second at 0.4 of the blur);
+ * 2. blurs it horizontally and vertically (`blur / 256`), twice with `smooth` (the second
+ *    at 0.4 of the blur);
  * 3. shows it on a transparent plane facing up.
  *
  * One difference: the blur passes draw a quad with their own camera, so they fill the
@@ -23,41 +24,37 @@ import {
   type Material,
   Mesh,
   MeshBasicMaterial,
-  MeshDepthMaterial,
   OrthographicCamera,
   PlaneGeometry,
   Scene,
-  ShaderMaterial,
+  type Texture,
   Vector3,
 } from 'three';
-import { HorizontalBlurShader } from 'three/addons/shaders/HorizontalBlurShader.js';
-import { VerticalBlurShader } from 'three/addons/shaders/VerticalBlurShader.js';
 
 import type { ContactShadows } from './description.ts';
 import type { RenderTarget, SceneRenderer } from './renderer.ts';
-import type { SceneGraph } from './sceneGraph.ts';
+import type { ContactShadowPasses, ShadowedScene } from './renderKit.ts';
 
-/**
- * The shadow pass's edit to three's depth shader: its basic-packing output, and the
- * shadow written instead (darkest where an object touches the plane).
- */
-const shadowShader = {
-  depthOutput: 'gl_FragColor = vec4( vec3( 1.0 - fragCoordZ ), opacity );',
-  shadowOutput: 'gl_FragColor = vec4( shadowColor * fragCoordZ * 2.0, 1.0 - fragCoordZ );',
-} as const;
+/** One blur direction's material, and how to point it at a texture by an amount. */
+export type BlurPass = {
+  readonly material: Material;
+  /** Reads `source`, blurring by `amount` of the texture's width (or height). */
+  readonly set: (source: Texture, amount: number) => void;
+};
 
-const createDepthMaterial = (color: Color): MeshDepthMaterial => {
-  const material = new MeshDepthMaterial();
-  material.depthTest = false;
-  material.depthWrite = false;
-  material.onBeforeCompile = (shader) => {
-    shader.uniforms['shadowColor'] = { value: color };
-    shader.fragmentShader = `uniform vec3 shadowColor;\n${shader.fragmentShader.replace(
-      shadowShader.depthOutput,
-      shadowShader.shadowOutput,
-    )}`;
-  };
-  return material;
+/** What a render kit draws contact shadows with. */
+export type ShadowMaterials = {
+  /**
+   * The material the scene is drawn through from below: colour `color · depth · 2`, alpha
+   * `1 − depth`, no depth test or write.
+   */
+  readonly depth: (color: Color) => Material;
+  readonly blur: (direction: 'horizontal' | 'vertical') => BlurPass;
+  /**
+   * Whether the renderer reads a target's texture with v running the other way from
+   * WebGL's: three's WebGPU renderer does, on either backend.
+   */
+  readonly flippedTargets: boolean;
 };
 
 /** Everything one set of contact shadows holds while shown. */
@@ -68,9 +65,9 @@ type Shown = {
   readonly target: RenderTarget;
   readonly blurTarget: RenderTarget;
   readonly color: Color;
-  readonly depthMaterial: MeshDepthMaterial;
-  readonly horizontal: ShaderMaterial;
-  readonly vertical: ShaderMaterial;
+  readonly depthMaterial: Material;
+  readonly horizontal: BlurPass;
+  readonly vertical: BlurPass;
   readonly quad: Mesh<PlaneGeometry, Material>;
   readonly quadScene: Scene;
   readonly quadCamera: OrthographicCamera;
@@ -79,9 +76,13 @@ type Shown = {
 const up = new Vector3(0, 1, 0);
 const aim = new Vector3();
 
-/** The plane's geometry: flat, facing up, its texture's v running towards +z. */
-const groundGeometry = (width: number, depth: number): PlaneGeometry => {
+/**
+ * The plane's geometry: flat, facing up, its texture's v running towards +z as the shadow
+ * camera's image does (already so where the renderer reads targets flipped).
+ */
+const groundGeometry = (width: number, depth: number, flipped: boolean): PlaneGeometry => {
   const geometry = new PlaneGeometry(width, depth).rotateX(-Math.PI / 2);
+  if (flipped) return geometry;
   const uv = geometry.getAttribute('uv');
   for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i));
   return geometry;
@@ -91,16 +92,11 @@ const groundGeometry = (width: number, depth: number): PlaneGeometry => {
 const reshaped = (a: ContactShadows, b: ContactShadows): boolean =>
   a.resolution !== b.resolution || a.size[0] !== b.size[0] || a.size[1] !== b.size[1];
 
-export type ContactShadowPasses = {
-  /** Draws the scene's contact shadows, if it has any, before the frame is drawn. */
-  readonly draw: () => void;
-  readonly dispose: () => void;
-};
-
-/** Creates the contact shadow passes for one scene graph and renderer. */
-export const createContactShadows = (
-  graph: SceneGraph,
+/** Creates the contact shadow passes for one scene graph and renderer, with `materials`. */
+export const createContactShadowPasses = (
+  graph: ShadowedScene,
   renderer: SceneRenderer,
+  materials: ShadowMaterials,
 ): ContactShadowPasses => {
   let shown: Shown | undefined;
 
@@ -112,8 +108,8 @@ export const createContactShadows = (
     shown.target.dispose();
     shown.blurTarget.dispose();
     shown.depthMaterial.dispose();
-    shown.horizontal.dispose();
-    shown.vertical.dispose();
+    shown.horizontal.material.dispose();
+    shown.vertical.material.dispose();
     shown.quad.geometry.dispose();
     shown = undefined;
   };
@@ -127,7 +123,7 @@ export const createContactShadows = (
       transparent: true,
       depthWrite: false,
     });
-    const plane = new Mesh(groundGeometry(width, depth), material);
+    const plane = new Mesh(groundGeometry(width, depth, materials.flippedTargets), material);
     // Shadows are scenery: never picked, never in the way of an overlay.
     plane.raycast = () => undefined;
     graph.scene.add(plane);
@@ -144,9 +140,9 @@ export const createContactShadows = (
       target,
       blurTarget,
       color,
-      depthMaterial: createDepthMaterial(color),
-      horizontal: new ShaderMaterial({ ...HorizontalBlurShader, depthTest: false }),
-      vertical: new ShaderMaterial({ ...VerticalBlurShader, depthTest: false }),
+      depthMaterial: materials.depth(color),
+      horizontal: materials.blur('horizontal'),
+      vertical: materials.blur('vertical'),
       quad,
       quadScene,
       quadCamera: new OrthographicCamera(-1, 1, 1, -1, 0, 1),
@@ -172,13 +168,11 @@ export const createContactShadows = (
   /** One blur: horizontally into the spare target, then vertically back. */
   const blurPass = (current: Shown, amount: number): void => {
     const { horizontal, vertical, quad, quadScene, quadCamera } = current;
-    quad.material = horizontal;
-    Reflect.set(horizontal.uniforms['tDiffuse'] ?? {}, 'value', current.target.texture);
-    Reflect.set(horizontal.uniforms['h'] ?? {}, 'value', amount / 256);
+    quad.material = horizontal.material;
+    horizontal.set(current.target.texture, amount / 256);
     renderer.render(quadScene, quadCamera, undefined, current.blurTarget);
-    quad.material = vertical;
-    Reflect.set(vertical.uniforms['tDiffuse'] ?? {}, 'value', current.blurTarget.texture);
-    Reflect.set(vertical.uniforms['v'] ?? {}, 'value', amount / 256);
+    quad.material = vertical.material;
+    vertical.set(current.blurTarget.texture, amount / 256);
     renderer.render(quadScene, quadCamera, undefined, current.target);
   };
 

@@ -13,9 +13,12 @@
  * @module
  */
 import type { Xr, XrInput } from '@opsydyn/effect-three';
-import { Group, type Object3D, type WebGLRenderer } from 'three';
+import { Group, type Object3D } from 'three';
 
+import type { PresentableRenderer } from './renderSettings.ts';
+import { floorFacing, type GlidePose, glideFrame, startGlider } from './xrGlide.ts';
 import { rayOf, trackInputs, type XrInputs } from './xrInputs.ts';
+import { type Follow, trackSpaces } from './xrSpaces.ts';
 
 /** Where an immersive session can come from: `navigator.xr`, or an emulator's. */
 export type XrSystem = Pick<XRSystem, 'requestSession' | 'isSessionSupported'>;
@@ -25,24 +28,34 @@ export type XrMode = 'immersive-vr' | 'immersive-ar';
 
 /**
  * The session request for a scene's settings: its reference space required, other
- * floors and hand tracking optional, and in AR hit testing when the scene asks for it
- * (pmndrs/xr's `buildXRSessionInit` asks for every feature it may use, optionally).
+ * floors, hand tracking and anchors optional, and plane detection, a DOM overlay (on
+ * `overlay`, the scene's element) and in AR hit testing when the scene asks for them
+ * (pmndrs/xr's `buildXRSessionInit` asks for every feature it may use, optionally, and
+ * roots the overlay on the element it is given). Anchors are asked for whether or not
+ * the scene has any yet: it may place them mid-session.
  */
-export const sessionInit = (settings: Xr, mode: XrMode = 'immersive-vr'): XRSessionInit => ({
+export const sessionInit = (
+  settings: Xr,
+  mode: XrMode = 'immersive-vr',
+  overlay?: Element,
+): XRSessionInit => ({
   requiredFeatures: [settings.referenceSpace],
   optionalFeatures: [
-    ...['local-floor', 'bounded-floor', 'hand-tracking'].filter(
+    ...['local-floor', 'bounded-floor', 'hand-tracking', 'anchors'].filter(
       (feature) => feature !== settings.referenceSpace,
     ),
+    ...(settings.planes ? ['plane-detection'] : []),
+    ...(settings.domOverlay && overlay !== undefined ? ['dom-overlay'] : []),
     ...(mode === 'immersive-ar' && settings.hitTest ? ['hit-test'] : []),
   ],
+  ...(settings.domOverlay && overlay !== undefined ? { domOverlay: { root: overlay } } : {}),
 });
 
 /**
  * The offset that puts the player at `origin` facing `heading`: a reference space whose
  * poses are the device's, rotated by the heading and moved to the origin.
  */
-const originOffset = (settings: Xr): XRRigidTransform => {
+const originOffset = (settings: GlidePose): XRRigidTransform => {
   const [x, y, z] = settings.origin;
   const half = -settings.heading / 2;
   const cos = Math.cos(-settings.heading);
@@ -92,48 +105,89 @@ export type Presentation = {
   readonly session: XRSession;
 };
 
+/** What a session presents: the scene, and how it is drawn, followed and told of input. */
+export type Presented = {
+  readonly scene: Object3D;
+  readonly draw: () => void;
+  /** Places the groups that follow tracked spaces (`group({ follow })`). */
+  readonly follow: Follow;
+  readonly input: (input: XrInput) => void;
+};
+
 /**
- * Presents into `session`: frames come from the session (each read for input, then drawn
- * with `draw`) until it ends, when `ended` is called and the page's own frames take over
- * again. Input sources are drawn into `scene` while it presents.
+ * Presents into `session`: frames come from the session (each read for input and the
+ * spaces groups follow, then drawn) until it ends, when `ended` is called and the page's
+ * own frames take over again. Input sources are drawn into the scene while it presents.
  */
 export const present = async (
-  renderer: WebGLRenderer,
+  renderer: PresentableRenderer,
   session: XRSession,
   settings: Xr,
-  scene: Object3D,
-  draw: () => void,
-  input: (input: XrInput) => void,
+  presented: Presented,
   ended: () => void,
 ): Promise<Presentation> => {
+  const { scene, draw, input } = presented;
   const { xr } = renderer;
   xr.enabled = true;
   xr.setReferenceSpaceType(settings.referenceSpace);
   xr.setFramebufferScaleFactor(settings.framebufferScale);
-  await xr.setSession(session);
-  const base = xr.getReferenceSpace();
+  let inputs: XrInputs | undefined;
+  const spaces = trackSpaces(session, () => current, presented.follow, input);
   let current = settings;
-  const place = (next: Xr): void => {
-    if (base !== null) xr.setReferenceSpace(base.getOffsetReferenceSpace(originOffset(next)));
+  // Gliding (`xr({ glide })`) moves the player from the description's place; the
+  // description wins again whenever it changes.
+  let glider = startGlider({ origin: settings.origin, heading: settings.heading });
+  let lastTime: number | undefined;
+  let base: XRReferenceSpace | null = null;
+  const place = (pose: GlidePose): void => {
+    if (base !== null) xr.setReferenceSpace(base.getOffsetReferenceSpace(originOffset(pose)));
   };
-  place(settings);
+
+  /** One frame of gliding, when the description asks for it. */
+  const glideStep = (time: number, frame: XRFrame, space: XRReferenceSpace): void => {
+    const seconds = Math.min(0.1, Math.max(0, (time - (lastTime ?? time)) / 1000));
+    lastTime = time;
+    if (current.glide === null || inputs === undefined) return;
+    const head = frame.getViewerPose(space);
+    const facing = floorFacing(head?.transform.orientation ?? { x: 0, y: 0, z: 0, w: 1 });
+    const { left, right } = inputs.sticks();
+    const next = glideFrame(glider, current.glide, { move: left, turn: right }, facing, seconds);
+    if (next.glider.pose !== glider.pose) place(next.glider.pose);
+    glider = next.glider;
+    if (next.stopped !== undefined) input({ _tag: 'Moved', ...next.stopped });
+  };
+
+  /** One session frame: its input read, then drawn. Frames outside the session are skipped. */
+  function sessionFrame(time: number, frame?: XRFrame): void {
+    if (!xr.isPresenting) return;
+    const space = xr.getReferenceSpace();
+    if (frame !== undefined && space !== null) {
+      inputs?.frame(frame, space);
+      glideStep(time, frame, space);
+      // After gliding, so the spaces are where the player now stands.
+      spaces.frame(frame, xr.getReferenceSpace() ?? space);
+    }
+    draw();
+  }
+  // Set before the session starts (WebGPU's XR manager takes the loop then).
+  renderer.setXrLoop(sessionFrame);
+  await xr.setSession(session);
+  base = xr.getReferenceSpace();
+  place(glider.pose);
   const shown = new Group();
   shown.name = 'xr-inputs';
   scene.add(shown);
-  const inputs = trackInputs(session, shown, () => current, input);
-  xr.setAnimationLoop((_time, frame) => {
-    const space = xr.getReferenceSpace();
-    if (frame !== undefined && space !== null) inputs.frame(frame, space);
-    draw();
-  });
-  const stopSelects = listenForSelects(session, () => xr.getReferenceSpace(), inputs, input);
+  const tracked = trackInputs(session, shown, () => current, input);
+  inputs = tracked;
+  const stopSelects = listenForSelects(session, () => xr.getReferenceSpace(), tracked, input);
   session.addEventListener(
     'end',
     () => {
       stopSelects();
-      inputs.stop();
+      tracked.stop();
+      spaces.stop();
       shown.removeFromParent();
-      xr.setAnimationLoop(null);
+      renderer.setXrLoop(null);
       xr.enabled = false;
       ended();
     },
@@ -146,7 +200,9 @@ export const present = async (
         next.origin.some((value, i) => value !== current.origin[i]) ||
         next.heading !== current.heading;
       current = next;
-      if (moved) place(next);
+      if (!moved) return;
+      glider = startGlider({ origin: next.origin, heading: next.heading });
+      place(glider.pose);
     },
   };
 };

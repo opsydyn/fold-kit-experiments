@@ -18,6 +18,7 @@
  * @module
  */
 import RAPIER from '@dimforge/rapier3d-compat';
+import { interactionBits } from '@opsydyn/effect-three';
 import type {
   Body,
   BodyPose,
@@ -102,6 +103,8 @@ const surface = (colliders: ReadonlyArray<RAPIER.Collider>, body: Body): void =>
     collider.setSensor(body.sensor);
     if (body.mass === null) collider.setDensity(1);
     else collider.setMass(body.mass / colliders.length);
+    collider.setCollisionGroups(interactionBits(body.collisionGroups));
+    collider.setSolverGroups(interactionBits(body.solverGroups));
   }
 };
 
@@ -159,6 +162,17 @@ const jointData = (rapier: Rapier, joint: PhysicsJoint): RAPIER.JointData => {
   }
 };
 
+/** Which body a collider belongs to, and which part of it, by name. */
+type Owner = { readonly key: string; readonly part?: string };
+
+/** Two colliders' owners as an event's `a` and `b`, with their parts. */
+const pair = (a: Owner, b: Owner) => ({
+  a: a.key,
+  b: b.key,
+  ...(a.part === undefined ? {} : { aPart: a.part }),
+  ...(b.part === undefined ? {} : { bPart: b.part }),
+});
+
 type Held = {
   readonly rigidBody: RAPIER.RigidBody;
   readonly colliders: ReadonlyArray<RAPIER.Collider>;
@@ -170,7 +184,8 @@ const createWorld =
     const world = new rapier.World(vector(initial.gravity));
     const events = new rapier.EventQueue(true);
     const bodies = new Map<string, Held>();
-    const keysByCollider = new Map<number, string>();
+    /** Each collider's body, and the part of it the collider is (when named). */
+    const keysByCollider = new Map<number, Owner>();
     const joints = new Map<
       string,
       { readonly joint: RAPIER.ImpulseJoint; readonly a: string; readonly b: string }
@@ -193,7 +208,10 @@ const createWorld =
       surface(made, body);
       reporting(made, body);
       bodies.set(key, { rigidBody, colliders: made });
-      for (const collider of made) keysByCollider.set(collider.handle, key);
+      made.forEach((collider, i) => {
+        const part = colliders[i]?.part;
+        keysByCollider.set(collider.handle, { key, ...(part === undefined ? {} : { part }) });
+      });
     };
 
     const remove: PhysicsWorld['remove'] = (key) => {
@@ -235,7 +253,7 @@ const createWorld =
       events.drainCollisionEvents((first, second, started) => {
         const a = keysByCollider.get(first);
         const b = keysByCollider.get(second);
-        if (a !== undefined && b !== undefined) collisions.push({ a, b, started });
+        if (a !== undefined && b !== undefined) collisions.push({ ...pair(a, b), started });
       });
       return collisions;
     };
@@ -249,8 +267,7 @@ const createWorld =
       const total = event.totalForce();
       const direction = event.maxForceDirection();
       forces.push({
-        a,
-        b,
+        ...pair(a, b),
         totalForce: [total.x, total.y, total.z],
         totalForceMagnitude: event.totalForceMagnitude(),
         maxForceDirection: [direction.x, direction.y, direction.z],

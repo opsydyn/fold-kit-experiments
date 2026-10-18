@@ -329,7 +329,59 @@ export type GroupNode = {
   readonly children: ReadonlyArray<SceneNode>;
   /** A rigid body whose colliders are every mesh inside the group, or `null`. */
   readonly body: Body | null;
+  /**
+   * A tracked space the group follows while a session presents the scene (pmndrs/xr's
+   * `XRSpace`): it sits where the space is each frame, and is hidden while the space is
+   * not tracked (or no session presents). `null` for the group's own transform.
+   */
+  readonly follow: XrSpace | null;
 };
+
+/** The joints of a tracked hand, as WebXR names them (`XRHandJoint`). */
+export const handJoints = [
+  'wrist',
+  'thumb-metacarpal',
+  'thumb-phalanx-proximal',
+  'thumb-phalanx-distal',
+  'thumb-tip',
+  'index-finger-metacarpal',
+  'index-finger-phalanx-proximal',
+  'index-finger-phalanx-intermediate',
+  'index-finger-phalanx-distal',
+  'index-finger-tip',
+  'middle-finger-metacarpal',
+  'middle-finger-phalanx-proximal',
+  'middle-finger-phalanx-intermediate',
+  'middle-finger-phalanx-distal',
+  'middle-finger-tip',
+  'ring-finger-metacarpal',
+  'ring-finger-phalanx-proximal',
+  'ring-finger-phalanx-intermediate',
+  'ring-finger-phalanx-distal',
+  'ring-finger-tip',
+  'pinky-finger-metacarpal',
+  'pinky-finger-phalanx-proximal',
+  'pinky-finger-phalanx-intermediate',
+  'pinky-finger-phalanx-distal',
+  'pinky-finger-tip',
+] as const;
+
+export type HandJoint = (typeof handJoints)[number];
+
+/** Which hand: a tracked hand's, or the controller held in it. */
+export type Handedness = 'left' | 'right';
+
+/**
+ * A space an immersive session tracks: the head, a hand's joint, a controller's grip or
+ * pointing ray, an anchor the scene placed (`xr({ anchors })`), or a detected plane
+ * (`xr({ planes: true })`, ids from `XrPlanes` events).
+ */
+export type XrSpace =
+  | { readonly _tag: 'Head' }
+  | { readonly _tag: 'Joint'; readonly hand: Handedness; readonly joint: HandJoint }
+  | { readonly _tag: 'Controller'; readonly hand: Handedness; readonly space: 'grip' | 'ray' }
+  | { readonly _tag: 'Anchor'; readonly id: string }
+  | { readonly _tag: 'Plane'; readonly id: string };
 
 /** A renderable mesh. `interactive` meshes take part in pointer hit testing. */
 export type MeshNode = {
@@ -381,11 +433,15 @@ export type ColliderShapeDescription =
   | { readonly _tag: 'Cylinder'; readonly halfHeight: number; readonly radius: number }
   | { readonly _tag: 'Cone'; readonly halfHeight: number; readonly radius: number };
 
-/** A collider placed in its body: where its middle is and how it is turned (Euler). */
+/**
+ * A collider placed in its body: where its middle is and how it is turned (Euler), and a
+ * name collisions report it by (`null` for none).
+ */
 export type ColliderDescription = {
   readonly shape: ColliderShapeDescription;
   readonly position: Vec3;
   readonly rotation: Vec3;
+  readonly name: string | null;
 };
 
 /**
@@ -423,6 +479,25 @@ export type Body = {
    * for none. Rapier reports every step a contact pushes that hard, so set it high.
    */
   readonly contactForces: number | null;
+  /**
+   * Which bodies it collides with at all (react-three-rapier's `collisionGroups`); `null`
+   * for every body. Two bodies collide when each is in a group the other's filters name.
+   */
+  readonly collisionGroups: InteractionGroups | null;
+  /**
+   * Which bodies push it back (`solverGroups`): contacts still happen and are reported,
+   * but only these groups exert forces on each other; `null` for every body.
+   */
+  readonly solverGroups: InteractionGroups | null;
+};
+
+/**
+ * Groups for collision filtering, as react-three-rapier's `interactionGroups`: the groups
+ * (0 to 15) a body is in, and those it interacts with (`null` for all of them).
+ */
+export type InteractionGroups = {
+  readonly memberships: ReadonlyArray<number>;
+  readonly filters: ReadonlyArray<number> | null;
 };
 
 /**
@@ -1009,6 +1084,39 @@ export type Xr = {
   readonly hitTest: boolean;
   /** Draw each input source's pointing ray and each tracked hand's joints. */
   readonly showInputs: boolean;
+  /**
+   * Places fixed in the real world, by id, where the description puts them (in the
+   * scene's space): WebXR anchors, which the session keeps in place as it learns the room.
+   * Groups follow them with `follow: anchorSpace(id)`.
+   */
+  readonly anchors: ReadonlyArray<XrAnchor>;
+  /** Detect the room's planes (floors, walls, tables) and report them as `XrPlanes` events. */
+  readonly planes: boolean;
+  /** Keep the scene's HTML overlays shown during an AR session (WebXR's DOM overlay). */
+  readonly domOverlay: boolean;
+  /**
+   * Glide the player with the thumbsticks while presenting, as pmndrs/xr's controller
+   * locomotion does: the left stick moves where the head faces, the right turns. The
+   * player's place is the session's while gliding; when the sticks come back to the
+   * middle an `XrMoved` event says where it ended, for the Model's `origin` and
+   * `heading`. `null` to leave the sticks to the application (`XrStick`, `locomote`).
+   */
+  readonly glide: XrGlide | null;
+};
+
+/** An anchor the description places: its id, and where in the scene (Euler rotation). */
+export type XrAnchor = { readonly id: string; readonly position: Vec3; readonly rotation: Vec3 };
+
+/** How the sticks glide the player (pmndrs/xr's defaults: 2 m/s, a 45° snap turn). */
+export type XrGlide = {
+  /** Metres per second at full stick. */
+  readonly speed: number;
+  /** `smooth` turns while the stick is pushed; `snap` turns once per push. */
+  readonly turn: 'smooth' | 'snap';
+  /** Radians per second at full stick, for a smooth turn. */
+  readonly turnSpeed: number;
+  /** Degrees per push, for a snap turn. */
+  readonly snapDegrees: number;
 };
 
 export type SceneDescription = {

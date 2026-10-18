@@ -45,7 +45,7 @@ export const examples = [
     category: 'Physics',
     title: 'Throw the toys around',
     description:
-      'Crates and balls tumble into a tray under Rapier, a chain swings on joints, and marbles pour in with a body each. Click to kick; in VR, turn and step with the thumbsticks. Bodies are data; the simulation owns where they are.',
+      'Crates and balls tumble into a tray under Rapier, a chain swings on joints, and marbles pour in with a body each. Click to kick; in VR, glide and turn with the thumbsticks. Bodies are data; the simulation owns where they are.',
     alt: 'Toybox: coloured crates and balls scattered in a pale tray, casting soft contact shadows.',
   },
   {

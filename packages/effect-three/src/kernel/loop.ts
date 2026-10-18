@@ -1,6 +1,5 @@
 import { Box3, EquirectangularReflectionMapping, type Texture, UVMapping } from 'three';
 
-import { createContactShadows } from './contactShadows.ts';
 import type { RenderSettings } from './description.ts';
 import { type OverlayPlacement, placeOverlays } from './overlays.ts';
 import { createPerformanceMonitor, type PerformanceOptions } from './performance.ts';
@@ -17,6 +16,7 @@ import {
   type SceneEvent,
 } from './pointer.ts';
 import type { RenderTarget, SceneRenderer } from './renderer.ts';
+import type { ContactShadowPasses } from './renderKit.ts';
 import type { SceneGraph } from './sceneGraph.ts';
 import { createXrTracker, type XrInput } from './xrInput.ts';
 
@@ -58,6 +58,8 @@ export type SceneLoop = {
 };
 
 /** Creates the frame step and pointer router for one scene. */
+const noContactShadows: ContactShadowPasses = { draw: () => undefined, dispose: () => undefined };
+
 export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
   const { graph, renderer, elapsedSeconds, emit } = options;
   const picker = createPicker(graph);
@@ -117,7 +119,8 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       for (const id of targets.keys()) if (!live.has(id)) release(id);
     }
   };
-  const contact = createContactShadows(graph, renderer);
+  // Contact shadows are shaded: the render kit draws them, or nothing does.
+  const contact = graph.kit?.contactShadows(graph, renderer) ?? noContactShadows;
   // The room environment, made by the renderer while a scene asks for it.
   let room: RenderTarget | undefined;
 

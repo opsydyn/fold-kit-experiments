@@ -15,12 +15,16 @@ import {
   aimStraight,
   describeEvent,
   FloorEnvironment,
+  glideFromAddress,
   headOf,
   inputsShown,
   keyOf,
   modeOf,
+  framesDrawn,
+  followedIn,
   rendererFinder,
   shimOffsetSpaces,
+  spacesFromAddress,
 } from './xrProbe.ts';
 
 shimOffsetSpaces();
@@ -28,14 +32,25 @@ const device = new XRDevice(metaQuest3);
 device.installRuntime({ forceInstall: true });
 device.installSEM(FloorEnvironment);
 
+// WebGL only: under IWER the emulated layer has no framebuffer object, which three's
+// WebGPURenderer (on its WebGL 2 backend) cannot render into, so WebGPU XR is untested.
 const environment = EffectThreeFoldkit.makeEnvironment(window);
 const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
+const spaces = spacesFromAddress(location.search);
 const described = scene({
-  xr: xr({ origin: [2, 0, 0], heading: -Math.PI / 2, hitTest: true }),
+  xr: xr({
+    origin: [2, 0, 0],
+    heading: -Math.PI / 2,
+    hitTest: true,
+    glide: glideFromAddress(location.search),
+    anchors: spaces.anchors,
+    planes: spaces.planes,
+  }),
   children: [
+    ...spaces.children,
     mesh({
       key: 'cube',
       position: [4, 1.5, 0],
@@ -62,6 +77,8 @@ const watched = [
   'scene-xr-button',
   'scene-xr-surface',
   'scene-pointer-missed',
+  'scene-xr-moved',
+  'scene-xr-planes',
   'scene-click',
 ];
 const events: Array<string> = [];
@@ -84,7 +101,7 @@ Reflect.set(globalThis, '__xr', {
   exit: () => Effect.runPromise(environment.xr.exit),
   sessions: () => sessions,
   presenting: () => renderer()?.xr.isPresenting === true,
-  frames: () => renderer()?.info.render.frame ?? 0,
+  frames: () => framesDrawn(renderer()),
   /** Moves the emulated headset, in its own reference space. */
   moveHead: (x: number, y: number, z: number) => {
     device.position.x = x;
@@ -102,6 +119,8 @@ Reflect.set(globalThis, '__xr', {
   aimLeft: (y: number) => aimStraight(device.controllers.left, y),
   /** Points the right controller straight down from `y`. */
   aimDown: (y: number) => aimDown(device.controllers.right, y),
+  /** Pushes the left thumbstick to `(x, y)`. */
+  leftStick: (x: number, y: number) => device.controllers.left?.updateAxes('thumbstick', x, y),
   /** Pushes the right thumbstick to `(x, y)`. */
   stick: (x: number, y: number) => device.controllers.right?.updateAxes('thumbstick', x, y),
   /** Grips (1) or lets go (0) with the right controller. */
@@ -118,4 +137,5 @@ Reflect.set(globalThis, '__xr', {
   },
   drags: () => drags,
   inputs: () => inputsShown(Reflect.get(globalThis, '__observedScenes') ?? []),
+  followed: () => followedIn(Reflect.get(globalThis, '__observedScenes') ?? []),
 });

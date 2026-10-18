@@ -98,6 +98,69 @@ Drei-style helpers, XR and physics come after R1–R4.
 | XR            | `advance(timestamp, …, frame: XRFrame)` in `core/loop.ts`; `@react-three/xr`              | ✅     | Sessions as Commands ([ADR-008](adr/008-immersive-sessions.md)): `scene({ xr: xr({ origin, heading, referenceSpace }) })` opts in; the Foldkit environment's `xr.enter(mode)` presents it with the session driving frames (React Three Fiber's `setAnimationLoop` hand-off) and the player at the origin through an offset reference space; controller selects are pointer events along their rays. Tested with a real session under Meta's IWER. Hover and drag along every source's ray (pinches included), sticks and buttons as `XrStick`/`XrButton` with `locomote` (snap turn, step) and `teleport`, AR passthrough with `xr({ hitTest: true })` reporting `XrSurface` on select, and rays and hand joints drawn; tested under IWER with a synthetic floor. Still to come: anchors, planes, DOM overlay, joint poses as data.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Physics       | `@react-three/rapier`                                                                     | ✅     | Bodies as data ([ADR-007](adr/007-physics-as-a-pose-source.md)): `mesh({ body: body({ type, collider, mass, … impulse }) })` under `scene({ physics: physics() })`, react-three-rapier's defaults. The kernel steps an engine-neutral world on scene time (fixed steps, interpolation, auto colliders) and reports `Collision` events; `@opsydyn/effect-three-rapier` implements it with Rapier. Bodies on groups and borrowed models (a collider per mesh inside), a body per instance (`InstancedRigidBodies`, collisions naming the instance), and joints as data (`physics({ joints })`: fixed, spherical, revolute with limits, prismatic, rope, spring; `contacts` off for chains). Colliders of a body's own (cuboid, ball, capsule, cylinder, cone), joint motors (`velocityMotor`, `positionMotor`), `ContactForce` events over a body's threshold, and `physics({ debug: true })` drawing Rapier's lines.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
+## After R5: candidates (2026-10-18)
+
+The parity roadmap is complete. Three directions are open; they are not exclusive, and
+the first two differ a lot in size.
+
+### A. Publish the packages (S–M)
+
+Everything above is usable only inside this monorepo: `@opsydyn/effect-three`,
+`-foldkit`, `-rapier` and `-troika` are private at `0.0.0`. The repository already
+releases `astro-foldkit` and `foldkit-viz` with release-please and
+`npm publish --provenance`, so the path exists:
+
+- set a first version (`0.1.0`), drop `private`, add `publishConfig.access: public`;
+- give published manifests literal versions, as `tools/check-catalog.ts` requires
+  (`npm publish` cannot resolve `catalog:`);
+- add `pack:check` (publint, attw) for Rapier and troika, as the core and adapter have;
+- add the four packages to release-please and the publish workflows;
+- state what 0.x promises: the API reports in `etc/` are the surface, and breaking
+  changes bump the minor version.
+
+Publishing is outward-facing and hard to take back (npm allows unpublishing for 72
+hours), so it needs an explicit go-ahead and the `NPM_TOKEN` secret.
+
+### B. A WebGPU renderer (L) ✅
+
+Done ([ADR-010](adr/010-webgpu-renderer.md)): `webgpuRendererFactory` and `webgpuKit`, on real WebGPU or `WebGPURenderer`'s WebGL 2 backend; labels are not drawn under it. The notes below are as planned.
+
+`PLAN.md` designed the renderer boundary for WebGPU but nothing uses it yet. three 0.186
+ships `WebGPURenderer` (`three/webgpu`, sharing `three.core.js` with `three`, so no
+duplicate core) with its own XR manager. What stands in the way:
+
+- **GLSL in the kernel.** The sky (`three/addons/objects/Sky.js`), the shader grid and
+  contact shadows (`ShaderMaterial`, `onBeforeCompile`) are written for WebGL, though
+  ADR-003 keeps the kernel renderer-neutral. They would move behind the renderer: the
+  renderer supplies them, as it already supplies `createEnvironment`. three has TSL
+  equivalents for some (`objects/SkyMesh.js`, `tsl/display/GaussianBlurNode.js`).
+- **Post-processing.** `EffectComposer` and its passes are WebGL-only; WebGPU uses
+  `PostProcessing` with TSL nodes (`BloomNode`, `FilmNode`; a vignette would be written).
+- **Labels.** troika derives WebGL shaders with `onBeforeCompile`; there is no WebGPU
+  path, so labels would be unavailable under WebGPU at first.
+- **Async start.** `WebGPURenderer.init()` is async; the renderer factory would return
+  an Effect, as `PLAN.md` foresaw.
+
+Worth doing for compute and TSL materials, not for reach: WebGL2 runs everywhere effect-three
+targets today.
+
+### C. Smaller follow-ups (S each)
+
+- ✅ Move the kernel's GLSL behind the renderer (B's first step, and ADR-003's rule): the
+  sky, shader grid and contact shadows are `webglKit` in `@opsydyn/effect-three/webgl`.
+- ✅ Smooth locomotion without a Message per frame: `xr({ glide })` glides the player with
+  the sticks in the session and reports `XrMoved` when they let go.
+- ✅ XR anchors, planes and DOM overlay; joint poses as data: `group({ follow })` rides
+  a tracked space (head, hand joint, controller, anchor, plane), `xr({ anchors, planes,
+domOverlay })`, and `XrPlanes` events ([ADR-008](adr/008-immersive-sessions.md)).
+- ✅ Collision groups and per-collider events in physics: `body({ collisionGroups,
+solverGroups })` with `interactionGroups`, and collisions naming each body's part.
+
+### Recommendation
+
+A first: it makes R1–R5 usable outside the monorepo, and it is the smallest. Then C's
+first item, which tidies the layering and starts B without committing to it.
+
 ## Not planned
 
 - An open catalogue with arbitrary props (`extend`, `attach`, `position-x`). Borrowed

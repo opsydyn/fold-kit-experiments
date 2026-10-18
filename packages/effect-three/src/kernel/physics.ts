@@ -27,6 +27,7 @@ import type {
   BodyCollider,
   ColliderDescription,
   ColliderShapeDescription,
+  InteractionGroups,
   JointKind,
   Physics,
   Vec3,
@@ -54,13 +55,22 @@ export type Collider = {
   readonly shape: ColliderShape;
   readonly translation: Vec3;
   readonly rotation: Quat;
+  /** The part of its body it is, for collisions to name: a mesh's or collider's name. */
+  readonly part?: string;
 };
 
 /**
  * Two bodies began (`started`) or stopped touching, by the ids they were added with: a
  * node's key, or for an instance the node's and instance's keys joined by a NUL.
  */
-export type Collision = { readonly a: string; readonly b: string; readonly started: boolean };
+export type Collision = {
+  readonly a: string;
+  readonly b: string;
+  /** The colliders' parts, when they have names. */
+  readonly aPart?: string;
+  readonly bPart?: string;
+  readonly started: boolean;
+};
 
 /** A joint as an engine makes it: a fixed joint's frames as quaternions. */
 export type PhysicsJoint = {
@@ -73,12 +83,26 @@ export type PhysicsJoint = {
 };
 
 /**
+ * Groups as Rapier packs them (react-three-rapier's `interactionGroups`): memberships in
+ * the high 16 bits, filters in the low 16 (all when `null`). `null` groups are all-all.
+ */
+export const interactionBits = (groups: InteractionGroups | null): number => {
+  const mask = (list: ReadonlyArray<number>): number =>
+    list.reduce((bits, group) => bits | (1 << group), 0);
+  if (groups === null) return 0xffff_ffff;
+  const filters = groups.filters === null ? 0xffff : mask(groups.filters);
+  return ((mask(groups.memberships) << 16) | filters) >>> 0;
+};
+
+/**
  * Two bodies pushing on each other harder than a body's `contactForces` threshold in one
  * step, by the ids they were added with: Rapier's contact force event.
  */
 export type ContactForce = {
   readonly a: string;
   readonly b: string;
+  readonly aPart?: string;
+  readonly bPart?: string;
   readonly totalForce: Vec3;
   readonly totalForceMagnitude: number;
   readonly maxForceDirection: Vec3;
@@ -261,6 +285,7 @@ function describedCollider(collider: ColliderDescription, scale: Vector3): Colli
     shape: scaledShape(collider.shape, scale),
     translation: [x * scale.x, y * scale.y, z * scale.z],
     rotation: [turn3.x, turn3.y, turn3.z, turn3.w],
+    ...(collider.name === null ? {} : { part: collider.name }),
   };
 }
 
@@ -276,12 +301,18 @@ const worldTurn = new Quaternion();
 const isMesh = (object: Object3D): object is Mesh => 'isMesh' in object && object.isMesh === true;
 
 /** A mesh's collider in the body whose inverse world matrix is `bodyInverse`. */
-function placedCollider(child: Mesh, collider: BodyCollider): Collider {
+function placedCollider(child: Mesh, collider: BodyCollider, body: Object3D): Collider {
   child.matrixWorld.decompose(worldPosition, worldTurn, worldScale);
   relative.copy(child.matrixWorld).premultiply(bodyInverse).decompose(where, turn, relativeScale);
   const { shape, offset } = shapeFor(child.geometry, collider, worldScale);
   where.add(offset.applyQuaternion(turn));
-  return { shape, translation: toVec3(where), rotation: [turn.x, turn.y, turn.z, turn.w] };
+  return {
+    shape,
+    translation: toVec3(where),
+    rotation: [turn.x, turn.y, turn.z, turn.w],
+    // A mesh inside a group or model is a part of it; the body's own mesh is the body.
+    ...(child === body || child.name === '' ? {} : { part: child.name }),
+  };
 }
 
 /**
@@ -316,7 +347,7 @@ function visibleMeshes(body: Object3D): ReadonlyArray<Mesh> {
 export const collidersFor = (body: Object3D, collider: BodyCollider): ReadonlyArray<Collider> => {
   body.updateWorldMatrix(true, true);
   bodyInverse.copy(body.matrixWorld).invert();
-  return visibleMeshes(body).map((child) => placedCollider(child, collider));
+  return visibleMeshes(body).map((child) => placedCollider(child, collider, body));
 };
 
 /**

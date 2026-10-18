@@ -5,6 +5,7 @@
 ```ts
 
 import { Behaviour } from '@opsydyn/effect-three';
+import type { BodyPose } from '@opsydyn/effect-three';
 import { CustomElement } from 'foldkit';
 import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
@@ -31,6 +32,7 @@ import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
 import type { Xr } from '@opsydyn/effect-three';
 import type { XrInput } from '@opsydyn/effect-three';
+import type { XrSpace } from '@opsydyn/effect-three';
 import { YieldableError } from 'effect/Cause';
 
 // @public
@@ -90,6 +92,8 @@ export const domEventName: {
     readonly XrStick: 'scene-xr-stick';
     readonly XrButton: 'scene-xr-button';
     readonly XrSurface: 'scene-xr-surface';
+    readonly XrMoved: 'scene-xr-moved';
+    readonly XrPlanes: 'scene-xr-planes';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -159,10 +163,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
+    readonly _tag: "StartedScene";
+} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
-} | {
-    readonly _tag: "StartedScene";
 }>;
 
 // @public
@@ -388,6 +392,19 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly framebufferScale: Schema.Finite;
             readonly hitTest: Schema.Boolean;
             readonly showInputs: Schema.Boolean;
+            readonly anchors: Schema.$Array<Schema.Struct<{
+                readonly id: Schema.String;
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>>;
+            readonly planes: Schema.Boolean;
+            readonly domOverlay: Schema.Boolean;
+            readonly glide: Schema.NullOr<Schema.Struct<{
+                readonly speed: Schema.Finite;
+                readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
+                readonly turnSpeed: Schema.Finite;
+                readonly snapDegrees: Schema.Finite;
+            }>>;
         }>>;
         readonly measure: Schema.$Array<Schema.String>;
         readonly render: Schema.Struct<{
@@ -732,15 +749,19 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-collision': Schema.Struct<{
         readonly a: Schema.String;
         readonly aInstance: Schema.optionalKey<Schema.String>;
+        readonly aPart: Schema.optionalKey<Schema.String>;
         readonly b: Schema.String;
         readonly bInstance: Schema.optionalKey<Schema.String>;
+        readonly bPart: Schema.optionalKey<Schema.String>;
         readonly started: Schema.Boolean;
     }>;
     'scene-contact-force': Schema.Struct<{
         readonly a: Schema.String;
         readonly aInstance: Schema.optionalKey<Schema.String>;
+        readonly aPart: Schema.optionalKey<Schema.String>;
         readonly b: Schema.String;
         readonly bInstance: Schema.optionalKey<Schema.String>;
+        readonly bPart: Schema.optionalKey<Schema.String>;
         readonly totalForce: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly totalForceMagnitude: Schema.Finite;
         readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -767,6 +788,20 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
+    'scene-xr-moved': Schema.Struct<{
+        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly heading: Schema.Finite;
+    }>;
+    'scene-xr-planes': Schema.Struct<{
+        readonly planes: Schema.$Array<Schema.Struct<{
+            readonly id: Schema.String;
+            readonly orientation: Schema.Literals<readonly ["horizontal", "vertical"]>;
+            readonly label: Schema.String;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly polygon: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+        }>>;
     }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
@@ -936,6 +971,8 @@ export type ViewConfig<Message> = {
     readonly onXRStick?: (detail: XrStickDetail) => Message;
     readonly onXRButton?: (detail: XrButtonDetail) => Message;
     readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
+    readonly onXRMoved?: (detail: XrMovedDetail) => Message;
+    readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
@@ -952,6 +989,16 @@ export type WebGLOptions = Omit<WebGLRendererParameters, 'canvas'>;
 export const webglRendererFactory: (canvas: HTMLCanvasElement, options?: WebGLOptions) => RendererFactory;
 
 // @public
+export type WebGPUOptions = {
+    readonly forceWebGL?: boolean;
+    readonly alpha?: boolean;
+    readonly antialias?: boolean;
+};
+
+// @public
+export const webgpuRendererFactory: (canvas: HTMLCanvasElement, options?: WebGPUOptions) => RendererFactory;
+
+// @public
 export type WheelDetail = typeof SceneSchema.WheelDetail.Type;
 
 // @public
@@ -964,6 +1011,12 @@ export type XrControls = ReturnType<typeof makeXr>;
 
 // @public
 export type XrMode = 'immersive-vr' | 'immersive-ar';
+
+// @public
+export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
+
+// @public
+export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
 
 // @public
 export const XrSessionDetail: Schema.Struct<{

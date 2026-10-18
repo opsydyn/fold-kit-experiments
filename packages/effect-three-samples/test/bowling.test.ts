@@ -11,7 +11,8 @@ const { sceneFor, sheet } = await import('../src/bowling/scene');
 
 type Model = ReturnType<typeof init>['model'];
 const step = (model: Model, message: typeof Message.Type): Model => update(model, message).model;
-const start = init().model;
+// A game starts once its first rack has rested.
+const start = update(init().model, Message.RackRested({ shot: 0 })).model;
 
 const head = (model: Model, id: string, started: boolean) =>
   Message.Collided({

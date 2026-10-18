@@ -43,7 +43,7 @@ import {
 import { paintColour } from '../palette';
 import { type Block, type Model, pinIds } from './model';
 import { frames, marks, score } from './score';
-import { ballKey, pinKey } from './update';
+import { ballKey, pinKey, readyBallKey } from './update';
 
 /** The lane: its top at y = 0, the foul line at z = 6, the head pin at z = −5. */
 const lane = { width: 1.06, near: 6.2, far: -6.2 } as const;
@@ -220,12 +220,36 @@ const pin = (model: Model, id: string, at: Vec3): SceneNode =>
 
 /** The pins drawn: those standing, or while a roll is in play, all that stood when it began. */
 const pinsShown = (model: Model): ReadonlyArray<SceneNode> => {
-  const shown = model.phase === 'aiming' || model.phase === 'over' ? model.standing : model.before;
+  const inPlay = model.phase === 'rolling' || model.phase === 'settling';
+  const shown = inPlay ? model.before : model.standing;
   return spots.filter(({ id }) => shown.includes(id)).map(({ id, at }) => pin(model, id, at));
 };
 
-/** The ball, at the foul line where the Model aims it; a roll is an impulse along its line. */
+const ballGeometry = sphere({ radius: ballRadius, widthSegments: 32, heightSegments: 20 });
+const ballMaterial = physical({
+  color: paintColour.blue,
+  roughness: 0.15,
+  metalness: 0.1,
+  clearcoat: 1,
+  clearcoatRoughness: 0.05,
+});
+
+/**
+ * The ball at the foul line where the Model aims it. Waiting, it is only something to
+ * look at; rolled, it is a fresh body made with its impulse, so the roll starts from the
+ * same state however long the player took to aim (ADR-011).
+ */
 const ball = (model: Model): SceneNode => {
+  const position: Vec3 = [model.aim, ballRadius + 0.002, lane.near - 0.5];
+  if (model.phase !== 'rolling' && model.phase !== 'settling') {
+    return mesh({
+      key: readyBallKey(model),
+      position,
+      geometry: ballGeometry,
+      material: ballMaterial,
+      castShadow: true,
+    });
+  }
   const radians = (model.angle * Math.PI) / 180;
   const impulse: Vec3 = [
     Math.sin(radians) * model.speed * ballMass,
@@ -234,15 +258,9 @@ const ball = (model: Model): SceneNode => {
   ];
   return mesh({
     key: ballKey(model),
-    position: [model.aim, ballRadius + 0.002, lane.near - 0.5],
-    geometry: sphere({ radius: ballRadius, widthSegments: 32, heightSegments: 20 }),
-    material: physical({
-      color: paintColour.blue,
-      roughness: 0.15,
-      metalness: 0.1,
-      clearcoat: 1,
-      clearcoatRoughness: 0.05,
-    }),
+    position,
+    geometry: ballGeometry,
+    material: ballMaterial,
     castShadow: true,
     body: body({
       collider: 'ball',
@@ -251,7 +269,7 @@ const ball = (model: Model): SceneNode => {
       restitution: 0.05,
       ccd: true,
       contactForces: 120,
-      impulse: model.phase === 'aiming' ? null : { id: model.shot, impulse },
+      impulse: { id: model.shot, impulse },
     }),
   });
 };

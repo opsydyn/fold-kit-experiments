@@ -35,7 +35,10 @@ export async function serveApp(distName: string, pages: ReadonlyArray<string>): 
 
 /**
  * Chromium with software WebGL and WebGPU (SwiftShader both), so rendering is the same on
- * every machine. WebGPU needs a secure context: the served pages are on localhost.
+ * every machine. WebGPU needs a secure context: the served pages are on localhost. On
+ * Linux, Dawn reaches SwiftShader through Vulkan, which Chromium leaves off unless asked;
+ * without it the adapter is found but its instance drops on the first frame
+ * ("Instance dropped in popErrorScope") and nothing is drawn. Other systems ignore it.
  */
 export function launchBrowser() {
   return chromium.launch({
@@ -44,6 +47,8 @@ export function launchBrowser() {
       '--enable-unsafe-swiftshader',
       '--enable-unsafe-webgpu',
       '--use-webgpu-adapter=swiftshader',
+      '--enable-features=Vulkan',
+      '--use-vulkan=swiftshader',
     ],
   });
 }

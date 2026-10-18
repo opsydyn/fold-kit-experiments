@@ -27,9 +27,10 @@ The effect-three packages (core, Foldkit adapter, Rapier, troika) run a **strict
 ## Dev commands
 
 Package consumer guidance lives in independent skills:
-`skills/astro-foldkit/SKILL.md` and `skills/foldkit-viz/SKILL.md`.
-Read the one relevant to the task; neither requires the other or an upstream
-checkout. Use both only for tasks that combine Astro integration and Viz.
+`skills/astro-foldkit/SKILL.md`, `skills/foldkit-viz/SKILL.md` and
+`skills/effect-three/SKILL.md` (3D scenes: core, FoldKit adapter, Rapier, troika).
+Read the one relevant to the task; none requires another or an upstream checkout.
+Combine them only for tasks that span those packages.
 
 ```sh
 bun dev                               # demo app → localhost:4321

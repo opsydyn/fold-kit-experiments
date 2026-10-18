@@ -1,0 +1,21 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/bowling/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/bowling/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/bowling/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/bowling/update.ts?raw';
+import scoreSource from '@opsydyn/effect-three-samples/src/bowling/score.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/bowling/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/bowling/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'score.ts', content: scoreSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="Bowling — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">PHYSICS AND LABELS</p><h1>Ten frames, all data.</h1><p>Set where the ball starts, its line and its speed, then roll. Rapier simulates the ball and pins; sensors tell the Model what happened. Each pin's spot is a sensor collider named for it, so a pin's head leaving its spot says that pin is down, and a sensor in the pit says the ball has gone through. A Command waits for the pins to settle, the Model counts them, and ten-pin scoring is a pure function of the rolls. The scoreboard is a troika label coloured by colour ranges, its panel sized from its measured layout.</p></section>
+  <Sample client:load noMeta assetBase={sitePath('/models/')} />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>What happened, as Messages.</h2><p>The Model never reads where a pin is. It hears which spots were left and when the ball reached the pit, and keeps score from that, so the whole game replays from its Messages.</p><a class="text-link" href={samplesSource + '/bowling'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

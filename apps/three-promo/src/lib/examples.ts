@@ -65,6 +65,14 @@ export const examples = [
     alt: 'Type gallery: a dark curved wall with a gold-and-white title and spotlit plaques of text, one showing coloured code.',
   },
   {
+    id: 'bowling',
+    category: 'Physics and labels',
+    title: 'Ten frames, all data',
+    description:
+      'Aim, set the line and roll. Named sensors at each pin’s head say which pins went down, a pit sensor says the ball went through, and a troika scoreboard keeps ten-pin score.',
+    alt: 'Bowling: a blue ball rolling down a polished wooden lane towards ten white pins, under a dark scoreboard.',
+  },
+  {
     id: 'workshop',
     category: 'Assets',
     title: 'Load it, play it, let it go',

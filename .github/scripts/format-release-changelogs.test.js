@@ -14,6 +14,18 @@ const { repository, raw, formatted } = {
 };
 const head = 'a'.repeat(40);
 const paths = ['packages/astro-foldkit/CHANGELOG.md', 'packages/foldkit-viz/CHANGELOG.md'];
+// The four effect-three packages, released together, whose first changelogs are added.
+const linked = [
+  'effect-three',
+  'effect-three-foldkit',
+  'effect-three-rapier',
+  'effect-three-troika',
+];
+const firstRelease = [
+  ...['astro-foldkit', 'foldkit-viz', ...linked].map((name) => `packages/${name}/package.json`),
+  ...paths,
+  ...linked.map((name) => `packages/${name}/CHANGELOG.md`),
+];
 const directories = [];
 
 afterEach(async () => {
@@ -71,6 +83,32 @@ async function run(scenario = 'raw', output = null) {
     isTruncated: false,
   };
   const entry = { name: 'CHANGELOG.md', mode: 0o100644, type: 'blob' };
+  const modified = [
+    '.release-please-manifest.json',
+    ...paths,
+    'packages/astro-foldkit/package.json',
+    'packages/foldkit-viz/package.json',
+  ];
+  const changed =
+    scenario === 'first-release'
+      ? ['.release-please-manifest.json', ...firstRelease]
+      : scenario === 'no-changelog'
+        ? ['.release-please-manifest.json', 'packages/astro-foldkit/package.json']
+        : modified;
+  const files = changed.map((filename) => ({
+    filename,
+    status: linked.some((name) => filename === `packages/${name}/CHANGELOG.md`)
+      ? 'added'
+      : 'modified',
+  }));
+  // The changelogs the PR brings, in the script's package order, as numbered aliases.
+  const order = ['astro-foldkit', 'foldkit-viz', ...linked];
+  const changelogs = order.filter((name) => changed.includes(`packages/${name}/CHANGELOG.md`));
+  const repositorySnapshot = { nameWithOwner: repository };
+  changelogs.forEach((_, i) => {
+    repositorySnapshot[`p${i}`] = { __typename: 'Tree', entries: [structuredClone(entry)] };
+    repositorySnapshot[`p${i}File`] = structuredClone(blob);
+  });
   const state = {
     scenario,
     calls: [],
@@ -82,28 +120,13 @@ async function run(scenario = 'raw', output = null) {
       number: 23,
       state: 'open',
       merged_at: null,
-      changed_files: 5,
+      changed_files: files.length,
       head: { ref: 'release-please--branches--main', sha: head, repo: { full_name: repository } },
       base: { ref: 'main', repo: { full_name: repository } },
       labels: [{ name: 'autorelease: pending' }],
     },
-    files: [
-      '.release-please-manifest.json',
-      ...paths,
-      'packages/astro-foldkit/package.json',
-      'packages/foldkit-viz/package.json',
-    ].map((filename) => ({ filename, status: 'modified' })),
-    snapshot: {
-      data: {
-        repository: {
-          nameWithOwner: repository,
-          astro: { __typename: 'Tree', entries: [structuredClone(entry)] },
-          viz: { __typename: 'Tree', entries: [structuredClone(entry)] },
-          astroFile: structuredClone(blob),
-          vizFile: structuredClone(blob),
-        },
-      },
-    },
+    files,
+    snapshot: { data: { repository: repositorySnapshot } },
   };
   if (scenario === 'fork') state.pr.head.repo.full_name = 'someone/fork';
   if (scenario === 'wrong-branch') state.pr.head.ref = 'main';
@@ -113,14 +136,18 @@ async function run(scenario = 'raw', output = null) {
   if (scenario === 'unexpected-file') state.files[0].filename = '.github/workflows/ci.yml';
   if (scenario === 'renamed-file') state.files[0].status = 'renamed';
   if (scenario === 'incomplete-files') state.pr.changed_files = 6;
-  if (scenario === 'symlink') state.snapshot.data.repository.astro.entries[0].mode = 0o120000;
-  if (scenario === 'binary') state.snapshot.data.repository.astroFile.isBinary = true;
-  if (scenario === 'truncated') state.snapshot.data.repository.astroFile.isTruncated = true;
-  if (scenario === 'oversized') state.snapshot.data.repository.astroFile.byteSize = 1048577;
-  if (scenario === 'missing-blob') state.snapshot.data.repository.astroFile = null;
+  if (scenario === 'added-manifest') state.files[3].status = 'added';
+  if (scenario === 'other-changelog')
+    state.files[1].filename = 'packages/dataset-explorer/CHANGELOG.md';
+  if (scenario === 'too-many-files') state.pr.changed_files = 14;
+  if (scenario === 'symlink') state.snapshot.data.repository.p0.entries[0].mode = 0o120000;
+  if (scenario === 'binary') state.snapshot.data.repository.p0File.isBinary = true;
+  if (scenario === 'truncated') state.snapshot.data.repository.p0File.isTruncated = true;
+  if (scenario === 'oversized') state.snapshot.data.repository.p0File.byteSize = 1048577;
+  if (scenario === 'missing-blob') state.snapshot.data.repository.p0File = null;
   if (scenario === 'partial-query-error') state.snapshot.errors = [{ message: 'Partial response' }];
   if (scenario === 'one-file')
-    state.snapshot.data.repository.vizFile = {
+    state.snapshot.data.repository.p1File = {
       ...blob,
       text: formatted,
       byteSize: Buffer.byteLength(formatted),
@@ -181,10 +208,34 @@ test('normalizes generated changelogs in one head-pinned commit without changing
     ),
   ).toEqual([formatted, formatted]);
   expect(commit.fileChanges.deletions).toBeUndefined();
-  expect(result.state.requests[0].variables.astroFile).toBe(
+  expect(result.state.requests[0].variables.p0File).toBe(
     `${head}:packages/astro-foldkit/CHANGELOG.md`,
   );
+  expect(result.state.requests[0].variables.p1File).toBe(
+    `${head}:packages/foldkit-viz/CHANGELOG.md`,
+  );
   expect(result.state.calls.every((args) => args.includes('github.com'))).toBe(true);
+});
+
+test('a first release of the linked packages normalizes the changelogs it adds', async () => {
+  const result = await run('first-release');
+  expect(result.code).toBe(0);
+  const paths = result.state.commits[0].fileChanges.additions.map((file) => file.path);
+  expect(paths).toEqual([
+    'packages/astro-foldkit/CHANGELOG.md',
+    'packages/foldkit-viz/CHANGELOG.md',
+    ...linked.map((name) => `packages/${name}/CHANGELOG.md`),
+  ]);
+  expect(result.state.requests[0].variables.p5File).toBe(
+    `${head}:packages/effect-three-troika/CHANGELOG.md`,
+  );
+});
+
+test('a release PR without a changelog reads nothing and writes nothing', async () => {
+  const result = await run('no-changelog');
+  expect(result.code).toBe(0);
+  expect(result.state.requests).toEqual([]);
+  expect(result.state.mutations).toEqual([]);
 });
 
 test('already normalized changelogs cause no commit', async () => {
@@ -216,6 +267,9 @@ test.each([
   'unexpected-file',
   'renamed-file',
   'incomplete-files',
+  'added-manifest',
+  'other-changelog',
+  'too-many-files',
   'symlink',
   'binary',
   'truncated',

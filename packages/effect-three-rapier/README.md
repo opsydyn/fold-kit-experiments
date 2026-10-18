@@ -5,6 +5,13 @@ models and instances (with colliders from their geometry or their own), and join
 motors) in `physics({ joints })`; this package is the engine that simulates them, reports
 collisions and contact forces, and draws its debug lines ([ADR-007](../../docs/effect-three/adr/007-physics-as-a-pose-source.md)).
 
+```sh
+npm install @opsydyn/effect-three-rapier @opsydyn/effect-three three
+```
+
+Released with the core at one version: see its [Stability](../effect-three/README.md#stability)
+and [Limits](../effect-three/README.md#limits).
+
 ```ts
 import { body, box, mesh, physics, scene, standard } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';

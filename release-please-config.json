@@ -10,6 +10,63 @@
     "packages/foldkit-viz": {
       "package-name": "@opsydyn/foldkit-viz",
       "changelog-path": "CHANGELOG.md"
+    },
+    "packages/effect-three": {
+      "package-name": "@opsydyn/effect-three",
+      "component": "effect-three",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true
+    },
+    "packages/effect-three-foldkit": {
+      "package-name": "@opsydyn/effect-three-foldkit",
+      "component": "effect-three-foldkit",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.peerDependencies['@opsydyn/effect-three']"
+        }
+      ]
+    },
+    "packages/effect-three-rapier": {
+      "package-name": "@opsydyn/effect-three-rapier",
+      "component": "effect-three-rapier",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.peerDependencies['@opsydyn/effect-three']"
+        }
+      ]
+    },
+    "packages/effect-three-troika": {
+      "package-name": "@opsydyn/effect-three-troika",
+      "component": "effect-three-troika",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.peerDependencies['@opsydyn/effect-three']"
+        }
+      ]
     }
-  }
+  },
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "effect-three",
+      "components": [
+        "effect-three",
+        "effect-three-foldkit",
+        "effect-three-rapier",
+        "effect-three-troika"
+      ]
+    }
+  ]
 }

@@ -4,7 +4,11 @@ Declarative Three.js scenes with Effect owning every lifetime: GPU resources, re
 
 The core is independent of any UI framework and of the DOM. For Foldkit, use [`@opsydyn/effect-three-foldkit`](../effect-three-foldkit/README.md).
 
-> Status: private, pre-release (`0.0.0`). The API is documented in [`etc/effect-three.api.md`](etc/effect-three.api.md).
+> Status: `0.x` (see [Stability](#stability)). The API is documented in [`etc/effect-three.api.md`](etc/effect-three.api.md).
+
+```sh
+npm install @opsydyn/effect-three effect three
+```
 
 ## Describe a scene
 
@@ -142,6 +146,23 @@ Everything needed for deterministic headless tests ships with the package:
 - Effect's `TestClock`: scene time comes from the `Clock` service's monotonic reading.
 - **Renderers:** `webglRendererFactory` (the default) or `webgpuRendererFactory` (three's `WebGPURenderer`: WebGPU where available, its WebGL 2 backend otherwise), each carrying its render kit (`@opsydyn/effect-three/webgl` or `/webgpu`). Labels need WebGL. See [ADR-010](../../docs/effect-three/adr/010-webgpu-renderer.md).
 - `createSceneGraph()`: the synchronous kernel on its own, with `object(key)` and resource `stats()` for assertions. Pass `kit: webglKit` (from `@opsydyn/effect-three/webgl`) to draw skies, shader grids and contact shadows; `webglRendererFactory` carries it for you.
+
+## Stability
+
+`0.x`. The four packages (`@opsydyn/effect-three`, `-foldkit`, `-rapier`, `-troika`) are
+released together at one version, and each adapter needs the core at exactly its own
+version. The public surface is what the API reports in `etc/` record, checked in CI: a
+change that breaks it bumps the minor version (0.1 to 0.2); additions and fixes bump the
+patch.
+
+## Limits
+
+- **WebXR on `WebGPURenderer`** is wired but untested: the headset emulator the tests use
+  (IWER) cannot render into it. WebXR on the WebGL renderer is tested.
+- **Labels are not drawn under WebGPU**: troika builds WebGL shaders and has no WebGPU
+  path. A scene with labels draws everything else.
+- **DOM overlay** (`xr({ domOverlay: true })`) is checked only in the session request; the
+  emulator has no overlay.
 
 ## Architecture
 

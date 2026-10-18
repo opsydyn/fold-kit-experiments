@@ -4,7 +4,7 @@
  * - A dependency used by more than one workspace must come from a catalog in every
  *   private workspace (`catalog:` or `catalog:<name>`), and the catalog must define it.
  * - Packages published to npm cannot use `catalog:`: CI publishes them with `npm publish`,
- *   which does not resolve it. They keep literal versions, which must equal the catalog's.
+ *   which does not resolve it. They keep literal versions, which must equal a catalog's.
  * - peerDependencies are ranges chosen for consumers, so they are left alone.
  *
  *   bun tools/check-catalog.ts
@@ -66,8 +66,15 @@ for (const { path, manifest, section, name, version } of declarations) {
   if (isPublished(manifest, path)) {
     if (catalogName !== undefined) {
       problems.push(`${where}: published packages need literal versions (npm publish)`);
-    } else if (name in (catalogs[''] ?? {}) && catalogs['']?.[name] !== version) {
-      problems.push(`${where}: ${version} differs from the catalog's ${catalogs['']?.[name]}`);
+    } else {
+      // A literal version must equal one catalog's: the default's, or a named one's (the
+      // effect-three packages build with the `strict` catalog's TypeScript and oxlint).
+      const defined = Object.values(catalogs).flatMap((catalog) =>
+        catalog?.[name] === undefined ? [] : [catalog[name]],
+      );
+      if (defined.length > 0 && !defined.includes(version)) {
+        problems.push(`${where}: ${version} differs from the catalogs' ${defined.join(' or ')}`);
+      }
     }
     continue;
   }

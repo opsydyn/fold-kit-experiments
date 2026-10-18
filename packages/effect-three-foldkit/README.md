@@ -2,7 +2,11 @@
 
 A thin Foldkit adapter for [`@opsydyn/effect-three`](../effect-three/README.md): derive a Three.js scene from your Model, get pointer interaction back as your own typed Messages, and let Foldkit's runtime own the scene's lifetime.
 
-> Status: private, pre-release (`0.0.0`). The API is documented in [`etc/effect-three-foldkit.api.md`](etc/effect-three-foldkit.api.md). Live samples are in `apps/web` at `/effect-three` and on the effect-three promo site (`apps/three-promo`); their source is in [`packages/effect-three-samples`](../effect-three-samples/).
+> Status: `0.x`, released with the core at one version ([Stability](../effect-three/README.md#stability), [Limits](../effect-three/README.md#limits)). The API is documented in [`etc/effect-three-foldkit.api.md`](etc/effect-three-foldkit.api.md). Live samples are in `apps/web` at `/effect-three` and on the effect-three promo site (`apps/three-promo`); their source is in [`packages/effect-three-samples`](../effect-three-samples/).
+
+```sh
+npm install @opsydyn/effect-three-foldkit @opsydyn/effect-three effect foldkit three
+```
 
 ## Use it
 

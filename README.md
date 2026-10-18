@@ -6,12 +6,12 @@ FoldKit is an Elm Architecture runtime for the browser built on [Effect](https:/
 
 ## Packages
 
-| Package                                                           | Description                                                                                            |
-| :---------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
-| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/)               | Astro integration — client islands plus opt-in FoldKit SSR/SSG page owners                             |
-| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)                   | D3-quality visualisation primitives for FoldKit — no D3 dependency                                     |
-| [`@opsydyn/effect-three`](packages/effect-three/)                 | Effect-native declarative Three.js: keyed scene updates, scoped GPU resources (private, pre-release)   |
-| [`@opsydyn/effect-three-foldkit`](packages/effect-three-foldkit/) | FoldKit adapter for effect-three: scene element, typed pointer Messages, WebGL2 (private, pre-release) |
+| Package                                                           | Description                                                                                     |
+| :---------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| [`@opsydyn/astro-foldkit`](packages/astro-foldkit/)               | Astro integration — client islands plus opt-in FoldKit SSR/SSG page owners                      |
+| [`@opsydyn/foldkit-viz`](packages/foldkit-viz/)                   | D3-quality visualisation primitives for FoldKit — no D3 dependency                              |
+| [`@opsydyn/effect-three`](packages/effect-three/)                 | Effect-native declarative Three.js: keyed scene updates, scoped GPU resources (0.x)             |
+| [`@opsydyn/effect-three-foldkit`](packages/effect-three-foldkit/) | FoldKit adapter for effect-three: scene element, typed pointer Messages, WebGL2 or WebGPU (0.x) |
 
 ## effect-three
 
@@ -55,8 +55,10 @@ fold-kit-experiments/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     ├── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
     ├── dataset-explorer/ — private shared KeyedQuery example for both apps
-    ├── effect-three/      — @opsydyn/effect-three   (private; Effect-native declarative Three.js core)
-    ├── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (private; Foldkit adapter)
+    ├── effect-three/      — @opsydyn/effect-three   (for npm, 0.x; Effect-native declarative Three.js core)
+    ├── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (for npm; Foldkit adapter)
+    ├── effect-three-rapier/  — @opsydyn/effect-three-rapier  (for npm; Rapier physics engine)
+    ├── effect-three-troika/  — @opsydyn/effect-three-troika  (for npm; troika label engine)
     └── effect-three-samples/ — private effect-three samples shared by apps/web and three-promo
 ```
 
@@ -119,8 +121,9 @@ TypeScript 7 and oxlint versions only the effect-three packages use. Private wor
 refer to them as `"catalog:"` or `"catalog:strict"`; to upgrade a shared dependency,
 change the catalog and run `bun install`.
 
-The two packages published to npm (`astro-foldkit` and `foldkit-viz`) keep literal
-versions, because CI publishes with `npm publish`, which does not resolve `catalog:`.
+The packages published to npm (`astro-foldkit`, `foldkit-viz` and the four effect-three
+packages) keep literal versions, because CI publishes with `npm publish`, which does not
+resolve `catalog:`.
 `bun run check` runs `tools/check-catalog.ts`, which fails if a shared dependency is
 declared outside the catalog or a published package's version drifts from it.
 

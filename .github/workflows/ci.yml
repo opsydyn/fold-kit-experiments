@@ -62,8 +62,8 @@ jobs:
         run: |
           bun run --filter @opsydyn/effect-three pack:check
           bun run --filter @opsydyn/effect-three-foldkit pack:check
-          bun run --filter @opsydyn/effect-three-rapier build
-          bun run --filter @opsydyn/effect-three-troika build
+          bun run --filter @opsydyn/effect-three-rapier pack:check
+          bun run --filter @opsydyn/effect-three-troika pack:check
 
       - name: Public API reports are up to date
         run: |

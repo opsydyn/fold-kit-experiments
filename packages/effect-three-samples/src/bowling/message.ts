@@ -9,6 +9,12 @@ export const Message = defineMessageUnion({
   ChangedSpeed: { speed: Schema.Number },
   ClickedRoll: {},
   ClickedNewGame: {},
+  /** Replay this game's rolls from a fresh rack, and check the pins fall the same. */
+  ClickedReplay: {},
+  /** The page's address fragment, read at start: a replay link starts that replay. */
+  ReadFragment: { fragment: Schema.String },
+  /** Rack `shot` has rested: rolling may begin. */
+  RackRested: { shot: Schema.Number },
   /** A pin's head left or reached a spot, or the ball reached the pit. */
   Collided: { collision: SceneSchema.CollisionDetail },
   /** The ball hit something harder than its threshold. */

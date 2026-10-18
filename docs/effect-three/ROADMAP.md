@@ -103,9 +103,10 @@ Drei-style helpers, XR and physics come after R1–R4.
 The parity roadmap is complete. Three directions are open; they are not exclusive, and
 the first two differ a lot in size.
 
-### A. Publish the packages (S–M): prepared, not yet published
+### A. Publish the packages (S–M) ✅
 
-Everything above was usable only inside this monorepo: `@opsydyn/effect-three`,
+Published as 0.1.0 on 2026-10-18, with provenance, all four together. Everything above
+was usable only inside this monorepo before then: `@opsydyn/effect-three`,
 `-foldkit`, `-rapier` and `-troika` were private at `0.0.0`. The repository already
 releases `astro-foldkit` and `foldkit-viz` with release-please and
 `npm publish --provenance`, so the path exists:
@@ -186,10 +187,58 @@ Still limits, to state in each README rather than fix here: WebXR on `WebGPURend
 is untested (IWER cannot render it), labels are not drawn under WebGPU (troika has no
 WebGPU path), and DOM overlay is checked only in the session request.
 
+### E. After 0.1.0
+
+- ✅ Four high-fidelity promo examples (marble machine, type gallery, bowling, XR room)
+  and a guide brought up to 0.1.0.
+- Pages that need labels stay on WebGL under `?renderer=webgpu`, and say why (S).
+- Labels under WebGPU (M–L): troika builds WebGL shaders only. Investigate distance-field
+  text in TSL behind the same `LabelEngine` contract, or a second engine for both
+  renderers, before choosing.
+- Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
+  `WebGPURenderer`, and the DOM overlay; they retire the three documented limits.
+- A Drei catalogue audit (S to scope): `Line`/`Trail`, `Billboard`, `Decal`, `Outlines`,
+  `Sparkles`/`Stars`/`Cloud`, transmission materials; decide what belongs in the typed
+  catalogue.
+
+## Beyond parity
+
+Parity made effect-three able to build what React Three Fiber builds. These go where it
+cannot easily follow, because they rest on what is different here: the Model is the whole
+truth, scenes are a pure function of it, every change is a Schema-typed Message, and
+Effect owns every lifetime.
+
+1. **Event-sourced replay** ([ADR-011](adr/011-event-sourced-replay.md), proposed; spike
+   on the bowling sample). Record the player's inputs, let deterministic physics produce
+   the rest: shareable runs as links, ghost replays, bug reports that reproduce, and
+   time travel that covers the physics world.
+2. **Lockstep multiplayer and XR co-presence.** If every peer runs the same `update`,
+   sharing the input stream (an Effect `Stream` over a socket) shares the world; other
+   players' heads and hands are more tracked spaces. Needs inputs applied at step
+   boundaries (see ADR-011) and, later, rollback, which pure updates make possible.
+3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
+   description is rejected whole, so a model's actions cannot leave the world broken.
+   Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
+   and an assistant can furnish a room or set up a shot, undoably and replayably.
+4. **Tooling from Schema.** An inspector generated from the scene schemas, save and load
+   as JSON, undo and branching history from the immutable Model, and scene diffs in
+   review from the kernel's own ops.
+5. **Interaction widgets as Foldkit submodels.** A transform gizmo, box select, a
+   measuring tape, an XR teleport arc: pure, property-tested, composed through
+   OutMessages, as ADR-006 did for cameras.
+6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
+   Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
+   behind the same engine contract, and server rendering of a `SceneDescription` for
+   previews.
+
+A flagship that ties them together: a collaborative, replayable scene editor with an
+assistant, built as a Foldkit app (4 and 5 for editing, 1 for history, 2 for
+collaboration, 3 for the assistant).
+
 ### Recommendation
 
-B, C and D are done and A is prepared: what remains is the release itself (merge the
-release PR, then dispatch `publish.yml` in the order above).
+E's WebGPU page fallback now (S), then the event-sourced replay spike (1), which every
+other item in "Beyond parity" depends on, then agent-native control of the XR room (3).
 
 ## Not planned
 

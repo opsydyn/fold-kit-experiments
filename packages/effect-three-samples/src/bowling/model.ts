@@ -7,8 +7,19 @@ export type PinId = (typeof pinIds)[number];
 
 export type Block = readonly [number, number, number, number];
 
-export const Phase = Schema.Literals(['aiming', 'rolling', 'settling', 'over']);
+/**
+ * `racking` gives a fresh or swept rack time to come to rest (Rapier puts resting bodies
+ * to sleep) before a roll may meet it, so a roll meets the same world however long the
+ * player waited: what makes a replay exact (ADR-011).
+ */
+export const Phase = Schema.Literals(['racking', 'aiming', 'rolling', 'settling', 'over']);
 export type Phase = typeof Phase.Type;
+
+export const Shot = Schema.Struct({
+  aim: Schema.Number,
+  angle: Schema.Number,
+  speed: Schema.Number,
+});
 
 export const Model = Schema.Struct({
   assetBase: Schema.String,
@@ -31,6 +42,16 @@ export const Model = Schema.Struct({
   speed: Schema.Number,
   /** The hardest the ball hit anything this roll, as contact forces reported. */
   impact: Schema.Number,
+  /** What the player did on each roll this game: a replay feeds these back. */
+  shots: Schema.Array(Shot),
+  /** A replay in progress or finished: the record, and how many of its shots have rolled. */
+  replay: Schema.NullOr(
+    Schema.Struct({
+      shots: Schema.Array(Shot),
+      rolls: Schema.Array(Schema.Number),
+      rolled: Schema.Number,
+    }),
+  ),
   /** The scoreboard label's laid-out block, for the panel behind it. */
   layout: Schema.NullOr(Schema.Tuple([Schema.Number, Schema.Number, Schema.Number, Schema.Number])),
   camera: SceneSchema.Camera,
@@ -57,11 +78,13 @@ export const initialModel = (assetBase: string): Model => ({
   shot: 0,
   standing: [...pinIds],
   before: [...pinIds],
-  phase: 'aiming',
+  phase: 'racking',
   aim: 0.08,
   angle: -0.6,
   speed: 8,
   impact: 0,
+  shots: [],
+  replay: null,
   layout: null,
   camera: homeCamera,
 });

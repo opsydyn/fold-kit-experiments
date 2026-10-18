@@ -866,6 +866,14 @@ export type PerspectiveCamera = {
    * default is 0.05). Field of view, near and far always apply at once.
    */;
   readonly damping: number;
+  /**
+   * Turns the rendered camera round its target, as three.js's `OrbitControls.autoRotate`
+   * at `autoRotateSpeed`: 0 (the default) is still; 2 orbits once every 30 seconds of
+   * scene time, positive clockwise seen from above. It holds still while a gesture is
+   * pressed; before a gesture an `AutoRotated` event says where it got to, for the Model
+   * (`autoRotated(camera, detail)`). A new position or `lookAt` turns on from there.
+   */
+  readonly autoRotate: number;
 };
 
 /**
@@ -881,6 +889,8 @@ export type OrthographicCamera = {
   readonly position: Vec3;
   readonly lookAt: Vec3 /** As on `PerspectiveCamera`. */;
   readonly damping: number;
+  /** As on `PerspectiveCamera`. */
+  readonly autoRotate: number;
 };
 
 /** The single active camera. */

@@ -47,6 +47,7 @@ export {
 export { makeSceneMount, type SceneMount } from './mount.ts';
 export { type OverlayView } from './overlayView.ts';
 export {
+  type AutoRotatedDetail,
   type ButtonDetail,
   type CollisionDetail,
   type ContactForceDetail,

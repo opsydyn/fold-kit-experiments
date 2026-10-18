@@ -229,6 +229,7 @@ export const cameraEquals = (a: Camera, b: Camera): boolean => {
     Object.is(a.near, b.near) &&
     Object.is(a.far, b.far) &&
     Object.is(a.damping, b.damping) &&
+    Object.is(a.autoRotate, b.autoRotate) &&
     vec3Equals(a.position, b.position) &&
     vec3Equals(a.lookAt, b.lookAt)
   );

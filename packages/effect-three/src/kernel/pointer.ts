@@ -209,6 +209,12 @@ export type SceneEvent =
     }
   /** A drag, wheel or pinch on the canvas, when the scene claims gestures. */
   | { readonly _tag: 'Gesture'; readonly gesture: Gesture }
+  /**
+   * A gesture is about to begin on a camera that has turned by itself (`autoRotate`):
+   * where it got to, so the Model can keep it (`autoRotated(camera, detail)`) and the
+   * gesture moves on from there. `view` names a view's camera; without it, the scene's.
+   */
+  | { readonly _tag: 'AutoRotated'; readonly view?: string; readonly position: Vec3 }
   /** In an immersive session, a thumbstick pushed past halfway in a direction, or let back. */
   | { readonly _tag: 'XrStick'; readonly hand: XrHand; readonly direction: XrStickDirection }
   /** In an immersive session, a controller button pressed or released. */
@@ -297,6 +303,10 @@ export type Picker = {
   readonly region: (x: number, y: number) => Region;
   /** Whether the scene claims the pointer's gestures. */
   readonly gestures: () => Gestures;
+  /** Holds the cameras' turning (`autoRotate`) while a gesture is pressed. */
+  readonly holdCameras: (held: boolean) => void;
+  /** Where turning has taken a view's camera (or the scene's), if it has turned. */
+  readonly turned: (view: string | undefined) => Vec3 | undefined;
 };
 
 /** A part of the canvas in CSS pixels: a view, named by `view`, or the whole canvas. */
@@ -438,6 +448,8 @@ export const createPicker = (graph: SceneGraph): Picker => {
           };
     },
     gestures: graph.gestures,
+    holdCameras: graph.holdCameras,
+    turned: graph.turned,
     pick: (x, y) => {
       if (graph.interactiveObjects().length === 0) return undefined;
       const view = aim(x, y);
@@ -569,18 +581,34 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     return Math.hypot(x, y);
   };
 
+  /** Reports where the camera under `region` has turned to, before a gesture on it. */
+  const reportTurned = (region: Region, events: Array<SceneEvent>): void => {
+    const position = picker.turned(region.view);
+    if (position === undefined) return;
+    events.push({
+      _tag: 'AutoRotated',
+      ...(region.view === undefined ? {} : { view: region.view }),
+      position,
+    });
+  };
+
   /** A gesture press begins: the first pointer down while the scene claims gestures. */
   const beginGesture = (
     event: Extract<PointerInput, { readonly _tag: 'PointerDown' }>,
     id: number,
     key: string | undefined,
+    events: Array<SceneEvent>,
   ): void => {
     if (picker.gestures() !== 'scene') return;
     pressedPointers.clear();
     primary = id;
     pressedPointers.set(id, { x: event.x, y: event.y });
+    const region = picker.region(event.x, event.y);
+    reportTurned(region, events);
+    // Cameras turning by themselves hold still while it is pressed, as `OrbitControls`.
+    picker.holdCameras(true);
     gesturePress = {
-      ...picker.region(event.x, event.y),
+      ...region,
       button: event.button,
       modifiers: event.modifiers ?? noModifiers,
       ...(key === undefined ? {} : { key }),
@@ -632,6 +660,7 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
   };
 
   const endGestures = (): void => {
+    if (gesturePress !== undefined) picker.holdCameras(false);
     pressedPointers.clear();
     primary = undefined;
     gesturePress = undefined;
@@ -692,7 +721,7 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
         pressing = true;
         dragged = false;
         if (hit !== undefined) events.push({ _tag: 'PointerDown', button: event.button, ...hit });
-        beginGesture(event, id, hit?.key);
+        beginGesture(event, id, hit?.key, events);
         break;
       case 'PointerUp':
         release(hit, event, events);
@@ -713,12 +742,15 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
           events.push({ _tag: 'Wheel', deltaX: event.deltaX, deltaY: event.deltaY, ...hit });
         }
         if (picker.gestures() === 'scene') {
+          const region = picker.region(event.x, event.y);
+          // The wheel does not hold turning still, as `OrbitControls` keeps turning on it.
+          reportTurned(region, events);
           events.push({
             _tag: 'Gesture',
             gesture: {
               _tag: 'Wheel',
               modifiers: event.modifiers ?? noModifiers,
-              ...picker.region(event.x, event.y),
+              ...region,
               deltaX: event.deltaX,
               deltaY: event.deltaY,
             },

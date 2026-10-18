@@ -31,7 +31,7 @@ import { writeRotation } from './behaviours.ts';
 import { type BodyCollision, type BodyContactForce, createBodyHost } from './bodies.ts';
 import { type BodySource, instanceSources, nodeSource, placeObject } from './bodySources.ts';
 import { renderSettings, scene as describeScene } from './build.ts';
-import { createCameraMotion } from './cameraMotion.ts';
+import { type CameraMotion, createCameraMotion } from './cameraMotion.ts';
 import type {
   AmbientLightNode,
   BorrowedNode,
@@ -217,6 +217,13 @@ export type SceneGraph = {
   readonly camera: HostCamera;
   /** The scene's views, fitted to the viewport; empty when `camera` fills the canvas. */
   readonly views: () => ReadonlyArray<HostedView>;
+  /** Holds every camera's turning (`autoRotate`) still while a gesture is pressed. */
+  readonly holdCameras: (held: boolean) => void;
+  /**
+   * Where turning has taken the camera of `view` (or, without one, the scene's camera),
+   * when it has turned since its description: for an `AutoRotated` event.
+   */
+  readonly turned: (view: string | undefined) => Vec3 | undefined;
   /** Render textures, each a nested graph to draw into its texture (by the frame loop). */
   readonly renderTextures: () => ReadonlyArray<HostedTexture>;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -409,16 +416,6 @@ const applyLens = (camera: HostCamera, description: CameraDescription): void => 
   camera.far = description.far;
 };
 
-/** Applies a description at once: lens and pose. */
-const applyCamera = (camera: HostCamera, description: CameraDescription): void => {
-  applyLens(camera, description);
-  if (camera instanceof OrthographicCamera && description._tag === 'Orthographic') {
-    camera.zoom = description.zoom;
-  }
-  writeVec3(camera.position, description.position);
-  camera.lookAt(description.lookAt[0], description.lookAt[1], description.lookAt[2]);
-};
-
 const noInstances: ReadonlyArray<Instance> = [];
 
 const emptyScene = describeScene({});
@@ -468,6 +465,12 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     hostedSky = undefined;
   }
   const cameraMotion = createCameraMotion();
+  /** Each view's camera motion, by the view's key. */
+  const viewMotions = new Map<string, CameraMotion>();
+  const viewsMoving = (): boolean => {
+    for (const motion of viewMotions.values()) if (motion.moving()) return true;
+    return false;
+  };
   const bodyHost = createBodyHost(options.physics, scene);
 
   /** Every body the hosted nodes describe: one per bodied node, one per bodied instance. */
@@ -494,7 +497,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   /** Hosts one described view, reusing `previous` when its kind is unchanged. */
   const hostView = (description: View, previous: HostCamera | undefined): HostedView => {
     const hostedCamera = cameraFor(previous ?? new PerspectiveCamera(), description.camera);
-    applyCamera(hostedCamera, description.camera);
+    applyLens(hostedCamera, description.camera);
+    const motion = viewMotions.get(description.key) ?? createCameraMotion();
+    viewMotions.set(description.key, motion);
+    // As the scene's camera: a new kind of camera has nothing on screen to travel from.
+    motion.aim(hostedCamera, description.camera, elapsed, hostedCamera !== previous || !animating);
     const area = areaOf(description.rect);
     fitCamera(hostedCamera, area);
     return { key: description.key, camera: hostedCamera, area };
@@ -505,6 +512,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     const previous = new Map(views.map((hosted) => [hosted.key, hosted.camera]));
     viewDescriptions = described;
     views = described.map((description) => hostView(description, previous.get(description.key)));
+    for (const key of viewMotions.keys()) {
+      if (!described.some((description) => description.key === key)) viewMotions.delete(key);
+    }
   };
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
@@ -1254,6 +1264,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     for (const entry of playing) pose(entry);
     behaving.forEach(applyBehaviour);
     cameraMotion.step(camera, elapsed);
+    for (const view of views) viewMotions.get(view.key)?.step(view.camera, elapsed);
     // Last: a dynamic body's pose is the simulation's, whatever else moved the mesh.
     bodyHost.tick(elapsed, animating);
   };
@@ -1270,6 +1281,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     moving.forEach(finishTween);
     moving.clear();
     cameraMotion.settle(camera);
+    for (const view of views) viewMotions.get(view.key)?.settle(view.camera);
   };
 
   const dispose = (): void => {
@@ -1299,6 +1311,14 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       return camera;
     },
     views: () => views,
+    holdCameras: (held) => {
+      cameraMotion.hold(held);
+      for (const motion of viewMotions.values()) motion.hold(held);
+    },
+    turned: (view) => {
+      if (view === undefined) return cameraMotion.turned();
+      return viewMotions.get(view)?.turned();
+    },
     renderTextures: () => textureList,
     gestures: () => gestures,
     overlays: () => overlayList,
@@ -1331,6 +1351,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
           behaving.size > 0 ||
           clipsRunning() ||
           cameraMotion.moving() ||
+          viewsMoving() ||
           bodyHost.needsFrame())),
     drawn: () => {
       dirty = false;

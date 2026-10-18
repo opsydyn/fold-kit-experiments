@@ -447,6 +447,7 @@ const sceneFields = {
         position: Vec3,
         lookAt: Vec3,
         damping: Schema.Literals([0, 0.1]),
+        autoRotate: Schema.Literals([0, 2]),
       }),
       background: Schema.NullOr(Colour),
       children: Schema.Array(Node).check(Schema.isMaxLength(3)),
@@ -461,7 +462,8 @@ const sceneFields = {
         far: Schema.Literals([100]),
         position: Vec3,
         lookAt: Vec3,
-        damping: Schema.Literals([0]),
+        damping: Schema.Literals([0, 0.1]),
+        autoRotate: Schema.Literals([0]),
       }),
       rect: Schema.Struct({
         x: Schema.Literals([0, 0.5]),
@@ -504,6 +506,7 @@ const sceneFields = {
       position: Vec3,
       lookAt: Vec3,
       damping: Schema.Literals([0, 0.1]),
+      autoRotate: Schema.Literals([0, 2]),
     }),
     Schema.TaggedStruct('Orthographic', {
       zoom: Schema.Literals([1, 50]),
@@ -512,6 +515,7 @@ const sceneFields = {
       position: Vec3,
       lookAt: Vec3,
       damping: Schema.Literals([0, 0.1]),
+      autoRotate: Schema.Literals([0, 2]),
     }),
   ]),
   resources: Schema.Struct({

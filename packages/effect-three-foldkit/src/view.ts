@@ -53,6 +53,9 @@ export type ContactForceDetail = typeof SceneSchema.ContactForceDetail.Type;
 /** Detail of measured events: a node's world bounding box. */
 export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 
+/** Detail of auto-rotated events: where a camera turning by itself got to. */
+export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
+
 /** Detail of XR stick events: a thumbstick pushed past halfway in a direction, or let back. */
 export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
 
@@ -110,6 +113,12 @@ export type ViewConfig<Message> = {
    * the camera stays in the Model.
    */
   readonly onGesture?: (gesture: Gesture) => Message;
+  /**
+   * A gesture is about to begin on a camera turning by itself (`autoRotate`): keep where
+   * it got to with `autoRotated(model.camera, detail)` (a view's camera when `view` names
+   * one), so the gesture goes on from where the camera was shown.
+   */
+  readonly onAutoRotated?: (detail: AutoRotatedDetail) => Message;
   /**
    * Two bodies began or stopped touching (react-three-rapier's `onCollisionEnter` and
    * `onCollisionExit`, for the whole scene). Needs `physics` and an engine.
@@ -207,6 +216,7 @@ export const view = <Message>(
     Option.map(given(config.onXRSurface), element.OnSceneXrSurface),
     Option.map(given(config.onXRMoved), element.OnSceneXrMoved),
     Option.map(given(config.onXRPlanes), element.OnSceneXrPlanes),
+    Option.map(given(config.onAutoRotated), element.OnSceneAutoRotated),
     Option.map(given(config.onGesture), (toMessage) =>
       element.OnSceneGesture((detail) => toMessage(detail.gesture)),
     ),

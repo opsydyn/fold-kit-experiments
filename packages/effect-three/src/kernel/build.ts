@@ -1021,7 +1021,7 @@ export const hemisphereLight = (options: {
 
 /**
  * Perspective camera. Defaults: fov 50, near 0.1, far 100, at `[0, 0, 5]` looking at the
- * origin, no damping.
+ * origin, no damping, not turning.
  */
 export const perspectiveCamera = (
   options: Partial<Omit<PerspectiveCamera, '_tag'>> = {},
@@ -1033,6 +1033,7 @@ export const perspectiveCamera = (
   position: options.position ?? [0, 0, 5],
   lookAt: options.lookAt ?? origin,
   damping: options.damping ?? 0,
+  autoRotate: options.autoRotate ?? 0,
 });
 
 /**
@@ -1049,6 +1050,7 @@ export const orthographicCamera = (
   position: options.position ?? [0, 0, 5],
   lookAt: options.lookAt ?? origin,
   damping: options.damping ?? 0,
+  autoRotate: options.autoRotate ?? 0,
 });
 
 const noEffects: ReadonlyArray<PostEffect> = [];

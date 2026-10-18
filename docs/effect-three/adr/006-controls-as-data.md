@@ -51,4 +51,13 @@ and tests would no longer see where the camera is.
   its press point, where three 0.186 has a typo), `orbitKey` for the arrow keys (an app
   maps focused key presses to Messages), and Drei's `Bounds` as measuring events plus
   `fitCamera` and `clipCamera`.
-- Not yet: auto-rotate, and damping for view cameras, which still jump.
+- Since added: view cameras damp as the scene's camera does, each on its own.
+- Since added: `autoRotate` on a camera, after `OrbitControls.autoRotate` (`rotateLeft` by
+  `2π / 60 * autoRotateSpeed` a second, only while no gesture is in progress). The
+  rendered camera turns round its target in scene time, holding still while a gesture is
+  pressed. Before a gesture on a camera that has turned, the scene reports `AutoRotated
+{ view?, position }`; `autoRotated(camera, detail)` keeps it, so the gesture goes on
+  from where the camera was shown, as gliding reports `XrMoved`. A new position or
+  `lookAt` turns on from there; a lens change keeps the turn. A turning camera's pose
+  depends on how long it has gone undescribed, so the convergence property describes
+  still cameras and `autoRotate.test.ts` covers turning.

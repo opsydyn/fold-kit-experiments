@@ -152,6 +152,7 @@ export {
   type ManualFrames,
 } from './frames.ts';
 export {
+  autoRotated,
   type Box,
   clipCamera,
   type Cursor,

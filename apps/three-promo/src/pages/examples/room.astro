@@ -1,0 +1,21 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/room/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/room/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/room/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/room/update.ts?raw';
+import commandSource from '@opsydyn/effect-three-samples/src/room/command.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/room/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/room/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'command.ts', content: commandSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="XR room — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">WEBXR</p><h1>Step into the room.</h1><p>A small room you can furnish with plants. On the page, click the floor to plant and drag to look around. With a headset, Enter VR stands you in it: glide with the left stick, turn with the right, and point a controller at the floor to plant, with a tips label riding your left hand. Enter AR and the furniture goes so your own room shows through: each plant is a WebXR anchor that stays where you put it, and the planes and meshes the device detects are drawn from Messages, each by a group following its tracked space.</p></section>
+  <Sample client:load noMeta assetBase={sitePath('/models/')} />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Tracked things as data.</h2><p>The Model holds the plants, where the player stands, and what the session reported finding. Groups follow the head, hands, controllers, anchors, planes and meshes without a Message per frame; what changes comes back as one.</p><a class="text-link" href={samplesSource + '/room'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

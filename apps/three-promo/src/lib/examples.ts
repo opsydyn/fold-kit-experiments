@@ -73,6 +73,14 @@ export const examples = [
     alt: 'Bowling: a blue ball rolling down a polished wooden lane towards ten white pins, under a dark scoreboard.',
   },
   {
+    id: 'room',
+    category: 'WebXR',
+    title: 'Step into the room',
+    description:
+      'Furnish a room with plants on the page, glide through it in VR, or plant in your own room in AR, where each plant is an anchor and detected planes and meshes are drawn from Messages.',
+    alt: 'XR room: a sofa, table and lamp in a warm room, with potted plants on the rug.',
+  },
+  {
     id: 'workshop',
     category: 'Assets',
     title: 'Load it, play it, let it go',

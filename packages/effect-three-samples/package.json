@@ -15,6 +15,7 @@
     "./marbles": "./src/marbles/main.ts",
     "./gallery": "./src/gallery/main.ts",
     "./bowling": "./src/bowling/main.ts",
+    "./room": "./src/room/main.ts",
     "./shared": "./src/shared/main.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"

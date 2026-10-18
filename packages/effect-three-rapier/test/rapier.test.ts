@@ -1,15 +1,19 @@
 import { beforeAll, expect, test } from 'bun:test';
 
 import {
+  ballCollider,
   body,
   box,
   capsuleCollider,
+  cuboidCollider,
   cylinder,
   createSceneGraph,
   createSceneLoop,
   group,
   instance,
   instances,
+  interactionBits,
+  interactionGroups,
   joint,
   type JointKind,
   mesh,
@@ -428,5 +432,72 @@ test('the debug view draws Rapier’s lines for the colliders', () => {
   const lines = graph.scene.getObjectByName('physics-debug');
   const drawn = lines instanceof LineSegments ? lines.geometry.getAttribute('position').count : 0;
   expect(drawn).toBeGreaterThan(10);
+  graph.dispose();
+});
+
+test('collision groups: a ball not filtering the floor’s group falls through it', () => {
+  // As react-three-rapier's interactionGroups(1, [0, 2]): (0b10 << 16) + 0b101.
+  expect(interactionBits(interactionGroups(1, [0, 2]))).toBe(0x2_0005);
+  expect(interactionBits(interactionGroups([0, 3]))).toBe(0x9_ffff);
+  const graph = createSceneGraph({ physics: engine });
+  graph.reconcile(
+    scene({
+      physics: physics(),
+      children: [
+        mesh({ ...floor, body: body({ type: 'fixed', collisionGroups: interactionGroups(0) }) }),
+        // In group 1, interacting only with group 1: the floor (group 0) is not there for it.
+        ball({ collisionGroups: interactionGroups(1, 1) }, 2),
+      ],
+    }),
+  );
+  graph.tick(0);
+  const heights = run(graph, 0, 1.5);
+  expect(heights.at(-1)).toBeLessThan(-2);
+  graph.dispose();
+});
+
+test('a collision names the part of a body that touched', () => {
+  const graph = createSceneGraph({ physics: engine });
+  const events: Array<SceneEvent> = [];
+  const loop = createSceneLoop({
+    graph,
+    renderer: recordingRendererFactory().create(),
+    elapsedSeconds: () => 0,
+    emit: (event) => events.push(event),
+  });
+  graph.reconcile(
+    scene({
+      physics: physics(),
+      children: [
+        floor,
+        mesh({
+          key: 'walker',
+          position: [0, 2, 0],
+          geometry: box(),
+          material: standard(),
+          body: body({
+            colliders: [
+              ballCollider({ radius: 0.25, position: [0, 0.5, 0], name: 'head' }),
+              cuboidCollider({
+                halfExtents: [0.3, 0.1, 0.3],
+                position: [0, -0.5, 0],
+                name: 'feet',
+              }),
+            ],
+          }),
+        }),
+      ],
+    }),
+  );
+  graph.tick(0);
+  run(graph, 0, 2);
+  loop.frame();
+  const touched = events.flatMap((event) =>
+    event._tag === 'Collision' && event.started
+      ? [event.a === 'walker' ? event.aPart : event.bPart]
+      : [],
+  );
+  expect(touched).toContain('feet');
+  expect(touched).not.toContain('head');
   graph.dispose();
 });

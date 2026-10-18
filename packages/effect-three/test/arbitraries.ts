@@ -186,10 +186,18 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
               }),
               position: Vec3,
               rotation: Vec3,
+              name: Schema.NullOr(Schema.Literals(['feet'])),
             }),
           ]),
         ),
         contactForces: Schema.NullOr(Schema.Literals([10])),
+        collisionGroups: Schema.NullOr(
+          Schema.Struct({
+            memberships: Schema.Tuple([Schema.Literals([0, 1])]),
+            filters: Schema.NullOr(Schema.Tuple([Schema.Literals([0, 2])])),
+          }),
+        ),
+        solverGroups: Schema.Null,
       }),
     ),
   }),

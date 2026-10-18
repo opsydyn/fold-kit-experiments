@@ -151,7 +151,8 @@ targets today.
 - ✅ Smooth locomotion without a Message per frame: `xr({ glide })` glides the player with
   the sticks in the session and reports `XrMoved` when they let go.
 - XR anchors, planes and DOM overlay; joint poses as data.
-- Collision groups and per-collider events in physics.
+- ✅ Collision groups and per-collider events in physics: `body({ collisionGroups,
+solverGroups })` with `interactionGroups`, and collisions naming each body's part.
 
 ### Recommendation
 

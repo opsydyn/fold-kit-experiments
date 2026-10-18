@@ -381,11 +381,15 @@ export type ColliderShapeDescription =
   | { readonly _tag: 'Cylinder'; readonly halfHeight: number; readonly radius: number }
   | { readonly _tag: 'Cone'; readonly halfHeight: number; readonly radius: number };
 
-/** A collider placed in its body: where its middle is and how it is turned (Euler). */
+/**
+ * A collider placed in its body: where its middle is and how it is turned (Euler), and a
+ * name collisions report it by (`null` for none).
+ */
 export type ColliderDescription = {
   readonly shape: ColliderShapeDescription;
   readonly position: Vec3;
   readonly rotation: Vec3;
+  readonly name: string | null;
 };
 
 /**
@@ -423,6 +427,25 @@ export type Body = {
    * for none. Rapier reports every step a contact pushes that hard, so set it high.
    */
   readonly contactForces: number | null;
+  /**
+   * Which bodies it collides with at all (react-three-rapier's `collisionGroups`); `null`
+   * for every body. Two bodies collide when each is in a group the other's filters name.
+   */
+  readonly collisionGroups: InteractionGroups | null;
+  /**
+   * Which bodies push it back (`solverGroups`): contacts still happen and are reported,
+   * but only these groups exert forces on each other; `null` for every body.
+   */
+  readonly solverGroups: InteractionGroups | null;
+};
+
+/**
+ * Groups for collision filtering, as react-three-rapier's `interactionGroups`: the groups
+ * (0 to 15) a body is in, and those it interacts with (`null` for all of them).
+ */
+export type InteractionGroups = {
+  readonly memberships: ReadonlyArray<number>;
+  readonly filters: ReadonlyArray<number> | null;
 };
 
 /**

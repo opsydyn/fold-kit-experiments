@@ -15,6 +15,7 @@ import type {
   JointKind,
   JointLimits,
   JointMotor,
+  InteractionGroups,
   ColliderDescription,
   ColliderShapeDescription,
   LabelNode,
@@ -372,7 +373,9 @@ export const bodyEquals = (a: Body | null, b: Body | null): boolean =>
         a.impulse.id === b.impulse.id &&
         vec3Equals(a.impulse.impulse, b.impulse.impulse))) &&
     collidersEqual(a.colliders, b.colliders) &&
-    Object.is(a.contactForces, b.contactForces));
+    Object.is(a.contactForces, b.contactForces) &&
+    groupsEqual(a.collisionGroups, b.collisionGroups) &&
+    groupsEqual(a.solverGroups, b.solverGroups));
 
 const limitsEqual = (a: JointLimits | null, b: JointLimits | null): boolean =>
   a === b || (a !== null && b !== null && Object.is(a[0], b[0]) && Object.is(a[1], b[1]));
@@ -403,6 +406,17 @@ const jointKindEquals = (a: JointKind, b: JointKind): boolean => {
       );
   }
 };
+
+const numbersEqual = (a: ReadonlyArray<number> | null, b: ReadonlyArray<number> | null) =>
+  a === b ||
+  (a !== null && b !== null && a.length === b.length && a.every((value, i) => value === b[i]));
+
+const groupsEqual = (a: InteractionGroups | null, b: InteractionGroups | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    numbersEqual(a.memberships, b.memberships) &&
+    numbersEqual(a.filters, b.filters));
 
 const motorEquals = (a: JointMotor | null, b: JointMotor | null): boolean =>
   a === b ||
@@ -443,7 +457,8 @@ export const collidersEqual = (
       y === undefined ||
       !colliderShapeEquals(x.shape, y.shape) ||
       !vec3Equals(x.position, y.position) ||
-      !vec3Equals(x.rotation, y.rotation)
+      !vec3Equals(x.rotation, y.rotation) ||
+      x.name !== y.name
     ) {
       return false;
     }

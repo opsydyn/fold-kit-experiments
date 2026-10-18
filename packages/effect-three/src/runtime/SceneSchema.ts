@@ -247,7 +247,6 @@ export const ResourceDefinitions = Schema.Struct({
 });
 
 /** A renderable mesh. */
-/** A rigid body for a mesh. */
 const Upright = { halfHeight: Positive, radius: Positive };
 
 /** A collider of a body's own, placed in it. */
@@ -261,8 +260,18 @@ export const ColliderDescription = Schema.Struct({
   ]),
   position: Vec3,
   rotation: Vec3,
+  name: Schema.NullOr(Schema.String),
 });
 
+const Group = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 15 }));
+
+/** Collision groups: those a body is in, and those it interacts with (null: all). */
+export const InteractionGroups = Schema.Struct({
+  memberships: Schema.Array(Group),
+  filters: Schema.NullOr(Schema.Array(Group)),
+});
+
+/** A rigid body for a mesh, group, model or instances. */
 export const Body = Schema.Struct({
   type: Schema.Literals(['dynamic', 'fixed', 'kinematic']),
   collider: Schema.Literals(['cuboid', 'ball', 'hull', 'trimesh']),
@@ -279,6 +288,8 @@ export const Body = Schema.Struct({
   impulse: Schema.NullOr(Schema.Struct({ id: Schema.Finite, impulse: Vec3 })),
   colliders: Schema.NullOr(Schema.Array(ColliderDescription)),
   contactForces: Schema.NullOr(NonNegative),
+  collisionGroups: Schema.NullOr(InteractionGroups),
+  solverGroups: Schema.NullOr(InteractionGroups),
 });
 
 /** A physics world. */
@@ -806,8 +817,10 @@ export const Gesture = Schema.Union([
 export const CollisionDetail = Schema.Struct({
   a: Schema.String,
   aInstance: Schema.optionalKey(Schema.String),
+  aPart: Schema.optionalKey(Schema.String),
   b: Schema.String,
   bInstance: Schema.optionalKey(Schema.String),
+  bPart: Schema.optionalKey(Schema.String),
   started: Schema.Boolean,
 });
 
@@ -836,8 +849,10 @@ export const XrSurfaceDetail = Schema.Struct({ hand: XrHand, point: Vec3, normal
 export const ContactForceDetail = Schema.Struct({
   a: Schema.String,
   aInstance: Schema.optionalKey(Schema.String),
+  aPart: Schema.optionalKey(Schema.String),
   b: Schema.String,
   bInstance: Schema.optionalKey(Schema.String),
+  bPart: Schema.optionalKey(Schema.String),
   totalForce: Vec3,
   totalForceMagnitude: Schema.Finite,
   maxForceDirection: Vec3,

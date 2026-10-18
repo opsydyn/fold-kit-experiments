@@ -240,8 +240,10 @@ export type SceneEvent =
       readonly _tag: 'Collision';
       readonly a: string;
       readonly aInstance?: string;
+      readonly aPart?: string;
       readonly b: string;
       readonly bInstance?: string;
+      readonly bPart?: string;
       readonly started: boolean;
     }
   /**
@@ -252,8 +254,10 @@ export type SceneEvent =
       readonly _tag: 'ContactForce';
       readonly a: string;
       readonly aInstance?: string;
+      readonly aPart?: string;
       readonly b: string;
       readonly bInstance?: string;
+      readonly bPart?: string;
       readonly totalForce: Vec3;
       readonly totalForceMagnitude: number;
       readonly maxForceDirection: Vec3;

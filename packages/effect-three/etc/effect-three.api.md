@@ -87,6 +87,7 @@ const Axis_2: Schema.Literals<readonly ["x", "y", "z"]>;
 export const ballCollider: (options: {
     readonly radius: number;
     readonly position?: Vec3;
+    readonly name?: string | null;
 }) => ColliderDescription;
 
 // @public
@@ -171,10 +172,12 @@ type Body_2 = {
     } | null;
     readonly colliders: ReadonlyArray<ColliderDescription> | null;
     readonly contactForces: number | null;
+    readonly collisionGroups: InteractionGroups | null;
+    readonly solverGroups: InteractionGroups | null;
 };
 export { Body_2 as Body }
 
-// @public (undocumented)
+// @public
 const Body_3: Schema.Struct<{
     readonly type: Schema.Literals<readonly ["dynamic", "fixed", "kinematic"]>;
     readonly collider: Schema.Literals<readonly ["cuboid", "ball", "hull", "trimesh"]>;
@@ -209,8 +212,17 @@ const Body_3: Schema.Struct<{
         }>]>;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly name: Schema.NullOr<Schema.String>;
     }>>>;
     readonly contactForces: Schema.NullOr<Schema.Finite>;
+    readonly collisionGroups: Schema.NullOr<Schema.Struct<{
+        readonly memberships: Schema.$Array<Schema.Int>;
+        readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+    }>>;
+    readonly solverGroups: Schema.NullOr<Schema.Struct<{
+        readonly memberships: Schema.$Array<Schema.Int>;
+        readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+    }>>;
 }>;
 
 // @public
@@ -220,8 +232,10 @@ export type BodyCollider = 'cuboid' | 'ball' | 'hull' | 'trimesh';
 export type BodyCollision = {
     readonly a: string;
     readonly aInstance?: string;
+    readonly aPart?: string;
     readonly b: string;
     readonly bInstance?: string;
+    readonly bPart?: string;
     readonly started: boolean;
 };
 
@@ -229,8 +243,10 @@ export type BodyCollision = {
 export type BodyContactForce = {
     readonly a: string;
     readonly aInstance?: string;
+    readonly aPart?: string;
     readonly b: string;
     readonly bInstance?: string;
+    readonly bPart?: string;
     readonly totalForce: Vec3;
     readonly totalForceMagnitude: number;
     readonly maxForceDirection: Vec3;
@@ -348,8 +364,17 @@ const BorrowedNode_2: Schema.TaggedStruct<"Borrowed", {
             }>]>;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly name: Schema.NullOr<Schema.String>;
         }>>>;
         readonly contactForces: Schema.NullOr<Schema.Finite>;
+        readonly collisionGroups: Schema.NullOr<Schema.Struct<{
+            readonly memberships: Schema.$Array<Schema.Int>;
+            readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+        }>>;
+        readonly solverGroups: Schema.NullOr<Schema.Struct<{
+            readonly memberships: Schema.$Array<Schema.Int>;
+            readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+        }>>;
     }>>;
 }>;
 
@@ -516,6 +541,7 @@ export type Collider = {
     readonly shape: ColliderShape;
     readonly translation: Vec3;
     readonly rotation: Quat;
+    readonly part?: string;
 };
 
 // @public
@@ -523,6 +549,7 @@ export type ColliderDescription = {
     readonly shape: ColliderShapeDescription;
     readonly position: Vec3;
     readonly rotation: Vec3;
+    readonly name: string | null;
 };
 
 // @public
@@ -543,6 +570,7 @@ const ColliderDescription_2: Schema.Struct<{
     }>]>;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly name: Schema.NullOr<Schema.String>;
 }>;
 
 // @public
@@ -609,6 +637,8 @@ export const colliderSignature: (body: Object3D) => string;
 export type Collision = {
     readonly a: string;
     readonly b: string;
+    readonly aPart?: string;
+    readonly bPart?: string;
     readonly started: boolean;
 };
 
@@ -616,8 +646,10 @@ export type Collision = {
 const CollisionDetail: Schema.Struct<{
     readonly a: Schema.String;
     readonly aInstance: Schema.optionalKey<Schema.String>;
+    readonly aPart: Schema.optionalKey<Schema.String>;
     readonly b: Schema.String;
     readonly bInstance: Schema.optionalKey<Schema.String>;
+    readonly bPart: Schema.optionalKey<Schema.String>;
     readonly started: Schema.Boolean;
 }>;
 
@@ -650,6 +682,8 @@ const ConeGeometry_2: Schema.TaggedStruct<"Cone", {
 export type ContactForce = {
     readonly a: string;
     readonly b: string;
+    readonly aPart?: string;
+    readonly bPart?: string;
     readonly totalForce: Vec3;
     readonly totalForceMagnitude: number;
     readonly maxForceDirection: Vec3;
@@ -660,8 +694,10 @@ export type ContactForce = {
 const ContactForceDetail: Schema.Struct<{
     readonly a: Schema.String;
     readonly aInstance: Schema.optionalKey<Schema.String>;
+    readonly aPart: Schema.optionalKey<Schema.String>;
     readonly b: Schema.String;
     readonly bInstance: Schema.optionalKey<Schema.String>;
+    readonly bPart: Schema.optionalKey<Schema.String>;
     readonly totalForce: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly totalForceMagnitude: Schema.Finite;
     readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -759,6 +795,7 @@ export const cuboidCollider: (options: {
     readonly halfExtents: Vec3;
     readonly position?: Vec3;
     readonly rotation?: Vec3;
+    readonly name?: string | null;
 }) => ColliderDescription;
 
 // @public
@@ -1765,13 +1802,40 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
             }>]>;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly name: Schema.NullOr<Schema.String>;
         }>>>;
         readonly contactForces: Schema.NullOr<Schema.Finite>;
+        readonly collisionGroups: Schema.NullOr<Schema.Struct<{
+            readonly memberships: Schema.$Array<Schema.Int>;
+            readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+        }>>;
+        readonly solverGroups: Schema.NullOr<Schema.Struct<{
+            readonly memberships: Schema.$Array<Schema.Int>;
+            readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+        }>>;
     }>>;
 }>;
 
 // @public
 export const instant: () => Transition;
+
+// @public
+export const interactionBits: (groups: InteractionGroups | null) => number;
+
+// @public
+export type InteractionGroups = {
+    readonly memberships: ReadonlyArray<number>;
+    readonly filters: ReadonlyArray<number> | null;
+};
+
+// @public
+export const interactionGroups: (memberships: number | ReadonlyArray<number>, filters?: number | ReadonlyArray<number>) => InteractionGroups;
+
+// @public
+const InteractionGroups_2: Schema.Struct<{
+    readonly memberships: Schema.$Array<Schema.Int>;
+    readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+}>;
 
 // Warning: (ae-forgotten-export) The symbol "InvalidScene_base" needs to be exported by the entry point index.d.ts
 //
@@ -2426,8 +2490,17 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
             }>]>;
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly name: Schema.NullOr<Schema.String>;
         }>>>;
         readonly contactForces: Schema.NullOr<Schema.Finite>;
+        readonly collisionGroups: Schema.NullOr<Schema.Struct<{
+            readonly memberships: Schema.$Array<Schema.Int>;
+            readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+        }>>;
+        readonly solverGroups: Schema.NullOr<Schema.Struct<{
+            readonly memberships: Schema.$Array<Schema.Int>;
+            readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
+        }>>;
     }>>;
 }>;
 
@@ -3928,8 +4001,10 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly _tag: 'Collision';
     readonly a: string;
     readonly aInstance?: string;
+    readonly aPart?: string;
     readonly b: string;
     readonly bInstance?: string;
+    readonly bPart?: string;
     readonly started: boolean;
 }
 /**
@@ -3940,8 +4015,10 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly _tag: 'ContactForce';
     readonly a: string;
     readonly aInstance?: string;
+    readonly aPart?: string;
     readonly b: string;
     readonly bInstance?: string;
+    readonly bPart?: string;
     readonly totalForce: Vec3;
     readonly totalForceMagnitude: number;
     readonly maxForceDirection: Vec3;
@@ -4148,8 +4225,10 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
 }>, Schema.TaggedStruct<"Collision", {
     readonly a: Schema.String;
     readonly aInstance: Schema.optionalKey<Schema.String>;
+    readonly aPart: Schema.optionalKey<Schema.String>;
     readonly b: Schema.String;
     readonly bInstance: Schema.optionalKey<Schema.String>;
+    readonly bPart: Schema.optionalKey<Schema.String>;
     readonly started: Schema.Boolean;
 }>, Schema.TaggedStruct<"Measured", {
     readonly key: Schema.String;
@@ -4158,8 +4237,10 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
 }>, Schema.TaggedStruct<"ContactForce", {
     readonly a: Schema.String;
     readonly aInstance: Schema.optionalKey<Schema.String>;
+    readonly aPart: Schema.optionalKey<Schema.String>;
     readonly b: Schema.String;
     readonly bInstance: Schema.optionalKey<Schema.String>;
+    readonly bPart: Schema.optionalKey<Schema.String>;
     readonly totalForce: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly totalForceMagnitude: Schema.Finite;
     readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -4330,6 +4411,7 @@ declare namespace SceneSchema {
         MaterialRef_2 as MaterialRef,
         ResourceDefinitions_2 as ResourceDefinitions,
         ColliderDescription_2 as ColliderDescription,
+        InteractionGroups_2 as InteractionGroups,
         Body_3 as Body,
         BodyRef_2 as BodyRef,
         JointMotor_2 as JointMotor,

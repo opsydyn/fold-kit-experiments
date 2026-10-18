@@ -35,6 +35,7 @@ import type {
   JointKind,
   JointLimits,
   JointMotor,
+  InteractionGroups,
   ColliderDescription,
   ColliderShapeDescription,
   CapsuleGeometry,
@@ -530,15 +531,30 @@ export const body = (options: Partial<Body> = {}): Body => ({
   impulse: options.impulse ?? null,
   colliders: options.colliders ?? null,
   contactForces: options.contactForces ?? null,
+  collisionGroups: options.collisionGroups ?? null,
+  solverGroups: options.solverGroups ?? null,
+});
+
+/**
+ * Collision groups, as react-three-rapier's `interactionGroups(memberships, filters)`:
+ * in `memberships` (0 to 15), interacting with `filters` (every group when omitted).
+ */
+export const interactionGroups = (
+  memberships: number | ReadonlyArray<number>,
+  filters?: number | ReadonlyArray<number>,
+): InteractionGroups => ({
+  memberships: typeof memberships === 'number' ? [memberships] : memberships,
+  filters: filters === undefined ? null : typeof filters === 'number' ? [filters] : filters,
 });
 
 const placedCollider = (
   shape: ColliderShapeDescription,
-  options: { readonly position?: Vec3; readonly rotation?: Vec3 },
+  options: { readonly position?: Vec3; readonly rotation?: Vec3; readonly name?: string | null },
 ): ColliderDescription => ({
   shape,
   position: options.position ?? origin,
   rotation: options.rotation ?? origin,
+  name: options.name ?? null,
 });
 
 /** A box collider, `halfExtents` from its middle, as react-three-rapier's `CuboidCollider`. */
@@ -546,6 +562,7 @@ export const cuboidCollider = (options: {
   readonly halfExtents: Vec3;
   readonly position?: Vec3;
   readonly rotation?: Vec3;
+  readonly name?: string | null;
 }): ColliderDescription =>
   placedCollider({ _tag: 'Cuboid', halfExtents: options.halfExtents }, options);
 
@@ -553,6 +570,7 @@ export const cuboidCollider = (options: {
 export const ballCollider = (options: {
   readonly radius: number;
   readonly position?: Vec3;
+  readonly name?: string | null;
 }): ColliderDescription => placedCollider({ _tag: 'Ball', radius: options.radius }, options);
 
 type Upright = {
@@ -560,6 +578,8 @@ type Upright = {
   readonly radius: number;
   readonly position?: Vec3;
   readonly rotation?: Vec3;
+  /** The name collisions report this collider by. */
+  readonly name?: string | null;
 };
 
 /** A capsule collider along y: `halfHeight` of cylinder, capped by `radius`. */

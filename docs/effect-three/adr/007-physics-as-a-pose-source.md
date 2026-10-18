@@ -80,5 +80,9 @@ maxForceMagnitude }` (react-three-rapier's `onContactForce`); Rapier reports eve
   may change then: before signatures were rounded, a turning body's decomposed scale
   (`0.99999994`) remade it each reconcile, each remake began a new contact, and so on.
   A Rapier test now reconciles the same scene every frame and expects one contact.
-- Not built: heightfields and rounded shapes, collision groups and filtering, character
-  controllers, and per-collider events. The roadmap row is complete.
+- Collision groups are data: `body({ collisionGroups: interactionGroups(1, [0, 2]),
+solverGroups })`, packed as react-three-rapier's `interactionGroups` packs them
+  (`interactionBits`). Collisions and contact forces name the part of each body that
+  touched (`aPart`, `bPart`): an own collider's `name`, or a mesh's inside a group or
+  model, as pointer hits name parts of borrowed models.
+- Not built: heightfields and rounded shapes, and character controllers.

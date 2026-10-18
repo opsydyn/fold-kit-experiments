@@ -22,8 +22,11 @@ import { createPhysicsDebug } from './physicsDebug.ts';
 export type BodyCollision = {
   readonly a: string;
   readonly aInstance?: string;
+  /** The part of body `a` that touched (a mesh's or collider's name), when it has one. */
+  readonly aPart?: string;
   readonly b: string;
   readonly bInstance?: string;
+  readonly bPart?: string;
   readonly started: boolean;
 };
 
@@ -35,8 +38,10 @@ export type BodyCollision = {
 export type BodyContactForce = {
   readonly a: string;
   readonly aInstance?: string;
+  readonly aPart?: string;
   readonly b: string;
   readonly bInstance?: string;
+  readonly bPart?: string;
   readonly totalForce: Vec3;
   readonly totalForceMagnitude: number;
   readonly maxForceDirection: Vec3;
@@ -114,19 +119,26 @@ const remade = (hosted: Hosted, source: BodySource, signature: string): boolean 
 const resettled = (a: Body, b: Body): boolean =>
   !bodyEquals({ ...a, impulse: null }, { ...b, impulse: null });
 
-/** Bodies `a` and `b` (by id) named by their nodes, and instances when they are ones. */
+/** Bodies `a` and `b` (by id) named by their nodes, instances and parts, where they have them. */
 const named = (
   a: BodySource | undefined,
   b: BodySource | undefined,
-  ids: { readonly a: string; readonly b: string },
-): Pick<BodyCollision, 'a' | 'aInstance' | 'b' | 'bInstance'> => {
+  ids: {
+    readonly a: string;
+    readonly b: string;
+    readonly aPart?: string;
+    readonly bPart?: string;
+  },
+): Pick<BodyCollision, 'a' | 'aInstance' | 'aPart' | 'b' | 'bInstance' | 'bPart'> => {
   const aInstance = a?.instance;
   const bInstance = b?.instance;
   return {
     a: a?.key ?? ids.a,
     ...(aInstance === undefined ? {} : { aInstance }),
+    ...(ids.aPart === undefined ? {} : { aPart: ids.aPart }),
     b: b?.key ?? ids.b,
     ...(bInstance === undefined ? {} : { bInstance }),
+    ...(ids.bPart === undefined ? {} : { bPart: ids.bPart }),
   };
 };
 
@@ -275,7 +287,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       });
     }
     for (const force of active.contactForces()) {
-      const { a, b, ...payload } = force;
+      const { a, b, aPart, bPart, ...payload } = force;
       contactForces.push({
         ...named(hosted.get(a)?.source, hosted.get(b)?.source, force),
         ...payload,

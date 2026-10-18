@@ -739,15 +739,19 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
     'scene-collision': Schema.Struct<{
         readonly a: Schema.String;
         readonly aInstance: Schema.optionalKey<Schema.String>;
+        readonly aPart: Schema.optionalKey<Schema.String>;
         readonly b: Schema.String;
         readonly bInstance: Schema.optionalKey<Schema.String>;
+        readonly bPart: Schema.optionalKey<Schema.String>;
         readonly started: Schema.Boolean;
     }>;
     'scene-contact-force': Schema.Struct<{
         readonly a: Schema.String;
         readonly aInstance: Schema.optionalKey<Schema.String>;
+        readonly aPart: Schema.optionalKey<Schema.String>;
         readonly b: Schema.String;
         readonly bInstance: Schema.optionalKey<Schema.String>;
+        readonly bPart: Schema.optionalKey<Schema.String>;
         readonly totalForce: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly totalForceMagnitude: Schema.Finite;
         readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;

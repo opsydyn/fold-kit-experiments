@@ -231,6 +231,8 @@ test('a body on a group has a collider per mesh inside it, placed in the group',
     }),
   );
   const colliders = current()?.bodies.get('dumbbell')?.colliders ?? [];
+  // Each mesh is a part of the body, by its key: collisions name it.
+  expect(colliders.map((collider) => collider.part)).toEqual(['left', 'right']);
   expect(colliders.map((collider) => collider.translation)).toEqual([
     [-1, 0, 0],
     [1, 0, 0],

@@ -118,7 +118,8 @@ releases `astro-foldkit` and `foldkit-viz` with release-please and
   set of scene types), and a workspace link for local work;
 - ✅ `pack:check` (publint, attw) for all four, in CI;
 - ✅ release-please: the four as linked versions (`bump-minor-pre-major`, so breaking
-  changes bump the minor in 0.x), the peer pin kept in step through `extra-files`, and
+  changes bump the minor in 0.x; `initial-version: 0.1.0`, since a package's first
+  release otherwise defaults to 1.0.0), the peer pin kept in step through `extra-files`, and
   the release changelog normaliser generalised to six packages (first changelogs arrive
   as added files);
 - ✅ the publish workflow: the four by manual dispatch only, Bun packing (which turns

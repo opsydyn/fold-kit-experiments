@@ -15,13 +15,15 @@
       "package-name": "@opsydyn/effect-three",
       "component": "effect-three",
       "changelog-path": "CHANGELOG.md",
-      "bump-minor-pre-major": true
+      "bump-minor-pre-major": true,
+      "initial-version": "0.1.0"
     },
     "packages/effect-three-foldkit": {
       "package-name": "@opsydyn/effect-three-foldkit",
       "component": "effect-three-foldkit",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
+      "initial-version": "0.1.0",
       "extra-files": [
         {
           "type": "json",
@@ -35,6 +37,7 @@
       "component": "effect-three-rapier",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
+      "initial-version": "0.1.0",
       "extra-files": [
         {
           "type": "json",
@@ -48,6 +51,7 @@
       "component": "effect-three-troika",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
+      "initial-version": "0.1.0",
       "extra-files": [
         {
           "type": "json",

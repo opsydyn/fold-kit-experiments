@@ -22,6 +22,7 @@ import type {
   LabelAlign,
   LabelAnchorX,
   LabelAnchorY,
+  LabelColorRange,
   LabelNode,
   MaterialSide,
   ShaderGridNode,
@@ -453,6 +454,8 @@ export const shaderGrid = (options: {
 
 /** A reference to a shared geometry defined in the scene's resources. */
 export const sharedGeometry = (id: string): GeometryRef => ({ _tag: 'SharedGeometry', id });
+/** A geometry lent under `id` (`store.lendGeometry`): empty until it is lent. */
+export const lentGeometry = (id: string): GeometryRef => ({ _tag: 'LentGeometry', id });
 
 /** A reference to a shared material defined in the scene's resources. */
 export const sharedMaterial = (id: string): MaterialRef => ({ _tag: 'SharedMaterial', id });
@@ -512,6 +515,17 @@ export const anchorSpace = (id: string): XrSpace => ({ _tag: 'Anchor', id });
 
 /** A detected plane, by the id an `XrPlanes` event gave it. */
 export const planeSpace = (id: string): XrSpace => ({ _tag: 'Plane', id });
+/** A mesh the session detected (`xr({ meshes: true })`), by its id from `XrMeshes`. */
+export const meshSpace = (id: string): XrSpace => ({ _tag: 'Mesh', id });
+
+/** The id a detected mesh's geometry is lent under, for `xrMesh` and the adapter. */
+export const xrMeshGeometryId = (id: string): string => `xr-mesh/${id}`;
+
+/**
+ * A detected mesh's geometry (`xr({ meshes: true })`), in its own space: put it in a
+ * group following `meshSpace(id)`. Empty until the session has detected it.
+ */
+export const xrMesh = (id: string): GeometryRef => lentGeometry(xrMeshGeometryId(id));
 
 /** An anchor at a place in the scene (Euler rotation, unturned by default). */
 export const xrAnchor = (options: {
@@ -779,6 +793,7 @@ export const xr = (options: Partial<Xr> = {}): Xr => ({
   glide: options.glide ?? null,
   anchors: options.anchors ?? noAnchors,
   planes: options.planes ?? false,
+  meshes: options.meshes ?? false,
   domOverlay: options.domOverlay ?? false,
 });
 
@@ -864,6 +879,8 @@ export const borrowed = (
  * its centre and middle, troika's default font; white, no outline, left-aligned lines,
  * never wrapped, the font's own line height. Not interactive by default.
  */
+const noColorRanges: ReadonlyArray<LabelColorRange> = [];
+
 export const label = (
   options: TransformOptions & {
     readonly text: string;
@@ -881,6 +898,9 @@ export const label = (
     readonly outlineColor?: Rgb;
     readonly outlineOpacity?: number;
     readonly outlineBlur?: number;
+    readonly colorRanges?: ReadonlyArray<LabelColorRange>;
+    readonly curveRadius?: number;
+    readonly material?: MaterialRef | null;
     readonly interactive?: boolean;
   },
 ): LabelNode => ({
@@ -907,7 +927,13 @@ export const label = (
   outlineColor: options.outlineColor ?? 0x000000,
   outlineOpacity: options.outlineOpacity ?? 1,
   outlineBlur: options.outlineBlur ?? 0,
+  colorRanges: options.colorRanges ?? noColorRanges,
+  curveRadius: options.curveRadius ?? 0,
+  material: options.material ?? null,
 });
+
+/** A run of a label's characters in `color`, from character index `start`. */
+export const colorRange = (start: number, color: Rgb): LabelColorRange => ({ start, color });
 
 /** Ambient light. Defaults: white, intensity 1. */
 export const ambientLight = (options: {
@@ -1021,7 +1047,7 @@ export const hemisphereLight = (options: {
 
 /**
  * Perspective camera. Defaults: fov 50, near 0.1, far 100, at `[0, 0, 5]` looking at the
- * origin, no damping.
+ * origin, no damping, not turning.
  */
 export const perspectiveCamera = (
   options: Partial<Omit<PerspectiveCamera, '_tag'>> = {},
@@ -1033,6 +1059,7 @@ export const perspectiveCamera = (
   position: options.position ?? [0, 0, 5],
   lookAt: options.lookAt ?? origin,
   damping: options.damping ?? 0,
+  autoRotate: options.autoRotate ?? 0,
 });
 
 /**
@@ -1049,6 +1076,7 @@ export const orthographicCamera = (
   position: options.position ?? [0, 0, 5],
   lookAt: options.lookAt ?? origin,
   damping: options.damping ?? 0,
+  autoRotate: options.autoRotate ?? 0,
 });
 
 const noEffects: ReadonlyArray<PostEffect> = [];

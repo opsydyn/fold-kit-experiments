@@ -20,6 +20,7 @@ import type {
   XrSpace,
   ColliderDescription,
   ColliderShapeDescription,
+  LabelColorRange,
   LabelNode,
   ShaderGridNode,
   MaterialRef,
@@ -151,6 +152,9 @@ export const geometryRefEquals = (a: GeometryRef, b: GeometryRef): boolean => {
   if (a._tag === 'SharedGeometry' || b._tag === 'SharedGeometry') {
     return a._tag === 'SharedGeometry' && b._tag === 'SharedGeometry' && a.id === b.id;
   }
+  if (a._tag === 'LentGeometry' || b._tag === 'LentGeometry') {
+    return a._tag === 'LentGeometry' && b._tag === 'LentGeometry' && a.id === b.id;
+  }
   return shapeEquals(a, b);
 };
 
@@ -229,6 +233,7 @@ export const cameraEquals = (a: Camera, b: Camera): boolean => {
     Object.is(a.near, b.near) &&
     Object.is(a.far, b.far) &&
     Object.is(a.damping, b.damping) &&
+    Object.is(a.autoRotate, b.autoRotate) &&
     vec3Equals(a.position, b.position) &&
     vec3Equals(a.lookAt, b.lookAt)
   );
@@ -508,7 +513,17 @@ export const labelTypeEquals = (a: LabelNode, b: LabelNode): boolean =>
   Object.is(a.outlineWidth, b.outlineWidth) &&
   a.outlineColor === b.outlineColor &&
   Object.is(a.outlineOpacity, b.outlineOpacity) &&
-  Object.is(a.outlineBlur, b.outlineBlur);
+  Object.is(a.outlineBlur, b.outlineBlur) &&
+  Object.is(a.curveRadius, b.curveRadius) &&
+  a.colorRanges.length === b.colorRanges.length &&
+  a.colorRanges.every((range, i) => colorRangeEquals(range, b.colorRanges[i]));
+
+const colorRangeEquals = (a: LabelColorRange, b: LabelColorRange | undefined): boolean =>
+  b !== undefined && a.start === b.start && a.color === b.color;
+
+/** A label's material reference equality (`null` for troika's own). */
+export const labelMaterialEquals = (a: MaterialRef | null, b: MaterialRef | null): boolean =>
+  a === b || (a !== null && b !== null && materialRefEquals(a, b));
 
 /** Shader grid equality, apart from its position and rotation. */
 export const shaderGridLookEquals = (a: ShaderGridNode, b: ShaderGridNode): boolean =>
@@ -565,6 +580,7 @@ export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
         Object.is(a.glide.turnSpeed, b.glide.turnSpeed) &&
         Object.is(a.glide.snapDegrees, b.glide.snapDegrees))) &&
     a.planes === b.planes &&
+    a.meshes === b.meshes &&
     a.domOverlay === b.domOverlay &&
     a.anchors.length === b.anchors.length &&
     a.anchors.every((anchor, i) => xrAnchorEquals(anchor, b.anchors[i])));
@@ -582,6 +598,7 @@ export const xrSpaceEquals = (a: XrSpace | null, b: XrSpace | null): boolean => 
       return b._tag === 'Controller' && a.hand === b.hand && a.space === b.space;
     case 'Anchor':
     case 'Plane':
+    case 'Mesh':
       return b._tag === a._tag && a.id === b.id;
   }
 };

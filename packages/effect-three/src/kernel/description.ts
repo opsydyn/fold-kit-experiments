@@ -266,7 +266,14 @@ export type SurfaceMaterial =
   | NormalMaterial;
 
 /** A geometry owned by one mesh (a shape) or shared by id (`SharedGeometry`). */
-export type GeometryRef = ShapeGeometry | { readonly _tag: 'SharedGeometry'; readonly id: string };
+export type GeometryRef =
+  | ShapeGeometry
+  | { readonly _tag: 'SharedGeometry'; readonly id: string }
+  /**
+   * A geometry the application (or an adapter) lends under `id` with
+   * `store.lendGeometry`: drawn while lent, empty until then. Never disposed by the scene.
+   */
+  | { readonly _tag: 'LentGeometry'; readonly id: string };
 
 /** A material owned by one mesh, or shared by id (`SharedMaterial`). */
 export type MaterialRef =
@@ -373,15 +380,17 @@ export type Handedness = 'left' | 'right';
 
 /**
  * A space an immersive session tracks: the head, a hand's joint, a controller's grip or
- * pointing ray, an anchor the scene placed (`xr({ anchors })`), or a detected plane
- * (`xr({ planes: true })`, ids from `XrPlanes` events).
+ * pointing ray, an anchor the scene placed (`xr({ anchors })`), a detected plane
+ * (`xr({ planes: true })`, ids from `XrPlanes` events) or a detected mesh
+ * (`xr({ meshes: true })`, ids from `XrMeshes` events).
  */
 export type XrSpace =
   | { readonly _tag: 'Head' }
   | { readonly _tag: 'Joint'; readonly hand: Handedness; readonly joint: HandJoint }
   | { readonly _tag: 'Controller'; readonly hand: Handedness; readonly space: 'grip' | 'ray' }
   | { readonly _tag: 'Anchor'; readonly id: string }
-  | { readonly _tag: 'Plane'; readonly id: string };
+  | { readonly _tag: 'Plane'; readonly id: string }
+  | { readonly _tag: 'Mesh'; readonly id: string };
 
 /** A renderable mesh. `interactive` meshes take part in pointer hit testing. */
 export type MeshNode = {
@@ -701,7 +710,26 @@ export type LabelNode = {
   readonly outlineColor: Rgb;
   readonly outlineOpacity: number;
   readonly outlineBlur: number;
+  /**
+   * Colours for runs of characters, overriding `color` from each `start` (a character
+   * index) to the next: troika's `colorRanges`, as a list.
+   */
+  readonly colorRanges: ReadonlyArray<LabelColorRange>;
+  /**
+   * Curves the text round a vertical cylinder this far away, in scene units: positive in
+   * front (concave), negative behind (convex), 0 flat. troika's `curveRadius`.
+   */
+  readonly curveRadius: number;
+  /**
+   * A material for the glyphs to be drawn with (lit by the scene, say), as troika takes a
+   * base material and derives its text material from it; `color` still colours them.
+   * `null` for troika's own unlit one.
+   */
+  readonly material: MaterialRef | null;
 };
+
+/** A run of a label's characters in another colour, from character index `start`. */
+export type LabelColorRange = { readonly start: number; readonly color: Rgb };
 
 /**
  * Plays the clip named `clip` from the borrowed object's `animations`. Playback is a
@@ -866,6 +894,14 @@ export type PerspectiveCamera = {
    * default is 0.05). Field of view, near and far always apply at once.
    */;
   readonly damping: number;
+  /**
+   * Turns the rendered camera round its target, as three.js's `OrbitControls.autoRotate`
+   * at `autoRotateSpeed`: 0 (the default) is still; 2 orbits once every 30 seconds of
+   * scene time, positive clockwise seen from above. It holds still while a gesture is
+   * pressed; before a gesture an `AutoRotated` event says where it got to, for the Model
+   * (`autoRotated(camera, detail)`). A new position or `lookAt` turns on from there.
+   */
+  readonly autoRotate: number;
 };
 
 /**
@@ -881,6 +917,8 @@ export type OrthographicCamera = {
   readonly position: Vec3;
   readonly lookAt: Vec3 /** As on `PerspectiveCamera`. */;
   readonly damping: number;
+  /** As on `PerspectiveCamera`. */
+  readonly autoRotate: number;
 };
 
 /** The single active camera. */
@@ -1092,6 +1130,12 @@ export type Xr = {
   readonly anchors: ReadonlyArray<XrAnchor>;
   /** Detect the room's planes (floors, walls, tables) and report them as `XrPlanes` events. */
   readonly planes: boolean;
+  /**
+   * Detect the room's meshes (furniture, walls, the room as a whole) and report them as
+   * `XrMeshes` events; each one's geometry is lent for `xrMesh(id)`, followed with
+   * `meshSpace(id)`.
+   */
+  readonly meshes: boolean;
   /** Keep the scene's HTML overlays shown during an AR session (WebXR's DOM overlay). */
   readonly domOverlay: boolean;
   /**

@@ -53,6 +53,12 @@ export type ContactForceDetail = typeof SceneSchema.ContactForceDetail.Type;
 /** Detail of measured events: a node's world bounding box. */
 export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 
+/** Detail of auto-rotated events: where a camera turning by itself got to. */
+export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
+
+/** Detail of label measured events: a label's laid-out size in its own units. */
+export type LabelMeasuredDetail = typeof SceneSchema.LabelMeasuredDetail.Type;
+
 /** Detail of XR stick events: a thumbstick pushed past halfway in a direction, or let back. */
 export type XrStickDetail = typeof SceneSchema.XrStickDetail.Type;
 
@@ -64,6 +70,9 @@ export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
 
 /** Detail of XR planes events: every plane the session detected, as it is now. */
 export type XrPlanesDetail = typeof SceneSchema.XrPlanesDetail.Type;
+
+/** Detail of XR meshes events: every mesh the session detected, as it is now. */
+export type XrMeshesDetail = typeof SceneSchema.XrMeshesDetail.Type;
 
 /** Detail of XR surface events: in AR, where a select met a real surface, and its normal. */
 export type XrSurfaceDetail = typeof SceneSchema.XrSurfaceDetail.Type;
@@ -111,6 +120,12 @@ export type ViewConfig<Message> = {
    */
   readonly onGesture?: (gesture: Gesture) => Message;
   /**
+   * A gesture is about to begin on a camera turning by itself (`autoRotate`): keep where
+   * it got to with `autoRotated(model.camera, detail)` (a view's camera when `view` names
+   * one), so the gesture goes on from where the camera was shown.
+   */
+  readonly onAutoRotated?: (detail: AutoRotatedDetail) => Message;
+  /**
    * Two bodies began or stopped touching (react-three-rapier's `onCollisionEnter` and
    * `onCollisionExit`, for the whole scene). Needs `physics` and an engine.
    */
@@ -126,6 +141,11 @@ export type ViewConfig<Message> = {
    * measuring, as a Message): fit the camera to it with `fitCamera`.
    */
   readonly onMeasured?: (detail: MeasuredDetail) => Message;
+  /**
+   * A measured label (`scene({ measure })`) was laid out anew: its block and tight glyph
+   * bounds in its own units, before its scale, to size what goes behind it.
+   */
+  readonly onLabelMeasured?: (detail: LabelMeasuredDetail) => Message;
   /**
    * An immersive session began presenting this scene (`mode`), or ended (`mode: null`),
    * whether the app or the user (through the headset) ended it.
@@ -155,6 +175,12 @@ export type ViewConfig<Message> = {
    * `group({ follow: planeSpace(id) })`.
    */
   readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
+  /**
+   * With `xr({ meshes: true })`, the detected meshes changed: every mesh, as it is now.
+   * Draw one as `mesh({ geometry: xrMesh(id), material })` inside a group that follows
+   * `meshSpace(id)`: its geometry is lent to the scene, not sent.
+   */
+  readonly onXRMeshes?: (detail: XrMeshesDetail) => Message;
   /**
    * Frames ran persistently slow or fast, and the performance factor moved (0 to 1).
    * Store it in the Model and lower `render.resolution` with it, as Drei's
@@ -201,12 +227,15 @@ export const view = <Message>(
     Option.map(given(config.onCollision), element.OnSceneCollision),
     Option.map(given(config.onContactForce), element.OnSceneContactForce),
     Option.map(given(config.onMeasured), element.OnSceneMeasured),
+    Option.map(given(config.onLabelMeasured), element.OnSceneLabelMeasured),
     Option.map(given(config.onXRSession), element.OnSceneXr),
     Option.map(given(config.onXRStick), element.OnSceneXrStick),
     Option.map(given(config.onXRButton), element.OnSceneXrButton),
     Option.map(given(config.onXRSurface), element.OnSceneXrSurface),
     Option.map(given(config.onXRMoved), element.OnSceneXrMoved),
     Option.map(given(config.onXRPlanes), element.OnSceneXrPlanes),
+    Option.map(given(config.onXRMeshes), element.OnSceneXrMeshes),
+    Option.map(given(config.onAutoRotated), element.OnSceneAutoRotated),
     Option.map(given(config.onGesture), (toMessage) =>
       element.OnSceneGesture((detail) => toMessage(detail.gesture)),
     ),

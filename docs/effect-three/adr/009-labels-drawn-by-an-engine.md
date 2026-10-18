@@ -37,5 +37,13 @@ outlineOpacity, outlineBlur, interactive, … })` with Drei's defaults (size 1, 
   fetch its default from a CDN.
 - Text for geometry (`text()`, typeface JSON, extrudable, a collider source) and labels
   (crisp at any size, wrapping, outlines) stay separate, as Drei's `Text3D` and `Text` are.
-- Not yet: a label's own material (troika derives one from any material), colour ranges,
-  curved text, and measuring a label's laid-out size.
+- Since added: `colorRanges` (troika's experimental `colorRanges`, as a list of
+  `colorRange(start, color)`), `curveRadius`, and `material`: a scene material (inline or
+  shared, held from the store as a mesh's) that troika derives the text material from,
+  as Drei's `Text` takes a material child; `color` still colours the glyphs. troika
+  frees a derived material only with its base (disposing it alone would fire the base's
+  own dispose listeners through the prototype chain), so a shared material's derived
+  materials go when its definition does. A label named in `scene({ measure })` also
+  reports `LabelMeasured { key, block, visible }`, troika's `blockBounds` and
+  `visibleBounds` in the label's own units, whenever its layout changes, as Drei's
+  `onSync` reads `textRenderInfo`.

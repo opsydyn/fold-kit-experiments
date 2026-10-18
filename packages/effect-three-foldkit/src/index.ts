@@ -47,6 +47,7 @@ export {
 export { makeSceneMount, type SceneMount } from './mount.ts';
 export { type OverlayView } from './overlayView.ts';
 export {
+  type AutoRotatedDetail,
   type ButtonDetail,
   type CollisionDetail,
   type ContactForceDetail,
@@ -54,6 +55,7 @@ export {
   type Gesture,
   type HitDetail,
   type KeyDetail,
+  type LabelMeasuredDetail,
   type MeasuredDetail,
   type MissDetail,
   type PerformanceDetail,
@@ -61,6 +63,7 @@ export {
   type ViewConfig,
   type WheelDetail,
   type XrButtonDetail,
+  type XrMeshesDetail,
   type XrMovedDetail,
   type XrPlanesDetail,
   type XrStickDetail,

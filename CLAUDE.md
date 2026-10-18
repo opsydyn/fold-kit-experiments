@@ -13,10 +13,10 @@ Bun workspace monorepo. Eleven workspaces in active use:
 | `@opsydyn/web`                  | `apps/web/`                      | Chart demos and reference workbenches                      |
 | `@opsydyn/dataset-explorer`     | `packages/dataset-explorer/`     | Private shared KeyedQuery example                          |
 | `@opsydyn/promo`                | `apps/promo/`                    | Static chart examples and downloadable projects            |
-| `@opsydyn/effect-three`         | `packages/effect-three/`         | Effect-native declarative Three.js core (private)          |
-| `@opsydyn/effect-three-foldkit` | `packages/effect-three-foldkit/` | Foldkit adapter for effect-three (private)                 |
-| `@opsydyn/effect-three-rapier`  | `packages/effect-three-rapier/`  | Rapier physics engine for effect-three (private)           |
-| `@opsydyn/effect-three-troika`  | `packages/effect-three-troika/`  | Troika distance-field text for effect-three (private)      |
+| `@opsydyn/effect-three`         | `packages/effect-three/`         | Effect-native declarative Three.js core (npm, 0.x)         |
+| `@opsydyn/effect-three-foldkit` | `packages/effect-three-foldkit/` | Foldkit adapter for effect-three (npm, 0.x)                |
+| `@opsydyn/effect-three-rapier`  | `packages/effect-three-rapier/`  | Rapier physics engine for effect-three (npm, 0.x)          |
+| `@opsydyn/effect-three-troika`  | `packages/effect-three-troika/`  | Troika distance-field text for effect-three (npm, 0.x)     |
 | `@opsydyn/effect-three-samples` | `packages/effect-three-samples/` | Private effect-three samples for apps/web and three-promo  |
 | `@opsydyn/three-promo`          | `apps/three-promo/`              | effect-three promo site (same layout and styling as promo) |
 
@@ -47,9 +47,9 @@ bun dev:three-promo                   # effect-three promo → localhost:4323
 Shared dependency versions live once, in the root `package.json` catalogs
 (`workspaces.catalog`, plus `workspaces.catalogs.strict` for the effect-three packages'
 TypeScript 7 and oxlint). In private workspaces write `"catalog:"` (or
-`"catalog:strict"`), never a version. The npm-published `astro-foldkit` and
-`foldkit-viz` keep literal versions equal to the catalog's (`npm publish` cannot resolve
-`catalog:`). `bun run check` enforces both via `tools/check-catalog.ts`.
+`"catalog:strict"`), never a version. The npm-published packages (`astro-foldkit`,
+`foldkit-viz`, and the four effect-three packages) keep literal versions equal to the
+catalog's (`npm publish` cannot resolve `catalog:`). `bun run check` enforces both via `tools/check-catalog.ts`.
 
 ## Linting — oxlint + oxfmt
 

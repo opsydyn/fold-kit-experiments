@@ -4,7 +4,7 @@
  * `Text` a `Mesh`, which it is.
  */
 declare module 'troika-three-text/dist/troika-three-text.esm.js' {
-  import type { Mesh } from 'three';
+  import type { Material, Mesh } from 'three';
 
   export class Text extends Mesh {
     text: string;
@@ -23,6 +23,16 @@ declare module 'troika-three-text/dist/troika-three-text.esm.js' {
     outlineOpacity: number;
     outlineBlur: number;
     sdfGlyphSize: number;
+    /** Colours from each character index on (experimental in troika). */
+    colorRanges: Record<number, number> | null;
+    curveRadius: number;
+    /** The base material troika derives its text material from; its own when unset. */
+    material: Material | Array<Material> | undefined;
+    /** The laid-out text, after `sync`: its block and tight glyph bounds. */
+    readonly textRenderInfo: {
+      readonly blockBounds: ReadonlyArray<number>;
+      readonly visibleBounds: ReadonlyArray<number>;
+    } | null;
     /** Lays the text out and builds its glyphs in the background, then calls `callback`. */
     sync(callback?: () => void): void;
     dispose(): void;

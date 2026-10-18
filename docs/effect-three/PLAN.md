@@ -306,7 +306,7 @@ _Exit:_ ADRs merged. `bun run check` (fmt + lint + typecheck) passes on an empty
    - **Sequences:** random arrays of descriptions keep these invariants at every step.
 4. Behaviours: `Spin` as a pure function of elapsed time, with a property test showing frame-rate independence (N small steps ≡ 1 large step).
 
-_Exit:_ above tests green, plus a coverage gate (proposed ≥ 95% lines for `kernel/`).
+_Exit:_ above tests green, plus a coverage gate (proposed ≥ 95% lines for `kernel/`). The gate is enforced by the core package's `test` script (`scripts/check-coverage.ts`, which counts a kernel file no test loads as uncovered).
 
 ### Phase 2: Effect runtime (≈4–5 days)
 

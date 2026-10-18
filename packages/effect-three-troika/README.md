@@ -4,6 +4,13 @@ Troika distance-field text for `@opsydyn/effect-three`. Labels are described as 
 this package is the engine that draws them, as Drei's `Text` does with
 [troika-three-text](https://protectwise.github.io/troika/troika-three-text/).
 
+```sh
+npm install @opsydyn/effect-three-troika @opsydyn/effect-three three
+```
+
+Released with the core at one version: see its [Stability](../effect-three/README.md#stability)
+and [Limits](../effect-three/README.md#limits).
+
 ```ts
 import { label, scene } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';

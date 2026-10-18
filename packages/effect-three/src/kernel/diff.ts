@@ -28,6 +28,7 @@ import {
   behaviourEquals,
   bodyEquals,
   geometryRefEquals,
+  labelMaterialEquals,
   labelTypeEquals,
   xrSpaceEquals,
   shaderGridLookEquals,
@@ -185,6 +186,7 @@ export const changedFields = (
       if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
       if (prev.interactive !== next.interactive) fields.push('interactive');
       if (!labelTypeEquals(prev, next)) fields.push('text');
+      if (!labelMaterialEquals(prev.material, next.material)) fields.push('material');
       return fields;
     }
     case 'AmbientLight': {

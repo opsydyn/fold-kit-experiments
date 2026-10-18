@@ -18,7 +18,7 @@ import { Group, type Object3D } from 'three';
 import type { PresentableRenderer } from './renderSettings.ts';
 import { floorFacing, type GlidePose, glideFrame, startGlider } from './xrGlide.ts';
 import { rayOf, trackInputs, type XrInputs } from './xrInputs.ts';
-import { type Follow, trackSpaces } from './xrSpaces.ts';
+import { type Follow, type LendGeometry, trackSpaces } from './xrSpaces.ts';
 
 /** Where an immersive session can come from: `navigator.xr`, or an emulator's. */
 export type XrSystem = Pick<XRSystem, 'requestSession' | 'isSessionSupported'>;
@@ -45,6 +45,7 @@ export const sessionInit = (
       (feature) => feature !== settings.referenceSpace,
     ),
     ...(settings.planes ? ['plane-detection'] : []),
+    ...(settings.meshes ? ['mesh-detection'] : []),
     ...(settings.domOverlay && overlay !== undefined ? ['dom-overlay'] : []),
     ...(mode === 'immersive-ar' && settings.hitTest ? ['hit-test'] : []),
   ],
@@ -111,6 +112,8 @@ export type Presented = {
   readonly draw: () => void;
   /** Places the groups that follow tracked spaces (`group({ follow })`). */
   readonly follow: Follow;
+  /** Lends detected meshes' geometry to the scene (`xrMesh(id)`). */
+  readonly lend: LendGeometry;
   readonly input: (input: XrInput) => void;
 };
 
@@ -132,7 +135,7 @@ export const present = async (
   xr.setReferenceSpaceType(settings.referenceSpace);
   xr.setFramebufferScaleFactor(settings.framebufferScale);
   let inputs: XrInputs | undefined;
-  const spaces = trackSpaces(session, () => current, presented.follow, input);
+  const spaces = trackSpaces(session, () => current, presented.follow, input, presented.lend);
   let current = settings;
   // Gliding (`xr({ glide })`) moves the player from the description's place; the
   // description wins again whenever it changes.

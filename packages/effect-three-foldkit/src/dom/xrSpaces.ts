@@ -7,24 +7,30 @@
  * object on a space takes the space's pose in the reference space each frame, and none
  * while the frame has no pose for it), `anchor.ts` `requestXRAnchor` (`frame.createAnchor`
  * with a rigid transform in the origin's reference space), `store.ts` `updateSession` (the
- * frame's `detectedPlanes` read each frame, passed on when the set changes) and `plane.ts`
- * (a plane is made again once it changes).
+ * frame's `detectedPlanes` and `detectedMeshes` read each frame, passed on when the set
+ * changes), `plane.ts` (a plane is made again once it changes) and `mesh.ts` (a detected
+ * mesh's geometry built from its `vertices` and `indices`, again when they change).
  *
  * @module
  */
-import type {
-  BodyPose,
-  Vec3,
-  Xr,
-  XrAnchor,
-  XrInput,
-  XrPlane,
-  XrSpace,
+import {
+  type BodyPose,
+  type Vec3,
+  type Xr,
+  type XrAnchor,
+  type XrInput,
+  type XrMesh,
+  xrMeshGeometryId,
+  type XrPlane,
+  type XrSpace,
 } from '@opsydyn/effect-three';
-import { Euler, Quaternion } from 'three';
+import { BufferAttribute, BufferGeometry, Euler, Quaternion } from 'three';
 
 /** Places the scene's following groups where `locate` finds their spaces. */
 export type Follow = (locate: (space: XrSpace) => BodyPose | undefined) => void;
+
+/** Lends a geometry to the scene's store under `id`; returns a function that withdraws it. */
+export type LendGeometry = (id: string, geometry: BufferGeometry) => () => void;
 
 export type XrSpaces = {
   /** Brings anchors and planes up to date in this frame, then places the following groups. */
@@ -72,6 +78,32 @@ const signatureOf = (plane: XrPlane): string =>
     .concat(plane.polygon.flat())
     .join(',');
 
+/** A detected mesh's report in a few characters, to tell when one changes. */
+const meshSignatureOf = (mesh: XrMesh): string =>
+  [mesh.id, mesh.label, ...mesh.position, ...mesh.rotation].join(',');
+
+/** A detected mesh's geometry, as pmndrs/xr's `updateXRMeshGeometry` builds it. */
+const meshGeometryOf = (mesh: XRMesh): BufferGeometry => {
+  const geometry = new BufferGeometry();
+  geometry.setIndex(new BufferAttribute(mesh.indices, 1));
+  geometry.setAttribute('position', new BufferAttribute(mesh.vertices, 3));
+  geometry.computeVertexNormals();
+  return geometry;
+};
+
+/** A detected mesh's lent geometry: what it was built from, and how to take it back. */
+type Lent = {
+  readonly vertices: Float32Array;
+  readonly indices: Uint32Array;
+  readonly geometry: BufferGeometry;
+  readonly withdraw: () => void;
+};
+
+const withdrawLent = (lent: Lent): void => {
+  lent.withdraw();
+  lent.geometry.dispose();
+};
+
 type Made = { readonly spec: XrAnchor; anchor: XRAnchor | undefined };
 
 /**
@@ -83,6 +115,7 @@ export const trackSpaces = (
   settings: () => Xr | null,
   follow: Follow,
   input: (input: XrInput) => void,
+  lend: LendGeometry,
 ): XrSpaces => {
   const anchors = new Map<string, Made>();
   const planeIds = new WeakMap<XRPlane, string>();
@@ -90,6 +123,11 @@ export const trackSpaces = (
   let nextPlane = 0;
   /** The planes last reported. */
   let reported: string | undefined;
+  const meshIds = new WeakMap<XRMesh, string>();
+  const meshes = new Map<string, XRMesh>();
+  const lentMeshes = new Map<string, Lent>();
+  let nextMesh = 0;
+  let reportedMeshes: string | undefined;
 
   /** Anchors made, made again where they moved, and deleted where they went. */
   const syncAnchors = (frame: XRFrame, space: XRReferenceSpace): void => {
@@ -140,6 +178,56 @@ export const trackSpaces = (
     input({ _tag: 'Planes', planes: found });
   };
 
+  /** Lends each detected mesh's geometry, again when its vertices change; takes back the lost. */
+  const lendMesh = (id: string, mesh: XRMesh): void => {
+    const lent = lentMeshes.get(id);
+    // Runtimes hand over new arrays when a mesh changes (IWER moves `lastChangedTime` every
+    // frame, keeping them): rebuild only then.
+    if (lent?.vertices === mesh.vertices && lent.indices === mesh.indices) return;
+    if (lent !== undefined) withdrawLent(lent);
+    const geometry = meshGeometryOf(mesh);
+    lentMeshes.set(id, {
+      vertices: mesh.vertices,
+      indices: mesh.indices,
+      geometry,
+      withdraw: lend(xrMeshGeometryId(id), geometry),
+    });
+  };
+
+  /** Reports the detected meshes when what is reported changes, and lends their geometry. */
+  const syncMeshes = (frame: XRFrame, space: XRReferenceSpace): void => {
+    meshes.clear();
+    if (settings()?.meshes === true && frame.detectedMeshes !== undefined) {
+      const found: Array<XrMesh> = [];
+      for (const mesh of frame.detectedMeshes) {
+        const id = meshIds.get(mesh) ?? `mesh-${nextMesh++}`;
+        meshIds.set(mesh, id);
+        meshes.set(id, mesh);
+        lendMesh(id, mesh);
+        const pose = poseOf(frame.getPose(mesh.meshSpace, space));
+        if (pose !== undefined) {
+          angles.setFromQuaternion(turn.fromArray([...pose.quaternion]));
+          found.push({
+            id,
+            label: mesh.semanticLabel ?? '',
+            position: pose.position,
+            rotation: [angles.x, angles.y, angles.z],
+          });
+        }
+      }
+      const now = found.map(meshSignatureOf).join(' ');
+      if (now !== reportedMeshes) {
+        reportedMeshes = now;
+        input({ _tag: 'Meshes', meshes: found });
+      }
+    }
+    for (const [id, lent] of lentMeshes) {
+      if (meshes.has(id)) continue;
+      withdrawLent(lent);
+      lentMeshes.delete(id);
+    }
+  };
+
   const sourceOf = (hand: string, tracked: boolean): XRInputSource | undefined => {
     for (const source of session.inputSources) {
       if (source.handedness === hand && (source.hand !== undefined) === tracked) return source;
@@ -172,6 +260,10 @@ export const trackSpaces = (
           const plane = planes.get(target.id);
           return plane === undefined ? undefined : poseOf(frame.getPose(plane.planeSpace, space));
         }
+        case 'Mesh': {
+          const mesh = meshes.get(target.id);
+          return mesh === undefined ? undefined : poseOf(frame.getPose(mesh.meshSpace, space));
+        }
       }
     };
 
@@ -179,12 +271,16 @@ export const trackSpaces = (
     frame: (frame, space) => {
       syncAnchors(frame, space);
       syncPlanes(frame, space);
+      syncMeshes(frame, space);
       follow(locateIn(frame, space));
     },
     stop: () => {
       for (const made of anchors.values()) made.anchor?.delete();
       anchors.clear();
       planes.clear();
+      meshes.clear();
+      for (const lent of lentMeshes.values()) withdrawLent(lent);
+      lentMeshes.clear();
       follow(() => undefined);
     },
   };

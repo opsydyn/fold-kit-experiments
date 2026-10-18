@@ -24,6 +24,20 @@ const applied = (result: ReconcileResult) => {
 /** Longer than any generated transition, so every tween has landed. */
 const settleSeconds = 2;
 
+/**
+ * The description with its camera still. A turning camera (`autoRotate`) has turned for
+ * as long as its pose has gone undescribed, so where it is depends on history, not on the
+ * description and the time alone; `autoRotate.test.ts` covers it.
+ */
+const still = (description: SceneDescription): SceneDescription => ({
+  ...description,
+  camera: { ...description.camera, autoRotate: 0 },
+  renderTextures: description.renderTextures.map((texture) => ({
+    ...texture,
+    camera: { ...texture.camera, autoRotate: 0 },
+  })),
+});
+
 const freshSnapshot = (description: SceneDescription, time: number): unknown => {
   const graph = createSceneGraph();
   applied(graph.reconcile(description));
@@ -47,7 +61,8 @@ describe('reconcile properties', () => {
     await assertProperty(sceneSequence, (sequence) => {
       const graph = createSceneGraph();
       let time = 0;
-      for (const description of sequence) {
+      for (const turning of sequence) {
+        const description = still(turning);
         applied(graph.reconcile(description));
         time += settleSeconds;
         graph.tick(time);

@@ -232,6 +232,7 @@ export const SurfaceMaterial = Schema.Union([
 export const GeometryRef = Schema.Union([
   ...ShapeGeometry.members,
   Schema.TaggedStruct('SharedGeometry', { id: Schema.String }),
+  Schema.TaggedStruct('LentGeometry', { id: Schema.String }),
 ]);
 
 /** An owned material or a reference to a shared one. */
@@ -302,6 +303,7 @@ export const XrSpace = Schema.Union([
   Schema.TaggedStruct('Controller', { hand: Handedness, space: Schema.Literals(['grip', 'ray']) }),
   Schema.TaggedStruct('Anchor', { id: Schema.String }),
   Schema.TaggedStruct('Plane', { id: Schema.String }),
+  Schema.TaggedStruct('Mesh', { id: Schema.String }),
 ]);
 
 /** A body a joint holds: a node's, or one instance's. */
@@ -451,6 +453,11 @@ export const LabelNode = Schema.TaggedStruct('Label', {
   outlineColor: Rgb,
   outlineOpacity: NonNegative,
   outlineBlur: NonNegative,
+  colorRanges: Schema.Array(
+    Schema.Struct({ start: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)), color: Rgb }),
+  ),
+  curveRadius: Schema.Finite,
+  material: Schema.NullOr(MaterialRef),
 });
 
 /** Uniform ambient light. */
@@ -589,6 +596,7 @@ export const PerspectiveCamera = Schema.TaggedStruct('Perspective', {
   position: Vec3,
   lookAt: Vec3,
   damping: CameraDamping,
+  autoRotate: Schema.Finite,
 });
 
 /** An orthographic camera; `zoom` is CSS pixels per world unit. */
@@ -599,6 +607,7 @@ export const OrthographicCamera = Schema.TaggedStruct('Orthographic', {
   position: Vec3,
   lookAt: Vec3,
   damping: CameraDamping,
+  autoRotate: Schema.Finite,
 });
 
 /** The active camera. */
@@ -711,6 +720,7 @@ export const Xr = Schema.Struct({
   showInputs: Schema.Boolean,
   anchors: Schema.Array(XrAnchor),
   planes: Schema.Boolean,
+  meshes: Schema.Boolean,
   domOverlay: Schema.Boolean,
   glide: Schema.NullOr(
     Schema.Struct({
@@ -876,6 +886,17 @@ export const XrPlane = Schema.Struct({
 /** Detail of XR planes events: every plane the session has detected, as it is now. */
 export const XrPlanesDetail = Schema.Struct({ planes: Schema.Array(XrPlane) });
 
+/** A detected mesh, in the scene's space: its geometry is lent for `xrMesh(id)`. */
+export const XrMesh = Schema.Struct({
+  id: Schema.String,
+  label: Schema.String,
+  position: Vec3,
+  rotation: Vec3,
+});
+
+/** Detail of XR meshes events: every mesh the session has detected, as it is now. */
+export const XrMeshesDetail = Schema.Struct({ meshes: Schema.Array(XrMesh) });
+
 /** Detail of contact force events: the two bodies, and how hard they pushed. */
 export const ContactForceDetail = Schema.Struct({
   a: Schema.String,
@@ -890,8 +911,23 @@ export const ContactForceDetail = Schema.Struct({
   maxForceMagnitude: Schema.Finite,
 });
 
+const Rect = Schema.Tuple([Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]);
+
+/** Detail of label measured events: a label's laid-out size in its own units. */
+export const LabelMeasuredDetail = Schema.Struct({
+  key: Schema.String,
+  block: Rect,
+  visible: Rect,
+});
+
 /** Detail of measured events: a node's world bounding box. */
 export const MeasuredDetail = Schema.Struct({ key: Schema.String, min: Vec3, max: Vec3 });
+
+/** Detail of auto-rotated events: where a camera turning by itself got to. */
+export const AutoRotatedDetail = Schema.Struct({
+  view: Schema.optionalKey(Schema.String),
+  position: Vec3,
+});
 
 /** Detail of gesture events. */
 export const GestureDetail = Schema.Struct({ gesture: Gesture });
@@ -911,14 +947,17 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('Drag', DragDetail.fields),
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
   Schema.TaggedStruct('Gesture', GestureDetail.fields),
+  Schema.TaggedStruct('AutoRotated', AutoRotatedDetail.fields),
   Schema.TaggedStruct('Collision', CollisionDetail.fields),
   Schema.TaggedStruct('Measured', MeasuredDetail.fields),
+  Schema.TaggedStruct('LabelMeasured', LabelMeasuredDetail.fields),
   Schema.TaggedStruct('ContactForce', ContactForceDetail.fields),
   Schema.TaggedStruct('XrStick', XrStickDetail.fields),
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
   Schema.TaggedStruct('XrMoved', XrMovedDetail.fields),
   Schema.TaggedStruct('XrPlanes', XrPlanesDetail.fields),
+  Schema.TaggedStruct('XrMeshes', XrMeshesDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 

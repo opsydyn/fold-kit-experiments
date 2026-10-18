@@ -9,7 +9,7 @@ import type { Object3D } from 'three';
 
 import { presentableRendererOf } from './renderSettings.ts';
 import { type Presentation, present, sessionInit, type XrMode, type XrSystem } from './xr.ts';
-import type { Follow } from './xrSpaces.ts';
+import type { Follow, LendGeometry } from './xrSpaces.ts';
 
 export type { XrMode } from './xr.ts';
 
@@ -26,6 +26,8 @@ export type XrTarget = {
   readonly element: Element;
   /** Places the groups that follow tracked spaces. */
   readonly follow: Follow;
+  /** Lends a geometry to the scene's store, for detected meshes. */
+  readonly lend: LendGeometry;
   /** Input from the session: aims, selects, sticks, buttons and surfaces. */
   readonly input: (input: XrInput) => void;
   /** The session began presenting this scene in `mode`, or (with `null`) ended. */
@@ -86,7 +88,13 @@ export const createXrHub = (system: () => XrSystem | undefined): XrHub => {
       renderer,
       session,
       chosen.settings,
-      { scene: target.scene, draw, follow: target.follow, input: target.input },
+      {
+        scene: target.scene,
+        draw,
+        follow: target.follow,
+        lend: target.lend,
+        input: target.input,
+      },
       ended,
     );
     current = { target, presentation };

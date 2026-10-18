@@ -1,7 +1,6 @@
 {
   "name": "@opsydyn/effect-three-foldkit",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
   "description": "Thin Foldkit adapter for @opsydyn/effect-three.",
   "license": "MIT",
   "repository": {
@@ -12,7 +11,12 @@
   "files": [
     "dist",
     "src",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "!dist/.tsbuildinfo",
+    "!dist/api-extractor",
+    "!dist/pack"
   ],
   "type": "module",
   "sideEffects": false,
@@ -23,6 +27,9 @@
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "typecheck": "tsc -b . ../effect-three-troika && tsc -p tsconfig.test.json",
@@ -35,32 +42,31 @@
     "api:check": "api-extractor run",
     "pack:check": "bun run build && publint && rm -rf dist/pack && bun pm pack --destination dist/pack && attw dist/pack/*.tgz --profile esm-only"
   },
-  "dependencies": {
-    "@opsydyn/effect-three": "workspace:*"
-  },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
-    "@effect/platform-browser": "catalog:",
-    "@fontsource/inter": "catalog:",
-    "@microsoft/api-extractor": "catalog:",
+    "@arethetypeswrong/cli": "0.18.5",
+    "@effect/platform-browser": "4.0.0",
+    "@fontsource/inter": "5.3.0",
+    "@microsoft/api-extractor": "7.59.4",
+    "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/effect-three-troika": "workspace:*",
-    "@opsydyn/oxlint-effect": "catalog:",
-    "@types/bun": "catalog:",
-    "@types/pngjs": "catalog:",
-    "@types/three": "catalog:",
-    "effect": "catalog:",
-    "foldkit": "catalog:",
+    "@opsydyn/oxlint-effect": "2.0.1",
+    "@types/bun": "1.4.3",
+    "@types/pngjs": "6.0.5",
+    "@types/three": "0.186.0",
+    "effect": "4.0.0",
+    "foldkit": "0.167.0",
     "iwer": "2.5.0",
-    "oxlint": "catalog:strict",
-    "oxlint-tsgolint": "catalog:",
-    "pixelmatch": "catalog:",
-    "playwright": "catalog:",
-    "pngjs": "catalog:",
-    "publint": "catalog:",
-    "three": "catalog:",
-    "typescript": "catalog:strict"
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "pixelmatch": "8.0.0",
+    "playwright": "1.64.1",
+    "pngjs": "7.0.0",
+    "publint": "0.3.25",
+    "three": "0.186.1",
+    "typescript": "7.0.2"
   },
   "peerDependencies": {
+    "@opsydyn/effect-three": "0.1.0",
     "effect": "^4.0.0",
     "foldkit": "0.167.0",
     "three": ">=0.186.0 <0.187.0"

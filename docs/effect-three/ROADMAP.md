@@ -103,23 +103,36 @@ Drei-style helpers, XR and physics come after R1–R4.
 The parity roadmap is complete. Three directions are open; they are not exclusive, and
 the first two differ a lot in size.
 
-### A. Publish the packages (S–M)
+### A. Publish the packages (S–M): prepared, not yet published
 
-Everything above is usable only inside this monorepo: `@opsydyn/effect-three`,
-`-foldkit`, `-rapier` and `-troika` are private at `0.0.0`. The repository already
+Everything above was usable only inside this monorepo: `@opsydyn/effect-three`,
+`-foldkit`, `-rapier` and `-troika` were private at `0.0.0`. The repository already
 releases `astro-foldkit` and `foldkit-viz` with release-please and
 `npm publish --provenance`, so the path exists:
 
-- set a first version (`0.1.0`), drop `private`, add `publishConfig.access: public`;
-- give published manifests literal versions, as `tools/check-catalog.ts` requires
-  (`npm publish` cannot resolve `catalog:`);
-- add `pack:check` (publint, attw) for Rapier and troika, as the core and adapter have;
-- add the four packages to release-please and the publish workflows;
-- state what 0.x promises: the API reports in `etc/` are the surface, and breaking
-  changes bump the minor version.
+- ✅ a first version (`0.1.0`), `private` dropped, `publishConfig.access: public`, a
+  `LICENSE` in each package, build leftovers kept out of the tarballs;
+- ✅ literal versions in the published manifests, as `tools/check-catalog.ts` requires
+  (it now accepts any catalog's version, since these build with the `strict` one);
+- ✅ the core a peer of the other three, pinned to their own version (one store, one
+  set of scene types), and a workspace link for local work;
+- ✅ `pack:check` (publint, attw) for all four, in CI;
+- ✅ release-please: the four as linked versions (`bump-minor-pre-major`, so breaking
+  changes bump the minor in 0.x), the peer pin kept in step through `extra-files`, and
+  the release changelog normaliser generalised to six packages (first changelogs arrive
+  as added files);
+- ✅ the publish workflow: the four by manual dispatch only, Bun packing (which turns
+  workspace links into versions) and npm publishing the tarball with provenance;
+- ✅ each README states the 0.x promise and the limits.
 
-Publishing is outward-facing and hard to take back (npm allows unpublishing for 72
-hours), so it needs an explicit go-ahead and the `NPM_TOKEN` secret.
+**Releasing.** Merging to `main` makes release-please open (or update) its release PR,
+proposing 0.1.0 for the four together. Merging that PR tags and releases them on GitHub
+but publishes nothing: `release-please.yml` publishes only `astro-foldkit` and
+`foldkit-viz`. Publishing is then a manual dispatch of `publish.yml` per package, from
+the release tag, in order: `effect-three` first, then `effect-three-rapier`,
+`effect-three-troika` and `effect-three-foldkit` (each pins the core as a peer at the
+same version). It needs the `NPM_TOKEN` secret and is hard to take back (npm allows
+unpublishing for 72 hours).
 
 ### B. A WebGPU renderer (L) ✅
 
@@ -156,10 +169,26 @@ domOverlay })`, and `XrPlanes` events ([ADR-008](adr/008-immersive-sessions.md))
 - ✅ Collision groups and per-collider events in physics: `body({ collisionGroups,
 solverGroups })` with `interactionGroups`, and collisions naming each body's part.
 
+### D. Parity gaps before publishing (S each) ✅
+
+The "not yet" notes the ADRs recorded, closed before the first release:
+
+- ✅ Camera `autoRotate` (with `AutoRotated` and `autoRotated`), and damping for view
+  cameras ([ADR-006](adr/006-controls-as-data.md)).
+- ✅ Label `colorRanges`, `curveRadius`, a scene `material`, and `LabelMeasured`
+  layouts ([ADR-009](adr/009-labels-drawn-by-an-engine.md)).
+- ✅ Lent geometries (`store.lendGeometry`, `lentGeometry(id)`) and XR detected meshes
+  (`xr({ meshes })`, `XrMeshes`, `xrMesh(id)`) ([ADR-008](adr/008-immersive-sessions.md)).
+- ✅ The kernel coverage gate (95% of lines) runs with the core package's tests.
+
+Still limits, to state in each README rather than fix here: WebXR on `WebGPURenderer`
+is untested (IWER cannot render it), labels are not drawn under WebGPU (troika has no
+WebGPU path), and DOM overlay is checked only in the session request.
+
 ### Recommendation
 
-A first: it makes R1–R5 usable outside the monorepo, and it is the smallest. Then C's
-first item, which tidies the layering and starts B without committing to it.
+B, C and D are done and A is prepared: what remains is the release itself (merge the
+release PR, then dispatch `publish.yml` in the order above).
 
 ## Not planned
 

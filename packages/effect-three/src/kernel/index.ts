@@ -35,6 +35,7 @@ export {
   capsule,
   body,
   circle,
+  colorRange,
   xr,
   glide,
   xrAnchor,
@@ -43,6 +44,9 @@ export {
   controllerSpace,
   anchorSpace,
   planeSpace,
+  meshSpace,
+  xrMesh,
+  xrMeshGeometryId,
   physics,
   cuboidCollider,
   ballCollider,
@@ -94,6 +98,7 @@ export {
   ring,
   scene,
   sharedGeometry,
+  lentGeometry,
   sharedMaterial,
   sphere,
   spin,
@@ -152,6 +157,7 @@ export {
   type ManualFrames,
 } from './frames.ts';
 export {
+  autoRotated,
   type Box,
   clipCamera,
   type Cursor,
@@ -199,10 +205,11 @@ export {
   type XrButtonName,
   type XrHand,
   type XrInput,
+  type XrMesh,
   type XrPlane,
   type XrStickDirection,
 } from './xrInput.ts';
-export type { HostedLabel, LabelEngine } from './labels.ts';
+export type { HostedLabel, LabelEngine, LabelLayout } from './labels.ts';
 export {
   type EnvironmentPreset,
   environmentPresets,

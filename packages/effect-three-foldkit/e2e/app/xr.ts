@@ -22,6 +22,7 @@ import {
   modeOf,
   framesDrawn,
   followedIn,
+  verticesIn,
   rendererFinder,
   shimOffsetSpaces,
   spacesFromAddress,
@@ -48,6 +49,7 @@ const described = scene({
     glide: glideFromAddress(location.search),
     anchors: spaces.anchors,
     planes: spaces.planes,
+    meshes: spaces.meshes,
   }),
   children: [
     ...spaces.children,
@@ -79,6 +81,7 @@ const watched = [
   'scene-pointer-missed',
   'scene-xr-moved',
   'scene-xr-planes',
+  'scene-xr-meshes',
   'scene-click',
 ];
 const events: Array<string> = [];
@@ -138,4 +141,5 @@ Reflect.set(globalThis, '__xr', {
   drags: () => drags,
   inputs: () => inputsShown(Reflect.get(globalThis, '__observedScenes') ?? []),
   followed: () => followedIn(Reflect.get(globalThis, '__observedScenes') ?? []),
+  meshVertices: () => verticesIn(Reflect.get(globalThis, '__observedScenes') ?? [], 'on-mesh-cube'),
 });

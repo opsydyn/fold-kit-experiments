@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import { label } from '@opsydyn/effect-three';
+import { colorRange, label } from '@opsydyn/effect-three';
+import { Material, MeshStandardMaterial } from 'three';
 // Its ES build, as bundlers pick it (`module`): Bun would load the UMD `main`, whose
 // `require('three')` can meet three's ES build mid-load.
 import { Text } from 'troika-three-text/dist/troika-three-text.esm.js';
@@ -39,5 +40,36 @@ test('an update sets the new settings and syncs again', () => {
   expect(synced).toEqual(['Hi', 'Bye']);
   expect(text.maxWidth).toBe(3);
   expect(text.lineHeight).toBe(1.4);
+  hosted.dispose();
+});
+
+test('colour ranges, a curve and a lent material reach troika; layouts come from it', () => {
+  const { hosted, text } = host(
+    label({
+      key: 'a',
+      text: 'Hello',
+      curveRadius: -2,
+      colorRanges: [colorRange(0, 0xff0000), colorRange(3, 0x00ff00)],
+    }),
+  );
+  expect(text.colorRanges).toEqual({ 0: 0xff0000, 3: 0x00ff00 });
+  expect(text.curveRadius).toBe(-2);
+  hosted.update(label({ key: 'a', text: 'Hello' }));
+  expect(text.colorRanges).toBeNull();
+  // troika derives its text material from the one lent, and goes back to its own without.
+  const lit = new MeshStandardMaterial({ roughness: 0.3 });
+  hosted.setMaterial(lit);
+  const derived = text.material;
+  expect(derived).toBeInstanceOf(Material);
+  expect(Reflect.get(derived ?? {}, 'baseMaterial')).toBe(lit);
+  hosted.setMaterial(undefined);
+  expect(Reflect.get(text.material ?? {}, 'baseMaterial')).not.toBe(lit);
+  // Not laid out yet (no worker here); once troika has, its bounds are the layout.
+  expect(hosted.layout()).toBeUndefined();
+  Reflect.set(text, '_textRenderInfo', {
+    blockBounds: [-1, -0.5, 1, 0.5],
+    visibleBounds: [-0.9, -0.4, 0.9, 0.35],
+  });
+  expect(hosted.layout()).toEqual({ block: [-1, -0.5, 1, 0.5], visible: [-0.9, -0.4, 0.9, 0.35] });
   hosted.dispose();
 });

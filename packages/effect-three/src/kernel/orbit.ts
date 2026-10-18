@@ -484,6 +484,20 @@ const centreOf = (box: Box): Vec3 => [
 ];
 
 /**
+ * The camera where turning by itself (`autoRotate`) took it, from an `AutoRotated`
+ * event: keep it in the Model before orbiting, so the gesture goes on from where the
+ * camera was shown.
+ *
+ * ```ts
+ * AutoRotated: ({ position }) => ({ model: { ...model, camera: autoRotated(model.camera, { position }) } })
+ * ```
+ */
+export const autoRotated = <C extends Camera>(
+  camera: C,
+  turned: { readonly position: Vec3 },
+): C => ({ ...camera, position: turned.position });
+
+/**
  * The camera framing a box, as Drei's `Bounds` `fit` (margin 1.2 by default). A
  * perspective camera keeps its direction and moves to the distance that fits the box,
  * looking at its centre; an orthographic one keeps its place and zooms so the box's

@@ -10,6 +10,12 @@ on:
         options:
           - astro-foldkit
           - foldkit-viz
+          # effect-three's four are released together: publish effect-three first, then
+          # the others, which pin it as a peer at the same version.
+          - effect-three
+          - effect-three-rapier
+          - effect-three-troika
+          - effect-three-foldkit
       ref:
         description: 'Git ref to publish (tag, branch, or SHA). Leave empty to use the branch the workflow is dispatched from.'
         required: false
@@ -47,11 +53,22 @@ jobs:
         run: bun run --filter @opsydyn/${{ inputs.package }} build && bun run --filter @opsydyn/${{ inputs.package }} typecheck
 
       - name: Publish to npm
-        if: ${{ env.NPM_TOKEN != '' }}
+        if: ${{ env.NPM_TOKEN != '' && !startsWith(inputs.package, 'effect-three') }}
         working-directory: packages/${{ inputs.package }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
+
+      # Bun packs effect-three's packages so their workspace links become versions (npm
+      # publish would ship `workspace:*`); npm publishes the tarball with provenance.
+      - name: Pack and publish to npm (effect-three)
+        if: ${{ env.NPM_TOKEN != '' && startsWith(inputs.package, 'effect-three') }}
+        working-directory: packages/${{ inputs.package }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          bun run pack:check
+          npm publish dist/pack/*.tgz --access public --provenance
 
       - name: Note missing NPM token
         if: ${{ env.NPM_TOKEN == '' }}

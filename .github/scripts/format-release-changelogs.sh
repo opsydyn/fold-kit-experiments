@@ -18,14 +18,20 @@ generated_sha=$(jq -r '.[0].sha // ""' <<< "$prs")
 temporary=$(mktemp -d)
 trap 'rm -rf "$temporary"' EXIT
 
+# The packages release-please versions. A release PR may bring, for each, its package.json
+# and its CHANGELOG.md (added on a package's first release), plus the manifest: nothing else.
+packages=(astro-foldkit foldkit-viz effect-three effect-three-foldkit effect-three-rapier effect-three-troika)
+packages_json=$(printf '%s\n' "${packages[@]}" | jq -R . | jq -s .)
+most_files=$((1 + 2 * ${#packages[@]}))
+
 read_pr() {
   gh api --hostname github.com --method GET "repos/$repo/pulls/$number" > "$temporary/pr.json"
-  jq -e --arg repo "$repo" --arg branch "$branch" --argjson number "$number" '
+  jq -e --arg repo "$repo" --arg branch "$branch" --argjson number "$number" --argjson most "$most_files" '
     .number == $number and .state == "open" and .merged_at == null and
     .head.repo.full_name == $repo and .base.repo.full_name == $repo and
     .head.ref == $branch and .base.ref == "main" and
     (.head.sha | type == "string" and test("^[a-f0-9]{40}$")) and
-    (.changed_files | type == "number" and . > 0 and . <= 5 and floor == .) and
+    (.changed_files | type == "number" and . > 0 and . <= $most and floor == .) and
     ([.labels[].name] | index("autorelease: pending") != null)' "$temporary/pr.json" >/dev/null
 }
 
@@ -33,52 +39,68 @@ read_pr
 sha=$(jq -r '.head.sha' "$temporary/pr.json")
 [[ -z "$generated_sha" || "$generated_sha" == "$sha" ]] || { printf 'Generated PR head changed.\n' >&2; exit 1; }
 gh api --hostname github.com --method GET "repos/$repo/pulls/$number/files?per_page=100" > "$temporary/files.json"
-jq -e --argjson count "$(jq '.changed_files' "$temporary/pr.json")" '
-  type == "array" and length == $count and all(.[];
-    .status == "modified" and (.filename as $path |
-      [".release-please-manifest.json", "packages/astro-foldkit/package.json",
-       "packages/foldkit-viz/package.json", "packages/astro-foldkit/CHANGELOG.md",
-       "packages/foldkit-viz/CHANGELOG.md"] | index($path) != null))' "$temporary/files.json" >/dev/null
+jq -e --argjson count "$(jq '.changed_files' "$temporary/pr.json")" --argjson packages "$packages_json" '
+  ([$packages[] | "packages/\(.)/package.json"]) as $manifests |
+  ([$packages[] | "packages/\(.)/CHANGELOG.md"]) as $changelogs |
+  type == "array" and length == $count and all(.[]; .filename as $path | .status as $status |
+    (($path == ".release-please-manifest.json" or ($manifests | index($path) != null)) and
+      $status == "modified") or
+    (($changelogs | index($path) != null) and ($status == "modified" or $status == "added")))' \
+  "$temporary/files.json" >/dev/null
+
+# The packages whose changelog the PR brings, in the order above.
+changed=()
+while IFS= read -r package; do changed+=("$package"); done < <(
+  jq -r --argjson packages "$packages_json" '[.[].filename] as $names |
+    $packages[] as $package |
+    select(($names | index("packages/\($package)/CHANGELOG.md")) != null) | $package' "$temporary/files.json")
+[[ ${#changed[@]} != 0 ]] || { printf 'No changelog in the release PR.\n'; exit 0; }
 
 # Only pinned Markdown blobs and directory-entry metadata are read; PR code is never executed.
-snapshot_query='query ChangelogSnapshot($owner: String!, $name: String!, $astro: String!, $viz: String!, $astroFile: String!, $vizFile: String!) {
-  repository(owner: $owner, name: $name) {
-    nameWithOwner
-    astro: object(expression: $astro) { __typename ... on Tree { entries { name mode type } } }
-    viz: object(expression: $viz) { __typename ... on Tree { entries { name mode type } } }
-    astroFile: object(expression: $astroFile) { __typename ... on Blob { text byteSize isBinary isTruncated } }
-    vizFile: object(expression: $vizFile) { __typename ... on Blob { text byteSize isBinary isTruncated } }
+# Aliases are numbered by position in `changed`, which holds only names from `packages`.
+declarations='$owner: String!, $name: String!'
+selections=''
+variables=$(jq -n '{owner: "opsydyn", name: "fold-kit-experiments"}')
+for i in "${!changed[@]}"; do
+  declarations+=", \$p$i: String!, \$p${i}File: String!"
+  selections+="
+    p$i: object(expression: \$p$i) { __typename ... on Tree { entries { name mode type } } }
+    p${i}File: object(expression: \$p${i}File) { __typename ... on Blob { text byteSize isBinary isTruncated } }"
+  variables=$(jq --arg tree "p$i" --arg file "p${i}File" \
+    --arg treeValue "$sha:packages/${changed[$i]}" --arg fileValue "$sha:packages/${changed[$i]}/CHANGELOG.md" \
+    '. + {($tree): $treeValue, ($file): $fileValue}' <<< "$variables")
+done
+snapshot_query="query ChangelogSnapshot($declarations) {
+  repository(owner: \$owner, name: \$name) {
+    nameWithOwner$selections
   }
-}'
-jq -n --arg query "$snapshot_query" --arg astro "$sha:packages/astro-foldkit" --arg viz "$sha:packages/foldkit-viz" \
-  --arg astroFile "$sha:packages/astro-foldkit/CHANGELOG.md" --arg vizFile "$sha:packages/foldkit-viz/CHANGELOG.md" \
-  '{query: $query, variables: {owner: "opsydyn", name: "fold-kit-experiments", astro: $astro, viz: $viz, astroFile: $astroFile, vizFile: $vizFile}}' |
+}"
+jq -n --arg query "$snapshot_query" --argjson variables "$variables" '{query: $query, variables: $variables}' |
   gh api --hostname github.com --method POST graphql --input - > "$temporary/snapshot.json"
 jq -e --arg repo "$repo" '((.errors // []) | length) == 0 and .data.repository.nameWithOwner == $repo' "$temporary/snapshot.json" >/dev/null
 
-for package in astro-foldkit foldkit-viz; do
-  key=astro
-  [[ "$package" != foldkit-viz ]] || key=viz
-  jq -e --arg key "$key" '.data.repository as $repo |
+formatted=()
+for i in "${!changed[@]}"; do
+  package=${changed[$i]}
+  jq -e --arg key "p$i" '.data.repository as $repo |
     ($repo[$key].__typename == "Tree") and
     ($repo[$key].entries | map(select(.name == "CHANGELOG.md")) |
       length == 1 and .[0].mode == 33188 and .[0].type == "blob") and
     ($repo[$key + "File"] | .__typename == "Blob" and .isBinary == false and .isTruncated == false and
       (.text | type == "string") and .byteSize <= 1048576 and .byteSize == (.text | utf8bytelength))' "$temporary/snapshot.json" >/dev/null
   mkdir "$temporary/$package"
-  jq -j --arg key "${key}File" '.data.repository[$key].text' "$temporary/snapshot.json" > "$temporary/$package/CHANGELOG.md"
+  jq -j --arg key "p${i}File" '.data.repository[$key].text' "$temporary/snapshot.json" > "$temporary/$package/CHANGELOG.md"
   cp "$temporary/$package/CHANGELOG.md" "$temporary/$package/before.md"
+  formatted+=("$temporary/$package/CHANGELOG.md")
 done
 
 env -u GH_TOKEN -u GITHUB_TOKEN -u NPM_TOKEN -u NODE_AUTH_TOKEN \
-  "$root/node_modules/.bin/oxfmt" --config "$root/.oxfmtrc.json" --disable-nested-config \
-  "$temporary/astro-foldkit/CHANGELOG.md" "$temporary/foldkit-viz/CHANGELOG.md"
+  "$root/node_modules/.bin/oxfmt" --config "$root/.oxfmtrc.json" --disable-nested-config "${formatted[@]}"
 env -u GH_TOKEN -u GITHUB_TOKEN -u NPM_TOKEN -u NODE_AUTH_TOKEN \
-  "$root/node_modules/.bin/oxfmt" --check --config "$root/.oxfmtrc.json" --disable-nested-config \
-  "$temporary/astro-foldkit/CHANGELOG.md" "$temporary/foldkit-viz/CHANGELOG.md"
+  "$root/node_modules/.bin/oxfmt" --check --config "$root/.oxfmtrc.json" --disable-nested-config "${formatted[@]}"
 
 printf '[]' > "$temporary/additions.json"
-for package in astro-foldkit foldkit-viz; do
+for package in "${changed[@]}"; do
   if cmp -s "$temporary/$package/before.md" "$temporary/$package/CHANGELOG.md"; then
     continue
   else

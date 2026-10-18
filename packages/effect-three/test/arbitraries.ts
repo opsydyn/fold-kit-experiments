@@ -160,6 +160,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     geometry: Schema.Union([
       ...Shape.members,
       Schema.TaggedStruct('SharedGeometry', { id: Schema.Literals(['g1', 'g2']) }),
+      Schema.TaggedStruct('LentGeometry', { id: Schema.Literals(['lent']) }),
     ]),
     material: Schema.Union([
       ...Surface.members,
@@ -279,6 +280,17 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     outlineColor: Colour,
     outlineOpacity: Schema.Literals([1]),
     outlineBlur: Schema.Literals([0]),
+    colorRanges: Schema.Union([
+      Schema.Tuple([]),
+      Schema.Tuple([Schema.Struct({ start: Schema.Literals([0, 1]), color: Colour })]),
+    ]),
+    curveRadius: Schema.Literals([0, 2]),
+    material: Schema.NullOr(
+      Schema.Union([
+        ...Surface.members,
+        Schema.TaggedStruct('SharedMaterial', { id: Schema.Literals(['m1', 'm2']) }),
+      ]),
+    ),
   }),
   Schema.TaggedStruct('AmbientLight', { key: Key, color: Colour, intensity: Size }),
   Schema.TaggedStruct('PointLight', {
@@ -369,6 +381,7 @@ const sceneFields = {
         Schema.Struct({ id: Schema.Literals(['a1', 'a2']), position: Vec3, rotation: Vec3 }),
       ).check(Schema.isMaxLength(2)),
       planes: Schema.Boolean,
+      meshes: Schema.Boolean,
       domOverlay: Schema.Boolean,
       glide: Schema.NullOr(
         Schema.Struct({
@@ -447,6 +460,7 @@ const sceneFields = {
         position: Vec3,
         lookAt: Vec3,
         damping: Schema.Literals([0, 0.1]),
+        autoRotate: Schema.Literals([0, 2]),
       }),
       background: Schema.NullOr(Colour),
       children: Schema.Array(Node).check(Schema.isMaxLength(3)),
@@ -461,7 +475,8 @@ const sceneFields = {
         far: Schema.Literals([100]),
         position: Vec3,
         lookAt: Vec3,
-        damping: Schema.Literals([0]),
+        damping: Schema.Literals([0, 0.1]),
+        autoRotate: Schema.Literals([0]),
       }),
       rect: Schema.Struct({
         x: Schema.Literals([0, 0.5]),
@@ -504,6 +519,7 @@ const sceneFields = {
       position: Vec3,
       lookAt: Vec3,
       damping: Schema.Literals([0, 0.1]),
+      autoRotate: Schema.Literals([0, 2]),
     }),
     Schema.TaggedStruct('Orthographic', {
       zoom: Schema.Literals([1, 50]),
@@ -512,6 +528,7 @@ const sceneFields = {
       position: Vec3,
       lookAt: Vec3,
       damping: Schema.Literals([0, 0.1]),
+      autoRotate: Schema.Literals([0, 2]),
     }),
   ]),
   resources: Schema.Struct({

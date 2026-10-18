@@ -5,7 +5,8 @@
 ```ts
 
 import { Behaviour } from '@opsydyn/effect-three';
-import type { BodyPose } from '@opsydyn/effect-three';
+import { BodyPose } from '@opsydyn/effect-three';
+import { BufferGeometry } from 'three';
 import { CustomElement } from 'foldkit';
 import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
@@ -32,7 +33,7 @@ import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
 import type { Xr } from '@opsydyn/effect-three';
 import type { XrInput } from '@opsydyn/effect-three';
-import type { XrSpace } from '@opsydyn/effect-three';
+import { XrSpace } from '@opsydyn/effect-three';
 import { YieldableError } from 'effect/Cause';
 
 // @public
@@ -52,6 +53,9 @@ export class AssetLoadError extends AssetLoadError_base<{
 
 // @public (undocumented)
 export type Assets = ReturnType<typeof makeAssets>;
+
+// @public
+export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
 
 // @public
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
@@ -86,14 +90,17 @@ export const domEventName: {
     readonly Drag: 'scene-drag';
     readonly DragEnd: 'scene-drag-end';
     readonly Gesture: 'scene-gesture';
+    readonly AutoRotated: 'scene-auto-rotated';
     readonly Collision: 'scene-collision';
     readonly ContactForce: 'scene-contact-force';
     readonly Measured: 'scene-measured';
+    readonly LabelMeasured: 'scene-label-measured';
     readonly XrStick: 'scene-xr-stick';
     readonly XrButton: 'scene-xr-button';
     readonly XrSurface: 'scene-xr-surface';
     readonly XrMoved: 'scene-xr-moved';
     readonly XrPlanes: 'scene-xr-planes';
+    readonly XrMeshes: 'scene-xr-meshes';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -123,6 +130,9 @@ export type HitDetail = typeof SceneSchema.HitDetail.Type;
 
 // @public
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
+
+// @public
+export type LabelMeasuredDetail = typeof SceneSchema.LabelMeasuredDetail.Type;
 
 // @public
 export const makeAssets: (store: ResourceStore) => {
@@ -244,6 +254,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly damping: Schema.Finite;
+            readonly autoRotate: Schema.Finite;
         }>, Schema.TaggedStruct<"Orthographic", {
             readonly zoom: Schema.Finite;
             readonly near: Schema.Finite;
@@ -251,6 +262,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly damping: Schema.Finite;
+            readonly autoRotate: Schema.Finite;
         }>]>;
         readonly gestures: Schema.Literals<readonly ["page", "scene"]>;
         readonly views: Schema.$Array<Schema.Struct<{
@@ -262,6 +274,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly damping: Schema.Finite;
+                readonly autoRotate: Schema.Finite;
             }>, Schema.TaggedStruct<"Orthographic", {
                 readonly zoom: Schema.Finite;
                 readonly near: Schema.Finite;
@@ -269,6 +282,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly damping: Schema.Finite;
+                readonly autoRotate: Schema.Finite;
             }>]>;
             readonly rect: Schema.Struct<{
                 readonly x: Schema.Finite;
@@ -288,6 +302,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly damping: Schema.Finite;
+                readonly autoRotate: Schema.Finite;
             }>, Schema.TaggedStruct<"Orthographic", {
                 readonly zoom: Schema.Finite;
                 readonly near: Schema.Finite;
@@ -295,6 +310,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly damping: Schema.Finite;
+                readonly autoRotate: Schema.Finite;
             }>]>;
             readonly background: Schema.NullOr<Schema.Int>;
             readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
@@ -398,6 +414,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             }>>;
             readonly planes: Schema.Boolean;
+            readonly meshes: Schema.Boolean;
             readonly domOverlay: Schema.Boolean;
             readonly glide: Schema.NullOr<Schema.Struct<{
                 readonly speed: Schema.Finite;
@@ -746,6 +763,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly deltaY: Schema.Finite;
         }>]>;
     }>;
+    'scene-auto-rotated': Schema.Struct<{
+        readonly view: Schema.optionalKey<Schema.String>;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
     'scene-collision': Schema.Struct<{
         readonly a: Schema.String;
         readonly aInstance: Schema.optionalKey<Schema.String>;
@@ -771,6 +792,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly key: Schema.String;
         readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>;
+    'scene-label-measured': Schema.Struct<{
+        readonly key: Schema.String;
+        readonly block: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly visible: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>;
     'scene-xr': Schema.Struct<{
         readonly mode: Schema.NullOr<Schema.Literals<readonly ["immersive-vr", "immersive-ar"]>>;
@@ -801,6 +827,14 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly polygon: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+        }>>;
+    }>;
+    'scene-xr-meshes': Schema.Struct<{
+        readonly meshes: Schema.$Array<Schema.Struct<{
+            readonly id: Schema.String;
+            readonly label: Schema.String;
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>>;
     }>;
     'scene-performance': Schema.Struct<{
@@ -964,15 +998,18 @@ export type ViewConfig<Message> = {
     readonly onDrag?: (detail: DragDetail) => Message;
     readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onGesture?: (gesture: Gesture) => Message;
+    readonly onAutoRotated?: (detail: AutoRotatedDetail) => Message;
     readonly onCollision?: (detail: CollisionDetail) => Message;
     readonly onContactForce?: (detail: ContactForceDetail) => Message;
     readonly onMeasured?: (detail: MeasuredDetail) => Message;
+    readonly onLabelMeasured?: (detail: LabelMeasuredDetail) => Message;
     readonly onXRSession?: (detail: XrSessionDetail) => Message;
     readonly onXRStick?: (detail: XrStickDetail) => Message;
     readonly onXRButton?: (detail: XrButtonDetail) => Message;
     readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
     readonly onXRMoved?: (detail: XrMovedDetail) => Message;
     readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
+    readonly onXRMeshes?: (detail: XrMeshesDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
@@ -1008,6 +1045,9 @@ export type XrButtonDetail = typeof SceneSchema.XrButtonDetail.Type;
 //
 // @public (undocumented)
 export type XrControls = ReturnType<typeof makeXr>;
+
+// @public
+export type XrMeshesDetail = typeof SceneSchema.XrMeshesDetail.Type;
 
 // @public
 export type XrMode = 'immersive-vr' | 'immersive-ar';

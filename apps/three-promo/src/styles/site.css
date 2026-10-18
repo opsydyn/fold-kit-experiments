@@ -572,6 +572,10 @@ nav a[aria-current='page'] {
   color: var(--blue);
   border-color: var(--blue);
 }
+/* Several links in a row (a docs section pointing at more than one example). */
+.text-link + .text-link {
+  margin-left: 20px;
+}
 .gallery-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -118,7 +118,13 @@ const room: ReadonlyArray<SceneNode> = [
   // A shelf of books on the left wall.
   piece('shelf', [-2.82, 1.3, -0.6], [0.3, 0.04, 1.4], wood, 0.5),
   ...[0x3d79fa, 0xf5ce60, 0x80d7bb, 0xfa8b79, 0xb38bf5, 0x2b2e35].map((colour, index) =>
-    piece(`book:${index}`, [-2.8, 1.47, -1.15 + index * 0.2], [0.22, 0.3 - (index % 3) * 0.04, 0.16], colour, 0.7),
+    piece(
+      `book:${index}`,
+      [-2.8, 1.47, -1.15 + index * 0.2],
+      [0.22, 0.3 - (index % 3) * 0.04, 0.16],
+      colour,
+      0.7,
+    ),
   ),
 ];
 
@@ -144,7 +150,11 @@ const plantParts = (id: string): ReadonlyArray<SceneNode> => [
     key: `${id}:bloom`,
     position: [0.05, 0.6, 0.02],
     geometry: sphere({ radius: 0.04 }),
-    material: standard({ color: paintColour.gold, emissive: paintColour.gold, emissiveIntensity: 0.4 }),
+    material: standard({
+      color: paintColour.gold,
+      emissive: paintColour.gold,
+      emissiveIntensity: 0.4,
+    }),
   }),
 ];
 
@@ -163,7 +173,11 @@ const planeNode = (detected: XrPlane): SceneNode => {
   const zs = detected.polygon.map((point) => point[2]);
   const width = Math.max(0.05, Math.max(...xs) - Math.min(...xs));
   const depth = Math.max(0.05, Math.max(...zs) - Math.min(...zs));
-  const centre: Vec3 = [(Math.max(...xs) + Math.min(...xs)) / 2, 0.002, (Math.max(...zs) + Math.min(...zs)) / 2];
+  const centre: Vec3 = [
+    (Math.max(...xs) + Math.min(...xs)) / 2,
+    0.002,
+    (Math.max(...zs) + Math.min(...zs)) / 2,
+  ];
   return group({
     key: `plane:${detected.id}`,
     follow: planeSpace(detected.id),
@@ -211,8 +225,16 @@ const tips = (model: Model): ReadonlyArray<SceneNode> => {
       outlineColor: 0x1d2433,
     });
   return [
-    group({ key: 'tips:hand', follow: jointSpace('left', 'wrist'), children: [tip('tips:hand:text')] }),
-    group({ key: 'tips:controller', follow: controllerSpace('left'), children: [tip('tips:controller:text')] }),
+    group({
+      key: 'tips:hand',
+      follow: jointSpace('left', 'wrist'),
+      children: [tip('tips:hand:text')],
+    }),
+    group({
+      key: 'tips:controller',
+      follow: controllerSpace('left'),
+      children: [tip('tips:controller:text')],
+    }),
   ];
 };
 
@@ -224,7 +246,9 @@ export const sceneFor = (model: Model) => {
     xr: {
       ...model.player,
       // Anchors only where the room is the real one.
-      anchors: inAr ? model.plants.map((plant) => xrAnchor({ id: plant.id, position: plant.at })) : [],
+      anchors: inAr
+        ? model.plants.map((plant) => xrAnchor({ id: plant.id, position: plant.at }))
+        : [],
     },
     environment: inAr ? null : environment({ environmentIntensity: 0.45 }),
     render: renderSettings({ shadows: 'soft', toneMapping: 'aces', exposure: 1.05 }),

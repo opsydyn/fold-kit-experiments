@@ -4,15 +4,10 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 import { sceneMount } from './environment';
 import { Message } from './message';
 import { limits, type Model } from './model';
-import { frames, score } from './score';
 import { sceneFor } from './scene';
+import { frames, score } from './score';
 
-const button = (
-  h: HtmlBuilder<Message>,
-  label: string,
-  message: Message,
-  disabled = false,
-): Html =>
+const button = (h: HtmlBuilder<Message>, label: string, message: Message, disabled = false): Html =>
   h.button(
     [h.Class('e3-button'), h.Type('button'), h.Disabled(disabled), h.OnClick(message)],
     [label],
@@ -66,7 +61,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           className: 'e3-stage e3-stage-tall',
           onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
           onCollision: (collision) => Message.Collided({ collision }),
-          onContactForce: ({ totalForceMagnitude }) => Message.Struck({ force: totalForceMagnitude }),
+          onContactForce: ({ totalForceMagnitude }) =>
+            Message.Struck({ force: totalForceMagnitude }),
           onLabelMeasured: (measured) => Message.MeasuredScoreboard({ measured }),
           onGesture: (gesture) => Message.MadeGesture({ gesture }),
         },

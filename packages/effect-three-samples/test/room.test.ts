@@ -56,7 +56,9 @@ test('in AR the furniture goes, plants become anchors, and what was detected is 
 test('a surface selected in AR plants at its point; gliding keeps where the player stands', () => {
   const planted = step(
     start,
-    Message.SelectedSurface({ surface: { hand: 'right', point: [0.4, 0.7, -1], normal: [0, 1, 0] } }),
+    Message.SelectedSurface({
+      surface: { hand: 'right', point: [0.4, 0.7, -1], normal: [0, 1, 0] },
+    }),
   );
   expect(planted.plants.at(-1)?.at).toEqual([0.4, 0.7, -1]);
   const moved = step(start, Message.Glided({ moved: { origin: [1, 0, 1], heading: 0.5 } }));

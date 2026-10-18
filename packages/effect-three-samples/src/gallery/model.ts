@@ -20,17 +20,14 @@ export const Model = Schema.Struct({
 export type Model = typeof Model.Type;
 
 /** The gallery wall: an arc of this radius round the visitor, centred here. */
-export const wall = { radius: 6, centre: [0, 0, 4] as Vec3 } as const;
+const centre: Vec3 = [0, 0, 4];
+export const wall = { radius: 6, centre } as const;
 
 /** Where on the wall an angle (degrees; 0 straight ahead, positive to the right) is. */
 export const onWall = (degrees: number, y: number, inset = 0): Vec3 => {
   const angle = (degrees * Math.PI) / 180;
   const radius = wall.radius - inset;
-  return [
-    wall.centre[0] + Math.sin(angle) * radius,
-    y,
-    wall.centre[2] - Math.cos(angle) * radius,
-  ];
+  return [wall.centre[0] + Math.sin(angle) * radius, y, wall.centre[2] - Math.cos(angle) * radius];
 };
 
 /** The turn about y that faces something at `degrees` back towards the visitor. */

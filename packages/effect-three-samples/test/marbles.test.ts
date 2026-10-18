@@ -54,7 +54,10 @@ test('pours stop at the most of one colour; knocks keep the hardest', () => {
     start,
   );
   expect(full.poured.teal).toBe(60);
-  const knocked = step(step(start, Message.KnockedWheel({ force: 20 })), Message.KnockedWheel({ force: 9 }));
+  const knocked = step(
+    step(start, Message.KnockedWheel({ force: 20 })),
+    Message.KnockedWheel({ force: 9 }),
+  );
   expect([knocked.knocks, knocked.hardest]).toEqual([2, 20]);
 });
 

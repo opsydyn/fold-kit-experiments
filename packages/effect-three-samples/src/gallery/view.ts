@@ -18,7 +18,9 @@ const isPlaque = (id: string): boolean =>
 
 const width = (model: Model, key: string): string => {
   const block = model.layouts[key];
-  return block === undefined ? '…' : `${(block[2] - block[0]).toFixed(2)} × ${(block[3] - block[1]).toFixed(2)}`;
+  return block === undefined
+    ? '…'
+    : `${(block[2] - block[0]).toFixed(2)} × ${(block[3] - block[1]).toFixed(2)}`;
 };
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({

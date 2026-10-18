@@ -85,23 +85,48 @@ const sideMaterial = standard({ color: 0x23262e, roughness: 0.8 });
 const alley: ReadonlyArray<SceneNode> = [
   fixedBox('lane', [0, -0.05, laneMiddle], [lane.width, 0.1, laneLength]),
   // Gutters either side, lower than the lane, and the walls beyond them.
-  fixedBox('gutter-left', [-lane.width / 2 - 0.12, -0.12, laneMiddle], [0.24, 0.04, laneLength], gutterMaterial),
-  fixedBox('gutter-right', [lane.width / 2 + 0.12, -0.12, laneMiddle], [0.24, 0.04, laneLength], gutterMaterial),
-  fixedBox('side-left', [-lane.width / 2 - 0.3, 0.1, laneMiddle], [0.12, 0.5, laneLength], sideMaterial),
-  fixedBox('side-right', [lane.width / 2 + 0.3, 0.1, laneMiddle], [0.12, 0.5, laneLength], sideMaterial),
+  fixedBox(
+    'gutter-left',
+    [-lane.width / 2 - 0.12, -0.12, laneMiddle],
+    [0.24, 0.04, laneLength],
+    gutterMaterial,
+  ),
+  fixedBox(
+    'gutter-right',
+    [lane.width / 2 + 0.12, -0.12, laneMiddle],
+    [0.24, 0.04, laneLength],
+    gutterMaterial,
+  ),
+  fixedBox(
+    'side-left',
+    [-lane.width / 2 - 0.3, 0.1, laneMiddle],
+    [0.12, 0.5, laneLength],
+    sideMaterial,
+  ),
+  fixedBox(
+    'side-right',
+    [lane.width / 2 + 0.3, 0.1, laneMiddle],
+    [0.12, 0.5, laneLength],
+    sideMaterial,
+  ),
   // The approach behind the foul line.
-  fixedBox('approach', [0, -0.05, lane.near + 1.4], [lane.width + 0.84, 0.1, 2.8], standard({ color: 0xc9975f, roughness: 0.5 })),
+  fixedBox(
+    'approach',
+    [0, -0.05, lane.near + 1.4],
+    [lane.width + 0.84, 0.1, 2.8],
+    standard({ color: 0xc9975f, roughness: 0.5 }),
+  ),
   // The pit behind the pins, and its back wall.
   fixedBox('pit-floor', [0, -0.6, lane.far - 0.8], [lane.width + 0.8, 0.1, 1.6], sideMaterial),
   fixedBox('pit-back', [0, 0.2, lane.far - 1.6], [lane.width + 0.8, 1.6, 0.1], sideMaterial),
 ];
 
-/** The room's floor, well below the lane. */
+/** A platform under the alley: something to stand on, on a dark page or a light one. */
 const floor: SceneNode = mesh({
   key: 'floor',
-  position: [0, -0.66, 0],
+  position: [0, -0.66, 0.2],
   rotation: fixed([-Math.PI / 2, 0, 0]),
-  geometry: plane({ width: 40, height: 40 }),
+  geometry: plane({ width: 3.4, height: 17 }),
   material: standard({ color: 0x15171d, roughness: 0.9 }),
   receiveShadow: true,
 });
@@ -148,7 +173,11 @@ const sensors: SceneNode = group({
           position: [at[0], pinHeight - 0.07, at[2]],
         }),
       ),
-      cuboidCollider({ name: 'pit', halfExtents: [1, 0.3, 0.7], position: [0, -0.3, lane.far - 0.8] }),
+      cuboidCollider({
+        name: 'pit',
+        halfExtents: [1, 0.3, 0.7],
+        position: [0, -0.3, lane.far - 0.8],
+      }),
     ],
   }),
   children: [],
@@ -178,7 +207,12 @@ const pin = (model: Model, id: string, at: Vec3): SceneNode =>
         key: `${pinKey(model, id)}:stripe`,
         position: [0, pinMiddle / 2 - 0.02, 0],
         rotation: fixed([Math.PI / 2, 0, 0]),
-        geometry: torus({ radius: pinRadius * 0.97, tube: 0.009, radialSegments: 8, tubularSegments: 24 }),
+        geometry: torus({
+          radius: pinRadius * 0.97,
+          tube: 0.009,
+          radialSegments: 8,
+          tubularSegments: 24,
+        }),
         material: pinStripe,
       }),
     ],
@@ -223,7 +257,10 @@ const ball = (model: Model): SceneNode => {
 };
 
 /** The scoresheet line: each frame's marks, strikes and spares in gold. */
-export const sheet = (model: Model): { readonly text: string; readonly ranges: ReadonlyArray<LabelColorRange> } => {
+/** The scoreboard's text, and the colour ranges that pick out strikes and spares. */
+export type Sheet = { readonly text: string; readonly ranges: ReadonlyArray<LabelColorRange> };
+
+export const sheet = (model: Model): Sheet => {
   const scored = frames(model.rolls);
   const cells = Array.from({ length: 10 }, (_, index) => {
     const frame = scored[index];
@@ -257,8 +294,16 @@ const scoreboard = (model: Model): ReadonlyArray<SceneNode> => {
               scoreboardAt[1] + (block[1] + block[3]) / 2,
               scoreboardAt[2] - 0.02,
             ],
-            geometry: plane({ width: block[2] - block[0] + 0.5, height: block[3] - block[1] + 0.35 }),
-            material: standard({ color: 0x14161c, roughness: 0.6, emissive: 0x1d2433, emissiveIntensity: 1 }),
+            geometry: plane({
+              width: block[2] - block[0] + 0.5,
+              height: block[3] - block[1] + 0.35,
+            }),
+            material: standard({
+              color: 0x14161c,
+              roughness: 0.6,
+              emissive: 0x1d2433,
+              emissiveIntensity: 1,
+            }),
           }),
         ]),
     label({
@@ -282,7 +327,13 @@ export const sceneFor = (model: Model) =>
     physics: physics(),
     measure: ['scoreboard'],
     environment: environment({ environmentIntensity: 0.5 }),
-    contactShadows: contactShadows({ position: [0, 0.003, -4.4], size: 3, far: 0.6, blur: 1.5, opacity: 0.5 }),
+    contactShadows: contactShadows({
+      position: [0, 0.003, -4.4],
+      size: 3,
+      far: 0.6,
+      blur: 1.5,
+      opacity: 0.5,
+    }),
     render: renderSettings({ shadows: 'soft', toneMapping: 'aces', exposure: 1 }),
     children: [
       hemisphereLight({ key: 'sky', color: 0xdbe6ff, groundColor: 0x2a2018, intensity: 0.6 }),

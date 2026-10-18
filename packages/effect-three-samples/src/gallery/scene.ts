@@ -88,7 +88,11 @@ const title = (model: Model): ReadonlyArray<SceneNode> => [
 ];
 
 /** The panel behind a label, sized to its laid-out block with a margin, once measured. */
-const panel = (id: string, block: Block | undefined, selected: boolean): ReadonlyArray<SceneNode> => {
+const panel = (
+  id: string,
+  block: Block | undefined,
+  selected: boolean,
+): ReadonlyArray<SceneNode> => {
   if (block === undefined) return [];
   const [minX, minY, maxX, maxY] = block;
   return [
@@ -117,10 +121,13 @@ const plaqueText = (model: Model, plaque: Plaque): LabelNode =>
     lineHeight: 1.35,
     textAlign: 'left',
     color: 0xeae6de,
-    colorRanges: plaque.id === 'code' ? highlight(code) : [colorRange(0, paintColour.gold)].concat(
-      // The first line (the headline) in gold, the rest in the plaque's ink.
-      plaque.text.includes('\n') ? [colorRange(plaque.text.indexOf('\n'), 0xeae6de)] : [],
-    ),
+    colorRanges:
+      plaque.id === 'code'
+        ? highlight(code)
+        : [colorRange(0, paintColour.gold)].concat(
+            // The first line (the headline) in gold, the rest in the plaque's ink.
+            plaque.text.includes('\n') ? [colorRange(plaque.text.indexOf('\n'), 0xeae6de)] : [],
+          ),
     material: ink(model),
   });
 

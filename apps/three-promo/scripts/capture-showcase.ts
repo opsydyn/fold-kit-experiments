@@ -3,6 +3,7 @@
  *
  *   bun run dev            # in another terminal (port 4323)
  *   bun scripts/capture-showcase.ts [base-url]
+ *   ONLY=marbles,room bun scripts/capture-showcase.ts   # just these examples
  */
 import { chromium, type Page } from 'playwright';
 
@@ -48,7 +49,24 @@ const shots: ReadonlyArray<Shot> = [
   // Rapier loads, then the toys fall and settle.
   { id: 'toybox', prepare: (page) => page.waitForTimeout(5000) },
   { id: 'shared', prepare: async () => undefined },
+  // Rapier loads, then the first pour runs through the machine into the bins.
+  { id: 'marbles', prepare: (page) => page.waitForTimeout(9000) },
+  // The fonts load and every plaque's panel is sized from its measured layout.
+  { id: 'gallery', prepare: (page) => page.waitForTimeout(3000) },
+  // A roll, caught as the ball reaches the pins.
+  {
+    id: 'bowling',
+    prepare: async (page) => {
+      await page.waitForTimeout(2500);
+      await clickButton(page, 'Roll');
+      await page.waitForTimeout(450);
+    },
+  },
+  { id: 'room', prepare: (page) => page.waitForTimeout(1500) },
 ];
+
+const only = process.env.ONLY?.split(',');
+const chosen = only === undefined ? shots : shots.filter((shot) => only.includes(shot.id));
 
 const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
@@ -59,7 +77,7 @@ for (const theme of ['light', 'dark'] as const) {
     deviceScaleFactor: 2,
   });
   await context.addInitScript((value) => localStorage.setItem('effect-three-theme', value), theme);
-  for (const shot of shots) {
+  for (const shot of chosen) {
     const page = await context.newPage();
     await page.goto(`${base}/examples/${shot.id}/`);
     await page.locator('.e3-stage canvas').waitFor();
@@ -73,4 +91,4 @@ for (const theme of ['light', 'dark'] as const) {
   await context.close();
 }
 await browser.close();
-console.log('captured', shots.length * 2, 'images into', outDir);
+console.log('captured', chosen.length * 2, 'images into', outDir);

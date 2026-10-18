@@ -277,8 +277,9 @@ export const sceneFor = (model: Model) =>
       wheel,
       ...grate,
       binSensors,
-      binLabel(model, 'label:teal', `Teal ${model.tealBin.teal}`, -1.5, marbleColour.teal),
-      binLabel(model, 'label:gold', `Gold ${model.goldBin.gold}`, 1.6, marbleColour.gold),
+      // The counts in deeper shades of the marbles' colours, legible on any background.
+      binLabel(model, 'label:teal', `Teal ${model.tealBin.teal}`, -1.5, 0x168a7c),
+      binLabel(model, 'label:gold', `Gold ${model.goldBin.gold}`, 1.6, 0xc08a12),
       marbles(model, 'gold'),
       marbles(model, 'teal'),
     ],

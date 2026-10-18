@@ -1,0 +1,14 @@
+---
+import SampleApp from '../../apps/effect-three-gallery/app';
+import * as barStyles from '../../apps/bar/bar.css';
+import Layout from '../../layouts/Layout.astro';
+import * as layoutStyles from '../../layouts/layout.css';
+---
+
+<Layout title="Type gallery: curved, coloured and lit labels — effect-three">
+  <h1 class={layoutStyles.heading}>Type gallery: curved, coloured and lit labels</h1>
+  <p><a href="/effect-three">← All effect-three samples</a></p>
+  <div class={barStyles.card} style="max-width:880px">
+    <SampleApp client:load assetBase="/models/" />
+  </div>
+</Layout>

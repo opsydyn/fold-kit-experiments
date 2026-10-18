@@ -44,11 +44,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           stat(h, 'Strays', `${strays(model)}`),
           stat(h, 'Knocks', `${model.knocks}`),
           stat(h, 'Hardest', `${model.hardest.toFixed(1)} N`),
-          stat(
-            h,
-            'Wheel',
-            `${Math.abs(model.wheelSpeed).toFixed(1)} rad/s ${direction(model)}`,
-          ),
+          stat(h, 'Wheel', `${Math.abs(model.wheelSpeed).toFixed(1)} rad/s ${direction(model)}`),
         ],
       ),
       h.div(

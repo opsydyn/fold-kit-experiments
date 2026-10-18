@@ -1,7 +1,10 @@
 import { expect, mock, test } from 'bun:test';
 
 // The page's environment is not needed by the update logic under test.
-await mock.module('../src/bowling/environment', () => ({ environment: {}, sceneMount: () => undefined }));
+await mock.module('../src/bowling/environment', () => ({
+  environment: {},
+  sceneMount: () => undefined,
+}));
 const { Message } = await import('../src/bowling/message');
 const { ballKey, init, pinKey, update } = await import('../src/bowling/update');
 const { sceneFor, sheet } = await import('../src/bowling/scene');
@@ -52,7 +55,10 @@ test('a roll is counted once its shot settles; the pins left stand for the secon
 
 test('a strike brings a fresh rack under new keys; the scoreboard marks it', () => {
   const rolling = step(start, Message.ClickedRoll());
-  const struck = step(knock(rolling, ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10']), Message.Settled({ shot: rolling.shot }));
+  const struck = step(
+    knock(rolling, ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10']),
+    Message.Settled({ shot: rolling.shot }),
+  );
   expect(struck.rolls).toEqual([10]);
   expect(struck.rack).toBe(start.rack + 1);
   expect(struck.standing).toHaveLength(10);

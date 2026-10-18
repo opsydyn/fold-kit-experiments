@@ -63,8 +63,8 @@ const applyViewport = (graph: SceneGraph, renderer: SceneRenderer, viewport: Vie
   renderer.setViewport(viewport);
 };
 
-/** The engines a scene graph hands work to. */
-type Engines = Pick<SceneRuntimeOptions, 'physics' | 'labels'>;
+/** The engines a scene graph hands work to, and the renderer whose kit shades it. */
+type Engines = Pick<SceneRuntimeOptions, 'physics' | 'labels' | 'renderer'>;
 
 const sceneGraph =
   (
@@ -78,6 +78,7 @@ const sceneGraph =
       behaviours,
       physics: engines.physics,
       labels: engines.labels,
+      kit: engines.renderer.kit,
     });
 
 /**

@@ -176,6 +176,13 @@ export {
   type Quat,
 } from './physics.ts';
 export type { BodyCollision, BodyContactForce } from './bodies.ts';
+export type {
+  ContactShadowPasses,
+  HostedShaderGrid,
+  HostedSky,
+  RenderKit,
+  ShadowedScene,
+} from './renderKit.ts';
 export { type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
 export {
   createXrTracker,

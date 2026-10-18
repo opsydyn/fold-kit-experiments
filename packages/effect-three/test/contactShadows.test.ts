@@ -13,10 +13,11 @@ import {
   scene,
   standard,
 } from '../src/kernel/index.ts';
+import { webglKit } from '../src/webgl/index.ts';
 
 /** A loop whose renderer records each pass into a target and the targets it makes. */
 const harness = () => {
-  const graph = createSceneGraph();
+  const graph = createSceneGraph({ kit: webglKit });
   const recorded = recordingRendererFactory().create();
   const passes: Array<{
     readonly into: string;

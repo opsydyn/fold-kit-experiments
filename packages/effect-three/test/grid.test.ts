@@ -11,6 +11,7 @@ import {
 } from 'three';
 
 import { createSceneGraph, grid, scene, shaderGrid } from '../src/kernel/index.ts';
+import { webglKit } from '../src/webgl/index.ts';
 
 const linesOf = (graph: ReturnType<typeof createSceneGraph>): GridHelper | undefined =>
   graph.object('floor')?.children.find((child: Object3D) => child instanceof GridHelper);
@@ -53,7 +54,7 @@ const drawn = (object: Object3D | undefined, camera: Camera): void => {
 };
 
 test('a shader grid is a plane with Drei’s grid settings in its uniforms', () => {
-  const graph = createSceneGraph();
+  const graph = createSceneGraph({ kit: webglKit });
   graph.reconcile(
     scene({ children: [shaderGrid({ key: 'floor', size: [10, 10], sectionColor: 0xff0000 })] }),
   );
@@ -81,7 +82,7 @@ test('a shader grid is a plane with Drei’s grid settings in its uniforms', () 
 });
 
 test('before each draw, the grid learns where the camera stands over its plane', () => {
-  const graph = createSceneGraph();
+  const graph = createSceneGraph({ kit: webglKit });
   graph.reconcile(
     scene({ children: [shaderGrid({ key: 'floor', position: [0, 2, 0], infinite: true })] }),
   );

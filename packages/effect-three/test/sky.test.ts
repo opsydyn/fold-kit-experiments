@@ -9,9 +9,11 @@ import {
   perspectiveCamera,
   placeOverlays,
   scene,
+  shaderGrid,
   sky,
   sunPositionFromAngles,
 } from '../src/kernel/index.ts';
+import { webglKit } from '../src/webgl/index.ts';
 
 const skyOf = (graph: ReturnType<typeof createSceneGraph>) =>
   graph.scene.children.find((child) => child instanceof Sky);
@@ -33,7 +35,7 @@ test('sky defaults are Drei’s, with the sun from inclination 0.6 and azimuth 0
 });
 
 test('a sky is shown, updated in place and removed, and is never hit', () => {
-  const graph = createSceneGraph();
+  const graph = createSceneGraph({ kit: webglKit });
   graph.reconcile(scene({ sky: sky() }));
   const shown = skyOf(graph);
   expect(shown).toBeInstanceOf(Sky);
@@ -58,5 +60,13 @@ test('a sky is shown, updated in place and removed, and is never hit', () => {
 
   graph.reconcile(scene({}));
   expect(skyOf(graph)).toBeUndefined();
+  graph.dispose();
+});
+
+test('without a render kit, the sky and shader grids are described but not drawn', () => {
+  const graph = createSceneGraph();
+  graph.reconcile(scene({ sky: sky(), children: [shaderGrid({ key: 'grid' })] }));
+  expect(graph.scene.children.filter((child) => child.type === 'Mesh')).toEqual([]);
+  expect(graph.object('grid')?.children).toEqual([]);
   graph.dispose();
 });

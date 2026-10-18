@@ -159,10 +159,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
+    readonly _tag: "StartedScene";
+} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
-} | {
-    readonly _tag: "StartedScene";
 }>;
 
 // @public

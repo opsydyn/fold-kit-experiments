@@ -25,7 +25,6 @@ import {
   SpotLight,
   Vector3,
 } from 'three';
-import { Sky as SkyMesh } from 'three/addons/objects/Sky.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
@@ -76,6 +75,7 @@ import {
   resetPose,
 } from './motion.ts';
 import type { PhysicsEngine } from './physics.ts';
+import type { HostedShaderGrid, HostedSky, RenderKit } from './renderKit.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -84,12 +84,6 @@ import {
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
-import {
-  createShaderGrid,
-  disposeShaderGrid,
-  type HostShaderGrid,
-  updateShaderGrid,
-} from './shaderGrid.ts';
 import { applyTween, startTween, type Tween } from './tween.ts';
 
 /** The mesh type the kernel hosts. */
@@ -130,7 +124,13 @@ type Entry =
       readonly object: Group;
       helper: GridHelper;
     }
-  | { readonly _tag: 'ShaderGrid'; node: ShaderGridNode; readonly object: HostShaderGrid }
+  // `hosted` is what the render kit drew; without a kit the grid is an empty group.
+  | {
+      readonly _tag: 'ShaderGrid';
+      node: ShaderGridNode;
+      readonly object: Object3D;
+      readonly hosted: HostedShaderGrid | undefined;
+    }
   | {
       readonly _tag: 'HemisphereLight';
       node: HemisphereLightNode;
@@ -201,10 +201,17 @@ export type SceneGraphOptions = {
   readonly physics?: PhysicsEngine | undefined;
   /** Draws `label` nodes (distance-field text); without it they are empty. */
   readonly labels?: LabelEngine | undefined;
+  /**
+   * The renderer's shaded parts (sky, shader grids, contact shadows); without it they are
+   * not drawn. `webglKit` from `@opsydyn/effect-three/webgl` for three's WebGL renderer.
+   */
+  readonly kit?: RenderKit | undefined;
 };
 
 export type SceneGraph = {
   readonly scene: Scene;
+  /** The render kit the graph was made with, for the frame loop's contact shadows. */
+  readonly kit: RenderKit | undefined;
   /** The active camera. Changing the description's camera kind replaces it. */
   readonly camera: HostCamera;
   /** The scene's views, fitted to the viewport; empty when `camera` fills the canvas. */
@@ -429,39 +436,29 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   let contactDescription: ContactShadows | null = emptyScene.contactShadows;
   let xrDescription: Xr | null = emptyScene.xr;
   let measured: ReadonlyArray<string> = emptyScene.measure;
-  let skyMesh: SkyMesh | undefined;
+  let hostedSky: HostedSky | undefined;
 
-  /** Shows, updates or removes the sky. It belongs to the scene, so it is never picked. */
+  /**
+   * Shows, updates or removes the sky, drawn by the render kit (none without one). It
+   * belongs to the scene, never picked.
+   */
   const applySky = (description: Sky | null): void => {
     if (description === null) {
       removeSky();
       return;
     }
-    if (skyMesh === undefined) {
-      skyMesh = new SkyMesh();
-      skyMesh.raycast = () => undefined;
-      scene.add(skyMesh);
+    if (hostedSky === undefined) {
+      hostedSky = options.kit?.sky();
+      if (hostedSky !== undefined) scene.add(hostedSky.object);
     }
-    const { uniforms } = skyMesh.material;
-    const set = (name: string, value: unknown): void => {
-      const uniform = uniforms[name];
-      if (uniform !== undefined) uniform.value = value;
-    };
-    set('turbidity', description.turbidity);
-    set('rayleigh', description.rayleigh);
-    set('mieCoefficient', description.mieCoefficient);
-    set('mieDirectionalG', description.mieDirectionalG);
-    set('cloudCoverage', description.clouds);
-    set('sunPosition', new Vector3().fromArray(description.sunPosition));
-    skyMesh.scale.setScalar(description.distance);
+    hostedSky?.update(description);
   };
 
   function removeSky(): void {
-    if (skyMesh === undefined) return;
-    skyMesh.removeFromParent();
-    skyMesh.geometry.dispose();
-    skyMesh.material.dispose();
-    skyMesh = undefined;
+    if (hostedSky === undefined) return;
+    hostedSky.object.removeFromParent();
+    hostedSky.dispose();
+    hostedSky = undefined;
   }
   const cameraMotion = createCameraMotion();
   const bodyHost = createBodyHost(options.physics, scene);
@@ -653,8 +650,10 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         writeVec3(object.position, node.position);
         return { _tag: 'Grid', node, object, helper };
       }
-      case 'ShaderGrid':
-        return { _tag: 'ShaderGrid', node, object: createShaderGrid(node) };
+      case 'ShaderGrid': {
+        const hosted = options.kit?.shaderGrid(node);
+        return { _tag: 'ShaderGrid', node, object: hosted?.object ?? new Group(), hosted };
+      }
       case 'HemisphereLight': {
         const object = new HemisphereLight();
         writeHemisphereLight(object, node);
@@ -816,7 +815,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'Instances') entry.object.dispose();
     // A grid's lines are its own.
     if (entry._tag === 'Grid') disposeGridLines(entry.helper);
-    if (entry._tag === 'ShaderGrid') disposeShaderGrid(entry.object);
+    if (entry._tag === 'ShaderGrid') entry.hosted?.dispose();
     if (entry._tag === 'Label') entry.hosted?.dispose();
     // A borrowed object belongs to the application: detach it, never dispose it.
     if (entry._tag === 'Borrowed') {
@@ -980,7 +979,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       return;
     }
     if (entry._tag === 'ShaderGrid' && next._tag === 'ShaderGrid') {
-      updateShaderGrid(entry.object, entry.node, next);
+      entry.hosted?.update(entry.node, next);
       entry.node = next;
       return;
     }
@@ -1276,6 +1275,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
 
   return {
     scene,
+    kit: options.kit,
     get camera() {
       return camera;
     },

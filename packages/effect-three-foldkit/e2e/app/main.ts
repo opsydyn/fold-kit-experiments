@@ -11,14 +11,19 @@ import { checkerUrl } from './checker.ts';
 import { probe } from './instrument.ts';
 import { type Colour, homeCamera, type Motion, type Size, sceneFor } from './scene.ts';
 
-// Wraps the WebGL renderer so the test can read three's `renderer.info.memory`.
-const probedRenderer = (canvas: HTMLCanvasElement): RendererFactory => ({
-  create: () => {
-    const renderer = EffectThreeFoldkit.webglRendererFactory(canvas).create();
-    probe.rendererMemory = renderer.memory;
-    return renderer;
-  },
-});
+// Wraps the WebGL renderer so the test can read three's `renderer.info.memory`, keeping
+// its render kit.
+const probedRenderer = (canvas: HTMLCanvasElement): RendererFactory => {
+  const factory = EffectThreeFoldkit.webglRendererFactory(canvas);
+  return {
+    ...factory,
+    create: () => {
+      const renderer = factory.create();
+      probe.rendererMemory = renderer.memory;
+      return renderer;
+    },
+  };
+};
 
 const environment = EffectThreeFoldkit.makeEnvironment(window, { renderer: probedRenderer });
 const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);

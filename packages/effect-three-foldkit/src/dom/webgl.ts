@@ -4,6 +4,7 @@
  * @module
  */
 import type { RendererFactory, RenderSettings, RenderTarget } from '@opsydyn/effect-three';
+import { webglKit } from '@opsydyn/effect-three/webgl';
 import {
   ACESFilmicToneMapping,
   AgXToneMapping,
@@ -162,6 +163,8 @@ export const webglRendererFactory = (
   canvas: HTMLCanvasElement,
   options: WebGLOptions = {},
 ): RendererFactory => ({
+  // The GLSL parts of a scene (sky, shader grid, contact shadows) go with this renderer.
+  kit: webglKit,
   create: () => {
     const renderer = new WebGLRenderer({ antialias: true, ...options, canvas });
     renderers.set(canvas, renderer);

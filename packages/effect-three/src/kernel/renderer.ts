@@ -7,6 +7,7 @@
 import { type Camera, type Scene, Texture } from 'three';
 
 import type { RenderSettings } from './description.ts';
+import type { RenderKit } from './renderKit.ts';
 
 /** Size of the drawing surface in CSS pixels, plus the device pixel ratio. */
 export type Viewport = {
@@ -60,6 +61,11 @@ export type SceneRenderer = {
 /** Creates a renderer. `create` may throw when the backend is unavailable. */
 export type RendererFactory = {
   readonly create: () => SceneRenderer;
+  /**
+   * The renderer's shaded parts, given to the scene graphs it draws (the sky, shader
+   * grids, contact shadows). A factory wrapping another keeps its kit (`...factory`).
+   */
+  readonly kit?: RenderKit | undefined;
 };
 
 /** A renderer that records calls instead of drawing. For headless tests. */

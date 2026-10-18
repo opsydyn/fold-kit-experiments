@@ -669,6 +669,12 @@ const ContactForceDetail: Schema.Struct<{
 }>;
 
 // @public
+export type ContactShadowPasses = {
+    readonly draw: () => void;
+    readonly dispose: () => void;
+};
+
+// @public
 export type ContactShadows = {
     readonly position: Vec3;
     readonly size: readonly [width: number, depth: number];
@@ -742,7 +748,7 @@ export const createSceneClock: (nowSeconds: () => number) => SceneClock;
 // @public
 export const createSceneGraph: (options?: SceneGraphOptions) => SceneGraph;
 
-// @public
+// @public (undocumented)
 export const createSceneLoop: (options: SceneLoopOptions) => SceneLoop;
 
 // @public
@@ -1437,6 +1443,20 @@ export type HostCamera = PerspectiveCamera_2 | OrthographicCamera_2;
 export type HostedLabel = {
     readonly object: Object3D;
     readonly update: (label: LabelNode) => void;
+    readonly dispose: () => void;
+};
+
+// @public
+export type HostedShaderGrid = {
+    readonly object: Object3D;
+    readonly update: (previous: ShaderGridNode, next: ShaderGridNode) => void;
+    readonly dispose: () => void;
+};
+
+// @public
+export type HostedSky = {
+    readonly object: Object3D;
+    readonly update: (sky: Sky) => void;
     readonly dispose: () => void;
 };
 
@@ -3088,6 +3108,7 @@ export type RenderArea = {
 // @public
 export type RendererFactory = {
     readonly create: () => SceneRenderer;
+    readonly kit?: RenderKit | undefined;
 };
 
 // @public
@@ -3103,6 +3124,13 @@ export class RendererUnavailable extends RendererUnavailable_base<{
     readonly cause: unknown;
 }> {
 }
+
+// @public
+export type RenderKit = {
+    readonly sky: () => HostedSky;
+    readonly shaderGrid: (node: ShaderGridNode) => HostedShaderGrid;
+    readonly contactShadows: (graph: ShadowedScene, renderer: SceneRenderer) => ContactShadowPasses;
+};
 
 // @public
 export type RenderSettings = {
@@ -4130,6 +4158,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
 // @public (undocumented)
 export type SceneGraph = {
     readonly scene: Scene;
+    readonly kit: RenderKit | undefined;
     readonly camera: HostCamera;
     readonly views: () => ReadonlyArray<HostedView>;
     readonly renderTextures: () => ReadonlyArray<HostedTexture>;
@@ -4168,6 +4197,7 @@ export type SceneGraphOptions = {
     readonly behaviours?: Readonly<Record<string, Behaviour>>;
     readonly physics?: PhysicsEngine | undefined;
     readonly labels?: LabelEngine | undefined;
+    readonly kit?: RenderKit | undefined;
 };
 
 // @public
@@ -4388,6 +4418,12 @@ const ShaderGridNode_2: Schema.TaggedStruct<"ShaderGrid", {
     readonly fadeFrom: Schema.Finite;
     readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
 }>;
+
+// @public
+export type ShadowedScene = {
+    readonly scene: Scene;
+    readonly contactShadows: () => ContactShadows | null;
+};
 
 // @public
 export type ShadowMaterial = {

@@ -144,7 +144,8 @@ targets today.
 
 ### C. Smaller follow-ups (S each)
 
-- Move the kernel's GLSL behind the renderer anyway (B's first step, and ADR-003's rule).
+- ✅ Move the kernel's GLSL behind the renderer (B's first step, and ADR-003's rule): the
+  sky, shader grid and contact shadows are `webglKit` in `@opsydyn/effect-three/webgl`.
 - Smooth locomotion as a behaviour on the player, so gliding needs no Message per frame.
 - XR anchors, planes and DOM overlay; joint poses as data.
 - Collision groups and per-collider events in physics.

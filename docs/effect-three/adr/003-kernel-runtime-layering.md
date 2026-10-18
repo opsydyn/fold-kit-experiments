@@ -15,6 +15,7 @@ Two sanctioned layers in `packages/effect-three/src`:
 
 - **`kernel/`**: plain TypeScript that **must not import `effect`**. It holds the diff, the applier, behaviours, the per-frame tick and raycasting. Ordinary control flow is allowed. Every rule that is not import-gated still applies, as do strict TypeScript, `no-explicit-any` and the type-aware rules. Allocation-conscious, with exhaustive property tests.
 - **`runtime/`**: Effect code (services, scopes, Layers, errors, streams). Every rule applies.
+- **`webgl/`** (added 2026-10-18): the scene parts written in GLSL (the sky, the shader grid, contact shadows) as `webglKit`, a `RenderKit` the kernel calls through. The kernel describes them and stays renderer-neutral; a renderer factory carries its kit (`webglRendererFactory` carries this one), so a WebGPU renderer brings its own. Exported as `@opsydyn/effect-three/webgl`.
 
 Rules of the road:
 
@@ -25,7 +26,7 @@ Rules of the road:
 
 ## Enforcement
 
-- `packages/effect-three/scripts/check-boundaries.ts`: `src/kernel/**` can't import `effect` or `@effect/*`, and `src/**` can't import `foldkit`, `react` or `@effect/platform-browser`.
+- `packages/effect-three/scripts/check-boundaries.ts`: `src/kernel/**` can't import `effect` or `@effect/*`, and `src/**` can't import `foldkit`, `react` or `@effect/platform-browser`. `src/kernel/**` also can't import three's shader or post-processing addons, or mention `ShaderMaterial`, `onBeforeCompile` or GLSL: shader code belongs in a render kit.
 - `packages/effect-three/tsconfig.json` has `lib: ["ES2023"]` with no DOM, so any DOM global in core fails compilation.
 - The workspace root `bun run check` runs these packages' strict lint, boundary and single-`effect` checks after the root lint. Root `bun typecheck` and `bun run test` include both packages.
 

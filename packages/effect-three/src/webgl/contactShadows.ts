@@ -33,9 +33,9 @@ import {
 import { HorizontalBlurShader } from 'three/addons/shaders/HorizontalBlurShader.js';
 import { VerticalBlurShader } from 'three/addons/shaders/VerticalBlurShader.js';
 
-import type { ContactShadows } from './description.ts';
-import type { RenderTarget, SceneRenderer } from './renderer.ts';
-import type { SceneGraph } from './sceneGraph.ts';
+import type { ContactShadows } from '../kernel/description.ts';
+import type { RenderTarget, SceneRenderer } from '../kernel/renderer.ts';
+import type { ContactShadowPasses, ShadowedScene } from '../kernel/renderKit.ts';
 
 /**
  * The shadow pass's edit to three's depth shader: its basic-packing output, and the
@@ -91,15 +91,9 @@ const groundGeometry = (width: number, depth: number): PlaneGeometry => {
 const reshaped = (a: ContactShadows, b: ContactShadows): boolean =>
   a.resolution !== b.resolution || a.size[0] !== b.size[0] || a.size[1] !== b.size[1];
 
-export type ContactShadowPasses = {
-  /** Draws the scene's contact shadows, if it has any, before the frame is drawn. */
-  readonly draw: () => void;
-  readonly dispose: () => void;
-};
-
 /** Creates the contact shadow passes for one scene graph and renderer. */
 export const createContactShadows = (
-  graph: SceneGraph,
+  graph: ShadowedScene,
   renderer: SceneRenderer,
 ): ContactShadowPasses => {
   let shown: Shown | undefined;

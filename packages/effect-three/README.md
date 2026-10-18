@@ -139,7 +139,7 @@ Everything needed for deterministic headless tests ships with the package:
 - `recordingRendererFactory()`: counts renders and records viewport and disposal.
 - `createManualFrames()`: frames run when you call `step()`.
 - Effect's `TestClock`: scene time comes from the `Clock` service's monotonic reading.
-- `createSceneGraph()`: the synchronous kernel on its own, with `object(key)` and resource `stats()` for assertions.
+- `createSceneGraph()`: the synchronous kernel on its own, with `object(key)` and resource `stats()` for assertions. Pass `kit: webglKit` (from `@opsydyn/effect-three/webgl`) to draw skies, shader grids and contact shadows; `webglRendererFactory` carries it for you.
 
 ## Architecture
 

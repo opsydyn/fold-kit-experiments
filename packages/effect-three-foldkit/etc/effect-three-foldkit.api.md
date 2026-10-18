@@ -159,10 +159,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
-    readonly _tag: "StartedScene";
-} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
+} | {
+    readonly _tag: "StartedScene";
 }>;
 
 // @public
@@ -950,6 +950,16 @@ export type WebGLOptions = Omit<WebGLRendererParameters, 'canvas'>;
 
 // @public
 export const webglRendererFactory: (canvas: HTMLCanvasElement, options?: WebGLOptions) => RendererFactory;
+
+// @public
+export type WebGPUOptions = {
+    readonly forceWebGL?: boolean;
+    readonly alpha?: boolean;
+    readonly antialias?: boolean;
+};
+
+// @public
+export const webgpuRendererFactory: (canvas: HTMLCanvasElement, options?: WebGPUOptions) => RendererFactory;
 
 // @public
 export type WheelDetail = typeof SceneSchema.WheelDetail.Type;

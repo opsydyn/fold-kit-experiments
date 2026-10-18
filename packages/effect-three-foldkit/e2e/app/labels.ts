@@ -1,5 +1,3 @@
-// Bundled with the page, so troika fetches nothing from elsewhere.
-import font from '@fontsource/inter/files/inter-latin-400-normal.woff';
 /**
  * Labels on a white page, drawn by troika: black text whose glyphs the test finds in the
  * canvas. The scene is set from the test through `window.__labels`.
@@ -10,6 +8,7 @@ import { Effect, Queue, Stream } from 'effect';
 import type { ViewState } from 'foldkit/mount';
 
 import * as EffectThreeFoldkit from '../../src/index.ts';
+import { font } from './font.ts';
 
 const environment = EffectThreeFoldkit.makeEnvironment(window, { labels: troikaLabels() });
 const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);

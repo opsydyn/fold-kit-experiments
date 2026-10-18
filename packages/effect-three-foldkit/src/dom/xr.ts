@@ -13,8 +13,9 @@
  * @module
  */
 import type { Xr, XrInput } from '@opsydyn/effect-three';
-import { Group, type Object3D, type WebGLRenderer } from 'three';
+import { Group, type Object3D } from 'three';
 
+import type { PresentableRenderer } from './renderSettings.ts';
 import { rayOf, trackInputs, type XrInputs } from './xrInputs.ts';
 
 /** Where an immersive session can come from: `navigator.xr`, or an emulator's. */
@@ -98,7 +99,7 @@ export type Presentation = {
  * again. Input sources are drawn into `scene` while it presents.
  */
 export const present = async (
-  renderer: WebGLRenderer,
+  renderer: PresentableRenderer,
   session: XRSession,
   settings: Xr,
   scene: Object3D,
@@ -110,6 +111,16 @@ export const present = async (
   xr.enabled = true;
   xr.setReferenceSpaceType(settings.referenceSpace);
   xr.setFramebufferScaleFactor(settings.framebufferScale);
+  let inputs: XrInputs | undefined;
+  /** One session frame: its input read, then drawn. Frames outside the session are skipped. */
+  function sessionFrame(_time: number, frame?: XRFrame): void {
+    if (!xr.isPresenting) return;
+    const space = xr.getReferenceSpace();
+    if (frame !== undefined && space !== null) inputs?.frame(frame, space);
+    draw();
+  }
+  // Set before the session starts (WebGPU's XR manager takes the loop then).
+  renderer.setXrLoop(sessionFrame);
   await xr.setSession(session);
   const base = xr.getReferenceSpace();
   let current = settings;
@@ -120,20 +131,16 @@ export const present = async (
   const shown = new Group();
   shown.name = 'xr-inputs';
   scene.add(shown);
-  const inputs = trackInputs(session, shown, () => current, input);
-  xr.setAnimationLoop((_time, frame) => {
-    const space = xr.getReferenceSpace();
-    if (frame !== undefined && space !== null) inputs.frame(frame, space);
-    draw();
-  });
-  const stopSelects = listenForSelects(session, () => xr.getReferenceSpace(), inputs, input);
+  const tracked = trackInputs(session, shown, () => current, input);
+  inputs = tracked;
+  const stopSelects = listenForSelects(session, () => xr.getReferenceSpace(), tracked, input);
   session.addEventListener(
     'end',
     () => {
       stopSelects();
-      inputs.stop();
+      tracked.stop();
       shown.removeFromParent();
-      xr.setAnimationLoop(null);
+      renderer.setXrLoop(null);
       xr.enabled = false;
       ended();
     },

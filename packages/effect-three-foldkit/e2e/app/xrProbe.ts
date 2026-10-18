@@ -4,8 +4,11 @@
  */
 import { type XRDevice, XRReferenceSpace } from 'iwer';
 import { InstancedMesh, Line, Object3D, type WebGLRenderer } from 'three';
+import type { WebGPURenderer } from 'three/webgpu';
 
-import { webglRendererOf } from '../../src/dom/webgl.ts';
+type ThreeRenderer = WebGLRenderer | WebGPURenderer;
+
+import { threeRendererOf } from '../../src/dom/renderSettings.ts';
 
 const offsetSpace = Reflect.get(XRReferenceSpace.prototype, 'getOffsetReferenceSpace');
 
@@ -31,16 +34,16 @@ export const modeOf = (event: Event): string | null =>
 
 /** The scene's renderer, found once: the emulator moves the canvas while presenting. */
 export const rendererFinder = (element: Element) => {
-  let renderer: WebGLRenderer | undefined;
-  return (): WebGLRenderer | undefined => {
+  let renderer: ThreeRenderer | undefined;
+  return (): ThreeRenderer | undefined => {
     const canvas = element.querySelector('canvas');
-    if (renderer === undefined && canvas !== null) renderer = webglRendererOf(canvas);
+    if (renderer === undefined && canvas !== null) renderer = threeRendererOf(canvas);
     return renderer;
   };
 };
 
 /** Where the headset's camera is in the scene, as three.js places it. */
-export const headOf = (renderer: WebGLRenderer | undefined): ReadonlyArray<number> | null => {
+export const headOf = (renderer: ThreeRenderer | undefined): ReadonlyArray<number> | null => {
   if (renderer === undefined) return null;
   return renderer.xr.getCamera().matrixWorld.elements.slice(12, 15);
 };
@@ -132,4 +135,11 @@ export const inputsShown = (
     });
   }
   return { rays, joints };
+};
+
+/** Frames the renderer has drawn: WebGL's `info.render.frame`, WebGPU's `frameCalls`. */
+export const framesDrawn = (renderer: ThreeRenderer | undefined): number => {
+  const render = renderer?.info.render;
+  if (render === undefined) return 0;
+  return 'frameCalls' in render ? render.frameCalls : render.frame;
 };

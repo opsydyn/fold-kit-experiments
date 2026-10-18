@@ -19,8 +19,14 @@ import { Effect, Option, Queue, Stream } from 'effect';
 import type { ViewState } from 'foldkit/mount';
 
 import * as EffectThreeFoldkit from '../../src/index.ts';
+import { rendererFromAddress } from './rendererChoice.ts';
 
-const environment = EffectThreeFoldkit.makeEnvironment(window);
+// `?renderer=webgpu` draws with three's WebGPURenderer (its WebGL 2 backend, or real
+// WebGPU with `&backend=webgpu`): the same scenes through the TSL render kit.
+const environment = EffectThreeFoldkit.makeEnvironment(
+  window,
+  rendererFromAddress(location.search),
+);
 const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 
 /**

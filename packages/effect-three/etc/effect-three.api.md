@@ -3127,6 +3127,7 @@ export class RendererUnavailable extends RendererUnavailable_base<{
 
 // @public
 export type RenderKit = {
+    readonly drawsLabels: boolean;
     readonly sky: () => HostedSky;
     readonly shaderGrid: (node: ShaderGridNode) => HostedShaderGrid;
     readonly contactShadows: (graph: ShadowedScene, renderer: SceneRenderer) => ContactShadowPasses;
@@ -4246,6 +4247,7 @@ export type SceneRenderer = {
     readonly setViewport: (viewport: Viewport) => void;
     readonly memory: () => RendererMemory;
     readonly dispose: () => void;
+    readonly ready?: (() => Promise<void>) | undefined;
 };
 
 declare namespace SceneRuntime {

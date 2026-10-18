@@ -7,7 +7,7 @@
 import type { Xr, XrInput } from '@opsydyn/effect-three';
 import type { Object3D } from 'three';
 
-import { webglRendererOf } from './webgl.ts';
+import { presentableRendererOf } from './renderSettings.ts';
 import { type Presentation, present, sessionInit, type XrMode, type XrSystem } from './xr.ts';
 
 export type { XrMode } from './xr.ts';
@@ -60,8 +60,8 @@ export const createXrHub = (system: () => XrSystem | undefined): XrHub => {
     if (xr === undefined) throw new Error('WebXR is not available in this browser');
     const chosen = presentable();
     if (chosen === undefined) throw new Error('no mounted scene describes xr');
-    const renderer = webglRendererOf(chosen.target.canvas);
-    if (renderer === undefined) throw new Error('the scene is not drawn with WebGL');
+    const renderer = presentableRendererOf(chosen.target.canvas);
+    if (renderer === undefined) throw new Error('the scene is not drawn by a three.js renderer');
     const session = await xr.requestSession(mode, sessionInit(chosen.settings, mode));
     const { target } = chosen;
     // Each frame: follow the description (a new origin moves the player), then draw.

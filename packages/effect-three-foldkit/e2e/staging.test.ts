@@ -40,67 +40,77 @@ const frames = (page: Page) =>
       }),
   );
 
-test('contact shadows darken the floor around what rests on it, and go when removed', async () => {
-  const page = await browser.newPage({ viewport: { width: 500, height: 500 } });
-  const errors: Array<string> = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto(app.url('staging.html'));
-  await page.waitForFunction(stagingReady);
-  const canvas = page.locator('canvas');
-  const shot = async () => PNG.sync.read(await canvas.screenshot());
+/** Each case runs on three's WebGL renderer, and on its WebGPU renderer's WebGL 2 backend. */
+const renderers = [
+  { name: 'WebGL', page: 'staging.html' },
+  { name: 'WebGPU (WebGL 2 backend)', page: 'staging.html?renderer=webgpu' },
+  { name: 'WebGPU', page: 'staging.html?renderer=webgpu&backend=webgpu' },
+] as const;
 
-  await page.evaluate(showShadows, { size: 8, near: -0.01, far: 2, blur: 1 });
-  await frames(page);
-  const shaded = await shot();
-  // The cube spans x 100–140 at y 200: shadow just outside both of its sides.
-  expect(redAt(shaded, 98, 200)).toBeLessThan(230);
-  expect(redAt(shaded, 142, 200)).toBeLessThan(230);
-  // The ball is at x 280, z 1.5 (60 pixels down): its shadow rims it there, and nothing
-  // shows where a mirrored image would put it (z −1.5).
-  expect(redAt(shaded, 280, 281)).toBeLessThan(240);
-  expect(redAt(shaded, 280, 119)).toBe(255);
-  // Far from both, the floor is untouched.
-  expect(redAt(shaded, 200, 360)).toBe(255);
+for (const renderer of renderers) {
+  test(`${renderer.name}: contact shadows darken the floor around what rests on it, and go when removed`, async () => {
+    const page = await browser.newPage({ viewport: { width: 500, height: 500 } });
+    const errors: Array<string> = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto(app.url(renderer.page));
+    await page.waitForFunction(stagingReady);
+    const canvas = page.locator('canvas');
+    const shot = async () => PNG.sync.read(await canvas.screenshot());
 
-  await page.evaluate(showShadows, null);
-  await frames(page);
-  expect(redAt(await shot(), 98, 200)).toBe(255);
-  expect(errors).toEqual([]);
-  await page.close();
-}, 60_000);
+    await page.evaluate(showShadows, { size: 8, near: -0.01, far: 2, blur: 1 });
+    await frames(page);
+    const shaded = await shot();
+    // The cube spans x 100–140 at y 200: shadow just outside both of its sides.
+    expect(redAt(shaded, 98, 200)).toBeLessThan(230);
+    expect(redAt(shaded, 142, 200)).toBeLessThan(230);
+    // The ball is at x 280, z 1.5 (60 pixels down): its shadow rims it there, and nothing
+    // shows where a mirrored image would put it (z −1.5).
+    expect(redAt(shaded, 280, 281)).toBeLessThan(240);
+    expect(redAt(shaded, 280, 119)).toBe(255);
+    // Far from both, the floor is untouched.
+    expect(redAt(shaded, 200, 360)).toBe(255);
 
-/** Runs in the page: shows the shader grid scene. */
-function showGrid(): void {
-  Reflect.get(globalThis, '__staging').showGrid();
+    await page.evaluate(showShadows, null);
+    await frames(page);
+    expect(redAt(await shot(), 98, 200)).toBe(255);
+    expect(errors).toEqual([]);
+    await page.close();
+  }, 60_000);
+
+  /** Runs in the page: shows the shader grid scene. */
+  function showGrid(): void {
+    Reflect.get(globalThis, '__staging').showGrid();
+  }
+
+  /** The pixel's RGB at a canvas pixel. */
+  const rgbAt = (png: PNG, x: number, y: number): readonly [number, number, number] => {
+    const i = (y * png.width + x) * 4;
+    return [png.data[i] ?? 0, png.data[i + 1] ?? 0, png.data[i + 2] ?? 0];
+  };
+
+  test(`${renderer.name}: the shader grid draws cell and section lines, and nothing past its plane`, async () => {
+    const page = await browser.newPage({ viewport: { width: 500, height: 500 } });
+    const errors: Array<string> = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+    await page.goto(app.url(renderer.page));
+    await page.waitForFunction(stagingReady);
+    await page.evaluate(showGrid);
+    await frames(page);
+    const png = PNG.sync.read(await page.locator('canvas').screenshot());
+    // 40 pixels a unit, the origin at (200, 200): a section line (every 2 units) at x = 280
+    // is red; a cell line (odd units) at x = 240 is grey; between lines is the white floor.
+    const [red, green] = rgbAt(png, 280, 230);
+    expect(red).toBeGreaterThan(200);
+    expect(green).toBeLessThan(120);
+    // (WebGPU blends in linear colour before converting to sRGB, so its lines are lighter.)
+    expect(rgbAt(png, 240, 230)[0]).toBeLessThan(225);
+    expect(rgbAt(png, 260, 230)).toEqual([255, 255, 255]);
+    // The plane is 8 across: beyond x = 360 (4 units) there are no lines.
+    expect(rgbAt(png, 380, 230)).toEqual([255, 255, 255]);
+    expect(errors).toEqual([]);
+    await page.close();
+  }, 60_000);
 }
-
-/** The pixel's RGB at a canvas pixel. */
-const rgbAt = (png: PNG, x: number, y: number): readonly [number, number, number] => {
-  const i = (y * png.width + x) * 4;
-  return [png.data[i] ?? 0, png.data[i + 1] ?? 0, png.data[i + 2] ?? 0];
-};
-
-test('the shader grid draws cell and section lines, and nothing past its plane', async () => {
-  const page = await browser.newPage({ viewport: { width: 500, height: 500 } });
-  const errors: Array<string> = [];
-  page.on('pageerror', (error) => errors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
-  });
-  await page.goto(app.url('staging.html'));
-  await page.waitForFunction(stagingReady);
-  await page.evaluate(showGrid);
-  await frames(page);
-  const png = PNG.sync.read(await page.locator('canvas').screenshot());
-  // 40 pixels a unit, the origin at (200, 200): a section line (every 2 units) at x = 280
-  // is red; a cell line (odd units) at x = 240 is dark; between lines is the white floor.
-  const [red, green] = rgbAt(png, 280, 230);
-  expect(red).toBeGreaterThan(200);
-  expect(green).toBeLessThan(120);
-  expect(rgbAt(png, 240, 230)[0]).toBeLessThan(200);
-  expect(rgbAt(png, 260, 230)).toEqual([255, 255, 255]);
-  // The plane is 8 across: beyond x = 360 (4 units) there are no lines.
-  expect(rgbAt(png, 380, 230)).toEqual([255, 255, 255]);
-  expect(errors).toEqual([]);
-  await page.close();
-}, 60_000);

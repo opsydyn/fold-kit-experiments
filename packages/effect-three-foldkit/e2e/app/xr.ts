@@ -19,6 +19,7 @@ import {
   inputsShown,
   keyOf,
   modeOf,
+  framesDrawn,
   rendererFinder,
   shimOffsetSpaces,
 } from './xrProbe.ts';
@@ -28,6 +29,8 @@ const device = new XRDevice(metaQuest3);
 device.installRuntime({ forceInstall: true });
 device.installSEM(FloorEnvironment);
 
+// WebGL only: under IWER the emulated layer has no framebuffer object, which three's
+// WebGPURenderer (on its WebGL 2 backend) cannot render into, so WebGPU XR is untested.
 const environment = EffectThreeFoldkit.makeEnvironment(window);
 const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 
@@ -84,7 +87,7 @@ Reflect.set(globalThis, '__xr', {
   exit: () => Effect.runPromise(environment.xr.exit),
   sessions: () => sessions,
   presenting: () => renderer()?.xr.isPresenting === true,
-  frames: () => renderer()?.info.render.frame ?? 0,
+  frames: () => framesDrawn(renderer()),
   /** Moves the emulated headset, in its own reference space. */
   moveHead: (x: number, y: number, z: number) => {
     device.position.x = x;

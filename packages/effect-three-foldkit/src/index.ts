@@ -26,6 +26,7 @@ export {
 } from './dom/pointer.ts';
 export { defaultPixelRatio, type PixelRatio, resolvePixelRatio } from './dom/viewport.ts';
 export { webglRendererFactory, type WebGLOptions } from './dom/webgl.ts';
+export { type WebGPUOptions, webgpuRendererFactory } from './dom/webgpu.ts';
 export {
   domEventName,
   ReconciledDetail,

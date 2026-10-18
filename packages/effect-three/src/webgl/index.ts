@@ -12,6 +12,7 @@ import { hostShaderGrid } from './shaderGrid.ts';
 import { hostSky } from './sky.ts';
 
 export const webglKit: RenderKit = {
+  drawsLabels: true,
   sky: hostSky,
   shaderGrid: hostShaderGrid,
   contactShadows: createContactShadows,

@@ -121,7 +121,9 @@ releases `astro-foldkit` and `foldkit-viz` with release-please and
 Publishing is outward-facing and hard to take back (npm allows unpublishing for 72
 hours), so it needs an explicit go-ahead and the `NPM_TOKEN` secret.
 
-### B. A WebGPU renderer (L)
+### B. A WebGPU renderer (L) ✅
+
+Done ([ADR-010](adr/010-webgpu-renderer.md)): `webgpuRendererFactory` and `webgpuKit`, on real WebGPU or `WebGPURenderer`'s WebGL 2 backend; labels are not drawn under it. The notes below are as planned.
 
 `PLAN.md` designed the renderer boundary for WebGPU but nothing uses it yet. three 0.186
 ships `WebGPURenderer` (`three/webgpu`, sharing `three.core.js` with `three`, so no

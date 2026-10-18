@@ -56,6 +56,12 @@ export type SceneRenderer = {
   readonly memory: () => RendererMemory;
   /** Releases the renderer and its drawing context. Called exactly once. */
   readonly dispose: () => void;
+  /**
+   * Settles when the renderer can draw, for renderers that start asynchronously (three's
+   * `WebGPURenderer.init()`); the runtime waits for it before the first frame. Absent for
+   * renderers ready at once.
+   */
+  readonly ready?: (() => Promise<void>) | undefined;
 };
 
 /** Creates a renderer. `create` may throw when the backend is unavailable. */

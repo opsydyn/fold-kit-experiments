@@ -9,6 +9,7 @@ import {
   label,
   scene,
 } from '../src/kernel/index.ts';
+import { webglKit } from '../src/webgl/index.ts';
 
 /** A label engine that draws each label as a plane and logs what it is asked to do. */
 const fakeLabels = () => {
@@ -68,6 +69,16 @@ test('a label whose glyphs are ready asks for a frame', () => {
 test('without an engine a label is an empty wrapper', () => {
   const graph = createSceneGraph();
   graph.reconcile(sign());
+  expect(graph.object('sign')?.children).toEqual([]);
+  graph.dispose();
+});
+
+test('a render kit that cannot draw labels gets none from the engine', () => {
+  const { engine, calls } = fakeLabels();
+  const kit = { ...webglKit, drawsLabels: false };
+  const graph = createSceneGraph({ labels: engine, kit });
+  graph.reconcile(sign());
+  expect(calls).toEqual([]);
   expect(graph.object('sign')?.children).toEqual([]);
   graph.dispose();
 });

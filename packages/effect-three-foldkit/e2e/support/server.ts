@@ -33,7 +33,17 @@ export async function serveApp(distName: string, pages: ReadonlyArray<string>): 
   };
 }
 
-/** Chromium with software WebGL, so rendering is the same on every machine. */
+/**
+ * Chromium with software WebGL and WebGPU (SwiftShader both), so rendering is the same on
+ * every machine. WebGPU needs a secure context: the served pages are on localhost.
+ */
 export function launchBrowser() {
-  return chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  return chromium.launch({
+    args: [
+      '--use-angle=swiftshader',
+      '--enable-unsafe-swiftshader',
+      '--enable-unsafe-webgpu',
+      '--use-webgpu-adapter=swiftshader',
+    ],
+  });
 }

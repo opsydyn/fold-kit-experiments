@@ -616,7 +616,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         return entry;
       }
       case 'Label': {
-        const hosted = options.labels?.create(node, invalidate);
+        // A renderer that cannot draw the engine's labels (WebGPU and troika) gets none.
+        const hosted =
+          options.kit?.drawsLabels === false ? undefined : options.labels?.create(node, invalidate);
         const entry: Entry = { _tag: 'Label', node, object: new Group(), hosted };
         if (hosted !== undefined) entry.object.add(hosted.object);
         writeVec3(entry.object.position, node.position);

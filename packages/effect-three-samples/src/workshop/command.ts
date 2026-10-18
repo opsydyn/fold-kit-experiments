@@ -2,7 +2,7 @@
 import { Effect, Result, Schema } from 'effect';
 import { Command } from 'foldkit';
 
-import { environment } from '../environment';
+import { environment } from '../labelledEnvironment';
 import { Message } from './message';
 import { assetIds } from './model';
 

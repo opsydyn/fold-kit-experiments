@@ -191,7 +191,9 @@ WebGPU path), and DOM overlay is checked only in the session request.
 
 - ✅ Four high-fidelity promo examples (marble machine, type gallery, bowling, XR room)
   and a guide brought up to 0.1.0.
-- Pages that need labels stay on WebGL under `?renderer=webgpu`, and say why (S).
+- ✅ Pages that need labels stay on WebGL under `?renderer=webgpu`, and say why: the
+  samples' renderer choice takes what a sample needs, and pages without labels no longer
+  load troika at all.
 - Labels under WebGPU (M–L): troika builds WebGL shaders only. Investigate distance-field
   text in TSL behind the same `LabelEngine` contract, or a second engine for both
   renderers, before choosing.
@@ -237,8 +239,8 @@ collaboration, 3 for the assistant).
 
 ### Recommendation
 
-E's WebGPU page fallback now (S), then the event-sourced replay spike (1), which every
-other item in "Beyond parity" depends on, then agent-native control of the XR room (3).
+The WebGPU page fallback and the replay spike (1) are done. Next: agent-native control
+of the XR room (3), then labels under WebGPU (E).
 
 ## Not planned
 

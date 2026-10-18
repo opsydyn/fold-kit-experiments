@@ -1,7 +1,10 @@
 import { expect, mock, test } from 'bun:test';
 
 // The commands use the page's environment; the update logic under test never runs them.
-await mock.module('../src/environment', () => ({ environment: {}, sceneMount: () => undefined }));
+await mock.module('../src/labelledEnvironment', () => ({
+  environment: {},
+  sceneMount: () => undefined,
+}));
 const { Message } = await import('../src/room/message');
 const { init, update } = await import('../src/room/update');
 const { sceneFor } = await import('../src/room/scene');

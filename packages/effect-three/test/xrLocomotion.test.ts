@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { locomote, teleport, xr } from '../src/kernel/index.ts';
+import { glide, glided, locomote, teleport, xr } from '../src/kernel/index.ts';
 
 const near = (values: ReadonlyArray<number>) =>
   values.map((value) => Math.round(value * 1e9) / 1e9 || 0);
@@ -32,4 +32,11 @@ test('teleporting stands the player where they point, keeping their height and f
   const moved = teleport(xr({ origin: [0, 0.5, 0], heading: 1 }), [3, 0, -2]);
   expect(moved.origin).toEqual([3, 0.5, -2]);
   expect(moved.heading).toBe(1);
+});
+
+test('glide has pmndrs/xr’s defaults, and glided keeps where the glide stopped', () => {
+  expect(glide()).toEqual({ speed: 2, turn: 'snap', turnSpeed: 2, snapDegrees: 45 });
+  const before = xr({ origin: [0, 0, 4], glide: glide() });
+  const after = glided(before, { origin: [1, 0, 2], heading: 0.5 });
+  expect(after).toEqual({ ...before, origin: [1, 0, 2], heading: 0.5 });
 });

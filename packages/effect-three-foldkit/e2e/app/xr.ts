@@ -15,6 +15,7 @@ import {
   aimStraight,
   describeEvent,
   FloorEnvironment,
+  glideFromAddress,
   headOf,
   inputsShown,
   keyOf,
@@ -37,7 +38,12 @@ const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
 const described = scene({
-  xr: xr({ origin: [2, 0, 0], heading: -Math.PI / 2, hitTest: true }),
+  xr: xr({
+    origin: [2, 0, 0],
+    heading: -Math.PI / 2,
+    hitTest: true,
+    glide: glideFromAddress(location.search),
+  }),
   children: [
     mesh({
       key: 'cube',
@@ -65,6 +71,7 @@ const watched = [
   'scene-xr-button',
   'scene-xr-surface',
   'scene-pointer-missed',
+  'scene-xr-moved',
   'scene-click',
 ];
 const events: Array<string> = [];
@@ -105,6 +112,8 @@ Reflect.set(globalThis, '__xr', {
   aimLeft: (y: number) => aimStraight(device.controllers.left, y),
   /** Points the right controller straight down from `y`. */
   aimDown: (y: number) => aimDown(device.controllers.right, y),
+  /** Pushes the left thumbstick to `(x, y)`. */
+  leftStick: (x: number, y: number) => device.controllers.left?.updateAxes('thumbstick', x, y),
   /** Pushes the right thumbstick to `(x, y)`. */
   stick: (x: number, y: number) => device.controllers.right?.updateAxes('thumbstick', x, y),
   /** Grips (1) or lets go (0) with the right controller. */

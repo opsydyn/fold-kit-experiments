@@ -218,6 +218,11 @@ export type SceneEvent =
       readonly button: XrButtonName;
       readonly pressed: boolean;
     }
+  /**
+   * Gliding with the sticks (`xr({ glide })`) stopped: where the player stands, to keep
+   * in the Model's `xr({ origin, heading })`.
+   */
+  | { readonly _tag: 'XrMoved'; readonly origin: Vec3; readonly heading: number }
   /** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
   | {
       readonly _tag: 'XrSurface';

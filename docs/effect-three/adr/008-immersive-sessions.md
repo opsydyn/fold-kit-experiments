@@ -64,5 +64,8 @@ framebufferScale }) })`. The kernel only holds it; its renderer contract stays f
 - Tests drive controllers, sticks, a squeeze, tracked hands and their pinches, and an AR
   session whose hit tests a synthetic floor answers (IWER asks a "synthetic environment
   module" for them; the test page installs one that intersects y = 0).
-- Smooth (gliding) locomotion would mean a Message per frame; steps and snap turns do
-  not. Not yet: anchors, planes and meshes, DOM overlay, and joint poses as data.
+- Gliding is the session's (`xr({ glide })`, after pmndrs/xr's controller locomotion: the
+  left stick moves where the head faces, the right turns, smoothly or by snaps), so it
+  needs no Message per frame; `XrMoved` reports where it stopped and `glided(xr, moved)`
+  keeps that in the Model, which wins whenever it changes the origin itself. Not yet:
+  anchors, planes and meshes, DOM overlay, and joint poses as data.

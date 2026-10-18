@@ -1326,6 +1326,15 @@ export type Gestures = 'page' | 'scene';
 const Gestures_2: Schema.Literals<readonly ["page", "scene"]>;
 
 // @public
+export const glide: (options?: Partial<XrGlide>) => XrGlide;
+
+// @public
+export const glided: (settings: Xr, moved: {
+    readonly origin: Vec3;
+    readonly heading: number;
+}) => Xr;
+
+// @public
 export const grid: (options: {
     readonly key: string;
     readonly position?: Vec3;
@@ -3678,6 +3687,12 @@ const SceneDescription_2: Schema.Struct<{
         readonly framebufferScale: Schema.Finite;
         readonly hitTest: Schema.Boolean;
         readonly showInputs: Schema.Boolean;
+        readonly glide: Schema.NullOr<Schema.Struct<{
+            readonly speed: Schema.Finite;
+            readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
+            readonly turnSpeed: Schema.Finite;
+            readonly snapDegrees: Schema.Finite;
+        }>>;
     }>>;
     readonly measure: Schema.$Array<Schema.String>;
     readonly render: Schema.Struct<{
@@ -3886,6 +3901,15 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly hand: XrHand;
     readonly button: XrButtonName;
     readonly pressed: boolean;
+}
+/**
+* Gliding with the sticks (`xr({ glide })`) stopped: where the player stands, to keep
+* in the Model's `xr({ origin, heading })`.
+*/
+| {
+    readonly _tag: 'XrMoved';
+    readonly origin: Vec3;
+    readonly heading: number;
 }
 /** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
 | {
@@ -4151,6 +4175,9 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"XrMoved", {
+    readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly heading: Schema.Finite;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -4351,6 +4378,7 @@ declare namespace SceneSchema {
         CollisionDetail,
         XrStickDetail,
         XrButtonDetail,
+        XrMovedDetail,
         XrSurfaceDetail,
         ContactForceDetail,
         MeasuredDetail,
@@ -5050,6 +5078,7 @@ export type Xr = {
     readonly framebufferScale: number;
     readonly hitTest: boolean;
     readonly showInputs: boolean;
+    readonly glide: XrGlide | null;
 };
 
 // @public
@@ -5063,6 +5092,12 @@ const Xr_2: Schema.Struct<{
     readonly framebufferScale: Schema.Finite;
     readonly hitTest: Schema.Boolean;
     readonly showInputs: Schema.Boolean;
+    readonly glide: Schema.NullOr<Schema.Struct<{
+        readonly speed: Schema.Finite;
+        readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
+        readonly turnSpeed: Schema.Finite;
+        readonly snapDegrees: Schema.Finite;
+    }>>;
 }>;
 
 // @public
@@ -5077,6 +5112,14 @@ export type XrButtonName = 'trigger' | 'squeeze' | 'touchpad' | 'thumbstick' | '
 
 // @public
 export const xrEquals: (a: Xr | null, b: Xr | null) => boolean;
+
+// @public
+export type XrGlide = {
+    readonly speed: number;
+    readonly turn: 'smooth' | 'snap';
+    readonly turnSpeed: number;
+    readonly snapDegrees: number;
+};
 
 // @public
 export type XrHand = 'left' | 'right' | 'none';
@@ -5111,6 +5154,12 @@ export type XrInput =
     readonly button: XrButtonName;
     readonly pressed: boolean;
 }
+/** Gliding (`xr({ glide })`) stopped: where the player stands now, for the Model. */
+| {
+    readonly _tag: 'Moved';
+    readonly origin: Vec3;
+    readonly heading: number;
+}
 /** In AR, a select whose ray met a real surface: where, and the surface's normal. */
 | {
     readonly _tag: 'Surface';
@@ -5119,6 +5168,12 @@ export type XrInput =
     readonly point: Vec3;
     readonly normal: Vec3;
 };
+
+// @public
+const XrMovedDetail: Schema.Struct<{
+    readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly heading: Schema.Finite;
+}>;
 
 // @public
 const XrStickDetail: Schema.Struct<{

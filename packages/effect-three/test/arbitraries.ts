@@ -351,6 +351,14 @@ const sceneFields = {
       framebufferScale: Schema.Literals([1]),
       hitTest: Schema.Boolean,
       showInputs: Schema.Boolean,
+      glide: Schema.NullOr(
+        Schema.Struct({
+          speed: Schema.Literals([2]),
+          turn: Schema.Literals(['smooth', 'snap']),
+          turnSpeed: Schema.Literals([2]),
+          snapDegrees: Schema.Literals([45]),
+        }),
+      ),
     }),
   ),
   physics: Schema.NullOr(

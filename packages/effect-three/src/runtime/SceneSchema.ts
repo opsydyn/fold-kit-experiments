@@ -683,6 +683,14 @@ export const Xr = Schema.Struct({
   framebufferScale: Positive,
   hitTest: Schema.Boolean,
   showInputs: Schema.Boolean,
+  glide: Schema.NullOr(
+    Schema.Struct({
+      speed: NonNegative,
+      turn: Schema.Literals(['smooth', 'snap']),
+      turnSpeed: NonNegative,
+      snapDegrees: NonNegative,
+    }),
+  ),
 });
 
 /** Whether the scene claims the pointer's gestures from the page. */
@@ -818,6 +826,9 @@ export const XrButtonDetail = Schema.Struct({
   pressed: Schema.Boolean,
 });
 
+/** Detail of XR moved events: where gliding left the player. */
+export const XrMovedDetail = Schema.Struct({ origin: Vec3, heading: Schema.Finite });
+
 /** Detail of XR surface events: in AR, where a select met a real surface. */
 export const XrSurfaceDetail = Schema.Struct({ hand: XrHand, point: Vec3, normal: Vec3 });
 
@@ -860,6 +871,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('XrStick', XrStickDetail.fields),
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
+  Schema.TaggedStruct('XrMoved', XrMovedDetail.fields),
   Schema.TaggedStruct('PerformanceChanged', PerformanceDetail.fields),
 ]);
 

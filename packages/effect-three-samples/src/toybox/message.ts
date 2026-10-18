@@ -19,7 +19,7 @@ export const Message = defineMessageUnion({
   ClickedExitVr: {},
   FailedVr: {},
   ChangedVrSession: { presenting: Schema.Boolean },
-  PushedStick: { stick: SceneSchema.XrStickDetail },
+  Glided: { moved: SceneSchema.XrMovedDetail },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });
 export type Message = typeof Message.Type;

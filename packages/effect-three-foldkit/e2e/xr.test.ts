@@ -255,3 +255,38 @@ test('in AR, a select reports where its ray met the real floor', async () => {
   expect(errors).toEqual([]);
   await page.close();
 }, 60_000);
+
+function pushForward(): void {
+  Reflect.get(globalThis, '__xr').leftStick(0, -1);
+}
+function letGo(): void {
+  Reflect.get(globalThis, '__xr').leftStick(0, 0);
+}
+
+test('with glide, the left stick moves the player where they face, and letting go says where', async () => {
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const errors: Array<string> = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto(app.url('xr.html?glide'));
+  await page.waitForFunction(xrReady);
+  await inPage(page, enter);
+  await page.waitForFunction(sessionsReported, 1);
+  await pointAway(page);
+  const [startX = 0] = (await inPage(page, head)) ?? [];
+  // The player stands at x = 2 facing +x; half a second at 2 m/s is about a metre.
+  await inPage(page, pushForward);
+  await page.waitForTimeout(500);
+  await inPage(page, letGo);
+  await settle(page);
+  const [x = 0, , z = 0] = (await inPage(page, head)) ?? [];
+  expect(x - startX).toBeGreaterThan(0.6);
+  expect(x - startX).toBeLessThan(1.6);
+  expect(z).toBeCloseTo(0, 1);
+  const moved = (await inPage(page, events)).filter((line) => line.startsWith('xr-moved'));
+  expect(moved).toHaveLength(1);
+  // The origin moved with the player, from x = 2, as far as the head did.
+  const [originX = 0] = (moved[0] ?? '').split(' ').at(-1)?.split(',').map(Number) ?? [];
+  expect(originX - 2).toBeCloseTo(x - startX, 1);
+  expect(errors).toEqual([]);
+  await page.close();
+}, 60_000);

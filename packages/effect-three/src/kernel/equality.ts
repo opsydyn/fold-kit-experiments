@@ -532,4 +532,11 @@ export const xrEquals = (a: Xr | null, b: Xr | null): boolean =>
     a.referenceSpace === b.referenceSpace &&
     Object.is(a.framebufferScale, b.framebufferScale) &&
     a.hitTest === b.hitTest &&
-    a.showInputs === b.showInputs);
+    a.showInputs === b.showInputs &&
+    (a.glide === b.glide ||
+      (a.glide !== null &&
+        b.glide !== null &&
+        Object.is(a.glide.speed, b.glide.speed) &&
+        a.glide.turn === b.glide.turn &&
+        Object.is(a.glide.turnSpeed, b.glide.turnSpeed) &&
+        Object.is(a.glide.snapDegrees, b.glide.snapDegrees))));

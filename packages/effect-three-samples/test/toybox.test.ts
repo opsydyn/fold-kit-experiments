@@ -107,16 +107,12 @@ test('bumps count collisions that begin, leaving out marbles', () => {
   expect(bumped.bumps).toBe(1);
 });
 
-test('in VR, the right stick snap-turns the player and the left steps them forward', () => {
-  const turned = step(start, Message.PushedStick({ stick: { hand: 'right', direction: 'right' } }));
-  expect(turned.player.heading).toBeCloseTo(-Math.PI / 4, 9);
-  const stepped = step(
-    start,
-    Message.PushedStick({ stick: { hand: 'left', direction: 'forward' } }),
-  );
-  // Facing the tray (−z) from z = 4.2: a step brings the player a metre closer.
-  expect(stepped.player.origin[2]).toBeCloseTo(3.2, 9);
-  expect(sceneFor(stepped).xr?.origin[2]).toBeCloseTo(3.2, 9);
+test('in VR, the sticks glide the player, and the Model keeps where they stopped', () => {
+  expect(sceneFor(start).xr?.glide).not.toBeNull();
+  const moved = step(start, Message.Glided({ moved: { origin: [0, 0, 3], heading: 0.5 } }));
+  expect(moved.player.origin).toEqual([0, 0, 3]);
+  expect(moved.player.heading).toBe(0.5);
+  expect(sceneFor(moved).xr?.origin).toEqual([0, 0, 3]);
 });
 
 test('showing colliders turns on the physics world’s debug lines', () => {

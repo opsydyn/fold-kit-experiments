@@ -148,7 +148,8 @@ targets today.
 
 - ✅ Move the kernel's GLSL behind the renderer (B's first step, and ADR-003's rule): the
   sky, shader grid and contact shadows are `webglKit` in `@opsydyn/effect-three/webgl`.
-- Smooth locomotion as a behaviour on the player, so gliding needs no Message per frame.
+- ✅ Smooth locomotion without a Message per frame: `xr({ glide })` glides the player with
+  the sticks in the session and reports `XrMoved` when they let go.
 - XR anchors, planes and DOM overlay; joint poses as data.
 - Collision groups and per-collider events in physics.
 

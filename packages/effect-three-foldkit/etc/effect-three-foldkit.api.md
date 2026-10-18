@@ -90,6 +90,7 @@ export const domEventName: {
     readonly XrStick: 'scene-xr-stick';
     readonly XrButton: 'scene-xr-button';
     readonly XrSurface: 'scene-xr-surface';
+    readonly XrMoved: 'scene-xr-moved';
     readonly PerformanceChanged: 'scene-performance';
 };
 
@@ -159,10 +160,10 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
 
 // @public
 export const makeSceneMount: (environment: Environment) => Mount.MountDefinitionNoArgs<"EffectThreeScene", {
+    readonly _tag: "StartedScene";
+} | {
     readonly _tag: "FailedScene";
     readonly reason: string;
-} | {
-    readonly _tag: "StartedScene";
 }>;
 
 // @public
@@ -388,6 +389,12 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly framebufferScale: Schema.Finite;
             readonly hitTest: Schema.Boolean;
             readonly showInputs: Schema.Boolean;
+            readonly glide: Schema.NullOr<Schema.Struct<{
+                readonly speed: Schema.Finite;
+                readonly turn: Schema.Literals<readonly ["smooth", "snap"]>;
+                readonly turnSpeed: Schema.Finite;
+                readonly snapDegrees: Schema.Finite;
+            }>>;
         }>>;
         readonly measure: Schema.$Array<Schema.String>;
         readonly render: Schema.Struct<{
@@ -768,6 +775,10 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>;
+    'scene-xr-moved': Schema.Struct<{
+        readonly origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly heading: Schema.Finite;
+    }>;
     'scene-performance': Schema.Struct<{
         readonly fps: Schema.Finite;
         readonly factor: Schema.Finite;
@@ -936,6 +947,7 @@ export type ViewConfig<Message> = {
     readonly onXRStick?: (detail: XrStickDetail) => Message;
     readonly onXRButton?: (detail: XrButtonDetail) => Message;
     readonly onXRSurface?: (detail: XrSurfaceDetail) => Message;
+    readonly onXRMoved?: (detail: XrMovedDetail) => Message;
     readonly onPerformanceChange?: (detail: PerformanceDetail) => Message;
     readonly onError?: (detail: {
         readonly error: SceneError;
@@ -974,6 +986,9 @@ export type XrControls = ReturnType<typeof makeXr>;
 
 // @public
 export type XrMode = 'immersive-vr' | 'immersive-ar';
+
+// @public
+export type XrMovedDetail = typeof SceneSchema.XrMovedDetail.Type;
 
 // @public
 export const XrSessionDetail: Schema.Struct<{

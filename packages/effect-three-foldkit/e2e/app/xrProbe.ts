@@ -1,3 +1,4 @@
+import { glide, type XrGlide } from '@opsydyn/effect-three';
 /**
  * Plain helpers for the XR page: the emulator shim, and reading the presented scene's
  * renderer. Kept apart from the Effect code that mounts the scene.
@@ -114,10 +115,11 @@ export const describeEvent = (event: Event): string => {
   const parts = [field('key'), field('hand'), field('direction'), field('button'), field('pressed')]
     .filter((part) => part !== undefined)
     .map(String);
-  const point = field('point');
-  if (event.type === 'scene-xr-surface' && Array.isArray(point)) {
-    parts.push(point.map((value: number) => value.toFixed(1)).join(','));
-  }
+  // Where surfaces and glides ended (pointer events' hit points are left out).
+  const place = { 'scene-xr-surface': field('point'), 'scene-xr-moved': field('origin') }[
+    event.type
+  ];
+  if (Array.isArray(place)) parts.push(place.map((value: number) => value.toFixed(1)).join(','));
   return [event.type.replace('scene-', ''), ...parts].join(' ');
 };
 
@@ -143,3 +145,7 @@ export const framesDrawn = (renderer: ThreeRenderer | undefined): number => {
   if (render === undefined) return 0;
   return 'frameCalls' in render ? render.frameCalls : render.frame;
 };
+
+/** Gliding with the sticks when the page's address has `?glide`; otherwise none. */
+export const glideFromAddress = (search: string): XrGlide | null =>
+  new URLSearchParams(search).has('glide') ? glide() : null;

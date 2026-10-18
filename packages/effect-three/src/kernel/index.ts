@@ -35,6 +35,7 @@ export {
   body,
   circle,
   xr,
+  glide,
   physics,
   cuboidCollider,
   ballCollider,
@@ -183,7 +184,7 @@ export type {
   RenderKit,
   ShadowedScene,
 } from './renderKit.ts';
-export { type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
+export { glided, type LocomotionOptions, locomote, teleport } from './xrLocomotion.ts';
 export {
   createXrTracker,
   type XrButtonName,

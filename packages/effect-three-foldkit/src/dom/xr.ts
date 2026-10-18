@@ -16,6 +16,7 @@ import type { Xr, XrInput } from '@opsydyn/effect-three';
 import { Group, type Object3D } from 'three';
 
 import type { PresentableRenderer } from './renderSettings.ts';
+import { floorFacing, type GlidePose, glideFrame, startGlider } from './xrGlide.ts';
 import { rayOf, trackInputs, type XrInputs } from './xrInputs.ts';
 
 /** Where an immersive session can come from: `navigator.xr`, or an emulator's. */
@@ -43,7 +44,7 @@ export const sessionInit = (settings: Xr, mode: XrMode = 'immersive-vr'): XRSess
  * The offset that puts the player at `origin` facing `heading`: a reference space whose
  * poses are the device's, rotated by the heading and moved to the origin.
  */
-const originOffset = (settings: Xr): XRRigidTransform => {
+const originOffset = (settings: GlidePose): XRRigidTransform => {
   const [x, y, z] = settings.origin;
   const half = -settings.heading / 2;
   const cos = Math.cos(-settings.heading);
@@ -112,22 +113,45 @@ export const present = async (
   xr.setReferenceSpaceType(settings.referenceSpace);
   xr.setFramebufferScaleFactor(settings.framebufferScale);
   let inputs: XrInputs | undefined;
+  let current = settings;
+  // Gliding (`xr({ glide })`) moves the player from the description's place; the
+  // description wins again whenever it changes.
+  let glider = startGlider({ origin: settings.origin, heading: settings.heading });
+  let lastTime: number | undefined;
+  let base: XRReferenceSpace | null = null;
+  const place = (pose: GlidePose): void => {
+    if (base !== null) xr.setReferenceSpace(base.getOffsetReferenceSpace(originOffset(pose)));
+  };
+
+  /** One frame of gliding, when the description asks for it. */
+  const glideStep = (time: number, frame: XRFrame, space: XRReferenceSpace): void => {
+    const seconds = Math.min(0.1, Math.max(0, (time - (lastTime ?? time)) / 1000));
+    lastTime = time;
+    if (current.glide === null || inputs === undefined) return;
+    const head = frame.getViewerPose(space);
+    const facing = floorFacing(head?.transform.orientation ?? { x: 0, y: 0, z: 0, w: 1 });
+    const { left, right } = inputs.sticks();
+    const next = glideFrame(glider, current.glide, { move: left, turn: right }, facing, seconds);
+    if (next.glider.pose !== glider.pose) place(next.glider.pose);
+    glider = next.glider;
+    if (next.stopped !== undefined) input({ _tag: 'Moved', ...next.stopped });
+  };
+
   /** One session frame: its input read, then drawn. Frames outside the session are skipped. */
-  function sessionFrame(_time: number, frame?: XRFrame): void {
+  function sessionFrame(time: number, frame?: XRFrame): void {
     if (!xr.isPresenting) return;
     const space = xr.getReferenceSpace();
-    if (frame !== undefined && space !== null) inputs?.frame(frame, space);
+    if (frame !== undefined && space !== null) {
+      inputs?.frame(frame, space);
+      glideStep(time, frame, space);
+    }
     draw();
   }
   // Set before the session starts (WebGPU's XR manager takes the loop then).
   renderer.setXrLoop(sessionFrame);
   await xr.setSession(session);
-  const base = xr.getReferenceSpace();
-  let current = settings;
-  const place = (next: Xr): void => {
-    if (base !== null) xr.setReferenceSpace(base.getOffsetReferenceSpace(originOffset(next)));
-  };
-  place(settings);
+  base = xr.getReferenceSpace();
+  place(glider.pose);
   const shown = new Group();
   shown.name = 'xr-inputs';
   scene.add(shown);
@@ -153,7 +177,9 @@ export const present = async (
         next.origin.some((value, i) => value !== current.origin[i]) ||
         next.heading !== current.heading;
       current = next;
-      if (moved) place(next);
+      if (!moved) return;
+      glider = startGlider({ origin: next.origin, heading: next.heading });
+      place(glider.pose);
     },
   };
 };

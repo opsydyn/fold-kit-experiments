@@ -1009,6 +1009,26 @@ export type Xr = {
   readonly hitTest: boolean;
   /** Draw each input source's pointing ray and each tracked hand's joints. */
   readonly showInputs: boolean;
+  /**
+   * Glide the player with the thumbsticks while presenting, as pmndrs/xr's controller
+   * locomotion does: the left stick moves where the head faces, the right turns. The
+   * player's place is the session's while gliding; when the sticks come back to the
+   * middle an `XrMoved` event says where it ended, for the Model's `origin` and
+   * `heading`. `null` to leave the sticks to the application (`XrStick`, `locomote`).
+   */
+  readonly glide: XrGlide | null;
+};
+
+/** How the sticks glide the player (pmndrs/xr's defaults: 2 m/s, a 45° snap turn). */
+export type XrGlide = {
+  /** Metres per second at full stick. */
+  readonly speed: number;
+  /** `smooth` turns while the stick is pushed; `snap` turns once per push. */
+  readonly turn: 'smooth' | 'snap';
+  /** Radians per second at full stick, for a smooth turn. */
+  readonly turnSpeed: number;
+  /** Degrees per push, for a snap turn. */
+  readonly snapDegrees: number;
 };
 
 export type SceneDescription = {

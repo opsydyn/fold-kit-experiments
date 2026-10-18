@@ -55,6 +55,8 @@ export type XrInput =
       readonly button: XrButtonName;
       readonly pressed: boolean;
     }
+  /** Gliding (`xr({ glide })`) stopped: where the player stands now, for the Model. */
+  | { readonly _tag: 'Moved'; readonly origin: Vec3; readonly heading: number }
   /** In AR, a select whose ray met a real surface: where, and the surface's normal. */
   | {
       readonly _tag: 'Surface';
@@ -185,6 +187,8 @@ export const createXrTracker = (picker: Picker) => {
         return [
           { _tag: 'XrButton', hand: input.hand, button: input.button, pressed: input.pressed },
         ];
+      case 'Moved':
+        return [{ _tag: 'XrMoved', origin: input.origin, heading: input.heading }];
       case 'Surface':
         return [{ _tag: 'XrSurface', hand: input.hand, point: input.point, normal: input.normal }];
     }

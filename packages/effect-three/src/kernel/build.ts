@@ -76,6 +76,7 @@ import type {
   Vec3,
   View,
   ViewRect,
+  XrGlide,
 } from './description.ts';
 
 const origin: Vec3 = [0, 0, 0];
@@ -691,6 +692,17 @@ export const springJoint = (options: {
 }): JointKind => ({ _tag: 'Spring', ...options });
 
 /**
+ * Gliding with the thumbsticks while presenting. Defaults as pmndrs/xr's
+ * `useXRControllerLocomotion`: 2 m/s, a snap turn of 45° (smooth turns at 2 rad/s).
+ */
+export const glide = (options: Partial<XrGlide> = {}): XrGlide => ({
+  speed: options.speed ?? 2,
+  turn: options.turn ?? 'snap',
+  turnSpeed: options.turnSpeed ?? 2,
+  snapDegrees: options.snapDegrees ?? 45,
+});
+
+/**
  * Immersive presentation for a scene. Defaults: the player at the scene's origin facing
  * −z, `local-floor` (as pmndrs/xr), the device's framebuffer scale, inputs drawn (rays
  * and hand joints, where pmndrs/xr draws controller and hand models), no AR hit tests.
@@ -702,6 +714,7 @@ export const xr = (options: Partial<Xr> = {}): Xr => ({
   framebufferScale: options.framebufferScale ?? 1,
   hitTest: options.hitTest ?? false,
   showInputs: options.showInputs ?? true,
+  glide: options.glide ?? null,
 });
 
 /** One instance. Defaults: at the origin, unrotated, unit scale, white. */

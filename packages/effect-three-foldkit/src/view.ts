@@ -177,8 +177,8 @@ export type ViewConfig<Message> = {
   readonly onXRPlanes?: (detail: XrPlanesDetail) => Message;
   /**
    * With `xr({ meshes: true })`, the detected meshes changed: every mesh, as it is now.
-   * Draw one with `group({ follow: meshSpace(id), children: [mesh({ geometry: xrMesh(id),
-   * material })] })`: its geometry is lent to the scene, not sent.
+   * Draw one as `mesh({ geometry: xrMesh(id), material })` inside a group that follows
+   * `meshSpace(id)`: its geometry is lent to the scene, not sent.
    */
   readonly onXRMeshes?: (detail: XrMeshesDetail) => Message;
   /**

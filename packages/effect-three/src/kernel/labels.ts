@@ -14,9 +14,9 @@ import type { Material, Object3D } from 'three';
 import type { LabelNode } from './description.ts';
 
 /**
- * A label's laid-out size in its own units (before its scale), as `[minX, minY, maxX,
- * maxY]`: `block` the whole text block, line height included, and `visible` tight round
- * the glyphs (troika's `blockBounds` and `visibleBounds`).
+ * A label's laid-out size in its own units (before its scale), each as
+ * `[minX, minY, maxX, maxY]`: `block` the whole text block, line height included, and
+ * `visible` tight round the glyphs (troika's `blockBounds` and `visibleBounds`).
  */
 export type LabelLayout = {
   readonly block: readonly [number, number, number, number];

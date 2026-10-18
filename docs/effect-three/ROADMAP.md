@@ -156,6 +156,22 @@ domOverlay })`, and `XrPlanes` events ([ADR-008](adr/008-immersive-sessions.md))
 - ✅ Collision groups and per-collider events in physics: `body({ collisionGroups,
 solverGroups })` with `interactionGroups`, and collisions naming each body's part.
 
+### D. Parity gaps before publishing (S each) ✅
+
+The "not yet" notes the ADRs recorded, closed before the first release:
+
+- ✅ Camera `autoRotate` (with `AutoRotated` and `autoRotated`), and damping for view
+  cameras ([ADR-006](adr/006-controls-as-data.md)).
+- ✅ Label `colorRanges`, `curveRadius`, a scene `material`, and `LabelMeasured`
+  layouts ([ADR-009](adr/009-labels-drawn-by-an-engine.md)).
+- ✅ Lent geometries (`store.lendGeometry`, `lentGeometry(id)`) and XR detected meshes
+  (`xr({ meshes })`, `XrMeshes`, `xrMesh(id)`) ([ADR-008](adr/008-immersive-sessions.md)).
+- ✅ The kernel coverage gate (95% of lines) runs with the core package's tests.
+
+Still limits, to state in each README rather than fix here: WebXR on `WebGPURenderer`
+is untested (IWER cannot render it), labels are not drawn under WebGPU (troika has no
+WebGPU path), and DOM overlay is checked only in the session request.
+
 ### Recommendation
 
 A first: it makes R1–R5 usable outside the monorepo, and it is the smallest. Then C's

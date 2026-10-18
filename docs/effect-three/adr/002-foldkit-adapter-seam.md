@@ -1,6 +1,6 @@
 # ADR-002: Foldkit adapter seam is CustomElement properties and events plus a one-shot Mount
 
-- Status: Accepted and implemented (2026-10-14, Phase 3). Time-travel pause is wired but not yet verified end to end.
+- Status: Accepted and implemented (2026-10-14, Phase 3). Time-travel pause is verified in a browser through the Mount's contract (`e2e/visual.test.ts`, `pause.html` drives `viewStateChanges` to `Paused` and back); the DevTools overlay itself, which only Foldkit's Vite plugin injects, is not exercised.
 - Evidence: [d1-adapter spike](https://github.com/opsydyn/fold-kit-experiments/tree/02fa947/packages/effect-three-foldkit/spikes/d1-adapter) (removed after Phase 1; kept in commit `02fa947`), [spike results](../spike-results.md#d1-details)
 
 ## Context
@@ -47,7 +47,7 @@ scene(
 - Only public Foldkit APIs are used, and the lifecycle is owned and interrupted by Foldkit's runtime.
 - Mount finalisers run asynchronously after snabbdom's `destroy`. All teardown must be self-contained (no ordering assumptions about sibling DOM).
 - We need a structural equality fast path for descriptions. Reference equality isn't enough.
-- Open (Phase 3): suppress events while `viewStateChanges` is `Paused` (DevTools time travel).
+- Done (Phase 3): events are dropped while `viewStateChanges` is `Paused` (DevTools time travel), checked by the pause page in `e2e/visual.test.ts`.
 
 ## Implementation notes (Phase 3)
 

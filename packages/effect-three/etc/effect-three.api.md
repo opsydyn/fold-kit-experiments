@@ -12,6 +12,7 @@ import type { Euler } from 'three';
 import type { Font } from 'three/addons/loaders/FontLoader.js';
 import { InstancedMesh } from 'three';
 import { Layer } from 'effect';
+import type { Material } from 'three';
 import { Mesh } from 'three';
 import { MeshBasicMaterial } from 'three';
 import { MeshLambertMaterial } from 'three';
@@ -79,6 +80,17 @@ export const animationEquals: (a: Animation_2 | null, b: Animation_2 | null) => 
 
 // @public
 export const applyTween: (object: Object3D, tween: Tween, elapsedSeconds: number) => boolean;
+
+// @public
+export const autoRotated: <C extends Camera>(camera: C, turned: {
+    readonly position: Vec3;
+}) => C;
+
+// @public
+const AutoRotatedDetail: Schema.Struct<{
+    readonly view: Schema.optionalKey<Schema.String>;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
 
 // @public
 export type Axis = 'x' | 'y' | 'z';
@@ -444,6 +456,7 @@ const Camera_3: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly damping: Schema.Finite;
+    readonly autoRotate: Schema.Finite;
 }>, Schema.TaggedStruct<"Orthographic", {
     readonly zoom: Schema.Finite;
     readonly near: Schema.Finite;
@@ -451,6 +464,7 @@ const Camera_3: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly damping: Schema.Finite;
+    readonly autoRotate: Schema.Finite;
 }>]>;
 
 // @public
@@ -657,6 +671,9 @@ const CollisionDetail: Schema.Struct<{
 }>;
 
 // @public
+export const colorRange: (start: number, color: Rgb) => LabelColorRange;
+
+// @public
 export const cone: (options?: {
     readonly radius?: number;
     readonly height?: number;
@@ -781,7 +798,7 @@ export const createPointerTracker: (picker: Picker) => PointerTracker;
 // @public
 export const createPose: () => BehaviourPose;
 
-// @public
+// @public (undocumented)
 export const createResourceStore: () => ResourceStore;
 
 // @public
@@ -1174,6 +1191,14 @@ export type GeometryDefinition = {
 export type GeometryRef = ShapeGeometry | {
     readonly _tag: 'SharedGeometry';
     readonly id: string;
+}
+/**
+* A geometry the application (or an adapter) lends under `id` with
+* `store.lendGeometry`: drawn while lent, empty until then. Never disposed by the scene.
+*/
+| {
+    readonly _tag: 'LentGeometry';
+    readonly id: string;
 };
 
 // @public
@@ -1231,6 +1256,8 @@ const GeometryRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Text", {
     readonly radius: Schema.Finite;
     readonly segments: Schema.Int;
 }>, Schema.TaggedStruct<"SharedGeometry", {
+    readonly id: Schema.String;
+}>, Schema.TaggedStruct<"LentGeometry", {
     readonly id: Schema.String;
 }>]>;
 
@@ -1511,6 +1538,8 @@ export type HostCamera = PerspectiveCamera_2 | OrthographicCamera_2;
 export type HostedLabel = {
     readonly object: Object3D;
     readonly update: (label: LabelNode) => void;
+    readonly setMaterial: (material: Material | undefined) => void;
+    readonly layout: () => LabelLayout | undefined;
     readonly dispose: () => void;
 };
 
@@ -1711,6 +1740,8 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
         readonly radius: Schema.Finite;
         readonly segments: Schema.Int;
     }>, Schema.TaggedStruct<"SharedGeometry", {
+        readonly id: Schema.String;
+    }>, Schema.TaggedStruct<"LentGeometry", {
         readonly id: Schema.String;
     }>]>;
     readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
@@ -2032,7 +2063,7 @@ const KeyDetail: Schema.Struct<{
     readonly key: Schema.String;
 }>;
 
-// @public
+// @public (undocumented)
 export const label: (options: TransformOptions & {
     readonly text: string;
     readonly font?: string | null;
@@ -2049,6 +2080,9 @@ export const label: (options: TransformOptions & {
     readonly outlineColor?: Rgb;
     readonly outlineOpacity?: number;
     readonly outlineBlur?: number;
+    readonly colorRanges?: ReadonlyArray<LabelColorRange>;
+    readonly curveRadius?: number;
+    readonly material?: MaterialRef | null;
     readonly interactive?: boolean;
 }) => LabelNode;
 
@@ -2062,9 +2096,28 @@ export type LabelAnchorX = 'left' | 'center' | 'right' | number;
 export type LabelAnchorY = 'top' | 'top-baseline' | 'middle' | 'bottom-baseline' | 'bottom' | number;
 
 // @public
+export type LabelColorRange = {
+    readonly start: number;
+    readonly color: Rgb;
+};
+
+// @public
 export type LabelEngine = {
     readonly create: (label: LabelNode, ready: () => void) => HostedLabel;
 };
+
+// @public
+export type LabelLayout = {
+    readonly block: readonly [number, number, number, number];
+    readonly visible: readonly [number, number, number, number];
+};
+
+// @public
+const LabelMeasuredDetail: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly block: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly visible: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
 
 // @public
 export type LabelNode = {
@@ -2091,6 +2144,9 @@ export type LabelNode = {
     readonly outlineColor: Rgb;
     readonly outlineOpacity: number;
     readonly outlineBlur: number;
+    readonly colorRanges: ReadonlyArray<LabelColorRange>;
+    readonly curveRadius: number;
+    readonly material: MaterialRef | null;
 };
 
 // @public
@@ -2129,6 +2185,78 @@ const LabelNode_2: Schema.TaggedStruct<"Label", {
     readonly outlineColor: Schema.Int;
     readonly outlineOpacity: Schema.Finite;
     readonly outlineBlur: Schema.Finite;
+    readonly colorRanges: Schema.$Array<Schema.Struct<{
+        readonly start: Schema.Int;
+        readonly color: Schema.Int;
+    }>>;
+    readonly curveRadius: Schema.Finite;
+    readonly material: Schema.NullOr<Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
+        readonly color: Schema.Int;
+        readonly opacity: Schema.Finite;
+    }>, Schema.TaggedStruct<"Basic", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly color: Schema.Int;
+        readonly map: Schema.NullOr<Schema.String>;
+    }>, Schema.TaggedStruct<"Lambert", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly flatShading: Schema.Boolean;
+        readonly color: Schema.Int;
+        readonly map: Schema.NullOr<Schema.String>;
+        readonly emissive: Schema.Int;
+    }>, Schema.TaggedStruct<"Phong", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly flatShading: Schema.Boolean;
+        readonly color: Schema.Int;
+        readonly map: Schema.NullOr<Schema.String>;
+        readonly emissive: Schema.Int;
+        readonly specular: Schema.Int;
+        readonly shininess: Schema.Finite;
+    }>, Schema.TaggedStruct<"Standard", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly flatShading: Schema.Boolean;
+        readonly color: Schema.Int;
+        readonly map: Schema.NullOr<Schema.String>;
+        readonly roughness: Schema.Finite;
+        readonly metalness: Schema.Finite;
+        readonly emissive: Schema.Int;
+        readonly emissiveIntensity: Schema.Finite;
+    }>, Schema.TaggedStruct<"Physical", {
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+        readonly side: Schema.Literals<readonly ["front", "back", "double"]>;
+        readonly wireframe: Schema.Boolean;
+        readonly flatShading: Schema.Boolean;
+        readonly color: Schema.Int;
+        readonly map: Schema.NullOr<Schema.String>;
+        readonly roughness: Schema.Finite;
+        readonly metalness: Schema.Finite;
+        readonly emissive: Schema.Int;
+        readonly emissiveIntensity: Schema.Finite;
+        readonly clearcoat: Schema.Finite;
+        readonly clearcoatRoughness: Schema.Finite;
+        readonly transmission: Schema.Finite;
+        readonly ior: Schema.Finite;
+    }>, Schema.TaggedStruct<"Normal", {
+        opacity: Schema.Finite;
+        transparent: Schema.Boolean;
+        side: Schema.Literals<readonly ["front", "back", "double"]>;
+        wireframe: Schema.Boolean;
+        flatShading: Schema.Boolean;
+    }>, Schema.TaggedStruct<"SharedMaterial", {
+        readonly id: Schema.String;
+    }>]>>;
 }>;
 
 // @public
@@ -2166,8 +2294,11 @@ const layer: (scheduler: FrameScheduler) => Layer.Layer<FrameSource_2, never, ne
 const layer_2: Layer.Layer<ResourceRegistry_2, never, never>;
 
 // @public
+export const lentGeometry: (id: string) => GeometryRef;
+
+// @public
 export type Loan = {
-    readonly kind: 'object' | 'texture' | 'font';
+    readonly kind: 'object' | 'texture' | 'font' | 'geometry';
     readonly id: string;
 };
 
@@ -2410,6 +2541,8 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
         readonly segments: Schema.Int;
     }>, Schema.TaggedStruct<"SharedGeometry", {
         readonly id: Schema.String;
+    }>, Schema.TaggedStruct<"LentGeometry", {
+        readonly id: Schema.String;
     }>]>;
     readonly material: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
         readonly color: Schema.Int;
@@ -2528,6 +2661,9 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
         }>>;
     }>>;
 }>;
+
+// @public
+export const meshSpace: (id: string) => XrSpace;
 
 // @public
 const MissDetail: Schema.Struct<{
@@ -2671,6 +2807,7 @@ export type OrthographicCamera = {
     readonly position: Vec3;
     readonly lookAt: Vec3 /** As on `PerspectiveCamera`. */;
     readonly damping: number;
+    readonly autoRotate: number;
 };
 
 // @public
@@ -2684,6 +2821,7 @@ const OrthographicCamera_3: Schema.TaggedStruct<"Orthographic", {
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly damping: Schema.Finite;
+    readonly autoRotate: Schema.Finite;
 }>;
 
 // @public
@@ -2787,6 +2925,7 @@ export type PerspectiveCamera = {
     * default is 0.05). Field of view, near and far always apply at once.
     */;
     readonly damping: number;
+    readonly autoRotate: number;
 };
 
 // @public
@@ -2800,6 +2939,7 @@ const PerspectiveCamera_3: Schema.TaggedStruct<"Perspective", {
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly damping: Schema.Finite;
+    readonly autoRotate: Schema.Finite;
 }>;
 
 // @public
@@ -2992,6 +3132,8 @@ export type Picker = {
     };
     readonly region: (x: number, y: number) => Region;
     readonly gestures: () => Gestures;
+    readonly holdCameras: (held: boolean) => void;
+    readonly turned: (view: string | undefined) => Vec3 | undefined;
 };
 
 // @public
@@ -3319,6 +3461,7 @@ const RenderTexture_2: Schema.Struct<{
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly damping: Schema.Finite;
+        readonly autoRotate: Schema.Finite;
     }>, Schema.TaggedStruct<"Orthographic", {
         readonly zoom: Schema.Finite;
         readonly near: Schema.Finite;
@@ -3326,6 +3469,7 @@ const RenderTexture_2: Schema.Struct<{
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly damping: Schema.Finite;
+        readonly autoRotate: Schema.Finite;
     }>]>;
     readonly background: Schema.NullOr<Schema.Int>;
     readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
@@ -3515,6 +3659,7 @@ export type ResourceStore = {
     readonly texture: (id: string) => Texture | undefined;
     readonly lendFont: (id: string, font: Font) => () => void;
     readonly font: (id: string) => Font | undefined;
+    readonly lendGeometry: (id: string, geometry: BufferGeometry) => () => void;
     readonly onLoanChanged: (listener: (loan: Loan) => void) => () => void;
     readonly onMaterialReplaced: (listener: (event: MaterialReplaced) => void) => () => void;
     readonly updateOwnedMaterial: (material: HostMaterial, next: SurfaceMaterial) => boolean;
@@ -3640,6 +3785,7 @@ const SceneDescription_2: Schema.Struct<{
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly damping: Schema.Finite;
+        readonly autoRotate: Schema.Finite;
     }>, Schema.TaggedStruct<"Orthographic", {
         readonly zoom: Schema.Finite;
         readonly near: Schema.Finite;
@@ -3647,6 +3793,7 @@ const SceneDescription_2: Schema.Struct<{
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly damping: Schema.Finite;
+        readonly autoRotate: Schema.Finite;
     }>]>;
     readonly gestures: Schema.Literals<readonly ["page", "scene"]>;
     readonly views: Schema.$Array<Schema.Struct<{
@@ -3658,6 +3805,7 @@ const SceneDescription_2: Schema.Struct<{
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly damping: Schema.Finite;
+            readonly autoRotate: Schema.Finite;
         }>, Schema.TaggedStruct<"Orthographic", {
             readonly zoom: Schema.Finite;
             readonly near: Schema.Finite;
@@ -3665,6 +3813,7 @@ const SceneDescription_2: Schema.Struct<{
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly damping: Schema.Finite;
+            readonly autoRotate: Schema.Finite;
         }>]>;
         readonly rect: Schema.Struct<{
             readonly x: Schema.Finite;
@@ -3684,6 +3833,7 @@ const SceneDescription_2: Schema.Struct<{
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly damping: Schema.Finite;
+            readonly autoRotate: Schema.Finite;
         }>, Schema.TaggedStruct<"Orthographic", {
             readonly zoom: Schema.Finite;
             readonly near: Schema.Finite;
@@ -3691,6 +3841,7 @@ const SceneDescription_2: Schema.Struct<{
             readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly damping: Schema.Finite;
+            readonly autoRotate: Schema.Finite;
         }>]>;
         readonly background: Schema.NullOr<Schema.Int>;
         readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
@@ -3794,6 +3945,7 @@ const SceneDescription_2: Schema.Struct<{
             readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         }>>;
         readonly planes: Schema.Boolean;
+        readonly meshes: Schema.Boolean;
         readonly domOverlay: Schema.Boolean;
         readonly glide: Schema.NullOr<Schema.Struct<{
             readonly speed: Schema.Finite;
@@ -3997,6 +4149,16 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly _tag: 'Gesture';
     readonly gesture: Gesture;
 }
+/**
+* A gesture is about to begin on a camera that has turned by itself (`autoRotate`):
+* where it got to, so the Model can keep it (`autoRotated(camera, detail)`) and the
+* gesture moves on from there. `view` names a view's camera; without it, the scene's.
+*/
+| {
+    readonly _tag: 'AutoRotated';
+    readonly view?: string;
+    readonly position: Vec3;
+}
 /** In an immersive session, a thumbstick pushed past halfway in a direction, or let back. */
 | {
     readonly _tag: 'XrStick';
@@ -4023,6 +4185,11 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
 | {
     readonly _tag: 'XrPlanes';
     readonly planes: ReadonlyArray<XrPlane>;
+}
+/** The session's detected meshes changed (`xr({ meshes: true })`): all of them, now. */
+| {
+    readonly _tag: 'XrMeshes';
+    readonly meshes: ReadonlyArray<XrMesh>;
 }
 /** In AR, a select whose ray met a real surface (`xr({ hitTest: true })`). */
 | {
@@ -4063,6 +4230,17 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly totalForceMagnitude: number;
     readonly maxForceDirection: Vec3;
     readonly maxForceMagnitude: number;
+}
+/**
+* A measured label's laid-out size changed (`scene({ measure })`, after its glyphs are
+* laid out): in its own units, before its scale, for sizing what goes behind it, as
+* Drei's `Text` `onSync` reads troika's `textRenderInfo`.
+*/
+| {
+    readonly _tag: 'LabelMeasured';
+    readonly key: string;
+    readonly block: readonly [number, number, number, number];
+    readonly visible: readonly [number, number, number, number];
 }
 /**
 * A measured node's world bounding box changed (`scene({ measure })`): Drei's `Bounds`
@@ -4262,6 +4440,9 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
     }>]>;
+}>, Schema.TaggedStruct<"AutoRotated", {
+    readonly view: Schema.optionalKey<Schema.String>;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"Collision", {
     readonly a: Schema.String;
     readonly aInstance: Schema.optionalKey<Schema.String>;
@@ -4274,6 +4455,10 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly key: Schema.String;
     readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>, Schema.TaggedStruct<"LabelMeasured", {
+    readonly key: Schema.String;
+    readonly block: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly visible: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>, Schema.TaggedStruct<"ContactForce", {
     readonly a: Schema.String;
     readonly aInstance: Schema.optionalKey<Schema.String>;
@@ -4308,6 +4493,13 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly polygon: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
     }>>;
+}>, Schema.TaggedStruct<"XrMeshes", {
+    readonly meshes: Schema.$Array<Schema.Struct<{
+        readonly id: Schema.String;
+        readonly label: Schema.String;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
 }>, Schema.TaggedStruct<"PerformanceChanged", {
     readonly fps: Schema.Finite;
     readonly factor: Schema.Finite;
@@ -4319,6 +4511,8 @@ export type SceneGraph = {
     readonly kit: RenderKit | undefined;
     readonly camera: HostCamera;
     readonly views: () => ReadonlyArray<HostedView>;
+    readonly holdCameras: (held: boolean) => void;
+    readonly turned: (view: string | undefined) => Vec3 | undefined;
     readonly renderTextures: () => ReadonlyArray<HostedTexture>;
     readonly gestures: () => Gestures;
     readonly overlays: () => ReadonlyArray<Overlay>;
@@ -4328,6 +4522,7 @@ export type SceneGraph = {
     readonly contactForces: () => ReadonlyArray<BodyContactForce>;
     readonly xr: () => Xr | null;
     readonly measured: () => ReadonlyArray<string>;
+    readonly labelLayout: (key: string) => LabelLayout | undefined;
     readonly follow: (locate: (space: XrSpace) => BodyPose | undefined) => void;
     readonly store: ResourceStore;
     readonly reconcile: (next: SceneDescription) => ReconcileResult;
@@ -4516,8 +4711,12 @@ declare namespace SceneSchema {
         XrSurfaceDetail,
         XrPlane_2 as XrPlane,
         XrPlanesDetail,
+        XrMesh_2 as XrMesh,
+        XrMeshesDetail,
         ContactForceDetail,
+        LabelMeasuredDetail,
         MeasuredDetail,
+        AutoRotatedDetail,
         GestureDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError
@@ -5144,6 +5343,7 @@ const View_2: Schema.Struct<{
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly damping: Schema.Finite;
+        readonly autoRotate: Schema.Finite;
     }>, Schema.TaggedStruct<"Orthographic", {
         readonly zoom: Schema.Finite;
         readonly near: Schema.Finite;
@@ -5151,6 +5351,7 @@ const View_2: Schema.Struct<{
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly damping: Schema.Finite;
+        readonly autoRotate: Schema.Finite;
     }>]>;
     readonly rect: Schema.Struct<{
         readonly x: Schema.Finite;
@@ -5216,6 +5417,7 @@ export type Xr = {
     readonly showInputs: boolean;
     readonly anchors: ReadonlyArray<XrAnchor>;
     readonly planes: boolean;
+    readonly meshes: boolean;
     readonly domOverlay: boolean;
     readonly glide: XrGlide | null;
 };
@@ -5237,6 +5439,7 @@ const Xr_2: Schema.Struct<{
         readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     }>>;
     readonly planes: Schema.Boolean;
+    readonly meshes: Schema.Boolean;
     readonly domOverlay: Schema.Boolean;
     readonly glide: Schema.NullOr<Schema.Struct<{
         readonly speed: Schema.Finite;
@@ -5332,6 +5535,11 @@ export type XrInput =
     readonly _tag: 'Planes';
     readonly planes: ReadonlyArray<XrPlane>;
 }
+/** The detected meshes changed: all of them, as they are now. */
+| {
+    readonly _tag: 'Meshes';
+    readonly meshes: ReadonlyArray<XrMesh>;
+}
 /** In AR, a select whose ray met a real surface: where, and the surface's normal. */
 | {
     readonly _tag: 'Surface';
@@ -5340,6 +5548,38 @@ export type XrInput =
     readonly point: Vec3;
     readonly normal: Vec3;
 };
+
+// @public
+export type XrMesh = {
+    readonly id: string;
+    readonly label: string;
+    readonly position: Vec3;
+    readonly rotation: Vec3;
+};
+
+// @public
+export const xrMesh: (id: string) => GeometryRef;
+
+// @public
+const XrMesh_2: Schema.Struct<{
+    readonly id: Schema.String;
+    readonly label: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+
+// @public
+const XrMeshesDetail: Schema.Struct<{
+    readonly meshes: Schema.$Array<Schema.Struct<{
+        readonly id: Schema.String;
+        readonly label: Schema.String;
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+}>;
+
+// @public
+export const xrMeshGeometryId: (id: string) => string;
 
 // @public
 const XrMovedDetail: Schema.Struct<{
@@ -5396,6 +5636,9 @@ export type XrSpace = {
 } | {
     readonly _tag: 'Plane';
     readonly id: string;
+} | {
+    readonly _tag: 'Mesh';
+    readonly id: string;
 };
 
 // @public
@@ -5408,6 +5651,8 @@ const XrSpace_2: Schema.Union<readonly [Schema.TaggedStruct<"Head", {}>, Schema.
 }>, Schema.TaggedStruct<"Anchor", {
     readonly id: Schema.String;
 }>, Schema.TaggedStruct<"Plane", {
+    readonly id: Schema.String;
+}>, Schema.TaggedStruct<"Mesh", {
     readonly id: Schema.String;
 }>]>;
 

@@ -9,6 +9,7 @@ import type {
   Behave,
   CameraShake,
   Detail,
+  LineNode,
   Body,
   BodyRef,
   GeometryRef,
@@ -573,6 +574,28 @@ export const labelMaterialEquals = (a: MaterialRef | null, b: MaterialRef | null
   a === b || (a !== null && b !== null && materialRefEquals(a, b));
 
 /** Shader grid equality, apart from its position and rotation. */
+/** A line's points and look: everything but where it is. */
+export const lineLookEquals = (a: LineNode, b: LineNode): boolean =>
+  a.segments === b.segments &&
+  Object.is(a.color, b.color) &&
+  Object.is(a.width, b.width) &&
+  a.worldUnits === b.worldUnits &&
+  a.dashed === b.dashed &&
+  Object.is(a.dashSize, b.dashSize) &&
+  Object.is(a.gapSize, b.gapSize) &&
+  Object.is(a.dashScale, b.dashScale) &&
+  Object.is(a.dashOffset, b.dashOffset) &&
+  Object.is(a.opacity, b.opacity) &&
+  a.transparent === b.transparent &&
+  (a.points === b.points ||
+    (a.points.length === b.points.length &&
+      a.points.every((point, index) => vec3Equals(point, b.points[index] ?? point)))) &&
+  (a.vertexColors === b.vertexColors ||
+    (a.vertexColors !== null &&
+      b.vertexColors !== null &&
+      a.vertexColors.length === b.vertexColors.length &&
+      a.vertexColors.every((color, index) => Object.is(color, b.vertexColors?.[index]))));
+
 export const shaderGridLookEquals = (a: ShaderGridNode, b: ShaderGridNode): boolean =>
   Object.is(a.size[0], b.size[0]) &&
   Object.is(a.size[1], b.size[1]) &&

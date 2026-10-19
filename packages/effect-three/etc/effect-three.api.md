@@ -595,6 +595,20 @@ const CapsuleGeometry_2: Schema.TaggedStruct<"Capsule", {
 }>;
 
 // @public
+export const catmullRomColors: (colors: ReadonlyArray<Rgb>, options?: {
+    readonly segments?: number;
+    readonly closed?: boolean;
+}) => ReadonlyArray<Rgb>;
+
+// @public
+export const catmullRomPoints: (points: ReadonlyArray<Vec3>, options?: {
+    readonly closed?: boolean;
+    readonly curveType?: 'centripetal' | 'chordal' | 'catmullrom';
+    readonly tension?: number;
+    readonly segments?: number;
+}) => ReadonlyArray<Vec3>;
+
+// @public
 export type CenterAlign = {
     readonly top?: boolean;
     readonly bottom?: boolean;
@@ -905,6 +919,15 @@ export const createSceneLoop: (options: SceneLoopOptions) => SceneLoop;
 export const createXrTracker: (picker: Picker) => (input: XrInput) => ReadonlyArray<SceneEvent>;
 
 // @public
+export const cubicBezierPoints: (options: {
+    readonly start: Vec3;
+    readonly midA: Vec3;
+    readonly midB: Vec3;
+    readonly end: Vec3;
+    readonly segments?: number;
+}) => ReadonlyArray<Vec3>;
+
+// @public
 export const cuboidCollider: (options: {
     readonly halfExtents: Vec3;
     readonly position?: Vec3;
@@ -1211,6 +1234,8 @@ export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry
 | 'text'
 /** A shader grid's look: anything but where it is. */
 | 'grid'
+/** A line's points or look: anything but where it is. */
+| 'line'
 /** The tracked space a group follows. */
 | 'follow'
 /** A group's levels of detail. */
@@ -1659,6 +1684,13 @@ export type HostedLabel = {
     readonly update: (label: LabelNode) => void;
     readonly setMaterial: (material: Material | undefined) => void;
     readonly layout: () => LabelLayout | undefined;
+    readonly dispose: () => void;
+};
+
+// @public
+export type HostedLine = {
+    readonly object: Object3D;
+    readonly update: (line: LineNode) => void;
     readonly dispose: () => void;
 };
 
@@ -2435,6 +2467,89 @@ const layer_2: Layer.Layer<ResourceRegistry_2, never, never>;
 
 // @public
 export const lentGeometry: (id: string) => GeometryRef;
+
+// @public
+export const line: (options: TransformOptions & {
+    readonly points: ReadonlyArray<Vec3>;
+    readonly segments?: boolean;
+    readonly color?: Rgb;
+    readonly vertexColors?: ReadonlyArray<Rgb> | null;
+    readonly width?: number;
+    readonly worldUnits?: boolean;
+    readonly dashed?: boolean;
+    readonly dashSize?: number;
+    readonly gapSize?: number;
+    readonly dashScale?: number;
+    readonly dashOffset?: number;
+    readonly opacity?: number;
+    readonly transparent?: boolean;
+    readonly interactive?: boolean;
+}) => LineNode;
+
+// @public
+export type LineNode = {
+    readonly _tag: 'Line';
+    readonly key: string;
+    readonly position: Vec3;
+    readonly rotation: Rotation;
+    readonly scale: Vec3;
+    readonly transition: Transition;
+    readonly behaviour: Behave | null;
+    readonly interactive: boolean;
+    readonly points: ReadonlyArray<Vec3>;
+    readonly segments: boolean;
+    readonly color: Rgb;
+    readonly vertexColors: ReadonlyArray<Rgb> | null;
+    readonly width: number;
+    readonly worldUnits: boolean;
+    readonly dashed: boolean;
+    readonly dashSize: number;
+    readonly gapSize: number;
+    readonly dashScale: number;
+    readonly dashOffset: number;
+    readonly opacity: number;
+    readonly transparent: boolean;
+};
+
+// @public
+const LineNode_2: Schema.TaggedStruct<"Line", {
+    readonly key: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+        readonly euler: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>, Schema.TaggedStruct<"Spin", {
+        readonly axis: Schema.Literals<readonly ["x", "y", "z"]>;
+        readonly radiansPerSecond: Schema.Finite;
+        readonly phase: Schema.Finite;
+    }>, Schema.TaggedStruct<"Billboard", {
+        readonly lockX: Schema.Boolean;
+        readonly lockY: Schema.Boolean;
+        readonly lockZ: Schema.Boolean;
+    }>]>;
+    readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly transition: Schema.Union<readonly [Schema.TaggedStruct<"Instant", {}>, Schema.TaggedStruct<"Ease", {
+        readonly seconds: Schema.Finite;
+        readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
+    }>]>;
+    readonly behaviour: Schema.NullOr<Schema.Struct<{
+        readonly name: Schema.String;
+        readonly params: Schema.$Record<Schema.String, Schema.Finite>;
+    }>>;
+    readonly interactive: Schema.Boolean;
+    readonly points: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+    readonly segments: Schema.Boolean;
+    readonly color: Schema.Int;
+    readonly vertexColors: Schema.NullOr<Schema.$Array<Schema.Int>>;
+    readonly width: Schema.Finite;
+    readonly worldUnits: Schema.Boolean;
+    readonly dashed: Schema.Boolean;
+    readonly dashSize: Schema.Finite;
+    readonly gapSize: Schema.Finite;
+    readonly dashScale: Schema.Finite;
+    readonly dashOffset: Schema.Finite;
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+}>;
 
 // @public
 export type Loan = {
@@ -3483,6 +3598,14 @@ export const prismaticJoint: (options: {
 }) => JointKind;
 
 // @public
+export const quadraticBezierPoints: (options: {
+    readonly start: Vec3;
+    readonly end: Vec3;
+    readonly mid?: Vec3;
+    readonly segments?: number;
+}) => ReadonlyArray<Vec3>;
+
+// @public
 export type Quat = readonly [x: number, y: number, z: number, w: number];
 
 // @public
@@ -3564,6 +3687,7 @@ export type RenderKit = {
     readonly shading: 'webgl' | 'tsl';
     readonly sky: () => HostedSky;
     readonly shaderGrid: (node: ShaderGridNode) => HostedShaderGrid;
+    readonly line?: (node: LineNode) => HostedLine;
     readonly contactShadows: (graph: ShadowedScene, renderer: SceneRenderer) => ContactShadowPasses;
 };
 
@@ -4940,7 +5064,7 @@ export type SceneLoopOptions = {
 };
 
 // @public
-export type SceneNode = GridNode | ShaderGridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
+export type SceneNode = LineNode | GridNode | ShaderGridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
 
 // @public
 const SceneNode_2: Schema.Codec<SceneNode, unknown>;
@@ -5034,6 +5158,7 @@ declare namespace SceneSchema {
         GridNode_2 as GridNode,
         ShaderGridNode_2 as ShaderGridNode,
         HemisphereLightNode_2 as HemisphereLightNode,
+        LineNode_2 as LineNode,
         SceneNode_2 as SceneNode,
         CameraShake_2 as CameraShake,
         PerspectiveCamera_3 as PerspectiveCamera,

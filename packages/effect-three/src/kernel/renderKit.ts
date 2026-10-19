@@ -9,7 +9,7 @@
  */
 import type { Object3D, Scene } from 'three';
 
-import type { ContactShadows, ShaderGridNode, Sky } from './description.ts';
+import type { ContactShadows, LineNode, ShaderGridNode, Sky } from './description.ts';
 import type { SceneRenderer } from './renderer.ts';
 
 /** A sky as a kit draws it: the object the graph adds to its scene, never picked. */
@@ -23,6 +23,14 @@ export type HostedSky = {
 export type HostedShaderGrid = {
   readonly object: Object3D;
   readonly update: (previous: ShaderGridNode, next: ShaderGridNode) => void;
+  readonly dispose: () => void;
+};
+
+/** A line as a kit draws it (three's fat lines), inside the node's wrapper. */
+export type HostedLine = {
+  readonly object: Object3D;
+  /** Applies new points or a new look; the wrapper carries the transform. */
+  readonly update: (line: LineNode) => void;
   readonly dispose: () => void;
 };
 
@@ -50,5 +58,7 @@ export type RenderKit = {
   readonly shading: 'webgl' | 'tsl';
   readonly sky: () => HostedSky;
   readonly shaderGrid: (node: ShaderGridNode) => HostedShaderGrid;
+  /** Draws a line; a kit without lines leaves them empty. */
+  readonly line?: (node: LineNode) => HostedLine;
   readonly contactShadows: (graph: ShadowedScene, renderer: SceneRenderer) => ContactShadowPasses;
 };

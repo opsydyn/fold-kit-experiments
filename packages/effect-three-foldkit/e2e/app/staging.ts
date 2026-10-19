@@ -3,17 +3,18 @@
  * scene is set from the test through `window.__staging`.
  */
 import {
+  basic,
   box,
-  fixed,
-  plane,
   contactShadows,
   type ContactShadows,
+  fixed,
+  line,
   mesh,
   orthographicCamera,
+  plane,
   scene,
-  sphere,
-  basic,
   shaderGrid,
+  sphere,
 } from '@opsydyn/effect-three';
 import { Effect, Option, Queue, Stream } from 'effect';
 import type { ViewState } from 'foldkit/mount';
@@ -84,6 +85,45 @@ const gridScene = () =>
     ],
   });
 
+/**
+ * A blue line 6 pixels wide across the white floor at z = 0 (Drei's `Line`), and a red
+ * dashed one at z = 2, from x = −3 to 3, seen from above.
+ */
+const lineScene = () =>
+  scene({
+    camera: orthographicCamera({ zoom: 40, position: [0, 10, 0.001], lookAt: [0, 0, 0] }),
+    children: [
+      mesh({
+        key: 'floor',
+        position: [0, -0.01, 0],
+        rotation: fixed([-Math.PI / 2, 0, 0]),
+        geometry: plane({ width: 10, height: 10 }),
+        material: basic({ color: 0xffffff }),
+      }),
+      line({
+        key: 'solid',
+        points: [
+          [-3, 0, 0],
+          [3, 0, 0],
+        ],
+        color: 0x0000ff,
+        width: 6,
+      }),
+      line({
+        key: 'dashes',
+        points: [
+          [-3, 0, 2],
+          [3, 0, 2],
+        ],
+        color: 0xff0000,
+        width: 6,
+        dashed: true,
+        dashSize: 0.5,
+        gapSize: 0.5,
+      }),
+    ],
+  });
+
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
 const bare = stagingScene(Option.none());
@@ -104,4 +144,5 @@ Reflect.set(globalThis, '__staging', {
     Reflect.set(element, 'scene', stagingScene(shadows));
   },
   showGrid: () => Reflect.set(element, 'scene', gridScene()),
+  showLines: () => Reflect.set(element, 'scene', lineScene()),
 });

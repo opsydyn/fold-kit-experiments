@@ -593,6 +593,30 @@ export const HemisphereLightNode = Schema.TaggedStruct('HemisphereLight', {
   position: Vec3,
 });
 
+/** A line through points (Drei's `Line`), drawn by the render kit. */
+export const LineNode = Schema.TaggedStruct('Line', {
+  key: Schema.String,
+  position: Vec3,
+  rotation: Rotation,
+  scale: Vec3,
+  transition: Transition,
+  behaviour: Schema.NullOr(Behave),
+  interactive: Schema.Boolean,
+  points: Schema.Array(Vec3),
+  segments: Schema.Boolean,
+  color: Rgb,
+  vertexColors: Schema.NullOr(Schema.Array(Rgb)),
+  width: NonNegative,
+  worldUnits: Schema.Boolean,
+  dashed: Schema.Boolean,
+  dashSize: NonNegative,
+  gapSize: NonNegative,
+  dashScale: NonNegative,
+  dashOffset: Schema.Finite,
+  opacity: NonNegative,
+  transparent: Schema.Boolean,
+});
+
 /** Any scene node. Groups nest recursively. */
 export const SceneNode: Schema.Codec<KernelSceneNode, unknown> = Schema.Union([
   Schema.TaggedStruct('Group', {
@@ -614,6 +638,7 @@ export const SceneNode: Schema.Codec<KernelSceneNode, unknown> = Schema.Union([
   InstancesNode,
   BorrowedNode,
   LabelNode,
+  LineNode,
   ShaderGridNode,
   AmbientLightNode,
   DirectionalLightNode,

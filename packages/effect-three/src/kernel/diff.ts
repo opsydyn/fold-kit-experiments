@@ -31,6 +31,7 @@ import {
   labelMaterialEquals,
   labelTypeEquals,
   xrSpaceEquals,
+  lineLookEquals,
   detailEquals,
   shaderGridLookEquals,
   instancesEqual,
@@ -82,6 +83,8 @@ export type Field =
   | 'text'
   /** A shader grid's look: anything but where it is. */
   | 'grid'
+  /** A line's points or look: anything but where it is. */
+  | 'line'
   /** The tracked space a group follows. */
   | 'follow'
   /** A group's levels of detail. */
@@ -237,6 +240,17 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (!Object.is(prev.shadowMapSize, next.shadowMapSize)) fields.push('shadowMapSize');
       if (!Object.is(prev.shadowBias, next.shadowBias)) fields.push('shadowBias');
+      return fields;
+    }
+    case 'Line': {
+      if (prev._tag !== 'Line') return undefined;
+      if (!behaviourEquals(prev.behaviour, next.behaviour)) fields.push('behaviour');
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
+      if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
+      if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
+      if (prev.interactive !== next.interactive) fields.push('interactive');
+      if (!lineLookEquals(prev, next)) fields.push('line');
       return fields;
     }
     case 'ShaderGrid': {

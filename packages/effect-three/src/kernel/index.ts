@@ -104,6 +104,11 @@ export {
   sharedMaterial,
   sphere,
   spin,
+  line,
+  catmullRomPoints,
+  catmullRomColors,
+  cubicBezierPoints,
+  quadraticBezierPoints,
   cameraShake,
   detailed,
   billboard,
@@ -199,6 +204,7 @@ export {
 export type { BodyCollision, BodyContactForce } from './bodies.ts';
 export type {
   ContactShadowPasses,
+  HostedLine,
   HostedShaderGrid,
   HostedSky,
   RenderKit,

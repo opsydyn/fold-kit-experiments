@@ -41,7 +41,7 @@ import {
 } from '@opsydyn/effect-three';
 
 import { paintColour } from '../palette';
-import type { Model, Plant } from './model';
+import type { Model, Plant, PlantKind } from './model';
 
 const piece = (
   key: string,
@@ -128,8 +128,7 @@ const room: ReadonlyArray<SceneNode> = [
   ),
 ];
 
-/** A potted plant, at the origin of whatever holds it. */
-const plantParts = (id: string): ReadonlyArray<SceneNode> => [
+const pot = (id: string): SceneNode =>
   mesh({
     key: `${id}:pot`,
     position: [0, 0.11, 0],
@@ -137,25 +136,81 @@ const plantParts = (id: string): ReadonlyArray<SceneNode> => [
     material: standard({ color: paintColour.coral, roughness: 0.6 }),
     castShadow: true,
     interactive: true,
-  }),
-  mesh({
-    key: `${id}:leaves`,
-    position: [0, 0.38, 0],
-    geometry: cone({ radius: 0.16, height: 0.4, radialSegments: 12 }),
-    material: standard({ color: 0x4f9a6b, roughness: 0.7, flatShading: true }),
-    castShadow: true,
-    interactive: true,
-  }),
+  });
+
+const bloom = (id: string, position: Vec3, colour: number): SceneNode =>
   mesh({
     key: `${id}:bloom`,
-    position: [0.05, 0.6, 0.02],
+    position,
     geometry: sphere({ radius: 0.04 }),
-    material: standard({
-      color: paintColour.gold,
-      emissive: paintColour.gold,
-      emissiveIntensity: 0.4,
+    material: standard({ color: colour, emissive: colour, emissiveIntensity: 0.4 }),
+  });
+
+/** What grows in each kind's pot. */
+const growth = {
+  fern: (id) => [
+    mesh({
+      key: `${id}:leaves`,
+      position: [0, 0.38, 0],
+      geometry: cone({ radius: 0.16, height: 0.4, radialSegments: 12 }),
+      material: standard({ color: 0x4f9a6b, roughness: 0.7, flatShading: true }),
+      castShadow: true,
+      interactive: true,
     }),
-  }),
+    bloom(id, [0.05, 0.6, 0.02], paintColour.gold),
+  ],
+  cactus: (id) => [
+    mesh({
+      key: `${id}:stem`,
+      position: [0, 0.42, 0],
+      geometry: cylinder({ radiusTop: 0.06, radiusBottom: 0.07, height: 0.42, radialSegments: 10 }),
+      material: standard({ color: 0x5f8f4e, roughness: 0.8, flatShading: true }),
+      castShadow: true,
+      interactive: true,
+    }),
+    mesh({
+      key: `${id}:arm`,
+      position: [0.1, 0.46, 0],
+      geometry: cylinder({
+        radiusTop: 0.035,
+        radiusBottom: 0.035,
+        height: 0.16,
+        radialSegments: 8,
+      }),
+      material: standard({ color: 0x5f8f4e, roughness: 0.8, flatShading: true }),
+      castShadow: true,
+      interactive: true,
+    }),
+    bloom(id, [0, 0.65, 0], paintColour.coral),
+  ],
+  tulip: (id) => [
+    mesh({
+      key: `${id}:stem`,
+      position: [0, 0.38, 0],
+      geometry: cylinder({
+        radiusTop: 0.012,
+        radiusBottom: 0.012,
+        height: 0.34,
+        radialSegments: 6,
+      }),
+      material: standard({ color: 0x4f9a6b, roughness: 0.7 }),
+      interactive: true,
+    }),
+    mesh({
+      key: `${id}:flower`,
+      position: [0, 0.6, 0],
+      geometry: sphere({ radius: 0.08 }),
+      material: standard({ color: 0xe0566b, roughness: 0.5 }),
+      castShadow: true,
+      interactive: true,
+    }),
+  ],
+} satisfies Record<PlantKind, (id: string) => ReadonlyArray<SceneNode>>;
+
+/** A potted plant of its kind, at the origin of whatever holds it. */
+const plantParts = (plant: Plant): ReadonlyArray<SceneNode> => [
+  pot(plant.id),
+  ...growth[plant.kind](plant.id),
 ];
 
 /** In AR a plant rides its anchor; elsewhere it stands where it was put. */
@@ -164,7 +219,7 @@ const plantNode = (model: Model, plant: Plant): SceneNode =>
     key: plant.id,
     position: plant.at,
     follow: model.session === 'immersive-ar' ? anchorSpace(plant.id) : null,
-    children: plantParts(plant.id),
+    children: plantParts(plant),
   });
 
 /** A detected plane, drawn flat over its outline's bounds, with what the device took it for. */

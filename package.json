@@ -65,6 +65,7 @@
   "devDependencies": {
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",
     "@effect/language-service": "^0.86.2",
+    "@foldkit/devtools-mcp": "0.24.1",
     "@foldkit/oxlint-plugin": "^0.15.3",
     "@opsydyn/oxlint-effect": "catalog:",
     "@oxlint/plugins": "1.79.0",

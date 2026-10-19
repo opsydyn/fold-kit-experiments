@@ -226,6 +226,11 @@ Effect owns every lifetime.
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
    and an assistant can furnish a room or set up a shot, undoably and replayably.
+   ✅ First step: the XR room exports `devTools = { Message }` and an intent-level
+   `PlacedPlant { at, kind }`; through `@foldkit/devtools-mcp` an agent reads the Model
+   and places plants, and an unknown kind is refused by the schema (checked end to end
+   in a headless browser, 2026-10-19). Next: a scene-level vocabulary (set up a shot:
+   camera, lights, staging) and tools that describe what a scene contains.
 4. **Tooling from Schema.** An inspector generated from the scene schemas, save and load
    as JSON, undo and branching history from the immutable Model, and scene diffs in
    review from the kernel's own ops.
@@ -243,9 +248,9 @@ collaboration, 3 for the assistant).
 
 ### Recommendation
 
-The WebGPU page fallback, the replay spike (1), the Drei audit and the WebGPU labels
-investigation are done. Next: agent-native control of the XR room (3), then the TSL label
-engine (E).
+The WebGPU page fallback, the replay spike (1), the Drei audit, the WebGPU labels
+investigation and agent control of the XR room (3) are done. Next: the TSL label engine
+(E), then the Drei S candidates.
 
 ## Not planned
 

@@ -4,16 +4,27 @@ import type { Return } from 'foldkit/update';
 
 import { CheckSupport, Enter, Exit } from './command';
 import { Message } from './message';
-import { initialModel, type Model, mostPlants } from './model';
+import { initialModel, type Model, mostPlants, type PlantKind } from './model';
 
 type AppReturn = Return<Model, Message>;
 
-/** A plant at `point`, the oldest going once there are too many. */
-const planted = (model: Model, point: readonly [number, number, number]): Model => ({
+/** A plant of `kind` at `point`, the oldest going once there are too many. */
+const planted = (
+  model: Model,
+  point: readonly [number, number, number],
+  kind: PlantKind,
+): Model => ({
   ...model,
-  plants: [...model.plants, { id: `plant-${model.nextPlant}`, at: point }].slice(-mostPlants),
+  plants: [...model.plants, { id: `plant-${model.nextPlant}`, at: point, kind }].slice(-mostPlants),
   nextPlant: model.nextPlant + 1,
 });
+
+/** On the floor, within the room's walls. */
+const onFloor = (at: readonly [number, number, number]): readonly [number, number, number] => [
+  Math.min(2.8, Math.max(-2.8, at[0])),
+  0,
+  Math.min(2.8, Math.max(-2.8, at[2])),
+];
 
 const support = { true: 'ready', false: 'unavailable' } as const;
 
@@ -57,12 +68,14 @@ export const update = (model: Model, message: Message): AppReturn =>
           ? { ...model, session: 'none', planes: [], meshes: [] }
           : { ...model, session: mode },
     }),
-    ClickedFloor: ({ point }) => ({ model: planted(model, [point[0], 0, point[2]]) }),
+    ClickedFloor: ({ point }) => ({ model: planted(model, onFloor(point), model.kind) }),
+    ChoseKind: ({ kind }) => ({ model: { ...model, kind } }),
+    PlacedPlant: ({ at, kind }) => ({ model: planted(model, onFloor(at), kind) }),
     ClickedPlant: ({ id }) => ({
       model: modifyFields(model, { plants: (plants) => plants.filter((plant) => plant.id !== id) }),
     }),
     ClickedClear: () => ({ model: { ...model, plants: [] } }),
-    SelectedSurface: ({ surface }) => ({ model: planted(model, surface.point) }),
+    SelectedSurface: ({ surface }) => ({ model: planted(model, surface.point, model.kind) }),
     DetectedPlanes: ({ detected }) => ({ model: { ...model, planes: detected.planes } }),
     DetectedMeshes: ({ detected }) => ({ model: { ...model, meshes: detected.meshes } }),
     Glided: ({ moved }) => ({

@@ -208,6 +208,11 @@ export type BasicMaterial = {
   readonly transparent: boolean;
   readonly side: MaterialSide;
   readonly wireframe: boolean;
+  /**
+   * Whether it is hidden behind what is nearer, as usual; `false` draws it over
+   * everything (and writes no depth), as three's gizmos and helpers are drawn.
+   */
+  readonly depthTest: boolean;
 };
 
 /** A matte (Lambertian) material: cheap per-vertex lighting, no highlights. */

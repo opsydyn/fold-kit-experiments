@@ -202,6 +202,7 @@ export const BasicMaterial = Schema.TaggedStruct('Basic', {
   color: Rgb,
   map: TextureId,
   ...surface,
+  depthTest: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
 });
 
 /** Matte material parameters. */
@@ -1137,3 +1138,32 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('UnknownJointBody', { joint: Schema.String, body: Schema.String }),
   Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),
 ]);
+
+/** Where an object is, for a transform gizmo: position, Euler angles and scale. */
+export const Placement = Schema.Struct({ position: Vec3, rotation: Vec3, scale: Vec3 });
+
+const GizmoHandle = Schema.Literals(['x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz']);
+
+/** A transform gizmo's state, for keeping in a Model. */
+export const Gizmo = Schema.Struct({
+  mode: Schema.Literals(['translate', 'rotate', 'scale']),
+  space: Schema.Literals(['world', 'local']),
+  size: Positive,
+  translationSnap: Schema.NullOr(Positive),
+  rotationSnap: Schema.NullOr(Positive),
+  scaleSnap: Schema.NullOr(Positive),
+  showX: Schema.Boolean,
+  showY: Schema.Boolean,
+  showZ: Schema.Boolean,
+  hovered: Schema.NullOr(GizmoHandle),
+  grab: Schema.NullOr(
+    Schema.Struct({
+      handle: GizmoHandle,
+      start: Placement,
+      from: Vec3,
+      plane: Schema.Struct({ normal: Vec3, constant: Schema.Finite }),
+      eye: Vec3,
+      distance: Schema.Finite,
+    }),
+  ),
+});

@@ -290,3 +290,18 @@ export {
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
+export {
+  dragGizmo,
+  gizmo,
+  type Gizmo,
+  type GizmoGrab,
+  type GizmoHandle,
+  gizmoHandleOf,
+  type GizmoMode,
+  gizmoNodes,
+  type GizmoSpace,
+  hoverGizmo,
+  type Placement,
+  pressGizmo,
+  releaseGizmo,
+} from './gizmo.ts';

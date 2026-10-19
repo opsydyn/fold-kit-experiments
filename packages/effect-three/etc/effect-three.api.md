@@ -136,6 +136,7 @@ export type BasicMaterial = {
     readonly transparent: boolean;
     readonly side: MaterialSide;
     readonly wireframe: boolean;
+    readonly depthTest: boolean;
 };
 
 // @public
@@ -146,6 +147,7 @@ const BasicMaterial_2: Schema.TaggedStruct<"Basic", {
     readonly wireframe: Schema.Boolean;
     readonly color: Schema.Int;
     readonly map: Schema.NullOr<Schema.String>;
+    readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
 }>;
 
 // @public
@@ -1165,6 +1167,9 @@ const DragDetail: Schema.Struct<{
 }>;
 
 // @public
+export const dragGizmo: (state: Gizmo, ray: Ray) => Placement | undefined;
+
+// @public
 export const ease: (options: {
     readonly seconds: number;
     readonly easing?: Easing;
@@ -1568,6 +1573,78 @@ export type Gestures = 'page' | 'scene';
 // @public
 const Gestures_2: Schema.Literals<readonly ["page", "scene"]>;
 
+// @public (undocumented)
+export type Gizmo = {
+    readonly mode: GizmoMode;
+    readonly space: GizmoSpace;
+    readonly size: number;
+    readonly translationSnap: number | null;
+    readonly rotationSnap: number | null;
+    readonly scaleSnap: number | null;
+    readonly showX: boolean;
+    readonly showY: boolean;
+    readonly showZ: boolean;
+    readonly hovered: GizmoHandle | null;
+    readonly grab: GizmoGrab | null;
+};
+
+// @public
+export const gizmo: (options?: Partial<Omit<Gizmo, 'hovered' | 'grab'>>) => Gizmo;
+
+// @public
+const Gizmo_2: Schema.Struct<{
+    readonly mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
+    readonly space: Schema.Literals<readonly ["world", "local"]>;
+    readonly size: Schema.Finite;
+    readonly translationSnap: Schema.NullOr<Schema.Finite>;
+    readonly rotationSnap: Schema.NullOr<Schema.Finite>;
+    readonly scaleSnap: Schema.NullOr<Schema.Finite>;
+    readonly showX: Schema.Boolean;
+    readonly showY: Schema.Boolean;
+    readonly showZ: Schema.Boolean;
+    readonly hovered: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
+    readonly grab: Schema.NullOr<Schema.Struct<{
+        readonly handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
+        readonly start: Schema.Struct<{
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
+        readonly from: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly plane: Schema.Struct<{
+            readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly constant: Schema.Finite;
+        }>;
+        readonly eye: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly distance: Schema.Finite;
+    }>>;
+}>;
+
+// @public
+export type GizmoGrab = {
+    readonly handle: GizmoHandle;
+    readonly start: Placement;
+    readonly from: Vec3;
+    readonly plane: PlaneEquation;
+    readonly eye: Vec3;
+    readonly distance: number;
+};
+
+// @public
+export type GizmoHandle = 'x' | 'y' | 'z' | 'xy' | 'yz' | 'xz' | 'xyz';
+
+// @public
+export const gizmoHandleOf: (key: string, hit: string) => GizmoHandle | undefined;
+
+// @public (undocumented)
+export type GizmoMode = 'translate' | 'rotate' | 'scale';
+
+// @public
+export const gizmoNodes: (key: string, state: Gizmo, placement: Placement, camera: Camera) => SceneNode;
+
+// @public (undocumented)
+export type GizmoSpace = 'world' | 'local';
+
 // @public
 export const glide: (options?: Partial<XrGlide>) => XrGlide;
 
@@ -1777,6 +1854,9 @@ export type HostMaterial = MeshBasicMaterial | MeshLambertMaterial | MeshPhongMa
 export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
 
 // @public
+export const hoverGizmo: (state: Gizmo, handle: GizmoHandle | null) => Gizmo;
+
+// @public
 export type IndexedNode = {
     readonly node: SceneNode;
     readonly parent: ParentKey;
@@ -1960,6 +2040,7 @@ const InstancesNode_2: Schema.TaggedStruct<"Instances", {
         readonly wireframe: Schema.Boolean;
         readonly color: Schema.Int;
         readonly map: Schema.NullOr<Schema.String>;
+        readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
     }>, Schema.TaggedStruct<"Lambert", {
         readonly opacity: Schema.Finite;
         readonly transparent: Schema.Boolean;
@@ -2411,6 +2492,7 @@ const LabelNode_2: Schema.TaggedStruct<"Label", {
         readonly wireframe: Schema.Boolean;
         readonly color: Schema.Int;
         readonly map: Schema.NullOr<Schema.String>;
+        readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
     }>, Schema.TaggedStruct<"Lambert", {
         readonly opacity: Schema.Finite;
         readonly transparent: Schema.Boolean;
@@ -2653,6 +2735,7 @@ const MaterialRef_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
     readonly wireframe: Schema.Boolean;
     readonly color: Schema.Int;
     readonly map: Schema.NullOr<Schema.String>;
+    readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
 }>, Schema.TaggedStruct<"Lambert", {
     readonly opacity: Schema.Finite;
     readonly transparent: Schema.Boolean;
@@ -2868,6 +2951,7 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
         readonly wireframe: Schema.Boolean;
         readonly color: Schema.Int;
         readonly map: Schema.NullOr<Schema.String>;
+        readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
     }>, Schema.TaggedStruct<"Lambert", {
         readonly opacity: Schema.Finite;
         readonly transparent: Schema.Boolean;
@@ -3499,6 +3583,20 @@ export type Picker = {
 };
 
 // @public
+export type Placement = {
+    readonly position: Vec3;
+    readonly rotation: Vec3;
+    readonly scale: Vec3;
+};
+
+// @public
+const Placement_2: Schema.Struct<{
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+
+// @public
 export const placeOverlays: (graph: SceneGraph) => ReadonlyArray<OverlayPlacement>;
 
 // @public
@@ -3803,6 +3901,9 @@ const PostEffect_2: Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
 }>]>;
 
 // @public
+export const pressGizmo: (state: Gizmo, placement: Placement, handle: GizmoHandle, ray: Ray, camera: Camera) => Gizmo;
+
+// @public
 export const prismaticJoint: (options: {
     readonly axis: Vec3;
     readonly limits?: JointLimits | null;
@@ -3865,6 +3966,9 @@ export type Region = {
     readonly x: number;
     readonly y: number;
 };
+
+// @public
+export const releaseGizmo: (state: Gizmo) => Gizmo;
 
 // @public
 export type RenderArea = {
@@ -4117,6 +4221,7 @@ const ResourceDefinitions_2: Schema.Struct<{
             readonly wireframe: Schema.Boolean;
             readonly color: Schema.Int;
             readonly map: Schema.NullOr<Schema.String>;
+            readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
         }>, Schema.TaggedStruct<"Lambert", {
             readonly opacity: Schema.Finite;
             readonly transparent: Schema.Boolean;
@@ -4735,6 +4840,7 @@ const SceneDescription_2: Schema.Struct<{
                 readonly wireframe: Schema.Boolean;
                 readonly color: Schema.Int;
                 readonly map: Schema.NullOr<Schema.String>;
+                readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
             }>, Schema.TaggedStruct<"Lambert", {
                 readonly opacity: Schema.Finite;
                 readonly transparent: Schema.Boolean;
@@ -5417,7 +5523,9 @@ declare namespace SceneSchema {
         AutoRotatedDetail,
         GestureDetail,
         SceneEvent_2 as SceneEvent,
-        DescriptionError_2 as DescriptionError
+        DescriptionError_2 as DescriptionError,
+        Placement_2 as Placement,
+        Gizmo_2 as Gizmo
     }
 }
 
@@ -5850,6 +5958,7 @@ const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
     readonly wireframe: Schema.Boolean;
     readonly color: Schema.Int;
     readonly map: Schema.NullOr<Schema.String>;
+    readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
 }>, Schema.TaggedStruct<"Lambert", {
     readonly opacity: Schema.Finite;
     readonly transparent: Schema.Boolean;

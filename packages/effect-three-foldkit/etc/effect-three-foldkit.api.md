@@ -7,10 +7,13 @@
 import { Behaviour } from '@opsydyn/effect-three';
 import { BodyPose } from '@opsydyn/effect-three';
 import { BufferGeometry } from 'three';
+import { Camera } from '@opsydyn/effect-three';
 import { CustomElement } from 'foldkit';
 import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
 import { FrameScheduler } from '@opsydyn/effect-three';
+import { gizmo } from '@opsydyn/effect-three';
+import { GizmoHandle } from '@opsydyn/effect-three';
 import type { Html } from 'foldkit/html';
 import type { HtmlBuilder } from 'foldkit/html';
 import { LabelEngine } from '@opsydyn/effect-three';
@@ -18,12 +21,15 @@ import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
 import type { Object3D } from 'three';
 import type { Op } from '@opsydyn/effect-three';
+import { Option as Option_2 } from 'effect';
 import type { Overlay } from '@opsydyn/effect-three';
 import { PhysicsEngine } from '@opsydyn/effect-three';
+import { Placement } from '@opsydyn/effect-three';
 import type { PointerInput } from '@opsydyn/effect-three';
 import { RendererFactory } from '@opsydyn/effect-three';
 import type { ResourceStats } from '@opsydyn/effect-three';
 import { ResourceStore } from '@opsydyn/effect-three';
+import type { ReturnWithOutMessage } from 'foldkit/update';
 import type { SceneDescription } from '@opsydyn/effect-three';
 import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
@@ -126,7 +132,16 @@ export type EnvironmentOptions = {
 export type Gesture = typeof SceneSchema.Gesture.Type;
 
 // @public
+const handleOf: (model: Model, key: string) => Option_2.Option<GizmoHandle>;
+
+// @public
+const held: (model: Model) => boolean;
+
+// @public
 export type HitDetail = typeof SceneSchema.HitDetail.Type;
+
+// @public
+const init: (key: string, options?: Parameters<typeof gizmo>[0]) => Model;
 
 // @public
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
@@ -182,8 +197,120 @@ export const makeSceneMount: (environment: Environment) => Mount.MountDefinition
 // @public
 export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 
+// @public (undocumented)
+const Message: MessageUnion<    {
+readonly Pressed: {
+handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
+origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+placement: Schema.Struct<{
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+readonly fov: Schema.Finite;
+readonly near: Schema.Finite;
+readonly far: Schema.Finite;
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly damping: Schema.Finite;
+readonly autoRotate: Schema.Finite;
+readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+readonly intensity: Schema.Finite;
+readonly decay: Schema.Boolean;
+readonly decayRate: Schema.Finite;
+readonly maxYaw: Schema.Finite;
+readonly maxPitch: Schema.Finite;
+readonly maxRoll: Schema.Finite;
+readonly yawFrequency: Schema.Finite;
+readonly pitchFrequency: Schema.Finite;
+readonly rollFrequency: Schema.Finite;
+readonly trigger: Schema.Finite;
+}>>, never>;
+}>, Schema.TaggedStruct<"Orthographic", {
+readonly zoom: Schema.Finite;
+readonly near: Schema.Finite;
+readonly far: Schema.Finite;
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly damping: Schema.Finite;
+readonly autoRotate: Schema.Finite;
+readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+readonly intensity: Schema.Finite;
+readonly decay: Schema.Boolean;
+readonly decayRate: Schema.Finite;
+readonly maxYaw: Schema.Finite;
+readonly maxPitch: Schema.Finite;
+readonly maxRoll: Schema.Finite;
+readonly yawFrequency: Schema.Finite;
+readonly pitchFrequency: Schema.Finite;
+readonly rollFrequency: Schema.Finite;
+readonly trigger: Schema.Finite;
+}>>, never>;
+}>]>;
+};
+readonly Dragged: {
+origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+};
+readonly Released: {};
+readonly Hovered: {
+handle: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
+};
+readonly ChoseMode: {
+mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
+};
+readonly ChoseSpace: {
+space: Schema.Literals<readonly ["world", "local"]>;
+};
+}>;
+
+// @public (undocumented)
+type Message = typeof Message.Type;
+
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
+
+// @public (undocumented)
+const Model: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly gizmo: Schema.Struct<{
+        readonly mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
+        readonly space: Schema.Literals<readonly ["world", "local"]>;
+        readonly size: Schema.Finite;
+        readonly translationSnap: Schema.NullOr<Schema.Finite>;
+        readonly rotationSnap: Schema.NullOr<Schema.Finite>;
+        readonly scaleSnap: Schema.NullOr<Schema.Finite>;
+        readonly showX: Schema.Boolean;
+        readonly showY: Schema.Boolean;
+        readonly showZ: Schema.Boolean;
+        readonly hovered: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>>;
+        readonly grab: Schema.NullOr<Schema.Struct<{
+            readonly handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
+            readonly start: Schema.Struct<{
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>;
+            readonly from: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly plane: Schema.Struct<{
+                readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly constant: Schema.Finite;
+            }>;
+            readonly eye: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly distance: Schema.Finite;
+        }>>;
+    }>;
+    readonly last: Schema.Option<Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+}>;
+
+// @public (undocumented)
+type Model = typeof Model.Type;
 
 // @public
 export type ModelInfo = {
@@ -191,6 +318,30 @@ export type ModelInfo = {
     readonly parts: ReadonlyArray<string>;
     readonly clips: ReadonlyArray<string>;
 };
+
+// @public
+const nodes: (model: Model, placement: Placement, camera: Camera) => SceneNode;
+
+// @public (undocumented)
+const OutMessage: MessageUnion<    {
+readonly Moved: {
+placement: Schema.Struct<{
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+};
+readonly Finished: {
+placement: Schema.Struct<{
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+};
+}>;
+
+// @public (undocumented)
+type OutMessage = typeof OutMessage.Type;
 
 // @public
 export type OverlayView = {
@@ -597,6 +748,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                     readonly wireframe: Schema.Boolean;
                     readonly color: Schema.Int;
                     readonly map: Schema.NullOr<Schema.String>;
+                    readonly depthTest: Schema.withDecodingDefaultKey<Schema.Boolean, never>;
                 }>, Schema.TaggedStruct<"Lambert", {
                     readonly opacity: Schema.Finite;
                     readonly transparent: Schema.Boolean;
@@ -1060,6 +1212,24 @@ export const toNdc: (rect: Rect, clientX: number, clientY: number) => {
 
 // @public
 export const toPointerInput: (event: MouseEvent, rect: Rect) => PointerInput | undefined;
+
+declare namespace TransformGizmo {
+    export {
+        Model,
+        Message,
+        OutMessage,
+        init,
+        update,
+        handleOf,
+        held,
+        nodes
+    }
+}
+
+// Warning: (ae-forgotten-export) The symbol "Return" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+const update: (model: Model, message: Message) => Return;
 
 // @public
 export const view: <Message>(config: ViewConfig<NoInfer<Message>>, h: HtmlBuilder<Message>) => Html;

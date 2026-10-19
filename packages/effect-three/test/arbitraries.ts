@@ -207,7 +207,7 @@ const pbr = {
 
 /** Every material kind, with small domains so equal values and kind changes are common. */
 const Surface = Schema.Union([
-  Schema.TaggedStruct('Basic', { color: Colour, map: Map, ...surface }),
+  Schema.TaggedStruct('Basic', { color: Colour, map: Map, ...surface, depthTest: Schema.Boolean }),
   Schema.TaggedStruct('Lambert', { color: Colour, map: Map, emissive: Colour, ...shaded }),
   Schema.TaggedStruct('Phong', {
     color: Colour,

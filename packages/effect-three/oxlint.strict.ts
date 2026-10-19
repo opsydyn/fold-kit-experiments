@@ -13,7 +13,8 @@ export default defineConfig({
   options: typeAware.options,
   plugins: ['typescript', 'unicorn', 'oxc'],
   jsPlugins: [...jsPlugins],
-  ignorePatterns: ['**/dist/**', 'node_modules/**'],
+  // spikes/ holds throwaway investigation code, recorded in docs/effect-three/spike-results.md.
+  ignorePatterns: ['**/dist/**', 'node_modules/**', 'spikes/**'],
   rules: {
     ...allRules,
     'linteffect/no-run-effect-outside-boundary': ['error', { effectVersion: 4, boundaryPaths }],

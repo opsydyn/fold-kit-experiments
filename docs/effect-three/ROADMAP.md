@@ -194,9 +194,12 @@ WebGPU path), and DOM overlay is checked only in the session request.
 - ✅ Pages that need labels stay on WebGL under `?renderer=webgpu`, and say why: the
   samples' renderer choice takes what a sample needs, and pages without labels no longer
   load troika at all.
-- Labels under WebGPU (M–L): troika builds WebGL shaders only. Investigate distance-field
-  text in TSL behind the same `LabelEngine` contract, or a second engine for both
-  renderers, before choosing.
+- Labels under WebGPU (M): investigated ([spike results](spike-results.md#labels-under-webgpu-2026-10-19)).
+  Keep troika's layout and distance-field atlas (`getTextRenderInfo`) and replace only its
+  shader with a TSL glyph material: a second hosted-label implementation in
+  `@opsydyn/effect-three-troika`, chosen by the renderer kit, behind the same
+  `LabelEngine` contract. Next: outlines, curves, clip rects and lit materials in TSL,
+  then lift the WebGL fallback for label pages.
 - Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
   `WebGPURenderer`, and the DOM overlay; they retire the three documented limits.
 - ✅ A Drei catalogue audit ([drei-audit.md](drei-audit.md)): every component is covered,
@@ -240,8 +243,9 @@ collaboration, 3 for the assistant).
 
 ### Recommendation
 
-The WebGPU page fallback and the replay spike (1) are done. Next: agent-native control
-of the XR room (3), then labels under WebGPU (E).
+The WebGPU page fallback, the replay spike (1), the Drei audit and the WebGPU labels
+investigation are done. Next: agent-native control of the XR room (3), then the TSL label
+engine (E).
 
 ## Not planned
 

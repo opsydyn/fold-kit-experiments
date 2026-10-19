@@ -13,6 +13,7 @@ import {
   body,
   box,
   capsule,
+  cameraShake,
   capsuleCollider,
   circle,
   colorRange,
@@ -42,7 +43,7 @@ import {
 
 import { paintColour } from '../palette';
 import { type Block, type Model, pinIds } from './model';
-import { frames, marks, score } from './score';
+import { frames, marks, score, strikes } from './score';
 import { ballKey, pinKey, readyBallKey } from './update';
 
 /** The lane: its top at y = 0, the foul line at z = 6, the head pin at z = −5. */
@@ -338,9 +339,29 @@ const scoreboard = (model: Model): ReadonlyArray<SceneNode> => {
   ];
 };
 
+/**
+ * A jolt for each strike (Drei's `CameraShake`, decaying): the strike count is the
+ * trigger, so every new strike shakes once and settles within a second.
+ */
+const strikeShake = (count: number) =>
+  count === 0
+    ? null
+    : cameraShake({
+        decay: true,
+        intensity: 0.8,
+        decayRate: 1,
+        maxYaw: 0.012,
+        maxPitch: 0.02,
+        maxRoll: 0.015,
+        yawFrequency: 7,
+        pitchFrequency: 9,
+        rollFrequency: 6,
+        trigger: count,
+      });
+
 export const sceneFor = (model: Model) =>
   scene({
-    camera: model.camera,
+    camera: { ...model.camera, shake: strikeShake(strikes(model.rolls)) },
     gestures: 'scene',
     physics: physics(),
     measure: ['scoreboard'],

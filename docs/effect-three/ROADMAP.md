@@ -191,15 +191,21 @@ WebGPU path), and DOM overlay is checked only in the session request.
 
 - ✅ Four high-fidelity promo examples (marble machine, type gallery, bowling, XR room)
   and a guide brought up to 0.1.0.
-- Pages that need labels stay on WebGL under `?renderer=webgpu`, and say why (S).
-- Labels under WebGPU (M–L): troika builds WebGL shaders only. Investigate distance-field
-  text in TSL behind the same `LabelEngine` contract, or a second engine for both
-  renderers, before choosing.
+- ✅ Pages that need labels stay on WebGL under `?renderer=webgpu`, and say why: the
+  samples' renderer choice takes what a sample needs, and pages without labels no longer
+  load troika at all.
+- Labels under WebGPU (M): investigated ([spike results](spike-results.md#labels-under-webgpu-2026-10-19)).
+  Keep troika's layout and distance-field atlas (`getTextRenderInfo`) and replace only its
+  shader with a TSL glyph material: a second hosted-label implementation in
+  `@opsydyn/effect-three-troika`, chosen by the renderer kit, behind the same
+  `LabelEngine` contract. Next: outlines, curves, clip rects and lit materials in TSL,
+  then lift the WebGL fallback for label pages.
 - Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
   `WebGPURenderer`, and the DOM overlay; they retire the three documented limits.
-- A Drei catalogue audit (S to scope): `Line`/`Trail`, `Billboard`, `Decal`, `Outlines`,
-  `Sparkles`/`Stars`/`Cloud`, transmission materials; decide what belongs in the typed
-  catalogue.
+- ✅ A Drei catalogue audit ([drei-audit.md](drei-audit.md)): every component is covered,
+  a Model pattern, a sized candidate, or out of scope with a reason. Next from it: the S
+  candidates (`Billboard`, `RoundedBox` and `Backdrop`, `Detailed`, `CameraShake`,
+  `Clone`), then `line` and `points` families (M), then transform gizmos as submodels.
 
 ## Beyond parity
 
@@ -220,6 +226,12 @@ Effect owns every lifetime.
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
    and an assistant can furnish a room or set up a shot, undoably and replayably.
+   ✅ First step: the XR room exports `devTools = { Message }` and an intent-level
+   `PlacedPlant { at, kind }`; through `@foldkit/devtools-mcp` an agent reads the Model
+   and places plants, and an unknown kind is refused by the schema (checked end to end
+   in a headless browser, 2026-10-19; what we found about the MCP server is in
+   [devtools-mcp-notes.md](devtools-mcp-notes.md)). Next: a scene-level vocabulary (set up a shot:
+   camera, lights, staging) and tools that describe what a scene contains.
 4. **Tooling from Schema.** An inspector generated from the scene schemas, save and load
    as JSON, undo and branching history from the immutable Model, and scene diffs in
    review from the kernel's own ops.
@@ -237,8 +249,9 @@ collaboration, 3 for the assistant).
 
 ### Recommendation
 
-E's WebGPU page fallback now (S), then the event-sourced replay spike (1), which every
-other item in "Beyond parity" depends on, then agent-native control of the XR room (3).
+The WebGPU page fallback, the replay spike (1), the Drei audit, the WebGPU labels
+investigation and agent control of the XR room (3) are done. Next: the TSL label engine
+(E), then the Drei S candidates.
 
 ## Not planned
 

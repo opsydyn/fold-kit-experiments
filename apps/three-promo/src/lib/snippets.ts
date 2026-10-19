@@ -141,6 +141,19 @@ export const xrSnippet = `scene({
   ],
 });`;
 
+export const agentSnippet = `// main.ts: hand DevTools the Message schema, and in development an agent can send
+// Messages through the Foldkit DevTools MCP server, decoded like any other.
+export const devTools = { Message, excludeFromHistory: ['MadeGesture'] };
+
+// message.ts: what an agent (or a script, or a test) sends to arrange the room.
+PlacedPlant: { at: Vec3, kind: PlantKind },  // PlantKind: 'fern' | 'cactus' | 'tulip'
+
+// An agent's tool call; a kind the schema does not know is rejected before update.
+foldkit_dispatch_messages({ messages: [
+  { _tag: 'ClickedClear' },
+  { _tag: 'PlacedPlant', at: [1.2, 0, 0.4], kind: 'tulip' },
+] })`;
+
 export const lending = `// Application-owned assets, shown but never disposed by the scene.
 store.lend('car', gltf.scene);            // borrowed({ key: 'car', id: 'car' })
 store.lendTexture('bricks', texture);     // standard({ map: 'bricks' })

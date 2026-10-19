@@ -2,7 +2,7 @@
 import { Effect } from 'effect';
 import { Command } from 'foldkit';
 
-import { environment } from '../environment';
+import { environment } from '../labelledEnvironment';
 import { Message, Mode } from './message';
 
 export const CheckSupport = Command.define('CheckSupport', {

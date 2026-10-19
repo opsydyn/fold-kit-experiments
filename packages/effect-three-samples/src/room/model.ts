@@ -11,8 +11,12 @@ export type Session = typeof Session.Type;
 
 export const Vec3 = Schema.Tuple([Schema.Number, Schema.Number, Schema.Number]);
 
+/** The plants there are to place. */
+export const PlantKind = Schema.Literals(['fern', 'cactus', 'tulip']);
+export type PlantKind = typeof PlantKind.Type;
+
 /** A plant someone placed: on the page or in VR on the room's floor; in AR, at an anchor. */
-export const Plant = Schema.Struct({ id: Schema.String, at: Vec3 });
+export const Plant = Schema.Struct({ id: Schema.String, at: Vec3, kind: PlantKind });
 export type Plant = typeof Plant.Type;
 
 export const Model = Schema.Struct({
@@ -22,6 +26,8 @@ export const Model = Schema.Struct({
   session: Session,
   plants: Schema.Array(Plant),
   nextPlant: Schema.Number,
+  /** What a click on the floor plants. */
+  kind: PlantKind,
   /** What an AR session has detected, as it last reported. */
   planes: Schema.Array(SceneSchema.XrPlane),
   meshes: Schema.Array(SceneSchema.XrMesh),
@@ -45,8 +51,9 @@ export const initialModel = (assetBase: string): Model => ({
   vr: 'checking',
   ar: 'checking',
   session: 'none',
-  plants: [{ id: 'plant-0', at: [-0.9, 0, 0.9] }],
+  plants: [{ id: 'plant-0', at: [-0.9, 0, 0.9], kind: 'fern' }],
   nextPlant: 1,
+  kind: 'fern',
   planes: [],
   meshes: [],
   // In front of the sofa, facing the room's back wall.

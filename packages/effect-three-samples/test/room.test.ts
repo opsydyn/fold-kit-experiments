@@ -1,7 +1,10 @@
 import { expect, mock, test } from 'bun:test';
 
 // The commands use the page's environment; the update logic under test never runs them.
-await mock.module('../src/environment', () => ({ environment: {}, sceneMount: () => undefined }));
+await mock.module('../src/labelledEnvironment', () => ({
+  environment: {},
+  sceneMount: () => undefined,
+}));
 const { Message } = await import('../src/room/message');
 const { init, update } = await import('../src/room/update');
 const { sceneFor } = await import('../src/room/scene');
@@ -13,8 +16,26 @@ const keys = (model: Model) => sceneFor(model).children.map((child) => child.key
 
 test('a click on the floor plants there, on the floor; a click on a plant takes it away', () => {
   const planted = step(start, Message.ClickedFloor({ point: [1, 0.004, -0.5] }));
-  expect(planted.plants.at(-1)).toEqual({ id: 'plant-1', at: [1, 0, -0.5] });
+  expect(planted.plants.at(-1)).toEqual({ id: 'plant-1', at: [1, 0, -0.5], kind: 'fern' });
   expect(step(planted, Message.ClickedPlant({ id: 'plant-1' })).plants).toEqual(start.plants);
+});
+
+test('a click plants the chosen kind; a placed plant lands on the floor, inside the walls', () => {
+  const cacti = step(
+    step(start, Message.ChoseKind({ kind: 'cactus' })),
+    Message.ClickedFloor({
+      point: [0.5, 0, 0.5],
+    }),
+  );
+  expect(cacti.plants.at(-1)?.kind).toBe('cactus');
+  const placed = step(start, Message.PlacedPlant({ at: [9, 2, -1], kind: 'tulip' }));
+  expect(placed.plants.at(-1)).toEqual({ id: 'plant-1', at: [2.8, 0, -1], kind: 'tulip' });
+  const tulip = sceneFor(placed).children.find((child) => child.key === 'plant-1');
+  expect(tulip?._tag === 'Group' && tulip.children.map((child) => child.key)).toEqual([
+    'plant-1:pot',
+    'plant-1:stem',
+    'plant-1:flower',
+  ]);
 });
 
 test('in AR the furniture goes, plants become anchors, and what was detected is drawn', () => {

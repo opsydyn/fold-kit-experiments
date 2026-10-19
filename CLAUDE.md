@@ -43,6 +43,13 @@ bun run --filter @opsydyn/web dev     # single workspace
 bun dev:three-promo                   # effect-three promo → localhost:4323
 ```
 
+`.mcp.json` registers the Foldkit DevTools MCP server (`@foldkit/devtools-mcp`, a root
+dev dependency): with a dev server running, an agent can read a Foldkit app's Model and
+dispatch Messages to apps that export `devTools = { Message }` (the XR room does). It
+joins the newest dev server under the repository, so set `FOLDKIT_PROJECT_ROOT` to the
+app's directory, and pass `runtime_id` on each tool call. Known problems and their
+workarounds: `docs/effect-three/devtools-mcp-notes.md`.
+
 ## Dependencies
 
 Shared dependency versions live once, in the root `package.json` catalogs

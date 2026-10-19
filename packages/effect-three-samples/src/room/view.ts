@@ -1,13 +1,25 @@
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import { sceneMount } from '../environment';
+import { notice, sceneMount } from '../labelledEnvironment';
+import { rendererNote } from '../notice';
 import { Message, type Mode } from './message';
-import type { Model } from './model';
+import { type Model, PlantKind } from './model';
 import { sceneFor } from './scene';
 
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
   h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
+
+const kindButton = (model: Model, h: HtmlBuilder<Message>, kind: PlantKind): Html =>
+  h.button(
+    [
+      h.Class('e3-button'),
+      h.Type('button'),
+      h.AriaPressed(String(model.kind === kind)),
+      h.OnClick(Message.ChoseKind({ kind })),
+    ],
+    [kind],
+  );
 
 /** The way in, for each mode the browser can present, or the way out. */
 const sessionButtons = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
@@ -66,10 +78,15 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         },
         h,
       ),
+      ...rendererNote(h, notice),
       h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
       h.div(
         [h.Class('e3-controls')],
-        [...sessionButtons(model, h), button(h, 'Clear plants', Message.ClickedClear())],
+        [
+          ...PlantKind.literals.map((kind) => kindButton(model, h, kind)),
+          ...sessionButtons(model, h),
+          button(h, 'Clear plants', Message.ClickedClear()),
+        ],
       ),
       h.p(
         [h.Class('e3-note')],
@@ -77,7 +94,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           'In VR the sticks glide you round the room and a tips label rides your left hand. In AR ',
           'the furniture goes and your room shows through: each plant you place is a WebXR anchor, ',
           'and the planes and meshes the device detects are drawn from Messages, each by a group ',
-          'following its tracked space. On the page, click the floor to plant.',
+          'following its tracked space. On the page, click the floor to plant. In development an ',
+          'agent can arrange the room too: the Foldkit DevTools MCP server sends it PlacedPlant.',
         ],
       ),
     ],

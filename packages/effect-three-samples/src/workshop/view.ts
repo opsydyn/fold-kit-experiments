@@ -3,7 +3,8 @@ import { Option } from 'effect';
 import { match } from 'foldkit/asyncData';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import { sceneMount } from '../environment';
+import { notice, sceneMount } from '../labelledEnvironment';
+import { rendererNote } from '../notice';
 import { Message } from './message';
 import { type Clip, clips, type Model, type RobotInfo } from './model';
 import { sceneFor } from './scene';
@@ -72,6 +73,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         },
         h,
       ),
+      ...rendererNote(h, notice),
       h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
       h.div(
         [h.Class('e3-controls'), h.AriaLabel('Animation')],

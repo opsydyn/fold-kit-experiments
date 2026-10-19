@@ -41,3 +41,31 @@ The Effect-style no-op alone (0.51 ms) exceeds the accepted 0.2 ms budget.
 
 - Idiomatic Foldkit code fails several rules in Effect-importing files: `{ ...model }` (`no-naked-object-state-update`), ternaries in `update`/`view` (`no-ternary`), string comparisons (`no-magic-domain-string`). The demo app must use `Struct.evolve`/`modifyFields`, `Match` and Schema literal unions.
 - `no-effect-wrapper-alias` flags any `const x = Effect...` alias. Public Effect values should be functions that return Effects.
+
+## Labels under WebGPU (2026-10-19)
+
+**Question:** can effect-three draw troika labels under `WebGPURenderer`, where troika's
+own material (GLSL patched in with `onBeforeCompile`) cannot run?
+
+**Result: yes, by keeping troika's text pipeline and replacing only its shader.**
+troika's `getTextRenderInfo` lays text out (fonts, wrapping, bidi, colour ranges) and builds
+the glyphs' signed distance fields into an atlas on its own canvas, independent of the
+renderer. A TSL node material ports troika's fragment logic: one instanced quad per glyph
+over its bounds, the atlas cell from the glyph index (four glyphs per texel, one per
+channel), exponential decoding to a signed distance, and anti-aliasing from `fwidth`.
+In headless Chromium on SwiftShader's WebGPU adapter, `WebGPURenderer` reported its
+WebGPU backend and drew two labels (50 glyphs) cleanly, colour ranges included.
+
+Two findings to carry into an engine:
+
+- **Round the glyph index.** Interpolated across the quad, an index of 5 can arrive as
+  4.9999, and `mod(index, 4)` then picks the wrong channel: whole glyphs come out as
+  neighbouring ones. troika's GLSL rounds (`floor(ch + 0.5)`) for this reason.
+- **Copy the atlas as bytes.** Uploaded as an image, troika's WebGL canvas goes through
+  premultiplied alpha, which marks the R, G and B glyphs where the A glyph is thin;
+  `readPixels` into a `DataTexture` (troika's own Safari workaround) is exact. The atlas
+  grows as labels add glyphs, so an engine must re-read it when troika reports new ones.
+
+Not yet covered: outlines, blur and curves (troika's vertex and outline passes), clip
+rectangles, a lit material, and depth with other transparent objects. Evidence:
+`packages/effect-three-troika/spikes/tsl-labels/` (`bun spikes/tsl-labels/run.ts`).

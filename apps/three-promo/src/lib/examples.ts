@@ -77,7 +77,7 @@ export const examples = [
     category: 'WebXR',
     title: 'Step into the room',
     description:
-      'Furnish a room with plants on the page, glide through it in VR, or plant in your own room in AR, where each plant is an anchor and detected planes and meshes are drawn from Messages.',
+      'Furnish a room with ferns, cacti and tulips on the page or let an agent do it through Foldkit DevTools, glide through it in VR, or plant in your own room in AR, where each plant is an anchor and detected planes and meshes are drawn from Messages.',
     alt: 'XR room: a sofa, table and lamp in a warm room, with potted plants on the rug.',
   },
   {

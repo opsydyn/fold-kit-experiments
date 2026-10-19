@@ -78,6 +78,18 @@ colorRanges, curveRadius, material })`. Give each a font URL (TTF, OTF or WOFF;
 `WebGPURenderer` (real WebGPU, or its WebGL 2 backend); labels are not drawn under it,
 and WebXR on it is untested. Pass the factory as `makeEnvironment(window, { renderer })`.
 
+## Agents
+
+Export `devTools = { Message }` beside `init`, `update` and `view` (an astro-foldkit
+island passes the module to `makeApplication`) and, in development, the Foldkit DevTools
+MCP server (`@foldkit/devtools-mcp`) can read the Model and dispatch Messages, each
+decoded against the schema first. Give agents intent-level Messages with closed choices
+(`PlacedPlant { at, kind }`, `kind` a `Schema.Literals`) rather than raw pointer events,
+clamp what they place in `update`, and keep high-frequency Messages out of history with
+`excludeFromHistory`. The XR room sample does this. With several pages or dev servers
+open, pass `runtime_id` from `foldkit_list_runtimes` on each tool call, and set
+`FOLDKIT_PROJECT_ROOT` to the app's directory so the server joins that app's relay.
+
 ## Immersive sessions
 
 `scene({ xr: xr({ origin, heading, glide, hitTest, anchors, planes, meshes }) })`

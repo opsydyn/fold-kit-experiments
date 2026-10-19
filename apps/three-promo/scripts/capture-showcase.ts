@@ -43,6 +43,8 @@ const shots: ReadonlyArray<Shot> = [
   { id: 'playground', prepare: (page) => clickButton(page, 'Add cube', 2) },
   { id: 'sculpture', prepare: placeBlocks },
   { id: 'bars', prepare: async () => undefined },
+  // The comet a third of the way round, its trail behind it.
+  { id: 'curves', prepare: (page) => page.waitForTimeout(3000) },
   { id: 'studio', prepare: async () => undefined },
   { id: 'city', prepare: async () => undefined },
   { id: 'workshop', prepare: async () => undefined },

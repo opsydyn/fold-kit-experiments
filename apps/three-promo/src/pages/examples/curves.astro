@@ -1,0 +1,21 @@
+---
+import ExampleSource from '../../components/ExampleSource.astro';
+import Sample from '../../examples/curves/app';
+import Layout from '../../layouts/Layout.astro';
+import { samplesSource } from '../../lib/links';
+import { sitePath } from '../../lib/site-path';
+import modelSource from '@opsydyn/effect-three-samples/src/curves/model.ts?raw';
+import messageSource from '@opsydyn/effect-three-samples/src/curves/message.ts?raw';
+import updateSource from '@opsydyn/effect-three-samples/src/curves/update.ts?raw';
+import rideSource from '@opsydyn/effect-three-samples/src/curves/ride.ts?raw';
+import sceneSource from '@opsydyn/effect-three-samples/src/curves/scene.ts?raw';
+import viewSource from '@opsydyn/effect-three-samples/src/curves/view.ts?raw';
+const sources = [{ name: 'model.ts', content: modelSource }, { name: 'message.ts', content: messageSource }, { name: 'update.ts', content: updateSource }, { name: 'ride.ts', content: rideSource }, { name: 'scene.ts', content: sceneSource }, { name: 'view.ts', content: viewSource }];
+---
+<Layout title="Curves — effect-three">
+  <section class="page-intro"><a class="text-link" href={sitePath('/examples/')}>← All examples</a><p class="eyebrow">LINES AND POINTS</p><h1>Draw with data.</h1><p>A closed curve through five handles, five pixels wide with a colour gradient, its control polygon dashed beneath it and a Bézier swinging under the stage. Drag a handle and the curve, the polygon and the comet's path all follow. The comet rides the curve by a behaviour, trailing a tapering, fading ribbon and a cloud of sparkles, under a field of stars.</p></section>
+  <Sample client:load noMeta />
+  <noscript><p>This example needs JavaScript and WebGL to render the scene.</p></noscript>
+  <section class="closing-callout"><h2>Lines, trails, sparkles and stars as data.</h2><p><code>line</code> draws Drei's fat lines and <code>catmullRomPoints</code> and <code>quadraticBezierPoints</code> give its curves; handles are boxes whose <code>edges</code> are drawn; <code>trail</code>, <code>sparkles</code> and <code>stars</code> are Drei's, seeded so they are the same on every load, and moving in scene time. Every one draws with WebGL or WebGPU (add <code>?renderer=webgpu</code>).</p><a class="text-link" href={samplesSource + '/curves'}>Explore the example source →</a></section>
+  <ExampleSource files={sources} />
+</Layout>

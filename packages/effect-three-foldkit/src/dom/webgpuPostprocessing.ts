@@ -17,6 +17,7 @@ import {
   dot,
   fract,
   luminance,
+  max,
   mix,
   pass,
   rand,
@@ -35,8 +36,14 @@ type Colour = Node<'vec4'>;
 /** One effect applied to the colour so far. */
 const applied = (input: Colour, effect: PostEffect): Colour => {
   switch (effect._tag) {
-    case 'Bloom':
-      return input.add(bloom(input, effect.strength, effect.radius, effect.threshold));
+    case 'Bloom': {
+      // BloomNode's output is opaque (alpha 1), which would fill a transparent canvas with
+      // black. Keep the scene's alpha and let the glow add its own where it shines, as the
+      // WebGL composer's additive bloom does.
+      const glow = bloom(input, effect.strength, effect.radius, effect.threshold);
+      const shine = max(glow.r, max(glow.g, glow.b));
+      return vec4(input.rgb.add(glow.rgb), clamp(input.a.add(shine), 0, 1));
+    }
     case 'Vignette': {
       // three's VignetteShader: towards `1 − darkness` with distance from the middle.
       const centred = screenUV.sub(0.5).mul(effect.offset);

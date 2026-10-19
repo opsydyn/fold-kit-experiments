@@ -4,7 +4,48 @@
  * `Text` a `Mesh`, which it is.
  */
 declare module 'troika-three-text/dist/troika-three-text.esm.js' {
-  import type { Material, Mesh } from 'three';
+  import type { Material, Mesh, Texture } from 'three';
+
+  /** What `getTextRenderInfo` takes: a `Text`'s layout settings. */
+  export type TextRenderArgs = {
+    readonly text: string;
+    readonly font: string | null;
+    readonly fontSize: number;
+    readonly letterSpacing: number;
+    readonly lineHeight: number | string;
+    readonly maxWidth: number;
+    readonly textAlign: string;
+    readonly anchorX: number | string;
+    readonly anchorY: number | string;
+    readonly colorRanges: Record<number, number> | null;
+    readonly sdfGlyphSize: number;
+    readonly includeCaretPositions?: boolean;
+  };
+
+  /** A laid-out text: per-glyph quads and atlas cells, and the shared distance-field atlas. */
+  export type TextRenderInfo = {
+    /** Four numbers per glyph: its quad's `[minX, minY, maxX, maxY]`. */
+    readonly glyphBounds: Float32Array;
+    /**
+     * Each glyph's cell in the atlas; four glyphs share a texel, one per channel. troika
+     * documents a `Float32Array` but reuses its typesetter's glyph ids, an integer array.
+     */
+    readonly glyphAtlasIndices: Float32Array | Uint16Array | Uint32Array;
+    /** Three bytes per glyph when the text has colour ranges. */
+    readonly glyphColors: Uint8Array | null;
+    /** The atlas, on troika's own WebGL canvas; shared by every text of a glyph size. */
+    readonly sdfTexture: Texture;
+    readonly sdfGlyphSize: number;
+    readonly sdfExponent: number;
+    readonly blockBounds: ReadonlyArray<number>;
+    readonly visibleBounds: ReadonlyArray<number>;
+  };
+
+  /** Lays text out and builds its glyphs' distance fields, then calls `callback`. */
+  export function getTextRenderInfo(
+    args: TextRenderArgs,
+    callback: (info: TextRenderInfo) => void,
+  ): void;
 
   export class Text extends Mesh {
     text: string;

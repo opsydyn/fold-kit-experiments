@@ -2104,6 +2104,7 @@ export type LabelColorRange = {
 // @public
 export type LabelEngine = {
     readonly create: (label: LabelNode, ready: () => void) => HostedLabel;
+    readonly createTsl?: (label: LabelNode, ready: () => void) => HostedLabel;
 };
 
 // @public
@@ -3379,7 +3380,7 @@ export class RendererUnavailable extends RendererUnavailable_base<{
 
 // @public
 export type RenderKit = {
-    readonly drawsLabels: boolean;
+    readonly shading: 'webgl' | 'tsl';
     readonly sky: () => HostedSky;
     readonly shaderGrid: (node: ShaderGridNode) => HostedShaderGrid;
     readonly contactShadows: (graph: ShadowedScene, renderer: SceneRenderer) => ContactShadowPasses;

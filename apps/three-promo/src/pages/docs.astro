@@ -92,7 +92,7 @@ import {
       </section>
       <section id="text">
         <h2>Set text two ways.</h2>
-        <p><code>text()</code> is geometry from a typeface font, as Drei's <code>Text3D</code>: extruded or flat, with letter spacing, line height and alignment. <code>label()</code> is crisp distance-field text at any size, as Drei's <code>Text</code>, drawn by troika once you pass <code>troikaLabels()</code> from <code>@opsydyn/effect-three-troika</code>. Labels wrap and take anchors and outlines; give them a TTF, OTF or WOFF font.</p>
+        <p><code>text()</code> is geometry from a typeface font, as Drei's <code>Text3D</code>: extruded or flat, with letter spacing, line height and alignment. <code>label()</code> is crisp distance-field text at any size, as Drei's <code>Text</code>, drawn by troika once you pass <code>troikaLabels()</code> from <code>@opsydyn/effect-three-troika</code> (or its <code>/webgpu</code> entry, which draws under WebGPU too). Labels wrap and take anchors and outlines; give them a TTF, OTF or WOFF font.</p>
         <p>Colour runs (<code>colorRanges</code>), curves (<code>curveRadius</code>) and a scene <code>material</code> to light the glyphs are fields too. A label named in <code>{"scene({ measure })"}</code> reports its laid-out size as <code>LabelMeasured</code>, so the Model can size what goes behind it.</p>
         <div class="code-panel"><SourceCode code={labelSnippet} lang="ts" sourceId="label.ts" /></div>
         <a class="text-link" href={sitePath('/examples/workshop/')}>See both in the workshop <span aria-hidden="true">→</span></a>
@@ -107,7 +107,7 @@ import {
         <h2>WebGL or WebGPU.</h2>
         <p>The default renderer is WebGL 2. <code>webgpuRendererFactory</code> uses three's <code>WebGPURenderer</code>: WebGPU where the browser has it, its WebGL 2 backend otherwise. Each renderer brings a render kit, so skies, shader grids, contact shadows and post-processing have WebGL and TSL versions, and the same scene draws on either.</p>
         <div class="code-panel"><SourceCode code={renderers} lang="ts" sourceId="renderer.ts" /></div>
-        <p>Known limits: labels are not drawn under WebGPU (troika has no WebGPU path), WebXR on <code>WebGPURenderer</code> is wired but untested, and the DOM overlay is checked only in the session request. Every example takes <code>?renderer=webgpu</code> in its address; those that draw labels stay on WebGL and say so.</p>
+        <p>Labels draw under WebGPU too: take <code>troikaLabels</code> from <code>@opsydyn/effect-three-troika/webgpu</code>. troika still lays the text out and builds its glyphs, and a node material draws them, outlines, curves, colour ranges and lit materials included. Known limits: WebXR on <code>WebGPURenderer</code> is wired but untested, and the DOM overlay is checked only in the session request. Every example takes <code>?renderer=webgpu</code> in its address.</p>
       </section>
       <section id="xr">
         <h2>Step into it.</h2>

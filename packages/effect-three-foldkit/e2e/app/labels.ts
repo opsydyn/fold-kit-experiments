@@ -1,6 +1,8 @@
 /**
  * Labels on a white page, drawn by troika: black text whose glyphs the test finds in the
- * canvas. The scene is set from the test through `window.__labels`.
+ * canvas. The scene is set from the test through `window.__labels`. The address picks the
+ * renderer (`rendererChoice.ts`): under WebGPURenderer troika's labels are drawn with node
+ * materials.
  */
 import {
   ambientLight,
@@ -13,15 +15,19 @@ import {
   scene,
   standard,
 } from '@opsydyn/effect-three';
-import { troikaLabels } from '@opsydyn/effect-three-troika';
+import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
 import { Effect, Queue, Stream } from 'effect';
 import type { ViewState } from 'foldkit/mount';
 
 import * as EffectThreeFoldkit from '../../src/index.ts';
 import { font } from './font.ts';
 import { collectDetails } from './labelProbe.ts';
+import { rendererFromAddress } from './rendererChoice.ts';
 
-const environment = EffectThreeFoldkit.makeEnvironment(window, { labels: troikaLabels() });
+const environment = EffectThreeFoldkit.makeEnvironment(window, {
+  labels: troikaLabels(),
+  ...rendererFromAddress(location.search),
+});
 const sceneMount = EffectThreeFoldkit.makeSceneMount(environment);
 
 /** One unit is 40 pixels; the label sits at `x`, anchored by its left edge. */
@@ -43,6 +49,7 @@ const labelScene = (text: string, x: number) =>
         color: 0x000000,
         anchorX: 'left',
         position: [x, 0, 0],
+        interactive: true,
       }),
     ],
   });
@@ -87,10 +94,12 @@ const lifecycle = sceneMount().f(element, Stream.fromQueue(viewStates));
 Effect.runFork(Stream.runDrain(lifecycle));
 
 const measured = collectDetails(element, 'scene-label-measured');
+const clicks = collectDetails(element, 'scene-click');
 
 Reflect.set(globalThis, '__labels', {
   ready: () => element.querySelector('canvas') !== null,
   show: (text: string, x: number) => Reflect.set(element, 'scene', labelScene(text, x)),
   styled: () => Reflect.set(element, 'scene', styledScene()),
   measured: () => measured,
+  clicks: () => clicks,
 });

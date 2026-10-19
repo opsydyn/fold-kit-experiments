@@ -69,3 +69,20 @@ Two findings to carry into an engine:
 Not yet covered: outlines, blur and curves (troika's vertex and outline passes), clip
 rectangles, a lit material, and depth with other transparent objects. Evidence:
 `packages/effect-three-troika/spikes/tsl-labels/` (`bun spikes/tsl-labels/run.ts`).
+
+**Outcome (2026-10-19): built.** `troikaLabels` from `@opsydyn/effect-three-troika/webgpu`
+draws labels this way behind `LabelEngine.createTsl`, with outlines and blur (a first
+pass, as troika draws them), curves, colour ranges, lit materials and picking. Two more
+findings from building it:
+
+- **troika's glyph indices are integers.** Documented as a `Float32Array`, they are the
+  typesetter's glyph id array; given to WebGPU's WebGL 2 backend as is, it declares an
+  `int` input and the draw fails ("Vertex shader input type does not match"). Copy them
+  to floats.
+- **A superseded layout must still draw again.** troika answers a layout whose glyphs an
+  earlier, unfinished layout is still building at once, before their fields have landed
+  in the atlas. Showing only the latest layout is right, but the earlier one's answer
+  must still ask for a frame, or a scene that draws on demand keeps an empty atlas copy.
+
+Against the WebGL path on the samples, glyphs, colour ranges, outlines and layout match;
+the clearcoat highlight on the gallery's curved, lit title is narrower under WebGPU.

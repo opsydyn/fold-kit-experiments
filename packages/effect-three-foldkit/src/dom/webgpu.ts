@@ -5,8 +5,9 @@
  * contact shadows in TSL), post-processes with `RenderPipeline`, and presents in WebXR.
  * It starts asynchronously (`init()`), which the runtime waits for.
  *
- * Not drawn under it: labels, which troika makes from WebGL shaders; a label engine's
- * labels are silently empty here.
+ * Its kit shades with TSL, so labels come from a label engine's `createTsl` (troika's is
+ * `troikaLabels` from `@opsydyn/effect-three-troika/webgpu`); an engine without one draws
+ * no labels here.
  *
  * @module
  */

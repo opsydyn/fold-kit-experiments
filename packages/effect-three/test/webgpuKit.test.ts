@@ -25,6 +25,6 @@ test('the WebGPU kit draws the sky and shader grid with node materials, updated 
   graph.dispose();
 });
 
-test('the WebGPU kit does not draw labels: troika’s are WebGL materials', () => {
-  expect(webgpuKit.drawsLabels).toBe(false);
+test('the WebGPU kit shades with TSL, so labels come from an engine’s TSL implementation', () => {
+  expect(webgpuKit.shading).toBe('tsl');
 });

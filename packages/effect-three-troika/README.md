@@ -32,6 +32,21 @@ scene({
 });
 ```
 
+For three's `WebGPURenderer` (`webgpuRendererFactory`), take `troikaLabels` from
+`@opsydyn/effect-three-troika/webgpu` instead. It draws with either renderer: troika still
+lays the text out and builds its glyphs, and under WebGPU a node material (TSL) draws
+them, outlines, curves, colour ranges and lit materials included. It is a separate entry
+so that WebGL-only pages do not bundle three's WebGPU build.
+
+```ts
+import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
+
+const environment = EffectThreeFoldkit.makeEnvironment(window, {
+  renderer: EffectThreeFoldkit.webgpuRendererFactory,
+  labels: troikaLabels(),
+});
+```
+
 Fonts load and glyphs build in a worker; the scene draws again when they are ready. Give
 each label a font URL (TTF, OTF or WOFF: troika 0.52 cannot read WOFF2 in its worker).
 Without one troika fetches its default font from a CDN.

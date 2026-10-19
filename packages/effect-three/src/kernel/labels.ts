@@ -44,5 +44,11 @@ export type HostedLabel = {
  * and glyphs build in the background), so the scene can draw again.
  */
 export type LabelEngine = {
+  /** A label drawn with WebGL's own materials, for a `'webgl'` render kit. */
   readonly create: (label: LabelNode, ready: () => void) => HostedLabel;
+  /**
+   * A label drawn with three's node materials (TSL), for a `'tsl'` render kit such as
+   * `WebGPURenderer`'s. Without it, those renderers draw no labels.
+   */
+  readonly createTsl?: (label: LabelNode, ready: () => void) => HostedLabel;
 };

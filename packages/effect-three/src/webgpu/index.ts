@@ -11,8 +11,8 @@ import { hostShaderGrid } from './shaderGrid.ts';
 import { hostSky } from './sky.ts';
 
 export const webgpuKit: RenderKit = {
-  // troika's labels are WebGL materials; real WebGPU rejects their draw calls.
-  drawsLabels: false,
+  // Node materials: label engines draw with their TSL implementation (`createTsl`).
+  shading: 'tsl',
   sky: hostSky,
   shaderGrid: hostShaderGrid,
   contactShadows: createContactShadows,

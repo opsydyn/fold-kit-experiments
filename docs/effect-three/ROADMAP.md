@@ -138,7 +138,7 @@ unpublishing for 72 hours).
 
 ### B. A WebGPU renderer (L) ✅
 
-Done ([ADR-010](adr/010-webgpu-renderer.md)): `webgpuRendererFactory` and `webgpuKit`, on real WebGPU or `WebGPURenderer`'s WebGL 2 backend; labels are not drawn under it. The notes below are as planned.
+Done ([ADR-010](adr/010-webgpu-renderer.md)): `webgpuRendererFactory` and `webgpuKit`, on real WebGPU or `WebGPURenderer`'s WebGL 2 backend; labels draw under it since E (troika's TSL labels). The notes below are as planned.
 
 `PLAN.md` designed the renderer boundary for WebGPU but nothing uses it yet. three 0.186
 ships `WebGPURenderer` (`three/webgpu`, sharing `three.core.js` with `three`, so no
@@ -184,22 +184,24 @@ The "not yet" notes the ADRs recorded, closed before the first release:
 - ✅ The kernel coverage gate (95% of lines) runs with the core package's tests.
 
 Still limits, to state in each README rather than fix here: WebXR on `WebGPURenderer`
-is untested (IWER cannot render it), labels are not drawn under WebGPU (troika has no
-WebGPU path), and DOM overlay is checked only in the session request.
+is untested (IWER cannot render it), and DOM overlay is checked only in the session
+request. (Labels under WebGPU were a third, until E.)
 
 ### E. After 0.1.0
 
 - ✅ Four high-fidelity promo examples (marble machine, type gallery, bowling, XR room)
   and a guide brought up to 0.1.0.
-- ✅ Pages that need labels stay on WebGL under `?renderer=webgpu`, and say why: the
-  samples' renderer choice takes what a sample needs, and pages without labels no longer
-  load troika at all.
-- Labels under WebGPU (M): investigated ([spike results](spike-results.md#labels-under-webgpu-2026-10-19)).
-  Keep troika's layout and distance-field atlas (`getTextRenderInfo`) and replace only its
-  shader with a TSL glyph material: a second hosted-label implementation in
-  `@opsydyn/effect-three-troika`, chosen by the renderer kit, behind the same
-  `LabelEngine` contract. Next: outlines, curves, clip rects and lit materials in TSL,
-  then lift the WebGL fallback for label pages.
+- ✅ Pages that need labels stayed on WebGL under `?renderer=webgpu`, and said why, until
+  the TSL labels below; pages without labels no longer load troika at all.
+- ✅ Labels under WebGPU (M) ([spike results](spike-results.md#labels-under-webgpu-2026-10-19)):
+  a render kit names its kind of material (`RenderKit.shading`, `'webgl'` or `'tsl'`), a
+  `LabelEngine` may add `createTsl`, and `troikaLabels` from
+  `@opsydyn/effect-three-troika/webgpu` draws with node materials: troika's layout and
+  distance-field atlas (`getTextRenderInfo`), and troika's shader ported to TSL (outlines
+  and blur, curves, colour ranges, lit materials, picking over the text block). Every
+  sample now runs under `?renderer=webgpu`, labels included, and the label e2e runs on
+  WebGL, WebGPU and WebGPU's WebGL 2 backend. Not ported: clip rectangles, inner strokes
+  and outline offsets (`LabelNode` has none), and label shadows.
 - Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
   `WebGPURenderer`, and the DOM overlay; they retire the three documented limits.
 - ✅ A Drei catalogue audit ([drei-audit.md](drei-audit.md)): every component is covered,
@@ -249,9 +251,9 @@ collaboration, 3 for the assistant).
 
 ### Recommendation
 
-The WebGPU page fallback, the replay spike (1), the Drei audit, the WebGPU labels
-investigation and agent control of the XR room (3) are done. Next: the TSL label engine
-(E), then the Drei S candidates.
+The replay spike (1), the Drei audit, agent control of the XR room (3) and labels under
+WebGPU (E) are done. Next: the Drei S candidates (`Billboard`, `RoundedBox` and
+`Backdrop`, `Detailed`, `CameraShake`, `Clone`).
 
 ## Not planned
 

@@ -309,6 +309,18 @@ export {
 } from './gizmo.ts';
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
 export {
+  dragPivot,
+  hoverPivot,
+  type Pivot,
+  pivot,
+  type PivotGrab,
+  type PivotHandle,
+  pivotHandleOf,
+  pivotNodes,
+  pressPivot,
+  releasePivot,
+} from './pivot.ts';
+export {
   cameraAlong,
   type ViewAxis,
   viewportAxisOf,

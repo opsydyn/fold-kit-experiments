@@ -82,8 +82,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               mount: sceneMount,
               className: 'e3-stage e3-stage-tall',
               onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-              onPointerDown: ({ key, ray }) =>
-                Message.PressedScene({ key, origin: ray.origin, direction: ray.direction }),
+              onPointerDown: ({ key, point, ray }) =>
+                Message.PressedScene({ key, point, origin: ray.origin, direction: ray.direction }),
               onDrag: ({ ray }) =>
                 Message.DraggedScene({ origin: ray.origin, direction: ray.direction }),
               onDragEnd: () => Message.ReleasedScene(),
@@ -108,6 +108,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           ),
           toggle(h, 'Local axes', model.gizmo.gizmo.space === 'local', Message.ClickedSpace()),
           toggle(h, 'Snap', model.snapping, Message.ClickedSnapping()),
+          toggle(h, 'Pivot', model.style === 'pivot', Message.ClickedPivot()),
           button(h, 'Undo', model.past.length > 0, Message.ClickedUndo()),
           button(h, 'Redo', model.future.length > 0, Message.ClickedRedo()),
         ],
@@ -120,7 +121,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           'so every move can be undone. Drag empty space to orbit; shift-drag it to draw a ',
           'selection box (another submodel, after Drei’s Select), and the gizmo moves ',
           'everything selected alike. The axes in the corner turn the camera to look along ',
-          'one: a third submodel, drawn in the scene’s HUD.',
+          'one: a third submodel, drawn in the scene’s HUD. Pivot swaps the gizmo for Drei’s ',
+          'pivot controls, a fourth: arrows, squares, arcs and spheres all at once.',
         ],
       ),
     ],

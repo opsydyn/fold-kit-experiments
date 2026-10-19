@@ -1,5 +1,10 @@
 import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
+import {
+  BoxSelect,
+  PivotControls,
+  TransformGizmo,
+  ViewportGizmo,
+} from '@opsydyn/effect-three-foldkit';
 import { Option, Schema } from 'effect';
 
 import { paintColour } from '../palette';
@@ -22,6 +27,10 @@ export const Model = Schema.Struct({
   selected: Schema.Array(Schema.String),
   /** The transform gizmo: a Foldkit submodel. */
   gizmo: TransformGizmo.Model,
+  /** Drei-style pivot controls, every handle at once: the other way to move things. */
+  pivot: PivotControls.Model,
+  /** Which of the two is on the selection. */
+  style: Schema.Literals(['transform', 'pivot']),
   /** The selection box a shift-drag draws: a Foldkit submodel too. */
   box: BoxSelect.Model,
   /** The axes in the corner that turn the camera to look along one: a third. */
@@ -60,6 +69,8 @@ export const init = () => ({
     things: startThings,
     selected: ['crate'],
     gizmo: TransformGizmo.init('gizmo', { size: 1.4 }),
+    pivot: PivotControls.init('pivot', { scale: 0.9, depthTest: false }),
+    style: 'transform' as const,
     box: BoxSelect.init(),
     view: ViewportGizmo.init('view'),
     pressedView: false,

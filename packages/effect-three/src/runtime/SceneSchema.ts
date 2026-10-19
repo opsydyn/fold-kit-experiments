@@ -1197,3 +1197,31 @@ export const Gizmo = Schema.Struct({
     }),
   ),
 });
+
+/** A pivot handle: what it does, and its axis. */
+export const PivotHandle = Schema.Literals(
+  (['arrow', 'slider', 'rotator', 'sphere'] as const).flatMap((kind) =>
+    (['x', 'y', 'z'] as const).map((axis) => `${kind}-${axis}` as const),
+  ),
+);
+
+/** Pivot controls as data (`pivot`), for a Model that keeps them. */
+export const Pivot = Schema.Struct({
+  scale: Positive,
+  depthTest: Schema.Boolean,
+  disableAxes: Schema.Boolean,
+  disableSliders: Schema.Boolean,
+  disableRotations: Schema.Boolean,
+  disableScaling: Schema.Boolean,
+  hovered: Schema.NullOr(PivotHandle),
+  grab: Schema.NullOr(
+    Schema.Struct({
+      handle: PivotHandle,
+      start: Placement,
+      point: Vec3,
+      e1: Vec3,
+      e2: Vec3,
+      normal: Vec3,
+    }),
+  ),
+});

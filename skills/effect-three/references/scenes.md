@@ -48,6 +48,9 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
   `onGestureEnd` send `Ended` with the camera and `{ key, at }` for each selectable
   thing, and take `Selected { keys }` as the new selection. `BoxSelect.rectangle` places
   an HTML outline over the canvas; `BoxSelect.inside` marks what the box holds so far.
+- **Pivot controls:** as the transform gizmo, with `PivotControls`: send `Pressed` with
+  the handle, the hit `point` and the placement; `Dragged` with the ray and `snap`;
+  `Released`. Every handle shows at once, sized in scene units (`scale`).
 - **Viewport gizmo:** keep `ViewportGizmo.Model` in your Model and put
   `ViewportGizmo.hud(model.view, model.camera)` in `scene({ hud })`; send `Entered` and
   `Left` from pointer enter and leave, and `Pressed` with the hit key and the camera from

@@ -29,6 +29,7 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 | `View`                                    | `views`                                                                      |
 | `Hud`                                     | `hud({ alignment, margin, children })`, drawn over the scene, picked first   |
 | `GizmoHelper`, `GizmoViewport`            | `viewportGizmoNodes`, `cameraAlong`; Foldkit's `ViewportGizmo` submodel      |
+| `PivotControls`                           | `pivotNodes`, `pressPivot`, `dragPivot`; Foldkit's `PivotControls` submodel  |
 | `Html`                                    | `overlays`                                                                   |
 | `Effects`                                 | `renderSettings({ effects: [bloom(), vignette(), film()] })`                 |
 | `PerformanceMonitor`, `AdaptiveDpr`       | `PerformanceChanged`, `renderSettings({ resolution })`                       |
@@ -74,7 +75,7 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 | `FlyControls`, `FirstPersonControls`, `PointerLockControls` | S–M  | Pure functions from gestures and keys, as `orbit` is                   |
 | `web/PresentationControls`, `web/ScrollControls`            | S–M  | Gesture- and scroll-driven Model updates                               |
 | `MotionPathControls`                                        | M    | A camera or node behaviour along a curve                               |
-| `web/pivotControls`, `GizmoViewcube`                        | M    | Foldkit submodels, as the transform and viewport gizmos are            |
+| `GizmoViewcube`                                             | M    | A Foldkit submodel, as the viewport gizmo is                           |
 | `CubeCamera`                                                | M    | Dynamic reflections: a render texture into a cube map                  |
 | `meshBounds`, `Bvh`                                         | S–M  | Cheaper or accelerated picking for large meshes                        |
 | `GradientTexture`, `MatcapTexture`, `Ktx2`                  | S    | Generated and compressed textures; a matcap material kind              |
@@ -100,5 +101,5 @@ Done (2026-10-19): `Billboard`, `RoundedBox` and `Backdrop`, `Detailed`, `Camera
 and `Clone`, the S candidates; then the line and points families: `line` with its
 curves, `Edges`, `Trail`, `Points`, `Sparkles` and `Stars`; and `TransformControls` as
 a pure gizmo with a Foldkit submodel, `Select`'s box the same way, and `Hud` with
-`GizmoHelper`'s viewport gizmo in it. Next: the pivot controls the same way,
+`GizmoHelper`'s viewport gizmo in it, and `PivotControls`. Next: tooling from Schema,
 for the scene editor in "Beyond parity".

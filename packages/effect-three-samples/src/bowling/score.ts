@@ -97,6 +97,12 @@ export const freshRack = (rolls: ReadonlyArray<number>): boolean => {
   return last.left - pins === 0 || !last.fresh;
 };
 
+/** How many strikes the rolls so far hold: every X on the scoresheet. */
+export const strikes = (rolls: ReadonlyArray<number>): number =>
+  frames(rolls)
+    .flatMap((frame) => marks(frame).split(' '))
+    .filter((mark) => mark === 'X').length;
+
 /** How a frame's rolls read on a scoresheet: X for a strike, / for a spare, - for none. */
 export const marks = (frame: Frame): string =>
   racks(frame.rolls)

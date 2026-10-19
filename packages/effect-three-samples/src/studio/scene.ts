@@ -6,9 +6,9 @@
  */
 import {
   basic,
-  box,
   type Camera,
   capsule,
+  roundedBox,
   cone,
   ease,
   environment,
@@ -199,7 +199,11 @@ export const sceneFor = (model: Model) =>
         { id: 'capsule', geometry: capsule({ radius: 0.32, height: 0.6, radialSegments: 24 }) },
         { id: 'cone', geometry: cone({ radius: 0.45, height: 1 }) },
         { id: 'ball', geometry: sphere({ radius: 0.5 }) },
-        { id: 'crate', geometry: box({ width: 0.8, height: 0.8, depth: 0.8 }) },
+        // Drei's RoundedBox: a crate with softened edges, which catch the light.
+        {
+          id: 'crate',
+          geometry: roundedBox({ width: 0.8, height: 0.8, depth: 0.8, radius: 0.06 }),
+        },
       ],
     },
     children: [

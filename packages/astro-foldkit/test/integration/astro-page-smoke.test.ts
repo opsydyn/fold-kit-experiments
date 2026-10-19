@@ -49,8 +49,22 @@ const findPort = async (): Promise<number> => {
   return port;
 };
 
+// Astro 7 moves `astro dev` into the background when an agent runs it, out of reach of
+// `stopDevServer`, and the app's `dev` script passes `--force`, which replaces a dev
+// server already running for the app. `--ignore-lock` runs this one in the foreground,
+// alongside any other.
+const devArguments = (port: number): ReadonlyArray<string> => [
+  'astro',
+  'dev',
+  '--host',
+  '127.0.0.1',
+  '--port',
+  String(port),
+  '--ignore-lock',
+];
+
 const startDevServer = async (port: number, buildId?: string) => {
-  const child = spawn('bun', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(port)], {
+  const child = spawn('bunx', devArguments(port), {
     cwd: webDir,
     env: env(buildId),
     stdio: ['ignore', 'pipe', 'pipe'],

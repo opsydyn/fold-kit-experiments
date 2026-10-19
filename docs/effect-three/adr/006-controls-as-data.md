@@ -52,6 +52,15 @@ and tests would no longer see where the camera is.
   maps focused key presses to Messages), and Drei's `Bounds` as measuring events plus
   `fitCamera` and `clipCamera`.
 - Since added: view cameras damp as the scene's camera does, each on its own.
+- Since added (2026-10-19): the transform gizmo, the same way. three's
+  `TransformControls` listen to the canvas and move the object; here `gizmoNodes`
+  describes the handles from the Model, `pressGizmo` takes hold with the press ray and
+  the camera, and `dragGizmo` returns the next placement for each drag ray, following
+  three's maths (the drag plane, offsets, snaps, rotation speed) to six decimal places.
+  The adapter's `TransformGizmo` submodel reports `Moved` and `Finished` OutMessages;
+  the parent keeps the placements, so undo is a list. Evidence: `test/gizmo.test.ts`
+  (three's controls as the oracle), the adapter's `transformGizmo.test.ts`, the arrange
+  sample.
 - Since added: `autoRotate` on a camera, after `OrbitControls.autoRotate` (`rotateLeft` by
   `2π / 60 * autoRotateSpeed` a second, only while no gesture is in progress). The
   rendered camera turns round its target in scene time, holding still while a gesture is

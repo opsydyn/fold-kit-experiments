@@ -36,6 +36,12 @@ vertexColors, segments })`, drawn by the render kit (empty without one); curves 
   `quadraticBezierPoints`. `mesh({ edges: edges({ color, width, threshold }) })`
   outlines hard edges (never picked); `trail({ width, length, taper, fade })` on a group
   or mesh leaves a ribbon behind it, recorded in scene time.
+- **Transform gizmo:** keep `TransformGizmo.Model` (from the Foldkit adapter) and the
+  object placements in your Model; add `TransformGizmo.nodes(model.gizmo, placement,
+camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` names,
+  send `Pressed` with the ray, the placement and the camera; send `Dragged` for drag
+  rays and `Released` at the end; apply the `Moved` OutMessage's placement and record
+  history on `Finished`. Don't orbit while `TransformGizmo.held`.
 - **Points:** `points({ key, positions, colors, sizes, size, round })`, `sparkles({ key,
 count, spread, size, color, seed })` and `stars({ key, radius, depth, count, fade, seed
 })`, drawn by the render kit; sparkles and stars move in scene time (frozen under

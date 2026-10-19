@@ -219,8 +219,19 @@ vertexColors, segments })`, drawn by each render kit with three's fat lines (`Li
   and `LineMaterial` for WebGL, `Line2NodeMaterial` for WebGPU), pickable within their
   width; Drei's curve lines are point builders (`catmullRomPoints`, `cubicBezierPoints`,
   `quadraticBezierPoints`, `catmullRomColors`). Checked by pixel on three renderers. The
-  bowling lane's aim guide uses one. Next: `points` (with `Sparkles` and `Stars`), then
-  `Trail`, then transform gizmos as submodels.
+  bowling lane's aim guide uses one.
+- ✅ The rest of the line and points families. `mesh({ edges: edges() })` draws a mesh's
+  hard edges (Drei's `Edges`, three's `EdgesGeometry`) as kit lines, never picked.
+  `trail()` on a group or mesh is Drei's `Trail`, recorded on a 60 Hz scene-time clock
+  rather than per frame (so a trail is as long at any frame rate) and drawn as a
+  camera-facing ribbon of vertex colours that either renderer draws, with `taper` and
+  `fade` for Drei's `attenuation`. `points()`, `sparkles()` and `stars()` are Drei's
+  `Points` (with `PointMaterial`), `Sparkles` and `Stars`: the kernel makes the buffers,
+  seeded where Drei uses `Math.random`, and each kit draws them (Drei's shaders under
+  WebGL; instanced sprites with `PointsNodeMaterial` and the same maths in TSL under
+  WebGPU), moving in scene time and still under reduced motion. Round dots and lines are
+  checked by pixel on three renderers. The promo's curves example shows them all. Next:
+  transform gizmos as submodels.
 
 ## Beyond parity
 
@@ -265,7 +276,8 @@ collaboration, 3 for the assistant).
 ### Recommendation
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
-(3), labels under WebGPU (E) and lines are done. Next: the `points` family (M).
+(3), labels under WebGPU (E) and the line and points families are done. Next:
+transform gizmos as Foldkit submodels (Beyond parity 5).
 
 ## Not planned
 

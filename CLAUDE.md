@@ -43,6 +43,10 @@ bun run --filter @opsydyn/web dev     # single workspace
 bun dev:three-promo                   # effect-three promo → localhost:4323
 ```
 
+Astro 7 runs `astro dev` in the background when an agent starts it: stop it with
+`bunx astro dev stop` in the app's directory (`status` and `logs` also work). A test that
+starts a dev server should pass `--ignore-lock` to keep it in the foreground.
+
 `.mcp.json` registers the Foldkit DevTools MCP server (`@foldkit/devtools-mcp`, a root
 dev dependency): with a dev server running, an agent can read a Foldkit app's Model and
 dispatch Messages to apps that export `devTools = { Message }` (the XR room does). It

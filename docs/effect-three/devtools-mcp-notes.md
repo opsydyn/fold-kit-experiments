@@ -110,11 +110,13 @@ at startup. With `.mcp.json` at the root of a monorepo, every app's dev server
 qualifies.
 
 **How we hit it:** we didn't start a second server ourselves. The astro-foldkit page
-smoke test (`packages/astro-foldkit/test/integration/astro-page-smoke.test.ts`) starts
-`apps/web`'s dev server, and Astro 7 detaches it into the background, so the test's
-`SIGTERM` to `bun run dev` doesn't stop it. Every `bun run test` leaves one running,
-with parent PID 1 and its relay registered. That is a bug in our test and is tracked
-separately.
+smoke test (`packages/astro-foldkit/test/integration/astro-page-smoke.test.ts`) started
+`apps/web`'s dev server with `bun run dev`. Astro 7 runs `astro dev` in the background
+when it detects an agent (Claude Code here), so the test's `SIGTERM` to `bun run dev`
+didn't stop it. Each `bun run test` an agent ran left one running, with parent PID 1
+and its relay registered. Fixed: the test now runs `astro dev --ignore-lock`, which
+stays in the foreground. It also no longer passes the app script's `--force`, which in
+Astro 7 replaces a dev server already running for the app.
 
 **Workaround:** `FOLDKIT_PROJECT_ROOT=<path to the app>` scopes discovery to one app.
 `FOLDKIT_DEVTOOLS_MCP_PORT` (with `FOLDKIT_DEVTOOLS_MCP_HOST`) names a relay directly.

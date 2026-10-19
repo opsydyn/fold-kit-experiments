@@ -25,6 +25,7 @@ import {
   group,
   hemisphereLight,
   label,
+  line,
   type LabelColorRange,
   mesh,
   physical,
@@ -236,6 +237,36 @@ const ballMaterial = physical({
 });
 
 /**
+ * While aiming, a dashed line down the lane from the ball (Drei's `Line`): where it will
+ * go, longer the faster it will leave.
+ */
+const aimGuide = (model: Model): ReadonlyArray<SceneNode> => {
+  if (model.phase !== 'aiming') return [];
+  const radians = (model.angle * Math.PI) / 180;
+  const reach = 1.5 + model.speed * 0.6;
+  const start: Vec3 = [model.aim, 0.006, lane.near - 0.5];
+  const end: Vec3 = [
+    start[0] + Math.sin(radians) * reach,
+    0.006,
+    start[2] - Math.cos(radians) * reach,
+  ];
+  return [
+    line({
+      key: 'aim-guide',
+      points: [start, end],
+      vertexColors: [paintColour.gold, 0xffffff],
+      width: 3,
+      dashed: true,
+      dashSize: 0.25,
+      gapSize: 0.15,
+      worldUnits: false,
+      transparent: true,
+      opacity: 0.9,
+    }),
+  ];
+};
+
+/**
  * The ball at the foul line where the Model aims it. Waiting, it is only something to
  * look at; rolled, it is a fresh body made with its impulse, so the roll starts from the
  * same state however long the player took to aim (ADR-011).
@@ -399,6 +430,7 @@ export const sceneFor = (model: Model) =>
       sensors,
       ...pinsShown(model),
       ball(model),
+      ...aimGuide(model),
       ...scoreboard(model),
     ],
   });

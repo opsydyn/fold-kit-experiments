@@ -29,6 +29,13 @@ three.js's defaults, so a description is fully specified data.
   updates it in place; another kind replaces it.
 - **Motion without Messages:** `rotation: spin(...)`, `behaviour: behave('float')`,
   `transition: ease(...)` for eased moves. Reduced motion freezes them.
+  `rotation: billboard({ lockX, lockY, lockZ })` faces the camera every frame.
+- **Drei helpers as data:** `roundedBox()` and `backdrop()` shapes; levels of detail with
+  `group({ detail: detailed({ distances, hysteresis }), children: [near, mid, far] })`
+  (hidden levels are not picked); `perspectiveCamera({ shake: cameraShake({ decay:
+true, trigger }) })` shakes once per `trigger` (seeded, pure in scene time, still under
+  reduced motion); `borrowed` under several keys clones the model (skinned ones with
+  bones of their own), with `castShadow`/`receiveShadow` for every mesh.
 - **Staging:** `environment()` lighting, `sky()`, `contactShadows()`,
   `renderSettings({ effects: [bloom(), vignette(), film()] })`, `views` for several
   cameras, `renderTextures` for scenes drawn onto materials, `overlays` for Model

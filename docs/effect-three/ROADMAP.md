@@ -205,9 +205,16 @@ request. (Labels under WebGPU were a third, until E.)
 - Real-device checks (needs a headset): VR and AR in the room and toybox, WebXR on
   `WebGPURenderer`, and the DOM overlay; they retire the three documented limits.
 - ✅ A Drei catalogue audit ([drei-audit.md](drei-audit.md)): every component is covered,
-  a Model pattern, a sized candidate, or out of scope with a reason. Next from it: the S
-  candidates (`Billboard`, `RoundedBox` and `Backdrop`, `Detailed`, `CameraShake`,
-  `Clone`), then `line` and `points` families (M), then transform gizmos as submodels.
+  a Model pattern, a sized candidate, or out of scope with a reason.
+- ✅ The audit's S candidates, each traced from Drei at `bf6f4ad`:
+  `rotation: billboard()` faces the camera each frame; `roundedBox()` and `backdrop()`
+  are shapes; `group({ detail: detailed({ distances }) })` shows one level by the
+  camera's distance (three's `LOD.update`), and picking skips what is hidden, as
+  `LOD.raycast` does; a camera's `shake: cameraShake()` is seeded noise, pure in scene
+  time, still under reduced motion; and `borrowed` clones skinned models with
+  `SkeletonUtils.clone`, so each copy animates on its own, with Drei `Clone`'s
+  `castShadow` and `receiveShadow` shorthands. Next: the `line` and `points` families
+  (M), then transform gizmos as submodels.
 
 ## Beyond parity
 
@@ -251,9 +258,8 @@ collaboration, 3 for the assistant).
 
 ### Recommendation
 
-The replay spike (1), the Drei audit, agent control of the XR room (3) and labels under
-WebGPU (E) are done. Next: the Drei S candidates (`Billboard`, `RoundedBox` and
-`Backdrop`, `Detailed`, `CameraShake`, `Clone`).
+The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
+(3) and labels under WebGPU (E) are done. Next: the `line` and `points` families (M).
 
 ## Not planned
 

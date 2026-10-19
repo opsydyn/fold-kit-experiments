@@ -7,6 +7,8 @@
 import type {
   Animation,
   Behave,
+  CameraShake,
+  Detail,
   Body,
   BodyRef,
   GeometryRef,
@@ -46,6 +48,17 @@ import type {
 export const vec3Equals = (a: Vec3, b: Vec3): boolean =>
   a === b || (Object.is(a[0], b[0]) && Object.is(a[1], b[1]) && Object.is(a[2], b[2]));
 
+/** Levels-of-detail equality: the same distances and hysteresis. */
+export const detailEquals = (a: Detail | null, b: Detail | null): boolean => {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  return (
+    Object.is(a.hysteresis, b.hysteresis) &&
+    a.distances.length === b.distances.length &&
+    a.distances.every((distance, index) => Object.is(distance, b.distances[index]))
+  );
+};
+
 /** Rotation equality, including behaviour parameters. */
 export const rotationEquals = (a: Rotation, b: Rotation): boolean => {
   if (a === b) return true;
@@ -56,6 +69,9 @@ export const rotationEquals = (a: Rotation, b: Rotation): boolean => {
       Object.is(a.radiansPerSecond, b.radiansPerSecond) &&
       Object.is(a.phase, b.phase)
     );
+  }
+  if (a._tag === 'Billboard' && b._tag === 'Billboard') {
+    return a.lockX === b.lockX && a.lockY === b.lockY && a.lockZ === b.lockZ;
   }
   return false;
 };
@@ -120,6 +136,20 @@ export const shapeEquals = (a: ShapeGeometry, b: ShapeGeometry): boolean => {
       );
     case 'Circle':
       return b._tag === 'Circle' && Object.is(a.radius, b.radius) && a.segments === b.segments;
+    case 'RoundedBox':
+      return (
+        b._tag === 'RoundedBox' &&
+        Object.is(a.width, b.width) &&
+        Object.is(a.height, b.height) &&
+        Object.is(a.depth, b.depth) &&
+        Object.is(a.radius, b.radius) &&
+        a.smoothness === b.smoothness &&
+        a.bevelSegments === b.bevelSegments &&
+        a.steps === b.steps &&
+        Object.is(a.creaseAngle, b.creaseAngle)
+      );
+    case 'Backdrop':
+      return b._tag === 'Backdrop' && Object.is(a.floor, b.floor) && a.segments === b.segments;
     case 'Text':
       return (
         b._tag === 'Text' &&
@@ -223,6 +253,22 @@ export const materialRefEquals = (a: MaterialRef, b: MaterialRef): boolean => {
 };
 
 /** Camera equality: same kind, same lens and same placement. */
+/** Camera shake equality: every setting, and the trigger count. */
+export const cameraShakeEquals = (a: CameraShake | null, b: CameraShake | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    Object.is(a.intensity, b.intensity) &&
+    a.decay === b.decay &&
+    Object.is(a.decayRate, b.decayRate) &&
+    Object.is(a.maxYaw, b.maxYaw) &&
+    Object.is(a.maxPitch, b.maxPitch) &&
+    Object.is(a.maxRoll, b.maxRoll) &&
+    Object.is(a.yawFrequency, b.yawFrequency) &&
+    Object.is(a.pitchFrequency, b.pitchFrequency) &&
+    Object.is(a.rollFrequency, b.rollFrequency) &&
+    Object.is(a.trigger, b.trigger));
+
 export const cameraEquals = (a: Camera, b: Camera): boolean => {
   if (a === b) return true;
   const sameLens =
@@ -234,6 +280,7 @@ export const cameraEquals = (a: Camera, b: Camera): boolean => {
     Object.is(a.far, b.far) &&
     Object.is(a.damping, b.damping) &&
     Object.is(a.autoRotate, b.autoRotate) &&
+    cameraShakeEquals(a.shake, b.shake) &&
     vec3Equals(a.position, b.position) &&
     vec3Equals(a.lookAt, b.lookAt)
   );

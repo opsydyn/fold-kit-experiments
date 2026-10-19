@@ -31,6 +31,7 @@ import {
   labelMaterialEquals,
   labelTypeEquals,
   xrSpaceEquals,
+  detailEquals,
   shaderGridLookEquals,
   instancesEqual,
   materialRefEquals,
@@ -82,7 +83,9 @@ export type Field =
   /** A shader grid's look: anything but where it is. */
   | 'grid'
   /** The tracked space a group follows. */
-  | 'follow';
+  | 'follow'
+  /** A group's levels of detail. */
+  | 'detail';
 
 /** A single change to apply to the hosted scene graph. */
 export type Op =
@@ -131,6 +134,7 @@ export const changedFields = (
       if (prev.interactive !== next.interactive) fields.push('interactive');
       if (!bodyEquals(prev.body, next.body)) fields.push('body');
       if (!xrSpaceEquals(prev.follow, next.follow)) fields.push('follow');
+      if (!detailEquals(prev.detail, next.detail)) fields.push('detail');
       return fields;
     }
     case 'Mesh': {
@@ -175,6 +179,8 @@ export const changedFields = (
       if (!animationEquals(prev.animation, next.animation)) fields.push('animation');
       if (prev.interactive !== next.interactive) fields.push('interactive');
       if (!bodyEquals(prev.body, next.body)) fields.push('body');
+      if (prev.castShadow !== next.castShadow) fields.push('castShadow');
+      if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
       return fields;
     }
     case 'Label': {

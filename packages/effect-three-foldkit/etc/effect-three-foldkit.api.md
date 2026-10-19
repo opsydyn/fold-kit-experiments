@@ -255,6 +255,18 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly damping: Schema.Finite;
             readonly autoRotate: Schema.Finite;
+            readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                readonly intensity: Schema.Finite;
+                readonly decay: Schema.Boolean;
+                readonly decayRate: Schema.Finite;
+                readonly maxYaw: Schema.Finite;
+                readonly maxPitch: Schema.Finite;
+                readonly maxRoll: Schema.Finite;
+                readonly yawFrequency: Schema.Finite;
+                readonly pitchFrequency: Schema.Finite;
+                readonly rollFrequency: Schema.Finite;
+                readonly trigger: Schema.Finite;
+            }>>, never>;
         }>, Schema.TaggedStruct<"Orthographic", {
             readonly zoom: Schema.Finite;
             readonly near: Schema.Finite;
@@ -263,6 +275,18 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
             readonly damping: Schema.Finite;
             readonly autoRotate: Schema.Finite;
+            readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                readonly intensity: Schema.Finite;
+                readonly decay: Schema.Boolean;
+                readonly decayRate: Schema.Finite;
+                readonly maxYaw: Schema.Finite;
+                readonly maxPitch: Schema.Finite;
+                readonly maxRoll: Schema.Finite;
+                readonly yawFrequency: Schema.Finite;
+                readonly pitchFrequency: Schema.Finite;
+                readonly rollFrequency: Schema.Finite;
+                readonly trigger: Schema.Finite;
+            }>>, never>;
         }>]>;
         readonly gestures: Schema.Literals<readonly ["page", "scene"]>;
         readonly views: Schema.$Array<Schema.Struct<{
@@ -275,6 +299,18 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly damping: Schema.Finite;
                 readonly autoRotate: Schema.Finite;
+                readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                    readonly intensity: Schema.Finite;
+                    readonly decay: Schema.Boolean;
+                    readonly decayRate: Schema.Finite;
+                    readonly maxYaw: Schema.Finite;
+                    readonly maxPitch: Schema.Finite;
+                    readonly maxRoll: Schema.Finite;
+                    readonly yawFrequency: Schema.Finite;
+                    readonly pitchFrequency: Schema.Finite;
+                    readonly rollFrequency: Schema.Finite;
+                    readonly trigger: Schema.Finite;
+                }>>, never>;
             }>, Schema.TaggedStruct<"Orthographic", {
                 readonly zoom: Schema.Finite;
                 readonly near: Schema.Finite;
@@ -283,6 +319,18 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly damping: Schema.Finite;
                 readonly autoRotate: Schema.Finite;
+                readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                    readonly intensity: Schema.Finite;
+                    readonly decay: Schema.Boolean;
+                    readonly decayRate: Schema.Finite;
+                    readonly maxYaw: Schema.Finite;
+                    readonly maxPitch: Schema.Finite;
+                    readonly maxRoll: Schema.Finite;
+                    readonly yawFrequency: Schema.Finite;
+                    readonly pitchFrequency: Schema.Finite;
+                    readonly rollFrequency: Schema.Finite;
+                    readonly trigger: Schema.Finite;
+                }>>, never>;
             }>]>;
             readonly rect: Schema.Struct<{
                 readonly x: Schema.Finite;
@@ -303,6 +351,18 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly damping: Schema.Finite;
                 readonly autoRotate: Schema.Finite;
+                readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                    readonly intensity: Schema.Finite;
+                    readonly decay: Schema.Boolean;
+                    readonly decayRate: Schema.Finite;
+                    readonly maxYaw: Schema.Finite;
+                    readonly maxPitch: Schema.Finite;
+                    readonly maxRoll: Schema.Finite;
+                    readonly yawFrequency: Schema.Finite;
+                    readonly pitchFrequency: Schema.Finite;
+                    readonly rollFrequency: Schema.Finite;
+                    readonly trigger: Schema.Finite;
+                }>>, never>;
             }>, Schema.TaggedStruct<"Orthographic", {
                 readonly zoom: Schema.Finite;
                 readonly near: Schema.Finite;
@@ -311,9 +371,21 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
                 readonly damping: Schema.Finite;
                 readonly autoRotate: Schema.Finite;
+                readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                    readonly intensity: Schema.Finite;
+                    readonly decay: Schema.Boolean;
+                    readonly decayRate: Schema.Finite;
+                    readonly maxYaw: Schema.Finite;
+                    readonly maxPitch: Schema.Finite;
+                    readonly maxRoll: Schema.Finite;
+                    readonly yawFrequency: Schema.Finite;
+                    readonly pitchFrequency: Schema.Finite;
+                    readonly rollFrequency: Schema.Finite;
+                    readonly trigger: Schema.Finite;
+                }>>, never>;
             }>]>;
             readonly background: Schema.NullOr<Schema.Int>;
-            readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
+            readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
         }>>;
         readonly overlays: Schema.$Array<Schema.Struct<{
             readonly key: Schema.String;
@@ -499,6 +571,18 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 }>, Schema.TaggedStruct<"Circle", {
                     readonly radius: Schema.Finite;
                     readonly segments: Schema.Int;
+                }>, Schema.TaggedStruct<"RoundedBox", {
+                    readonly width: Schema.Finite;
+                    readonly height: Schema.Finite;
+                    readonly depth: Schema.Finite;
+                    readonly radius: Schema.Finite;
+                    readonly smoothness: Schema.Int;
+                    readonly bevelSegments: Schema.Int;
+                    readonly steps: Schema.Int;
+                    readonly creaseAngle: Schema.Finite;
+                }>, Schema.TaggedStruct<"Backdrop", {
+                    readonly floor: Schema.Finite;
+                    readonly segments: Schema.Int;
                 }>]>;
             }>>;
             readonly materials: Schema.$Array<Schema.Struct<{
@@ -570,7 +654,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
                 }>]>;
             }>>;
         }>;
-        readonly children: Schema.$Array<Schema.Codec<SceneNode, SceneNode, never, never>>;
+        readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
     }>;
 }, {
     'scene-click': Schema.Struct<{

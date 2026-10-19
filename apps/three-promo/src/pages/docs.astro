@@ -43,7 +43,7 @@ import {
         <p>A scene is plain data: a camera, shared resources and keyed nodes. Constructors fill in defaults, so a description stays short.</p>
         <div class="code-panel"><SourceCode code={teaser} lang="ts" sourceId="scene.ts" /></div>
         <p>Rotation belongs either to the Model (<code>fixed</code>) or to a behaviour (<code>spin</code>), never both. Behaviours are pure functions of scene time, so frames are deterministic.</p>
-        <p>Meshes are built from <code>box</code>, <code>sphere</code>, <code>plane</code>, <code>cylinder</code>, <code>cone</code>, <code>capsule</code>, <code>torus</code>, <code>ring</code>, <code>circle</code> or <code>text</code>; <code>instances</code> draws thousands of copies of one in a single call.</p>
+        <p>Meshes are built from <code>box</code>, <code>sphere</code>, <code>plane</code>, <code>cylinder</code>, <code>cone</code>, <code>capsule</code>, <code>torus</code>, <code>ring</code>, <code>circle</code> or <code>text</code>, with Drei's <code>roundedBox</code> and <code>backdrop</code> for product shots; <code>instances</code> draws thousands of copies of one in a single call. A group with <code>{"detail: detailed({ distances: [0, 10, 20] })"}</code> shows one child at a time by the camera's distance, as Drei's <code>Detailed</code>.</p>
       </section>
       <section id="foldkit">
         <h2>Render it with Foldkit.</h2>
@@ -71,7 +71,8 @@ import {
         <p>Behaviours run in the frame loop, outside Foldkit's update, so a spinning scene never causes a Model update. Scenes pause their frames when off screen.</p>
         <p>Transitions ease <code>position</code> and <code>scale</code> to whatever the Model says next. A new target mid-flight starts from the pose on screen, and a node moving to another group keeps its place in the world while it travels.</p>
         <div class="code-panel"><SourceCode code={transitions} lang="ts" sourceId="transitions.ts" /></div>
-        <p>Under <code>prefers-reduced-motion</code>, behaviours freeze and transitions land at once while frames keep rendering.</p>
+        <p><code>rotation: billboard()</code> keeps a node facing the camera, as Drei's <code>Billboard</code>, and a camera's <code>{"shake: cameraShake({ decay: true })"}</code> shakes it once, as Drei's <code>CameraShake</code>: seeded noise, so the same moment shakes the same way.</p>
+        <p>Under <code>prefers-reduced-motion</code>, behaviours freeze, shakes hold still and transitions land at once while frames keep rendering.</p>
         <a class="text-link" href={sitePath('/examples/playground/')}>Watch cubes glide between shelves <span aria-hidden="true">→</span></a>
       </section>
       <section id="controls">

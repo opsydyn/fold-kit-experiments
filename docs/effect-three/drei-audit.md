@@ -34,6 +34,11 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 | shapes (`Box`, `Sphere`, `Plane`, …)      | the nine shape builders                                                    |
 | `Wireframe` (plain)                       | any material's `wireframe`                                                 |
 | `SpotLight` (plain)                       | `spotLight` (not the volumetric cone: see candidates)                      |
+| `Billboard`                               | `rotation: billboard({ lockX, lockY, lockZ })`                             |
+| `RoundedBox`, `Backdrop`                  | `roundedBox()`, `backdrop()` shapes, with Drei's defaults                  |
+| `Detailed`                                | `group({ detail: detailed({ distances, hysteresis }) })`                   |
+| `CameraShake`                             | a camera's `shake: cameraShake({ intensity, decay, … })`                   |
+| `Clone`                                   | `borrowed` shown under several keys (skinned models get their own bones)   |
 
 ## A Model pattern (🔁)
 
@@ -54,21 +59,16 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 | Drei                                                        | Size | Notes                                                                     |
 | ----------------------------------------------------------- | ---- | ------------------------------------------------------------------------- |
 | `Line`, `Segments`, `CatmullRomLine`, `*BezierLine`         | M    | A `line` node with points and width (three's `Line2`), curves as builders |
-| `Billboard`                                                 | S    | A rotation that faces the camera, as `spin` is a rotation behaviour       |
 | `Points`, `PointMaterial`                                   | M    | A `points` node, instanced like `instances`                               |
 | `Sparkles`, `Stars`, `Cloud`                                | M    | Built on `points` (Sparkles, Stars) and instanced sprites (Cloud)         |
-| `RoundedBox`, `Backdrop`                                    | S    | Two shapes: product shots and staging                                     |
 | `Edges`, `Outlines`                                         | S–M  | Edges geometry from a mesh; inverted-hull outlines (a render-kit part)    |
-| `Detailed` (LOD)                                            | S    | Levels by distance, as data on a node                                     |
 | `Decal`                                                     | M    | A projected geometry on a target mesh, by key                             |
 | `Lightformer`                                               | M    | Environments made from emissive shapes, rendered to an environment map    |
-| `CameraShake`                                               | S    | A camera behaviour, pure in scene time                                    |
 | `FlyControls`, `FirstPersonControls`, `PointerLockControls` | S–M  | Pure functions from gestures and keys, as `orbit` is                      |
 | `web/PresentationControls`, `web/ScrollControls`            | S–M  | Gesture- and scroll-driven Model updates                                  |
 | `MotionPathControls`                                        | M    | A camera or node behaviour along a curve                                  |
 | `TransformControls`, `web/pivotControls`, `Gizmo*`          | M    | Foldkit submodels with OutMessages ("Beyond parity", 5)                   |
 | `Trail`                                                     | M    | A line that follows a node, in scene time                                 |
-| `Clone`                                                     | S    | One lent model shown under several keys                                   |
 | `CubeCamera`                                                | M    | Dynamic reflections: a render texture into a cube map                     |
 | `meshBounds`, `Bvh`                                         | S–M  | Cheaper or accelerated picking for large meshes                           |
 | `GradientTexture`, `MatcapTexture`, `Ktx2`                  | S    | Generated and compressed textures; a matcap material kind                 |
@@ -90,7 +90,7 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 
 ## Recommendation
 
-The candidates that add most for the least: `Billboard`, `RoundedBox` and `Backdrop`,
-`Detailed`, `CameraShake` and `Clone` (all S); then `line` (with curves and `Trail`) and
-`points` (with `Sparkles` and `Stars`), which unlock a family each (M); then transform
-gizmos as submodels, which the scene editor in "Beyond parity" needs.
+Done (2026-10-19): `Billboard`, `RoundedBox` and `Backdrop`, `Detailed`, `CameraShake`
+and `Clone`, the S candidates. Next: `line` (with curves and `Trail`) and `points` (with
+`Sparkles` and `Stars`), which unlock a family each (M); then transform gizmos as
+submodels, which the scene editor in "Beyond parity" needs.

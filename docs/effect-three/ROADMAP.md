@@ -264,6 +264,14 @@ Effect owns every lifetime.
 5. **Interaction widgets as Foldkit submodels.** A transform gizmo, box select, a
    measuring tape, an XR teleport arc: pure, property-tested, composed through
    OutMessages, as ADR-006 did for cameras.
+   ✅ First: the transform gizmo (three's `TransformControls`, which Drei's wraps). The
+   core's `gizmoNodes`, `pressGizmo` and `dragGizmo` are pure, checked against three's
+   controls to six decimal places for every translate handle in both spaces, rotation,
+   scale and snaps; `basic({ depthTest: false })` draws its handles over everything, as
+   three's are. The adapter's `TransformGizmo` is the Foldkit submodel: Messages in,
+   `Moved` and `Finished` OutMessages out, the parent keeping every placement. The
+   promo's arrange example selects, moves, turns, scales, snaps and undoes. Next: box
+   select, then the pivot and viewport gizmos.
 6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
@@ -276,8 +284,9 @@ collaboration, 3 for the assistant).
 ### Recommendation
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
-(3), labels under WebGPU (E) and the line and points families are done. Next:
-transform gizmos as Foldkit submodels (Beyond parity 5).
+(3), labels under WebGPU (E), the line and points families and the transform gizmo (5)
+are done. Next: box select and the other widgets of 5, then tooling from Schema (4)
+toward the scene editor.
 
 ## Not planned
 

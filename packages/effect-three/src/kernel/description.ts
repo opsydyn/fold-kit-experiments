@@ -1226,6 +1226,33 @@ export type ViewRect = {
  */
 export type View = { readonly key: string; readonly camera: Camera; readonly rect: ViewRect };
 
+/** Where a HUD's origin sits on the canvas: a corner, an edge's middle, or the centre. */
+export type HudAlignment =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center-center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right';
+
+/**
+ * Nodes drawn over the scene, Drei's `Hud`, as data: a scene of their own (keys apart
+ * from the scene's), drawn after it with only its depth cleared, through an orthographic
+ * camera measured in CSS pixels, y up, whose origin sits `margin` pixels in from the
+ * `alignment`'s edges (Drei's `GizmoHelper` places its gizmo so). Pointer events reach
+ * its interactive meshes before anything behind them; their points and rays are in the
+ * HUD's own space. Scene lighting and fog do not reach it.
+ */
+export type Hud = {
+  readonly alignment: HudAlignment;
+  /** CSS pixels in from the aligned edges, `[x, y]`: unused for a centred direction. */
+  readonly margin: readonly [number, number];
+  readonly children: ReadonlyArray<SceneNode>;
+};
+
 /**
  * A small scene rendered into a texture that materials use as `map: id`: Drei's
  * `RenderTexture`, as data. Its nodes have their own key namespace and may use the
@@ -1410,6 +1437,8 @@ export type SceneDescription = {
   readonly views: ReadonlyArray<View>;
   /** Scenes rendered into textures for materials to use. */
   readonly renderTextures: ReadonlyArray<RenderTexture>;
+  /** Nodes drawn over the scene, or `null` for none. */
+  readonly hud: Hud | null;
   /** Points to show HTML at, placed every frame the scene draws. */
   readonly overlays: ReadonlyArray<Overlay>;
   /** Image-based lighting and background, or `null` for none. */

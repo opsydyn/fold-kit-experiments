@@ -48,6 +48,11 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
   `onGestureEnd` send `Ended` with the camera and `{ key, at }` for each selectable
   thing, and take `Selected { keys }` as the new selection. `BoxSelect.rectangle` places
   an HTML outline over the canvas; `BoxSelect.inside` marks what the box holds so far.
+- **Viewport gizmo:** keep `ViewportGizmo.Model` in your Model and put
+  `ViewportGizmo.hud(model.view, model.camera)` in `scene({ hud })`; send `Entered` and
+  `Left` from pointer enter and leave, and `Pressed` with the hit key and the camera from
+  pointer down; keep `Turned { camera }`. Give the camera `damping` to ease round. A
+  `hud` takes any nodes (Drei's `Hud`); keys stay distinct from the scene's.
 - **Points:** `points({ key, positions, colors, sizes, size, round })`, `sparkles({ key,
 count, spread, size, color, seed })` and `stars({ key, radius, depth, count, fade, seed
 })`, drawn by the render kit; sparkles and stars move in scene time (frozen under
@@ -60,8 +65,8 @@ true, trigger }) })` shakes once per `trigger` (seeded, pure in scene time, stil
   bones of their own), with `castShadow`/`receiveShadow` for every mesh.
 - **Staging:** `environment()` lighting, `sky()`, `contactShadows()`,
   `renderSettings({ effects: [bloom(), vignette(), film()] })`, `views` for several
-  cameras, `renderTextures` for scenes drawn onto materials, `overlays` for Model
-  HTML pinned to points.
+  cameras, `renderTextures` for scenes drawn onto materials, `hud` for nodes drawn over
+  the scene, `overlays` for Model HTML pinned to points.
 
 ## Events and controls
 

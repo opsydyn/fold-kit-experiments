@@ -184,6 +184,21 @@ export const webglRendererFactory = (
         // Effects apply to the single full view only; views draw straight to the screen.
         renderer.render(scene, camera);
       },
+      renderOver: (scene, camera) => {
+        if (renderer.xr.isPresenting) return;
+        if (scissored) {
+          const { width, height } = renderer.getSize(drawingSize);
+          renderer.setScissorTest(false);
+          renderer.setViewport(0, 0, width, height);
+          scissored = false;
+        }
+        // As Drei's Hud: keep what is drawn, clear depth so the HUD is never hidden by it.
+        const autoClear = renderer.autoClear;
+        renderer.autoClear = false;
+        renderer.clearDepth();
+        renderer.render(scene, camera);
+        renderer.autoClear = autoClear;
+      },
       createTarget: (width, height) => createTarget(targets, width, height),
       createEnvironment: () => createRoom(renderer),
       configure: (settings) => {

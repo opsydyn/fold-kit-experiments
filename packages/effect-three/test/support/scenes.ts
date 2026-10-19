@@ -53,6 +53,11 @@ export const withUniqueKeys = (description: SceneDescription): SceneDescription 
     ...texture,
     children: dedupeNodes(texture.children, new Set()),
   })),
+  // The HUD is its own key namespace too.
+  hud:
+    description.hud === null
+      ? null
+      : { ...description.hud, children: dedupeNodes(description.hud.children, new Set()) },
   children: dedupeNodes(description.children, new Set()),
 });
 
@@ -66,6 +71,7 @@ export const expectedResources = (description: SceneDescription) => {
   const everyNode = [
     ...allNodes(description.children),
     ...description.renderTextures.flatMap((texture) => allNodes(texture.children)),
+    ...allNodes(description.hud?.children ?? []),
   ];
   const meshes = everyNode.flatMap((node) =>
     node._tag === 'Mesh' || node._tag === 'Instances' ? [node] : [],

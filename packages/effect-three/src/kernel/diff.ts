@@ -106,6 +106,9 @@ export type Op =
   /** A render texture was created, resized or its scene changed (its own operations). */
   | { readonly _tag: 'UpdateRenderTexture'; readonly id: string; readonly ops: ReadonlyArray<Op> }
   | { readonly _tag: 'RemoveRenderTexture'; readonly id: string }
+  /** The HUD was created or its scene changed (its own operations). */
+  | { readonly _tag: 'UpdateHud'; readonly ops: ReadonlyArray<Op> }
+  | { readonly _tag: 'RemoveHud' }
   | { readonly _tag: 'SetRenderSettings'; readonly settings: RenderSettings }
   | { readonly _tag: 'DefineResources'; readonly resources: ResourceDefinitions }
   | { readonly _tag: 'Create'; readonly node: SceneNode; readonly parent: ParentKey }

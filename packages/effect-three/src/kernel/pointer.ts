@@ -417,14 +417,17 @@ export const createPicker = (graph: SceneGraph): Picker => {
   const rayOrigin = new Vector3();
   const rayDirection = new Vector3();
 
-  /** The nearest keyed hit along the raycaster's ray, reporting `view` when there is one. */
-  const nearestHit = (view: string | undefined): Hit | undefined => {
+  /**
+   * The nearest keyed hit in `on` (the scene's graph or its HUD's) along the raycaster's
+   * ray, reporting `view` when there is one.
+   */
+  const nearestHit = (on: SceneGraph, view: string | undefined): Hit | undefined => {
     // Recursive, so an interactive group makes every mesh inside it pickable.
-    for (const intersection of raycaster.intersectObjects(graph.interactiveObjects(), true)) {
+    for (const intersection of raycaster.intersectObjects(on.interactiveObjects(), true)) {
       // Hidden things are not hit: a level of detail not showing, as three's `LOD.raycast`.
       if (!shown(intersection.object)) continue;
-      const owner = keyedOwner(graph, intersection.object);
-      const key = owner === undefined ? undefined : graph.keyOf(owner);
+      const owner = keyedOwner(on, intersection.object);
+      const key = owner === undefined ? undefined : on.keyOf(owner);
       if (owner !== undefined && key !== undefined) {
         normal.set(0, 0, 0);
         if (intersection.face) {
@@ -433,13 +436,13 @@ export const createPicker = (graph: SceneGraph): Picker => {
         const instance =
           intersection.instanceId === undefined
             ? undefined
-            : graph.instanceKeyOf(intersection.object, intersection.instanceId);
+            : on.instanceKeyOf(intersection.object, intersection.instanceId);
         return {
           key,
           ...(instance === undefined ? {} : { instance }),
           ...partOf(owner, intersection.object),
           ...(view === undefined ? {} : { view }),
-          path: pathOf(graph, owner),
+          path: pathOf(on, owner),
           point: toVec3(intersection.point),
           distance: intersection.distance,
           normal: toVec3(normal),
@@ -449,6 +452,17 @@ export const createPicker = (graph: SceneGraph): Picker => {
       }
     }
     return undefined;
+  };
+
+  /** A hit on the HUD's interactive meshes, which are over everything else. */
+  const hudHit = (x: number, y: number): Hit | undefined => {
+    const hud = graph.hud();
+    if (hud === undefined || hud.graph.interactiveObjects().length === 0) return undefined;
+    hud.graph.scene.updateMatrixWorld();
+    hud.graph.camera.updateMatrixWorld();
+    ndc.set(x, y);
+    raycaster.setFromCamera(ndc, hud.graph.camera);
+    return nearestHit(hud.graph, undefined);
   };
 
   const currentRay = (): Ray => ({
@@ -484,10 +498,12 @@ export const createPicker = (graph: SceneGraph): Picker => {
     holdCameras: graph.holdCameras,
     turned: graph.turned,
     pick: (x, y) => {
+      const hud = hudHit(x, y);
+      if (hud !== undefined) return hud;
       if (graph.interactiveObjects().length === 0) return undefined;
       const view = aim(x, y);
       if (view === false) return undefined;
-      return nearestHit(view);
+      return nearestHit(graph, view);
     },
     pickRay: (ray) => {
       if (graph.interactiveObjects().length === 0) return undefined;
@@ -496,7 +512,7 @@ export const createPicker = (graph: SceneGraph): Picker => {
         rayOrigin.fromArray(ray.origin),
         rayDirection.fromArray(ray.direction).normalize(),
       );
-      return nearestHit(undefined);
+      return nearestHit(graph, undefined);
     },
     viewport: graph.viewport,
   };

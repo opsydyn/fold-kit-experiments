@@ -25,6 +25,8 @@ import type {
   ContactShadows,
   Environment,
   Gestures,
+  Hud,
+  HudAlignment,
   GridNode,
   Sky,
   Xr,
@@ -1700,11 +1702,26 @@ export const overlay = (options: {
   view: options.view ?? null,
 });
 
+/**
+ * Nodes drawn over the scene (Drei's `Hud`), with Drei's `GizmoHelper` defaults: the
+ * origin 80 CSS pixels in from the bottom right.
+ */
+export const hud = (options: {
+  readonly alignment?: HudAlignment;
+  readonly margin?: readonly [number, number];
+  readonly children?: ReadonlyArray<SceneNode>;
+}): Hud => ({
+  alignment: options.alignment ?? 'bottom-right',
+  margin: options.margin ?? [80, 80],
+  children: options.children ?? [],
+});
+
 export const scene = (options: {
   readonly camera?: Camera;
   readonly gestures?: Gestures;
   readonly views?: ReadonlyArray<View>;
   readonly renderTextures?: ReadonlyArray<RenderTexture>;
+  readonly hud?: Hud | null;
   readonly overlays?: ReadonlyArray<Overlay>;
   /** Optional staging: leave out or pass `null` for none, so a Model can switch it off. */
   readonly environment?: Environment | null;
@@ -1721,6 +1738,7 @@ export const scene = (options: {
   gestures: options.gestures ?? 'page',
   views: options.views ?? noViews,
   renderTextures: options.renderTextures ?? noRenderTextures,
+  hud: options.hud ?? null,
   overlays: options.overlays ?? noOverlays,
   environment: options.environment ?? null,
   sky: options.sky ?? null,

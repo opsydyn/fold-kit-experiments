@@ -613,6 +613,13 @@ const sceneFields = {
       children: Schema.Array(Node).check(Schema.isMaxLength(3)),
     }),
   ).check(Schema.isMaxLength(2)),
+  hud: Schema.NullOr(
+    Schema.Struct({
+      alignment: Schema.Literals(['bottom-right', 'top-left', 'center-center']),
+      margin: Schema.Tuple([Schema.Literals([0, 80]), Schema.Literals([40])]),
+      children: Schema.Array(Node).check(Schema.isMaxLength(3)),
+    }),
+  ),
   views: Schema.Array(
     Schema.Struct({
       key: Schema.Literals(['left', 'right']),

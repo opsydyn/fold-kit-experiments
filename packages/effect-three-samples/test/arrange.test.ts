@@ -91,3 +91,18 @@ test('the gizmo moves everything selected alike, and one undo puts them all back
   expect(coneAt(moved)?.position[0]).toBeCloseTo(3.5, 5);
   expect(coneAt(step(moved, Message.ClickedUndo()))).toEqual(coneAt(start));
 });
+
+test('a press on the viewport gizmo turns the camera to look along its axis', () => {
+  const turned = step(start, Message.PressedScene({ key: 'view:-z:disc', ...down(0, 0) }));
+  const [x = 0, , z = 0] = turned.camera.position;
+  expect(x).toBeCloseTo(0, 9);
+  expect(z).toBeLessThan(0);
+  // Nothing on the table moved, and hovering a head highlights it.
+  expect(turned.things).toEqual(start.things);
+  expect(step(start, Message.HoveredScene({ key: 'view:y:disc' })).view.hovered).toBe('y');
+  // Its head turns away from under the pointer: letting go there keeps the selection,
+  // and the next click on nothing clears it.
+  const letGo = step(turned, Message.ClickedNothing());
+  expect(letGo.selected).toEqual(start.selected);
+  expect(step(letGo, Message.ClickedNothing()).selected).toEqual([]);
+});

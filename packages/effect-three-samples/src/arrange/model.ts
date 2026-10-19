@@ -1,5 +1,5 @@
 import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo } from '@opsydyn/effect-three-foldkit';
+import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
 import { Option, Schema } from 'effect';
 
 import { paintColour } from '../palette';
@@ -24,6 +24,13 @@ export const Model = Schema.Struct({
   gizmo: TransformGizmo.Model,
   /** The selection box a shift-drag draws: a Foldkit submodel too. */
   box: BoxSelect.Model,
+  /** The axes in the corner that turn the camera to look along one: a third. */
+  view: ViewportGizmo.Model,
+  /**
+   * Whether the last press was on the viewport gizmo: its head turns away from under the
+   * pointer, and letting go there is no click on nothing to clear the selection.
+   */
+  pressedView: Schema.Boolean,
   camera: SceneSchema.Camera,
   /** The things as they were before each finished move, newest last: undo goes back. */
   past: Schema.Array(Schema.Array(Thing)),
@@ -54,7 +61,14 @@ export const init = () => ({
     selected: ['crate'],
     gizmo: TransformGizmo.init('gizmo', { size: 1.4 }),
     box: BoxSelect.init(),
-    camera: perspectiveCamera({ fov: 45, position: [3.5, 3.2, 5.5], lookAt: [0, 0.3, 0] }),
+    view: ViewportGizmo.init('view'),
+    pressedView: false,
+    camera: perspectiveCamera({
+      fov: 45,
+      position: [3.5, 3.2, 5.5],
+      lookAt: [0, 0.3, 0],
+      damping: 0.15,
+    }),
     past: [],
     future: [],
     before: Option.none(),

@@ -121,6 +121,7 @@ export {
   spotLight,
   standard,
   overlay,
+  hud,
   renderTexture,
   torus,
   type TransformOptions,
@@ -307,3 +308,10 @@ export {
   releaseGizmo,
 } from './gizmo.ts';
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
+export {
+  cameraAlong,
+  type ViewAxis,
+  viewportAxisOf,
+  viewportGizmoNodes,
+  type ViewportGizmoOptions,
+} from './viewportGizmo.ts';

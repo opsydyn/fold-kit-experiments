@@ -43,6 +43,12 @@ export type SceneRenderer = {
    * otherwise across the whole surface.
    */
   readonly render: (scene: Scene, camera: Camera, area?: RenderArea, target?: RenderTarget) => void;
+  /**
+   * Draws `scene` over what the surface already shows, across the whole of it: keeping
+   * the colour, clearing only depth (a HUD, as Drei's `Hud` draws). Without it, a HUD is
+   * not drawn. Not while presenting immersively.
+   */
+  readonly renderOver?: (scene: Scene, camera: Camera) => void;
   /** Creates an offscreen target of `width` × `height` pixels to render into. */
   readonly createTarget: (width: number, height: number) => RenderTarget;
   /**

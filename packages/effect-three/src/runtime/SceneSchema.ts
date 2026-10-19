@@ -818,6 +818,26 @@ export const RenderTexture = Schema.Struct({
   children: Schema.Array(SceneNode),
 });
 
+/** Where a HUD's origin sits on the canvas. */
+export const HudAlignment = Schema.Literals([
+  'top-left',
+  'top-center',
+  'top-right',
+  'center-left',
+  'center-center',
+  'center-right',
+  'bottom-left',
+  'bottom-center',
+  'bottom-right',
+]);
+
+/** Nodes drawn over the scene, with their own camera in CSS pixels. */
+export const Hud = Schema.Struct({
+  alignment: HudAlignment,
+  margin: Schema.Tuple([Schema.Finite, Schema.Finite]),
+  children: Schema.Array(SceneNode),
+});
+
 /** A complete scene description. */
 /** A point to show HTML at. */
 export const Overlay = Schema.Struct({
@@ -897,6 +917,7 @@ export const SceneDescription = Schema.Struct({
   gestures: Gestures,
   views: Schema.Array(View),
   renderTextures: Schema.Array(RenderTexture),
+  hud: absentAsNull(Hud),
   overlays: Schema.Array(Overlay),
   environment: Schema.NullOr(Environment),
   sky: Schema.NullOr(Sky),

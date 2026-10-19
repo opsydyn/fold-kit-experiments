@@ -1,5 +1,5 @@
 import { type Gesture, movedAlike, orbit, type Placement, type Vec3 } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo } from '@opsydyn/effect-three-foldkit';
+import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
 import { Array as Arr, Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
@@ -72,8 +72,15 @@ const withGizmo = (model: Model, message: TransformGizmo.Message): Model => {
   return result.outMessage === undefined ? next : fromGizmo(next, result.outMessage);
 };
 
+/** The viewport gizmo's Message, and the camera it turns to. */
+const withView = (model: Model, message: ViewportGizmo.Message): Model => {
+  const result = ViewportGizmo.update(model.view, message);
+  const camera = result.outMessage?.camera ?? model.camera;
+  return { ...model, view: result.model, camera };
+};
+
 /** A press on a gizmo handle takes hold, remembering the things as they were. */
-const press = (model: Model, key: string, origin: Vec3, direction: Vec3): Model =>
+const pressGizmo = (model: Model, key: string, origin: Vec3, direction: Vec3): Model =>
   Option.match(Option.all([TransformGizmo.handleOf(model.gizmo, key), selectedThing(model)]), {
     onNone: () => model,
     onSome: ([handle, thing]) =>
@@ -88,6 +95,19 @@ const press = (model: Model, key: string, origin: Vec3, direction: Vec3): Model 
         }),
       ),
   });
+
+/** A press on the viewport gizmo turns the camera; anywhere else, it may take the gizmo. */
+const press = (model: Model, key: string, origin: Vec3, direction: Vec3): Model =>
+  Option.isSome(ViewportGizmo.axisOf(model.view, key))
+    ? withView(
+        { ...model, pressedView: true },
+        ViewportGizmo.Message.Pressed({ key, camera: model.camera }),
+      )
+    : pressGizmo({ ...model, pressedView: false }, key, origin, direction);
+
+/** A click on nothing clears the selection, unless it began on the viewport gizmo. */
+const clickNothing = (model: Model): Model =>
+  model.pressedView ? { ...model, pressedView: false } : { ...model, selected: [] };
 
 /** The camera orbits on a gesture that began on nothing, while the gizmo is not held. */
 const orbits = (model: Model, gesture: Gesture): boolean =>
@@ -141,7 +161,9 @@ const isThing = (model: Model, key: string): boolean =>
 
 /** Selects a thing that is clicked; a click on a gizmo handle changes nothing. */
 const select = (model: Model, key: string): Model =>
-  isThing(model, key) ? { ...model, selected: [key] } : model;
+  isThing(model, key)
+    ? { ...model, selected: [key], pressedView: false }
+    : { ...model, pressedView: false };
 
 /** A drag or release goes to the gizmo only while it is held. */
 const whileHeld = (model: Model, message: TransformGizmo.Message): Model =>
@@ -181,9 +203,13 @@ export const update = (model: Model, message: Message): AppReturn =>
     }),
     ReleasedScene: () => ({ model: whileHeld(model, TransformGizmo.Message.Released()) }),
     ClickedThing: ({ key }) => ({ model: select(model, key) }),
-    ClickedNothing: () => ({ model: { ...model, selected: [] } }),
-    HoveredScene: ({ key }) => ({ model: hover(model, key) }),
-    LeftScene: ({ key }) => ({ model: leave(model, key) }),
+    ClickedNothing: () => ({ model: clickNothing(model) }),
+    HoveredScene: ({ key }) => ({
+      model: withView(hover(model, key), ViewportGizmo.Message.Entered({ key })),
+    }),
+    LeftScene: ({ key }) => ({
+      model: withView(leave(model, key), ViewportGizmo.Message.Left({ key })),
+    }),
     MadeGesture: ({ gesture: made }) => ({ model: gesture(model, made) }),
     EndedGesture: () => ({ model: endBox(model) }),
     ChoseMode: ({ mode }) => ({

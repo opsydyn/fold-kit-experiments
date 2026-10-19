@@ -73,6 +73,14 @@ export const examples = [
     alt: 'Bowling: a blue ball rolling down a polished wooden lane towards ten white pins, under a dark scoreboard.',
   },
   {
+    id: 'arrange',
+    category: 'Editing',
+    title: 'Move, turn, scale, undo',
+    description:
+      'A transform gizmo on whatever you select: arrows, planes and rings after three’s TransformControls, as a Foldkit submodel. Snap, work in local axes, and undo every move, because each one is a Message.',
+    alt: 'Arrange: a rounded crate with a red, green and blue transform gizmo on a table with a ball, a cone and a ring.',
+  },
+  {
     id: 'curves',
     category: 'Lines and points',
     title: 'Draw with data',

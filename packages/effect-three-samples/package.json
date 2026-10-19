@@ -17,6 +17,7 @@
     "./bowling": "./src/bowling/main.ts",
     "./room": "./src/room/main.ts",
     "./curves": "./src/curves/main.ts",
+    "./arrange": "./src/arrange/main.ts",
     "./shared": "./src/shared/main.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"

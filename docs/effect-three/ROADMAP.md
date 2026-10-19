@@ -229,7 +229,8 @@ Effect owns every lifetime.
    ✅ First step: the XR room exports `devTools = { Message }` and an intent-level
    `PlacedPlant { at, kind }`; through `@foldkit/devtools-mcp` an agent reads the Model
    and places plants, and an unknown kind is refused by the schema (checked end to end
-   in a headless browser, 2026-10-19). Next: a scene-level vocabulary (set up a shot:
+   in a headless browser, 2026-10-19; what we found about the MCP server is in
+   [devtools-mcp-notes.md](devtools-mcp-notes.md)). Next: a scene-level vocabulary (set up a shot:
    camera, lights, staging) and tools that describe what a scene contains.
 4. **Tooling from Schema.** An inspector generated from the scene schemas, save and load
    as JSON, undo and branching history from the immutable Model, and scene diffs in

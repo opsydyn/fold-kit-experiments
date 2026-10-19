@@ -86,7 +86,9 @@ MCP server (`@foldkit/devtools-mcp`) can read the Model and dispatch Messages, e
 decoded against the schema first. Give agents intent-level Messages with closed choices
 (`PlacedPlant { at, kind }`, `kind` a `Schema.Literals`) rather than raw pointer events,
 clamp what they place in `update`, and keep high-frequency Messages out of history with
-`excludeFromHistory`. The XR room sample does this.
+`excludeFromHistory`. The XR room sample does this. With several pages or dev servers
+open, pass `runtime_id` from `foldkit_list_runtimes` on each tool call, and set
+`FOLDKIT_PROJECT_ROOT` to the app's directory so the server joins that app's relay.
 
 ## Immersive sessions
 

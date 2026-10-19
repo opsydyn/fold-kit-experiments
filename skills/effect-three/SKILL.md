@@ -37,7 +37,7 @@ one core per application. They are `0.x`: a breaking change bumps the minor vers
 Install Rapier and troika only on pages that need them; Rapier embeds WebAssembly.
 Without an engine, bodies stay put and labels are empty, but descriptions still
 reconcile. See [scene composition](references/scenes.md) for the description rules,
-events, assets, engines, renderers and XR, and [the Foldkit example](assets/foldkit-scene.ts)
+events, assets, engines, renderers, XR and agents, and [the Foldkit example](assets/foldkit-scene.ts)
 for a view with selection and a Model-owned orbit camera.
 
 ## Keep state in the Model

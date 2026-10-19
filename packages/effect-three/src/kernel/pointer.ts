@@ -359,6 +359,12 @@ const pathOf = (graph: SceneGraph, object: Object3D): ReadonlyArray<string> => {
   return path;
 };
 
+/** Whether an object and every ancestor are visible. */
+const shown = (object: Object3D): boolean => {
+  for (let at: Object3D | null = object; at !== null; at = at.parent) if (!at.visible) return false;
+  return true;
+};
+
 /** Creates a raycasting picker over a graph's interactive meshes and groups. */
 export const createPicker = (graph: SceneGraph): Picker => {
   const raycaster = new Raycaster();
@@ -403,6 +409,8 @@ export const createPicker = (graph: SceneGraph): Picker => {
   const nearestHit = (view: string | undefined): Hit | undefined => {
     // Recursive, so an interactive group makes every mesh inside it pickable.
     for (const intersection of raycaster.intersectObjects(graph.interactiveObjects(), true)) {
+      // Hidden things are not hit: a level of detail not showing, as three's `LOD.raycast`.
+      if (!shown(intersection.object)) continue;
       const owner = keyedOwner(graph, intersection.object);
       const key = owner === undefined ? undefined : graph.keyOf(owner);
       if (owner !== undefined && key !== undefined) {

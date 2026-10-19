@@ -30,6 +30,17 @@ export type Rotation =
       readonly axis: Axis;
       readonly radiansPerSecond: number;
       readonly phase: number;
+    }
+  /**
+   * Faces the scene's camera every frame, as Drei's `Billboard`: the node turns so its
+   * world rotation is the camera's. A locked axis stays at 0 in the node's own Euler
+   * angles (Drei keeps its previous value, which starts at 0).
+   */
+  | {
+      readonly _tag: 'Billboard';
+      readonly lockX: boolean;
+      readonly lockY: boolean;
+      readonly lockZ: boolean;
     };
 
 /** Box geometry parameters. */
@@ -88,6 +99,36 @@ export type CapsuleGeometry = {
   readonly height: number;
   readonly capSegments: number;
   readonly radialSegments: number;
+};
+
+/**
+ * A box with rounded edges and corners, centred, as Drei's `RoundedBox`: a rounded
+ * rectangle extruded and bevelled, with normals creased at `creaseAngle`.
+ */
+export type RoundedBoxGeometry = {
+  readonly _tag: 'RoundedBox';
+  readonly width: number;
+  readonly height: number;
+  readonly depth: number;
+  readonly radius: number;
+  /** Segments in each rounded corner of the outline. */
+  readonly smoothness: number;
+  /** Segments across the bevel, which Drei doubles. */
+  readonly bevelSegments: number;
+  readonly steps: number;
+  /** Faces meeting at more than this angle (radians) keep a hard edge. */
+  readonly creaseAngle: number;
+};
+
+/**
+ * A photo backdrop, as Drei's `Backdrop`: a floor that sweeps up into a wall behind it,
+ * one unit each way (scale it to size). The floor lies along +Z towards the viewer, the
+ * wall rises at its back, and `floor` extends the flat front.
+ */
+export type BackdropGeometry = {
+  readonly _tag: 'Backdrop';
+  readonly floor: number;
+  readonly segments: number;
 };
 
 /** A flat ring (annulus) in the XY plane, facing +Z. */
@@ -150,7 +191,9 @@ export type ShapeGeometry =
   | ConeGeometry
   | CapsuleGeometry
   | RingGeometry
-  | CircleGeometry;
+  | CircleGeometry
+  | RoundedBoxGeometry
+  | BackdropGeometry;
 
 /** Which faces a material draws. */
 export type MaterialSide = 'front' | 'back' | 'double';
@@ -342,6 +385,22 @@ export type GroupNode = {
    * not tracked (or no session presents). `null` for the group's own transform.
    */
   readonly follow: XrSpace | null;
+  /**
+   * Levels of detail: the group shows one child at a time, chosen by the camera's
+   * distance (Drei's `Detailed`, three's `LOD`), or `null` to show them all.
+   */
+  readonly detail: Detail | null;
+};
+
+/**
+ * Levels of detail for a group's children, in order: child `i` shows from
+ * `distances[i]` (scene units from the camera, divided by its zoom) until the next level's
+ * distance. `hysteresis` (a fraction) keeps a shown level until the camera is that much
+ * nearer than its distance, so the switch does not flicker at the boundary.
+ */
+export type Detail = {
+  readonly distances: ReadonlyArray<number>;
+  readonly hysteresis: number;
 };
 
 /** The joints of a tracked hand, as WebXR names them (`XRHandJoint`). */
@@ -656,6 +715,13 @@ export type BorrowedNode = {
   readonly animation: Animation | null;
   /** A rigid body whose colliders are the model's meshes, once it is lent; or `null`. */
   readonly body: Body | null;
+  /**
+   * Every mesh in what it shows casts (receives) shadows, as Drei's `Clone` shorthands;
+   * `false` leaves each mesh's own setting. Set on the lent object itself where it is
+   * shown as lent rather than cloned.
+   */
+  readonly castShadow: boolean;
+  readonly receiveShadow: boolean;
 };
 
 /** Where a label's origin is along its width: an edge, the middle, or a fraction of it. */
@@ -902,6 +968,8 @@ export type PerspectiveCamera = {
    * (`autoRotated(camera, detail)`). A new position or `lookAt` turns on from there.
    */
   readonly autoRotate: number;
+  /** Shakes the rendered camera (Drei's `CameraShake`), or `null` for none. */
+  readonly shake: CameraShake | null;
 };
 
 /**
@@ -919,6 +987,28 @@ export type OrthographicCamera = {
   readonly damping: number;
   /** As on `PerspectiveCamera`. */
   readonly autoRotate: number;
+  /** As on `PerspectiveCamera`. */
+  readonly shake: CameraShake | null;
+};
+
+/**
+ * Camera shake, as Drei's `CameraShake`: yaw, pitch and roll of up to `max*` radians,
+ * from noise at `*Frequency`, scaled by `intensity` squared (0 to 1). With `decay` the
+ * intensity falls by `decayRate` a second from when the shake began, so a decaying shake
+ * is a one-off: it begins when it first appears or changes, and `trigger` (a count the
+ * Model bumps) begins the same shake again. Reduced motion holds the camera still.
+ */
+export type CameraShake = {
+  readonly intensity: number;
+  readonly decay: boolean;
+  readonly decayRate: number;
+  readonly maxYaw: number;
+  readonly maxPitch: number;
+  readonly maxRoll: number;
+  readonly yawFrequency: number;
+  readonly pitchFrequency: number;
+  readonly rollFrequency: number;
+  readonly trigger: number;
 };
 
 /** The single active camera. */

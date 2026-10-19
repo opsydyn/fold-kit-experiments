@@ -6,6 +6,8 @@
 import type {
   AmbientLightNode,
   Animation,
+  CameraShake,
+  Detail,
   BasicMaterial,
   Body,
   Behave,
@@ -40,6 +42,8 @@ import type {
   ColliderDescription,
   ColliderShapeDescription,
   CapsuleGeometry,
+  RoundedBoxGeometry,
+  BackdropGeometry,
   CircleGeometry,
   ConeGeometry,
   CylinderGeometry,
@@ -104,6 +108,21 @@ export const spin = (options: {
   axis: options.axis,
   radiansPerSecond: options.radiansPerSecond,
   phase: options.phase ?? 0,
+});
+
+/**
+ * Faces the camera every frame, as Drei's `Billboard` (`bf6f4ad`, `src/core/Billboard.tsx`):
+ * for labels, markers and sprites that should always read face on. Lock an axis to keep
+ * it still, `lockX` and `lockZ` together for something that stays upright and only turns
+ * round. To rotate it as well, put it in a rotated group.
+ */
+export const billboard = (
+  options: { readonly lockX?: boolean; readonly lockY?: boolean; readonly lockZ?: boolean } = {},
+): Rotation => ({
+  _tag: 'Billboard',
+  lockX: options.lockX ?? false,
+  lockY: options.lockY ?? false,
+  lockZ: options.lockZ ?? false,
 });
 
 /** Box geometry. Each dimension defaults to 1. */
@@ -195,6 +214,47 @@ export const capsule = (
   height: options.height ?? 1,
   capSegments: options.capSegments ?? 4,
   radialSegments: options.radialSegments ?? 8,
+});
+
+/**
+ * A box with rounded edges and corners, as Drei's `RoundedBox` (`bf6f4ad`,
+ * `src/core/RoundedBox.tsx`), with its defaults: 1 × 1 × 1, radius 0.05, smoothness 4,
+ * 4 bevel segments, 1 step, crease angle 0.4.
+ */
+export const roundedBox = (
+  options: {
+    readonly width?: number;
+    readonly height?: number;
+    readonly depth?: number;
+    readonly radius?: number;
+    readonly smoothness?: number;
+    readonly bevelSegments?: number;
+    readonly steps?: number;
+    readonly creaseAngle?: number;
+  } = {},
+): RoundedBoxGeometry => ({
+  _tag: 'RoundedBox',
+  width: options.width ?? 1,
+  height: options.height ?? 1,
+  depth: options.depth ?? 1,
+  radius: options.radius ?? 0.05,
+  smoothness: options.smoothness ?? 4,
+  bevelSegments: options.bevelSegments ?? 4,
+  steps: options.steps ?? 1,
+  creaseAngle: options.creaseAngle ?? 0.4,
+});
+
+/**
+ * A curved photo backdrop, as Drei's `Backdrop` (`bf6f4ad`, `src/core/Backdrop.tsx`), with
+ * its defaults: floor 0.25, 20 segments. One unit each way: scale the mesh to size, and
+ * give it `receiveShadow` to catch shadows as Drei's prop does.
+ */
+export const backdrop = (
+  options: { readonly floor?: number; readonly segments?: number } = {},
+): BackdropGeometry => ({
+  _tag: 'Backdrop',
+  floor: options.floor ?? 0.25,
+  segments: options.segments ?? 20,
 });
 
 /** Ring geometry facing +Z. Defaults (as three.js): radii 0.5 and 1, 32 segments. */
@@ -478,6 +538,7 @@ export const group = (
     readonly children?: ReadonlyArray<SceneNode>;
     readonly body?: Body | null;
     readonly follow?: XrSpace | null;
+    readonly detail?: Detail | null;
   },
 ): GroupNode => ({
   _tag: 'Group',
@@ -491,7 +552,19 @@ export const group = (
   children: options.children ?? [],
   body: options.body ?? null,
   follow: options.follow ?? null,
+  detail: options.detail ?? null,
 });
+
+/**
+ * Levels of detail for a group, as Drei's `Detailed` (`bf6f4ad`, `src/core/Detailed.tsx`):
+ * `group({ detail: detailed({ distances: [0, 10, 20] }), children: [near, middle, far] })`
+ * shows `near` until the camera is 10 away, then `middle`, then `far` from 20. Hysteresis
+ * defaults to 0, as Drei's.
+ */
+export const detailed = (options: {
+  readonly distances: ReadonlyArray<number>;
+  readonly hysteresis?: number;
+}): Detail => ({ distances: options.distances, hysteresis: options.hysteresis ?? 0 });
 
 /** The head (the viewer), for content that stays in view. */
 export const headSpace = (): XrSpace => ({ _tag: 'Head' });
@@ -859,6 +932,8 @@ export const borrowed = (
     readonly interactive?: boolean;
     readonly animation?: Animation | null;
     readonly body?: Body | null;
+    readonly castShadow?: boolean;
+    readonly receiveShadow?: boolean;
   },
 ): BorrowedNode => ({
   _tag: 'Borrowed',
@@ -872,6 +947,8 @@ export const borrowed = (
   behaviour: options.behaviour ?? null,
   interactive: options.interactive ?? false,
   body: options.body ?? null,
+  castShadow: options.castShadow ?? false,
+  receiveShadow: options.receiveShadow ?? false,
 });
 
 /**
@@ -1060,6 +1137,7 @@ export const perspectiveCamera = (
   lookAt: options.lookAt ?? origin,
   damping: options.damping ?? 0,
   autoRotate: options.autoRotate ?? 0,
+  shake: options.shake ?? null,
 });
 
 /**
@@ -1077,6 +1155,26 @@ export const orthographicCamera = (
   lookAt: options.lookAt ?? origin,
   damping: options.damping ?? 0,
   autoRotate: options.autoRotate ?? 0,
+  shake: options.shake ?? null,
+});
+
+/**
+ * Camera shake, as Drei's `CameraShake` (`bf6f4ad`, `src/core/CameraShake.tsx`), with its
+ * defaults: intensity 1, no decay (rate 0.65 a second when on), and 0.1 radians at 0.1 for
+ * each of yaw, pitch and roll. `perspectiveCamera({ shake: cameraShake({ decay: true }) })`
+ * shakes once and settles; bump `trigger` to shake again.
+ */
+export const cameraShake = (options: Partial<CameraShake> = {}): CameraShake => ({
+  intensity: options.intensity ?? 1,
+  decay: options.decay ?? false,
+  decayRate: options.decayRate ?? 0.65,
+  maxYaw: options.maxYaw ?? 0.1,
+  maxPitch: options.maxPitch ?? 0.1,
+  maxRoll: options.maxRoll ?? 0.1,
+  yawFrequency: options.yawFrequency ?? 0.1,
+  pitchFrequency: options.pitchFrequency ?? 0.1,
+  rollFrequency: options.rollFrequency ?? 0.1,
+  trigger: options.trigger ?? 0,
 });
 
 const noEffects: ReadonlyArray<PostEffect> = [];

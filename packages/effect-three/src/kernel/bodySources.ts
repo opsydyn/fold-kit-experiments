@@ -87,7 +87,7 @@ const scaleText = (from: Matrix4): string =>
     .join(',');
 
 const rotationText = (rotation: Rotation): string =>
-  rotation._tag === 'Fixed' ? rotation.euler.join(',') : 'spin';
+  rotation._tag === 'Fixed' ? rotation.euler.join(',') : rotation._tag;
 
 /** A world pose written to an object in its parent's space, keeping its scale. */
 export const placeObject = (object: Object3D, pose: BodyPose): void => {

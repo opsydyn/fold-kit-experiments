@@ -29,12 +29,17 @@ const settleSeconds = 2;
  * as long as its pose has gone undescribed, so where it is depends on history, not on the
  * description and the time alone; `autoRotate.test.ts` covers it.
  */
+// Turning and shaking depend on when they began, not only on the description: hold them.
 const still = (description: SceneDescription): SceneDescription => ({
   ...description,
-  camera: { ...description.camera, autoRotate: 0 },
+  camera: { ...description.camera, autoRotate: 0, shake: null },
   renderTextures: description.renderTextures.map((texture) => ({
     ...texture,
-    camera: { ...texture.camera, autoRotate: 0 },
+    camera: { ...texture.camera, autoRotate: 0, shake: null },
+  })),
+  views: description.views.map((view) => ({
+    ...view,
+    camera: { ...view.camera, autoRotate: 0, shake: null },
   })),
 });
 

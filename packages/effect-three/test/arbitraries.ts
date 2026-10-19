@@ -22,7 +22,27 @@ const Rotation = Schema.Union([
     radiansPerSecond: Small,
     phase: Small,
   }),
+  Schema.TaggedStruct('Billboard', {
+    lockX: Schema.Boolean,
+    lockY: Schema.Boolean,
+    lockZ: Schema.Boolean,
+  }),
 ]);
+
+const Shake = Schema.NullOr(
+  Schema.Struct({
+    intensity: Unit,
+    decay: Schema.Boolean,
+    decayRate: Schema.Literals([0.65]),
+    maxYaw: Schema.Literals([0.1]),
+    maxPitch: Schema.Literals([0, 0.1]),
+    maxRoll: Schema.Literals([0.1]),
+    yawFrequency: Schema.Literals([0.1]),
+    pitchFrequency: Schema.Literals([0.1]),
+    rollFrequency: Schema.Literals([0.1]),
+    trigger: Schema.Literals([0, 1]),
+  }),
+);
 
 const Box = Schema.TaggedStruct('Box', { width: Size, height: Size, depth: Size });
 const Segments = Schema.Literals([3, 8]);
@@ -59,6 +79,20 @@ const Shape = Schema.Union([
     thetaSegments: Segments,
   }),
   Schema.TaggedStruct('Circle', { radius: Size, segments: Segments }),
+  Schema.TaggedStruct('RoundedBox', {
+    width: Size,
+    height: Size,
+    depth: Size,
+    radius: Schema.Literals([0, 0.1]),
+    smoothness: Schema.Literals([1, 4]),
+    bevelSegments: Schema.Literals([1, 4]),
+    steps: Schema.Literals([1, 2]),
+    creaseAngle: Schema.Literals([0, 0.4]),
+  }),
+  Schema.TaggedStruct('Backdrop', {
+    floor: Schema.Literals([0, 0.25]),
+    segments: Schema.Literals([1, 8]),
+  }),
   // Never lent a font, so empty: the diff, equality and resource balance still apply.
   Schema.TaggedStruct('Text', {
     text: Schema.Literals(['a', 'bc']),
@@ -148,6 +182,12 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
         Schema.TaggedStruct('Head', {}),
         Schema.TaggedStruct('Anchor', { id: Schema.Literals(['a1', 'a2']) }),
       ]),
+    ),
+    detail: Schema.NullOr(
+      Schema.Struct({
+        distances: Schema.Array(Schema.Literals([0, 5, 10])).check(Schema.isMaxLength(4)),
+        hysteresis: Schema.Literals([0, 0.25]),
+      }),
     ),
   }),
   Schema.TaggedStruct('Mesh', {
@@ -255,6 +295,8 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     behaviour: Behaviour,
     body: Schema.Null,
     interactive: Schema.Boolean,
+    castShadow: Schema.Boolean,
+    receiveShadow: Schema.Boolean,
   }),
   // Without a label engine labels are empty wrappers: the diff and transforms still apply.
   Schema.TaggedStruct('Label', {
@@ -461,6 +503,7 @@ const sceneFields = {
         lookAt: Vec3,
         damping: Schema.Literals([0, 0.1]),
         autoRotate: Schema.Literals([0, 2]),
+        shake: Shake,
       }),
       background: Schema.NullOr(Colour),
       children: Schema.Array(Node).check(Schema.isMaxLength(3)),
@@ -477,6 +520,7 @@ const sceneFields = {
         lookAt: Vec3,
         damping: Schema.Literals([0, 0.1]),
         autoRotate: Schema.Literals([0]),
+        shake: Shake,
       }),
       rect: Schema.Struct({
         x: Schema.Literals([0, 0.5]),
@@ -520,6 +564,7 @@ const sceneFields = {
       lookAt: Vec3,
       damping: Schema.Literals([0, 0.1]),
       autoRotate: Schema.Literals([0, 2]),
+      shake: Shake,
     }),
     Schema.TaggedStruct('Orthographic', {
       zoom: Schema.Literals([1, 50]),
@@ -529,6 +574,7 @@ const sceneFields = {
       lookAt: Vec3,
       damping: Schema.Literals([0, 0.1]),
       autoRotate: Schema.Literals([0, 2]),
+      shake: Shake,
     }),
   ]),
   resources: Schema.Struct({

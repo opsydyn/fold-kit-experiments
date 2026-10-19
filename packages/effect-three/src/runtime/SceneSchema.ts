@@ -7,7 +7,7 @@
  *
  * @module
  */
-import { Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 
 import { handJoints, type SceneNode as KernelSceneNode } from '../kernel/description.ts';
 
@@ -21,16 +21,29 @@ export const Vec3 = Schema.Tuple([Schema.Finite, Schema.Finite, Schema.Finite]);
 /** A rotation axis. */
 export const Axis = Schema.Literals(['x', 'y', 'z']);
 
+/**
+ * Fields added after 0.2.0 decode as their builder's default when absent, so descriptions
+ * stored before them (a camera kept in a Model, say) still decode.
+ */
+const absentAsNull = <S extends Schema.Top>(schema: S) =>
+  Schema.NullOr(schema).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null)));
+const absentAsFalse = Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false)));
+
 /** A 24-bit RGB colour, for example `0x3366ff`. */
 export const Rgb = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 0xffffff }));
 
-/** Model-owned Euler angles, or a spin behaviour that owns the rotation. */
+/** Model-owned Euler angles, a spin behaviour, or facing the camera (a billboard). */
 export const Rotation = Schema.Union([
   Schema.TaggedStruct('Fixed', { euler: Vec3 }),
   Schema.TaggedStruct('Spin', {
     axis: Axis,
     radiansPerSecond: Schema.Finite,
     phase: Schema.Finite,
+  }),
+  Schema.TaggedStruct('Billboard', {
+    lockX: Schema.Boolean,
+    lockY: Schema.Boolean,
+    lockZ: Schema.Boolean,
   }),
 ]);
 
@@ -84,6 +97,24 @@ export const CapsuleGeometry = Schema.TaggedStruct('Capsule', {
   radialSegments: Segments,
 });
 
+/** Rounded box geometry parameters (Drei's `RoundedBox`). */
+export const RoundedBoxGeometry = Schema.TaggedStruct('RoundedBox', {
+  width: Positive,
+  height: Positive,
+  depth: Positive,
+  radius: NonNegative,
+  smoothness: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  bevelSegments: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  steps: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+  creaseAngle: NonNegative,
+});
+
+/** Backdrop geometry parameters (Drei's `Backdrop`). */
+export const BackdropGeometry = Schema.TaggedStruct('Backdrop', {
+  floor: NonNegative,
+  segments: Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)),
+});
+
 /** Ring geometry parameters. */
 export const RingGeometry = Schema.TaggedStruct('Ring', {
   innerRadius: NonNegative,
@@ -132,6 +163,8 @@ export const ShapeGeometry = Schema.Union([
   CapsuleGeometry,
   RingGeometry,
   CircleGeometry,
+  RoundedBoxGeometry,
+  BackdropGeometry,
 ]);
 
 /** A registered behaviour, by name, with numeric parameters. */
@@ -424,6 +457,8 @@ export const BorrowedNode = Schema.TaggedStruct('Borrowed', {
   behaviour: Schema.NullOr(Behave),
   interactive: Schema.Boolean,
   body: Schema.NullOr(Body),
+  castShadow: absentAsFalse,
+  receiveShadow: absentAsFalse,
 });
 
 /** Distance-field text. */
@@ -559,7 +594,7 @@ export const HemisphereLightNode = Schema.TaggedStruct('HemisphereLight', {
 });
 
 /** Any scene node. Groups nest recursively. */
-export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
+export const SceneNode: Schema.Codec<KernelSceneNode, unknown> = Schema.Union([
   Schema.TaggedStruct('Group', {
     key: Schema.String,
     position: Vec3,
@@ -568,9 +603,12 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
     transition: Transition,
     behaviour: Schema.NullOr(Behave),
     interactive: Schema.Boolean,
-    children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode> => SceneNode)),
+    children: Schema.Array(Schema.suspend((): Schema.Codec<KernelSceneNode, unknown> => SceneNode)),
     body: Schema.NullOr(Body),
     follow: Schema.NullOr(XrSpace),
+    detail: absentAsNull(
+      Schema.Struct({ distances: Schema.Array(NonNegative), hysteresis: NonNegative }),
+    ),
   }),
   MeshNode,
   InstancesNode,
@@ -588,6 +626,20 @@ export const SceneNode: Schema.Codec<KernelSceneNode> = Schema.Union([
 /** The fraction of the way a camera closes every sixtieth of a second: 0 jumps. */
 const CameraDamping = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0), Schema.isLessThan(1));
 
+/** Camera shake (Drei's `CameraShake`). */
+export const CameraShake = Schema.Struct({
+  intensity: NonNegative,
+  decay: Schema.Boolean,
+  decayRate: NonNegative,
+  maxYaw: NonNegative,
+  maxPitch: NonNegative,
+  maxRoll: NonNegative,
+  yawFrequency: NonNegative,
+  pitchFrequency: NonNegative,
+  rollFrequency: NonNegative,
+  trigger: Schema.Finite,
+});
+
 /** A perspective camera. */
 export const PerspectiveCamera = Schema.TaggedStruct('Perspective', {
   fov: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 180, exclusiveMinimum: true })),
@@ -597,6 +649,7 @@ export const PerspectiveCamera = Schema.TaggedStruct('Perspective', {
   lookAt: Vec3,
   damping: CameraDamping,
   autoRotate: Schema.Finite,
+  shake: absentAsNull(CameraShake),
 });
 
 /** An orthographic camera; `zoom` is CSS pixels per world unit. */
@@ -608,6 +661,7 @@ export const OrthographicCamera = Schema.TaggedStruct('Orthographic', {
   lookAt: Vec3,
   damping: CameraDamping,
   autoRotate: Schema.Finite,
+  shake: absentAsNull(CameraShake),
 });
 
 /** The active camera. */

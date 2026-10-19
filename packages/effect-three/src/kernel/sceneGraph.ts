@@ -21,10 +21,12 @@ import {
   OrthographicCamera,
   PerspectiveCamera,
   PointLight,
+  Quaternion,
   Scene,
   SpotLight,
   Vector3,
 } from 'three';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
@@ -32,6 +34,7 @@ import { type BodyCollision, type BodyContactForce, createBodyHost } from './bod
 import { type BodySource, instanceSources, nodeSource, placeObject } from './bodySources.ts';
 import { renderSettings, scene as describeScene } from './build.ts';
 import { type CameraMotion, createCameraMotion } from './cameraMotion.ts';
+import { type CameraShaker, createCameraShaker } from './cameraShake.ts';
 import type {
   AmbientLightNode,
   BorrowedNode,
@@ -426,6 +429,14 @@ const noInstances: ReadonlyArray<Instance> = [];
 const emptyScene = describeScene({});
 
 /** Creates an empty scene graph. */
+/**
+ * A copy of a lent object for a second place to show it, sharing its geometry and
+ * materials, as Drei's `Clone` (`bf6f4ad`, `src/core/Clone.tsx`): a skinned model through
+ * three's `SkeletonUtils.clone`, so that the copy has bones of its own to animate.
+ */
+const cloneLoan = (lent: Object3D): Object3D =>
+  lent.getObjectByProperty('isSkinnedMesh', true) === undefined ? lent.clone() : cloneSkinned(lent);
+
 export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph => {
   const store = options.store ?? createResourceStore();
   const ownsStore = options.store === undefined;
@@ -470,8 +481,22 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     hostedSky = undefined;
   }
   const cameraMotion = createCameraMotion();
+  const cameraShaker = createCameraShaker();
   /** Each view's camera motion, by the view's key. */
   const viewMotions = new Map<string, CameraMotion>();
+  /** Each view's camera shake, by the view's key. */
+  const viewShakers = new Map<string, CameraShaker>();
+  const shaking = (): boolean => {
+    if (cameraShaker.shaking(elapsed)) return true;
+    for (const shaker of viewShakers.values()) if (shaker.shaking(elapsed)) return true;
+    return false;
+  };
+  /** Shakes a view's camera on top of where its motion aims it. */
+  const shakeView = (view: HostedView): void => {
+    const motion = viewMotions.get(view.key);
+    if (motion === undefined) return;
+    viewShakers.get(view.key)?.apply(view.camera, motion.target(), elapsed, animating);
+  };
   const viewsMoving = (): boolean => {
     for (const motion of viewMotions.values()) if (motion.moving()) return true;
     return false;
@@ -505,6 +530,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     applyLens(hostedCamera, description.camera);
     const motion = viewMotions.get(description.key) ?? createCameraMotion();
     viewMotions.set(description.key, motion);
+    const shaker = viewShakers.get(description.key) ?? createCameraShaker();
+    viewShakers.set(description.key, shaker);
+    shaker.describe(description.camera.shake, elapsed);
     // As the scene's camera: a new kind of camera has nothing on screen to travel from.
     motion.aim(hostedCamera, description.camera, elapsed, hostedCamera !== previous || !animating);
     const area = areaOf(description.rect);
@@ -520,10 +548,21 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     for (const key of viewMotions.keys()) {
       if (!described.some((description) => description.key === key)) viewMotions.delete(key);
     }
+    for (const key of viewShakers.keys()) {
+      if (!described.some((description) => description.key === key)) viewShakers.delete(key);
+    }
   };
   const entries = new Map<string, Entry>();
   const keys = new WeakMap<Object3D, string>();
   const spinning = new Set<Entry>();
+  // Billboards: turned towards the camera each frame, after everything else has moved.
+  const facing = new Set<Entry>();
+  const cameraTurn = new Quaternion();
+  const parentTurn = new Quaternion();
+  // Groups with levels of detail: one child shown at a time, by the camera's distance.
+  const detailing = new Set<Entry>();
+  const cameraPlace = new Vector3();
+  const groupPlace = new Vector3();
   const playing = new Set<Borrowing>();
   const registry: Readonly<Record<string, Behaviour>> = {
     ...builtinBehaviours,
@@ -580,6 +619,77 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     writeRotation(entry.object.rotation, node.rotation, elapsed);
     if (node.rotation._tag === 'Spin') spinning.add(entry);
     else spinning.delete(entry);
+    if (node.rotation._tag === 'Billboard') facing.add(entry);
+    else facing.delete(entry);
+  };
+
+  /**
+   * Drei's `Billboard`: the node's rotation is its parent's world rotation undone, then the
+   * camera's, so its world rotation is the camera's; locked axes go back to 0.
+   */
+  const faceCamera = (entry: Entry): void => {
+    if (!isPlaced(entry) || entry.node.rotation._tag !== 'Billboard') return;
+    const { lockX, lockY, lockZ } = entry.node.rotation;
+    const object = entry.object;
+    parentTurn.identity();
+    object.parent?.getWorldQuaternion(parentTurn);
+    object.quaternion.copy(cameraTurn).premultiply(parentTurn.invert());
+    if (lockX) object.rotation.x = 0;
+    if (lockY) object.rotation.y = 0;
+    if (lockZ) object.rotation.z = 0;
+  };
+
+  /** The object of a group's `index`th child, as described. */
+  const childObject = (node: GroupNode, index: number): Object3D | undefined => {
+    const child = node.children[index];
+    return child === undefined ? undefined : entries.get(child.key)?.object;
+  };
+
+  /**
+   * three's `LOD.update`, as Drei's `Detailed` runs it each frame, over the group's children
+   * in order: the first level shows, each later one takes over once the camera is at least
+   * its distance away (less its hysteresis while it shows), and the rest hide.
+   */
+  const showLevel = (entry: Entry): void => {
+    if (entry._tag !== 'Group') return;
+    const { node } = entry;
+    const { detail } = node;
+    if (detail === null) return;
+    const { distances, hysteresis } = detail;
+    const count = node.children.length;
+    if (count < 2) return;
+    entry.object.getWorldPosition(groupPlace);
+    const distance = cameraPlace.distanceTo(groupPlace) / camera.zoom;
+    const first = childObject(node, 0);
+    if (first !== undefined) first.visible = true;
+    let level = 1;
+    for (; level < count; level++) {
+      const object = childObject(node, level);
+      const from = distances[level] ?? Number.NaN;
+      const reach = object?.visible === true ? from - from * hysteresis : from;
+      if (!(distance >= reach)) break;
+      const previous = childObject(node, level - 1);
+      if (previous !== undefined) previous.visible = false;
+      if (object !== undefined) object.visible = true;
+    }
+    for (; level < count; level++) {
+      const object = childObject(node, level);
+      if (object !== undefined) object.visible = false;
+    }
+  };
+
+  const trackDetail = (entry: Entry, node: GroupNode): void => {
+    if (node.detail !== null) {
+      detailing.add(entry);
+      return;
+    }
+    // No longer levels: every child shows again.
+    if (detailing.delete(entry)) {
+      for (let index = 0; index < node.children.length; index++) {
+        const object = childObject(node, index);
+        if (object !== undefined) object.visible = true;
+      }
+    }
   };
 
   const build = (node: SceneNode): Entry => {
@@ -593,6 +703,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         trackInteractive(entry.object, node.interactive);
         // A group following a tracked space shows only once the space is found.
         if (node.follow !== null) entry.object.visible = false;
+        trackDetail(entry, node);
         return entry;
       }
       case 'Mesh': {
@@ -706,10 +817,20 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     entry.shown = undefined;
     const lent = store.lent(entry.node.id);
     if (lent === undefined) return;
-    const shown = lent.parent === null ? lent : lent.clone();
+    const shown = lent.parent === null ? lent : cloneLoan(lent);
     entry.object.add(shown);
     entry.shown = shown;
+    castShadows(shown, entry.node);
     startPlayer(entry);
+  };
+
+  /** Drei's `Clone` shadow shorthands: each mesh casts or receives where asked. */
+  const castShadows = (shown: Object3D, node: BorrowedNode): void => {
+    if (!node.castShadow && !node.receiveShadow) return;
+    shown.traverse((part) => {
+      if (part instanceof Mesh && node.castShadow) part.castShadow = true;
+      if (part instanceof Mesh && node.receiveShadow) part.receiveShadow = true;
+    });
   };
 
   const stopPlayer = (entry: Borrowing): void => {
@@ -850,6 +971,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const release = (entry: Entry): void => {
     if (isPlaced(entry)) behaving.delete(entry);
     spinning.delete(entry);
+    facing.delete(entry);
+    detailing.delete(entry);
     moving.delete(entry);
     reparented.delete(entry);
     trackInteractive(entry.object, false);
@@ -1005,6 +1128,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       if (fields.includes('id')) showLoan(entry);
       else if (fields.includes('animation')) startPlayer(entry);
+      if (fields.includes('castShadow') || fields.includes('receiveShadow')) {
+        if (entry.shown !== undefined) castShadows(entry.shown, next);
+      }
       return;
     }
     if (entry._tag === 'Label' && next._tag === 'Label') {
@@ -1023,6 +1149,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('rotation')) trackRotation(entry, next);
       if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
+      if (fields.includes('detail')) trackDetail(entry, next);
       if (fields.includes('follow')) {
         // Back to its own transform, or hidden until the new space is found.
         entry.object.visible = next.follow === null;
@@ -1098,6 +1225,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         applyLens(camera, op.camera);
         // A new kind of camera has nothing on screen to travel from.
         cameraMotion.aim(camera, op.camera, elapsed, camera !== previous || !animating);
+        cameraShaker.describe(op.camera.shake, elapsed);
         fitCamera(camera, viewport);
         return;
       }
@@ -1317,8 +1445,20 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     behaving.forEach(applyBehaviour);
     cameraMotion.step(camera, elapsed);
     for (const view of views) viewMotions.get(view.key)?.step(view.camera, elapsed);
+    // Shake on top of wherever the cameras are aimed now.
+    cameraShaker.apply(camera, cameraMotion.target(), elapsed, animating);
+    views.forEach(shakeView);
     // Last: a dynamic body's pose is the simulation's, whatever else moved the mesh.
     bodyHost.tick(elapsed, animating);
+    // After the camera and everything a billboard may sit on have moved.
+    if (facing.size > 0) {
+      camera.getWorldQuaternion(cameraTurn);
+      facing.forEach(faceCamera);
+    }
+    if (detailing.size > 0) {
+      camera.getWorldPosition(cameraPlace);
+      detailing.forEach(showLevel);
+    }
   };
 
   const finishTween = (tween: Tween, entry: Entry): void => {
@@ -1408,6 +1548,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
           clipsRunning() ||
           cameraMotion.moving() ||
           viewsMoving() ||
+          shaking() ||
           bodyHost.needsFrame())),
     drawn: () => {
       dirty = false;

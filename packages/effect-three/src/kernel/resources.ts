@@ -22,17 +22,21 @@ import {
   CircleGeometry,
   ConeGeometry,
   CylinderGeometry,
+  Euler,
   ExtrudeGeometry,
   Material,
   type Object3D,
   type Texture,
   PlaneGeometry,
+  Quaternion,
   RingGeometry,
+  Shape,
   ShapeGeometry as ShapeGeometry3,
   SphereGeometry,
   TorusGeometry,
 } from 'three';
 import type { Font } from 'three/addons/loaders/FontLoader.js';
+import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 
 import type {
   GeometryRef,
@@ -191,6 +195,67 @@ const buildText = (shape: TextGeometry, font: Font | undefined): BufferGeometry 
   return geometry;
 };
 
+/** Drei's `RoundedBox` nudge, keeping its corner arcs from being zero length. */
+const roundedEpsilon = 0.00001;
+
+/**
+ * Drei's `RoundedBox` (`bf6f4ad`): the corners' arcs drawn tiny and the bevel making the
+ * rounding, extruded through the depth less the bevels, centred, and its normals creased
+ * (three's `toCreasedNormals`, which Drei takes from three-stdlib).
+ */
+const buildRoundedBox = (shape: Extract<ShapeGeometry, { readonly _tag: 'RoundedBox' }>) => {
+  const { width, height, depth, radius } = shape;
+  const outline = new Shape();
+  const inset = radius - roundedEpsilon;
+  const e = roundedEpsilon;
+  outline.absarc(e, e, e, -Math.PI / 2, -Math.PI, true);
+  outline.absarc(e, height - inset * 2, e, Math.PI, Math.PI / 2, true);
+  outline.absarc(width - inset * 2, height - inset * 2, e, Math.PI / 2, 0, true);
+  outline.absarc(width - inset * 2, e, e, 0, -Math.PI / 2, true);
+  const geometry = new ExtrudeGeometry(outline, {
+    depth: depth - radius * 2,
+    bevelEnabled: true,
+    bevelSegments: shape.bevelSegments * 2,
+    steps: shape.steps,
+    bevelSize: radius - roundedEpsilon,
+    bevelThickness: radius,
+    curveSegments: shape.smoothness,
+  });
+  geometry.center();
+  return toCreasedNormals(geometry, shape.creaseAngle);
+};
+
+/** Drei's `Backdrop` mesh turn, built into the geometry: the floor flat, the wall behind. */
+const backdropTurn = new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, Math.PI / 2));
+
+/** Drei's `Backdrop` easing: the floor stays flat, then sweeps up. */
+const easeInExpo = (x: number): number => (x === 0 ? 0 : 2 ** (10 * x - 10));
+
+/**
+ * Drei's `Backdrop` (`bf6f4ad`): a unit plane whose rows rise by an exponential ease, its
+ * first row pulled forward by `floor`, then turned as Drei turns its mesh.
+ */
+const buildBackdrop = (shape: Extract<ShapeGeometry, { readonly _tag: 'Backdrop' }>) => {
+  const { segments, floor } = shape;
+  const geometry = new PlaneGeometry(1, 1, segments, segments);
+  const position = geometry.getAttribute('position');
+  const offset = 0.5;
+  let vertex = 0;
+  for (let x = 0; x < segments + 1; x++) {
+    for (let y = 0; y < segments + 1; y++) {
+      position.setXYZ(
+        vertex++,
+        x / segments - offset + (x === 0 ? -floor : 0),
+        y / segments - offset,
+        easeInExpo(x / segments),
+      );
+    }
+  }
+  position.needsUpdate = true;
+  geometry.computeVertexNormals();
+  return geometry.applyQuaternion(backdropTurn);
+};
+
 /** Builds the three.js geometry for a shape description. */
 const buildShape = (
   shape: ShapeGeometry,
@@ -232,6 +297,10 @@ const buildShape = (
       return new RingGeometry(shape.innerRadius, shape.outerRadius, shape.thetaSegments);
     case 'Circle':
       return new CircleGeometry(shape.radius, shape.segments);
+    case 'RoundedBox':
+      return buildRoundedBox(shape);
+    case 'Backdrop':
+      return buildBackdrop(shape);
   }
 };
 

@@ -94,6 +94,8 @@ export type CameraMotion = {
   readonly hold: (held: boolean) => void;
   /** Where turning has taken the camera, when it has turned since its description. */
   readonly turned: () => Vec3 | undefined;
+  /** The point the camera looks at now, on its way to the aim. Not to be changed. */
+  readonly target: () => Vector3;
 };
 
 /** Radians a turning camera turns per second per unit of `autoRotate` (three's `2π / 60`). */
@@ -198,5 +200,6 @@ export const createCameraMotion = (): CameraMotion => {
       position.setFromSpherical(goal.spherical).add(goal.target);
       return [position.x, position.y, position.z];
     },
+    target: () => current.target,
   };
 };

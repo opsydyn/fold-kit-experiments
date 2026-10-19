@@ -21,6 +21,11 @@ export const writeRotation = (target: Euler, rotation: Rotation, elapsedSeconds:
     target.set(rotation.euler[0], rotation.euler[1], rotation.euler[2]);
     return;
   }
+  // The scene graph turns a billboard towards the camera each frame; until then, none.
+  if (rotation._tag === 'Billboard') {
+    target.set(0, 0, 0);
+    return;
+  }
   const angle = spinAngle(rotation, elapsedSeconds);
   switch (rotation.axis) {
     case 'x':

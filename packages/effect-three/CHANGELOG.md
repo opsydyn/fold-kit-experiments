@@ -9,7 +9,6 @@
 ### Features
 
 - **effect-three:** render kits name their kind of material; label engines may draw with TSL ([8059fde](https://github.com/opsydyn/fold-kit-experiments/commit/8059fde41349297dea0c7c3383361333dc6a25ad))
-- **samples:** agent-driven XR room, WebGPU label fallback, Drei audit, WebGPU labels spike ([6f3c1a8](https://github.com/opsydyn/fold-kit-experiments/commit/6f3c1a88aee302f5a62c94a75419ded6f572f4d3))
 
 ## 0.1.0 (2026-10-18)
 

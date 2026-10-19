@@ -29,6 +29,9 @@ const Rotation = Schema.Union([
   }),
 ]);
 
+const LineColourList = Schema.Array(Colour).check(Schema.isMaxLength(4));
+const LineColours = Schema.NullOr(LineColourList);
+
 const Shake = Schema.NullOr(
   Schema.Struct({
     intensity: Unit,
@@ -297,6 +300,29 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     interactive: Schema.Boolean,
     castShadow: Schema.Boolean,
     receiveShadow: Schema.Boolean,
+  }),
+  // Without a render kit lines are empty wrappers: the diff and transforms still apply.
+  Schema.TaggedStruct('Line', {
+    key: Key,
+    position: Vec3,
+    rotation: Rotation,
+    scale: Vec3,
+    transition: Transition,
+    behaviour: Behaviour,
+    interactive: Schema.Boolean,
+    points: Schema.Array(Vec3).check(Schema.isMaxLength(4)),
+    segments: Schema.Boolean,
+    color: Colour,
+    vertexColors: LineColours,
+    width: Schema.Literals([1, 3]),
+    worldUnits: Schema.Boolean,
+    dashed: Schema.Boolean,
+    dashSize: Unit,
+    gapSize: Unit,
+    dashScale: Schema.Literals([1]),
+    dashOffset: Unit,
+    opacity: Unit,
+    transparent: Schema.Boolean,
   }),
   // Without a label engine labels are empty wrappers: the diff and transforms still apply.
   Schema.TaggedStruct('Label', {

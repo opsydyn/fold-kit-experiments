@@ -928,8 +928,41 @@ export type ShaderGridNode = {
   readonly side: MaterialSide;
 };
 
+/**
+ * A line through points, as Drei's `Line` (three's fat lines, `Line2`): `width` pixels
+ * wide on screen, or scene units with `worldUnits`; one colour, or one per point; solid
+ * or dashed. With `segments` each pair of points is its own segment (Drei's `Segments`).
+ * A render kit draws it; without one it is an empty group.
+ */
+export type LineNode = {
+  readonly _tag: 'Line';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly rotation: Rotation;
+  readonly scale: Vec3;
+  readonly transition: Transition;
+  readonly behaviour: Behave | null;
+  /** Makes the line pickable, within its width. */
+  readonly interactive: boolean;
+  readonly points: ReadonlyArray<Vec3>;
+  readonly segments: boolean;
+  readonly color: Rgb;
+  /** A colour for each point, blended along the line, or `null` for `color` throughout. */
+  readonly vertexColors: ReadonlyArray<Rgb> | null;
+  readonly width: number;
+  readonly worldUnits: boolean;
+  readonly dashed: boolean;
+  readonly dashSize: number;
+  readonly gapSize: number;
+  readonly dashScale: number;
+  readonly dashOffset: number;
+  readonly opacity: number;
+  readonly transparent: boolean;
+};
+
 /** Any node in a scene. Keys are unique across the whole scene. */
 export type SceneNode =
+  | LineNode
   | GridNode
   | ShaderGridNode
   | GroupNode

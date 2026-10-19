@@ -45,6 +45,7 @@ import type {
   Instance,
   InstancesNode,
   LabelNode,
+  LineNode,
   MaterialRef,
   ShaderGridNode,
   MeshNode,
@@ -80,7 +81,7 @@ import {
   resetPose,
 } from './motion.ts';
 import type { BodyPose, PhysicsEngine } from './physics.ts';
-import type { HostedShaderGrid, HostedSky, RenderKit } from './renderKit.ts';
+import type { HostedLine, HostedShaderGrid, HostedSky, RenderKit } from './renderKit.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -142,6 +143,13 @@ type Entry =
       readonly _tag: 'HemisphereLight';
       node: HemisphereLightNode;
       readonly object: HemisphereLight;
+    }
+  // `hosted` is the line the render kit drew, inside the wrapper; none without a kit.
+  | {
+      readonly _tag: 'Line';
+      node: LineNode;
+      readonly object: Group;
+      readonly hosted: HostedLine | undefined;
     };
 
 /** Entries with a transform: position, rotation, scale and transitions. */
@@ -155,11 +163,11 @@ type Player = {
 };
 
 /** Descriptions with a transform. */
-type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode;
+type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | LineNode;
 
 type Placed = Extract<
   Entry,
-  { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' | 'Label' }
+  { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' | 'Label' | 'Line' }
 >;
 
 /** Entries drawing a geometry with a material. */
@@ -170,7 +178,8 @@ const isPlaced = (entry: Entry): entry is Placed =>
   entry._tag === 'Mesh' ||
   entry._tag === 'Instances' ||
   entry._tag === 'Borrowed' ||
-  entry._tag === 'Label';
+  entry._tag === 'Label' ||
+  entry._tag === 'Line';
 
 const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
@@ -799,6 +808,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         const hosted = options.kit?.shaderGrid(node);
         return { _tag: 'ShaderGrid', node, object: hosted?.object ?? new Group(), hosted };
       }
+      case 'Line': {
+        const hosted = options.kit?.line?.(node);
+        const entry: Entry = { _tag: 'Line', node, object: new Group(), hosted };
+        if (hosted !== undefined) entry.object.add(hosted.object);
+        writeVec3(entry.object.position, node.position);
+        writeVec3(entry.object.scale, node.scale);
+        trackRotation(entry, node);
+        trackBehaviour(entry, node);
+        trackInteractive(entry.object, node.interactive);
+        return entry;
+      }
       case 'HemisphereLight': {
         const object = new HemisphereLight();
         writeHemisphereLight(object, node);
@@ -984,7 +1004,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'Instances') entry.object.dispose();
     // A grid's lines are its own.
     if (entry._tag === 'Grid') disposeGridLines(entry.helper);
-    if (entry._tag === 'ShaderGrid') entry.hosted?.dispose();
+    if (entry._tag === 'ShaderGrid' || entry._tag === 'Line') entry.hosted?.dispose();
     if (entry._tag === 'Label') {
       entry.hosted?.dispose();
       if (entry.node.material !== null && entry.material !== undefined) {
@@ -1184,6 +1204,15 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'HemisphereLight' && next._tag === 'HemisphereLight') {
       writeHemisphereLight(entry.object, next);
       entry.node = next;
+      return;
+    }
+    if (entry._tag === 'Line' && next._tag === 'Line') {
+      entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
+      if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
+      if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
+      if (fields.includes('line')) entry.hosted?.update(next);
       return;
     }
     if (entry._tag === 'ShaderGrid' && next._tag === 'ShaderGrid') {

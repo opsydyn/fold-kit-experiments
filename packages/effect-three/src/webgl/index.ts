@@ -8,6 +8,7 @@
  */
 import type { RenderKit } from '../kernel/renderKit.ts';
 import { createContactShadows } from './contactShadows.ts';
+import { hostLine } from './line.ts';
 import { hostShaderGrid } from './shaderGrid.ts';
 import { hostSky } from './sky.ts';
 
@@ -15,5 +16,6 @@ export const webglKit: RenderKit = {
   shading: 'webgl',
   sky: hostSky,
   shaderGrid: hostShaderGrid,
+  line: hostLine,
   contactShadows: createContactShadows,
 };

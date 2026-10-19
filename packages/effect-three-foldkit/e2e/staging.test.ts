@@ -82,6 +82,10 @@ for (const renderer of renderers) {
     Reflect.get(globalThis, '__staging').showGrid();
   }
 
+  function showLines(): void {
+    Reflect.get(globalThis, '__staging').showLines();
+  }
+
   /** The pixel's RGB at a canvas pixel. */
   const rgbAt = (png: PNG, x: number, y: number): readonly [number, number, number] => {
     const i = (y * png.width + x) * 4;
@@ -110,6 +114,35 @@ for (const renderer of renderers) {
     expect(rgbAt(png, 260, 230)).toEqual([255, 255, 255]);
     // The plane is 8 across: beyond x = 360 (4 units) there are no lines.
     expect(rgbAt(png, 380, 230)).toEqual([255, 255, 255]);
+    expect(errors).toEqual([]);
+    await page.close();
+  }, 60_000);
+
+  test(`${renderer.name}: a line is as wide as asked, in pixels, and a dashed one has gaps`, async () => {
+    const page = await browser.newPage({ viewport: { width: 500, height: 500 } });
+    const errors: Array<string> = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+    await page.goto(app.url(renderer.page));
+    await page.waitForFunction(stagingReady);
+    await page.evaluate(showLines);
+    await frames(page);
+    const png = PNG.sync.read(await page.locator('canvas').screenshot());
+    // Seen from above, z = 0 is the middle row (y = 200): blue there, white 6 pixels off.
+    const isBlue = ([r, , b]: readonly [number, number, number]) => b > 200 && r < 100;
+    const blue = (x: number, y: number) => isBlue(rgbAt(png, x, y));
+    expect(blue(200, 200)).toBe(true);
+    expect(blue(100, 201)).toBe(true);
+    expect(rgbAt(png, 200, 206)).toEqual([255, 255, 255]);
+    // Past its end (x = 3, 120 pixels right of the middle): the floor.
+    expect(rgbAt(png, 340, 200)).toEqual([255, 255, 255]);
+    // The dashed line at z = 2 (80 pixels down): red dashes with white between them.
+    const row = Array.from({ length: 200 }, (_, step) => rgbAt(png, 100 + step, 280));
+    const red = row.filter(([r, g]) => r > 200 && g < 100).length;
+    expect(red).toBeGreaterThan(60);
+    expect(red).toBeLessThan(140);
     expect(errors).toEqual([]);
     await page.close();
   }, 60_000);

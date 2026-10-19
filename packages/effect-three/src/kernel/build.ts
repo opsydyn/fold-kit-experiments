@@ -3,8 +3,11 @@
  *
  * @module
  */
+import { CatmullRomCurve3, Color, CubicBezierCurve3, QuadraticBezierCurve3, Vector3 } from 'three';
+
 import type {
   AmbientLightNode,
+  LineNode,
   Animation,
   CameraShake,
   Detail,
@@ -565,6 +568,139 @@ export const detailed = (options: {
   readonly distances: ReadonlyArray<number>;
   readonly hysteresis?: number;
 }): Detail => ({ distances: options.distances, hysteresis: options.hysteresis ?? 0 });
+
+/**
+ * A line through `points`, as Drei's `Line` (`bf6f4ad`, `src/core/Line.tsx`), with its
+ * defaults: white, 1 pixel wide, solid, opaque. three's `LineMaterial` defaults the dashes:
+ * size 1, gap 1, scale 1, offset 0. `segments: true` is Drei's `Segments`: pairs of points.
+ */
+export const line = (
+  options: TransformOptions & {
+    readonly points: ReadonlyArray<Vec3>;
+    readonly segments?: boolean;
+    readonly color?: Rgb;
+    readonly vertexColors?: ReadonlyArray<Rgb> | null;
+    readonly width?: number;
+    readonly worldUnits?: boolean;
+    readonly dashed?: boolean;
+    readonly dashSize?: number;
+    readonly gapSize?: number;
+    readonly dashScale?: number;
+    readonly dashOffset?: number;
+    readonly opacity?: number;
+    readonly transparent?: boolean;
+    readonly interactive?: boolean;
+  },
+): LineNode => ({
+  _tag: 'Line',
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? noRotation,
+  scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
+  interactive: options.interactive ?? false,
+  points: options.points,
+  segments: options.segments ?? false,
+  color: options.color ?? 0xffffff,
+  vertexColors: options.vertexColors ?? null,
+  width: options.width ?? 1,
+  worldUnits: options.worldUnits ?? false,
+  dashed: options.dashed ?? false,
+  dashSize: options.dashSize ?? 1,
+  gapSize: options.gapSize ?? 1,
+  dashScale: options.dashScale ?? 1,
+  dashOffset: options.dashOffset ?? 0,
+  opacity: options.opacity ?? 1,
+  transparent: options.transparent ?? false,
+});
+
+const asVector = (point: Vec3): Vector3 => new Vector3(point[0], point[1], point[2]);
+const asVec3 = (point: Vector3): Vec3 => [point.x, point.y, point.z];
+
+/**
+ * Points along a Catmull-Rom curve through `points`, as Drei's `CatmullRomLine`, with its
+ * defaults: open, centripetal, tension 0.5, 20 segments (so 21 points).
+ */
+export const catmullRomPoints = (
+  points: ReadonlyArray<Vec3>,
+  options: {
+    readonly closed?: boolean;
+    readonly curveType?: 'centripetal' | 'chordal' | 'catmullrom';
+    readonly tension?: number;
+    readonly segments?: number;
+  } = {},
+): ReadonlyArray<Vec3> =>
+  new CatmullRomCurve3(
+    points.map(asVector),
+    options.closed ?? false,
+    options.curveType ?? 'centripetal',
+    options.tension ?? 0.5,
+  )
+    .getPoints(options.segments ?? 20)
+    .map(asVec3);
+
+/**
+ * Colours for a Catmull-Rom line's points from a few along it, as Drei's
+ * `CatmullRomLine` spreads `vertexColors` over its segments (blended in linear colour).
+ */
+export const catmullRomColors = (
+  colors: ReadonlyArray<Rgb>,
+  options: { readonly segments?: number; readonly closed?: boolean } = {},
+): ReadonlyArray<Rgb> => {
+  const segments = options.segments ?? 20;
+  if (colors.length < 2 || colors.length === segments + 1) return colors;
+  const stops = colors.map((color) => new Color(color));
+  const first = stops[0];
+  if (options.closed === true && first !== undefined) stops.push(first.clone());
+  const divisions = segments / (stops.length - 1);
+  // The colour at point `index`: between the two stops either side of it.
+  const at = (index: number): Rgb =>
+    (stops[Math.floor(index / divisions)] ?? new Color())
+      .clone()
+      .lerp(
+        stops[Math.floor(index / divisions) + 1] ?? new Color(),
+        (index % divisions) / divisions,
+      )
+      .getHex();
+  const blended = Array.from({ length: segments - 1 }, (_, step) => at(step + 1));
+  return [colors[0] ?? 0, ...blended, stops.at(-1)?.getHex() ?? 0];
+};
+
+/** Points along a cubic Bézier curve, as Drei's `CubicBezierLine` (20 segments). */
+export const cubicBezierPoints = (options: {
+  readonly start: Vec3;
+  readonly midA: Vec3;
+  readonly midB: Vec3;
+  readonly end: Vec3;
+  readonly segments?: number;
+}): ReadonlyArray<Vec3> =>
+  new CubicBezierCurve3(
+    asVector(options.start),
+    asVector(options.midA),
+    asVector(options.midB),
+    asVector(options.end),
+  )
+    .getPoints(options.segments ?? 20)
+    .map(asVec3);
+
+/**
+ * Points along a quadratic Bézier curve, as Drei's `QuadraticBezierLine` (20 segments).
+ * Without `mid`, Drei's default: level with `start`, above or below `end`.
+ */
+export const quadraticBezierPoints = (options: {
+  readonly start: Vec3;
+  readonly end: Vec3;
+  readonly mid?: Vec3;
+  readonly segments?: number;
+}): ReadonlyArray<Vec3> => {
+  const [, startY] = options.start;
+  const [endX, , endZ] = options.end;
+  const mid = options.mid ?? [endX, startY, endZ];
+  return new QuadraticBezierCurve3(asVector(options.start), asVector(mid), asVector(options.end))
+    .getPoints(options.segments ?? 20)
+    .map(asVec3);
+};
 
 /** The head (the viewer), for content that stays in view. */
 export const headSpace = (): XrSpace => ({ _tag: 'Head' });

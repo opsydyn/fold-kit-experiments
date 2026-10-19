@@ -32,6 +32,9 @@ import {
   labelTypeEquals,
   xrSpaceEquals,
   lineLookEquals,
+  edgesEquals,
+  trailEquals,
+  pointLookEquals,
   detailEquals,
   shaderGridLookEquals,
   instancesEqual,
@@ -85,6 +88,12 @@ export type Field =
   | 'grid'
   /** A line's points or look: anything but where it is. */
   | 'line'
+  /** A mesh's edge lines. */
+  | 'edges'
+  /** A group's or mesh's trail. */
+  | 'trail'
+  /** Points' look: what they are and where, within the node. */
+  | 'look'
   /** The tracked space a group follows. */
   | 'follow'
   /** A group's levels of detail. */
@@ -138,6 +147,7 @@ export const changedFields = (
       if (!bodyEquals(prev.body, next.body)) fields.push('body');
       if (!xrSpaceEquals(prev.follow, next.follow)) fields.push('follow');
       if (!detailEquals(prev.detail, next.detail)) fields.push('detail');
+      if (!trailEquals(prev.trail, next.trail)) fields.push('trail');
       return fields;
     }
     case 'Mesh': {
@@ -153,6 +163,8 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (prev.receiveShadow !== next.receiveShadow) fields.push('receiveShadow');
       if (!bodyEquals(prev.body, next.body)) fields.push('body');
+      if (!edgesEquals(prev.edges, next.edges)) fields.push('edges');
+      if (!trailEquals(prev.trail, next.trail)) fields.push('trail');
       return fields;
     }
     case 'Instances': {
@@ -240,6 +252,16 @@ export const changedFields = (
       if (prev.castShadow !== next.castShadow) fields.push('castShadow');
       if (!Object.is(prev.shadowMapSize, next.shadowMapSize)) fields.push('shadowMapSize');
       if (!Object.is(prev.shadowBias, next.shadowBias)) fields.push('shadowBias');
+      return fields;
+    }
+    case 'Points': {
+      if (prev._tag !== 'Points') return undefined;
+      if (!behaviourEquals(prev.behaviour, next.behaviour)) fields.push('behaviour');
+      if (!vec3Equals(prev.position, next.position)) fields.push('position');
+      if (!rotationEquals(prev.rotation, next.rotation)) fields.push('rotation');
+      if (!vec3Equals(prev.scale, next.scale)) fields.push('scale');
+      if (!transitionEquals(prev.transition, next.transition)) fields.push('transition');
+      if (!pointLookEquals(prev.look, next.look)) fields.push('look');
       return fields;
     }
     case 'Line': {

@@ -32,6 +32,71 @@ const Rotation = Schema.Union([
 const LineColourList = Schema.Array(Colour).check(Schema.isMaxLength(4));
 const LineColours = Schema.NullOr(LineColourList);
 
+const DotSizeList = Schema.Array(Unit).check(Schema.isMaxLength(3));
+const DotSizes = Schema.NullOr(DotSizeList);
+
+const PointLooks = Schema.Union([
+  Schema.TaggedStruct('Dots', {
+    positions: Schema.Array(Vec3).check(Schema.isMaxLength(3)),
+    colors: LineColours,
+    sizes: DotSizes,
+    color: Colour,
+    size: Schema.Literals([1, 4]),
+    sizeAttenuation: Schema.Boolean,
+    round: Schema.Boolean,
+    opacity: Unit,
+    transparent: Schema.Boolean,
+  }),
+  Schema.TaggedStruct('Sparkles', {
+    count: Schema.Literals([0, 5]),
+    speed: Schema.Literals([1]),
+    opacity: Unit,
+    scale: Vec3,
+    size: Schema.NullOr(Unit),
+    color: Colour,
+    noise: Vec3,
+    seed: Schema.Literals([1, 2]),
+  }),
+  Schema.TaggedStruct('Stars', {
+    radius: Schema.Literals([10]),
+    depth: Schema.Literals([5]),
+    count: Schema.Literals([0, 5]),
+    factor: Schema.Literals([4]),
+    saturation: Unit,
+    fade: Schema.Boolean,
+    speed: Schema.Literals([1]),
+    seed: Schema.Literals([1, 2]),
+  }),
+]);
+
+const Trails = Schema.NullOr(
+  Schema.Struct({
+    width: Schema.Literals([0.2, 1]),
+    length: Schema.Literals([1, 2]),
+    decay: Schema.Literals([1, 2]),
+    local: Schema.Boolean,
+    stride: Schema.Literals([0, 0.1]),
+    interval: Schema.Literals([1, 2]),
+    color: Colour,
+    taper: Schema.Literals(['none', 'linear', 'quadratic']),
+    fade: Schema.Boolean,
+  }),
+);
+
+const EdgeLines = Schema.NullOr(
+  Schema.Struct({
+    threshold: Schema.Literals([15, 40]),
+    color: Colour,
+    width: Schema.Literals([1, 2]),
+    worldUnits: Schema.Boolean,
+    dashed: Schema.Boolean,
+    dashSize: Schema.Literals([1]),
+    gapSize: Schema.Literals([1]),
+    opacity: Unit,
+    transparent: Schema.Boolean,
+  }),
+);
+
 const Shake = Schema.NullOr(
   Schema.Struct({
     intensity: Unit,
@@ -192,6 +257,7 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
         hysteresis: Schema.Literals([0, 0.25]),
       }),
     ),
+    trail: Trails,
   }),
   Schema.TaggedStruct('Mesh', {
     key: Key,
@@ -212,6 +278,8 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     interactive: Schema.Boolean,
     castShadow: Schema.Boolean,
     receiveShadow: Schema.Boolean,
+    edges: EdgeLines,
+    trail: Trails,
     body: Schema.NullOr(
       Schema.Struct({
         type: Schema.Literals(['dynamic', 'fixed', 'kinematic']),
@@ -300,6 +368,16 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
     interactive: Schema.Boolean,
     castShadow: Schema.Boolean,
     receiveShadow: Schema.Boolean,
+  }),
+  // Without a render kit points are empty wrappers: the diff and transforms still apply.
+  Schema.TaggedStruct('Points', {
+    key: Key,
+    position: Vec3,
+    rotation: Rotation,
+    scale: Vec3,
+    transition: Transition,
+    behaviour: Behaviour,
+    look: PointLooks,
   }),
   // Without a render kit lines are empty wrappers: the diff and transforms still apply.
   Schema.TaggedStruct('Line', {

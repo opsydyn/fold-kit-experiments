@@ -10,6 +10,9 @@ import type {
   CameraShake,
   Detail,
   LineNode,
+  Edges,
+  Trail,
+  PointLook,
   Body,
   BodyRef,
   GeometryRef,
@@ -574,6 +577,81 @@ export const labelMaterialEquals = (a: MaterialRef | null, b: MaterialRef | null
   a === b || (a !== null && b !== null && materialRefEquals(a, b));
 
 /** Shader grid equality, apart from its position and rotation. */
+/** Points' look equality: the same kind with the same settings and points. */
+export const pointLookEquals = (a: PointLook, b: PointLook): boolean => {
+  if (a === b) return true;
+  switch (a._tag) {
+    case 'Dots':
+      return (
+        b._tag === 'Dots' &&
+        a.positions.length === b.positions.length &&
+        a.positions.every((point, index) => vec3Equals(point, b.positions[index] ?? point)) &&
+        numbersEqual(a.colors, b.colors) &&
+        numbersEqual(a.sizes, b.sizes) &&
+        Object.is(a.color, b.color) &&
+        Object.is(a.size, b.size) &&
+        a.sizeAttenuation === b.sizeAttenuation &&
+        a.round === b.round &&
+        Object.is(a.opacity, b.opacity) &&
+        a.transparent === b.transparent
+      );
+    case 'Sparkles':
+      return (
+        b._tag === 'Sparkles' &&
+        a.count === b.count &&
+        Object.is(a.speed, b.speed) &&
+        Object.is(a.opacity, b.opacity) &&
+        vec3Equals(a.scale, b.scale) &&
+        Object.is(a.size, b.size) &&
+        Object.is(a.color, b.color) &&
+        vec3Equals(a.noise, b.noise) &&
+        Object.is(a.seed, b.seed)
+      );
+    case 'Stars':
+      return (
+        b._tag === 'Stars' &&
+        Object.is(a.radius, b.radius) &&
+        Object.is(a.depth, b.depth) &&
+        a.count === b.count &&
+        Object.is(a.factor, b.factor) &&
+        Object.is(a.saturation, b.saturation) &&
+        a.fade === b.fade &&
+        Object.is(a.speed, b.speed) &&
+        Object.is(a.seed, b.seed)
+      );
+  }
+};
+
+/** Trail equality: every setting. */
+export const trailEquals = (a: Trail | null, b: Trail | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    Object.is(a.width, b.width) &&
+    Object.is(a.length, b.length) &&
+    Object.is(a.decay, b.decay) &&
+    a.local === b.local &&
+    Object.is(a.stride, b.stride) &&
+    Object.is(a.interval, b.interval) &&
+    Object.is(a.color, b.color) &&
+    a.taper === b.taper &&
+    a.fade === b.fade);
+
+/** Edge lines' equality: every setting. */
+export const edgesEquals = (a: Edges | null, b: Edges | null): boolean =>
+  a === b ||
+  (a !== null &&
+    b !== null &&
+    Object.is(a.threshold, b.threshold) &&
+    Object.is(a.color, b.color) &&
+    Object.is(a.width, b.width) &&
+    a.worldUnits === b.worldUnits &&
+    a.dashed === b.dashed &&
+    Object.is(a.dashSize, b.dashSize) &&
+    Object.is(a.gapSize, b.gapSize) &&
+    Object.is(a.opacity, b.opacity) &&
+    a.transparent === b.transparent);
+
 /** A line's points and look: everything but where it is. */
 export const lineLookEquals = (a: LineNode, b: LineNode): boolean =>
   a.segments === b.segments &&

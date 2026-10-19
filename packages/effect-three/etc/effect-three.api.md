@@ -601,6 +601,13 @@ export const catmullRomColors: (colors: ReadonlyArray<Rgb>, options?: {
 }) => ReadonlyArray<Rgb>;
 
 // @public
+export const catmullRomPointAt: (points: ReadonlyArray<Vec3>, t: number, options?: {
+    readonly closed?: boolean;
+    readonly curveType?: 'centripetal' | 'chordal' | 'catmullrom';
+    readonly tension?: number;
+}) => Vec3;
+
+// @public
 export const catmullRomPoints: (points: ReadonlyArray<Vec3>, options?: {
     readonly closed?: boolean;
     readonly curveType?: 'centripetal' | 'chordal' | 'catmullrom';
@@ -1173,6 +1180,22 @@ export type Easing = 'linear' | 'easeInOutCubic' | 'easeOutCubic' | 'easeOutBack
 const Easing_2: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
 
 // @public
+export type Edges = {
+    readonly threshold: number;
+    readonly color: Rgb;
+    readonly width: number;
+    readonly worldUnits: boolean;
+    readonly dashed: boolean;
+    readonly dashSize: number;
+    readonly gapSize: number;
+    readonly opacity: number;
+    readonly transparent: boolean;
+};
+
+// @public
+export const edges: (options?: Partial<Edges>) => Edges;
+
+// @public
 export const effectsEqual: (a: ReadonlyArray<PostEffect>, b: ReadonlyArray<PostEffect>) => boolean;
 
 // @public
@@ -1236,6 +1259,12 @@ export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry
 | 'grid'
 /** A line's points or look: anything but where it is. */
 | 'line'
+/** A mesh's edge lines. */
+| 'edges'
+/** A group's or mesh's trail. */
+| 'trail'
+/** Points' look: what they are and where, within the node. */
+| 'look'
 /** The tracked space a group follows. */
 | 'follow'
 /** A group's levels of detail. */
@@ -1586,6 +1615,7 @@ export const group: (options: TransformOptions & {
     readonly body?: Body_2 | null;
     readonly follow?: XrSpace | null;
     readonly detail?: Detail | null;
+    readonly trail?: Trail | null;
 }) => GroupNode;
 
 // @public
@@ -1602,6 +1632,7 @@ export type GroupNode = {
     readonly body: Body_2 | null;
     readonly follow: XrSpace | null;
     readonly detail: Detail | null;
+    readonly trail: Trail | null;
 };
 
 // @public
@@ -1691,6 +1722,14 @@ export type HostedLabel = {
 export type HostedLine = {
     readonly object: Object3D;
     readonly update: (line: LineNode) => void;
+    readonly dispose: () => void;
+};
+
+// @public
+export type HostedPoints = {
+    readonly object: Object3D;
+    readonly update: (points: PointsNode) => void;
+    readonly tick: (seconds: number) => void;
     readonly dispose: () => void;
 };
 
@@ -2702,6 +2741,8 @@ export const mesh: (options: TransformOptions & {
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
     readonly body?: Body_2 | null;
+    readonly edges?: Edges | null;
+    readonly trail?: Trail | null;
 }) => MeshNode;
 
 // @public
@@ -2719,6 +2760,8 @@ export type MeshNode = {
     readonly castShadow: boolean;
     readonly receiveShadow: boolean;
     readonly body: Body_2 | null;
+    readonly edges: Edges | null;
+    readonly trail: Trail | null;
 };
 
 // @public (undocumented)
@@ -2931,6 +2974,28 @@ const MeshNode_2: Schema.TaggedStruct<"Mesh", {
             readonly filters: Schema.NullOr<Schema.$Array<Schema.Int>>;
         }>>;
     }>>;
+    readonly edges: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+        readonly threshold: Schema.Finite;
+        readonly color: Schema.Int;
+        readonly width: Schema.Finite;
+        readonly worldUnits: Schema.Boolean;
+        readonly dashed: Schema.Boolean;
+        readonly dashSize: Schema.Finite;
+        readonly gapSize: Schema.Finite;
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+    }>>, never>;
+    readonly trail: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+        readonly width: Schema.Finite;
+        readonly length: Schema.Finite;
+        readonly decay: Schema.Finite;
+        readonly local: Schema.Boolean;
+        readonly stride: Schema.Finite;
+        readonly interval: Schema.Finite;
+        readonly color: Schema.Int;
+        readonly taper: Schema.Literals<readonly ["none", "linear", "quadratic"]>;
+        readonly fade: Schema.Boolean;
+    }>>, never>;
 }>;
 
 // @public
@@ -3556,7 +3621,154 @@ const PointLightNode_2: Schema.TaggedStruct<"PointLight", {
 }>;
 
 // @public
+export type PointLook = {
+    readonly _tag: 'Dots';
+    readonly positions: ReadonlyArray<Vec3>;
+    readonly colors: ReadonlyArray<Rgb> | null;
+    readonly sizes: ReadonlyArray<number> | null;
+    readonly color: Rgb;
+    readonly size: number;
+    readonly sizeAttenuation: boolean;
+    readonly round: boolean;
+    readonly opacity: number;
+    readonly transparent: boolean;
+} | {
+    readonly _tag: 'Sparkles';
+    readonly count: number;
+    readonly speed: number;
+    readonly opacity: number;
+    readonly scale: Vec3;
+    readonly size: number | null;
+    readonly color: Rgb;
+    readonly noise: Vec3;
+    readonly seed: number;
+} | {
+    readonly _tag: 'Stars';
+    readonly radius: number;
+    readonly depth: number;
+    readonly count: number;
+    readonly factor: number;
+    readonly saturation: number;
+    readonly fade: boolean;
+    readonly speed: number;
+    readonly seed: number;
+};
+
+// @public
+const PointLook_2: Schema.Union<readonly [Schema.TaggedStruct<"Dots", {
+    readonly positions: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+    readonly colors: Schema.NullOr<Schema.$Array<Schema.Int>>;
+    readonly sizes: Schema.NullOr<Schema.$Array<Schema.Finite>>;
+    readonly color: Schema.Int;
+    readonly size: Schema.Finite;
+    readonly sizeAttenuation: Schema.Boolean;
+    readonly round: Schema.Boolean;
+    readonly opacity: Schema.Finite;
+    readonly transparent: Schema.Boolean;
+}>, Schema.TaggedStruct<"Sparkles", {
+    readonly count: Schema.Int;
+    readonly speed: Schema.Finite;
+    readonly opacity: Schema.Finite;
+    readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly size: Schema.NullOr<Schema.Finite>;
+    readonly color: Schema.Int;
+    readonly noise: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly seed: Schema.Finite;
+}>, Schema.TaggedStruct<"Stars", {
+    readonly radius: Schema.Finite;
+    readonly depth: Schema.Finite;
+    readonly count: Schema.Int;
+    readonly factor: Schema.Finite;
+    readonly saturation: Schema.Finite;
+    readonly fade: Schema.Boolean;
+    readonly speed: Schema.Finite;
+    readonly seed: Schema.Finite;
+}>]>;
+
+// @public
 export const pointOnPlane: (ray: Ray, plane: PlaneEquation) => Vec3 | undefined;
+
+// Warning: (ae-forgotten-export) The symbol "Placing" needs to be exported by the entry point index.d.ts
+//
+// @public
+export const points: (options: Placing & {
+    readonly positions: ReadonlyArray<Vec3>;
+    readonly colors?: ReadonlyArray<Rgb> | null;
+    readonly sizes?: ReadonlyArray<number> | null;
+    readonly color?: Rgb;
+    readonly size?: number;
+    readonly sizeAttenuation?: boolean;
+    readonly round?: boolean;
+    readonly opacity?: number;
+    readonly transparent?: boolean;
+}) => PointsNode;
+
+// @public
+export type PointsNode = {
+    readonly _tag: 'Points';
+    readonly key: string;
+    readonly position: Vec3;
+    readonly rotation: Rotation;
+    readonly scale: Vec3;
+    readonly transition: Transition;
+    readonly behaviour: Behave | null;
+    readonly look: PointLook;
+};
+
+// @public
+const PointsNode_2: Schema.TaggedStruct<"Points", {
+    readonly key: Schema.String;
+    readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly rotation: Schema.Union<readonly [Schema.TaggedStruct<"Fixed", {
+        readonly euler: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>, Schema.TaggedStruct<"Spin", {
+        readonly axis: Schema.Literals<readonly ["x", "y", "z"]>;
+        readonly radiansPerSecond: Schema.Finite;
+        readonly phase: Schema.Finite;
+    }>, Schema.TaggedStruct<"Billboard", {
+        readonly lockX: Schema.Boolean;
+        readonly lockY: Schema.Boolean;
+        readonly lockZ: Schema.Boolean;
+    }>]>;
+    readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    readonly transition: Schema.Union<readonly [Schema.TaggedStruct<"Instant", {}>, Schema.TaggedStruct<"Ease", {
+        readonly seconds: Schema.Finite;
+        readonly easing: Schema.Literals<readonly ["linear", "easeInOutCubic", "easeOutCubic", "easeOutBack"]>;
+    }>]>;
+    readonly behaviour: Schema.NullOr<Schema.Struct<{
+        readonly name: Schema.String;
+        readonly params: Schema.$Record<Schema.String, Schema.Finite>;
+    }>>;
+    readonly look: Schema.Union<readonly [Schema.TaggedStruct<"Dots", {
+        readonly positions: Schema.$Array<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+        readonly colors: Schema.NullOr<Schema.$Array<Schema.Int>>;
+        readonly sizes: Schema.NullOr<Schema.$Array<Schema.Finite>>;
+        readonly color: Schema.Int;
+        readonly size: Schema.Finite;
+        readonly sizeAttenuation: Schema.Boolean;
+        readonly round: Schema.Boolean;
+        readonly opacity: Schema.Finite;
+        readonly transparent: Schema.Boolean;
+    }>, Schema.TaggedStruct<"Sparkles", {
+        readonly count: Schema.Int;
+        readonly speed: Schema.Finite;
+        readonly opacity: Schema.Finite;
+        readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly size: Schema.NullOr<Schema.Finite>;
+        readonly color: Schema.Int;
+        readonly noise: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly seed: Schema.Finite;
+    }>, Schema.TaggedStruct<"Stars", {
+        readonly radius: Schema.Finite;
+        readonly depth: Schema.Finite;
+        readonly count: Schema.Int;
+        readonly factor: Schema.Finite;
+        readonly saturation: Schema.Finite;
+        readonly fade: Schema.Boolean;
+        readonly speed: Schema.Finite;
+        readonly seed: Schema.Finite;
+    }>]>;
+}>;
 
 // @public
 export const positionMotor: (position: number, stiffness: number, damping: number) => JointMotor;
@@ -3688,6 +3900,7 @@ export type RenderKit = {
     readonly sky: () => HostedSky;
     readonly shaderGrid: (node: ShaderGridNode) => HostedShaderGrid;
     readonly line?: (node: LineNode) => HostedLine;
+    readonly points?: (node: PointsNode) => HostedPoints;
     readonly contactShadows: (graph: ShadowedScene, renderer: SceneRenderer) => ContactShadowPasses;
 };
 
@@ -5064,7 +5277,7 @@ export type SceneLoopOptions = {
 };
 
 // @public
-export type SceneNode = LineNode | GridNode | ShaderGridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
+export type SceneNode = PointsNode | LineNode | GridNode | ShaderGridNode | GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | AmbientLightNode | DirectionalLightNode | PointLightNode | SpotLightNode | HemisphereLightNode;
 
 // @public
 const SceneNode_2: Schema.Codec<SceneNode, unknown>;
@@ -5143,6 +5356,7 @@ declare namespace SceneSchema {
         JointMotor_2 as JointMotor,
         JointLimits_2 as JointLimits,
         JointKind_2 as JointKind,
+        Trail_2 as Trail,
         Joint_2 as Joint,
         Physics_2 as Physics,
         MeshNode_2 as MeshNode,
@@ -5158,6 +5372,8 @@ declare namespace SceneSchema {
         GridNode_2 as GridNode,
         ShaderGridNode_2 as ShaderGridNode,
         HemisphereLightNode_2 as HemisphereLightNode,
+        PointLook_2 as PointLook,
+        PointsNode_2 as PointsNode,
         LineNode_2 as LineNode,
         SceneNode_2 as SceneNode,
         CameraShake_2 as CameraShake,
@@ -5403,6 +5619,18 @@ const Sky_2: Schema.Struct<{
 export const skyEquals: (a: Sky | null, b: Sky | null) => boolean;
 
 // @public
+export const sparkles: (options: Placing & {
+    readonly count?: number;
+    readonly speed?: number;
+    readonly opacity?: number;
+    readonly size?: number | null;
+    readonly color?: Rgb;
+    readonly spread?: number | Vec3;
+    readonly noise?: number | Vec3;
+    readonly seed?: number;
+}) => PointsNode;
+
+// @public
 export const sphere: (options?: {
     readonly radius?: number;
     readonly widthSegments?: number;
@@ -5585,6 +5813,18 @@ const StandardMaterial_2: Schema.TaggedStruct<"Standard", {
 }>;
 
 // @public
+export const stars: (options: Placing & {
+    readonly radius?: number;
+    readonly depth?: number;
+    readonly count?: number;
+    readonly factor?: number;
+    readonly saturation?: number;
+    readonly fade?: boolean;
+    readonly speed?: number;
+    readonly seed?: number;
+}) => PointsNode;
+
+// @public
 export const startTween: (object: Object3D, target: {
     readonly position: Vec3;
     readonly scale: Vec3;
@@ -5758,6 +5998,35 @@ const TorusGeometry_2: Schema.TaggedStruct<"Torus", {
     readonly radialSegments: Schema.Int;
     readonly tubularSegments: Schema.Int;
 }>;
+
+// @public
+export type Trail = {
+    readonly width: number;
+    readonly length: number;
+    readonly decay: number;
+    readonly local: boolean;
+    readonly stride: number;
+    readonly interval: number;
+    readonly color: Rgb;
+    readonly taper: 'none' | 'linear' | 'quadratic';
+    readonly fade: boolean;
+};
+
+// @public
+export const trail: (options?: Partial<Trail>) => Trail;
+
+// @public
+const Trail_2: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+    readonly width: Schema.Finite;
+    readonly length: Schema.Finite;
+    readonly decay: Schema.Finite;
+    readonly local: Schema.Boolean;
+    readonly stride: Schema.Finite;
+    readonly interval: Schema.Finite;
+    readonly color: Schema.Int;
+    readonly taper: Schema.Literals<readonly ["none", "linear", "quadratic"]>;
+    readonly fade: Schema.Boolean;
+}>>, never>;
 
 // @public
 export type TransformOptions = {

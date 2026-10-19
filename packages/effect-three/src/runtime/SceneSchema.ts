@@ -378,6 +378,21 @@ export const JointKind = Schema.Union([
   }),
 ]);
 
+/** A trail behind a moving node (Drei's `Trail`). */
+export const Trail = absentAsNull(
+  Schema.Struct({
+    width: NonNegative,
+    length: NonNegative,
+    decay: NonNegative,
+    local: Schema.Boolean,
+    stride: NonNegative,
+    interval: NonNegative,
+    color: Rgb,
+    taper: Schema.Literals(['none', 'linear', 'quadratic']),
+    fade: Schema.Boolean,
+  }),
+);
+
 /** A joint between two bodies. */
 export const Joint = Schema.Struct({
   key: Schema.String,
@@ -411,6 +426,20 @@ export const MeshNode = Schema.TaggedStruct('Mesh', {
   castShadow: Schema.Boolean,
   receiveShadow: Schema.Boolean,
   body: Schema.NullOr(Body),
+  edges: absentAsNull(
+    Schema.Struct({
+      threshold: NonNegative,
+      color: Rgb,
+      width: NonNegative,
+      worldUnits: Schema.Boolean,
+      dashed: Schema.Boolean,
+      dashSize: NonNegative,
+      gapSize: NonNegative,
+      opacity: NonNegative,
+      transparent: Schema.Boolean,
+    }),
+  ),
+  trail: Trail,
 });
 
 /** One instance of an instances node. */
@@ -593,6 +622,52 @@ export const HemisphereLightNode = Schema.TaggedStruct('HemisphereLight', {
   position: Vec3,
 });
 
+/** What points look like: dots, Drei's sparkles, or its stars. */
+export const PointLook = Schema.Union([
+  Schema.TaggedStruct('Dots', {
+    positions: Schema.Array(Vec3),
+    colors: Schema.NullOr(Schema.Array(Rgb)),
+    sizes: Schema.NullOr(Schema.Array(NonNegative)),
+    color: Rgb,
+    size: NonNegative,
+    sizeAttenuation: Schema.Boolean,
+    round: Schema.Boolean,
+    opacity: NonNegative,
+    transparent: Schema.Boolean,
+  }),
+  Schema.TaggedStruct('Sparkles', {
+    count: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    speed: Schema.Finite,
+    opacity: NonNegative,
+    scale: Vec3,
+    size: Schema.NullOr(NonNegative),
+    color: Rgb,
+    noise: Vec3,
+    seed: Schema.Finite,
+  }),
+  Schema.TaggedStruct('Stars', {
+    radius: NonNegative,
+    depth: NonNegative,
+    count: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    factor: NonNegative,
+    saturation: NonNegative,
+    fade: Schema.Boolean,
+    speed: Schema.Finite,
+    seed: Schema.Finite,
+  }),
+]);
+
+/** Points (Drei's `Points`, `Sparkles` or `Stars`), drawn by the render kit. */
+export const PointsNode = Schema.TaggedStruct('Points', {
+  key: Schema.String,
+  position: Vec3,
+  rotation: Rotation,
+  scale: Vec3,
+  transition: Transition,
+  behaviour: Schema.NullOr(Behave),
+  look: PointLook,
+});
+
 /** A line through points (Drei's `Line`), drawn by the render kit. */
 export const LineNode = Schema.TaggedStruct('Line', {
   key: Schema.String,
@@ -633,12 +708,14 @@ export const SceneNode: Schema.Codec<KernelSceneNode, unknown> = Schema.Union([
     detail: absentAsNull(
       Schema.Struct({ distances: Schema.Array(NonNegative), hysteresis: NonNegative }),
     ),
+    trail: Trail,
   }),
   MeshNode,
   InstancesNode,
   BorrowedNode,
   LabelNode,
   LineNode,
+  PointsNode,
   ShaderGridNode,
   AmbientLightNode,
   DirectionalLightNode,

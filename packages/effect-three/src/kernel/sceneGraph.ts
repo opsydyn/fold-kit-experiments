@@ -38,6 +38,7 @@ import { type CameraShaker, createCameraShaker } from './cameraShake.ts';
 import type {
   AmbientLightNode,
   BorrowedNode,
+  Edges,
   DirectionalLightNode,
   GridNode,
   HemisphereLightNode,
@@ -46,6 +47,7 @@ import type {
   InstancesNode,
   LabelNode,
   LineNode,
+  PointsNode,
   MaterialRef,
   ShaderGridNode,
   MeshNode,
@@ -69,9 +71,16 @@ import type {
   ViewRect,
 } from './description.ts';
 import { diff, type Field, type Op } from './diff.ts';
-import { contactShadowsEquals, environmentEquals, overlaysEqual, skyEquals } from './equality.ts';
+import {
+  contactShadowsEquals,
+  edgesEquals,
+  environmentEquals,
+  overlaysEqual,
+  skyEquals,
+} from './equality.ts';
 import { createInstances, fits, type HostInstances, writeInstances } from './instances.ts';
 import type { HostedLabel, LabelEngine, LabelLayout } from './labels.ts';
+import { edgeLine, edgePoints } from './lineGeometry.ts';
 import type { HostMaterial } from './materials.ts';
 import {
   type Behaviour,
@@ -81,7 +90,14 @@ import {
   resetPose,
 } from './motion.ts';
 import type { BodyPose, PhysicsEngine } from './physics.ts';
-import type { HostedLine, HostedShaderGrid, HostedSky, RenderKit } from './renderKit.ts';
+import { animatedLook } from './pointBuffers.ts';
+import type {
+  HostedLine,
+  HostedPoints,
+  HostedShaderGrid,
+  HostedSky,
+  RenderKit,
+} from './renderKit.ts';
 import { createResourceStore, type ResourceStore } from './resources.ts';
 import {
   type DescriptionError,
@@ -90,6 +106,7 @@ import {
   type ParentKey,
   type SceneIndex,
 } from './sceneIndex.ts';
+import { createTrailRibbon, type TrailRibbon } from './trail.ts';
 import { applyTween, startTween, type Tween } from './tween.ts';
 
 /** The mesh type the kernel hosts. */
@@ -144,6 +161,13 @@ type Entry =
       node: HemisphereLightNode;
       readonly object: HemisphereLight;
     }
+  // `hosted` is the points the render kit drew, inside the wrapper; none without a kit.
+  | {
+      readonly _tag: 'Points';
+      node: PointsNode;
+      readonly object: Group;
+      readonly hosted: HostedPoints | undefined;
+    }
   // `hosted` is the line the render kit drew, inside the wrapper; none without a kit.
   | {
       readonly _tag: 'Line';
@@ -162,12 +186,26 @@ type Player = {
   readonly startedAt: number;
 };
 
+/** A mesh's edge lines: the kit's line, and the geometry and look it was built from. */
+type EdgeLines = {
+  readonly hosted: HostedLine;
+  geometry: BufferGeometry | undefined;
+  edges: Edges | undefined;
+};
+
 /** Descriptions with a transform. */
-type PlacedNode = GroupNode | MeshNode | InstancesNode | BorrowedNode | LabelNode | LineNode;
+type PlacedNode =
+  | GroupNode
+  | MeshNode
+  | InstancesNode
+  | BorrowedNode
+  | LabelNode
+  | LineNode
+  | PointsNode;
 
 type Placed = Extract<
   Entry,
-  { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' | 'Label' | 'Line' }
+  { readonly _tag: 'Group' | 'Mesh' | 'Instances' | 'Borrowed' | 'Label' | 'Line' | 'Points' }
 >;
 
 /** Entries drawing a geometry with a material. */
@@ -179,7 +217,8 @@ const isPlaced = (entry: Entry): entry is Placed =>
   entry._tag === 'Instances' ||
   entry._tag === 'Borrowed' ||
   entry._tag === 'Label' ||
-  entry._tag === 'Line';
+  entry._tag === 'Line' ||
+  entry._tag === 'Points';
 
 const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
@@ -568,6 +607,26 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const facing = new Set<Entry>();
   const cameraTurn = new Quaternion();
   const parentTurn = new Quaternion();
+  // Points that move by themselves (sparkles, stars), ticked in scene time while animating.
+  const sparkling = new Set<Entry>();
+  const trackSparkle = (entry: Entry, node: PointsNode): void => {
+    if (animatedLook(node.look)) sparkling.add(entry);
+    else sparkling.delete(entry);
+    if (entry._tag === 'Points') entry.hosted?.tick(animating ? elapsed : 0);
+  };
+  const sparkle = (entry: Entry): void => {
+    if (entry._tag === 'Points') entry.hosted?.tick(elapsed);
+  };
+  // Groups and meshes with trails: each ribbon, in the scene's space.
+  const trailing = new Map<Entry, TrailRibbon>();
+  const trailPlace = new Vector3();
+  const eye = new Vector3();
+  const trailsMoving = (): boolean => {
+    for (const ribbon of trailing.values()) if (!ribbon.settled()) return true;
+    return false;
+  };
+  // Meshes with edge lines: rebuilt when the mesh's geometry or the edges' look changes.
+  const edged = new Map<Entry, EdgeLines>();
   // Groups with levels of detail: one child shown at a time, by the camera's distance.
   const detailing = new Set<Entry>();
   const cameraPlace = new Vector3();
@@ -648,6 +707,81 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (lockZ) object.rotation.z = 0;
   };
 
+  /** Where a trail follows its node: the world position, or with `local` its own. */
+  const trailTarget = (object: Object3D, local: boolean): Vector3 =>
+    local ? trailPlace.copy(object.position) : object.getWorldPosition(trailPlace);
+
+  /** Adds, restyles or removes a node's trail as its description says. */
+  const trackTrail = (entry: Entry, node: GroupNode | MeshNode): void => {
+    const current = trailing.get(entry);
+    if (node.trail === null) {
+      if (current === undefined) return;
+      current.object.removeFromParent();
+      current.dispose();
+      trailing.delete(entry);
+      return;
+    }
+    const start = trailTarget(entry.object, node.trail.local);
+    if (current !== undefined) {
+      current.restyle(node.trail, start, elapsed);
+      return;
+    }
+    const ribbon = createTrailRibbon(node.trail, start, elapsed);
+    scene.add(ribbon.object);
+    trailing.set(entry, ribbon);
+  };
+
+  /** Records where a trailing node is now, and turns its ribbon to the camera. */
+  const followTrail = (ribbon: TrailRibbon, entry: Entry): void => {
+    if (entry._tag !== 'Group' && entry._tag !== 'Mesh') return;
+    if (entry.node.trail === null) return;
+    ribbon.record(trailTarget(entry.object, entry.node.trail.local), elapsed);
+    ribbon.face(eye);
+  };
+
+  /** Drei's `Edges` turns off picking on its line: hits belong to the mesh. */
+  const unpickable = (part: Object3D): void => {
+    part.raycast = () => undefined;
+  };
+
+  /** Adds, keeps or removes a mesh's edge lines as its description says. */
+  const trackEdges = (entry: Entry, node: MeshNode): void => {
+    const current = edged.get(entry);
+    const draw = options.kit?.line;
+    if (node.edges === null || draw === undefined) {
+      if (current === undefined) return;
+      current.hosted.object.removeFromParent();
+      current.hosted.dispose();
+      edged.delete(entry);
+      return;
+    }
+    if (current !== undefined) return;
+    const hosted = draw(edgeLine(node.key, node.edges, []));
+    entry.object.add(hosted.object);
+    edged.set(entry, { hosted, geometry: undefined, edges: undefined });
+  };
+
+  /**
+   * Builds the edge lines again when the mesh shows another geometry (its own changed, a
+   * shared one was replaced, a lent one arrived) or the edges' look changed.
+   */
+  const refreshEdges = (lines: EdgeLines, entry: Entry): void => {
+    if (entry._tag !== 'Mesh' || entry.node.edges === null) return;
+    const { geometry } = entry.object;
+    const look = entry.node.edges;
+    if (
+      geometry === lines.geometry &&
+      lines.edges !== undefined &&
+      edgesEquals(look, lines.edges)
+    ) {
+      return;
+    }
+    lines.hosted.update(edgeLine(entry.node.key, look, edgePoints(geometry, look.threshold)));
+    lines.hosted.object.traverse(unpickable);
+    lines.geometry = geometry;
+    lines.edges = look;
+  };
+
   /** The object of a group's `index`th child, as described. */
   const childObject = (node: GroupNode, index: number): Object3D | undefined => {
     const child = node.children[index];
@@ -713,6 +847,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         // A group following a tracked space shows only once the space is found.
         if (node.follow !== null) entry.object.visible = false;
         trackDetail(entry, node);
+        trackTrail(entry, node);
         return entry;
       }
       case 'Mesh': {
@@ -728,6 +863,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         trackInteractive(object, node.interactive);
         object.castShadow = node.castShadow;
         object.receiveShadow = node.receiveShadow;
+        trackEdges(entry, node);
+        trackTrail(entry, node);
         return entry;
       }
       case 'Instances': {
@@ -807,6 +944,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       case 'ShaderGrid': {
         const hosted = options.kit?.shaderGrid(node);
         return { _tag: 'ShaderGrid', node, object: hosted?.object ?? new Group(), hosted };
+      }
+      case 'Points': {
+        const hosted = options.kit?.points?.(node);
+        const entry: Entry = { _tag: 'Points', node, object: new Group(), hosted };
+        if (hosted !== undefined) entry.object.add(hosted.object);
+        writeVec3(entry.object.position, node.position);
+        writeVec3(entry.object.scale, node.scale);
+        trackRotation(entry, node);
+        trackBehaviour(entry, node);
+        trackSparkle(entry, node);
+        return entry;
       }
       case 'Line': {
         const hosted = options.kit?.line?.(node);
@@ -993,6 +1141,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     spinning.delete(entry);
     facing.delete(entry);
     detailing.delete(entry);
+    const lines = edged.get(entry);
+    if (lines !== undefined) {
+      lines.hosted.dispose();
+      edged.delete(entry);
+    }
+    const ribbon = trailing.get(entry);
+    if (ribbon !== undefined) {
+      ribbon.object.removeFromParent();
+      ribbon.dispose();
+      trailing.delete(entry);
+    }
     moving.delete(entry);
     reparented.delete(entry);
     trackInteractive(entry.object, false);
@@ -1004,7 +1163,10 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'Instances') entry.object.dispose();
     // A grid's lines are its own.
     if (entry._tag === 'Grid') disposeGridLines(entry.helper);
-    if (entry._tag === 'ShaderGrid' || entry._tag === 'Line') entry.hosted?.dispose();
+    if (entry._tag === 'ShaderGrid' || entry._tag === 'Line' || entry._tag === 'Points') {
+      entry.hosted?.dispose();
+    }
+    sparkling.delete(entry);
     if (entry._tag === 'Label') {
       entry.hosted?.dispose();
       if (entry.node.material !== null && entry.material !== undefined) {
@@ -1134,6 +1296,12 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       entry.node = next;
       if (movesTransform(entry, fields)) retarget(entry, next);
       if (fields.includes('rotation')) trackRotation(entry, next);
+      if (entry._tag === 'Mesh' && next._tag === 'Mesh' && fields.includes('edges')) {
+        trackEdges(entry, next);
+      }
+      if (entry._tag === 'Mesh' && next._tag === 'Mesh' && fields.includes('trail')) {
+        trackTrail(entry, next);
+      }
       if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(mesh, next.interactive);
       mesh.castShadow = next.castShadow;
@@ -1170,6 +1338,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       if (fields.includes('behaviour')) trackBehaviour(entry, next);
       if (fields.includes('interactive')) trackInteractive(entry.object, next.interactive);
       if (fields.includes('detail')) trackDetail(entry, next);
+      if (fields.includes('trail')) trackTrail(entry, next);
       if (fields.includes('follow')) {
         // Back to its own transform, or hidden until the new space is found.
         entry.object.visible = next.follow === null;
@@ -1204,6 +1373,17 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (entry._tag === 'HemisphereLight' && next._tag === 'HemisphereLight') {
       writeHemisphereLight(entry.object, next);
       entry.node = next;
+      return;
+    }
+    if (entry._tag === 'Points' && next._tag === 'Points') {
+      entry.node = next;
+      if (movesTransform(entry, fields)) retarget(entry, next);
+      if (fields.includes('rotation')) trackRotation(entry, next);
+      if (fields.includes('behaviour')) trackBehaviour(entry, next);
+      if (fields.includes('look')) {
+        entry.hosted?.update(next);
+        trackSparkle(entry, next);
+      }
       return;
     }
     if (entry._tag === 'Line' && next._tag === 'Line') {
@@ -1484,6 +1664,13 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       camera.getWorldQuaternion(cameraTurn);
       facing.forEach(faceCamera);
     }
+    edged.forEach(refreshEdges);
+    // Reduced motion holds sparkles and stars where they are.
+    if (animating) sparkling.forEach(sparkle);
+    if (trailing.size > 0) {
+      camera.getWorldPosition(eye);
+      trailing.forEach(followTrail);
+    }
     if (detailing.size > 0) {
       camera.getWorldPosition(cameraPlace);
       detailing.forEach(showLevel);
@@ -1569,6 +1756,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     renderSettings: () => settings,
     needsFrame: () =>
       dirty ||
+      trailsMoving() ||
       textureList.some((texture) => texture.graph.needsFrame()) ||
       (animating &&
         (spinning.size > 0 ||
@@ -1578,6 +1766,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
           cameraMotion.moving() ||
           viewsMoving() ||
           shaking() ||
+          sparkling.size > 0 ||
           bodyHost.needsFrame())),
     drawn: () => {
       dirty = false;

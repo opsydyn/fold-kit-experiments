@@ -390,6 +390,8 @@ export type GroupNode = {
    * distance (Drei's `Detailed`, three's `LOD`), or `null` to show them all.
    */
   readonly detail: Detail | null;
+  /** A ribbon behind the group as it moves (Drei's `Trail`), or `null` for none. */
+  readonly trail: Trail | null;
 };
 
 /**
@@ -470,6 +472,47 @@ export type MeshNode = {
   readonly receiveShadow: boolean;
   /** A rigid body simulating the mesh, when the scene has `physics`; `null` for none. */
   readonly body: Body | null;
+  /** Lines along the mesh's hard edges (Drei's `Edges`), or `null` for none. */
+  readonly edges: Edges | null;
+  /** A ribbon behind the mesh as it moves (Drei's `Trail`), or `null` for none. */
+  readonly trail: Trail | null;
+};
+
+/**
+ * A trail behind a moving node, as Drei's `Trail`: `length × 10` points of where it has
+ * been, a new one every `interval` steps (60 a second of scene time) when it has moved at
+ * least `stride`, `decay` of them at a time; drawn as a ribbon facing the camera, a tenth
+ * of `width` wide in scene units, narrowing (`taper`) and fading (`fade`) to the tail.
+ * `local` follows the node's own position rather than its world position, as Drei's
+ * does; the ribbon is drawn in the scene's space either way.
+ */
+export type Trail = {
+  readonly width: number;
+  readonly length: number;
+  readonly decay: number;
+  readonly local: boolean;
+  readonly stride: number;
+  readonly interval: number;
+  readonly color: Rgb;
+  readonly taper: 'none' | 'linear' | 'quadratic';
+  readonly fade: boolean;
+};
+
+/**
+ * Lines along a mesh's edges where its faces meet at more than `threshold` degrees
+ * (three's `EdgesGeometry`, as Drei's `Edges`), drawn as a line (`width` pixels, or scene
+ * units with `worldUnits`) by the render kit. Never picked: hits go to the mesh.
+ */
+export type Edges = {
+  readonly threshold: number;
+  readonly color: Rgb;
+  readonly width: number;
+  readonly worldUnits: boolean;
+  readonly dashed: boolean;
+  readonly dashSize: number;
+  readonly gapSize: number;
+  readonly opacity: number;
+  readonly transparent: boolean;
 };
 
 /**
@@ -960,8 +1003,73 @@ export type LineNode = {
   readonly transparent: boolean;
 };
 
+/**
+ * Points, drawn by the render kit as round or square dots, Drei's sparkles or its
+ * stars. The look says which, and carries everything needed to draw them: given
+ * points, or a seed that scatters them the same way every time.
+ */
+export type PointsNode = {
+  readonly _tag: 'Points';
+  readonly key: string;
+  readonly position: Vec3;
+  readonly rotation: Rotation;
+  readonly scale: Vec3;
+  readonly transition: Transition;
+  readonly behaviour: Behave | null;
+  readonly look: PointLook;
+};
+
+/**
+ * What points look like:
+ *
+ * - `Dots`: Drei's `Points` with its `PointMaterial` (three's `PointsMaterial`, `round`
+ *   to circles): `size` pixels across, smaller with distance under `sizeAttenuation`;
+ *   one colour or one a point, one size or a factor a point.
+ * - `Sparkles`: Drei's `Sparkles`: `count` glowing motes scattered through a box of
+ *   `scale`, drifting by `noise` at `speed`.
+ * - `Stars`: Drei's `Stars`: `count` stars in a shell from `radius` to `radius + depth`,
+ *   `factor` sizing them, twinkling at `speed`, `fade` softening their edges.
+ */
+export type PointLook =
+  | {
+      readonly _tag: 'Dots';
+      readonly positions: ReadonlyArray<Vec3>;
+      readonly colors: ReadonlyArray<Rgb> | null;
+      readonly sizes: ReadonlyArray<number> | null;
+      readonly color: Rgb;
+      readonly size: number;
+      readonly sizeAttenuation: boolean;
+      readonly round: boolean;
+      readonly opacity: number;
+      readonly transparent: boolean;
+    }
+  | {
+      readonly _tag: 'Sparkles';
+      readonly count: number;
+      readonly speed: number;
+      readonly opacity: number;
+      readonly scale: Vec3;
+      /** Each mote's size, or `null` for Drei's: random, up to 1. */
+      readonly size: number | null;
+      readonly color: Rgb;
+      readonly noise: Vec3;
+      readonly seed: number;
+    }
+  | {
+      readonly _tag: 'Stars';
+      readonly radius: number;
+      readonly depth: number;
+      readonly count: number;
+      readonly factor: number;
+      readonly saturation: number;
+      readonly fade: boolean;
+      readonly speed: number;
+      readonly seed: number;
+    };
+
 /** Any node in a scene. Keys are unique across the whole scene. */
 export type SceneNode =
+  | PointsNode
   | LineNode
   | GridNode
   | ShaderGridNode

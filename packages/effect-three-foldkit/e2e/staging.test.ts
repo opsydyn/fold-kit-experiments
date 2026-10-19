@@ -86,6 +86,10 @@ for (const renderer of renderers) {
     Reflect.get(globalThis, '__staging').showLines();
   }
 
+  function showPoints(): void {
+    Reflect.get(globalThis, '__staging').showPoints();
+  }
+
   /** The pixel's RGB at a canvas pixel. */
   const rgbAt = (png: PNG, x: number, y: number): readonly [number, number, number] => {
     const i = (y * png.width + x) * 4;
@@ -114,6 +118,30 @@ for (const renderer of renderers) {
     expect(rgbAt(png, 260, 230)).toEqual([255, 255, 255]);
     // The plane is 8 across: beyond x = 360 (4 units) there are no lines.
     expect(rgbAt(png, 380, 230)).toEqual([255, 255, 255]);
+    expect(errors).toEqual([]);
+    await page.close();
+  }, 60_000);
+
+  test(`${renderer.name}: a point is a round dot as many pixels across as its size`, async () => {
+    const page = await browser.newPage({ viewport: { width: 500, height: 500 } });
+    const errors: Array<string> = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') errors.push(message.text());
+    });
+    await page.goto(app.url(renderer.page));
+    await page.waitForFunction(stagingReady);
+    await page.evaluate(showPoints);
+    await frames(page);
+    const png = PNG.sync.read(await page.locator('canvas').screenshot());
+    const isRed = ([r, g]: readonly [number, number, number]) => r > 200 && g < 80;
+    // 40 pixels across at the middle (200, 200): red at its middle and 15 pixels out.
+    expect(isRed(rgbAt(png, 200, 200))).toBe(true);
+    expect(isRed(rgbAt(png, 215, 200))).toBe(true);
+    // Round: 15 pixels out on a diagonal (21 from the middle) is past its edge.
+    expect(rgbAt(png, 215, 215)).toEqual([255, 255, 255]);
+    // Beyond its size, the floor.
+    expect(rgbAt(png, 225, 200)).toEqual([255, 255, 255]);
     expect(errors).toEqual([]);
     await page.close();
   }, 60_000);

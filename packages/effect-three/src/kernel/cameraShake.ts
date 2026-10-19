@@ -15,20 +15,10 @@ import { SimplexNoise } from 'three/addons/math/SimplexNoise.js';
 
 import type { CameraShake } from './description.ts';
 import { cameraShakeEquals } from './equality.ts';
+import { seededRandom } from './seeded.ts';
 
-/** A small seeded generator (mulberry32), so the noise is the same on every page load. */
-const seeded = (seed: number): { readonly random: () => number } => {
-  let state = seed >>> 0;
-  return {
-    random: () => {
-      state = (state + 0x6d2b79f5) >>> 0;
-      let t = state;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    },
-  };
-};
+/** Each axis's noise, seeded so the shake is the same on every page load. */
+const seeded = (seed: number) => ({ random: seededRandom(seed) });
 
 const yawNoise = new SimplexNoise(seeded(1));
 const pitchNoise = new SimplexNoise(seeded(2));

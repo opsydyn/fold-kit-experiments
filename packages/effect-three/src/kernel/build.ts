@@ -351,6 +351,7 @@ export const basic = (options: Partial<Omit<BasicMaterial, '_tag'>> = {}): Basic
   transparent: options.transparent ?? false,
   side: options.side ?? 'front',
   wireframe: options.wireframe ?? false,
+  depthTest: options.depthTest ?? true,
 });
 
 /**

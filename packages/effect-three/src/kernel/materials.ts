@@ -108,6 +108,9 @@ const applyBasic = (
   textures: Textures,
 ): void => {
   material.color.setHex(description.color);
+  // Drawn over everything when not depth-tested, and leaving no depth behind.
+  material.depthTest = description.depthTest;
+  material.depthWrite = description.depthTest;
   const mapChanged = applyMap(material, description.map, textures);
   if (applySurface(material, description) || mapChanged) material.needsUpdate = true;
 };

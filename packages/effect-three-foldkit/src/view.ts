@@ -44,6 +44,9 @@ export type DragDetail = typeof SceneSchema.DragDetail.Type;
  */
 export type Gesture = typeof SceneSchema.Gesture.Type;
 
+/** Detail of the end of a gesture that moved: the press's button, modifiers, mesh and view. */
+export type GestureEndDetail = typeof SceneSchema.GestureEndDetail.Type;
+
 /** Detail of collision events: the two bodies' keys, and whether they began touching. */
 export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 
@@ -119,6 +122,11 @@ export type ViewConfig<Message> = {
    * the camera stays in the Model.
    */
   readonly onGesture?: (gesture: Gesture) => Message;
+  /**
+   * A gesture that moved has ended (released, or the pointer left): finish what it drew,
+   * such as a `BoxSelect` box. Not after a press that never moved.
+   */
+  readonly onGestureEnd?: (detail: GestureEndDetail) => Message;
   /**
    * A gesture is about to begin on a camera turning by itself (`autoRotate`): keep where
    * it got to with `autoRotated(model.camera, detail)` (a view's camera when `view` names
@@ -239,6 +247,7 @@ export const view = <Message>(
     Option.map(given(config.onGesture), (toMessage) =>
       element.OnSceneGesture((detail) => toMessage(detail.gesture)),
     ),
+    Option.map(given(config.onGestureEnd), element.OnSceneGestureEnd),
     Option.map(given(config.onPerformanceChange), element.OnScenePerformance),
     Option.map(given(config.onError), element.OnSceneError),
     Option.map(given(config.onReconciled), element.OnSceneReconciled),

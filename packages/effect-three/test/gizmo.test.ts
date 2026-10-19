@@ -17,6 +17,7 @@ import {
   gizmoHandleOf,
   gizmoNodes,
   hoverGizmo,
+  movedAlike,
   perspectiveCamera,
   type Placement,
   pressGizmo,
@@ -163,4 +164,17 @@ test('a gizmo draws keyed, pickable handles, highlights what is held, and lets g
   expect(held.grab?.handle).toBe('x');
   expect(releaseGizmo(held).grab).toBeNull();
   expect(dragGizmo(releaseGizmo(held), rayAt(...drag))).toBeUndefined();
+});
+
+test('others move alike: the same offset, turn in place and change of scale', () => {
+  const from: Placement = { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] };
+  const to: Placement = { position: [1, 2, 0], rotation: [0, Math.PI / 2, 0], scale: [2, 1, 1] };
+  const other: Placement = { position: [5, 0, 0], rotation: [0, 0, 0], scale: [1, 3, 1] };
+  expectClose(movedAlike(from, to, other), {
+    position: [6, 2, 0],
+    rotation: [0, Math.PI / 2, 0],
+    scale: [2, 3, 1],
+  });
+  // A drag that changed nothing leaves the other where it was.
+  expectClose(movedAlike(tilted, tilted, other), other);
 });

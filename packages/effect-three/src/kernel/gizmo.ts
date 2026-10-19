@@ -270,6 +270,25 @@ export const dragGizmo = (state: Gizmo, ray: Ray): Placement | undefined => {
   return rotated(state, grab, end);
 };
 
+/**
+ * `other` moved as a drag moved one thing from `from` to `to`, for a gizmo over several
+ * selected things: the same offset, the same turn (in world space) about its own centre,
+ * and the same change of scale along its own axes, as editors' "individual origins".
+ */
+export const movedAlike = (from: Placement, to: Placement, other: Placement): Placement => {
+  const turn = turnOf(to.rotation).multiply(turnOf(from.rotation).invert());
+  const turned = new Euler().setFromQuaternion(turn.multiply(turnOf(other.rotation)).normalize());
+  const ratio = (axis: 0 | 1 | 2): number =>
+    from.scale[axis] === 0 ? 1 : to.scale[axis] / from.scale[axis];
+  const shifted = (axis: 0 | 1 | 2): number =>
+    other.position[axis] + to.position[axis] - from.position[axis];
+  return {
+    position: [shifted(0), shifted(1), shifted(2)],
+    rotation: [turned.x, turned.y, turned.z],
+    scale: [other.scale[0] * ratio(0), other.scale[1] * ratio(1), other.scale[2] * ratio(2)],
+  };
+};
+
 // DRAWING
 
 const colours = {

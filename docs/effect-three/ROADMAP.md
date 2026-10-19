@@ -270,8 +270,13 @@ Effect owns every lifetime.
    scale and snaps; `basic({ depthTest: false })` draws its handles over everything, as
    three's are. The adapter's `TransformGizmo` is the Foldkit submodel: Messages in,
    `Moved` and `Finished` OutMessages out, the parent keeping every placement. The
-   promo's arrange example selects, moves, turns, scales, snaps and undoes. Next: box
-   select, then the pivot and viewport gizmos.
+   promo's arrange example selects, moves, turns, scales, snaps and undoes.
+   ✅ Then box select (three's `SelectionBox`, which Drei's `Select` wraps). The core's
+   `boxSelect` is pure, checked against three's box for perspective and orthographic
+   cameras; a new `GestureEnd` scene event ends a drag that began on nothing. The
+   adapter's `BoxSelect` submodel draws the box from shift-drags and reports `Selected`;
+   `movedAlike` lets one gizmo move a whole selection. Next: the pivot and viewport
+   gizmos.
 6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
@@ -284,9 +289,9 @@ collaboration, 3 for the assistant).
 ### Recommendation
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
-(3), labels under WebGPU (E), the line and points families and the transform gizmo (5)
-are done. Next: box select and the other widgets of 5, then tooling from Schema (4)
-toward the scene editor.
+(3), labels under WebGPU (E), the line and points families, the transform gizmo and box
+select (5) are done. Next: the other widgets of 5, then tooling from Schema (4) toward
+the scene editor.
 
 ## Not planned
 

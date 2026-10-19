@@ -12,6 +12,7 @@ export const Message = defineMessageUnion({
   HoveredScene: { key: Schema.String },
   LeftScene: { key: Schema.String },
   MadeGesture: { gesture: SceneSchema.Gesture },
+  EndedGesture: {},
   ChoseMode: { mode: Schema.Literals(['translate', 'rotate', 'scale']) },
   ClickedSpace: {},
   ClickedSnapping: {},

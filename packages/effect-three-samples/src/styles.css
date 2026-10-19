@@ -192,3 +192,17 @@
 .e3-table thead th:first-child {
   text-align: left;
 }
+
+/* A selection box over a stage: the area holds the stage and the box's outline. */
+.e3-select-area {
+  position: relative;
+}
+
+.e3-select-box {
+  position: absolute;
+  /* The stage's border: the box is placed in the canvas's pixels. */
+  margin: 1px;
+  border: 1px dashed var(--fg, #e8e8f0);
+  background: color-mix(in srgb, var(--blue, #3d79fa) 14%, transparent);
+  pointer-events: none;
+}

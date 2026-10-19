@@ -41,7 +41,13 @@ vertexColors, segments })`, drawn by the render kit (empty without one); curves 
 camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` names,
   send `Pressed` with the ray, the placement and the camera; send `Dragged` for drag
   rays and `Released` at the end; apply the `Moved` OutMessage's placement and record
-  history on `Finished`. Don't orbit while `TransformGizmo.held`.
+  history on `Finished`. Don't orbit while `TransformGizmo.held`. For several selected
+  things, place the rest with `movedAlike(firstBefore, placement, otherBefore)`.
+- **Box select:** keep `BoxSelect.Model` in your Model; for a `Drag` gesture
+  `BoxSelect.claims`, send `BoxSelect.dragOf(gesture)` instead of orbiting; on
+  `onGestureEnd` send `Ended` with the camera and `{ key, at }` for each selectable
+  thing, and take `Selected { keys }` as the new selection. `BoxSelect.rectangle` places
+  an HTML outline over the canvas; `BoxSelect.inside` marks what the box holds so far.
 - **Points:** `points({ key, positions, colors, sizes, size, round })`, `sparkles({ key,
 count, spread, size, color, seed })` and `stars({ key, radius, depth, count, fade, seed
 })`, drawn by the render kit; sparkles and stars move in scene time (frozen under

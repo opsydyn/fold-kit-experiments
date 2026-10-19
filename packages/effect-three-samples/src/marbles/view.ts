@@ -1,8 +1,7 @@
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
-import { rendererNote } from '../notice';
-import { notice, sceneMount } from './environment';
+import { sceneMount } from './environment';
 import { Message } from './message';
 import type { Model } from './model';
 import { sceneFor } from './scene';
@@ -37,7 +36,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
         },
         h,
       ),
-      ...rendererNote(h, notice),
       h.dl(
         [h.Class('e3-stats')],
         [

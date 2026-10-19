@@ -31,7 +31,7 @@ one core per application. They are `0.x`: a breaking change bumps the minor vers
 | Run a scene with Effect services and a frame source    | `@opsydyn/effect-three` (`SceneRuntime`, `FrameSource`, `ResourceRegistry`)   |
 | Show a scene in a Foldkit view, events as Messages     | `@opsydyn/effect-three-foldkit` (`makeEnvironment`, `makeSceneMount`, `view`) |
 | Rigid bodies, joints, collisions                       | `@opsydyn/effect-three-rapier` (`loadRapier()` as the environment's physics)  |
-| Distance-field labels                                  | `@opsydyn/effect-three-troika` (`troikaLabels()` as the environment's labels) |
+| Distance-field labels                                  | `@opsydyn/effect-three-troika` (`troikaLabels()` as the environment's labels; from `/webgpu` to draw under WebGPU too) |
 | Sky, shader grid, contact shadows on a custom renderer | `@opsydyn/effect-three/webgl` or `/webgpu` render kits                        |
 
 Install Rapier and troika only on pages that need them; Rapier embeds WebAssembly.

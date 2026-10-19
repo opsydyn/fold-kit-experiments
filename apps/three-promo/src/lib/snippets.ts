@@ -160,8 +160,11 @@ store.lendTexture('bricks', texture);     // standard({ map: 'bricks' })
 store.lendGeometry('terrain', geometry);  // mesh({ geometry: lentGeometry('terrain') })`;
 
 export const renderers = `import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
+// Draws labels with either renderer: node materials (TSL) under WebGPU.
+import { troikaLabels } from '@opsydyn/effect-three-troika/webgpu';
 
 // WebGPU where the browser has it, its WebGL 2 backend otherwise.
 const environment = EffectThreeFoldkit.makeEnvironment(window, {
   renderer: EffectThreeFoldkit.webgpuRendererFactory, // one per canvas
+  labels: troikaLabels(),
 });`;

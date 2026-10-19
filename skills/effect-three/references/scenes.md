@@ -75,8 +75,9 @@ colorRanges, curveRadius, material })`. Give each a font URL (TTF, OTF or WOFF;
 ## Renderers
 
 `webglRendererFactory` is the default. `webgpuRendererFactory` uses three's
-`WebGPURenderer` (real WebGPU, or its WebGL 2 backend); labels are not drawn under it,
-and WebXR on it is untested. Pass the factory as `makeEnvironment(window, { renderer })`.
+`WebGPURenderer` (real WebGPU, or its WebGL 2 backend); WebXR on it is untested. Labels
+draw under it with `troikaLabels` from `@opsydyn/effect-three-troika/webgpu`, which
+draws with either renderer; the root entry's draws only with WebGL. Pass the factory as `makeEnvironment(window, { renderer })`.
 
 ## Agents
 

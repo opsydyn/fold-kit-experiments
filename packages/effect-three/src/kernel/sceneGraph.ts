@@ -32,10 +32,11 @@ import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
 import { type BodyCollision, type BodyContactForce, createBodyHost } from './bodies.ts';
 import { type BodySource, instanceSources, nodeSource, placeObject } from './bodySources.ts';
-import { renderSettings, scene as describeScene } from './build.ts';
+import { orthographicCamera, renderSettings, scene as describeScene } from './build.ts';
 import { type CameraMotion, createCameraMotion } from './cameraMotion.ts';
 import { type CameraShaker, createCameraShaker } from './cameraShake.ts';
 import type {
+  Hud,
   AmbientLightNode,
   BorrowedNode,
   Edges,
@@ -224,6 +225,9 @@ const isSurfaced = (entry: Entry): entry is Surfaced =>
   entry._tag === 'Mesh' || entry._tag === 'Instances';
 
 /** A render texture as hosted: its id, size and the nested graph that draws it. */
+/** The HUD as hosted: its nested graph, drawn over the scene by the frame loop. */
+export type HostedHud = { readonly graph: SceneGraph };
+
 export type HostedTexture = {
   readonly id: string;
   readonly graph: SceneGraph;
@@ -280,6 +284,8 @@ export type SceneGraph = {
   readonly turned: (view: string | undefined) => Vec3 | undefined;
   /** Render textures, each a nested graph to draw into its texture (by the frame loop). */
   readonly renderTextures: () => ReadonlyArray<HostedTexture>;
+  /** The HUD, a nested graph drawn over the scene (by the frame loop), if there is one. */
+  readonly hud: () => HostedHud | undefined;
   /** Whether the scene claims the pointer's gestures from the page. */
   readonly gestures: () => Gestures;
   /** Points to show HTML at; the frame loop places them after drawing. */
@@ -496,6 +502,9 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     { readonly graph: SceneGraph; description: RenderTexture }
   >();
   let textureList: ReadonlyArray<HostedTexture> = [];
+  let hudHosted:
+    | { readonly graph: SceneGraph; description: Hud; parent: SceneDescription }
+    | undefined;
   let viewDescriptions: ReadonlyArray<View> = [];
   let gestures: Gestures = emptyScene.gestures;
   let overlayList: ReadonlyArray<Overlay> = emptyScene.overlays;
@@ -1526,6 +1535,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     gestures: 'page',
     views: [],
     renderTextures: [],
+    hud: null,
     overlays: [],
     environment: null,
     sky: null,
@@ -1537,6 +1547,78 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     resources: parent.resources,
     children: texture.children,
   });
+
+  /**
+   * The HUD's camera: orthographic in CSS pixels, from in front, aimed so that the HUD's
+   * origin falls `margin` in from the aligned edges (as Drei's `GizmoHelper` places its
+   * group). The camera moves rather than the nodes, so their positions stay the Model's.
+   */
+  const hudCamera = (hud: Hud): CameraDescription => {
+    const [marginX, marginY] = hud.margin;
+    const [vertical, horizontal] = hud.alignment.split('-');
+    const across = { left: -viewport.width / 2 + marginX, right: viewport.width / 2 - marginX };
+    const up = { top: viewport.height / 2 - marginY, bottom: -viewport.height / 2 + marginY };
+    const x = across[horizontal as keyof typeof across] ?? 0;
+    const y = up[vertical as keyof typeof up] ?? 0;
+    return orthographicCamera({
+      zoom: 1,
+      near: 0.1,
+      far: 2000,
+      position: [-x, -y, 200],
+      lookAt: [-x, -y, 0],
+    });
+  };
+
+  /** The HUD as a scene of its own, sharing the parent's resources. */
+  const hudScene = (hud: Hud, parent: SceneDescription): SceneDescription =>
+    textureScene(
+      {
+        id: 'hud',
+        width: viewport.width,
+        height: viewport.height,
+        camera: hudCamera(hud),
+        background: null,
+        children: hud.children,
+      },
+      parent,
+    );
+
+  /**
+   * Brings the HUD in line with the description, `parent` the scene it is over: a nested
+   * graph on the same store, created, reconciled, re-aimed or disposed.
+   */
+  const syncHud = (next: SceneDescription): ReadonlyArray<Op> => {
+    if (next.hud === null) {
+      if (hudHosted === undefined) return [];
+      hudHosted.graph.dispose();
+      hudHosted = undefined;
+      return [{ _tag: 'RemoveHud' }];
+    }
+    const created = hudHosted === undefined;
+    const hosted = hudHosted ?? {
+      graph: createSceneGraph({
+        store,
+        ...(options.behaviours === undefined ? {} : { behaviours: options.behaviours }),
+        ...(options.kit === undefined ? {} : { kit: options.kit }),
+      }),
+      description: next.hud,
+      parent: next,
+    };
+    if (created) hosted.graph.resize(viewport.width, viewport.height);
+    const result = hosted.graph.reconcile(hudScene(next.hud, next));
+    hosted.description = next.hud;
+    hosted.parent = next;
+    hudHosted = hosted;
+    const ops = result._tag === 'Applied' ? result.ops : [];
+    return created || ops.length > 0 ? [{ _tag: 'UpdateHud', ops }] : [];
+  };
+
+  /** The HUD fitted to a resized canvas: its camera re-aimed at the aligned point. */
+  const refitHud = (): void => {
+    if (hudHosted === undefined) return;
+    hudHosted.graph.resize(viewport.width, viewport.height);
+    hudHosted.graph.reconcile(hudScene(hudHosted.description, hudHosted.parent));
+  };
 
   /** A hosted render texture as the loop sees it; none if it is not hosted. */
   function hostedTexture(texture: RenderTexture): ReadonlyArray<HostedTexture> {
@@ -1598,6 +1680,10 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       const checked = indexScene(textureScene(texture, next), knownBehaviours);
       if (checked._tag === 'Invalid') return checked;
     }
+    if (next.hud !== null) {
+      const checked = indexScene(hudScene(next.hud, next), knownBehaviours);
+      if (checked._tag === 'Invalid') return checked;
+    }
     const result = diff(index, next, knownBehaviours);
     if (result._tag === 'Invalid') return result;
     for (const op of result.ops) apply(op);
@@ -1631,7 +1717,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // Measured after the next drawn frame; a new list needs one.
     if (next.measure.join('\u0000') !== measured.join('\u0000')) invalidate();
     measured = next.measure;
-    const ops = [...result.ops, ...syncTextures(next)];
+    const ops = [...result.ops, ...syncTextures(next), ...syncHud(next)];
     if (ops.length > 0) invalidate();
     return { _tag: 'Applied', ops };
   };
@@ -1644,6 +1730,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const tick = (elapsedSeconds: number): void => {
     elapsed = elapsedSeconds;
     for (const texture of textureList) texture.graph.tick(elapsedSeconds);
+    hudHosted?.graph.tick(elapsedSeconds);
     for (const entry of spinning) {
       if (isPlaced(entry)) {
         writeRotation(entry.object.rotation, entry.node.rotation, elapsed);
@@ -1684,6 +1771,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const setAnimating = (next: boolean): void => {
     if (next !== animating) invalidate();
     for (const texture of textureList) texture.graph.setAnimating(next);
+    hudHosted?.graph.setAnimating(next);
     animating = next;
     if (next) return;
     moving.forEach(finishTween);
@@ -1698,6 +1786,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     for (const texture of textureList) texture.graph.dispose();
     textureGraphs.clear();
     textureList = [];
+    hudHosted?.graph.dispose();
+    hudHosted = undefined;
     for (const entry of entries.values()) {
       entry.object.removeFromParent();
       release(entry);
@@ -1728,6 +1818,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       return viewMotions.get(view)?.turned();
     },
     renderTextures: () => textureList,
+    hud: () => hudHosted,
     gestures: () => gestures,
     overlays: () => overlayList,
     environment: () => environmentDescription,
@@ -1758,6 +1849,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       dirty ||
       trailsMoving() ||
       textureList.some((texture) => texture.graph.needsFrame()) ||
+      (hudHosted?.graph.needsFrame() ?? false) ||
       (animating &&
         (spinning.size > 0 ||
           moving.size > 0 ||
@@ -1794,6 +1886,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
       viewport = { width, height };
       fitCamera(camera, viewport);
       hostViews(viewDescriptions);
+      refitHud();
       invalidate();
     },
     dispose,

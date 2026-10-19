@@ -215,6 +215,11 @@ export const createSceneLoop = (options: SceneLoopOptions): SceneLoop => {
       const views = graph.views();
       if (views.length === 0) renderer.render(graph.scene, graph.camera);
       for (const view of views) renderer.render(graph.scene, view.camera, view.area);
+      const hud = graph.hud();
+      if (hud !== undefined && renderer.renderOver !== undefined) {
+        renderer.renderOver(hud.graph.scene, hud.graph.camera);
+        hud.graph.drawn();
+      }
       graph.drawn();
       measure();
       const overlays = graph.overlays();

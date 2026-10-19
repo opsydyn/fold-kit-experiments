@@ -71,6 +71,17 @@ selectable)` takes the candidates from the Model and returns their keys, matchin
   of a selection as the gizmo moved the first. Evidence: `test/boxSelect.test.ts`
   (three's box as the oracle), `test/gestures.test.ts`, the adapter's
   `boxSelect.test.ts`, the arrange sample.
+- Since added (2026-10-19): the viewport gizmo, the same way. Drei's `GizmoHelper`
+  copies the inverse of the camera's matrix onto its group every frame and tweens the
+  camera on a press; here `viewportGizmoNodes(key, camera)` turns the axes by the
+  Model's camera, and `cameraAlong(camera, axis)` is where the tween ends, for the Model
+  to keep (a camera's `damping` eases it round). It is drawn in the new `hud`, Drei's
+  `Hud` as data: a nested graph drawn over the scene with only depth cleared
+  (`renderOver` in both render kits), through an orthographic camera in CSS pixels
+  aimed so the HUD's origin sits `margin` in from its `alignment`, and picked before the
+  scene. The gizmo follows the Model's camera, so a damped camera arrives after it.
+  Evidence: `test/hud.test.ts`, `test/viewportGizmo.test.ts` (Drei's turn as the
+  oracle), the adapter's `viewportGizmo.test.ts`, the arrange sample.
 - Since added: `autoRotate` on a camera, after `OrbitControls.autoRotate` (`rotateLeft` by
   `2π / 60 * autoRotateSpeed` a second, only while no gesture is in progress). The
   rendered camera turns round its target in scene time, holding still while a gesture is

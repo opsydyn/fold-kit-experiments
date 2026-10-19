@@ -24,7 +24,7 @@ import {
   standard,
   torus,
 } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo } from '@opsydyn/effect-three-foldkit';
+import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
 import { Array as Arr, Option } from 'effect';
 
 import type { Kind, Model, Thing } from './model';
@@ -89,6 +89,7 @@ export const sceneFor = (model: Model) => {
   return scene({
     camera: model.camera,
     gestures: 'scene',
+    hud: ViewportGizmo.hud(model.view, model.camera),
     environment: environment({ environmentIntensity: 0.4 }),
     render: renderSettings({ shadows: 'soft', toneMapping: 'aces' }),
     children: [

@@ -275,8 +275,13 @@ Effect owns every lifetime.
    `boxSelect` is pure, checked against three's box for perspective and orthographic
    cameras; a new `GestureEnd` scene event ends a drag that began on nothing. The
    adapter's `BoxSelect` submodel draws the box from shift-drags and reports `Selected`;
-   `movedAlike` lets one gizmo move a whole selection. Next: the pivot and viewport
-   gizmos.
+   `movedAlike` lets one gizmo move a whole selection.
+   ✅ Then the viewport gizmo (Drei's `GizmoHelper` with `GizmoViewport`), on a new
+   `hud` (Drei's `Hud`): nodes drawn over the scene with their own camera in CSS
+   pixels, anchored to a corner, picked first. `viewportGizmoNodes` turns with the
+   camera as Drei's does (checked against the inverse of three's camera matrix), and
+   the adapter's `ViewportGizmo` reports `Turned { camera }` from `cameraAlong`; a
+   damped camera eases round as Drei's tween. Next: the pivot controls.
 6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
@@ -289,8 +294,8 @@ collaboration, 3 for the assistant).
 ### Recommendation
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
-(3), labels under WebGPU (E), the line and points families, the transform gizmo and box
-select (5) are done. Next: the other widgets of 5, then tooling from Schema (4) toward
+(3), labels under WebGPU (E), the line and points families, the transform gizmo, box
+select and the viewport gizmo (5) are done. Next: the other widgets of 5, then tooling from Schema (4) toward
 the scene editor.
 
 ## Not planned

@@ -17,6 +17,8 @@ import { gizmo } from '@opsydyn/effect-three';
 import { GizmoHandle } from '@opsydyn/effect-three';
 import type { Html } from 'foldkit/html';
 import type { HtmlBuilder } from 'foldkit/html';
+import { Hud } from '@opsydyn/effect-three';
+import { HudAlignment } from '@opsydyn/effect-three';
 import { LabelEngine } from '@opsydyn/effect-three';
 import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
@@ -36,6 +38,7 @@ import type { SceneEvent } from '@opsydyn/effect-three';
 import { SceneNode } from '@opsydyn/effect-three';
 import type { SceneSchema } from '@opsydyn/effect-three';
 import { Schema } from 'effect';
+import { ViewAxis } from '@opsydyn/effect-three';
 import { VoidIfEmpty } from 'effect/Types';
 import { WebGLRendererParameters } from 'three';
 import type { Xr } from '@opsydyn/effect-three';
@@ -63,6 +66,9 @@ export type Assets = ReturnType<typeof makeAssets>;
 
 // @public
 export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
+
+// @public
+const axisOf: (model: Model_3, key: string) => Option_2.Option<ViewAxis>;
 
 // @public
 const Box: Schema.Struct<{
@@ -195,10 +201,21 @@ const held: (model: Model_2) => boolean;
 export type HitDetail = typeof SceneSchema.HitDetail.Type;
 
 // @public
+const hud: (model: Model_3, camera: Camera, placement?: {
+    readonly alignment?: HudAlignment;
+    readonly margin?: readonly [number, number];
+}) => Hud;
+
+// @public
 const init: () => Model;
 
 // @public
 const init_2: (key: string, options?: Parameters<typeof gizmo>[0]) => Model_2;
+
+// @public
+const init_3: (key: string, options?: {
+    readonly hideNegativeAxes?: boolean;
+}) => Model_3;
 
 // Warning: (ae-forgotten-export) The symbol "Selectables" needs to be exported by the entry point index.d.ts
 //
@@ -394,6 +411,63 @@ space: Schema.Literals<readonly ["world", "local"]>;
 // @public (undocumented)
 type Message_2 = typeof Message_2.Type;
 
+// @public (undocumented)
+const Message_3: MessageUnion<    {
+readonly Entered: {
+key: Schema.String;
+};
+readonly Left: {
+key: Schema.String;
+};
+readonly Pressed: {
+key: Schema.String;
+camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+readonly fov: Schema.Finite;
+readonly near: Schema.Finite;
+readonly far: Schema.Finite;
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly damping: Schema.Finite;
+readonly autoRotate: Schema.Finite;
+readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+readonly intensity: Schema.Finite;
+readonly decay: Schema.Boolean;
+readonly decayRate: Schema.Finite;
+readonly maxYaw: Schema.Finite;
+readonly maxPitch: Schema.Finite;
+readonly maxRoll: Schema.Finite;
+readonly yawFrequency: Schema.Finite;
+readonly pitchFrequency: Schema.Finite;
+readonly rollFrequency: Schema.Finite;
+readonly trigger: Schema.Finite;
+}>>, never>;
+}>, Schema.TaggedStruct<"Orthographic", {
+readonly zoom: Schema.Finite;
+readonly near: Schema.Finite;
+readonly far: Schema.Finite;
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly damping: Schema.Finite;
+readonly autoRotate: Schema.Finite;
+readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+readonly intensity: Schema.Finite;
+readonly decay: Schema.Boolean;
+readonly decayRate: Schema.Finite;
+readonly maxYaw: Schema.Finite;
+readonly maxPitch: Schema.Finite;
+readonly maxRoll: Schema.Finite;
+readonly yawFrequency: Schema.Finite;
+readonly pitchFrequency: Schema.Finite;
+readonly rollFrequency: Schema.Finite;
+readonly trigger: Schema.Finite;
+}>>, never>;
+}>]>;
+};
+}>;
+
+// @public (undocumented)
+type Message_3 = typeof Message_3.Type;
+
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
 
@@ -456,6 +530,16 @@ const Model_2: Schema.Struct<{
 // @public (undocumented)
 type Model_2 = typeof Model_2.Type;
 
+// @public (undocumented)
+const Model_3: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly hovered: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "-x", "-y", "-z"]>>;
+    readonly hideNegativeAxes: Schema.Boolean;
+}>;
+
+// @public (undocumented)
+type Model_3 = typeof Model_3.Type;
+
 // @public
 export type ModelInfo = {
     readonly id: string;
@@ -465,6 +549,9 @@ export type ModelInfo = {
 
 // @public
 const nodes: (model: Model_2, placement: Placement, camera: Camera) => SceneNode;
+
+// @public
+const nodes_2: (model: Model_3, camera: Camera) => SceneNode;
 
 // @public (undocumented)
 const OutMessage: MessageUnion<    {
@@ -496,6 +583,56 @@ readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Fini
 
 // @public (undocumented)
 type OutMessage_2 = typeof OutMessage_2.Type;
+
+// @public (undocumented)
+const OutMessage_3: MessageUnion<    {
+readonly Turned: {
+camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+readonly fov: Schema.Finite;
+readonly near: Schema.Finite;
+readonly far: Schema.Finite;
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly damping: Schema.Finite;
+readonly autoRotate: Schema.Finite;
+readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+readonly intensity: Schema.Finite;
+readonly decay: Schema.Boolean;
+readonly decayRate: Schema.Finite;
+readonly maxYaw: Schema.Finite;
+readonly maxPitch: Schema.Finite;
+readonly maxRoll: Schema.Finite;
+readonly yawFrequency: Schema.Finite;
+readonly pitchFrequency: Schema.Finite;
+readonly rollFrequency: Schema.Finite;
+readonly trigger: Schema.Finite;
+}>>, never>;
+}>, Schema.TaggedStruct<"Orthographic", {
+readonly zoom: Schema.Finite;
+readonly near: Schema.Finite;
+readonly far: Schema.Finite;
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly damping: Schema.Finite;
+readonly autoRotate: Schema.Finite;
+readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+readonly intensity: Schema.Finite;
+readonly decay: Schema.Boolean;
+readonly decayRate: Schema.Finite;
+readonly maxYaw: Schema.Finite;
+readonly maxPitch: Schema.Finite;
+readonly maxRoll: Schema.Finite;
+readonly yawFrequency: Schema.Finite;
+readonly pitchFrequency: Schema.Finite;
+readonly rollFrequency: Schema.Finite;
+readonly trigger: Schema.Finite;
+}>>, never>;
+}>]>;
+};
+}>;
+
+// @public (undocumented)
+type OutMessage_3 = typeof OutMessage_3.Type;
 
 // @public
 export type OverlayView = {
@@ -703,6 +840,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly background: Schema.NullOr<Schema.Int>;
             readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
         }>>;
+        readonly hud: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+            readonly alignment: Schema.Literals<readonly ["top-left", "top-center", "top-right", "center-left", "center-center", "center-right", "bottom-left", "bottom-center", "bottom-right"]>;
+            readonly margin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+            readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
+        }>>, never>;
         readonly overlays: Schema.$Array<Schema.Struct<{
             readonly key: Schema.String;
             readonly node: Schema.NullOr<Schema.String>;
@@ -1412,6 +1554,11 @@ const update: (model: Model, message: Message) => Return;
 // @public (undocumented)
 const update_2: (model: Model_2, message: Message_2) => Return_2;
 
+// Warning: (ae-forgotten-export) The symbol "Return_3" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+const update_3: (model: Model_3, message: Message_3) => Return_3;
+
 // @public
 export const view: <Message>(config: ViewConfig<NoInfer<Message>>, h: HtmlBuilder<Message>) => Html;
 
@@ -1454,6 +1601,19 @@ export type ViewConfig<Message> = {
     readonly overlays?: ReadonlyArray<OverlayView>;
     readonly className?: string;
 };
+
+declare namespace ViewportGizmo {
+    export {
+        Model_3 as Model,
+        Message_3 as Message,
+        OutMessage_3 as OutMessage,
+        init_3 as init,
+        axisOf,
+        update_3 as update,
+        nodes_2 as nodes,
+        hud
+    }
+}
 
 // @public
 export type WebGLOptions = Omit<WebGLRendererParameters, 'canvas'>;

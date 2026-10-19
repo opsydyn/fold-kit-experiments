@@ -538,6 +538,9 @@ const Camera_3: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
     }>>, never>;
 }>]>;
 
+// @public
+export const cameraAlong: <C extends Camera>(camera: C, axis: ViewAxis) => C;
+
 // @public (undocumented)
 export const cameraEquals: (a: Camera, b: Camera) => boolean;
 
@@ -1852,7 +1855,7 @@ export type HostedSky = {
     readonly dispose: () => void;
 };
 
-// @public
+// @public (undocumented)
 export type HostedTexture = {
     readonly id: string;
     readonly graph: SceneGraph;
@@ -1883,6 +1886,33 @@ export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
 
 // @public
 export const hoverGizmo: (state: Gizmo, handle: GizmoHandle | null) => Gizmo;
+
+// @public
+export type Hud = {
+    readonly alignment: HudAlignment;
+    readonly margin: readonly [number, number];
+    readonly children: ReadonlyArray<SceneNode>;
+};
+
+// @public
+export const hud: (options: {
+    readonly alignment?: HudAlignment;
+    readonly margin?: readonly [number, number];
+    readonly children?: ReadonlyArray<SceneNode>;
+}) => Hud;
+
+// @public
+const Hud_2: Schema.Struct<{
+    readonly alignment: Schema.Literals<readonly ["top-left", "top-center", "top-right", "center-left", "center-center", "center-right", "bottom-left", "bottom-center", "bottom-right"]>;
+    readonly margin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+    readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
+}>;
+
+// @public
+export type HudAlignment = 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center-center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+
+// @public
+const HudAlignment_2: Schema.Literals<readonly ["top-left", "top-center", "top-right", "center-left", "center-center", "center-right", "bottom-left", "bottom-center", "bottom-right"]>;
 
 // @public
 export type IndexedNode = {
@@ -3181,6 +3211,13 @@ export type Op = {
 } | {
     readonly _tag: 'RemoveRenderTexture';
     readonly id: string;
+}
+/** The HUD was created or its scene changed (its own operations). */
+| {
+    readonly _tag: 'UpdateHud';
+    readonly ops: ReadonlyArray<Op>;
+} | {
+    readonly _tag: 'RemoveHud';
 } | {
     readonly _tag: 'SetRenderSettings';
     readonly settings: RenderSettings;
@@ -4482,6 +4519,7 @@ export const scene: (options: {
     readonly gestures?: Gestures;
     readonly views?: ReadonlyArray<View>;
     readonly renderTextures?: ReadonlyArray<RenderTexture>;
+    readonly hud?: Hud | null;
     readonly overlays?: ReadonlyArray<Overlay>;
     readonly environment?: Environment | null;
     readonly sky?: Sky | null;
@@ -4507,6 +4545,7 @@ export type SceneDescription = {
     readonly gestures: Gestures;
     readonly views: ReadonlyArray<View>;
     readonly renderTextures: ReadonlyArray<RenderTexture>;
+    readonly hud: Hud | null;
     readonly overlays: ReadonlyArray<Overlay>;
     readonly environment: Environment | null;
     readonly sky: Sky | null;
@@ -4661,6 +4700,11 @@ const SceneDescription_2: Schema.Struct<{
         readonly background: Schema.NullOr<Schema.Int>;
         readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
     }>>;
+    readonly hud: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+        readonly alignment: Schema.Literals<readonly ["top-left", "top-center", "top-right", "center-left", "center-center", "center-right", "bottom-left", "bottom-center", "bottom-right"]>;
+        readonly margin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite]>;
+        readonly children: Schema.$Array<Schema.Codec<SceneNode, unknown, never, never>>;
+    }>>, never>;
     readonly overlays: Schema.$Array<Schema.Struct<{
         readonly key: Schema.String;
         readonly node: Schema.NullOr<Schema.String>;
@@ -5364,6 +5408,7 @@ export type SceneGraph = {
     readonly holdCameras: (held: boolean) => void;
     readonly turned: (view: string | undefined) => Vec3 | undefined;
     readonly renderTextures: () => ReadonlyArray<HostedTexture>;
+    readonly hud: () => HostedHud | undefined;
     readonly gestures: () => Gestures;
     readonly overlays: () => ReadonlyArray<Overlay>;
     readonly environment: () => Environment | null;
@@ -5444,6 +5489,7 @@ const SceneNode_2: Schema.Codec<SceneNode, unknown>;
 // @public (undocumented)
 export type SceneRenderer = {
     readonly render: (scene: Scene, camera: Camera_2, area?: RenderArea, target?: RenderTarget) => void;
+    readonly renderOver?: (scene: Scene, camera: Camera_2) => void;
     readonly createTarget: (width: number, height: number) => RenderTarget;
     readonly createEnvironment: () => RenderTarget;
     readonly configure: (settings: RenderSettings) => void;
@@ -5543,6 +5589,8 @@ declare namespace SceneSchema {
         RenderSettings_2 as RenderSettings,
         View_2 as View,
         RenderTexture_2 as RenderTexture,
+        HudAlignment_2 as HudAlignment,
+        Hud_2 as Hud,
         Overlay_2 as Overlay,
         Environment_2 as Environment,
         Sky_2 as Sky,
@@ -6318,10 +6366,26 @@ const View_2: Schema.Struct<{
 }>;
 
 // @public
+export type ViewAxis = 'x' | 'y' | 'z' | '-x' | '-y' | '-z';
+
+// @public
 export type Viewport = {
     readonly width: number;
     readonly height: number;
     readonly pixelRatio: number;
+};
+
+// @public
+export const viewportAxisOf: (key: string, hit: string) => ViewAxis | undefined;
+
+// @public
+export const viewportGizmoNodes: (key: string, camera: Camera, options?: Partial<ViewportGizmoOptions>) => SceneNode;
+
+// @public (undocumented)
+export type ViewportGizmoOptions = {
+    readonly size: number;
+    readonly hovered: ViewAxis | null;
+    readonly hideNegativeAxes: boolean;
 };
 
 // @public
@@ -6627,6 +6691,10 @@ const XrSurfaceDetail: Schema.Struct<{
     readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>;
+
+// Warnings were encountered during analysis:
+//
+// src/kernel/sceneGraph.ts:288:3 - (ae-forgotten-export) The symbol "HostedHud" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

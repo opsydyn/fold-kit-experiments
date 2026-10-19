@@ -12,6 +12,7 @@ import {
   mesh,
   orthographicCamera,
   plane,
+  points,
   scene,
   shaderGrid,
   sphere,
@@ -124,6 +125,28 @@ const lineScene = () =>
     ],
   });
 
+/** A red dot 40 pixels across at the origin, round, on the white floor, seen from above. */
+const pointsScene = () =>
+  scene({
+    camera: orthographicCamera({ zoom: 40, position: [0, 10, 0.001], lookAt: [0, 0, 0] }),
+    children: [
+      mesh({
+        key: 'floor',
+        position: [0, -0.01, 0],
+        rotation: fixed([-Math.PI / 2, 0, 0]),
+        geometry: plane({ width: 10, height: 10 }),
+        material: basic({ color: 0xffffff }),
+      }),
+      points({
+        key: 'dot',
+        positions: [[0, 0, 0]],
+        color: 0xff0000,
+        size: 40,
+        sizeAttenuation: false,
+      }),
+    ],
+  });
+
 const element = document.createElement('effect-three-scene');
 element.className = 'scene';
 const bare = stagingScene(Option.none());
@@ -145,4 +168,5 @@ Reflect.set(globalThis, '__staging', {
   },
   showGrid: () => Reflect.set(element, 'scene', gridScene()),
   showLines: () => Reflect.set(element, 'scene', lineScene()),
+  showPoints: () => Reflect.set(element, 'scene', pointsScene()),
 });

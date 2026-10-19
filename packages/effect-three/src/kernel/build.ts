@@ -8,6 +8,10 @@ import { CatmullRomCurve3, Color, CubicBezierCurve3, QuadraticBezierCurve3, Vect
 import type {
   AmbientLightNode,
   LineNode,
+  PointLook,
+  PointsNode,
+  Edges,
+  Trail,
   Animation,
   CameraShake,
   Detail,
@@ -542,6 +546,7 @@ export const group = (
     readonly body?: Body | null;
     readonly follow?: XrSpace | null;
     readonly detail?: Detail | null;
+    readonly trail?: Trail | null;
   },
 ): GroupNode => ({
   _tag: 'Group',
@@ -556,6 +561,7 @@ export const group = (
   body: options.body ?? null,
   follow: options.follow ?? null,
   detail: options.detail ?? null,
+  trail: options.trail ?? null,
 });
 
 /**
@@ -618,6 +624,116 @@ export const line = (
 const asVector = (point: Vec3): Vector3 => new Vector3(point[0], point[1], point[2]);
 const asVec3 = (point: Vector3): Vec3 => [point.x, point.y, point.z];
 
+/** Where a points node sits, as the other placed nodes. */
+type Placing = Pick<
+  TransformOptions,
+  'key' | 'position' | 'rotation' | 'scale' | 'transition' | 'behaviour'
+>;
+
+const placed = (options: Placing, look: PointLook): PointsNode => ({
+  _tag: 'Points',
+  key: options.key,
+  position: options.position ?? origin,
+  rotation: options.rotation ?? noRotation,
+  scale: options.scale ?? unitScale,
+  transition: options.transition ?? instantTransition,
+  behaviour: options.behaviour ?? null,
+  look,
+});
+
+/**
+ * Dots at `positions`, as Drei's `Points` (`bf6f4ad`, `src/core/Points.tsx`) with its
+ * `PointMaterial`: round, white, 1 pixel (three's `PointsMaterial` size), smaller with
+ * distance. `colors` gives each its own colour, `sizes` a factor on `size`.
+ */
+export const points = (
+  options: Placing & {
+    readonly positions: ReadonlyArray<Vec3>;
+    readonly colors?: ReadonlyArray<Rgb> | null;
+    readonly sizes?: ReadonlyArray<number> | null;
+    readonly color?: Rgb;
+    readonly size?: number;
+    readonly sizeAttenuation?: boolean;
+    readonly round?: boolean;
+    readonly opacity?: number;
+    readonly transparent?: boolean;
+  },
+): PointsNode =>
+  placed(options, {
+    _tag: 'Dots',
+    positions: options.positions,
+    colors: options.colors ?? null,
+    sizes: options.sizes ?? null,
+    color: options.color ?? 0xffffff,
+    size: options.size ?? 1,
+    sizeAttenuation: options.sizeAttenuation ?? true,
+    round: options.round ?? true,
+    opacity: options.opacity ?? 1,
+    transparent: options.transparent ?? false,
+  });
+
+/**
+ * Glowing motes drifting in a box, as Drei's `Sparkles` (`src/core/Sparkles.tsx`), with
+ * its defaults: 100 of them, speed 1, opaque, a unit box (`spread`, Drei's `scale`),
+ * random sizes up to 1, white, noise 1. Drei scatters them with `Math.random`; `seed`
+ * scatters them the same way every time.
+ */
+export const sparkles = (
+  options: Placing & {
+    readonly count?: number;
+    readonly speed?: number;
+    readonly opacity?: number;
+    readonly size?: number | null;
+    readonly color?: Rgb;
+    readonly spread?: number | Vec3;
+    readonly noise?: number | Vec3;
+    readonly seed?: number;
+  },
+): PointsNode => {
+  const spread = options.spread ?? 1;
+  const noise = options.noise ?? 1;
+  return placed(options, {
+    _tag: 'Sparkles',
+    count: options.count ?? 100,
+    speed: options.speed ?? 1,
+    opacity: options.opacity ?? 1,
+    scale: typeof spread === 'number' ? [spread, spread, spread] : spread,
+    size: options.size ?? null,
+    color: options.color ?? 0xffffff,
+    noise: typeof noise === 'number' ? [noise, noise, noise] : noise,
+    seed: options.seed ?? 1,
+  });
+};
+
+/**
+ * A starfield, as Drei's `Stars` (`src/core/Stars.tsx`), with its defaults: 5000 stars
+ * from radius 100 to 150, size factor 4, white (saturation 0), hard-edged, twinkling at
+ * speed 1. `seed` places them the same way every time.
+ */
+export const stars = (
+  options: Placing & {
+    readonly radius?: number;
+    readonly depth?: number;
+    readonly count?: number;
+    readonly factor?: number;
+    readonly saturation?: number;
+    readonly fade?: boolean;
+    readonly speed?: number;
+    readonly seed?: number;
+  },
+): PointsNode =>
+  placed(options, {
+    _tag: 'Stars',
+    radius: options.radius ?? 100,
+    depth: options.depth ?? 50,
+    count: options.count ?? 5000,
+    factor: options.factor ?? 4,
+    saturation: options.saturation ?? 0,
+    fade: options.fade ?? false,
+    speed: options.speed ?? 1,
+    seed: options.seed ?? 1,
+  });
+
 /**
  * Points along a Catmull-Rom curve through `points`, as Drei's `CatmullRomLine`, with its
  * defaults: open, centripetal, tension 0.5, 20 segments (so 21 points).
@@ -639,6 +755,29 @@ export const catmullRomPoints = (
   )
     .getPoints(options.segments ?? 20)
     .map(asVec3);
+
+/**
+ * The point `t` of the way along a Catmull-Rom curve through `points` (0 its start, 1 its
+ * end; three's `getPoint`, by parameter rather than arc length), with
+ * `catmullRomPoints`'s defaults: for something that rides the curve, a behaviour say.
+ */
+export const catmullRomPointAt = (
+  points: ReadonlyArray<Vec3>,
+  t: number,
+  options: {
+    readonly closed?: boolean;
+    readonly curveType?: 'centripetal' | 'chordal' | 'catmullrom';
+    readonly tension?: number;
+  } = {},
+): Vec3 =>
+  asVec3(
+    new CatmullRomCurve3(
+      points.map(asVector),
+      options.closed ?? false,
+      options.curveType ?? 'centripetal',
+      options.tension ?? 0.5,
+    ).getPoint(Math.min(1, Math.max(0, t))),
+  );
 
 /**
  * Colours for a Catmull-Rom line's points from a few along it, as Drei's
@@ -756,6 +895,8 @@ export const mesh = (
     readonly castShadow?: boolean;
     readonly receiveShadow?: boolean;
     readonly body?: Body | null;
+    readonly edges?: Edges | null;
+    readonly trail?: Trail | null;
   },
 ): MeshNode => ({
   _tag: 'Mesh',
@@ -771,6 +912,42 @@ export const mesh = (
   castShadow: options.castShadow ?? false,
   receiveShadow: options.receiveShadow ?? false,
   body: options.body ?? null,
+  edges: options.edges ?? null,
+  trail: options.trail ?? null,
+});
+
+/**
+ * A trail behind a moving node, as Drei's `Trail` (`bf6f4ad`, `src/core/Trail.tsx`), with
+ * its defaults: width 0.2, length 1, decay 1, world positions, no stride, every step, hot
+ * pink; no taper or fade (Drei's `attenuation` and `meshline` options).
+ */
+export const trail = (options: Partial<Trail> = {}): Trail => ({
+  width: options.width ?? 0.2,
+  length: options.length ?? 1,
+  decay: options.decay ?? 1,
+  local: options.local ?? false,
+  stride: options.stride ?? 0,
+  interval: options.interval ?? 1,
+  color: options.color ?? 0xff69b4,
+  taper: options.taper ?? 'none',
+  fade: options.fade ?? false,
+});
+
+/**
+ * Lines along a mesh's hard edges, as Drei's `Edges` (`bf6f4ad`, `src/core/Edges.tsx`),
+ * with its defaults: faces meeting at more than 15 degrees, a white line 1 pixel wide
+ * (Drei's `Line` defaults). `mesh({ edges: edges({ color: 0x000000 }) })`.
+ */
+export const edges = (options: Partial<Edges> = {}): Edges => ({
+  threshold: options.threshold ?? 15,
+  color: options.color ?? 0xffffff,
+  width: options.width ?? 1,
+  worldUnits: options.worldUnits ?? false,
+  dashed: options.dashed ?? false,
+  dashSize: options.dashSize ?? 1,
+  gapSize: options.gapSize ?? 1,
+  opacity: options.opacity ?? 1,
+  transparent: options.transparent ?? false,
 });
 
 /**

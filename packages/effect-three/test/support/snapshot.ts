@@ -196,6 +196,8 @@ const skySnapshot = (sky: Sky) => {
   };
 };
 
+const isTrail = (child: Object3D): boolean => child.name === 'effect-three:trail';
+
 export const snapshot = (graph: SceneGraph): unknown => ({
   render: graph.renderSettings(),
   renderTextures: graph.renderTextures().map((texture) => ({
@@ -221,7 +223,9 @@ export const snapshot = (graph: SceneGraph): unknown => ({
   },
   // The sky is the scene's, not a node: its place among the children does not matter.
   sky: graph.scene.children.filter((child) => child instanceof Sky).map(skySnapshot),
+  // Trail ribbons too: how many there are, not where they fall among the children.
+  trails: graph.scene.children.filter(isTrail).length,
   children: graph.scene.children
-    .filter((child) => !(child instanceof Sky))
+    .filter((child) => !(child instanceof Sky) && !isTrail(child))
     .map((child) => snapshotNode(graph, child)),
 });

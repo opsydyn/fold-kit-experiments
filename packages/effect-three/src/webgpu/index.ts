@@ -8,6 +8,7 @@
 import type { RenderKit } from '../kernel/renderKit.ts';
 import { createContactShadows } from './contactShadows.ts';
 import { hostLine } from './line.ts';
+import { hostPoints } from './points.ts';
 import { hostShaderGrid } from './shaderGrid.ts';
 import { hostSky } from './sky.ts';
 
@@ -17,5 +18,6 @@ export const webgpuKit: RenderKit = {
   sky: hostSky,
   shaderGrid: hostShaderGrid,
   line: hostLine,
+  points: hostPoints,
   contactShadows: createContactShadows,
 };

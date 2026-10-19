@@ -10,6 +10,7 @@ import { Line2NodeMaterial } from 'three/webgpu';
 import {
   catmullRomColors,
   catmullRomPoints,
+  catmullRomPointAt,
   createPicker,
   createSceneGraph,
   cubicBezierPoints,
@@ -159,4 +160,12 @@ test('Catmull-Rom colours spread a few colours over every point, ends as given',
   expect(colours.at(-1)).toBe(0x0000ff);
   // As many colours as points already: kept.
   expect(catmullRomColors([1, 2, 3], { segments: 2 })).toEqual([1, 2, 3]);
+});
+
+test('a point along a Catmull-Rom curve: its ends at 0 and 1, between them on the way', () => {
+  expect(catmullRomPointAt(zigzag, 0)).toEqual([-2, 0, 0]);
+  expect(catmullRomPointAt(zigzag, 1)).toEqual([1, 1, 0]);
+  const middle = catmullRomPointAt(zigzag, 0.5);
+  expect(middle[0]).toBeGreaterThan(-2);
+  expect(middle[0]).toBeLessThan(1);
 });

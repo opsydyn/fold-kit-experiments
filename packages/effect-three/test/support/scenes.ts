@@ -111,6 +111,7 @@ export const perturb = (node: SceneNode): { readonly node: SceneNode; readonly f
     case 'Borrowed':
     case 'Label':
     case 'Line':
+    case 'Points':
       return {
         node: { ...node, position: [node.position[0] + 100, node.position[1], node.position[2]] },
         field: 'position',

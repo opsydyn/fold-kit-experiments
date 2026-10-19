@@ -18,7 +18,10 @@ const down = (x: number, z: number) => ({
 /** Drags the crate's x handle from its middle to x = `to`, and lets go. */
 const moveCrate = (model: Model, to: number): Model => {
   const [x = 0, , z = 0] = crateAt(model)?.position ?? [];
-  const pressed = step(model, Message.PressedScene({ key: 'gizmo:x:tip', ...down(x, z) }));
+  const pressed = step(
+    model,
+    Message.PressedScene({ key: 'gizmo:x:tip', point: [x, 0.4, z], ...down(x, z) }),
+  );
   const dragged = step(pressed, Message.DraggedScene(down(to, z)));
   return step(dragged, Message.ReleasedScene());
 };
@@ -41,7 +44,10 @@ test('snapping rounds moves to quarter units', () => {
 });
 
 test('a press off the gizmo moves nothing; clicks select things; the camera orbits only freely', () => {
-  const pressed = step(start, Message.PressedScene({ key: 'ball', ...down(0, -0.8) }));
+  const pressed = step(
+    start,
+    Message.PressedScene({ key: 'ball', point: [0, 0.8, -0.8], ...down(0, -0.8) }),
+  );
   expect(step(pressed, Message.DraggedScene(down(2, 0))).things).toEqual(startThings);
   expect(step(start, Message.ClickedThing({ key: 'cone' })).selected).toEqual(['cone']);
   expect(step(start, Message.ClickedThing({ key: 'gizmo:x' })).selected).toEqual(start.selected);
@@ -93,7 +99,10 @@ test('the gizmo moves everything selected alike, and one undo puts them all back
 });
 
 test('a press on the viewport gizmo turns the camera to look along its axis', () => {
-  const turned = step(start, Message.PressedScene({ key: 'view:-z:disc', ...down(0, 0) }));
+  const turned = step(
+    start,
+    Message.PressedScene({ key: 'view:-z:disc', point: [0, 0, 0], ...down(0, 0) }),
+  );
   const [x = 0, , z = 0] = turned.camera.position;
   expect(x).toBeCloseTo(0, 9);
   expect(z).toBeLessThan(0);
@@ -105,4 +114,22 @@ test('a press on the viewport gizmo turns the camera to look along its axis', ()
   const letGo = step(turned, Message.ClickedNothing());
   expect(letGo.selected).toEqual(start.selected);
   expect(step(letGo, Message.ClickedNothing()).selected).toEqual([]);
+});
+
+test('the pivot controls move the selection too, and their drags are undone the same way', () => {
+  const pivoting = step(start, Message.ClickedPivot());
+  expect(pivoting.style).toBe('pivot');
+  // The crate's x arrow, halfway along (0.45 of 0.9), dragged 1 unit further.
+  const pressed = step(
+    pivoting,
+    Message.PressedScene({ key: 'pivot:arrow-x:stem', point: [-1.05, 0.4, 0], ...down(-1.05, 0) }),
+  );
+  // The transform gizmo's handles do nothing while the pivot is on.
+  expect(
+    step(pivoting, Message.PressedScene({ key: 'gizmo:x:tip', point: [0, 0, 0], ...down(0, 0) }))
+      .before,
+  ).toEqual(pivoting.before);
+  const moved = step(step(pressed, Message.DraggedScene(down(-0.05, 0))), Message.ReleasedScene());
+  expect(crateAt(moved)?.position[0]).toBeCloseTo(-0.5, 6);
+  expect(crateAt(step(moved, Message.ClickedUndo()))).toEqual(crateAt(start));
 });

@@ -82,6 +82,16 @@ selectable)` takes the candidates from the Model and returns their keys, matchin
   scene. The gizmo follows the Model's camera, so a damped camera arrives after it.
   Evidence: `test/hud.test.ts`, `test/viewportGizmo.test.ts` (Drei's turn as the
   oracle), the adapter's `viewportGizmo.test.ts`, the arrange sample.
+- Since added (2026-10-19): Drei's `PivotControls`, the same way: `pivotNodes`
+  describes every handle at once, turned with the object and sized in scene units;
+  `pressPivot` takes the point the press hit, and `dragPivot` follows Drei's maths
+  (`calculateOffset` for arrows and spheres, the ray's line meeting the plane for
+  squares and arcs, `calculateAngle`, a sphere's 2 to the power of a fifth of the
+  drag). Drei's handlers compose a world delta matrix; ours return the placement it
+  gives. Unseen hit shapes round the thin arrows and arcs make them easy to find, as
+  Drei's hit cylinder does. Evidence: `test/pivot.test.ts` (Drei's handlers replayed
+  with three's matrices as the oracle, and picking each handle), the adapter's
+  `pivotControls.test.ts`, the arrange sample.
 - Since added: `autoRotate` on a camera, after `OrbitControls.autoRotate` (`rotateLeft` by
   `2π / 60 * autoRotateSpeed` a second, only while no gesture is in progress). The
   rendered camera turns round its target in scene time, holding still while a gesture is

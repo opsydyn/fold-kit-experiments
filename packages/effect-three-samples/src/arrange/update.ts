@@ -1,5 +1,10 @@
 import { type Gesture, movedAlike, orbit, type Placement, type Vec3 } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
+import {
+  BoxSelect,
+  PivotControls,
+  TransformGizmo,
+  ViewportGizmo,
+} from '@opsydyn/effect-three-foldkit';
 import { Array as Arr, Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
@@ -72,6 +77,35 @@ const withGizmo = (model: Model, message: TransformGizmo.Message): Model => {
   return result.outMessage === undefined ? next : fromGizmo(next, result.outMessage);
 };
 
+/** What the pivot controls' OutMessage means here: the same as the gizmo's. */
+const fromPivot = (model: Model, out: PivotControls.OutMessage): Model =>
+  PivotControls.OutMessage.match(out, {
+    Moved: ({ placement }) => placeSelected(model, placement),
+    Finished: ({ placement }) => recorded(placeSelected(model, placement)),
+  });
+
+/** Runs a pivot Message, then what its OutMessage asks of the page. */
+const withPivot = (model: Model, message: PivotControls.Message): Model => {
+  const result = PivotControls.update(model.pivot, message);
+  const next = { ...model, pivot: result.model };
+  return result.outMessage === undefined ? next : fromPivot(next, result.outMessage);
+};
+
+/** A press on a pivot handle takes hold where it hit, remembering the things as they were. */
+const pressPivot = (model: Model, key: string, point: Vec3): Model =>
+  Option.match(Option.all([PivotControls.handleOf(model.pivot, key), selectedThing(model)]), {
+    onNone: () => model,
+    onSome: ([handle, thing]) =>
+      withPivot(
+        { ...model, before: Option.some(model.things) },
+        PivotControls.Message.Pressed({ handle, point, placement: thing.placement }),
+      ),
+  });
+
+/** Whether either way of moving things is held: the camera keeps still while it is. */
+const holding = (model: Model): boolean =>
+  TransformGizmo.held(model.gizmo) || PivotControls.held(model.pivot);
+
 /** The viewport gizmo's Message, and the camera it turns to. */
 const withView = (model: Model, message: ViewportGizmo.Message): Model => {
   const result = ViewportGizmo.update(model.view, message);
@@ -97,13 +131,18 @@ const pressGizmo = (model: Model, key: string, origin: Vec3, direction: Vec3): M
   });
 
 /** A press on the viewport gizmo turns the camera; anywhere else, it may take the gizmo. */
-const press = (model: Model, key: string, origin: Vec3, direction: Vec3): Model =>
-  Option.isSome(ViewportGizmo.axisOf(model.view, key))
-    ? withView(
-        { ...model, pressedView: true },
-        ViewportGizmo.Message.Pressed({ key, camera: model.camera }),
-      )
-    : pressGizmo({ ...model, pressedView: false }, key, origin, direction);
+const press = (model: Model, key: string, point: Vec3, origin: Vec3, direction: Vec3): Model => {
+  if (Option.isSome(ViewportGizmo.axisOf(model.view, key))) {
+    return withView(
+      { ...model, pressedView: true },
+      ViewportGizmo.Message.Pressed({ key, camera: model.camera }),
+    );
+  }
+  const pressed = { ...model, pressedView: false };
+  return model.style === 'pivot'
+    ? pressPivot(pressed, key, point)
+    : pressGizmo(pressed, key, origin, direction);
+};
 
 /** A click on nothing clears the selection, unless it began on the viewport gizmo. */
 const clickNothing = (model: Model): Model =>
@@ -111,7 +150,7 @@ const clickNothing = (model: Model): Model =>
 
 /** The camera orbits on a gesture that began on nothing, while the gizmo is not held. */
 const orbits = (model: Model, gesture: Gesture): boolean =>
-  !TransformGizmo.held(model.gizmo) && !('key' in gesture && gesture.key !== undefined);
+  !holding(model) && !('key' in gesture && gesture.key !== undefined);
 
 /** The camera after a gesture that orbits; otherwise as it was. */
 const orbitBy = (model: Model, gesture: Gesture): Model =>
@@ -169,6 +208,31 @@ const select = (model: Model, key: string): Model =>
 const whileHeld = (model: Model, message: TransformGizmo.Message): Model =>
   TransformGizmo.held(model.gizmo) ? withGizmo(model, message) : model;
 
+/** A drag goes to the pivot controls while they are held, else to the gizmo. */
+const drag = (model: Model, origin: Vec3, direction: Vec3): Model =>
+  PivotControls.held(model.pivot)
+    ? withPivot(model, PivotControls.Message.Dragged({ origin, direction, snap: model.snapping }))
+    : whileHeld(model, TransformGizmo.Message.Dragged({ origin, direction }));
+
+const release = (model: Model): Model =>
+  PivotControls.held(model.pivot)
+    ? withPivot(model, PivotControls.Message.Released())
+    : whileHeld(model, TransformGizmo.Message.Released());
+
+/** Over a pivot handle: highlighted. */
+const hoverPivot = (model: Model, key: string): Model =>
+  Option.match(PivotControls.handleOf(model.pivot, key), {
+    onNone: () => model,
+    onSome: (handle) => withPivot(model, PivotControls.Message.Hovered({ handle })),
+  });
+
+const leavePivot = (model: Model, key: string): Model =>
+  Option.isSome(PivotControls.handleOf(model.pivot, key))
+    ? withPivot(model, PivotControls.Message.Hovered({ handle: null }))
+    : model;
+
+const otherStyle = { transform: 'pivot', pivot: 'transform' } as const;
+
 /** Over a gizmo handle: highlighted. */
 const hover = (model: Model, key: string): Model =>
   Option.match(TransformGizmo.handleOf(model.gizmo, key), {
@@ -197,18 +261,18 @@ const toggleSnapping = (model: Model): Model => {
 
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
-    PressedScene: ({ key, origin, direction }) => ({ model: press(model, key, origin, direction) }),
-    DraggedScene: ({ origin, direction }) => ({
-      model: whileHeld(model, TransformGizmo.Message.Dragged({ origin, direction })),
+    PressedScene: ({ key, point, origin, direction }) => ({
+      model: press(model, key, point, origin, direction),
     }),
-    ReleasedScene: () => ({ model: whileHeld(model, TransformGizmo.Message.Released()) }),
+    DraggedScene: ({ origin, direction }) => ({ model: drag(model, origin, direction) }),
+    ReleasedScene: () => ({ model: release(model) }),
     ClickedThing: ({ key }) => ({ model: select(model, key) }),
     ClickedNothing: () => ({ model: clickNothing(model) }),
     HoveredScene: ({ key }) => ({
-      model: withView(hover(model, key), ViewportGizmo.Message.Entered({ key })),
+      model: withView(hoverPivot(hover(model, key), key), ViewportGizmo.Message.Entered({ key })),
     }),
     LeftScene: ({ key }) => ({
-      model: withView(leave(model, key), ViewportGizmo.Message.Left({ key })),
+      model: withView(leavePivot(leave(model, key), key), ViewportGizmo.Message.Left({ key })),
     }),
     MadeGesture: ({ gesture: made }) => ({ model: gesture(model, made) }),
     EndedGesture: () => ({ model: endBox(model) }),
@@ -222,6 +286,7 @@ export const update = (model: Model, message: Message): AppReturn =>
       ),
     }),
     ClickedSnapping: () => ({ model: toggleSnapping(model) }),
+    ClickedPivot: () => ({ model: { ...model, style: otherStyle[model.style] } }),
     ClickedUndo: () => ({ model: undo(model) }),
     ClickedRedo: () => ({ model: redo(model) }),
     ReceivedSceneLifecycle: () => ({ model }),

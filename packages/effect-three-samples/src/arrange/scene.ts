@@ -24,7 +24,12 @@ import {
   standard,
   torus,
 } from '@opsydyn/effect-three';
-import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
+import {
+  BoxSelect,
+  PivotControls,
+  TransformGizmo,
+  ViewportGizmo,
+} from '@opsydyn/effect-three-foldkit';
 import { Array as Arr, Option } from 'effect';
 
 import type { Kind, Model, Thing } from './model';
@@ -81,7 +86,11 @@ const selectedPlacement = (model: Model): Option.Option<Placement> =>
 const gizmoFor = (model: Model): ReadonlyArray<SceneNode> =>
   Option.match(selectedPlacement(model), {
     onNone: () => [],
-    onSome: (placement) => [TransformGizmo.nodes(model.gizmo, placement, model.camera)],
+    onSome: (placement) => [
+      model.style === 'pivot'
+        ? PivotControls.nodes(model.pivot, placement)
+        : TransformGizmo.nodes(model.gizmo, placement, model.camera),
+    ],
   });
 
 export const sceneFor = (model: Model) => {

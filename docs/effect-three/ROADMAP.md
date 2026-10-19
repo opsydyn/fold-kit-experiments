@@ -281,7 +281,13 @@ Effect owns every lifetime.
    pixels, anchored to a corner, picked first. `viewportGizmoNodes` turns with the
    camera as Drei's does (checked against the inverse of three's camera matrix), and
    the adapter's `ViewportGizmo` reports `Turned { camera }` from `cameraAlong`; a
-   damped camera eases round as Drei's tween. Next: the pivot controls.
+   damped camera eases round as Drei's tween.
+   ✅ Then the pivot controls (Drei's `PivotControls`): every handle at once, turned
+   with the object and sized in scene units. `pivotNodes`, `pressPivot` and `dragPivot`
+   follow Drei's maths for arrows, plane squares, quarter arcs and scaling spheres,
+   checked against Drei's handlers replayed with three's matrices; the adapter's
+   `PivotControls` is the submodel. The arrange example switches between the two
+   gizmos. Still to come here: the measuring tape.
 6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
@@ -295,8 +301,8 @@ collaboration, 3 for the assistant).
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
 (3), labels under WebGPU (E), the line and points families, the transform gizmo, box
-select and the viewport gizmo (5) are done. Next: the other widgets of 5, then tooling from Schema (4) toward
-the scene editor.
+select, the viewport gizmo and the pivot controls (5) are done. Next: tooling from Schema
+(4) toward the scene editor, and the measuring tape, the last widget of 5.
 
 ## Not planned
 

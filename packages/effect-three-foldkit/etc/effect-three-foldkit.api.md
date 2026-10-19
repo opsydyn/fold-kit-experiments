@@ -27,6 +27,8 @@ import type { Op } from '@opsydyn/effect-three';
 import { Option as Option_2 } from 'effect';
 import type { Overlay } from '@opsydyn/effect-three';
 import { PhysicsEngine } from '@opsydyn/effect-three';
+import { pivot } from '@opsydyn/effect-three';
+import { PivotHandle } from '@opsydyn/effect-three';
 import { Placement } from '@opsydyn/effect-three';
 import type { PointerInput } from '@opsydyn/effect-three';
 import { RendererFactory } from '@opsydyn/effect-three';
@@ -68,7 +70,7 @@ export type Assets = ReturnType<typeof makeAssets>;
 export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
 
 // @public
-const axisOf: (model: Model_3, key: string) => Option_2.Option<ViewAxis>;
+const axisOf: (model: Model_4, key: string) => Option_2.Option<ViewAxis>;
 
 // @public
 const Box: Schema.Struct<{
@@ -192,16 +194,22 @@ export type Gesture = typeof SceneSchema.Gesture.Type;
 export type GestureEndDetail = typeof SceneSchema.GestureEndDetail.Type;
 
 // @public
-const handleOf: (model: Model_2, key: string) => Option_2.Option<GizmoHandle>;
+const handleOf: (model: Model_2, key: string) => Option_2.Option<PivotHandle>;
+
+// @public
+const handleOf_2: (model: Model_3, key: string) => Option_2.Option<GizmoHandle>;
 
 // @public
 const held: (model: Model_2) => boolean;
 
 // @public
+const held_2: (model: Model_3) => boolean;
+
+// @public
 export type HitDetail = typeof SceneSchema.HitDetail.Type;
 
 // @public
-const hud: (model: Model_3, camera: Camera, placement?: {
+const hud: (model: Model_4, camera: Camera, placement?: {
     readonly alignment?: HudAlignment;
     readonly margin?: readonly [number, number];
 }) => Hud;
@@ -210,12 +218,15 @@ const hud: (model: Model_3, camera: Camera, placement?: {
 const init: () => Model;
 
 // @public
-const init_2: (key: string, options?: Parameters<typeof gizmo>[0]) => Model_2;
+const init_2: (key: string, options?: Parameters<typeof pivot>[0]) => Model_2;
 
 // @public
-const init_3: (key: string, options?: {
+const init_3: (key: string, options?: Parameters<typeof gizmo>[0]) => Model_3;
+
+// @public
+const init_4: (key: string, options?: {
     readonly hideNegativeAxes?: boolean;
-}) => Model_3;
+}) => Model_4;
 
 // Warning: (ae-forgotten-export) The symbol "Selectables" needs to be exported by the entry point index.d.ts
 //
@@ -342,6 +353,31 @@ type Message = typeof Message.Type;
 // @public (undocumented)
 const Message_2: MessageUnion<    {
 readonly Pressed: {
+handle: Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
+point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+placement: Schema.Struct<{
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+};
+readonly Dragged: {
+origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+snap: Schema.Boolean;
+};
+readonly Released: {};
+readonly Hovered: {
+handle: Schema.NullOr<Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
+};
+}>;
+
+// @public (undocumented)
+type Message_2 = typeof Message_2.Type;
+
+// @public (undocumented)
+const Message_3: MessageUnion<    {
+readonly Pressed: {
 handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
 origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 direction: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -409,10 +445,10 @@ space: Schema.Literals<readonly ["world", "local"]>;
 }>;
 
 // @public (undocumented)
-type Message_2 = typeof Message_2.Type;
+type Message_3 = typeof Message_3.Type;
 
 // @public (undocumented)
-const Message_3: MessageUnion<    {
+const Message_4: MessageUnion<    {
 readonly Entered: {
 key: Schema.String;
 };
@@ -466,7 +502,7 @@ readonly trigger: Schema.Finite;
 }>;
 
 // @public (undocumented)
-type Message_3 = typeof Message_3.Type;
+type Message_4 = typeof Message_4.Type;
 
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
@@ -492,6 +528,40 @@ type Model = typeof Model.Type;
 
 // @public (undocumented)
 const Model_2: Schema.Struct<{
+    readonly key: Schema.String;
+    readonly pivot: Schema.Struct<{
+        readonly scale: Schema.Finite;
+        readonly depthTest: Schema.Boolean;
+        readonly disableAxes: Schema.Boolean;
+        readonly disableSliders: Schema.Boolean;
+        readonly disableRotations: Schema.Boolean;
+        readonly disableScaling: Schema.Boolean;
+        readonly hovered: Schema.NullOr<Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
+        readonly grab: Schema.NullOr<Schema.Struct<{
+            readonly handle: Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
+            readonly start: Schema.Struct<{
+                readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+                readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            }>;
+            readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly e1: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly e2: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>>;
+    }>;
+    readonly last: Schema.Option<Schema.Struct<{
+        readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+}>;
+
+// @public (undocumented)
+type Model_2 = typeof Model_2.Type;
+
+// @public (undocumented)
+const Model_3: Schema.Struct<{
     readonly key: Schema.String;
     readonly gizmo: Schema.Struct<{
         readonly mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
@@ -528,17 +598,17 @@ const Model_2: Schema.Struct<{
 }>;
 
 // @public (undocumented)
-type Model_2 = typeof Model_2.Type;
+type Model_3 = typeof Model_3.Type;
 
 // @public (undocumented)
-const Model_3: Schema.Struct<{
+const Model_4: Schema.Struct<{
     readonly key: Schema.String;
     readonly hovered: Schema.NullOr<Schema.Literals<readonly ["x", "y", "z", "-x", "-y", "-z"]>>;
     readonly hideNegativeAxes: Schema.Boolean;
 }>;
 
 // @public (undocumented)
-type Model_3 = typeof Model_3.Type;
+type Model_4 = typeof Model_4.Type;
 
 // @public
 export type ModelInfo = {
@@ -548,10 +618,13 @@ export type ModelInfo = {
 };
 
 // @public
-const nodes: (model: Model_2, placement: Placement, camera: Camera) => SceneNode;
+const nodes: (model: Model_2, placement: Placement) => SceneNode;
 
 // @public
-const nodes_2: (model: Model_3, camera: Camera) => SceneNode;
+const nodes_2: (model: Model_3, placement: Placement, camera: Camera) => SceneNode;
+
+// @public
+const nodes_3: (model: Model_4, camera: Camera) => SceneNode;
 
 // @public (undocumented)
 const OutMessage: MessageUnion<    {
@@ -586,6 +659,27 @@ type OutMessage_2 = typeof OutMessage_2.Type;
 
 // @public (undocumented)
 const OutMessage_3: MessageUnion<    {
+readonly Moved: {
+placement: Schema.Struct<{
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+};
+readonly Finished: {
+placement: Schema.Struct<{
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>;
+};
+}>;
+
+// @public (undocumented)
+type OutMessage_3 = typeof OutMessage_3.Type;
+
+// @public (undocumented)
+const OutMessage_4: MessageUnion<    {
 readonly Turned: {
 camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
 readonly fov: Schema.Finite;
@@ -632,7 +726,7 @@ readonly trigger: Schema.Finite;
 }>;
 
 // @public (undocumented)
-type OutMessage_3 = typeof OutMessage_3.Type;
+type OutMessage_4 = typeof OutMessage_4.Type;
 
 // @public
 export type OverlayView = {
@@ -643,6 +737,19 @@ export type OverlayView = {
 
 // @public
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
+
+declare namespace PivotControls {
+    export {
+        Model_2 as Model,
+        Message_2 as Message,
+        OutMessage_2 as OutMessage,
+        init_2 as init,
+        update_2 as update,
+        handleOf,
+        held,
+        nodes
+    }
+}
 
 // @public
 export type PixelRatio = number | readonly [min: number, max: number];
@@ -1533,14 +1640,14 @@ export const toPointerInput: (event: MouseEvent, rect: Rect) => PointerInput | u
 
 declare namespace TransformGizmo {
     export {
-        Model_2 as Model,
-        Message_2 as Message,
-        OutMessage_2 as OutMessage,
-        init_2 as init,
-        update_2 as update,
-        handleOf,
-        held,
-        nodes
+        Model_3 as Model,
+        Message_3 as Message,
+        OutMessage_3 as OutMessage,
+        init_3 as init,
+        update_3 as update,
+        handleOf_2 as handleOf,
+        held_2 as held,
+        nodes_2 as nodes
     }
 }
 
@@ -1558,6 +1665,11 @@ const update_2: (model: Model_2, message: Message_2) => Return_2;
 //
 // @public (undocumented)
 const update_3: (model: Model_3, message: Message_3) => Return_3;
+
+// Warning: (ae-forgotten-export) The symbol "Return_4" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+const update_4: (model: Model_4, message: Message_4) => Return_4;
 
 // @public
 export const view: <Message>(config: ViewConfig<NoInfer<Message>>, h: HtmlBuilder<Message>) => Html;
@@ -1604,13 +1716,13 @@ export type ViewConfig<Message> = {
 
 declare namespace ViewportGizmo {
     export {
-        Model_3 as Model,
-        Message_3 as Message,
-        OutMessage_3 as OutMessage,
-        init_3 as init,
+        Model_4 as Model,
+        Message_4 as Message,
+        OutMessage_4 as OutMessage,
+        init_4 as init,
         axisOf,
-        update_3 as update,
-        nodes_2 as nodes,
+        update_4 as update,
+        nodes_3 as nodes,
         hud
     }
 }

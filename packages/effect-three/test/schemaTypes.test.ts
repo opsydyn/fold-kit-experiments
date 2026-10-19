@@ -28,6 +28,8 @@ type Proof = [
   Equals<typeof SceneSchema.DescriptionError.Type, Kernel.DescriptionError>,
   Equals<typeof SceneSchema.Gizmo.Type, Kernel.Gizmo>,
   Equals<typeof SceneSchema.Placement.Type, Kernel.Placement>,
+  Equals<typeof SceneSchema.Pivot.Type, Kernel.Pivot>,
+  Equals<typeof SceneSchema.Hud.Type, Kernel.Hud>,
 ];
 
 const schemasMatchKernel: Proof extends ReadonlyArray<true> ? true : never = true;

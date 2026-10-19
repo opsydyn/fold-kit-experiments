@@ -96,7 +96,7 @@ const AutoRotatedDetail: Schema.Struct<{
 export type Axis = 'x' | 'y' | 'z';
 
 // @public
-const Axis_2: Schema.Literals<readonly ["x", "y", "z"]>;
+const Axis_3: Schema.Literals<readonly ["x", "y", "z"]>;
 
 // @public
 export const backdrop: (options?: {
@@ -1188,6 +1188,11 @@ const DragDetail: Schema.Struct<{
 export const dragGizmo: (state: Gizmo, ray: Ray) => Placement | undefined;
 
 // @public
+export const dragPivot: (state: Pivot, ray: Ray, options?: {
+    readonly snap?: boolean;
+}) => Placement | undefined;
+
+// @public
 export const ease: (options: {
     readonly seconds: number;
     readonly easing?: Easing;
@@ -1886,6 +1891,9 @@ export type HostMesh = Mesh<BufferGeometry, HostMaterial>;
 
 // @public
 export const hoverGizmo: (state: Gizmo, handle: GizmoHandle | null) => Gizmo;
+
+// @public (undocumented)
+export const hoverPivot: (state: Pivot, handle: PivotHandle | null) => Pivot;
 
 // @public
 export type Hud = {
@@ -3650,6 +3658,68 @@ export type Picker = {
     readonly turned: (view: string | undefined) => Vec3 | undefined;
 };
 
+// @public (undocumented)
+export type Pivot = {
+    readonly scale: number;
+    readonly depthTest: boolean;
+    readonly disableAxes: boolean;
+    readonly disableSliders: boolean;
+    readonly disableRotations: boolean;
+    readonly disableScaling: boolean;
+    readonly hovered: PivotHandle | null;
+    readonly grab: PivotGrab | null;
+};
+
+// @public
+export const pivot: (options?: Partial<Omit<Pivot, 'hovered' | 'grab'>>) => Pivot;
+
+// @public
+const Pivot_2: Schema.Struct<{
+    readonly scale: Schema.Finite;
+    readonly depthTest: Schema.Boolean;
+    readonly disableAxes: Schema.Boolean;
+    readonly disableSliders: Schema.Boolean;
+    readonly disableRotations: Schema.Boolean;
+    readonly disableScaling: Schema.Boolean;
+    readonly hovered: Schema.NullOr<Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>>;
+    readonly grab: Schema.NullOr<Schema.Struct<{
+        readonly handle: Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
+        readonly start: Schema.Struct<{
+            readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly rotation: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+            readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        }>;
+        readonly point: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly e1: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly e2: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+        readonly normal: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+    }>>;
+}>;
+
+// @public
+export type PivotGrab = {
+    readonly handle: PivotHandle;
+    readonly start: Placement;
+    readonly point: Vec3;
+    readonly e1: Vec3;
+    readonly e2: Vec3;
+    readonly normal: Vec3;
+};
+
+// Warning: (ae-forgotten-export) The symbol "Axis_2" needs to be exported by the entry point index.d.ts
+//
+// @public
+export type PivotHandle = `${'arrow' | 'slider' | 'rotator' | 'sphere'}-${Axis_2}`;
+
+// @public
+const PivotHandle_2: Schema.Literals<("arrow-x" | "arrow-y" | "arrow-z" | "rotator-x" | "rotator-y" | "rotator-z" | "slider-x" | "slider-y" | "slider-z" | "sphere-x" | "sphere-y" | "sphere-z")[]>;
+
+// @public
+export const pivotHandleOf: (key: string, hit: string) => PivotHandle | undefined;
+
+// @public
+export const pivotNodes: (key: string, state: Pivot, placement: Placement) => SceneNode;
+
 // @public
 export type Placement = {
     readonly position: Vec3;
@@ -3972,6 +4042,9 @@ const PostEffect_2: Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
 export const pressGizmo: (state: Gizmo, placement: Placement, handle: GizmoHandle, ray: Ray, camera: Camera) => Gizmo;
 
 // @public
+export const pressPivot: (state: Pivot, placement: Placement, handle: PivotHandle, point: Vec3) => Pivot;
+
+// @public
 export const prismaticJoint: (options: {
     readonly axis: Vec3;
     readonly limits?: JointLimits | null;
@@ -4037,6 +4110,9 @@ export type Region = {
 
 // @public
 export const releaseGizmo: (state: Gizmo) => Gizmo;
+
+// @public (undocumented)
+export const releasePivot: (state: Pivot) => Pivot;
 
 // @public
 export type RenderArea = {
@@ -5522,7 +5598,7 @@ type SceneRuntimeOptions = {
 declare namespace SceneSchema {
     export {
         Vec3_2 as Vec3,
-        Axis_2 as Axis,
+        Axis_3 as Axis,
         Rgb_2 as Rgb,
         Rotation_2 as Rotation,
         BoxGeometry_2 as BoxGeometry,
@@ -5627,7 +5703,9 @@ declare namespace SceneSchema {
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError,
         Placement_2 as Placement,
-        Gizmo_2 as Gizmo
+        Gizmo_2 as Gizmo,
+        PivotHandle_2 as PivotHandle,
+        Pivot_2 as Pivot
     }
 }
 

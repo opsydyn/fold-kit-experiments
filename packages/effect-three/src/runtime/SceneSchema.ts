@@ -1089,6 +1089,14 @@ export const AutoRotatedDetail = Schema.Struct({
 /** Detail of gesture events. */
 export const GestureDetail = Schema.Struct({ gesture: Gesture });
 
+/** Detail of the end of a gesture that moved: the press's button, modifiers, mesh and view. */
+export const GestureEndDetail = Schema.Struct({
+  button: Schema.Int,
+  modifiers: Modifiers,
+  key: Schema.optionalKey(Schema.String),
+  view: Schema.optionalKey(Schema.String),
+});
+
 /** A pointer interaction with an interactive mesh, or a miss. */
 export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('PointerEnter', HitDetail.fields),
@@ -1104,6 +1112,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('Drag', DragDetail.fields),
   Schema.TaggedStruct('DragEnd', DragDetail.fields),
   Schema.TaggedStruct('Gesture', GestureDetail.fields),
+  Schema.TaggedStruct('GestureEnd', GestureEndDetail.fields),
   Schema.TaggedStruct('AutoRotated', AutoRotatedDetail.fields),
   Schema.TaggedStruct('Collision', CollisionDetail.fields),
   Schema.TaggedStruct('Measured', MeasuredDetail.fields),

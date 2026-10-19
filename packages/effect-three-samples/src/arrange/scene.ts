@@ -1,7 +1,8 @@
 /**
- * Four things on a table, one selected, with the transform gizmo on it (a Foldkit
- * submodel over the core's pure gizmo, after three's `TransformControls`). The selected
- * thing's edges are drawn; the floor is Drei's shader grid.
+ * Four things on a table, some selected, with the transform gizmo on the first (a
+ * Foldkit submodel over the core's pure gizmo, after three's `TransformControls`). The
+ * selected things glow and their sharp edges are drawn, and while a selection box is
+ * drawn, what it holds is marked instead; the floor is Drei's shader grid.
  */
 import {
   box,
@@ -23,8 +24,8 @@ import {
   standard,
   torus,
 } from '@opsydyn/effect-three';
-import { TransformGizmo } from '@opsydyn/effect-three-foldkit';
-import { Option } from 'effect';
+import { BoxSelect, TransformGizmo } from '@opsydyn/effect-three-foldkit';
+import { Array as Arr, Option } from 'effect';
 
 import type { Kind, Model, Thing } from './model';
 
@@ -35,39 +36,57 @@ const geometries = {
   ring: torus({ radius: 0.32, tube: 0.12, radialSegments: 12, tubularSegments: 40 }),
 } satisfies Record<Kind, GeometryRef>;
 
-/** The selected thing's edges are drawn. */
-const outlineFor = (model: Model, thing: Thing) =>
-  Option.contains(model.selected, thing.key)
-    ? edges({ color: 0xffffff, width: 2, threshold: 30 })
-    : null;
+/** The keys outlined: what the box holds while it is drawn, else what is selected. */
+const outlined = (model: Model): ReadonlyArray<string> =>
+  BoxSelect.drawing(model.box)
+    ? BoxSelect.inside(
+        model.box,
+        model.camera,
+        model.things.map(({ key, placement }) => ({ key, at: placement.position })),
+      )
+    : model.selected;
 
-const thingNode = (model: Model, thing: Thing): SceneNode =>
+const outlineFor = (keys: ReadonlyArray<string>, thing: Thing) =>
+  keys.includes(thing.key) ? edges({ color: 0xffffff, width: 2, threshold: 30 }) : null;
+
+/** Marked things glow faintly too: a rounded crate or a ball has no sharp edges to draw. */
+const glowFor = (keys: ReadonlyArray<string>, thing: Thing) =>
+  keys.includes(thing.key) ? 0.35 : 0;
+
+const thingNode = (keys: ReadonlyArray<string>, thing: Thing): SceneNode =>
   mesh({
     key: thing.key,
     position: thing.placement.position,
     rotation: fixed(thing.placement.rotation),
     scale: thing.placement.scale,
     geometry: geometries[thing.kind],
-    material: standard({ color: thing.colour, roughness: 0.45, metalness: 0.1 }),
+    material: standard({
+      color: thing.colour,
+      roughness: 0.45,
+      metalness: 0.1,
+      emissive: 0x3d79fa,
+      emissiveIntensity: glowFor(keys, thing),
+    }),
     castShadow: true,
     interactive: true,
-    edges: outlineFor(model, thing),
+    edges: outlineFor(keys, thing),
   });
 
 const selectedPlacement = (model: Model): Option.Option<Placement> =>
-  Option.flatMap(model.selected, (key) =>
+  Option.flatMap(Arr.head(model.selected), (key) =>
     Option.fromNullishOr(model.things.find((thing) => thing.key === key)?.placement),
   );
 
-/** The gizmo on the selected thing, if something is selected. */
+/** The gizmo on the first selected thing, if something is selected. */
 const gizmoFor = (model: Model): ReadonlyArray<SceneNode> =>
   Option.match(selectedPlacement(model), {
     onNone: () => [],
     onSome: (placement) => [TransformGizmo.nodes(model.gizmo, placement, model.camera)],
   });
 
-export const sceneFor = (model: Model) =>
-  scene({
+export const sceneFor = (model: Model) => {
+  const keys = outlined(model);
+  return scene({
     camera: model.camera,
     gestures: 'scene',
     environment: environment({ environmentIntensity: 0.4 }),
@@ -84,7 +103,8 @@ export const sceneFor = (model: Model) =>
         receiveShadow: true,
       }),
       shaderGrid({ key: 'grid', size: [8, 8], cellSize: 0.25, sectionSize: 1, fadeDistance: 14 }),
-      ...model.things.map((thing) => thingNode(model, thing)),
+      ...model.things.map((thing) => thingNode(keys, thing)),
       ...gizmoFor(model),
     ],
   });
+};

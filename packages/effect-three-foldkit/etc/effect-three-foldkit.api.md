@@ -12,6 +12,7 @@ import { CustomElement } from 'foldkit';
 import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
 import { FrameScheduler } from '@opsydyn/effect-three';
+import { Gesture as Gesture_2 } from '@opsydyn/effect-three';
 import { gizmo } from '@opsydyn/effect-three';
 import { GizmoHandle } from '@opsydyn/effect-three';
 import type { Html } from 'foldkit/html';
@@ -64,10 +65,48 @@ export type Assets = ReturnType<typeof makeAssets>;
 export type AutoRotatedDetail = typeof SceneSchema.AutoRotatedDetail.Type;
 
 // @public
+const Box: Schema.Struct<{
+    readonly from: Schema.Struct<{
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
+    }>;
+    readonly to: Schema.Struct<{
+        readonly x: Schema.Finite;
+        readonly y: Schema.Finite;
+    }>;
+    readonly width: Schema.Finite;
+    readonly height: Schema.Finite;
+}>;
+
+// @public (undocumented)
+type Box = typeof Box.Type;
+
+declare namespace BoxSelect {
+    export {
+        Box,
+        Model,
+        Message,
+        OutMessage,
+        init,
+        update,
+        drawing,
+        DragGesture,
+        claims,
+        dragOf,
+        inside,
+        Rectangle,
+        rectangle
+    }
+}
+
+// @public
 export type ButtonDetail = typeof SceneSchema.ButtonDetail.Type;
 
 // @public
 export const capturesPointer: (events: ReadonlyArray<SceneEvent>) => boolean;
+
+// @public
+const claims: (model: Model, drag: DragGesture) => boolean;
 
 // @public
 export const claimsContextMenu: (events: ReadonlyArray<SceneEvent>) => boolean;
@@ -96,6 +135,7 @@ export const domEventName: {
     readonly Drag: 'scene-drag';
     readonly DragEnd: 'scene-drag-end';
     readonly Gesture: 'scene-gesture';
+    readonly GestureEnd: 'scene-gesture-end';
     readonly AutoRotated: 'scene-auto-rotated';
     readonly Collision: 'scene-collision';
     readonly ContactForce: 'scene-contact-force';
@@ -112,6 +152,17 @@ export const domEventName: {
 
 // @public
 export type DragDetail = typeof SceneSchema.DragDetail.Type;
+
+// @public
+type DragGesture = Extract<Gesture_2, {
+    readonly _tag: 'Drag';
+}>;
+
+// @public
+const dragOf: (gesture: DragGesture) => Message;
+
+// @public
+const drawing: (model: Model) => boolean;
 
 // @public (undocumented)
 export type Environment = ReturnType<typeof makeEnvironment>;
@@ -132,16 +183,27 @@ export type EnvironmentOptions = {
 export type Gesture = typeof SceneSchema.Gesture.Type;
 
 // @public
-const handleOf: (model: Model, key: string) => Option_2.Option<GizmoHandle>;
+export type GestureEndDetail = typeof SceneSchema.GestureEndDetail.Type;
 
 // @public
-const held: (model: Model) => boolean;
+const handleOf: (model: Model_2, key: string) => Option_2.Option<GizmoHandle>;
+
+// @public
+const held: (model: Model_2) => boolean;
 
 // @public
 export type HitDetail = typeof SceneSchema.HitDetail.Type;
 
 // @public
-const init: (key: string, options?: Parameters<typeof gizmo>[0]) => Model;
+const init: () => Model;
+
+// @public
+const init_2: (key: string, options?: Parameters<typeof gizmo>[0]) => Model_2;
+
+// Warning: (ae-forgotten-export) The symbol "Selectables" needs to be exported by the entry point index.d.ts
+//
+// @public
+const inside: (model: Model, camera: Camera, selectable: Selectables) => ReadonlyArray<string>;
 
 // @public
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
@@ -199,6 +261,69 @@ export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
 
 // @public (undocumented)
 const Message: MessageUnion<    {
+readonly Dragged: {
+x: Schema.Finite;
+y: Schema.Finite;
+deltaX: Schema.Finite;
+deltaY: Schema.Finite;
+width: Schema.Finite;
+height: Schema.Finite;
+};
+readonly Ended: {
+camera: Schema.Union<readonly [Schema.TaggedStruct<"Perspective", {
+readonly fov: Schema.Finite;
+readonly near: Schema.Finite;
+readonly far: Schema.Finite;
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly damping: Schema.Finite;
+readonly autoRotate: Schema.Finite;
+readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+readonly intensity: Schema.Finite;
+readonly decay: Schema.Boolean;
+readonly decayRate: Schema.Finite;
+readonly maxYaw: Schema.Finite;
+readonly maxPitch: Schema.Finite;
+readonly maxRoll: Schema.Finite;
+readonly yawFrequency: Schema.Finite;
+readonly pitchFrequency: Schema.Finite;
+readonly rollFrequency: Schema.Finite;
+readonly trigger: Schema.Finite;
+}>>, never>;
+}>, Schema.TaggedStruct<"Orthographic", {
+readonly zoom: Schema.Finite;
+readonly near: Schema.Finite;
+readonly far: Schema.Finite;
+readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly lookAt: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+readonly damping: Schema.Finite;
+readonly autoRotate: Schema.Finite;
+readonly shake: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+readonly intensity: Schema.Finite;
+readonly decay: Schema.Boolean;
+readonly decayRate: Schema.Finite;
+readonly maxYaw: Schema.Finite;
+readonly maxPitch: Schema.Finite;
+readonly maxRoll: Schema.Finite;
+readonly yawFrequency: Schema.Finite;
+readonly pitchFrequency: Schema.Finite;
+readonly rollFrequency: Schema.Finite;
+readonly trigger: Schema.Finite;
+}>>, never>;
+}>]>;
+selectable: Schema.$Array<Schema.Struct<{
+readonly key: Schema.String;
+readonly at: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
+}>>;
+};
+readonly Cancelled: {};
+}>;
+
+// @public (undocumented)
+type Message = typeof Message.Type;
+
+// @public (undocumented)
+const Message_2: MessageUnion<    {
 readonly Pressed: {
 handle: Schema.Literals<readonly ["x", "y", "z", "xy", "yz", "xz", "xyz"]>;
 origin: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -267,13 +392,32 @@ space: Schema.Literals<readonly ["world", "local"]>;
 }>;
 
 // @public (undocumented)
-type Message = typeof Message.Type;
+type Message_2 = typeof Message_2.Type;
 
 // @public
 export type MissDetail = typeof SceneSchema.MissDetail.Type;
 
 // @public (undocumented)
 const Model: Schema.Struct<{
+    readonly box: Schema.Option<Schema.Struct<{
+        readonly from: Schema.Struct<{
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
+        }>;
+        readonly to: Schema.Struct<{
+            readonly x: Schema.Finite;
+            readonly y: Schema.Finite;
+        }>;
+        readonly width: Schema.Finite;
+        readonly height: Schema.Finite;
+    }>>;
+}>;
+
+// @public (undocumented)
+type Model = typeof Model.Type;
+
+// @public (undocumented)
+const Model_2: Schema.Struct<{
     readonly key: Schema.String;
     readonly gizmo: Schema.Struct<{
         readonly mode: Schema.Literals<readonly ["translate", "rotate", "scale"]>;
@@ -310,7 +454,7 @@ const Model: Schema.Struct<{
 }>;
 
 // @public (undocumented)
-type Model = typeof Model.Type;
+type Model_2 = typeof Model_2.Type;
 
 // @public
 export type ModelInfo = {
@@ -320,10 +464,20 @@ export type ModelInfo = {
 };
 
 // @public
-const nodes: (model: Model, placement: Placement, camera: Camera) => SceneNode;
+const nodes: (model: Model_2, placement: Placement, camera: Camera) => SceneNode;
 
 // @public (undocumented)
 const OutMessage: MessageUnion<    {
+readonly Selected: {
+keys: Schema.$Array<Schema.String>;
+};
+}>;
+
+// @public (undocumented)
+type OutMessage = typeof OutMessage.Type;
+
+// @public (undocumented)
+const OutMessage_2: MessageUnion<    {
 readonly Moved: {
 placement: Schema.Struct<{
 readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -341,7 +495,7 @@ readonly scale: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Fini
 }>;
 
 // @public (undocumented)
-type OutMessage = typeof OutMessage.Type;
+type OutMessage_2 = typeof OutMessage_2.Type;
 
 // @public
 export type OverlayView = {
@@ -391,6 +545,17 @@ export type Rect = {
     readonly width: number;
     readonly height: number;
 };
+
+// @public
+type Rectangle = {
+    readonly left: number;
+    readonly top: number;
+    readonly width: number;
+    readonly height: number;
+};
+
+// @public
+const rectangle: (model: Model) => Option_2.Option<Rectangle>;
 
 // @public
 export const resolvePixelRatio: (devicePixelRatio: number, setting: PixelRatio) => number;
@@ -999,6 +1164,17 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly deltaY: Schema.Finite;
         }>]>;
     }>;
+    'scene-gesture-end': Schema.Struct<{
+        readonly button: Schema.Int;
+        readonly modifiers: Schema.Struct<{
+            readonly shift: Schema.Boolean;
+            readonly control: Schema.Boolean;
+            readonly meta: Schema.Boolean;
+            readonly alt: Schema.Boolean;
+        }>;
+        readonly key: Schema.optionalKey<Schema.String>;
+        readonly view: Schema.optionalKey<Schema.String>;
+    }>;
     'scene-auto-rotated': Schema.Struct<{
         readonly view: Schema.optionalKey<Schema.String>;
         readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1215,11 +1391,11 @@ export const toPointerInput: (event: MouseEvent, rect: Rect) => PointerInput | u
 
 declare namespace TransformGizmo {
     export {
-        Model,
-        Message,
-        OutMessage,
-        init,
-        update,
+        Model_2 as Model,
+        Message_2 as Message,
+        OutMessage_2 as OutMessage,
+        init_2 as init,
+        update_2 as update,
         handleOf,
         held,
         nodes
@@ -1230,6 +1406,11 @@ declare namespace TransformGizmo {
 //
 // @public (undocumented)
 const update: (model: Model, message: Message) => Return;
+
+// Warning: (ae-forgotten-export) The symbol "Return_2" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+const update_2: (model: Model_2, message: Message_2) => Return_2;
 
 // @public
 export const view: <Message>(config: ViewConfig<NoInfer<Message>>, h: HtmlBuilder<Message>) => Html;
@@ -1252,6 +1433,7 @@ export type ViewConfig<Message> = {
     readonly onDrag?: (detail: DragDetail) => Message;
     readonly onDragEnd?: (detail: DragDetail) => Message;
     readonly onGesture?: (gesture: Gesture) => Message;
+    readonly onGestureEnd?: (detail: GestureEndDetail) => Message;
     readonly onAutoRotated?: (detail: AutoRotatedDetail) => Message;
     readonly onCollision?: (detail: CollisionDetail) => Message;
     readonly onContactForce?: (detail: ContactForceDetail) => Message;

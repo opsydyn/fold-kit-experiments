@@ -61,6 +61,16 @@ and tests would no longer see where the camera is.
   the parent keeps the placements, so undo is a list. Evidence: `test/gizmo.test.ts`
   (three's controls as the oracle), the adapter's `transformGizmo.test.ts`, the arrange
   sample.
+- Since added (2026-10-19): box select, the same way. three's `SelectionBox` walks the
+  scene for meshes inside a frustum; here `boxSelect(camera, size, from, to,
+selectable)` takes the candidates from the Model and returns their keys, matching
+  three's side planes (and keeping to the camera's near and far, where three's box does
+  not). A `GestureEnd` scene event ends a gesture that moved, so a drag on nothing can
+  finish what it drew. The adapter's `BoxSelect` submodel claims shift-drags, reports
+  `Selected { keys }`, and places its outline in CSS pixels; `movedAlike` moves the rest
+  of a selection as the gizmo moved the first. Evidence: `test/boxSelect.test.ts`
+  (three's box as the oracle), `test/gestures.test.ts`, the adapter's
+  `boxSelect.test.ts`, the arrange sample.
 - Since added: `autoRotate` on a camera, after `OrbitControls.autoRotate` (`rotateLeft` by
   `2π / 60 * autoRotateSpeed` a second, only while no gesture is in progress). The
   rendered camera turns round its target in scene time, holding still while a gesture is

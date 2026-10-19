@@ -210,6 +210,18 @@ export type SceneEvent =
   /** A drag, wheel or pinch on the canvas, when the scene claims gestures. */
   | { readonly _tag: 'Gesture'; readonly gesture: Gesture }
   /**
+   * A gesture that moved has ended: released, or the pointer left. Only after a `Drag`
+   * or `Pinch`, with the press's button, modifiers, mesh and view: the moment to finish
+   * what the gesture drew, such as a selection box.
+   */
+  | {
+      readonly _tag: 'GestureEnd';
+      readonly button: number;
+      readonly modifiers: Modifiers;
+      readonly key?: string;
+      readonly view?: string;
+    }
+  /**
    * A gesture is about to begin on a camera that has turned by itself (`autoRotate`):
    * where it got to, so the Model can keep it (`autoRotated(camera, detail)`) and the
    * gesture moves on from there. `view` names a view's camera; without it, the scene's.
@@ -532,6 +544,8 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
   const pressedPointers = new Map<number, Point>();
   let primary: number | undefined;
   let gesturePress: GesturePress | undefined;
+  // Whether the gesture press has moved: only then does its release end a gesture.
+  let gestureMoved = false;
   let hovered: string | undefined;
   // The latest press, kept after release: double-click and context-menu events follow it.
   let press: Press | undefined;
@@ -624,6 +638,7 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     pressedPointers.clear();
     primary = id;
     pressedPointers.set(id, { x: event.x, y: event.y });
+    gestureMoved = false;
     const region = picker.region(event.x, event.y);
     reportTurned(region, events);
     // Cameras turning by themselves hold still while it is pressed, as `OrbitControls`.
@@ -641,6 +656,7 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     const from = pressedPointers.get(id);
     if (from === undefined || gesturePress === undefined) return;
     pressedPointers.set(id, to);
+    gestureMoved = true;
     const { view, width, height, x, y } = gesturePress;
     const region = { ...(view === undefined ? {} : { view }), width, height, x, y };
     const moved = pixels(from, to);
@@ -680,11 +696,22 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     });
   };
 
-  const endGestures = (): void => {
+  const endGestures = (events: Array<SceneEvent>): void => {
     if (gesturePress !== undefined) picker.holdCameras(false);
+    if (gesturePress !== undefined && gestureMoved) {
+      const { button, modifiers, key, view } = gesturePress;
+      events.push({
+        _tag: 'GestureEnd',
+        button,
+        modifiers,
+        ...(key === undefined ? {} : { key }),
+        ...(view === undefined ? {} : { view }),
+      });
+    }
     pressedPointers.clear();
     primary = undefined;
     gesturePress = undefined;
+    gestureMoved = false;
   };
 
   /**
@@ -714,7 +741,7 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
     if (isSecondary(event, id)) return secondary(event, id);
     const events: Array<SceneEvent> = [];
     if (event._tag === 'PointerLeave') {
-      endGestures();
+      endGestures(events);
       // A cancelled or abandoned press still ends its drag, at the last known position.
       if (position !== undefined) endDrag(captured(), position.x, position.y, events);
       dragged = false;
@@ -748,7 +775,7 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
         release(hit, event, events);
         // Any release ends capture: a mouse's buttons share one pointer.
         endDrag(drag, event.x, event.y, events);
-        endGestures();
+        endGestures(events);
         break;
       case 'DoubleClick':
         if (hit !== undefined && pressed(hit)) {

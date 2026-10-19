@@ -1,5 +1,5 @@
 import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
-import { TransformGizmo } from '@opsydyn/effect-three-foldkit';
+import { BoxSelect, TransformGizmo } from '@opsydyn/effect-three-foldkit';
 import { Option, Schema } from 'effect';
 
 import { paintColour } from '../palette';
@@ -18,9 +18,12 @@ export type Thing = typeof Thing.Type;
 
 export const Model = Schema.Struct({
   things: Schema.Array(Thing),
-  selected: Schema.Option(Schema.String),
+  /** What is selected; the gizmo sits on the first and moves the rest alike. */
+  selected: Schema.Array(Schema.String),
   /** The transform gizmo: a Foldkit submodel. */
   gizmo: TransformGizmo.Model,
+  /** The selection box a shift-drag draws: a Foldkit submodel too. */
+  box: BoxSelect.Model,
   camera: SceneSchema.Camera,
   /** The things as they were before each finished move, newest last: undo goes back. */
   past: Schema.Array(Schema.Array(Thing)),
@@ -48,8 +51,9 @@ export const startThings: ReadonlyArray<Thing> = [
 export const init = () => ({
   model: {
     things: startThings,
-    selected: Option.some('crate'),
+    selected: ['crate'],
     gizmo: TransformGizmo.init('gizmo', { size: 1.4 }),
+    box: BoxSelect.init(),
     camera: perspectiveCamera({ fov: 45, position: [3.5, 3.2, 5.5], lookAt: [0, 0.3, 0] }),
     past: [],
     future: [],

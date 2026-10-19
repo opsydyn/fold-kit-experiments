@@ -45,6 +45,7 @@ export {
   makeEnvironment,
 } from './environment.ts';
 export { makeSceneMount, type SceneMount } from './mount.ts';
+export * as BoxSelect from './boxSelect.ts';
 export * as TransformGizmo from './transformGizmo.ts';
 export { type OverlayView } from './overlayView.ts';
 export {
@@ -54,6 +55,7 @@ export {
   type ContactForceDetail,
   type DragDetail,
   type Gesture,
+  type GestureEndDetail,
   type HitDetail,
   type KeyDetail,
   type LabelMeasuredDetail,

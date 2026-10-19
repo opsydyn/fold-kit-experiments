@@ -46,20 +46,21 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 | `Points`, `PointMaterial`                 | `points({ positions, colors, sizes, size, round })`, drawn by the kit        |
 | `Sparkles`, `Stars`                       | `sparkles()` and `stars()`, seeded, moving in scene time                     |
 | `TransformControls`                       | `gizmoNodes`, `pressGizmo`, `dragGizmo`; Foldkit's `TransformGizmo` submodel |
+| `web/Select` (its box)                    | `boxSelect` over a `GestureEnd`; Foldkit's `BoxSelect` submodel              |
 
 ## A Model pattern (🔁)
 
-| Drei                                     | The pattern                                                         |
-| ---------------------------------------- | ------------------------------------------------------------------- |
-| `useCursor`                              | hover in the Model; the scene element's `className` sets the cursor |
-| `web/KeyboardControls`                   | Foldkit key subscriptions as Messages; `orbitKey` for the camera    |
-| `web/Select`, `web/CycleRaycast`         | selection in the Model from click and hover Messages                |
-| `Preload`, `Progress`, `web/Loader`      | `AsyncData` in the Model while asset Commands run                   |
-| `Stats`, `StatsGl`                       | `PerformanceChanged`; `onReconciled` for what each update did       |
-| `BBAnchor`                               | `overlays` at a point from a `measure`d box                         |
-| `VideoTexture`, `web/WebcamVideoTexture` | lend a three `VideoTexture` with `store.lendTexture`                |
-| `Image`                                  | a plane with a lent or loaded `map`                                 |
-| `useIntersect` (the canvas)              | scenes already pause when off screen                                |
+| Drei                                      | The pattern                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| `useCursor`                               | hover in the Model; the scene element's `className` sets the cursor |
+| `web/KeyboardControls`                    | Foldkit key subscriptions as Messages; `orbitKey` for the camera    |
+| `web/Select` (clicks), `web/CycleRaycast` | selection in the Model from click and hover Messages                |
+| `Preload`, `Progress`, `web/Loader`       | `AsyncData` in the Model while asset Commands run                   |
+| `Stats`, `StatsGl`                        | `PerformanceChanged`; `onReconciled` for what each update did       |
+| `BBAnchor`                                | `overlays` at a point from a `measure`d box                         |
+| `VideoTexture`, `web/WebcamVideoTexture`  | lend a three `VideoTexture` with `store.lendTexture`                |
+| `Image`                                   | a plane with a lent or loaded `map`                                 |
+| `useIntersect` (the canvas)               | scenes already pause when off screen                                |
 
 ## Candidates (📋)
 
@@ -96,5 +97,6 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 Done (2026-10-19): `Billboard`, `RoundedBox` and `Backdrop`, `Detailed`, `CameraShake`
 and `Clone`, the S candidates; then the line and points families: `line` with its
 curves, `Edges`, `Trail`, `Points`, `Sparkles` and `Stars`; and `TransformControls` as
-a pure gizmo with a Foldkit submodel. Next: the pivot and viewport gizmos the same way,
+a pure gizmo with a Foldkit submodel, and `Select`'s box the same way. Next: the pivot
+and viewport gizmos the same way,
 for the scene editor in "Beyond parity".

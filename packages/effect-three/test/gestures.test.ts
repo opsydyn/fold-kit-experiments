@@ -94,6 +94,25 @@ test('a drag that began on a mesh names it, alongside the mesh drag', () => {
   expect(gesturesIn(events)).toMatchObject([{ _tag: 'Drag', key: 'cube', button: 0 }]);
 });
 
+const endsIn = (events: ReadonlyArray<SceneEvent>) =>
+  events.filter((event) => event._tag === 'GestureEnd');
+
+test('a gesture that moved ends on release or leaving, with its press; a still one does not', () => {
+  const { tracker } = trackerFor('scene');
+  tracker.input({ _tag: 'PointerDown', x: 0.9, y: 0.9, button: 0, modifiers: shift });
+  tracker.input({ _tag: 'PointerMove', x: 0.6, y: 0.7 });
+  expect(endsIn(tracker.input({ _tag: 'PointerUp', x: 0.6, y: 0.7, button: 0 }))).toEqual([
+    { _tag: 'GestureEnd', button: 0, modifiers: shift },
+  ]);
+  tracker.input({ _tag: 'PointerDown', x: 0.9, y: 0.9, button: 0 });
+  expect(endsIn(tracker.input({ _tag: 'PointerUp', x: 0.9, y: 0.9, button: 0 }))).toEqual([]);
+  tracker.input({ _tag: 'PointerDown', x: 0, y: 0, button: 0 });
+  tracker.input({ _tag: 'PointerMove', x: 0.5, y: 0 });
+  expect(endsIn(tracker.input({ _tag: 'PointerLeave' }))).toEqual([
+    { _tag: 'GestureEnd', button: 0, modifiers: noModifiers, key: 'cube' },
+  ]);
+});
+
 test('a second pointer pinches: the scale of their spread and the midpoint movement', () => {
   const { tracker } = trackerFor('scene');
   tracker.input({ _tag: 'PointerDown', x: -0.5, y: 0.5, button: 0, pointer: 1 });

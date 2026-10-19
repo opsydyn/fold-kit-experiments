@@ -301,7 +301,9 @@ export {
   gizmoNodes,
   type GizmoSpace,
   hoverGizmo,
+  movedAlike,
   type Placement,
   pressGizmo,
   releaseGizmo,
 } from './gizmo.ts';
+export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';

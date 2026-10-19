@@ -445,6 +445,12 @@ export const box: (size?: {
 }) => BoxGeometry;
 
 // @public
+export type BoxCorner = {
+    readonly x: number;
+    readonly y: number;
+};
+
+// @public
 export type BoxGeometry = {
     readonly _tag: 'Box';
     readonly width: number;
@@ -458,6 +464,9 @@ const BoxGeometry_2: Schema.TaggedStruct<"Box", {
     readonly height: Schema.Finite;
     readonly depth: Schema.Finite;
 }>;
+
+// @public
+export const boxSelect: (camera: Camera, size: CanvasSize, from: BoxCorner, to: BoxCorner, candidates: ReadonlyArray<Selectable>) => ReadonlyArray<string>;
 
 // @public
 export const buildMaterial: (description: SurfaceMaterial, textures?: Textures) => HostMaterial;
@@ -562,6 +571,12 @@ const CameraShake_2: Schema.Struct<{
     readonly rollFrequency: Schema.Finite;
     readonly trigger: Schema.Finite;
 }>;
+
+// @public
+export type CanvasSize = {
+    readonly width: number;
+    readonly height: number;
+};
 
 // @public
 export const capacityFor: (count: number) => number;
@@ -1565,6 +1580,19 @@ const GestureDetail: Schema.Struct<{
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
     }>]>;
+}>;
+
+// @public
+const GestureEndDetail: Schema.Struct<{
+    readonly button: Schema.Int;
+    readonly modifiers: Schema.Struct<{
+        readonly shift: Schema.Boolean;
+        readonly control: Schema.Boolean;
+        readonly meta: Schema.Boolean;
+        readonly alt: Schema.Boolean;
+    }>;
+    readonly key: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
 }>;
 
 // @public
@@ -3105,6 +3133,9 @@ const Modifiers_2: Schema.Struct<{
     readonly meta: Schema.Boolean;
     readonly alt: Schema.Boolean;
 }>;
+
+// @public
+export const movedAlike: (from: Placement, to: Placement, other: Placement) => Placement;
 
 // @public
 export type NodeKind = SceneNode['_tag'];
@@ -4947,6 +4978,18 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly gesture: Gesture;
 }
 /**
+* A gesture that moved has ended: released, or the pointer left. Only after a `Drag`
+* or `Pinch`, with the press's button, modifiers, mesh and view: the moment to finish
+* what the gesture drew, such as a selection box.
+*/
+| {
+    readonly _tag: 'GestureEnd';
+    readonly button: number;
+    readonly modifiers: Modifiers;
+    readonly key?: string;
+    readonly view?: string;
+}
+/**
 * A gesture is about to begin on a camera that has turned by itself (`autoRotate`):
 * where it got to, so the Model can keep it (`autoRotated(camera, detail)`) and the
 * gesture moves on from there. `view` names a view's camera; without it, the scene's.
@@ -5237,6 +5280,16 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
         readonly deltaX: Schema.Finite;
         readonly deltaY: Schema.Finite;
     }>]>;
+}>, Schema.TaggedStruct<"GestureEnd", {
+    readonly button: Schema.Int;
+    readonly modifiers: Schema.Struct<{
+        readonly shift: Schema.Boolean;
+        readonly control: Schema.Boolean;
+        readonly meta: Schema.Boolean;
+        readonly alt: Schema.Boolean;
+    }>;
+    readonly key: Schema.optionalKey<Schema.String>;
+    readonly view: Schema.optionalKey<Schema.String>;
 }>, Schema.TaggedStruct<"AutoRotated", {
     readonly view: Schema.optionalKey<Schema.String>;
     readonly position: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -5522,12 +5575,19 @@ declare namespace SceneSchema {
         MeasuredDetail,
         AutoRotatedDetail,
         GestureDetail,
+        GestureEndDetail,
         SceneEvent_2 as SceneEvent,
         DescriptionError_2 as DescriptionError,
         Placement_2 as Placement,
         Gizmo_2 as Gizmo
     }
 }
+
+// @public
+export type Selectable = {
+    readonly key: string;
+    readonly at: Vec3;
+};
 
 // @public
 export const shaderGrid: (options: {

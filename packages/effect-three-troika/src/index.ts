@@ -10,19 +10,23 @@
  * `sync` run after each change, the scene drawn again when it finishes: Drei's `Text`
  * (`bf6f4ad`, `src/core/Text.tsx`), including its 64 pixel glyph distance fields.
  *
+ * For `WebGPURenderer`, `@opsydyn/effect-three-troika/webgpu` has a `troikaLabels` that
+ * also draws with node materials (TSL): troika still lays the text out and builds its
+ * glyphs, and a node material draws them. It is a separate entry so that WebGL pages do
+ * not bundle three's WebGPU build.
+ *
  * troika-three-text is MIT. Fonts load from the URL a label names; a label with no font
  * uses troika's default, which it fetches from a CDN.
  *
  * @module
  */
 import type { HostedLabel, LabelEngine, LabelLayout, LabelNode } from '@opsydyn/effect-three';
-import type { Material } from 'three';
 // Its ES build, as bundlers pick it (`module`): Bun would load the UMD `main`, whose
 // `require('three')` can meet three's ES build mid-load.
+import type { Material } from 'three';
 import { Text } from 'troika-three-text/dist/troika-three-text.esm.js';
 
-/** Drei's `sdfGlyphSize`: each glyph's distance field is 64 pixels square. */
-const glyphSize = 64;
+import { colorRangesOf, glyphSize } from './layout.ts';
 
 /** Sets every type setting of `text` from `label`. */
 const apply = (text: Text, label: LabelNode): void => {
@@ -43,14 +47,6 @@ const apply = (text: Text, label: LabelNode): void => {
   text.outlineBlur = label.outlineBlur;
   text.colorRanges = colorRangesOf(label);
   text.curveRadius = label.curveRadius;
-};
-
-/** A label's colour ranges as troika takes them: an object from start index to colour. */
-const colorRangesOf = (label: LabelNode): Record<number, number> | null => {
-  if (label.colorRanges.length === 0) return null;
-  const ranges: Record<number, number> = {};
-  for (const { start, color } of label.colorRanges) ranges[start] = color;
-  return ranges;
 };
 
 /** troika's laid-out bounds, once `sync` has laid the text out. */
@@ -82,5 +78,8 @@ const host = (label: LabelNode, ready: () => void): HostedLabel => {
   };
 };
 
-/** The troika label engine. One serves every scene on a page. */
+/**
+ * The troika label engine, drawing with WebGL. One serves every scene on a page. For
+ * `WebGPURenderer`, take `troikaLabels` from `@opsydyn/effect-three-troika/webgpu`.
+ */
 export const troikaLabels = (): LabelEngine => ({ create: host });

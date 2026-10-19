@@ -26,6 +26,11 @@
       "bun": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./webgpu": {
+      "types": "./dist/webgpu.d.ts",
+      "bun": "./src/webgpu.ts",
+      "default": "./dist/webgpu.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -36,7 +41,7 @@
     "lint": "bunx --bun oxlint --config oxlint.strict.ts",
     "check": "bun run lint",
     "test": "bun test --pass-with-no-tests ./src ./test",
-    "build": "tsc -b && bun build ./src/index.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
+    "build": "tsc -b && bun build ./src/index.ts ./src/webgpu.ts --root ./src --outdir ./dist --target browser --packages external --splitting --sourcemap=linked",
     "api:report": "api-extractor run --local",
     "api:check": "api-extractor run",
     "pack:check": "bun run build && publint && rm -rf dist/pack && bun pm pack --destination dist/pack && attw dist/pack/*.tgz --profile esm-only"

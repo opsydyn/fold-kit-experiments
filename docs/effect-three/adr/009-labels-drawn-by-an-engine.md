@@ -47,3 +47,13 @@ outlineOpacity, outlineBlur, interactive, … })` with Drei's defaults (size 1, 
   reports `LabelMeasured { key, block, visible }`, troika's `blockBounds` and
   `visibleBounds` in the label's own units, whenever its layout changes, as Drei's
   `onSync` reads `textRenderInfo`.
+- Since added (2026-10-19): `createTsl`, the same contract for renderers whose materials
+  are node materials (a render kit with `shading: 'tsl'`, as `webgpuKit` is). troika's
+  is in `@opsydyn/effect-three-troika/webgpu`: `getTextRenderInfo` lays the text out and
+  builds the shared distance-field atlas, a byte copy of which (`readPixels`, as troika's
+  Safari workaround) a node material samples; troika's vertex and fragment logic
+  (`TextDerivedMaterial.js`) is ported to TSL, the outline as a first pass. A lent
+  material is copied into its node-material class (three's `NodeLibrary.fromMaterial`)
+  and followed before each draw. A separate entry keeps three's WebGPU build out of
+  WebGL-only bundles. Evidence: `packages/effect-three-troika/test/tsl.test.ts` and the
+  label e2e on three renderers.

@@ -33,7 +33,13 @@ three.js's defaults, so a description is fully specified data.
 - **Lines:** `line({ key, points, width, worldUnits, dashed, dashSize, gapSize,
 vertexColors, segments })`, drawn by the render kit (empty without one); curves through
   `catmullRomPoints(points, { segments })`, `cubicBezierPoints` and
-  `quadraticBezierPoints`.
+  `quadraticBezierPoints`. `mesh({ edges: edges({ color, width, threshold }) })`
+  outlines hard edges (never picked); `trail({ width, length, taper, fade })` on a group
+  or mesh leaves a ribbon behind it, recorded in scene time.
+- **Points:** `points({ key, positions, colors, sizes, size, round })`, `sparkles({ key,
+count, spread, size, color, seed })` and `stars({ key, radius, depth, count, fade, seed
+})`, drawn by the render kit; sparkles and stars move in scene time (frozen under
+  reduced motion) and scatter the same way for the same `seed`.
 - **Drei helpers as data:** `roundedBox()` and `backdrop()` shapes; levels of detail with
   `group({ detail: detailed({ distances, hysteresis }), children: [near, mid, far] })`
   (hidden levels are not picked); `perspectiveCamera({ shake: cameraShake({ decay:

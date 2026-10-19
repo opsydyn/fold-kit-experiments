@@ -66,5 +66,4 @@
 ### Bug Fixes
 
 - **effect-three-foldkit:** build the troika package before typechecking tests ([31df93f](https://github.com/opsydyn/fold-kit-experiments/commit/31df93f215dbedf865410e5384a21307ab367404))
-- **effect-three-foldkit:** draw real WebGPU in Linux e2e ([fdf82e7](https://github.com/opsydyn/fold-kit-experiments/commit/fdf82e7815a901d09bea5fbd50769f398eded5c6))
 - **effect-three-foldkit:** draw real WebGPU in Linux e2e ([186db41](https://github.com/opsydyn/fold-kit-experiments/commit/186db41bf649888f31e83c49db5bd4c23facd0e6))

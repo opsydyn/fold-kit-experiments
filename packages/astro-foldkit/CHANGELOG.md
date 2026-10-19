@@ -4,7 +4,6 @@
 
 ### Bug Fixes
 
-- **astro-foldkit:** stop the page smoke test leaking dev servers ([d2a859d](https://github.com/opsydyn/fold-kit-experiments/commit/d2a859dbae35cbacd53b2a80d58f37354b2d6293))
 - **astro-foldkit:** stop the page smoke test leaking dev servers ([cb888a0](https://github.com/opsydyn/fold-kit-experiments/commit/cb888a08b4e6c5d87707f67b5fac6dcfd0c5bde9))
 
 ## [0.9.0](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.8.2...astro-foldkit-v0.9.0) (2026-10-14)

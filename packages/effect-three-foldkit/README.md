@@ -69,7 +69,7 @@ EffectThreeFoldkit.view(
 
 `makeEnvironment(window, options)` takes:
 
-- `renderer`: a renderer factory per canvas: `webglRendererFactory` (the default) or `webgpuRendererFactory` (three's `WebGPURenderer`, with its WebGL 2 backend as fallback; labels are not drawn under it), or your own for test instrumentation (spread the factory you wrap, so its render kit comes along);
+- `renderer`: a renderer factory per canvas: `webglRendererFactory` (the default) or `webgpuRendererFactory` (three's `WebGPURenderer`, with its WebGL 2 backend as fallback; for labels under it, take `troikaLabels` from `@opsydyn/effect-three-troika/webgpu`), or your own for test instrumentation (spread the factory you wrap, so its render kit comes along);
 - `pixelRatio`: fixed, or `[min, max]` around the device's;
 - `behaviours`: behaviours scenes may name with `behave(name)`, beside `float`;
 - `physics`: a physics engine, or the promise of one (`loadRapier()`);

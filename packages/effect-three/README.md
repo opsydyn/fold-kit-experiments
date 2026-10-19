@@ -144,7 +144,7 @@ Everything needed for deterministic headless tests ships with the package:
 - `recordingRendererFactory()`: counts renders and records viewport and disposal.
 - `createManualFrames()`: frames run when you call `step()`.
 - Effect's `TestClock`: scene time comes from the `Clock` service's monotonic reading.
-- **Renderers:** `webglRendererFactory` (the default) or `webgpuRendererFactory` (three's `WebGPURenderer`: WebGPU where available, its WebGL 2 backend otherwise), each carrying its render kit (`@opsydyn/effect-three/webgl` or `/webgpu`). Labels need WebGL. See [ADR-010](../../docs/effect-three/adr/010-webgpu-renderer.md).
+- **Renderers:** `webglRendererFactory` (the default) or `webgpuRendererFactory` (three's `WebGPURenderer`: WebGPU where available, its WebGL 2 backend otherwise), each carrying its render kit (`@opsydyn/effect-three/webgl` or `/webgpu`). Under WebGPU, labels draw with `troikaLabels` from `@opsydyn/effect-three-troika/webgpu`. See [ADR-010](../../docs/effect-three/adr/010-webgpu-renderer.md).
 - `createSceneGraph()`: the synchronous kernel on its own, with `object(key)` and resource `stats()` for assertions. Pass `kit: webglKit` (from `@opsydyn/effect-three/webgl`) to draw skies, shader grids and contact shadows; `webglRendererFactory` carries it for you.
 
 ## Stability
@@ -159,8 +159,6 @@ patch.
 
 - **WebXR on `WebGPURenderer`** is wired but untested: the headset emulator the tests use
   (IWER) cannot render into it. WebXR on the WebGL renderer is tested.
-- **Labels are not drawn under WebGPU**: troika builds WebGL shaders and has no WebGPU
-  path. A scene with labels draws everything else.
 - **DOM overlay** (`xr({ domOverlay: true })`) is checked only in the session request; the
   emulator has no overlay.
 

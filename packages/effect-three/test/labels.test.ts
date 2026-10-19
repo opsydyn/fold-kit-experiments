@@ -87,13 +87,24 @@ test('without an engine a label is an empty wrapper', () => {
   graph.dispose();
 });
 
-test('a render kit that cannot draw labels gets none from the engine', () => {
-  const { engine, calls } = fakeLabels();
-  const kit = { ...webglKit, drawsLabels: false };
+test('a TSL render kit draws with the engine’s TSL labels, and none without them', () => {
+  const kit = { ...webglKit, shading: 'tsl' as const };
+  const glslOnly = fakeLabels();
+  const withoutTsl = createSceneGraph({ labels: glslOnly.engine, kit });
+  withoutTsl.reconcile(sign());
+  expect(glslOnly.calls).toEqual([]);
+  expect(withoutTsl.object('sign')?.children).toEqual([]);
+  withoutTsl.dispose();
+
+  // An engine with both: the TSL kit asks the TSL implementation, never the GLSL one.
+  const glsl = fakeLabels();
+  const tsl = fakeLabels();
+  const engine: LabelEngine = { create: glsl.engine.create, createTsl: tsl.engine.create };
   const graph = createSceneGraph({ labels: engine, kit });
   graph.reconcile(sign());
-  expect(calls).toEqual([]);
-  expect(graph.object('sign')?.children).toEqual([]);
+  expect(tsl.calls).toEqual(['create Hello']);
+  expect(glsl.calls).toEqual([]);
+  expect(graph.object('sign')?.children[0]).toBeInstanceOf(Mesh);
   graph.dispose();
 });
 

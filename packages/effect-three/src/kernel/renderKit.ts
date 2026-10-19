@@ -42,11 +42,12 @@ export type ShadowedScene = {
 /** A renderer's shaded parts. */
 export type RenderKit = {
   /**
-   * Whether the renderer can draw a label engine's labels. troika's are WebGL materials:
-   * the WebGPU renderer cannot (on real WebGPU they break the frame), so its kit says no
-   * and labels stay empty.
+   * The kind of material the renderer draws: `'webgl'`, WebGL's own materials, for
+   * `WebGLRenderer`; `'tsl'`, three's node materials, for `WebGPURenderer`. A label engine
+   * draws with its implementation for it (`LabelEngine.create` or `createTsl`); WebGL
+   * materials break a WebGPU frame, so without a TSL implementation labels stay empty.
    */
-  readonly drawsLabels: boolean;
+  readonly shading: 'webgl' | 'tsl';
   readonly sky: () => HostedSky;
   readonly shaderGrid: (node: ShaderGridNode) => HostedShaderGrid;
   readonly contactShadows: (graph: ShadowedScene, renderer: SceneRenderer) => ContactShadowPasses;

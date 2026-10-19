@@ -35,9 +35,14 @@ the shader grid, contact shadows) until it moved into a WebGL render kit (ADR-00
 - **XR goes through either renderer.** Presenting uses a structural `PresentableRenderer`
   and a per-renderer loop setter, set before the session starts (WebGPU's XR manager
   captures the renderer's loop then).
-- **Labels need WebGL.** troika's labels are WebGL materials; real WebGPU rejects their
-  draw calls and blanks the frame. A kit says `drawsLabels`; under `webgpuKit` the scene
-  graph gives the label engine nothing to draw.
+- **Labels need WebGL** (superseded, see below). troika's labels are WebGL materials;
+  real WebGPU rejects their draw calls and blanks the frame. A kit said `drawsLabels`;
+  under `webgpuKit` the scene graph gave the label engine nothing to draw.
+- **Since (2026-10-19): a kit names its kind of material.** `RenderKit.shading` is
+  `'webgl'` (`webglKit`) or `'tsl'` (`webgpuKit`, node materials), replacing `drawsLabels`; under a
+  `'tsl'` kit the scene graph asks the label engine's `createTsl`, and draws no labels
+  when the engine has none. `troikaLabels` from `@opsydyn/effect-three-troika/webgpu`
+  has one (troika's layout, its shader ported to TSL); see ADR-009.
 
 ## Consequences
 

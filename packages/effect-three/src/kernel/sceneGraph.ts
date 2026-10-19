@@ -644,9 +644,11 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
         return entry;
       }
       case 'Label': {
-        // A renderer that cannot draw the engine's labels (WebGPU and troika) gets none.
+        // The engine's implementation for the renderer's kind of material, if it has one.
         const hosted =
-          options.kit?.drawsLabels === false ? undefined : options.labels?.create(node, invalidate);
+          options.kit?.shading === 'tsl'
+            ? options.labels?.createTsl?.(node, invalidate)
+            : options.labels?.create(node, invalidate);
         const material = node.material === null ? undefined : store.acquireMaterial(node.material);
         hosted?.setMaterial(material);
         const entry: Entry = { _tag: 'Label', node, object: new Group(), hosted, material };

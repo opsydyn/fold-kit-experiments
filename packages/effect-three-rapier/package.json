@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/effect-three-rapier",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Rapier physics for @opsydyn/effect-three: rigid bodies described as data.",
   "license": "MIT",
   "repository": {
@@ -58,7 +58,7 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
-    "@opsydyn/effect-three": "0.1.0",
+    "@opsydyn/effect-three": "0.2.0",
     "three": ">=0.186.0 <0.187.0"
   }
 }

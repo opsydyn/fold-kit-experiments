@@ -34,6 +34,11 @@
   height: min(560px, 75vh);
 }
 
+/* A night sky whatever the page's theme: additive stars and sparkles need the dark. */
+.e3-stage-night {
+  background: radial-gradient(circle at 50% 40%, #1a2240, #07080d 75%);
+}
+
 .e3-stage-placeholder {
   display: grid;
   place-items: center;

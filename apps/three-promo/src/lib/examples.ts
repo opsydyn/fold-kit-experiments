@@ -73,6 +73,14 @@ export const examples = [
     alt: 'Bowling: a blue ball rolling down a polished wooden lane towards ten white pins, under a dark scoreboard.',
   },
   {
+    id: 'curves',
+    category: 'Lines and points',
+    title: 'Draw with data',
+    description:
+      'Drag the handles of a closed curve with a colour gradient while a comet rides it, trailing a fading ribbon and sparkles under a field of stars. Lines, curves, edges, trails, sparkles and stars, all as data.',
+    alt: 'Curves: a glowing gradient curve through five outlined handles, a gold comet trailing a ribbon, and stars behind.',
+  },
+  {
     id: 'room',
     category: 'WebXR',
     title: 'Step into the room',

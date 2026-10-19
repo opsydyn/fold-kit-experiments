@@ -2,10 +2,9 @@
 
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-foldkit-v0.2.0...effect-three-foldkit-v0.3.0) (2026-10-19)
 
-
 ### Features
 
-* **effect-three:** Drei's Billboard, RoundedBox and Backdrop, Detailed, CameraShake and Clone ([3ec570e](https://github.com/opsydyn/fold-kit-experiments/commit/3ec570e14e7632565adf846ef48b66287713a291))
+- **effect-three:** Drei's Billboard, RoundedBox and Backdrop, Detailed, CameraShake and Clone ([3ec570e](https://github.com/opsydyn/fold-kit-experiments/commit/3ec570e14e7632565adf846ef48b66287713a291))
 
 ## [0.2.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-foldkit-v0.1.0...effect-three-foldkit-v0.2.0) (2026-10-19)
 

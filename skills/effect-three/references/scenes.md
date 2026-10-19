@@ -30,6 +30,10 @@ three.js's defaults, so a description is fully specified data.
 - **Motion without Messages:** `rotation: spin(...)`, `behaviour: behave('float')`,
   `transition: ease(...)` for eased moves. Reduced motion freezes them.
   `rotation: billboard({ lockX, lockY, lockZ })` faces the camera every frame.
+- **Lines:** `line({ key, points, width, worldUnits, dashed, dashSize, gapSize,
+vertexColors, segments })`, drawn by the render kit (empty without one); curves through
+  `catmullRomPoints(points, { segments })`, `cubicBezierPoints` and
+  `quadraticBezierPoints`.
 - **Drei helpers as data:** `roundedBox()` and `backdrop()` shapes; levels of detail with
   `group({ detail: detailed({ distances, hysteresis }), children: [near, mid, far] })`
   (hidden levels are not picked); `perspectiveCamera({ shake: cameraShake({ decay:

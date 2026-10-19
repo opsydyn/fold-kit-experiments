@@ -11,34 +11,36 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 
 ## Covered (✅)
 
-| Drei                                      | effect-three                                                               |
-| ----------------------------------------- | -------------------------------------------------------------------------- |
-| `OrbitControls`, `MapControls`            | `orbit` (with `orbitOptions`, `screenSpacePanning`), damping, `autoRotate` |
-| `CameraControls` (smooth moves)           | camera `damping` eases any Model change                                    |
-| `PerspectiveCamera`, `OrthographicCamera` | `perspectiveCamera`, `orthographicCamera`                                  |
-| `Bounds`, `useAspect`, `Resize` (framing) | `scene({ measure })`, `fitCamera`, `clipCamera`, `centerOffset`            |
-| `Center`                                  | `centerOffset` on a measured box                                           |
-| `Float`                                   | `behave('float')`                                                          |
-| `Instances`                               | `instances`, diffed per instance key                                       |
-| `Gltf`/`useGLTF`, `useAnimations`         | `environment.assets.loadModel`, `borrowed({ animation: play(…) })`         |
-| `Texture`/`useTexture`                    | `environment.assets.loadTexture`, `map: id`                                |
-| `Environment`, `useEnvironment`           | `environment()`, presets via `environmentPresetUrl`, `loadEnvironment`     |
-| `ContactShadows`, `Sky`, `Grid`, `Stage`  | `contactShadows()`, `sky()`, `shaderGrid()`, `stage()`                     |
-| `Text`, `Text3D`, `useFont`               | `label()` (troika), `text()`, `loadFont`                                   |
-| `RenderTexture`, `Fbo`                    | `renderTextures`                                                           |
-| `View`, `Hud` (another camera on top)     | `views`                                                                    |
-| `Html`                                    | `overlays`                                                                 |
-| `Effects`                                 | `renderSettings({ effects: [bloom(), vignette(), film()] })`               |
-| `PerformanceMonitor`, `AdaptiveDpr`       | `PerformanceChanged`, `renderSettings({ resolution })`                     |
-| `web/DragControls`                        | `Drag`/`DragEnd` with pointer capture, `pointOnPlane`                      |
-| shapes (`Box`, `Sphere`, `Plane`, …)      | the nine shape builders                                                    |
-| `Wireframe` (plain)                       | any material's `wireframe`                                                 |
-| `SpotLight` (plain)                       | `spotLight` (not the volumetric cone: see candidates)                      |
-| `Billboard`                               | `rotation: billboard({ lockX, lockY, lockZ })`                             |
-| `RoundedBox`, `Backdrop`                  | `roundedBox()`, `backdrop()` shapes, with Drei's defaults                  |
-| `Detailed`                                | `group({ detail: detailed({ distances, hysteresis }) })`                   |
-| `CameraShake`                             | a camera's `shake: cameraShake({ intensity, decay, … })`                   |
-| `Clone`                                   | `borrowed` shown under several keys (skinned models get their own bones)   |
+| Drei                                      | effect-three                                                                |
+| ----------------------------------------- | --------------------------------------------------------------------------- |
+| `OrbitControls`, `MapControls`            | `orbit` (with `orbitOptions`, `screenSpacePanning`), damping, `autoRotate`  |
+| `CameraControls` (smooth moves)           | camera `damping` eases any Model change                                     |
+| `PerspectiveCamera`, `OrthographicCamera` | `perspectiveCamera`, `orthographicCamera`                                   |
+| `Bounds`, `useAspect`, `Resize` (framing) | `scene({ measure })`, `fitCamera`, `clipCamera`, `centerOffset`             |
+| `Center`                                  | `centerOffset` on a measured box                                            |
+| `Float`                                   | `behave('float')`                                                           |
+| `Instances`                               | `instances`, diffed per instance key                                        |
+| `Gltf`/`useGLTF`, `useAnimations`         | `environment.assets.loadModel`, `borrowed({ animation: play(…) })`          |
+| `Texture`/`useTexture`                    | `environment.assets.loadTexture`, `map: id`                                 |
+| `Environment`, `useEnvironment`           | `environment()`, presets via `environmentPresetUrl`, `loadEnvironment`      |
+| `ContactShadows`, `Sky`, `Grid`, `Stage`  | `contactShadows()`, `sky()`, `shaderGrid()`, `stage()`                      |
+| `Text`, `Text3D`, `useFont`               | `label()` (troika), `text()`, `loadFont`                                    |
+| `RenderTexture`, `Fbo`                    | `renderTextures`                                                            |
+| `View`, `Hud` (another camera on top)     | `views`                                                                     |
+| `Html`                                    | `overlays`                                                                  |
+| `Effects`                                 | `renderSettings({ effects: [bloom(), vignette(), film()] })`                |
+| `PerformanceMonitor`, `AdaptiveDpr`       | `PerformanceChanged`, `renderSettings({ resolution })`                      |
+| `web/DragControls`                        | `Drag`/`DragEnd` with pointer capture, `pointOnPlane`                       |
+| shapes (`Box`, `Sphere`, `Plane`, …)      | the nine shape builders                                                     |
+| `Wireframe` (plain)                       | any material's `wireframe`                                                  |
+| `SpotLight` (plain)                       | `spotLight` (not the volumetric cone: see candidates)                       |
+| `Billboard`                               | `rotation: billboard({ lockX, lockY, lockZ })`                              |
+| `RoundedBox`, `Backdrop`                  | `roundedBox()`, `backdrop()` shapes, with Drei's defaults                   |
+| `Detailed`                                | `group({ detail: detailed({ distances, hysteresis }) })`                    |
+| `CameraShake`                             | a camera's `shake: cameraShake({ intensity, decay, … })`                    |
+| `Clone`                                   | `borrowed` shown under several keys (skinned models get their own bones)    |
+| `Line`, `Segments`                        | `line({ points, width, dashed, vertexColors, segments })`, drawn by the kit |
+| `CatmullRomLine`, `*BezierLine`           | `catmullRomPoints`, `cubicBezierPoints`, `quadraticBezierPoints` for `line` |
 
 ## A Model pattern (🔁)
 
@@ -56,23 +58,22 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 
 ## Candidates (📋)
 
-| Drei                                                        | Size | Notes                                                                     |
-| ----------------------------------------------------------- | ---- | ------------------------------------------------------------------------- |
-| `Line`, `Segments`, `CatmullRomLine`, `*BezierLine`         | M    | A `line` node with points and width (three's `Line2`), curves as builders |
-| `Points`, `PointMaterial`                                   | M    | A `points` node, instanced like `instances`                               |
-| `Sparkles`, `Stars`, `Cloud`                                | M    | Built on `points` (Sparkles, Stars) and instanced sprites (Cloud)         |
-| `Edges`, `Outlines`                                         | S–M  | Edges geometry from a mesh; inverted-hull outlines (a render-kit part)    |
-| `Decal`                                                     | M    | A projected geometry on a target mesh, by key                             |
-| `Lightformer`                                               | M    | Environments made from emissive shapes, rendered to an environment map    |
-| `FlyControls`, `FirstPersonControls`, `PointerLockControls` | S–M  | Pure functions from gestures and keys, as `orbit` is                      |
-| `web/PresentationControls`, `web/ScrollControls`            | S–M  | Gesture- and scroll-driven Model updates                                  |
-| `MotionPathControls`                                        | M    | A camera or node behaviour along a curve                                  |
-| `TransformControls`, `web/pivotControls`, `Gizmo*`          | M    | Foldkit submodels with OutMessages ("Beyond parity", 5)                   |
-| `Trail`                                                     | M    | A line that follows a node, in scene time                                 |
-| `CubeCamera`                                                | M    | Dynamic reflections: a render texture into a cube map                     |
-| `meshBounds`, `Bvh`                                         | S–M  | Cheaper or accelerated picking for large meshes                           |
-| `GradientTexture`, `MatcapTexture`, `Ktx2`                  | S    | Generated and compressed textures; a matcap material kind                 |
-| `SpotLight` (volumetric), `Mask`                            | M    | Render-kit parts                                                          |
+| Drei                                                        | Size | Notes                                                                  |
+| ----------------------------------------------------------- | ---- | ---------------------------------------------------------------------- |
+| `Points`, `PointMaterial`                                   | M    | A `points` node, instanced like `instances`                            |
+| `Sparkles`, `Stars`, `Cloud`                                | M    | Built on `points` (Sparkles, Stars) and instanced sprites (Cloud)      |
+| `Edges`, `Outlines`                                         | S–M  | Edges geometry from a mesh; inverted-hull outlines (a render-kit part) |
+| `Decal`                                                     | M    | A projected geometry on a target mesh, by key                          |
+| `Lightformer`                                               | M    | Environments made from emissive shapes, rendered to an environment map |
+| `FlyControls`, `FirstPersonControls`, `PointerLockControls` | S–M  | Pure functions from gestures and keys, as `orbit` is                   |
+| `web/PresentationControls`, `web/ScrollControls`            | S–M  | Gesture- and scroll-driven Model updates                               |
+| `MotionPathControls`                                        | M    | A camera or node behaviour along a curve                               |
+| `TransformControls`, `web/pivotControls`, `Gizmo*`          | M    | Foldkit submodels with OutMessages ("Beyond parity", 5)                |
+| `Trail`                                                     | M    | A line that follows a node, in scene time                              |
+| `CubeCamera`                                                | M    | Dynamic reflections: a render texture into a cube map                  |
+| `meshBounds`, `Bvh`                                         | S–M  | Cheaper or accelerated picking for large meshes                        |
+| `GradientTexture`, `MatcapTexture`, `Ktx2`                  | S    | Generated and compressed textures; a matcap material kind              |
+| `SpotLight` (volumetric), `Mask`                            | M    | Render-kit parts                                                       |
 
 ## Out of scope (—)
 
@@ -91,6 +92,7 @@ Drei at `bf6f4ad` (`drei-main/src/core`, `drei-main/src/web`), against effect-th
 ## Recommendation
 
 Done (2026-10-19): `Billboard`, `RoundedBox` and `Backdrop`, `Detailed`, `CameraShake`
-and `Clone`, the S candidates. Next: `line` (with curves and `Trail`) and `points` (with
-`Sparkles` and `Stars`), which unlock a family each (M); then transform gizmos as
-submodels, which the scene editor in "Beyond parity" needs.
+and `Clone`, the S candidates; then `line` with its curves. Next: `points` (with
+`Sparkles` and `Stars`, M); `Trail` (a line that follows a node, which needs the node's
+recent path, not only scene time); then transform gizmos as submodels, which the scene
+editor in "Beyond parity" needs.

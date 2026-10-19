@@ -213,8 +213,14 @@ request. (Labels under WebGPU were a third, until E.)
   `LOD.raycast` does; a camera's `shake: cameraShake()` is seeded noise, pure in scene
   time, still under reduced motion; and `borrowed` clones skinned models with
   `SkeletonUtils.clone`, so each copy animates on its own, with Drei `Clone`'s
-  `castShadow` and `receiveShadow` shorthands. Next: the `line` and `points` families
-  (M), then transform gizmos as submodels.
+  `castShadow` and `receiveShadow` shorthands.
+- ✅ Lines (Drei's `Line` and `Segments`): `line({ points, width, worldUnits, dashed,
+vertexColors, segments })`, drawn by each render kit with three's fat lines (`Line2`
+  and `LineMaterial` for WebGL, `Line2NodeMaterial` for WebGPU), pickable within their
+  width; Drei's curve lines are point builders (`catmullRomPoints`, `cubicBezierPoints`,
+  `quadraticBezierPoints`, `catmullRomColors`). Checked by pixel on three renderers. The
+  bowling lane's aim guide uses one. Next: `points` (with `Sparkles` and `Stars`), then
+  `Trail`, then transform gizmos as submodels.
 
 ## Beyond parity
 
@@ -259,7 +265,7 @@ collaboration, 3 for the assistant).
 ### Recommendation
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
-(3) and labels under WebGPU (E) are done. Next: the `line` and `points` families (M).
+(3), labels under WebGPU (E) and lines are done. Next: the `points` family (M).
 
 ## Not planned
 

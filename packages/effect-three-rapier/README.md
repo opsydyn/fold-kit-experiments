@@ -65,6 +65,15 @@ same bodies in the same order, and prefer colliders sized as data (`ballCollider
 `cuboidCollider`) to ones measured from curved geometry: browsers may round sines and
 cosines differently.
 
+## Snapshots
+
+Worlds take snapshots (`physics({ snapshotAt })` reports one) and start from them
+(`physics({ from })`), exactly: a world restored from a snapshot goes on as the one it was
+taken from, bit for bit with the deterministic build. A newcomer to a lockstep session can
+start from the leader's snapshot instead of replaying the game
+([ADR-018](../../docs/effect-three/adr/018-snapshot-welcome.md)). Snapshots work in a
+worker too; each build restores its own.
+
 ## In a worker
 
 To keep stepping off the page's thread, run Rapier in a worker behind the same engine

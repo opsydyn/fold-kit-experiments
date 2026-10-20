@@ -89,5 +89,6 @@ checksum }`, after the collisions of the steps that led there. Whatever the desc
   more, so the tabletop steps out of a shared session while hidden and back in, as a
   newcomer, when shown.
 - Rollback (predicting others' inputs and correcting) is not done: inputs wait for the
-  turn that carries them. The record grows with the game; a snapshot welcome (Rapier can
-  snapshot a world) would bound a newcomer's replay.
+  turn that carries them. The record grows with the game; a newcomer now starts from a
+  snapshot of the leader's world instead of replaying it all
+  ([ADR-018](018-snapshot-welcome.md)).

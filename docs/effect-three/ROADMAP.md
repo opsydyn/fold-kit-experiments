@@ -275,8 +275,12 @@ Effect owns every lifetime.
    promo's tabletop example throws balls at a tower from every peer: a turn's throws
    land at that turn's step, a newcomer replays the record from step 0, and peers
    compare checksums every second. Checked by simulated peers, real Rapier at random
-   frame timings, and three browser contexts through the relay. Next: rollback, and a
-   snapshot welcome so a newcomer need not replay everything.
+   frame timings, and three browser contexts through the relay.
+   ✅ Then a snapshot welcome ([ADR-018](adr/018-snapshot-welcome.md)):
+   `physics({ snapshotAt })` reports a snapshot of the world, and `physics({ from })`
+   starts a run from one, with Rapier's snapshots in the page and in a worker. The
+   tabletop's leader snapshots at each check, and a newcomer starts from its latest
+   rather than replaying from step 0. Next: rollback.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -393,8 +397,8 @@ runs in lockstep too, inputs landing at a step the Model sets (2), and a game re
 from a link, checked step by step against its record (1). Data and assets (6) are done:
 scenes ask for their assets, loaded, shared, cancelled and freed for them, coarse levels
 first; a scene previews as SVG without a browser; and Rapier steps in a worker behind the
-same engine contract. What remains is lockstep physics' rollback and a snapshot welcome
-(2), so a newcomer need not replay everything.
+same engine contract. A newcomer to a lockstep session starts from the leader's
+snapshot (2). What remains is lockstep physics' rollback (2).
 
 ## Not planned
 

@@ -4477,6 +4477,29 @@ export const pressGizmo: (state: Gizmo, placement: Placement, handle: GizmoHandl
 // @public
 export const pressPivot: (state: Pivot, placement: Placement, handle: PivotHandle, point: Vec3) => Pivot;
 
+// @public (undocumented)
+export type PreviewOptions = {
+    readonly width: number;
+    readonly height: number;
+    readonly at?: number;
+    readonly background?: Rgb | null;
+    readonly store?: ResourceStore;
+    readonly behaviours?: SceneGraphOptions['behaviours'];
+    readonly precision?: number;
+};
+
+// @public (undocumented)
+export type PreviewResult = {
+    readonly _tag: 'Preview';
+    readonly svg: string;
+} | {
+    readonly _tag: 'Invalid';
+    readonly error: DescriptionError;
+};
+
+// @public
+export const previewSvg: (description: SceneDescription, options: PreviewOptions) => PreviewResult;
+
 // @public
 export const prismaticJoint: (options: {
     readonly axis: Vec3;

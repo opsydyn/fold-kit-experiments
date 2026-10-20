@@ -287,6 +287,7 @@ export {
   type SceneGraph,
   type SceneGraphOptions,
 } from './sceneGraph.ts';
+export { type PreviewOptions, type PreviewResult, previewSvg } from './preview.ts';
 export {
   type DescriptionError,
   emptyIndex,

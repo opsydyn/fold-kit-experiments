@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-foldkit-v0.4.0...effect-three-foldkit-v0.5.0) (2026-10-20)
+
+### Features
+
+- **effect-three-foldkit:** load, share, cancel and free the assets scenes ask for ([eca8f9f](https://github.com/opsydyn/fold-kit-experiments/commit/eca8f9fad2637f7fb5896fb832981c5258be1cdb))
+- **effect-three-foldkit:** stream an asset's levels of detail ([ec5840c](https://github.com/opsydyn/fold-kit-experiments/commit/ec5840c299b7f20d02ffe556f26c7c5fc1293bb4))
+- **effect-three:** physics on the Model's clock, for worlds that must agree ([e91612c](https://github.com/opsydyn/fold-kit-experiments/commit/e91612c50b20be408df2e6e287203456ae45fe1b))
+
 ## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-foldkit-v0.3.0...effect-three-foldkit-v0.4.0) (2026-10-20)
 
 ### Features

@@ -280,7 +280,12 @@ Effect owns every lifetime.
    `physics({ snapshotAt })` reports a snapshot of the world, and `physics({ from })`
    starts a run from one, with Rapier's snapshots in the page and in a worker. The
    tabletop's leader snapshots at each check, and a newcomer starts from its latest
-   rather than replaying from step 0. Next: rollback.
+   rather than replaying from step 0.
+   ✅ Then rollback ([ADR-019](adr/019-rollback.md)): `physics({ keep })` keeps the
+   world's latest stops, and a run starts from one by step. The tabletop with
+   `?predict=1` runs its world to the turn it sends, shows its own throws at once, and
+   rolls back a few steps when another's lands where its world has been; checked with
+   real Rapier worlds over a network two turns late.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -398,7 +403,8 @@ from a link, checked step by step against its record (1). Data and assets (6) ar
 scenes ask for their assets, loaded, shared, cancelled and freed for them, coarse levels
 first; a scene previews as SVG without a browser; and Rapier steps in a worker behind the
 same engine contract. A newcomer to a lockstep session starts from the leader's
-snapshot (2). What remains is lockstep physics' rollback (2).
+snapshot, and a predicting peer rolls back for late inputs (2). Every item on the
+roadmap is done.
 
 ## Not planned
 

@@ -261,6 +261,12 @@ Effect owns every lifetime.
 4. **Tooling from Schema.** An inspector generated from the scene schemas, save and load
    as JSON, undo and branching history from the immutable Model, and scene diffs in
    review from the kernel's own ops.
+   ✅ First ([ADR-012](adr/012-tooling-from-schema.md)): `SceneFile.save` and `read`
+   (the schema's encoding in a versioned envelope; every generated scene reads back
+   unchanged), `History` (a tree of Model values: undo, redo, branches kept and chosen),
+   and `sceneChanges` with `formatChanges` and `bun run scene:diff a.json b.json` (the
+   kernel's own operations as lines for review). The arrange example undoes along
+   branches. Next: an inspector generated from the scene schemas.
 5. **Interaction widgets as Foldkit submodels.** A transform gizmo, box select, a
    measuring tape, an XR teleport arc: pure, property-tested, composed through
    OutMessages, as ADR-006 did for cameras.
@@ -306,8 +312,9 @@ collaboration, 3 for the assistant).
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
 (3), labels under WebGPU (E), the line and points families, the transform gizmo, box
-select, the viewport gizmo, the pivot controls and the measuring tape (5) are done. Next: tooling from Schema
-(4) toward the scene editor.
+select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and of
+tooling from Schema (4) scene files, branching history and review diffs. Next: the
+schema-generated inspector, toward the scene editor.
 
 ## Not planned
 

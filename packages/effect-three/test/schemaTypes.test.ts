@@ -30,6 +30,10 @@ type Proof = [
   Equals<typeof SceneSchema.Placement.Type, Kernel.Placement>,
   Equals<typeof SceneSchema.Pivot.Type, Kernel.Pivot>,
   Equals<typeof SceneSchema.Tape.Type, Kernel.Tape>,
+  Equals<
+    ReturnType<typeof SceneSchema.History<typeof SceneSchema.Placement>>['Type'],
+    Kernel.History.History<Kernel.Placement>
+  >,
   Equals<typeof SceneSchema.Hud.Type, Kernel.Hud>,
 ];
 

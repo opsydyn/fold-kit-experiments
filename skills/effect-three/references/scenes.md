@@ -51,6 +51,10 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
 - **Pivot controls:** as the transform gizmo, with `PivotControls`: send `Pressed` with
   the handle, the hit `point` and the placement; `Dragged` with the ray and `snap`;
   `Released`. Every handle shows at once, sized in scene units (`scale`).
+- **Save, load, undo, review:** `SceneFile.save(scene)` and `SceneFile.read(text)` (a
+  `Result`; `yield*` it in an Effect); keep `History.History<A>` in the Model
+  (`SceneSchema.History(schema)`) and `History.record` at the end of a gesture, not every
+  frame; `sceneChanges` and `formatChanges` describe what changed between two scenes.
 - **Measuring tape:** keep `MeasuringTape.Model`; send `Placed` with a click's hit
   `point` (make the floor `interactive` while measuring), `Pointed` from pointer moves
   (`null` on leave), and `Cleared`; add `MeasuringTape.nodes(model.tape)` to the scene

@@ -1,3 +1,4 @@
+import { History } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
@@ -27,7 +28,18 @@ const modes = [
 
 const figure = (value: number): string => value.toFixed(2);
 
-const undoable = (model: Model): string => `${model.past.length} moves to undo.`;
+const undoable = (model: Model): string => {
+  const ways = History.branches(model.history).length;
+  const branched = ways > 1 ? ` ${ways} ways forward from here.` : '';
+  return `${History.depth(model.history)} moves to undo.${branched}`;
+};
+
+/** Which branch redo takes, when there is more than one. */
+const branchLabel = (model: Model): string => {
+  const choices = History.branches(model.history);
+  const taken = choices.findIndex((entry) => entry.id === History.presentEntry(model.history).next);
+  return `Branch ${taken + 1} of ${choices.length}`;
+};
 
 /** One selected thing and where it is. */
 const placed = (model: Model, { key, placement }: Thing): string =>
@@ -126,8 +138,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           toggle(h, 'Snap', model.snapping, Message.ClickedSnapping()),
           toggle(h, 'Pivot', model.style === 'pivot', Message.ClickedPivot()),
           toggle(h, 'Measure', model.measuring, Message.ClickedMeasure()),
-          button(h, 'Undo', model.past.length > 0, Message.ClickedUndo()),
-          button(h, 'Redo', model.future.length > 0, Message.ClickedRedo()),
+          button(h, 'Undo', History.canUndo(model.history), Message.ClickedUndo()),
+          button(h, 'Redo', History.canRedo(model.history), Message.ClickedRedo()),
+          ...(History.branches(model.history).length > 1
+            ? [button(h, branchLabel(model), true, Message.ClickedBranch())]
+            : []),
         ],
       ),
       h.p(

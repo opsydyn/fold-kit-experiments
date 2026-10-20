@@ -1198,6 +1198,21 @@ export const Gizmo = Schema.Struct({
   ),
 });
 
+/** A branching history of `value`s (`History.make`), for a Model that keeps one. */
+export const History = <S extends Schema.Top>(value: S) =>
+  Schema.Struct({
+    entries: Schema.Array(
+      Schema.Struct({
+        id: Schema.Int,
+        parent: Schema.NullOr(Schema.Int),
+        label: Schema.String,
+        value,
+        next: Schema.NullOr(Schema.Int),
+      }),
+    ),
+    current: Schema.Int,
+  });
+
 /** A measuring tape as data (`tape`), for a Model that keeps it. */
 export const Tape = Schema.Struct({
   from: Schema.NullOr(Vec3),

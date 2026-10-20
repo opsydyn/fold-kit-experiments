@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
 
+import { History } from '@opsydyn/effect-three';
+
 import { Message } from '../src/arrange/message';
 import { init, startThings } from '../src/arrange/model';
 import { update } from '../src/arrange/update';
@@ -29,13 +31,18 @@ const moveCrate = (model: Model, to: number): Model => {
 test('dragging the gizmo moves the selected thing, and each move can be undone and redone', () => {
   const moved = moveCrate(start, 0.5);
   expect(crateAt(moved)?.position[0]).toBeCloseTo(0.5, 5);
-  expect(moved.past).toHaveLength(1);
+  expect(History.depth(moved.history)).toBe(1);
   const undone = step(moved, Message.ClickedUndo());
   expect(crateAt(undone)).toEqual(crateAt(start));
   const redone = step(undone, Message.ClickedRedo());
   expect(crateAt(redone)?.position[0]).toBeCloseTo(0.5, 5);
-  // A new move after an undo drops what could have been redone.
-  expect(moveCrate(undone, -1).future).toEqual([]);
+  // A new move after an undo starts a branch; the first move is still there to redo.
+  const branched = moveCrate(undone, -1);
+  expect(History.canRedo(branched.history)).toBe(false);
+  const back = step(branched, Message.ClickedUndo());
+  expect(crateAt(step(back, Message.ClickedRedo()))?.position[0]).toBeCloseTo(-1, 5);
+  const other = step(back, Message.ClickedBranch());
+  expect(crateAt(step(other, Message.ClickedRedo()))?.position[0]).toBeCloseTo(0.5, 5);
 });
 
 test('snapping rounds moves to quarter units', () => {

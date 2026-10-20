@@ -54,6 +54,7 @@
     "check": "bun run lint && bun run check:boundaries && bun run check:single-effect",
     "test": "bun test --pass-with-no-tests ./src ./test --coverage --coverage-reporter=lcov --coverage-dir=coverage && bun scripts/check-coverage.ts coverage/lcov.info",
     "build": "tsc -b && bun build ./src/index.ts ./src/kernel/index.ts ./src/webgl/index.ts ./src/webgpu/index.ts --root ./src --outdir ./dist --target browser --packages external --splitting --sourcemap=linked",
+    "scene:diff": "bun scripts/scene-diff.ts",
     "bench": "bun bench/index.ts",
     "bench:check": "bun bench/index.ts --check",
     "api:report": "api-extractor run --local",

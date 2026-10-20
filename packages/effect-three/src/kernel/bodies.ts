@@ -15,7 +15,14 @@ import { Euler, Quaternion, type Scene } from 'three';
 import { bodyId, type BodySource } from './bodySources.ts';
 import type { Body, Joint, Physics, Vec3 } from './description.ts';
 import { bodyEquals, collidersEqual, jointEquals, physicsEquals } from './equality.ts';
-import type { BodyPose, PhysicsEngine, PhysicsJoint, PhysicsWorld, Quat } from './physics.ts';
+import type {
+  BodyPose,
+  Collision,
+  PhysicsEngine,
+  PhysicsJoint,
+  PhysicsWorld,
+  Quat,
+} from './physics.ts';
 import { createPhysicsDebug } from './physicsDebug.ts';
 
 /** Two bodies began (`started`) or stopped touching: their nodes' keys, and instances'. */
@@ -363,10 +370,8 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     }
   };
 
-  const step = (active: PhysicsWorld, seconds: number): void => {
-    for (const body of hosted.values()) body.previous = body.current;
-    kinematicTargets(active);
-    for (const collision of active.step(seconds)) {
+  const heard = (arrived: ReadonlyArray<Collision>, active: PhysicsWorld): void => {
+    for (const collision of arrived) {
       collisions.push({
         ...named(hosted.get(collision.a)?.source, hosted.get(collision.b)?.source, collision),
         started: collision.started,
@@ -379,8 +384,27 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
         ...payload,
       });
     }
+  };
+
+  const step = (active: PhysicsWorld, seconds: number): void => {
+    for (const body of hosted.values()) body.previous = body.current;
+    kinematicTargets(active);
+    heard(active.step(seconds), active);
     for (const [id, body] of hosted) body.current = active.pose(id) ?? body.current;
     steps += 1;
+  };
+
+  /**
+   * What a world working elsewhere has sent back since the last frame: its collisions and
+   * forces, and where its bodies are now. Whether anything is still to come back; never,
+   * for a world that does what it is asked at once.
+   */
+  const collect = (active: PhysicsWorld): boolean => {
+    if (active.received === undefined) return false;
+    const { collisions: arrived, pending } = active.received();
+    heard(arrived, active);
+    for (const [id, body] of hosted) body.current = active.pose(id) ?? body.current;
+    return pending;
   };
 
   /** On scene time: every whole step the time since the last frame holds. */
@@ -390,6 +414,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       step(active, timeStep);
       accumulator -= timeStep;
     }
+    collect(active);
     return accumulator / timeStep;
   };
 
@@ -412,10 +437,12 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     const count = Math.min(owed, behind ? owed : paced, Math.ceil(mostPerFrame / timeStep));
     for (let i = 0; i < count; i++) step(active, timeStep);
     accumulator = Math.max(0, accumulator - count * timeStep);
+    const pending = collect(active);
     if (steps < until) return Math.min(1, accumulator / timeStep);
     // Waiting: time spent here is not owed once `until` moves on.
     accumulator = 0;
-    if (steps === until && reported !== until) {
+    // A world working elsewhere is there once all it was asked has come back, poses and all.
+    if (steps === until && reported !== until && !pending) {
       reported = until;
       reached.push({
         run,

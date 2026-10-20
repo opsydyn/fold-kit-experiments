@@ -4062,6 +4062,7 @@ export type PhysicsWorld = {
     readonly pose: (key: string) => BodyPose | undefined;
     readonly awake: () => boolean;
     readonly dispose: () => void;
+    readonly received?: () => Received;
 };
 
 // @public (undocumented)
@@ -4538,6 +4539,12 @@ const read: (text: string) => Result.Result<SceneDescription, UnreadableScene>;
 
 // @public
 const receive: <I>(state: Lockstep_2<I>, packet: Packet<I>) => Lockstep_2<I>;
+
+// @public
+export type Received = {
+    readonly collisions: ReadonlyArray<Collision>;
+    readonly stepping: boolean;
+};
 
 // @public (undocumented)
 export type ReconcileResult = {

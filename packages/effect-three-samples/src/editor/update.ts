@@ -25,10 +25,10 @@ import { nodeKeyOf, placed, placementOf, selectableOf } from './document';
 import { applyEdit, type Edit } from './edit';
 import { Message } from './message';
 import type { Model } from './model';
-import { NameTab, Say, WaitForWelcome } from './session';
-import { type Packet, quietMilliseconds, type Wire } from './wire';
+import { NameTab, type RelayService, Say, selfOf, WaitForWelcome } from './session';
+import { type Packet, quietMilliseconds, type Relay, type Wire } from './wire';
 
-type AppReturn = Return<Model, Message>;
+type AppReturn = Return<Model, Message, RelayService>;
 type Nodes = ReadonlyArray<SceneNode>;
 type Live = Extract<Model['session'], { readonly _tag: 'Live' }>;
 
@@ -182,7 +182,9 @@ const endBox = (model: Model): Model => {
 
 const live = (model: Model, session: Live): Model => ({ ...model, session });
 
-const say = (wire: Wire) => Say({ wire });
+/** Says `wire` to the others: through the relay when the page names one, else the channel. */
+const say = (model: Model, wire: Wire) =>
+  Say({ wire, via: Option.isSome(model.relay) ? 'relay' : 'tabs' });
 
 /** The Welcome for `peer`: the session and the shared document as they are now. */
 const welcome = (model: Model, lockstep: Lockstep.Lockstep<Edit>, peer: string): Wire => ({
@@ -210,7 +212,7 @@ const settle = (model: Model, session: Live): AppReturn => {
   const newcomers = Lockstep.welcomeDue(before, result.state);
   return {
     model: applied,
-    commands: newcomers.map((peer) => say(welcome(applied, result.state, peer))),
+    commands: newcomers.map((peer) => say(applied, welcome(applied, result.state, peer))),
   };
 };
 
@@ -240,7 +242,7 @@ const dropQuiet = (model: Model, session: Live, at: number): AppReturn => {
   return {
     model: next.model,
     commands: [
-      ...quiet.map((peer) => say({ _tag: 'Drop', peer, until: lockstep.turn })),
+      ...quiet.map((peer) => say(model, { _tag: 'Drop', peer, until: lockstep.turn })),
       ...(next.commands ?? []),
     ],
   };
@@ -259,18 +261,62 @@ const tick = (model: Model, at: number): AppReturn => {
   return {
     model: dropped.model,
     commands: [
-      ...(sent.packet === undefined ? [] : [say({ _tag: 'Turn', packet: sent.packet })]),
+      ...(sent.packet === undefined ? [] : [say(model, { _tag: 'Turn', packet: sent.packet })]),
       ...(settled.commands ?? []),
       ...(dropped.commands ?? []),
     ],
   };
 };
 
-/** This tab named: it says hello and waits to be welcomed. */
-const named = (model: Model, peer: string): AppReturn => ({
-  model: { ...model, session: { _tag: 'Joining', self: peer, heard: [] } },
-  commands: [say({ _tag: 'Hello', peer }), WaitForWelcome()],
+/** Says hello, and waits to be welcomed. */
+const hello = (model: Model, peer: string): AppReturn => ({
+  model,
+  commands: [say(model, { _tag: 'Hello', peer }), WaitForWelcome()],
 });
+
+/**
+ * This tab named: it joins, saying hello at once over the channel, or once the relay
+ * the page names is open (`connected`).
+ */
+const named = (model: Model, peer: string, relay: Option.Option<string>): AppReturn => {
+  const joining: Model = {
+    ...model,
+    session: { _tag: 'Joining', self: peer, heard: [] },
+    relay: Option.map(relay, (url) => ({ url, link: 'Connecting' as const })),
+  };
+  return Option.isSome(relay) ? { model: joining } : hello(joining, peer);
+};
+
+const linked = (model: Model, link: Relay['link']): Model => ({
+  ...model,
+  relay: Option.map(model.relay, (relay) => ({ ...relay, link })),
+});
+
+/** The relay open: this tab says hello through it. */
+const connected = (model: Model): AppReturn =>
+  model.session._tag === 'Joining'
+    ? hello(linked(model, 'Open'), model.session.self)
+    : { model: linked(model, 'Open') };
+
+/**
+ * The relay unreachable, or gone: this tab carries on in a session of its own, with its
+ * document as it is (the others drop it when it goes quiet).
+ */
+const lost = (model: Model): Model => {
+  if (!Option.exists(model.relay, (relay) => relay.link !== 'Lost')) return model;
+  const unlinked = linked(model, 'Lost');
+  return Option.match(selfOf(model.session), {
+    onNone: () => unlinked,
+    onSome: (self) =>
+      live(unlinked, { _tag: 'Live', lockstep: Lockstep.make(self), stalled: Option.none() }),
+  });
+};
+
+/** Reconnecting: a new name, so this tab joins through the relay again as a newcomer. */
+const reconnect = (model: Model): AppReturn =>
+  Option.exists(model.relay, (relay) => relay.link === 'Lost')
+    ? { model, commands: [NameTab()] }
+    : { model };
 
 /** No welcome came: this tab starts a session of its own, with its document as it is. */
 const waited = (model: Model): Model =>
@@ -358,7 +404,7 @@ const bye = (model: Model): AppReturn =>
     ? {
         model,
         commands: [
-          say({
+          say(model, {
             _tag: 'Bye',
             peer: model.session.lockstep.self,
             until: Lockstep.leave(model.session.lockstep) + 1,
@@ -474,10 +520,15 @@ export const update = (model: Model, message: Message): AppReturn =>
     ReadFile: ({ text }) => ({ model: load(model, text) }),
     CompletedDownload: () => ({ model }),
     ReceivedSceneLifecycle: () => ({ model }),
-    NamedTab: ({ peer }) => named(model, peer),
+    NamedTab: ({ peer, relay }) => named(model, peer, relay),
     WaitedForWelcome: () => ({ model: waited(model) }),
     HeardWire: ({ wire }) => hear(model, wire),
     TickedTurn: ({ at }) => tick(model, at),
     LeftPage: () => bye(model),
     CompletedSay: () => ({ model }),
+    ConnectedRelay: () => connected(model),
+    FailedRelay: () => ({ model: lost(model) }),
+    LostRelay: () => ({ model: lost(model) }),
+    ReleasedRelay: () => ({ model }),
+    ClickedReconnect: () => reconnect(model),
   });

@@ -40,6 +40,17 @@ export const Wire = Schema.Union([
 ]);
 export type Wire = typeof Wire.Type;
 
+/**
+ * A relay between machines, when the page names one (`?relay=ws://host:port/room`): its
+ * address, and whether this tab is connecting to it, connected, or has lost it (or never
+ * reached it). Without one, tabs of this browser find each other over the channel.
+ */
+export const Relay = Schema.Struct({
+  url: Schema.String,
+  link: Schema.Literals(['Connecting', 'Open', 'Lost']),
+});
+export type Relay = typeof Relay.Type;
+
 /** Where this tab is in a session. */
 export const Session = Schema.Union([
   /** No channel yet (or none at all, as in tests): Edits apply here directly. */

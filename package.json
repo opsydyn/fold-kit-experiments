@@ -60,7 +60,8 @@
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
-    "dev:three-promo": "bun run --filter @opsydyn/three-promo dev"
+    "dev:three-promo": "bun run --filter @opsydyn/three-promo dev",
+    "relay": "bun packages/effect-three-samples/scripts/relay.ts"
   },
   "devDependencies": {
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",

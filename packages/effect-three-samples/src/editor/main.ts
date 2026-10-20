@@ -1,10 +1,10 @@
 import { Message } from './message';
 import { init, Model } from './model';
-import { subscriptions } from './session';
+import { managedResources, subscriptions } from './session';
 import { update } from './update';
 import { view } from './view';
 
-export { init, Message, Model, subscriptions, update, view };
+export { init, managedResources, Message, Model, subscriptions, update, view };
 
 /**
  * For the Foldkit DevTools MCP server: an agent can read the Model and dispatch

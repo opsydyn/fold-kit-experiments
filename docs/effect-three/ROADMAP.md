@@ -340,6 +340,13 @@ Effect owns every lifetime.
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
    previews.
+   ✅ First ([ADR-015](adr/015-assets-a-scene-asks-for.md), 2026-10-20): a scene asks for
+   its assets (`scene({ assets: [modelAsset({ id, url })] })`), and the environment loads
+   each once however many scenes ask, aborts a load no scene asks for any more, and frees
+   an asset when the last scene stops asking; scenes hear `onAssetLoaded` and
+   `onAssetFailed`. The workshop example unloads by no longer asking, which cancels a load
+   under way (checked with the robot's request held in the network). Next: level of
+   detail as a stream, then Rapier in a Worker.
 
 A flagship that ties them together: a collaborative, replayable scene editor with an
 assistant, built as a Foldkit app (4 and 5 for editing, 1 for history, 2 for
@@ -360,8 +367,9 @@ select, the viewport gizmo, the pivot controls and the measuring tape (5) are do
 tooling from Schema (4): scene files, branching history, review diffs and the inspector.
 The scene editor ties them together, agents can describe and stage a scene through it
 (3), and tabs, or machines through a relay, edit it together in lockstep (2); physics
-runs in lockstep too, inputs landing at a step the Model sets (2). Next: data and assets
-(6), and replays (1) on the timeline.
+runs in lockstep too, inputs landing at a step the Model sets (2). Scenes ask for their
+assets, loaded, shared, cancelled and freed for them (6). Next: the rest of data and
+assets (6), and replays (1) on the timeline.
 
 ## Not planned
 

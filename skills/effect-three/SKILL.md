@@ -66,9 +66,11 @@ for a view with selection and a Model-owned orbit camera.
   (`Lockstep`) are pure too; the promo's editor example uses them all. Physics in
   lockstep puts the world's clock in the Model (`physics({ until })`, `Timeline`): the
   tabletop example.
-- **The application owns assets and loading.** Load models, textures, fonts and HDR
-  panoramas as Effects in Commands (`environment.assets.load*`), settle them into the
-  Model, and refer to them by id. A description may name an id before it is lent; it
+- **The Model says which assets it wants.** List them in the description
+  (`scene({ assets: [modelAsset({ id, url })] })`): the environment loads, shares,
+  cancels and frees them, and the scene reports `onAssetLoaded` / `onAssetFailed` to
+  settle into the Model by id; stop asking to unload. Commands
+  (`environment.assets.load*`) remain for an asset the app owns outright; one way per id. A description may name an id before it is lent; it
   appears when lent. Lent objects, textures and geometries are never disposed by the
   library.
 

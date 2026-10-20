@@ -135,9 +135,14 @@ mass, collider, colliders, collisionGroups, ... })` on meshes, groups, borrowed 
 colorRanges, curveRadius, material })`. Give each a font URL (TTF, OTF or WOFF;
   troika cannot read WOFF2). A label named in `measure` reports its laid-out size as
   `onLabelMeasured`.
-- **Assets:** `environment.assets.loadModel`, `loadTexture`, `loadFont` and
-  `loadEnvironment` are Effects for Commands; settle them into the Model and refer to
-  the id. Loading an id again replaces and frees the old asset; `unload(id)` frees it.
+- **Assets:** prefer `scene({ assets: [modelAsset({ id, url }), textureAsset(…),
+  environmentAsset(…), fontAsset(…)] })`, built from the Model (an empty list once it
+  stops wanting them). Handle `onAssetLoaded` and `onAssetFailed` to settle `AsyncData`
+  by id, and ignore answers for what it no longer asks for. The environment shares an
+  id between scenes and cancels a load no one asks for (ADR-015). Otherwise
+  `environment.assets.loadModel`, `loadTexture`, `loadFont` and `loadEnvironment` are
+  Effects for Commands; loading an id again replaces and frees the old asset, and
+  `unload(id)` frees it.
 
 ## Renderers
 

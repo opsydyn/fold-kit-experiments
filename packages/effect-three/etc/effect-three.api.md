@@ -99,6 +99,46 @@ type Applied<I> = {
 export const applyTween: (object: Object3D, tween: Tween, elapsedSeconds: number) => boolean;
 
 // @public
+export type Asset = {
+    readonly kind: AssetKind;
+    readonly id: string;
+    readonly url: string;
+};
+
+// @public
+const Asset_2: Schema.Struct<{
+    readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+    readonly id: Schema.String;
+    readonly url: Schema.String;
+}>;
+
+// @public
+const AssetFailedDetail: Schema.Struct<{
+    readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+    readonly id: Schema.String;
+    readonly url: Schema.String;
+    readonly reason: Schema.String;
+}>;
+
+// @public
+export type AssetKind = 'model' | 'texture' | 'environment' | 'font';
+
+// @public
+const AssetKind_2: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+
+// @public
+const AssetLoadedDetail: Schema.Struct<{
+    readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+    readonly id: Schema.String;
+    readonly url: Schema.String;
+    readonly parts: Schema.$Array<Schema.String>;
+    readonly clips: Schema.$Array<Schema.String>;
+}>;
+
+// @public
+export const assetsEqual: (a: ReadonlyArray<Asset>, b: ReadonlyArray<Asset>) => boolean;
+
+// @public
 export const autoRotated: <C extends Camera>(camera: C, turned: {
     readonly position: Vec3;
 }) => C;
@@ -1098,6 +1138,11 @@ export type DescriptionError = {
     readonly _tag: 'UnknownMeasuredNode';
     readonly key: string;
 }
+/** Two assets the scene asks for share an id. */
+| {
+    readonly _tag: 'DuplicateAssetId';
+    readonly id: string;
+}
 /** Two joints share a key. */
 | {
     readonly _tag: 'DuplicateJointKey';
@@ -1140,6 +1185,8 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
     readonly view: Schema.String;
 }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateAssetId", {
+    readonly id: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateJointKey", {
     readonly key: Schema.String;
 }>, Schema.TaggedStruct<"UnknownJointBody", {
@@ -1318,6 +1365,12 @@ const Environment_2: Schema.Struct<{
 }>;
 
 // @public
+export const environmentAsset: (options: {
+    readonly id: string;
+    readonly url: string;
+}) => Asset;
+
+// @public
 export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
 
 // @public (undocumented)
@@ -1394,6 +1447,12 @@ export const fixedJoint: (options?: {
 
 // @public
 export const float: Behaviour;
+
+// @public
+export const fontAsset: (options: {
+    readonly id: string;
+    readonly url: string;
+}) => Asset;
 
 // @public
 export const formatChanges: (changes: ReadonlyArray<SceneChange>) => string;
@@ -3477,6 +3536,12 @@ const MissDetail: Schema.Struct<{
 }>;
 
 // @public
+export const modelAsset: (options: {
+    readonly id: string;
+    readonly url: string;
+}) => Asset;
+
+// @public
 export type Modifiers = {
     readonly shift: boolean;
     readonly control: boolean;
@@ -4996,6 +5061,7 @@ export const scene: (options: {
     readonly physics?: Physics | null;
     readonly xr?: Xr | null;
     readonly measure?: ReadonlyArray<string>;
+    readonly assets?: ReadonlyArray<Asset>;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -5078,6 +5144,7 @@ export type SceneDescription = {
     readonly physics: Physics | null;
     readonly xr: Xr | null;
     readonly measure: ReadonlyArray<string>;
+    readonly assets: ReadonlyArray<Asset>;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -5341,6 +5408,11 @@ const SceneDescription_2: Schema.Struct<{
         }>>;
     }>>;
     readonly measure: Schema.$Array<Schema.String>;
+    readonly assets: Schema.withDecodingDefaultKey<Schema.$Array<Schema.Struct<{
+        readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+        readonly id: Schema.String;
+        readonly url: Schema.String;
+    }>>, never>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
             readonly strength: Schema.Finite;
@@ -6210,6 +6282,11 @@ const SceneFile_2: Schema.Struct<{
             }>>;
         }>>;
         readonly measure: Schema.$Array<Schema.String>;
+        readonly assets: Schema.withDecodingDefaultKey<Schema.$Array<Schema.Struct<{
+            readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+            readonly id: Schema.String;
+            readonly url: Schema.String;
+        }>>, never>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;
@@ -6576,7 +6653,11 @@ declare namespace SceneSchema {
         XrAnchor_2 as XrAnchor,
         Xr_2 as Xr,
         Gestures_2 as Gestures,
+        AssetKind_2 as AssetKind,
+        Asset_2 as Asset,
         SceneDescription_2 as SceneDescription,
+        AssetLoadedDetail,
+        AssetFailedDetail,
         KeyDetail,
         HitDetail,
         ButtonDetail,
@@ -7264,6 +7345,12 @@ const TextGeometry_2: Schema.TaggedStruct<"Text", {
     readonly lineHeight: Schema.Finite;
     readonly align: Schema.Literals<readonly ["left", "center", "right"]>;
 }>;
+
+// @public
+export const textureAsset: (options: {
+    readonly id: string;
+    readonly url: string;
+}) => Asset;
 
 // @public
 export type Textures = (id: string) => Texture | undefined;

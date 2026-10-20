@@ -515,6 +515,13 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
   measure: Schema.Array(Schema.String).check(Schema.isMaxLength(0)),
+  assets: Schema.Array(
+    Schema.Struct({
+      kind: Schema.Literals(['model', 'texture', 'environment', 'font']),
+      id: Schema.Literals(['robot']),
+      url: Schema.Literals(['robot.glb']),
+    }),
+  ).check(Schema.isMaxLength(1)),
   xr: Schema.NullOr(
     Schema.Struct({
       origin: Vec3,

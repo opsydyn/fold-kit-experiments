@@ -5,6 +5,7 @@
  * @module
  */
 import type {
+  Asset,
   Animation,
   Behave,
   CameraShake,
@@ -689,6 +690,13 @@ export const shaderGridLookEquals = (a: ShaderGridNode, b: ShaderGridNode): bool
   Object.is(a.fadeStrength, b.fadeStrength) &&
   Object.is(a.fadeFrom, b.fadeFrom) &&
   a.side === b.side;
+
+const assetEquals = (a: Asset, b: Asset | undefined): boolean =>
+  b !== undefined && a.kind === b.kind && a.id === b.id && a.url === b.url;
+
+/** Asset list equality: the same kinds, ids and urls, in the same order. */
+export const assetsEqual = (a: ReadonlyArray<Asset>, b: ReadonlyArray<Asset>): boolean =>
+  a === b || (a.length === b.length && a.every((asset, i) => assetEquals(asset, b[i])));
 
 /** Physics world equality. */
 export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>

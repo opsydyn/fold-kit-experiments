@@ -6,6 +6,7 @@
 import { CatmullRomCurve3, Color, CubicBezierCurve3, QuadraticBezierCurve3, Vector3 } from 'three';
 
 import type {
+  Asset,
   AmbientLightNode,
   LineNode,
   PointLook,
@@ -1677,6 +1678,37 @@ export const contactShadows = (
 
 const noOverlays: ReadonlyArray<Overlay> = [];
 const noMeasures: ReadonlyArray<string> = [];
+const noAssets: ReadonlyArray<Asset> = [];
+
+/** A glTF or GLB model for `scene({ assets })`, lent under `id` for `borrowed({ id })`. */
+export const modelAsset = (options: { readonly id: string; readonly url: string }): Asset => ({
+  kind: 'model',
+  ...options,
+});
+
+/** A colour texture (sRGB) for `scene({ assets })`, lent under `id` for a material's `map`. */
+export const textureAsset = (options: { readonly id: string; readonly url: string }): Asset => ({
+  kind: 'texture',
+  ...options,
+});
+
+/**
+ * An equirectangular HDR panorama (`.hdr`) for `scene({ assets })`, lent under `id` for
+ * `environment({ map: id })`.
+ */
+export const environmentAsset = (options: {
+  readonly id: string;
+  readonly url: string;
+}): Asset => ({ kind: 'environment', ...options });
+
+/**
+ * A typeface JSON font (three.js's `FontLoader` format) for `scene({ assets })`, lent under
+ * `id` for `text({ font: id })`.
+ */
+export const fontAsset = (options: { readonly id: string; readonly url: string }): Asset => ({
+  kind: 'font',
+  ...options,
+});
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
 const defaultZIndexRange: readonly [number, number] = [16777271, 0];
@@ -1733,6 +1765,7 @@ export const scene = (options: {
   readonly physics?: Physics | null;
   readonly xr?: Xr | null;
   readonly measure?: ReadonlyArray<string>;
+  readonly assets?: ReadonlyArray<Asset>;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -1749,6 +1782,7 @@ export const scene = (options: {
   physics: options.physics ?? null,
   xr: options.xr ?? null,
   measure: options.measure ?? noMeasures,
+  assets: options.assets ?? noAssets,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

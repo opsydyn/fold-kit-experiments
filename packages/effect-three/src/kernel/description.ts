@@ -1442,6 +1442,15 @@ export type XrGlide = {
   readonly snapDegrees: number;
 };
 
+/** What an asset is: a glTF or GLB model, a colour texture, an HDR panorama, a typeface font. */
+export type AssetKind = 'model' | 'texture' | 'environment' | 'font';
+
+/**
+ * An asset a scene asks for: its kind, the id it is lent under once loaded, and where it
+ * comes from.
+ */
+export type Asset = { readonly kind: AssetKind; readonly id: string; readonly url: string };
+
 export type SceneDescription = {
   readonly camera: Camera;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -1472,6 +1481,14 @@ export type SceneDescription = {
    * changes: what Drei's `Bounds` measures, for `fitCamera`. Loaded models included.
    */
   readonly measure: ReadonlyArray<string>;
+  /**
+   * Assets the scene asks for, each lent under its id once loaded: a `borrowed({ id })`
+   * node shows a model, a material's `map: id` a texture, `environment({ map: id })` a
+   * panorama and `text({ font: id })` a font. The host loads each once however many
+   * scenes ask, cancels a load no scene asks for any more, and frees an asset when the
+   * last scene stops asking (ADR-015); it reports each as loaded or failed.
+   */
+  readonly assets: ReadonlyArray<Asset>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

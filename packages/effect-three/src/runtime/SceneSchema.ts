@@ -917,6 +917,12 @@ export const Xr = Schema.Struct({
 /** Whether the scene claims the pointer's gestures from the page. */
 export const Gestures = Schema.Literals(['page', 'scene']);
 
+/** What an asset is: a glTF or GLB model, a colour texture, an HDR panorama, a typeface font. */
+export const AssetKind = Schema.Literals(['model', 'texture', 'environment', 'font']);
+
+/** An asset a scene asks for (`modelAsset` and the rest). */
+export const Asset = Schema.Struct({ kind: AssetKind, id: Schema.String, url: Schema.String });
+
 export const SceneDescription = Schema.Struct({
   camera: Camera,
   gestures: Gestures,
@@ -930,9 +936,29 @@ export const SceneDescription = Schema.Struct({
   physics: Schema.NullOr(Physics),
   xr: Schema.NullOr(Xr),
   measure: Schema.Array(Schema.String),
+  assets: Schema.Array(Asset).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
+});
+
+/** Detail of asset loaded events: the asset, and for a model its parts and clips. */
+export const AssetLoadedDetail = Schema.Struct({
+  kind: AssetKind,
+  id: Schema.String,
+  url: Schema.String,
+  /** Names of the objects inside a model, as hits report them in `part`. */
+  parts: Schema.Array(Schema.String),
+  /** Names of a model's animation clips. */
+  clips: Schema.Array(Schema.String),
+});
+
+/** Detail of asset failed events: the asset, and why it could not be loaded. */
+export const AssetFailedDetail = Schema.Struct({
+  kind: AssetKind,
+  id: Schema.String,
+  url: Schema.String,
+  reason: Schema.String,
 });
 
 /** Detail of pointer-leave events: the interactive mesh's key. */
@@ -1180,6 +1206,7 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('UnknownOverlayNode', { key: Schema.String, node: Schema.String }),
   Schema.TaggedStruct('UnknownOverlayView', { key: Schema.String, view: Schema.String }),
   Schema.TaggedStruct('UnknownMeasuredNode', { key: Schema.String }),
+  Schema.TaggedStruct('DuplicateAssetId', { id: Schema.String }),
   Schema.TaggedStruct('DuplicateJointKey', { key: Schema.String }),
   Schema.TaggedStruct('UnknownJointBody', { joint: Schema.String, body: Schema.String }),
   Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),

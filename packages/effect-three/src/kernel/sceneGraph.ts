@@ -1550,6 +1550,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     physics: null,
     xr: null,
     measure: [],
+    assets: [],
     render: parent.render,
     resources: parent.resources,
     children: texture.children,

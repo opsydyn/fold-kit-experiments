@@ -46,6 +46,7 @@ export {
 } from './environment.ts';
 export { makeSceneMount, type SceneMount } from './mount.ts';
 export * as BoxSelect from './boxSelect.ts';
+export * as MeasuringTape from './measuringTape.ts';
 export * as PivotControls from './pivotControls.ts';
 export * as TransformGizmo from './transformGizmo.ts';
 export * as ViewportGizmo from './viewportGizmo.ts';

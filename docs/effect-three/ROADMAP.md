@@ -287,7 +287,12 @@ Effect owns every lifetime.
    follow Drei's maths for arrows, plane squares, quarter arcs and scaling spheres,
    checked against Drei's handlers replayed with three's matrices; the adapter's
    `PivotControls` is the submodel. The arrange example switches between the two
-   gizmos. Still to come here: the measuring tape.
+   gizmos.
+   ✅ Last, the measuring tape, which neither three nor Drei has: `tape`, `placeTapeEnd`,
+   `pointTape` and `tapeNodes` (two clicked ends, a dashed run to the pointer while the
+   second is placed, optional snapping), and the adapter's `MeasuringTape` with its
+   length as an overlay at the middle. The arrange example measures between anything on
+   the table. With it, every widget of 5 is done.
 6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
@@ -301,8 +306,8 @@ collaboration, 3 for the assistant).
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
 (3), labels under WebGPU (E), the line and points families, the transform gizmo, box
-select, the viewport gizmo and the pivot controls (5) are done. Next: tooling from Schema
-(4) toward the scene editor, and the measuring tape, the last widget of 5.
+select, the viewport gizmo, the pivot controls and the measuring tape (5) are done. Next: tooling from Schema
+(4) toward the scene editor.
 
 ## Not planned
 

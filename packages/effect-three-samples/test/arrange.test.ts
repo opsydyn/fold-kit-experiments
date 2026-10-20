@@ -49,8 +49,12 @@ test('a press off the gizmo moves nothing; clicks select things; the camera orbi
     Message.PressedScene({ key: 'ball', point: [0, 0.8, -0.8], ...down(0, -0.8) }),
   );
   expect(step(pressed, Message.DraggedScene(down(2, 0))).things).toEqual(startThings);
-  expect(step(start, Message.ClickedThing({ key: 'cone' })).selected).toEqual(['cone']);
-  expect(step(start, Message.ClickedThing({ key: 'gizmo:x' })).selected).toEqual(start.selected);
+  expect(step(start, Message.ClickedThing({ key: 'cone', point: [0, 0, 0] })).selected).toEqual([
+    'cone',
+  ]);
+  expect(step(start, Message.ClickedThing({ key: 'gizmo:x', point: [0, 0, 0] })).selected).toEqual(
+    start.selected,
+  );
   const free = {
     _tag: 'Drag' as const,
     button: 0,
@@ -132,4 +136,43 @@ test('the pivot controls move the selection too, and their drags are undone the 
   const moved = step(step(pressed, Message.DraggedScene(down(-0.05, 0))), Message.ReleasedScene());
   expect(crateAt(moved)?.position[0]).toBeCloseTo(-0.5, 6);
   expect(crateAt(step(moved, Message.ClickedUndo()))).toEqual(crateAt(start));
+});
+
+test('measuring places a tape end at each click, runs it to the pointer, and skips orbits', () => {
+  const measuring = step(start, Message.ClickedMeasure());
+  const first = step(measuring, Message.ClickedThing({ key: 'table', point: [0, 0, 0] }));
+  // Measuring clicks never select.
+  expect(first.selected).toEqual(start.selected);
+  expect(step(first, Message.MovedOver({ point: [0, 0, 2] })).tape.tape.pointer).toEqual([0, 0, 2]);
+  // A drag across the table orbits; letting go on it places nothing.
+  const pressed = step(
+    first,
+    Message.PressedScene({ key: 'table', point: [1, 0, 1], ...down(1, 1) }),
+  );
+  const free = {
+    _tag: 'Drag' as const,
+    button: 0,
+    key: 'table',
+    deltaX: 40,
+    deltaY: 0,
+    x: 0,
+    y: 0,
+    width: 800,
+    height: 600,
+    modifiers: { shift: false, control: false, alt: false, meta: false },
+  };
+  const orbited = step(pressed, Message.MadeGesture({ gesture: free }));
+  expect(orbited.camera).not.toEqual(start.camera);
+  expect(
+    step(orbited, Message.ClickedThing({ key: 'table', point: [1, 0, 1] })).tape.tape.to,
+  ).toBeNull();
+  // A still click places the second end: three units.
+  const still = step(
+    orbited,
+    Message.PressedScene({ key: 'crate', point: [3, 0, 0], ...down(3, 0) }),
+  );
+  const measured = step(still, Message.ClickedThing({ key: 'crate', point: [3, 0, 0] }));
+  expect(measured.tape.tape.to).toEqual([3, 0, 0]);
+  // Leaving measuring empties the tape.
+  expect(step(measured, Message.ClickedMeasure()).tape.tape.from).toBeNull();
 });

@@ -77,7 +77,7 @@ export const examples = [
     category: 'Editing',
     title: 'Move, turn, scale, undo',
     description:
-      'A transform gizmo on whatever you select: arrows, planes and rings after three’s TransformControls, as a Foldkit submodel. Shift-drag to box several, press an axis in the corner to look along it, try Drei-style pivot controls, snap, work in local axes, and undo every move, because each one is a Message.',
+      'A transform gizmo on whatever you select: arrows, planes and rings after three’s TransformControls, as a Foldkit submodel. Shift-drag to box several, press an axis in the corner to look along it, try Drei-style pivot controls, measure, snap, work in local axes, and undo every move, because each one is a Message.',
     alt: 'Arrange: a rounded crate with a red, green and blue transform gizmo on a table with a ball, a cone and a ring.',
   },
   {

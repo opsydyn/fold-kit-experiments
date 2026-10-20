@@ -26,6 +26,7 @@ import {
 } from '@opsydyn/effect-three';
 import {
   BoxSelect,
+  MeasuringTape,
   PivotControls,
   TransformGizmo,
   ViewportGizmo,
@@ -82,7 +83,7 @@ const selectedPlacement = (model: Model): Option.Option<Placement> =>
     Option.fromNullishOr(model.things.find((thing) => thing.key === key)?.placement),
   );
 
-/** The gizmo on the first selected thing, if something is selected. */
+/** The gizmo on the first selected thing, if something is selected and not measuring. */
 const gizmoFor = (model: Model): ReadonlyArray<SceneNode> =>
   Option.match(selectedPlacement(model), {
     onNone: () => [],
@@ -111,10 +112,12 @@ export const sceneFor = (model: Model) => {
         geometry: box({ width: 8, height: 8, depth: 0.02 }),
         material: standard({ color: 0xd9d6cf, roughness: 0.95 }),
         receiveShadow: true,
+        // Picked only while measuring, so a tape end can be placed on it.
+        interactive: model.measuring,
       }),
       shaderGrid({ key: 'grid', size: [8, 8], cellSize: 0.25, sectionSize: 1, fadeDistance: 14 }),
       ...model.things.map((thing) => thingNode(keys, thing)),
-      ...gizmoFor(model),
+      ...(model.measuring ? [MeasuringTape.nodes(model.tape)] : gizmoFor(model)),
     ],
   });
 };

@@ -309,6 +309,17 @@ export {
 } from './gizmo.ts';
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
 export {
+  clearTape,
+  placeTapeEnd,
+  pointTape,
+  type Tape,
+  tape,
+  tapeLength,
+  type TapeLook,
+  tapeMiddle,
+  tapeNodes,
+} from './tape.ts';
+export {
   dragPivot,
   hoverPivot,
   type Pivot,

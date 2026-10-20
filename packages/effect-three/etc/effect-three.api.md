@@ -674,6 +674,9 @@ const CircleGeometry_2: Schema.TaggedStruct<"Circle", {
 }>;
 
 // @public
+export const clearTape: (state: Tape) => Tape;
+
+// @public
 export const clipCamera: (camera: Camera, box: Box, area: {
     readonly width: number;
     readonly height: number;
@@ -3738,6 +3741,9 @@ const Placement_2: Schema.Struct<{
 export const placeOverlays: (graph: SceneGraph) => ReadonlyArray<OverlayPlacement>;
 
 // @public
+export const placeTapeEnd: (state: Tape, point: Vec3) => Tape;
+
+// @public
 export const plane: (size?: {
     readonly width?: number;
     readonly height?: number;
@@ -4005,6 +4011,9 @@ const PointsNode_2: Schema.TaggedStruct<"Points", {
         readonly seed: Schema.Finite;
     }>]>;
 }>;
+
+// @public
+export const pointTape: (state: Tape, point: Vec3 | null) => Tape;
 
 // @public
 export const positionMotor: (position: number, stiffness: number, damping: number) => JointMotor;
@@ -5704,6 +5713,7 @@ declare namespace SceneSchema {
         DescriptionError_2 as DescriptionError,
         Placement_2 as Placement,
         Gizmo_2 as Gizmo,
+        Tape_2 as Tape,
         PivotHandle_2 as PivotHandle,
         Pivot_2 as Pivot
     }
@@ -6200,6 +6210,43 @@ const SurfaceMaterial_2: Schema.Union<readonly [Schema.TaggedStruct<"Shadow", {
     wireframe: Schema.Boolean;
     flatShading: Schema.Boolean;
 }>]>;
+
+// @public (undocumented)
+export type Tape = {
+    readonly from: Vec3 | null;
+    readonly to: Vec3 | null;
+    readonly pointer: Vec3 | null;
+    readonly snap: number | null;
+};
+
+// @public
+export const tape: (options?: {
+    readonly snap?: number | null;
+}) => Tape;
+
+// @public
+const Tape_2: Schema.Struct<{
+    readonly from: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+    readonly to: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+    readonly pointer: Schema.NullOr<Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>>;
+    readonly snap: Schema.NullOr<Schema.Finite>;
+}>;
+
+// @public
+export const tapeLength: (state: Tape) => number | undefined;
+
+// @public (undocumented)
+export type TapeLook = {
+    readonly color: Rgb;
+    readonly width: number;
+    readonly endRadius: number;
+};
+
+// @public
+export const tapeMiddle: (state: Tape) => Vec3 | undefined;
+
+// @public
+export const tapeNodes: (key: string, state: Tape, look?: Partial<TapeLook>) => SceneNode;
 
 // @public
 export const teleport: (settings: Xr, point: Vec3) => Xr;

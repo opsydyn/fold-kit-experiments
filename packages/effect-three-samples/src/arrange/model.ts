@@ -1,6 +1,7 @@
 import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
 import {
   BoxSelect,
+  MeasuringTape,
   PivotControls,
   TransformGizmo,
   ViewportGizmo,
@@ -40,6 +41,14 @@ export const Model = Schema.Struct({
    * pointer, and letting go there is no click on nothing to clear the selection.
    */
   pressedView: Schema.Boolean,
+  /** Whether clicks measure, with the tape (a fifth submodel), instead of selecting. */
+  measuring: Schema.Boolean,
+  tape: MeasuringTape.Model,
+  /**
+   * Whether the camera has orbited since the last press: a drag across the table that
+   * ends on it is no click to place a tape end.
+   */
+  orbited: Schema.Boolean,
   camera: SceneSchema.Camera,
   /** The things as they were before each finished move, newest last: undo goes back. */
   past: Schema.Array(Schema.Array(Thing)),
@@ -74,6 +83,9 @@ export const init = () => ({
     box: BoxSelect.init(),
     view: ViewportGizmo.init('view'),
     pressedView: false,
+    measuring: false,
+    tape: MeasuringTape.init('tape'),
+    orbited: false,
     camera: perspectiveCamera({
       fov: 45,
       position: [3.5, 3.2, 5.5],

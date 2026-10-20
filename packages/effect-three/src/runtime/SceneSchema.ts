@@ -1198,6 +1198,14 @@ export const Gizmo = Schema.Struct({
   ),
 });
 
+/** A measuring tape as data (`tape`), for a Model that keeps it. */
+export const Tape = Schema.Struct({
+  from: Schema.NullOr(Vec3),
+  to: Schema.NullOr(Vec3),
+  pointer: Schema.NullOr(Vec3),
+  snap: Schema.NullOr(Positive),
+});
+
 /** A pivot handle: what it does, and its axis. */
 export const PivotHandle = Schema.Literals(
   (['arrow', 'slider', 'rotator', 'sphere'] as const).flatMap((kind) =>

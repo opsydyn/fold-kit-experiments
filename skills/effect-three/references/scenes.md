@@ -51,6 +51,11 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
 - **Pivot controls:** as the transform gizmo, with `PivotControls`: send `Pressed` with
   the handle, the hit `point` and the placement; `Dragged` with the ray and `snap`;
   `Released`. Every handle shows at once, sized in scene units (`scale`).
+- **Measuring tape:** keep `MeasuringTape.Model`; send `Placed` with a click's hit
+  `point` (make the floor `interactive` while measuring), `Pointed` from pointer moves
+  (`null` on leave), and `Cleared`; add `MeasuringTape.nodes(model.tape)` to the scene
+  and `MeasuringTape.label(model.tape, h)` to the view's `overlays`. A click that ends
+  an orbit drag is still a click: skip it if the camera moved since the press.
 - **Viewport gizmo:** keep `ViewportGizmo.Model` in your Model and put
   `ViewportGizmo.hud(model.view, model.camera)` in `scene({ hud })`; send `Entered` and
   `Left` from pointer enter and leave, and `Pressed` with the hit key and the camera from

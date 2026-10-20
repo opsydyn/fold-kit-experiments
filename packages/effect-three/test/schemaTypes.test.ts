@@ -29,6 +29,7 @@ type Proof = [
   Equals<typeof SceneSchema.Gizmo.Type, Kernel.Gizmo>,
   Equals<typeof SceneSchema.Placement.Type, Kernel.Placement>,
   Equals<typeof SceneSchema.Pivot.Type, Kernel.Pivot>,
+  Equals<typeof SceneSchema.Tape.Type, Kernel.Tape>,
   Equals<typeof SceneSchema.Hud.Type, Kernel.Hud>,
 ];
 

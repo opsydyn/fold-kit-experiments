@@ -101,5 +101,6 @@ Done (2026-10-19): `Billboard`, `RoundedBox` and `Backdrop`, `Detailed`, `Camera
 and `Clone`, the S candidates; then the line and points families: `line` with its
 curves, `Edges`, `Trail`, `Points`, `Sparkles` and `Stars`; and `TransformControls` as
 a pure gizmo with a Foldkit submodel, `Select`'s box the same way, and `Hud` with
-`GizmoHelper`'s viewport gizmo in it, and `PivotControls`. Next: tooling from Schema,
-for the scene editor in "Beyond parity".
+`GizmoHelper`'s viewport gizmo in it, and `PivotControls`. The promo's scene editor
+uses them together. Next: the remaining M candidates above, as the roadmap reaches
+them.

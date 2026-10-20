@@ -57,6 +57,13 @@ for a view with selection and a Model-owned orbit camera.
   `onGesture`, `onCollision`, `onXRStick`…). Scenes do not claim the page's gestures
   unless `scene({ gestures: 'scene' })`; then ignore gestures that began on a mesh
   you drag, as an R3F app disables controls while dragging.
+- **Editing widgets are submodels.** The adapter's `TransformGizmo`, `PivotControls`,
+  `BoxSelect`, `ViewportGizmo` and `MeasuringTape` keep their own Models and report
+  OutMessages; the parent keeps the placements, the selection and the camera. Scene
+  files (`SceneFile`), branching history (`History`), review diffs (`sceneChanges`), the
+  schema-generated inspector (`Inspector`, `inspectorView`), a scene vocabulary for
+  agents (`describeScene`, `shotCamera`, `moodStaging`) and editing together
+  (`Lockstep`) are pure too; the promo's editor example uses them all.
 - **The application owns assets and loading.** Load models, textures, fonts and HDR
   panoramas as Effects in Commands (`environment.assets.load*`), settle them into the
   Model, and refer to them by id. A description may name an id before it is lent; it

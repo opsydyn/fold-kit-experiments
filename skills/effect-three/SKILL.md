@@ -65,7 +65,9 @@ for a view with selection and a Model-owned orbit camera.
   agents (`describeScene`, `shotCamera`, `moodStaging`) and editing together
   (`Lockstep`) are pure too; the promo's editor example uses them all. Physics in
   lockstep puts the world's clock in the Model (`physics({ until })`, `Timeline`): the
-  tabletop example.
+  tabletop example. To step physics off the page's thread, serve Rapier in a worker
+  (`servePhysics`) and pass `remotePhysics(worker)` as the environment's physics, from
+  `@opsydyn/effect-three-rapier/worker`; it is a frame behind, and agrees with peers.
 - **The Model says which assets it wants.** List them in the description
   (`scene({ assets: [modelAsset({ id, url })] })`): the environment loads, shares,
   cancels and frees them, and the scene reports `onAssetLoaded` / `onAssetFailed` to

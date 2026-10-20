@@ -362,8 +362,13 @@ Effect owns every lifetime.
    ([ADR-016](adr/016-previews-without-a-browser.md)): `previewSvg` draws a description
    as a flat-shaded SVG without a browser or GPU, ordered by a binary space partition so
    floors and walls never cover what stands on them, and `scene:preview` draws a scene
-   file. The promo's guide shows two examples drawn at build time. Next: Rapier in a
-   Worker.
+   file. The promo's guide shows two examples drawn at build time.
+   ✅ Last, Rapier in a Worker ([ADR-017](adr/017-physics-in-a-worker.md)):
+   `remotePhysics(worker)` is a `PhysicsEngine` whose worlds live in a worker running
+   `servePhysics`, pipelined a frame behind, with an optional `received()` on the world
+   contract so `until` reports wait for the worker's answer. The tabletop takes
+   `?physics=worker`, and its peers agree whether their physics is in the page or in a
+   worker. With it, every part of 6 is done.
 
 A flagship that ties them together: a collaborative, replayable scene editor with an
 assistant, built as a Foldkit app (4 and 5 for editing, 1 for history, 2 for
@@ -384,9 +389,12 @@ select, the viewport gizmo, the pivot controls and the measuring tape (5) are do
 tooling from Schema (4): scene files, branching history, review diffs and the inspector.
 The scene editor ties them together, agents can describe and stage a scene through it
 (3), and tabs, or machines through a relay, edit it together in lockstep (2); physics
-runs in lockstep too, inputs landing at a step the Model sets (2). Scenes ask for their
-assets, loaded, shared, cancelled and freed for them (6). Next: the rest of data and
-assets (6), and replays (1) on the timeline.
+runs in lockstep too, inputs landing at a step the Model sets (2), and a game replays
+from a link, checked step by step against its record (1). Data and assets (6) are done:
+scenes ask for their assets, loaded, shared, cancelled and freed for them, coarse levels
+first; a scene previews as SVG without a browser; and Rapier steps in a worker behind the
+same engine contract. What remains is lockstep physics' rollback and a snapshot welcome
+(2), so a newcomer need not replay everything.
 
 ## Not planned
 

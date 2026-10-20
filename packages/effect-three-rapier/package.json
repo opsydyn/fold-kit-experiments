@@ -31,6 +31,11 @@
       "bun": "./src/deterministic.ts",
       "default": "./dist/deterministic.js"
     },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "bun": "./src/worker.ts",
+      "default": "./dist/worker.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -41,7 +46,7 @@
     "lint": "bunx --bun oxlint --config oxlint.strict.ts",
     "check": "bun run lint",
     "test": "bun test --pass-with-no-tests ./src ./test",
-    "build": "tsc -b && bun build ./src/index.ts ./src/deterministic.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
+    "build": "tsc -b && bun build ./src/index.ts ./src/deterministic.ts ./src/worker.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
     "api:report": "api-extractor run --local",
     "api:check": "api-extractor run",
     "pack:check": "bun run build && publint && rm -rf dist/pack && bun pm pack --destination dist/pack && attw dist/pack/*.tgz --profile esm-only"

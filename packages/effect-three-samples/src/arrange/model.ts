@@ -1,4 +1,4 @@
-import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
+import { History, perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
 import {
   BoxSelect,
   MeasuringTape,
@@ -50,10 +50,11 @@ export const Model = Schema.Struct({
    */
   orbited: Schema.Boolean,
   camera: SceneSchema.Camera,
-  /** The things as they were before each finished move, newest last: undo goes back. */
-  past: Schema.Array(Schema.Array(Thing)),
-  /** Moves undone, newest first: redo goes forward. */
-  future: Schema.Array(Schema.Array(Thing)),
+  /**
+   * The things after every finished move, as a branching history: a move after an undo
+   * starts a new branch and keeps the old one, for redo to take instead.
+   */
+  history: SceneSchema.History(Schema.Array(Thing)),
   /** The things when the current drag began. */
   before: Schema.Option(Schema.Array(Thing)),
   snapping: Schema.Boolean,
@@ -92,8 +93,7 @@ export const init = () => ({
       lookAt: [0, 0.3, 0],
       damping: 0.15,
     }),
-    past: [],
-    future: [],
+    history: History.make<ReadonlyArray<Thing>>(startThings),
     before: Option.none(),
     snapping: false,
   } satisfies Model,

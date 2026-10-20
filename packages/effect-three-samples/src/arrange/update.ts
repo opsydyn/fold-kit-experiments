@@ -1,4 +1,11 @@
-import { type Gesture, movedAlike, orbit, type Placement, type Vec3 } from '@opsydyn/effect-three';
+import {
+  type Gesture,
+  History,
+  movedAlike,
+  orbit,
+  type Placement,
+  type Vec3,
+} from '@opsydyn/effect-three';
 import {
   BoxSelect,
   MeasuringTape,
@@ -55,14 +62,12 @@ const placeSelected = (model: Model, placement: Placement): Model => {
   return { ...model, things: model.things.map(placedFrom(model, before, placement)) };
 };
 
-/** A finished move becomes a step of history: the things as they were before it. */
-const recorded = (model: Model): Model => {
-  const past = Option.match(model.before, {
-    onNone: () => model.past,
-    onSome: (before) => [...model.past, before],
-  });
-  return { ...model, past, future: [], before: Option.none() };
-};
+/** A finished move becomes a step of history, named for what moved. */
+const recorded = (model: Model): Model => ({
+  ...model,
+  history: History.record(model.history, model.things, `Moved ${model.selected.join(', ')}`),
+  before: Option.none(),
+});
 
 /** What the gizmo's OutMessage means here: move the selected thing, or record the move. */
 const fromGizmo = (model: Model, out: TransformGizmo.OutMessage): Model =>
@@ -195,27 +200,26 @@ const endBox = (model: Model): Model => {
   return { ...model, box: result.model, selected };
 };
 
-const undo = (model: Model): Model =>
-  Option.match(Arr.last(model.past), {
-    onNone: () => model,
-    onSome: (things) => ({
-      ...model,
-      things,
-      past: model.past.slice(0, -1),
-      future: [model.things, ...model.future],
-    }),
-  });
+/** The things as the history has them now. */
+const travelled = (model: Model, history: Model['history']): Model => ({
+  ...model,
+  history,
+  things: History.present(history),
+});
 
-const redo = (model: Model): Model =>
-  Option.match(Arr.head(model.future), {
-    onNone: () => model,
-    onSome: (things) => ({
-      ...model,
-      things,
-      past: [...model.past, model.things],
-      future: model.future.slice(1),
-    }),
-  });
+const undo = (model: Model): Model => travelled(model, History.undo(model.history));
+
+const redo = (model: Model): Model => travelled(model, History.redo(model.history));
+
+/** Redo takes the next branch from here, round to the first after the last. */
+const nextBranch = (model: Model): Model => {
+  const choices = History.branches(model.history);
+  const taken = choices.findIndex((entry) => entry.id === History.presentEntry(model.history).next);
+  const next = choices[(taken + 1) % Math.max(choices.length, 1)];
+  return next === undefined
+    ? model
+    : { ...model, history: History.chooseBranch(model.history, next.id) };
+};
 
 const isThing = (model: Model, key: string): boolean =>
   model.things.some((thing) => thing.key === key);
@@ -323,5 +327,6 @@ export const update = (model: Model, message: Message): AppReturn =>
     ClickedMeasure: () => ({ model: toggleMeasuring(model) }),
     ClickedUndo: () => ({ model: undo(model) }),
     ClickedRedo: () => ({ model: redo(model) }),
+    ClickedBranch: () => ({ model: nextBranch(model) }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

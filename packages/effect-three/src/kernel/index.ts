@@ -308,6 +308,15 @@ export {
   releaseGizmo,
 } from './gizmo.ts';
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
+export * as History from './history.ts';
+export {
+  type ChangePlace,
+  formatChanges,
+  type SceneChange,
+  type SceneChanges,
+  sceneChanges,
+  type SceneSetting,
+} from './sceneChanges.ts';
 export {
   clearTape,
   placeTapeEnd,

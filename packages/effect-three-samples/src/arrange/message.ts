@@ -26,6 +26,7 @@ export const Message = defineMessageUnion({
   ClickedMeasure: {},
   ClickedUndo: {},
   ClickedRedo: {},
+  ClickedBranch: {},
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });
 export type Message = typeof Message.Type;

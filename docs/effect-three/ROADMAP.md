@@ -358,6 +358,12 @@ Effect owns every lifetime.
    shown, and once the finest is shown the coarser loads still under way are cancelled.
    Scenes hear each level, with whether it is `final`. The workshop's robot and floor
    start coarse and sharpen.
+   ✅ Then server rendering for previews
+   ([ADR-016](adr/016-previews-without-a-browser.md)): `previewSvg` draws a description
+   as a flat-shaded SVG without a browser or GPU, ordered by a binary space partition so
+   floors and walls never cover what stands on them, and `scene:preview` draws a scene
+   file. The promo's guide shows two examples drawn at build time. Next: Rapier in a
+   Worker.
 
 A flagship that ties them together: a collaborative, replayable scene editor with an
 assistant, built as a Foldkit app (4 and 5 for editing, 1 for history, 2 for

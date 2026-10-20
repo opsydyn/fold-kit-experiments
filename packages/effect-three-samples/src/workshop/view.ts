@@ -69,6 +69,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           className: 'e3-stage',
           onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
           onClick: ({ part }) => Message.ClickedPart({ part: part ?? 'robot' }),
+          onAssetLoaded: ({ id, parts, clips }) => Message.LoadedAsset({ id, parts, clips }),
+          onAssetFailed: ({ id, reason }) => Message.FailedAsset({ id, reason }),
         },
         h,
       ),
@@ -103,9 +105,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       h.p(
         [h.Class('e3-note')],
         [
-          'The robot is a glTF model we generate from three.js primitives; it loads through a ',
-          'Foldkit Command and shows up through a borrowed node. Its clips are a function of scene ',
-          'time, so they pause with the scene and rewind with DevTools time travel.',
+          'The robot is a glTF model we generate from three.js primitives. The scene asks for it, ',
+          'the floor texture and the sign font in its description, and the environment loads ',
+          'them; unloading stops asking, which cancels a load still under way and frees what ',
+          'had arrived. The robot shows up through a borrowed node. Its clips are a function ',
+          'of scene time, so they pause with the scene and rewind with DevTools time travel.',
         ],
       ),
     ],

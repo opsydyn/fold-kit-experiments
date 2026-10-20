@@ -1,14 +1,17 @@
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
-import { type Result, Schema } from 'effect';
+import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
-import { Clip, type RobotInfo } from './model';
+import { Clip } from './model';
 
 export const Message = defineMessageUnion({
-  SettledRobot: { result: Schema.Unknown },
-  SettledFloor: { result: Schema.Unknown },
-  SettledFont: { result: Schema.Unknown },
-  CompletedUnload: {},
+  // What the scene heard about the assets it asks for.
+  LoadedAsset: {
+    id: Schema.String,
+    parts: Schema.Array(Schema.String),
+    clips: Schema.Array(Schema.String),
+  },
+  FailedAsset: { id: Schema.String, reason: Schema.String },
   ClickedClip: { clip: Schema.NullOr(Clip) },
   ChangedSpeed: { speed: Schema.Number },
   ClickedPart: { part: Schema.String },
@@ -16,13 +19,4 @@ export const Message = defineMessageUnion({
   ClickedReload: {},
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });
-export type SettledRobot = Omit<typeof Message.SettledRobot.Type, 'result'> & {
-  readonly result: Result.Result<RobotInfo, string>;
-};
-export type SettledFloor = Omit<typeof Message.SettledFloor.Type, 'result'> & {
-  readonly result: Result.Result<string, string>;
-};
-export type SettledFont = Omit<typeof Message.SettledFont.Type, 'result'> & {
-  readonly result: Result.Result<string, string>;
-};
 export type Message = typeof Message.Type;

@@ -15,6 +15,8 @@ export type RobotInfo = {
 export const Model = Schema.Struct({
   /** Where the site serves the model and texture from, ending in `/`. */
   assetBase: Schema.String,
+  /** Whether the scene asks for its assets: unloading is no longer asking. */
+  wanted: Schema.Boolean,
   robot: Schema.Unknown,
   floor: Schema.Unknown,
   font: Schema.Unknown,
@@ -39,6 +41,7 @@ export const assetIds = {
 
 export const initialModel = (assetBase: string): Model => ({
   assetBase,
+  wanted: true,
   robot: { _tag: 'Loading' },
   floor: { _tag: 'Loading' },
   font: { _tag: 'Loading' },

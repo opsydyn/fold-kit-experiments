@@ -1095,6 +1095,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly interpolate: Schema.Boolean;
             readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
             readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
+            readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+            readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                readonly step: Schema.Int;
+                readonly snapshot: Schema.String;
+            }>>, never>;
             readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;
@@ -1560,6 +1565,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly run: Schema.Int;
         readonly step: Schema.Int;
         readonly checksum: Schema.String;
+        readonly snapshot: Schema.optionalKey<Schema.String>;
     }>;
     'scene-measured': Schema.Struct<{
         readonly key: Schema.String;

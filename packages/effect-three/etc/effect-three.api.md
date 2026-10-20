@@ -3949,6 +3949,8 @@ export type Physics = {
     readonly interpolate: boolean;
     readonly until: number | null;
     readonly run: number;
+    readonly snapshotAt: number | null;
+    readonly from: PhysicsStart | null;
     readonly debug: boolean;
     readonly joints: ReadonlyArray<Joint>;
 };
@@ -3964,6 +3966,11 @@ const Physics_2: Schema.Struct<{
     readonly interpolate: Schema.Boolean;
     readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
     readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
+    readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+    readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+        readonly step: Schema.Int;
+        readonly snapshot: Schema.String;
+    }>>, never>;
     readonly debug: Schema.Boolean;
     readonly joints: Schema.$Array<Schema.Struct<{
         readonly key: Schema.String;
@@ -4012,6 +4019,7 @@ const Physics_2: Schema.Struct<{
 // @public
 export type PhysicsEngine = {
     readonly createWorld: (physics: Physics) => PhysicsWorld;
+    readonly restoreWorld?: (physics: Physics, snapshot: Uint8Array) => RestoredWorld;
 };
 
 // @public
@@ -4036,6 +4044,7 @@ export type PhysicsReached = {
     readonly run: number;
     readonly step: number;
     readonly checksum: string;
+    readonly snapshot?: string;
 };
 
 // @public
@@ -4043,7 +4052,14 @@ const PhysicsReachedDetail: Schema.Struct<{
     readonly run: Schema.Int;
     readonly step: Schema.Int;
     readonly checksum: Schema.String;
+    readonly snapshot: Schema.optionalKey<Schema.String>;
 }>;
+
+// @public
+export type PhysicsStart = {
+    readonly step: number;
+    readonly snapshot: string;
+};
 
 // @public
 export type PhysicsWorld = {
@@ -4063,6 +4079,7 @@ export type PhysicsWorld = {
     readonly awake: () => boolean;
     readonly dispose: () => void;
     readonly received?: () => Received;
+    readonly snapshot?: () => Uint8Array | undefined;
 };
 
 // @public (undocumented)
@@ -4958,6 +4975,13 @@ export type ResourceStore = {
 const restart: <I>(timeline: Timeline_2<I>) => Timeline_2<I>;
 
 // @public
+export type RestoredWorld = {
+    readonly world: PhysicsWorld;
+    readonly bodies: ReadonlyArray<string>;
+    readonly joints: ReadonlyArray<string>;
+};
+
+// @public
 export const revoluteJoint: (options: {
     readonly axis: Vec3;
     readonly limits?: JointLimits | null;
@@ -5370,6 +5394,11 @@ const SceneDescription_2: Schema.Struct<{
         readonly interpolate: Schema.Boolean;
         readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
         readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
+        readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+        readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+            readonly step: Schema.Int;
+            readonly snapshot: Schema.String;
+        }>>, never>;
         readonly debug: Schema.Boolean;
         readonly joints: Schema.$Array<Schema.Struct<{
             readonly key: Schema.String;
@@ -5747,13 +5776,15 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
 /**
 * A world on `physics({ until })` reached that step and waits there: its run, its
 * step count, and a checksum of every body's pose, which peers running the same inputs
-* share (ADR-014). It comes after the collisions of the steps that led there.
+* share (ADR-014). It comes after the collisions of the steps that led there. At
+* `physics({ snapshotAt })` it carries a snapshot of the world, to start another `from`.
 */
 | {
     readonly _tag: 'PhysicsReached';
     readonly run: number;
     readonly step: number;
     readonly checksum: string;
+    readonly snapshot?: string;
 }
 /**
 * A measured label's laid-out size changed (`scene({ measure })`, after its glyphs are
@@ -6008,6 +6039,7 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly run: Schema.Int;
     readonly step: Schema.Int;
     readonly checksum: Schema.String;
+    readonly snapshot: Schema.optionalKey<Schema.String>;
 }>, Schema.TaggedStruct<"XrStick", {
     readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
     readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
@@ -6245,6 +6277,11 @@ const SceneFile_2: Schema.Struct<{
             readonly interpolate: Schema.Boolean;
             readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
             readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
+            readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+            readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
+                readonly step: Schema.Int;
+                readonly snapshot: Schema.String;
+            }>>, never>;
             readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;
@@ -6978,6 +7015,12 @@ const Sky_2: Schema.Struct<{
 
 // @public
 export const skyEquals: (a: Sky | null, b: Sky | null) => boolean;
+
+// @public
+export const snapshotBytes: (text: string) => Uint8Array;
+
+// @public
+export const snapshotText: (bytes: Uint8Array) => string;
 
 // @public
 export const sparkles: (options: Placing & {

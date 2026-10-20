@@ -415,6 +415,8 @@ export const Physics = Schema.Struct({
   interpolate: Schema.Boolean,
   until: absentAsNull(StepCount),
   run: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  snapshotAt: absentAsNull(StepCount),
+  from: absentAsNull(Schema.Struct({ step: StepCount, snapshot: Schema.String })),
   debug: Schema.Boolean,
   joints: Schema.Array(Joint),
 });
@@ -1079,12 +1081,13 @@ export const CollisionDetail = Schema.Struct({
 
 /**
  * Detail of physics reached events: the run and step a world on `physics({ until })`
- * reached, and a checksum of its bodies' poses there.
+ * reached, a checksum of its bodies' poses there, and at `snapshotAt` a snapshot of it.
  */
 export const PhysicsReachedDetail = Schema.Struct({
   run: Schema.Int,
   step: StepCount,
   checksum: Schema.String,
+  snapshot: Schema.optionalKey(Schema.String),
 });
 
 const XrHand = Schema.Literals(['left', 'right', 'none']);

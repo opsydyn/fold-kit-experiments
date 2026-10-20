@@ -714,6 +714,12 @@ export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
     a.interpolate === b.interpolate &&
     a.until === b.until &&
     a.run === b.run &&
+    a.snapshotAt === b.snapshotAt &&
+    (a.from === b.from ||
+      (a.from !== null &&
+        b.from !== null &&
+        a.from.step === b.from.step &&
+        a.from.snapshot === b.from.snapshot)) &&
     a.debug === b.debug &&
     jointsEqual(a.joints, b.joints));
 

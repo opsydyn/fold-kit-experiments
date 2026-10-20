@@ -154,6 +154,13 @@ export type PhysicsWorld = {
    * is of the engine's own poses. Absent for a world that does what it is asked at once.
    */
   readonly received?: () => Received;
+  /**
+   * The world as it is between steps, for `PhysicsEngine.restoreWorld` to make again:
+   * every body, collider and joint, and whatever the engine carries from step to step.
+   * A world working elsewhere gives `undefined` until it has the snapshot it asked for
+   * (`received` is pending meanwhile). Absent for an engine that cannot.
+   */
+  readonly snapshot?: () => Uint8Array | undefined;
 };
 
 /** What a world stepping elsewhere has sent back (`PhysicsWorld.received`). */
@@ -162,8 +169,71 @@ export type Received = {
   readonly pending: boolean;
 };
 
+/**
+ * A world made from a snapshot, and what it holds already: the ids of its bodies and of
+ * its joints, which the scene graph takes on rather than adding again.
+ */
+export type RestoredWorld = {
+  readonly world: PhysicsWorld;
+  readonly bodies: ReadonlyArray<string>;
+  readonly joints: ReadonlyArray<string>;
+};
+
 /** Makes physics worlds. Provide one to the scene graph (in Foldkit, the environment). */
-export type PhysicsEngine = { readonly createWorld: (physics: Physics) => PhysicsWorld };
+export type PhysicsEngine = {
+  readonly createWorld: (physics: Physics) => PhysicsWorld;
+  /**
+   * Makes a world from a snapshot one of this engine's worlds took (`snapshot`), as it
+   * was then, for `physics({ from })`. Absent for an engine that cannot.
+   */
+  readonly restoreWorld?: (physics: Physics, snapshot: Uint8Array) => RestoredWorld;
+};
+
+/** `count` characters from `first` on. */
+const run = (first: string, count: number): ReadonlyArray<string> =>
+  Array.from({ length: count }, (_, i) => String.fromCharCode(first.charCodeAt(0) + i));
+
+/** Base64's digits, in order. */
+const digits: ReadonlyArray<string> = [...run('A', 26), ...run('a', 26), ...run('0', 10), '+', '/'];
+const digitValues = new Map(digits.map((char, i) => [char, i]));
+const digit = (value: number): string => digits[value] ?? '';
+
+/** A snapshot as text (base64), as `PhysicsReached` carries it and a message can. */
+export const snapshotText = (bytes: Uint8Array): string => {
+  const out: Array<string> = [];
+  for (let at = 0; at < bytes.length; at += 3) {
+    const a = bytes[at] ?? 0;
+    const b = bytes[at + 1] ?? 0;
+    const c = bytes[at + 2] ?? 0;
+    const left = bytes.length - at;
+    out.push(
+      digit(a >> 2),
+      digit(((a & 3) << 4) | (b >> 4)),
+      left > 1 ? digit(((b & 15) << 2) | (c >> 6)) : '=',
+      left > 2 ? digit(c & 63) : '=',
+    );
+  }
+  return out.join('');
+};
+
+/** The bytes of a snapshot written by `snapshotText`. */
+export const snapshotBytes = (text: string): Uint8Array => {
+  const digits = text.replace(/=+$/, '');
+  const bytes = new Uint8Array(Math.floor((digits.length * 3) / 4));
+  let bits = 0;
+  let held = 0;
+  let at = 0;
+  for (const char of digits) {
+    bits = (bits << 6) | (digitValues.get(char) ?? 0);
+    held += 6;
+    if (held >= 8) {
+      held -= 8;
+      bytes[at] = (bits >> held) & 255;
+      at += 1;
+    }
+  }
+  return bytes;
+};
 
 const toVec3 = (vector: Vector3): Vec3 => [vector.x, vector.y, vector.z];
 

@@ -715,6 +715,7 @@ export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
     a.until === b.until &&
     a.run === b.run &&
     a.snapshotAt === b.snapshotAt &&
+    a.keep === b.keep &&
     (a.from === b.from ||
       (a.from !== null &&
         b.from !== null &&

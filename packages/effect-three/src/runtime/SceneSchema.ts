@@ -416,7 +416,8 @@ export const Physics = Schema.Struct({
   until: absentAsNull(StepCount),
   run: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   snapshotAt: absentAsNull(StepCount),
-  from: absentAsNull(Schema.Struct({ step: StepCount, snapshot: Schema.String })),
+  from: absentAsNull(Schema.Struct({ step: StepCount, snapshot: Schema.NullOr(Schema.String) })),
+  keep: StepCount.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   debug: Schema.Boolean,
   joints: Schema.Array(Joint),
 });

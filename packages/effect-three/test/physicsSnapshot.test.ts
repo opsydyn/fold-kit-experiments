@@ -52,9 +52,14 @@ const setup = (engine: PhysicsEngine) => {
       loop.frame();
     }
   };
+  /** One frame, a sixtieth of a second on. */
+  const frame = () => {
+    now += 1 / 60;
+    loop.frame();
+  };
   const reached = () =>
     emitted.flatMap((event) => (event._tag === 'PhysicsReached' ? [event] : []));
-  return { graph, settle, reached };
+  return { graph, settle, frame, reached };
 };
 
 const world = (settings: Partial<Physics>, children: ReadonlyArray<MeshNode>) =>
@@ -165,4 +170,46 @@ test('snapshots are text a message carries, and scene files keep where a run sta
     _tag: 'Success',
     success: { physics: { snapshotAt: null, from: null } },
   });
+});
+
+test('a world keeps snapshots of its latest stops, and a run goes back to one and on again', () => {
+  const { engine, worlds } = fakePhysics();
+  const { graph, settle, reached } = setup(engine);
+  const children = [crate('a', 0, 1), crate('b', 2)];
+  for (const until of [10, 20, 30, 40]) {
+    graph.reconcile(world({ until, keep: 2 }, children));
+    settle();
+  }
+  const straight = reached().at(-1);
+  expect(straight?.step).toBe(40);
+  // Back to step 30 (kept), with what came late, and on to 40: the same world there.
+  graph.reconcile(
+    world({ until: 40, keep: 2, run: 1, from: { step: 30, snapshot: null } }, children),
+  );
+  settle();
+  expect(worlds.at(-1)?.steps).toBe(10);
+  expect(reached().at(-1)).toEqual(straight === undefined ? undefined : { ...straight, run: 1 });
+  // A run from a stop no longer kept (20, past the two kept) starts over from step 0.
+  graph.reconcile(
+    world({ until: 40, keep: 2, run: 2, from: { step: 10, snapshot: null } }, children),
+  );
+  settle();
+  expect(worlds.at(-1)?.calls.slice(0, 2)).toEqual(['add a', 'impulse a 1,0,0']);
+  expect(worlds.at(-1)?.steps).toBe(40);
+  graph.dispose();
+});
+
+test('a run started from a snapshot goes straight to until, however close it is', () => {
+  const first = setup(fakePhysics().engine);
+  first.graph.reconcile(world({ until: 10, snapshotAt: 10 }, [crate('a')]));
+  first.settle();
+  const snapshot = first.reached().at(-1)?.snapshot ?? '';
+  const { engine, worlds } = fakePhysics();
+  const second = setup(engine);
+  second.graph.reconcile(world({ until: 14, from: { step: 10, snapshot } }, [crate('a')]));
+  // Four steps owed, too few to count as behind, are taken in its first frame all the same.
+  second.frame();
+  expect(worlds[0]?.steps).toBe(4);
+  first.graph.dispose();
+  second.graph.dispose();
 });

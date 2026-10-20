@@ -3951,6 +3951,7 @@ export type Physics = {
     readonly run: number;
     readonly snapshotAt: number | null;
     readonly from: PhysicsStart | null;
+    readonly keep: number;
     readonly debug: boolean;
     readonly joints: ReadonlyArray<Joint>;
 };
@@ -3969,8 +3970,9 @@ const Physics_2: Schema.Struct<{
     readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
     readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
         readonly step: Schema.Int;
-        readonly snapshot: Schema.String;
+        readonly snapshot: Schema.NullOr<Schema.String>;
     }>>, never>;
+    readonly keep: Schema.withDecodingDefaultKey<Schema.Int, never>;
     readonly debug: Schema.Boolean;
     readonly joints: Schema.$Array<Schema.Struct<{
         readonly key: Schema.String;
@@ -4058,7 +4060,7 @@ const PhysicsReachedDetail: Schema.Struct<{
 // @public
 export type PhysicsStart = {
     readonly step: number;
-    readonly snapshot: string;
+    readonly snapshot: string | null;
 };
 
 // @public
@@ -5397,8 +5399,9 @@ const SceneDescription_2: Schema.Struct<{
         readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
         readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
             readonly step: Schema.Int;
-            readonly snapshot: Schema.String;
+            readonly snapshot: Schema.NullOr<Schema.String>;
         }>>, never>;
+        readonly keep: Schema.withDecodingDefaultKey<Schema.Int, never>;
         readonly debug: Schema.Boolean;
         readonly joints: Schema.$Array<Schema.Struct<{
             readonly key: Schema.String;
@@ -6280,8 +6283,9 @@ const SceneFile_2: Schema.Struct<{
             readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
             readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
                 readonly step: Schema.Int;
-                readonly snapshot: Schema.String;
+                readonly snapshot: Schema.NullOr<Schema.String>;
             }>>, never>;
+            readonly keep: Schema.withDecodingDefaultKey<Schema.Int, never>;
             readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;

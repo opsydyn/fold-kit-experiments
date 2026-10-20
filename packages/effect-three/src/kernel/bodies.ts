@@ -239,6 +239,10 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
   /** The last `snapshotAt` reported, snapshot and all. */
   let snapped: number | undefined;
   let reached: Array<PhysicsReached> = [];
+  /** Snapshots of the latest stops, by step, oldest first, while `keep` asks for them. */
+  const kept = new Map<number, Uint8Array>();
+  /** A run just started from a snapshot: it goes straight to `until`, as one far behind. */
+  let rushing = false;
   /** What a world made from a snapshot holds already, until this sync takes it on. */
   let restored: { readonly bodies: Set<string>; readonly joints: Set<string> } | undefined;
 
@@ -268,11 +272,23 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
    * step, when the engine can; otherwise from the description, at step 0.
    */
   const make = (active: PhysicsEngine, physics: Physics): PhysicsWorld => {
-    if (physics.from === null || active.restoreWorld === undefined) {
+    const { from } = physics;
+    const bytes =
+      from === null
+        ? undefined
+        : from.snapshot === null
+          ? kept.get(from.step)
+          : snapshotBytes(from.snapshot);
+    if (from === null || bytes === undefined || active.restoreWorld === undefined) {
+      kept.clear();
       return active.createWorld(physics);
     }
-    const made = active.restoreWorld(physics, snapshotBytes(physics.from.snapshot));
-    steps = physics.from.step;
+    // What was kept after the step it goes back to was of a world that went another way.
+    for (const step of kept.keys())
+      if (step > from.step || from.snapshot !== null) kept.delete(step);
+    const made = active.restoreWorld(physics, bytes);
+    steps = from.step;
+    rushing = true;
     restored = { bodies: new Set(made.bodies), joints: new Set(made.joints) };
     return made.world;
   };
@@ -365,6 +381,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
   const sync: BodyHost['sync'] = (physics, sources) => {
     if (physics === null || engine === undefined) {
       dispose();
+      kept.clear();
       return;
     }
     // Another run: the world goes, and a new one counts from step 0.
@@ -380,6 +397,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
           until: physics.until,
           snapshotAt: physics.snapshotAt,
           from: physics.from,
+          keep: physics.keep,
         },
         physics,
       )
@@ -478,18 +496,25 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     physics.snapshotAt <= until;
 
   /**
-   * Reports where the world is: its checksum, and a snapshot of it when `snapshot` asks.
-   * False, reporting nothing, while a world working elsewhere has yet to send the
-   * snapshot (asking it for one).
+   * Reports where the world is: its checksum, and a snapshot of it when `snapshot` asks;
+   * one is kept too, while the description asks to `keep` some. False, reporting nothing,
+   * while a world working elsewhere has yet to send the snapshot (asking it for one).
    */
-  const report = (active: PhysicsWorld, run: number, snapshot: boolean): boolean => {
-    const bytes = snapshot ? active.snapshot?.() : undefined;
-    if (snapshot && active.snapshot !== undefined && bytes === undefined) return false;
+  const report = (active: PhysicsWorld, physics: Physics, snapshot: boolean): boolean => {
+    const wanted = snapshot || physics.keep > 0;
+    const bytes = wanted ? active.snapshot?.() : undefined;
+    if (wanted && active.snapshot !== undefined && bytes === undefined) return false;
+    if (physics.keep > 0 && bytes !== undefined) {
+      kept.delete(steps);
+      kept.set(steps, bytes);
+      for (const step of kept.keys()) if (kept.size > physics.keep) kept.delete(step);
+    }
+    const { run } = physics;
     reached.push({
       run,
       step: steps,
       checksum: checksumOf([...hosted.keys()].flatMap((id) => posed(active, id))),
-      ...(bytes === undefined ? {} : { snapshot: snapshotText(bytes) }),
+      ...(snapshot && bytes !== undefined ? { snapshot: snapshotText(bytes) } : {}),
     });
     return true;
   };
@@ -501,13 +526,14 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
    * stop too: the world reports there with a snapshot, and goes on.
    */
   const driven = (active: PhysicsWorld, physics: Physics, until: number, delta: number) => {
-    const { run, timeStep } = physics;
+    const { timeStep } = physics;
     const snapping = snapshotOwed(physics, until);
     const stop = snapping && physics.snapshotAt !== null ? physics.snapshotAt : until;
     accumulator += delta;
     const owed = Math.max(0, stop - steps);
     const paced = Math.floor(accumulator / timeStep);
-    const behind = owed > Math.ceil(catchUpAfter / timeStep);
+    const behind = rushing || owed > Math.ceil(catchUpAfter / timeStep);
+    rushing = false;
     const count = Math.min(owed, behind ? owed : paced, Math.ceil(mostPerFrame / timeStep));
     for (let i = 0; i < count; i++) step(active, timeStep);
     accumulator = Math.max(0, accumulator - count * timeStep);
@@ -515,7 +541,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     if (steps < stop) return Math.min(1, accumulator / timeStep);
     // A world working elsewhere is there once all it was asked has come back, poses and all.
     if (stop < until) {
-      if (!pending && report(active, run, true)) snapped = stop;
+      if (!pending && report(active, physics, true)) snapped = stop;
       return Math.min(1, accumulator / timeStep);
     }
     // Waiting: time spent here is not owed once `until` moves on.
@@ -525,7 +551,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       steps === until &&
       (reported !== until || snapping) &&
       !pending &&
-      report(active, run, snapping)
+      report(active, physics, snapping)
     ) {
       reported = until;
       if (snapping) snapped = until;

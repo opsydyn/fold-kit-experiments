@@ -51,6 +51,10 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
 - **Pivot controls:** as the transform gizmo, with `PivotControls`: send `Pressed` with
   the handle, the hit `point` and the placement; `Dragged` with the ray and `snap`;
   `Released`. Every handle shows at once, sized in scene units (`scale`).
+- **For assistants:** `formatSummary(describeScene(scene))` is a scene in a few lines;
+  offer intents rather than raw numbers (`shotCamera(camera, bounds, angle)` for a shot,
+  `moodStaging(mood)` for lighting) as Messages an agent can dispatch through
+  `devTools`, as the editor sample does with `PlacedThing`, `FramedShot`, `ChoseMood`.
 - **Save, load, undo, review:** `SceneFile.save(scene)` and `SceneFile.read(text)` (a
   `Result`; `yield*` it in an Effect); keep `History.History<A>` in the Model
   (`SceneSchema.History(schema)`) and `History.record` at the end of a gesture, not every

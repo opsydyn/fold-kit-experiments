@@ -310,6 +310,23 @@ export {
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
 export * as History from './history.ts';
 export {
+  describeScene,
+  formatSummary,
+  type LightSummary,
+  type SceneSummary,
+  type ThingSummary,
+  thingsBounds,
+} from './describeScene.ts';
+export {
+  type Mood,
+  moodStaging,
+  moods,
+  shotAngles,
+  type ShotAngle,
+  shotCamera,
+  type Staging,
+} from './shots.ts';
+export {
   type FieldPath,
   type FieldValue,
   type InspectableAst,

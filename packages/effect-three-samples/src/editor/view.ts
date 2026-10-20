@@ -1,5 +1,9 @@
 import {
+  describeScene,
   formatChanges,
+  formatSummary,
+  moodStaging,
+  moods,
   History,
   Inspector,
   scene,
@@ -45,6 +49,51 @@ const modes = [
   ['rotate', 'Turn'],
   ['scale', 'Scale'],
 ] as const;
+
+const shots = [
+  ['front', 'Front'],
+  ['three-quarter', 'Three-quarter'],
+  ['top', 'Top'],
+  ['low', 'Low'],
+] as const;
+
+const moodLabel = {
+  studio: 'Studio',
+  daylight: 'Daylight',
+  sunset: 'Sunset',
+  night: 'Night',
+} as const;
+
+/** Shots of the selection (or everything) and lighting moods: the vocabulary agents use. */
+const staging = (model: Model, h: H): Html =>
+  h.div(
+    [h.Class('e3-controls')],
+    [
+      h.span([h.Class('e3-controls-label')], ['Shot']),
+      ...shots.map(([angle, label]) =>
+        button(h, label, true, Message.FramedShot({ subject: model.selected, angle })),
+      ),
+      h.span([h.Class('e3-controls-label')], ['Light']),
+      ...moods.map((mood) =>
+        toggle(h, moodLabel[mood], model.mood === mood, Message.ChoseMood({ mood })),
+      ),
+    ],
+  );
+
+/** The scene as an assistant reads it: the document, the camera and the mood's staging. */
+const description = (model: Model, h: H): Html => {
+  const mood = moodStaging(model.mood, 'editor');
+  const shown = scene({
+    camera: model.camera,
+    environment: mood.environment,
+    sky: mood.sky,
+    resources: model.resources,
+    children: model.nodes,
+  });
+  return panel(h, 'Describe', [
+    h.pre([h.Class('e3-changes')], [formatSummary(describeScene(shown))]),
+  ]);
+};
 
 const toolbar = (model: Model, h: H): Html =>
   h.div(
@@ -240,9 +289,16 @@ export const view = (model: Model, h: H): Document => ({
       ),
       h.p([h.Class('e3-readout'), h.AriaLive('polite')], [selection(model)]),
       toolbar(model, h),
+      staging(model, h),
       h.div(
         [h.Class('e3-editor-panels')],
-        [outliner(model, h), inspector(model, h), history(model, h), changes(model, h)],
+        [
+          outliner(model, h),
+          inspector(model, h),
+          history(model, h),
+          changes(model, h),
+          description(model, h),
+        ],
       ),
     ],
   ),

@@ -1,4 +1,5 @@
 import {
+  describeScene,
   type FieldPath,
   type FieldValue,
   type Gesture,
@@ -12,6 +13,8 @@ import {
   type SceneNode,
   SceneFile,
   SceneSchema,
+  shotCamera,
+  type ShotAngle,
   type Vec3,
 } from '@opsydyn/effect-three';
 import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
@@ -229,6 +232,27 @@ const editNode = (model: Model, key: string, path: FieldPath, value: FieldValue)
     onSome: (node) => applyEdit(model, node, path, value),
   });
 
+/** A thing of `kind` put at `at`, selected, as a step. */
+const place = (model: Model, kind: Addable, at: Vec3): Model => {
+  const key = freshKey(model.nodes, kind);
+  const node = placed(nodeOf(kind, key), { ...placementOf(nodeOf(kind, key)), position: at });
+  return { ...changed(model, [...model.nodes, node], `Placed ${key}`), selected: [key] };
+};
+
+/** The things to frame: those named that are in the document, or all of them. */
+const subjectOf = (model: Model, keys: ReadonlyArray<string>): ReadonlyArray<SceneNode> => {
+  const named = model.nodes.filter((node) => keys.includes(node.key));
+  return named.length === 0 ? model.nodes : named;
+};
+
+/** The camera framing the subject from `angle`; with nothing of known size, as it was. */
+const frame = (model: Model, keys: ReadonlyArray<string>, angle: ShotAngle): Model => {
+  const bounds = describeScene(
+    scene({ resources: model.resources, children: subjectOf(model, keys) }),
+  ).bounds;
+  return bounds === null ? model : { ...model, camera: shotCamera(model.camera, bounds, angle) };
+};
+
 const toggleSnapping = (model: Model): Model => {
   const snapping = !model.snapping;
   return {
@@ -285,6 +309,9 @@ export const update = (model: Model, message: Message): AppReturn =>
     MadeGesture: ({ gesture: made }) => ({ model: gesture(model, made) }),
     EndedGesture: () => ({ model: endBox(model) }),
     ClickedAdd: ({ kind }) => ({ model: add(model, kind) }),
+    PlacedThing: ({ kind, at }) => ({ model: place(model, kind, at) }),
+    FramedShot: ({ subject, angle }) => ({ model: frame(model, subject, angle) }),
+    ChoseMood: ({ mood }) => ({ model: { ...model, mood } }),
     ClickedOutlined: ({ key }) => ({ model: { ...model, selected: [key] } }),
     ClickedDuplicate: () => ({ model: duplicate(model) }),
     ClickedDelete: () => ({ model: remove(model) }),

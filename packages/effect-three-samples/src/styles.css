@@ -389,3 +389,10 @@
 .e3-editor-panel .e3-inspector-row {
   grid-template-columns: minmax(5rem, 8rem) minmax(0, 1fr);
 }
+
+/* A word before a group of controls: Shot, Light. */
+.e3-controls-label {
+  align-self: center;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.85rem;
+}

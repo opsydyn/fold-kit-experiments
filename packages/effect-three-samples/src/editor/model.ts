@@ -31,6 +31,8 @@ export const Model = Schema.Struct({
   pressedView: Schema.Boolean,
   camera: SceneSchema.Camera,
   snapping: Schema.Boolean,
+  /** How the scene is lit: the editor's staging, not part of the document. */
+  mood: Schema.Literals(['studio', 'daylight', 'sunset', 'night']),
   /** Why the inspector's last edit, or the last file loaded, was refused. */
   issue: Schema.Option(Schema.String),
 });
@@ -67,6 +69,7 @@ export const init = () => ({
       damping: 0.15,
     }),
     snapping: false,
+    mood: 'studio' as const,
     issue: Option.none(),
   } satisfies Model,
 });

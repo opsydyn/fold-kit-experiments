@@ -9,6 +9,8 @@ import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-
 import { Option, Schema } from 'effect';
 
 import { nodeOf, placed } from './document';
+import { NameTab } from './session';
+import { Session } from './wire';
 
 const Nodes = Schema.Array(SceneSchema.SceneNode);
 
@@ -33,6 +35,8 @@ export const Model = Schema.Struct({
   snapping: Schema.Boolean,
   /** How the scene is lit: the editor's staging, not part of the document. */
   mood: Schema.Literals(['studio', 'daylight', 'sunset', 'night']),
+  /** Editing together with other tabs: where this tab is in the session. */
+  session: Session,
   /** Why the inspector's last edit, or the last file loaded, was refused. */
   issue: Schema.Option(Schema.String),
 });
@@ -70,6 +74,9 @@ export const init = () => ({
     }),
     snapping: false,
     mood: 'studio' as const,
+    session: { _tag: 'Offline' as const },
     issue: Option.none(),
   } satisfies Model,
+  // A name for this tab, then a session with any other editor tabs open.
+  commands: [NameTab()],
 });

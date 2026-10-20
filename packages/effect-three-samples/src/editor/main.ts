@@ -1,9 +1,10 @@
 import { Message } from './message';
 import { init, Model } from './model';
+import { subscriptions } from './session';
 import { update } from './update';
 import { view } from './view';
 
-export { init, Message, Model, update, view };
+export { init, Message, Model, subscriptions, update, view };
 
 /**
  * For the Foldkit DevTools MCP server: an agent can read the Model and dispatch
@@ -12,5 +13,13 @@ export { init, Message, Model, update, view };
  */
 export const devTools = {
   Message,
-  excludeFromHistory: ['MadeGesture', 'DraggedScene', 'HoveredScene', 'LeftScene'],
+  excludeFromHistory: [
+    'MadeGesture',
+    'DraggedScene',
+    'HoveredScene',
+    'LeftScene',
+    'TickedTurn',
+    'HeardWire',
+    'CompletedSay',
+  ],
 };

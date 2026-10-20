@@ -115,7 +115,7 @@
     },
     "packages/astro-foldkit": {
       "name": "@opsydyn/astro-foldkit",
-      "version": "0.9.0",
+      "version": "0.9.1",
       "dependencies": {
         "@foldkit/vite-plugin": "^0.27.0",
         "effect": "4.0.0",
@@ -151,7 +151,7 @@
     },
     "packages/effect-three": {
       "name": "@opsydyn/effect-three",
-      "version": "0.1.0",
+      "version": "0.4.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@microsoft/api-extractor": "7.59.4",
@@ -176,7 +176,7 @@
     },
     "packages/effect-three-foldkit": {
       "name": "@opsydyn/effect-three-foldkit",
-      "version": "0.1.0",
+      "version": "0.4.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@effect/platform-browser": "4.0.0",
@@ -201,7 +201,7 @@
         "typescript": "7.0.2",
       },
       "peerDependencies": {
-        "@opsydyn/effect-three": "0.1.0",
+        "@opsydyn/effect-three": "0.4.0",
         "effect": "^4.0.0",
         "foldkit": "0.167.0",
         "three": ">=0.186.0 <0.187.0",
@@ -209,12 +209,13 @@
     },
     "packages/effect-three-rapier": {
       "name": "@opsydyn/effect-three-rapier",
-      "version": "0.1.0",
+      "version": "0.4.0",
       "dependencies": {
         "@dimforge/rapier3d-compat": "0.21.0",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
+        "@dimforge/rapier3d-deterministic-compat": "0.21.0",
         "@microsoft/api-extractor": "7.59.4",
         "@opsydyn/effect-three": "workspace:*",
         "@opsydyn/oxlint-effect": "2.0.1",
@@ -227,13 +228,18 @@
         "typescript": "7.0.2",
       },
       "peerDependencies": {
-        "@opsydyn/effect-three": "0.1.0",
+        "@dimforge/rapier3d-deterministic-compat": "0.21.0",
+        "@opsydyn/effect-three": "0.4.0",
         "three": ">=0.186.0 <0.187.0",
       },
+      "optionalPeers": [
+        "@dimforge/rapier3d-deterministic-compat",
+      ],
     },
     "packages/effect-three-samples": {
       "name": "@opsydyn/effect-three-samples",
       "dependencies": {
+        "@dimforge/rapier3d-deterministic-compat": "catalog:",
         "@opsydyn/effect-three": "workspace:*",
         "@opsydyn/effect-three-foldkit": "workspace:*",
         "@opsydyn/effect-three-rapier": "workspace:*",
@@ -252,7 +258,7 @@
     },
     "packages/effect-three-troika": {
       "name": "@opsydyn/effect-three-troika",
-      "version": "0.1.0",
+      "version": "0.4.0",
       "dependencies": {
         "troika-three-text": "0.52.5",
       },
@@ -270,7 +276,7 @@
         "typescript": "7.0.2",
       },
       "peerDependencies": {
-        "@opsydyn/effect-three": "0.1.0",
+        "@opsydyn/effect-three": "0.4.0",
         "three": ">=0.186.0 <0.187.0",
       },
     },
@@ -301,6 +307,7 @@
     "@arethetypeswrong/cli": "0.18.5",
     "@astrojs/check": "^0.9.10",
     "@astrojs/cloudflare": "14.4.0",
+    "@dimforge/rapier3d-deterministic-compat": "0.21.0",
     "@effect/platform-browser": "4.0.0",
     "@foldkit/vite-plugin": "^0.27.0",
     "@fontsource-variable/inter": "^5.3.0",
@@ -490,6 +497,8 @@
     "@cspotcode/source-map-support": ["@cspotcode/source-map-support@0.8.1", "", { "dependencies": { "@jridgewell/trace-mapping": "0.3.9" } }, "sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw=="],
 
     "@dimforge/rapier3d-compat": ["@dimforge/rapier3d-compat@0.21.0", "", {}, "sha512-tCl1HPGwOhn5aCQbgqWbOH+Nx/5fnr3IPAnzQuR7zIhC/raqi2yxC6LhvZqjdI2El5hQgY5RDAwDrAjAi2FdPA=="],
+
+    "@dimforge/rapier3d-deterministic-compat": ["@dimforge/rapier3d-deterministic-compat@0.21.0", "", {}, "sha512-n7JuU62Obljlgq+OeH2DHhTmRSjRzwuJPl54tS9pFIzVQyvXsO5CH+a5KkIRBtnFWDbg1Zicv9BulG0jfBAopA=="],
 
     "@effect/language-service": ["@effect/language-service@0.86.2", "", { "bin": { "effect-language-service": "cli.js" } }, "sha512-SaPln+8srOqDJDUwNTDmP5e+IYpEDr9+1epGznnsLqu8xvo6VnxyWARdeLpqvZJlb0Pgy9ca7ppqvvdWbHPXAg=="],
 

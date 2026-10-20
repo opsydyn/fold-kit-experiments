@@ -26,6 +26,11 @@
       "bun": "./src/index.ts",
       "default": "./dist/index.js"
     },
+    "./deterministic": {
+      "types": "./dist/deterministic.d.ts",
+      "bun": "./src/deterministic.ts",
+      "default": "./dist/deterministic.js"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -36,7 +41,7 @@
     "lint": "bunx --bun oxlint --config oxlint.strict.ts",
     "check": "bun run lint",
     "test": "bun test --pass-with-no-tests ./src ./test",
-    "build": "tsc -b && bun build ./src/index.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
+    "build": "tsc -b && bun build ./src/index.ts ./src/deterministic.ts --root ./src --outdir ./dist --target browser --packages external --sourcemap=linked",
     "api:report": "api-extractor run --local",
     "api:check": "api-extractor run",
     "pack:check": "bun run build && publint && rm -rf dist/pack && bun pm pack --destination dist/pack && attw dist/pack/*.tgz --profile esm-only"
@@ -46,6 +51,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
+    "@dimforge/rapier3d-deterministic-compat": "0.21.0",
     "@microsoft/api-extractor": "7.59.4",
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/oxlint-effect": "2.0.1",
@@ -58,7 +64,13 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
+    "@dimforge/rapier3d-deterministic-compat": "0.21.0",
     "@opsydyn/effect-three": "0.4.0",
     "three": ">=0.186.0 <0.187.0"
+  },
+  "peerDependenciesMeta": {
+    "@dimforge/rapier3d-deterministic-compat": {
+      "optional": true
+    }
   }
 }

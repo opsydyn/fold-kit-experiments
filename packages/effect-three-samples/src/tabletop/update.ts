@@ -5,6 +5,7 @@ import type { Return } from 'foldkit/update';
 import { nextPaint, type Paint } from '../palette';
 import { Message } from './message';
 import { fresh, type Model } from './model';
+import type { Record } from './replay';
 import { NameTab, type RelayService, Say, selfOf, WaitForWelcome } from './session';
 import {
   checkEvery,
@@ -231,8 +232,33 @@ const dropQuiet = (model: Model, session: Live, at: number): AppReturn => {
   };
 };
 
+/**
+ * A record to replay: no session, every throw and rebuild in the timeline at its step, and
+ * the record's checks waiting to be compared as the world reaches them. The frontier
+ * moves on a turn's steps each tick, so the game plays back at the pace it was played.
+ */
+const replayFrom = (model: Model, record: Record): Model => ({
+  ...model,
+  timeline: record.inputs.reduce(
+    (timeline, { step, input }) => Timeline.schedule(timeline, step, input),
+    Timeline.make<Play>(0),
+  ),
+  awaiting: record.checks,
+  replay: Option.some({ until: record.until, checks: record.checks.length }),
+});
+
+/** A replay's tick: the world may go a turn further, as far as the record does. */
+const replayTick = (model: Model, until: number): Model => ({
+  ...model,
+  timeline: Timeline.extend(
+    model.timeline,
+    Math.min(until, model.timeline.frontier + stepsPerTurn),
+  ),
+});
+
 /** A turn's tick: this peer's packet out, what is complete applied, the quiet dropped. */
 const tick = (model: Model, at: number): AppReturn => {
+  if (Option.isSome(model.replay)) return { model: replayTick(model, model.replay.value.until) };
   if (model.session._tag !== 'Live') return { model };
   const sent = Lockstep.send(model.session.lockstep);
   const settled = settle(model, { ...model.session, lockstep: sent.state });
@@ -433,7 +459,11 @@ export const update = (model: Model, message: Message): AppReturn =>
     ClickedRebuild: () => ({ model: propose(model, { _tag: 'Rebuild' }) }),
     ReachedStep: ({ run, step, checksum }) => ({ model: reach(model, run, step, checksum) }),
     ReceivedSceneLifecycle: () => ({ model }),
-    NamedTab: ({ peer, relay }) => named(model, peer, relay),
+    NamedTab: ({ peer, relay, record }) =>
+      Option.match(record, {
+        onNone: () => named(model, peer, relay),
+        onSome: (replaying) => ({ model: replayFrom(model, replaying) }),
+      }),
     WaitedForWelcome: () => ({ model: waited(model) }),
     HeardWire: ({ wire }) => hear(model, wire),
     TickedTurn: ({ at }) => tick(model, at),

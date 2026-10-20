@@ -240,10 +240,17 @@ cannot easily follow, because they rest on what is different here: the Model is 
 truth, scenes are a pure function of it, every change is a Schema-typed Message, and
 Effect owns every lifetime.
 
-1. **Event-sourced replay** ([ADR-011](adr/011-event-sourced-replay.md), proposed; spike
-   on the bowling sample). Record the player's inputs, let deterministic physics produce
-   the rest: shareable runs as links, ghost replays, bug reports that reproduce, and
-   time travel that covers the physics world.
+1. **Event-sourced replay** ([ADR-011](adr/011-event-sourced-replay.md)). Record the
+   player's inputs, let deterministic physics produce the rest: shareable runs as links,
+   ghost replays, bug reports that reproduce, and time travel that covers the physics
+   world.
+   ✅ First, the bowling spike: rolls recorded and replayed from a link, each starting from
+   a world at rest.
+   ✅ Then on the timeline (2026-10-20, with ADR-014): the tabletop's "Replay this game"
+   link carries every throw and rebuild with its step and the world's checksums; opening
+   it plays the game back at its pace, with no session, and checks the world against the
+   record (14 of 14 checks met in Chromium). Throws land mid-motion, so nothing waits for
+   rest. ADR-011 is accepted.
 2. **Lockstep multiplayer and XR co-presence.** If every peer runs the same `update`,
    sharing the input stream (an Effect `Stream` over a socket) shares the world; other
    players' heads and hands are more tracked spaces. Needs inputs applied at step

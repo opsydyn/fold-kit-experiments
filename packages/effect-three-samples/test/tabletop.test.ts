@@ -10,6 +10,7 @@ import { Option } from 'effect';
 
 import { Message } from '../src/tabletop/message';
 import { fresh, init, type Model } from '../src/tabletop/model';
+import { fragmentOf, recordIn, recordOf } from '../src/tabletop/replay';
 import { throwAt, untilOf, update } from '../src/tabletop/update';
 import { checkEvery, stepsPerTurn, type Wire } from '../src/tabletop/wire';
 
@@ -82,7 +83,7 @@ const opened = (name: string): Peer => {
     world: { run: 0, step: null },
     seen: new Map(),
   };
-  run(peer, Message.NamedTab({ peer: name, at: 0, relay: Option.none() }));
+  run(peer, Message.NamedTab({ peer: name, at: 0, relay: Option.none(), record: Option.none() }));
   stepWorld(peer);
   return peer;
 };
@@ -227,4 +228,47 @@ test('a third peer joining after throws from both and a rebuild catches up and a
   expect(c.world.step).toBeGreaterThan(a.world.step === null ? 0 : a.world.step - 30);
   expect(c.model.agreed).toBeGreaterThan(2);
   expect(c.model.diverged).toEqual(Option.none());
+});
+
+test('a game becomes a record in a link, and replaying it meets every check', () => {
+  const a = opened('a');
+  run(a, Message.WaitedForWelcome());
+  for (const x of [0, 1, -1]) {
+    run(a, Message.ClickedTable({ point: [x, 0.5, 0] }));
+    exchange([a], 12);
+  }
+  run(a, Message.ClickedRebuild());
+  exchange([a], 60);
+  const record = Option.getOrThrow(recordOf(a.model));
+  expect(record.checks.length).toBeGreaterThan(2);
+  expect(record.inputs).toHaveLength(4);
+  // Through the address and back, unchanged; anything else is no record.
+  const fragment = fragmentOf(record);
+  expect(fragment).toMatch(/^#replay=[\w-]+$/);
+  expect(recordIn(fragment)).toEqual(Option.some(record));
+  expect(recordIn('#replay=not-a-record')).toEqual(Option.none());
+  expect(recordIn('#other')).toEqual(Option.none());
+
+  // A page opened with the link replays: no session, the world on the record, checked.
+  const r: Peer = {
+    model: init().model,
+    outbox: [],
+    commands: [],
+    world: { run: 0, step: null },
+    seen: new Map(),
+  };
+  run(r, Message.NamedTab({ peer: 'r', at: 0, relay: Option.none(), record: recordIn(fragment) }));
+  expect(r.model.session._tag).toBe('Offline');
+  exchange([r], 200);
+  expect(r.outbox).toEqual([]);
+  expect(r.model.timeline.reached).toBe(record.until);
+  expect(r.seen.get(record.until)).toBe(a.seen.get(record.until));
+  expect(r.model.agreed).toBe(record.checks.length);
+  expect(r.model.diverged).toEqual(Option.none());
+  // A record that does not match the world is found out at its first check.
+  const forged = { ...record, checks: record.checks.map((check) => ({ ...check, checksum: 'x' })) };
+  const f: Peer = { ...r, model: init().model, outbox: [], world: { run: 0, step: null } };
+  run(f, Message.NamedTab({ peer: 'f', at: 0, relay: Option.none(), record: Option.some(forged) }));
+  exchange([f], 200);
+  expect(f.model.diverged).toEqual(Option.some(forged.checks[0]?.step ?? -1));
 });

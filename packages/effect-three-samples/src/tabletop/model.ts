@@ -46,6 +46,11 @@ export const Model = Schema.Struct({
   session: Session,
   /** Whether this peer stepped out of a session while its page was hidden. */
   away: Schema.Boolean,
+  /**
+   * A record being replayed (`#replay=…`): how far it runs, and how many checks it holds.
+   * Its checks wait in `awaiting`, compared as the world reaches them.
+   */
+  replay: Schema.Option(Schema.Struct({ until: Steps, checks: Schema.Int })),
   relay: Schema.Option(Relay),
 });
 export type Model = typeof Model.Type;
@@ -68,6 +73,7 @@ export const fresh: Model = {
   paint: 'coral',
   session: { _tag: 'Offline' },
   away: false,
+  replay: Option.none(),
   relay: Option.none(),
 };
 

@@ -18,6 +18,7 @@ import { Command, ManagedResource, Subscription } from 'foldkit';
 
 import { Message } from './message';
 import type { Model } from './model';
+import { recordIn } from './replay';
 import { channelName, joinMilliseconds, turnMilliseconds, Wire } from './wire';
 
 // THE RELAY
@@ -145,6 +146,7 @@ export const NameTab = Command.define('NameTab', {
         peer: crypto.randomUUID().slice(0, 8),
         at,
         relay: relayIn(window.location.search),
+        record: recordIn(window.location.hash),
       }),
     ),
   ),

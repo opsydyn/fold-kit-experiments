@@ -6,6 +6,7 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 import { sceneMount } from './environment';
 import { Message } from './message';
 import type { Model } from './model';
+import { fragmentOf, recordOf } from './replay';
 import { sceneFor } from './scene';
 import type { Relay } from './wire';
 
@@ -50,6 +51,7 @@ const throughRelay = (model: Model, relay: Relay): string => {
 };
 
 const together = (model: Model): string => {
+  if (Option.isSome(model.replay)) return 'Replaying a recorded game: no session, no throws.';
   if (model.away) return 'Stepped out while this page was hidden; back in when it is shown.';
   return Option.match(model.relay, {
     onNone: () => overTabs(model),
@@ -82,8 +84,44 @@ const agreement = (model: Model): string => {
         : `${model.agreed} ${model.agreed === 1 ? 'check' : 'checks'} agreed with the other worlds.`,
     onSome: (step) => `Out of step with another world since step ${step}.`,
   });
-  return `${where} ${verdict}`;
+  return `${where} ${Option.match(model.replay, { onNone: () => verdict, onSome: (replay) => replayVerdict(model, replay.checks) })}`;
 };
+
+/** How a replay compares with its record so far. */
+const replayVerdict = (model: Model, checks: number): string =>
+  Option.match(model.diverged, {
+    onNone: () => `${model.agreed} of the record's ${checks} checks matched.`,
+    onSome: (step) => `The world differs from the record at step ${step}.`,
+  });
+
+/** What the table shows: the balls, a replay's progress, or why throws wait. */
+const readout = (model: Model): string =>
+  Option.match(model.replay, {
+    onSome: ({ until }) => {
+      const step = Option.match(model.reached, { onNone: () => 0, onSome: ({ step: at }) => at });
+      return step >= until
+        ? `Replay finished at step ${until}.`
+        : `Replaying: step ${step} of ${until}.`;
+    },
+    onNone: () =>
+      playing(model)
+        ? `${model.balls.length} balls on the table. Click the table or the tower to throw one.`
+        : 'Throws wait for a session.',
+  });
+
+/** A link replaying the game so far (in a new tab), or a way back from a replay. */
+const replayLink = (model: Model, h: H): ReadonlyArray<Html> =>
+  Option.isSome(model.replay)
+    ? [h.a([h.Class('e3-button'), h.Href('?')], ['Play live'])]
+    : Option.match(recordOf(model), {
+        onNone: () => [],
+        onSome: (record) => [
+          h.a(
+            [h.Class('e3-button e3-replay-link'), h.Href(fragmentOf(record)), h.Target('_blank')],
+            ['Replay this game'],
+          ),
+        ],
+      });
 
 const playing = (model: Model): boolean => model.session._tag === 'Live';
 
@@ -104,19 +142,15 @@ export const view = (model: Model, h: H): Document => ({
         },
         h,
       ),
-      h.p(
-        [h.Class('e3-readout'), h.AriaLive('polite')],
-        [
-          playing(model)
-            ? `${model.balls.length} balls on the table. Click the table or the tower to throw one.`
-            : 'Throws wait for a session.',
-        ],
-      ),
+      h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
       session(model, h),
       h.p([h.Class('e3-note e3-agreement')], [agreement(model)]),
       h.div(
         [h.Class('e3-controls')],
-        [button(h, 'Rebuild the tower', playing(model), Message.ClickedRebuild())],
+        [
+          button(h, 'Rebuild the tower', playing(model), Message.ClickedRebuild()),
+          ...replayLink(model, h),
+        ],
       ),
     ],
   ),

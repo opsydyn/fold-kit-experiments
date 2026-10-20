@@ -3,6 +3,7 @@ import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
+import { Record } from './replay';
 import { Wire } from './wire';
 
 export const Message = defineMessageUnion({
@@ -12,7 +13,13 @@ export const Message = defineMessageUnion({
   ReachedStep: { run: Schema.Int, step: Schema.Int, checksum: Schema.String },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
   // Playing together (see session.ts).
-  NamedTab: { peer: Schema.String, at: Schema.Number, relay: Schema.Option(Schema.String) },
+  NamedTab: {
+    peer: Schema.String,
+    at: Schema.Number,
+    relay: Schema.Option(Schema.String),
+    /** A game to replay, from the page's `#replay=…`. */
+    record: Schema.Option(Record),
+  },
   WaitedForWelcome: {},
   HeardWire: { wire: Wire, at: Schema.Number },
   TickedTurn: { at: Schema.Number },

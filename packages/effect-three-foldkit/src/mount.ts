@@ -27,6 +27,7 @@ import {
   removal,
   sceneErrorDispatch,
   sceneEventDispatch,
+  dispatchAssetNotice,
 } from './dom/canvas.ts';
 import { applying, createLatch, type Latch, routedWhileOpen } from './dom/latch.ts';
 import { containOverlays, createOverlayWriter, type OverlayWriter } from './dom/overlays.ts';
@@ -140,6 +141,27 @@ const connectObserver =
 const observed = <A>(observe: (emit: (value: A) => void) => () => void) =>
   Stream.callback<A>(connectObserver(observe));
 
+/** What the scene asks for now, given to the environment's asset registry. */
+const asking = (mounted: Mounted, scene: SceneDescription) => () =>
+  mounted.environment.assetRegistry.want(mounted.element, scene.assets, (notice) =>
+    dispatchAssetNotice(mounted.element, notice),
+  );
+
+const lettingGo = (mounted: Mounted) => () =>
+  mounted.environment.assetRegistry.release(mounted.element);
+
+/** The scene's assets, asked for while it is mounted: going, it asks for none. */
+const acquireAssets = (mounted: Mounted, initial: SceneDescription) => {
+  const ask = Effect.sync(asking(mounted, initial));
+  return Effect.acquireRelease(ask, () => Effect.sync(lettingGo(mounted)));
+};
+
+/** An update applied, then what it asks for given to the registry (a refused one asks nothing). */
+const updated = (mounted: Mounted) => (scene: SceneDescription) => {
+  const ask = Effect.sync(asking(mounted, scene));
+  return Effect.tap(mounted.handle.update(scene), () => ask);
+};
+
 const applyUpdate = (mounted: Mounted) => (value: unknown) => {
   const reportError = sceneErrorDispatch(mounted.element);
   const reportReconciled = afterUpdate(
@@ -148,7 +170,7 @@ const applyUpdate = (mounted: Mounted) => (value: unknown) => {
   );
   const decoded = decodeScene(value);
   const applied = decoded.pipe(
-    Effect.flatMap(mounted.handle.update),
+    Effect.flatMap(updated(mounted)),
     Effect.flatMap((ops) => Effect.sync(reportReconciled(ops))),
   );
   return applied.pipe(
@@ -258,6 +280,7 @@ function* runScene(
     gate: createFrameGate(frames),
     live: createLatch(true),
   };
+  yield* acquireAssets(mounted, initial);
   yield* acquirePointer(canvas, mounted);
   yield* acquireXrTarget(mounted);
   yield* Effect.sync(touchActionSync(canvas, handle.graph));

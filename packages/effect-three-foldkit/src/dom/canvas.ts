@@ -5,6 +5,7 @@
  */
 import type { Op, ResourceStore, SceneEvent } from '@opsydyn/effect-three';
 
+import type { AssetNotice } from '../assetRegistry.ts';
 import { domEventName, type SceneError } from '../element.ts';
 import type { Latch } from './latch.ts';
 import { summarise } from './reconciled.ts';
@@ -29,6 +30,17 @@ export const dispatchSceneEvent = (element: Element, event: SceneEvent): void =>
 /** Dispatches a rejected scene update as a `scene-error` event. */
 export const dispatchSceneError = (element: Element, error: SceneError): void => {
   element.dispatchEvent(new CustomEvent('scene-error', { detail: { error } }));
+};
+
+/**
+ * Dispatches what the environment says about an asset the scene asked for, as a
+ * `scene-asset-loaded` or `scene-asset-failed` event. Not held back while time travel is
+ * paused: whether an asset loaded is a fact about the page, not a frame.
+ */
+export const dispatchAssetNotice = (element: Element, notice: AssetNotice): void => {
+  const { _tag, ...detail } = notice;
+  const name = _tag === 'Loaded' ? 'scene-asset-loaded' : 'scene-asset-failed';
+  element.dispatchEvent(new CustomEvent(name, { detail }));
 };
 
 /** Thunk builders, so Effect code can run DOM work with `Effect.sync(thunk)`. */

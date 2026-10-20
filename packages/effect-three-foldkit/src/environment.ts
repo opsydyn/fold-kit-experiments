@@ -13,7 +13,8 @@ import {
   type ResourceStore,
 } from '@opsydyn/effect-three';
 
-import { makeAssets } from './assets.ts';
+import { makeAssetRegistry } from './assetRegistry.ts';
+import { assetLoader, makeAssets } from './assets.ts';
 import { animationFrameScheduler, type AnimationFrameHost } from './dom/animationFrames.ts';
 import { defaultPixelRatio, type PixelRatio } from './dom/viewport.ts';
 import { webglRendererFactory } from './dom/webgl.ts';
@@ -49,6 +50,7 @@ export type EnvironmentOptions = {
 export const makeEnvironment = (host: EnvironmentHost, options: EnvironmentOptions = {}) => {
   const store: ResourceStore = createResourceStore();
   const assets = makeAssets(store);
+  const assetRegistry = makeAssetRegistry(assetLoader(store));
   const xrHub = createXrHub(() => host.navigator?.xr);
   return {
     host,
@@ -63,12 +65,15 @@ export const makeEnvironment = (host: EnvironmentHost, options: EnvironmentOptio
     labels: options.labels,
     /** Loads textures and glTF models by URL and lends them to the store. */
     assets,
+    /** The assets scenes ask for in their descriptions: loaded, shared, cancelled, freed. */
+    assetRegistry,
     /** Enters and leaves immersive (WebXR) sessions, from Commands. */
     xr: makeXr(xrHub),
     /** The page's presentable scenes and its session; scene mounts register here. */
     xrHub,
     /** Disposes every loaded asset and every GPU resource still held. */
     dispose: () => {
+      assetRegistry.dispose();
       assets.dispose();
       store.dispose();
     },

@@ -75,6 +75,8 @@ export const sceneElement = CustomElement.define({
     'scene-xr-meshes': SceneSchema.XrMeshesDetail,
     'scene-performance': SceneSchema.PerformanceDetail,
     'scene-error': Schema.Struct({ error: SceneError }),
+    'scene-asset-loaded': SceneSchema.AssetLoadedDetail,
+    'scene-asset-failed': SceneSchema.AssetFailedDetail,
     'scene-reconciled': ReconciledDetail,
   },
 });

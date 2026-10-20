@@ -53,6 +53,8 @@ export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 /** Detail of contact force events: the two bodies, and how hard they pushed. */
 export type ContactForceDetail = typeof SceneSchema.ContactForceDetail.Type;
 export type PhysicsReachedDetail = typeof SceneSchema.PhysicsReachedDetail.Type;
+export type AssetLoadedDetail = typeof SceneSchema.AssetLoadedDetail.Type;
+export type AssetFailedDetail = typeof SceneSchema.AssetFailedDetail.Type;
 
 /** Detail of measured events: a node's world bounding box. */
 export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
@@ -205,6 +207,13 @@ export type ViewConfig<Message> = {
   /** A scene update was rejected; the scene keeps its last good state. */
   readonly onError?: (detail: { readonly error: SceneError }) => Message;
   /**
+   * An asset the scene asks for (`scene({ assets })`) has loaded and is lent under its id:
+   * at once, for one another scene loaded already. A model's parts and clips come with it.
+   */
+  readonly onAssetLoaded?: (detail: AssetLoadedDetail) => Message;
+  /** An asset the scene asks for could not be loaded, and why. */
+  readonly onAssetFailed?: (detail: AssetFailedDetail) => Message;
+  /**
    * What each scene update did (operations by kind) and the GPU resources held afterwards.
    * Fires at startup and after every update that changed something, never for no-ops.
    */
@@ -258,6 +267,8 @@ export const view = <Message>(
     Option.map(given(config.onGestureEnd), element.OnSceneGestureEnd),
     Option.map(given(config.onPerformanceChange), element.OnScenePerformance),
     Option.map(given(config.onError), element.OnSceneError),
+    Option.map(given(config.onAssetLoaded), element.OnSceneAssetLoaded),
+    Option.map(given(config.onAssetFailed), element.OnSceneAssetFailed),
     Option.map(given(config.onReconciled), element.OnSceneReconciled),
     Option.map(given(config.className), h.Class),
   ]);

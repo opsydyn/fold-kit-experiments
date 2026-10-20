@@ -545,6 +545,8 @@ const sceneFields = {
       paused: Schema.Boolean,
       timeStep: Schema.Literals([1 / 60]),
       interpolate: Schema.Boolean,
+      until: Schema.NullOr(Schema.Literals([0, 3])),
+      run: Schema.Literals([0, 1]),
       debug: Schema.Boolean,
       joints: Schema.Tuple([]),
     }),

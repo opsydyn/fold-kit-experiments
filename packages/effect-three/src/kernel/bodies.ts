@@ -48,6 +48,17 @@ export type BodyContactForce = {
   readonly maxForceMagnitude: number;
 };
 
+/**
+ * A world driven by `physics({ until })` has reached that step and waits: its run, what
+ * it has done (its step count since it was made), and a checksum of every body's pose
+ * there, so peers that should agree can check that they do.
+ */
+export type PhysicsReached = {
+  readonly run: number;
+  readonly step: number;
+  readonly checksum: string;
+};
+
 type Hosted = {
   source: BodySource;
   /** What its colliders were made from; a change makes them again. */
@@ -69,6 +80,13 @@ export type BodyHost = {
   readonly drainCollisions: () => ReadonlyArray<BodyCollision>;
   /** Contact forces over their thresholds since the last call. */
   readonly drainContactForces: () => ReadonlyArray<BodyContactForce>;
+  /** Steps the Model has asked for and the world has reached since the last call. */
+  readonly drainReached: () => ReadonlyArray<PhysicsReached>;
+  /**
+   * Whether a world on `until` still owes steps, or a report: it needs frames even when
+   * nothing else moves, and even under reduced motion, as other peers wait on it.
+   */
+  readonly owesSteps: () => boolean;
   readonly dispose: () => void;
 };
 
@@ -106,6 +124,53 @@ const between = (a: BodyPose, b: BodyPose, alpha: number): BodyPose => {
     ],
     quaternion: [from.x, from.y, from.z, from.w],
   };
+};
+
+/**
+ * How far behind `until` (in seconds of simulation) a world may run at scene time's pace,
+ * following an `until` that moves on as time passes; further back (a newcomer replaying,
+ * a page that was busy), it goes straight there.
+ */
+const catchUpAfter = 0.25;
+
+/** The most simulation a world on `until` runs in one frame, in seconds. */
+const mostPerFrame = 1;
+
+const checksumBytes = new DataView(new ArrayBuffer(8));
+
+/** FNV-1a, a byte at a time. */
+const mixByte = (hash: number, byte: number): number => Math.imul(hash ^ byte, 0x0100_0193) >>> 0;
+
+const mixNumber = (hash: number, value: number): number => {
+  checksumBytes.setFloat64(0, value);
+  let mixed = hash;
+  for (let i = 0; i < 8; i++) mixed = mixByte(mixed, checksumBytes.getUint8(i));
+  return mixed;
+};
+
+const mixText = (hash: number, text: string): number => {
+  let mixed = hash;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    mixed = mixByte(mixByte(mixed, code & 0xff), code >>> 8);
+  }
+  return mixed;
+};
+
+/**
+ * A checksum of where every body is, by id: the bits of each pose's numbers, so peers
+ * agree only if their worlds are the same to the last bit.
+ */
+const checksumOf = (poses: ReadonlyArray<readonly [string, BodyPose]>): string => {
+  let hash = 0x811c_9dc5;
+  for (const [id, { position, quaternion }] of poses.toSorted(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  )) {
+    hash = mixText(hash, id);
+    for (const value of position) hash = mixNumber(hash, value);
+    for (const value of quaternion) hash = mixNumber(hash, value);
+  }
+  return hash.toString(16).padStart(8, '0');
 };
 
 /** A change that needs a new body: another holder or kind, or colliders made otherwise. */
@@ -156,6 +221,11 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
   const debug = createPhysicsDebug(scene);
   let last: number | undefined;
   let accumulator = 0;
+  /** Steps taken since the world was made. */
+  let steps = 0;
+  /** The last `until` reported as reached. */
+  let reported: number | undefined;
+  let reached: Array<PhysicsReached> = [];
 
   /** Draws the world's lines while the description asks for them. */
   const drawDebug = (): void => {
@@ -172,10 +242,17 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
     joined.clear();
     accumulator = 0;
     last = undefined;
+    steps = 0;
+    reported = undefined;
+    reached = [];
   };
 
+  /** Whether this sync begins a new run: bodies start where the description puts them. */
+  let restarting = false;
+
   const add = (active: PhysicsWorld, source: BodySource, signature: string): void => {
-    const pose = source.pose();
+    const pose = restarting ? source.described() : source.pose();
+    if (restarting) source.place(pose);
     active.add(source.id, source.body, source.colliders(), pose);
     if (source.body.impulse !== null) active.applyImpulse(source.id, source.body.impulse.impulse);
     hosted.set(source.id, { source, signature, previous: pose, current: pose, shown: pose });
@@ -249,9 +326,17 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       dispose();
       return;
     }
+    // Another run: the world goes, and a new one counts from step 0.
+    restarting = settings !== null && settings.run !== physics.run;
+    if (restarting) dispose();
     if (world === undefined) world = engine.createWorld(physics);
-    // Joints are made below, not configured.
-    else if (!physicsEquals(settings && { ...settings, joints: physics.joints }, physics)) {
+    // Joints are made below, and `until` is the host's: neither is configured.
+    else if (
+      !physicsEquals(
+        settings && { ...settings, joints: physics.joints, until: physics.until },
+        physics,
+      )
+    ) {
       world.configure(physics);
     }
     settings = physics;
@@ -268,6 +353,7 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       hosted.delete(id);
     }
     syncJoints(world, physics.joints);
+    restarting = false;
     drawDebug();
   };
 
@@ -294,20 +380,69 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       });
     }
     for (const [id, body] of hosted) body.current = active.pose(id) ?? body.current;
+    steps += 1;
+  };
+
+  /** On scene time: every whole step the time since the last frame holds. */
+  const free = (active: PhysicsWorld, timeStep: number, delta: number): number => {
+    accumulator += delta;
+    while (accumulator >= timeStep) {
+      step(active, timeStep);
+      accumulator -= timeStep;
+    }
+    return accumulator / timeStep;
+  };
+
+  /**
+   * Toward `until`: at scene time's pace while close behind it, straight there (a step
+   * budget a frame) when further back, never past it. A world that has reached it waits
+   * there and reports it once, with the bodies' checksum.
+   */
+  const driven = (
+    active: PhysicsWorld,
+    run: number,
+    timeStep: number,
+    delta: number,
+    until: number,
+  ) => {
+    accumulator += delta;
+    const owed = Math.max(0, until - steps);
+    const paced = Math.floor(accumulator / timeStep);
+    const behind = owed > Math.ceil(catchUpAfter / timeStep);
+    const count = Math.min(owed, behind ? owed : paced, Math.ceil(mostPerFrame / timeStep));
+    for (let i = 0; i < count; i++) step(active, timeStep);
+    accumulator = Math.max(0, accumulator - count * timeStep);
+    if (steps < until) return Math.min(1, accumulator / timeStep);
+    // Waiting: time spent here is not owed once `until` moves on.
+    accumulator = 0;
+    if (steps === until && reported !== until) {
+      reported = until;
+      reached.push({
+        run,
+        step: steps,
+        checksum: checksumOf([...hosted.keys()].flatMap((id) => posed(active, id))),
+      });
+    }
+    return 1;
+  };
+
+  const posed = (active: PhysicsWorld, id: string): ReadonlyArray<[string, BodyPose]> => {
+    const pose = active.pose(id);
+    return pose === undefined ? [] : [[id, pose]];
   };
 
   const tick: BodyHost['tick'] = (elapsed, animating) => {
     const delta = last === undefined ? 0 : Math.min(0.5, Math.max(0, elapsed - last));
     last = elapsed;
-    if (world === undefined || settings === null || settings.paused || !animating) return;
-    const timeStep = settings.timeStep;
-    accumulator += delta;
+    if (world === undefined || settings === null || settings.paused) return;
+    // A world on `until` steps under reduced motion too: other peers wait on it.
+    if (settings.until === null && !animating) return;
     scene.updateMatrixWorld();
-    while (accumulator >= timeStep) {
-      step(world, timeStep);
-      accumulator -= timeStep;
-    }
-    const alpha = settings.interpolate ? accumulator / timeStep : 1;
+    const progress =
+      settings.until === null
+        ? free(world, settings.timeStep, delta)
+        : driven(world, settings.run, settings.timeStep, delta, settings.until);
+    const alpha = settings.interpolate ? progress : 1;
     for (const body of hosted.values()) {
       if (body.source.body.type === 'dynamic') {
         body.shown = between(body.previous, body.current, alpha);
@@ -333,6 +468,18 @@ export const createBodyHost = (engine: PhysicsEngine | undefined, scene: Scene):
       contactForces = [];
       return drained;
     },
+    drainReached: () => {
+      if (reached.length === 0) return reached;
+      const drained = reached;
+      reached = [];
+      return drained;
+    },
+    owesSteps: () =>
+      world !== undefined &&
+      settings !== null &&
+      !settings.paused &&
+      settings.until !== null &&
+      (steps < settings.until || reported !== settings.until),
     dispose,
   };
 };

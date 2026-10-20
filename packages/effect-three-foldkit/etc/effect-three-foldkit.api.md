@@ -151,6 +151,7 @@ export const domEventName: {
     readonly AutoRotated: 'scene-auto-rotated';
     readonly Collision: 'scene-collision';
     readonly ContactForce: 'scene-contact-force';
+    readonly PhysicsReached: 'scene-physics-reached';
     readonly Measured: 'scene-measured';
     readonly LabelMeasured: 'scene-label-measured';
     readonly XrStick: 'scene-xr-stick';
@@ -821,6 +822,9 @@ export type OverlayView = {
 // @public
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
 
+// @public (undocumented)
+export type PhysicsReachedDetail = typeof SceneSchema.PhysicsReachedDetail.Type;
+
 declare namespace PivotControls {
     export {
         Model_3 as Model,
@@ -1077,6 +1081,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly paused: Schema.Boolean;
             readonly timeStep: Schema.Finite;
             readonly interpolate: Schema.Boolean;
+            readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+            readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
             readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;
@@ -1532,6 +1538,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly maxForceMagnitude: Schema.Finite;
     }>;
+    'scene-physics-reached': Schema.Struct<{
+        readonly run: Schema.Int;
+        readonly step: Schema.Int;
+        readonly checksum: Schema.String;
+    }>;
     'scene-measured': Schema.Struct<{
         readonly key: Schema.String;
         readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1784,6 +1795,7 @@ export type ViewConfig<Message> = {
     readonly onAutoRotated?: (detail: AutoRotatedDetail) => Message;
     readonly onCollision?: (detail: CollisionDetail) => Message;
     readonly onContactForce?: (detail: ContactForceDetail) => Message;
+    readonly onPhysicsReached?: (detail: PhysicsReachedDetail) => Message;
     readonly onMeasured?: (detail: MeasuredDetail) => Message;
     readonly onLabelMeasured?: (detail: LabelMeasuredDetail) => Message;
     readonly onXRSession?: (detail: XrSessionDetail) => Message;

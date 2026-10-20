@@ -1067,13 +1067,16 @@ const noJoints: ReadonlyArray<Joint> = [];
 
 /**
  * A physics world. Defaults as react-three-rapier's `Physics`: Earth gravity
- * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated; no joints.
+ * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated; no joints; on scene
+ * time rather than `until` a step the Model sets.
  */
 export const physics = (options: Partial<Physics> = {}): Physics => ({
   gravity: options.gravity ?? [0, -9.81, 0],
   paused: options.paused ?? false,
   timeStep: options.timeStep ?? 1 / 60,
   interpolate: options.interpolate ?? true,
+  until: options.until ?? null,
+  run: options.run ?? 0,
   debug: options.debug ?? false,
   joints: options.joints ?? noJoints,
 });

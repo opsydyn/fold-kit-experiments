@@ -699,6 +699,8 @@ export const physicsEquals = (a: Physics | null, b: Physics | null): boolean =>
     a.paused === b.paused &&
     Object.is(a.timeStep, b.timeStep) &&
     a.interpolate === b.interpolate &&
+    a.until === b.until &&
+    a.run === b.run &&
     a.debug === b.debug &&
     jointsEqual(a.joints, b.joints));
 

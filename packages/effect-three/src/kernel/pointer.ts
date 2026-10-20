@@ -286,6 +286,17 @@ export type SceneEvent =
       readonly maxForceMagnitude: number;
     }
   /**
+   * A world on `physics({ until })` reached that step and waits there: its run, its
+   * step count, and a checksum of every body's pose, which peers running the same inputs
+   * share (ADR-014). It comes after the collisions of the steps that led there.
+   */
+  | {
+      readonly _tag: 'PhysicsReached';
+      readonly run: number;
+      readonly step: number;
+      readonly checksum: string;
+    }
+  /**
    * A measured label's laid-out size changed (`scene({ measure })`, after its glyphs are
    * laid out): in its own units, before its scale, for sizing what goes behind it, as
    * Drei's `Text` `onSync` reads troika's `textRenderInfo`.

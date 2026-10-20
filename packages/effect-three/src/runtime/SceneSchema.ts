@@ -405,11 +405,16 @@ export const Joint = Schema.Struct({
   contacts: Schema.Boolean,
 });
 
+/** A count of physics steps. */
+const StepCount = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+
 export const Physics = Schema.Struct({
   gravity: Vec3,
   paused: Schema.Boolean,
   timeStep: Positive,
   interpolate: Schema.Boolean,
+  until: absentAsNull(StepCount),
+  run: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   debug: Schema.Boolean,
   joints: Schema.Array(Joint),
 });
@@ -1030,6 +1035,16 @@ export const CollisionDetail = Schema.Struct({
   started: Schema.Boolean,
 });
 
+/**
+ * Detail of physics reached events: the run and step a world on `physics({ until })`
+ * reached, and a checksum of its bodies' poses there.
+ */
+export const PhysicsReachedDetail = Schema.Struct({
+  run: Schema.Int,
+  step: StepCount,
+  checksum: Schema.String,
+});
+
 const XrHand = Schema.Literals(['left', 'right', 'none']);
 
 /** Detail of XR stick events: a thumbstick pushed past halfway, or let back. */
@@ -1139,6 +1154,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('Measured', MeasuredDetail.fields),
   Schema.TaggedStruct('LabelMeasured', LabelMeasuredDetail.fields),
   Schema.TaggedStruct('ContactForce', ContactForceDetail.fields),
+  Schema.TaggedStruct('PhysicsReached', PhysicsReachedDetail.fields),
   Schema.TaggedStruct('XrStick', XrStickDetail.fields),
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
@@ -1245,6 +1261,15 @@ export const Lockstep = <S extends Schema.Top>(input: S) =>
     lead: Schema.Int,
     pending: Schema.Array(LockstepEntry(input)),
     received: Schema.Array(LockstepPacket(input)),
+  });
+
+/** A timeline of physics steps (`Timeline.make`) over the app's `input`s, for a Model. */
+export const Timeline = <S extends Schema.Top>(input: S) =>
+  Schema.Struct({
+    inputs: Schema.Array(Schema.Struct({ step: StepCount, input })),
+    applied: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    reached: Schema.NullOr(StepCount),
+    frontier: StepCount,
   });
 
 /** A measuring tape as data (`tape`), for a Model that keeps it. */

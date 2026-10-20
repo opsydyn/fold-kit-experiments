@@ -66,6 +66,7 @@ export {
   type MeasuredDetail,
   type MissDetail,
   type PerformanceDetail,
+  type PhysicsReachedDetail,
   view,
   type ViewConfig,
   type WheelDetail,

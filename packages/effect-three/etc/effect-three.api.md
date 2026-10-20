@@ -1236,6 +1236,12 @@ export const dragPivot: (state: Pivot, ray: Ray, options?: {
 }) => Placement | undefined;
 
 // @public
+const due: <I>(timeline: Timeline_2<I>) => {
+    readonly timeline: Timeline_2<I>;
+    readonly inputs: ReadonlyArray<I>;
+};
+
+// @public
 export const ease: (options: {
     readonly seconds: number;
     readonly easing?: Easing;
@@ -1333,6 +1339,9 @@ export const environmentPresets: {
 
 // @public
 export const environmentPresetUrl: (preset: EnvironmentPreset) => string;
+
+// @public
+const extend: <I>(timeline: Timeline_2<I>, frontier: number) => Timeline_2<I>;
 
 // @public
 export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body'
@@ -3056,7 +3065,10 @@ const make: <A>(value: A, label?: string) => History_3<A>;
 const make_2: <I>(self: string, lead?: number) => Lockstep_2<I>;
 
 // @public
-const make_3: (options: SceneRuntimeOptions) => Effect.Effect<{
+const make_3: <I>(frontier?: number) => Timeline_2<I>;
+
+// @public
+const make_4: (options: SceneRuntimeOptions) => Effect.Effect<{
     graph: SceneGraph;
     startupOps: readonly Op[];
     update: (scene: SceneDescription) => Effect.Effect<readonly Op[], InvalidScene, never>;
@@ -3871,6 +3883,8 @@ export type Physics = {
     readonly paused: boolean;
     readonly timeStep: number;
     readonly interpolate: boolean;
+    readonly until: number | null;
+    readonly run: number;
     readonly debug: boolean;
     readonly joints: ReadonlyArray<Joint>;
 };
@@ -3884,6 +3898,8 @@ const Physics_2: Schema.Struct<{
     readonly paused: Schema.Boolean;
     readonly timeStep: Schema.Finite;
     readonly interpolate: Schema.Boolean;
+    readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+    readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
     readonly debug: Schema.Boolean;
     readonly joints: Schema.$Array<Schema.Struct<{
         readonly key: Schema.String;
@@ -3950,6 +3966,20 @@ export type PhysicsJoint = {
         readonly frameB: Quat;
     };
 };
+
+// @public
+export type PhysicsReached = {
+    readonly run: number;
+    readonly step: number;
+    readonly checksum: string;
+};
+
+// @public
+const PhysicsReachedDetail: Schema.Struct<{
+    readonly run: Schema.Int;
+    readonly step: Schema.Int;
+    readonly checksum: Schema.String;
+}>;
 
 // @public
 export type PhysicsWorld = {
@@ -4414,6 +4444,9 @@ const Ray_2: Schema.Struct<{
 }>;
 
 // @public
+const reach: <I>(timeline: Timeline_2<I>, step: number) => Timeline_2<I>;
+
+// @public
 const read: (text: string) => Result.Result<SceneDescription, UnreadableScene>;
 
 // @public
@@ -4828,6 +4861,9 @@ export type ResourceStore = {
 };
 
 // @public
+const restart: <I>(timeline: Timeline_2<I>) => Timeline_2<I>;
+
+// @public
 export const revoluteJoint: (options: {
     readonly axis: Vec3;
     readonly limits?: JointLimits | null;
@@ -5236,6 +5272,8 @@ const SceneDescription_2: Schema.Struct<{
         readonly paused: Schema.Boolean;
         readonly timeStep: Schema.Finite;
         readonly interpolate: Schema.Boolean;
+        readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+        readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
         readonly debug: Schema.Boolean;
         readonly joints: Schema.$Array<Schema.Struct<{
             readonly key: Schema.String;
@@ -5605,6 +5643,17 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly maxForceMagnitude: number;
 }
 /**
+* A world on `physics({ until })` reached that step and waits there: its run, its
+* step count, and a checksum of every body's pose, which peers running the same inputs
+* share (ADR-014). It comes after the collisions of the steps that led there.
+*/
+| {
+    readonly _tag: 'PhysicsReached';
+    readonly run: number;
+    readonly step: number;
+    readonly checksum: string;
+}
+/**
 * A measured label's laid-out size changed (`scene({ measure })`, after its glyphs are
 * laid out): in its own units, before its scale, for sizing what goes behind it, as
 * Drei's `Text` `onSync` reads troika's `textRenderInfo`.
@@ -5853,6 +5902,10 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly totalForceMagnitude: Schema.Finite;
     readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly maxForceMagnitude: Schema.Finite;
+}>, Schema.TaggedStruct<"PhysicsReached", {
+    readonly run: Schema.Int;
+    readonly step: Schema.Int;
+    readonly checksum: Schema.String;
 }>, Schema.TaggedStruct<"XrStick", {
     readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
     readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
@@ -6088,6 +6141,8 @@ const SceneFile_2: Schema.Struct<{
             readonly paused: Schema.Boolean;
             readonly timeStep: Schema.Finite;
             readonly interpolate: Schema.Boolean;
+            readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+            readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
             readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;
@@ -6337,6 +6392,7 @@ export type SceneGraph = {
     readonly contactShadows: () => ContactShadows | null;
     readonly collisions: () => ReadonlyArray<BodyCollision>;
     readonly contactForces: () => ReadonlyArray<BodyContactForce>;
+    readonly physicsReached: () => ReadonlyArray<PhysicsReached>;
     readonly xr: () => Xr | null;
     readonly measured: () => ReadonlyArray<string>;
     readonly labelLayout: (key: string) => LabelLayout | undefined;
@@ -6372,7 +6428,7 @@ export type SceneGraphOptions = {
 };
 
 // @public
-type SceneHandle = Effect.Success<ReturnType<typeof make_3>>;
+type SceneHandle = Effect.Success<ReturnType<typeof make_4>>;
 
 // @public
 export type SceneIndex = {
@@ -6424,7 +6480,7 @@ export type SceneRenderer = {
 declare namespace SceneRuntime {
     export {
         SceneRuntimeOptions,
-        make_3 as make,
+        make_4 as make,
         SceneHandle
     }
 }
@@ -6532,6 +6588,7 @@ declare namespace SceneSchema {
         Modifiers_2 as Modifiers,
         Gesture_2 as Gesture,
         CollisionDetail,
+        PhysicsReachedDetail,
         XrStickDetail,
         XrButtonDetail,
         XrMovedDetail,
@@ -6554,6 +6611,7 @@ declare namespace SceneSchema {
         LockstepPacket,
         LockstepMember,
         Lockstep_3 as Lockstep,
+        Timeline_3 as Timeline,
         Tape_2 as Tape,
         PivotHandle_2 as PivotHandle,
         Pivot_2 as Pivot
@@ -6574,6 +6632,15 @@ export type SceneSummary = {
     readonly lights: ReadonlyArray<LightSummary>;
     readonly bounds: Box | null;
     readonly staging: ReadonlyArray<string>;
+};
+
+// @public
+const schedule: <I>(timeline: Timeline_2<I>, step: number, input: I) => Timeline_2<I>;
+
+// @public
+type Scheduled<I> = {
+    readonly step: number;
+    readonly input: I;
 };
 
 // @public
@@ -7214,6 +7281,39 @@ export type ThingSummary = {
     readonly parent: string | null;
 };
 
+declare namespace Timeline {
+    export {
+        Scheduled,
+        Timeline_2 as Timeline,
+        make_3 as make,
+        schedule,
+        extend,
+        reach,
+        due,
+        until,
+        restart
+    }
+}
+
+// @public (undocumented)
+type Timeline_2<I> = {
+    readonly inputs: ReadonlyArray<Scheduled<I>>;
+    readonly applied: number;
+    readonly reached: number | null;
+    readonly frontier: number;
+};
+
+// @public
+const Timeline_3: <S extends Schema.Top>(input: S) => Schema.Struct<{
+    readonly inputs: Schema.$Array<Schema.Struct<{
+        readonly step: Schema.Int;
+        readonly input: S;
+    }>>;
+    readonly applied: Schema.Int;
+    readonly reached: Schema.NullOr<Schema.Int>;
+    readonly frontier: Schema.Int;
+}>;
+
 // @public
 export type ToneMapping = 'none' | 'linear' | 'reinhard' | 'cineon' | 'aces' | 'agx' | 'neutral';
 
@@ -7320,6 +7420,9 @@ export class UnreadableScene extends UnreadableScene_base<{
     readonly issue: string;
 }> {
 }
+
+// @public
+const until: <I>(timeline: Timeline_2<I>) => number;
 
 // @public
 export const updateMaterial: (material: HostMaterial, description: SurfaceMaterial, textures?: Textures) => boolean;
@@ -7737,7 +7840,7 @@ const XrSurfaceDetail: Schema.Struct<{
 
 // Warnings were encountered during analysis:
 //
-// src/kernel/sceneGraph.ts:288:3 - (ae-forgotten-export) The symbol "HostedHud" needs to be exported by the entry point index.d.ts
+// src/kernel/sceneGraph.ts:293:3 - (ae-forgotten-export) The symbol "HostedHud" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

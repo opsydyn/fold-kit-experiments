@@ -625,6 +625,22 @@ export type Physics = {
   readonly paused: boolean;
   readonly timeStep: number;
   readonly interpolate: boolean;
+  /**
+   * The step the Model lets the world reach, for a simulation that must run alike
+   * wherever it runs (lockstep, replays; ADR-014). The world advances toward it in fixed
+   * steps at scene time's pace (faster when far behind), stops there and reports
+   * `PhysicsReached`; whatever the description changes while it waits applies at that
+   * step, on every peer. Steps count from 0 when the world is made, and the world never
+   * goes back: a lower `until` holds it where it is. `null` (the default): the world runs
+   * on scene time alone, as react-three-rapier's does.
+   */
+  readonly until: number | null;
+  /**
+   * Which run of the simulation this is: a new number throws the world away and starts
+   * another at step 0, for a peer that takes a session's record and replays it, or a
+   * replay starting over. `0` by default.
+   */
+  readonly run: number;
   /** Draw every collider and joint as lines, as react-three-rapier's `<Physics debug>`. */
   readonly debug: boolean;
   /** Joints between bodies, each active while both its bodies exist. */

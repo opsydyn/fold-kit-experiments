@@ -208,7 +208,7 @@ export {
   type PhysicsWorld,
   type Quat,
 } from './physics.ts';
-export type { BodyCollision, BodyContactForce } from './bodies.ts';
+export type { BodyCollision, BodyContactForce, PhysicsReached } from './bodies.ts';
 export type {
   ContactShadowPasses,
   HostedLine,
@@ -310,6 +310,7 @@ export {
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
 export * as History from './history.ts';
 export * as Lockstep from './lockstep.ts';
+export * as Timeline from './timeline.ts';
 export {
   describeScene,
   formatSummary,

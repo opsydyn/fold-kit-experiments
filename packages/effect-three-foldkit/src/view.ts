@@ -52,6 +52,7 @@ export type CollisionDetail = typeof SceneSchema.CollisionDetail.Type;
 
 /** Detail of contact force events: the two bodies, and how hard they pushed. */
 export type ContactForceDetail = typeof SceneSchema.ContactForceDetail.Type;
+export type PhysicsReachedDetail = typeof SceneSchema.PhysicsReachedDetail.Type;
 
 /** Detail of measured events: a node's world bounding box. */
 export type MeasuredDetail = typeof SceneSchema.MeasuredDetail.Type;
@@ -145,6 +146,12 @@ export type ViewConfig<Message> = {
    */
   readonly onContactForce?: (detail: ContactForceDetail) => Message;
   /**
+   * A world on `physics({ until })` reached that step and waits there, with its run and a
+   * checksum of its bodies' poses (ADR-014): the moment to apply the inputs due at that
+   * step and move `until` on. It follows the collisions of the steps that led there.
+   */
+  readonly onPhysicsReached?: (detail: PhysicsReachedDetail) => Message;
+  /**
    * A node listed in the scene's `measure` has a new world bounding box (Drei's `Bounds`
    * measuring, as a Message): fit the camera to it with `fitCamera`.
    */
@@ -234,6 +241,7 @@ export const view = <Message>(
     Option.map(given(config.onDragEnd), element.OnSceneDragEnd),
     Option.map(given(config.onCollision), element.OnSceneCollision),
     Option.map(given(config.onContactForce), element.OnSceneContactForce),
+    Option.map(given(config.onPhysicsReached), element.OnScenePhysicsReached),
     Option.map(given(config.onMeasured), element.OnSceneMeasured),
     Option.map(given(config.onLabelMeasured), element.OnSceneLabelMeasured),
     Option.map(given(config.onXRSession), element.OnSceneXr),

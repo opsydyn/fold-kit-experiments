@@ -4543,7 +4543,7 @@ const receive: <I>(state: Lockstep_2<I>, packet: Packet<I>) => Lockstep_2<I>;
 // @public
 export type Received = {
     readonly collisions: ReadonlyArray<Collision>;
-    readonly stepping: boolean;
+    readonly pending: boolean;
 };
 
 // @public (undocumented)

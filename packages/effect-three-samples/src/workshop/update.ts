@@ -4,7 +4,7 @@ import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
 import { Message } from './message';
-import { assetIds, initialModel, type Model } from './model';
+import { assetIds, initialModel, type Model, type RobotInfo } from './model';
 
 type AppReturn = Return<Model, Message>;
 
@@ -13,15 +13,11 @@ export const init = (props: { readonly assetBase?: string } = {}) => ({
   model: initialModel(props.assetBase ?? '/models/'),
 });
 
-/** An asset the scene asked for has loaded: its status settled, by id. */
-const loadedAsset = (
-  model: Model,
-  id: string,
-  info: { readonly parts: ReadonlyArray<string>; readonly clips: ReadonlyArray<string> },
-): Model =>
+/** A level of an asset the scene asked for has loaded: its status settled, by id. */
+const loadedAsset = (model: Model, id: string, info: RobotInfo): Model =>
   Match.value(id).pipe(
     Match.when(assetIds.robot, () => ({ ...model, robot: succeed(info) })),
-    Match.when(assetIds.floor, () => ({ ...model, floor: succeed(id) })),
+    Match.when(assetIds.floor, () => ({ ...model, floor: succeed(info.final) })),
     Match.when(assetIds.font, () => ({ ...model, font: succeed(id) })),
     Match.orElse(() => model),
   );
@@ -57,8 +53,8 @@ const whileWanted = (model: Model, next: () => Model): Model => (model.wanted ? 
 
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
-    LoadedAsset: ({ id, parts, clips }) => ({
-      model: whileWanted(model, () => loadedAsset(model, id, { parts, clips })),
+    LoadedAsset: ({ id, final, parts, clips }) => ({
+      model: whileWanted(model, () => loadedAsset(model, id, { parts, clips, final })),
     }),
     FailedAsset: ({ id, reason }) => ({
       model: whileWanted(model, () => failedAsset(model, id, reason)),

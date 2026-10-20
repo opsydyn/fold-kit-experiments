@@ -3,6 +3,7 @@
  * and tests use a model we made ourselves (no third-party asset licences).
  *
  *   bun scripts/make-robot.ts <out.glb> [more.glb ...]
+ *   DETAIL=low bun scripts/make-robot.ts <out-low.glb> ...   # a coarse level, few facets
  *
  * Parts are named (hits report them as `part`); clips: `wave` (the arm) and `roll` (the
  * wheels). GLTFExporter needs FileReader, which Bun lacks, so a minimal one is provided.
@@ -33,6 +34,10 @@ class MinimalFileReader {
 }
 Reflect.set(globalThis, 'FileReader', MinimalFileReader);
 
+/** A coarse level (`DETAIL=low`) has the same parts and clips, in a handful of facets. */
+const low = process.env['DETAIL'] === 'low';
+const round = low ? { width: 6, height: 4, around: 6 } : { width: 32, height: 16, around: 32 };
+
 const paint = (color: number, roughness = 0.5, metalness = 0.1) =>
   new MeshStandardMaterial({ color, roughness, metalness });
 
@@ -45,9 +50,33 @@ const part = (name: string, mesh: Mesh, x: number, y: number, z: number): Mesh =
 const robot = new Group();
 robot.name = 'robot';
 robot.add(part('body', new Mesh(new BoxGeometry(1, 1.1, 0.7), paint(0x3d79fa)), 0, 0.95, 0));
-robot.add(part('head', new Mesh(new SphereGeometry(0.36, 32, 16), paint(0xb3c9fc)), 0, 1.78, 0));
-robot.add(part('eye-left', new Mesh(new SphereGeometry(0.07), paint(0x1a1a2e)), -0.13, 1.82, 0.31));
-robot.add(part('eye-right', new Mesh(new SphereGeometry(0.07), paint(0x1a1a2e)), 0.13, 1.82, 0.31));
+robot.add(
+  part(
+    'head',
+    new Mesh(new SphereGeometry(0.36, round.width, round.height), paint(0xb3c9fc)),
+    0,
+    1.78,
+    0,
+  ),
+);
+robot.add(
+  part(
+    'eye-left',
+    new Mesh(new SphereGeometry(0.07, round.width, round.height), paint(0x1a1a2e)),
+    -0.13,
+    1.82,
+    0.31,
+  ),
+);
+robot.add(
+  part(
+    'eye-right',
+    new Mesh(new SphereGeometry(0.07, round.width, round.height), paint(0x1a1a2e)),
+    0.13,
+    1.82,
+    0.31,
+  ),
+);
 const antenna = part(
   'antenna',
   new Mesh(new CylinderGeometry(0.03, 0.03, 0.4), paint(0xf5ce60)),
@@ -68,7 +97,10 @@ robot.add(
 );
 
 const wheel = (name: string, x: number) => {
-  const mesh = new Mesh(new CylinderGeometry(0.3, 0.3, 0.18, 32), paint(0x2a2a3a, 0.8, 0));
+  const mesh = new Mesh(
+    new CylinderGeometry(0.3, 0.3, 0.18, round.around),
+    paint(0x2a2a3a, 0.8, 0),
+  );
   mesh.rotation.z = Math.PI / 2;
   const hub = new Group();
   hub.name = name;

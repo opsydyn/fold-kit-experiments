@@ -29,10 +29,12 @@ const clipButton = (model: Model, h: HtmlBuilder<Message>, clip: Clip | null): H
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
   h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
 
+const detailOf = (info: RobotInfo): string => (info.final ? 'Loaded' : 'Low detail, sharpening');
+
 const loaded = (model: Model, info: RobotInfo): string =>
   Option.match(model.part, {
     onNone: () =>
-      `Loaded: ${info.parts.length} named parts and the clips ${info.clips.join(' and ')}. Click a part to name it.`,
+      `${detailOf(info)}: ${info.parts.length} named parts and the clips ${info.clips.join(' and ')}. Click a part to name it.`,
     onSome: (part) => `You clicked the ${part}.`,
   });
 
@@ -69,7 +71,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           className: 'e3-stage',
           onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
           onClick: ({ part }) => Message.ClickedPart({ part: part ?? 'robot' }),
-          onAssetLoaded: ({ id, parts, clips }) => Message.LoadedAsset({ id, parts, clips }),
+          onAssetLoaded: ({ id, final, parts, clips }) =>
+            Message.LoadedAsset({ id, final, parts, clips }),
           onAssetFailed: ({ id, reason }) => Message.FailedAsset({ id, reason }),
         },
         h,

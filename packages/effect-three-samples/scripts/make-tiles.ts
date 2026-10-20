@@ -2,12 +2,15 @@
  * Draws the workshop floor texture: pale tiles with soft grout lines, as a PNG.
  *
  *   bun scripts/make-tiles.ts <out.png> [more.png ...]
+ *   DETAIL=low bun scripts/make-tiles.ts <out-low.png> ...   # a coarse level, 32 pixels
  */
 import { PNG } from 'pngjs';
 
-const size = 256;
-const tile = 64;
-const grout = 3;
+/** A coarse level (`DETAIL=low`) is the same floor at an eighth of the pixels. */
+const scale = process.env['DETAIL'] === 'low' ? 8 : 1;
+const size = 256 / scale;
+const tile = 64 / scale;
+const grout = Math.max(1, Math.round(3 / scale));
 const image = new PNG({ width: size, height: size });
 
 for (let y = 0; y < size; y++) {

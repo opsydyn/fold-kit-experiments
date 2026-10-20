@@ -1,6 +1,7 @@
 /**
  * The workshop: the loaded robot on a tiled floor under a sign. The scene asks for its
- * assets (`scene({ assets })`) while the Model wants them: the environment loads each,
+ * assets (`scene({ assets })`) while the Model wants them, the robot and floor each with a
+ * coarse level shown until the full one arrives: the environment loads each,
  * cancels a load the scene stops asking for, and frees what it no longer asks for. The
  * robot is a borrowed node, so it appears when its model is lent and goes when it is
  * freed; the floor uses the lent texture as its map once it has settled; the sign is text
@@ -35,8 +36,16 @@ import { assetIds, type Model } from './model';
 const assetsOf = (model: Model): ReadonlyArray<Asset> =>
   model.wanted
     ? [
-        modelAsset({ id: assetIds.robot, url: `${model.assetBase}robot.glb` }),
-        textureAsset({ id: assetIds.floor, url: `${model.assetBase}tiles.png` }),
+        modelAsset({
+          id: assetIds.robot,
+          url: `${model.assetBase}robot.glb`,
+          levels: [`${model.assetBase}robot-low.glb`],
+        }),
+        textureAsset({
+          id: assetIds.floor,
+          url: `${model.assetBase}tiles.png`,
+          levels: [`${model.assetBase}tiles-low.png`],
+        }),
         fontAsset({ id: assetIds.font, url: `${model.assetBase}inter-bold.typeface.json` }),
       ]
     : [];

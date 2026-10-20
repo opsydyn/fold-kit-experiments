@@ -18,21 +18,61 @@ test('the scene asks for the robot, the floor and the sign font from the asset b
   const { model } = init({ assetBase: '/three/models/' });
   expect(model.robot).toEqual({ _tag: 'Loading' });
   expect(sceneFor(model).assets).toEqual([
-    { kind: 'model', id: 'workshop-robot', url: '/three/models/robot.glb' },
-    { kind: 'texture', id: 'workshop-floor', url: '/three/models/tiles.png' },
-    { kind: 'font', id: 'workshop-font', url: '/three/models/inter-bold.typeface.json' },
+    {
+      kind: 'model',
+      id: 'workshop-robot',
+      url: '/three/models/robot.glb',
+      levels: ['/three/models/robot-low.glb'],
+    },
+    {
+      kind: 'texture',
+      id: 'workshop-floor',
+      url: '/three/models/tiles.png',
+      levels: ['/three/models/tiles-low.png'],
+    },
+    {
+      kind: 'font',
+      id: 'workshop-font',
+      url: '/three/models/inter-bold.typeface.json',
+      levels: [],
+    },
   ]);
+});
+
+test('a coarse level settles an asset as not final; the finest makes it final', () => {
+  const start = init().model;
+  const coarse = step(
+    start,
+    Message.LoadedAsset({ id: 'workshop-robot', final: false, parts: ['head'], clips: [] }),
+  );
+  expect(coarse.robot).toEqual({
+    _tag: 'Success',
+    data: { parts: ['head'], clips: [], final: false },
+  });
+  const full = step(
+    coarse,
+    Message.LoadedAsset({ id: 'workshop-robot', final: true, parts: ['head'], clips: [] }),
+  );
+  expect(full.robot).toMatchObject({ data: { final: true } });
+  const floor = step(
+    start,
+    Message.LoadedAsset({ id: 'workshop-floor', final: false, parts: [], clips: [] }),
+  );
+  expect(floor.floor).toEqual({ _tag: 'Success', data: false });
 });
 
 test('what the scene hears settles each asset; unloading stops asking, reloading asks again', () => {
   const start = init().model;
   const ready = [
-    Message.LoadedAsset({ id: 'workshop-robot', parts: ['head'], clips: ['wave'] }),
-    Message.LoadedAsset({ id: 'workshop-floor', parts: [], clips: [] }),
-    Message.LoadedAsset({ id: 'workshop-font', parts: [], clips: [] }),
+    Message.LoadedAsset({ id: 'workshop-robot', final: true, parts: ['head'], clips: ['wave'] }),
+    Message.LoadedAsset({ id: 'workshop-floor', final: true, parts: [], clips: [] }),
+    Message.LoadedAsset({ id: 'workshop-font', final: true, parts: [], clips: [] }),
   ].reduce(step, start);
-  expect(ready.robot).toEqual({ _tag: 'Success', data: { parts: ['head'], clips: ['wave'] } });
-  expect(ready.floor).toEqual({ _tag: 'Success', data: 'workshop-floor' });
+  expect(ready.robot).toEqual({
+    _tag: 'Success',
+    data: { parts: ['head'], clips: ['wave'], final: true },
+  });
+  expect(ready.floor).toEqual({ _tag: 'Success', data: true });
   expect(ready.font).toEqual({ _tag: 'Success', data: 'workshop-font' });
 
   const clicked = step(ready, Message.ClickedPart({ part: 'head' }));
@@ -46,9 +86,12 @@ test('what the scene hears settles each asset; unloading stops asking, reloading
   ]);
   expect(Option.isNone(unloaded.part)).toBe(true);
   // An answer that arrives after the scene stopped asking changes nothing.
-  expect(step(unloaded, Message.LoadedAsset({ id: 'workshop-robot', parts: [], clips: [] }))).toBe(
-    unloaded,
-  );
+  expect(
+    step(
+      unloaded,
+      Message.LoadedAsset({ id: 'workshop-robot', final: true, parts: [], clips: [] }),
+    ),
+  ).toBe(unloaded);
 
   const reloading = step(unloaded, Message.ClickedReload());
   expect(reloading.robot._tag).toBe('Loading');

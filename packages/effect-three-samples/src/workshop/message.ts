@@ -6,8 +6,10 @@ import { Clip } from './model';
 
 export const Message = defineMessageUnion({
   // What the scene heard about the assets it asks for.
+  // A level of detail shown: `final` once it is the finest.
   LoadedAsset: {
     id: Schema.String,
+    final: Schema.Boolean,
     parts: Schema.Array(Schema.String),
     clips: Schema.Array(Schema.String),
   },

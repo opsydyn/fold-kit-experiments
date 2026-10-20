@@ -26,7 +26,7 @@
   },
   "scripts": {
     "test": "bun test ./test",
-    "make:assets": "bun scripts/make-robot.ts ../../apps/three-promo/public/models/robot.glb ../../apps/web/public/models/robot.glb ../effect-three-foldkit/e2e/app/robot.glb && bun scripts/make-tiles.ts ../../apps/three-promo/public/models/tiles.png ../../apps/web/public/models/tiles.png",
+    "make:assets": "bun scripts/make-robot.ts ../../apps/three-promo/public/models/robot.glb ../../apps/web/public/models/robot.glb ../effect-three-foldkit/e2e/app/robot.glb && bun scripts/make-tiles.ts ../../apps/three-promo/public/models/tiles.png ../../apps/web/public/models/tiles.png && DETAIL=low bun scripts/make-robot.ts ../../apps/three-promo/public/models/robot-low.glb ../../apps/web/public/models/robot-low.glb && DETAIL=low bun scripts/make-tiles.ts ../../apps/three-promo/public/models/tiles-low.png ../../apps/web/public/models/tiles-low.png",
     "typecheck": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && tsc --noEmit"
   },
   "dependencies": {

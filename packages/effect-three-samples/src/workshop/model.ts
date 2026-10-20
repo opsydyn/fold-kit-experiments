@@ -6,10 +6,11 @@ export const Clip = Schema.Literals(['wave', 'roll']);
 export type Clip = typeof Clip.Type;
 export const clips: ReadonlyArray<Clip> = Clip.literals;
 
-/** What the loaded robot offers. */
+/** What the loaded robot offers, and whether it is the finest of its levels yet. */
 export type RobotInfo = {
   readonly parts: ReadonlyArray<string>;
   readonly clips: ReadonlyArray<string>;
+  readonly final: boolean;
 };
 
 export const Model = Schema.Struct({
@@ -26,8 +27,8 @@ export const Model = Schema.Struct({
 });
 export type Model = Omit<typeof Model.Type, 'robot' | 'floor' | 'font'> & {
   readonly robot: AsyncData<RobotInfo, string>;
-  /** The floor texture, settled to its id once lent. */
-  readonly floor: AsyncData<string, string>;
+  /** The floor texture, settled once lent: whether it is the finest of its levels yet. */
+  readonly floor: AsyncData<boolean, string>;
   /** The sign's font (Inter Bold, OFL), settled to its id once lent. */
   readonly font: AsyncData<string, string>;
 };

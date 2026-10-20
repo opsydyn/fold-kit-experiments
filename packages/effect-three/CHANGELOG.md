@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.3.0...effect-three-v0.4.0) (2026-10-20)
+
+
+### Features
+
+* **effect-three:** a HUD, and the viewport gizmo in it ([a1d99d4](https://github.com/opsydyn/fold-kit-experiments/commit/a1d99d477d80744652237c0718fe0f2418490ea8))
+* **effect-three:** a measuring tape, the last widget of Beyond parity 5 ([0a05ae0](https://github.com/opsydyn/fold-kit-experiments/commit/0a05ae04b0ccfd616f945f26429b27acbe79f108))
+* **effect-three:** a scene vocabulary for assistants ([a138ccb](https://github.com/opsydyn/fold-kit-experiments/commit/a138ccb3c38226149b44d7b56ce488be8ebbcd89))
+* **effect-three:** a transform gizmo as data, and as a Foldkit submodel ([3b1e585](https://github.com/opsydyn/fold-kit-experiments/commit/3b1e58535b35669917c3325214199f9264fb314c))
+* **effect-three:** an inspector generated from schemas ([64d1d3b](https://github.com/opsydyn/fold-kit-experiments/commit/64d1d3b8bf9991c57c1cf56b94a8b3f1c773b17d))
+* **effect-three:** box select as data, and as a Foldkit submodel ([498a2ec](https://github.com/opsydyn/fold-kit-experiments/commit/498a2ecd7763208c17b54b85f5cc8af294c7ce9b))
+* **effect-three:** edges, trails, points, sparkles and stars ([f976907](https://github.com/opsydyn/fold-kit-experiments/commit/f9769078724c7ef405728581574d50001f338e81))
+* **effect-three:** lockstep, and the editor edited together across tabs ([b416557](https://github.com/opsydyn/fold-kit-experiments/commit/b416557da1e5b5c0d2669891c41e365f48ca818c))
+* **effect-three:** pivot controls as data, and as a Foldkit submodel ([4284921](https://github.com/opsydyn/fold-kit-experiments/commit/42849211eed2b745c4a43ad42682e2508829901b))
+* **effect-three:** scene files, branching history and review diffs ([ce2c54e](https://github.com/opsydyn/fold-kit-experiments/commit/ce2c54ef7cefa77ab07ee7126782b9abccb15adc))
+
 ## [0.3.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.2.0...effect-three-v0.3.0) (2026-10-19)
 
 ### Features

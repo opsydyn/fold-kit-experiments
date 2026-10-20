@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/effect-three-foldkit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Thin Foldkit adapter for @opsydyn/effect-three.",
   "license": "MIT",
   "repository": {
@@ -66,7 +66,7 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
-    "@opsydyn/effect-three": "0.3.0",
+    "@opsydyn/effect-three": "0.4.0",
     "effect": "^4.0.0",
     "foldkit": "0.167.0",
     "three": ">=0.186.0 <0.187.0"

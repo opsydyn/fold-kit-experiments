@@ -258,7 +258,18 @@ Effect owns every lifetime.
    with `?relay=ws://host:port/room` runs its session through it, the socket a Foldkit
    managed resource. A lost relay leaves each editor working alone until it reconnects.
    Checked with real sockets and with separate browser contexts, which share no
-   channel. Next: physics inputs at fixed steps.
+   channel.
+   ✅ Then physics ([ADR-014](adr/014-physics-in-lockstep.md), 2026-10-20): the Model
+   keeps the world's clock. `physics({ until })` steps a world toward a step and stops
+   there, reporting `PhysicsReached` with a checksum of every body's pose; whatever
+   changes while it waits lands at that step, however the frames fell. `Timeline` holds
+   inputs stamped with their step, `physics({ run })` starts a world over, and
+   `@opsydyn/effect-three-rapier/deterministic` is Rapier's cross-platform build. The
+   promo's tabletop example throws balls at a tower from every peer: a turn's throws
+   land at that turn's step, a newcomer replays the record from step 0, and peers
+   compare checksums every second. Checked by simulated peers, real Rapier at random
+   frame timings, and three browser contexts through the relay. Next: rollback, and a
+   snapshot welcome so a newcomer need not replay everything.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -348,8 +359,9 @@ The replay spike (1), the Drei audit and its S candidates, agent control of the 
 select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and so is
 tooling from Schema (4): scene files, branching history, review diffs and the inspector.
 The scene editor ties them together, agents can describe and stage a scene through it
-(3), and tabs, or machines through a relay, edit it together in lockstep (2). Next:
-physics lockstep, and data and assets (6).
+(3), and tabs, or machines through a relay, edit it together in lockstep (2); physics
+runs in lockstep too, inputs landing at a step the Model sets (2). Next: data and assets
+(6), and replays (1) on the timeline.
 
 ## Not planned
 

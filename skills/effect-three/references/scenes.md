@@ -124,6 +124,13 @@ mass, collider, colliders, collisionGroups, ... })` on meshes, groups, borrowed 
   `prismaticJoint`, `ropeJoint`, `springJoint`, and motors) are data; collisions and
   contact forces arrive as `onCollision` and `onContactForce`. A body's pose is the
   simulation's; change its position in the Model to teleport it.
+- **Physics that must agree (lockstep, replays):** set `physics({ until })` from a
+  `Timeline` of inputs stamped with their step; handle `onPhysicsReached` by
+  `Timeline.reach`, applying what `Timeline.due` returns, and setting `until` to
+  `Timeline.until`. Change what the world sees only there, while it waits. Use
+  `@opsydyn/effect-three-rapier/deterministic`, colliders sized as data, and
+  `physics({ run })` to start a world over (a newcomer replaying the record). Compare
+  the reports' checksums between peers. See the tabletop sample and ADR-014.
 - **Labels:** `label({ key, text, font, fontSize, maxWidth, outlineWidth,
 colorRanges, curveRadius, material })`. Give each a font URL (TTF, OTF or WOFF;
   troika cannot read WOFF2). A label named in `measure` reports its laid-out size as

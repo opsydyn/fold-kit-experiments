@@ -1,7 +1,7 @@
 # ADR-013: Peers stay in step by applying the same inputs in the same order
 
 - Status: Accepted (2026-10-20), for editing together, between tabs and (since
-  2026-10-20) between machines through a relay; physics games are still to come.
+  2026-10-20) between machines through a relay; physics in lockstep is ADR-014.
 - Evidence: `packages/effect-three/test/lockstep.test.ts` (three peers over a simulated
   network with seeded random delays and reordering, joining late, leaving and going
   quiet, five seeds: every peer's log identical; a newcomer whose id sorts first);
@@ -75,4 +75,4 @@ the document, so no physics determinism is needed yet.
 - Two tabs opened within the same moment can each start a session alone; they do not
   merge. A drag is seen by others when it is released, not as it moves.
 - Physics games need inputs applied at fixed simulation steps and Rapier's
-  deterministic build (ADR-011); the protocol is ready for them.
+  deterministic build (ADR-011): ADR-014 adds both, on this protocol.

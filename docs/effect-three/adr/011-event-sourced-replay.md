@@ -47,11 +47,12 @@ want the same thing: a run reproduced from a small record.
 
 - Replays are exact on the same build, across page loads; across machines they rely on
   WebAssembly's deterministic floating point and, to be guaranteed, on Rapier's
-  deterministic build (not yet used).
+  deterministic build (`@opsydyn/effect-three-rapier/deterministic` since ADR-014).
 - Waiting for rest costs the player a moment between rolls; it is what makes the
   record small. Inputs that must land mid-motion (a flipper, a steering wheel) need the
   step count recorded with them, and the engine to apply inputs at step boundaries:
-  the next step towards lockstep multiplayer.
+  the next step towards lockstep multiplayer. (Since built: `physics({ until })` and
+  `Timeline`, ADR-014, which a replay can use for inputs at any step.)
 - Foldkit DevTools time travel shows the Model at a past Message but not the physics
   world then; an event-sourced replay re-simulates instead. Checkpointing the world
   (Rapier can snapshot it) would join the two.

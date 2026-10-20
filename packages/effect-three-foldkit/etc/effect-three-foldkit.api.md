@@ -1166,6 +1166,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
             readonly id: Schema.String;
             readonly url: Schema.String;
+            readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
         }>>, never>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -1660,6 +1661,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
         readonly id: Schema.String;
         readonly url: Schema.String;
+        readonly levels: Schema.$Array<Schema.String>;
+        readonly level: Schema.Int;
+        readonly final: Schema.Boolean;
         readonly parts: Schema.$Array<Schema.String>;
         readonly clips: Schema.$Array<Schema.String>;
     }>;
@@ -1667,6 +1671,7 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
         readonly id: Schema.String;
         readonly url: Schema.String;
+        readonly levels: Schema.$Array<Schema.String>;
         readonly reason: Schema.String;
     }>;
     'scene-reconciled': Schema.Struct<{

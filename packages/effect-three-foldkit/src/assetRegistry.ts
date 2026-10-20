@@ -4,6 +4,10 @@
  * cancelled when no scene asks for it any more, and withdrawn and disposed when the last
  * scene stops asking. Each scene hears whether what it asked for loaded or failed.
  *
+ * An asset with coarser `levels` streams in: every level loads at once, each is lent as it
+ * arrives if it is finer than what is shown (replacing it), and once the finest is shown
+ * the coarser loads still under way are cancelled. Only the finest failing fails it.
+ *
  * An id names one asset at a time: a scene asking for an id another scene holds as
  * something else (another kind or URL) is told it failed, and gets it once the other lets
  * go.
@@ -22,9 +26,17 @@ export type Lent = {
 /** Loads one asset and lends it under its id; gives up (rejecting) when `signal` aborts. */
 export type AssetLoader = (asset: Asset, signal: AbortSignal) => Promise<Lent>;
 
-/** What a scene hears about an asset it asked for. */
+/**
+ * What a scene hears about an asset it asked for: a level of detail shown (0 for the
+ * coarsest of its levels, `levels.length` for its URL, the finest), or its finest failed.
+ */
 export type AssetNotice =
-  | ({ readonly _tag: 'Loaded' } & Asset & Pick<Lent, 'parts' | 'clips'>)
+  | ({
+      readonly _tag: 'Loaded';
+      readonly level: number;
+      readonly final: boolean;
+    } & Asset &
+      Pick<Lent, 'parts' | 'clips'>)
   | ({ readonly _tag: 'Failed'; readonly reason: string } & Asset);
 
 /** Who asks: a mounted scene, by any object that stands for it. */
@@ -32,14 +44,25 @@ type Holder = object;
 
 type Notify = (notice: AssetNotice) => void;
 
-type State =
-  | { readonly _tag: 'Loading'; readonly controller: AbortController }
-  | { readonly _tag: 'Loaded'; readonly lent: Lent }
-  | { readonly _tag: 'Failed'; readonly reason: string };
+type Entry = {
+  readonly asset: Asset;
+  readonly holders: Set<Holder>;
+  /** One a level, coarsest first: aborted once a finer level is shown, or the entry ends. */
+  readonly controllers: ReadonlyArray<AbortController>;
+  /** The finest level lent so far. */
+  shown: { readonly level: number; readonly lent: Lent } | undefined;
+  /** Why the finest level could not be loaded, once it could not. */
+  failure: string | undefined;
+};
 
-type Entry = { readonly asset: Asset; readonly holders: Set<Holder>; state: State };
+const sameAsset = (a: Asset, b: Asset): boolean =>
+  a.kind === b.kind &&
+  a.url === b.url &&
+  a.levels.length === b.levels.length &&
+  a.levels.every((level, i) => level === b.levels[i]);
 
-const sameAsset = (a: Asset, b: Asset): boolean => a.kind === b.kind && a.url === b.url;
+/** Every level's URL, coarsest first: the asset's own URL is the last, and finest. */
+const urlsOf = (asset: Asset): ReadonlyArray<string> => [...asset.levels, asset.url];
 
 const reasonOf = (asset: Asset, cause: unknown): string =>
   cause instanceof Error && cause.message !== ''
@@ -65,46 +88,76 @@ export const makeAssetRegistry = (load: AssetLoader) => {
     for (const holder of entry.holders) asking.get(holder)?.notify(notice);
   };
 
-  const noticeOf = (entry: Entry): AssetNotice | undefined => {
-    const { state, asset } = entry;
-    if (state._tag === 'Loaded') {
-      return { _tag: 'Loaded', ...asset, parts: state.lent.parts, clips: state.lent.clips };
-    }
-    if (state._tag === 'Failed') return { _tag: 'Failed', ...asset, reason: state.reason };
-    return undefined;
-  };
+  const loadedNotice = (entry: Entry, level: number, lent: Lent): AssetNotice => ({
+    _tag: 'Loaded',
+    ...entry.asset,
+    level,
+    final: level === entry.asset.levels.length,
+    parts: lent.parts,
+    clips: lent.clips,
+  });
 
-  /** Starts loading `asset`; what comes back after the entry has gone is freed unseen. */
+  /** What a scene that starts holding an entry hears at once: what is shown, and a failure. */
+  const noticesOf = (entry: Entry): ReadonlyArray<AssetNotice> => [
+    ...(entry.shown === undefined
+      ? []
+      : [loadedNotice(entry, entry.shown.level, entry.shown.lent)]),
+    ...(entry.failure === undefined
+      ? []
+      : [{ _tag: 'Failed' as const, ...entry.asset, reason: entry.failure }]),
+  ];
+
+  /** Starts loading every level of `asset`; what comes back too late is freed unseen. */
   const start = (asset: Asset): Entry => {
-    const controller = new AbortController();
-    const entry: Entry = { asset, holders: new Set(), state: { _tag: 'Loading', controller } };
+    const urls = urlsOf(asset);
+    const finest = urls.length - 1;
+    const entry: Entry = {
+      asset,
+      holders: new Set(),
+      controllers: urls.map(() => new AbortController()),
+      shown: undefined,
+      failure: undefined,
+    };
     entries.set(asset.id, entry);
-    function current(): boolean {
-      return entries.get(asset.id) === entry && !controller.signal.aborted;
+    function current(level: number): boolean {
+      return entries.get(asset.id) === entry && entry.controllers[level]?.signal.aborted === false;
     }
-    function loaded(lent: Lent): void {
-      if (!current()) {
-        lent.release();
-        return;
-      }
-      entry.state = { _tag: 'Loaded', lent };
-      tellAll(entry, { _tag: 'Loaded', ...asset, parts: lent.parts, clips: lent.clips });
+    function loaded(level: number) {
+      return (lent: Lent): void => {
+        if (!current(level) || (entry.shown !== undefined && entry.shown.level >= level)) {
+          lent.release();
+          return;
+        }
+        // Lent first, then the coarser one freed: its withdrawal leaves the new loan.
+        const before = entry.shown;
+        entry.shown = { level, lent };
+        before?.lent.release();
+        if (level === finest)
+          for (const coarser of entry.controllers.slice(0, level)) coarser.abort();
+        tellAll(entry, loadedNotice(entry, level, lent));
+      };
     }
-    function failed(cause: unknown): void {
-      if (!current()) return;
-      const reason = reasonOf(asset, cause);
-      entry.state = { _tag: 'Failed', reason };
-      tellAll(entry, { _tag: 'Failed', ...asset, reason });
+    function failed(level: number) {
+      return (cause: unknown): void => {
+        // A coarser level that fails is skipped; only the finest failing fails the asset.
+        if (!current(level) || level !== finest) return;
+        const reason = reasonOf({ ...asset, url: urls[level] ?? asset.url }, cause);
+        entry.failure = reason;
+        tellAll(entry, { _tag: 'Failed', ...asset, reason });
+      };
     }
-    load(asset, controller.signal).then(loaded, failed);
+    urls.forEach((url, level) => {
+      const signal = entry.controllers[level]?.signal ?? AbortSignal.abort();
+      load({ ...asset, url }, signal).then(loaded(level), failed(level));
+    });
     return entry;
   };
 
-  /** Ends an entry: its load cancelled, or what it lent withdrawn and freed. */
+  /** Ends an entry: its loads cancelled, and what it lent withdrawn and freed. */
   const end = (entry: Entry): void => {
     entries.delete(entry.asset.id);
-    if (entry.state._tag === 'Loading') entry.state.controller.abort();
-    if (entry.state._tag === 'Loaded') entry.state.lent.release();
+    for (const controller of entry.controllers) controller.abort();
+    entry.shown?.lent.release();
   };
 
   /** `holder` lets go of `id`; the last to let go ends it, and whoever waited on it asks again. */
@@ -127,8 +180,7 @@ export const makeAssetRegistry = (load: AssetLoader) => {
       }
       if (entry.holders.has(holder)) continue;
       entry.holders.add(holder);
-      const notice = noticeOf(entry);
-      if (notice !== undefined) asking.get(holder)?.notify(notice);
+      for (const notice of noticesOf(entry)) asking.get(holder)?.notify(notice);
     }
   };
 

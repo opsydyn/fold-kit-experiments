@@ -39,12 +39,31 @@ async function placeBlocks(page: Page): Promise<void> {
   }
 }
 
+async function throwAtTower(page: Page): Promise<void> {
+  const stage = page.locator('.e3-stage');
+  const box = await stage.boundingBox();
+  if (box === null) throw new Error('stage not visible');
+  // Rapier loads, and the session starts alone after a second and a half.
+  await page.waitForTimeout(3000);
+  for (const [x, y] of [
+    [0.5, 0.45],
+    [0.46, 0.5],
+    [0.54, 0.4],
+  ] as const) {
+    await stage.click({ position: { x: box.width * x, y: box.height * y } });
+    await page.waitForTimeout(250);
+  }
+  await page.waitForTimeout(900);
+}
+
 const shots: ReadonlyArray<Shot> = [
   { id: 'playground', prepare: (page) => clickButton(page, 'Add cube', 2) },
   { id: 'sculpture', prepare: placeBlocks },
   { id: 'bars', prepare: async () => undefined },
   { id: 'arrange', prepare: async () => undefined },
   { id: 'editor', prepare: async () => undefined },
+  // Rapier loads, the session starts alone, then a few throws hit the tower.
+  { id: 'tabletop', prepare: throwAtTower },
   // The comet a third of the way round, its trail behind it.
   { id: 'curves', prepare: (page) => page.waitForTimeout(3000) },
   { id: 'studio', prepare: async () => undefined },

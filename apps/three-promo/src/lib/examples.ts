@@ -89,6 +89,14 @@ export const examples = [
     alt: 'Editor: a crate, a ball and a light marker on a grid floor, with a transform gizmo and panels for the scene, an inspector, history and changes.',
   },
   {
+    id: 'tabletop',
+    category: 'Playing together',
+    title: 'One world, every peer',
+    description:
+      'Throw balls at a tower of blocks from two windows, or two machines through a relay: every throw lands at the same physics step everywhere, newcomers replay the whole game, and the windows check each other’s worlds every second.',
+    alt: 'Tabletop: a tower of coloured blocks on a walled table, with balls thrown at it.',
+  },
+  {
     id: 'curves',
     category: 'Lines and points',
     title: 'Draw with data',

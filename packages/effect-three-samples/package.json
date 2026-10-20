@@ -19,6 +19,7 @@
     "./curves": "./src/curves/main.ts",
     "./arrange": "./src/arrange/main.ts",
     "./editor": "./src/editor/main.ts",
+    "./tabletop": "./src/tabletop/main.ts",
     "./shared": "./src/shared/main.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"
@@ -29,6 +30,7 @@
     "typecheck": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && tsc --noEmit"
   },
   "dependencies": {
+    "@dimforge/rapier3d-deterministic-compat": "catalog:",
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/effect-three-foldkit": "workspace:*",
     "@opsydyn/effect-three-rapier": "workspace:*",

@@ -310,6 +310,15 @@ export {
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
 export * as History from './history.ts';
 export {
+  type FieldPath,
+  type FieldValue,
+  type InspectableAst,
+  type InspectedField,
+  type InspectHints,
+  inspectFields,
+  setAt,
+} from './inspect.ts';
+export {
   type ChangePlace,
   formatChanges,
   type SceneChange,

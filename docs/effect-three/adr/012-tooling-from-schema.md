@@ -44,4 +44,12 @@ descriptions to apply it.
 - History holds every state ever recorded; an app that records continuously should
   record at the end of a gesture (as the arrange sample does on a gizmo's `Finished`),
   not on every frame.
-- Still to come under 4: an inspector generated from the scene schemas.
+- Since added (2026-10-20): the inspector. `Inspector.fields(schema, value)` walks the
+  schema's AST beside the value (the kernel's `inspectFields`, reading the AST through
+  the few shapes it needs) and lists numbers, text, switches, literal choices, colours
+  and vectors, the last two recognised by being `SceneSchema.Rgb` and `Vec3` themselves;
+  kinds, absent parts and lists are shown read-only. `Inspector.edit` sets a value at a
+  path and decodes the whole, so an edit the schema refuses is reported with the
+  schema's reason and changes nothing. The adapter's `inspectorView` draws the form.
+  Evidence: `test/inspector.test.ts` (a mesh node through `SceneSchema.SceneNode`), the
+  adapter's `inspector.test.ts`, the arrange sample's inspector, edited in a browser.

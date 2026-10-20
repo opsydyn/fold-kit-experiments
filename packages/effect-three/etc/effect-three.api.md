@@ -1248,6 +1248,9 @@ export type Edges = {
 export const edges: (options?: Partial<Edges>) => Edges;
 
 // @public
+const edit: <A>(schema: Schema.Decoder<A>, value: A, path: FieldPath, next: unknown) => Result.Result<A, string>;
+
+// @public
 export const effectsEqual: (a: ReadonlyArray<PostEffect>, b: ReadonlyArray<PostEffect>) => boolean;
 
 // @public
@@ -1321,6 +1324,15 @@ export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry
 | 'follow'
 /** A group's levels of detail. */
 | 'detail';
+
+// @public
+export type FieldPath = ReadonlyArray<string | number>;
+
+// @public
+const fields: (schema: Schema.Top, value: unknown) => ReadonlyArray<InspectedField>;
+
+// @public
+export type FieldValue = number | string | boolean;
 
 // @public
 export const film: (options?: {
@@ -2013,6 +2025,77 @@ export type IndexResult = {
 
 // @public
 export const indexScene: (description: SceneDescription, behaviours?: ReadonlySet<string>) => IndexResult;
+
+// @public
+export type InspectableAst = {
+    readonly _tag: 'Suspend';
+    readonly thunk: () => InspectableAst;
+} | {
+    readonly _tag: 'Objects';
+    readonly propertySignatures: ReadonlyArray<{
+        readonly name: PropertyKey;
+        readonly type: InspectableAst;
+    }>;
+} | {
+    readonly _tag: 'Arrays';
+    readonly elements: ReadonlyArray<InspectableAst>;
+    readonly rest: ReadonlyArray<InspectableAst>;
+} | {
+    readonly _tag: 'Union';
+    readonly types: ReadonlyArray<InspectableAst>;
+} | {
+    readonly _tag: 'Literal';
+    readonly literal: unknown;
+} | {
+    readonly _tag: 'Number' | 'String' | 'Boolean' | 'Null';
+} | {
+    readonly _tag: string;
+};
+
+// Warning: (ae-forgotten-export) The symbol "Base" needs to be exported by the entry point index.d.ts
+//
+// @public
+export type InspectedField = Base & ({
+    readonly _tag: 'Number';
+    readonly value: number;
+} | {
+    readonly _tag: 'Text';
+    readonly value: string;
+} | {
+    readonly _tag: 'Toggle';
+    readonly value: boolean;
+} | {
+    readonly _tag: 'Choice';
+    readonly value: string;
+    readonly options: ReadonlyArray<string>;
+} | {
+    readonly _tag: 'Colour';
+    readonly value: number;
+} | {
+    readonly _tag: 'Vector';
+    readonly value: Vec3;
+}
+/** Shown, not edited: a kind, an absent part, a list, or what this cannot edit. */
+| {
+    readonly _tag: 'Fixed';
+    readonly text: string;
+});
+
+// @public
+export const inspectFields: (ast: InspectableAst, value: unknown, hints?: InspectHints) => ReadonlyArray<InspectedField>;
+
+// @public
+export type InspectHints = {
+    readonly colours: ReadonlyArray<unknown>;
+    readonly vectors: ReadonlyArray<unknown>;
+};
+
+declare namespace Inspector {
+    export {
+        fields,
+        edit
+    }
+}
 
 // @public
 export type Instance = {
@@ -6315,6 +6398,9 @@ export type Selectable = {
     readonly key: string;
     readonly at: Vec3;
 };
+
+// @public
+export const setAt: (value: unknown, path: FieldPath, next: unknown) => unknown;
 
 // @public
 export const shaderGrid: (options: {

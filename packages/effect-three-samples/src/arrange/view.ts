@@ -1,11 +1,11 @@
-import { History } from '@opsydyn/effect-three';
+import { History, Inspector } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { sceneMount } from '../environment';
 import { Message } from './message';
-import type { Model, Thing } from './model';
+import { type Model, Thing } from './model';
 import { sceneFor } from './scene';
 
 const toggle = (h: HtmlBuilder<Message>, label: string, on: boolean, message: Message): Html =>
@@ -68,6 +68,32 @@ const readout = (model: Model): string => {
   return only === undefined
     ? 'Click something on the table to move, turn or scale it, or shift-drag to box several.'
     : placed(model, only);
+};
+
+/**
+ * The one selected thing's fields, read from the `Thing` schema (its key is how the
+ * page finds it, so it is left out), and why the last edit was refused, if it was.
+ */
+const inspector = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const selected = model.things.filter((thing) => model.selected.includes(thing.key));
+  const [only] = selected;
+  if (only === undefined || selected.length > 1 || model.measuring) return [];
+  const fields = Inspector.fields(Thing, only).filter((field) => field.path[0] !== 'key');
+  return [
+    h.section(
+      [h.Class('e3-inspector-panel'), h.AriaLabel(`${only.key}, inspected`)],
+      [
+        h.h3([], [`Inspector: ${only.key}`]),
+        EffectThreeFoldkit.inspectorView(h, fields, (path, value) =>
+          Message.EditedThing({ key: only.key, path, value }),
+        ),
+        ...Option.match(model.inspectorIssue, {
+          onNone: () => [],
+          onSome: (issue) => [h.p([h.Class('e3-inspector-issue'), h.Role('alert')], [issue])],
+        }),
+      ],
+    ),
+  ];
 };
 
 /** The selection box's outline over the canvas, while one is drawn. */
@@ -145,6 +171,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
             : []),
         ],
       ),
+      ...inspector(model, h),
       h.p(
         [h.Class('e3-note')],
         [
@@ -155,7 +182,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           'everything selected alike. The axes in the corner turn the camera to look along ',
           'one: a third submodel, drawn in the scene’s HUD. Pivot swaps the gizmo for Drei’s ',
           'pivot controls, a fourth: arrows, squares, arcs and spheres all at once. Measure ',
-          'turns clicks into a tape between two points, a fifth.',
+          'turns clicks into a tape between two points, a fifth. The inspector below the ',
+          'controls is generated from the Thing schema, which checks every edit.',
         ],
       ),
     ],

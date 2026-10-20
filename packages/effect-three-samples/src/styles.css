@@ -220,3 +220,65 @@
     monospace;
   white-space: nowrap;
 }
+
+/* A schema-generated inspector: a row per field, its name and its control. */
+.e3-inspector-panel {
+  margin-block: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 12px;
+}
+
+.e3-inspector-panel h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.e3-inspector {
+  display: grid;
+  gap: 6px;
+}
+
+.e3-inspector-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.e3-inspector-name {
+  color: var(--muted, #8a8aa3);
+}
+
+.e3-inspector-vector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.e3-inspector-row input[type='number'],
+.e3-inspector-row input[type='text'],
+.e3-inspector-row select {
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.e3-inspector-issue {
+  margin: 8px 0 0;
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 480px) {
+  .e3-inspector-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

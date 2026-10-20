@@ -17,7 +17,7 @@ export type Kind = typeof Kind.Type;
 export const Thing = Schema.Struct({
   key: Schema.String,
   kind: Kind,
-  colour: Schema.Number,
+  colour: SceneSchema.Rgb,
   placement: SceneSchema.Placement,
 });
 export type Thing = typeof Thing.Type;
@@ -49,6 +49,8 @@ export const Model = Schema.Struct({
    * ends on it is no click to place a tape end.
    */
   orbited: Schema.Boolean,
+  /** Why the inspector's last edit was refused, as the schema says, if it was. */
+  inspectorIssue: Schema.Option(Schema.String),
   camera: SceneSchema.Camera,
   /**
    * The things after every finished move, as a branching history: a move after an undo
@@ -87,6 +89,7 @@ export const init = () => ({
     measuring: false,
     tape: MeasuringTape.init('tape'),
     orbited: false,
+    inspectorIssue: Option.none(),
     camera: perspectiveCamera({
       fov: 45,
       position: [3.5, 3.2, 5.5],

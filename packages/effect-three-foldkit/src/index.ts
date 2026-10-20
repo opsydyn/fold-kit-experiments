@@ -44,6 +44,7 @@ export {
   type EnvironmentOptions,
   makeEnvironment,
 } from './environment.ts';
+export { inspectorView, type OnEdit } from './inspector.ts';
 export { makeSceneMount, type SceneMount } from './mount.ts';
 export * as BoxSelect from './boxSelect.ts';
 export * as MeasuringTape from './measuringTape.ts';

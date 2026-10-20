@@ -1035,6 +1035,9 @@ const depth: <A>(state: History_3<A>) => number;
 export const describedColliders: (colliders: ReadonlyArray<ColliderDescription>, scale: Vector3) => ReadonlyArray<Collider>;
 
 // @public
+export const describeScene: (description: SceneDescription) => SceneSummary;
+
+// @public
 export type DescriptionError = {
     readonly _tag: 'DuplicateKey';
     readonly key: string;
@@ -1360,6 +1363,9 @@ export const float: Behaviour;
 
 // @public
 export const formatChanges: (changes: ReadonlyArray<SceneChange>) => string;
+
+// @public
+export const formatSummary: (summary: SceneSummary) => string;
 
 // @public
 export type FrameControl = {
@@ -2815,6 +2821,15 @@ const layer_2: Layer.Layer<ResourceRegistry_2, never, never>;
 // @public
 export const lentGeometry: (id: string) => GeometryRef;
 
+// @public (undocumented)
+export type LightSummary = {
+    readonly key: string;
+    readonly kind: string;
+    readonly colour: Rgb;
+    readonly intensity: number;
+    readonly position: Vec3 | null;
+};
+
 // @public
 export const line: (options: TransformOptions & {
     readonly points: ReadonlyArray<Vec3>;
@@ -3334,6 +3349,15 @@ const Modifiers_2: Schema.Struct<{
     readonly meta: Schema.Boolean;
     readonly alt: Schema.Boolean;
 }>;
+
+// @public
+export type Mood = 'studio' | 'daylight' | 'sunset' | 'night';
+
+// @public (undocumented)
+export const moods: ReadonlyArray<Mood>;
+
+// @public
+export const moodStaging: (mood: Mood, prefix?: string) => Staging;
 
 // @public
 export const movedAlike: (from: Placement, to: Placement, other: Placement) => Placement;
@@ -6393,6 +6417,19 @@ declare namespace SceneSchema {
 // @public
 export type SceneSetting = 'camera' | 'views' | 'render' | 'resources' | 'gestures' | 'overlays' | 'environment' | 'sky' | 'contactShadows' | 'physics' | 'xr' | 'measure';
 
+// @public (undocumented)
+export type SceneSummary = {
+    readonly camera: {
+        readonly kind: 'Perspective' | 'Orthographic';
+        readonly position: Vec3;
+        readonly lookAt: Vec3;
+    };
+    readonly things: ReadonlyArray<ThingSummary>;
+    readonly lights: ReadonlyArray<LightSummary>;
+    readonly bounds: Box | null;
+    readonly staging: ReadonlyArray<string>;
+};
+
 // @public
 export type Selectable = {
     readonly key: string;
@@ -6570,6 +6607,18 @@ export const sharedGeometry: (id: string) => GeometryRef;
 
 // @public
 export const sharedMaterial: (id: string) => MaterialRef;
+
+// @public
+export type ShotAngle = 'front' | 'back' | 'left' | 'right' | 'top' | 'three-quarter' | 'low';
+
+// @public (undocumented)
+export const shotAngles: ReadonlyArray<ShotAngle>;
+
+// @public
+export const shotCamera: <C extends Camera>(camera: C, subject: Box, angle: ShotAngle, area?: {
+    readonly width: number;
+    readonly height: number;
+}, margin?: number) => C;
 
 // @public
 export type Sky = {
@@ -6757,6 +6806,13 @@ export const stagePresets: {
         main: [number, number, number];
         fill: [number, number, number];
     };
+};
+
+// @public
+export type Staging = {
+    readonly lights: ReadonlyArray<SceneNode>;
+    readonly environment: Environment | null;
+    readonly sky: Sky | null;
 };
 
 // @public
@@ -6989,6 +7045,19 @@ const TextGeometry_2: Schema.TaggedStruct<"Text", {
 
 // @public
 export type Textures = (id: string) => Texture | undefined;
+
+// @public
+export const thingsBounds: (things: ReadonlyArray<ThingSummary>) => Box | null;
+
+// @public (undocumented)
+export type ThingSummary = {
+    readonly key: string;
+    readonly kind: string;
+    readonly position: Vec3;
+    readonly size: Vec3 | null;
+    readonly colour: Rgb | null;
+    readonly parent: string | null;
+};
 
 // @public
 export type ToneMapping = 'none' | 'linear' | 'reinhard' | 'cineon' | 'aces' | 'agx' | 'neutral';

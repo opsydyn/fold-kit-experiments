@@ -24,6 +24,18 @@ Model and dispatch Messages to it:
 - `foldkit_count_messages_by_tag` showed the dispatched Messages in history, and no
   `MadeGesture`.
 
+### The scene editor (2026-10-20)
+
+The editor sample exports `devTools` with intent Messages (`PlacedThing { kind, at }`,
+`FramedShot { subject, angle }`, `ChoseMood { mood }`). Through the same server, an
+agent read the schema (all three listed), dispatched two `PlacedThing`s, a `ChoseMood`
+and a `FramedShot` in one batch (accepted at four indices), and was refused
+`ChoseMood { mood: 'disco' }` with `Expected "studio" | "daylight" | "sunset" | "night"
+at ["mood"]`. `foldkit_get_model` summarises a large Model; reading by path
+(`root.mood`, `root.nodes`, which must start with `root`) gave the new mood, five nodes
+and the moved camera. Finding 1 was still there: the relay listed 88 runtimes, so the
+script picks the one that appeared when it opened its page.
+
 ## Setup for the reproductions
 
 1. `bun install` at the repository root (it installs `@foldkit/devtools-mcp`).

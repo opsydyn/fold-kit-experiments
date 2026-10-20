@@ -7,10 +7,8 @@
 import {
   box,
   basic,
-  directionalLight,
-  environment,
+  moodStaging,
   fixed,
-  hemisphereLight,
   type MaterialRef,
   mesh,
   renderSettings,
@@ -81,21 +79,17 @@ const gizmoFor = (model: Model): ReadonlyArray<SceneNode> =>
 
 export const sceneFor = (model: Model) => {
   const marked = markedKeys(model);
+  const staging = moodStaging(model.mood, 'editor');
   return scene({
     camera: model.camera,
     gestures: 'scene',
     hud: ViewportGizmo.hud(model.view, model.camera),
-    environment: environment({ environmentIntensity: 0.35 }),
+    environment: staging.environment,
+    sky: staging.sky,
     render: renderSettings({ shadows: 'soft', toneMapping: 'aces' }),
     resources: model.resources,
     children: [
-      hemisphereLight({
-        key: 'editor:sky',
-        color: 0xffffff,
-        groundColor: 0x6f6a62,
-        intensity: 0.8,
-      }),
-      directionalLight({ key: 'editor:sun', position: [4, 7, 3], intensity: 2, castShadow: true }),
+      ...staging.lights,
       mesh({
         key: 'editor:floor',
         position: [0, -0.02, 0],

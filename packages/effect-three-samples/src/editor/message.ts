@@ -23,6 +23,14 @@ export const Message = defineMessageUnion({
   LeftScene: { key: Schema.String },
   MadeGesture: { gesture: SceneSchema.Gesture },
   EndedGesture: {},
+  // Intents, as an assistant (or a person) asks for them: put a thing somewhere, frame a
+  // shot of some things (none: everything), light the scene with a mood.
+  PlacedThing: { kind: Addable, at: SceneSchema.Vec3 },
+  FramedShot: {
+    subject: Schema.Array(Schema.String),
+    angle: Schema.Literals(['front', 'back', 'left', 'right', 'top', 'three-quarter', 'low']),
+  },
+  ChoseMood: { mood: Schema.Literals(['studio', 'daylight', 'sunset', 'night']) },
   // The outliner and toolbar.
   ClickedAdd: { kind: Addable },
   ClickedOutlined: { key: Schema.String },

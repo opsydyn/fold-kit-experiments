@@ -256,8 +256,17 @@ Effect owns every lifetime.
    `PlacedPlant { at, kind }`; through `@foldkit/devtools-mcp` an agent reads the Model
    and places plants, and an unknown kind is refused by the schema (checked end to end
    in a headless browser, 2026-10-19; what we found about the MCP server is in
-   [devtools-mcp-notes.md](devtools-mcp-notes.md)). Next: a scene-level vocabulary (set up a shot:
-   camera, lights, staging) and tools that describe what a scene contains.
+   [devtools-mcp-notes.md](devtools-mcp-notes.md)).
+   ✅ Then a scene-level vocabulary (2026-10-20): `describeScene` and `formatSummary`
+   say what a scene contains (camera, things with kind, size, colour and place, lights,
+   bounds, staging) in a few lines an agent reads; `shotCamera` frames a box from a
+   named angle (`front`, `three-quarter`, `top`, `low` …) and `moodStaging` lights a
+   scene by mood (`studio`, `daylight`, `sunset`, `night`). The editor takes them as
+   intents, `PlacedThing`, `FramedShot` and `ChoseMood`, exported to the DevTools MCP
+   server; an agent placed things, chose a mood and framed a shot through it, and a mood
+   the schema does not know was refused (checked end to end in a headless browser).
+   Next: tools that answer with a scene's description directly, rather than the raw
+   Model.
 4. **Tooling from Schema.** An inspector generated from the scene schemas, save and load
    as JSON, undo and branching history from the immutable Model, and scene diffs in
    review from the kernel's own ops.
@@ -326,8 +335,8 @@ The replay spike (1), the Drei audit and its S candidates, agent control of the 
 (3), labels under WebGPU (E), the line and points families, the transform gizmo, box
 select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and so is
 tooling from Schema (4): scene files, branching history, review diffs and the inspector.
-The single-user scene editor ties them together. Next: a scene-level vocabulary for
-agents (3), then lockstep multiplayer (2).
+The single-user scene editor ties them together, and agents can describe and stage a
+scene through it (3). Next: lockstep multiplayer (2).
 
 ## Not planned
 

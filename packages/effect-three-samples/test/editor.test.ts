@@ -100,3 +100,17 @@ test('saving writes a scene file and marks the document saved; opening one repla
   expect(refused.nodes).toEqual(start.nodes);
   expect(refused.issue).toMatchObject({ _tag: 'Some' });
 });
+
+test('an assistant’s intents: place a thing, frame a shot, choose a mood', () => {
+  const placed = step(start, Message.PlacedThing({ kind: 'ring', at: [2, 0.5, -1] }));
+  expect(at(placed, 'ring-1')).toEqual([2, 0.5, -1]);
+  expect(placed.selected).toEqual(['ring-1']);
+  expect(History.presentEntry(placed.history).label).toBe('Placed ring-1');
+  const framed = step(placed, Message.FramedShot({ subject: ['ring-1'], angle: 'front' }));
+  expect(framed.camera.lookAt[0]).toBeCloseTo(2, 6);
+  expect(framed.camera.position[2]).toBeGreaterThan(-1);
+  // Nothing named that is in the scene: everything is framed.
+  const all = step(placed, Message.FramedShot({ subject: ['nothing'], angle: 'top' }));
+  expect(all.camera.position[1]).toBeGreaterThan(3);
+  expect(step(start, Message.ChoseMood({ mood: 'sunset' })).mood).toBe('sunset');
+});

@@ -14,6 +14,7 @@ import {
   type Play,
   quietMilliseconds,
   type Relay,
+  type Start,
   stepsPerTurn,
   type Throw,
   type Wire,
@@ -71,6 +72,19 @@ const nextCheck = (reached: number | null, from: number): number => {
 export const untilOf = (model: Model): number =>
   Math.min(Timeline.until(model.timeline), nextCheck(model.timeline.reached, model.checksFrom));
 
+/** Whether this peer leads its session now: it welcomes newcomers. */
+const leads = (model: Model): boolean =>
+  model.session._tag === 'Live' &&
+  Lockstep.leaderAt(model.session.lockstep, model.session.lockstep.turn) ===
+    model.session.lockstep.self;
+
+/**
+ * Where the world snapshots itself, for a newcomer to start from: a leader's at each
+ * check step, where it stops anyway. Others take none.
+ */
+export const snapshotAtOf = (model: Model): number | null =>
+  leads(model) ? nextCheck(model.timeline.reached, model.checksFrom) : null;
+
 /** A throw from the near edge towards `point`, a little above it. */
 export const throwAt = (point: Vec3, paint: Paint): Throw => {
   const from: Vec3 = [point[0] * 0.5, 1.4, 5.4];
@@ -118,11 +132,35 @@ const checked = (model: Model, step: number, checksum: string): Model => {
   return propose(compared, { _tag: 'Check', step, checksum });
 };
 
-/** The world reached `step` in this peer's run: what is due there, and a check when one is. */
-const reach = (model: Model, run: number, step: number, checksum: string): Model => {
+/** A snapshot of the world at `step`, kept with the table as it is there, inputs not yet due. */
+const keep = (model: Model, step: number, snapshot: string | null): Model =>
+  snapshot === null
+    ? model
+    : {
+        ...model,
+        kept: Option.some({
+          step,
+          snapshot,
+          balls: model.balls,
+          thrown: model.thrown,
+          build: model.build,
+        }),
+      };
+
+/**
+ * The world reached `step` in this peer's run: a snapshot kept when it sends one, what is
+ * due there, and a check when one is.
+ */
+const reach = (
+  model: Model,
+  run: number,
+  step: number,
+  checksum: string,
+  snapshot: string | null,
+): Model => {
   if (run !== model.run || model.timeline.reached === step) return model;
   const reached = deliver({
-    ...model,
+    ...keep(model, step, snapshot),
     timeline: Timeline.reach(model.timeline, step),
     reached: Option.some({ step, checksum }),
   });
@@ -155,15 +193,22 @@ const live = (model: Model, session: Live): Model => ({ ...model, session });
 const say = (model: Model, wire: Wire) =>
   Say({ wire, via: Option.isSome(model.relay) ? 'relay' : 'tabs' });
 
-/** The Welcome for `peer`: the session as it is, and every throw so far to replay. */
-const welcome = (model: Model, lockstep: Lockstep.Lockstep<Input>, peer: string): Wire => ({
-  _tag: 'Welcome',
-  to: peer,
-  turn: lockstep.turn,
-  lead: lockstep.lead,
-  members: lockstep.members,
-  record: model.timeline.inputs,
-});
+/**
+ * The Welcome for `peer`: the session as it is, every throw so far, and the latest
+ * snapshot of this peer's world to start from, when it has one.
+ */
+const welcome = (model: Model, lockstep: Lockstep.Lockstep<Input>, peer: string): Wire => {
+  const base: Wire = {
+    _tag: 'Welcome',
+    to: peer,
+    turn: lockstep.turn,
+    lead: lockstep.lead,
+    members: lockstep.members,
+    record: model.timeline.inputs,
+  };
+  const start = Option.getOrUndefined(model.kept);
+  return start === undefined ? base : { ...base, start };
+};
 
 /** A turn's throws and rebuilds, at that turn's step: the frontier, until it applies. */
 const schedule = (model: Model, turn: number, input: Play): Model => ({
@@ -357,8 +402,26 @@ const heardWhileJoining = (session: Model['session']) =>
   session._tag === 'Joining' ? session.heard : [];
 
 /**
- * Welcomed: this peer joins the session, and a new run of its world replays every throw
- * so far from step 0, catching up to the session's turn.
+ * The timeline with what is due up to (not at) `step` taken as done: a world started from
+ * a snapshot there holds it already.
+ */
+const pastStep = (timeline: Timeline.Timeline<Play>, step: number): Timeline.Timeline<Play> =>
+  step === 0 ? timeline : Timeline.due(Timeline.reach(timeline, step - 1)).timeline;
+
+/** A run that starts from the leader's snapshot, with the table as it was there. */
+const startingFrom = (model: Model, start: Start): Model => ({
+  ...model,
+  timeline: pastStep(model.timeline, start.step),
+  balls: start.balls,
+  thrown: start.thrown,
+  build: start.build,
+  start: Option.some({ step: start.step, snapshot: start.snapshot }),
+});
+
+/**
+ * Welcomed: this peer joins the session, and a new run of its world catches up to the
+ * session's turn: from the leader's snapshot when the welcome brings one, replaying only
+ * what came after it, or from step 0, replaying every throw so far.
  */
 const welcomed = (model: Model, wire: Extract<Wire, { readonly _tag: 'Welcome' }>): AppReturn => {
   if (!welcomable(model.session, wire.to)) return { model };
@@ -376,7 +439,11 @@ const welcomed = (model: Model, wire: Extract<Wire, { readonly _tag: 'Welcome' }
     timeline: record,
     checksFrom: start,
   };
-  return settle(replaying, { _tag: 'Live', lockstep, stalled: Option.none() });
+  const starting = Option.match(Option.fromNullishOr(wire.start), {
+    onNone: () => replaying,
+    onSome: (from) => startingFrom(replaying, from),
+  });
+  return settle(starting, { _tag: 'Live', lockstep, stalled: Option.none() });
 };
 
 /** A Hello: the leader admits the newcomer in its next packet. */
@@ -469,7 +536,9 @@ export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     ClickedTable: ({ point }) => ({ model: throwToward(model, point) }),
     ClickedRebuild: () => ({ model: propose(model, { _tag: 'Rebuild' }) }),
-    ReachedStep: ({ run, step, checksum }) => ({ model: reach(model, run, step, checksum) }),
+    ReachedStep: ({ run, step, checksum, snapshot }) => ({
+      model: reach(model, run, step, checksum, snapshot),
+    }),
     ReceivedSceneLifecycle: () => ({ model }),
     NamedTab: ({ peer, relay, record }) => namedTab(model, peer, relay, record),
     WaitedForWelcome: () => ({ model: waited(model) }),

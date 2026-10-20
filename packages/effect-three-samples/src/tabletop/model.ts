@@ -3,16 +3,9 @@ import { Option, Schema } from 'effect';
 
 import { Paint } from '../palette';
 import { NameTab } from './session';
-import { Play, Relay, Session } from './wire';
+import { Ball, Play, Relay, Session, Start } from './wire';
 
-/** A ball on the table: the throw that made it, kept until the table is cleared. */
-export const Ball = Schema.Struct({
-  key: Schema.String,
-  from: SceneSchema.Vec3,
-  impulse: SceneSchema.Vec3,
-  paint: Paint,
-});
-export type Ball = typeof Ball.Type;
+export { Ball } from './wire';
 
 const Steps = Schema.Int;
 
@@ -24,6 +17,10 @@ export const Model = Schema.Struct({
    * the step they land at, so it changes at the same step on every peer.
    */
   balls: Schema.Array(Ball),
+  /** The leader's latest snapshot of its world, to start a newcomer's from. */
+  kept: Schema.Option(Start),
+  /** The snapshot this peer's run started from, when it was welcomed with one. */
+  start: Schema.Option(Schema.Struct({ step: Steps, snapshot: Schema.String })),
   /** Balls thrown so far, for each new one's key. */
   thrown: Schema.Int,
   /** How many times the tower has been built, for its blocks' keys. */
@@ -61,6 +58,8 @@ export const camera = perspectiveCamera({ fov: 45, position: [0, 5, 8.5], lookAt
 export const fresh: Model = {
   timeline: Timeline.make<Play>(0),
   balls: [],
+  kept: Option.none(),
+  start: Option.none(),
   thrown: 0,
   build: 0,
   run: 0,

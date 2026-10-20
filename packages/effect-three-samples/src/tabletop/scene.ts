@@ -17,10 +17,11 @@ import {
   sphere,
   standard,
 } from '@opsydyn/effect-three';
+import { Option } from 'effect';
 
 import { paintAt, paintColour } from '../palette';
 import { camera, type Ball, type Model } from './model';
-import { untilOf } from './update';
+import { snapshotAtOf, untilOf } from './update';
 
 const table = { width: 10, depth: 8 };
 
@@ -100,7 +101,12 @@ const ballNode = (ball: Ball): SceneNode =>
 export const sceneFor = (model: Model) =>
   scene({
     camera,
-    physics: physics({ until: untilOf(model), run: model.run }),
+    physics: physics({
+      until: untilOf(model),
+      run: model.run,
+      snapshotAt: snapshotAtOf(model),
+      from: Option.getOrNull(model.start),
+    }),
     environment: environment({ environmentIntensity: 0.6 }),
     contactShadows: contactShadows({
       position: [0, 0.01, 0],

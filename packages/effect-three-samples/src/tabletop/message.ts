@@ -10,7 +10,13 @@ export const Message = defineMessageUnion({
   // The table.
   ClickedTable: { point: SceneSchema.Vec3 },
   ClickedRebuild: {},
-  ReachedStep: { run: Schema.Int, step: Schema.Int, checksum: Schema.String },
+  // The world reached a step; at a check step, a leader's world sends a snapshot too.
+  ReachedStep: {
+    run: Schema.Int,
+    step: Schema.Int,
+    checksum: Schema.String,
+    snapshot: Schema.NullOr(Schema.String),
+  },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
   // Playing together (see session.ts).
   NamedTab: {

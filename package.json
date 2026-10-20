@@ -10,6 +10,7 @@
       "@arethetypeswrong/cli": "0.18.5",
       "@astrojs/check": "^0.9.10",
       "@astrojs/cloudflare": "14.4.0",
+      "@dimforge/rapier3d-deterministic-compat": "0.21.0",
       "@effect/platform-browser": "4.0.0",
       "@foldkit/vite-plugin": "^0.27.0",
       "@fontsource-variable/inter": "^5.3.0",
@@ -60,7 +61,8 @@
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
-    "dev:three-promo": "bun run --filter @opsydyn/three-promo dev"
+    "dev:three-promo": "bun run --filter @opsydyn/three-promo dev",
+    "relay": "bun packages/effect-three-samples/scripts/relay.ts"
   },
   "devDependencies": {
     "@antebudimir/eslint-plugin-vanilla-extract": "^1.17.0",

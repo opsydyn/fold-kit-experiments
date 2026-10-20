@@ -145,6 +145,21 @@ export type PhysicsWorld = {
   /** Whether any dynamic body is still moving (not asleep). */
   readonly awake: () => boolean;
   readonly dispose: () => void;
+  /**
+   * For a world that does what it is asked elsewhere (in a worker, ADR-017): the
+   * collisions that have come back since the last call, and whether anything it was asked
+   * is still to come back. Until it has, `pose`, `contactForces` and `debugLines` are as
+   * of what has, and `step` returns no collisions. The scene graph takes it every frame,
+   * and reports a world on `until` as there only once nothing is pending, so its checksum
+   * is of the engine's own poses. Absent for a world that does what it is asked at once.
+   */
+  readonly received?: () => Received;
+};
+
+/** What a world stepping elsewhere has sent back (`PhysicsWorld.received`). */
+export type Received = {
+  readonly collisions: ReadonlyArray<Collision>;
+  readonly pending: boolean;
 };
 
 /** Makes physics worlds. Provide one to the scene graph (in Foldkit, the environment). */

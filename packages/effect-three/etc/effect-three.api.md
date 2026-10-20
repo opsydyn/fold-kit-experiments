@@ -99,6 +99,52 @@ type Applied<I> = {
 export const applyTween: (object: Object3D, tween: Tween, elapsedSeconds: number) => boolean;
 
 // @public
+export type Asset = {
+    readonly kind: AssetKind;
+    readonly id: string;
+    readonly url: string;
+    readonly levels: ReadonlyArray<string>;
+};
+
+// @public
+const Asset_2: Schema.Struct<{
+    readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+    readonly id: Schema.String;
+    readonly url: Schema.String;
+    readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
+}>;
+
+// @public
+const AssetFailedDetail: Schema.Struct<{
+    readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+    readonly id: Schema.String;
+    readonly url: Schema.String;
+    readonly levels: Schema.$Array<Schema.String>;
+    readonly reason: Schema.String;
+}>;
+
+// @public
+export type AssetKind = 'model' | 'texture' | 'environment' | 'font';
+
+// @public
+const AssetKind_2: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+
+// @public
+const AssetLoadedDetail: Schema.Struct<{
+    readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+    readonly id: Schema.String;
+    readonly url: Schema.String;
+    readonly levels: Schema.$Array<Schema.String>;
+    readonly level: Schema.Int;
+    readonly final: Schema.Boolean;
+    readonly parts: Schema.$Array<Schema.String>;
+    readonly clips: Schema.$Array<Schema.String>;
+}>;
+
+// @public
+export const assetsEqual: (a: ReadonlyArray<Asset>, b: ReadonlyArray<Asset>) => boolean;
+
+// @public
 export const autoRotated: <C extends Camera>(camera: C, turned: {
     readonly position: Vec3;
 }) => C;
@@ -1098,6 +1144,11 @@ export type DescriptionError = {
     readonly _tag: 'UnknownMeasuredNode';
     readonly key: string;
 }
+/** Two assets the scene asks for share an id. */
+| {
+    readonly _tag: 'DuplicateAssetId';
+    readonly id: string;
+}
 /** Two joints share a key. */
 | {
     readonly _tag: 'DuplicateJointKey';
@@ -1140,6 +1191,8 @@ const DescriptionError_2: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateK
     readonly view: Schema.String;
 }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateAssetId", {
+    readonly id: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateJointKey", {
     readonly key: Schema.String;
 }>, Schema.TaggedStruct<"UnknownJointBody", {
@@ -1236,6 +1289,12 @@ export const dragPivot: (state: Pivot, ray: Ray, options?: {
 }) => Placement | undefined;
 
 // @public
+const due: <I>(timeline: Timeline_2<I>) => {
+    readonly timeline: Timeline_2<I>;
+    readonly inputs: ReadonlyArray<I>;
+};
+
+// @public
 export const ease: (options: {
     readonly seconds: number;
     readonly easing?: Easing;
@@ -1311,6 +1370,11 @@ const Environment_2: Schema.Struct<{
     readonly environmentIntensity: Schema.Finite;
 }>;
 
+// Warning: (ae-forgotten-export) The symbol "AssetOptions" needs to be exported by the entry point index.d.ts
+//
+// @public
+export const environmentAsset: (input: AssetOptions) => Asset;
+
 // @public
 export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
 
@@ -1333,6 +1397,9 @@ export const environmentPresets: {
 
 // @public
 export const environmentPresetUrl: (preset: EnvironmentPreset) => string;
+
+// @public
+const extend: <I>(timeline: Timeline_2<I>, frontier: number) => Timeline_2<I>;
 
 // @public
 export type Field = 'position' | 'rotation' | 'scale' | 'transition' | 'geometry' | 'material' | 'interactive' | 'color' | 'intensity' | 'groundColor' | 'target' | 'distance' | 'angle' | 'penumbra' | 'decay' | 'castShadow' | 'receiveShadow' | 'shadowMapSize' | 'shadowBias' | 'shadowArea' | 'instances' | 'id' | 'animation' | 'behaviour' | 'size' | 'divisions' | 'centerColor' | 'body'
@@ -1385,6 +1452,9 @@ export const fixedJoint: (options?: {
 
 // @public
 export const float: Behaviour;
+
+// @public
+export const fontAsset: (input: AssetOptions) => Asset;
 
 // @public
 export const formatChanges: (changes: ReadonlyArray<SceneChange>) => string;
@@ -3056,7 +3126,10 @@ const make: <A>(value: A, label?: string) => History_3<A>;
 const make_2: <I>(self: string, lead?: number) => Lockstep_2<I>;
 
 // @public
-const make_3: (options: SceneRuntimeOptions) => Effect.Effect<{
+const make_3: <I>(frontier?: number) => Timeline_2<I>;
+
+// @public
+const make_4: (options: SceneRuntimeOptions) => Effect.Effect<{
     graph: SceneGraph;
     startupOps: readonly Op[];
     update: (scene: SceneDescription) => Effect.Effect<readonly Op[], InvalidScene, never>;
@@ -3465,6 +3538,9 @@ const MissDetail: Schema.Struct<{
 }>;
 
 // @public
+export const modelAsset: (input: AssetOptions) => Asset;
+
+// @public
 export type Modifiers = {
     readonly shift: boolean;
     readonly control: boolean;
@@ -3871,6 +3947,8 @@ export type Physics = {
     readonly paused: boolean;
     readonly timeStep: number;
     readonly interpolate: boolean;
+    readonly until: number | null;
+    readonly run: number;
     readonly debug: boolean;
     readonly joints: ReadonlyArray<Joint>;
 };
@@ -3884,6 +3962,8 @@ const Physics_2: Schema.Struct<{
     readonly paused: Schema.Boolean;
     readonly timeStep: Schema.Finite;
     readonly interpolate: Schema.Boolean;
+    readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+    readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
     readonly debug: Schema.Boolean;
     readonly joints: Schema.$Array<Schema.Struct<{
         readonly key: Schema.String;
@@ -3952,6 +4032,20 @@ export type PhysicsJoint = {
 };
 
 // @public
+export type PhysicsReached = {
+    readonly run: number;
+    readonly step: number;
+    readonly checksum: string;
+};
+
+// @public
+const PhysicsReachedDetail: Schema.Struct<{
+    readonly run: Schema.Int;
+    readonly step: Schema.Int;
+    readonly checksum: Schema.String;
+}>;
+
+// @public
 export type PhysicsWorld = {
     readonly configure: (physics: Physics) => void;
     readonly add: (key: string, body: Body_2, colliders: ReadonlyArray<Collider>, pose: BodyPose) => void;
@@ -3968,6 +4062,7 @@ export type PhysicsWorld = {
     readonly pose: (key: string) => BodyPose | undefined;
     readonly awake: () => boolean;
     readonly dispose: () => void;
+    readonly received?: () => Received;
 };
 
 // @public (undocumented)
@@ -4383,6 +4478,29 @@ export const pressGizmo: (state: Gizmo, placement: Placement, handle: GizmoHandl
 // @public
 export const pressPivot: (state: Pivot, placement: Placement, handle: PivotHandle, point: Vec3) => Pivot;
 
+// @public (undocumented)
+export type PreviewOptions = {
+    readonly width: number;
+    readonly height: number;
+    readonly at?: number;
+    readonly background?: Rgb | null;
+    readonly store?: ResourceStore;
+    readonly behaviours?: SceneGraphOptions['behaviours'];
+    readonly precision?: number;
+};
+
+// @public (undocumented)
+export type PreviewResult = {
+    readonly _tag: 'Preview';
+    readonly svg: string;
+} | {
+    readonly _tag: 'Invalid';
+    readonly error: DescriptionError;
+};
+
+// @public
+export const previewSvg: (description: SceneDescription, options: PreviewOptions) => PreviewResult;
+
 // @public
 export const prismaticJoint: (options: {
     readonly axis: Vec3;
@@ -4414,10 +4532,19 @@ const Ray_2: Schema.Struct<{
 }>;
 
 // @public
+const reach: <I>(timeline: Timeline_2<I>, step: number) => Timeline_2<I>;
+
+// @public
 const read: (text: string) => Result.Result<SceneDescription, UnreadableScene>;
 
 // @public
 const receive: <I>(state: Lockstep_2<I>, packet: Packet<I>) => Lockstep_2<I>;
+
+// @public
+export type Received = {
+    readonly collisions: ReadonlyArray<Collision>;
+    readonly pending: boolean;
+};
 
 // @public (undocumented)
 export type ReconcileResult = {
@@ -4828,6 +4955,9 @@ export type ResourceStore = {
 };
 
 // @public
+const restart: <I>(timeline: Timeline_2<I>) => Timeline_2<I>;
+
+// @public
 export const revoluteJoint: (options: {
     readonly axis: Vec3;
     readonly limits?: JointLimits | null;
@@ -4960,6 +5090,7 @@ export const scene: (options: {
     readonly physics?: Physics | null;
     readonly xr?: Xr | null;
     readonly measure?: ReadonlyArray<string>;
+    readonly assets?: ReadonlyArray<Asset>;
     readonly render?: RenderSettings;
     readonly resources?: Partial<ResourceDefinitions>;
     readonly children?: ReadonlyArray<SceneNode>;
@@ -5042,6 +5173,7 @@ export type SceneDescription = {
     readonly physics: Physics | null;
     readonly xr: Xr | null;
     readonly measure: ReadonlyArray<string>;
+    readonly assets: ReadonlyArray<Asset>;
     readonly render: RenderSettings;
     readonly resources: ResourceDefinitions;
     readonly children: ReadonlyArray<SceneNode>;
@@ -5236,6 +5368,8 @@ const SceneDescription_2: Schema.Struct<{
         readonly paused: Schema.Boolean;
         readonly timeStep: Schema.Finite;
         readonly interpolate: Schema.Boolean;
+        readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+        readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
         readonly debug: Schema.Boolean;
         readonly joints: Schema.$Array<Schema.Struct<{
             readonly key: Schema.String;
@@ -5303,6 +5437,12 @@ const SceneDescription_2: Schema.Struct<{
         }>>;
     }>>;
     readonly measure: Schema.$Array<Schema.String>;
+    readonly assets: Schema.withDecodingDefaultKey<Schema.$Array<Schema.Struct<{
+        readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+        readonly id: Schema.String;
+        readonly url: Schema.String;
+        readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
+    }>>, never>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
             readonly strength: Schema.Finite;
@@ -5605,6 +5745,17 @@ export type SceneEvent = HitEvent<'PointerEnter'> | {
     readonly maxForceMagnitude: number;
 }
 /**
+* A world on `physics({ until })` reached that step and waits there: its run, its
+* step count, and a checksum of every body's pose, which peers running the same inputs
+* share (ADR-014). It comes after the collisions of the steps that led there.
+*/
+| {
+    readonly _tag: 'PhysicsReached';
+    readonly run: number;
+    readonly step: number;
+    readonly checksum: string;
+}
+/**
 * A measured label's laid-out size changed (`scene({ measure })`, after its glyphs are
 * laid out): in its own units, before its scale, for sizing what goes behind it, as
 * Drei's `Text` `onSync` reads troika's `textRenderInfo`.
@@ -5853,6 +6004,10 @@ const SceneEvent_2: Schema.Union<readonly [Schema.TaggedStruct<"PointerEnter", {
     readonly totalForceMagnitude: Schema.Finite;
     readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly maxForceMagnitude: Schema.Finite;
+}>, Schema.TaggedStruct<"PhysicsReached", {
+    readonly run: Schema.Int;
+    readonly step: Schema.Int;
+    readonly checksum: Schema.String;
 }>, Schema.TaggedStruct<"XrStick", {
     readonly hand: Schema.Literals<readonly ["left", "right", "none"]>;
     readonly direction: Schema.Literals<readonly ["center", "left", "right", "forward", "back"]>;
@@ -6088,6 +6243,8 @@ const SceneFile_2: Schema.Struct<{
             readonly paused: Schema.Boolean;
             readonly timeStep: Schema.Finite;
             readonly interpolate: Schema.Boolean;
+            readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+            readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
             readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;
@@ -6155,6 +6312,12 @@ const SceneFile_2: Schema.Struct<{
             }>>;
         }>>;
         readonly measure: Schema.$Array<Schema.String>;
+        readonly assets: Schema.withDecodingDefaultKey<Schema.$Array<Schema.Struct<{
+            readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+            readonly id: Schema.String;
+            readonly url: Schema.String;
+            readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
+        }>>, never>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;
@@ -6337,6 +6500,7 @@ export type SceneGraph = {
     readonly contactShadows: () => ContactShadows | null;
     readonly collisions: () => ReadonlyArray<BodyCollision>;
     readonly contactForces: () => ReadonlyArray<BodyContactForce>;
+    readonly physicsReached: () => ReadonlyArray<PhysicsReached>;
     readonly xr: () => Xr | null;
     readonly measured: () => ReadonlyArray<string>;
     readonly labelLayout: (key: string) => LabelLayout | undefined;
@@ -6372,7 +6536,7 @@ export type SceneGraphOptions = {
 };
 
 // @public
-type SceneHandle = Effect.Success<ReturnType<typeof make_3>>;
+type SceneHandle = Effect.Success<ReturnType<typeof make_4>>;
 
 // @public
 export type SceneIndex = {
@@ -6424,7 +6588,7 @@ export type SceneRenderer = {
 declare namespace SceneRuntime {
     export {
         SceneRuntimeOptions,
-        make_3 as make,
+        make_4 as make,
         SceneHandle
     }
 }
@@ -6520,7 +6684,11 @@ declare namespace SceneSchema {
         XrAnchor_2 as XrAnchor,
         Xr_2 as Xr,
         Gestures_2 as Gestures,
+        AssetKind_2 as AssetKind,
+        Asset_2 as Asset,
         SceneDescription_2 as SceneDescription,
+        AssetLoadedDetail,
+        AssetFailedDetail,
         KeyDetail,
         HitDetail,
         ButtonDetail,
@@ -6532,6 +6700,7 @@ declare namespace SceneSchema {
         Modifiers_2 as Modifiers,
         Gesture_2 as Gesture,
         CollisionDetail,
+        PhysicsReachedDetail,
         XrStickDetail,
         XrButtonDetail,
         XrMovedDetail,
@@ -6554,6 +6723,7 @@ declare namespace SceneSchema {
         LockstepPacket,
         LockstepMember,
         Lockstep_3 as Lockstep,
+        Timeline_3 as Timeline,
         Tape_2 as Tape,
         PivotHandle_2 as PivotHandle,
         Pivot_2 as Pivot
@@ -6574,6 +6744,15 @@ export type SceneSummary = {
     readonly lights: ReadonlyArray<LightSummary>;
     readonly bounds: Box | null;
     readonly staging: ReadonlyArray<string>;
+};
+
+// @public
+const schedule: <I>(timeline: Timeline_2<I>, step: number, input: I) => Timeline_2<I>;
+
+// @public
+type Scheduled<I> = {
+    readonly step: number;
+    readonly input: I;
 };
 
 // @public
@@ -7199,6 +7378,9 @@ const TextGeometry_2: Schema.TaggedStruct<"Text", {
 }>;
 
 // @public
+export const textureAsset: (input: AssetOptions) => Asset;
+
+// @public
 export type Textures = (id: string) => Texture | undefined;
 
 // @public
@@ -7213,6 +7395,39 @@ export type ThingSummary = {
     readonly colour: Rgb | null;
     readonly parent: string | null;
 };
+
+declare namespace Timeline {
+    export {
+        Scheduled,
+        Timeline_2 as Timeline,
+        make_3 as make,
+        schedule,
+        extend,
+        reach,
+        due,
+        until,
+        restart
+    }
+}
+
+// @public (undocumented)
+type Timeline_2<I> = {
+    readonly inputs: ReadonlyArray<Scheduled<I>>;
+    readonly applied: number;
+    readonly reached: number | null;
+    readonly frontier: number;
+};
+
+// @public
+const Timeline_3: <S extends Schema.Top>(input: S) => Schema.Struct<{
+    readonly inputs: Schema.$Array<Schema.Struct<{
+        readonly step: Schema.Int;
+        readonly input: S;
+    }>>;
+    readonly applied: Schema.Int;
+    readonly reached: Schema.NullOr<Schema.Int>;
+    readonly frontier: Schema.Int;
+}>;
 
 // @public
 export type ToneMapping = 'none' | 'linear' | 'reinhard' | 'cineon' | 'aces' | 'agx' | 'neutral';
@@ -7320,6 +7535,9 @@ export class UnreadableScene extends UnreadableScene_base<{
     readonly issue: string;
 }> {
 }
+
+// @public
+const until: <I>(timeline: Timeline_2<I>) => number;
 
 // @public
 export const updateMaterial: (material: HostMaterial, description: SurfaceMaterial, textures?: Textures) => boolean;
@@ -7737,7 +7955,7 @@ const XrSurfaceDetail: Schema.Struct<{
 
 // Warnings were encountered during analysis:
 //
-// src/kernel/sceneGraph.ts:288:3 - (ae-forgotten-export) The symbol "HostedHud" needs to be exported by the entry point index.d.ts
+// src/kernel/sceneGraph.ts:293:3 - (ae-forgotten-export) The symbol "HostedHud" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

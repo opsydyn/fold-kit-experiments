@@ -55,7 +55,9 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
   (`SceneSchema.Lockstep(Edit)`); propose shared changes with `Lockstep.submit`, send
   `Lockstep.send`'s packet each turn, `receive` what arrives, and apply what `advance`
   returns with a pure `applyEdit` (keys made from the document, not the tab). Keep
-  selection and camera local. See the editor sample's `session.ts` and ADR-013.
+  selection and camera local. Any transport that hands every packet to every peer
+  will do: the editor sample's `session.ts` uses a `BroadcastChannel` between tabs, or
+  a relay socket (a Foldkit managed resource) between machines. See ADR-013.
 - **For assistants:** `formatSummary(describeScene(scene))` is a scene in a few lines;
   offer intents rather than raw numbers (`shotCamera(camera, bounds, angle)` for a shot,
   `moodStaging(mood)` for lighting) as Messages an agent can dispatch through
@@ -122,13 +124,25 @@ mass, collider, colliders, collisionGroups, ... })` on meshes, groups, borrowed 
   `prismaticJoint`, `ropeJoint`, `springJoint`, and motors) are data; collisions and
   contact forces arrive as `onCollision` and `onContactForce`. A body's pose is the
   simulation's; change its position in the Model to teleport it.
+- **Physics that must agree (lockstep, replays):** set `physics({ until })` from a
+  `Timeline` of inputs stamped with their step; handle `onPhysicsReached` by
+  `Timeline.reach`, applying what `Timeline.due` returns, and setting `until` to
+  `Timeline.until`. Change what the world sees only there, while it waits. Use
+  `@opsydyn/effect-three-rapier/deterministic`, colliders sized as data, and
+  `physics({ run })` to start a world over (a newcomer replaying the record). Compare
+  the reports' checksums between peers. See the tabletop sample and ADR-014.
 - **Labels:** `label({ key, text, font, fontSize, maxWidth, outlineWidth,
 colorRanges, curveRadius, material })`. Give each a font URL (TTF, OTF or WOFF;
   troika cannot read WOFF2). A label named in `measure` reports its laid-out size as
   `onLabelMeasured`.
-- **Assets:** `environment.assets.loadModel`, `loadTexture`, `loadFont` and
-  `loadEnvironment` are Effects for Commands; settle them into the Model and refer to
-  the id. Loading an id again replaces and frees the old asset; `unload(id)` frees it.
+- **Assets:** prefer `scene({ assets: [modelAsset({ id, url }), textureAsset(…),
+  environmentAsset(…), fontAsset(…)] })`, built from the Model (an empty list once it
+  stops wanting them). Handle `onAssetLoaded` and `onAssetFailed` to settle `AsyncData`
+  by id, and ignore answers for what it no longer asks for. The environment shares an
+  id between scenes and cancels a load no one asks for (ADR-015). Otherwise
+  `environment.assets.loadModel`, `loadTexture`, `loadFont` and `loadEnvironment` are
+  Effects for Commands; loading an id again replaces and frees the old asset, and
+  `unload(id)` frees it.
 
 ## Renderers
 

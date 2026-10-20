@@ -30,7 +30,12 @@ import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 
 import { clipRunning, clipTime } from './animation.ts';
 import { writeRotation } from './behaviours.ts';
-import { type BodyCollision, type BodyContactForce, createBodyHost } from './bodies.ts';
+import {
+  type BodyCollision,
+  type BodyContactForce,
+  createBodyHost,
+  type PhysicsReached,
+} from './bodies.ts';
 import { type BodySource, instanceSources, nodeSource, placeObject } from './bodySources.ts';
 import { orthographicCamera, renderSettings, scene as describeScene } from './build.ts';
 import { type CameraMotion, createCameraMotion } from './cameraMotion.ts';
@@ -298,6 +303,8 @@ export type SceneGraph = {
   readonly collisions: () => ReadonlyArray<BodyCollision>;
   /** Contact forces over their bodies' thresholds since the last call. */
   readonly contactForces: () => ReadonlyArray<BodyContactForce>;
+  /** Steps a world on `physics({ until })` has reached since the last call. */
+  readonly physicsReached: () => ReadonlyArray<PhysicsReached>;
   /** How the scene is presented immersively, for the host; `null` if it never is. */
   readonly xr: () => Xr | null;
   /** Keys of the nodes whose bounds the frame loop reports. */
@@ -1543,6 +1550,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     physics: null,
     xr: null,
     measure: [],
+    assets: [],
     render: parent.render,
     resources: parent.resources,
     children: texture.children,
@@ -1712,6 +1720,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if ((physicsDescription?.debug ?? false) !== (next.physics?.debug ?? false)) invalidate();
     physicsDescription = next.physics;
     bodyHost.sync(next.physics, bodySources());
+    // A world on `until` that owes steps needs frames, though nothing else may be moving.
+    if (bodyHost.owesSteps()) invalidate();
     // Read by the host when it presents the scene immersively: no operation, no frame.
     xrDescription = next.xr;
     // Measured after the next drawn frame; a new list needs one.
@@ -1825,6 +1835,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     contactShadows: () => contactDescription,
     collisions: bodyHost.drainCollisions,
     contactForces: bodyHost.drainContactForces,
+    physicsReached: bodyHost.drainReached,
     xr: () => xrDescription,
     measured: () => measured,
     labelLayout: (key) => {
@@ -1859,7 +1870,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
           viewsMoving() ||
           shaking() ||
           sparkling.size > 0 ||
-          bodyHost.needsFrame())),
+          bodyHost.needsFrame())) ||
+      bodyHost.owesSteps(),
     drawn: () => {
       dirty = false;
     },

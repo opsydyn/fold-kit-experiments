@@ -10,7 +10,7 @@ import { Option, Schema } from 'effect';
 
 import { nodeOf, placed } from './document';
 import { NameTab } from './session';
-import { Session } from './wire';
+import { Relay, Session } from './wire';
 
 const Nodes = Schema.Array(SceneSchema.SceneNode);
 
@@ -37,6 +37,8 @@ export const Model = Schema.Struct({
   mood: Schema.Literals(['studio', 'daylight', 'sunset', 'night']),
   /** Editing together with other tabs: where this tab is in the session. */
   session: Session,
+  /** The relay the page named, if any: the session then runs through it, not the channel. */
+  relay: Schema.Option(Relay),
   /** Why the inspector's last edit, or the last file loaded, was refused. */
   issue: Schema.Option(Schema.String),
 });
@@ -75,8 +77,9 @@ export const init = () => ({
     snapping: false,
     mood: 'studio' as const,
     session: { _tag: 'Offline' as const },
+    relay: Option.none(),
     issue: Option.none(),
   } satisfies Model,
-  // A name for this tab, then a session with any other editor tabs open.
+  // A name for this tab, then a session with any other editor tabs open (or through a relay).
   commands: [NameTab()],
 });

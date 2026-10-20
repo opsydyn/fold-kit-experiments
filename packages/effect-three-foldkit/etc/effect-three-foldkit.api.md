@@ -4,6 +4,7 @@
 
 ```ts
 
+import { Asset } from '@opsydyn/effect-three';
 import { Behaviour } from '@opsydyn/effect-three';
 import { BodyPose } from '@opsydyn/effect-three';
 import { BufferGeometry } from 'three';
@@ -57,6 +58,12 @@ export type AnimationFrameHost = Pick<Window, 'requestAnimationFrame' | 'cancelA
 
 // @public
 export const animationFrameScheduler: (host: AnimationFrameHost) => FrameScheduler;
+
+// @public (undocumented)
+export type AssetFailedDetail = typeof SceneSchema.AssetFailedDetail.Type;
+
+// @public (undocumented)
+export type AssetLoadedDetail = typeof SceneSchema.AssetLoadedDetail.Type;
 
 // Warning: (ae-forgotten-export) The symbol "AssetLoadError_base" needs to be exported by the entry point index.d.ts
 //
@@ -151,6 +158,7 @@ export const domEventName: {
     readonly AutoRotated: 'scene-auto-rotated';
     readonly Collision: 'scene-collision';
     readonly ContactForce: 'scene-contact-force';
+    readonly PhysicsReached: 'scene-physics-reached';
     readonly Measured: 'scene-measured';
     readonly LabelMeasured: 'scene-label-measured';
     readonly XrStick: 'scene-xr-stick';
@@ -286,6 +294,11 @@ export const makeEnvironment: (host: EnvironmentHost, options?: EnvironmentOptio
         loadEnvironment: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         loadFont: (id: string, url: string) => Effect_2<string, AssetLoadError, never>;
         unload: (id: string) => Effect_2<void, never, never>;
+        dispose: () => void;
+    };
+    assetRegistry: {
+        want: (holder: object, assets: ReadonlyArray<Asset>, notify: (notice: AssetNotice) => void) => void;
+        release: (holder: object) => void;
         dispose: () => void;
     };
     xr: {
@@ -821,6 +834,9 @@ export type OverlayView = {
 // @public
 export type PerformanceDetail = typeof SceneSchema.PerformanceDetail.Type;
 
+// @public (undocumented)
+export type PhysicsReachedDetail = typeof SceneSchema.PhysicsReachedDetail.Type;
+
 declare namespace PivotControls {
     export {
         Model_3 as Model,
@@ -1077,6 +1093,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly paused: Schema.Boolean;
             readonly timeStep: Schema.Finite;
             readonly interpolate: Schema.Boolean;
+            readonly until: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
+            readonly run: Schema.withDecodingDefaultKey<Schema.Int, never>;
             readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;
@@ -1144,6 +1162,12 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             }>>;
         }>>;
         readonly measure: Schema.$Array<Schema.String>;
+        readonly assets: Schema.withDecodingDefaultKey<Schema.$Array<Schema.Struct<{
+            readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+            readonly id: Schema.String;
+            readonly url: Schema.String;
+            readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
+        }>>, never>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
                 readonly strength: Schema.Finite;
@@ -1532,6 +1556,11 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         readonly maxForceDirection: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
         readonly maxForceMagnitude: Schema.Finite;
     }>;
+    'scene-physics-reached': Schema.Struct<{
+        readonly run: Schema.Int;
+        readonly step: Schema.Int;
+        readonly checksum: Schema.String;
+    }>;
     'scene-measured': Schema.Struct<{
         readonly key: Schema.String;
         readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
@@ -1615,6 +1644,8 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly view: Schema.String;
         }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
             readonly key: Schema.String;
+        }>, Schema.TaggedStruct<"DuplicateAssetId", {
+            readonly id: Schema.String;
         }>, Schema.TaggedStruct<"DuplicateJointKey", {
             readonly key: Schema.String;
         }>, Schema.TaggedStruct<"UnknownJointBody", {
@@ -1625,6 +1656,23 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
         }>, Schema.TaggedStruct<"MalformedScene", {
             readonly issue: Schema.String;
         }>]>;
+    }>;
+    'scene-asset-loaded': Schema.Struct<{
+        readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+        readonly id: Schema.String;
+        readonly url: Schema.String;
+        readonly levels: Schema.$Array<Schema.String>;
+        readonly level: Schema.Int;
+        readonly final: Schema.Boolean;
+        readonly parts: Schema.$Array<Schema.String>;
+        readonly clips: Schema.$Array<Schema.String>;
+    }>;
+    'scene-asset-failed': Schema.Struct<{
+        readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
+        readonly id: Schema.String;
+        readonly url: Schema.String;
+        readonly levels: Schema.$Array<Schema.String>;
+        readonly reason: Schema.String;
     }>;
     'scene-reconciled': Schema.Struct<{
         readonly ops: Schema.Struct<{
@@ -1681,6 +1729,8 @@ export const SceneError: Schema.Union<readonly [Schema.TaggedStruct<"DuplicateKe
     readonly view: Schema.String;
 }>, Schema.TaggedStruct<"UnknownMeasuredNode", {
     readonly key: Schema.String;
+}>, Schema.TaggedStruct<"DuplicateAssetId", {
+    readonly id: Schema.String;
 }>, Schema.TaggedStruct<"DuplicateJointKey", {
     readonly key: Schema.String;
 }>, Schema.TaggedStruct<"UnknownJointBody", {
@@ -1784,6 +1834,7 @@ export type ViewConfig<Message> = {
     readonly onAutoRotated?: (detail: AutoRotatedDetail) => Message;
     readonly onCollision?: (detail: CollisionDetail) => Message;
     readonly onContactForce?: (detail: ContactForceDetail) => Message;
+    readonly onPhysicsReached?: (detail: PhysicsReachedDetail) => Message;
     readonly onMeasured?: (detail: MeasuredDetail) => Message;
     readonly onLabelMeasured?: (detail: LabelMeasuredDetail) => Message;
     readonly onXRSession?: (detail: XrSessionDetail) => Message;
@@ -1797,6 +1848,8 @@ export type ViewConfig<Message> = {
     readonly onError?: (detail: {
         readonly error: SceneError;
     }) => Message;
+    readonly onAssetLoaded?: (detail: AssetLoadedDetail) => Message;
+    readonly onAssetFailed?: (detail: AssetFailedDetail) => Message;
     readonly onReconciled?: (detail: ReconciledDetail) => Message;
     readonly overlays?: ReadonlyArray<OverlayView>;
     readonly className?: string;
@@ -1879,7 +1932,8 @@ export class XrUnavailable extends XrUnavailable_base<{
 
 // Warnings were encountered during analysis:
 //
-// src/environment.ts:69:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
+// src/environment.ts:70:9 - (ae-forgotten-export) The symbol "AssetNotice" needs to be exported by the entry point index.d.ts
+// src/environment.ts:73:5 - (ae-forgotten-export) The symbol "XrHub" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

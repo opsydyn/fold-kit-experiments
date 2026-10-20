@@ -1,29 +1,54 @@
 /**
- * The workshop: the loaded robot on a tiled floor under a sign. The robot is a borrowed
- * node, so it appears when its model is lent and disappears when unloaded; the floor uses
- * the lent texture as its map once it has settled; the sign is text in the lent font,
- * empty until the font arrives. The caption under it is a distance-field label naming the
- * clip playing, drawn by troika from a WOFF font.
+ * The workshop: the loaded robot on a tiled floor under a sign. The scene asks for its
+ * assets (`scene({ assets })`) while the Model wants them, the robot and floor each with a
+ * coarse level shown until the full one arrives: the environment loads each,
+ * cancels a load the scene stops asking for, and frees what it no longer asks for. The
+ * robot is a borrowed node, so it appears when its model is lent and goes when it is
+ * freed; the floor uses the lent texture as its map once it has settled; the sign is text
+ * in the lent font, empty until the font arrives. The caption under it is a distance-field
+ * label naming the clip playing, drawn by troika from a WOFF font.
  */
 import {
   type Animation,
+  type Asset,
   borrowed,
   directionalLight,
   fixed,
+  fontAsset,
   hemisphereLight,
   label,
   mesh,
+  modelAsset,
   perspectiveCamera,
   plane,
   play,
   scene,
   standard,
   text,
+  textureAsset,
 } from '@opsydyn/effect-three';
 import { Option } from 'effect';
 import { matchData } from 'foldkit/asyncData';
 
 import { assetIds, type Model } from './model';
+
+/** What the scene asks for while the Model wants it: nothing, once unloaded. */
+const assetsOf = (model: Model): ReadonlyArray<Asset> =>
+  model.wanted
+    ? [
+        modelAsset({
+          id: assetIds.robot,
+          url: `${model.assetBase}robot.glb`,
+          levels: [`${model.assetBase}robot-low.glb`],
+        }),
+        textureAsset({
+          id: assetIds.floor,
+          url: `${model.assetBase}tiles.png`,
+          levels: [`${model.assetBase}tiles-low.png`],
+        }),
+        fontAsset({ id: assetIds.font, url: `${model.assetBase}inter-bold.typeface.json` }),
+      ]
+    : [];
 
 /** The floor's map: the lent texture once it has settled, none before. */
 const floorMap = (model: Model): string | null =>
@@ -48,6 +73,7 @@ const animationOf = (model: Model): Animation | null =>
 export const sceneFor = (model: Model) =>
   scene({
     camera: perspectiveCamera({ fov: 40, position: [2.2, 2.6, 5.4], lookAt: [0, 1, 0] }),
+    assets: assetsOf(model),
     children: [
       hemisphereLight({ key: 'sky', color: 0xffffff, groundColor: 0x8d8a83, intensity: 1.4 }),
       directionalLight({ key: 'sun', intensity: 2.2, position: [3, 6, 4] }),

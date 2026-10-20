@@ -32,6 +32,8 @@ export type DescriptionError =
   | { readonly _tag: 'UnknownOverlayNode'; readonly key: string; readonly node: string }
   | { readonly _tag: 'UnknownOverlayView'; readonly key: string; readonly view: string }
   | { readonly _tag: 'UnknownMeasuredNode'; readonly key: string }
+  /** Two assets the scene asks for share an id. */
+  | { readonly _tag: 'DuplicateAssetId'; readonly id: string }
   /** Two joints share a key. */
   | { readonly _tag: 'DuplicateJointKey'; readonly key: string }
   /** A joint names a node that is not in the scene. */
@@ -103,6 +105,12 @@ export const indexScene = (
   const duplicateView = firstDuplicateInstance(description.views);
   if (duplicateView !== undefined) {
     return { _tag: 'Invalid', error: { _tag: 'DuplicateViewKey', key: duplicateView } };
+  }
+  const duplicateAsset = firstDuplicateInstance(
+    description.assets.map((asset) => ({ key: asset.id })),
+  );
+  if (duplicateAsset !== undefined) {
+    return { _tag: 'Invalid', error: { _tag: 'DuplicateAssetId', id: duplicateAsset } };
   }
   const duplicateOverlay = firstDuplicateInstance(description.overlays);
   if (duplicateOverlay !== undefined) {

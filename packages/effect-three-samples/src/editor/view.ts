@@ -21,6 +21,7 @@ import { type Addable, addables } from './document';
 import { Message } from './message';
 import type { Model } from './model';
 import { sceneFor } from './scene';
+import type { Relay } from './wire';
 
 type H = HtmlBuilder<Message>;
 
@@ -241,17 +242,50 @@ const changes = (model: Model, h: H): Html => {
 const others = (lockstep: Lockstep.Lockstep<unknown>): number =>
   Lockstep.membersAt(lockstep, lockstep.turn).length - 1;
 
-const withOthers = (count: number): string =>
+const withTabs = (count: number): string =>
   count === 0
     ? 'Editing alone. Open this page in another tab to edit together.'
     : `Editing with ${count} other ${count === 1 ? 'tab' : 'tabs'}.`;
 
-const together = (model: Model): string =>
+const overRelay = (count: number, url: string): string =>
+  count === 0
+    ? `Editing alone, through the relay at ${url}. Open this address elsewhere to edit together.`
+    : `Editing with ${count} other ${count === 1 ? 'editor' : 'editors'}, through the relay at ${url}.`;
+
+const overTabs = (model: Model): string =>
   Match.valueTags(model.session, {
     Offline: () => 'Editing here only.',
     Joining: () => 'Looking for other editor tabs…',
-    Live: ({ lockstep }) => withOthers(others(lockstep)),
+    Live: ({ lockstep }) => withTabs(others(lockstep)),
   });
+
+const throughRelay = (model: Model, relay: Relay): string => {
+  if (relay.link === 'Lost') return `Not connected to the relay at ${relay.url}: editing alone.`;
+  if (relay.link === 'Connecting') return `Connecting to the relay at ${relay.url}…`;
+  return Match.valueTags(model.session, {
+    Offline: () => 'Editing here only.',
+    Joining: () => `Looking for other editors at ${relay.url}…`,
+    Live: ({ lockstep }) => overRelay(others(lockstep), relay.url),
+  });
+};
+
+const together = (model: Model): string =>
+  Option.match(model.relay, {
+    onNone: () => overTabs(model),
+    onSome: (relay) => throughRelay(model, relay),
+  });
+
+/** Who this tab edits with, and a way back to the relay once it has lost it. */
+const session = (model: Model, h: H): Html =>
+  h.p(
+    [h.Class('e3-note e3-together'), h.AriaLive('polite')],
+    [
+      together(model),
+      ...(Option.exists(model.relay, (relay) => relay.link === 'Lost')
+        ? [' ', button(h, 'Reconnect', true, Message.ClickedReconnect())]
+        : []),
+    ],
+  );
 
 const selection = (model: Model): string =>
   model.selected.length === 0
@@ -310,7 +344,7 @@ export const view = (model: Model, h: H): Document => ({
         ],
       ),
       h.p([h.Class('e3-readout'), h.AriaLive('polite')], [selection(model)]),
-      h.p([h.Class('e3-note e3-together'), h.AriaLive('polite')], [together(model)]),
+      session(model, h),
       toolbar(model, h),
       staging(model, h),
       h.div(

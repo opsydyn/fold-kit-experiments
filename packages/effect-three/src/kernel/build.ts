@@ -6,6 +6,7 @@
 import { CatmullRomCurve3, Color, CubicBezierCurve3, QuadraticBezierCurve3, Vector3 } from 'three';
 
 import type {
+  Asset,
   AmbientLightNode,
   LineNode,
   PointLook,
@@ -1067,13 +1068,16 @@ const noJoints: ReadonlyArray<Joint> = [];
 
 /**
  * A physics world. Defaults as react-three-rapier's `Physics`: Earth gravity
- * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated; no joints.
+ * `[0, -9.81, 0]`, running, fixed steps of 1/60 s, interpolated; no joints; on scene
+ * time rather than `until` a step the Model sets.
  */
 export const physics = (options: Partial<Physics> = {}): Physics => ({
   gravity: options.gravity ?? [0, -9.81, 0],
   paused: options.paused ?? false,
   timeStep: options.timeStep ?? 1 / 60,
   interpolate: options.interpolate ?? true,
+  until: options.until ?? null,
+  run: options.run ?? 0,
   debug: options.debug ?? false,
   joints: options.joints ?? noJoints,
 });
@@ -1674,6 +1678,38 @@ export const contactShadows = (
 
 const noOverlays: ReadonlyArray<Overlay> = [];
 const noMeasures: ReadonlyArray<string> = [];
+const noAssets: ReadonlyArray<Asset> = [];
+
+/** What an asset builder takes: an id, the finest URL, and coarser ones to show first. */
+type AssetOptions = {
+  readonly id: string;
+  readonly url: string;
+  readonly levels?: ReadonlyArray<string>;
+};
+
+const noLevels: ReadonlyArray<string> = [];
+
+const assetOf =
+  (kind: Asset['kind']) =>
+  ({ id, url, levels }: AssetOptions): Asset => ({ kind, id, url, levels: levels ?? noLevels });
+
+/** A glTF or GLB model for `scene({ assets })`, lent under `id` for `borrowed({ id })`. */
+export const modelAsset = assetOf('model');
+
+/** A colour texture (sRGB) for `scene({ assets })`, lent under `id` for a material's `map`. */
+export const textureAsset = assetOf('texture');
+
+/**
+ * An equirectangular HDR panorama (`.hdr`) for `scene({ assets })`, lent under `id` for
+ * `environment({ map: id })`.
+ */
+export const environmentAsset = assetOf('environment');
+
+/**
+ * A typeface JSON font (three.js's `FontLoader` format) for `scene({ assets })`, lent under
+ * `id` for `text({ font: id })`.
+ */
+export const fontAsset = assetOf('font');
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
 const defaultZIndexRange: readonly [number, number] = [16777271, 0];
@@ -1730,6 +1766,7 @@ export const scene = (options: {
   readonly physics?: Physics | null;
   readonly xr?: Xr | null;
   readonly measure?: ReadonlyArray<string>;
+  readonly assets?: ReadonlyArray<Asset>;
   readonly render?: RenderSettings;
   readonly resources?: Partial<ResourceDefinitions>;
   readonly children?: ReadonlyArray<SceneNode>;
@@ -1746,6 +1783,7 @@ export const scene = (options: {
   physics: options.physics ?? null,
   xr: options.xr ?? null,
   measure: options.measure ?? noMeasures,
+  assets: options.assets ?? noAssets,
   render: options.render ?? defaultRenderSettings,
   resources: {
     geometries: options.resources?.geometries ?? noResources.geometries,

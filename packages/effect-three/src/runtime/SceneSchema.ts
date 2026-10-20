@@ -405,11 +405,16 @@ export const Joint = Schema.Struct({
   contacts: Schema.Boolean,
 });
 
+/** A count of physics steps. */
+const StepCount = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+
 export const Physics = Schema.Struct({
   gravity: Vec3,
   paused: Schema.Boolean,
   timeStep: Positive,
   interpolate: Schema.Boolean,
+  until: absentAsNull(StepCount),
+  run: Schema.Int.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   debug: Schema.Boolean,
   joints: Schema.Array(Joint),
 });
@@ -912,6 +917,17 @@ export const Xr = Schema.Struct({
 /** Whether the scene claims the pointer's gestures from the page. */
 export const Gestures = Schema.Literals(['page', 'scene']);
 
+/** What an asset is: a glTF or GLB model, a colour texture, an HDR panorama, a typeface font. */
+export const AssetKind = Schema.Literals(['model', 'texture', 'environment', 'font']);
+
+/** An asset a scene asks for (`modelAsset` and the rest). */
+export const Asset = Schema.Struct({
+  kind: AssetKind,
+  id: Schema.String,
+  url: Schema.String,
+  levels: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+});
+
 export const SceneDescription = Schema.Struct({
   camera: Camera,
   gestures: Gestures,
@@ -925,9 +941,40 @@ export const SceneDescription = Schema.Struct({
   physics: Schema.NullOr(Physics),
   xr: Schema.NullOr(Xr),
   measure: Schema.Array(Schema.String),
+  assets: Schema.Array(Asset).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   render: RenderSettings,
   resources: ResourceDefinitions,
   children: Schema.Array(SceneNode),
+});
+
+/**
+ * Detail of asset loaded events: the asset, the level of detail now shown (0 for the
+ * coarsest of its `levels`, as many as it has levels for `url` itself) and whether that is
+ * the finest, and for a model its parts and clips.
+ */
+export const AssetLoadedDetail = Schema.Struct({
+  kind: AssetKind,
+  id: Schema.String,
+  url: Schema.String,
+  levels: Schema.Array(Schema.String),
+  level: Schema.Int,
+  final: Schema.Boolean,
+  /** Names of the objects inside a model, as hits report them in `part`. */
+  parts: Schema.Array(Schema.String),
+  /** Names of a model's animation clips. */
+  clips: Schema.Array(Schema.String),
+});
+
+/**
+ * Detail of asset failed events: the asset, and why its finest level could not be loaded
+ * (a coarser level shown before stays).
+ */
+export const AssetFailedDetail = Schema.Struct({
+  kind: AssetKind,
+  id: Schema.String,
+  url: Schema.String,
+  levels: Schema.Array(Schema.String),
+  reason: Schema.String,
 });
 
 /** Detail of pointer-leave events: the interactive mesh's key. */
@@ -1028,6 +1075,16 @@ export const CollisionDetail = Schema.Struct({
   bInstance: Schema.optionalKey(Schema.String),
   bPart: Schema.optionalKey(Schema.String),
   started: Schema.Boolean,
+});
+
+/**
+ * Detail of physics reached events: the run and step a world on `physics({ until })`
+ * reached, and a checksum of its bodies' poses there.
+ */
+export const PhysicsReachedDetail = Schema.Struct({
+  run: Schema.Int,
+  step: StepCount,
+  checksum: Schema.String,
 });
 
 const XrHand = Schema.Literals(['left', 'right', 'none']);
@@ -1139,6 +1196,7 @@ export const SceneEvent = Schema.Union([
   Schema.TaggedStruct('Measured', MeasuredDetail.fields),
   Schema.TaggedStruct('LabelMeasured', LabelMeasuredDetail.fields),
   Schema.TaggedStruct('ContactForce', ContactForceDetail.fields),
+  Schema.TaggedStruct('PhysicsReached', PhysicsReachedDetail.fields),
   Schema.TaggedStruct('XrStick', XrStickDetail.fields),
   Schema.TaggedStruct('XrButton', XrButtonDetail.fields),
   Schema.TaggedStruct('XrSurface', XrSurfaceDetail.fields),
@@ -1164,6 +1222,7 @@ export const DescriptionError = Schema.Union([
   Schema.TaggedStruct('UnknownOverlayNode', { key: Schema.String, node: Schema.String }),
   Schema.TaggedStruct('UnknownOverlayView', { key: Schema.String, view: Schema.String }),
   Schema.TaggedStruct('UnknownMeasuredNode', { key: Schema.String }),
+  Schema.TaggedStruct('DuplicateAssetId', { id: Schema.String }),
   Schema.TaggedStruct('DuplicateJointKey', { key: Schema.String }),
   Schema.TaggedStruct('UnknownJointBody', { joint: Schema.String, body: Schema.String }),
   Schema.TaggedStruct('DuplicateRenderTextureId', { id: Schema.String }),
@@ -1245,6 +1304,15 @@ export const Lockstep = <S extends Schema.Top>(input: S) =>
     lead: Schema.Int,
     pending: Schema.Array(LockstepEntry(input)),
     received: Schema.Array(LockstepPacket(input)),
+  });
+
+/** A timeline of physics steps (`Timeline.make`) over the app's `input`s, for a Model. */
+export const Timeline = <S extends Schema.Top>(input: S) =>
+  Schema.Struct({
+    inputs: Schema.Array(Schema.Struct({ step: StepCount, input })),
+    applied: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+    reached: Schema.NullOr(StepCount),
+    frontier: StepCount,
   });
 
 /** A measuring tape as data (`tape`), for a Model that keeps it. */

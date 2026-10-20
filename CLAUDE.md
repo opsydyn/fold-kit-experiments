@@ -41,6 +41,7 @@ bun run check                         # oxlint + oxfmt --check (both must pass)
 bun run check:fix                     # oxfmt then oxlint --fix
 bun run --filter @opsydyn/web dev     # single workspace
 bun dev:three-promo                   # effect-three promo → localhost:4323
+bun run relay                         # editor relay → ws://localhost:4325/<room>
 ```
 
 Astro 7 runs `astro dev` in the background when an agent starts it: stop it with

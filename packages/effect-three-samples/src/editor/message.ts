@@ -56,11 +56,17 @@ export const Message = defineMessageUnion({
   CompletedDownload: {},
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
   // Editing together (see session.ts).
-  NamedTab: { peer: Schema.String, at: Schema.Number },
+  NamedTab: { peer: Schema.String, at: Schema.Number, relay: Schema.Option(Schema.String) },
   WaitedForWelcome: {},
   HeardWire: { wire: Wire, at: Schema.Number },
   TickedTurn: { at: Schema.Number },
   LeftPage: {},
   CompletedSay: {},
+  // Editing together between machines, through a relay (see session.ts).
+  ConnectedRelay: {},
+  FailedRelay: { reason: Schema.String },
+  LostRelay: {},
+  ReleasedRelay: {},
+  ClickedReconnect: {},
 });
 export type Message = typeof Message.Type;

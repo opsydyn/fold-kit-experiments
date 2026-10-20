@@ -48,6 +48,10 @@ export {
   xrMesh,
   xrMeshGeometryId,
   physics,
+  modelAsset,
+  textureAsset,
+  environmentAsset,
+  fontAsset,
   cuboidCollider,
   ballCollider,
   capsuleCollider,
@@ -149,6 +153,7 @@ export {
   overlaysEqual,
   xrEquals,
   physicsEquals,
+  assetsEqual,
   skyEquals,
   viewsEqual,
   vec3Equals,
@@ -207,8 +212,9 @@ export {
   type PhysicsJoint,
   type PhysicsWorld,
   type Quat,
+  type Received,
 } from './physics.ts';
-export type { BodyCollision, BodyContactForce } from './bodies.ts';
+export type { BodyCollision, BodyContactForce, PhysicsReached } from './bodies.ts';
 export type {
   ContactShadowPasses,
   HostedLine,
@@ -282,6 +288,7 @@ export {
   type SceneGraph,
   type SceneGraphOptions,
 } from './sceneGraph.ts';
+export { type PreviewOptions, type PreviewResult, previewSvg } from './preview.ts';
 export {
   type DescriptionError,
   emptyIndex,
@@ -310,6 +317,7 @@ export {
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
 export * as History from './history.ts';
 export * as Lockstep from './lockstep.ts';
+export * as Timeline from './timeline.ts';
 export {
   describeScene,
   formatSummary,

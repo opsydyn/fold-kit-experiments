@@ -1,6 +1,7 @@
 # ADR-011: Replays record what the player did; the simulation does the rest
 
-- Status: Proposed (2026-10-18). A spike on the bowling sample is the evidence so far.
+- Status: Accepted (2026-10-20), proposed 2026-10-18 on the bowling spike. Inputs that
+  land mid-motion use the timeline of ADR-014; the tabletop's replays are the second case.
 - Evidence: `packages/effect-three-samples/src/bowling/replay.ts`, `test/bowling-replay.test.ts`,
   and headless browser runs (Chromium, SwiftShader): a game of six rolls with varied
   start, line and speed, each rolled after a random pause, replayed from its link in a
@@ -47,11 +48,28 @@ want the same thing: a run reproduced from a small record.
 
 - Replays are exact on the same build, across page loads; across machines they rely on
   WebAssembly's deterministic floating point and, to be guaranteed, on Rapier's
-  deterministic build (not yet used).
+  deterministic build (`@opsydyn/effect-three-rapier/deterministic` since ADR-014).
 - Waiting for rest costs the player a moment between rolls; it is what makes the
   record small. Inputs that must land mid-motion (a flipper, a steering wheel) need the
   step count recorded with them, and the engine to apply inputs at step boundaries:
-  the next step towards lockstep multiplayer.
+  the next step towards lockstep multiplayer. (Since built: `physics({ until })` and
+  `Timeline`, ADR-014, which a replay can use for inputs at any step.)
 - Foldkit DevTools time travel shows the Model at a past Message but not the physics
   world then; an event-sourced replay re-simulates instead. Checkpointing the world
   (Rapier can snapshot it) would join the two.
+
+## Since: replays on the timeline (2026-10-20)
+
+Inputs that land at any moment, not only at rest, are recorded with their step: a
+`Timeline` (ADR-014) is already that record. The tabletop's "Replay this game" link
+carries every throw and rebuild with its step, the last check step the world reached,
+and the world's checksums at its last thirty checks (`#replay=…`, the record's JSON in
+URL-safe base64, decoded by its schema before use). Opening it replays without a session:
+the throws go into a timeline at their steps, the frontier moves a turn's steps each tick
+(so the game plays back at the pace it was played), and the record's checksums wait to
+be compared as the world reaches their steps, the same comparison peers make. Evidence:
+`test/tabletop.test.ts` (a record through the address and back unchanged, a replay
+meeting every check, a forged one found out at its first), and headless Chromium with
+Rapier's deterministic build: a game of five throws and a rebuild, replayed from its link
+in a fresh browser context, met all 14 of its checks; a damaged link is not a record, and
+the page plays live instead.

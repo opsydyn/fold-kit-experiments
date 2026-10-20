@@ -63,12 +63,24 @@ for a view with selection and a Model-owned orbit camera.
   files (`SceneFile`), branching history (`History`), review diffs (`sceneChanges`), the
   schema-generated inspector (`Inspector`, `inspectorView`), a scene vocabulary for
   agents (`describeScene`, `shotCamera`, `moodStaging`) and editing together
-  (`Lockstep`) are pure too; the promo's editor example uses them all.
-- **The application owns assets and loading.** Load models, textures, fonts and HDR
-  panoramas as Effects in Commands (`environment.assets.load*`), settle them into the
-  Model, and refer to them by id. A description may name an id before it is lent; it
+  (`Lockstep`) are pure too; the promo's editor example uses them all. Physics in
+  lockstep puts the world's clock in the Model (`physics({ until })`, `Timeline`): the
+  tabletop example. To step physics off the page's thread, serve Rapier in a worker
+  (`servePhysics`) and pass `remotePhysics(worker)` as the environment's physics, from
+  `@opsydyn/effect-three-rapier/worker`; it is a frame behind, and agrees with peers.
+- **The Model says which assets it wants.** List them in the description
+  (`scene({ assets: [modelAsset({ id, url })] })`): the environment loads, shares,
+  cancels and frees them, and the scene reports `onAssetLoaded` / `onAssetFailed` to
+  settle into the Model by id; stop asking to unload. Give an asset coarser `levels`
+  (`modelAsset({ id, url, levels: ['robot-low.glb'] })`) to show them first: each
+  `onAssetLoaded` says its `level` and whether it is `final`. Commands
+  (`environment.assets.load*`) remain for an asset the app owns outright; one way per id. A description may name an id before it is lent; it
   appears when lent. Lent objects, textures and geometries are never disposed by the
   library.
+- **A still without a browser:** `previewSvg(description, { width, height })` draws a
+  flat-shaded SVG of a scene anywhere JavaScript runs (a build, a server, a test), and
+  `bun run scene:preview scene.json out.svg` does it for a scene file. No textures,
+  shadows or labels.
 
 ## Verify
 

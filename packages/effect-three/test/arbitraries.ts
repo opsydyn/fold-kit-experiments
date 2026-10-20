@@ -515,6 +515,14 @@ const Node: Schema.Codec<SceneNode> = Schema.Union([
 const sceneFields = {
   gestures: Schema.Literals(['page', 'scene']),
   measure: Schema.Array(Schema.String).check(Schema.isMaxLength(0)),
+  assets: Schema.Array(
+    Schema.Struct({
+      kind: Schema.Literals(['model', 'texture', 'environment', 'font']),
+      id: Schema.Literals(['robot']),
+      url: Schema.Literals(['robot.glb']),
+      levels: Schema.Array(Schema.Literals(['robot-low.glb'])).check(Schema.isMaxLength(1)),
+    }),
+  ).check(Schema.isMaxLength(1)),
   xr: Schema.NullOr(
     Schema.Struct({
       origin: Vec3,
@@ -545,6 +553,8 @@ const sceneFields = {
       paused: Schema.Boolean,
       timeStep: Schema.Literals([1 / 60]),
       interpolate: Schema.Boolean,
+      until: Schema.NullOr(Schema.Literals([0, 3])),
+      run: Schema.Literals([0, 1]),
       debug: Schema.Boolean,
       joints: Schema.Tuple([]),
     }),

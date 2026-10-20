@@ -240,10 +240,17 @@ cannot easily follow, because they rest on what is different here: the Model is 
 truth, scenes are a pure function of it, every change is a Schema-typed Message, and
 Effect owns every lifetime.
 
-1. **Event-sourced replay** ([ADR-011](adr/011-event-sourced-replay.md), proposed; spike
-   on the bowling sample). Record the player's inputs, let deterministic physics produce
-   the rest: shareable runs as links, ghost replays, bug reports that reproduce, and
-   time travel that covers the physics world.
+1. **Event-sourced replay** ([ADR-011](adr/011-event-sourced-replay.md)). Record the
+   player's inputs, let deterministic physics produce the rest: shareable runs as links,
+   ghost replays, bug reports that reproduce, and time travel that covers the physics
+   world.
+   ✅ First, the bowling spike: rolls recorded and replayed from a link, each starting from
+   a world at rest.
+   ✅ Then on the timeline (2026-10-20, with ADR-014): the tabletop's "Replay this game"
+   link carries every throw and rebuild with its step and the world's checksums; opening
+   it plays the game back at its pace, with no session, and checks the world against the
+   record (14 of 14 checks met in Chromium). Throws land mid-motion, so nothing waits for
+   rest. ADR-011 is accepted.
 2. **Lockstep multiplayer and XR co-presence.** If every peer runs the same `update`,
    sharing the input stream (an Effect `Stream` over a socket) shares the world; other
    players' heads and hands are more tracked spaces. Needs inputs applied at step
@@ -252,8 +259,24 @@ Effect owns every lifetime.
    together. The kernel's `Lockstep` is the protocol as data (turns, members, the
    leader admitting and dropping, welcomes); the editor's shared changes are Edits sent
    through it over a `BroadcastChannel`, so tabs of one browser edit one scene with one
-   history. Checked over a simulated lossy-timing network and in two real tabs. Next:
-   a relay for peers on different machines, then physics inputs at fixed steps.
+   history. Checked over a simulated lossy-timing network and in two real tabs.
+   ✅ Then between machines (2026-10-20): `bun run relay` is a WebSocket relay that hands
+   each message to every other peer in a room and reads none of them, and the editor
+   with `?relay=ws://host:port/room` runs its session through it, the socket a Foldkit
+   managed resource. A lost relay leaves each editor working alone until it reconnects.
+   Checked with real sockets and with separate browser contexts, which share no
+   channel.
+   ✅ Then physics ([ADR-014](adr/014-physics-in-lockstep.md), 2026-10-20): the Model
+   keeps the world's clock. `physics({ until })` steps a world toward a step and stops
+   there, reporting `PhysicsReached` with a checksum of every body's pose; whatever
+   changes while it waits lands at that step, however the frames fell. `Timeline` holds
+   inputs stamped with their step, `physics({ run })` starts a world over, and
+   `@opsydyn/effect-three-rapier/deterministic` is Rapier's cross-platform build. The
+   promo's tabletop example throws balls at a tower from every peer: a turn's throws
+   land at that turn's step, a newcomer replays the record from step 0, and peers
+   compare checksums every second. Checked by simulated peers, real Rapier at random
+   frame timings, and three browser contexts through the relay. Next: rollback, and a
+   snapshot welcome so a newcomer need not replay everything.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -324,6 +347,28 @@ Effect owns every lifetime.
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
    previews.
+   ✅ First ([ADR-015](adr/015-assets-a-scene-asks-for.md), 2026-10-20): a scene asks for
+   its assets (`scene({ assets: [modelAsset({ id, url })] })`), and the environment loads
+   each once however many scenes ask, aborts a load no scene asks for any more, and frees
+   an asset when the last scene stops asking; scenes hear `onAssetLoaded` and
+   `onAssetFailed`. The workshop example unloads by no longer asking, which cancels a load
+   under way (checked with the robot's request held in the network).
+   ✅ Then level of detail as a stream (ADR-015, levels): an asset lists coarser
+   `levels`, all loaded at once; each is shown as it arrives if it is finer than what is
+   shown, and once the finest is shown the coarser loads still under way are cancelled.
+   Scenes hear each level, with whether it is `final`. The workshop's robot and floor
+   start coarse and sharpen.
+   ✅ Then server rendering for previews
+   ([ADR-016](adr/016-previews-without-a-browser.md)): `previewSvg` draws a description
+   as a flat-shaded SVG without a browser or GPU, ordered by a binary space partition so
+   floors and walls never cover what stands on them, and `scene:preview` draws a scene
+   file. The promo's guide shows two examples drawn at build time.
+   ✅ Last, Rapier in a Worker ([ADR-017](adr/017-physics-in-a-worker.md)):
+   `remotePhysics(worker)` is a `PhysicsEngine` whose worlds live in a worker running
+   `servePhysics`, pipelined a frame behind, with an optional `received()` on the world
+   contract so `until` reports wait for the worker's answer. The tabletop takes
+   `?physics=worker`, and its peers agree whether their physics is in the page or in a
+   worker. With it, every part of 6 is done.
 
 A flagship that ties them together: a collaborative, replayable scene editor with an
 assistant, built as a Foldkit app (4 and 5 for editing, 1 for history, 2 for
@@ -333,7 +378,8 @@ of scene nodes in the Model; it adds, duplicates and deletes them, selects by cl
 outliner or box, moves them with the gizmo (lights by their markers), edits any field
 in an inspector read from `SceneSchema.SceneNode`, undoes along branches or jumps to
 any step, saves and opens scene files, and lists the changes since saving with the
-kernel's diff. Next for it: collaboration (2) and an assistant (3).
+kernel's diff. Since then it takes an assistant's intents (3) and edits together, in
+tabs or through a relay between machines (2).
 
 ### Recommendation
 
@@ -342,8 +388,13 @@ The replay spike (1), the Drei audit and its S candidates, agent control of the 
 select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and so is
 tooling from Schema (4): scene files, branching history, review diffs and the inspector.
 The scene editor ties them together, agents can describe and stage a scene through it
-(3), and tabs edit it together in lockstep (2). Next: a relay between machines, physics
-lockstep, and data and assets (6).
+(3), and tabs, or machines through a relay, edit it together in lockstep (2); physics
+runs in lockstep too, inputs landing at a step the Model sets (2), and a game replays
+from a link, checked step by step against its record (1). Data and assets (6) are done:
+scenes ask for their assets, loaded, shared, cancelled and freed for them, coarse levels
+first; a scene previews as SVG without a browser; and Rapier steps in a worker behind the
+same engine contract. What remains is lockstep physics' rollback and a snapshot welcome
+(2), so a newcomer need not replay everything.
 
 ## Not planned
 

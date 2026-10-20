@@ -625,6 +625,22 @@ export type Physics = {
   readonly paused: boolean;
   readonly timeStep: number;
   readonly interpolate: boolean;
+  /**
+   * The step the Model lets the world reach, for a simulation that must run alike
+   * wherever it runs (lockstep, replays; ADR-014). The world advances toward it in fixed
+   * steps at scene time's pace (faster when far behind), stops there and reports
+   * `PhysicsReached`; whatever the description changes while it waits applies at that
+   * step, on every peer. Steps count from 0 when the world is made, and the world never
+   * goes back: a lower `until` holds it where it is. `null` (the default): the world runs
+   * on scene time alone, as react-three-rapier's does.
+   */
+  readonly until: number | null;
+  /**
+   * Which run of the simulation this is: a new number throws the world away and starts
+   * another at step 0, for a peer that takes a session's record and replays it, or a
+   * replay starting over. `0` by default.
+   */
+  readonly run: number;
   /** Draw every collider and joint as lines, as react-three-rapier's `<Physics debug>`. */
   readonly debug: boolean;
   /** Joints between bodies, each active while both its bodies exist. */
@@ -1426,6 +1442,22 @@ export type XrGlide = {
   readonly snapDegrees: number;
 };
 
+/** What an asset is: a glTF or GLB model, a colour texture, an HDR panorama, a typeface font. */
+export type AssetKind = 'model' | 'texture' | 'environment' | 'font';
+
+/**
+ * An asset a scene asks for: its kind, the id it is lent under once loaded, and where it
+ * comes from. `levels` are coarser versions, coarsest first, to show while `url` (the
+ * finest) is on its way: each is lent as it arrives, if finer than what is shown, and
+ * reported as a level of detail (ADR-015).
+ */
+export type Asset = {
+  readonly kind: AssetKind;
+  readonly id: string;
+  readonly url: string;
+  readonly levels: ReadonlyArray<string>;
+};
+
 export type SceneDescription = {
   readonly camera: Camera;
   /** Whether the scene claims the pointer's gestures from the page. */
@@ -1456,6 +1488,14 @@ export type SceneDescription = {
    * changes: what Drei's `Bounds` measures, for `fitCamera`. Loaded models included.
    */
   readonly measure: ReadonlyArray<string>;
+  /**
+   * Assets the scene asks for, each lent under its id once loaded: a `borrowed({ id })`
+   * node shows a model, a material's `map: id` a texture, `environment({ map: id })` a
+   * panorama and `text({ font: id })` a font. The host loads each once however many
+   * scenes ask, cancels a load no scene asks for any more, and frees an asset when the
+   * last scene stops asking (ADR-015); it reports each as loaded or failed.
+   */
+  readonly assets: ReadonlyArray<Asset>;
   readonly render: RenderSettings;
   readonly resources: ResourceDefinitions;
   readonly children: ReadonlyArray<SceneNode>;

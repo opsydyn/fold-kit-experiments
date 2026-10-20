@@ -39,6 +39,10 @@ type Proof = [
     Kernel.Lockstep.Packet<number>
   >,
   Equals<
+    ReturnType<typeof SceneSchema.Timeline<typeof SceneSchema.Rgb>>['Type'],
+    Kernel.Timeline.Timeline<number>
+  >,
+  Equals<
     ReturnType<typeof SceneSchema.History<typeof SceneSchema.Placement>>['Type'],
     Kernel.History.History<Kernel.Placement>
   >,

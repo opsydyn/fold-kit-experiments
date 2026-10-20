@@ -1,16 +1,23 @@
 /**
- * Loading textures, glTF models and typeface fonts by URL, as Effects an application runs
- * from a Foldkit Command and settles into `AsyncData`. Each asset is lent to the shared
- * resource store under an id: materials use a texture with `map: id`, a `borrowed({ id })`
- * node shows a model, and `text({ font: id })` geometry draws with a font. The environment owns what it loads: loading an id again replaces and disposes
- * the earlier asset, and `unload` or the environment's `dispose` frees it.
+ * Loading textures, glTF models, HDR panoramas and typeface fonts by URL. Each asset is
+ * lent to the shared resource store under an id: materials use a texture with `map: id`,
+ * a `borrowed({ id })` node shows a model, `environment({ map: id })` a panorama, and
+ * `text({ font: id })` geometry draws with a font.
+ *
+ * Two ways in. A scene can ask for assets in its description (`scene({ assets })`), and
+ * the environment's registry loads, shares, cancels and frees them as scenes ask
+ * (`assetLoader` is what it loads with; ADR-015). Or an application loads one with an
+ * Effect from a Command and settles it into `AsyncData`; the environment owns what it
+ * loads that way, loading an id again replaces and disposes the earlier asset, and
+ * `unload` or the environment's `dispose` frees it. Use one way for any one id.
  *
  * @module
  */
-import type { ResourceStore } from '@opsydyn/effect-three';
+import type { Asset, AssetKind, ResourceStore } from '@opsydyn/effect-three';
 import { Data, Effect } from 'effect';
 import {
   EquirectangularReflectionMapping,
+  LoadingManager,
   type Object3D,
   SRGBColorSpace,
   type Texture,
@@ -20,6 +27,7 @@ import { type Font, FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 
+import type { AssetLoader, Lent } from './assetRegistry.ts';
 import { disposeModel, namesIn } from './dom/models.ts';
 
 /** An asset could not be fetched or decoded. */
@@ -37,6 +45,78 @@ export type ModelInfo = {
   readonly clips: ReadonlyArray<string>;
 };
 
+type Gltf = { readonly scene: Object3D; readonly animations: Object3D['animations'] };
+
+const nothing: ReadonlyArray<string> = [];
+
+/** What lending an asset gives back: no parts or clips, and how to withdraw and free it. */
+const plain = (release: () => void): Lent => ({ parts: nothing, clips: nothing, release });
+
+/** Lends a colour texture (sRGB). */
+const lentTexture = (store: ResourceStore, id: string, texture: Texture): Lent => {
+  texture.colorSpace = SRGBColorSpace;
+  const withdraw = store.lendTexture(id, texture);
+  return plain(() => {
+    withdraw();
+    texture.dispose();
+  });
+};
+
+/** Lends a model's scene, keeping its clips with it so a borrowed node can play them. */
+const lentModel = (store: ResourceStore, id: string, gltf: Gltf): Lent => {
+  gltf.scene.animations = gltf.animations;
+  const withdraw = store.lend(id, gltf.scene);
+  return {
+    parts: namesIn(gltf.scene),
+    clips: gltf.animations.map((clip) => clip.name),
+    release: () => {
+      withdraw();
+      disposeModel(gltf.scene);
+    },
+  };
+};
+
+/** Lends an HDR panorama for `environment({ map })`: linear, mapped for reflection. */
+const lentEnvironment = (store: ResourceStore, id: string, texture: Texture): Lent => {
+  texture.mapping = EquirectangularReflectionMapping;
+  const withdraw = store.lendTexture(id, texture);
+  return plain(() => {
+    withdraw();
+    texture.dispose();
+  });
+};
+
+/** Lends a font; fonts hold no GPU resources, so withdrawing the loan frees them. */
+const lentFont = (store: ResourceStore, id: string, font: Font): Lent =>
+  plain(store.lendFont(id, font));
+
+type LoadAndLend = (store: ResourceStore, asset: Asset, manager: LoadingManager) => Promise<Lent>;
+
+/** How each kind of asset loads, with a loading manager of its own, and is lent. */
+const loadAndLend = {
+  model: async (store, { id, url }, manager) =>
+    lentModel(store, id, await new GLTFLoader(manager).loadAsync(url)),
+  texture: async (store, { id, url }, manager) =>
+    lentTexture(store, id, await new TextureLoader(manager).loadAsync(url)),
+  environment: async (store, { id, url }, manager) =>
+    lentEnvironment(store, id, await new HDRLoader(manager).loadAsync(url)),
+  font: async (store, { id, url }, manager) =>
+    lentFont(store, id, await new FontLoader(manager).loadAsync(url)),
+} satisfies Record<AssetKind, LoadAndLend>;
+
+/**
+ * What the environment's registry loads scenes' assets with: three's loaders, each load
+ * with a loading manager of its own, so aborting it cancels its requests (three's file
+ * and image-bitmap loaders honour the manager's abort).
+ */
+export const assetLoader =
+  (store: ResourceStore): AssetLoader =>
+  (asset, signal) => {
+    const manager = new LoadingManager();
+    signal.addEventListener('abort', () => manager.abort(), { once: true });
+    return loadAndLend[asset.kind](store, asset, manager);
+  };
+
 /** Creates the asset loader for a store. One per environment. */
 export const makeAssets = (store: ResourceStore) => {
   const releases = new Map<string, () => void>();
@@ -48,47 +128,24 @@ export const makeAssets = (store: ResourceStore) => {
   };
 
   const lendTexture = (id: string) => (texture: Texture) => {
-    texture.colorSpace = SRGBColorSpace;
-    const withdraw = store.lendTexture(id, texture);
-    own(id, () => {
-      withdraw();
-      texture.dispose();
-    });
+    own(id, lentTexture(store, id, texture).release);
     return id;
   };
 
-  const lendModel =
-    (id: string) =>
-    (gltf: { readonly scene: Object3D; readonly animations: Object3D['animations'] }) => {
-      // Keep the clips with the object, so a borrowed node can play them by name.
-      gltf.scene.animations = gltf.animations;
-      const withdraw = store.lend(id, gltf.scene);
-      own(id, () => {
-        withdraw();
-        disposeModel(gltf.scene);
-      });
-      const info: ModelInfo = {
-        id,
-        parts: namesIn(gltf.scene),
-        clips: gltf.animations.map((clip) => clip.name),
-      };
-      return info;
-    };
+  const lendModel = (id: string) => (gltf: Gltf) => {
+    const lent = lentModel(store, id, gltf);
+    own(id, lent.release);
+    const info: ModelInfo = { id, parts: lent.parts, clips: lent.clips };
+    return info;
+  };
 
-  /** Lends an HDR panorama for `environment({ map })`: linear, mapped for reflection. */
   const lendEnvironment = (id: string) => (texture: Texture) => {
-    texture.mapping = EquirectangularReflectionMapping;
-    const withdraw = store.lendTexture(id, texture);
-    own(id, () => {
-      withdraw();
-      texture.dispose();
-    });
+    own(id, lentEnvironment(store, id, texture).release);
     return id;
   };
 
   const lendFont = (id: string) => (font: Font) => {
-    // Fonts hold no GPU resources: withdrawing the loan frees them.
-    own(id, store.lendFont(id, font));
+    own(id, lentFont(store, id, font).release);
     return id;
   };
 

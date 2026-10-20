@@ -1,0 +1,260 @@
+/**
+ * The environment's asset registry (ADR-015), with a loader whose loads a test settles by
+ * hand: each asset loads once however many scenes ask, a load no scene asks for any more
+ * is cancelled, and the last scene to let go frees it.
+ */
+import { expect, test } from 'bun:test';
+
+import { type Asset, modelAsset, textureAsset } from '@opsydyn/effect-three';
+
+import { type AssetNotice, type Lent, makeAssetRegistry } from '../src/assetRegistry.ts';
+
+type Load = {
+  readonly asset: Asset;
+  readonly signal: AbortSignal;
+  readonly resolve: (lent: Lent) => void;
+  readonly reject: (cause: unknown) => void;
+};
+
+/** A registry over a loader that waits to be settled, and what it was asked and freed. */
+const setup = () => {
+  const loads: Array<Load> = [];
+  const freed: Array<string> = [];
+  const registry = makeAssetRegistry(
+    (asset, signal) =>
+      new Promise<Lent>((resolve, reject) => loads.push({ asset, signal, resolve, reject })),
+  );
+  const lent = (asset: Asset): Lent => ({
+    parts: asset.kind === 'model' ? ['arm'] : [],
+    clips: [],
+    release: () => freed.push(asset.url),
+  });
+  /** A scene: what it hears, and a way to ask. */
+  const scene = () => {
+    const heard: Array<AssetNotice> = [];
+    const self = {};
+    return {
+      heard,
+      ask: (assets: ReadonlyArray<Asset>) =>
+        registry.want(self, assets, (notice) => heard.push(notice)),
+      leave: () => registry.release(self),
+    };
+  };
+  return { registry, loads, freed, lent, scene };
+};
+
+/** Lets settled loads tell their scenes (their callbacks run as microtasks). */
+const settle = () => new Promise((done) => setTimeout(done, 0));
+
+const robot = modelAsset({ id: 'robot', url: 'robot.glb' });
+const floor = textureAsset({ id: 'floor', url: 'tiles.png' });
+
+test('an asset two scenes ask for loads once, and each hears that it loaded', async () => {
+  const { loads, lent, scene } = setup();
+  const a = scene();
+  const b = scene();
+  a.ask([robot]);
+  b.ask([robot, floor]);
+  expect(loads.map((load) => load.asset.id)).toEqual(['robot', 'floor']);
+  loads[0]?.resolve(lent(robot));
+  await settle();
+  expect(a.heard).toEqual([
+    { _tag: 'Loaded', ...robot, level: 0, final: true, parts: ['arm'], clips: [] },
+  ]);
+  expect(b.heard).toEqual(a.heard);
+  // A third, asking after it loaded, hears at once; nothing loads again.
+  const c = scene();
+  c.ask([robot]);
+  expect(c.heard).toEqual(a.heard);
+  expect(loads).toHaveLength(2);
+});
+
+test('asking again for the same list changes nothing', () => {
+  const { loads, scene } = setup();
+  const a = scene();
+  a.ask([robot, floor]);
+  a.ask([{ ...robot }, { ...floor }]);
+  expect(loads).toHaveLength(2);
+  expect(loads.every((load) => !load.signal.aborted)).toBe(true);
+});
+
+test('a load no scene asks for any more is cancelled, and what it brings back is freed', async () => {
+  const { loads, freed, lent, scene } = setup();
+  const a = scene();
+  const b = scene();
+  a.ask([robot]);
+  b.ask([robot]);
+  a.ask([]);
+  expect(loads[0]?.signal.aborted).toBe(false);
+  b.leave();
+  expect(loads[0]?.signal.aborted).toBe(true);
+  // A loader that finishes anyway: its asset is freed, and no one hears of it.
+  loads[0]?.resolve(lent(robot));
+  await settle();
+  expect(freed).toEqual(['robot.glb']);
+  expect([...a.heard, ...b.heard]).toEqual([]);
+});
+
+test('the last scene to let go of a loaded asset frees it, once', async () => {
+  const { loads, freed, lent, scene } = setup();
+  const a = scene();
+  const b = scene();
+  a.ask([robot]);
+  b.ask([robot]);
+  loads[0]?.resolve(lent(robot));
+  await settle();
+  a.leave();
+  expect(freed).toEqual([]);
+  b.ask([floor]);
+  expect(freed).toEqual(['robot.glb']);
+  // Asked for again, it loads again.
+  a.ask([robot]);
+  expect(loads.filter((load) => load.asset.id === 'robot')).toHaveLength(2);
+});
+
+test('a failure is heard by every scene asking, and asking afresh tries again', async () => {
+  const { loads, scene } = setup();
+  const a = scene();
+  const b = scene();
+  a.ask([robot]);
+  loads[0]?.reject(new Error('404'));
+  await settle();
+  expect(a.heard).toEqual([{ _tag: 'Failed', ...robot, reason: 'Could not load robot.glb: 404' }]);
+  // Still failed while asked for: a newcomer hears so at once, and nothing reloads.
+  b.ask([robot]);
+  expect(b.heard).toEqual(a.heard);
+  expect(loads).toHaveLength(1);
+  a.leave();
+  b.leave();
+  a.ask([robot]);
+  expect(loads).toHaveLength(2);
+});
+
+test('a scene asking for an id held as something else waits for it, failed meanwhile', async () => {
+  const { loads, freed, lent, scene } = setup();
+  const a = scene();
+  const b = scene();
+  a.ask([robot]);
+  const other = modelAsset({ id: 'robot', url: 'other.glb' });
+  b.ask([other]);
+  expect(b.heard).toEqual([
+    { _tag: 'Failed', ...other, reason: '"robot" is already robot.glb for another scene' },
+  ]);
+  expect(loads).toHaveLength(1);
+  // a lets go: its load is cancelled, and b's starts.
+  a.leave();
+  expect(loads[0]?.signal.aborted).toBe(true);
+  expect(loads[1]?.asset.url).toBe('other.glb');
+  loads[1]?.resolve(lent(other));
+  await settle();
+  expect(b.heard.at(-1)).toMatchObject({ _tag: 'Loaded', url: 'other.glb' });
+  expect(freed).toEqual([]);
+});
+
+test('a scene changing what an id is lets the old one go and loads the new', async () => {
+  const { loads, freed, lent, scene } = setup();
+  const a = scene();
+  a.ask([robot]);
+  loads[0]?.resolve(lent(robot));
+  await settle();
+  a.ask([modelAsset({ id: 'robot', url: 'robot-2.glb' })]);
+  expect(freed).toEqual(['robot.glb']);
+  expect(loads[1]?.asset.url).toBe('robot-2.glb');
+});
+
+test('disposing the registry cancels what is loading and frees what is loaded', async () => {
+  const { registry, loads, freed, lent, scene } = setup();
+  const a = scene();
+  a.ask([robot, floor]);
+  loads[0]?.resolve(lent(robot));
+  await settle();
+  registry.dispose();
+  expect(freed).toEqual(['robot.glb']);
+  expect(loads[1]?.signal.aborted).toBe(true);
+});
+
+test('an asset with coarser levels shows each as it arrives, finer replacing coarser', async () => {
+  const { loads, freed, lent, scene } = setup();
+  const a = scene();
+  const detailed = modelAsset({
+    id: 'robot',
+    url: 'robot.glb',
+    levels: ['robot-low.glb', 'robot-mid.glb'],
+  });
+  a.ask([detailed]);
+  // Every level loads at once, coarsest first.
+  expect(loads.map((load) => load.asset.url)).toEqual([
+    'robot-low.glb',
+    'robot-mid.glb',
+    'robot.glb',
+  ]);
+  const level = (url: string) => loads.find((load) => load.asset.url === url);
+  level('robot-mid.glb')?.resolve(lent({ ...detailed, url: 'robot-mid.glb' }));
+  await settle();
+  expect(a.heard.map((notice) => notice._tag === 'Loaded' && [notice.level, notice.final])).toEqual(
+    [[1, false]],
+  );
+  // A coarser level arriving after a finer one is freed, unseen.
+  level('robot-low.glb')?.resolve(lent({ ...detailed, url: 'robot-low.glb' }));
+  await settle();
+  expect(freed).toEqual(['robot-low.glb']);
+  expect(a.heard).toHaveLength(1);
+  // The finest replaces what was shown, which is freed after it is lent.
+  level('robot.glb')?.resolve(lent(detailed));
+  await settle();
+  expect(a.heard.at(-1)).toMatchObject({ _tag: 'Loaded', level: 2, final: true });
+  expect(freed).toEqual(['robot-low.glb', 'robot-mid.glb']);
+  // A newcomer hears what is shown now; letting go frees the finest.
+  const b = scene();
+  b.ask([detailed]);
+  expect(b.heard).toEqual(a.heard.slice(-1));
+  a.leave();
+  b.leave();
+  expect(freed).toEqual(['robot-low.glb', 'robot-mid.glb', 'robot.glb']);
+});
+
+test('once the finest level is shown, coarser loads still under way are cancelled', async () => {
+  const { loads, lent, scene } = setup();
+  const a = scene();
+  const detailed = modelAsset({ id: 'robot', url: 'robot.glb', levels: ['robot-low.glb'] });
+  a.ask([detailed]);
+  loads[1]?.resolve(lent(detailed));
+  await settle();
+  expect(loads[0]?.signal.aborted).toBe(true);
+  expect(a.heard).toMatchObject([{ level: 1, final: true }]);
+});
+
+test('a coarser level failing is skipped; the finest failing fails the asset, and what was shown stays', async () => {
+  const { loads, freed, lent, scene } = setup();
+  const a = scene();
+  const detailed = modelAsset({
+    id: 'robot',
+    url: 'robot.glb',
+    levels: ['robot-low.glb', 'robot-mid.glb'],
+  });
+  a.ask([detailed]);
+  loads[0]?.reject(new Error('404'));
+  loads[1]?.resolve(lent({ ...detailed, url: 'robot-mid.glb' }));
+  await settle();
+  expect(a.heard).toMatchObject([{ _tag: 'Loaded', level: 1, final: false }]);
+  loads[2]?.reject(new Error('timeout'));
+  await settle();
+  expect(a.heard.at(-1)).toMatchObject({
+    _tag: 'Failed',
+    reason: 'Could not load robot.glb: timeout',
+  });
+  expect(freed).toEqual([]);
+  // A newcomer hears both: the level shown, and that the finest failed.
+  const b = scene();
+  b.ask([detailed]);
+  expect(b.heard.map((notice) => notice._tag)).toEqual(['Loaded', 'Failed']);
+});
+
+test('levels are part of what an asset is: changing them loads it again', () => {
+  const { loads, scene } = setup();
+  const a = scene();
+  a.ask([robot]);
+  a.ask([modelAsset({ id: 'robot', url: 'robot.glb', levels: ['robot-low.glb'] })]);
+  expect(loads[0]?.signal.aborted).toBe(true);
+  expect(loads.slice(1).map((load) => load.asset.url)).toEqual(['robot-low.glb', 'robot.glb']);
+});

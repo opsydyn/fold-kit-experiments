@@ -33,6 +33,8 @@ export type FakeWorld = PhysicsWorld & {
     { readonly joint: PhysicsJoint; readonly a: string; readonly b: string }
   >;
   disposed: boolean;
+  /** Steps taken. */
+  steps: number;
 };
 
 export const fakePhysics = () => {
@@ -70,6 +72,7 @@ export const fakePhysics = () => {
           return { vertices, colors: new Float32Array(bodies.size * 8).fill(1) };
         },
         disposed: false,
+        steps: 0,
         configure: (physics) => {
           calls.push('configure');
           gravity = physics.gravity;
@@ -121,6 +124,7 @@ export const fakePhysics = () => {
           joints.delete(id);
         },
         step: (seconds) => {
+          world.steps += 1;
           for (const held of bodies.values()) {
             if (held.body.type !== 'dynamic') continue;
             held.velocity = [

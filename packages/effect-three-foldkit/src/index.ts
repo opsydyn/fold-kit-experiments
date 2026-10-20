@@ -53,6 +53,8 @@ export * as TransformGizmo from './transformGizmo.ts';
 export * as ViewportGizmo from './viewportGizmo.ts';
 export { type OverlayView } from './overlayView.ts';
 export {
+  type AssetFailedDetail,
+  type AssetLoadedDetail,
   type AutoRotatedDetail,
   type ButtonDetail,
   type CollisionDetail,
@@ -66,6 +68,7 @@ export {
   type MeasuredDetail,
   type MissDetail,
   type PerformanceDetail,
+  type PhysicsReachedDetail,
   view,
   type ViewConfig,
   type WheelDetail,

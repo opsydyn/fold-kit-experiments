@@ -313,6 +313,12 @@ Effect owns every lifetime.
 A flagship that ties them together: a collaborative, replayable scene editor with an
 assistant, built as a Foldkit app (4 and 5 for editing, 1 for history, 2 for
 collaboration, 3 for the assistant).
+✅ First, single-user (2026-10-20): the promo's editor example. The document is a list
+of scene nodes in the Model; it adds, duplicates and deletes them, selects by click,
+outliner or box, moves them with the gizmo (lights by their markers), edits any field
+in an inspector read from `SceneSchema.SceneNode`, undoes along branches or jumps to
+any step, saves and opens scene files, and lists the changes since saving with the
+kernel's diff. Next for it: collaboration (2) and an assistant (3).
 
 ### Recommendation
 
@@ -320,7 +326,8 @@ The replay spike (1), the Drei audit and its S candidates, agent control of the 
 (3), labels under WebGPU (E), the line and points families, the transform gizmo, box
 select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and so is
 tooling from Schema (4): scene files, branching history, review diffs and the inspector.
-Next: the scene editor that ties them together, or a scene-level vocabulary for agents (3).
+The single-user scene editor ties them together. Next: a scene-level vocabulary for
+agents (3), then lockstep multiplayer (2).
 
 ## Not planned
 

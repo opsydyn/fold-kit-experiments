@@ -18,7 +18,10 @@ import { SceneFile } from '../src/runtime/index.ts';
 const robot = modelAsset({ id: 'robot', url: 'robot.glb' });
 
 test('each builder names its kind; a scene asks for none unless told', () => {
-  expect(robot).toEqual({ kind: 'model', id: 'robot', url: 'robot.glb' });
+  expect(robot).toEqual({ kind: 'model', id: 'robot', url: 'robot.glb', levels: [] });
+  expect(modelAsset({ id: 'robot', url: 'robot.glb', levels: ['robot-low.glb'] }).levels).toEqual([
+    'robot-low.glb',
+  ]);
   expect(textureAsset({ id: 'floor', url: 'tiles.png' }).kind).toBe('texture');
   expect(environmentAsset({ id: 'sky', url: 'sky.hdr' }).kind).toBe('environment');
   expect(fontAsset({ id: 'type', url: 'inter.json' }).kind).toBe('font');
@@ -39,6 +42,7 @@ test('lists are equal when they ask for the same assets in the same order', () =
   expect(assetsEqual([robot, floor], [{ ...robot }, { ...floor }])).toBe(true);
   expect(assetsEqual([robot, floor], [floor, robot])).toBe(false);
   expect(assetsEqual([robot], [{ ...robot, url: 'other.glb' }])).toBe(false);
+  expect(assetsEqual([robot], [{ ...robot, levels: ['robot-low.glb'] }])).toBe(false);
   expect(assetsEqual([robot], [])).toBe(false);
 });
 

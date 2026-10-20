@@ -520,6 +520,7 @@ const sceneFields = {
       kind: Schema.Literals(['model', 'texture', 'environment', 'font']),
       id: Schema.Literals(['robot']),
       url: Schema.Literals(['robot.glb']),
+      levels: Schema.Array(Schema.Literals(['robot-low.glb'])).check(Schema.isMaxLength(1)),
     }),
   ).check(Schema.isMaxLength(1)),
   xr: Schema.NullOr(

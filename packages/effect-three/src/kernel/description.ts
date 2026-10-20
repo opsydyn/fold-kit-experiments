@@ -1447,9 +1447,16 @@ export type AssetKind = 'model' | 'texture' | 'environment' | 'font';
 
 /**
  * An asset a scene asks for: its kind, the id it is lent under once loaded, and where it
- * comes from.
+ * comes from. `levels` are coarser versions, coarsest first, to show while `url` (the
+ * finest) is on its way: each is lent as it arrives, if finer than what is shown, and
+ * reported as a level of detail (ADR-015).
  */
-export type Asset = { readonly kind: AssetKind; readonly id: string; readonly url: string };
+export type Asset = {
+  readonly kind: AssetKind;
+  readonly id: string;
+  readonly url: string;
+  readonly levels: ReadonlyArray<string>;
+};
 
 export type SceneDescription = {
   readonly camera: Camera;

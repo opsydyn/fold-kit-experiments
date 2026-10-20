@@ -103,6 +103,7 @@ export type Asset = {
     readonly kind: AssetKind;
     readonly id: string;
     readonly url: string;
+    readonly levels: ReadonlyArray<string>;
 };
 
 // @public
@@ -110,6 +111,7 @@ const Asset_2: Schema.Struct<{
     readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
     readonly id: Schema.String;
     readonly url: Schema.String;
+    readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
 }>;
 
 // @public
@@ -117,6 +119,7 @@ const AssetFailedDetail: Schema.Struct<{
     readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
     readonly id: Schema.String;
     readonly url: Schema.String;
+    readonly levels: Schema.$Array<Schema.String>;
     readonly reason: Schema.String;
 }>;
 
@@ -131,6 +134,9 @@ const AssetLoadedDetail: Schema.Struct<{
     readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
     readonly id: Schema.String;
     readonly url: Schema.String;
+    readonly levels: Schema.$Array<Schema.String>;
+    readonly level: Schema.Int;
+    readonly final: Schema.Boolean;
     readonly parts: Schema.$Array<Schema.String>;
     readonly clips: Schema.$Array<Schema.String>;
 }>;
@@ -1364,11 +1370,10 @@ const Environment_2: Schema.Struct<{
     readonly environmentIntensity: Schema.Finite;
 }>;
 
+// Warning: (ae-forgotten-export) The symbol "AssetOptions" needs to be exported by the entry point index.d.ts
+//
 // @public
-export const environmentAsset: (options: {
-    readonly id: string;
-    readonly url: string;
-}) => Asset;
+export const environmentAsset: (input: AssetOptions) => Asset;
 
 // @public
 export const environmentEquals: (a: Environment | null, b: Environment | null) => boolean;
@@ -1449,10 +1454,7 @@ export const fixedJoint: (options?: {
 export const float: Behaviour;
 
 // @public
-export const fontAsset: (options: {
-    readonly id: string;
-    readonly url: string;
-}) => Asset;
+export const fontAsset: (input: AssetOptions) => Asset;
 
 // @public
 export const formatChanges: (changes: ReadonlyArray<SceneChange>) => string;
@@ -3536,10 +3538,7 @@ const MissDetail: Schema.Struct<{
 }>;
 
 // @public
-export const modelAsset: (options: {
-    readonly id: string;
-    readonly url: string;
-}) => Asset;
+export const modelAsset: (input: AssetOptions) => Asset;
 
 // @public
 export type Modifiers = {
@@ -5412,6 +5411,7 @@ const SceneDescription_2: Schema.Struct<{
         readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
         readonly id: Schema.String;
         readonly url: Schema.String;
+        readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
     }>>, never>;
     readonly render: Schema.Struct<{
         readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -6286,6 +6286,7 @@ const SceneFile_2: Schema.Struct<{
             readonly kind: Schema.Literals<readonly ["model", "texture", "environment", "font"]>;
             readonly id: Schema.String;
             readonly url: Schema.String;
+            readonly levels: Schema.withDecodingDefaultKey<Schema.$Array<Schema.String>, never>;
         }>>, never>;
         readonly render: Schema.Struct<{
             readonly effects: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Bloom", {
@@ -7347,10 +7348,7 @@ const TextGeometry_2: Schema.TaggedStruct<"Text", {
 }>;
 
 // @public
-export const textureAsset: (options: {
-    readonly id: string;
-    readonly url: string;
-}) => Asset;
+export const textureAsset: (input: AssetOptions) => Asset;
 
 // @public
 export type Textures = (id: string) => Texture | undefined;

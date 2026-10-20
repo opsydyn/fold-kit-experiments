@@ -692,9 +692,14 @@ export const shaderGridLookEquals = (a: ShaderGridNode, b: ShaderGridNode): bool
   a.side === b.side;
 
 const assetEquals = (a: Asset, b: Asset | undefined): boolean =>
-  b !== undefined && a.kind === b.kind && a.id === b.id && a.url === b.url;
+  b !== undefined &&
+  a.kind === b.kind &&
+  a.id === b.id &&
+  a.url === b.url &&
+  a.levels.length === b.levels.length &&
+  a.levels.every((level, i) => level === b.levels[i]);
 
-/** Asset list equality: the same kinds, ids and urls, in the same order. */
+/** Asset list equality: the same kinds, ids, urls and levels, in the same order. */
 export const assetsEqual = (a: ReadonlyArray<Asset>, b: ReadonlyArray<Asset>): boolean =>
   a === b || (a.length === b.length && a.every((asset, i) => assetEquals(asset, b[i])));
 

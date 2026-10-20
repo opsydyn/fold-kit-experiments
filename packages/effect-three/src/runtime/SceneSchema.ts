@@ -921,7 +921,12 @@ export const Gestures = Schema.Literals(['page', 'scene']);
 export const AssetKind = Schema.Literals(['model', 'texture', 'environment', 'font']);
 
 /** An asset a scene asks for (`modelAsset` and the rest). */
-export const Asset = Schema.Struct({ kind: AssetKind, id: Schema.String, url: Schema.String });
+export const Asset = Schema.Struct({
+  kind: AssetKind,
+  id: Schema.String,
+  url: Schema.String,
+  levels: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+});
 
 export const SceneDescription = Schema.Struct({
   camera: Camera,
@@ -942,22 +947,33 @@ export const SceneDescription = Schema.Struct({
   children: Schema.Array(SceneNode),
 });
 
-/** Detail of asset loaded events: the asset, and for a model its parts and clips. */
+/**
+ * Detail of asset loaded events: the asset, the level of detail now shown (0 for the
+ * coarsest of its `levels`, as many as it has levels for `url` itself) and whether that is
+ * the finest, and for a model its parts and clips.
+ */
 export const AssetLoadedDetail = Schema.Struct({
   kind: AssetKind,
   id: Schema.String,
   url: Schema.String,
+  levels: Schema.Array(Schema.String),
+  level: Schema.Int,
+  final: Schema.Boolean,
   /** Names of the objects inside a model, as hits report them in `part`. */
   parts: Schema.Array(Schema.String),
   /** Names of a model's animation clips. */
   clips: Schema.Array(Schema.String),
 });
 
-/** Detail of asset failed events: the asset, and why it could not be loaded. */
+/**
+ * Detail of asset failed events: the asset, and why its finest level could not be loaded
+ * (a coarser level shown before stays).
+ */
 export const AssetFailedDetail = Schema.Struct({
   kind: AssetKind,
   id: Schema.String,
   url: Schema.String,
+  levels: Schema.Array(Schema.String),
   reason: Schema.String,
 });
 

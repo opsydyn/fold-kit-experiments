@@ -1680,35 +1680,36 @@ const noOverlays: ReadonlyArray<Overlay> = [];
 const noMeasures: ReadonlyArray<string> = [];
 const noAssets: ReadonlyArray<Asset> = [];
 
+/** What an asset builder takes: an id, the finest URL, and coarser ones to show first. */
+type AssetOptions = {
+  readonly id: string;
+  readonly url: string;
+  readonly levels?: ReadonlyArray<string>;
+};
+
+const noLevels: ReadonlyArray<string> = [];
+
+const assetOf =
+  (kind: Asset['kind']) =>
+  ({ id, url, levels }: AssetOptions): Asset => ({ kind, id, url, levels: levels ?? noLevels });
+
 /** A glTF or GLB model for `scene({ assets })`, lent under `id` for `borrowed({ id })`. */
-export const modelAsset = (options: { readonly id: string; readonly url: string }): Asset => ({
-  kind: 'model',
-  ...options,
-});
+export const modelAsset = assetOf('model');
 
 /** A colour texture (sRGB) for `scene({ assets })`, lent under `id` for a material's `map`. */
-export const textureAsset = (options: { readonly id: string; readonly url: string }): Asset => ({
-  kind: 'texture',
-  ...options,
-});
+export const textureAsset = assetOf('texture');
 
 /**
  * An equirectangular HDR panorama (`.hdr`) for `scene({ assets })`, lent under `id` for
  * `environment({ map: id })`.
  */
-export const environmentAsset = (options: {
-  readonly id: string;
-  readonly url: string;
-}): Asset => ({ kind: 'environment', ...options });
+export const environmentAsset = assetOf('environment');
 
 /**
  * A typeface JSON font (three.js's `FontLoader` format) for `scene({ assets })`, lent under
  * `id` for `text({ font: id })`.
  */
-export const fontAsset = (options: { readonly id: string; readonly url: string }): Asset => ({
-  kind: 'font',
-  ...options,
-});
+export const fontAsset = assetOf('font');
 
 /** Drei's `zIndexRange` default: near points on top, far ones at 0. */
 const defaultZIndexRange: readonly [number, number] = [16777271, 0];

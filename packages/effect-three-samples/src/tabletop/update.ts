@@ -160,13 +160,114 @@ const reach = (
 ): Model => {
   if (run !== model.run || model.timeline.reached === step) return model;
   const reached = deliver({
-    ...keep(model, step, snapshot),
+    ...remember(keep(model, step, snapshot), step),
     timeline: Timeline.reach(model.timeline, step),
     reached: Option.some({ step, checksum }),
   });
-  return step % checkEvery === 0 && step >= model.checksFrom
-    ? checked(reached, step, checksum)
-    : reached;
+  return confirm(
+    step % checkEvery === 0 && step >= model.checksFrom
+      ? { ...reached, provisional: [...withoutStep(reached.provisional, step), { step, checksum }] }
+      : reached,
+  );
+};
+
+const withoutStep = <A extends { readonly step: number }>(
+  list: ReadonlyArray<A>,
+  step: number,
+): ReadonlyArray<A> => list.filter((each) => each.step !== step);
+
+/**
+ * The step up to which the world's state is certain: every input before it is one the
+ * session has applied. Without a session (a replay), every step is.
+ */
+const confirmedStep = (model: Model): number =>
+  model.session._tag === 'Live'
+    ? model.session.lockstep.turn * stepsPerTurn
+    : Number.POSITIVE_INFINITY;
+
+/**
+ * This peer's checks whose step is confirmed: kept, compared and shared. A predicting
+ * world reaches a check before the inputs before it are certain; one that never predicts
+ * confirms each as it comes.
+ */
+const confirm = (model: Model): Model => {
+  const certain = confirmedStep(model);
+  const ready = model.provisional.filter((check) => check.step <= certain);
+  const waiting: Model = {
+    ...model,
+    provisional: model.provisional.filter((check) => check.step > certain),
+  };
+  return ready.reduce<Model>((at, { step, checksum }) => checked(at, step, checksum), waiting);
+};
+
+// ROLLING BACK
+
+/** Stops whose snapshots a predicting world keeps: enough to go back past any late input. */
+export const keptStops = 12;
+
+/** A predicting world's stop: the table there, before what was due, to come back to. */
+const remember = (model: Model, step: number): Model =>
+  model.predict
+    ? {
+        ...model,
+        history: [
+          ...withoutStep(model.history, step),
+          { step, balls: model.balls, thrown: model.thrown, build: model.build },
+        ].slice(-keptStops),
+      }
+    : model;
+
+/**
+ * The world goes back to its latest stop at or before `step` and on again: a new run
+ * from the snapshot it kept there, with the table as it was, and what is due from there
+ * on (an input that came late among it). What it reached after that stop is forgotten.
+ */
+const rollBack = (model: Model, step: number): Model => {
+  const back = model.history.findLast((moment) => moment.step <= step) ?? model.history[0];
+  if (back === undefined) return model;
+  return {
+    ...model,
+    run: model.run + 1,
+    start: Option.some({ step: back.step, snapshot: null }),
+    timeline: pastStep(Timeline.restart(model.timeline), back.step),
+    balls: back.balls,
+    thrown: back.thrown,
+    build: back.build,
+    history: model.history.filter((moment) => moment.step <= back.step),
+    provisional: model.provisional.filter((check) => check.step <= back.step),
+    kept: Option.filter(model.kept, (kept) => kept.step <= back.step),
+    rollbacks: model.rollbacks + 1,
+  };
+};
+
+/** A turn confirmed: the Model with its plays in place, and the step to roll back to, if any. */
+type Confirmed = { readonly model: Model; readonly late: number | undefined };
+
+/** Whether two lists of plays are the same plays, in the same order. */
+const samePlays = (a: ReadonlyArray<Play>, b: ReadonlyArray<Play>): boolean =>
+  a.length === b.length && a.every((play, i) => play === b[i]);
+
+/**
+ * A predicting peer's applied turn: its plays, in the session's order, replace what was
+ * scheduled at its step (this peer's own, scheduled when sent). The step that needs a
+ * rollback, when they differ and the world may have passed it or had them delivered.
+ */
+const confirmTurn = (
+  model: Model,
+  step: number,
+  plays: ReadonlyArray<Play>,
+  passed: number,
+): Confirmed => {
+  const scheduled = model.timeline.inputs
+    .filter((entry) => entry.step === step)
+    .map((entry) => entry.input);
+  if (samePlays(scheduled, plays)) return { model, late: undefined };
+  const inputs = model.timeline.inputs.filter((entry) => entry.step !== step);
+  const timeline = plays.reduce<Timeline.Timeline<Play>>(
+    (at, play) => Timeline.schedule(at, step, play),
+    { ...model.timeline, inputs },
+  );
+  return { model: { ...model, timeline }, late: step < passed ? step : undefined };
 };
 
 // PROPOSING
@@ -206,7 +307,10 @@ const welcome = (model: Model, lockstep: Lockstep.Lockstep<Input>, peer: string)
     members: lockstep.members,
     record: model.timeline.inputs,
   };
-  const start = Option.getOrUndefined(model.kept);
+  // A predicting leader's snapshot counts once the inputs before it are certain.
+  const start = Option.getOrUndefined(
+    Option.filter(model.kept, (kept) => kept.step <= confirmedStep(model)),
+  );
   return start === undefined ? base : { ...base, start };
 };
 
@@ -225,25 +329,77 @@ const settle = (model: Model, session: Live): AppReturn => {
   const before = session.lockstep.turn;
   const result = Lockstep.advance(session.lockstep);
   const { self } = result.state;
-  const applied = result.applied.reduce(
-    (at, { turn, peer, input }) =>
-      Match.valueTags(input, {
-        Throw: (thrown) => schedule(at, turn, thrown),
-        Rebuild: (rebuild) => schedule(at, turn, rebuild),
-        Check: ({ step, checksum }) => (peer === self ? at : compare(at, step, checksum)),
-      }),
+  const checked = result.applied.reduce(
+    (at, { peer, input }) =>
+      input._tag === 'Check' && peer !== self ? compare(at, input.step, input.checksum) : at,
     live(model, { ...session, lockstep: result.state }),
   );
-  const settled = deliver({
-    ...applied,
-    timeline: Timeline.extend(applied.timeline, result.state.turn * stepsPerTurn),
-  });
+  const applied = model.predict
+    ? predicted(checked, result.applied, model)
+    : result.applied.reduce(
+        (at, { turn, input }) => (input._tag === 'Check' ? at : schedule(at, turn, input)),
+        checked,
+      );
+  const settled = confirm(
+    deliver({
+      ...applied,
+      timeline: Timeline.extend(applied.timeline, frontierOf(applied)),
+    }),
+  );
   const newcomers = Lockstep.welcomeDue(before, result.state);
   return {
     model: settled,
     commands: newcomers.map((peer) => say(settled, welcome(settled, result.state, peer))),
   };
 };
+
+/**
+ * How far the world may go: a predicting peer's to the turn it sends next, others' to
+ * the turn all have sent.
+ */
+const frontierOf = (model: Model): number =>
+  model.session._tag !== 'Live'
+    ? model.timeline.frontier
+    : (model.predict ? model.session.lockstep.sent : model.session.lockstep.turn) * stepsPerTurn;
+
+/**
+ * A predicting peer's applied turns: each turn's plays confirmed at its step, and a
+ * rollback to the earliest step its world may have passed (`before` is the Model the
+ * world last heard: it is no further than where that one let it go).
+ */
+const predicted = (
+  model: Model,
+  applied: ReadonlyArray<Lockstep.Applied<Input>>,
+  before: Model,
+): Model => {
+  const passed = Math.max(untilOf(before), (before.timeline.reached ?? -1) + 1);
+  const turns = [...new Set(applied.map((entry) => entry.turn))];
+  let late: number | undefined;
+  let at = model;
+  for (const turn of turns) {
+    const plays = applied.flatMap((entry) =>
+      entry.turn === turn && entry.input._tag !== 'Check' ? [entry.input] : [],
+    );
+    const confirmed = confirmTurn(at, turn * stepsPerTurn, plays, passed);
+    at = confirmed.model;
+    if (confirmed.late !== undefined && (late === undefined || confirmed.late < late)) {
+      late = confirmed.late;
+    }
+  }
+  return late === undefined ? at : rollBack(at, late);
+};
+
+/** This peer's own plays in a packet it sent, scheduled at once at its turn's step. */
+const scheduleSent = (model: Model, packet: Packet | undefined): Model =>
+  !model.predict || packet === undefined
+    ? model
+    : packet.entries.reduce(
+        (at, entry) =>
+          entry._tag === 'Input' && entry.input._tag !== 'Check'
+            ? schedule(at, packet.turn, entry.input)
+            : at,
+        model,
+      );
 
 /** The turn the session waits on, and since when; none once it waits on no one. */
 const stallOf = (session: Live, at: number): Live['stalled'] => {
@@ -306,7 +462,8 @@ const tick = (model: Model, at: number): AppReturn => {
   if (Option.isSome(model.replay)) return { model: replayTick(model, model.replay.value.until) };
   if (model.session._tag !== 'Live') return { model };
   const sent = Lockstep.send(model.session.lockstep);
-  const settled = settle(model, { ...model.session, lockstep: sent.state });
+  const own = deliver(scheduleSent(model, sent.packet));
+  const settled = settle(own, { ...model.session, lockstep: sent.state });
   const session = settled.model.session;
   const dropped =
     session._tag === 'Live'
@@ -416,6 +573,10 @@ const startingFrom = (model: Model, start: Start): Model => ({
   thrown: start.thrown,
   build: start.build,
   start: Option.some({ step: start.step, snapshot: start.snapshot }),
+  // Where a predicting world can roll back to before its first stop.
+  history: model.predict
+    ? [{ step: start.step, balls: start.balls, thrown: start.thrown, build: start.build }]
+    : [],
 });
 
 /**
@@ -435,6 +596,7 @@ const welcomed = (model: Model, wire: Extract<Wire, { readonly _tag: 'Welcome' }
     ...fresh,
     paint: model.paint,
     relay: model.relay,
+    predict: model.predict,
     run: model.run + 1,
     timeline: record,
     checksFrom: start,
@@ -525,10 +687,11 @@ const namedTab = (
   model: Model,
   peer: string,
   relay: Option.Option<string>,
+  predict: boolean,
   record: Option.Option<Record>,
 ): AppReturn =>
   Option.match(record, {
-    onNone: () => named(model, peer, relay),
+    onNone: () => named({ ...model, predict }, peer, relay),
     onSome: (replaying) => ({ model: replayFrom(model, replaying) }),
   });
 
@@ -540,7 +703,7 @@ export const update = (model: Model, message: Message): AppReturn =>
       model: reach(model, run, step, checksum, snapshot),
     }),
     ReceivedSceneLifecycle: () => ({ model }),
-    NamedTab: ({ peer, relay, record }) => namedTab(model, peer, relay, record),
+    NamedTab: ({ peer, relay, predict, record }) => namedTab(model, peer, relay, predict, record),
     WaitedForWelcome: () => ({ model: waited(model) }),
     HeardWire: ({ wire }) => hear(model, wire),
     TickedTurn: ({ at }) => tick(model, at),

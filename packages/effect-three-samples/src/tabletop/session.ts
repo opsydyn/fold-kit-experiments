@@ -146,6 +146,7 @@ export const NameTab = Command.define('NameTab', {
         peer: crypto.randomUUID().slice(0, 8),
         at,
         relay: relayIn(window.location.search),
+        predict: new URLSearchParams(window.location.search).get('predict') === '1',
         record: recordIn(window.location.hash),
       }),
     ),

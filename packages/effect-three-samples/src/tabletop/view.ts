@@ -52,10 +52,19 @@ const throughRelay = (model: Model, relay: Relay): string => {
 
 /** Where this peer's world started, when it joined from the leader's snapshot. */
 const startedFrom = (model: Model): string =>
-  Option.match(model.start, {
-    onNone: () => '',
-    onSome: ({ step }) => ` Joined from a snapshot of the table at step ${step}.`,
-  });
+  Option.match(
+    Option.filter(model.start, ({ snapshot }) => snapshot !== null),
+    {
+      onNone: () => '',
+      onSome: ({ step }) => ` Joined from a snapshot of the table at step ${step}.`,
+    },
+  );
+
+/** What predicting does here, and how often it has rolled back. */
+const predicting = (model: Model): string =>
+  model.predict
+    ? ` Predicting: throws show at once, and the table rolls back when another's lands where it has been (${model.rollbacks} so far).`
+    : '';
 
 const together = (model: Model): string => {
   if (Option.isSome(model.replay)) return 'Replaying a recorded game: no session, no throws.';
@@ -64,7 +73,7 @@ const together = (model: Model): string => {
     onNone: () => overTabs(model),
     onSome: (relay) => throughRelay(model, relay),
   });
-  return `${playing}${startedFrom(model)}`;
+  return `${playing}${startedFrom(model)}${predicting(model)}`;
 };
 
 /** Who this peer plays with, and a way back to the relay once it has lost it. */

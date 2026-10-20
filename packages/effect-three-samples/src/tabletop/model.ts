@@ -9,6 +9,15 @@ export { Ball } from './wire';
 
 const Steps = Schema.Int;
 
+/** The table at a step, before what was due there. */
+export const Moment = Schema.Struct({
+  step: Steps,
+  balls: Schema.Array(Ball),
+  thrown: Schema.Int,
+  build: Schema.Int,
+});
+export type Moment = typeof Moment.Type;
+
 export const Model = Schema.Struct({
   /** Every throw and rebuild, at the step it lands, and how far the world may go. */
   timeline: SceneSchema.Timeline(Play),
@@ -17,10 +26,25 @@ export const Model = Schema.Struct({
    * the step they land at, so it changes at the same step on every peer.
    */
   balls: Schema.Array(Ball),
+  /**
+   * Whether this peer predicts (`?predict=1`): its world runs to the turn it sends, not
+   * the turn all have sent, so its own throws show at once, and it rolls back a few steps
+   * when another peer's comes in for a step its world may have passed.
+   */
+  predict: Schema.Boolean,
+  /** A predicting world's latest stops: the table at each, before what was due there. */
+  history: Schema.Array(Moment),
+  /** This peer's checksums at check steps not yet confirmed: shared once they are. */
+  provisional: Schema.Array(Schema.Struct({ step: Steps, checksum: Schema.String })),
+  /** How many times this peer's world has rolled back. */
+  rollbacks: Schema.Int,
   /** The leader's latest snapshot of its world, to start a newcomer's from. */
   kept: Schema.Option(Start),
-  /** The snapshot this peer's run started from, when it was welcomed with one. */
-  start: Schema.Option(Schema.Struct({ step: Steps, snapshot: Schema.String })),
+  /**
+   * The snapshot this peer's run started from: one a welcome brought, or (`null`) the one
+   * its world kept at a stop it rolled back to.
+   */
+  start: Schema.Option(Schema.Struct({ step: Steps, snapshot: Schema.NullOr(Schema.String) })),
   /** Balls thrown so far, for each new one's key. */
   thrown: Schema.Int,
   /** How many times the tower has been built, for its blocks' keys. */
@@ -58,6 +82,10 @@ export const camera = perspectiveCamera({ fov: 45, position: [0, 5, 8.5], lookAt
 export const fresh: Model = {
   timeline: Timeline.make<Play>(0),
   balls: [],
+  predict: false,
+  history: [],
+  provisional: [],
+  rollbacks: 0,
   kept: Option.none(),
   start: Option.none(),
   thrown: 0,

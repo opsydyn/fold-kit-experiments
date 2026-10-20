@@ -23,6 +23,8 @@ export const Message = defineMessageUnion({
     peer: Schema.String,
     at: Schema.Number,
     relay: Schema.Option(Schema.String),
+    /** Whether the page asks to predict (`?predict=1`). */
+    predict: Schema.Boolean,
     /** A game to replay, from the page's `#replay=…`. */
     record: Schema.Option(Record),
   },

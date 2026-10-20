@@ -2,14 +2,13 @@
 
 ## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.4.0...effect-three-v0.5.0) (2026-10-20)
 
-
 ### Features
 
-* **effect-three:** a scene says which assets it asks for ([219db07](https://github.com/opsydyn/fold-kit-experiments/commit/219db071c91d3f2048610deac68ede3467b5e6d9))
-* **effect-three:** coarser levels of detail on an asset ([ee6929e](https://github.com/opsydyn/fold-kit-experiments/commit/ee6929e4822bad60e705cf3ab4893f07a6d320a8))
-* **effect-three:** physics on the Model's clock, for worlds that must agree ([e91612c](https://github.com/opsydyn/fold-kit-experiments/commit/e91612c50b20be408df2e6e287203456ae45fe1b))
-* **effect-three:** previewSvg draws a scene as SVG without a browser ([c731d12](https://github.com/opsydyn/fold-kit-experiments/commit/c731d1248c5924574fa2dbc3ed343518fa328cba))
-* **effect-three:** worlds that step elsewhere report until once answered ([009a60f](https://github.com/opsydyn/fold-kit-experiments/commit/009a60f2f25acd77071c9e288ba5d6fcd8dfa248))
+- **effect-three:** a scene says which assets it asks for ([219db07](https://github.com/opsydyn/fold-kit-experiments/commit/219db071c91d3f2048610deac68ede3467b5e6d9))
+- **effect-three:** coarser levels of detail on an asset ([ee6929e](https://github.com/opsydyn/fold-kit-experiments/commit/ee6929e4822bad60e705cf3ab4893f07a6d320a8))
+- **effect-three:** physics on the Model's clock, for worlds that must agree ([e91612c](https://github.com/opsydyn/fold-kit-experiments/commit/e91612c50b20be408df2e6e287203456ae45fe1b))
+- **effect-three:** previewSvg draws a scene as SVG without a browser ([c731d12](https://github.com/opsydyn/fold-kit-experiments/commit/c731d1248c5924574fa2dbc3ed343518fa328cba))
+- **effect-three:** worlds that step elsewhere report until once answered ([009a60f](https://github.com/opsydyn/fold-kit-experiments/commit/009a60f2f25acd77071c9e288ba5d6fcd8dfa248))
 
 ## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.3.0...effect-three-v0.4.0) (2026-10-20)
 

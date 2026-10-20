@@ -2,11 +2,10 @@
 
 ## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-rapier-v0.4.0...effect-three-rapier-v0.5.0) (2026-10-20)
 
-
 ### Features
 
-* **effect-three-rapier:** Rapier in a worker behind the same engine contract ([e30566c](https://github.com/opsydyn/fold-kit-experiments/commit/e30566cf3326cdddf1863d85c36a98034b30ecec))
-* **effect-three-rapier:** Rapier's deterministic build, as its own entry ([21e0020](https://github.com/opsydyn/fold-kit-experiments/commit/21e002012cb6422730c1877a72fc48ca7b46c070))
+- **effect-three-rapier:** Rapier in a worker behind the same engine contract ([e30566c](https://github.com/opsydyn/fold-kit-experiments/commit/e30566cf3326cdddf1863d85c36a98034b30ecec))
+- **effect-three-rapier:** Rapier's deterministic build, as its own entry ([21e0020](https://github.com/opsydyn/fold-kit-experiments/commit/21e002012cb6422730c1877a72fc48ca7b46c070))
 
 ## [0.4.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-rapier-v0.3.0...effect-three-rapier-v0.4.0) (2026-10-20)
 

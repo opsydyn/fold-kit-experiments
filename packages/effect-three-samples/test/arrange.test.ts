@@ -183,3 +183,23 @@ test('measuring places a tape end at each click, runs it to the pointer, and ski
   // Leaving measuring empties the tape.
   expect(step(measured, Message.ClickedMeasure()).tape.tape.from).toBeNull();
 });
+
+test('the inspector edits the selected thing through its schema, recorded as a step', () => {
+  const raised = step(
+    start,
+    Message.EditedThing({ key: 'crate', path: ['placement', 'position', 1], value: 2 }),
+  );
+  expect(crateAt(raised)?.position[1]).toBe(2);
+  expect(History.presentEntry(raised.history).label).toBe('Edited crate');
+  const asCone = step(raised, Message.EditedThing({ key: 'crate', path: ['kind'], value: 'cone' }));
+  expect(asCone.things.find((thing) => thing.key === 'crate')?.kind).toBe('cone');
+  // What the schema refuses changes nothing and says why.
+  const refused = step(
+    raised,
+    Message.EditedThing({ key: 'crate', path: ['kind'], value: 'teapot' }),
+  );
+  expect(refused.things).toEqual(raised.things);
+  expect(refused.inspectorIssue).toMatchObject({ _tag: 'Some' });
+  expect(History.depth(refused.history)).toBe(1);
+  expect(step(refused, Message.ClickedUndo()).things).toEqual(start.things);
+});

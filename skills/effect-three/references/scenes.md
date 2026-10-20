@@ -55,6 +55,9 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
   `Result`; `yield*` it in an Effect); keep `History.History<A>` in the Model
   (`SceneSchema.History(schema)`) and `History.record` at the end of a gesture, not every
   frame; `sceneChanges` and `formatChanges` describe what changed between two scenes.
+  `Inspector.fields(schema, value)` and the adapter's `inspectorView(h, fields, onEdit)`
+  give any schema'd value an editing form; apply edits with `Inspector.edit` (a `Result`:
+  show the failure, keep the success).
 - **Measuring tape:** keep `MeasuringTape.Model`; send `Placed` with a click's hit
   `point` (make the floor `interactive` while measuring), `Pointed` from pointer moves
   (`null` on leave), and `Cleared`; add `MeasuringTape.nodes(model.tape)` to the scene

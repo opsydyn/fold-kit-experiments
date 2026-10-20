@@ -1,6 +1,9 @@
 import {
+  type FieldPath,
+  type FieldValue,
   type Gesture,
   History,
+  Inspector,
   movedAlike,
   orbit,
   type Placement,
@@ -13,11 +16,11 @@ import {
   TransformGizmo,
   ViewportGizmo,
 } from '@opsydyn/effect-three-foldkit';
-import { Array as Arr, Option } from 'effect';
+import { Array as Arr, Option, Result } from 'effect';
 import type { Return } from 'foldkit/update';
 
 import { Message } from './message';
-import type { Model, Thing } from './model';
+import { type Model, Thing } from './model';
 
 type AppReturn = Return<Model, Message>;
 
@@ -166,6 +169,38 @@ const orbitBy = (model: Model, gesture: Gesture): Model =>
   orbits(model, gesture)
     ? { ...model, camera: orbit(model.camera, gesture), orbited: true }
     : model;
+
+/** The things with `edited` in place of the thing it was, recorded as a step. */
+const withEdited = (model: Model, edited: Thing): Model => {
+  const things = model.things.map((each) => (each.key === edited.key ? edited : each));
+  return {
+    ...model,
+    things,
+    history: History.record(model.history, things, `Edited ${edited.key}`),
+    inspectorIssue: Option.none(),
+  };
+};
+
+const refused = (model: Model, issue: string): Model => ({
+  ...model,
+  inspectorIssue: Option.some(issue),
+});
+
+/** An inspector edit to `thing`, checked by the `Thing` schema; refused, it says why. */
+const applyEdit = (model: Model, thing: Thing, path: FieldPath, value: FieldValue): Model =>
+  Result.match(Inspector.edit(Thing, thing, path, value), {
+    onFailure: (issue) => refused(model, issue),
+    onSuccess: (edited) => withEdited(model, edited),
+  });
+
+const editThing = (model: Model, key: string, path: FieldPath, value: FieldValue): Model =>
+  Option.match(
+    Arr.findFirst(model.things, (thing) => thing.key === key),
+    {
+      onNone: () => model,
+      onSome: (thing) => applyEdit(model, thing, path, value),
+    },
+  );
 
 /** The tape's Message; what it measures shows in the readout, from the Model. */
 const withTape = (model: Model, message: MeasuringTape.Message): Model => ({
@@ -325,6 +360,7 @@ export const update = (model: Model, message: Message): AppReturn =>
     ClickedSnapping: () => ({ model: toggleSnapping(model) }),
     ClickedPivot: () => ({ model: { ...model, style: otherStyle[model.style] } }),
     ClickedMeasure: () => ({ model: toggleMeasuring(model) }),
+    EditedThing: ({ key, path, value }) => ({ model: editThing(model, key, path, value) }),
     ClickedUndo: () => ({ model: undo(model) }),
     ClickedRedo: () => ({ model: redo(model) }),
     ClickedBranch: () => ({ model: nextBranch(model) }),

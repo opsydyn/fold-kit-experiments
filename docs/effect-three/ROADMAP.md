@@ -266,7 +266,13 @@ Effect owns every lifetime.
    unchanged), `History` (a tree of Model values: undo, redo, branches kept and chosen),
    and `sceneChanges` with `formatChanges` and `bun run scene:diff a.json b.json` (the
    kernel's own operations as lines for review). The arrange example undoes along
-   branches. Next: an inspector generated from the scene schemas.
+   branches.
+   ✅ Then the inspector: `Inspector.fields(schema, value)` walks any schema's AST beside
+   a value (a scene node, a material, an app's own record) and lists its fields by kind,
+   colours and vectors known by their `SceneSchema` types; `Inspector.edit` puts a new
+   value at a path and decodes it, so nothing the schema refuses gets in. The adapter's
+   `inspectorView` draws the form. The arrange example inspects the selected thing.
+   With it, 4 is done.
 5. **Interaction widgets as Foldkit submodels.** A transform gizmo, box select, a
    measuring tape, an XR teleport arc: pure, property-tested, composed through
    OutMessages, as ADR-006 did for cameras.
@@ -312,9 +318,9 @@ collaboration, 3 for the assistant).
 
 The replay spike (1), the Drei audit and its S candidates, agent control of the XR room
 (3), labels under WebGPU (E), the line and points families, the transform gizmo, box
-select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and of
-tooling from Schema (4) scene files, branching history and review diffs. Next: the
-schema-generated inspector, toward the scene editor.
+select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and so is
+tooling from Schema (4): scene files, branching history, review diffs and the inspector.
+Next: the scene editor that ties them together, or a scene-level vocabulary for agents (3).
 
 ## Not planned
 

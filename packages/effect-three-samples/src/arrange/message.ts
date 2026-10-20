@@ -24,6 +24,11 @@ export const Message = defineMessageUnion({
   ClickedSnapping: {},
   ClickedPivot: {},
   ClickedMeasure: {},
+  EditedThing: {
+    key: Schema.String,
+    path: Schema.Array(Schema.Union([Schema.String, Schema.Number])),
+    value: Schema.Union([Schema.Number, Schema.String, Schema.Boolean]),
+  },
   ClickedUndo: {},
   ClickedRedo: {},
   ClickedBranch: {},

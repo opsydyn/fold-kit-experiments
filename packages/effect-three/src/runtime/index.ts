@@ -5,6 +5,7 @@
  */
 export { InvalidScene, RendererUnavailable, UnreadableScene } from './errors.ts';
 export * as FrameSource from './FrameSource.ts';
+export * as Inspector from './Inspector.ts';
 export * as ResourceRegistry from './ResourceRegistry.ts';
 export * as SceneFile from './SceneFile.ts';
 export * as SceneRuntime from './SceneRuntime.ts';

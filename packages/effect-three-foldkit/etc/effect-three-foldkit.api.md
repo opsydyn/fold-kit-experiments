@@ -11,6 +11,8 @@ import { Camera } from '@opsydyn/effect-three';
 import { CustomElement } from 'foldkit';
 import { Effect } from 'effect';
 import { Effect as Effect_2 } from 'effect/Effect';
+import type { FieldPath } from '@opsydyn/effect-three';
+import type { FieldValue } from '@opsydyn/effect-three';
 import { FrameScheduler } from '@opsydyn/effect-three';
 import { Gesture as Gesture_2 } from '@opsydyn/effect-three';
 import { gizmo } from '@opsydyn/effect-three';
@@ -19,6 +21,7 @@ import type { Html } from 'foldkit/html';
 import type { HtmlBuilder } from 'foldkit/html';
 import { Hud } from '@opsydyn/effect-three';
 import { HudAlignment } from '@opsydyn/effect-three';
+import type { InspectedField } from '@opsydyn/effect-three';
 import { LabelEngine } from '@opsydyn/effect-three';
 import { MessageUnion } from 'foldkit/message';
 import { Mount } from 'foldkit';
@@ -238,6 +241,9 @@ const init_5: (key: string, options?: {
 //
 // @public
 const inside: (model: Model, camera: Camera, selectable: Selectables) => ReadonlyArray<string>;
+
+// @public
+export const inspectorView: <Message>(h: HtmlBuilder<Message>, fields: ReadonlyArray<InspectedField>, onEdit: OnEdit<Message>) => Html;
 
 // @public
 export type KeyDetail = typeof SceneSchema.KeyDetail.Type;
@@ -687,6 +693,9 @@ const nodes_3: (model: Model_4, placement: Placement, camera: Camera) => SceneNo
 
 // @public
 const nodes_4: (model: Model_5, camera: Camera) => SceneNode;
+
+// @public
+export type OnEdit<Message> = (path: FieldPath, value: FieldValue) => Message;
 
 // @public (undocumented)
 const OutMessage: MessageUnion<    {

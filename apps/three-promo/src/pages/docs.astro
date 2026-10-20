@@ -11,6 +11,7 @@ import {
   labelSnippet,
   lending,
   physicsSnippet,
+  previewSnippet,
   renderers,
   runtime,
   sharing,
@@ -29,7 +30,7 @@ import {
   </section>
   <div class="docs-layout">
     <nav class="docs-nav" aria-label="On this page">
-      <a href="#installation">Installation</a><a href="#first-scene">Your first scene</a><a href="#foldkit">Using Foldkit</a><a href="#identity">Keys and identity</a><a href="#resources">Resources</a><a href="#animation">Animation</a><a href="#controls">Controls</a><a href="#physics">Physics</a><a href="#text">Text and labels</a><a href="#staging">Staging</a><a href="#renderers">Renderers</a><a href="#xr">XR</a><a href="#runtime">Without Foldkit</a><a href="#testing">Testing</a><a href="#agents">Agents</a><a href="#architecture">Architecture</a>
+      <a href="#installation">Installation</a><a href="#first-scene">Your first scene</a><a href="#foldkit">Using Foldkit</a><a href="#identity">Keys and identity</a><a href="#resources">Resources</a><a href="#animation">Animation</a><a href="#controls">Controls</a><a href="#physics">Physics</a><a href="#text">Text and labels</a><a href="#staging">Staging</a><a href="#renderers">Renderers</a><a href="#xr">XR</a><a href="#runtime">Without Foldkit</a><a href="#testing">Testing</a><a href="#previews">Previews</a><a href="#agents">Agents</a><a href="#architecture">Architecture</a>
     </nav>
     <article class="docs-content">
       <section id="installation">
@@ -131,6 +132,15 @@ import {
         <p>A recording renderer, a manual frame scheduler and Effect's TestClock make scene tests deterministic, with no browser and no GPU.</p>
         <div class="code-panel"><SourceCode code={testing} lang="ts" sourceId="scene.test.ts" /></div>
       </section>
+      <section id="previews">
+        <h2>Preview it without a browser.</h2>
+        <p><code>previewSvg</code> draws a description as SVG anywhere JavaScript runs: the scene graph is built as for the renderer, projected with three's <code>Projector</code>, lit by three's diffuse term and painted far to near in the order a binary space partition gives, so a floor never covers what stands on it. It is a flat-shaded preview: no textures, shadows or labels. These two are the room and studio examples' first scenes, drawn when this site was built.</p>
+        <div class="preview-pair">
+          <img src={sitePath('/previews/room.svg')} width="640" height="400" loading="lazy" decoding="async" alt="The room example drawn flat: walls, a sofa, a lamp, a shelf of books and a rug." />
+          <img src={sitePath('/previews/studio.svg')} width="640" height="400" loading="lazy" decoding="async" alt="The studio example drawn flat: a torus, a capsule, a cone, a ball and a crate on a floor." />
+        </div>
+        <div class="code-panel"><SourceCode code={previewSnippet} lang="ts" sourceId="preview.ts" /></div>
+      </section>
       <section id="agents">
         <h2>Let an agent arrange it.</h2>
         <p>Every change to a scene is a Schema-typed Message, so an assistant can make changes through the same door a click does. Export <code>devTools</code> with your <code>Message</code> schema, add <code>@foldkit/devtools-mcp</code> to your agent, and in development it can read the Model, list what happened, and dispatch Messages. Each one is decoded first: a malformed one is refused, and a valid one goes through <code>update</code> like any other, so it shows in DevTools history, where time travel can step back past it. With several pages open, name the page with <code>runtime_id</code>; in a monorepo, point <code>FOLDKIT_PROJECT_ROOT</code> at the app.</p>
@@ -158,3 +168,7 @@ import {
     </article>
   </div>
 </Layout>
+<style>
+  .preview-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 16px 0; }
+  .preview-pair img { width: 100%; height: auto; border-radius: 12px; }
+</style>

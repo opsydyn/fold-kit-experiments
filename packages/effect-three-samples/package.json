@@ -21,6 +21,7 @@
     "./editor": "./src/editor/main.ts",
     "./tabletop": "./src/tabletop/main.ts",
     "./shared": "./src/shared/main.ts",
+    "./previews": "./src/previews.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"
   },

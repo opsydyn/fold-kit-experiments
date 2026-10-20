@@ -77,6 +77,13 @@ expect(renderers.created()[0]?.renders()).toBe(500);
 expect(handle.graph.object('cube')?.rotation.y).toBeCloseTo(10);
 expect(yield* handle.drainEvents).toEqual([]); // animation never reaches update`;
 
+export const previewSnippet = `// In a build, a server or a test: no browser, no GPU.
+const result = previewSvg(sceneFor(model), { width: 640, height: 400, at: 0 });
+if (result._tag === 'Preview') await Bun.write('preview.svg', result.svg);
+
+// Or from a saved scene file:
+// bun run scene:preview scene.json preview.svg --background f4f1ea`;
+
 export const autoRotate = `// The camera turns by itself until a gesture; keep where it got to first.
 camera: perspectiveCamera({ position: [3, 4, 12], damping: 0.08, autoRotate: 0.25 }),
 

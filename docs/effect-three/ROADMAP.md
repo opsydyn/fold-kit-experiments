@@ -252,8 +252,13 @@ Effect owns every lifetime.
    together. The kernel's `Lockstep` is the protocol as data (turns, members, the
    leader admitting and dropping, welcomes); the editor's shared changes are Edits sent
    through it over a `BroadcastChannel`, so tabs of one browser edit one scene with one
-   history. Checked over a simulated lossy-timing network and in two real tabs. Next:
-   a relay for peers on different machines, then physics inputs at fixed steps.
+   history. Checked over a simulated lossy-timing network and in two real tabs.
+   ✅ Then between machines (2026-10-20): `bun run relay` is a WebSocket relay that hands
+   each message to every other peer in a room and reads none of them, and the editor
+   with `?relay=ws://host:port/room` runs its session through it, the socket a Foldkit
+   managed resource. A lost relay leaves each editor working alone until it reconnects.
+   Checked with real sockets and with separate browser contexts, which share no
+   channel. Next: physics inputs at fixed steps.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -333,7 +338,8 @@ of scene nodes in the Model; it adds, duplicates and deletes them, selects by cl
 outliner or box, moves them with the gizmo (lights by their markers), edits any field
 in an inspector read from `SceneSchema.SceneNode`, undoes along branches or jumps to
 any step, saves and opens scene files, and lists the changes since saving with the
-kernel's diff. Next for it: collaboration (2) and an assistant (3).
+kernel's diff. Since then it takes an assistant's intents (3) and edits together, in
+tabs or through a relay between machines (2).
 
 ### Recommendation
 
@@ -342,8 +348,8 @@ The replay spike (1), the Drei audit and its S candidates, agent control of the 
 select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and so is
 tooling from Schema (4): scene files, branching history, review diffs and the inspector.
 The scene editor ties them together, agents can describe and stage a scene through it
-(3), and tabs edit it together in lockstep (2). Next: a relay between machines, physics
-lockstep, and data and assets (6).
+(3), and tabs, or machines through a relay, edit it together in lockstep (2). Next:
+physics lockstep, and data and assets (6).
 
 ## Not planned
 

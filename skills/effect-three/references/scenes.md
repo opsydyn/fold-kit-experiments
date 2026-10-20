@@ -55,7 +55,9 @@ camera)` to the scene; on a pointer down whose key `TransformGizmo.handleOf` nam
   (`SceneSchema.Lockstep(Edit)`); propose shared changes with `Lockstep.submit`, send
   `Lockstep.send`'s packet each turn, `receive` what arrives, and apply what `advance`
   returns with a pure `applyEdit` (keys made from the document, not the tab). Keep
-  selection and camera local. See the editor sample's `session.ts` and ADR-013.
+  selection and camera local. Any transport that hands every packet to every peer
+  will do: the editor sample's `session.ts` uses a `BroadcastChannel` between tabs, or
+  a relay socket (a Foldkit managed resource) between machines. See ADR-013.
 - **For assistants:** `formatSummary(describeScene(scene))` is a scene in a few lines;
   offer intents rather than raw numbers (`shotCamera(camera, bounds, angle)` for a shot,
   `moodStaging(mood)` for lighting) as Messages an agent can dispatch through

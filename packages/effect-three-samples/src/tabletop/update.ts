@@ -453,17 +453,25 @@ const changedVisibility = (model: Model, hidden: boolean): AppReturn => {
   return !hidden && model.away ? { model, commands: [NameTab()] } : { model };
 };
 
+/** A tab named: it replays the record in its link, or joins the table live. */
+const namedTab = (
+  model: Model,
+  peer: string,
+  relay: Option.Option<string>,
+  record: Option.Option<Record>,
+): AppReturn =>
+  Option.match(record, {
+    onNone: () => named(model, peer, relay),
+    onSome: (replaying) => ({ model: replayFrom(model, replaying) }),
+  });
+
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     ClickedTable: ({ point }) => ({ model: throwToward(model, point) }),
     ClickedRebuild: () => ({ model: propose(model, { _tag: 'Rebuild' }) }),
     ReachedStep: ({ run, step, checksum }) => ({ model: reach(model, run, step, checksum) }),
     ReceivedSceneLifecycle: () => ({ model }),
-    NamedTab: ({ peer, relay, record }) =>
-      Option.match(record, {
-        onNone: () => named(model, peer, relay),
-        onSome: (replaying) => ({ model: replayFrom(model, replaying) }),
-      }),
+    NamedTab: ({ peer, relay, record }) => namedTab(model, peer, relay, record),
     WaitedForWelcome: () => ({ model: waited(model) }),
     HeardWire: ({ wire }) => hear(model, wire),
     TickedTurn: ({ at }) => tick(model, at),

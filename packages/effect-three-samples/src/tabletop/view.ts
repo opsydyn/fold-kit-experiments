@@ -94,15 +94,19 @@ const replayVerdict = (model: Model, checks: number): string =>
     onSome: (step) => `The world differs from the record at step ${step}.`,
   });
 
+/** The last step the world reported reaching, 0 before any. */
+const reachedStep = (model: Model): number =>
+  Option.match(model.reached, { onNone: () => 0, onSome: ({ step }) => step });
+
+const replayProgress = (model: Model, until: number): string =>
+  reachedStep(model) >= until
+    ? `Replay finished at step ${until}.`
+    : `Replaying: step ${reachedStep(model)} of ${until}.`;
+
 /** What the table shows: the balls, a replay's progress, or why throws wait. */
 const readout = (model: Model): string =>
   Option.match(model.replay, {
-    onSome: ({ until }) => {
-      const step = Option.match(model.reached, { onNone: () => 0, onSome: ({ step: at }) => at });
-      return step >= until
-        ? `Replay finished at step ${until}.`
-        : `Replaying: step ${step} of ${until}.`;
-    },
+    onSome: ({ until }) => replayProgress(model, until),
     onNone: () =>
       playing(model)
         ? `${model.balls.length} balls on the table. Click the table or the tower to throw one.`

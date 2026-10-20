@@ -73,4 +73,3 @@ meeting every check, a forged one found out at its first), and headless Chromium
 Rapier's deterministic build: a game of five throws and a rebuild, replayed from its link
 in a fresh browser context, met all 14 of its checks; a damaged link is not a record, and
 the page plays live instead.
-

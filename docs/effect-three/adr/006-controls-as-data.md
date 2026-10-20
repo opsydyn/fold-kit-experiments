@@ -92,6 +92,12 @@ selectable)` takes the candidates from the Model and returns their keys, matchin
   Drei's hit cylinder does. Evidence: `test/pivot.test.ts` (Drei's handlers replayed
   with three's matrices as the oracle, and picking each handle), the adapter's
   `pivotControls.test.ts`, the arrange sample.
+- Since added (2026-10-20): a measuring tape, with no three or Drei counterpart, built
+  the same way: `placeTapeEnd` and `pointTape` return the next `tape` for the Model,
+  `tapeNodes` draws it (unpicked, so clicks reach the scene), and the adapter's
+  `MeasuringTape` reports `Measured { from, to, length }` and labels the length with an
+  overlay. Evidence: `test/tape.test.ts`, the adapter's `measuringTape.test.ts`, the
+  arrange sample.
 - Since added: `autoRotate` on a camera, after `OrbitControls.autoRotate` (`rotateLeft` by
   `2π / 60 * autoRotateSpeed` a second, only while no gesture is in progress). The
   rendered camera turns round its target in scene time, holding still while a gesture is

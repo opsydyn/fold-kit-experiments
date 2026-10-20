@@ -1,6 +1,7 @@
 import { type Gesture, movedAlike, orbit, type Placement, type Vec3 } from '@opsydyn/effect-three';
 import {
   BoxSelect,
+  MeasuringTape,
   PivotControls,
   TransformGizmo,
   ViewportGizmo,
@@ -148,13 +149,34 @@ const press = (model: Model, key: string, point: Vec3, origin: Vec3, direction: 
 const clickNothing = (model: Model): Model =>
   model.pressedView ? { ...model, pressedView: false } : { ...model, selected: [] };
 
-/** The camera orbits on a gesture that began on nothing, while the gizmo is not held. */
-const orbits = (model: Model, gesture: Gesture): boolean =>
-  !holding(model) && !('key' in gesture && gesture.key !== undefined);
+/** A gesture that began on nothing, or on the table (which is picked while measuring). */
+const offThings = (gesture: Gesture): boolean =>
+  !('key' in gesture) || gesture.key === undefined || gesture.key === 'table';
+
+/** The camera orbits on a gesture off the things, while no gizmo is held. */
+const orbits = (model: Model, gesture: Gesture): boolean => !holding(model) && offThings(gesture);
 
 /** The camera after a gesture that orbits; otherwise as it was. */
 const orbitBy = (model: Model, gesture: Gesture): Model =>
-  orbits(model, gesture) ? { ...model, camera: orbit(model.camera, gesture) } : model;
+  orbits(model, gesture)
+    ? { ...model, camera: orbit(model.camera, gesture), orbited: true }
+    : model;
+
+/** The tape's Message; what it measures shows in the readout, from the Model. */
+const withTape = (model: Model, message: MeasuringTape.Message): Model => ({
+  ...model,
+  tape: MeasuringTape.update(model.tape, message).model,
+});
+
+/** While measuring, the tape runs to the pointer. */
+const moveOver = (model: Model, point: Vec3): Model =>
+  model.measuring ? withTape(model, MeasuringTape.Message.Pointed({ point })) : model;
+
+/** Measuring on or off: the tape starts empty either way. */
+const toggleMeasuring = (model: Model): Model => ({
+  ...withTape(model, MeasuringTape.Message.Cleared()),
+  measuring: !model.measuring,
+});
 
 /** A shift-drag on nothing draws the selection box; any other gesture may orbit. */
 const gesture = (model: Model, made: Gesture): Model =>
@@ -203,6 +225,12 @@ const select = (model: Model, key: string): Model =>
   isThing(model, key)
     ? { ...model, selected: [key], pressedView: false }
     : { ...model, pressedView: false };
+
+/** While measuring, a click (not the end of an orbit) places a tape end where it hit. */
+const clickThing = (model: Model, key: string, point: Vec3): Model => {
+  if (!model.measuring) return select(model, key);
+  return model.orbited ? model : withTape(model, MeasuringTape.Message.Placed({ point }));
+};
 
 /** A drag or release goes to the gizmo only while it is held. */
 const whileHeld = (model: Model, message: TransformGizmo.Message): Model =>
@@ -256,23 +284,28 @@ const toggleSnapping = (model: Model): Model => {
     ...model,
     snapping,
     gizmo: { ...model.gizmo, gizmo: { ...model.gizmo.gizmo, ...steps } },
+    tape: { ...model.tape, tape: { ...model.tape.tape, snap: steps.translationSnap } },
   };
 };
 
 export const update = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     PressedScene: ({ key, point, origin, direction }) => ({
-      model: press(model, key, point, origin, direction),
+      model: press({ ...model, orbited: false }, key, point, origin, direction),
     }),
     DraggedScene: ({ origin, direction }) => ({ model: drag(model, origin, direction) }),
     ReleasedScene: () => ({ model: release(model) }),
-    ClickedThing: ({ key }) => ({ model: select(model, key) }),
+    ClickedThing: ({ key, point }) => ({ model: clickThing(model, key, point) }),
+    MovedOver: ({ point }) => ({ model: moveOver(model, point) }),
     ClickedNothing: () => ({ model: clickNothing(model) }),
     HoveredScene: ({ key }) => ({
       model: withView(hoverPivot(hover(model, key), key), ViewportGizmo.Message.Entered({ key })),
     }),
     LeftScene: ({ key }) => ({
-      model: withView(leavePivot(leave(model, key), key), ViewportGizmo.Message.Left({ key })),
+      model: withTape(
+        withView(leavePivot(leave(model, key), key), ViewportGizmo.Message.Left({ key })),
+        MeasuringTape.Message.Pointed({ point: null }),
+      ),
     }),
     MadeGesture: ({ gesture: made }) => ({ model: gesture(model, made) }),
     EndedGesture: () => ({ model: endBox(model) }),
@@ -287,6 +320,7 @@ export const update = (model: Model, message: Message): AppReturn =>
     }),
     ClickedSnapping: () => ({ model: toggleSnapping(model) }),
     ClickedPivot: () => ({ model: { ...model, style: otherStyle[model.style] } }),
+    ClickedMeasure: () => ({ model: toggleMeasuring(model) }),
     ClickedUndo: () => ({ model: undo(model) }),
     ClickedRedo: () => ({ model: redo(model) }),
     ReceivedSceneLifecycle: () => ({ model }),

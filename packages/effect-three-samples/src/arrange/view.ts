@@ -36,7 +36,18 @@ const placed = (model: Model, { key, placement }: Thing): string =>
     .join(', ')}, scaled ${placement.scale.map(figure).join(', ')}. ${undoable(model)}`;
 
 /** What is selected and where, read from the Model. */
+/** What the tape says while measuring. */
+const measurement = (model: Model): string =>
+  Option.match(EffectThreeFoldkit.MeasuringTape.length(model.tape), {
+    onNone: () => 'Measuring: click a point on the table or a thing, then another.',
+    onSome: (length) =>
+      model.tape.tape.to === null
+        ? `${length.toFixed(2)} so far: click to place the other end.`
+        : `${length.toFixed(2)} units between the ends. Click again to start a new tape.`,
+  });
+
 const readout = (model: Model): string => {
+  if (model.measuring) return measurement(model);
   const selected = model.things.filter((thing) => model.selected.includes(thing.key));
   const [only] = selected;
   if (selected.length > 1) {
@@ -81,13 +92,18 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               scene: sceneFor(model),
               mount: sceneMount,
               className: 'e3-stage e3-stage-tall',
+              overlays: EffectThreeFoldkit.MeasuringTape.label(model.tape, h, {
+                unit: 'units',
+                className: 'e3-tape-label',
+              }),
               onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
               onPointerDown: ({ key, point, ray }) =>
                 Message.PressedScene({ key, point, origin: ray.origin, direction: ray.direction }),
               onDrag: ({ ray }) =>
                 Message.DraggedScene({ origin: ray.origin, direction: ray.direction }),
               onDragEnd: () => Message.ReleasedScene(),
-              onClick: ({ key }) => Message.ClickedThing({ key }),
+              onClick: ({ key, point }) => Message.ClickedThing({ key, point }),
+              onPointerMove: ({ point }) => Message.MovedOver({ point }),
               onPointerMissed: () => Message.ClickedNothing(),
               onPointerEnter: ({ key }) => Message.HoveredScene({ key }),
               onPointerLeave: ({ key }) => Message.LeftScene({ key }),
@@ -109,6 +125,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           toggle(h, 'Local axes', model.gizmo.gizmo.space === 'local', Message.ClickedSpace()),
           toggle(h, 'Snap', model.snapping, Message.ClickedSnapping()),
           toggle(h, 'Pivot', model.style === 'pivot', Message.ClickedPivot()),
+          toggle(h, 'Measure', model.measuring, Message.ClickedMeasure()),
           button(h, 'Undo', model.past.length > 0, Message.ClickedUndo()),
           button(h, 'Redo', model.future.length > 0, Message.ClickedRedo()),
         ],
@@ -122,7 +139,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           'selection box (another submodel, after Drei’s Select), and the gizmo moves ',
           'everything selected alike. The axes in the corner turn the camera to look along ',
           'one: a third submodel, drawn in the scene’s HUD. Pivot swaps the gizmo for Drei’s ',
-          'pivot controls, a fourth: arrows, squares, arcs and spheres all at once.',
+          'pivot controls, a fourth: arrows, squares, arcs and spheres all at once. Measure ',
+          'turns clicks into a tape between two points, a fifth.',
         ],
       ),
     ],

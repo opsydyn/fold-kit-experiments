@@ -69,7 +69,9 @@ for a view with selection and a Model-owned orbit camera.
 - **The Model says which assets it wants.** List them in the description
   (`scene({ assets: [modelAsset({ id, url })] })`): the environment loads, shares,
   cancels and frees them, and the scene reports `onAssetLoaded` / `onAssetFailed` to
-  settle into the Model by id; stop asking to unload. Commands
+  settle into the Model by id; stop asking to unload. Give an asset coarser `levels`
+  (`modelAsset({ id, url, levels: ['robot-low.glb'] })`) to show them first: each
+  `onAssetLoaded` says its `level` and whether it is `final`. Commands
   (`environment.assets.load*`) remain for an asset the app owns outright; one way per id. A description may name an id before it is lent; it
   appears when lent. Lent objects, textures and geometries are never disposed by the
   library.

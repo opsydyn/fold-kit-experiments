@@ -8,11 +8,17 @@
   asked again changes nothing; a load no scene asks for is aborted and what it brings
   back anyway is freed unseen; the last scene to let go frees, once; a failure told to
   every asker and retried on asking afresh; an id held as something else is refused
-  until it is let go, then loaded; changing what an id is; disposal);
+  until it is let go, then loaded; changing what an id is; disposal; and for levels,
+  each shown as it arrives if finer, a coarser one arriving late freed unseen, coarser
+  loads cancelled once the finest is shown, a coarser failure skipped, the finest
+  failing while a coarser stays shown, and levels changing what an asset is);
   `packages/effect-three-samples/test/workshop.test.ts`; and headless Chromium on the
   promo's workshop: loaded, unloaded and reloaded, and with the robot's request held in
   the network, unloading during it ended the request (`net::ERR_ABORTED`) and the robot
-  never appeared; reloading then loaded it.
+  never appeared; reloading then loaded it. With the full robot and floor held back
+  four seconds, the coarse ones showed first ("Low detail, sharpening") and the full
+  ones replaced them as they came, the robot's clip playing on; unloading meanwhile
+  ended the full robot's request (`net::ERR_ABORTED`).
 - References: React Three Fiber's `useLoader` (`packages/fiber/src/core/hooks.tsx` at
   `d74622e`): results cached by loader and URL through `suspend-react`, one loader
   instance per loader class, `preload` and `clear` by hand, nothing cancelled and nothing
@@ -58,3 +64,27 @@ loading in the KeyedQuery style, cancelled when the Model stops asking.
 - A texture loaded through `TextureLoader` uses an image element, which three cannot
   abort: its request runs to the end, and the texture is dropped.
 - Reconciling every frame's description is cheap: the same list asks for nothing new.
+
+## Since: levels of detail
+
+Roadmap 6 also asks for level of detail as a stream of descriptions. An asset may list
+coarser `levels` (URLs, coarsest first) before its own URL, the finest:
+`modelAsset({ id: 'robot', url: 'robot.glb', levels: ['robot-low.glb'] })`.
+
+- **Every level loads at once.** A coarse level is small and comes first; waiting for
+  it before starting the finest would only delay the finest.
+- **Each is shown as it arrives if it is finer than what is shown,** lent under the
+  asset's id before the coarser loan is withdrawn, so nodes using the id swap without a
+  frame of nothing (a model's clip keeps playing). A coarser level arriving after a finer
+  one is freed unseen. Once the finest is shown, coarser loads still under way are
+  aborted.
+- **Scenes hear each level shown:** `onAssetLoaded` carries `level` (0 for the
+  coarsest, `levels.length` for the finest) and `final`. A coarser level failing is
+  skipped; only the finest failing is `onAssetFailed`, and whatever coarser level is
+  shown stays. A scene asking later hears both.
+- **Levels are part of what an asset is:** the same id with other levels is another
+  asset, loaded afresh.
+
+The stream is of loans, not of descriptions: the description names every level once,
+and what changes as they arrive is what the id is lent as. A Model that wants to say
+"coarse only for now" lists fewer levels, or another URL.

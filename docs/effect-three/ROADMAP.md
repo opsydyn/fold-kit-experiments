@@ -352,8 +352,12 @@ Effect owns every lifetime.
    each once however many scenes ask, aborts a load no scene asks for any more, and frees
    an asset when the last scene stops asking; scenes hear `onAssetLoaded` and
    `onAssetFailed`. The workshop example unloads by no longer asking, which cancels a load
-   under way (checked with the robot's request held in the network). Next: level of
-   detail as a stream, then Rapier in a Worker.
+   under way (checked with the robot's request held in the network).
+   ✅ Then level of detail as a stream (ADR-015, levels): an asset lists coarser
+   `levels`, all loaded at once; each is shown as it arrives if it is finer than what is
+   shown, and once the finest is shown the coarser loads still under way are cancelled.
+   Scenes hear each level, with whether it is `final`. The workshop's robot and floor
+   start coarse and sharpen.
 
 A flagship that ties them together: a collaborative, replayable scene editor with an
 assistant, built as a Foldkit app (4 and 5 for editing, 1 for history, 2 for

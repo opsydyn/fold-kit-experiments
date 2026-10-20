@@ -4,6 +4,7 @@ import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import { Addable } from './document';
+import { Wire } from './wire';
 
 const Path = Schema.Array(Schema.Union([Schema.String, Schema.Number]));
 
@@ -54,5 +55,12 @@ export const Message = defineMessageUnion({
   ReadFile: { text: Schema.String },
   CompletedDownload: {},
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
+  // Editing together (see session.ts).
+  NamedTab: { peer: Schema.String, at: Schema.Number },
+  WaitedForWelcome: {},
+  HeardWire: { wire: Wire, at: Schema.Number },
+  TickedTurn: { at: Schema.Number },
+  LeftPage: {},
+  CompletedSay: {},
 });
 export type Message = typeof Message.Type;

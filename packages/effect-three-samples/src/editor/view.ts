@@ -1,5 +1,6 @@
 import {
   describeScene,
+  Lockstep,
   formatChanges,
   formatSummary,
   moodStaging,
@@ -12,7 +13,7 @@ import {
   SceneSchema,
 } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
-import { Array as Arr, Option } from 'effect';
+import { Array as Arr, Match, Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { sceneMount } from '../environment';
@@ -95,11 +96,16 @@ const description = (model: Model, h: H): Html => {
   ]);
 };
 
+/** Edits wait for a session: a tab still looking for others cannot make them yet. */
+const canEdit = (model: Model): boolean => model.session._tag !== 'Joining';
+
 const toolbar = (model: Model, h: H): Html =>
   h.div(
     [h.Class('e3-controls')],
     [
-      ...addables.map((kind) => button(h, addLabel[kind], true, Message.ClickedAdd({ kind }))),
+      ...addables.map((kind) =>
+        button(h, addLabel[kind], canEdit(model), Message.ClickedAdd({ kind })),
+      ),
       button(h, 'Duplicate', model.selected.length > 0, Message.ClickedDuplicate()),
       button(h, 'Delete', model.selected.length > 0, Message.ClickedDelete()),
       ...modes.map(([mode, label]) =>
@@ -231,6 +237,22 @@ const changes = (model: Model, h: H): Html => {
   return panel(h, 'Since saved', [h.pre([h.Class('e3-changes')], [text])]);
 };
 
+/** Who this tab is editing with: the tabs in its session now. */
+const others = (lockstep: Lockstep.Lockstep<unknown>): number =>
+  Lockstep.membersAt(lockstep, lockstep.turn).length - 1;
+
+const withOthers = (count: number): string =>
+  count === 0
+    ? 'Editing alone. Open this page in another tab to edit together.'
+    : `Editing with ${count} other ${count === 1 ? 'tab' : 'tabs'}.`;
+
+const together = (model: Model): string =>
+  Match.valueTags(model.session, {
+    Offline: () => 'Editing here only.',
+    Joining: () => 'Looking for other editor tabs…',
+    Live: ({ lockstep }) => withOthers(others(lockstep)),
+  });
+
 const selection = (model: Model): string =>
   model.selected.length === 0
     ? 'Click something, or shift-drag to box several. Drag empty space to orbit.'
@@ -288,6 +310,7 @@ export const view = (model: Model, h: H): Document => ({
         ],
       ),
       h.p([h.Class('e3-readout'), h.AriaLive('polite')], [selection(model)]),
+      h.p([h.Class('e3-note e3-together'), h.AriaLive('polite')], [together(model)]),
       toolbar(model, h),
       staging(model, h),
       h.div(

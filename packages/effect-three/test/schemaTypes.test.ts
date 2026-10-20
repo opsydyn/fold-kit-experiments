@@ -31,6 +31,14 @@ type Proof = [
   Equals<typeof SceneSchema.Pivot.Type, Kernel.Pivot>,
   Equals<typeof SceneSchema.Tape.Type, Kernel.Tape>,
   Equals<
+    ReturnType<typeof SceneSchema.Lockstep<typeof SceneSchema.Rgb>>['Type'],
+    Kernel.Lockstep.Lockstep<number>
+  >,
+  Equals<
+    ReturnType<typeof SceneSchema.LockstepPacket<typeof SceneSchema.Rgb>>['Type'],
+    Kernel.Lockstep.Packet<number>
+  >,
+  Equals<
     ReturnType<typeof SceneSchema.History<typeof SceneSchema.Placement>>['Type'],
     Kernel.History.History<Kernel.Placement>
   >,

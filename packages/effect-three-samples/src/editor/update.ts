@@ -3,13 +3,12 @@ import {
   type FieldPath,
   type FieldValue,
   type Gesture,
-  History,
   Inspector,
+  Lockstep,
   movedAlike,
   orbit,
   type Placement,
   scene,
-  type SceneDescription,
   type SceneNode,
   SceneFile,
   SceneSchema,
@@ -18,25 +17,20 @@ import {
   type Vec3,
 } from '@opsydyn/effect-three';
 import { BoxSelect, TransformGizmo, ViewportGizmo } from '@opsydyn/effect-three-foldkit';
-import { Array as Arr, Option, Result } from 'effect';
+import { Array as Arr, Match, Option, Result } from 'effect';
 import type { Return } from 'foldkit/update';
 
 import { DownloadFile, ReadText } from './command';
-import {
-  type Addable,
-  duplicated,
-  freshKey,
-  nodeKeyOf,
-  nodeOf,
-  placed,
-  placementOf,
-  selectableOf,
-} from './document';
+import { nodeKeyOf, placed, placementOf, selectableOf } from './document';
+import { applyEdit, type Edit } from './edit';
 import { Message } from './message';
 import type { Model } from './model';
+import { NameTab, Say, WaitForWelcome } from './session';
+import { type Packet, quietMilliseconds, type Wire } from './wire';
 
 type AppReturn = Return<Model, Message>;
 type Nodes = ReadonlyArray<SceneNode>;
+type Live = Extract<Model['session'], { readonly _tag: 'Live' }>;
 
 const snaps = { translationSnap: 0.25, rotationSnap: Math.PI / 12, scaleSnap: 0.25 } as const;
 const free = { translationSnap: null, rotationSnap: null, scaleSnap: null } as const;
@@ -44,21 +38,21 @@ const free = { translationSnap: null, rotationSnap: null, scaleSnap: null } as c
 const nodeIn = (nodes: Nodes, key: string): Option.Option<SceneNode> =>
   Arr.findFirst(nodes, (node) => node.key === key);
 
-/** A finished change: the new document, recorded under `label`. */
-const changed = (model: Model, nodes: Nodes, label: string): Model => ({
-  ...model,
-  nodes,
-  history: History.record(model.history, nodes, label),
-  before: Option.none(),
-  issue: Option.none(),
-});
+// PROPOSING
 
-/** The document as the history has it now, and what of the selection is still in it. */
-const travelled = (model: Model, history: Model['history']): Model => {
-  const nodes = History.present(history);
-  const selected = model.selected.filter((key) => nodes.some((node) => node.key === key));
-  return { ...model, history, nodes, selected };
-};
+/**
+ * An Edit this tab asks for: into its next turn packet when in a session, applied here
+ * at once when offline (no channel, as in tests), and dropped while still joining.
+ */
+const propose = (model: Model, edit: Edit): Model =>
+  Match.valueTags(model.session, {
+    Offline: () => applyEdit(model, edit, true),
+    Joining: () => model,
+    Live: (session) => ({
+      ...model,
+      session: { ...session, lockstep: Lockstep.submit(session.lockstep, edit) },
+    }),
+  });
 
 // THE GIZMO
 
@@ -85,7 +79,10 @@ const fromGizmo = (model: Model, out: TransformGizmo.OutMessage): Model =>
     Moved: ({ placement }) => placeSelected(model, placement),
     Finished: ({ placement }) => {
       const next = placeSelected(model, placement);
-      return changed(next, next.nodes, `Moved ${model.selected.join(', ')}`);
+      const placements = next.nodes
+        .filter((node) => model.selected.includes(node.key))
+        .map((node) => ({ key: node.key, placement: placementOf(node) }));
+      return propose({ ...next, before: Option.none() }, { _tag: 'Place', placements });
     },
   });
 
@@ -181,66 +178,199 @@ const endBox = (model: Model): Model => {
   return { ...model, box: result.model, selected: result.outMessage?.keys ?? model.selected };
 };
 
-// EDITING
+// SESSION
 
-const add = (model: Model, kind: Addable): Model => {
-  const key = freshKey(model.nodes, kind);
-  return {
-    ...changed(model, [...model.nodes, nodeOf(kind, key)], `Added ${key}`),
-    selected: [key],
-  };
-};
+const live = (model: Model, session: Live): Model => ({ ...model, session });
 
-const duplicate = (model: Model): Model => {
-  const copies = model.nodes
-    .filter((node) => model.selected.includes(node.key))
-    .reduce<Nodes>((made, node) => [...made, duplicated([...model.nodes, ...made], node)], []);
-  if (copies.length === 0) return model;
-  const keys = copies.map((node) => node.key);
-  return {
-    ...changed(model, [...model.nodes, ...copies], `Duplicated as ${keys.join(', ')}`),
-    selected: keys,
-  };
-};
+const say = (wire: Wire) => Say({ wire });
 
-const remove = (model: Model): Model => {
-  if (model.selected.length === 0) return model;
-  const nodes = model.nodes.filter((node) => !model.selected.includes(node.key));
-  return { ...changed(model, nodes, `Deleted ${model.selected.join(', ')}`), selected: [] };
-};
+/** The Welcome for `peer`: the session and the shared document as they are now. */
+const welcome = (model: Model, lockstep: Lockstep.Lockstep<Edit>, peer: string): Wire => ({
+  _tag: 'Welcome',
+  to: peer,
+  turn: lockstep.turn,
+  lead: lockstep.lead,
+  members: lockstep.members,
+  nodes: model.nodes,
+  resources: model.resources,
+  history: model.history,
+});
 
-const refused = (model: Model, issue: string): Model => ({ ...model, issue: Option.some(issue) });
-
-const withEdited = (model: Model, edited: SceneNode, path: FieldPath): Model =>
-  changed(
-    model,
-    model.nodes.map((each) => (each.key === edited.key ? edited : each)),
-    `Edited ${edited.key} ${path.join(' ')}`,
+/**
+ * Every turn whose packets are all in, applied: each Edit to the document (mine when
+ * this tab made it), then a Welcome to any newcomer whose first turn has come.
+ */
+const settle = (model: Model, session: Live): AppReturn => {
+  const before = session.lockstep.turn;
+  const result = Lockstep.advance(session.lockstep);
+  const applied = result.applied.reduce(
+    (at, { peer, input }) => applyEdit(at, input, peer === result.state.self),
+    live(model, { ...session, lockstep: result.state }),
   );
-
-/** An inspector edit to `node`, checked by the scene's own node schema. */
-const applyEdit = (model: Model, node: SceneNode, path: FieldPath, value: FieldValue): Model =>
-  Result.match(Inspector.edit(SceneSchema.SceneNode, node, path, value), {
-    onFailure: (issue) => refused(model, issue),
-    onSuccess: (edited) => withEdited(model, edited, path),
-  });
-
-/** An inspector edit to the node under `key`; refused, it says why. */
-const editNode = (model: Model, key: string, path: FieldPath, value: FieldValue): Model =>
-  Option.match(nodeIn(model.nodes, key), {
-    onNone: () => model,
-    onSome: (node) => applyEdit(model, node, path, value),
-  });
-
-/** A thing of `kind` put at `at`, selected, as a step. */
-const place = (model: Model, kind: Addable, at: Vec3): Model => {
-  const key = freshKey(model.nodes, kind);
-  const node = placed(nodeOf(kind, key), { ...placementOf(nodeOf(kind, key)), position: at });
-  return { ...changed(model, [...model.nodes, node], `Placed ${key}`), selected: [key] };
+  const newcomers = Lockstep.welcomeDue(before, result.state);
+  return {
+    model: applied,
+    commands: newcomers.map((peer) => say(welcome(applied, result.state, peer))),
+  };
 };
+
+/** The turn the session waits on, and since when; none once it waits on no one. */
+const stallOf = (session: Live, at: number): Live['stalled'] => {
+  if (Lockstep.waitingOn(session.lockstep).length === 0) return Option.none();
+  const turn = session.lockstep.turn;
+  const same = Option.filter(session.stalled, (stalled) => stalled.turn === turn);
+  return Option.orElse(same, () => Option.some({ turn, since: at }));
+};
+
+/** Whether this tab, leading, has waited too long on others at the turn all wait on. */
+const tooQuiet = (session: Live, at: number): boolean =>
+  Lockstep.leaderAt(session.lockstep, session.lockstep.turn) === session.lockstep.self &&
+  Option.exists(session.stalled, (stalled) => at - stalled.since >= quietMilliseconds);
+
+/** As leader, tabs held up on for too long are dropped from the turn all wait on. */
+const dropQuiet = (model: Model, session: Live, at: number): AppReturn => {
+  if (!tooQuiet(session, at)) return { model: live(model, session) };
+  const { lockstep } = session;
+  const quiet = Lockstep.waitingOn(lockstep).filter((peer) => peer !== lockstep.self);
+  const dropped = quiet.reduce(
+    (state, peer) => Lockstep.remove(state, peer, lockstep.turn),
+    lockstep,
+  );
+  const next = settle(model, { _tag: 'Live', lockstep: dropped, stalled: Option.none() });
+  return {
+    model: next.model,
+    commands: [
+      ...quiet.map((peer) => say({ _tag: 'Drop', peer, until: lockstep.turn })),
+      ...(next.commands ?? []),
+    ],
+  };
+};
+
+/** A turn's tick: this tab's packet out, what is complete applied, the quiet dropped. */
+const tick = (model: Model, at: number): AppReturn => {
+  if (model.session._tag !== 'Live') return { model };
+  const sent = Lockstep.send(model.session.lockstep);
+  const settled = settle(model, { ...model.session, lockstep: sent.state });
+  const session = settled.model.session;
+  const dropped =
+    session._tag === 'Live'
+      ? dropQuiet(settled.model, { ...session, stalled: stallOf(session, at) }, at)
+      : settled;
+  return {
+    model: dropped.model,
+    commands: [
+      ...(sent.packet === undefined ? [] : [say({ _tag: 'Turn', packet: sent.packet })]),
+      ...(settled.commands ?? []),
+      ...(dropped.commands ?? []),
+    ],
+  };
+};
+
+/** This tab named: it says hello and waits to be welcomed. */
+const named = (model: Model, peer: string): AppReturn => ({
+  model: { ...model, session: { _tag: 'Joining', self: peer, heard: [] } },
+  commands: [say({ _tag: 'Hello', peer }), WaitForWelcome()],
+});
+
+/** No welcome came: this tab starts a session of its own, with its document as it is. */
+const waited = (model: Model): Model =>
+  model.session._tag === 'Joining'
+    ? live(model, {
+        _tag: 'Live',
+        lockstep: Lockstep.make(model.session.self),
+        stalled: Option.none(),
+      })
+    : model;
+
+/**
+ * Whether this tab can take a welcome: still joining, or (the welcome came just after it
+ * gave up waiting) in a session of its own that no one else is in.
+ */
+const welcomable = (session: Model['session'], to: string): boolean => {
+  if (session._tag === 'Joining') return session.self === to;
+  if (session._tag !== 'Live') return false;
+  const { lockstep } = session;
+  return lockstep.self === to && Lockstep.membersAt(lockstep, lockstep.turn).length === 1;
+};
+
+const heardWhileJoining = (session: Model['session']) =>
+  session._tag === 'Joining' ? session.heard : [];
+
+/** Welcomed: this tab joins the session and takes its document and history. */
+const welcomed = (model: Model, wire: Extract<Wire, { readonly _tag: 'Welcome' }>): AppReturn => {
+  if (!welcomable(model.session, wire.to)) return { model };
+  const lockstep = Lockstep.join(wire.to, wire, heardWhileJoining(model.session));
+  const document = {
+    ...model,
+    nodes: wire.nodes,
+    resources: wire.resources,
+    history: wire.history,
+    saved: wire.nodes,
+    selected: [],
+  };
+  return settle(document, { _tag: 'Live', lockstep, stalled: Option.none() });
+};
+
+/** A Hello: the leader admits the newcomer in its next packet. */
+const helloed = (model: Model, peer: string): AppReturn =>
+  model.session._tag === 'Live'
+    ? {
+        model: live(model, {
+          ...model.session,
+          lockstep: Lockstep.admit(model.session.lockstep, peer),
+        }),
+      }
+    : { model };
+
+/** A turn packet: kept while joining, received (and what it completes applied) once in. */
+const turned = (model: Model, packet: Packet): AppReturn =>
+  Match.valueTags(model.session, {
+    Offline: () => ({ model }),
+    Joining: (session) => ({
+      model: { ...model, session: { ...session, heard: [...session.heard, packet] } },
+    }),
+    Live: (session) =>
+      settle(model, { ...session, lockstep: Lockstep.receive(session.lockstep, packet) }),
+  });
+
+/** A tab gone, by its own goodbye or the leader's drop: no one waits for it from `until`. */
+const gone = (model: Model, peer: string, until: number): AppReturn =>
+  model.session._tag === 'Live'
+    ? settle(model, {
+        ...model.session,
+        lockstep: Lockstep.remove(model.session.lockstep, peer, until),
+      })
+    : { model };
+
+/** What another tab said, as this tab's session stands. */
+const hear = (model: Model, wire: Wire): AppReturn =>
+  Match.valueTags(wire, {
+    Hello: ({ peer }) => helloed(model, peer),
+    Turn: ({ packet }) => turned(model, packet),
+    Welcome: (welcome) => welcomed(model, welcome),
+    Bye: ({ peer, until }) => gone(model, peer, until),
+    Drop: ({ peer, until }) => gone(model, peer, until),
+  });
+
+/** Leaving: the others stop waiting after the last turn this tab sent. */
+const bye = (model: Model): AppReturn =>
+  model.session._tag === 'Live'
+    ? {
+        model,
+        commands: [
+          say({
+            _tag: 'Bye',
+            peer: model.session.lockstep.self,
+            until: Lockstep.leave(model.session.lockstep) + 1,
+          }),
+        ],
+      }
+    : { model };
+
+// LOCAL
 
 /** The things to frame: those named that are in the document, or all of them. */
-const subjectOf = (model: Model, keys: ReadonlyArray<string>): ReadonlyArray<SceneNode> => {
+const subjectOf = (model: Model, keys: ReadonlyArray<string>): Nodes => {
   const named = model.nodes.filter((node) => keys.includes(node.key));
   return named.length === 0 ? model.nodes : named;
 };
@@ -262,6 +392,24 @@ const toggleSnapping = (model: Model): Model => {
   };
 };
 
+const refused = (model: Model, issue: string): Model => ({ ...model, issue: Option.some(issue) });
+
+const proposeField = (model: Model, key: string, path: FieldPath, value: FieldValue): Model =>
+  propose({ ...model, issue: Option.none() }, { _tag: 'Field', key, path, value });
+
+/** An inspector edit to `node`, checked here first so a refusal is shown at once. */
+const checkField = (model: Model, node: SceneNode, path: FieldPath, value: FieldValue): Model =>
+  Result.match(Inspector.edit(SceneSchema.SceneNode, node, path, value), {
+    onFailure: (issue) => refused(model, issue),
+    onSuccess: () => proposeField(model, node.key, path, value),
+  });
+
+const editNode = (model: Model, key: string, path: FieldPath, value: FieldValue): Model =>
+  Option.match(nodeIn(model.nodes, key), {
+    onNone: () => model,
+    onSome: (node) => checkField(model, node, path, value),
+  });
+
 // FILES
 
 /** The document as a scene file: its nodes and what they share, in a scene of their own. */
@@ -273,19 +421,15 @@ const save = (model: Model): AppReturn => ({
   commands: [DownloadFile({ name: 'scene.json', text: fileText(model) })],
 });
 
-/** A scene opened from a file: its nodes become the document, recorded and saved. */
-const opened = (model: Model, loaded: SceneDescription): Model => ({
-  ...changed(model, loaded.children, 'Opened a file'),
-  resources: loaded.resources,
-  saved: loaded.children,
-  selected: [],
-});
-
-/** A file read: its scene opened, or why it cannot be. */
+/** A file read: its scene proposed as the document, or why it cannot be. */
 const load = (model: Model, text: string): Model =>
   Result.match(SceneFile.read(text), {
     onFailure: (error) => refused(model, `That file is not a scene: ${error.issue}`),
-    onSuccess: (loaded) => opened(model, loaded),
+    onSuccess: (loaded) =>
+      propose(
+        { ...model, saved: loaded.children },
+        { _tag: 'Open', nodes: loaded.children, resources: loaded.resources },
+      ),
   });
 
 /** The first file chosen is read; choosing none does nothing. */
@@ -308,24 +452,32 @@ export const update = (model: Model, message: Message): AppReturn =>
     LeftScene: ({ key }) => ({ model: leave(model, key) }),
     MadeGesture: ({ gesture: made }) => ({ model: gesture(model, made) }),
     EndedGesture: () => ({ model: endBox(model) }),
-    ClickedAdd: ({ kind }) => ({ model: add(model, kind) }),
-    PlacedThing: ({ kind, at }) => ({ model: place(model, kind, at) }),
+    ClickedAdd: ({ kind }) => ({ model: propose(model, { _tag: 'Add', kind, at: null }) }),
+    PlacedThing: ({ kind, at }) => ({ model: propose(model, { _tag: 'Add', kind, at }) }),
     FramedShot: ({ subject, angle }) => ({ model: frame(model, subject, angle) }),
     ChoseMood: ({ mood }) => ({ model: { ...model, mood } }),
     ClickedOutlined: ({ key }) => ({ model: { ...model, selected: [key] } }),
-    ClickedDuplicate: () => ({ model: duplicate(model) }),
-    ClickedDelete: () => ({ model: remove(model) }),
+    ClickedDuplicate: () => ({
+      model: propose(model, { _tag: 'Duplicate', keys: model.selected }),
+    }),
+    ClickedDelete: () => ({ model: propose(model, { _tag: 'Delete', keys: model.selected }) }),
     ChoseMode: ({ mode }) => ({
       model: withGizmo(model, TransformGizmo.Message.ChoseMode({ mode })),
     }),
     ClickedSnapping: () => ({ model: toggleSnapping(model) }),
-    ClickedUndo: () => ({ model: travelled(model, History.undo(model.history)) }),
-    ClickedRedo: () => ({ model: travelled(model, History.redo(model.history)) }),
-    ClickedStep: ({ id }) => ({ model: travelled(model, History.jumpTo(model.history, id)) }),
+    ClickedUndo: () => ({ model: propose(model, { _tag: 'Undo' }) }),
+    ClickedRedo: () => ({ model: propose(model, { _tag: 'Redo' }) }),
+    ClickedStep: ({ id }) => ({ model: propose(model, { _tag: 'Jump', id }) }),
     EditedNode: ({ key, path, value }) => ({ model: editNode(model, key, path, value) }),
     ClickedSave: () => save(model),
     ChoseFiles: ({ files }) => chooseFiles(model, files),
     ReadFile: ({ text }) => ({ model: load(model, text) }),
     CompletedDownload: () => ({ model }),
     ReceivedSceneLifecycle: () => ({ model }),
+    NamedTab: ({ peer }) => named(model, peer),
+    WaitedForWelcome: () => ({ model: waited(model) }),
+    HeardWire: ({ wire }) => hear(model, wire),
+    TickedTurn: ({ at }) => tick(model, at),
+    LeftPage: () => bye(model),
+    CompletedSay: () => ({ model }),
   });

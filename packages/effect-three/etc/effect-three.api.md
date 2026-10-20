@@ -37,6 +37,15 @@ import { VoidIfEmpty } from 'effect/Types';
 import { YieldableError } from 'effect/Cause';
 
 // @public
+const admit: <I>(state: Lockstep_2<I>, peer: string) => Lockstep_2<I>;
+
+// @public
+const advance: <I>(state: Lockstep_2<I>) => {
+    readonly state: Lockstep_2<I>;
+    readonly applied: ReadonlyArray<Applied<I>>;
+};
+
+// @public
 export const ambientLight: (options: {
     readonly key: string;
     readonly color?: Rgb;
@@ -78,6 +87,13 @@ const Animation_3: Schema.Struct<{
 
 // @public
 export const animationEquals: (a: Animation_2 | null, b: Animation_2 | null) => boolean;
+
+// @public
+type Applied<I> = {
+    readonly turn: number;
+    readonly peer: string;
+    readonly input: I;
+};
 
 // @public
 export const applyTween: (object: Object3D, tween: Tween, elapsedSeconds: number) => boolean;
@@ -1260,6 +1276,15 @@ export const effectsEqual: (a: ReadonlyArray<PostEffect>, b: ReadonlyArray<PostE
 export const emptyIndex: SceneIndex;
 
 // @public
+type Entry<I> = {
+    readonly _tag: 'Input';
+    readonly input: I;
+} | {
+    readonly _tag: 'Admit';
+    readonly peer: string;
+};
+
+// @public
 export type Environment = {
     readonly map: string | null;
     readonly background: boolean | 'only';
@@ -2415,6 +2440,13 @@ export class InvalidScene extends InvalidScene_base<{
 }
 
 // @public
+const join: <I>(self: string, welcome: {
+    readonly turn: number;
+    readonly members: ReadonlyArray<Member>;
+    readonly lead: number;
+}, heard?: ReadonlyArray<Packet<I>>) => Lockstep_2<I>;
+
+// @public
 export type Joint = {
     readonly key: string;
     readonly a: BodyRef;
@@ -2819,6 +2851,12 @@ const layer: (scheduler: FrameScheduler) => Layer.Layer<FrameSource_2, never, ne
 const layer_2: Layer.Layer<ResourceRegistry_2, never, never>;
 
 // @public
+const leaderAt: <I>(state: Lockstep_2<I>, turn: number) => string | undefined;
+
+// @public
+const leave: <I>(state: Lockstep_2<I>) => number;
+
+// @public
 export const lentGeometry: (id: string) => GeometryRef;
 
 // @public (undocumented)
@@ -2919,6 +2957,85 @@ export type Loan = {
     readonly id: string;
 };
 
+declare namespace Lockstep {
+    export {
+        Entry,
+        Packet,
+        Member,
+        Lockstep_2 as Lockstep,
+        Applied,
+        membersAt,
+        leaderAt,
+        make_2 as make,
+        join,
+        submit,
+        admit,
+        receive,
+        send,
+        waitingOn,
+        advance,
+        welcomeDue,
+        leave,
+        remove
+    }
+}
+
+// @public (undocumented)
+type Lockstep_2<I> = {
+    readonly self: string;
+    readonly members: ReadonlyArray<Member>;
+    readonly turn: number;
+    readonly sent: number;
+    readonly lead: number;
+    readonly pending: ReadonlyArray<Entry<I>>;
+    readonly received: ReadonlyArray<Packet<I>>;
+};
+
+// @public
+const Lockstep_3: <S extends Schema.Top>(input: S) => Schema.Struct<{
+    readonly self: Schema.String;
+    readonly members: Schema.$Array<Schema.Struct<{
+        readonly peer: Schema.String;
+        readonly from: Schema.Int;
+        readonly until: Schema.NullOr<Schema.Int>;
+    }>>;
+    readonly turn: Schema.Int;
+    readonly sent: Schema.Int;
+    readonly lead: Schema.Int;
+    readonly pending: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Input", {
+        readonly input: S;
+    }>, Schema.TaggedStruct<"Admit", {
+        readonly peer: Schema.String;
+    }>]>>;
+    readonly received: Schema.$Array<Schema.Struct<{
+        readonly peer: Schema.String;
+        readonly turn: Schema.Int;
+        readonly entries: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Input", {
+            readonly input: S;
+        }>, Schema.TaggedStruct<"Admit", {
+            readonly peer: Schema.String;
+        }>]>>;
+    }>>;
+}>;
+
+// @public
+const LockstepMember: Schema.Struct<{
+    readonly peer: Schema.String;
+    readonly from: Schema.Int;
+    readonly until: Schema.NullOr<Schema.Int>;
+}>;
+
+// @public
+const LockstepPacket: <S extends Schema.Top>(input: S) => Schema.Struct<{
+    readonly peer: Schema.String;
+    readonly turn: Schema.Int;
+    readonly entries: Schema.$Array<Schema.Union<readonly [Schema.TaggedStruct<"Input", {
+        readonly input: S;
+    }>, Schema.TaggedStruct<"Admit", {
+        readonly peer: Schema.String;
+    }>]>>;
+}>;
+
 // @public
 export const locomote: (settings: Xr, stick: {
     readonly hand: XrHand;
@@ -2936,7 +3053,10 @@ export type LocomotionOptions = {
 const make: <A>(value: A, label?: string) => History_3<A>;
 
 // @public
-const make_2: (options: SceneRuntimeOptions) => Effect.Effect<{
+const make_2: <I>(self: string, lead?: number) => Lockstep_2<I>;
+
+// @public
+const make_3: (options: SceneRuntimeOptions) => Effect.Effect<{
     graph: SceneGraph;
     startupOps: readonly Op[];
     update: (scene: SceneDescription) => Effect.Effect<readonly Op[], InvalidScene, never>;
@@ -3059,6 +3179,16 @@ const MeasuredDetail: Schema.Struct<{
     readonly min: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
     readonly max: Schema.Tuple<readonly [Schema.Finite, Schema.Finite, Schema.Finite]>;
 }>;
+
+// @public
+type Member = {
+    readonly peer: string;
+    readonly from: number;
+    readonly until: number | null;
+};
+
+// @public
+const membersAt: <I>(state: Lockstep_2<I>, turn: number) => ReadonlyArray<string>;
 
 // @public
 export const mesh: (options: TransformOptions & {
@@ -3569,6 +3699,13 @@ export type OverlayPlacement = {
 
 // @public
 export const overlaysEqual: (a: ReadonlyArray<Overlay>, b: ReadonlyArray<Overlay>) => boolean;
+
+// @public
+type Packet<I> = {
+    readonly peer: string;
+    readonly turn: number;
+    readonly entries: ReadonlyArray<Entry<I>>;
+};
 
 // @public
 export const panCamera: (camera: Camera, deltaX: number, deltaY: number, area: {
@@ -4279,6 +4416,9 @@ const Ray_2: Schema.Struct<{
 // @public
 const read: (text: string) => Result.Result<SceneDescription, UnreadableScene>;
 
+// @public
+const receive: <I>(state: Lockstep_2<I>, packet: Packet<I>) => Lockstep_2<I>;
+
 // @public (undocumented)
 export type ReconcileResult = {
     readonly _tag: 'Applied';
@@ -4324,6 +4464,9 @@ export const releaseGizmo: (state: Gizmo) => Gizmo;
 
 // @public (undocumented)
 export const releasePivot: (state: Pivot) => Pivot;
+
+// @public
+const remove: <I>(state: Lockstep_2<I>, peer: string, until: number) => Lockstep_2<I>;
 
 // @public
 export type RenderArea = {
@@ -6229,7 +6372,7 @@ export type SceneGraphOptions = {
 };
 
 // @public
-type SceneHandle = Effect.Success<ReturnType<typeof make_2>>;
+type SceneHandle = Effect.Success<ReturnType<typeof make_3>>;
 
 // @public
 export type SceneIndex = {
@@ -6281,7 +6424,7 @@ export type SceneRenderer = {
 declare namespace SceneRuntime {
     export {
         SceneRuntimeOptions,
-        make_2 as make,
+        make_3 as make,
         SceneHandle
     }
 }
@@ -6408,6 +6551,9 @@ declare namespace SceneSchema {
         Placement_2 as Placement,
         Gizmo_2 as Gizmo,
         History_4 as History,
+        LockstepPacket,
+        LockstepMember,
+        Lockstep_3 as Lockstep,
         Tape_2 as Tape,
         PivotHandle_2 as PivotHandle,
         Pivot_2 as Pivot
@@ -6434,6 +6580,12 @@ export type SceneSummary = {
 export type Selectable = {
     readonly key: string;
     readonly at: Vec3;
+};
+
+// @public
+const send: <I>(state: Lockstep_2<I>) => {
+    readonly state: Lockstep_2<I>;
+    readonly packet: Packet<I> | undefined;
 };
 
 // @public
@@ -6871,6 +7023,9 @@ export const startTween: (object: Object3D, target: {
 }) => Tween;
 
 // @public
+const submit: <I>(state: Lockstep_2<I>, input: I) => Lockstep_2<I>;
+
+// @public
 export const sunPositionFromAngles: (inclination: number, azimuth: number) => Vec3;
 
 // @public
@@ -7286,6 +7441,12 @@ export const vignette: (options?: {
     readonly offset?: number;
     readonly darkness?: number;
 }) => PostEffect;
+
+// @public
+const waitingOn: <I>(state: Lockstep_2<I>) => ReadonlyArray<string>;
+
+// @public
+const welcomeDue: <I>(before: number, state: Lockstep_2<I>) => ReadonlyArray<string>;
 
 // @public
 const WheelDetail: Schema.Struct<{

@@ -309,6 +309,7 @@ export {
 } from './gizmo.ts';
 export { type BoxCorner, boxSelect, type CanvasSize, type Selectable } from './boxSelect.ts';
 export * as History from './history.ts';
+export * as Lockstep from './lockstep.ts';
 export {
   describeScene,
   formatSummary,

@@ -1213,6 +1213,40 @@ export const History = <S extends Schema.Top>(value: S) =>
     current: Schema.Int,
   });
 
+/** A lockstep entry: an app's input, or the leader admitting a peer. */
+const LockstepEntry = <S extends Schema.Top>(input: S) =>
+  Schema.Union([
+    Schema.TaggedStruct('Input', { input }),
+    Schema.TaggedStruct('Admit', { peer: Schema.String }),
+  ]);
+
+/** One peer's lockstep packet for one turn, carrying the app's `input`s. */
+export const LockstepPacket = <S extends Schema.Top>(input: S) =>
+  Schema.Struct({
+    peer: Schema.String,
+    turn: Schema.Int,
+    entries: Schema.Array(LockstepEntry(input)),
+  });
+
+/** A lockstep member: the first turn it sends for, and the turn it stopped before. */
+export const LockstepMember = Schema.Struct({
+  peer: Schema.String,
+  from: Schema.Int,
+  until: Schema.NullOr(Schema.Int),
+});
+
+/** A lockstep session (`Lockstep.make`) over the app's `input`s, for a Model. */
+export const Lockstep = <S extends Schema.Top>(input: S) =>
+  Schema.Struct({
+    self: Schema.String,
+    members: Schema.Array(LockstepMember),
+    turn: Schema.Int,
+    sent: Schema.Int,
+    lead: Schema.Int,
+    pending: Schema.Array(LockstepEntry(input)),
+    received: Schema.Array(LockstepPacket(input)),
+  });
+
 /** A measuring tape as data (`tape`), for a Model that keeps it. */
 export const Tape = Schema.Struct({
   from: Schema.NullOr(Vec3),

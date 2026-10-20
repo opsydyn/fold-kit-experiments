@@ -248,6 +248,12 @@ Effect owns every lifetime.
    sharing the input stream (an Effect `Stream` over a socket) shares the world; other
    players' heads and hands are more tracked spaces. Needs inputs applied at step
    boundaries (see ADR-011) and, later, rollback, which pure updates make possible.
+   ✅ First ([ADR-013](adr/013-lockstep-collaboration.md), 2026-10-20): editing
+   together. The kernel's `Lockstep` is the protocol as data (turns, members, the
+   leader admitting and dropping, welcomes); the editor's shared changes are Edits sent
+   through it over a `BroadcastChannel`, so tabs of one browser edit one scene with one
+   history. Checked over a simulated lossy-timing network and in two real tabs. Next:
+   a relay for peers on different machines, then physics inputs at fixed steps.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -335,8 +341,9 @@ The replay spike (1), the Drei audit and its S candidates, agent control of the 
 (3), labels under WebGPU (E), the line and points families, the transform gizmo, box
 select, the viewport gizmo, the pivot controls and the measuring tape (5) are done, and so is
 tooling from Schema (4): scene files, branching history, review diffs and the inspector.
-The single-user scene editor ties them together, and agents can describe and stage a
-scene through it (3). Next: lockstep multiplayer (2).
+The scene editor ties them together, agents can describe and stage a scene through it
+(3), and tabs edit it together in lockstep (2). Next: a relay between machines, physics
+lockstep, and data and assets (6).
 
 ## Not planned
 

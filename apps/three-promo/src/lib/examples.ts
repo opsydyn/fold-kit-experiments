@@ -85,7 +85,7 @@ export const examples = [
     category: 'Editing',
     title: 'A scene editor',
     description:
-      'Every editing piece together: add, duplicate and delete, select by click or box, move with the gizmo, inspect any node through the scene schema, undo along branches or jump to any step, save and open scene files, and see what changed since you saved.',
+      'Every editing piece together: add, duplicate and delete, select by click or box, move with the gizmo, inspect any node through the scene schema, undo along branches or jump to any step, save and open scene files, see what changed since you saved, and edit together in two tabs.',
     alt: 'Editor: a crate, a ball and a light marker on a grid floor, with a transform gizmo and panels for the scene, an inspector, history and changes.',
   },
   {

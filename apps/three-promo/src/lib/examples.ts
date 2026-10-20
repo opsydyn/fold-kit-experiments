@@ -81,6 +81,14 @@ export const examples = [
     alt: 'Arrange: a rounded crate with a red, green and blue transform gizmo on a table with a ball, a cone and a ring.',
   },
   {
+    id: 'editor',
+    category: 'Editing',
+    title: 'A scene editor',
+    description:
+      'Every editing piece together: add, duplicate and delete, select by click or box, move with the gizmo, inspect any node through the scene schema, undo along branches or jump to any step, save and open scene files, and see what changed since you saved.',
+    alt: 'Editor: a crate, a ball and a light marker on a grid floor, with a transform gizmo and panels for the scene, an inspector, history and changes.',
+  },
+  {
     id: 'curves',
     category: 'Lines and points',
     title: 'Draw with data',

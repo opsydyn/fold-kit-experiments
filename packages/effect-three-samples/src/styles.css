@@ -282,3 +282,110 @@
     gap: 4px;
   }
 }
+
+/* The editor: panels beside one another, under the stage. */
+.e3-editor-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-block: 16px;
+}
+
+.e3-editor-panel {
+  padding: 12px 14px;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.e3-editor-panel h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.e3-inspector-title {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.e3-outline,
+.e3-history {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.e3-outline-row,
+.e3-step {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.e3-outline-row:hover,
+.e3-step:hover {
+  background: color-mix(in srgb, var(--blue, #3d79fa) 10%, transparent);
+}
+
+.e3-outline-row[aria-pressed='true'],
+.e3-step[aria-current='step'] {
+  background: color-mix(in srgb, var(--blue, #3d79fa) 22%, transparent);
+}
+
+.e3-outline-kind {
+  min-width: 6.5rem;
+  color: var(--muted, #8a8aa3);
+}
+
+/* A step off the present's line: a branch kept, not lost. */
+.e3-step-branch {
+  color: var(--muted, #8a8aa3);
+  font-style: italic;
+}
+
+.e3-changes {
+  margin: 0;
+  font:
+    12px/1.6 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+}
+
+/* A file chooser that looks like the other buttons. */
+.e3-file {
+  position: relative;
+  cursor: pointer;
+}
+
+.e3-file input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* The inspector needs the room: two columns where there are three. */
+@media (min-width: 720px) {
+  .e3-editor-inspector {
+    grid-column: span 2;
+  }
+}
+
+.e3-editor-panel .e3-inspector-row {
+  grid-template-columns: minmax(5rem, 8rem) minmax(0, 1fr);
+}

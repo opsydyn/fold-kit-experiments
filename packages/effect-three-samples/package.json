@@ -18,6 +18,7 @@
     "./room": "./src/room/main.ts",
     "./curves": "./src/curves/main.ts",
     "./arrange": "./src/arrange/main.ts",
+    "./editor": "./src/editor/main.ts",
     "./shared": "./src/shared/main.ts",
     "./styles.css": "./src/styles.css",
     "./src/*": "./src/*"

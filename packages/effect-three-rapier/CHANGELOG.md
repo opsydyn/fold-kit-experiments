@@ -2,10 +2,9 @@
 
 ## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-rapier-v0.5.0...effect-three-rapier-v0.6.0) (2026-10-21)
 
-
 ### Features
 
-* **effect-three-rapier:** snapshots of Rapier worlds, in the page and in a worker ([89a8e32](https://github.com/opsydyn/fold-kit-experiments/commit/89a8e32ac0c23c055100ee9ec1c8349610f998f4))
+- **effect-three-rapier:** snapshots of Rapier worlds, in the page and in a worker ([89a8e32](https://github.com/opsydyn/fold-kit-experiments/commit/89a8e32ac0c23c055100ee9ec1c8349610f998f4))
 
 ## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-rapier-v0.4.0...effect-three-rapier-v0.5.0) (2026-10-20)
 

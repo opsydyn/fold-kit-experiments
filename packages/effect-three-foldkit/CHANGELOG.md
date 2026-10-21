@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-foldkit-v0.5.0...effect-three-foldkit-v0.6.0) (2026-10-21)
+
+### Features
+
+- **effect-three:** snapshot a world on until, and start a run from one ([881d520](https://github.com/opsydyn/fold-kit-experiments/commit/881d5206531c8f0a42fce1e1428034a41e558656))
+
 ## [0.5.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-foldkit-v0.4.0...effect-three-foldkit-v0.5.0) (2026-10-20)
 
 ### Features

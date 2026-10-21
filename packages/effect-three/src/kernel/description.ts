@@ -641,11 +641,39 @@ export type Physics = {
    * replay starting over. `0` by default.
    */
   readonly run: number;
+  /**
+   * A step the world also stops at on its way to `until`, to report there with a
+   * snapshot of itself (`PhysicsReached.snapshot`) for another world to start `from`. It
+   * does not wait there. `null` (the default): no snapshot. An engine that cannot take
+   * one reports there without.
+   */
+  readonly snapshotAt: number | null;
+  /**
+   * Where a run starts: a snapshot and the step it was taken at. The world is made from
+   * it, holding the bodies and joints it held, and counts on from that step, going
+   * straight to `until`; bodies the description has and it lacks are added where
+   * described. Read only when a run starts; `null` (the default): from the description,
+   * at step 0.
+   */
+  readonly from: PhysicsStart | null;
+  /**
+   * How many of its latest stops (each step it reported at) the world keeps a snapshot
+   * of, itself, for a run to start `from` without one in the description: to roll back
+   * a few steps and go again with an input that came late. `0` (the default): none.
+   */
+  readonly keep: number;
   /** Draw every collider and joint as lines, as react-three-rapier's `<Physics debug>`. */
   readonly debug: boolean;
   /** Joints between bodies, each active while both its bodies exist. */
   readonly joints: ReadonlyArray<Joint>;
 };
+
+/**
+ * Where a run starts: the step, and a world's snapshot there (base64, as
+ * `PhysicsReached` carries it), or `null` for the one the world kept at that step itself
+ * (`keep`). A step it did not keep starts from the description, at step 0.
+ */
+export type PhysicsStart = { readonly step: number; readonly snapshot: string | null };
 
 /** A body a joint holds: a node's, or one instance's of an instances node. */
 export type BodyRef = { readonly key: string; readonly instance: string | null };

@@ -213,6 +213,9 @@ export {
   type PhysicsWorld,
   type Quat,
   type Received,
+  type RestoredWorld,
+  snapshotBytes,
+  snapshotText,
 } from './physics.ts';
 export type { BodyCollision, BodyContactForce, PhysicsReached } from './bodies.ts';
 export type {

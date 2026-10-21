@@ -50,13 +50,30 @@ const throughRelay = (model: Model, relay: Relay): string => {
   });
 };
 
+/** Where this peer's world started, when it joined from the leader's snapshot. */
+const startedFrom = (model: Model): string =>
+  Option.match(
+    Option.filter(model.start, ({ snapshot }) => snapshot !== null),
+    {
+      onNone: () => '',
+      onSome: ({ step }) => ` Joined from a snapshot of the table at step ${step}.`,
+    },
+  );
+
+/** What predicting does here, and how often it has rolled back. */
+const predicting = (model: Model): string =>
+  model.predict
+    ? ` Predicting: throws show at once, and the table rolls back when another's lands where it has been (${model.rollbacks} so far).`
+    : '';
+
 const together = (model: Model): string => {
   if (Option.isSome(model.replay)) return 'Replaying a recorded game: no session, no throws.';
   if (model.away) return 'Stepped out while this page was hidden; back in when it is shown.';
-  return Option.match(model.relay, {
+  const playing = Option.match(model.relay, {
     onNone: () => overTabs(model),
     onSome: (relay) => throughRelay(model, relay),
   });
+  return `${playing}${startedFrom(model)}${predicting(model)}`;
 };
 
 /** Who this peer plays with, and a way back to the relay once it has lost it. */
@@ -141,8 +158,8 @@ export const view = (model: Model, h: H): Document => ({
           className: 'e3-stage',
           onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
           onClick: ({ point }) => Message.ClickedTable({ point }),
-          onPhysicsReached: ({ run, step, checksum }) =>
-            Message.ReachedStep({ run, step, checksum }),
+          onPhysicsReached: ({ run, step, checksum, snapshot }) =>
+            Message.ReachedStep({ run, step, checksum, snapshot: snapshot ?? null }),
         },
         h,
       ),

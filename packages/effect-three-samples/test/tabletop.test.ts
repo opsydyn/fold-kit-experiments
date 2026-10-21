@@ -11,7 +11,7 @@ import { Option } from 'effect';
 import { Message } from '../src/tabletop/message';
 import { fresh, init, type Model } from '../src/tabletop/model';
 import { fragmentOf, recordIn, recordOf } from '../src/tabletop/replay';
-import { throwAt, untilOf, update } from '../src/tabletop/update';
+import { snapshotAtOf, throwAt, untilOf, update } from '../src/tabletop/update';
 import { checkEvery, stepsPerTurn, type Wire } from '../src/tabletop/wire';
 
 type Peer = {
@@ -22,6 +22,8 @@ type Peer = {
   /** The stand-in world: its run, its step, and the balls it had at each step it reached. */
   world: { run: number; step: number | null };
   seen: Map<number, string>;
+  /** The snapshot the world's run started from, if it did. */
+  startedFrom?: { readonly step: number; readonly snapshot: string | null } | undefined;
 };
 
 const run = (peer: Peer, message: Message) => {
@@ -41,33 +43,56 @@ const run = (peer: Peer, message: Message) => {
 const holding = (model: Model): string =>
   `${model.build}:${model.balls.map((ball) => `${ball.key}@${ball.from.join(',')}`).join(';')}`;
 
-/** The world goes to `until` (a new run starts at 0) and reports, if it moved. */
+/**
+ * The world goes to `until` and reports, if it moved, with a snapshot (what it holds)
+ * where the Model asks for one. A new run starts at 0, or at the step of the snapshot it
+ * starts from, holding what that snapshot held.
+ */
 const stepWorld = (peer: Peer) => {
   if (peer.world.run !== peer.model.run) {
-    peer.world = { run: peer.model.run, step: null };
-    peer.seen = new Map();
+    const from = Option.getOrUndefined(peer.model.start);
+    // Made at its start step, it reports there first if that is where it is to stop.
+    peer.world = { run: peer.model.run, step: from === undefined ? null : from.step - 1 };
+    // A rollback goes back to a stop of its own: what it saw up to there stands.
+    if (from?.snapshot === null) {
+      for (const step of peer.seen.keys()) if (step > from.step) peer.seen.delete(step);
+    } else {
+      peer.seen = new Map();
+      peer.startedFrom = from;
+    }
   }
   const until = untilOf(peer.model);
   if (peer.world.step !== null && until <= peer.world.step) return;
   peer.world.step = until;
   const balls = holding(peer.model);
   peer.seen.set(until, balls);
-  run(peer, Message.ReachedStep({ run: peer.model.run, step: until, checksum: balls }));
+  const snapshot = snapshotAtOf(peer.model) === until ? balls : null;
+  run(peer, Message.ReachedStep({ run: peer.model.run, step: until, checksum: balls, snapshot }));
 };
 
 const clock = { now: 0 };
 
-/** Every peer hears the others, ticks, and lets its world catch up, `times` over. */
-const exchange = (peers: ReadonlyArray<Peer>, times: number) => {
+/** What is on its way between peers: who said it, and how many rounds it has left. */
+const inFlight: Array<{ readonly from: Peer; readonly wire: Wire; rounds: number }> = [];
+
+/**
+ * Every peer hears the others, ticks, and lets its world catch up, `times` over. What a
+ * peer says takes `delay` rounds to arrive (none: the next round).
+ */
+const exchange = (peers: ReadonlyArray<Peer>, times: number, delay = 0) => {
   for (let i = 0; i < times; i++) {
     clock.now += 50;
-    const said = peers.map((peer) => peer.outbox.splice(0));
-    peers.forEach((peer, index) => {
-      said.forEach((wires, from) => {
-        if (from !== index)
-          for (const wire of wires) run(peer, Message.HeardWire({ wire, at: clock.now }));
-      });
-    });
+    for (const peer of peers) {
+      for (const wire of peer.outbox.splice(0)) inFlight.push({ from: peer, wire, rounds: delay });
+    }
+    const arriving = inFlight.filter((each) => each.rounds <= 0);
+    inFlight.splice(0, inFlight.length, ...inFlight.filter((each) => each.rounds > 0));
+    for (const each of inFlight) each.rounds -= 1;
+    for (const peer of peers) {
+      for (const { from, wire } of arriving) {
+        if (from !== peer) run(peer, Message.HeardWire({ wire, at: clock.now }));
+      }
+    }
     for (const peer of peers) {
       run(peer, Message.TickedTurn({ at: clock.now }));
       for (let catchUp = 0; catchUp < 40; catchUp++) stepWorld(peer);
@@ -75,7 +100,7 @@ const exchange = (peers: ReadonlyArray<Peer>, times: number) => {
   }
 };
 
-const opened = (name: string): Peer => {
+const opened = (name: string, predict = false): Peer => {
   const peer: Peer = {
     model: init().model,
     outbox: [],
@@ -83,14 +108,17 @@ const opened = (name: string): Peer => {
     world: { run: 0, step: null },
     seen: new Map(),
   };
-  run(peer, Message.NamedTab({ peer: name, at: 0, relay: Option.none(), record: Option.none() }));
+  run(
+    peer,
+    Message.NamedTab({ peer: name, at: 0, relay: Option.none(), predict, record: Option.none() }),
+  );
   stepWorld(peer);
   return peer;
 };
 
 const live = (peer: Peer) => peer.model.session._tag === 'Live';
 
-test('peers give their worlds the same throws at the same steps; a newcomer replays them', () => {
+test('peers give their worlds the same throws at the same steps; a newcomer starts from a snapshot', () => {
   const a = opened('a');
   run(a, Message.WaitedForWelcome());
   expect(live(a)).toBe(true);
@@ -103,8 +131,14 @@ test('peers give their worlds the same throws at the same steps; a newcomer repl
   const b = opened('b');
   exchange([a, b], 20);
   expect(live(b)).toBe(true);
-  // b's world is a new run, replaying a's throws from step 0.
+  // b's world is a new run, started from a's latest snapshot (taken at a check step) with
+  // the balls a had there, not replayed from step 0.
   expect(b.model.run).toBe(1);
+  const from = b.startedFrom;
+  expect(from?.step).toBeGreaterThan(0);
+  expect((from?.step ?? 1) % checkEvery).toBe(0);
+  expect(from?.snapshot).toBe(a.seen.get(from?.step ?? -1));
+  expect(Math.min(...b.seen.keys())).toBeGreaterThanOrEqual(from?.step ?? 0);
   run(a, Message.ClickedTable({ point: [-1, 0.5, 0] }));
   run(b, Message.ClickedTable({ point: [0.5, 0.2, 1] }));
   run(b, Message.ClickedRebuild());
@@ -133,7 +167,15 @@ test('a world that went another way is found out at the next check', () => {
   const next = (Math.floor((b.model.timeline.reached ?? 0) / checkEvery) + 1) * checkEvery;
   b.model = { ...b.model, checksFrom: next + checkEvery };
   exchange([a, b], 30);
-  run(b, Message.ReachedStep({ run: b.model.run, step: next + checkEvery, checksum: 'other' }));
+  run(
+    b,
+    Message.ReachedStep({
+      run: b.model.run,
+      step: next + checkEvery,
+      checksum: 'other',
+      snapshot: null,
+    }),
+  );
   b.world.step = next + checkEvery;
   exchange([a, b], 30);
   expect(a.model.diverged).toEqual(Option.some(next + checkEvery));
@@ -190,7 +232,9 @@ test('a peer that loses the relay plays on alone from where its world is', () =>
 
 test('reports from an old run are ignored; throws aim from the near edge', () => {
   const model: Model = { ...fresh, run: 2 };
-  expect(update(model, Message.ReachedStep({ run: 1, step: 0, checksum: 'x' })).model).toBe(model);
+  expect(
+    update(model, Message.ReachedStep({ run: 1, step: 0, checksum: 'x', snapshot: null })).model,
+  ).toBe(model);
   const thrown = throwAt([0, 0, 0], 'gold');
   expect(thrown.from[2]).toBeGreaterThan(5);
   expect(thrown.impulse[2]).toBeLessThan(0);
@@ -228,6 +272,35 @@ test('a third peer joining after throws from both and a rebuild catches up and a
   expect(c.world.step).toBeGreaterThan(a.world.step === null ? 0 : a.world.step - 30);
   expect(c.model.agreed).toBeGreaterThan(2);
   expect(c.model.diverged).toEqual(Option.none());
+  // c started from a snapshot taken after the rebuild, and its record is still whole.
+  expect(c.startedFrom?.step).toBeGreaterThan(0);
+  expect(c.model.timeline.inputs).toEqual(a.model.timeline.inputs);
+});
+
+test('a newcomer welcomed before the leader has a snapshot replays from step 0', () => {
+  const a = opened('a');
+  run(a, Message.WaitedForWelcome());
+  run(a, Message.ClickedTable({ point: [0, 1, 0] }));
+  exchange([a], 4);
+  expect(a.model.kept).toEqual(Option.none());
+  const b = opened('b');
+  exchange([a, b], 20);
+  expect(b.startedFrom).toBeUndefined();
+  expect(b.seen.has(0)).toBe(true);
+  exchange([a, b], 60);
+  expect(b.model.balls).toEqual(a.model.balls);
+  expect(b.model.diverged).toEqual(Option.none());
+});
+
+test('only the leader snapshots its world, at check steps', () => {
+  const a = opened('a');
+  run(a, Message.WaitedForWelcome());
+  exchange([a], 30);
+  const b = opened('b');
+  exchange([a, b], 60);
+  const [leader, other] = snapshotAtOf(a.model) === null ? [b, a] : [a, b];
+  expect((snapshotAtOf(leader.model) ?? 1) % checkEvery).toBe(0);
+  expect(snapshotAtOf(other.model)).toBeNull();
 });
 
 test('a game becomes a record in a link, and replaying it meets every check', () => {
@@ -257,7 +330,16 @@ test('a game becomes a record in a link, and replaying it meets every check', ()
     world: { run: 0, step: null },
     seen: new Map(),
   };
-  run(r, Message.NamedTab({ peer: 'r', at: 0, relay: Option.none(), record: recordIn(fragment) }));
+  run(
+    r,
+    Message.NamedTab({
+      peer: 'r',
+      at: 0,
+      relay: Option.none(),
+      predict: false,
+      record: recordIn(fragment),
+    }),
+  );
   expect(r.model.session._tag).toBe('Offline');
   exchange([r], 200);
   expect(r.outbox).toEqual([]);
@@ -268,7 +350,79 @@ test('a game becomes a record in a link, and replaying it meets every check', ()
   // A record that does not match the world is found out at its first check.
   const forged = { ...record, checks: record.checks.map((check) => ({ ...check, checksum: 'x' })) };
   const f: Peer = { ...r, model: init().model, outbox: [], world: { run: 0, step: null } };
-  run(f, Message.NamedTab({ peer: 'f', at: 0, relay: Option.none(), record: Option.some(forged) }));
+  run(
+    f,
+    Message.NamedTab({
+      peer: 'f',
+      at: 0,
+      relay: Option.none(),
+      predict: false,
+      record: Option.some(forged),
+    }),
+  );
   exchange([f], 200);
   expect(f.model.diverged).toEqual(Option.some(forged.checks[0]?.step ?? -1));
+});
+
+/** Throws from both peers, a turn apart, over a network that takes `delay` rounds. */
+const playTogether = (a: Peer, b: Peer, delay: number) => {
+  run(a, Message.WaitedForWelcome());
+  exchange([a], 30, delay);
+  exchange([a, b], 40, delay);
+  for (let i = 0; i < 8; i++) {
+    run(i % 2 === 0 ? a : b, Message.ClickedTable({ point: [i * 0.2 - 0.7, 0.4, 0] }));
+    if (i === 5) run(b, Message.ClickedRebuild());
+    exchange([a, b], 1, delay);
+    run(i % 2 === 0 ? b : a, Message.ClickedTable({ point: [0.5 - i * 0.1, 0.6, 0] }));
+    exchange([a, b], 1, delay);
+  }
+  exchange([a, b], 160, delay);
+};
+
+/** Both peers agree: the same table, no check out of step, and the steps both saw alike. */
+const agreeing = (a: Peer, b: Peer) => {
+  expect(b.model.balls).toEqual(a.model.balls);
+  expect(b.model.build).toBe(a.model.build);
+  expect(a.model.diverged).toEqual(Option.none());
+  expect(b.model.diverged).toEqual(Option.none());
+  expect(a.model.agreed).toBeGreaterThan(2);
+  expect(b.model.agreed).toBeGreaterThan(2);
+  const shared = [...a.seen.keys()].filter((step) => b.seen.has(step));
+  expect(shared.length).toBeGreaterThan(10);
+  for (const step of shared) expect(b.seen.get(step)).toBe(a.seen.get(step));
+};
+
+test('predicting peers over a slow network roll back for late throws, and agree', () => {
+  const a = opened('a', true);
+  const b = opened('b', true);
+  playTogether(a, b, 2);
+  agreeing(a, b);
+  // Each got the other's throws after its world had passed their step, and went back.
+  expect(a.model.rollbacks).toBeGreaterThan(0);
+  expect(b.model.rollbacks).toBeGreaterThan(0);
+});
+
+test('a predicting peer and one that does not play one game', () => {
+  const a = opened('a', true);
+  const b = opened('b');
+  playTogether(a, b, 1);
+  agreeing(a, b);
+  expect(b.model.rollbacks).toBe(0);
+});
+
+test('a predicting peer sees its own throw at once; one that does not, a few turns later', () => {
+  const shown = (predict: boolean) => {
+    const a = opened('a', predict);
+    const b = opened('b', predict);
+    run(a, Message.WaitedForWelcome());
+    exchange([a], 10);
+    exchange([a, b], 20);
+    const before = a.model.balls.length;
+    run(a, Message.ClickedTable({ point: [0, 0.5, 0] }));
+    let rounds = 0;
+    for (; rounds < 20 && a.model.balls.length === before; rounds++) exchange([a, b], 1, 1);
+    return rounds;
+  };
+  expect(shown(true)).toBeLessThan(shown(false));
+  expect(shown(true)).toBe(1);
 });

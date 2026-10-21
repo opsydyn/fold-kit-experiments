@@ -23,6 +23,8 @@ import type {
   Vec3,
 } from '@opsydyn/effect-three';
 
+import { type IndexedBody, readSnapshot, type SnapshotIndex, writeSnapshot } from './snapshot.ts';
+
 /** A loaded Rapier module: either build. */
 export type Rapier = typeof RAPIER;
 
@@ -168,18 +170,37 @@ type Held = {
   readonly colliders: ReadonlyArray<RAPIER.Collider>;
 };
 
-const createWorld =
+type Joined = { readonly joint: RAPIER.ImpulseJoint; readonly a: string; readonly b: string };
+
+/**
+ * A Rapier world as a `PhysicsWorld`: a new one, or one restored from a snapshot with the
+ * index of what it holds.
+ */
+const hostWorld =
   (rapier: Rapier) =>
-  (initial: Physics): PhysicsWorld => {
-    const world = new rapier.World(vector(initial.gravity));
+  (world: RAPIER.World, index: SnapshotIndex = { bodies: [], joints: [] }): PhysicsWorld => {
     const events = new rapier.EventQueue(true);
-    const bodies = new Map<string, Held>();
+    const bodies = new Map<string, Held>(
+      index.bodies.map((body) => [
+        body.key,
+        {
+          rigidBody: world.getRigidBody(body.handle),
+          colliders: body.colliders.map((collider) => world.getCollider(collider.handle)),
+        },
+      ]),
+    );
     /** Each collider's body, and the part of it the collider is (when named). */
-    const keysByCollider = new Map<number, Owner>();
-    const joints = new Map<
-      string,
-      { readonly joint: RAPIER.ImpulseJoint; readonly a: string; readonly b: string }
-    >();
+    const keysByCollider = new Map<number, Owner>(
+      index.bodies.flatMap(({ key, colliders }) =>
+        colliders.map(({ handle, part }) => [handle, part === undefined ? { key } : { key, part }]),
+      ),
+    );
+    const joints = new Map<string, Joined>(
+      index.joints.map(({ id, handle, a, b }) => [
+        id,
+        { joint: world.getImpulseJoint(handle), a, b },
+      ]),
+    );
 
     const add: PhysicsWorld['add'] = (key, body, colliders, pose) => {
       const desc = new rapier.RigidBodyDesc(bodyType(rapier, body.type))
@@ -266,6 +287,12 @@ const createWorld =
     }
     const drainForces = (): void => events.drainContactForceEvents(recordForce);
 
+    /** A collider as a snapshot indexes it: its handle, and its part when named. */
+    function indexed(collider: RAPIER.Collider): IndexedBody['colliders'][number] {
+      const part = keysByCollider.get(collider.handle)?.part;
+      return part === undefined ? { handle: collider.handle } : { handle: collider.handle, part };
+    }
+
     return {
       configure: (physics) => {
         world.gravity = vector(physics.gravity);
@@ -327,6 +354,24 @@ const createWorld =
         }
         return false;
       },
+      // Rapier's world, and which of its bodies, colliders and joints are which.
+      snapshot: () =>
+        writeSnapshot(
+          {
+            bodies: [...bodies].map(([key, held]) => ({
+              key,
+              handle: held.rigidBody.handle,
+              colliders: held.colliders.map(indexed),
+            })),
+            joints: [...joints].map(([id, { joint, a, b }]) => ({
+              id,
+              handle: joint.handle,
+              a,
+              b,
+            })),
+          },
+          world.takeSnapshot(),
+        ),
       dispose: () => {
         bodies.clear();
         keysByCollider.clear();
@@ -338,4 +383,18 @@ const createWorld =
   };
 
 /** The engine over a loaded Rapier module. */
-export const engineOf = (rapier: Rapier): PhysicsEngine => ({ createWorld: createWorld(rapier) });
+export const engineOf = (rapier: Rapier): PhysicsEngine => {
+  const host = hostWorld(rapier);
+  return {
+    createWorld: (initial: Physics) => host(new rapier.World(vector(initial.gravity))),
+    // A snapshot carries its gravity and everything else in Rapier's world.
+    restoreWorld: (_physics, snapshot) => {
+      const { index, world } = readSnapshot(snapshot);
+      return {
+        world: host(rapier.World.restoreSnapshot(world), index),
+        bodies: index.bodies.map((body) => body.key),
+        joints: index.joints.map((joint) => joint.id),
+      };
+    },
+  };
+};

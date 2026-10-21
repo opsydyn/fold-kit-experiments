@@ -1078,6 +1078,9 @@ export const physics = (options: Partial<Physics> = {}): Physics => ({
   interpolate: options.interpolate ?? true,
   until: options.until ?? null,
   run: options.run ?? 0,
+  snapshotAt: options.snapshotAt ?? null,
+  from: options.from ?? null,
+  keep: options.keep ?? 0,
   debug: options.debug ?? false,
   joints: options.joints ?? noJoints,
 });

@@ -288,13 +288,15 @@ export type SceneEvent =
   /**
    * A world on `physics({ until })` reached that step and waits there: its run, its
    * step count, and a checksum of every body's pose, which peers running the same inputs
-   * share (ADR-014). It comes after the collisions of the steps that led there.
+   * share (ADR-014). It comes after the collisions of the steps that led there. At
+   * `physics({ snapshotAt })` it carries a snapshot of the world, to start another `from`.
    */
   | {
       readonly _tag: 'PhysicsReached';
       readonly run: number;
       readonly step: number;
       readonly checksum: string;
+      readonly snapshot?: string;
     }
   /**
    * A measured label's laid-out size changed (`scene({ measure })`, after its glyphs are

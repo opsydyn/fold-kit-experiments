@@ -33,6 +33,29 @@ export const Throw = Schema.TaggedStruct('Throw', {
 });
 export type Throw = typeof Throw.Type;
 
+/** A ball on the table: the throw that made it, kept until the table is cleared. */
+export const Ball = Schema.Struct({
+  key: Schema.String,
+  from: SceneSchema.Vec3,
+  impulse: SceneSchema.Vec3,
+  paint: Paint,
+});
+export type Ball = typeof Ball.Type;
+
+/**
+ * Where a newcomer's world can start: the leader's snapshot of its world at a check step,
+ * and the table as it was there (its balls, how many were thrown, how often the tower was
+ * built), before the inputs due at that step.
+ */
+export const Start = Schema.Struct({
+  step: Schema.Int,
+  snapshot: Schema.String,
+  balls: Schema.Array(Ball),
+  thrown: Schema.Int,
+  build: Schema.Int,
+});
+export type Start = typeof Start.Type;
+
 /** The tower built again, and the balls cleared away. */
 export const Rebuild = Schema.TaggedStruct('Rebuild', {});
 
@@ -59,7 +82,8 @@ export const Wire = Schema.Union([
   Schema.TaggedStruct('Turn', { packet: Packet }),
   /**
    * A newcomer's start: the session as it is, and every throw and rebuild so far, with
-   * its step, which the newcomer replays from step 0.
+   * its step. With a `start`, the newcomer's world starts from the leader's snapshot and
+   * replays only what came after it; without, it replays the record from step 0.
    */
   Schema.TaggedStruct('Welcome', {
     to: Schema.String,
@@ -67,6 +91,7 @@ export const Wire = Schema.Union([
     lead: Schema.Int,
     members: Schema.Array(SceneSchema.LockstepMember),
     record: Schema.Array(Schema.Struct({ step: Schema.Int, input: Play })),
+    start: Schema.optionalKey(Start),
   }),
   Schema.TaggedStruct('Bye', { peer: Schema.String, until: Schema.Int }),
   Schema.TaggedStruct('Drop', { peer: Schema.String, until: Schema.Int }),

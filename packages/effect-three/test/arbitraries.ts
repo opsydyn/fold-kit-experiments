@@ -555,6 +555,14 @@ const sceneFields = {
       interpolate: Schema.Boolean,
       until: Schema.NullOr(Schema.Literals([0, 3])),
       run: Schema.Literals([0, 1]),
+      snapshotAt: Schema.NullOr(Schema.Literals([0, 3])),
+      from: Schema.NullOr(
+        Schema.Struct({
+          step: Schema.Literals([0, 3]),
+          snapshot: Schema.NullOr(Schema.Literals(['', 'AAAA'])),
+        }),
+      ),
+      keep: Schema.Literals([0, 4]),
       debug: Schema.Boolean,
       joints: Schema.Tuple([]),
     }),

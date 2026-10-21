@@ -12,6 +12,7 @@ import {
   createSceneLoop,
   mesh,
   type MeshNode,
+  type Physics,
   physics,
   type PhysicsEngine,
   recordingRendererFactory,
@@ -123,6 +124,21 @@ async function run(physicsEngine: PhysicsEngine, seed: number) {
   return { reports, collided: collided.toSorted(), shown };
 }
 
+/** A report's run, step and checksum: what peers compare. */
+const withoutSnapshot = ({
+  run,
+  step,
+  checksum,
+}: {
+  run: number;
+  step: number;
+  checksum: string;
+}) => ({
+  run,
+  step,
+  checksum,
+});
+
 test('over a message channel, the world reaches every step as the engine in the page does', async () => {
   const here = await run(engine, 11);
   expect(here.reports.map((report) => report.step)).toEqual([10, 40, 41, 90, 240]);
@@ -142,8 +158,8 @@ test('in a real worker, the world reaches every step as the engine in the page d
   expect(there.reports).toEqual(here.reports);
 });
 
-/** Reports of a pile on `until: 0`, where it was described. */
-async function reportAtStart(physicsEngine: PhysicsEngine) {
+/** Reports of the pile under `settings`, until the world reports its `until`. */
+async function reportAt(physicsEngine: PhysicsEngine, settings: Partial<Physics>) {
   const graph = createSceneGraph({ physics: physicsEngine });
   const reports: Array<Extract<SceneEvent, { readonly _tag: 'PhysicsReached' }>> = [];
   let now = 0;
@@ -156,8 +172,8 @@ async function reportAtStart(physicsEngine: PhysicsEngine) {
     },
   });
   // Positions Rapier stores in single precision: the described ones are not its own.
-  graph.reconcile(scene({ physics: physics({ until: 0 }), children: [floor, ...pile] }));
-  for (let frame = 0; frame < 50 && reports.length === 0; frame++) {
+  graph.reconcile(scene({ physics: physics(settings), children: [floor, ...pile] }));
+  for (let frame = 0; frame < 200 && reports.at(-1)?.step !== settings.until; frame++) {
     now += 1 / 60;
     loop.frame();
     await settle();
@@ -167,7 +183,18 @@ async function reportAtStart(physicsEngine: PhysicsEngine) {
 }
 
 test('a world reported where it starts gives the checksum of the engine’s poses, not the described ones', async () => {
-  const here = await reportAtStart(engine);
+  const here = await reportAt(engine, { until: 0 });
   expect(here.map((report) => report.step)).toEqual([0]);
-  expect(await reportAtStart(remotePhysics(worker))).toEqual(here);
+  expect(await reportAt(remotePhysics(worker), { until: 0 })).toEqual(here);
+});
+
+test('through a worker, a world snapshots and starts from a snapshot as one in the page does', async () => {
+  const here = await reportAt(engine, { until: 0, snapshotAt: 0 });
+  const snapshot = here[0]?.snapshot ?? '';
+  expect(snapshot.length).toBeGreaterThan(0);
+  const there = await reportAt(remotePhysics(worker), { until: 0, snapshotAt: 0 });
+  expect(there.map(withoutSnapshot)).toEqual(here.map(withoutSnapshot));
+  // Started from it in the worker, and in the page, the world reaches step 30 alike.
+  const later = { until: 30, from: { step: 0, snapshot } };
+  expect(await reportAt(remotePhysics(worker), later)).toEqual(await reportAt(engine, later));
 });

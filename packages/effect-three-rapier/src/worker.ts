@@ -39,6 +39,8 @@ import type {
   Vec3,
 } from '@opsydyn/effect-three';
 
+import { readSnapshot } from './snapshot.ts';
+
 /** One thing a world is asked to do, as `PhysicsWorld`'s method of that name. */
 export type Call =
   | { readonly _tag: 'Configure'; readonly physics: Physics }
@@ -62,11 +64,21 @@ export type Call =
       readonly b: string;
     }
   | { readonly _tag: 'RemoveJoint'; readonly id: string }
-  | { readonly _tag: 'Step'; readonly seconds: number };
+  | { readonly _tag: 'Step'; readonly seconds: number }
+  | { readonly _tag: 'Snapshot' };
 
-/** What the page sends the worker. Batches are numbered from 1 for each world. */
+/**
+ * What the page sends the worker. A world's creation is answered as its batch 1; the
+ * batches after it are numbered on from 2.
+ */
 export type ToWorker =
-  | { readonly _tag: 'Create'; readonly world: number; readonly physics: Physics }
+  | {
+      readonly _tag: 'Create';
+      readonly world: number;
+      readonly physics: Physics;
+      /** A snapshot to make the world from (`PhysicsEngine.restoreWorld`). */
+      readonly snapshot?: Uint8Array;
+    }
   | {
       readonly _tag: 'Batch';
       readonly world: number;
@@ -87,6 +99,8 @@ export type FromWorker =
       readonly awake: boolean;
       /** The world as lines, while it is configured to draw them. */
       readonly debugLines: DebugLines | null;
+      /** The world's snapshot, when the batch asked for one. */
+      readonly snapshot?: Uint8Array;
     }
   | { readonly _tag: 'Failed'; readonly world: number; readonly reason: string };
 
@@ -115,13 +129,16 @@ const remoteWorld = (
   let calls: Array<Call> = [];
   let flushing = false;
   let disposed = false;
-  /** Batches sent, and the last one the worker has answered. */
-  let sent = 0;
+  /** Batches sent (its creation the first), and the last one the worker has answered. */
+  let sent = 1;
   let answered = 0;
   let collisions: Array<Collision> = [];
   let forces: Array<ContactForce> = [];
   let awake = false;
   let lines = noLines;
+  /** A snapshot come back and not yet taken, and whether one has been asked for. */
+  let snapshot: Uint8Array | undefined;
+  let asking = false;
   const poses = new Map<string, BodyPose>();
   /** Bodies placed here: an answer to a batch sent before then would put them back. */
   const placedIn = new Map<string, number>();
@@ -161,6 +178,10 @@ const remoteWorld = (
     forces.push(...message.contactForces);
     awake = message.awake;
     lines = message.debugLines ?? noLines;
+    if (message.snapshot !== undefined) {
+      snapshot = message.snapshot;
+      asking = false;
+    }
     for (const [key, pose] of message.poses) {
       if ((placedIn.get(key) ?? 0) <= message.batch) poses.set(key, pose);
     }
@@ -211,6 +232,16 @@ const remoteWorld = (
       collisions = [];
       return { collisions: drained, pending: calls.length > 0 || answered < sent };
     },
+    // Asked for, it comes back with the batch that asked; until then there is none.
+    snapshot: () => {
+      const taken = snapshot;
+      snapshot = undefined;
+      if (taken === undefined && !asking) {
+        asking = true;
+        call({ _tag: 'Snapshot' });
+      }
+      return taken;
+    },
   };
   return { world, heard };
 };
@@ -228,15 +259,28 @@ export const remotePhysics = (port: PhysicsPort): PhysicsEngine => {
     worlds.get(message.world)?.(message);
   });
   port.start?.();
+  const make = (physics: Physics, snapshot?: Uint8Array): PhysicsWorld => {
+    made += 1;
+    const id = made;
+    const create: ToWorker =
+      snapshot === undefined
+        ? { _tag: 'Create', world: id, physics }
+        : { _tag: 'Create', world: id, physics, snapshot };
+    port.postMessage(create);
+    const { world, heard } = remoteWorld(id, port, () => worlds.delete(id));
+    worlds.set(id, heard);
+    return world;
+  };
   return {
-    createWorld: (physics) => {
-      made += 1;
-      const id = made;
-      const create: ToWorker = { _tag: 'Create', world: id, physics };
-      port.postMessage(create);
-      const { world, heard } = remoteWorld(id, port, () => worlds.delete(id));
-      worlds.set(id, heard);
-      return world;
+    createWorld: (physics) => make(physics),
+    // What the world holds is in the snapshot's index, which the page can read itself.
+    restoreWorld: (physics, snapshot) => {
+      const { index } = readSnapshot(snapshot);
+      return {
+        world: make(physics, snapshot),
+        bodies: index.bodies.map((body) => body.key),
+        joints: index.joints.map((joint) => joint.id),
+      };
     },
   };
 };
@@ -245,6 +289,8 @@ type Served = {
   readonly world: PhysicsWorld;
   readonly keys: Set<string>;
   debug: boolean;
+  /** The snapshot the batch being done asked for. */
+  snapshot: Uint8Array | undefined;
 };
 
 /** Does one call to a world; a step's collisions are added to `collisions`. */
@@ -283,12 +329,17 @@ const perform = (served: Served, next: Call, collisions: Array<Collision>): void
       return;
     case 'Step':
       collisions.push(...world.step(next.seconds));
+      return;
+    case 'Snapshot':
+      if (world.snapshot === undefined) throw new Error('This engine cannot take snapshots');
+      served.snapshot = world.snapshot();
   }
 };
 
 /** Does a batch to a world and says what came of it. */
 const answer = (id: number, batch: number, served: Served, calls: ReadonlyArray<Call>) => {
   const collisions: Array<Collision> = [];
+  served.snapshot = undefined;
   for (const next of calls) perform(served, next, collisions);
   const poses: Array<readonly [string, BodyPose]> = [];
   for (const key of served.keys) {
@@ -304,8 +355,33 @@ const answer = (id: number, batch: number, served: Served, calls: ReadonlyArray<
     poses,
     awake: served.world.awake(),
     debugLines: served.debug ? served.world.debugLines() : null,
+    ...(served.snapshot === undefined ? {} : { snapshot: served.snapshot }),
   };
   return done;
+};
+
+/** A world as the page asked for it made: new, or from a snapshot. */
+const create = (
+  engine: PhysicsEngine,
+  message: Extract<ToWorker, { readonly _tag: 'Create' }>,
+): Served => {
+  const { physics, snapshot } = message;
+  if (snapshot === undefined) {
+    return {
+      world: engine.createWorld(physics),
+      keys: new Set(),
+      debug: physics.debug,
+      snapshot: undefined,
+    };
+  }
+  if (engine.restoreWorld === undefined) throw new Error('This engine cannot restore snapshots');
+  const restored = engine.restoreWorld(physics, snapshot);
+  return {
+    world: restored.world,
+    keys: new Set(restored.bodies),
+    debug: physics.debug,
+    snapshot: undefined,
+  };
 };
 
 /**
@@ -321,11 +397,10 @@ export const servePhysics = (
   const worlds = new Map<number, Served>();
   const handle = (ready: PhysicsEngine, message: ToWorker): void => {
     if (message._tag === 'Create') {
-      worlds.set(message.world, {
-        world: ready.createWorld(message.physics),
-        keys: new Set(),
-        debug: message.physics.debug,
-      });
+      const made = create(ready, message);
+      worlds.set(message.world, made);
+      // Answered as batch 1: the page then knows where a restored world's bodies are.
+      port.postMessage(answer(message.world, 1, made, []));
       return;
     }
     const served = worlds.get(message.world);

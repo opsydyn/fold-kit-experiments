@@ -1098,8 +1098,9 @@ export const sceneElement: CustomElement.CustomElementSpec<"effect-three-scene",
             readonly snapshotAt: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Int>, never>;
             readonly from: Schema.withDecodingDefaultKey<Schema.NullOr<Schema.Struct<{
                 readonly step: Schema.Int;
-                readonly snapshot: Schema.String;
+                readonly snapshot: Schema.NullOr<Schema.String>;
             }>>, never>;
+            readonly keep: Schema.withDecodingDefaultKey<Schema.Int, never>;
             readonly debug: Schema.Boolean;
             readonly joints: Schema.$Array<Schema.Struct<{
                 readonly key: Schema.String;

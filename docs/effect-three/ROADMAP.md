@@ -230,8 +230,8 @@ vertexColors, segments })`, drawn by each render kit with three's fat lines (`Li
   seeded where Drei uses `Math.random`, and each kit draws them (Drei's shaders under
   WebGL; instanced sprites with `PointsNodeMaterial` and the same maths in TSL under
   WebGPU), moving in scene time and still under reduced motion. Round dots and lines are
-  checked by pixel on three renderers. The promo's curves example shows them all. Next:
-  transform gizmos as submodels.
+  checked by pixel on three renderers. The promo's curves example shows them all.
+  Transform gizmos and the other widgets followed as submodels (5).
 
 ## Beyond parity
 
@@ -285,7 +285,8 @@ Effect owns every lifetime.
    world's latest stops, and a run starts from one by step. The tabletop with
    `?predict=1` runs its world to the turn it sends, shows its own throws at once, and
    rolls back a few steps when another's lands where its world has been; checked with
-   real Rapier worlds over a network two turns late.
+   real Rapier worlds over a network two turns late. Next: XR co-presence, other
+   players' heads and hands as tracked spaces in a shared session.
 3. **Agent-native 3D.** Descriptions and Messages are Schema-decoded, and an invalid
    description is rejected whole, so a model's actions cannot leave the world broken.
    Expose the Model and Messages as tools (Foldkit DevTools already serves an MCP relay)
@@ -351,7 +352,8 @@ Effect owns every lifetime.
    `pointTape` and `tapeNodes` (two clicked ends, a dashed run to the pointer while the
    second is placed, optional snapping), and the adapter's `MeasuringTape` with its
    length as an overlay at the middle. The arrange example measures between anything on
-   the table. With it, every widget of 5 is done.
+   the table. Next: the XR teleport arc, the last widget of 5 (`teleport` today moves
+   the player to where a straight ray points).
 6. **Effect-native data and assets.** KeyedQuery-style asset loading cancelled when the
    Model stops asking, level of detail as a stream of descriptions, Rapier in a Worker
    behind the same engine contract, and server rendering of a `SceneDescription` for
@@ -403,8 +405,17 @@ from a link, checked step by step against its record (1). Data and assets (6) ar
 scenes ask for their assets, loaded, shared, cancelled and freed for them, coarse levels
 first; a scene previews as SVG without a browser; and Rapier steps in a worker behind the
 same engine contract. A newcomer to a lockstep session starts from the leader's
-snapshot, and a predicting peer rolls back for late inputs (2). Every item on the
-roadmap is done.
+snapshot, and a predicting peer rolls back for late inputs (2).
+
+Still open:
+
+- XR co-presence (2): other players' heads and hands as tracked spaces, over the
+  lockstep session and relay that already exist.
+- The XR teleport arc (5), the last interaction widget.
+- Agent tools that answer with a scene's description (`describeScene`) rather than the
+  raw Model (3).
+- Real-device XR checks (E, needs a headset): VR and AR in the room and toybox, WebXR on
+  `WebGPURenderer`, and the DOM overlay. Until then they stay documented limits.
 
 ## Not planned
 

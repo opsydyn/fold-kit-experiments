@@ -9,6 +9,7 @@ import { Message } from './message';
 import {
   cameraDamping,
   cameraFacing,
+  clusterCamera,
   flightTo,
   universeCamera,
   homeCamera,
@@ -63,6 +64,7 @@ const flyTo = (model: Model, id: string): Model =>
       onSome: (position: RadarPosition) => ({
         ...model,
         selected: Option.some(id),
+        cluster: Option.some(position.entry.category),
         camera: flightTo(position),
       }),
     },
@@ -77,6 +79,7 @@ const chooseEntry = (model: Model, id: string): Model =>
       onSome: (position: RadarPosition) => ({
         ...model,
         selected: Option.some(id),
+        cluster: Option.some(position.entry.category),
         camera: cameraFacing(position.longitude, 20),
       }),
     },
@@ -166,9 +169,12 @@ export const update = (model: Model, message: Message): AppReturn =>
     ClickedTurn: ({ direction }) => ({
       model: modifyFields(model, { camera: (camera) => turned(camera, direction) }),
     }),
-    ClickedResetView: () => ({ model: { ...model, camera: homeCamera } }),
+    ClickedResetView: () => ({ model: { ...model, cluster: Option.none(), camera: homeCamera } }),
     ClickedUniverse: () => ({
-      model: { ...model, camera: universeCamera(model.camera.position) },
+      model: { ...model, cluster: Option.none(), camera: universeCamera(model.camera.position) },
+    }),
+    ClickedCluster: ({ category }) => ({
+      model: { ...model, cluster: Option.some(category), camera: clusterCamera(category) },
     }),
     ClickedZoom: ({ direction }) => ({
       model: modifyFields(model, {

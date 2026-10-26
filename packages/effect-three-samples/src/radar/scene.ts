@@ -348,6 +348,8 @@ const guideLabels = (model: Model): ReadonlyArray<SceneNode> => [
         ...labelStyle(model),
         key: `label:category:${category}`,
         position: categoryLabelPosition(category),
+        // A click on a category's name stops at its sector.
+        interactive: true,
         text: categoryLabels[category],
         fontSize: 0.26,
         color: categoryColours[category],

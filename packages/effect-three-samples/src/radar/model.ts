@@ -2,6 +2,7 @@ import { perspectiveCamera, SceneSchema, type Vec3 } from '@opsydyn/effect-three
 import { Match, Option, Schema } from 'effect';
 
 import {
+  Category,
   categoryIds,
   loadDemoRadar,
   type RadarData,
@@ -9,7 +10,13 @@ import {
   Ring,
   ringIds,
 } from './data';
-import { filterPositions, layoutEntries, type RadarFilters, type RadarPosition } from './layout';
+import {
+  categoryCenter,
+  filterPositions,
+  layoutEntries,
+  type RadarFilters,
+  type RadarPosition,
+} from './layout';
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
@@ -25,6 +32,8 @@ export const Model = Schema.Struct({
   hovered: Schema.Option(Schema.String),
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
+  /** The category whose sector the camera last stopped at, for the breadcrumb. */
+  cluster: Schema.Option(Category),
   /** Whether the relationship edges are drawn. */
   showRelationships: Schema.Boolean,
   /** The stage's width over its height, from the last gesture; square until then. */
@@ -68,6 +77,24 @@ export const universeCamera = (from: Vec3) =>
     damping: cameraDamping.flight,
   });
 
+/**
+ * A cluster stop: a category's sector seen from in front and a little above, close enough
+ * that its nearer entries are named, far enough that the whole quarter is in view.
+ */
+export const clusterView = { elevation: 28, distance: 8 } as const;
+
+export const clusterCamera = (category: Category) =>
+  perspectiveCamera({
+    fov: cameraFov,
+    position: onSphere(categoryCenter(category)[0], clusterView.elevation, clusterView.distance),
+    lookAt: [0, 0, 0],
+    damping: cameraDamping.flight,
+  });
+
+/** Reads a category back from its name label's scene key. */
+export const clusterOfLabel = (key: string): Option.Option<Category> =>
+  Option.fromNullishOr(categoryIds.find((category) => key === `label:category:${category}`));
+
 /** How far from a blip a flight stops: close enough for its moons and description. */
 export const flightApproach = 3.4;
 
@@ -99,6 +126,7 @@ export const initialModel = (assetBase: string, data: RadarData = loadDemoRadar(
   enabledRings: ringIds,
   hovered: Option.none(),
   selected: Option.none(),
+  cluster: Option.none(),
   showRelationships: true,
   stageAspect: 1,
   camera: homeCamera,

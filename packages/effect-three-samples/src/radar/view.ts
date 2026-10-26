@@ -18,6 +18,7 @@ import { countRings, type RadarPosition } from './layout';
 import { Message } from './message';
 import {
   CategoryFilter,
+  clusterOfLabel,
   filtersOf,
   type Model,
   positionOf,
@@ -188,14 +189,20 @@ const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyA
 
 /**
  * The colour and body key: each category's swatch and the body it takes on the radar.
- * Identity also rides on every label and list row, never colour alone.
+ * Each is also a cluster stop: choosing it flies to the category's sector. Identity also
+ * rides on every label and list row, never colour alone.
  */
 const legend = (h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class('e3-controls'), h.AriaLabel('Categories')],
     categoryIds.map((category) =>
-      h.span(
-        [h.Class('e3-tag')],
+      h.button(
+        [
+          h.Class('e3-button'),
+          h.Type('button'),
+          h.AriaLabel(`Fly to ${categoryLabels[category]}`),
+          h.OnClick(Message.ClickedCluster({ category })),
+        ],
         [
           h.span([h.Class('e3-swatch'), h.Style({ background: categoryCss(category) })], []),
           `${categoryLabels[category]} · ${bodyLabels[bodyOf[category]]}`,
@@ -287,6 +294,20 @@ const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
   );
 };
 
+/** A click on a category's name stops at its sector; anywhere else it is a blip's. */
+const clickedAt = (key: string): Message =>
+  Option.match(clusterOfLabel(key), {
+    onSome: (category) => Message.ClickedCluster({ category }),
+    onNone: () => Message.ClickedBlip({ key }),
+  });
+
+/** A double-click on a category's name stops at its sector; on a blip it flies there. */
+const doubleClickedAt = (key: string): Message =>
+  Option.match(clusterOfLabel(key), {
+    onSome: (category) => Message.ClickedCluster({ category }),
+    onNone: () => Message.DoubleClickedBlip({ key }),
+  });
+
 const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
   EffectThreeFoldkit.view(
     {
@@ -296,8 +317,8 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
       onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
       onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
       onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
-      onClick: ({ key }) => Message.ClickedBlip({ key }),
-      onDoubleClick: ({ key }) => Message.DoubleClickedBlip({ key }),
+      onClick: ({ key }) => clickedAt(key),
+      onDoubleClick: ({ key }) => doubleClickedAt(key),
       onPointerMissed: () => Message.ClickedEmptySpace(),
       onGesture: (gesture) => Message.MadeGesture({ gesture }),
     },

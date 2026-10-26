@@ -3,7 +3,7 @@ import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
-import { Ring } from './data';
+import { Category, Ring } from './data';
 import { CategoryFilter } from './model';
 
 export const Message = defineMessageUnion({
@@ -21,6 +21,7 @@ export const Message = defineMessageUnion({
   ClickedTurn: { direction: Schema.Literals(['left', 'right']) },
   ClickedResetView: {},
   ClickedUniverse: {},
+  ClickedCluster: { category: Category },
   ClickedZoom: { direction: Schema.Literals(['in', 'out']) },
   ClickedRelationships: {},
   MadeGesture: { gesture: SceneSchema.Gesture },

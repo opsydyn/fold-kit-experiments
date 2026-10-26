@@ -1,7 +1,7 @@
+import { ringIds } from '@opsydyn/effect-three-samples/radar/data';
 import { Match, Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
-import { ringIds } from './data';
 import { categoryCenter, filterPositions, layoutEntries, type RadarPosition } from './geometry';
 import { Message } from './message';
 import { Gesture, Selection, type Model } from './model';

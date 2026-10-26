@@ -1,6 +1,3 @@
-import { Option } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
-
 import {
   categoryIds,
   categoryLabels,
@@ -9,7 +6,10 @@ import {
   ringLabels,
   type RadarDataset,
   type RadarEntry,
-} from './data';
+} from '@opsydyn/effect-three-samples/radar/data';
+import { Option } from 'effect';
+import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+
 import {
   countRings,
   filterPositions,

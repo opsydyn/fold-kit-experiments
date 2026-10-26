@@ -1,9 +1,8 @@
+import { categoryLabels, ringLabels } from '@opsydyn/effect-three-samples/radar/data';
+import { demoRadar } from '@opsydyn/effect-three-samples/radar/fixture';
 /* Browser callbacks return measurements, not Effect transitions. */
 /* oxlint-disable linteffect/no-return-in-arrow */
 import { expect, test, type Page } from '@playwright/test';
-
-import { categoryLabels, ringLabels } from '../src/apps/functional-ai-radar/data';
-import { demoRadar } from '../src/apps/functional-ai-radar/fixture';
 
 const radar = (page: Page) =>
   page.getByRole('group', { name: 'Functional and AI radar', exact: true });

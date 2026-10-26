@@ -1,8 +1,8 @@
+import { demoNotice, loadDemoRadar } from '@opsydyn/effect-three-samples/radar/data';
 import { Scene } from 'foldkit';
 import { describe, expect, it } from 'vitest';
 
 import { renderChart } from '../../ui/shared/render-chart.test-helper';
-import { demoNotice, loadDemoRadar } from './data';
 import { Message } from './message';
 import { initModel, type Model } from './model';
 import { RadarPointerMount } from './mount';

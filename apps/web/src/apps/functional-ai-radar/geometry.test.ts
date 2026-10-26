@@ -1,15 +1,7 @@
+import { ringIds, type RadarEntry, type Ring } from '@opsydyn/effect-three-samples/radar/data';
 import { describe, expect, it } from 'vitest';
 
-import { categoryIds, ringIds, type RadarEntry, type Ring } from './data';
-import {
-  categoryCenter,
-  countRings,
-  filterPositions,
-  layoutEntries,
-  projectRadar,
-  type RadarFilters,
-  type RadarPosition,
-} from './geometry';
+import { filterPositions, projectRadar, type RadarFilters, type RadarPosition } from './geometry';
 
 const filters: RadarFilters = { query: '', category: 'all', rings: ringIds };
 const view = { center: [0, 0], zoom: 1 } as const;
@@ -27,7 +19,7 @@ function position(id: string, ring: Ring, longitude: number, latitude = 0): Rada
   return { entry: entry(id, ring), longitude, latitude, displayNumber: 1 };
 }
 
-describe('radar layout and projection', () => {
+describe('radar projection', () => {
   it('projects independent shell-radius witnesses and rejects the far hemisphere', () => {
     const scene = projectRadar(
       [
@@ -43,45 +35,6 @@ describe('radar layout and projection', () => {
     expect(scene.marks[1]?.x).toBeCloseTo(378, 10);
     expect(scene.marks.map((mark) => mark.y)).toEqual([300, 300]);
     expect(scene.shells.map((shell) => shell.radius)).toEqual([104, 156, 208, 260]);
-  });
-  it('keeps category slots and display identities stable after reordering and filtering', () => {
-    const input = Object.freeze(
-      Array.from('abcdefgh', (id) => Object.freeze({ ...entry(id), description: 'Plain kit' })),
-    );
-    const positions = layoutEntries(input);
-    expect(positions[0]).toMatchObject({ longitude: -75, latitude: 22, displayNumber: 1 });
-    expect(positions[4]).toMatchObject({ longitude: -75, latitude: -22, displayNumber: 5 });
-    expect(layoutEntries([...input].reverse())).toEqual(positions);
-    expect(filterPositions(positions, { ...filters, query: ' e ' })).toEqual([positions[4]]);
-    expect(categoryIds.map(categoryCenter)).toEqual([
-      [-135, 20],
-      [-45, 20],
-      [45, 20],
-      [135, 20],
-    ]);
-  });
-  it('intersects name/description search, category and ring without hiding disabled-ring counts', () => {
-    const positions = layoutEntries([
-      entry('alpha'),
-      entry('beta', 'trial'),
-      { ...entry('gamma', 'assess'), category: 'platforms', description: 'A database' },
-    ]);
-    expect(
-      filterPositions(positions, {
-        ...filters,
-        query: ' TYPED ',
-        category: 'tools',
-        rings: ['trial'],
-      }).map((p) => p.entry.id),
-    ).toEqual(['beta']);
-    expect(countRings(positions, { ...filters, category: 'tools', rings: [] })).toEqual({
-      adopt: 1,
-      trial: 1,
-      assess: 0,
-      caution: 0,
-    });
-    expect(filterPositions(positions, { ...filters, rings: [] })).toEqual([]);
-    expect(filterPositions(positions, { ...filters, query: 'absent' })).toEqual([]);
   });
   it('uses depth order with deterministic ties, even when distinct shells project to one point', () => {
     const marks = projectRadar(

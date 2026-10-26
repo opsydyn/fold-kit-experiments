@@ -4,10 +4,19 @@ on:
   push:
     branches:
       - main
+    # apps/web and every workspace package it depends on, so a change to any of them
+    # reaches the live site.
     paths:
       - 'apps/web/**'
       - 'packages/astro-foldkit/**'
+      - 'packages/dataset-explorer/**'
+      - 'packages/effect-three/**'
+      - 'packages/effect-three-foldkit/**'
+      - 'packages/effect-three-rapier/**'
+      - 'packages/effect-three-samples/**'
+      - 'packages/effect-three-troika/**'
       - 'packages/foldkit-viz/**'
+      - 'bun.lock'
       - '.github/workflows/deploy-cf.yml'
   workflow_dispatch:
 

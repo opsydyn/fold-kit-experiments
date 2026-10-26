@@ -20,6 +20,7 @@
     "./arrange": "./src/arrange/main.ts",
     "./editor": "./src/editor/main.ts",
     "./tabletop": "./src/tabletop/main.ts",
+    "./radar": "./src/radar/main.ts",
     "./radar/data": "./src/radar/data.ts",
     "./radar/fixture": "./src/radar/fixture.ts",
     "./radar/layout": "./src/radar/layout.ts",

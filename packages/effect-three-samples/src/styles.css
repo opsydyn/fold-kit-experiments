@@ -34,6 +34,13 @@
   height: min(560px, 75vh);
 }
 
+/* Round subjects (the radar): square on narrow screens, so the sides are not cropped. */
+.e3-stage-square {
+  height: auto;
+  max-height: min(560px, 75vh);
+  aspect-ratio: 1;
+}
+
 /* A night sky whatever the page's theme: additive stars and sparkles need the dark. */
 .e3-stage-night {
   background: radial-gradient(circle at 50% 40%, #1a2240, #07080d 75%);

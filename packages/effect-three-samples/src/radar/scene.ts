@@ -702,24 +702,31 @@ const blipObstacles = (model: Model): ReadonlyArray<Obstacle> => [
       width: 2 * blipRadius,
       height: 2 * blipRadius,
     })),
-  // The focused blip, at its pinned size and with its ring's reach, is never covered by
-  // another label.
-  ...Option.toArray(Option.flatMap(focusedId(model), (id) => positionOf(model, id))).map(
-    (position) => ({
-      centre: blipPosition(position),
-      width: 2 * focusedReach(position) * pinnedScale,
-      height: 2 * focusedReach(position) * pinnedScale,
-      solid: true,
-      // Its own description and edge labels sit beside it by design.
-      exempt: [
-        `label:meta:${position.entry.id}`,
-        ...visibleRelationships(model)
-          .filter((relationship) => touches(relationship, position.entry.id))
-          .map((relationship) => `${edgeKey(relationship)}:label`),
-      ],
-    }),
+  ...Option.toArray(Option.flatMap(focusedId(model), (id) => positionOf(model, id))).flatMap(
+    (position) => focusedObstacles(model, position),
   ),
 ];
+
+/**
+ * The focused blip, at its pinned size, is never covered by any label, its own
+ * included. A giant's ring reaches further: other entries' labels stay off that too, while
+ * the blip's own description and edge labels may sit over the ring, beside the body.
+ */
+const focusedObstacles = (model: Model, position: RadarPosition): ReadonlyArray<Obstacle> => {
+  const centre = blipPosition(position);
+  const body = 2 * blipRadius * pinnedScale;
+  const reach = 2 * focusedReach(position) * pinnedScale;
+  const own = [
+    `label:meta:${position.entry.id}`,
+    ...visibleRelationships(model)
+      .filter((relationship) => touches(relationship, position.entry.id))
+      .map((relationship) => `${edgeKey(relationship)}:label`),
+  ];
+  return [
+    { centre, width: body, height: body, solid: true },
+    { centre, width: reach, height: reach, solid: true, exempt: own },
+  ];
+};
 
 /** How far a blip reaches from its centre: its body, or a giant's ring. */
 const focusedReach = (position: RadarPosition): number =>

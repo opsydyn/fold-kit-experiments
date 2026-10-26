@@ -72,6 +72,19 @@ describe('label placement', () => {
     expect(place(view, [name('edge', [3.5, 0, 0])], [], frameOf(40, 1.6)).size).toBe(1);
   });
 
+  test('a label exempt from one obstacle is still blocked by another that grants none', () => {
+    const label = name('own', [0, 0, 0]);
+    const zone = (exempt: ReadonlyArray<string>): Obstacle => ({
+      centre: [0, 0, 1],
+      width: 0.4,
+      height: 0.4,
+      solid: true,
+      exempt,
+    });
+    expect(place(view, [label], [zone(['own'])]).size).toBe(1);
+    expect(place(view, [label], [zone([]), zone(['own'])]).size).toBe(0);
+  });
+
   test('a label behind the camera is never placed', () => {
     expect(place(view, [name('behind', [0, 0, 12])]).size).toBe(0);
   });

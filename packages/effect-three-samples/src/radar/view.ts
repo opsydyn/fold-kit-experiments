@@ -28,6 +28,7 @@ import {
 } from './model';
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
+import { trailOf } from './trail';
 
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
   h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
@@ -308,21 +309,51 @@ const doubleClickedAt = (key: string): Message =>
     onNone: () => Message.DoubleClickedBlip({ key }),
   });
 
+/** A breadcrumb that flies somewhere; the last one marks where the camera is. */
+const crumb = (h: HtmlBuilder<Message>, label: string, message: Message, current: boolean): Html =>
+  h.button(
+    [
+      h.Class('e3-crumb'),
+      h.Type('button'),
+      ...[h.AriaCurrent('location')].filter(() => current),
+      h.OnClick(message),
+    ],
+    [label],
+  );
+
+/** The trail as a breadcrumb over the stage; the last crumb is where the camera is. */
+const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const stops = trailOf(model);
+  return h.nav(
+    [h.Class('e3-breadcrumb'), h.AriaLabel('Location')],
+    stops.flatMap((stop, index) => [
+      ...[h.span([h.AriaHidden(true)], ['›'])].filter(() => index > 0),
+      crumb(h, stop.label, stop.message, index === stops.length - 1),
+    ]),
+  );
+};
+
 const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  EffectThreeFoldkit.view(
-    {
-      scene: sceneFor(model),
-      mount: sceneMount,
-      className: 'e3-stage e3-stage-square',
-      onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-      onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
-      onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
-      onClick: ({ key }) => clickedAt(key),
-      onDoubleClick: ({ key }) => doubleClickedAt(key),
-      onPointerMissed: () => Message.ClickedEmptySpace(),
-      onGesture: (gesture) => Message.MadeGesture({ gesture }),
-    },
-    h,
+  h.div(
+    [h.Class('e3-stage-frame')],
+    [
+      EffectThreeFoldkit.view(
+        {
+          scene: sceneFor(model),
+          mount: sceneMount,
+          className: 'e3-stage e3-stage-square',
+          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
+          onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
+          onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
+          onClick: ({ key }) => clickedAt(key),
+          onDoubleClick: ({ key }) => doubleClickedAt(key),
+          onPointerMissed: () => Message.ClickedEmptySpace(),
+          onGesture: (gesture) => Message.MadeGesture({ gesture }),
+        },
+        h,
+      ),
+      breadcrumb(model, h),
+    ],
   ),
   h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
   filterControls(model, h),

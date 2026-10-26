@@ -14,6 +14,7 @@ import {
 } from '../src/radar/model';
 import { sceneFor } from '../src/radar/scene';
 import { bearingOf, elevationOf } from '../src/radar/space';
+import { trailOf } from '../src/radar/trail';
 import { init, update } from '../src/radar/update';
 
 const start = init().model;
@@ -64,5 +65,25 @@ describe('cluster stops', () => {
     expect(step(flown, Message.ClickedUniverse()).cluster).toEqual(Option.none());
     const chosen = steps(start, [Message.ClickedEntry({ id: 'bun' })]);
     expect(chosen.cluster).toEqual(Option.some('tools'));
+  });
+});
+
+describe('breadcrumb', () => {
+  test('the trail reads radar, then cluster, then entry, each flying back there', () => {
+    expect(trailOf(start).map(({ label }) => label)).toEqual(['Radar']);
+    const stopped = step(start, Message.ClickedCluster({ category: 'tools' }));
+    expect(trailOf(stopped).map(({ label }) => label)).toEqual(['Radar', 'Tools']);
+    const flown = step(stopped, Message.ClickedFlyTo({ id: 'bun' }));
+    const trail = trailOf(flown);
+    expect(trail.map(({ label }) => label)).toEqual(['Radar', 'Tools', 'Bun']);
+    expect(trail.map(({ message }) => message)).toEqual([
+      Message.ClickedUniverse(),
+      Message.ClickedCluster({ category: 'tools' }),
+      Message.ClickedFlyTo({ id: 'bun' }),
+    ]);
+    // Each crumb takes you back up: the cluster crumb leaves the entry pinned but stops there.
+    const back = step(flown, Message.ClickedCluster({ category: 'tools' }));
+    expect(back.cluster).toEqual(Option.some('tools'));
+    expect(step(flown, Message.ClickedUniverse()).cluster).toEqual(Option.none());
   });
 });

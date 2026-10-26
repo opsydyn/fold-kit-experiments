@@ -90,9 +90,12 @@ export const positionOf = (model: Model, id: string): Option.Option<RadarPositio
 /** A blip's scene key: entry ids are unique, so its keys are. */
 export const blipKey = (id: string): string => `blip:${id}`;
 
-/** Reads an entry id back from a blip's scene key. */
+/**
+ * Reads an entry id back from the scene key of a blip or any of its parts (its body,
+ * ring or moons, keyed `blip:<id>:…`); entry ids never contain a colon.
+ */
 export const idOfBlip = (key: string): Option.Option<string> =>
-  Option.fromNullishOr(/^blip:(.+)$/.exec(key)?.[1]);
+  Option.fromNullishOr(/^blip:([^:]+)(?::|$)/.exec(key)?.[1]);
 
 /** Every relationship in the dataset. */
 export const relationshipsOf = (model: Model): ReadonlyArray<RadarRelationship> =>

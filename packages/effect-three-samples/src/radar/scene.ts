@@ -37,6 +37,7 @@ import {
 import type { RadarPosition } from './layout';
 import {
   blipKey,
+  cameraFov,
   isVisible,
   type Model,
   positionOf,
@@ -44,6 +45,15 @@ import {
   visibleOf,
   visibleRelationships,
 } from './model';
+import {
+  acrossView,
+  type Candidate,
+  frameOf,
+  type Obstacle,
+  place,
+  textSize,
+  viewOf,
+} from './placement';
 import { edgeKey, touches } from './relations';
 import {
   arcPeak,
@@ -52,14 +62,14 @@ import {
   type Detail,
   categoryLabelDistance,
   detailFor,
-  facesCamera,
   distanceBetween,
   edgeArc,
   equator,
-  fullDistance,
   ringLabelPosition,
   sectorBoundaries,
   shellRadius,
+  showsMeta,
+  showsName,
 } from './space';
 
 /** The 2D radar's category colours, so both radars read the same. */
@@ -115,6 +125,8 @@ const glide = ease({ seconds: 0.45 });
 /** Never scale a blip to zero: a degenerate matrix breaks lighting and hit testing. */
 const flat = 0.001;
 const blipRadius = 0.12;
+/** The pinned blip grows by this much, so it reads as the one you chose. */
+const pinnedScale = 1.6;
 
 const font = (model: Model): string => `${model.assetBase}inter-latin-400-normal.woff`;
 
@@ -125,7 +137,7 @@ const isLit = (model: Model, id: string): boolean =>
 const blipSize = (model: Model, id: string): number =>
   Match.value({ visible: isVisible(model, id), pinned: Option.contains(model.selected, id) }).pipe(
     Match.when({ visible: false }, () => flat),
-    Match.when({ pinned: true }, () => 1.6),
+    Match.when({ pinned: true }, () => pinnedScale),
     Match.orElse(() => 1),
   );
 
@@ -214,36 +226,18 @@ const guideLabels = (model: Model): ReadonlyArray<SceneNode> => [
   ),
 ];
 
-/** The hovered entry's name over its blip, else the pinned one's. */
-const focusLabel = (model: Model): ReadonlyArray<SceneNode> =>
-  Option.match(
-    Option.flatMap(focusedId(model), (id) => positionOf(model, id)),
-    {
-      onNone: () => [],
-      onSome: (position) => {
-        const [x, y, z] = blipPosition(position);
-        return [
-          label({
-            ...labelStyle(model),
-            key: 'label:focus',
-            position: [x, y + 0.34, z],
-            text: position.entry.name,
-            fontSize: 0.22,
-            outlineWidth: 0.02,
-          }),
-        ];
-      },
-    },
-  );
-
-/** The hovered entry, else the pinned one: it has the focus label and lit edges. */
+/** The hovered entry, else the pinned one: it has the focus label and forward edges. */
 const focusedId = (model: Model): Option.Option<string> =>
   Option.orElse(model.hovered, () => model.selected);
 
-/** Edges of the focused entry stand out; the rest recede. */
+/**
+ * Edges are faint threads that sit behind the blips. The focused entry's edges come
+ * forward; while something is focused, every other edge all but disappears.
+ */
 const edgeStrength = {
-  focused: { width: 3, opacity: 1 },
-  dimmed: { width: 1.5, opacity: 0.45 },
+  focused: { width: 1.75, opacity: 0.8 },
+  resting: { width: 1, opacity: 0.18 },
+  receded: { width: 1, opacity: 0.06 },
 } as const;
 
 const isFocusedEdge = (model: Model, relationship: RadarRelationship): boolean =>
@@ -251,85 +245,346 @@ const isFocusedEdge = (model: Model, relationship: RadarRelationship): boolean =
     Option.exists(id, (current) => touches(relationship, current)),
   );
 
+const strengthOf = (model: Model, relationship: RadarRelationship) =>
+  Match.value({
+    focused: isFocusedEdge(model, relationship),
+    anyFocus: Option.isSome(focusedId(model)),
+  }).pipe(
+    Match.when({ focused: true }, () => edgeStrength.focused),
+    Match.when({ anyFocus: true }, () => edgeStrength.receded),
+    Match.orElse(() => edgeStrength.resting),
+  );
+
 const endpointOf = (model: Model, id: string): Vec3 =>
   Option.match(positionOf(model, id), { onNone: () => [0, 0, 0], onSome: blipPosition });
 
-/** One relationship: an outward arc in its type's colour and line, labelled when focused or near. */
-const edgeNodes = (model: Model, relationship: RadarRelationship): ReadonlyArray<SceneNode> => {
-  const arc = edgeArc(endpointOf(model, relationship.from), endpointOf(model, relationship.to));
-  const focused = isFocusedEdge(model, relationship);
-  const peak = arcPeak(arc);
-  const camera = model.camera.position;
-  const labelled =
-    focused || (facesCamera(camera, peak) && distanceBetween(camera, peak) <= fullDistance);
-  const colour = relationshipColours[relationship.type];
-  const strength = Match.value(focused).pipe(
-    Match.when(true, () => edgeStrength.focused),
-    Match.orElse(() => edgeStrength.dimmed),
-  );
-  const edge = line({
+const arcOf = (model: Model, relationship: RadarRelationship): ReadonlyArray<Vec3> =>
+  edgeArc(endpointOf(model, relationship.from), endpointOf(model, relationship.to));
+
+/** One relationship: an outward arc in its type's colour and line style. */
+const edgeNode = (model: Model, relationship: RadarRelationship): SceneNode =>
+  line({
     key: edgeKey(relationship),
-    points: arc,
-    color: colour,
-    ...strength,
+    points: arcOf(model, relationship),
+    color: relationshipColours[relationship.type],
+    ...strengthOf(model, relationship),
     transparent: true,
     ...dashes[relationshipLines[relationship.type]],
   });
-  const caption = label({
-    ...labelStyle(model),
-    key: `${edgeKey(relationship)}:label`,
-    position: peak,
-    text: relationshipLabels[relationship.type],
-    fontSize: 0.13,
-    color: colour,
-  });
-  return Match.value(labelled).pipe(
-    Match.when(true, () => [edge, caption]),
-    Match.orElse(() => [edge]),
+
+/**
+ * Where a label may sit beside its blip: its anchor point and alignment, and the centre
+ * of the box it covers there. Side slots are measured along the camera's right, so they
+ * stay beside the blip on screen however the radar turns.
+ */
+type Slot = Readonly<{
+  position: Vec3;
+  centre: Vec3;
+  anchorX: 'left' | 'center' | 'right';
+  anchorY: 'top' | 'middle';
+  textAlign: 'left' | 'center' | 'right';
+}>;
+
+/** A label the scene may draw: its candidate slots, and its node in the one chosen. */
+type Placeable = Readonly<{
+  candidate: Candidate;
+  slots: ReadonlyArray<Slot>;
+  nodeAt: (slot: Slot) => SceneNode;
+}>;
+
+type Size = Readonly<{ width: number; height: number }>;
+type View = ReturnType<typeof viewOf>;
+
+const nameOffset = 0.24;
+const focusOffset = 0.34;
+const sideOffset = 0.2;
+const metaFontSize = 0.075;
+const metaWidth = 1.4;
+
+const shifted = (point: Vec3, direction: Vec3, by: number): Vec3 => [
+  point[0] + direction[0] * by,
+  point[1] + direction[1] * by,
+  point[2] + direction[2] * by,
+];
+const above = (point: Vec3, by: number): Vec3 => shifted(point, [0, 1, 0], by);
+
+const centred = (position: Vec3): Slot => ({
+  position,
+  centre: position,
+  anchorX: 'center',
+  anchorY: 'middle',
+  textAlign: 'center',
+});
+
+/** A label to the right of its blip starts at its left edge, and the other way round. */
+const sideAnchors = {
+  1: { anchorX: 'left', textAlign: 'left' },
+  [-1]: { anchorX: 'right', textAlign: 'right' },
+} as const;
+
+/** Beside the blip on screen, `side` 1 to its right or -1 to its left. */
+const besideSlot = (view: View, blip: Vec3, size: Size, side: 1 | -1): Slot => ({
+  ...sideAnchors[side],
+  position: shifted(blip, view.right, side * sideOffset),
+  centre: shifted(blip, view.right, side * (sideOffset + size.width / 2)),
+  anchorY: 'middle',
+});
+
+/** Beyond this far across the view, a blip's labels first try the side facing the centre. */
+const outerView = 0.2;
+
+/**
+ * Over, under and beside a blip: the order a name tries them in. Near the edge of the
+ * view the inward side comes first, so labels run towards the middle, not off the stage.
+ */
+const aroundSlots = (view: View, blip: Vec3, size: Size, offset: number): ReadonlyArray<Slot> => {
+  const across = acrossView(view, blip);
+  const left = besideSlot(view, blip, size, -1);
+  const right = besideSlot(view, blip, size, 1);
+  const overUnder = [centred(above(blip, offset)), centred(above(blip, -offset))];
+  return Match.value({ outer: Math.abs(across) > outerView, onRight: across > 0 }).pipe(
+    Match.when({ outer: true, onRight: true }, () => [left, ...overUnder, right]),
+    Match.when({ outer: true }, () => [right, ...overUnder, left]),
+    Match.orElse(() => [...overUnder, right, left]),
   );
 };
 
-/** A blip's name, and when near its ring, category and description, by camera distance. */
-const detailNodes = (
+const placeable = (
+  key: string,
+  kind: Candidate['kind'],
+  size: Size,
+  slots: ReadonlyArray<Slot>,
+  nodeAt: (slot: Slot) => SceneNode,
+): Placeable => ({
+  candidate: { key, kind, centres: slots.map(({ centre }) => centre), ...size },
+  nodeAt,
+  slots,
+});
+
+/** The pinned or hovered entry's name, larger, beside its blip. */
+const focusCandidate = (model: Model, view: View, position: RadarPosition): Placeable => {
+  const text = position.entry.name;
+  const size = textSize(text, 0.22);
+  return placeable(
+    'label:focus',
+    'focus',
+    size,
+    aroundSlots(view, blipPosition(position), size, focusOffset),
+    (slot) =>
+      label({
+        ...labelStyle(model),
+        ...slot,
+        key: 'label:focus',
+        text,
+        fontSize: 0.22,
+        outlineWidth: 0.02,
+      }),
+  );
+};
+
+/** A nearby entry's name, beside its blip. */
+const nameCandidate = (model: Model, view: View, position: RadarPosition): Placeable => {
+  const key = `label:name:${position.entry.id}`;
+  const text = position.entry.name;
+  const size = textSize(text, 0.13);
+  return placeable(
+    key,
+    'name',
+    size,
+    aroundSlots(view, blipPosition(position), size, nameOffset),
+    (slot) => label({ ...labelStyle(model), ...slot, key, text, fontSize: 0.13 }),
+  );
+};
+
+/** How much a metadata label says: ring and category, or those and the description too. */
+type MetaReach = 'heading' | 'described';
+
+/**
+ * A blip's ring and category, one short line under it or else to one side. The focused
+ * entry's also carries its description: nearby blips stay scannable, and the one you are
+ * reading tells you more.
+ */
+const metaCandidate = (
   model: Model,
+  view: View,
   position: RadarPosition,
-  detail: Detail,
-): ReadonlyArray<SceneNode> => {
-  const { id, name, ring, category, description } = position.entry;
-  const [x, y, z] = blipPosition(position);
-  const nameLabel = label({
-    ...labelStyle(model),
-    key: `label:name:${id}`,
-    position: [x, y + 0.24, z],
-    text: name,
-    fontSize: 0.13,
-  });
-  const metaLabel = label({
-    ...labelStyle(model),
-    key: `label:meta:${id}`,
-    position: [x, y - 0.2, z],
-    text: `${ringLabels[ring]} · ${categoryLabels[category]}\n${description}`,
-    fontSize: 0.075,
-    maxWidth: 1.4,
-    lineHeight: 1.3,
-    textAlign: 'center',
+  reach: MetaReach,
+): Placeable => {
+  const { id, ring, category, description } = position.entry;
+  const key = `label:meta:${id}`;
+  const blip = blipPosition(position);
+  const heading = `${ringLabels[ring]} · ${categoryLabels[category]}`;
+  const text = Match.value(reach).pipe(
+    Match.when('described', () => `${heading}\n${description}`),
+    Match.orElse(() => heading),
+  );
+  const size = textSize(text.replace('\n', ' '), metaFontSize, metaWidth);
+  // Clear of the blip at its pinned size, so a focused entry's own line is never blocked.
+  const top = above(blip, -(blipRadius * pinnedScale + 0.06));
+  const under: Slot = {
+    position: top,
+    centre: above(top, -size.height / 2),
+    anchorX: 'center',
     anchorY: 'top',
-    color: 0xc3c2d0,
-  });
-  return Match.value(detail).pipe(
-    Match.when('full', () => [nameLabel, metaLabel]),
-    Match.when('name', () => [nameLabel]),
-    Match.orElse(() => []),
+    textAlign: 'center',
+  };
+  return placeable(
+    key,
+    'meta',
+    size,
+    [under, besideSlot(view, blip, size, 1), besideSlot(view, blip, size, -1)],
+    (slot) =>
+      label({
+        ...labelStyle(model),
+        ...slot,
+        key,
+        text,
+        fontSize: metaFontSize,
+        maxWidth: metaWidth,
+        lineHeight: 1.3,
+        color: 0xc3c2d0,
+      }),
   );
 };
 
-/** Each visible blip's detail; the focused one already wears the larger focus label. */
-const zoomDetail = (model: Model): ReadonlyArray<SceneNode> =>
-  visibleOf(model)
+/** Where along a focused edge, from the focused entry, its type label may sit. */
+const captionStops = [0.7, 0.5, 0.85, 0.3] as const;
+/** Each stop is tried on the arc, then above and below it, a little and then further. */
+const captionNudges = [0, 0.18, -0.18, 0.34, -0.34] as const;
+
+/** A point `along` the way from the focused end of an edge, just outside the arc. */
+const captionPoint = (
+  model: Model,
+  relationship: RadarRelationship,
+  arc: ReadonlyArray<Vec3>,
+  along: number,
+): Vec3 => {
+  const fromFocused = Option.exists(focusedId(model), (id) => id === relationship.from);
+  const share = Match.value(fromFocused).pipe(
+    Match.when(true, () => along),
+    Match.orElse(() => 1 - along),
+  );
+  const [x, y, z] = arc[Math.round(share * (arc.length - 1))] ?? arcPeak(arc);
+  return [x * 1.05, y * 1.05, z * 1.05];
+};
+
+/**
+ * An edge label's size: never below 0.11 units, and growing with distance so it stays
+ * about ten pixels tall on screen instead of shrinking out of reach.
+ */
+const captionSize = (model: Model, point: Vec3): number =>
+  Math.max(0.11, 0.016 * distanceBetween(model.camera.position, point));
+
+/** A focused edge's type, small, near the related entry where it fits. */
+const edgeCandidate = (model: Model, relationship: RadarRelationship): Placeable => {
+  const arc = arcOf(model, relationship);
+  const key = `${edgeKey(relationship)}:label`;
+  const text = relationshipLabels[relationship.type];
+  const fontSize = captionSize(model, arcPeak(arc));
+  return placeable(
+    key,
+    'edge',
+    textSize(text, fontSize),
+    captionStops.flatMap((along) =>
+      captionNudges.map((nudge) =>
+        centred(above(captionPoint(model, relationship, arc, along), nudge)),
+      ),
+    ),
+    (slot) =>
+      label({
+        ...labelStyle(model),
+        ...slot,
+        key,
+        text,
+        fontSize,
+        color: relationshipColours[relationship.type],
+        fillOpacity: 0.9,
+        outlineWidth: fontSize * 0.12,
+      }),
+  );
+};
+
+const detailOf = (model: Model, position: RadarPosition): Detail =>
+  detailFor(model.camera.position, blipPosition(position));
+
+/** Every label the scene could draw, most important first. */
+const candidatesOf = (model: Model, view: View): ReadonlyArray<Placeable> => {
+  const focused = Option.flatMap(focusedId(model), (id) => positionOf(model, id));
+  const camera = model.camera.position;
+  const others = visibleOf(model)
     .filter(({ entry }) => !Option.contains(focusedId(model), entry.id))
-    .flatMap((position) =>
-      detailNodes(model, position, detailFor(model.camera.position, blipPosition(position))),
-    );
+    .filter((position) => showsName(detailOf(model, position)))
+    .map((position) => ({ position, distance: distanceBetween(camera, blipPosition(position)) }))
+    .toSorted((a, b) => a.distance - b.distance)
+    .map(({ position }) => position);
+  const metaOf = (position: RadarPosition, reach: MetaReach): ReadonlyArray<Placeable> =>
+    [position]
+      .filter((current) => showsMeta(detailOf(model, current)))
+      .map((current) => metaCandidate(model, view, current, reach));
+  return [
+    ...Option.match(focused, {
+      onNone: () => [],
+      onSome: (position) => [
+        focusCandidate(model, view, position),
+        ...metaOf(position, 'described'),
+      ],
+    }),
+    ...visibleRelationships(model)
+      .filter((relationship) => isFocusedEdge(model, relationship))
+      .map((relationship) => edgeCandidate(model, relationship)),
+    ...others.flatMap((position) => [
+      nameCandidate(model, view, position),
+      ...metaOf(position, 'heading'),
+    ]),
+  ];
+};
+
+/** Nearby blips, which labels must not cover; far ones are small and may sit behind a label. */
+const blipObstacles = (model: Model): ReadonlyArray<Obstacle> => [
+  ...visibleOf(model)
+    .filter((position) => showsName(detailOf(model, position)))
+    .map((position) => ({
+      centre: blipPosition(position),
+      width: 2 * blipRadius,
+      height: 2 * blipRadius,
+    })),
+  // The focused blip, at its pinned size, is never covered by another label.
+  ...Option.toArray(Option.flatMap(focusedId(model), (id) => positionOf(model, id))).map(
+    (position) => ({
+      centre: blipPosition(position),
+      width: 2 * blipRadius * pinnedScale,
+      height: 2 * blipRadius * pinnedScale,
+      solid: true,
+    }),
+  ),
+];
+
+/** A description shows only beside its entry's name, never on its own. */
+const keepsMeta = (placed: ReadonlyMap<string, number>, key: string): boolean =>
+  !key.startsWith('label:meta:') ||
+  placed.has('label:focus') ||
+  placed.has(key.replace('label:meta:', 'label:name:'));
+
+/** The labels that fit: placed in priority order, none overlapping on screen. */
+const labelNodes = (model: Model): ReadonlyArray<SceneNode> => {
+  const view = viewOf(model.camera.position, model.camera.lookAt);
+  const candidates = candidatesOf(model, view);
+  const placed = place(
+    view,
+    candidates.map(({ candidate }) => candidate),
+    blipObstacles(model),
+    frameOf(cameraFov, model.stageAspect),
+  );
+  return candidates.flatMap(({ candidate, nodeAt, slots }) =>
+    Option.match(Option.fromNullishOr(placed.get(candidate.key)), {
+      onNone: () => [],
+      onSome: (index) =>
+        slots
+          .filter((_, at) => at === index && keepsMeta(placed, candidate.key))
+          .map((slot) => nodeAt(slot)),
+    }),
+  );
+};
 
 const materials = [
   ...categoryIds.flatMap((category) => [
@@ -373,8 +628,7 @@ export const sceneFor = (model: Model) =>
       ...sectorNodes,
       ...guideLabels(model),
       ...positionsOf(model).map((position) => blipNode(model, position)),
-      ...visibleRelationships(model).flatMap((relationship) => edgeNodes(model, relationship)),
-      ...zoomDetail(model),
-      ...focusLabel(model),
+      ...visibleRelationships(model).map((relationship) => edgeNode(model, relationship)),
+      ...labelNodes(model),
     ],
   });

@@ -97,6 +97,16 @@ const turned = (camera: Camera, direction: 'left' | 'right'): Camera => {
   return { ...camera, position: turnedAboutY(camera.position, angle) };
 };
 
+/** The stage's shape, as a gesture reports it; the last known one when it reports none. */
+const aspectOf = (gesture: Gesture, fallback: number): number =>
+  Option.getOrElse(
+    Option.liftPredicate(
+      gesture.width / gesture.height,
+      (aspect) => Number.isFinite(aspect) && aspect > 0,
+    ),
+    () => fallback,
+  );
+
 /** Look round, unless the gesture began on a blip (a click on it pins it). */
 const orbited = (model: Model, gesture: Gesture): Model =>
   Match.value('key' in gesture && gesture.key !== undefined).pipe(
@@ -142,6 +152,8 @@ export const update = (model: Model, message: Message): AppReturn =>
     ClickedRelationships: () => ({
       model: modifyFields(model, { showRelationships: (shown) => !shown }),
     }),
-    MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
+    MadeGesture: ({ gesture }) => ({
+      model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
+    }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

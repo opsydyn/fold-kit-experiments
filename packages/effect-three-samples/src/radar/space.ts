@@ -123,7 +123,31 @@ export const nameDistance = 7;
 export const fullDistance = 4.5;
 
 export const detailAt = (distance: number): Detail =>
-  distance <= fullDistance ? 'full' : distance <= nameDistance ? 'name' : 'blip';
+  Match.value(distance).pipe(
+    Match.when(
+      (near) => near <= fullDistance,
+      () => 'full' as const,
+    ),
+    Match.when(
+      (near) => near <= nameDistance,
+      () => 'name' as const,
+    ),
+    Match.orElse(() => 'blip' as const),
+  );
+
+/** Whether a blip at this detail is named. */
+export const showsName = (detail: Detail): boolean =>
+  Match.value(detail).pipe(
+    Match.when('blip', () => false),
+    Match.orElse(() => true),
+  );
+
+/** Whether a blip at this detail also shows its ring, category and description. */
+export const showsMeta = (detail: Detail): boolean =>
+  Match.value(detail).pipe(
+    Match.when('full', () => true),
+    Match.orElse(() => false),
+  );
 
 /** Whether `point` is on the camera's side of the radar's centre. */
 export const facesCamera = (camera: Vec3, point: Vec3): boolean => dot(camera, point) > 0;

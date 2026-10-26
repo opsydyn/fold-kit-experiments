@@ -12,6 +12,7 @@ import {
   visibleOf,
   visibleRelationships,
 } from '../src/radar/model';
+import { labelBudget } from '../src/radar/placement';
 import { relationsOf } from '../src/radar/relations';
 import { sceneFor } from '../src/radar/scene';
 import {
@@ -19,6 +20,7 @@ import {
   categoryLabelDistance,
   detailAt,
   detailFor,
+  distanceBetween,
   edgeArc,
   fullDistance,
   nameDistance,
@@ -79,17 +81,25 @@ describe('relationship visibility and focus', () => {
     expect(step(off, Message.ClickedRelationships()).showRelationships).toBe(true);
   });
 
-  test('pinning an entry brightens and labels its edges; the rest stay dimmed', () => {
-    const dimmed = nodeOf(start, foldkitToElm);
-    expect(dimmed?._tag === 'Line' && [dimmed.width, dimmed.opacity]).toEqual([1.5, 0.45]);
+  test('edges rest as faint threads; pinning an entry brings its own forward and recedes the rest', () => {
+    const strength = (model: Model, key: string) => {
+      const node = nodeOf(model, key);
+      return node?._tag === 'Line' ? [node.width, node.opacity] : undefined;
+    };
+    expect(strength(start, foldkitToElm)).toEqual([1, 0.18]);
     expect(nodeOf(start, `${foldkitToElm}:label`)).toBeUndefined();
     const pinned = step(start, Message.ClickedBlip({ key: blipKey('foldkit') }));
-    const lit = nodeOf(pinned, foldkitToElm);
-    expect(lit?._tag === 'Line' && [lit.width, lit.opacity]).toEqual([3, 1]);
-    const caption = nodeOf(pinned, `${foldkitToElm}:label`);
+    expect(strength(pinned, foldkitToElm)).toEqual([1.75, 0.8]);
+    expect(strength(pinned, 'edge:sqlite:duckdb:complements')).toEqual([1, 0.06]);
+    expect(nodeOf(pinned, 'edge:sqlite:duckdb:complements:label')).toBeUndefined();
+    // Facing FoldKit up close, its edge's type finds room beside the related entry.
+    const close = steps(start, [
+      Message.ClickedEntry({ id: 'foldkit' }),
+      Message.ClickedZoom({ direction: 'in' }),
+      Message.ClickedZoom({ direction: 'in' }),
+    ]);
+    const caption = nodeOf(close, `${foldkitToElm}:label`);
     expect(caption?._tag === 'Label' && caption.text).toBe('Inspired by');
-    const other = nodeOf(pinned, 'edge:sqlite:duckdb:complements');
-    expect(other?._tag === 'Line' && other.width).toBe(1.5);
   });
 
   test('each type keeps its own line style', () => {
@@ -148,13 +158,29 @@ describe('zoom reveals detail', () => {
     const metas = keysOf(closer, 'label:meta:');
     expect(names.length).toBeGreaterThan(0);
     expect(metas.length).toBeGreaterThan(0);
-    for (const { entry } of visibleOf(closer)) {
-      const detail = detailFor(closer.camera.position, at(closer, entry.id));
-      expect(names.includes(`label:name:${entry.id}`)).toBe(detail !== 'blip');
-      expect(metas.includes(`label:meta:${entry.id}`)).toBe(detail === 'full');
+    // Only blips near enough are labelled, within budget, and a description only beside its name.
+    expect(names.length).toBeLessThanOrEqual(labelBudget.name);
+    expect(metas.length).toBeLessThanOrEqual(labelBudget.meta);
+    for (const key of names) {
+      const id = key.replace('label:name:', '');
+      expect(detailFor(closer.camera.position, at(closer, id))).not.toBe('blip');
     }
-    // Only the camera's side is labelled, and the category names step aside up close.
-    expect(names.length).toBeLessThanOrEqual(visibleOf(closer).length / 2);
+    for (const key of metas) {
+      const id = key.replace('label:meta:', '');
+      expect(detailFor(closer.camera.position, at(closer, id))).toBe('full');
+      expect(names).toContain(`label:name:${id}`);
+    }
+    // The nearest named blip always keeps its name: it is placed first.
+    const nearest = visibleOf(closer)
+      .map(({ entry }) => entry.id)
+      .filter((id) => detailFor(closer.camera.position, at(closer, id)) !== 'blip')
+      .toSorted(
+        (a, b) =>
+          distanceBetween(closer.camera.position, at(closer, a)) -
+          distanceBetween(closer.camera.position, at(closer, b)),
+      )[0];
+    expect(names).toContain(`label:name:${nearest}`);
+    // The category names step aside up close.
     expect(Math.hypot(...closer.camera.position)).toBeLessThan(categoryLabelDistance);
     expect(keysOf(closer, 'label:category:')).toEqual([]);
     const meta = nodeOf(closer, metas[0] ?? '');
@@ -164,6 +190,27 @@ describe('zoom reveals detail', () => {
   test('a blip behind the centre shows no detail, however close the camera', () => {
     expect(detailFor([0, 0, 5], [0, 0, 1])).toBe('full');
     expect(detailFor([0, 0, 5], [0, 0, -1])).toBe('blip');
+  });
+
+  test('a gesture teaches the radar its stage’s shape, which labels must stay within', () => {
+    expect(start.stageAspect).toBe(1);
+    const dragged = step(
+      start,
+      Message.MadeGesture({
+        gesture: {
+          _tag: 'Drag',
+          button: 0,
+          modifiers: { shift: false, control: false, meta: false, alt: false },
+          width: 800,
+          height: 500,
+          x: 10,
+          y: 10,
+          deltaX: 0,
+          deltaY: 0,
+        },
+      }),
+    );
+    expect(dragged.stageAspect).toBeCloseTo(1.6, 12);
   });
 
   test('the zoom buttons stay within the orbit’s limits', () => {

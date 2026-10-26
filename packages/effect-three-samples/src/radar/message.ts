@@ -18,6 +18,8 @@ export const Message = defineMessageUnion({
   ClickedClearFilters: {},
   ClickedTurn: { direction: Schema.Literals(['left', 'right']) },
   ClickedResetView: {},
+  ClickedZoom: { direction: Schema.Literals(['in', 'out']) },
+  ClickedRelationships: {},
   MadeGesture: { gesture: SceneSchema.Gesture },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });

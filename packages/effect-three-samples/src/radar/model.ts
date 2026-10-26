@@ -1,7 +1,14 @@
 import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
 import { Match, Option, Schema } from 'effect';
 
-import { categoryIds, loadDemoRadar, Ring, ringIds, type RadarData } from './data';
+import {
+  categoryIds,
+  loadDemoRadar,
+  type RadarData,
+  type RadarRelationship,
+  Ring,
+  ringIds,
+} from './data';
 import { filterPositions, layoutEntries, type RadarFilters, type RadarPosition } from './layout';
 import { onSphere } from './space';
 
@@ -18,6 +25,8 @@ export const Model = Schema.Struct({
   hovered: Schema.Option(Schema.String),
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
+  /** Whether the relationship edges are drawn. */
+  showRelationships: Schema.Boolean,
   camera: SceneSchema.Camera,
 });
 export type Model = Omit<typeof Model.Type, 'data'> & Readonly<{ data: RadarData }>;
@@ -45,6 +54,7 @@ export const initialModel = (assetBase: string, data: RadarData = loadDemoRadar(
   enabledRings: ringIds,
   hovered: Option.none(),
   selected: Option.none(),
+  showRelationships: true,
   camera: homeCamera,
 });
 
@@ -77,3 +87,16 @@ export const blipKey = (id: string): string => `blip:${id}`;
 /** Reads an entry id back from a blip's scene key. */
 export const idOfBlip = (key: string): Option.Option<string> =>
   Option.fromNullishOr(/^blip:(.+)$/.exec(key)?.[1]);
+
+/** Every relationship in the dataset. */
+export const relationshipsOf = (model: Model): ReadonlyArray<RadarRelationship> =>
+  Match.value(model.data).pipe(
+    Match.tag('Ready', ({ dataset }) => dataset.relationships ?? []),
+    Match.orElse(() => []),
+  );
+
+/** The relationships drawn: while edges are on, those whose two entries both show. */
+export const visibleRelationships = (model: Model): ReadonlyArray<RadarRelationship> =>
+  relationshipsOf(model).filter(
+    ({ from, to }) => model.showRelationships && isVisible(model, from) && isVisible(model, to),
+  );

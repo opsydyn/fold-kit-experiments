@@ -41,6 +41,27 @@
   aspect-ratio: 1;
 }
 
+/* A relationship's line in a legend or list: its colour and line style, inline. */
+.e3-edge-swatch {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+  width: 1.4rem;
+  height: 0;
+}
+
+.e3-relations {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.e3-relations .e3-note {
+  margin: 0.25rem 0 0 0.25rem;
+}
+
 /* A night sky whatever the page's theme: additive stars and sparkles need the dark. */
 .e3-stage-night {
   background: radial-gradient(circle at 50% 40%, #1a2240, #07080d 75%);

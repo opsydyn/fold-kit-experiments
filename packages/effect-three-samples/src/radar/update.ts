@@ -15,11 +15,19 @@ import {
   type Model,
   positionOf,
 } from './model';
+import { zoomedPosition, zoomLimits } from './space';
 
 type AppReturn = Return<Model, Message>;
 
 /** Look round the radar from outside its labels; it stays centred, so no panning. */
-const orbitLimits = orbitOptions({ minDistance: 5, maxDistance: 16, enablePan: false });
+const orbitLimits = orbitOptions({
+  minDistance: zoomLimits.min,
+  maxDistance: zoomLimits.max,
+  enablePan: false,
+});
+
+/** How far one Zoom button moves the camera towards or away from the centre. */
+const zoomFactors = { in: 0.8, out: 1.25 } as const;
 
 /** How far one Turn button turns the camera round the radar's axis. */
 const turnStep = Math.PI / 6;
@@ -123,6 +131,17 @@ export const update = (model: Model, message: Message): AppReturn =>
       model: modifyFields(model, { camera: (camera) => turned(camera, direction) }),
     }),
     ClickedResetView: () => ({ model: { ...model, camera: homeCamera } }),
+    ClickedZoom: ({ direction }) => ({
+      model: modifyFields(model, {
+        camera: (camera) => ({
+          ...camera,
+          position: zoomedPosition(camera.position, zoomFactors[direction]),
+        }),
+      }),
+    }),
+    ClickedRelationships: () => ({
+      model: modifyFields(model, { showRelationships: (shown) => !shown }),
+    }),
     MadeGesture: ({ gesture }) => ({ model: orbited(model, gesture) }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

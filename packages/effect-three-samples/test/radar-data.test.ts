@@ -111,3 +111,59 @@ describe('radar dataset boundary', () => {
     expect(decodeRadarDataset(demoRadar)._tag).toBe('Ready');
   });
 });
+
+describe('radar relationships boundary', () => {
+  const other = Object.freeze({ ...entry, id: 'unison-cloud', name: 'Unison Cloud' });
+  const withRelationships = (relationships: ReadonlyArray<unknown>) => ({
+    authoredOn: '2026-10-14',
+    entries: [entry, other],
+    relationships,
+  });
+  const builds = { from: 'unison-cloud', to: 'unison', type: 'builds-on', note: 'Runs Unison.' };
+
+  it('accepts relationships between known entries, and datasets without any', () => {
+    expect(decodeRadarDataset(withRelationships([builds]))._tag).toBe('Ready');
+    expect(decodeRadarDataset({ authoredOn: '2026-10-14', entries: [entry] })._tag).toBe('Ready');
+  });
+
+  it.each([
+    [
+      'an unknown entry',
+      [{ ...builds, to: 'missing' }],
+      'Radar relationships must name known entries',
+    ],
+    ['itself', [{ ...builds, to: 'unison-cloud' }], 'Radar relationships need two entries'],
+    ['a blank note', [{ ...builds, note: '  ' }], 'Radar relationships need a note'],
+    ['a repeat', [builds, builds], 'Duplicate radar relationships'],
+    [
+      'a peer relationship reversed',
+      [
+        { ...builds, type: 'complements' },
+        { ...builds, from: 'unison', to: 'unison-cloud', type: 'complements' },
+      ],
+      'Duplicate radar relationships',
+    ],
+  ])('rejects a relationship to %s', (_, relationships, reason) => {
+    expect(decodeRadarDataset(withRelationships(relationships))).toEqual({
+      _tag: 'Failure',
+      reason,
+    });
+  });
+
+  it('allows a one-way relationship in both directions, and rejects unknown types', () => {
+    const back = { ...builds, from: 'unison', to: 'unison-cloud' };
+    expect(decodeRadarDataset(withRelationships([builds, back]))._tag).toBe('Ready');
+    expect(decodeRadarDataset(withRelationships([{ ...builds, type: 'depends-on' }]))._tag).toBe(
+      'Failure',
+    );
+  });
+
+  it('ships sixteen relationships, FoldKit inspired by Elm among them', () => {
+    const data = loadDemoRadar();
+    if (data._tag !== 'Ready') throw new Error(data.reason);
+    expect(data.dataset.relationships).toHaveLength(16);
+    expect(data.dataset.relationships).toContainEqual(
+      expect.objectContaining({ from: 'foldkit', to: 'elm', type: 'inspired-by' }),
+    );
+  });
+});

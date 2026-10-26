@@ -31,6 +31,25 @@ export const ringLabels = {
 /* oxlint-disable-next-line linteffect/no-string-sentinel-const */
 export const demoNotice =
   'Original demo dataset - placements are illustrative, not adoption advice';
+export const RelationshipType = Schema.Literals([
+  'builds-on',
+  'complements',
+  'inspired-by',
+  'guards-against',
+  'alternative-to',
+]);
+export type RelationshipType = typeof RelationshipType.Type;
+export const relationshipTypes = RelationshipType.literals;
+export const relationshipLabels = {
+  'builds-on': 'Builds on',
+  complements: 'Complements',
+  'inspired-by': 'Inspired by',
+  'guards-against': 'Guards against',
+  'alternative-to': 'Alternative to',
+} satisfies Readonly<Record<RelationshipType, string>>;
+/** Peer relationships read the same both ways, so `a → b` and `b → a` are one. */
+export const isSymmetric = (type: RelationshipType): boolean =>
+  type === 'complements' || type === 'alternative-to';
 const Entry = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
@@ -39,8 +58,19 @@ const Entry = Schema.Struct({
   description: Schema.String,
   sourceUrl: Schema.String,
 });
-const Dataset = Schema.Struct({ authoredOn: Schema.String, entries: Schema.Array(Entry) });
+const Relationship = Schema.Struct({
+  from: Schema.String,
+  to: Schema.String,
+  type: RelationshipType,
+  note: Schema.String,
+});
+const Dataset = Schema.Struct({
+  authoredOn: Schema.String,
+  entries: Schema.Array(Entry),
+  relationships: Schema.optionalKey(Schema.Array(Relationship)),
+});
 export type RadarEntry = typeof Entry.Type;
+export type RadarRelationship = typeof Relationship.Type;
 export type RadarDataset = typeof Dataset.Type;
 export type RadarData =
   | Readonly<{ _tag: 'Ready'; dataset: RadarDataset }>
@@ -81,6 +111,19 @@ export function decodeRadarDataset(input: unknown): RadarData {
     const url = new URL(entry.sourceUrl);
     if (url.protocol !== 'https:' || !url.hostname || url.username || url.password)
       return { _tag: 'Failure', reason: 'Radar sources require credential-free HTTPS URLs' };
+  }
+  const pairs = new Set<string>();
+  for (const { from, to, type, note } of dataset.relationships ?? []) {
+    if (!ids.has(from) || !ids.has(to))
+      return { _tag: 'Failure', reason: 'Radar relationships must name known entries' };
+    if (from === to) return { _tag: 'Failure', reason: 'Radar relationships need two entries' };
+    if (!note.trim()) return { _tag: 'Failure', reason: 'Radar relationships need a note' };
+    const keys = isSymmetric(type)
+      ? [`${from}|${to}|${type}`, `${to}|${from}|${type}`]
+      : [`${from}|${to}|${type}`];
+    if (keys.some((key) => pairs.has(key)))
+      return { _tag: 'Failure', reason: 'Duplicate radar relationships' };
+    for (const key of keys) pairs.add(key);
   }
   return { _tag: 'Ready', dataset };
 }

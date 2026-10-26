@@ -1,4 +1,4 @@
-/* Original summaries; sources checked 2026-10-14. Rings are illustrative fixture placements, not project assessments. */
+/* Original summaries; sources checked 2026-10-14. Rings and relationships are illustrative fixture placements, not project assessments. */
 import type { RadarDataset } from './data';
 
 export const demoRadar = {
@@ -267,6 +267,104 @@ export const demoRadar = {
       ring: 'assess',
       description: 'A programming language and proof assistant for machine-checked mathematics.',
       sourceUrl: 'https://lean-lang.org/',
+    },
+  ],
+  relationships: [
+    {
+      from: 'foldkit',
+      to: 'elm',
+      type: 'inspired-by',
+      note: "FoldKit's Model, Message and update loop follow the Elm Architecture.",
+    },
+    {
+      from: 'foldkit',
+      to: 'effect',
+      type: 'builds-on',
+      note: 'FoldKit runs its commands, subscriptions and resources on Effect.',
+    },
+    {
+      from: 'gleam',
+      to: 'beam',
+      type: 'builds-on',
+      note: 'Gleam compiles to Erlang and runs on the BEAM.',
+    },
+    {
+      from: 'unison-cloud',
+      to: 'unison',
+      type: 'builds-on',
+      note: 'Unison Cloud deploys Unison code by its content-addressed definitions.',
+    },
+    {
+      from: 'ollama',
+      to: 'llama-cpp',
+      type: 'builds-on',
+      note: "Ollama has run many models through llama.cpp's inference engine.",
+    },
+    {
+      from: 'proof-guided-generation',
+      to: 'lean',
+      type: 'builds-on',
+      note: 'Candidate code or proofs are checked by a prover such as Lean.',
+    },
+    {
+      from: 'claude-code',
+      to: 'codex',
+      type: 'alternative-to',
+      note: 'Both are terminal coding agents that work on a repository.',
+    },
+    {
+      from: 'claude-code',
+      to: 'pi',
+      type: 'alternative-to',
+      note: "Pi's coding CLI covers similar agent workflows.",
+    },
+    {
+      from: 'codex',
+      to: 'pi',
+      type: 'alternative-to',
+      note: "Pi's coding CLI covers similar agent workflows.",
+    },
+    {
+      from: 'sqlite',
+      to: 'duckdb',
+      type: 'complements',
+      note: 'SQLite suits transactional rows and DuckDB analytical scans; both embed in a process.',
+    },
+    {
+      from: 'marimo',
+      to: 'duckdb',
+      type: 'complements',
+      note: 'marimo notebooks run their SQL cells through DuckDB.',
+    },
+    {
+      from: 'local-first-sync',
+      to: 'sqlite',
+      type: 'complements',
+      note: "Local-first apps often keep each replica's data in SQLite.",
+    },
+    {
+      from: 'retrieval-augmented-generation',
+      to: 'structured-model-outputs',
+      type: 'complements',
+      note: 'Retrieved context grounds an answer; a schema shapes it into checkable data.',
+    },
+    {
+      from: 'webgpu',
+      to: 'webassembly',
+      type: 'complements',
+      note: 'WebAssembly runs portable compute on the CPU while WebGPU drives the GPU.',
+    },
+    {
+      from: 'property-based-testing',
+      to: 'unreviewed-generated-changes',
+      type: 'guards-against',
+      note: 'Generated cases probe a patch far beyond the examples its author thought of.',
+    },
+    {
+      from: 'proof-guided-generation',
+      to: 'unreviewed-generated-changes',
+      type: 'guards-against',
+      note: 'A machine-checked proof is evidence a reviewer can rely on.',
     },
   ],
 } as const satisfies RadarDataset;

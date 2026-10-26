@@ -16,6 +16,7 @@ import {
 } from './data';
 import { countRings, type RadarPosition } from './layout';
 import { Message } from './message';
+import { cameraMarker, minimapPoint, quarterPath, ringRadius } from './minimap';
 import {
   CategoryFilter,
   clusterOfLabel,
@@ -30,6 +31,7 @@ import {
 } from './model';
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
+import { shellRadius } from './space';
 import { changesIn } from './timeline';
 import { trailOf } from './trail';
 
@@ -370,6 +372,80 @@ const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   ].filter(() => editions.length > 1);
 };
 
+/** How a blip shows on the minimap: a small dot, or a larger ringed one when pinned. */
+const dotLooks = {
+  resting: { radius: '0.035', stroke: 'none' },
+  pinned: { radius: '0.07', stroke: '#e8e8f0' },
+} as const;
+
+const minimapDot = (model: Model, h: HtmlBuilder<Message>, position: RadarPosition): Html => {
+  const [x, y] = minimapPoint(position);
+  const looks = Match.value(Option.contains(model.selected, position.entry.id)).pipe(
+    Match.when(true, () => dotLooks.pinned),
+    Match.orElse(() => dotLooks.resting),
+  );
+  return h.circle(
+    [
+      h.Cx(String(x)),
+      h.Cy(String(y)),
+      h.R(looks.radius),
+      h.Fill(categoryCss(position.entry.category)),
+      h.Stroke(looks.stroke),
+      h.StrokeWidth('0.02'),
+    ],
+    [],
+  );
+};
+
+/**
+ * The minimap: the radar from above in the stage's corner, its quarters tinted by
+ * category, the visible blips as dots (the pinned one larger), and a marker on the rim at
+ * the camera's bearing. A click on a quarter stops at that cluster; the legend's chips do
+ * the same from the keyboard.
+ */
+const minimap = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.svg(
+    [
+      h.Class('e3-minimap'),
+      h.ViewBox('-1.08 -1.08 2.16 2.16'),
+      h.Role('img'),
+      h.AriaLabel('Minimap of the radar from above'),
+    ],
+    [
+      ...categoryIds.map((category) =>
+        h.path(
+          [
+            h.D(quarterPath(category)),
+            h.Fill(categoryCss(category)),
+            h.Opacity('0.12'),
+            h.Class('e3-minimap-quarter'),
+            h.OnClick(Message.ClickedCluster({ category })),
+          ],
+          [h.title([], [`Fly to ${categoryLabels[category]}`])],
+        ),
+      ),
+      ...ringIds.map((ring) =>
+        h.circle(
+          [
+            h.Cx('0'),
+            h.Cy('0'),
+            h.R(String(ringRadius(shellRadius(ring)))),
+            h.Fill('none'),
+            h.Stroke('#8a8aa3'),
+            h.StrokeWidth('0.012'),
+            h.Opacity('0.6'),
+          ],
+          [],
+        ),
+      ),
+      ...visibleOf(model).map((position) => minimapDot(model, h, position)),
+      h.polygon(
+        [h.Points(cameraMarker(model.camera.position)), h.Fill('#e8e8f0'), h.Opacity('0.9')],
+        [],
+      ),
+    ],
+  );
+
 /** A breadcrumb that flies somewhere; the last one marks where the camera is. */
 const crumb = (h: HtmlBuilder<Message>, label: string, message: Message, current: boolean): Html =>
   h.button(
@@ -414,6 +490,7 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
         h,
       ),
       breadcrumb(model, h),
+      minimap(model, h),
     ],
   ),
   h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),

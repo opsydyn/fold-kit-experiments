@@ -102,6 +102,28 @@
   font-size: 0.8rem;
 }
 
+/* The minimap: the radar from above, small, in the stage's corner. */
+.e3-minimap {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
+  width: clamp(72px, 22%, 132px);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.e3-minimap-quarter {
+  cursor: pointer;
+}
+
+.e3-minimap-quarter:hover {
+  opacity: 0.3;
+}
+
 /* A relationship's line in a legend or list: its colour and line style, inline. */
 .e3-edge-swatch {
   display: inline-block;

@@ -6,6 +6,13 @@ import { categoryIds } from '../src/radar/data';
 import { categoryCenter } from '../src/radar/layout';
 import { Message } from '../src/radar/message';
 import {
+  cameraMarker,
+  fromAbove,
+  minimapPoint,
+  quarterPath,
+  ringRadius,
+} from '../src/radar/minimap';
+import {
   cameraDamping,
   clusterOfLabel,
   clusterView,
@@ -18,7 +25,7 @@ import {
 } from '../src/radar/model';
 import { alongPath, easeInOut, relayDamping, relayDuration } from '../src/radar/relay';
 import { sceneFor } from '../src/radar/scene';
-import { bearingOf, elevationOf } from '../src/radar/space';
+import { bearingOf, elevationOf, onSphere, shellRadius } from '../src/radar/space';
 import { changesIn, playStep } from '../src/radar/timeline';
 import { trailOf } from '../src/radar/trail';
 import { init, update } from '../src/radar/update';
@@ -202,5 +209,37 @@ describe('timeline replay', () => {
     expect([end.edition, end.playing]).toEqual([3, false]);
     const paused = step(step(first, Message.ClickedPlay()), Message.ClickedPlay());
     expect([paused.playing, paused.edition]).toEqual([false, 0]);
+  });
+});
+
+describe('minimap', () => {
+  test('it shows the radar from above: longitude 0 at the bottom, positive longitudes right', () => {
+    const [bottomX, bottomY] = fromAbove(onSphere(0, 0, 3));
+    expect(bottomX).toBeCloseTo(0, 9);
+    expect(bottomY).toBeGreaterThan(0.8);
+    const [rightX, rightY] = fromAbove(onSphere(90, 0, 3));
+    expect(rightX).toBeGreaterThan(0.8);
+    expect(rightY).toBeCloseTo(0, 9);
+  });
+
+  test('every blip and ring sits inside the rim', () => {
+    for (const position of positionsOf(start))
+      expect(Math.hypot(...minimapPoint(position))).toBeLessThan(1);
+    expect(ringRadius(shellRadius('caution'))).toBeLessThan(1);
+  });
+
+  test('each quarter is a wedge from the centre round the rim', () => {
+    const path = quarterPath('tools');
+    expect(path.startsWith('M 0 0 L ')).toBe(true);
+    expect(path.split(' L ')).toHaveLength(8);
+  });
+
+  test('the camera marker sits on the rim at its bearing, pointing in', () => {
+    const [tip] = cameraMarker(start.camera.position).split(' ');
+    const [x, y] = (tip ?? '').split(',').map(Number);
+    expect(x).toBeCloseTo(0, 3);
+    expect(y).toBeCloseTo(0.86, 3);
+    const turned = step(start, Message.ClickedTurn({ direction: 'left' }));
+    expect(cameraMarker(turned.camera.position)).not.toEqual(cameraMarker(start.camera.position));
   });
 });

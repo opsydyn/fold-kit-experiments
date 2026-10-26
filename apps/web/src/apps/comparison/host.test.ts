@@ -137,7 +137,9 @@ it('registers one client-loaded comparison island under Layout and links from Ch
   expect(page.match(/<ComparisonApp\b/g)).toHaveLength(1);
   expect(page).toMatch(/<ComparisonApp\s+client:load\s*\/>/);
   const charts = readFileSync(resolve(import.meta.dirname, '../../pages/charts.astro'), 'utf8');
-  expect(charts).toMatch(/<a\s+href="\/comparison"[^>]*>Chart comparison<\/a>/);
+  // Charts lists its explorations as data, each rendered as a card linking to its href.
+  expect(charts).toMatch(/href:\s*'\/comparison',\s*kind:\s*'[^']+',\s*name:\s*'Chart comparison'/);
+  expect(charts).toMatch(/<a\b[^>]*href=\{exploration\.href\}/);
   const app = readFileSync(resolve(import.meta.dirname, './app.ts'), 'utf8');
   expect(app).toContain("lazyApp(() => import('./main'))");
 });

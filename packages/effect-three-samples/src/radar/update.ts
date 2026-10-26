@@ -10,6 +10,7 @@ import {
   cameraDamping,
   cameraFacing,
   flightTo,
+  universeCamera,
   homeCamera,
   idOfBlip,
   initialModel,
@@ -26,6 +27,9 @@ const orbitLimits = orbitOptions({
   minDistance: zoomLimits.min,
   maxDistance: zoomLimits.max,
   enablePan: false,
+  // Never quite overhead or underneath, where the camera's up would be undefined.
+  minPolarAngle: 0.05,
+  maxPolarAngle: Math.PI - 0.05,
 });
 
 /** How far one Zoom button moves the camera towards or away from the centre. */
@@ -163,6 +167,9 @@ export const update = (model: Model, message: Message): AppReturn =>
       model: modifyFields(model, { camera: (camera) => turned(camera, direction) }),
     }),
     ClickedResetView: () => ({ model: { ...model, camera: homeCamera } }),
+    ClickedUniverse: () => ({
+      model: { ...model, camera: universeCamera(model.camera.position) },
+    }),
     ClickedZoom: ({ direction }) => ({
       model: modifyFields(model, {
         camera: (camera) => ({

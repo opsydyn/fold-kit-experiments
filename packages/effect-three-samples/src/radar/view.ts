@@ -19,15 +19,18 @@ import { Message } from './message';
 import {
   CategoryFilter,
   clusterOfLabel,
+  editionOf,
+  editionsOf,
   filtersOf,
   type Model,
   positionOf,
-  positionsOf,
+  presentOf,
   relationshipsOf,
   visibleOf,
 } from './model';
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
+import { changesIn } from './timeline';
 import { trailOf } from './trail';
 
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
@@ -57,7 +60,7 @@ const categoryOf = (value: string): CategoryFilter =>
   );
 
 const filterControls = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const counts = countRings(positionsOf(model), filtersOf(model));
+  const counts = countRings(presentOf(model), filtersOf(model));
   return h.div(
     [h.Class('e3-controls'), h.AriaLabel('Filters')],
     [
@@ -269,7 +272,7 @@ const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.details(
     [h.Class('e3-table')],
     [
-      h.summary([], [`Entries (${visible.length} of ${positionsOf(model).length})`]),
+      h.summary([], [`Entries (${visible.length} of ${presentOf(model).length})`]),
       h.table(
         [],
         [
@@ -308,6 +311,64 @@ const doubleClickedAt = (key: string): Message =>
     onSome: (category) => Message.ClickedCluster({ category }),
     onNone: () => Message.DoubleClickedBlip({ key }),
   });
+
+/** What changed in the shown edition, or that it is where the radar began. */
+const changeList = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const changes = changesIn(model, model.edition);
+  return Match.value({ first: model.edition === 0, quiet: changes.length === 0 }).pipe(
+    Match.when({ first: true }, () =>
+      h.p([h.Class('e3-note'), h.AriaLive('polite')], ['Where the radar began.']),
+    ),
+    Match.when({ quiet: true }, () =>
+      h.p([h.Class('e3-note'), h.AriaLive('polite')], ['No entries moved in this edition.']),
+    ),
+    Match.orElse(() =>
+      h.ul(
+        [h.Class('e3-timeline-changes'), h.AriaLive('polite')],
+        changes.map((change) => h.li([], [change])),
+      ),
+    ),
+  );
+};
+
+/**
+ * The radar over time: play through its editions, or scrub to one, and the blips move
+ * between shells as their rings changed, joining as they arrived.
+ */
+const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const editions = editionsOf(model);
+  const shown = editionOf(model);
+  const playLabel = Match.value(model.playing).pipe(
+    Match.when(true, () => 'Pause'),
+    Match.orElse(() => 'Play'),
+  );
+  return [
+    h.section(
+      [h.Class('e3-timeline'), h.AriaLabel('Timeline')],
+      [
+        h.div(
+          [h.Class('e3-controls')],
+          [
+            button(h, playLabel, Message.ClickedPlay()),
+            h.input([
+              h.Class('e3-range'),
+              h.Type('range'),
+              h.Min('0'),
+              h.Max(String(Math.max(0, editions.length - 1))),
+              h.Step('1'),
+              h.Value(String(model.edition)),
+              h.AriaLabel('Edition'),
+              h.Attribute('aria-valuetext', `${shown.label}, ${shown.authoredOn}`),
+              h.OnInput((value) => Message.ChangedEdition({ index: Number(value) })),
+            ]),
+            h.span([h.Class('e3-note')], [`${shown.label} · ${shown.authoredOn}`]),
+          ],
+        ),
+        changeList(model, h),
+      ],
+    ),
+  ].filter(() => editions.length > 1);
+};
 
 /** A breadcrumb that flies somewhere; the last one marks where the camera is. */
 const crumb = (h: HtmlBuilder<Message>, label: string, message: Message, current: boolean): Html =>
@@ -358,6 +419,7 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
   h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
   filterControls(model, h),
   viewControls(model, h),
+  ...timeline(model, h),
   legend(h),
   relationshipLegend(h),
   ...details(model, h),

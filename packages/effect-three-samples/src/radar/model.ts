@@ -44,6 +44,11 @@ export const Model = Schema.Struct({
   ),
   /** The reader prefers reduced motion: jumps land at once rather than ride. */
   reducedMotion: Schema.Boolean,
+  /** Which edition the radar shows, oldest first; the last is the current one. */
+  edition: Schema.Number,
+  /** Whether the timeline is playing through the editions, and time into the current step. */
+  playing: Schema.Boolean,
+  playClock: Schema.Number,
   /** Whether the relationship edges are drawn. */
   showRelationships: Schema.Boolean,
   /** The stage's width over its height, from the last gesture; square until then. */
@@ -139,6 +144,9 @@ export const initialModel = (assetBase: string, data: RadarData = loadDemoRadar(
   cluster: Option.none(),
   journey: Option.none(),
   reducedMotion: false,
+  edition: editionsIn(data).length - 1,
+  playing: false,
+  playClock: 0,
   showRelationships: true,
   stageAspect: 1,
   camera: homeCamera,
@@ -150,16 +158,61 @@ export const filtersOf = (model: Model): RadarFilters => ({
   rings: model.enabledRings,
 });
 
-/** Every entry's slot, whether or not the filters show it. */
-export const positionsOf = (model: Model): ReadonlyArray<RadarPosition> =>
-  Match.value(model.data).pipe(
-    Match.tag('Ready', ({ dataset }) => layoutEntries(dataset.entries)),
+/** One edition of the radar: when, its name, the rings that differed then, who was absent. */
+export type Edition = Readonly<{
+  authoredOn: string;
+  label: string;
+  rings: Readonly<Record<string, Ring>>;
+  absent: ReadonlyArray<string>;
+}>;
+
+/** Every edition of a dataset, oldest first, ending with the current one. */
+export const editionsIn = (data: RadarData): ReadonlyArray<Edition> =>
+  Match.value(data).pipe(
+    Match.tag('Ready', ({ dataset }) => [
+      ...(dataset.editions ?? []),
+      { authoredOn: dataset.authoredOn, label: 'Current edition', rings: {}, absent: [] },
+    ]),
     Match.orElse(() => []),
   );
 
-/** The entries the filters show. */
+export const editionsOf = (model: Model): ReadonlyArray<Edition> => editionsIn(model.data);
+
+/** The edition the radar shows; the current one if the index is out of range. */
+export const editionOf = (model: Model): Edition =>
+  editionsOf(model)[model.edition] ?? {
+    authoredOn: '',
+    label: 'Current edition',
+    rings: {},
+    absent: [],
+  };
+
+/**
+ * Every entry's slot, in the ring it held in the shown edition, whether or not the
+ * filters show it. Slots never move between editions, so a blip only changes shell.
+ */
+export const positionsOf = (model: Model): ReadonlyArray<RadarPosition> => {
+  const { rings } = editionOf(model);
+  return Match.value(model.data).pipe(
+    Match.tag('Ready', ({ dataset }) =>
+      layoutEntries(dataset.entries).map((position) => ({
+        ...position,
+        entry: { ...position.entry, ring: rings[position.entry.id] ?? position.entry.ring },
+      })),
+    ),
+    Match.orElse(() => []),
+  );
+};
+
+/** The entries on the radar in the shown edition, filtered or not. */
+export const presentOf = (model: Model): ReadonlyArray<RadarPosition> => {
+  const absent = new Set(editionOf(model).absent);
+  return positionsOf(model).filter(({ entry }) => !absent.has(entry.id));
+};
+
+/** The entries the filters show, of those on the radar in the shown edition. */
 export const visibleOf = (model: Model): ReadonlyArray<RadarPosition> =>
-  filterPositions(positionsOf(model), filtersOf(model));
+  filterPositions(presentOf(model), filtersOf(model));
 
 export const isVisible = (model: Model, id: string): boolean =>
   visibleOf(model).some(({ entry }) => entry.id === id);

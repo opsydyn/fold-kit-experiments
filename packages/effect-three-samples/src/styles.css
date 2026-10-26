@@ -87,6 +87,21 @@
   font-weight: 600;
 }
 
+/* The radar's timeline: what changed in the shown edition, in a compact list. */
+.e3-timeline {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.e3-timeline-changes {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.8rem;
+}
+
 /* A relationship's line in a legend or list: its colour and line style, inline. */
 .e3-edge-swatch {
   display: inline-block;

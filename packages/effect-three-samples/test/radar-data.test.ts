@@ -167,3 +167,64 @@ describe('radar relationships boundary', () => {
     );
   });
 });
+
+describe('radar editions boundary', () => {
+  const other = Object.freeze({ ...entry, id: 'unison-cloud', name: 'Unison Cloud' });
+  const withEditions = (editions: ReadonlyArray<unknown>) => ({
+    authoredOn: '2026-10-14',
+    entries: [entry, other],
+    editions,
+  });
+  const first = {
+    authoredOn: '2026-01-01',
+    label: 'First',
+    rings: { unison: 'trial' },
+    absent: [],
+  };
+
+  it('accepts earlier editions in order that name known entries', () => {
+    const second = {
+      ...first,
+      authoredOn: '2026-05-01',
+      label: 'Second',
+      absent: ['unison-cloud'],
+    };
+    expect(decodeRadarDataset(withEditions([first, second]))._tag).toBe('Ready');
+  });
+
+  it.each([
+    [
+      'out of order',
+      [{ ...first, authoredOn: '2026-05-01' }, first],
+      'Radar editions must be in order, before the current one',
+    ],
+    [
+      'not before the current edition',
+      [{ ...first, authoredOn: '2026-10-14' }],
+      'Radar editions must be in order, before the current one',
+    ],
+    [
+      'an invalid date',
+      [{ ...first, authoredOn: '2026-02-30' }],
+      'Invalid radar edition date or label',
+    ],
+    ['a blank label', [{ ...first, label: ' ' }], 'Invalid radar edition date or label'],
+    [
+      'an unknown entry',
+      [{ ...first, absent: ['missing'] }],
+      'Radar editions must name known entries',
+    ],
+  ])('rejects editions %s', (_, editions, reason) => {
+    expect(decodeRadarDataset(withEditions(editions))).toEqual({ _tag: 'Failure', reason });
+  });
+
+  it('ships three earlier editions before the current one', () => {
+    const data = loadDemoRadar();
+    if (data._tag !== 'Ready') throw new Error(data.reason);
+    expect(data.dataset.editions?.map(({ authoredOn }) => authoredOn)).toEqual([
+      '2025-10-14',
+      '2026-02-14',
+      '2026-06-14',
+    ]);
+  });
+});

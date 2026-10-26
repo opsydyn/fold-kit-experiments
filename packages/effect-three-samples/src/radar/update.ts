@@ -9,6 +9,7 @@ import { Message } from './message';
 import {
   cameraDamping,
   cameraFacing,
+  editionsOf,
   clusterCamera,
   flightTo,
   universeCamera,
@@ -21,6 +22,7 @@ import {
 } from './model';
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
 import { zoomedPosition, zoomLimits } from './space';
+import { playStep } from './timeline';
 
 type AppReturn = Return<Model, Message>;
 
@@ -120,6 +122,38 @@ const advanceRelay = (model: Model, deltaTimeMs: number): Model =>
     onNone: () => model,
     onSome: (journey) => ride(model, journey, deltaTimeMs),
   });
+
+const lastEdition = (model: Model): number => Math.max(0, editionsOf(model).length - 1);
+
+const clampEdition = (model: Model, index: number): number =>
+  Math.min(lastEdition(model), Math.max(0, Math.round(index)));
+
+/** Plays from where the timeline is, or from the first edition if it is at the last; or pauses. */
+const togglePlay = (model: Model): Model =>
+  Match.value({ playing: model.playing, atEnd: model.edition >= lastEdition(model) }).pipe(
+    Match.when({ playing: true }, () => ({ ...model, playing: false, playClock: 0 })),
+    Match.when({ atEnd: true }, () =>
+      reconcile({ ...model, edition: 0, playing: true, playClock: 0 }),
+    ),
+    Match.orElse(() => ({ ...model, playing: true, playClock: 0 })),
+  );
+
+/** One frame of playback: after each step the next edition shows, stopping at the last. */
+const advancePlayback = (model: Model, deltaTimeMs: number): Model => {
+  const playClock = model.playClock + deltaTimeMs;
+  const next = Math.min(lastEdition(model), model.edition + 1);
+  return Match.value(playClock >= playStep).pipe(
+    Match.when(true, () =>
+      reconcile({
+        ...model,
+        edition: next,
+        playClock: 0,
+        playing: next < lastEdition(model),
+      }),
+    ),
+    Match.orElse(() => ({ ...model, playClock })),
+  );
+};
 
 /** Pins a list entry and turns the camera to face its blip, so the canvas is optional. */
 const chooseEntry = (model: Model, id: string): Model =>
@@ -246,6 +280,16 @@ const step = (model: Model, message: Message): AppReturn =>
     ChangedReducedMotion: ({ isReducedMotion }) => ({
       model: { ...model, reducedMotion: isReducedMotion },
     }),
+    ChangedEdition: ({ index }) => ({
+      model: reconcile({
+        ...model,
+        edition: clampEdition(model, index),
+        playing: false,
+        playClock: 0,
+      }),
+    }),
+    ClickedPlay: () => ({ model: togglePlay(model) }),
+    AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
     ReceivedSceneLifecycle: () => ({ model }),
   });
 

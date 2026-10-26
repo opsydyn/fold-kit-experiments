@@ -9,13 +9,17 @@ import {
   cameraDamping,
   clusterOfLabel,
   clusterView,
+  editionsOf,
   flightTo,
+  isVisible,
   type Model,
   positionsOf,
+  presentOf,
 } from '../src/radar/model';
 import { alongPath, easeInOut, relayDamping, relayDuration } from '../src/radar/relay';
 import { sceneFor } from '../src/radar/scene';
 import { bearingOf, elevationOf } from '../src/radar/space';
+import { changesIn, playStep } from '../src/radar/timeline';
 import { trailOf } from '../src/radar/trail';
 import { init, update } from '../src/radar/update';
 
@@ -146,5 +150,57 @@ describe('relay jumps', () => {
     expect(alongPath(path, 0)).toEqual([0, 0, 0]);
     expect(alongPath(path, 0.5)).toEqual([2, 0, 0]);
     expect(alongPath(path, 1)).toEqual([2, 2, 0]);
+  });
+});
+
+describe('timeline replay', () => {
+  const first = step(start, Message.ChangedEdition({ index: 0 }));
+  const ringOf = (model: Model, id: string) =>
+    positionsOf(model).find(({ entry }) => entry.id === id)?.entry.ring;
+
+  test('the radar opens on the current edition, the last of four', () => {
+    expect(editionsOf(start).map(({ label }) => label)).toEqual([
+      'First edition',
+      'Second edition',
+      'Third edition',
+      'Current edition',
+    ]);
+    expect(start.edition).toBe(3);
+  });
+
+  test('an earlier edition puts entries in the rings they held then, and leaves out newcomers', () => {
+    expect(ringOf(first, 'foldkit')).toBe('assess');
+    expect(ringOf(start, 'foldkit')).toBe('adopt');
+    expect(isVisible(first, 'claude-code')).toBe(false);
+    expect(isVisible(start, 'claude-code')).toBe(true);
+    expect(presentOf(first).length).toBeLessThan(presentOf(start).length);
+  });
+
+  test('each edition says what changed since the one before', () => {
+    expect(changesIn(start, 0)).toEqual([]);
+    const second = changesIn(start, 1);
+    expect(second).toContain('FoldKit moved from Assess to Trial');
+    expect(second).toContain('Claude Code joined in Assess');
+    expect(changesIn(start, 3)).toContain('Pi joined in Trial');
+  });
+
+  test('scrubbing to an edition without the pinned entry lets go of it', () => {
+    const pinned = step(start, Message.ClickedFlyTo({ id: 'pi' }));
+    expect(step(pinned, Message.ChangedEdition({ index: 0 })).selected).toEqual(Option.none());
+    expect(step(start, Message.ChangedEdition({ index: 99 })).edition).toBe(3);
+  });
+
+  test('play steps through the editions and stops at the last; from the last it starts over', () => {
+    const playing = step(start, Message.ClickedPlay());
+    expect([playing.playing, playing.edition]).toEqual([true, 0]);
+    const once = step(playing, Message.AdvancedPlayback({ deltaTimeMs: playStep }));
+    expect([once.edition, once.playing]).toEqual([1, true]);
+    const end = [2, 3].reduce(
+      (model) => step(model, Message.AdvancedPlayback({ deltaTimeMs: playStep })),
+      once,
+    );
+    expect([end.edition, end.playing]).toEqual([3, false]);
+    const paused = step(step(first, Message.ClickedPlay()), Message.ClickedPlay());
+    expect([paused.playing, paused.edition]).toEqual([false, 0]);
   });
 });

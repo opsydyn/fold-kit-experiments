@@ -7,7 +7,9 @@ import { ringIds, type Ring } from './data';
 import type { RadarPosition } from './layout';
 import { Message } from './message';
 import {
+  cameraDamping,
   cameraFacing,
+  flightTo,
   homeCamera,
   idOfBlip,
   initialModel,
@@ -47,6 +49,20 @@ const pin = (model: Model, id: string): Model => {
   );
   return { ...model, selected };
 };
+
+/** Pins an entry and flies the camera to it: a slow swoop round the radar to its blip. */
+const flyTo = (model: Model, id: string): Model =>
+  Option.match(
+    Option.filter(positionOf(model, id), () => isVisible(model, id)),
+    {
+      onNone: () => model,
+      onSome: (position: RadarPosition) => ({
+        ...model,
+        selected: Option.some(id),
+        camera: flightTo(position),
+      }),
+    },
+  );
 
 /** Pins a list entry and turns the camera to face its blip, so the canvas is optional. */
 const chooseEntry = (model: Model, id: string): Model =>
@@ -111,7 +127,11 @@ const aspectOf = (gesture: Gesture, fallback: number): number =>
 const orbited = (model: Model, gesture: Gesture): Model =>
   Match.value('key' in gesture && gesture.key !== undefined).pipe(
     Match.when(true, () => model),
-    Match.orElse(() => ({ ...model, camera: orbit(model.camera, gesture, orbitLimits) })),
+    // A gesture takes the camera back from a flight: brisk again, under the hand.
+    Match.orElse(() => ({
+      ...model,
+      camera: { ...orbit(model.camera, gesture, orbitLimits), damping: cameraDamping.steady },
+    })),
   );
 
 export const init = (props: { readonly assetBase?: string } = {}) => ({
@@ -129,8 +149,10 @@ export const update = (model: Model, message: Message): AppReturn =>
         }),
       ),
     ClickedBlip: ({ key }) => withBlip(key, model, (id) => pin(model, id)),
+    DoubleClickedBlip: ({ key }) => withBlip(key, model, (id) => flyTo(model, id)),
     ClickedEmptySpace: () => ({ model: modifyFields(model, { selected: () => Option.none() }) }),
     ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
+    ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
     ChangedQuery: ({ query }) => ({ model: reconcile({ ...model, query }) }),
     ChangedCategory: ({ category }) => ({ model: reconcile({ ...model, category }) }),
     ClickedRing: ({ ring }) => ({ model: toggleRing(model, ring) }),

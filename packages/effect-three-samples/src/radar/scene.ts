@@ -684,16 +684,31 @@ const blipObstacles = (model: Model): ReadonlyArray<Obstacle> => [
       width: 2 * blipRadius,
       height: 2 * blipRadius,
     })),
-  // The focused blip, at its pinned size, is never covered by another label.
+  // The focused blip, at its pinned size and with its ring's reach, is never covered by
+  // another label.
   ...Option.toArray(Option.flatMap(focusedId(model), (id) => positionOf(model, id))).map(
     (position) => ({
       centre: blipPosition(position),
-      width: 2 * blipRadius * pinnedScale,
-      height: 2 * blipRadius * pinnedScale,
+      width: 2 * focusedReach(position) * pinnedScale,
+      height: 2 * focusedReach(position) * pinnedScale,
       solid: true,
+      // Its own description and edge labels sit beside it by design.
+      exempt: [
+        `label:meta:${position.entry.id}`,
+        ...visibleRelationships(model)
+          .filter((relationship) => touches(relationship, position.entry.id))
+          .map((relationship) => `${edgeKey(relationship)}:label`),
+      ],
     }),
   ),
 ];
+
+/** How far a blip reaches from its centre: its body, or a giant's ring. */
+const focusedReach = (position: RadarPosition): number =>
+  Match.value(bodyOf[position.entry.category]).pipe(
+    Match.when('ringed', () => planetRing.radius + planetRing.tube),
+    Match.orElse(() => blipRadius),
+  );
 
 /** A description shows only beside its entry's name, never on its own. */
 const keepsMeta = (placed: ReadonlyMap<string, number>, key: string): boolean =>

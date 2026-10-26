@@ -51,16 +51,88 @@ import ScatterApp from '../apps/scatter/app';
 import * as gridStyles from '../apps/charts/charts.css';
 import Layout from '../layouts/Layout.astro';
 import * as layoutStyles from '../layouts/layout.css';
+
+/** Standalone explorations, each its own page; the gallery below embeds the small charts. */
+const explorations = [
+  {
+    href: '/earthquake-globe',
+    kind: 'Map',
+    name: 'Earthquake Globe',
+    summary:
+      'A week of recorded USGS M2.5+ earthquakes on a turnable globe. Radius encodes magnitude and colour encodes depth.',
+  },
+  {
+    href: '/functional-ai-radar',
+    kind: 'Radar',
+    name: 'Functional & AI Radar',
+    summary:
+      'Thirty-two functional programming and AI entries across four rings. Search, filter, drag the globe and select entries for details.',
+  },
+  {
+    href: '/effect-three/radar',
+    kind: '3D',
+    name: '3D Tech Radar',
+    summary:
+      'The same radar as nested translucent shells. Orbit it, hover and pin entries, or choose one from the list and it turns to face you.',
+  },
+  {
+    href: '/agent-analysis',
+    kind: 'Streaming',
+    name: 'Service Incident Lab',
+    summary:
+      'Stream validated service measurements into an analysis that can be stopped or cancelled without losing data or applying invalid updates.',
+  },
+  {
+    href: '/comparison',
+    kind: 'Layout',
+    name: 'Chart comparison',
+    summary: 'Add histogram and scatter panels side by side to compare views of the same data.',
+  },
+  {
+    href: '/stateflow',
+    kind: 'State machine',
+    name: 'Stateflow Observatory',
+    summary:
+      'Replay a request-diagnostics session as a state graph, then select states and transitions to inspect their recorded events.',
+  },
+  {
+    href: '/dataset-explorer',
+    kind: 'Data',
+    name: 'Dataset explorer',
+    summary:
+      'Explore remote datasets, refresh without losing your place, and watch late responses stay in the past.',
+  },
+];
+
+/** A card's element ids, from its route: the link is named by its heading alone. */
+const idOf = (href: string): string => `exploration${href.replaceAll('/', '-')}`;
 ---
 
 <Layout title="Charts — Astro + FoldKit">
   <h1 class={layoutStyles.heading}>Charts</h1>
-  <p><a class={layoutStyles.navLink} href="/earthquake-globe">Earthquake Globe</a></p>
-  <p><a class={layoutStyles.navLink} href="/functional-ai-radar">Functional &amp; AI Radar</a></p>
-  <p><a href="/agent-analysis">Service Incident Lab</a></p>
-  <p><a href="/comparison">Chart comparison</a></p>
-  <p><a href="/stateflow">Stateflow Observatory</a></p>
-  <p style="margin-bottom: 1.5rem"><a href="/dataset-explorer" style="color: var(--chart-accent)">Dataset explorer — retained data, refresh and response races →</a></p>
+  <h2 class={gridStyles.sectionHeading}>Explorations</h2>
+  <div class={gridStyles.features}>
+    {
+      explorations.map((exploration) => (
+        <a
+          class={gridStyles.feature}
+          href={exploration.href}
+          aria-labelledby={`${idOf(exploration.href)}-name`}
+          aria-describedby={`${idOf(exploration.href)}-summary`}
+        >
+          <span class={gridStyles.featureKind}>{exploration.kind}</span>
+          <h3 class={gridStyles.featureName} id={`${idOf(exploration.href)}-name`}>
+            {exploration.name}
+          </h3>
+          <p class={gridStyles.featureSummary} id={`${idOf(exploration.href)}-summary`}>
+            {exploration.summary}
+          </p>
+          <span class={gridStyles.featureOpen} aria-hidden="true">Open →</span>
+        </a>
+      ))
+    }
+  </div>
+  <h2 class={gridStyles.sectionHeading}>Chart gallery</h2>
   <div class={gridStyles.grid}>
     <div class={gridStyles.cell}>
       <p class={gridStyles.cellLabel}>Budget breakdown</p>

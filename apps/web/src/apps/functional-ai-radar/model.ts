@@ -1,8 +1,14 @@
+import {
+  categoryIds,
+  loadDemoRadar,
+  Ring,
+  ringIds,
+  type RadarData,
+} from '@opsydyn/effect-three-samples/radar/data';
 import { Schema } from 'effect';
 import { defineTaggedUnion } from 'foldkit/schema';
 
 import type { AppInitProps } from '../types';
-import { categoryIds, loadDemoRadar, Ring, ringIds, type RadarData } from './data';
 
 const Coordinate = Schema.Tuple([Schema.Number, Schema.Number]);
 export const Selection = defineTaggedUnion({

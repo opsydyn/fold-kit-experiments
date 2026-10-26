@@ -1,6 +1,6 @@
+import { loadDemoRadar, ringIds } from '@opsydyn/effect-three-samples/radar/data';
 import { describe, expect, it } from 'vitest';
 
-import { loadDemoRadar, ringIds } from './data';
 import { filterPositions, layoutEntries } from './geometry';
 import { Message } from './message';
 import { initModel, type Model } from './model';

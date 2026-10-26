@@ -1,7 +1,6 @@
+import { categoryIds, Ring } from '@opsydyn/effect-three-samples/radar/data';
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
-
-import { categoryIds, Ring } from './data';
 
 export const Message = defineMessageUnion({
   ChangedQuery: { query: Schema.String },

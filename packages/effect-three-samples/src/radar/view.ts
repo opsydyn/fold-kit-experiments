@@ -8,13 +8,24 @@ import {
   categoryLabels,
   demoNotice,
   type RadarEntry,
+  relationshipLabels,
+  relationshipTypes,
   ringIds,
   ringLabels,
 } from './data';
 import { countRings, type RadarPosition } from './layout';
 import { Message } from './message';
-import { CategoryFilter, filtersOf, type Model, positionOf, positionsOf, visibleOf } from './model';
-import { categoryCss, sceneFor } from './scene';
+import {
+  CategoryFilter,
+  filtersOf,
+  type Model,
+  positionOf,
+  positionsOf,
+  relationshipsOf,
+  visibleOf,
+} from './model';
+import { type Relation, relationsOf } from './relations';
+import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
 
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
   h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
@@ -85,14 +96,92 @@ const filterControls = (model: Model, h: HtmlBuilder<Message>): Html => {
   );
 };
 
-const viewControls = (h: HtmlBuilder<Message>): Html =>
+const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class('e3-controls'), h.AriaLabel('View')],
     [
       button(h, 'Turn left', Message.ClickedTurn({ direction: 'left' })),
       button(h, 'Turn right', Message.ClickedTurn({ direction: 'right' })),
+      button(h, 'Zoom in', Message.ClickedZoom({ direction: 'in' })),
+      button(h, 'Zoom out', Message.ClickedZoom({ direction: 'out' })),
       button(h, 'Reset view', Message.ClickedResetView()),
+      h.button(
+        [
+          h.Class('e3-button'),
+          h.Type('button'),
+          h.AriaPressed(String(model.showRelationships)),
+          h.OnClick(Message.ClickedRelationships()),
+        ],
+        ['Relationships'],
+      ),
     ],
+  );
+
+/** The relationship key: each type's colour and line style beside its name. */
+const relationshipLegend = (h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('e3-controls'), h.AriaLabel('Relationships')],
+    relationshipTypes.map((type) =>
+      h.span(
+        [h.Class('e3-tag')],
+        [
+          h.span(
+            [
+              h.Class('e3-edge-swatch'),
+              h.Style({ borderTop: `3px ${relationshipLines[type]} ${relationshipCss(type)}` }),
+            ],
+            [],
+          ),
+          relationshipLabels[type],
+        ],
+      ),
+    ),
+  );
+
+/** One relationship of the pinned entry: choosing it pins the entry at the other end. */
+const relationButton = (model: Model, h: HtmlBuilder<Message>, relation: Relation): Html =>
+  h.li(
+    [],
+    [
+      h.button(
+        [
+          h.Class('e3-button'),
+          h.Type('button'),
+          h.OnClick(Message.ClickedEntry({ id: relation.other })),
+        ],
+        [
+          h.span(
+            [
+              h.Class('e3-edge-swatch'),
+              h.Style({
+                borderTop: `3px ${relationshipLines[relation.type]} ${relationshipCss(relation.type)}`,
+              }),
+            ],
+            [],
+          ),
+          `${relation.label} · ${Option.match(positionOf(model, relation.other), {
+            onNone: () => relation.other,
+            onSome: ({ entry }) => entry.name,
+          })}`,
+        ],
+      ),
+      h.p([h.Class('e3-note')], [relation.note]),
+    ],
+  );
+
+const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyArray<Html> =>
+  Match.value(relationsOf(relationshipsOf(model), id)).pipe(
+    Match.when(
+      (list) => list.length === 0,
+      () => [],
+    ),
+    Match.orElse((list) => [
+      h.h4([], ['Relationships']),
+      h.ul(
+        [h.Class('e3-relations')],
+        list.map((relation) => relationButton(model, h, relation)),
+      ),
+    ]),
   );
 
 /** The colour key; identity also rides on every label and list row, never colour alone. */
@@ -123,6 +212,7 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             h.p([h.Class('e3-note')], [describe(entry)]),
             h.p([], [entry.description]),
             h.a([h.Href(entry.sourceUrl), h.Target('_blank'), h.Rel('noopener')], ['Source']),
+            ...relations(model, h, entry.id),
           ],
         ),
       ],
@@ -203,8 +293,9 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
   ),
   h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
   filterControls(model, h),
-  viewControls(h),
+  viewControls(model, h),
   legend(h),
+  relationshipLegend(h),
   ...details(model, h),
   h.p(
     [h.Class('e3-note')],

@@ -64,13 +64,26 @@ const Relationship = Schema.Struct({
   type: RelationshipType,
   note: Schema.String,
 });
+/**
+ * An earlier edition of the radar, against the current one: the entries whose ring
+ * differed then, and those not yet on it.
+ */
+const Edition = Schema.Struct({
+  authoredOn: Schema.String,
+  label: Schema.String,
+  rings: Schema.Record(Schema.String, Ring),
+  absent: Schema.Array(Schema.String),
+});
 const Dataset = Schema.Struct({
   authoredOn: Schema.String,
   entries: Schema.Array(Entry),
   relationships: Schema.optionalKey(Schema.Array(Relationship)),
+  /** Earlier editions, oldest first; the dataset itself is the latest. */
+  editions: Schema.optionalKey(Schema.Array(Edition)),
 });
 export type RadarEntry = typeof Entry.Type;
 export type RadarRelationship = typeof Relationship.Type;
+export type RadarEdition = typeof Edition.Type;
 export type RadarDataset = typeof Dataset.Type;
 export type RadarData =
   | Readonly<{ _tag: 'Ready'; dataset: RadarDataset }>
@@ -80,12 +93,7 @@ export function decodeRadarDataset(input: unknown): RadarData {
   const decoded = Schema.decodeUnknownOption(Dataset)(input);
   if (Option.isNone(decoded)) return { _tag: 'Failure', reason: 'Malformed radar dataset' };
   const dataset = decoded.value;
-  const date = Date.parse(`${dataset.authoredOn}T00:00:00Z`);
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(dataset.authoredOn) ||
-    !Number.isFinite(date) ||
-    new Date(date).toISOString().slice(0, 10) !== dataset.authoredOn
-  )
+  if (!isCalendarDate(dataset.authoredOn))
     return { _tag: 'Failure', reason: 'Invalid radar authored date' };
   const ids = new Set<string>();
   const counts = {
@@ -125,7 +133,29 @@ export function decodeRadarDataset(input: unknown): RadarData {
       return { _tag: 'Failure', reason: 'Duplicate radar relationships' };
     for (const key of keys) pairs.add(key);
   }
+  const editions = dataset.editions ?? [];
+  const dates = [...editions.map(({ authoredOn }) => authoredOn), dataset.authoredOn];
+  if (editions.some((edition) => !isCalendarDate(edition.authoredOn) || !edition.label.trim()))
+    return { _tag: 'Failure', reason: 'Invalid radar edition date or label' };
+  if (dates.some((date, index) => index > 0 && date <= (dates[index - 1] ?? '')))
+    return { _tag: 'Failure', reason: 'Radar editions must be in order, before the current one' };
+  if (
+    editions.some((edition) =>
+      [...Object.keys(edition.rings), ...edition.absent].some((id) => !ids.has(id)),
+    )
+  )
+    return { _tag: 'Failure', reason: 'Radar editions must name known entries' };
   return { _tag: 'Ready', dataset };
+}
+
+/** A real calendar date written as `YYYY-MM-DD`. */
+function isCalendarDate(text: string): boolean {
+  const date = Date.parse(`${text}T00:00:00Z`);
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(text) &&
+    Number.isFinite(date) &&
+    new Date(date).toISOString().slice(0, 10) === text
+  );
 }
 export function loadDemoRadar(): RadarData {
   return decodeRadarDataset(demoRadar);

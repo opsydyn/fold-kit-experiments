@@ -1,4 +1,4 @@
-/* Original summaries; sources checked 2026-10-14. Rings and relationships are illustrative fixture placements, not project assessments. */
+/* Original summaries; sources checked 2026-10-14. Rings, relationships and the earlier editions are illustrative fixture placements, not project assessments. */
 import type { RadarDataset } from './data';
 
 export const demoRadar = {
@@ -365,6 +365,52 @@ export const demoRadar = {
       to: 'unreviewed-generated-changes',
       type: 'guards-against',
       note: 'A machine-checked proof is evidence a reviewer can rely on.',
+    },
+  ],
+  editions: [
+    {
+      authoredOn: '2025-10-14',
+      label: 'First edition',
+      rings: {
+        effect: 'trial',
+        foldkit: 'assess',
+        bun: 'trial',
+        duckdb: 'assess',
+        gleam: 'assess',
+        ollama: 'assess',
+        'retrieval-augmented-generation': 'assess',
+        elm: 'adopt',
+        clojure: 'adopt',
+        'cloudflare-workers': 'assess',
+      },
+      absent: [
+        'claude-code',
+        'codex',
+        'pi',
+        'proof-guided-generation',
+        'unison-cloud',
+        'structured-model-outputs',
+        'marimo',
+      ],
+    },
+    {
+      authoredOn: '2026-02-14',
+      label: 'Second edition',
+      rings: {
+        foldkit: 'trial',
+        bun: 'trial',
+        ollama: 'assess',
+        'claude-code': 'assess',
+        'structured-model-outputs': 'assess',
+        elm: 'adopt',
+      },
+      absent: ['codex', 'pi', 'proof-guided-generation', 'marimo'],
+    },
+    {
+      authoredOn: '2026-06-14',
+      label: 'Third edition',
+      rings: { foldkit: 'trial', codex: 'assess' },
+      absent: ['pi'],
     },
   ],
 } as const satisfies RadarDataset;

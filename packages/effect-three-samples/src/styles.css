@@ -41,6 +41,89 @@
   aspect-ratio: 1;
 }
 
+/* The stage and what floats over it: the breadcrumb and the minimap. */
+.e3-stage-frame {
+  position: relative;
+}
+
+.e3-breadcrumb {
+  display: flex;
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
+  padding: 0.25rem 0.7rem;
+  max-width: calc(100% - 1.2rem);
+  color: var(--muted, #8a8aa3);
+  font-size: 0.8rem;
+}
+
+.e3-crumb {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0.1rem 0.15rem;
+  color: var(--text, #e8e8f0);
+  font: inherit;
+}
+
+.e3-crumb:hover {
+  color: var(--blue, #3d79fa);
+}
+
+.e3-crumb:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.e3-crumb[aria-current='location'] {
+  font-weight: 600;
+}
+
+/* The radar's timeline: what changed in the shown edition, in a compact list. */
+.e3-timeline {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.e3-timeline-changes {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.8rem;
+}
+
+/* The minimap: the radar from above, small, in the stage's corner. */
+.e3-minimap {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
+  width: clamp(72px, 22%, 132px);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.e3-minimap-quarter {
+  cursor: pointer;
+}
+
+.e3-minimap-quarter:hover {
+  opacity: 0.3;
+}
+
 /* A relationship's line in a legend or list: its colour and line style, inline. */
 .e3-edge-swatch {
   display: inline-block;

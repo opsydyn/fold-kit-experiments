@@ -16,17 +16,24 @@ import {
 } from './data';
 import { countRings, type RadarPosition } from './layout';
 import { Message } from './message';
+import { cameraMarker, minimapPoint, quarterPath, ringRadius } from './minimap';
 import {
   CategoryFilter,
+  clusterOfLabel,
+  editionOf,
+  editionsOf,
   filtersOf,
   type Model,
   positionOf,
-  positionsOf,
+  presentOf,
   relationshipsOf,
   visibleOf,
 } from './model';
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
+import { shellRadius } from './space';
+import { changesIn } from './timeline';
+import { trailOf } from './trail';
 
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
   h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
@@ -55,7 +62,7 @@ const categoryOf = (value: string): CategoryFilter =>
   );
 
 const filterControls = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const counts = countRings(positionsOf(model), filtersOf(model));
+  const counts = countRings(presentOf(model), filtersOf(model));
   return h.div(
     [h.Class('e3-controls'), h.AriaLabel('Filters')],
     [
@@ -149,7 +156,7 @@ const relationButton = (model: Model, h: HtmlBuilder<Message>, relation: Relatio
         [
           h.Class('e3-button'),
           h.Type('button'),
-          h.OnClick(Message.ClickedEntry({ id: relation.other })),
+          h.OnClick(Message.ClickedRelay({ to: relation.other })),
         ],
         [
           h.span(
@@ -188,14 +195,20 @@ const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyA
 
 /**
  * The colour and body key: each category's swatch and the body it takes on the radar.
- * Identity also rides on every label and list row, never colour alone.
+ * Each is also a cluster stop: choosing it flies to the category's sector. Identity also
+ * rides on every label and list row, never colour alone.
  */
 const legend = (h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class('e3-controls'), h.AriaLabel('Categories')],
     categoryIds.map((category) =>
-      h.span(
-        [h.Class('e3-tag')],
+      h.button(
+        [
+          h.Class('e3-button'),
+          h.Type('button'),
+          h.AriaLabel(`Fly to ${categoryLabels[category]}`),
+          h.OnClick(Message.ClickedCluster({ category })),
+        ],
         [
           h.span([h.Class('e3-swatch'), h.Style({ background: categoryCss(category) })], []),
           `${categoryLabels[category]} · ${bodyLabels[bodyOf[category]]}`,
@@ -261,7 +274,7 @@ const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.details(
     [h.Class('e3-table')],
     [
-      h.summary([], [`Entries (${visible.length} of ${positionsOf(model).length})`]),
+      h.summary([], [`Entries (${visible.length} of ${presentOf(model).length})`]),
       h.table(
         [],
         [
@@ -287,25 +300,203 @@ const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
   );
 };
 
+/** A click on a category's name stops at its sector; anywhere else it is a blip's. */
+const clickedAt = (key: string): Message =>
+  Option.match(clusterOfLabel(key), {
+    onSome: (category) => Message.ClickedCluster({ category }),
+    onNone: () => Message.ClickedBlip({ key }),
+  });
+
+/** A double-click on a category's name stops at its sector; on a blip it flies there. */
+const doubleClickedAt = (key: string): Message =>
+  Option.match(clusterOfLabel(key), {
+    onSome: (category) => Message.ClickedCluster({ category }),
+    onNone: () => Message.DoubleClickedBlip({ key }),
+  });
+
+/** What changed in the shown edition, or that it is where the radar began. */
+const changeList = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const changes = changesIn(model, model.edition);
+  return Match.value({ first: model.edition === 0, quiet: changes.length === 0 }).pipe(
+    Match.when({ first: true }, () =>
+      h.p([h.Class('e3-note'), h.AriaLive('polite')], ['Where the radar began.']),
+    ),
+    Match.when({ quiet: true }, () =>
+      h.p([h.Class('e3-note'), h.AriaLive('polite')], ['No entries moved in this edition.']),
+    ),
+    Match.orElse(() =>
+      h.ul(
+        [h.Class('e3-timeline-changes'), h.AriaLive('polite')],
+        changes.map((change) => h.li([], [change])),
+      ),
+    ),
+  );
+};
+
+/**
+ * The radar over time: play through its editions, or scrub to one, and the blips move
+ * between shells as their rings changed, joining as they arrived.
+ */
+const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const editions = editionsOf(model);
+  const shown = editionOf(model);
+  const playLabel = Match.value(model.playing).pipe(
+    Match.when(true, () => 'Pause'),
+    Match.orElse(() => 'Play'),
+  );
+  return [
+    h.section(
+      [h.Class('e3-timeline'), h.AriaLabel('Timeline')],
+      [
+        h.div(
+          [h.Class('e3-controls')],
+          [
+            button(h, playLabel, Message.ClickedPlay()),
+            h.input([
+              h.Class('e3-range'),
+              h.Type('range'),
+              h.Min('0'),
+              h.Max(String(Math.max(0, editions.length - 1))),
+              h.Step('1'),
+              h.Value(String(model.edition)),
+              h.AriaLabel('Edition'),
+              h.Attribute('aria-valuetext', `${shown.label}, ${shown.authoredOn}`),
+              h.OnInput((value) => Message.ChangedEdition({ index: Number(value) })),
+            ]),
+            h.span([h.Class('e3-note')], [`${shown.label} · ${shown.authoredOn}`]),
+          ],
+        ),
+        changeList(model, h),
+      ],
+    ),
+  ].filter(() => editions.length > 1);
+};
+
+/** How a blip shows on the minimap: a small dot, or a larger ringed one when pinned. */
+const dotLooks = {
+  resting: { radius: '0.035', stroke: 'none' },
+  pinned: { radius: '0.07', stroke: '#e8e8f0' },
+} as const;
+
+const minimapDot = (model: Model, h: HtmlBuilder<Message>, position: RadarPosition): Html => {
+  const [x, y] = minimapPoint(position);
+  const looks = Match.value(Option.contains(model.selected, position.entry.id)).pipe(
+    Match.when(true, () => dotLooks.pinned),
+    Match.orElse(() => dotLooks.resting),
+  );
+  return h.circle(
+    [
+      h.Cx(String(x)),
+      h.Cy(String(y)),
+      h.R(looks.radius),
+      h.Fill(categoryCss(position.entry.category)),
+      h.Stroke(looks.stroke),
+      h.StrokeWidth('0.02'),
+    ],
+    [],
+  );
+};
+
+/**
+ * The minimap: the radar from above in the stage's corner, its quarters tinted by
+ * category, the visible blips as dots (the pinned one larger), and a marker on the rim at
+ * the camera's bearing. A click on a quarter stops at that cluster; the legend's chips do
+ * the same from the keyboard.
+ */
+const minimap = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.svg(
+    [
+      h.Class('e3-minimap'),
+      h.ViewBox('-1.08 -1.08 2.16 2.16'),
+      h.Role('img'),
+      h.AriaLabel('Minimap of the radar from above'),
+    ],
+    [
+      ...categoryIds.map((category) =>
+        h.path(
+          [
+            h.D(quarterPath(category)),
+            h.Fill(categoryCss(category)),
+            h.Opacity('0.12'),
+            h.Class('e3-minimap-quarter'),
+            h.OnClick(Message.ClickedCluster({ category })),
+          ],
+          [h.title([], [`Fly to ${categoryLabels[category]}`])],
+        ),
+      ),
+      ...ringIds.map((ring) =>
+        h.circle(
+          [
+            h.Cx('0'),
+            h.Cy('0'),
+            h.R(String(ringRadius(shellRadius(ring)))),
+            h.Fill('none'),
+            h.Stroke('#8a8aa3'),
+            h.StrokeWidth('0.012'),
+            h.Opacity('0.6'),
+          ],
+          [],
+        ),
+      ),
+      ...visibleOf(model).map((position) => minimapDot(model, h, position)),
+      h.polygon(
+        [h.Points(cameraMarker(model.camera.position)), h.Fill('#e8e8f0'), h.Opacity('0.9')],
+        [],
+      ),
+    ],
+  );
+
+/** A breadcrumb that flies somewhere; the last one marks where the camera is. */
+const crumb = (h: HtmlBuilder<Message>, label: string, message: Message, current: boolean): Html =>
+  h.button(
+    [
+      h.Class('e3-crumb'),
+      h.Type('button'),
+      ...[h.AriaCurrent('location')].filter(() => current),
+      h.OnClick(message),
+    ],
+    [label],
+  );
+
+/** The trail as a breadcrumb over the stage; the last crumb is where the camera is. */
+const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const stops = trailOf(model);
+  return h.nav(
+    [h.Class('e3-breadcrumb'), h.AriaLabel('Location')],
+    stops.flatMap((stop, index) => [
+      ...[h.span([h.AriaHidden(true)], ['›'])].filter(() => index > 0),
+      crumb(h, stop.label, stop.message, index === stops.length - 1),
+    ]),
+  );
+};
+
 const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  EffectThreeFoldkit.view(
-    {
-      scene: sceneFor(model),
-      mount: sceneMount,
-      className: 'e3-stage e3-stage-square',
-      onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-      onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
-      onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
-      onClick: ({ key }) => Message.ClickedBlip({ key }),
-      onDoubleClick: ({ key }) => Message.DoubleClickedBlip({ key }),
-      onPointerMissed: () => Message.ClickedEmptySpace(),
-      onGesture: (gesture) => Message.MadeGesture({ gesture }),
-    },
-    h,
+  h.div(
+    [h.Class('e3-stage-frame')],
+    [
+      EffectThreeFoldkit.view(
+        {
+          scene: sceneFor(model),
+          mount: sceneMount,
+          className: 'e3-stage e3-stage-square',
+          onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
+          onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
+          onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
+          onClick: ({ key }) => clickedAt(key),
+          onDoubleClick: ({ key }) => doubleClickedAt(key),
+          onPointerMissed: () => Message.ClickedEmptySpace(),
+          onGesture: (gesture) => Message.MadeGesture({ gesture }),
+        },
+        h,
+      ),
+      breadcrumb(model, h),
+      minimap(model, h),
+    ],
   ),
   h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
   filterControls(model, h),
   viewControls(model, h),
+  ...timeline(model, h),
   legend(h),
   relationshipLegend(h),
   ...details(model, h),

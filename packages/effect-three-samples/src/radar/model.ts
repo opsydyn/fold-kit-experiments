@@ -2,6 +2,7 @@ import { perspectiveCamera, SceneSchema, type Vec3 } from '@opsydyn/effect-three
 import { Match, Option, Schema } from 'effect';
 
 import {
+  Category,
   categoryIds,
   loadDemoRadar,
   type RadarData,
@@ -9,7 +10,13 @@ import {
   Ring,
   ringIds,
 } from './data';
-import { filterPositions, layoutEntries, type RadarFilters, type RadarPosition } from './layout';
+import {
+  categoryCenter,
+  filterPositions,
+  layoutEntries,
+  type RadarFilters,
+  type RadarPosition,
+} from './layout';
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
@@ -25,6 +32,23 @@ export const Model = Schema.Struct({
   hovered: Schema.Option(Schema.String),
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
+  /** The category whose sector the camera last stopped at, for the breadcrumb. */
+  cluster: Schema.Option(Category),
+  /** A relay jump under way: the camera rides these waypoints to land at `to`. */
+  journey: Schema.Option(
+    Schema.Struct({
+      to: Schema.String,
+      waypoints: Schema.Array(Schema.Tuple([Schema.Number, Schema.Number, Schema.Number])),
+      elapsed: Schema.Number,
+    }),
+  ),
+  /** The reader prefers reduced motion: jumps land at once rather than ride. */
+  reducedMotion: Schema.Boolean,
+  /** Which edition the radar shows, oldest first; the last is the current one. */
+  edition: Schema.Number,
+  /** Whether the timeline is playing through the editions, and time into the current step. */
+  playing: Schema.Boolean,
+  playClock: Schema.Number,
   /** Whether the relationship edges are drawn. */
   showRelationships: Schema.Boolean,
   /** The stage's width over its height, from the last gesture; square until then. */
@@ -68,6 +92,24 @@ export const universeCamera = (from: Vec3) =>
     damping: cameraDamping.flight,
   });
 
+/**
+ * A cluster stop: a category's sector seen from in front and a little above, close enough
+ * that its nearer entries are named, far enough that the whole quarter is in view.
+ */
+export const clusterView = { elevation: 28, distance: 8 } as const;
+
+export const clusterCamera = (category: Category) =>
+  perspectiveCamera({
+    fov: cameraFov,
+    position: onSphere(categoryCenter(category)[0], clusterView.elevation, clusterView.distance),
+    lookAt: [0, 0, 0],
+    damping: cameraDamping.flight,
+  });
+
+/** Reads a category back from its name label's scene key. */
+export const clusterOfLabel = (key: string): Option.Option<Category> =>
+  Option.fromNullishOr(categoryIds.find((category) => key === `label:category:${category}`));
+
 /** How far from a blip a flight stops: close enough for its moons and description. */
 export const flightApproach = 3.4;
 
@@ -99,6 +141,12 @@ export const initialModel = (assetBase: string, data: RadarData = loadDemoRadar(
   enabledRings: ringIds,
   hovered: Option.none(),
   selected: Option.none(),
+  cluster: Option.none(),
+  journey: Option.none(),
+  reducedMotion: false,
+  edition: editionsIn(data).length - 1,
+  playing: false,
+  playClock: 0,
   showRelationships: true,
   stageAspect: 1,
   camera: homeCamera,
@@ -110,16 +158,61 @@ export const filtersOf = (model: Model): RadarFilters => ({
   rings: model.enabledRings,
 });
 
-/** Every entry's slot, whether or not the filters show it. */
-export const positionsOf = (model: Model): ReadonlyArray<RadarPosition> =>
-  Match.value(model.data).pipe(
-    Match.tag('Ready', ({ dataset }) => layoutEntries(dataset.entries)),
+/** One edition of the radar: when, its name, the rings that differed then, who was absent. */
+export type Edition = Readonly<{
+  authoredOn: string;
+  label: string;
+  rings: Readonly<Record<string, Ring>>;
+  absent: ReadonlyArray<string>;
+}>;
+
+/** Every edition of a dataset, oldest first, ending with the current one. */
+export const editionsIn = (data: RadarData): ReadonlyArray<Edition> =>
+  Match.value(data).pipe(
+    Match.tag('Ready', ({ dataset }) => [
+      ...(dataset.editions ?? []),
+      { authoredOn: dataset.authoredOn, label: 'Current edition', rings: {}, absent: [] },
+    ]),
     Match.orElse(() => []),
   );
 
-/** The entries the filters show. */
+export const editionsOf = (model: Model): ReadonlyArray<Edition> => editionsIn(model.data);
+
+/** The edition the radar shows; the current one if the index is out of range. */
+export const editionOf = (model: Model): Edition =>
+  editionsOf(model)[model.edition] ?? {
+    authoredOn: '',
+    label: 'Current edition',
+    rings: {},
+    absent: [],
+  };
+
+/**
+ * Every entry's slot, in the ring it held in the shown edition, whether or not the
+ * filters show it. Slots never move between editions, so a blip only changes shell.
+ */
+export const positionsOf = (model: Model): ReadonlyArray<RadarPosition> => {
+  const { rings } = editionOf(model);
+  return Match.value(model.data).pipe(
+    Match.tag('Ready', ({ dataset }) =>
+      layoutEntries(dataset.entries).map((position) => ({
+        ...position,
+        entry: { ...position.entry, ring: rings[position.entry.id] ?? position.entry.ring },
+      })),
+    ),
+    Match.orElse(() => []),
+  );
+};
+
+/** The entries on the radar in the shown edition, filtered or not. */
+export const presentOf = (model: Model): ReadonlyArray<RadarPosition> => {
+  const absent = new Set(editionOf(model).absent);
+  return positionsOf(model).filter(({ entry }) => !absent.has(entry.id));
+};
+
+/** The entries the filters show, of those on the radar in the shown edition. */
 export const visibleOf = (model: Model): ReadonlyArray<RadarPosition> =>
-  filterPositions(positionsOf(model), filtersOf(model));
+  filterPositions(presentOf(model), filtersOf(model));
 
 export const isVisible = (model: Model, id: string): boolean =>
   visibleOf(model).some(({ entry }) => entry.id === id);

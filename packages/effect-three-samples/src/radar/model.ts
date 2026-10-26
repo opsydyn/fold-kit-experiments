@@ -27,9 +27,14 @@ export const Model = Schema.Struct({
   selected: Schema.Option(Schema.String),
   /** Whether the relationship edges are drawn. */
   showRelationships: Schema.Boolean,
+  /** The stage's width over its height, from the last gesture; square until then. */
+  stageAspect: Schema.Number,
   camera: SceneSchema.Camera,
 });
 export type Model = Omit<typeof Model.Type, 'data'> & Readonly<{ data: RadarData }>;
+
+/** The camera's vertical field of view, in degrees. */
+export const cameraFov = 40;
 
 /** How far the camera stands from the centre: the outer shell and its labels fit. */
 export const cameraDistance = 12;
@@ -37,7 +42,7 @@ export const cameraDistance = 12;
 /** The camera looking at the centre from `[longitude, latitude]`, as the 2D radar's view. */
 export const cameraFacing = (longitude: number, latitude: number) =>
   perspectiveCamera({
-    fov: 40,
+    fov: cameraFov,
     position: onSphere(longitude, latitude, cameraDistance),
     lookAt: [0, 0, 0],
     damping: 0.08,
@@ -55,6 +60,7 @@ export const initialModel = (assetBase: string, data: RadarData = loadDemoRadar(
   hovered: Option.none(),
   selected: Option.none(),
   showRelationships: true,
+  stageAspect: 1,
   camera: homeCamera,
 });
 

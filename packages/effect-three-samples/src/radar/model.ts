@@ -34,6 +34,16 @@ export const Model = Schema.Struct({
   selected: Schema.Option(Schema.String),
   /** The category whose sector the camera last stopped at, for the breadcrumb. */
   cluster: Schema.Option(Category),
+  /** A relay jump under way: the camera rides these waypoints to land at `to`. */
+  journey: Schema.Option(
+    Schema.Struct({
+      to: Schema.String,
+      waypoints: Schema.Array(Schema.Tuple([Schema.Number, Schema.Number, Schema.Number])),
+      elapsed: Schema.Number,
+    }),
+  ),
+  /** The reader prefers reduced motion: jumps land at once rather than ride. */
+  reducedMotion: Schema.Boolean,
   /** Whether the relationship edges are drawn. */
   showRelationships: Schema.Boolean,
   /** The stage's width over its height, from the last gesture; square until then. */
@@ -127,6 +137,8 @@ export const initialModel = (assetBase: string, data: RadarData = loadDemoRadar(
   hovered: Option.none(),
   selected: Option.none(),
   cluster: Option.none(),
+  journey: Option.none(),
+  reducedMotion: false,
   showRelationships: true,
   stageAspect: 1,
   camera: homeCamera,

@@ -9,9 +9,11 @@ import {
   cameraDamping,
   clusterOfLabel,
   clusterView,
+  flightTo,
   type Model,
   positionsOf,
 } from '../src/radar/model';
+import { alongPath, easeInOut, relayDamping, relayDuration } from '../src/radar/relay';
 import { sceneFor } from '../src/radar/scene';
 import { bearingOf, elevationOf } from '../src/radar/space';
 import { trailOf } from '../src/radar/trail';
@@ -85,5 +87,64 @@ describe('breadcrumb', () => {
     const back = step(flown, Message.ClickedCluster({ category: 'tools' }));
     expect(back.cluster).toEqual(Option.some('tools'));
     expect(step(flown, Message.ClickedUniverse()).cluster).toEqual(Option.none());
+  });
+});
+
+describe('relay jumps', () => {
+  const atFoldkit = step(start, Message.ClickedFlyTo({ id: 'foldkit' }));
+  const elm = positionsOf(start).find(({ entry }) => entry.id === 'elm');
+
+  test('following a relationship rides its edge, with the far entry pinned from the start', () => {
+    const riding = step(atFoldkit, Message.ClickedRelay({ to: 'elm' }));
+    expect(riding.selected).toEqual(Option.some('elm'));
+    expect(riding.cluster).toEqual(Option.some('languages-frameworks'));
+    const journey = Option.getOrUndefined(riding.journey);
+    expect(journey?.to).toBe('elm');
+    expect(journey?.waypoints.length).toBe(26);
+    if (elm !== undefined) expect(journey?.waypoints.at(-1)).toEqual(flightTo(elm).position);
+  });
+
+  test('each frame moves the camera along the ride, then it lands as a flight would', () => {
+    const riding = step(atFoldkit, Message.ClickedRelay({ to: 'elm' }));
+    const waypoints = Option.getOrUndefined(riding.journey)?.waypoints ?? [];
+    const midway = step(riding, Message.AdvancedRelay({ deltaTimeMs: relayDuration / 2 }));
+    expect(midway.camera.position).toEqual(alongPath(waypoints, easeInOut(0.5)));
+    expect(midway.camera.damping).toBe(relayDamping);
+    const landed = step(midway, Message.AdvancedRelay({ deltaTimeMs: relayDuration }));
+    expect(Option.isNone(landed.journey)).toBe(true);
+    if (elm !== undefined) expect(landed.camera).toEqual(flightTo(elm));
+  });
+
+  test('any move of the camera cancels the ride', () => {
+    const riding = step(atFoldkit, Message.ClickedRelay({ to: 'elm' }));
+    for (const message of [
+      Message.ClickedResetView(),
+      Message.ClickedZoom({ direction: 'in' }),
+      Message.ClickedCluster({ category: 'tools' }),
+    ]) {
+      expect(Option.isNone(step(riding, message).journey)).toBe(true);
+    }
+  });
+
+  test('under reduced motion, or with nothing pinned, it flies straight there', () => {
+    const calm = step(atFoldkit, Message.ChangedReducedMotion({ isReducedMotion: true }));
+    const jumped = step(calm, Message.ClickedRelay({ to: 'elm' }));
+    expect(Option.isNone(jumped.journey)).toBe(true);
+    if (elm !== undefined) expect(jumped.camera).toEqual(flightTo(elm));
+    const unpinned = step(start, Message.ClickedRelay({ to: 'elm' }));
+    expect(Option.isNone(unpinned.journey)).toBe(true);
+    expect(unpinned.selected).toEqual(Option.some('elm'));
+  });
+
+  test('the ride eases in and out, and runs from its first waypoint to its last', () => {
+    expect([easeInOut(0), easeInOut(0.5), easeInOut(1)]).toEqual([0, 0.5, 1]);
+    const path = [
+      [0, 0, 0],
+      [2, 0, 0],
+      [2, 2, 0],
+    ] as const;
+    expect(alongPath(path, 0)).toEqual([0, 0, 0]);
+    expect(alongPath(path, 0.5)).toEqual([2, 0, 0]);
+    expect(alongPath(path, 1)).toEqual([2, 2, 0]);
   });
 });

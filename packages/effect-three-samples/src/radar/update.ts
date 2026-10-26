@@ -19,6 +19,7 @@ import {
   type Model,
   positionOf,
 } from './model';
+import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
 import { zoomedPosition, zoomLimits } from './space';
 
 type AppReturn = Return<Model, Message>;
@@ -69,6 +70,56 @@ const flyTo = (model: Model, id: string): Model =>
       }),
     },
   );
+
+/**
+ * Follows a relationship from the pinned entry: the camera rides the edge's arc to the
+ * entry at its other end, which is pinned from the start so the edge it rides lights up.
+ * With nothing pinned, or under reduced motion, it flies there directly instead.
+ */
+const relayTo = (model: Model, to: string): Model => {
+  const ride = Option.all([
+    Option.flatMap(model.selected, (id) => positionOf(model, id)),
+    Option.filter(positionOf(model, to), () => isVisible(model, to)),
+  ]).pipe(Option.filter(() => !model.reducedMotion));
+  return Option.match(ride, {
+    onNone: () => flyTo(model, to),
+    onSome: ([from, target]) => ({
+      ...model,
+      selected: Option.some(to),
+      cluster: Option.some(target.entry.category),
+      journey: Option.some({ to, waypoints: relayWaypoints(from, target), elapsed: 0 }),
+    }),
+  });
+};
+
+type Journey = Option.Option.Value<Model['journey']>;
+
+/** One frame of a ride: the camera moves along it, then lands as a flight would. */
+function ride(model: Model, journey: Journey, deltaTimeMs: number): Model {
+  const elapsed = journey.elapsed + deltaTimeMs;
+  const progress = Math.min(1, elapsed / relayDuration);
+  const riding: Model = {
+    ...model,
+    journey: Option.some({ ...journey, elapsed }),
+    camera: {
+      ...model.camera,
+      position: alongPath(journey.waypoints, easeInOut(progress)),
+      lookAt: [0, 0, 0],
+      damping: relayDamping,
+    },
+  };
+  return Match.value(progress >= 1).pipe(
+    Match.when(true, () => ({ ...flyTo(model, journey.to), journey: Option.none() })),
+    Match.orElse(() => riding),
+  );
+}
+
+/** One frame of a relay jump, if one is under way. */
+const advanceRelay = (model: Model, deltaTimeMs: number): Model =>
+  Option.match(model.journey, {
+    onNone: () => model,
+    onSome: (journey) => ride(model, journey, deltaTimeMs),
+  });
 
 /** Pins a list entry and turns the camera to face its blip, so the canvas is optional. */
 const chooseEntry = (model: Model, id: string): Model =>
@@ -145,7 +196,7 @@ export const init = (props: { readonly assetBase?: string } = {}) => ({
   model: initialModel(props.assetBase ?? '/models/'),
 });
 
-export const update = (model: Model, message: Message): AppReturn =>
+const step = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     HoveredBlip: ({ key }) =>
       withBlip(key, model, (id) => modifyFields(model, { hovered: () => Option.some(id) })),
@@ -190,5 +241,33 @@ export const update = (model: Model, message: Message): AppReturn =>
     MadeGesture: ({ gesture }) => ({
       model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
     }),
+    ClickedRelay: ({ to }) => ({ model: relayTo(model, to) }),
+    AdvancedRelay: ({ deltaTimeMs }) => ({ model: advanceRelay(model, deltaTimeMs) }),
+    ChangedReducedMotion: ({ isReducedMotion }) => ({
+      model: { ...model, reducedMotion: isReducedMotion },
+    }),
     ReceivedSceneLifecycle: () => ({ model }),
   });
+
+/** Anything that moves the camera itself ends a relay jump under way: the ride is skippable. */
+const endsJourney: ReadonlySet<Message['_tag']> = new Set([
+  'MadeGesture',
+  'ClickedTurn',
+  'ClickedZoom',
+  'ClickedResetView',
+  'ClickedUniverse',
+  'ClickedCluster',
+  'ClickedFlyTo',
+  'DoubleClickedBlip',
+  'ClickedEntry',
+  'ClickedRelay',
+]);
+
+export const update = (model: Model, message: Message): AppReturn =>
+  step(
+    Match.value(endsJourney.has(message._tag) && Option.isSome(model.journey)).pipe(
+      Match.when(true, () => ({ ...model, journey: Option.none() })),
+      Match.orElse(() => model),
+    ),
+    message,
+  );

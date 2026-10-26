@@ -151,7 +151,7 @@ const relationButton = (model: Model, h: HtmlBuilder<Message>, relation: Relatio
         [
           h.Class('e3-button'),
           h.Type('button'),
-          h.OnClick(Message.ClickedEntry({ id: relation.other })),
+          h.OnClick(Message.ClickedRelay({ to: relation.other })),
         ],
         [
           h.span(

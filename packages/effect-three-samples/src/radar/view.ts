@@ -3,6 +3,7 @@ import { Match, Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { sceneMount } from '../labelledEnvironment';
+import { bodyLabels, bodyOf } from './bodies';
 import {
   categoryIds,
   categoryLabels,
@@ -184,7 +185,10 @@ const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyA
     ]),
   );
 
-/** The colour key; identity also rides on every label and list row, never colour alone. */
+/**
+ * The colour and body key: each category's swatch and the body it takes on the radar.
+ * Identity also rides on every label and list row, never colour alone.
+ */
 const legend = (h: HtmlBuilder<Message>): Html =>
   h.div(
     [h.Class('e3-controls'), h.AriaLabel('Categories')],
@@ -193,7 +197,7 @@ const legend = (h: HtmlBuilder<Message>): Html =>
         [h.Class('e3-tag')],
         [
           h.span([h.Class('e3-swatch'), h.Style({ background: categoryCss(category) })], []),
-          categoryLabels[category],
+          `${categoryLabels[category]} · ${bodyLabels[bodyOf[category]]}`,
         ],
       ),
     ),

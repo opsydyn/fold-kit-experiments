@@ -8,27 +8,49 @@ import {
   ambientLight,
   basic,
   billboard,
+  detailed,
   directionalLight,
   ease,
+  fixed,
+  group,
   label,
   line,
   mesh,
+  physical,
+  points,
   scene,
   type SceneNode,
   sharedGeometry,
   sharedMaterial,
   sphere,
+  spin,
   standard,
+  torus,
   type Vec3,
 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 
 import { lighten } from '../bars/colours';
 import {
+  type Body,
+  bodyOf,
+  bodyRadius,
+  bodySegments,
+  detailDistances,
+  dotRadius,
+  moonOffset,
+  moonRadius,
+  moonSpeed,
+  orbitOf,
+  planetRing,
+  starField,
+} from './bodies';
+import {
   categoryIds,
   categoryLabels,
   type RadarRelationship,
   relationshipLabels,
+  relationshipTypes,
   type RelationshipType,
   ringIds,
   ringLabels,
@@ -42,6 +64,7 @@ import {
   type Model,
   positionOf,
   positionsOf,
+  relationshipsOf,
   visibleOf,
   visibleRelationships,
 } from './model';
@@ -54,7 +77,7 @@ import {
   textSize,
   viewOf,
 } from './placement';
-import { edgeKey, touches } from './relations';
+import { edgeKey, relationsOf, touches } from './relations';
 import {
   arcPeak,
   blipPosition,
@@ -124,7 +147,7 @@ const outline = 0x12121f;
 const glide = ease({ seconds: 0.45 });
 /** Never scale a blip to zero: a degenerate matrix breaks lighting and hit testing. */
 const flat = 0.001;
-const blipRadius = 0.12;
+const blipRadius = bodyRadius;
 /** The pinned blip grows by this much, so it reads as the one you chose. */
 const pinnedScale = 1.6;
 
@@ -146,23 +169,136 @@ const blipScale = (model: Model, id: string): Vec3 => {
   return [size, size, size];
 };
 
-/** The category's material, or its lit step for the hovered or pinned blip. */
-const blipMaterial = (model: Model, position: RadarPosition): string =>
-  Match.value(isLit(model, position.entry.id)).pipe(
-    Match.when(true, () => `${position.entry.category}:lit`),
-    Match.orElse(() => position.entry.category),
+/** The halo's radius: a soft band of light just outside the body. */
+const haloRadius = bodyRadius * 1.7;
+
+/** A shared material's id, or its lit step for the hovered or pinned blip. */
+const litOr = (model: Model, id: string, material: string): string =>
+  Match.value(isLit(model, id)).pipe(
+    Match.when(true, () => `${material}:lit`),
+    Match.orElse(() => material),
   );
 
-const blipNode = (model: Model, position: RadarPosition): SceneNode => {
+/**
+ * The focused blip's halo: a faint, larger sphere of its own colour round the body, a
+ * glow drawn in the scene rather than by a post-processing pass, which would wash out the
+ * stage's translucent shells.
+ */
+const haloNodes = (
+  model: Model,
+  key: string,
+  id: string,
+  category: Category,
+): ReadonlyArray<SceneNode> =>
+  Match.value(isLit(model, id)).pipe(
+    Match.when(true, () => [
+      mesh({
+        key: `${key}:halo`,
+        geometry: sharedGeometry('halo'),
+        material: sharedMaterial(`halo:${category}`),
+      }),
+    ]),
+    Match.orElse(() => []),
+  );
+
+const bodyMesh = (key: string, body: Body, material: string): SceneNode =>
+  mesh({ key, geometry: sharedGeometry(`body:${body}`), material: sharedMaterial(material) });
+
+/** The ringed giant's ring; other bodies have none. */
+const ringNodes = (key: string, position: RadarPosition): ReadonlyArray<SceneNode> =>
+  Match.value(bodyOf[position.entry.category]).pipe(
+    Match.when('ringed', () => [
+      mesh({
+        key: `${key}:ring`,
+        rotation: fixed([...planetRing.tilt]),
+        geometry: sharedGeometry('planet-ring'),
+        material: sharedMaterial(`ring:${position.entry.category}`),
+      }),
+    ]),
+    Match.orElse(() => []),
+  );
+
+/**
+ * One moon per relationship, in its type's colour, orbiting in a plane tilted by the
+ * blip's id. Hidden with the relationship edges, and absent while the blip is far off.
+ */
+const moonNodes = (
+  model: Model,
+  key: string,
+  position: RadarPosition,
+): ReadonlyArray<SceneNode> => {
   const { id } = position.entry;
-  return mesh({
-    key: blipKey(id),
+  // Only up close, where they show: orbiting moons keep the scene drawing every frame,
+  // so an idle radar seen from afar has none and renders only when something changes.
+  const near = showsName(detailFor(model.camera.position, blipPosition(position)));
+  const moons = relationsOf(relationshipsOf(model), id).filter(
+    () => model.showRelationships && near,
+  );
+  const { tilt, phase } = orbitOf(id);
+  const orbit = group({
+    key: `${key}:orbit`,
+    rotation: fixed(tilt),
+    children: [
+      group({
+        key: `${key}:moons`,
+        rotation: spin({ axis: 'y', radiansPerSecond: moonSpeed, phase }),
+        children: moons.map((relation, index) =>
+          mesh({
+            key: `${key}:moon:${index}`,
+            position: moonOffset(index, moons.length),
+            geometry: sharedGeometry('moon'),
+            material: sharedMaterial(`moon:${relation.type}`),
+          }),
+        ),
+      }),
+    ],
+  });
+  return Match.value(moons.length).pipe(
+    Match.when(0, () => []),
+    Match.orElse(() => [orbit]),
+  );
+};
+
+/**
+ * A blip as a small world that shows more as the camera nears: up close its body, ring
+ * and moons; further out the body alone; far off a soft dot. The group carries the
+ * blip's key, place, size and interactivity, so its parts resolve to the entry.
+ */
+const blipNode = (model: Model, position: RadarPosition): SceneNode => {
+  const { id, category } = position.entry;
+  const key = blipKey(id);
+  const body = bodyOf[category];
+  const surface = litOr(model, id, `body:${category}`);
+  return group({
+    key,
     position: blipPosition(position),
     scale: blipScale(model, id),
     transition: glide,
-    geometry: sharedGeometry('blip'),
-    material: sharedMaterial(blipMaterial(model, position)),
     interactive: isVisible(model, id),
+    detail: detailed({ distances: [...detailDistances] }),
+    children: [
+      group({
+        key: `${key}:near`,
+        children: [
+          bodyMesh(`${key}:near:body`, body, surface),
+          ...haloNodes(model, `${key}:near`, id, category),
+          ...ringNodes(key, position),
+          ...moonNodes(model, key, position),
+        ],
+      }),
+      group({
+        key: `${key}:mid`,
+        children: [
+          bodyMesh(`${key}:mid:body`, body, surface),
+          ...haloNodes(model, `${key}:mid`, id, category),
+        ],
+      }),
+      mesh({
+        key: `${key}:far`,
+        geometry: sharedGeometry('dot'),
+        material: sharedMaterial(litOr(model, id, `dot:${category}`)),
+      }),
+    ],
   });
 };
 
@@ -586,19 +722,71 @@ const labelNodes = (model: Model): ReadonlyArray<SceneNode> => {
   );
 };
 
-const materials = [
-  ...categoryIds.flatMap((category) => [
-    { id: category, material: standard({ color: categoryColours[category], roughness: 0.45 }) },
+/**
+ * Each body's surface in its category colour: glass that light passes through, cut metal,
+ * matte rock, and a smooth giant. The lit step glows softly from within.
+ */
+const surfaceOf = (body: Body, color: number, lit: boolean) => {
+  const glow = Match.value(lit).pipe(
+    Match.when(true, () => ({ emissive: color, emissiveIntensity: focusGlow })),
+    Match.orElse(() => ({})),
+  );
+  return Match.value(body).pipe(
+    Match.when('glass', () =>
+      physical({
+        color,
+        roughness: 0.08,
+        transmission: 0.55,
+        ior: 1.3,
+        clearcoat: 1,
+        clearcoatRoughness: 0.08,
+        ...glow,
+      }),
+    ),
+    // Only part metal: with no environment to reflect, a full metal reads as black.
+    Match.when('faceted', () =>
+      standard({ color, metalness: 0.3, roughness: 0.35, flatShading: true, ...glow }),
+    ),
+    Match.when('rocky', () => standard({ color, roughness: 0.92, flatShading: true, ...glow })),
+    Match.orElse(() => standard({ color, roughness: 0.5, ...glow })),
+  );
+};
+
+/** How brightly the focused blip's surface glows from within. */
+const focusGlow = 0.6;
+
+/** A category's surfaces: its body, plain and lit; its distant dot, plain and lit; its ring. */
+function categoryMaterials(category: Category) {
+  const color = categoryColours[category];
+  const body = bodyOf[category];
+  return [
+    { id: `body:${category}`, material: surfaceOf(body, color, false) },
+    { id: `body:${category}:lit`, material: surfaceOf(body, lighten(color, 0.25), true) },
+    { id: `dot:${category}`, material: basic({ color: lighten(color, 0.2) }) },
+    { id: `dot:${category}:lit`, material: basic({ color: lighten(color, 0.55) }) },
     {
-      id: `${category}:lit`,
+      id: `halo:${category}`,
+      material: basic({ color: lighten(color, 0.5), opacity: 0.16, transparent: true }),
+    },
+    {
+      id: `ring:${category}`,
       material: standard({
-        color: lighten(categoryColours[category], 0.4),
-        roughness: 0.45,
-        emissive: categoryColours[category],
-        emissiveIntensity: 0.35,
+        color: lighten(color, 0.3),
+        roughness: 0.6,
+        opacity: 0.75,
+        transparent: true,
+        side: 'double',
       }),
     },
-  ]),
+  ];
+}
+
+const materials = [
+  ...categoryIds.flatMap(categoryMaterials),
+  ...relationshipTypes.map((type) => ({
+    id: `moon:${type}`,
+    material: basic({ color: relationshipColours[type] }),
+  })),
   {
     id: 'shell',
     // A faint unlit tint that writes no depth: anything inside a shell (inner shells,
@@ -608,7 +796,22 @@ const materials = [
 ];
 
 const geometries = [
-  { id: 'blip', geometry: sphere({ radius: blipRadius, widthSegments: 20, heightSegments: 12 }) },
+  ...(['glass', 'faceted', 'rocky', 'ringed'] as const).map((body) => ({
+    id: `body:${body}`,
+    geometry: sphere({ radius: bodyRadius, ...bodySegments[body] }),
+  })),
+  { id: 'dot', geometry: sphere({ radius: dotRadius, widthSegments: 10, heightSegments: 8 }) },
+  { id: 'halo', geometry: sphere({ radius: haloRadius, widthSegments: 24, heightSegments: 12 }) },
+  { id: 'moon', geometry: sphere({ radius: moonRadius, widthSegments: 8, heightSegments: 6 }) },
+  {
+    id: 'planet-ring',
+    geometry: torus({
+      radius: planetRing.radius,
+      tube: planetRing.tube,
+      radialSegments: 6,
+      tubularSegments: 48,
+    }),
+  },
   ...ringIds.map((ring) => ({
     id: `shell:${ring}`,
     geometry: sphere({ radius: shellRadius(ring), widthSegments: 48, heightSegments: 24 }),
@@ -621,6 +824,17 @@ export const sceneFor = (model: Model) =>
     gestures: 'scene',
     resources: { geometries, materials },
     children: [
+      // Faint, still and colourless, well beyond the zoom limit: depth without meaning.
+      points({
+        key: 'stars',
+        positions: starField.positions,
+        sizes: starField.sizes,
+        size: 1,
+        sizeAttenuation: false,
+        color: 0xc8c8d8,
+        opacity: 0.55,
+        transparent: true,
+      }),
       ambientLight({ key: 'ambient', intensity: 0.9 }),
       directionalLight({ key: 'key-light', intensity: 1.8, position: [4, 6, 5] }),
       directionalLight({ key: 'fill-light', intensity: 0.6, position: [-5, -2, -4] }),

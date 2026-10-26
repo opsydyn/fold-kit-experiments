@@ -25,16 +25,26 @@ const steps = (model: Model, messages: ReadonlyArray<Message>): Model =>
 
 const firstId = (model: Model): string => positionsOf(model)[0]?.entry.id ?? 'missing';
 
-type MeshNode = Extract<SceneNode, { readonly _tag: 'Mesh' }>;
-const isMesh = (node: SceneNode): node is MeshNode => node._tag === 'Mesh';
+type GroupNode = Extract<SceneNode, { readonly _tag: 'Group' }>;
+const isGroup = (node: SceneNode): node is GroupNode => node._tag === 'Group';
 
-const blipOf = (model: Model, id: string): MeshNode | undefined =>
+/** A blip: a group keyed by its entry, holding its forms near to far. */
+const blipOf = (model: Model, id: string): GroupNode | undefined =>
   sceneFor(model)
-    .children.filter(isMesh)
+    .children.filter(isGroup)
     .find((node) => node.key === blipKey(id));
 
-const materialId = (node: MeshNode | undefined): string | undefined =>
-  node?.material._tag === 'SharedMaterial' ? node.material.id : undefined;
+/** The material of a blip's body, as it shows up close. */
+const materialId = (blip: GroupNode | undefined): string | undefined => {
+  const near = blip?.children.find((node) => node.key === `${blip.key}:near`);
+  const body =
+    near?._tag === 'Group'
+      ? near.children.find((node) => node.key === `${blip?.key}:near:body`)
+      : undefined;
+  return body?._tag === 'Mesh' && body.material._tag === 'SharedMaterial'
+    ? body.material.id
+    : undefined;
+};
 
 describe('radar space', () => {
   test('every blip lies on its ring’s shell', () => {
@@ -172,9 +182,9 @@ describe('radar scene', () => {
   test('the hovered or pinned blip takes its category’s lit material and a name label', () => {
     const id = firstId(start);
     const category = positionsOf(start)[0]?.entry.category;
-    expect(materialId(blipOf(start, id))).toBe(category);
+    expect(materialId(blipOf(start, id))).toBe(`body:${category}`);
     const pinned = step(start, Message.ClickedBlip({ key: blipKey(id) }));
-    expect(materialId(blipOf(pinned, id))).toBe(`${category}:lit`);
+    expect(materialId(blipOf(pinned, id))).toBe(`body:${category}:lit`);
     expect(blipOf(pinned, id)?.scale[0]).toBeGreaterThan(1);
     const label = sceneFor(pinned).children.find((node) => node.key === 'label:focus');
     expect(label?._tag === 'Label' ? label.text : undefined).toBe(

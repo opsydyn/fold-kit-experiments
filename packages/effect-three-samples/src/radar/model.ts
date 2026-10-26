@@ -1,4 +1,4 @@
-import { perspectiveCamera, SceneSchema } from '@opsydyn/effect-three';
+import { perspectiveCamera, SceneSchema, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option, Schema } from 'effect';
 
 import {
@@ -10,7 +10,7 @@ import {
   ringIds,
 } from './data';
 import { filterPositions, layoutEntries, type RadarFilters, type RadarPosition } from './layout';
-import { onSphere, shellRadius, zoomLimits } from './space';
+import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
 export type CategoryFilter = typeof CategoryFilter.Type;
@@ -53,6 +53,20 @@ export const cameraFacing = (longitude: number, latitude: number) =>
  * zooms, slowly for a flight to a blip, so the camera swoops round the radar to it.
  */
 export const cameraDamping = { steady: 0.08, flight: 0.035 } as const;
+
+/**
+ * The universe view: high above the radar on the camera's current bearing, the whole map
+ * in sight. It stops just short of overhead, where a camera's up would be undefined.
+ */
+export const universeView = { elevation: 84, distance: 11 } as const;
+
+export const universeCamera = (from: Vec3) =>
+  perspectiveCamera({
+    fov: cameraFov,
+    position: onSphere(bearingOf(from), universeView.elevation, universeView.distance),
+    lookAt: [0, 0, 0],
+    damping: cameraDamping.flight,
+  });
 
 /** How far from a blip a flight stops: close enough for its moons and description. */
 export const flightApproach = 3.4;

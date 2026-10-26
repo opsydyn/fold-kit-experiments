@@ -51,8 +51,30 @@ export const sectorBoundaries: ReadonlyArray<
 export const categoryLabelPosition = (category: Category): Vec3 =>
   onSphere(categoryCenter(category)[0], 0, outerRadius * 1.16);
 
-/** A ring's name: just above its shell's north pole, clear of every blip (all at ±22°). */
-export const ringLabelPosition = (ring: Ring): Vec3 => [0, shellRadius(ring) + 0.14, 0];
+/** How steeply the camera looks down: its elevation above the radar's equator, in degrees. */
+export const elevationOf = (camera: Vec3): number =>
+  (Math.asin(camera[1] / Math.hypot(...camera)) * 180) / Math.PI;
+
+/** The camera's bearing round the radar, as a longitude in degrees. */
+export const bearingOf = (camera: Vec3): number =>
+  (Math.atan2(camera[0], camera[2]) * 180) / Math.PI;
+
+/** From this elevation up, the radar reads as a map seen from above. */
+export const birdsEyeElevation = 55;
+
+export const isBirdsEye = (camera: Vec3): boolean => elevationOf(camera) >= birdsEyeElevation;
+
+/**
+ * A ring's name. Seen from the side it sits just above its shell's north pole, clear of
+ * every blip (all at ±22°). From above, those poles stack on one point, so the names swing
+ * out to the edge of their rings on the side nearest the camera, just off the sector
+ * line there, reading outward like a map's scale.
+ */
+export const ringLabelPosition = (ring: Ring, camera: Vec3): Vec3 =>
+  Match.value(isBirdsEye(camera)).pipe(
+    Match.when(true, () => onSphere(bearingOf(camera) + 4, 0, shellRadius(ring) + 0.16)),
+    Match.orElse((): Vec3 => [0, shellRadius(ring) + 0.14, 0]),
+  );
 
 const length = (v: Vec3): number => Math.hypot(v[0], v[1], v[2]);
 const scaled = (v: Vec3, k: number): Vec3 => [v[0] * k, v[1] * k, v[2] * k];

@@ -106,6 +106,7 @@ const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
       button(h, 'Zoom in', Message.ClickedZoom({ direction: 'in' })),
       button(h, 'Zoom out', Message.ClickedZoom({ direction: 'out' })),
       button(h, 'Reset view', Message.ClickedResetView()),
+      button(h, 'Universe view', Message.ClickedUniverse()),
       h.button(
         [
           h.Class('e3-button'),

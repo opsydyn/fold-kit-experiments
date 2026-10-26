@@ -72,6 +72,8 @@ import {
   acrossView,
   type Candidate,
   frameOf,
+  labelBudget,
+  mapBudget,
   type Obstacle,
   place,
   textSize,
@@ -87,6 +89,7 @@ import {
   detailFor,
   distanceBetween,
   edgeArc,
+  isBirdsEye,
   equator,
   ringLabelPosition,
   sectorBoundaries,
@@ -334,6 +337,9 @@ const labelStyle = (model: Model) =>
 const showsCategories = (model: Model): boolean =>
   Math.hypot(...model.camera.position) >= categoryLabelDistance;
 
+/** Ring names swing out to their edges, or back to the poles, rather than jumping. */
+const ringSwing = ease({ seconds: 0.9 });
+
 const guideLabels = (model: Model): ReadonlyArray<SceneNode> => [
   ...categoryIds
     .filter(() => showsCategories(model))
@@ -353,7 +359,8 @@ const guideLabels = (model: Model): ReadonlyArray<SceneNode> => [
     label({
       ...labelStyle(model),
       key: `label:ring:${ring}`,
-      position: ringLabelPosition(ring),
+      position: ringLabelPosition(ring, model.camera.position),
+      transition: ringSwing,
       text: ringLabels[ring].toUpperCase(),
       fontSize: 0.15,
       letterSpacing: 0.12,
@@ -518,17 +525,25 @@ const focusCandidate = (model: Model, view: View, position: RadarPosition): Plac
   );
 };
 
+/**
+ * A name's size: 0.13 units up close, growing with distance beyond that, so names seen
+ * on the map from above stay legible rather than shrinking to specks.
+ */
+const nameSize = (model: Model, point: Vec3): number =>
+  Math.max(0.13, 0.014 * distanceBetween(model.camera.position, point));
+
 /** A nearby entry's name, beside its blip. */
 const nameCandidate = (model: Model, view: View, position: RadarPosition): Placeable => {
   const key = `label:name:${position.entry.id}`;
   const text = position.entry.name;
-  const size = textSize(text, 0.13);
+  const fontSize = nameSize(model, blipPosition(position));
+  const size = textSize(text, fontSize);
   return placeable(
     key,
     'name',
     size,
     aroundSlots(view, blipPosition(position), size, nameOffset),
-    (slot) => label({ ...labelStyle(model), ...slot, key, text, fontSize: 0.13 }),
+    (slot) => label({ ...labelStyle(model), ...slot, key, text, fontSize }),
   );
 };
 
@@ -649,7 +664,8 @@ const candidatesOf = (model: Model, view: View): ReadonlyArray<Placeable> => {
   const camera = model.camera.position;
   const others = visibleOf(model)
     .filter(({ entry }) => !Option.contains(focusedId(model), entry.id))
-    .filter((position) => showsName(detailOf(model, position)))
+    // From above the radar is a map: every entry may be named, nearest first.
+    .filter((position) => showsName(detailOf(model, position)) || isBirdsEye(camera))
     .map((position) => ({ position, distance: distanceBetween(camera, blipPosition(position)) }))
     .toSorted((a, b) => a.distance - b.distance)
     .map(({ position }) => position);
@@ -725,6 +741,10 @@ const labelNodes = (model: Model): ReadonlyArray<SceneNode> => {
     candidates.map(({ candidate }) => candidate),
     blipObstacles(model),
     frameOf(cameraFov, model.stageAspect),
+    Match.value(isBirdsEye(model.camera.position)).pipe(
+      Match.when(true, () => mapBudget),
+      Match.orElse(() => labelBudget),
+    ),
   );
   return candidates.flatMap(({ candidate, nodeAt, slots }) =>
     Option.match(Option.fromNullishOr(placed.get(candidate.key)), {

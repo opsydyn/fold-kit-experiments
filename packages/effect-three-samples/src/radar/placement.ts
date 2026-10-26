@@ -27,6 +27,9 @@ export const labelBudget = { focus: 1, edge: 6, name: 8, meta: 2 } as const sati
   Record<LabelKind, number>
 >;
 
+/** Seen from above the radar is a map, and up to twice as many names may show. */
+export const mapBudget = { ...labelBudget, name: 16 } as const;
+
 type Box = Readonly<{ x0: number; y0: number; x1: number; y1: number; depth: number }>;
 type View = Readonly<{ eye: Vec3; forward: Vec3; right: Vec3; up: Vec3 }>;
 
@@ -133,6 +136,7 @@ export function place(
   candidates: ReadonlyArray<Candidate>,
   obstacles: ReadonlyArray<Obstacle> = [],
   frame: Frame = unbounded,
+  budget: Readonly<Record<LabelKind, number>> = labelBudget,
 ): ReadonlyMap<string, number> {
   const blocked = obstacles.flatMap((obstacle) =>
     Option.toArray(Option.fromNullishOr(boxOf(view, obstacle, obstacle.centre))).map((box) => ({
@@ -145,7 +149,7 @@ export function place(
   const counts = { focus: 0, edge: 0, name: 0, meta: 0 } satisfies Record<LabelKind, number>;
   const placed = new Map<string, number>();
   for (const candidate of candidates) {
-    if (counts[candidate.kind] >= labelBudget[candidate.kind]) continue;
+    if (counts[candidate.kind] >= budget[candidate.kind]) continue;
     const index = candidate.centres.findIndex((centre) => {
       const box = boxOf(view, candidate, centre);
       return (
@@ -175,9 +179,12 @@ export function place(
   return placed;
 }
 
-/** The rough size of one line of text: troika's Inter averages about 0.55 em a glyph. */
+/**
+ * The rough size of text: troika's Inter averages about 0.55 em a glyph in running text,
+ * more in capitals-heavy names such as "SQLite", so this errs wide at 0.6.
+ */
 export const textSize = (text: string, fontSize: number, maxWidth = Number.POSITIVE_INFINITY) => {
-  const natural = text.length * fontSize * 0.55;
+  const natural = text.length * fontSize * 0.6;
   const lines = Math.max(1, Math.ceil(natural / maxWidth));
   return { width: Math.min(natural, maxWidth), height: lines * fontSize * 1.3 };
 };

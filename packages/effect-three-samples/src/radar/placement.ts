@@ -109,6 +109,8 @@ export type Obstacle = Readonly<{
   height: number;
   /** Blocks labels at any depth, as the focused blip does: it is never covered. */
   solid?: boolean;
+  /** Labels that may sit over it regardless: a blip's own labels never block on it. */
+  exempt?: ReadonlyArray<string>;
 }>;
 
 /**
@@ -132,10 +134,11 @@ export function place(
   obstacles: ReadonlyArray<Obstacle> = [],
   frame: Frame = unbounded,
 ): ReadonlyMap<string, number> {
-  const blocked: ReadonlyArray<Box> = obstacles.flatMap((obstacle) =>
+  const blocked = obstacles.flatMap((obstacle) =>
     Option.toArray(Option.fromNullishOr(boxOf(view, obstacle, obstacle.centre))).map((box) => ({
       ...box,
       depth: frontOf(obstacle, box.depth),
+      exempt: obstacle.exempt ?? [],
     })),
   );
   const kept: Array<Box> = [];
@@ -150,7 +153,12 @@ export function place(
         inside(box, frame) &&
         !kept.some((other) => overlaps(box, other)) &&
         (candidate.kind === 'focus' ||
-          !blocked.some((other) => other.depth < box.depth && overlaps(box, other)))
+          !blocked.some(
+            (other) =>
+              other.depth < box.depth &&
+              !other.exempt.includes(candidate.key) &&
+              overlaps(box, other),
+          ))
       );
     });
     const box = boxOf(

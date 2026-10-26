@@ -10,7 +10,7 @@ import {
   ringIds,
 } from './data';
 import { filterPositions, layoutEntries, type RadarFilters, type RadarPosition } from './layout';
-import { onSphere } from './space';
+import { onSphere, shellRadius, zoomLimits } from './space';
 
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
 export type CategoryFilter = typeof CategoryFilter.Type;
@@ -45,7 +45,33 @@ export const cameraFacing = (longitude: number, latitude: number) =>
     fov: cameraFov,
     position: onSphere(longitude, latitude, cameraDistance),
     lookAt: [0, 0, 0],
-    damping: 0.08,
+    damping: cameraDamping.steady,
+  });
+
+/**
+ * How quickly the camera closes on where the Model puts it: briskly for orbits, turns and
+ * zooms, slowly for a flight to a blip, so the camera swoops round the radar to it.
+ */
+export const cameraDamping = { steady: 0.08, flight: 0.035 } as const;
+
+/** How far from a blip a flight stops: close enough for its moons and description. */
+export const flightApproach = 3.4;
+
+/**
+ * A flight's vantage: on the blip's side of the radar and a little above it, still looking
+ * at the centre, so the blip sits near the middle of the view with the radar behind it.
+ * It stays within the zoom limits, so orbiting and zooming carry on from there.
+ */
+export const flightTo = (position: RadarPosition) =>
+  perspectiveCamera({
+    fov: cameraFov,
+    position: onSphere(
+      position.longitude,
+      position.latitude + 10,
+      Math.max(zoomLimits.min, shellRadius(position.entry.ring) + flightApproach),
+    ),
+    lookAt: [0, 0, 0],
+    damping: cameraDamping.flight,
   });
 
 /** The 2D radar's home view: longitude 0, 20° above the equator. */

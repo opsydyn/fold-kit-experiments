@@ -43,7 +43,7 @@ const readout = (model: Model): string =>
     ),
     {
       onNone: () =>
-        'Hover a blip to read it. Click to pin it; click empty space to clear. Drag to look round.',
+        'Hover a blip to read it. Click to pin it, double-click to fly to it; click empty space to clear. Drag to look round.',
       onSome: ({ entry }) => describe(entry),
     },
   );
@@ -215,7 +215,13 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             h.h3([], [entry.name]),
             h.p([h.Class('e3-note')], [describe(entry)]),
             h.p([], [entry.description]),
-            h.a([h.Href(entry.sourceUrl), h.Target('_blank'), h.Rel('noopener')], ['Source']),
+            h.div(
+              [h.Class('e3-controls')],
+              [
+                button(h, 'Fly to', Message.ClickedFlyTo({ id: entry.id })),
+                h.a([h.Href(entry.sourceUrl), h.Target('_blank'), h.Rel('noopener')], ['Source']),
+              ],
+            ),
             ...relations(model, h, entry.id),
           ],
         ),
@@ -290,6 +296,7 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
       onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
       onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
       onClick: ({ key }) => Message.ClickedBlip({ key }),
+      onDoubleClick: ({ key }) => Message.DoubleClickedBlip({ key }),
       onPointerMissed: () => Message.ClickedEmptySpace(),
       onGesture: (gesture) => Message.MadeGesture({ gesture }),
     },

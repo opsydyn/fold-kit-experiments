@@ -410,7 +410,7 @@ export const demoRadar = {
       authoredOn: '2026-06-14',
       label: 'Third edition',
       rings: { foldkit: 'trial', codex: 'assess' },
-      absent: ['pi'],
+      absent: ['pi', 'futhark'],
     },
   ],
 } as const satisfies RadarDataset;

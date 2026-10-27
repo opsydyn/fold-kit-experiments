@@ -18,9 +18,14 @@ import {
   type RadarPosition,
 } from './layout';
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
+import { summoned } from './summon';
 
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
 export type CategoryFilter = typeof CategoryFilter.Type;
+
+/** The Monolith Easter egg: one slab, or shattered into microservices. */
+export const MonolithState = Schema.Literals(['whole', 'shattered']);
+export type MonolithState = typeof MonolithState.Type;
 
 /** A way out of the standalone radar, to a page of the host site. */
 export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
@@ -36,6 +41,15 @@ export const Model = Schema.Struct({
   category: CategoryFilter,
   enabledRings: Schema.Array(Ring),
   hovered: Schema.Option(Schema.String),
+  /** The scene key of the Easter egg under the pointer, if any. */
+  hoveredEgg: Schema.Option(Schema.String),
+  monolith: MonolithState,
+  /** How many times a saucer has been hovered: each visit reads the next fallacy. */
+  saucerVisits: Schema.Number,
+  /** The Konami code's invasion under way: milliseconds since it began. */
+  invasion: Schema.Option(Schema.Number),
+  /** The Kafka comet's clock, in milliseconds: where along its route it has got to. */
+  cometClock: Schema.Number,
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
   /** The category whose sector the camera last stopped at, for the breadcrumb. */
@@ -151,6 +165,11 @@ export const initialModel = (
   category: 'all',
   enabledRings: ringIds,
   hovered: Option.none(),
+  hoveredEgg: Option.none(),
+  monolith: 'whole',
+  saucerVisits: 0,
+  invasion: Option.none(),
+  cometClock: 0,
   selected: Option.none(),
   cluster: Option.none(),
   journey: Option.none(),
@@ -166,8 +185,12 @@ export const initialModel = (
 /** What the host page hands the radar: where its assets live and its links out. */
 export type RadarProps = Readonly<{ assetBase?: string; links?: ReadonlyArray<Link> }>;
 
+/** The filters in force. A magic word summons an Easter egg and filters nothing. */
+const filterQuery = (query: string): string =>
+  Option.match(summoned(query), { onNone: () => query, onSome: () => '' });
+
 export const filtersOf = (model: Model): RadarFilters => ({
-  query: model.query,
+  query: filterQuery(model.query),
   category: model.category,
   rings: model.enabledRings,
 });

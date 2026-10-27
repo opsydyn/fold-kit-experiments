@@ -3,7 +3,10 @@ import { Match, Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
+import { advanceComet } from './comet';
 import { ringIds, type Ring } from './data';
+import { idOfSaucer } from './easter';
+import { advanceInvasion } from './invaders';
 import type { RadarPosition } from './layout';
 import { Message } from './message';
 import {
@@ -18,11 +21,13 @@ import {
   initialModel,
   isVisible,
   type Model,
+  type MonolithState,
   positionOf,
   type RadarProps,
 } from './model';
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
 import { zoomedPosition, zoomLimits } from './space';
+import { summonedMonolith } from './summon';
 import { playStep } from './timeline';
 
 type AppReturn = Return<Model, Message>;
@@ -231,6 +236,12 @@ export const init = (props: RadarProps = {}) => ({
   model: initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
 });
 
+/** A click on the Monolith shatters it into microservices, and puts them back again. */
+const decomposed = {
+  whole: 'shattered',
+  shattered: 'whole',
+} as const satisfies Readonly<Record<MonolithState, MonolithState>>;
+
 const step = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     HoveredBlip: ({ key }) =>
@@ -246,7 +257,13 @@ const step = (model: Model, message: Message): AppReturn =>
     ClickedEmptySpace: () => ({ model: modifyFields(model, { selected: () => Option.none() }) }),
     ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
     ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
-    ChangedQuery: ({ query }) => ({ model: reconcile({ ...model, query }) }),
+    ChangedQuery: ({ query }) => ({
+      model: reconcile({
+        ...model,
+        query,
+        monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
+      }),
+    }),
     ChangedCategory: ({ category }) => ({ model: reconcile({ ...model, category }) }),
     ClickedRing: ({ ring }) => ({ model: toggleRing(model, ring) }),
     ClickedClearFilters: () => ({
@@ -291,6 +308,22 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     ClickedPlay: () => ({ model: togglePlay(model) }),
     AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
+    HoveredEgg: ({ key }) => ({
+      model: {
+        ...model,
+        hoveredEgg: Option.some(key),
+        saucerVisits: model.saucerVisits + Number(Option.isSome(idOfSaucer(key))),
+      },
+    }),
+    LeftEgg: ({ key }) => ({
+      model: modifyFields(model, {
+        hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
+      }),
+    }),
+    EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
+    AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
+    AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
+    ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
     ReceivedSceneLifecycle: () => ({ model }),
   });
 

@@ -14,6 +14,7 @@ import {
   ringIds,
   ringLabels,
 } from './data';
+import { eggReadout, isEggKey, isMonolithKey } from './easter';
 import { countRings, type RadarPosition } from './layout';
 import { Message } from './message';
 import { cameraMarker, minimapPoint, quarterPath, ringRadius } from './minimap';
@@ -42,7 +43,7 @@ const describe = (entry: RadarEntry): string =>
   `${entry.name} · ${categoryLabels[entry.category]} · ${ringLabels[entry.ring]}`;
 
 /** The hovered entry, else the pinned one, else a hint. */
-const readout = (model: Model): string =>
+const entryReadout = (model: Model): string =>
   Option.match(
     Option.flatMap(
       Option.orElse(model.hovered, () => model.selected),
@@ -53,6 +54,23 @@ const readout = (model: Model): string =>
         'Hover a blip to read it · click to pin · double-click to fly there · drag to look round',
       onSome: ({ entry }) => describe(entry),
     },
+  );
+
+/** An Easter egg under the pointer speaks first; otherwise the entries do. */
+const readout = (model: Model): string =>
+  Option.getOrElse(eggReadout(model), () => entryReadout(model));
+
+/** The pointer over an egg is the egg's; over anything else, a blip's. */
+const enteredAt = (key: string): Message =>
+  Match.value(isEggKey(key)).pipe(
+    Match.when(true, () => Message.HoveredEgg({ key })),
+    Match.orElse(() => Message.HoveredBlip({ key })),
+  );
+
+const leftAt = (key: string): Message =>
+  Match.value(isEggKey(key)).pipe(
+    Match.when(true, () => Message.LeftEgg({ key })),
+    Match.orElse(() => Message.LeftBlip({ key })),
   );
 
 const categoryOf = (value: string): CategoryFilter =>
@@ -382,17 +400,28 @@ const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /** A click on a category's name stops at its sector; anywhere else it is a blip's. */
 const clickedAt = (key: string): Message =>
-  Option.match(clusterOfLabel(key), {
-    onSome: (category) => Message.ClickedCluster({ category }),
-    onNone: () => Message.ClickedBlip({ key }),
-  });
+  Match.value(isMonolithKey(key)).pipe(
+    Match.when(true, () => Message.ClickedMonolith()),
+    Match.orElse(() =>
+      Option.match(clusterOfLabel(key), {
+        onSome: (category) => Message.ClickedCluster({ category }),
+        onNone: () => Message.ClickedBlip({ key }),
+      }),
+    ),
+  );
 
 /** A double-click on a category's name stops at its sector; on a blip it flies there. */
 const doubleClickedAt = (key: string): Message =>
-  Option.match(clusterOfLabel(key), {
-    onSome: (category) => Message.ClickedCluster({ category }),
-    onNone: () => Message.DoubleClickedBlip({ key }),
-  });
+  Match.value(isEggKey(key)).pipe(
+    // Its two clicks already did what an egg does; the double-click itself does nothing.
+    Match.when(true, () => Message.HoveredEgg({ key })),
+    Match.orElse(() =>
+      Option.match(clusterOfLabel(key), {
+        onSome: (category) => Message.ClickedCluster({ category }),
+        onNone: () => Message.DoubleClickedBlip({ key }),
+      }),
+    ),
+  );
 
 /** What changed in the shown edition, or that it is where the radar began. */
 const changeList = (model: Model, h: HtmlBuilder<Message>): Html => {
@@ -599,8 +628,8 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
           mount: sceneMount,
           className: 'e3-stage e3-stage-fill',
           onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
-          onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
+          onPointerEnter: ({ key }) => enteredAt(key),
+          onPointerLeave: ({ key }) => leftAt(key),
           onClick: ({ key }) => clickedAt(key),
           onDoubleClick: ({ key }) => doubleClickedAt(key),
           onPointerMissed: () => Message.ClickedEmptySpace(),

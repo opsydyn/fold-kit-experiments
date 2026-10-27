@@ -56,6 +56,7 @@ import {
   ringLabels,
   type Category,
 } from './data';
+import { eggGeometries, eggMaterials, eggNodes } from './easter';
 import type { RadarPosition } from './layout';
 import {
   blipKey,
@@ -866,7 +867,10 @@ export const sceneFor = (model: Model) =>
   scene({
     camera: model.camera,
     gestures: 'scene',
-    resources: { geometries, materials },
+    resources: {
+      geometries: [...geometries, ...eggGeometries],
+      materials: [...materials, ...eggMaterials],
+    },
     children: [
       // Faint, still and colourless, well beyond the zoom limit: depth without meaning.
       points({
@@ -888,5 +892,6 @@ export const sceneFor = (model: Model) =>
       ...positionsOf(model).map((position) => blipNode(model, position)),
       ...visibleRelationships(model).map((relationship) => edgeNode(model, relationship)),
       ...labelNodes(model),
+      ...eggNodes(model),
     ],
   });

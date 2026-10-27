@@ -321,7 +321,7 @@ const labelStyle = (model: Model) =>
     font: font(model),
     rotation: billboard(),
     color: tokensOf(model).ink,
-    outlineWidth: 0.012,
+    outlineWidth: tokensOf(model).labelOutline,
     outlineColor: tokensOf(model).outline,
   }) as const;
 

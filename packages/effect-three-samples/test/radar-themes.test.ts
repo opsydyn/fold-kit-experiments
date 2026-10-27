@@ -103,6 +103,16 @@ describe('themes', () => {
     expect(draftingGrid.level).toBeLessThan(-outerRadius);
   });
 
+  test('High contrast: no translucent shells, no glow, bolder labels and edges', () => {
+    const { contrast, night } = themes;
+    expect(contrast.shellOpacity).toBe(0);
+    expect(contrast.glow).toBe(contrast.surface);
+    expect(contrast.labelOutline).toBeGreaterThan(night.labelOutline);
+    expect(contrast.edgeStrength).toBeGreaterThan(night.edgeStrength);
+    const shell = materialsFor(contrast).find(({ id }) => id === 'shell');
+    expect(shell?.material.opacity).toBe(0);
+  });
+
   test('categories keep the validated slots: dark steps on dark surfaces, light on Paper', () => {
     expect(themes.night.categories).toEqual({
       techniques: 0x9085e9,

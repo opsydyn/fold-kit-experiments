@@ -312,7 +312,7 @@
   background:
     radial-gradient(
       circle at 50% 40%,
-      color-mix(in srgb, var(--blue, #3d79fa) 10%, transparent),
+      color-mix(in srgb, var(--glow, #3d79fa) 10%, transparent),
       transparent 70%
     ),
     var(--surface, #12121f);

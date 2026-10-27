@@ -62,10 +62,14 @@ export type Tokens = Readonly<{
   guide: number;
   /** The halo round label text, so it reads over whatever is behind it. */
   outline: number;
+  /** How thick the halo round label text is: High contrast draws it bolder. */
+  labelOutline: number;
   /** The outline round a category's name, set in its colour. */
   categoryOutline: number;
   /** The accent: focus rings, pressed buttons, the stage's soft glow. */
   accent: number;
+  /** The stage's soft glow behind the radar; High contrast has none (its surface colour). */
+  glow: number;
   /** How strongly the shells tint what is inside them; 0 leaves only their equators. */
   shellOpacity: number;
   sky: Sky;
@@ -113,8 +117,10 @@ export const themes = {
     border: 0x2a2a40,
     guide: 0x8a8aa3,
     outline: 0x12121f,
+    labelOutline: 0.012,
     categoryOutline: 0xe8e8f0,
     accent: 0x3d79fa,
+    glow: 0x3d79fa,
     shellOpacity: 0.07,
     sky: 'stars',
     lift: 1,
@@ -132,8 +138,10 @@ export const themes = {
     border: 0x3a64a0,
     guide: 0xc6d8f0,
     outline: 0x123a6b,
+    labelOutline: 0.012,
     categoryOutline: 0xf2f6fc,
     accent: 0xf2f6fc,
+    glow: 0x3a64a0,
     shellOpacity: 0.06,
     sky: 'grid',
     lift: 1,
@@ -151,8 +159,10 @@ export const themes = {
     border: 0xd6d2c4,
     guide: 0x8a877d,
     outline: 0xf6f3ea,
+    labelOutline: 0.01,
     categoryOutline: 0xf6f3ea,
     accent: 0x2a78d6,
+    glow: 0xd6d2c4,
     shellOpacity: 0.045,
     sky: 'none',
     lift: 0,
@@ -176,8 +186,10 @@ export const themes = {
     border: 0xffffff,
     guide: 0xffffff,
     outline: 0x000000,
+    labelOutline: 0.03,
     categoryOutline: 0xffffff,
     accent: 0xffff00,
+    glow: 0x000000,
     shellOpacity: 0,
     sky: 'none',
     lift: 0.4,
@@ -220,6 +232,7 @@ export type CssVariables = Readonly<{
   '--muted': string;
   '--border': string;
   '--blue': string;
+  '--glow': string;
   'color-scheme': ColorScheme;
 }>;
 
@@ -234,6 +247,7 @@ export const cssVariables = (theme: Theme): CssVariables => {
     '--muted': css(tokens.muted),
     '--border': css(tokens.border),
     '--blue': css(tokens.accent),
+    '--glow': css(tokens.glow),
     'color-scheme': tokens.scheme,
   };
 };

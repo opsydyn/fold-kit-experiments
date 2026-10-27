@@ -10,10 +10,13 @@ import { cometMoves } from './comet';
 import { konamiCode } from './invaders';
 import { Message } from './message';
 import type { Model, PointerInput } from './model';
-import type { ColorScheme } from './themes';
+import type { ColorScheme, ContrastSetting } from './themes';
 
 /** What a `(prefers-color-scheme: light)` match means. */
 const schemes: ReadonlyArray<ColorScheme> = ['dark', 'light'];
+
+/** What a `(prefers-contrast: more)` or `(forced-colors: active)` match means. */
+const contrasts: ReadonlyArray<ContrastSetting> = ['standard', 'more'];
 
 /** What a `(hover: hover)` match means: no, a finger; yes, a mouse or pen. */
 const inputs: ReadonlyArray<PointerInput> = ['touch', 'hover'];
@@ -62,6 +65,15 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
       query: '(prefers-color-scheme: light)',
       mapMatches: (isLight) =>
         Message.ChangedColorScheme({ scheme: schemes[Number(isLight)] ?? 'dark' }),
+    }),
+  ),
+  // A reader who asks for more contrast, or whose system forces its colours, gets High
+  // contrast under Auto.
+  contrast: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(prefers-contrast: more), (forced-colors: active)',
+      mapMatches: (isMore) =>
+        Message.ChangedContrast({ contrast: contrasts[Number(isMore)] ?? 'standard' }),
     }),
   ),
   reducedMotion: Subscription.persistentEntry(

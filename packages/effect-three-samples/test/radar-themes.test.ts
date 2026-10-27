@@ -76,8 +76,11 @@ describe('themes', () => {
     expect(cssVariables('night')['color-scheme']).toBe('dark');
   });
 
-  test('stars only in Night; the constellations hide wherever there is no sky', () => {
+  test('stars in the space themes; the constellations hide wherever there is no sky', () => {
     expect(keysOf(start)).toContain('stars');
+    for (const theme of ['paragon', 'renegade'] as const) {
+      expect(keysOf(themed(theme))).toContain('stars');
+    }
     for (const theme of ['blueprint', 'paper', 'contrast'] as const) {
       expect(keysOf(themed(theme))).not.toContain('stars');
     }
@@ -112,6 +115,27 @@ describe('themes', () => {
     expect(contrast.edgeStrength).toBeGreaterThan(night.edgeStrength);
     const shell = materialsFor(contrast).find(({ id }) => id === 'shell');
     expect(shell?.material.opacity).toBe(0);
+  });
+
+  test('Paragon and Renegade: a dying star behind the radar, picked by hand, never by Auto', () => {
+    const { night, paragon, renegade } = themes;
+    expect(paragon.glowStrength).toBeGreaterThan(night.glowStrength);
+    expect(renegade.glowStrength).toBeGreaterThan(night.glowStrength);
+    // Renegade's ember star wears Paragon's blue as its rim, as in the picture.
+    expect(renegade.rim).toBe(paragon.glow);
+    expect(cssVariables('renegade')['--glow-strength']).toBe('30%');
+    expect(cssVariables('night')['--rim-strength']).toBe('0%');
+    const settings = [
+      { scheme: 'dark', contrast: 'standard' },
+      { scheme: 'light', contrast: 'standard' },
+      { scheme: 'dark', contrast: 'more' },
+    ] as const;
+    for (const each of settings) {
+      expect(['paragon', 'renegade']).not.toContain(resolveTheme('auto', each));
+    }
+    expect(themeOf(themed('renegade'))).toBe('renegade');
+    expect(paragon.categories).toEqual(night.categories);
+    expect(renegade.categories).toEqual(night.categories);
   });
 
   test('categories keep the validated slots: dark steps on dark surfaces, light on Paper', () => {

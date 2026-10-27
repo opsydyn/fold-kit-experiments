@@ -354,11 +354,13 @@
  * stage letterboxed within it shows no seam.
  */
 .e3-app .e3-stage-frame {
+  /* The theme's star behind the radar: a glow at the core, ringed by its rim colour. */
   background:
     radial-gradient(
-      circle at 50% 40%,
-      color-mix(in srgb, var(--glow, #3d79fa) 10%, transparent),
-      transparent 70%
+      circle at 50% 42%,
+      color-mix(in srgb, var(--glow, #3d79fa) var(--glow-strength, 10%), transparent),
+      color-mix(in srgb, var(--rim, #3d79fa) var(--rim-strength, 0%), transparent) 46%,
+      transparent 72%
     ),
     var(--surface, #12121f);
   min-width: 0;

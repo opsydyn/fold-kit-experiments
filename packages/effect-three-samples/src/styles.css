@@ -89,9 +89,14 @@
   position: relative;
   grid-template-columns: 19rem minmax(0, 1fr);
   gap: 0;
+  background: var(--page, #0a0a14);
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  color: var(--text, #e8e8f0);
+  transition:
+    background 180ms,
+    color 180ms;
 }
 
 .e3-sidebar {
@@ -99,7 +104,7 @@
   flex-direction: column;
   gap: 0.8rem;
   border-right: 1px solid var(--border, #2a2a40);
-  background: color-mix(in srgb, var(--surface, #12121f) 88%, #000);
+  background: var(--panel, #0f0f1a);
   padding: 0.9rem 1rem;
   min-height: 0;
   overflow-y: auto;
@@ -144,6 +149,23 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+/* The theme picker: a small select beside the View heading. */
+.e3-heading-select {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: var(--surface, #12121f);
+  cursor: pointer;
+  padding: 0.05rem 0.5rem;
+  color: var(--text, #e8e8f0);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.e3-heading-select:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
 }
 
 .e3-heading-action {
@@ -225,10 +247,18 @@
 .e3-legend-button {
   display: flex;
   align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
   text-align: left;
+  white-space: nowrap;
 }
 
+/* The body's name gives way first: it shortens rather than wrap the row. */
 .e3-legend-body {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   margin-left: auto;
   color: var(--muted, #8a8aa3);
   font-size: 0.75rem;
@@ -282,7 +312,7 @@
   background:
     radial-gradient(
       circle at 50% 40%,
-      color-mix(in srgb, var(--blue, #3d79fa) 10%, transparent),
+      color-mix(in srgb, var(--glow, #3d79fa) 10%, transparent),
       transparent 70%
     ),
     var(--surface, #12121f);

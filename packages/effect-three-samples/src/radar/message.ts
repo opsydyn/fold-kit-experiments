@@ -5,6 +5,7 @@ import { defineMessageUnion } from 'foldkit/message';
 
 import { Category, Ring } from './data';
 import { CategoryFilter, PointerInput } from './model';
+import { ColorScheme, ContrastSetting, ThemeChoice } from './themes';
 
 export const Message = defineMessageUnion({
   HoveredBlip: { key: Schema.String },
@@ -32,6 +33,11 @@ export const Message = defineMessageUnion({
   AdvancedRelay: { deltaTimeMs: Schema.Number },
   ChangedReducedMotion: { isReducedMotion: Schema.Boolean },
   ChangedPointerInput: { input: PointerInput },
+  ChangedColorScheme: { scheme: ColorScheme },
+  ChangedContrast: { contrast: ContrastSetting },
+  ChoseTheme: { choice: ThemeChoice },
+  SucceededLoadThemeChoice: { choice: ThemeChoice },
+  CompletedSaveThemeChoice: {},
   ChangedEdition: { index: Schema.Number },
   ClickedPlay: {},
   AdvancedPlayback: { deltaTimeMs: Schema.Number },

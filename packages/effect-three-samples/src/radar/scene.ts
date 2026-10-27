@@ -61,6 +61,7 @@ import type { RadarPosition } from './layout';
 import {
   blipKey,
   cameraFov,
+  themeOf,
   isVisible,
   type Model,
   positionOf,
@@ -98,32 +99,14 @@ import {
   showsMeta,
   showsName,
 } from './space';
+import { css, skies, type Theme, themes, type Tokens } from './themes';
 
-/** The 2D radar's category colours, so both radars read the same. */
-export const categoryColours = {
-  techniques: 0x087f8c,
-  tools: 0x397c4a,
-  platforms: 0xa56500,
-  'languages-frameworks': 0xbb2544,
-} satisfies Readonly<Record<Category, number>>;
+/** The theme in force's colours: every colour the scene draws comes from here. */
+export const tokensOf = (model: Model): Tokens => themes[themeOf(model)];
 
-/** CSS for a category's swatch. */
-export const categoryCss = (category: Category): string =>
-  `#${categoryColours[category].toString(16).padStart(6, '0')}`;
-
-/**
- * Relationship colours: four dark-surface steps of the dataviz reference palette that
- * pass its checks on the stage (#12121f) against each other, and a neutral ink for the
- * fifth, peer type. Every edge also carries a line style and, when focused or near, its
- * label, so a type never rests on colour alone.
- */
-export const relationshipColours = {
-  'builds-on': 0x3987e5,
-  complements: 0xc98500,
-  'inspired-by': 0xd55181,
-  'guards-against': 0x008300,
-  'alternative-to': 0xc3c2b7,
-} satisfies Readonly<Record<RelationshipType, number>>;
+/** CSS for a category's swatch, in a theme. */
+export const categoryCss = (theme: Theme, category: Category): string =>
+  css(themes[theme].categories[category]);
 
 /** Each type's line: solid, dashed or dotted, matching the legend. */
 export const relationshipLines = {
@@ -140,13 +123,13 @@ const dashes = {
   dotted: { dashed: true, dashSize: 0.03, gapSize: 0.08 },
 } as const;
 
-export const relationshipCss = (type: RelationshipType): string =>
-  `#${relationshipColours[type].toString(16).padStart(6, '0')}`;
-
-/** Shells, guides and labels: muted ink that reads on the stage's dark surface. */
-const guide = 0x8a8aa3;
-const ink = 0xe8e8f0;
-const outline = 0x12121f;
+/**
+ * CSS for a relationship's line, in a theme. Every edge also carries a line style and,
+ * when focused or near, its caption, so a type never rests on colour alone; two types
+ * share the neutral ink and differ only by those.
+ */
+export const relationshipCss = (theme: Theme, type: RelationshipType): string =>
+  css(themes[theme].relationships[type]);
 
 const glide = ease({ seconds: 0.45 });
 /** Never scale a blip to zero: a degenerate matrix breaks lighting and hit testing. */
@@ -306,32 +289,40 @@ const blipNode = (model: Model, position: RadarPosition): SceneNode => {
   });
 };
 
-const shellNodes: ReadonlyArray<SceneNode> = ringIds.flatMap((ring) => [
-  mesh({
-    key: `shell:${ring}`,
-    geometry: sharedGeometry(`shell:${ring}`),
-    material: sharedMaterial('shell'),
-  }),
-  line({
-    key: `equator:${ring}`,
-    points: equator(shellRadius(ring)),
-    color: guide,
-    opacity: 0.55,
-    transparent: true,
-  }),
-]);
+const shellNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
+  ringIds.flatMap((ring) => [
+    mesh({
+      key: `shell:${ring}`,
+      geometry: sharedGeometry(`shell:${ring}`),
+      material: sharedMaterial('shell'),
+    }),
+    line({
+      key: `equator:${ring}`,
+      points: equator(shellRadius(ring)),
+      color: tokens.guide,
+      opacity: 0.55,
+      transparent: true,
+    }),
+  ]);
 
-const sectorNodes: ReadonlyArray<SceneNode> = sectorBoundaries.map(({ category, points }) =>
-  line({ key: `sector:${category}`, points, color: guide, opacity: 0.8, transparent: true }),
-);
+const sectorNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
+  sectorBoundaries.map(({ category, points }) =>
+    line({
+      key: `sector:${category}`,
+      points,
+      color: tokens.guide,
+      opacity: 0.8,
+      transparent: true,
+    }),
+  );
 
 const labelStyle = (model: Model) =>
   ({
     font: font(model),
     rotation: billboard(),
-    color: ink,
-    outlineWidth: 0.012,
-    outlineColor: outline,
+    color: tokensOf(model).ink,
+    outlineWidth: tokensOf(model).labelOutline,
+    outlineColor: tokensOf(model).outline,
   }) as const;
 
 /** Category names, while the camera stands far enough back for them to fit. */
@@ -353,9 +344,9 @@ const guideLabels = (model: Model): ReadonlyArray<SceneNode> => [
         interactive: true,
         text: categoryLabels[category],
         fontSize: 0.26,
-        color: categoryColours[category],
+        color: tokensOf(model).categories[category],
         outlineWidth: 0.02,
-        outlineColor: ink,
+        outlineColor: tokensOf(model).categoryOutline,
       }),
     ),
   ...ringIds.map((ring) =>
@@ -367,7 +358,7 @@ const guideLabels = (model: Model): ReadonlyArray<SceneNode> => [
       text: ringLabels[ring].toUpperCase(),
       fontSize: 0.15,
       letterSpacing: 0.12,
-      color: guide,
+      color: tokensOf(model).guide,
     }),
   ),
 ];
@@ -391,6 +382,12 @@ const isFocusedEdge = (model: Model, relationship: RadarRelationship): boolean =
     Option.exists(id, (current) => touches(relationship, current)),
   );
 
+/** An edge's strength on the theme's surface: light ones need stronger lines. */
+const themedStrength = (
+  model: Model,
+  { width, opacity }: Readonly<{ width: number; opacity: number }>,
+) => ({ width, opacity: Math.min(1, opacity * tokensOf(model).edgeStrength) });
+
 const strengthOf = (model: Model, relationship: RadarRelationship) =>
   Match.value({
     focused: isFocusedEdge(model, relationship),
@@ -412,8 +409,8 @@ const edgeNode = (model: Model, relationship: RadarRelationship): SceneNode =>
   line({
     key: edgeKey(relationship),
     points: arcOf(model, relationship),
-    color: relationshipColours[relationship.type],
-    ...strengthOf(model, relationship),
+    color: tokensOf(model).relationships[relationship.type],
+    ...themedStrength(model, strengthOf(model, relationship)),
     transparent: true,
     ...dashes[relationshipLines[relationship.type]],
   });
@@ -596,7 +593,7 @@ const metaCandidate = (
         fontSize: metaFontSize,
         maxWidth: metaWidth,
         lineHeight: 1.3,
-        color: 0xc3c2d0,
+        color: tokensOf(model).muted,
       }),
   );
 };
@@ -651,7 +648,7 @@ const edgeCandidate = (model: Model, relationship: RadarRelationship): Placeable
         key,
         text,
         fontSize,
-        color: relationshipColours[relationship.type],
+        color: tokensOf(model).relationships[relationship.type],
         fillOpacity: 0.9,
         outlineWidth: fontSize * 0.12,
       }),
@@ -801,22 +798,27 @@ const surfaceOf = (body: Body, color: number, lit: boolean) => {
 const focusGlow = 0.6;
 
 /** A category's surfaces: its body, plain and lit; its distant dot, plain and lit; its ring. */
-function categoryMaterials(category: Category) {
-  const color = categoryColours[category];
+function categoryMaterials(tokens: Tokens, category: Category) {
+  const color = tokens.categories[category];
   const body = bodyOf[category];
+  // Dark surfaces lift the distant forms towards light; on paper they keep their colour.
+  const lifted = (amount: number) => lighten(color, amount * tokens.lift);
   return [
     { id: `body:${category}`, material: surfaceOf(body, color, false) },
     { id: `body:${category}:lit`, material: surfaceOf(body, lighten(color, 0.25), true) },
-    { id: `dot:${category}`, material: basic({ color: lighten(color, 0.2) }) },
-    { id: `dot:${category}:lit`, material: basic({ color: lighten(color, 0.55) }) },
+    { id: `dot:${category}`, material: basic({ color: lifted(0.2) }) },
+    {
+      id: `dot:${category}:lit`,
+      material: basic({ color: lighten(color, 0.25 + 0.3 * tokens.lift) }),
+    },
     {
       id: `halo:${category}`,
-      material: basic({ color: lighten(color, 0.5), opacity: 0.16, transparent: true }),
+      material: basic({ color: lifted(0.5), opacity: 0.16, transparent: true }),
     },
     {
       id: `ring:${category}`,
       material: standard({
-        color: lighten(color, 0.3),
+        color: lifted(0.3),
         roughness: 0.6,
         opacity: 0.75,
         transparent: true,
@@ -826,17 +828,27 @@ function categoryMaterials(category: Category) {
   ];
 }
 
-const materials = [
-  ...categoryIds.flatMap(categoryMaterials),
+/**
+ * The shared materials for a theme. Their ids never change with the theme: effect-three
+ * updates a live shared material in place when its definition changes, so switching
+ * theme recolours the scene without rebuilding it.
+ */
+export const materialsFor = (tokens: Tokens) => [
+  ...categoryIds.flatMap((category) => categoryMaterials(tokens, category)),
   ...relationshipTypes.map((type) => ({
     id: `moon:${type}`,
-    material: basic({ color: relationshipColours[type] }),
+    material: basic({ color: tokens.relationships[type] }),
   })),
   {
     id: 'shell',
     // A faint unlit tint that writes no depth: anything inside a shell (inner shells,
     // their equators, ring names) stays visible through the ones around it.
-    material: basic({ color: guide, opacity: 0.07, transparent: true, depthTest: false }),
+    material: basic({
+      color: tokens.guide,
+      opacity: tokens.shellOpacity,
+      transparent: true,
+      depthTest: false,
+    }),
   },
 ];
 
@@ -863,31 +875,86 @@ const geometries = [
   })),
 ];
 
+/**
+ * Blueprint's drafting grid: a ruled floor under the radar, fine lines every unit and a
+ * stronger one every fourth. From above it is the paper the radar is drawn on; from the
+ * side, a floor in perspective. Static, so it never keeps the scene drawing.
+ */
+export const draftingGrid = { level: -3.6, reach: 16, major: 4 } as const;
+
+const gridLine = (tokens: Tokens, at: number, along: 'x' | 'z'): SceneNode => {
+  const { level, reach, major } = draftingGrid;
+  const ends: ReadonlyArray<Vec3> = Match.value(along).pipe(
+    Match.when(
+      'x',
+      (): ReadonlyArray<Vec3> => [
+        [-reach, level, at],
+        [reach, level, at],
+      ],
+    ),
+    Match.orElse(
+      (): ReadonlyArray<Vec3> => [
+        [at, level, -reach],
+        [at, level, reach],
+      ],
+    ),
+  );
+  return line({
+    key: `grid:${along}:${at}`,
+    points: ends,
+    color: tokens.guide,
+    opacity: Number(at % major === 0) * 0.14 + 0.1,
+    transparent: true,
+  });
+};
+
+const gridNodes = (tokens: Tokens): ReadonlyArray<SceneNode> => {
+  const steps = Array.from(
+    { length: draftingGrid.reach * 2 + 1 },
+    (_, index) => index - draftingGrid.reach,
+  );
+  return [
+    ...steps.map((at) => gridLine(tokens, at, 'x')),
+    ...steps.map((at) => gridLine(tokens, at, 'z')),
+  ].filter(() => skies[tokens.sky].ruled);
+};
+
+/** The far sky: the theme's stars, its drafting grid, or nothing. */
+const skyNodes = (tokens: Tokens): ReadonlyArray<SceneNode> => [
+  ...gridNodes(tokens),
+  ...starNodes(tokens),
+];
+
+const starNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
+  [
+    // Faint, still and colourless, well beyond the zoom limit: depth without meaning.
+    points({
+      key: 'stars',
+      positions: starField.positions,
+      sizes: starField.sizes,
+      size: 1,
+      sizeAttenuation: false,
+      color: lighten(tokens.guide, 0.6),
+      opacity: 0.55,
+      transparent: true,
+    }),
+  ].filter(() => skies[tokens.sky].starry);
+
 export const sceneFor = (model: Model) =>
   scene({
     camera: model.camera,
     gestures: 'scene',
     resources: {
       geometries: [...geometries, ...eggGeometries],
-      materials: [...materials, ...eggMaterials],
+      materials: [...materialsFor(tokensOf(model)), ...eggMaterials],
     },
     children: [
-      // Faint, still and colourless, well beyond the zoom limit: depth without meaning.
-      points({
-        key: 'stars',
-        positions: starField.positions,
-        sizes: starField.sizes,
-        size: 1,
-        sizeAttenuation: false,
-        color: 0xc8c8d8,
-        opacity: 0.55,
-        transparent: true,
-      }),
+      ...skyNodes(tokensOf(model)),
       ambientLight({ key: 'ambient', intensity: 0.9 }),
       directionalLight({ key: 'key-light', intensity: 1.8, position: [4, 6, 5] }),
       directionalLight({ key: 'fill-light', intensity: 0.6, position: [-5, -2, -4] }),
-      ...shellNodes,
-      ...sectorNodes,
+      ...shellNodes(tokensOf(model)),
+      ...sectorNodes(tokensOf(model)),
       ...guideLabels(model),
       ...positionsOf(model).map((position) => blipNode(model, position)),
       ...visibleRelationships(model).map((relationship) => edgeNode(model, relationship)),

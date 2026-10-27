@@ -14,6 +14,7 @@ import {
   ringIds,
   ringLabels,
 } from './data';
+import { eggReadout, isEggKey } from './easter';
 import { countRings, type RadarPosition } from './layout';
 import { Message } from './message';
 import { cameraMarker, minimapPoint, quarterPath, ringRadius } from './minimap';
@@ -42,7 +43,7 @@ const describe = (entry: RadarEntry): string =>
   `${entry.name} · ${categoryLabels[entry.category]} · ${ringLabels[entry.ring]}`;
 
 /** The hovered entry, else the pinned one, else a hint. */
-const readout = (model: Model): string =>
+const entryReadout = (model: Model): string =>
   Option.match(
     Option.flatMap(
       Option.orElse(model.hovered, () => model.selected),
@@ -53,6 +54,23 @@ const readout = (model: Model): string =>
         'Hover a blip to read it · click to pin · double-click to fly there · drag to look round',
       onSome: ({ entry }) => describe(entry),
     },
+  );
+
+/** An Easter egg under the pointer speaks first; otherwise the entries do. */
+const readout = (model: Model): string =>
+  Option.getOrElse(eggReadout(model), () => entryReadout(model));
+
+/** The pointer over an egg is the egg's; over anything else, a blip's. */
+const enteredAt = (key: string): Message =>
+  Match.value(isEggKey(key)).pipe(
+    Match.when(true, () => Message.HoveredEgg({ key })),
+    Match.orElse(() => Message.HoveredBlip({ key })),
+  );
+
+const leftAt = (key: string): Message =>
+  Match.value(isEggKey(key)).pipe(
+    Match.when(true, () => Message.LeftEgg({ key })),
+    Match.orElse(() => Message.LeftBlip({ key })),
   );
 
 const categoryOf = (value: string): CategoryFilter =>
@@ -599,8 +617,8 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
           mount: sceneMount,
           className: 'e3-stage e3-stage-fill',
           onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
-          onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
-          onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
+          onPointerEnter: ({ key }) => enteredAt(key),
+          onPointerLeave: ({ key }) => leftAt(key),
           onClick: ({ key }) => clickedAt(key),
           onDoubleClick: ({ key }) => doubleClickedAt(key),
           onPointerMissed: () => Message.ClickedEmptySpace(),

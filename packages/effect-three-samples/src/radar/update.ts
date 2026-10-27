@@ -291,6 +291,12 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     ClickedPlay: () => ({ model: togglePlay(model) }),
     AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
+    HoveredEgg: ({ key }) => ({ model: { ...model, hoveredEgg: Option.some(key) } }),
+    LeftEgg: ({ key }) => ({
+      model: modifyFields(model, {
+        hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
+      }),
+    }),
     ReceivedSceneLifecycle: () => ({ model }),
   });
 

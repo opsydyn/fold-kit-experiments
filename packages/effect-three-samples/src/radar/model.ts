@@ -36,6 +36,8 @@ export const Model = Schema.Struct({
   category: CategoryFilter,
   enabledRings: Schema.Array(Ring),
   hovered: Schema.Option(Schema.String),
+  /** The scene key of the Easter egg under the pointer, if any. */
+  hoveredEgg: Schema.Option(Schema.String),
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
   /** The category whose sector the camera last stopped at, for the breadcrumb. */
@@ -151,6 +153,7 @@ export const initialModel = (
   category: 'all',
   enabledRings: ringIds,
   hovered: Option.none(),
+  hoveredEgg: Option.none(),
   selected: Option.none(),
   cluster: Option.none(),
   journey: Option.none(),

@@ -12,6 +12,8 @@ export const Message = defineMessageUnion({
   ClickedBlip: { key: Schema.String },
   DoubleClickedBlip: { key: Schema.String },
   ClickedEmptySpace: {},
+  HoveredEgg: { key: Schema.String },
+  LeftEgg: { key: Schema.String },
   ClickedEntry: { id: Schema.String },
   ClickedFlyTo: { id: Schema.String },
   ChangedQuery: { query: Schema.String },

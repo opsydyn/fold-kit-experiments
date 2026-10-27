@@ -102,10 +102,18 @@ the egg.
   desktop and 375px, including reduced motion.
 - Commit locally; push and open the PR only when asked.
 
-## Later (not in this batch)
+## Second batch (built on the same branch)
 
-- CAP moons
-- Constellations visible from one angle (hexagonal architecture, C4, layers)
-- Conway's Law invaders on the Konami code
-- Fallacies of distributed computing in the saucer's readout
-- The `kafka` comet
+The rest of the list landed on `feat/radar-easter-eggs` too, one commit each, under the
+same ground rules.
+
+| Egg                                       | Trigger                              | What it does                                                                                                                                                                                                                                                                                                      |
+| ----------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fallacies of distributed computing**    | Hovering a saucer                    | Each visit reads the next of the eight fallacies after the Strangler Fig line, round all eight.                                                                                                                                                                                                                   |
+| **CAP moons** (`capMoons.ts`)             | Close to Local-first sync            | Three white moons on a wider orbit. One is always gone (chosen by the camera's bearing, a third of the way round each), so you never see all three. Hovering them names the two this side keeps.                                                                                                                  |
+| **Constellations** (`constellations.ts`)  | Standing within 8° of a vantage      | Hexagonal architecture, layered architecture and the C4 model. Stars sit 34 to 70 units along rays from the vantage, so they line up only there, in the corner the radar leaves empty. They brighten, join and are named in the readout. The hexagon is five presses of Turn from home; the others need dragging. |
+| **Conway's Law invaders** (`invaders.ts`) | The Konami code, outside text fields | Four ranks of an original 9 × 7 pixel alien, one rank per category, march in steps in front of the radar for 14 seconds. They hold still under reduced motion.                                                                                                                                                    |
+| **The Kafka comet** (`comet.ts`)          | Searching for `kafka`                | A comet of messages rides each visible "Builds on" edge in turn, from foundation to builder. It holds still under reduced motion.                                                                                                                                                                                 |
+
+Egg readouts are a list of readers. Their order is: the egg under the pointer, then the
+invasion, then a lined-up constellation, then a magic word's answer.

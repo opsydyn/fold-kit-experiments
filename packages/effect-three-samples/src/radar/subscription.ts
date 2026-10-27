@@ -9,7 +9,10 @@ import { Dom, Subscription } from 'foldkit';
 import { cometMoves } from './comet';
 import { konamiCode } from './invaders';
 import { Message } from './message';
-import type { Model } from './model';
+import type { Model, PointerInput } from './model';
+
+/** What a `(hover: hover)` match means: no, a finger; yes, a mouse or pen. */
+const inputs: ReadonlyArray<PointerInput> = ['touch', 'hover'];
 
 export const subscriptions = Subscription.make<Model, Message>()(() => ({
   playback: Subscription.animationFrameEntry({
@@ -41,6 +44,14 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
     isActive: cometMoves,
     toMessage: (deltaTimeMs) => Message.AdvancedComet({ deltaTimeMs }),
   }),
+  // Whether the reader can hover: a phone or tablet cannot, so a tap reads instead.
+  pointerInput: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(hover: hover)',
+      mapMatches: (canHover) =>
+        Message.ChangedPointerInput({ input: inputs[Number(canHover)] ?? 'touch' }),
+    }),
+  ),
   reducedMotion: Subscription.persistentEntry(
     Dom.streamFromMediaQuery({
       query: '(prefers-reduced-motion: reduce)',

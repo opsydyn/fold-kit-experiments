@@ -403,8 +403,9 @@
     border-right: 0;
   }
 
+  /* On a phone the readout is how a tapped blip is read: big enough to read at arm's length. */
   .e3-stage-readout {
-    font-size: 0.72rem;
+    font-size: 0.85rem;
   }
 }
 

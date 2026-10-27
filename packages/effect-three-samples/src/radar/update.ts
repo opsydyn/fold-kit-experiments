@@ -236,6 +236,29 @@ export const init = (props: RadarProps = {}) => ({
   model: initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
 });
 
+/**
+ * A step only a hovering pointer takes. A finger's "hover" is its press, so on touch the
+ * blip under it is read by the tap that pins it instead.
+ */
+const hovering = (model: Model, step: () => AppReturn): AppReturn =>
+  Match.value(model.input).pipe(
+    Match.when('touch', () => ({ model })),
+    Match.orElse(step),
+  );
+
+/**
+ * The pointer reaches an egg: it speaks. A saucer reached afresh reads its next fallacy;
+ * the tap that follows a finger's press is the same visit, not another.
+ */
+const visitEgg = (model: Model, key: string): Model => {
+  const afresh = !Option.contains(model.hoveredEgg, key) && Option.isSome(idOfSaucer(key));
+  return {
+    ...model,
+    hoveredEgg: Option.some(key),
+    saucerVisits: model.saucerVisits + Number(afresh),
+  };
+};
+
 /** A click on the Monolith shatters it into microservices, and puts them back again. */
 const decomposed = {
   whole: 'shattered',
@@ -245,16 +268,25 @@ const decomposed = {
 const step = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     HoveredBlip: ({ key }) =>
-      withBlip(key, model, (id) => modifyFields(model, { hovered: () => Option.some(id) })),
+      hovering(model, () =>
+        withBlip(key, model, (id) => modifyFields(model, { hovered: () => Option.some(id) })),
+      ),
     LeftBlip: ({ key }) =>
-      withBlip(key, model, (id) =>
-        modifyFields(model, {
-          hovered: (hovered) => Option.filter(hovered, (current) => current !== id),
-        }),
+      hovering(model, () =>
+        withBlip(key, model, (id) =>
+          modifyFields(model, {
+            hovered: (hovered) => Option.filter(hovered, (current) => current !== id),
+          }),
+        ),
       ),
     ClickedBlip: ({ key }) => withBlip(key, model, (id) => pin(model, id)),
     DoubleClickedBlip: ({ key }) => withBlip(key, model, (id) => flyTo(model, id)),
-    ClickedEmptySpace: () => ({ model: modifyFields(model, { selected: () => Option.none() }) }),
+    ClickedEmptySpace: () => ({
+      model: modifyFields(model, {
+        selected: () => Option.none(),
+        hoveredEgg: () => Option.none(),
+      }),
+    }),
     ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
     ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
     ChangedQuery: ({ query }) => ({
@@ -308,17 +340,16 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     ClickedPlay: () => ({ model: togglePlay(model) }),
     AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
-    HoveredEgg: ({ key }) => ({
-      model: {
-        ...model,
-        hoveredEgg: Option.some(key),
-        saucerVisits: model.saucerVisits + Number(Option.isSome(idOfSaucer(key))),
-      },
-    }),
-    LeftEgg: ({ key }) => ({
-      model: modifyFields(model, {
-        hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
-      }),
+    HoveredEgg: ({ key }) => ({ model: visitEgg(model, key) }),
+    // On touch an egg keeps speaking after the finger lifts, until a tap elsewhere.
+    LeftEgg: ({ key }) =>
+      hovering(model, () => ({
+        model: modifyFields(model, {
+          hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
+        }),
+      })),
+    ChangedPointerInput: ({ input }) => ({
+      model: { ...model, input, hovered: Option.none(), hoveredEgg: Option.none() },
     }),
     EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
     AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),

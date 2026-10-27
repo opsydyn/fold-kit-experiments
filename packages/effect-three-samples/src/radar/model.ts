@@ -27,6 +27,14 @@ export type CategoryFilter = typeof CategoryFilter.Type;
 export const MonolithState = Schema.Literals(['whole', 'shattered']);
 export type MonolithState = typeof MonolithState.Type;
 
+/**
+ * How the reader points: with a mouse or pen that can hover, or a finger that cannot. A
+ * finger's "hover" is its press, under the finger and gone as it lifts, so on touch a tap
+ * is how you read.
+ */
+export const PointerInput = Schema.Literals(['hover', 'touch']);
+export type PointerInput = typeof PointerInput.Type;
+
 /** A way out of the standalone radar, to a page of the host site. */
 export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
 export type Link = typeof Link.Type;
@@ -41,6 +49,7 @@ export const Model = Schema.Struct({
   category: CategoryFilter,
   enabledRings: Schema.Array(Ring),
   hovered: Schema.Option(Schema.String),
+  input: PointerInput,
   /** The scene key of the Easter egg under the pointer, if any. */
   hoveredEgg: Schema.Option(Schema.String),
   monolith: MonolithState,
@@ -165,6 +174,7 @@ export const initialModel = (
   category: 'all',
   enabledRings: ringIds,
   hovered: Option.none(),
+  input: 'hover',
   hoveredEgg: Option.none(),
   monolith: 'whole',
   saucerVisits: 0,

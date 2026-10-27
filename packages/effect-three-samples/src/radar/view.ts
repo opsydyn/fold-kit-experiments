@@ -20,6 +20,7 @@ import { Message } from './message';
 import { cameraMarker, minimapPoint, quarterPath, ringRadius } from './minimap';
 import {
   CategoryFilter,
+  type PointerInput,
   clusterOfLabel,
   editionOf,
   editionsOf,
@@ -42,6 +43,12 @@ const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html 
 const describe = (entry: RadarEntry): string =>
   `${entry.name} · ${categoryLabels[entry.category]} · ${ringLabels[entry.ring]}`;
 
+/** What to do, in the reader's own gestures. */
+const hints = {
+  hover: 'Hover a blip to read it · click to pin · double-click to fly there · drag to look round',
+  touch: 'Tap a blip to read it · double-tap to fly there · drag to look round',
+} as const satisfies Readonly<Record<PointerInput, string>>;
+
 /** The hovered entry, else the pinned one, else a hint. */
 const entryReadout = (model: Model): string =>
   Option.match(
@@ -50,8 +57,7 @@ const entryReadout = (model: Model): string =>
       (id) => positionOf(model, id),
     ),
     {
-      onNone: () =>
-        'Hover a blip to read it · click to pin · double-click to fly there · drag to look round',
+      onNone: () => hints[model.input],
       onSome: ({ entry }) => describe(entry),
     },
   );
@@ -400,8 +406,10 @@ const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /** A click on a category's name stops at its sector; anywhere else it is a blip's. */
 const clickedAt = (key: string): Message =>
-  Match.value(isMonolithKey(key)).pipe(
-    Match.when(true, () => Message.ClickedMonolith()),
+  Match.value({ monolith: isMonolithKey(key), egg: isEggKey(key) }).pipe(
+    Match.when({ monolith: true }, () => Message.ClickedMonolith()),
+    // A tap on any other egg reads it, as a hover would: a finger cannot hover.
+    Match.when({ egg: true }, () => Message.HoveredEgg({ key })),
     Match.orElse(() =>
       Option.match(clusterOfLabel(key), {
         onSome: (category) => Message.ClickedCluster({ category }),

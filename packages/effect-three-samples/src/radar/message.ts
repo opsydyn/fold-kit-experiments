@@ -4,7 +4,7 @@ import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import { Category, Ring } from './data';
-import { CategoryFilter } from './model';
+import { CategoryFilter, PointerInput } from './model';
 
 export const Message = defineMessageUnion({
   HoveredBlip: { key: Schema.String },
@@ -31,6 +31,7 @@ export const Message = defineMessageUnion({
   ClickedRelay: { to: Schema.String },
   AdvancedRelay: { deltaTimeMs: Schema.Number },
   ChangedReducedMotion: { isReducedMotion: Schema.Boolean },
+  ChangedPointerInput: { input: PointerInput },
   ChangedEdition: { index: Schema.Number },
   ClickedPlay: {},
   AdvancedPlayback: { deltaTimeMs: Schema.Number },

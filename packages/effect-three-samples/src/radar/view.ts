@@ -64,9 +64,20 @@ const entryReadout = (model: Model): string =>
     },
   );
 
-/** An Easter egg under the pointer speaks first; otherwise the entries do. */
+/** What became of Copy link, said in the readout. */
+const linkNotices = {
+  copied: 'Link copied: it opens the radar on this view',
+  refused: 'Couldn’t copy the link; the address bar has it',
+} as const;
+
+/** An Easter egg under the pointer speaks first, then Copy link's outcome, then the entries. */
 const readout = (model: Model): string =>
-  Option.getOrElse(eggReadout(model), () => entryReadout(model));
+  Option.getOrElse(
+    Option.orElse(eggReadout(model), () =>
+      Option.map(model.linkNotice, (notice) => linkNotices[notice]),
+    ),
+    () => entryReadout(model),
+  );
 
 /** The pointer over an egg is the egg's; over anything else, a blip's. */
 const enteredAt = (key: string): Message =>
@@ -372,6 +383,7 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
               [h.Class('e3-controls')],
               [
                 button(h, 'Fly to', Message.ClickedFlyTo({ id: entry.id })),
+                button(h, 'Copy link', Message.ClickedCopyLink()),
                 h.a([h.Href(entry.sourceUrl), h.Target('_blank'), h.Rel('noopener')], ['Source']),
               ],
             ),
@@ -621,10 +633,23 @@ const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
   const stops = trailOf(model);
   return h.nav(
     [h.Class('e3-breadcrumb'), h.AriaLabel('Location')],
-    stops.flatMap((stop, index) => [
-      ...[h.span([h.AriaHidden(true)], ['›'])].filter(() => index > 0),
-      crumb(h, stop.label, stop.message, index === stops.length - 1),
-    ]),
+    [
+      ...stops.flatMap((stop, index) => [
+        ...[h.span([h.AriaHidden(true)], ['›'])].filter(() => index > 0),
+        crumb(h, stop.label, stop.message, index === stops.length - 1),
+      ]),
+      // Where the breadcrumb says the camera is, as a link to send.
+      h.button(
+        [
+          h.Class('e3-crumb e3-crumb-link'),
+          h.Type('button'),
+          h.AriaLabel('Copy a link to this view'),
+          h.Title('Copy a link to this view'),
+          h.OnClick(Message.ClickedCopyLink()),
+        ],
+        ['🔗'],
+      ),
+    ],
   );
 };
 

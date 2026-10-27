@@ -80,6 +80,12 @@
   font-weight: 600;
 }
 
+.e3-crumb-link {
+  margin-left: 0.2rem;
+  border-left: 1px solid var(--border, #2a2a40);
+  padding-left: 0.5rem;
+}
+
 /*
  * The radar as a standalone app: the sidebar and the stage side by side, filling the
  * viewport, so the page never scrolls; only the sidebar does if the window is short.

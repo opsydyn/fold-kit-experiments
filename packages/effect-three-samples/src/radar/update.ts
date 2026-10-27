@@ -4,11 +4,12 @@ import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
 import { advanceComet } from './comet';
-import { LoadThemeChoice, SaveThemeChoice } from './command';
+import { CopyLink, LoadThemeChoice, ReplaceLink, SaveThemeChoice } from './command';
 import { ringIds, type Ring } from './data';
 import { idOfSaucer } from './easter';
 import { advanceInvasion } from './invaders';
 import type { RadarPosition } from './layout';
+import { decodeLink, type DeepLink, linkOf, type Standpoint } from './link';
 import { Message } from './message';
 import {
   cameraDamping,
@@ -233,11 +234,87 @@ const orbited = (model: Model, gesture: Gesture): Model =>
     })),
   );
 
-/** The radar as it opens, and a look for the theme the reader picked last time. */
-export const init = (props: RadarProps = {}): AppReturn => ({
-  model: initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
-  commands: [LoadThemeChoice()],
-});
+/** The edition a link names by its date, if this radar has one of that date. */
+const editionIndex = (model: Model, link: DeepLink): Option.Option<number> =>
+  Option.flatMap(link.edition, (date) =>
+    Option.liftPredicate(
+      editionsOf(model).findIndex(({ authoredOn }) => authoredOn === date),
+      (index) => index >= 0,
+    ),
+  );
+
+/**
+ * Opens the radar where a deep link says: its theme, edition and filters, then its pin,
+ * then where the camera stands. Parts that name nothing in this radar (an entry it lacks,
+ * an edition it never had) are let go.
+ */
+export const applyLink = (model: Model, link: DeepLink): Model => {
+  const edition = Option.getOrElse(editionIndex(model, link), () => model.edition);
+  const themeChoice = Option.getOrElse(link.theme, () => model.themeChoice);
+  const query = Option.getOrElse(link.query, () => model.query);
+  const category = Option.getOrElse(link.category, () => model.category);
+  const enabledRings = Option.getOrElse(link.rings, () => model.enabledRings);
+  const set: Model = reconcile({
+    ...model,
+    themeChoice,
+    edition,
+    query,
+    category,
+    enabledRings,
+    showRelationships: Option.isNone(link.edges) && model.showRelationships,
+  });
+  const pinned = Option.match(
+    Option.filter(link.entry, (id) => isVisible(set, id)),
+    {
+      onNone: () => set,
+      onSome: (id) => ({
+        ...set,
+        selected: Option.some(id),
+        cluster: Option.map(positionOf(set, id), ({ entry }) => entry.category),
+      }),
+    },
+  );
+  return Option.match(link.standpoint, {
+    onNone: () => pinned,
+    onSome: (standpoint) => standAt(pinned, standpoint),
+  });
+};
+
+/** The camera at a link's standpoint; an entry standpoint needs its entry pinned. */
+const standAt = (model: Model, standpoint: Standpoint): Model =>
+  Match.value(standpoint).pipe(
+    Match.tag('Universe', () => ({
+      ...model,
+      cluster: Option.none(),
+      camera: universeCamera(model.camera.position),
+    })),
+    Match.tag('Cluster', ({ category }) => ({
+      ...model,
+      cluster: Option.some(category),
+      camera: clusterCamera(category),
+    })),
+    Match.tag('Entry', () =>
+      Option.match(model.selected, { onNone: () => model, onSome: (id) => flyTo(model, id) }),
+    ),
+    Match.exhaustive,
+  );
+
+/**
+ * The radar as it opens, at the page's deep link if it has one, and a look for the theme
+ * the reader picked last time, unless the link names a theme for this visit.
+ */
+export const init = (props: RadarProps = {}): AppReturn => {
+  const link = decodeLink(props.link ?? {});
+  const model = applyLink(
+    initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
+    link,
+  );
+  const commands = Option.match(link.theme, {
+    onNone: () => [LoadThemeChoice()],
+    onSome: () => [],
+  });
+  return { model, commands };
+};
 
 /**
  * A step only a hovering pointer takes. A finger's "hover" is its press, so on touch the
@@ -366,6 +443,9 @@ const step = (model: Model, message: Message): AppReturn =>
     AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
     AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
     ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
+    CompletedReplaceLink: () => ({ model }),
+    ClickedCopyLink: () => ({ model, commands: [CopyLink()] }),
+    CompletedCopyLink: ({ outcome }) => ({ model: { ...model, linkNotice: Option.some(outcome) } }),
     ReceivedSceneLifecycle: () => ({ model }),
   });
 
@@ -383,11 +463,29 @@ const endsJourney: ReadonlySet<Message['_tag']> = new Set([
   'ClickedRelay',
 ]);
 
+/**
+ * Keeps the address bar on the view: when a step changes the link, the URL is rewritten
+ * to it, and a "Link copied" notice, now out of date, goes.
+ */
+const withLink = (before: Model, result: AppReturn): AppReturn => {
+  const link = linkOf(result.model);
+  return Match.value(link === linkOf(before)).pipe(
+    Match.when(true, () => result),
+    Match.orElse(() => ({
+      model: { ...result.model, linkNotice: Option.none() },
+      commands: [...(result.commands ?? []), ReplaceLink({ query: link })],
+    })),
+  );
+};
+
 export const update = (model: Model, message: Message): AppReturn =>
-  step(
-    Match.value(endsJourney.has(message._tag) && Option.isSome(model.journey)).pipe(
-      Match.when(true, () => ({ ...model, journey: Option.none() })),
-      Match.orElse(() => model),
+  withLink(
+    model,
+    step(
+      Match.value(endsJourney.has(message._tag) && Option.isSome(model.journey)).pipe(
+        Match.when(true, () => ({ ...model, journey: Option.none() })),
+        Match.orElse(() => model),
+      ),
+      message,
     ),
-    message,
   );

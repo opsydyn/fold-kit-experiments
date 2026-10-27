@@ -58,7 +58,8 @@ describe('themes', () => {
     expect(opened.commands?.map(({ name }) => name)).toEqual(['LoadThemeChoice']);
     const chosen = update(start, Message.ChoseTheme({ choice: 'paper' }));
     expect(chosen.model.themeChoice).toBe('paper');
-    expect(chosen.commands?.map(({ name }) => name)).toEqual(['SaveThemeChoice']);
+    // Saved, and the address bar picks it up: a picked theme is part of the link.
+    expect(chosen.commands?.map(({ name }) => name)).toEqual(['SaveThemeChoice', 'ReplaceLink']);
     const restored = step(start, Message.SucceededLoadThemeChoice({ choice: 'blueprint' }));
     expect(themeOf(restored)).toBe('blueprint');
   });

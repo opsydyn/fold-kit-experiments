@@ -4,7 +4,7 @@
  * nothing it recognises, is Auto, and a save that fails is quietly forgotten.
  */
 import { Effect, Option, Schema } from 'effect';
-import { Command } from 'foldkit';
+import { Command, Navigation } from 'foldkit';
 
 import { Message } from './message';
 import { Theme, ThemeChoice } from './themes';
@@ -39,4 +39,32 @@ export const SaveThemeChoice = Command.define('SaveThemeChoice', {
       Effect.orElseSucceed(() => undefined),
       Effect.map(() => Message.CompletedSaveThemeChoice()),
     ),
+});
+
+/** The address bar, rewritten to the view's link, without adding a history entry. */
+export const ReplaceLink = Command.define('ReplaceLink', {
+  args: { query: Schema.String },
+  messages: [Message.CompletedReplaceLink],
+  execute: ({ query }) =>
+    Navigation.replaceUrl(addressFor(query)).pipe(Effect.map(() => Message.CompletedReplaceLink())),
+});
+
+/** This page's address with `query` as its query string; none when the link is empty. */
+const addressFor = (query: string): string =>
+  `${globalThis.location.pathname}${Option.match(
+    Option.liftPredicate(query, (shown) => shown.length > 0),
+    { onNone: () => '', onSome: (shown) => `?${shown}` },
+  )}${globalThis.location.hash}`;
+
+/** The address on the clipboard; a refusal (no permission, no clipboard) is reported. */
+export const CopyLink = Command.define('CopyLink', {
+  messages: [Message.CompletedCopyLink],
+  execute: Effect.tryPromise(() =>
+    globalThis.navigator.clipboard.writeText(globalThis.location.href),
+  ).pipe(
+    Effect.match({
+      onSuccess: () => Message.CompletedCopyLink({ outcome: 'copied' }),
+      onFailure: () => Message.CompletedCopyLink({ outcome: 'refused' }),
+    }),
+  ),
 });

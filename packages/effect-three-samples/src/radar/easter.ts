@@ -28,6 +28,7 @@ import {
 import { Match, Option } from 'effect';
 
 import { capGeometries, capMaterials, capNodes, capReadout, isCapKey } from './capMoons';
+import { constellationNodes, constellationReadout } from './constellations';
 import type { RadarPosition } from './layout';
 import { editionsOf, type Model, type MonolithState, presentOf } from './model';
 import { easeInOut } from './relay';
@@ -376,9 +377,11 @@ const isProbeKey = (key: string): boolean => /^egg:probe(?::|$)/.test(key);
 
 /** What the readout says while the pointer is over an egg. */
 export const eggReadout = (model: Model): Option.Option<string> =>
-  Option.orElse(hoveredReadout(model), () =>
+  firstSome([
+    hoveredReadout(model),
+    constellationReadout(model),
     Option.flatMap(summoned(model.query), (word) => Option.fromNullishOr(answers[word])),
-  );
+  ]);
 
 /** Reads what one egg says when the pointer is over a key, if the key is that egg's. */
 type EggReader = (model: Model, key: string) => Option.Option<string>;
@@ -414,6 +417,7 @@ export const eggNodes = (model: Model): ReadonlyArray<SceneNode> => [
   ...monolithNodes(model),
   ...probeNodes(model),
   ...capNodes(model),
+  ...constellationNodes(model),
 ];
 
 export const eggGeometries = [

@@ -5,6 +5,14 @@ import { Match, Option } from 'effect';
 
 import { capHost, capMoons, capOrbit, capShows, missingMoon } from '../src/radar/capMoons';
 import {
+  alignedOf,
+  alignment,
+  constellations,
+  skyCentre,
+  starsOf,
+  vantageOf,
+} from '../src/radar/constellations';
+import {
   blockCount,
   departuresIn,
   eggReadout,
@@ -23,10 +31,10 @@ import {
   wholeAt,
 } from '../src/radar/easter';
 import { Message } from '../src/radar/message';
-import { cameraFov, type Model, positionsOf, visibleOf } from '../src/radar/model';
+import { cameraFov, homeCamera, type Model, positionsOf, visibleOf } from '../src/radar/model';
 import { acrossView, frameOf, viewOf } from '../src/radar/placement';
 import { sceneFor } from '../src/radar/scene';
-import { blipPosition, onSphere, outerRadius } from '../src/radar/space';
+import { blipPosition, onSphere, outerRadius, zoomLimits } from '../src/radar/space';
 import { magicWords, summoned } from '../src/radar/summon';
 import { changesIn, playStep } from '../src/radar/timeline';
 import { init, update } from '../src/radar/update';
@@ -77,8 +85,10 @@ describe('the abduction', () => {
   });
 
   test('a saucer hovers only in an edition with a departure', () => {
-    expect(eggKeys(start)).toEqual([]);
-    expect(eggKeys(third)).toEqual(['egg:saucer:futhark']);
+    const saucers = (model: Model) =>
+      eggKeys(model).filter((key) => idOfSaucer(key)._tag === 'Some');
+    expect(saucers(start)).toEqual([]);
+    expect(saucers(third)).toEqual(['egg:saucer:futhark']);
   });
 
   test('it hovers beyond the outer shell, straight out over the departed blip', () => {
@@ -187,6 +197,58 @@ describe('the CAP moons', () => {
     expect(said.startsWith('CAP: Consistency, Availability, Partition tolerance.')).toBe(true);
     expect(said.endsWith(`from here, ${kept.join(' and ')}`)).toBe(true);
     expect(capOrbit.radius).toBeGreaterThan(0.24 * 1.6);
+  });
+});
+
+describe('constellations', () => {
+  const standingAt = (position: Vec3): Model => ({
+    ...start,
+    camera: { ...start.camera, position },
+  });
+  /** A star's place in a view, in degrees across and up from the view's centre. */
+  const seenFrom = (eye: Vec3, star: Vec3): readonly [number, number] => {
+    const view = viewOf(eye, [0, 0, 0]);
+    const degrees = (tangent: number) => (Math.atan(tangent) * 180) / Math.PI;
+    return [degrees(acrossView(view, star)), degrees(upView(view, star))];
+  };
+  const spreadOf = (seen: ReadonlyArray<readonly [number, number]>): number =>
+    Math.max(...seen.map(([x]) => x)) -
+    Math.min(...seen.map(([x]) => x)) +
+    Math.max(...seen.map(([, y]) => y)) -
+    Math.min(...seen.map(([, y]) => y));
+
+  test('from its vantage each diagram lines up beside the radar; from elsewhere it scatters', () => {
+    for (const constellation of constellations) {
+      const { stars } = starsOf(constellation);
+      expect(stars.length).toBeGreaterThan(12);
+      const lined = stars.map((star) => seenFrom(vantageOf(constellation), star));
+      for (const [x, y] of lined) {
+        expect(Math.abs(x - skyCentre[0])).toBeLessThan(3.5);
+        expect(Math.abs(y - skyCentre[1])).toBeLessThan(3.5);
+        // Clear of the radar's outline from the vantage, inside a square frame.
+        expect(Math.hypot(x, y)).toBeGreaterThan((Math.atan(outerRadius / 12) * 180) / Math.PI);
+        expect(Math.max(Math.abs(x), Math.abs(y))).toBeLessThan(cameraFov / 2);
+      }
+      const elsewhere = stars.map((star) => seenFrom(homeCamera.position, star));
+      expect(spreadOf(elsewhere)).toBeGreaterThan(spreadOf(lined) * 3);
+      // Far beyond the radar and the camera's furthest reach, among the other stars.
+      for (const star of stars) expect(Math.hypot(...star)).toBeGreaterThan(zoomLimits.max + 4);
+    }
+  });
+
+  test('standing at a vantage lines its diagram up, joins it and names it', () => {
+    expect(Option.isNone(alignedOf(start))).toBe(true);
+    for (const constellation of constellations) {
+      const there = standingAt(vantageOf(constellation));
+      expect(Option.map(alignedOf(there), ({ id }) => id)).toEqual(Option.some(constellation.id));
+      expect(eggKeys(there)).toContain(`egg:sky:${constellation.id}:0`);
+      expect(Option.getOrUndefined(eggReadout(there))).toBe(`Constellation: ${constellation.name}`);
+      // A little way off, it falls apart again.
+      const { bearing, elevation } = constellation.vantage;
+      const off = standingAt(onSphere(bearing, elevation + alignment + 2, 12));
+      expect(Option.isNone(alignedOf(off))).toBe(true);
+      expect(eggKeys(off)).not.toContain(`egg:sky:${constellation.id}:0`);
+    }
   });
 });
 

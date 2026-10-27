@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/effect-three-troika",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Troika distance-field text for @opsydyn/effect-three: crisp labels described as data.",
   "license": "MIT",
   "repository": {
@@ -63,7 +63,7 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
-    "@opsydyn/effect-three": "0.6.0",
+    "@opsydyn/effect-three": "0.6.1",
     "three": ">=0.186.0 <0.187.0"
   }
 }

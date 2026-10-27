@@ -26,10 +26,15 @@ export type Modifiers = {
   readonly alt: boolean;
 };
 
+/** What pressed: `PointerEvent.pointerType`. A finger is less steady than a mouse or pen. */
+export type PointerDevice = 'mouse' | 'pen' | 'touch';
+
 /**
  * Pointer input in normalised device coordinates. `button` follows `MouseEvent.button`.
  * `pointer` is the input's `PointerEvent.pointerId` (0 when absent): with two pointers
- * pressed (two fingers), the second only takes part in pinches.
+ * pressed (two fingers), the second only takes part in pinches. A press's `device` is
+ * what pressed (a mouse when absent); it decides how far a press may travel and still be
+ * a click on nothing.
  */
 export type PointerInput =
   | {
@@ -45,6 +50,7 @@ export type PointerInput =
       readonly button: number;
       readonly pointer?: number;
       readonly modifiers?: Modifiers;
+      readonly device?: PointerDevice;
     }
   | {
       readonly _tag: 'PointerUp';
@@ -543,14 +549,24 @@ export type PointerTracker = {
 
 const none: ReadonlyArray<SceneEvent> = [];
 
-/** A click moving further than this, in CSS pixels, is a drag and never a miss. */
-const missTolerance = 2;
+/**
+ * How far, in CSS pixels, a press on nothing may travel and still be a miss rather than a
+ * drag. React Three Fiber allows 2 (`events.ts`, `delta <= 2`, at pinned `d74622e`), but
+ * measures it on the browser's `click`, which a browser only synthesises from a tap that
+ * kept within its own, larger touch slop. This kernel works from pointer down and up, so
+ * it gives a finger its own allowance: a steady tap wanders a few pixels, a drag far more.
+ */
+const missTolerances = { mouse: 2, pen: 2, touch: 10 } as const satisfies Record<
+  PointerDevice,
+  number
+>;
 
 type Press = {
   readonly key: string | undefined;
   readonly button: number;
   readonly x: number;
   readonly y: number;
+  readonly device: PointerDevice;
 };
 
 /** The press a gesture began with: its button, modifiers, mesh and region. */
@@ -612,7 +628,10 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
       }
       return;
     }
-    if (from?.button === event.button && travel(from, event.x, event.y) <= missTolerance) {
+    if (
+      from?.button === event.button &&
+      travel(from, event.x, event.y) <= missTolerances[from.device]
+    ) {
       events.push({ _tag: 'PointerMissed', button: event.button });
     }
   };
@@ -794,7 +813,13 @@ export const createPointerTracker = (picker: Picker): PointerTracker => {
         moveGesture(id, event, events);
         break;
       case 'PointerDown':
-        press = { key: hit?.key, button: event.button, x: event.x, y: event.y };
+        press = {
+          key: hit?.key,
+          button: event.button,
+          x: event.x,
+          y: event.y,
+          device: event.device ?? 'mouse',
+        };
         pressing = true;
         dragged = false;
         if (hit !== undefined) events.push({ _tag: 'PointerDown', button: event.button, ...hit });

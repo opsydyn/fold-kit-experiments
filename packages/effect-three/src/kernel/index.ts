@@ -264,6 +264,7 @@ export {
   type Picker,
   type PlaneEquation,
   pointOnPlane,
+  type PointerDevice,
   type PointerInput,
   type PointerTracker,
   type Ray,

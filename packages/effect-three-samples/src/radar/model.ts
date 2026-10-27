@@ -22,6 +22,10 @@ import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
 export type CategoryFilter = typeof CategoryFilter.Type;
 
+/** The Monolith Easter egg: one slab, or shattered into microservices. */
+export const MonolithState = Schema.Literals(['whole', 'shattered']);
+export type MonolithState = typeof MonolithState.Type;
+
 /** A way out of the standalone radar, to a page of the host site. */
 export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
 export type Link = typeof Link.Type;
@@ -38,6 +42,7 @@ export const Model = Schema.Struct({
   hovered: Schema.Option(Schema.String),
   /** The scene key of the Easter egg under the pointer, if any. */
   hoveredEgg: Schema.Option(Schema.String),
+  monolith: MonolithState,
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
   /** The category whose sector the camera last stopped at, for the breadcrumb. */
@@ -154,6 +159,7 @@ export const initialModel = (
   enabledRings: ringIds,
   hovered: Option.none(),
   hoveredEgg: Option.none(),
+  monolith: 'whole',
   selected: Option.none(),
   cluster: Option.none(),
   journey: Option.none(),

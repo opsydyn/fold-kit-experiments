@@ -4,16 +4,23 @@ import type { SceneNode, Vec3 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 
 import {
+  blockCount,
   departuresIn,
   eggReadout,
   ghostHeight,
   idOfSaucer,
   isEggKey,
+  isMonolithKey,
   liftOf,
+  monolithAt,
+  monolithShows,
   saucerRadius,
+  shatteredAt,
+  wholeAt,
 } from '../src/radar/easter';
 import { Message } from '../src/radar/message';
-import { type Model, positionsOf } from '../src/radar/model';
+import { cameraFov, type Model, positionsOf } from '../src/radar/model';
+import { acrossView, frameOf, viewOf } from '../src/radar/placement';
 import { sceneFor } from '../src/radar/scene';
 import { blipPosition, outerRadius } from '../src/radar/space';
 import { changesIn, playStep } from '../src/radar/timeline';
@@ -104,6 +111,83 @@ describe('the abduction', () => {
     expect(Option.isNone(eggReadout(left))).toBe(true);
     // A saucer from another edition has nothing to say.
     expect(Option.isNone(eggReadout({ ...hovered, edition: 3 }))).toBe(true);
+  });
+});
+
+/** `point` moved `distance` along `direction`. */
+const offset = (point: Vec3, direction: Vec3, distance: number): Vec3 => [
+  point[0] + direction[0] * distance,
+  point[1] + direction[1] * distance,
+  point[2] + direction[2] * distance,
+];
+
+const dot = (a: Vec3, b: Vec3): number => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+/** Where `point` sits up the view, as `acrossView` does across it. */
+const upView = (view: ReturnType<typeof viewOf>, point: Vec3): number => {
+  const from = offset(point, view.eye, -1);
+  return dot(from, view.up) / dot(from, view.forward);
+};
+
+describe('the Monolith', () => {
+  const universe = step(start, Message.ClickedUniverse());
+
+  test('floats beside the radar only from above', () => {
+    expect(monolithShows(start)).toBe(false);
+    expect(eggKeys(start)).not.toContain('egg:monolith');
+    expect(monolithShows(universe)).toBe(true);
+    expect(eggKeys(universe)).toContain('egg:monolith');
+  });
+
+  test('a click shatters it into microservices; another puts it back together', () => {
+    expect(universe.monolith).toBe('whole');
+    const shattered = step(universe, Message.ClickedMonolith());
+    expect(shattered.monolith).toBe('shattered');
+    expect(step(shattered, Message.ClickedMonolith()).monolith).toBe('whole');
+  });
+
+  test('its blocks tile the 1 : 4 : 9 slab, then scatter onto rings round it', () => {
+    const whole = Array.from({ length: blockCount }, (_, index) => wholeAt(index));
+    const xs = whole.map(([x]) => x);
+    const ys = whole.map(([, y]) => y);
+    expect(blockCount).toBe(24);
+    // Centre to centre, plus one block: the slab's 0.4 width and 0.9 height.
+    expect(Math.max(...xs) - Math.min(...xs) + 0.4 / 3).toBeCloseTo(0.4, 9);
+    expect(Math.max(...ys) - Math.min(...ys) + 0.9 / 8).toBeCloseTo(0.9, 9);
+    for (let index = 0; index < blockCount; index += 1) {
+      const [x, y] = shatteredAt(index);
+      expect(Math.hypot(x, y)).toBeGreaterThan(0.2);
+      expect(Math.hypot(x, y)).toBeLessThan(0.36);
+    }
+  });
+
+  test('it stays outside the outer shell and inside even a square stage’s frame', () => {
+    for (const camera of [universe.camera.position, start.camera.position]) {
+      const centre = monolithAt(camera);
+      const view = viewOf(camera, [0, 0, 0]);
+      const frame = frameOf(cameraFov, 1);
+      // The drift reaches 0.4 from the centre, across the view and up it.
+      for (const [across, up] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ] as const) {
+        const point = offset(offset(centre, view.right, 0.4 * across), view.up, 0.4 * up);
+        expect(Math.hypot(...point)).toBeGreaterThan(outerRadius + 0.1);
+        expect(Math.abs(acrossView(view, point))).toBeLessThan(frame.x);
+        expect(Math.abs(upView(view, point))).toBeLessThan(frame.y);
+      }
+    }
+  });
+
+  test('over it, the readout tells you what a click will do', () => {
+    const hovered = step(universe, Message.HoveredEgg({ key: 'egg:monolith:block:3' }));
+    expect(Option.getOrUndefined(eggReadout(hovered))).toBe('A monolith. Click to decompose it.');
+    const shattered = step(hovered, Message.ClickedMonolith());
+    expect(Option.getOrUndefined(eggReadout(shattered))).toContain('Microservices');
+    expect(isMonolithKey('egg:monolith')).toBe(true);
+    expect(isMonolithKey('egg:monoliths')).toBe(false);
   });
 });
 

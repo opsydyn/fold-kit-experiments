@@ -8,7 +8,10 @@
 import {
   basic,
   behave,
+  billboard,
+  box,
   cone,
+  ease,
   fixed,
   group,
   mesh,
@@ -23,9 +26,9 @@ import {
 import { Match, Option } from 'effect';
 
 import type { RadarPosition } from './layout';
-import { editionsOf, type Model, presentOf } from './model';
+import { editionsOf, type Model, type MonolithState, presentOf } from './model';
 import { easeInOut } from './relay';
-import { bearingOf, blipPosition, elevationOf } from './space';
+import { bearingOf, blipPosition, elevationOf, isBirdsEye, onSphere } from './space';
 import { playStep } from './timeline';
 
 /** Every egg's scene keys start `egg:`, so hovers and clicks on one route to the egg. */
@@ -167,16 +170,146 @@ const saucerReadout = (model: Model, id: string): Option.Option<string> =>
   );
 
 // ---------------------------------------------------------------------------------------
+// The Monolith: monolith versus microservices. In the universe view a black slab in the
+// film's proportions, 1 : 4 : 9, floats beside the radar. A click shatters it into
+// microservices drifting round where it stood; another puts it back together.
+
+export const isMonolithKey = (key: string): boolean => /^egg:monolith(?::|$)/.test(key);
+
+/** Where the Monolith floats, as an offset from the camera's bearing: off to the left. */
+const monolithPlaces = {
+  above: { bearing: -90, latitude: 0, radius: 3.55 },
+  side: { bearing: -75, latitude: 30, radius: 3.9 },
+} as const;
+
+/** Where the Monolith floats for a camera: beside the radar, on the stage's left. */
+export const monolithAt = (camera: Vec3): Vec3 => {
+  const place = Match.value(isBirdsEye(camera)).pipe(
+    Match.when(true, () => monolithPlaces.above),
+    Match.orElse(() => monolithPlaces.side),
+  );
+  return onSphere(bearingOf(camera) + place.bearing, place.latitude, place.radius);
+};
+
+/** Whether the Monolith is out: only from above, where the radar reads as a map. */
+export const monolithShows = (model: Model): boolean => isBirdsEye(model.camera.position);
+
+/** The slab, built of 3 × 8 blocks one deep: 0.1 thick, 0.4 wide and 0.9 tall. */
+const slab = { columns: 3, rows: 8, width: 0.4, height: 0.9, depth: 0.1 } as const;
+export const blockCount = slab.columns * slab.rows;
+const blockWidth = slab.width / slab.columns;
+const blockHeight = slab.height / slab.rows;
+
+/** A block's place in the whole slab, which it tiles exactly. */
+export const wholeAt = (index: number): Vec3 => [
+  ((index % slab.columns) - (slab.columns - 1) / 2) * blockWidth,
+  (Math.floor(index / slab.columns) - (slab.rows - 1) / 2) * blockHeight,
+  0,
+];
+
+/** Two loose rings the microservices drift on, round where the slab stood. */
+const ringRadii = [0.22, 0.34] as const;
+
+/** A block's place once shattered: alternately on the inner and outer ring, a little deep. */
+export const shatteredAt = (index: number): Vec3 => {
+  const radius = ringRadii[index % 2] ?? 0;
+  const angle = (index / blockCount) * 2 * Math.PI + (index % 2) * 0.13;
+  return [radius * Math.cos(angle), radius * Math.sin(angle), (((index * 5) % 3) - 1) * 0.05];
+};
+
+/** How each block sits, whole or shattered: microservices are smaller, and askew. */
+const blockPose = (state: MonolithState, index: number) =>
+  Match.value(state).pipe(
+    Match.when('whole', () => ({
+      position: wholeAt(index),
+      rotation: fixed([0, 0, 0]),
+      scale: [1, 1, 1] as const,
+    })),
+    Match.orElse(() => ({
+      position: shatteredAt(index),
+      rotation: fixed([(index * 0.7) % Math.PI, (index * 1.1) % Math.PI, 0]),
+      scale: [0.75, 0.75, 0.75] as const,
+    })),
+  );
+
+/** Only microservices drift: a whole slab keeps still. */
+const drifts = { whole: false, shattered: true } as const satisfies Readonly<
+  Record<MonolithState, boolean>
+>;
+
+/** Microservices drift, each at its own pace; the whole slab, and a calm reader's, keep still. */
+const drift = (model: Model, index: number) =>
+  Match.value(drifts[model.monolith] && !model.reducedMotion).pipe(
+    Match.when(true, () =>
+      behave('float', { speed: 1.5, phase: index, rotationIntensity: 1, floatIntensity: 0.4 }),
+    ),
+    Match.orElse(() => null),
+  );
+
+const regroup = ease({ seconds: 0.9 });
+
+/**
+ * The Monolith: a group turned to face the camera, floating beside the radar, its blocks
+ * easing between the slab and the drift. One interactive group, so a click anywhere on it
+ * is the Monolith's.
+ */
+const monolithNode = (model: Model): SceneNode =>
+  group({
+    key: 'egg:monolith',
+    position: monolithAt(model.camera.position),
+    rotation: billboard(),
+    transition: ease({ seconds: 0.6 }),
+    interactive: true,
+    children: [
+      // Unseen, where the slab stood: a click in the middle of the drift still lands on it.
+      mesh({
+        key: 'egg:monolith:core',
+        geometry: sharedGeometry('egg:core'),
+        material: sharedMaterial('egg:unseen'),
+      }),
+      ...Array.from({ length: blockCount }, (_, index) =>
+        mesh({
+          key: `egg:monolith:block:${index}`,
+          ...blockPose(model.monolith, index),
+          transition: regroup,
+          behaviour: drift(model, index),
+          geometry: sharedGeometry('egg:block'),
+          material: sharedMaterial('egg:monolith'),
+        }),
+      ),
+    ],
+  });
+
+export const monolithNodes = (model: Model): ReadonlyArray<SceneNode> =>
+  [monolithNode(model)].filter(() => monolithShows(model));
+
+/** What the readout says over the Monolith, whole or shattered. */
+const monolithReadouts = {
+  whole: 'A monolith. Click to decompose it.',
+  shattered: 'Microservices. Click to put the distributed monolith back together.',
+} as const satisfies Readonly<Record<MonolithState, string>>;
+
+// ---------------------------------------------------------------------------------------
 // What every egg shares.
 
 /** What the readout says while the pointer is over an egg. */
 export const eggReadout = (model: Model): Option.Option<string> =>
   Option.flatMap(model.hoveredEgg, (key) =>
-    Option.flatMap(idOfSaucer(key), (id) => saucerReadout(model, id)),
+    Option.orElse(
+      Option.flatMap(idOfSaucer(key), (id) => saucerReadout(model, id)),
+      () =>
+        Option.map(
+          Option.liftPredicate(key, (hovered) => isMonolithKey(hovered) && monolithShows(model)),
+          () => monolithReadouts[model.monolith],
+        ),
+    ),
   );
 
 /** Every egg's nodes, for the scene to append after the radar's own. */
-export const eggNodes = (model: Model): ReadonlyArray<SceneNode> => [...abductionNodes(model)];
+export const eggNodes = (model: Model): ReadonlyArray<SceneNode> => [
+  ...abductionNodes(model),
+  ...monolithNodes(model),
+];
 
 export const eggGeometries = [
   { id: 'egg:hull', geometry: sphere({ radius: 0.26, widthSegments: 24, heightSegments: 12 }) },
@@ -185,6 +318,8 @@ export const eggGeometries = [
     id: 'egg:rim',
     geometry: torus({ radius: 0.26, tube: 0.015, radialSegments: 6, tubularSegments: 32 }),
   },
+  { id: 'egg:core', geometry: sphere({ radius: 0.36, widthSegments: 12, heightSegments: 8 }) },
+  { id: 'egg:block', geometry: box({ width: blockWidth, height: blockHeight, depth: slab.depth }) },
   // Apex up, height 1: each beam is scaled to reach from its blip to its saucer.
   { id: 'egg:beam', geometry: cone({ radius: 0.2, height: 1, radialSegments: 24 }) },
 ];
@@ -196,6 +331,9 @@ export const eggMaterials = [
     material: standard({ color: 0x9fe8c8, emissive: 0x2a6a50, opacity: 0.85, transparent: true }),
   },
   { id: 'egg:lights', material: basic({ color: 0xffd36b }) },
+  { id: 'egg:unseen', material: basic({ opacity: 0, transparent: true }) },
+  // Black, but glossy enough to catch the key light, so it reads against the night.
+  { id: 'egg:monolith', material: standard({ color: 0x0a0a10, metalness: 0.7, roughness: 0.18 }) },
   {
     id: 'egg:beam',
     // Faint and depth-free like the shells: it shines through them down to the blip.

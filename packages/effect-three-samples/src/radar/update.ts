@@ -18,6 +18,7 @@ import {
   initialModel,
   isVisible,
   type Model,
+  type MonolithState,
   positionOf,
   type RadarProps,
 } from './model';
@@ -231,6 +232,12 @@ export const init = (props: RadarProps = {}) => ({
   model: initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
 });
 
+/** A click on the Monolith shatters it into microservices, and puts them back again. */
+const decomposed = {
+  whole: 'shattered',
+  shattered: 'whole',
+} as const satisfies Readonly<Record<MonolithState, MonolithState>>;
+
 const step = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     HoveredBlip: ({ key }) =>
@@ -297,6 +304,7 @@ const step = (model: Model, message: Message): AppReturn =>
         hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
       }),
     }),
+    ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
     ReceivedSceneLifecycle: () => ({ model }),
   });
 

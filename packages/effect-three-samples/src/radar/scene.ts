@@ -875,8 +875,57 @@ const geometries = [
   })),
 ];
 
-/** The far sky: the theme's stars, or none. */
-const skyNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
+/**
+ * Blueprint's drafting grid: a ruled floor under the radar, fine lines every unit and a
+ * stronger one every fourth. From above it is the paper the radar is drawn on; from the
+ * side, a floor in perspective. Static, so it never keeps the scene drawing.
+ */
+export const draftingGrid = { level: -3.6, reach: 16, major: 4 } as const;
+
+const gridLine = (tokens: Tokens, at: number, along: 'x' | 'z'): SceneNode => {
+  const { level, reach, major } = draftingGrid;
+  const ends: ReadonlyArray<Vec3> = Match.value(along).pipe(
+    Match.when(
+      'x',
+      (): ReadonlyArray<Vec3> => [
+        [-reach, level, at],
+        [reach, level, at],
+      ],
+    ),
+    Match.orElse(
+      (): ReadonlyArray<Vec3> => [
+        [at, level, -reach],
+        [at, level, reach],
+      ],
+    ),
+  );
+  return line({
+    key: `grid:${along}:${at}`,
+    points: ends,
+    color: tokens.guide,
+    opacity: Number(at % major === 0) * 0.14 + 0.1,
+    transparent: true,
+  });
+};
+
+const gridNodes = (tokens: Tokens): ReadonlyArray<SceneNode> => {
+  const steps = Array.from(
+    { length: draftingGrid.reach * 2 + 1 },
+    (_, index) => index - draftingGrid.reach,
+  );
+  return [
+    ...steps.map((at) => gridLine(tokens, at, 'x')),
+    ...steps.map((at) => gridLine(tokens, at, 'z')),
+  ].filter(() => skies[tokens.sky].ruled);
+};
+
+/** The far sky: the theme's stars, its drafting grid, or nothing. */
+const skyNodes = (tokens: Tokens): ReadonlyArray<SceneNode> => [
+  ...gridNodes(tokens),
+  ...starNodes(tokens),
+];
+
+const starNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
   [
     // Faint, still and colourless, well beyond the zoom limit: depth without meaning.
     points({

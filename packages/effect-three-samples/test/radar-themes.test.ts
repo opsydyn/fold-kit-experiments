@@ -6,7 +6,8 @@ import { choiceFrom } from '../src/radar/command';
 import { alignedOf, constellations, vantageOf } from '../src/radar/constellations';
 import { Message } from '../src/radar/message';
 import { type Model, themeOf } from '../src/radar/model';
-import { materialsFor, sceneFor } from '../src/radar/scene';
+import { draftingGrid, materialsFor, sceneFor } from '../src/radar/scene';
+import { outerRadius } from '../src/radar/space';
 import { cssVariables, resolveTheme, Theme, ThemeChoice, themes } from '../src/radar/themes';
 import { init, update } from '../src/radar/update';
 
@@ -89,6 +90,17 @@ describe('themes', () => {
     });
     expect(Option.isSome(alignedOf(atVantage(start)))).toBe(true);
     expect(Option.isNone(alignedOf(atVantage(themed('paper'))))).toBe(true);
+  });
+
+  test('Blueprint rules a drafting grid under the radar; no other theme has one', () => {
+    const gridOf = (model: Model) => keysOf(model).filter((key) => key.startsWith('grid:'));
+    const lines = gridOf(themed('blueprint'));
+    expect(lines).toHaveLength((draftingGrid.reach * 2 + 1) * 2);
+    for (const theme of ['night', 'paper', 'contrast'] as const) {
+      expect(gridOf(themed(theme))).toEqual([]);
+    }
+    // A floor below the outer shell, never through the radar.
+    expect(draftingGrid.level).toBeLessThan(-outerRadius);
   });
 
   test('categories keep the validated slots: dark steps on dark surfaces, light on Paper', () => {

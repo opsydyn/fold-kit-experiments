@@ -10,6 +10,10 @@ import { cometMoves } from './comet';
 import { konamiCode } from './invaders';
 import { Message } from './message';
 import type { Model, PointerInput } from './model';
+import type { ColorScheme } from './themes';
+
+/** What a `(prefers-color-scheme: light)` match means. */
+const schemes: ReadonlyArray<ColorScheme> = ['dark', 'light'];
 
 /** What a `(hover: hover)` match means: no, a finger; yes, a mouse or pen. */
 const inputs: ReadonlyArray<PointerInput> = ['touch', 'hover'];
@@ -50,6 +54,14 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
       query: '(hover: hover)',
       mapMatches: (canHover) =>
         Message.ChangedPointerInput({ input: inputs[Number(canHover)] ?? 'touch' }),
+    }),
+  ),
+  // The reader's colour scheme, which the theme's Auto choice follows.
+  colorScheme: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(prefers-color-scheme: light)',
+      mapMatches: (isLight) =>
+        Message.ChangedColorScheme({ scheme: schemes[Number(isLight)] ?? 'dark' }),
     }),
   ),
   reducedMotion: Subscription.persistentEntry(

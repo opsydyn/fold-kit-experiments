@@ -7,9 +7,10 @@
 import { line, points, type SceneNode, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 
-import { cameraDistance, type Model } from './model';
+import { cameraDistance, type Model, themeOf } from './model';
 import { viewOf } from './placement';
 import { onSphere } from './space';
+import { skies as skyKinds, themes } from './themes';
 
 /** A point of a diagram, in degrees across and up the vantage's view from its centre. */
 type Degrees = readonly [number, number];
@@ -154,10 +155,14 @@ const angleBetween = (a: Vec3, b: Vec3): number => {
 
 /** The diagram the camera has lined up, if any. */
 export const alignedOf = (model: Model): Option.Option<Constellation> =>
-  Option.fromNullishOr(
-    constellations.find(
-      (constellation) => angleBetween(model.camera.position, vantageOf(constellation)) < alignment,
+  Option.filter(
+    Option.fromNullishOr(
+      constellations.find(
+        (constellation) =>
+          angleBetween(model.camera.position, vantageOf(constellation)) < alignment,
+      ),
     ),
+    () => hasSky(model),
   );
 
 const skies = constellations.map((constellation) => ({
@@ -211,9 +216,14 @@ const skyStateOf = (lined: Option.Option<string>, id: string): SkyState =>
     Match.orElse((): SkyState => 'scattered'),
   );
 
+/** The diagrams hide among the stars: a theme with no sky has none. */
+export const hasSky = (model: Model): boolean => skyKinds[themes[themeOf(model)].sky].deep;
+
 export const constellationNodes = (model: Model): ReadonlyArray<SceneNode> => {
   const lined = Option.map(alignedOf(model), ({ id }) => id);
-  return skies.flatMap((sky) => skyNodes(sky, skyStateOf(lined, sky.constellation.id)));
+  return skies
+    .filter(() => hasSky(model))
+    .flatMap((sky) => skyNodes(sky, skyStateOf(lined, sky.constellation.id)));
 };
 
 /** What the readout says while a diagram is lined up. */

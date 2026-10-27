@@ -4,6 +4,7 @@ import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
 import { advanceComet } from './comet';
+import { LoadThemeChoice, SaveThemeChoice } from './command';
 import { ringIds, type Ring } from './data';
 import { idOfSaucer } from './easter';
 import { advanceInvasion } from './invaders';
@@ -232,8 +233,10 @@ const orbited = (model: Model, gesture: Gesture): Model =>
     })),
   );
 
-export const init = (props: RadarProps = {}) => ({
+/** The radar as it opens, and a look for the theme the reader picked last time. */
+export const init = (props: RadarProps = {}): AppReturn => ({
   model: initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
+  commands: [LoadThemeChoice()],
 });
 
 /**
@@ -348,6 +351,14 @@ const step = (model: Model, message: Message): AppReturn =>
           hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
         }),
       })),
+    ChangedColorScheme: ({ scheme }) => ({ model: { ...model, colorScheme: scheme } }),
+    ChangedContrast: ({ contrast }) => ({ model: { ...model, contrast } }),
+    ChoseTheme: ({ choice }) => ({
+      model: { ...model, themeChoice: choice },
+      commands: [SaveThemeChoice({ choice })],
+    }),
+    SucceededLoadThemeChoice: ({ choice }) => ({ model: { ...model, themeChoice: choice } }),
+    CompletedSaveThemeChoice: () => ({ model }),
     ChangedPointerInput: ({ input }) => ({
       model: { ...model, input, hovered: Option.none(), hoveredEgg: Option.none() },
     }),

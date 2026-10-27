@@ -21,6 +21,7 @@ import { cameraMarker, minimapPoint, quarterPath, ringRadius } from './minimap';
 import {
   CategoryFilter,
   type PointerInput,
+  themeOf,
   clusterOfLabel,
   editionOf,
   editionsOf,
@@ -34,6 +35,7 @@ import {
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
 import { shellRadius } from './space';
+import { cssVariables, themeLabels, ThemeChoice } from './themes';
 import { changesIn } from './timeline';
 import { trailOf } from './trail';
 
@@ -110,6 +112,31 @@ const headingAction = (
   label: string,
 ): Html => h.button([h.Class('e3-heading-action'), h.Type('button'), ...attributes], [label]);
 
+const choiceOf = (value: string): ThemeChoice =>
+  Option.getOrElse(
+    Option.fromNullishOr(ThemeChoice.literals.find((choice) => choice === value)),
+    (): ThemeChoice => 'auto',
+  );
+
+/** What each choice reads as in the picker: Auto also says what it chose. */
+const choiceLabel = (model: Model, choice: ThemeChoice): string =>
+  Match.value(choice).pipe(
+    Match.when('auto', () => `Auto (${themeLabels[themeOf(model)]})`),
+    Match.orElse((picked) => themeLabels[picked]),
+  );
+
+/** The theme picker, small, beside the View heading. */
+const themePicker = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.select(
+    [
+      h.Class('e3-heading-select'),
+      h.AriaLabel('Theme'),
+      h.Value(model.themeChoice),
+      h.OnChange((value) => Message.ChoseTheme({ choice: choiceOf(value) })),
+    ],
+    ThemeChoice.literals.map((choice) => h.option([h.Value(choice)], [choiceLabel(model, choice)])),
+  );
+
 /** A small square button whose name is spoken and shown on hover, its face a glyph. */
 const iconButton = (
   h: HtmlBuilder<Message>,
@@ -184,25 +211,30 @@ const ringControls = (model: Model, h: HtmlBuilder<Message>): Html => {
   );
 };
 
-const viewControls = (h: HtmlBuilder<Message>): Html =>
-  panelSection(h, 'View', [
-    h.div(
-      [h.Class('e3-toolbar')],
-      [
-        iconButton(h, '↺', 'Turn left', Message.ClickedTurn({ direction: 'left' })),
-        iconButton(h, '↻', 'Turn right', Message.ClickedTurn({ direction: 'right' })),
-        iconButton(h, '−', 'Zoom out', Message.ClickedZoom({ direction: 'out' })),
-        iconButton(h, '+', 'Zoom in', Message.ClickedZoom({ direction: 'in' })),
-      ],
-    ),
-    h.div(
-      [h.Class('e3-grid-2')],
-      [
-        button(h, 'Reset view', Message.ClickedResetView()),
-        button(h, 'Universe view', Message.ClickedUniverse()),
-      ],
-    ),
-  ]);
+const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
+  panelSection(
+    h,
+    'View',
+    [
+      h.div(
+        [h.Class('e3-toolbar')],
+        [
+          iconButton(h, '↺', 'Turn left', Message.ClickedTurn({ direction: 'left' })),
+          iconButton(h, '↻', 'Turn right', Message.ClickedTurn({ direction: 'right' })),
+          iconButton(h, '−', 'Zoom out', Message.ClickedZoom({ direction: 'out' })),
+          iconButton(h, '+', 'Zoom in', Message.ClickedZoom({ direction: 'in' })),
+        ],
+      ),
+      h.div(
+        [h.Class('e3-grid-2')],
+        [
+          button(h, 'Reset view', Message.ClickedResetView()),
+          button(h, 'Universe view', Message.ClickedUniverse()),
+        ],
+      ),
+    ],
+    [themePicker(model, h)],
+  );
 
 /** The relationship key: each type's colour and line style beside its name, and a toggle. */
 const relationshipLegend = (model: Model, h: HtmlBuilder<Message>): Html =>
@@ -219,7 +251,9 @@ const relationshipLegend = (model: Model, h: HtmlBuilder<Message>): Html =>
               h.span(
                 [
                   h.Class('e3-edge-swatch'),
-                  h.Style({ borderTop: `3px ${relationshipLines[type]} ${relationshipCss(type)}` }),
+                  h.Style({
+                    borderTop: `3px ${relationshipLines[type]} ${relationshipCss(themeOf(model), type)}`,
+                  }),
                 ],
                 [],
               ),
@@ -258,7 +292,7 @@ const relationButton = (model: Model, h: HtmlBuilder<Message>, relation: Relatio
             [
               h.Class('e3-edge-swatch'),
               h.Style({
-                borderTop: `3px ${relationshipLines[relation.type]} ${relationshipCss(relation.type)}`,
+                borderTop: `3px ${relationshipLines[relation.type]} ${relationshipCss(themeOf(model), relation.type)}`,
               }),
             ],
             [],
@@ -293,7 +327,7 @@ const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyA
  * Each is also a cluster stop: choosing it flies to the category's sector. Identity also
  * rides on every label and list row, never colour alone.
  */
-const legend = (h: HtmlBuilder<Message>): Html =>
+const legend = (model: Model, h: HtmlBuilder<Message>): Html =>
   panelSection(h, 'Categories', [
     h.div(
       [h.Class('e3-stack')],
@@ -306,7 +340,13 @@ const legend = (h: HtmlBuilder<Message>): Html =>
             h.OnClick(Message.ClickedCluster({ category })),
           ],
           [
-            h.span([h.Class('e3-swatch'), h.Style({ background: categoryCss(category) })], []),
+            h.span(
+              [
+                h.Class('e3-swatch'),
+                h.Style({ background: categoryCss(themeOf(model), category) }),
+              ],
+              [],
+            ),
             categoryLabels[category],
             h.span([h.Class('e3-legend-body')], [bodyLabels[bodyOf[category]]]),
           ],
@@ -493,7 +533,7 @@ const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
 /** How a blip shows on the minimap: a small dot, or a larger ringed one when pinned. */
 const dotLooks = {
   resting: { radius: '0.035', stroke: 'none' },
-  pinned: { radius: '0.07', stroke: '#e8e8f0' },
+  pinned: { radius: '0.07', stroke: 'var(--text)' },
 } as const;
 
 const minimapDot = (model: Model, h: HtmlBuilder<Message>, position: RadarPosition): Html => {
@@ -507,7 +547,7 @@ const minimapDot = (model: Model, h: HtmlBuilder<Message>, position: RadarPositi
       h.Cx(String(x)),
       h.Cy(String(y)),
       h.R(looks.radius),
-      h.Fill(categoryCss(position.entry.category)),
+      h.Fill(categoryCss(themeOf(model), position.entry.category)),
       h.Stroke(looks.stroke),
       h.StrokeWidth('0.02'),
     ],
@@ -534,7 +574,7 @@ const minimap = (model: Model, h: HtmlBuilder<Message>): Html =>
         h.path(
           [
             h.D(quarterPath(category)),
-            h.Fill(categoryCss(category)),
+            h.Fill(categoryCss(themeOf(model), category)),
             h.Opacity('0.12'),
             h.Class('e3-minimap-quarter'),
             h.OnClick(Message.ClickedCluster({ category })),
@@ -549,7 +589,7 @@ const minimap = (model: Model, h: HtmlBuilder<Message>): Html =>
             h.Cy('0'),
             h.R(String(ringRadius(shellRadius(ring)))),
             h.Fill('none'),
-            h.Stroke('#8a8aa3'),
+            h.Stroke('var(--muted)'),
             h.StrokeWidth('0.012'),
             h.Opacity('0.6'),
           ],
@@ -558,7 +598,7 @@ const minimap = (model: Model, h: HtmlBuilder<Message>): Html =>
       ),
       ...visibleOf(model).map((position) => minimapDot(model, h, position)),
       h.polygon(
-        [h.Points(cameraMarker(model.camera.position)), h.Fill('#e8e8f0'), h.Opacity('0.9')],
+        [h.Points(cameraMarker(model.camera.position)), h.Fill('var(--text)'), h.Opacity('0.9')],
         [],
       ),
     ],
@@ -612,9 +652,9 @@ const sidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
       header(model, h),
       findControls(model, h),
       ringControls(model, h),
-      viewControls(h),
+      viewControls(model, h),
       ...timeline(model, h),
-      legend(h),
+      legend(model, h),
       relationshipLegend(model, h),
       entryTable(model, h),
       h.p([h.Class('e3-note')], [`${demoNotice}.`]),
@@ -662,5 +702,12 @@ const content = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: '3D tech radar — effect-three',
-  body: h.div([h.Class('e3-sample e3-app')], content(model, h)),
+  body: h.div(
+    [
+      h.Class('e3-sample e3-app'),
+      h.DataAttribute('theme', themeOf(model)),
+      h.Style(cssVariables(themeOf(model))),
+    ],
+    content(model, h),
+  ),
 });

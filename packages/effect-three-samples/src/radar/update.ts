@@ -4,6 +4,7 @@ import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
 import { ringIds, type Ring } from './data';
+import { idOfSaucer } from './easter';
 import type { RadarPosition } from './layout';
 import { Message } from './message';
 import {
@@ -305,7 +306,13 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     ClickedPlay: () => ({ model: togglePlay(model) }),
     AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
-    HoveredEgg: ({ key }) => ({ model: { ...model, hoveredEgg: Option.some(key) } }),
+    HoveredEgg: ({ key }) => ({
+      model: {
+        ...model,
+        hoveredEgg: Option.some(key),
+        saucerVisits: model.saucerVisits + Number(Option.isSome(idOfSaucer(key))),
+      },
+    }),
     LeftEgg: ({ key }) => ({
       model: modifyFields(model, {
         hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),

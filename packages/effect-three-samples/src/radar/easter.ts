@@ -166,10 +166,33 @@ export const abductionNodes = (model: Model): ReadonlyArray<SceneNode> =>
   departuresIn(model, model.edition).map((position) => saucerNode(model, position));
 
 /** What the readout says over a saucer. */
+/**
+ * The fallacies of distributed computing (L Peter Deutsch and others at Sun): what a
+ * saucer's beam is quietly relying on. Each visit to a saucer reads the next.
+ */
+export const fallacies = [
+  'the network is reliable',
+  'latency is zero',
+  'bandwidth is infinite',
+  'the network is secure',
+  'topology doesn’t change',
+  'there is one administrator',
+  'transport cost is zero',
+  'the network is homogeneous',
+] as const;
+
+/** The fallacy for the latest visit to a saucer, counting from the first. */
+export const fallacyOf = (visits: number): string => {
+  const index = (Math.max(1, visits) - 1) % fallacies.length;
+  return `Fallacy ${index + 1} of ${fallacies.length}: ${fallacies[index] ?? ''}`;
+};
+
+/** What a saucer is told: the Strangler Fig, then the fallacy for this visit. */
 const saucerReadout = (model: Model, id: string): Option.Option<string> =>
   Option.map(
     Option.fromNullishOr(departuresIn(model, model.edition).find(({ entry }) => entry.id === id)),
-    ({ entry }) => `Strangler Fig: ${entry.name} was replaced, bit by bit, and left the radar`,
+    ({ entry }) =>
+      `Strangler Fig: ${entry.name} was replaced, bit by bit, and left the radar · ${fallacyOf(model.saucerVisits)}`,
   );
 
 // ---------------------------------------------------------------------------------------

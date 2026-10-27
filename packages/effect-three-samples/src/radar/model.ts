@@ -44,6 +44,8 @@ export const Model = Schema.Struct({
   /** The scene key of the Easter egg under the pointer, if any. */
   hoveredEgg: Schema.Option(Schema.String),
   monolith: MonolithState,
+  /** How many times a saucer has been hovered: each visit reads the next fallacy. */
+  saucerVisits: Schema.Number,
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
   /** The category whose sector the camera last stopped at, for the breadcrumb. */
@@ -161,6 +163,7 @@ export const initialModel = (
   hovered: Option.none(),
   hoveredEgg: Option.none(),
   monolith: 'whole',
+  saucerVisits: 0,
   selected: Option.none(),
   cluster: Option.none(),
   journey: Option.none(),

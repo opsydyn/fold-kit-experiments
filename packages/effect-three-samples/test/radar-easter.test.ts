@@ -7,6 +7,8 @@ import {
   blockCount,
   departuresIn,
   eggReadout,
+  fallacies,
+  fallacyOf,
   ghostHeight,
   idOfSaucer,
   isEggKey,
@@ -107,7 +109,8 @@ describe('the abduction', () => {
     expect(Option.isNone(idOfSaucer('blip:futhark'))).toBe(true);
     const hovered = step(third, Message.HoveredEgg({ key: 'egg:saucer:futhark:craft' }));
     expect(Option.getOrUndefined(eggReadout(hovered))).toBe(
-      'Strangler Fig: Futhark was replaced, bit by bit, and left the radar',
+      'Strangler Fig: Futhark was replaced, bit by bit, and left the radar · ' +
+        'Fallacy 1 of 8: the network is reliable',
     );
     const left = step(hovered, Message.LeftEgg({ key: 'egg:saucer:futhark:craft' }));
     expect(Option.isNone(eggReadout(left))).toBe(true);
@@ -130,6 +133,25 @@ const upView = (view: ReturnType<typeof viewOf>, point: Vec3): number => {
   const from = offset(point, view.eye, -1);
   return dot(from, view.up) / dot(from, view.forward);
 };
+
+describe('the fallacies of distributed computing', () => {
+  test('each visit to a saucer reads the next fallacy, round all eight', () => {
+    const key = 'egg:saucer:futhark:craft';
+    const visit = (model: Model): Model =>
+      step(step(model, Message.HoveredEgg({ key })), Message.LeftEgg({ key }));
+    const visits = Array.from({ length: 9 }).reduce<ReadonlyArray<Model>>(
+      (models) => [...models, visit(models.at(-1) ?? third)],
+      [],
+    );
+    expect(visits.map(({ saucerVisits }) => saucerVisits)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(fallacyOf(2)).toBe('Fallacy 2 of 8: latency is zero');
+    expect(fallacyOf(8)).toBe('Fallacy 8 of 8: the network is homogeneous');
+    expect(fallacyOf(9)).toBe(fallacyOf(1));
+    expect(fallacies).toHaveLength(8);
+    // Hovering anything else leaves the count alone.
+    expect(step(third, Message.HoveredEgg({ key: 'egg:monolith' })).saucerVisits).toBe(0);
+  });
+});
 
 describe('the Monolith', () => {
   const universe = step(start, Message.ClickedUniverse());

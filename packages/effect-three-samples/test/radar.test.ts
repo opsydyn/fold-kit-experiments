@@ -205,3 +205,13 @@ describe('radar scene', () => {
     expect(still._tag).toBe('Preview');
   });
 });
+
+describe('standalone app', () => {
+  test('the host page hands the radar its links out; without them there are none', () => {
+    expect(start.links).toEqual([]);
+    const links = [{ label: '← Samples', href: '/effect-three' }];
+    const hosted = init({ assetBase: '/assets/', links }).model;
+    expect(hosted.links).toEqual(links);
+    expect(hosted.assetBase).toBe('/assets/');
+  });
+});

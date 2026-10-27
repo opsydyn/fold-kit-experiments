@@ -34,13 +34,6 @@
   height: min(560px, 75vh);
 }
 
-/* Round subjects (the radar): square on narrow screens, so the sides are not cropped. */
-.e3-stage-square {
-  height: auto;
-  max-height: min(560px, 75vh);
-  aspect-ratio: 1;
-}
-
 /* The stage and what floats over it: the breadcrumb and the minimap. */
 .e3-stage-frame {
   position: relative;
@@ -85,6 +78,334 @@
 
 .e3-crumb[aria-current='location'] {
   font-weight: 600;
+}
+
+/*
+ * The radar as a standalone app: the sidebar and the stage side by side, filling the
+ * viewport, so the page never scrolls; only the sidebar does if the window is short.
+ */
+.e3-app {
+  display: grid;
+  position: relative;
+  grid-template-columns: 19rem minmax(0, 1fr);
+  gap: 0;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.e3-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  border-right: 1px solid var(--border, #2a2a40);
+  background: color-mix(in srgb, var(--surface, #12121f) 88%, #000);
+  padding: 0.9rem 1rem;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border, #2a2a40) transparent;
+}
+
+.e3-panel-header {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.e3-panel-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.e3-panel-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.e3-panel-links a {
+  color: var(--muted, #8a8aa3);
+}
+
+.e3-panel-links a:hover {
+  color: var(--text, #e8e8f0);
+}
+
+.e3-panel-section {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.e3-panel-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.e3-heading-action {
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  color: var(--muted, #8a8aa3);
+  font: inherit;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.e3-heading-action:hover {
+  color: var(--text, #e8e8f0);
+}
+
+.e3-heading-action:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+}
+
+.e3-heading-action[aria-pressed] {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  text-decoration: none;
+}
+
+.e3-heading-action[aria-pressed='true'] {
+  border-color: var(--blue, #3d79fa);
+  background: color-mix(in srgb, var(--blue, #3d79fa) 16%, transparent);
+  color: var(--text, #e8e8f0);
+}
+
+.e3-panel-heading {
+  margin: 0;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.e3-stack {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.e3-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.e3-toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.e3-sidebar .e3-button {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.e3-sidebar .e3-text {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.e3-icon-button {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.e3-legend-button {
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+
+.e3-legend-body {
+  margin-left: auto;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.75rem;
+}
+
+.e3-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+}
+
+.e3-sidebar .e3-table {
+  margin-top: 0;
+}
+
+.e3-table-scroll {
+  max-height: 40vh;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.e3-sidebar .e3-table table {
+  width: 100%;
+  font-size: 0.78rem;
+}
+
+.e3-sidebar .e3-table th,
+.e3-sidebar .e3-table td {
+  padding-right: 0.4rem;
+  text-align: left;
+}
+
+.e3-sidebar .e3-table .e3-button {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.e3-sidebar .e3-note {
+  font-size: 0.78rem;
+}
+
+/*
+ * The stage fills its half of the app, edge to edge. The night sky is the frame's, so a
+ * stage letterboxed within it shows no seam.
+ */
+.e3-app .e3-stage-frame {
+  background:
+    radial-gradient(
+      circle at 50% 40%,
+      color-mix(in srgb, var(--blue, #3d79fa) 10%, transparent),
+      transparent 70%
+    ),
+    var(--surface, #12121f);
+  min-width: 0;
+  min-height: 0;
+}
+
+.e3-stage-fill {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  height: 100%;
+}
+
+/*
+ * Wide screens: never taller than wide, so the round radar is not cropped at the sides
+ * in a narrow window; a tall stage becomes a square, centred in the frame.
+ */
+@media (min-width: 761px) {
+  .e3-app .e3-stage-frame {
+    display: grid;
+    align-items: center;
+    container-type: size;
+  }
+
+  .e3-stage-fill {
+    height: min(100cqh, 100cqw);
+  }
+}
+
+/* The pinned entry: a card over the stage's top right, scrolling within if long. */
+.e3-details {
+  display: grid;
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  gap: 0.4rem;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface, #12121f) 82%, transparent);
+  padding: 0.75rem 0.9rem;
+  width: min(20rem, calc(100% - 1.2rem));
+  max-height: calc(100% - 11rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.e3-details h3,
+.e3-details h4,
+.e3-details p {
+  margin: 0;
+}
+
+.e3-details h4 {
+  margin-top: 0.3rem;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.e3-details .e3-button {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* The readout: a pill along the stage's bottom, clear of the minimap. */
+.e3-stage-readout {
+  position: absolute;
+  margin: 0;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
+  padding: 0.3rem 0.8rem;
+  max-width: calc(100% - clamp(72px, 22%, 132px) - 2rem);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+/*
+ * Narrow screens: the stage on top, square, and the sidebar beneath it, scrolling on its
+ * own; the pinned entry sits between them rather than over the radar.
+ */
+@media (max-width: 760px) {
+  .e3-app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .e3-app .e3-stage-frame {
+    grid-row: 1;
+  }
+
+  .e3-stage-fill {
+    height: auto;
+    max-height: 58dvh;
+    aspect-ratio: 1;
+    margin-inline: auto;
+  }
+
+  .e3-details {
+    position: static;
+    grid-row: 2;
+    border-radius: 0;
+    border-inline: 0;
+    width: auto;
+    max-height: 30dvh;
+  }
+
+  .e3-sidebar {
+    grid-row: 3;
+    border-top: 1px solid var(--border, #2a2a40);
+    border-right: 0;
+  }
+
+  .e3-stage-readout {
+    font-size: 0.72rem;
+  }
 }
 
 /* The radar's timeline: what changed in the shown edition, in a compact list. */

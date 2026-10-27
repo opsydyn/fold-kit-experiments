@@ -22,8 +22,14 @@ import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
 export type CategoryFilter = typeof CategoryFilter.Type;
 
+/** A way out of the standalone radar, to a page of the host site. */
+export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
+export type Link = typeof Link.Type;
+
 export const Model = Schema.Struct({
   assetBase: Schema.String,
+  /** The host page's links, shown in the sidebar's header. */
+  links: Schema.Array(Link),
   /** The decoded dataset, `Ready` or `Failure` (see the type below). */
   data: Schema.Unknown,
   query: Schema.String,
@@ -133,8 +139,13 @@ export const flightTo = (position: RadarPosition) =>
 /** The 2D radar's home view: longitude 0, 20° above the equator. */
 export const homeCamera = cameraFacing(0, 20);
 
-export const initialModel = (assetBase: string, data: RadarData = loadDemoRadar()): Model => ({
+export const initialModel = (
+  assetBase: string,
+  data: RadarData = loadDemoRadar(),
+  links: ReadonlyArray<Link> = [],
+): Model => ({
   assetBase,
+  links,
   data,
   query: '',
   category: 'all',
@@ -151,6 +162,9 @@ export const initialModel = (assetBase: string, data: RadarData = loadDemoRadar(
   stageAspect: 1,
   camera: homeCamera,
 });
+
+/** What the host page hands the radar: where its assets live and its links out. */
+export type RadarProps = Readonly<{ assetBase?: string; links?: ReadonlyArray<Link> }>;
 
 export const filtersOf = (model: Model): RadarFilters => ({
   query: model.query,

@@ -1,6 +1,8 @@
 /**
  * The radar's themes: Night (the default sky), Blueprint (a cyanotype drawing), Paper (ink
- * on white) and High contrast. Every colour the scene, the sidebar and the overlays use is
+ * on white), High contrast, and two deep-space themes after a dying star seen from orbit:
+ * Paragon (cool blue light on navy) and Renegade (an ember star with a blue rim on dark
+ * maroon). Every colour the scene, the sidebar and the overlays use is
  * here, so the three always agree; nothing else hard-codes one. Pure.
  *
  * The category and relationship colours are slots of the dataviz reference palette,
@@ -16,16 +18,35 @@
  *   surface (orange 2.93:1 on Blueprint, orange and aqua under 3:1 on Paper, relieved by
  *   the edge captions and legend). The two remaining types share the neutral ink and are
  *   told apart by their line style, dashed or dotted, and their captions.
+ * - Paragon (#0a1433) and Renegade (#1a0b14) take the dark steps and pass on their surface.
+ *   At the brightest point of their star glow (30% of the glow over the surface: #192f64
+ *   and #5b2a16), green (2.6:1, 2.38:1) and on Renegade magenta (2.98:1) fall under 3:1,
+ *   relieved as on Blueprint.
  */
 import { Match, Schema } from 'effect';
 
 import type { Category, RelationshipType } from './data';
 
-export const Theme = Schema.Literals(['night', 'blueprint', 'paper', 'contrast']);
+export const Theme = Schema.Literals([
+  'night',
+  'blueprint',
+  'paper',
+  'contrast',
+  'paragon',
+  'renegade',
+]);
 export type Theme = typeof Theme.Type;
 
 /** What the reader picked: a theme, or Auto, which follows their settings. */
-export const ThemeChoice = Schema.Literals(['auto', 'night', 'blueprint', 'paper', 'contrast']);
+export const ThemeChoice = Schema.Literals([
+  'auto',
+  'night',
+  'blueprint',
+  'paper',
+  'contrast',
+  'paragon',
+  'renegade',
+]);
 export type ThemeChoice = typeof ThemeChoice.Type;
 
 /** The reader's colour scheme and contrast settings, as the browser reports them. */
@@ -70,6 +91,11 @@ export type Tokens = Readonly<{
   accent: number;
   /** The stage's soft glow behind the radar; High contrast has none (its surface colour). */
   glow: number;
+  /** How strongly the glow shows at its brightest, 0 to 1. */
+  glowStrength: number;
+  /** A second colour ringing the glow, as the blue rim round a dying star; and how strongly. */
+  rim: number;
+  rimStrength: number;
   /** How strongly the shells tint what is inside them; 0 leaves only their equators. */
   shellOpacity: number;
   sky: Sky;
@@ -121,6 +147,9 @@ export const themes = {
     categoryOutline: 0xe8e8f0,
     accent: 0x3d79fa,
     glow: 0x3d79fa,
+    glowStrength: 0.1,
+    rim: 0x3d79fa,
+    rimStrength: 0,
     shellOpacity: 0.07,
     sky: 'stars',
     lift: 1,
@@ -142,6 +171,9 @@ export const themes = {
     categoryOutline: 0xf2f6fc,
     accent: 0xf2f6fc,
     glow: 0x3a64a0,
+    glowStrength: 0.1,
+    rim: 0x3a64a0,
+    rimStrength: 0,
     shellOpacity: 0.06,
     sky: 'grid',
     lift: 1,
@@ -163,6 +195,9 @@ export const themes = {
     categoryOutline: 0xf6f3ea,
     accent: 0x2a78d6,
     glow: 0xd6d2c4,
+    glowStrength: 0.1,
+    rim: 0xd6d2c4,
+    rimStrength: 0,
     shellOpacity: 0.045,
     sky: 'none',
     lift: 0,
@@ -190,12 +225,63 @@ export const themes = {
     categoryOutline: 0xffffff,
     accent: 0xffff00,
     glow: 0x000000,
+    glowStrength: 0,
+    rim: 0x000000,
+    rimStrength: 0,
     shellOpacity: 0,
     sky: 'none',
     lift: 0.4,
     edgeStrength: 2,
     categories: darkCategories,
     relationships: darkRelationships(0xd6d6d6),
+  },
+  paragon: {
+    scheme: 'dark',
+    surface: 0x0a1433,
+    panel: 0x08102a,
+    page: 0x060c22,
+    ink: 0xe8f1ff,
+    muted: 0x8fa4c8,
+    border: 0x24376b,
+    guide: 0x8fb4e6,
+    outline: 0x0a1433,
+    labelOutline: 0.012,
+    categoryOutline: 0xe8f1ff,
+    accent: 0x4fa3ff,
+    glow: 0x3d6fd6,
+    glowStrength: 0.3,
+    rim: 0x9fd8ff,
+    rimStrength: 0.08,
+    shellOpacity: 0.08,
+    sky: 'stars',
+    lift: 1,
+    edgeStrength: 1.1,
+    categories: darkCategories,
+    relationships: darkRelationships(0xc3cde0),
+  },
+  renegade: {
+    scheme: 'dark',
+    surface: 0x1a0b14,
+    panel: 0x14080f,
+    page: 0x10060c,
+    ink: 0xfbeee6,
+    muted: 0xc49a8c,
+    border: 0x4a2230,
+    guide: 0xd9a08a,
+    outline: 0x1a0b14,
+    labelOutline: 0.012,
+    categoryOutline: 0xfbeee6,
+    accent: 0xe8452c,
+    glow: 0xf2711c,
+    glowStrength: 0.3,
+    rim: 0x3d6fd6,
+    rimStrength: 0.14,
+    shellOpacity: 0.07,
+    sky: 'stars',
+    lift: 1,
+    edgeStrength: 1.1,
+    categories: darkCategories,
+    relationships: darkRelationships(0xe0c7bd),
   },
 } as const satisfies Readonly<Record<Theme, Tokens>>;
 
@@ -220,6 +306,9 @@ const autoTheme = (settings: ThemeSettings): Theme =>
     Match.orElse((): Theme => 'night'),
   );
 
+/** A share as a CSS percentage. */
+const percent = (share: number): string => `${Math.round(share * 100)}%`;
+
 /** A colour as CSS. */
 export const css = (colour: number): string => `#${colour.toString(16).padStart(6, '0')}`;
 
@@ -233,6 +322,9 @@ export type CssVariables = Readonly<{
   '--border': string;
   '--blue': string;
   '--glow': string;
+  '--glow-strength': string;
+  '--rim': string;
+  '--rim-strength': string;
   'color-scheme': ColorScheme;
 }>;
 
@@ -248,6 +340,9 @@ export const cssVariables = (theme: Theme): CssVariables => {
     '--border': css(tokens.border),
     '--blue': css(tokens.accent),
     '--glow': css(tokens.glow),
+    '--glow-strength': percent(tokens.glowStrength),
+    '--rim': css(tokens.rim),
+    '--rim-strength': percent(tokens.rimStrength),
     'color-scheme': tokens.scheme,
   };
 };
@@ -259,4 +354,6 @@ export const themeLabels = {
   blueprint: 'Blueprint',
   paper: 'Paper',
   contrast: 'High contrast',
+  paragon: 'Paragon',
+  renegade: 'Renegade',
 } as const satisfies Readonly<Record<ThemeChoice, string>>;

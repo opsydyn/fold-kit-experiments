@@ -115,41 +115,138 @@ order and shape are agreed, and each gets its own short plan before it is built.
 
 ---
 
-## 2. Deep links (sketch)
+## 2. Deep links
 
-- **What goes in the URL.** The query string records:
-  - the pinned entry, the edition, the view (home, universe, a cluster or a fly-to)
-  - filters, search, theme and whether edges are on
-- **What doesn't.** Not the raw camera position: a link opens on a named view, and the
-  view then flies there.
-- **Reading and writing.** A Command writes the URL with `history.replaceState` when one of
-  those fields changes. `init` reads it, so a shared link opens exactly there.
-- **Copy link.** A button in the details card and the breadcrumb.
-- **Tests:** encode/decode round-trips. Unknown or invalid parameters are dropped, never
-  thrown.
+**What the reader gets:** the address bar always describes the view, so a copied URL opens
+the radar exactly there. A **Copy link** button in the details card and the breadcrumb says
+"Link copied" in the readout.
 
-## 3. Flight recorder (sketch)
+- **The link's fields** (query string, all optional, unknown or invalid ones dropped):
+  - `entry`: the pinned entry
+  - `edition`: by date, so links survive new editions
+  - `view`: `universe`, `cluster:<category>` or `entry`, the last flying to `entry`
+  - `q`, `category`, `rings` (only when not all), `edges=off`
+  - `theme` (a picked theme; Auto is left out)
+- **Not the raw camera.** A drag is not a place worth linking, and camera noise would churn
+  the URL.
+- **Pure core** in `link.ts`: `linkOf(model)` gives the query string, and
+  `applyLink(model, params)` sets edition, filters, pin, theme and the view's camera.
+- **Reading the link.** `radar.astro` renders on the server, so it passes the page's query
+  parameters to the app as a `link` prop. `init` applies them on the server and the client
+  alike, so hydration matches.
+- **Writing the link.** The `update` wrapper compares `linkOf` before and after each step.
+  When it changes, it adds a `ReplaceLink` Command, which calls Foldkit's
+  `Navigation.replaceUrl` (no history entry per click).
+- **Theme in a link** applies for that visit only; it is not saved over the reader's own
+  choice.
+- **Copy link** is a Command writing `location.href` to the clipboard. If the clipboard
+  refuses, the readout says so.
+- **Tests:**
+  - `applyLink(linkOf(m))` round-trips every field.
+  - Garbage parameters are dropped.
+  - Drags and hovers never change the link.
+  - `init` with a link opens pinned, in the right edition and theme.
 
-- **Recording.** The app records the reader's intents with their timing: Messages such as
-  pins, flights, scrubs, theme changes and eggs, but not animation frames or pointer moves.
-- **Replay.** Feeds them back on a subscription clock, with a caption per step. Played back,
-  it is a guided tour.
-- **Sharing.** Export and import as JSON. A tour may later be shared in a deep link.
-- **Tests:** replaying a recording reproduces the recorded final Model exactly. It is a fold
-  over `update`, the property the Elm-style design makes free.
+## 3. Flight recorder (guided tours)
 
-## 4. Bring your own radar (sketch)
+**What the reader gets:** a **Tour** section in the sidebar: Record, Stop, Play, Save and
+Load. Play replays the session as a guided tour, with a caption bar over the stage ("Flies
+to FoldKit", "Scrubs to the second edition", "Shatters the Monolith").
 
-- **Loading.** A drop zone and file input in the sidebar takes JSON (`RadarDataset`) or a
-  CSV in the common radar format (name, ring, quadrant, description, ...).
-- **Errors.** Decoding goes through `decodeRadarDataset`, and the errors are listed in
-  words.
-- **Privacy.** The data stays in the browser. "Back to the demo" restores the fixture.
+- **What is recorded.** The reader's intents, in order, from an allowlist of Messages:
+  - pins, fly-tos, relays, cluster stops, universe and reset
+  - turns and zooms
+  - edition and play
+  - search, filters, rings, the edges toggle
+  - theme
+  - the Monolith and the Konami code
+- **What is not.** Drags, hovers and animation frames: a tour is the named moves, not mouse
+  noise.
+- **Where a tour starts.** A recording begins with `linkOf(model)` at the moment Record is
+  pressed. Replay first applies that link, then feeds the steps, so it starts where the
+  recording did.
+- **Pacing is by kind, not by wall-clock time,** so tours are deterministic and watchable:
+  - a flight or relay waits for its landing (about 2.4 s)
+  - a pin waits 1.5 s
+  - a filter or scrub waits 1.2 s
+  - playing the timeline waits for it to finish
+- **During playback** a subscription clock drives the steps. Any interaction of the
+  reader's stops the tour. Under reduced motion it steps without flights, cameras landing
+  at once.
+- **Saving and loading.** A tour is saved as a JSON file through a download Command, and
+  loaded through Foldkit's `File.select` and `readAsText`. Loading decodes against the
+  Message schema, and the readout reports a bad file in words.
+- **Tests:**
+  - The central property: folding `update` over a recording, from its start link, ends at
+    the Model the recording stopped at (comparing everything but cameras in flight and
+    clocks).
+  - Pacing is a pure table.
+  - Captions exist for every recorded kind.
+  - Disallowed Messages are never recorded.
 
-## 5. Finishing touches (sketch)
+## 4. Bring your own radar
 
-- **The opening shot.** The camera starts far out in the universe view and flies in as the
-  title fades. Under reduced motion, a fade only.
-- **Poster export.** Saves the current view as a PNG, Blueprint at its best. It may need
-  effect-three to keep or read back the drawing buffer; check that first and raise it there
-  if so.
+**What the reader gets:** a **Data** section with **Load your radar…** (`.json` or `.csv`)
+and **Back to the demo**. The file is read in the browser and never leaves it.
+
+- **JSON:** a `RadarDataset`, validated by the existing `decodeRadarDataset`, so it may
+  carry relationships and editions too.
+- **CSV:** the common tech-radar sheet format, `name, ring, quadrant, isNew, description`,
+  with an optional `url`.
+  - Quadrant names map case-insensitively to the four categories (Techniques, Tools,
+    Platforms, Languages & Frameworks); `Hold` maps to Caution.
+  - Ids are slugs of the names, made unique.
+  - A small pure parser handles quoted fields and commas inside quotes.
+- **`sourceUrl` becomes optional** in the entry schema. Today it is required and must parse
+  as a URL, which a sheet without links would fail. The details card hides "Source" when
+  there is none.
+- **Errors** list in the panel by row and field ("Row 7: ring 'Later' is not adopt, trial,
+  assess or hold"). Nothing loads until the file is clean.
+- **What follows the data:**
+  - With no editions the timeline hides; with no relationships, the edges and moons do.
+  - The fixture's own eggs (the Futhark saucer, the CAP moons on Local-first sync) simply
+    don't appear. The others work on any data.
+  - A deep link to an entry the loaded data lacks drops the pin.
+- **Tests:** the CSV parser (quoting, blank lines, BOM), quadrant and ring mapping, id
+  uniqueness, error messages, and a loaded radar rendering a scene.
+
+## 5. Finishing touches
+
+**The opening shot**
+
+- The first time the radar opens, the camera starts far out above it and flies in to home
+  (or to a deep link's view), while a title card ("3D tech radar", the edition date) fades
+  away.
+- **How:** the model starts with an `opening` camera. On the scene's `StartedScene`
+  lifecycle event, `update` sets the real target, and the existing flight damping does the
+  rest. This is pure, with no timers.
+- Under reduced motion the camera starts at its target and the title only fades.
+
+**Poster export**
+
+- A **Save poster** button saves the current view as a PNG:
+  - the stage, plus a strip with the title, edition, theme and date
+  - named `tech-radar-<theme>-<date>.png`
+  - Blueprint is the showpiece.
+- **How:**
+  - The radar gets its own mount whose WebGL renderer passes `preserveDrawingBuffer: true`.
+    effect-three's renderer factory already forwards renderer options, so no library change
+    is needed.
+  - A Command draws the stage canvas and the caption strip onto an offscreen canvas and
+    downloads it.
+  - Labels are drawn in the canvas (troika), so they come along. HTML overlays don't.
+- **WebGPU pages:** where the page draws with WebGPU (`?renderer=webgpu`), capture differs,
+  so the button hides there. That's noted as a follow-up for effect-three.
+- **Tests:**
+  - The opening steps (start, then the lifecycle sets the target, and reduced motion skips
+    it).
+  - The poster's file name and caption text.
+  - The canvas capture itself is checked in the browser.
+
+## Order and delivery
+
+- **Each item is its own branch and PR,** in the order above, after the themes PR. Deep
+  links include the theme, and tours build on deep links.
+- **Each is verified** with the full suites, `bun run check` and a Chromium pass at desktop
+  and 375px.
+- **Each is committed locally,** and pushed and opened as a PR only when asked.

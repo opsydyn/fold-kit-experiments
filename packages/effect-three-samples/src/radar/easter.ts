@@ -28,6 +28,7 @@ import {
 import { Match, Option } from 'effect';
 
 import { capGeometries, capMaterials, capNodes, capReadout, isCapKey } from './capMoons';
+import { cometGeometries, cometMaterials, cometNodes } from './comet';
 import { constellationNodes, constellationReadout } from './constellations';
 import { invaderGeometries, invaderNodes, invasionReadout } from './invaders';
 import type { RadarPosition } from './layout';
@@ -421,9 +422,11 @@ export const eggNodes = (model: Model): ReadonlyArray<SceneNode> => [
   ...capNodes(model),
   ...constellationNodes(model),
   ...invaderNodes(model),
+  ...cometNodes(model),
 ];
 
 export const eggGeometries = [
+  ...cometGeometries,
   ...invaderGeometries,
   ...capGeometries,
   { id: 'egg:hull', geometry: sphere({ radius: 0.26, widthSegments: 24, heightSegments: 12 }) },
@@ -448,6 +451,7 @@ export const eggGeometries = [
 ];
 
 export const eggMaterials = [
+  ...cometMaterials,
   ...capMaterials,
   { id: 'egg:metal', material: standard({ color: 0xb8bcc8, metalness: 0.6, roughness: 0.35 }) },
   {

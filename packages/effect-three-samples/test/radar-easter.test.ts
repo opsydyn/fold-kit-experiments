@@ -4,6 +4,7 @@ import type { SceneNode, Vec3 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 
 import { capHost, capMoons, capOrbit, capShows, missingMoon } from '../src/radar/capMoons';
+import { cometAt, cometLeg, cometMoves, cometRoute, cometShows } from '../src/radar/comet';
 import {
   alignedOf,
   alignment,
@@ -39,7 +40,14 @@ import {
   stepOf,
 } from '../src/radar/invaders';
 import { Message } from '../src/radar/message';
-import { cameraFov, homeCamera, type Model, positionsOf, visibleOf } from '../src/radar/model';
+import {
+  cameraFov,
+  homeCamera,
+  type Model,
+  positionOf,
+  positionsOf,
+  visibleOf,
+} from '../src/radar/model';
 import { acrossView, frameOf, viewOf } from '../src/radar/placement';
 import { sceneFor } from '../src/radar/scene';
 import { blipPosition, onSphere, outerRadius, zoomLimits } from '../src/radar/space';
@@ -312,6 +320,53 @@ describe('Conway’s Law invaders', () => {
   });
 });
 
+describe('the Kafka comet', () => {
+  const kafka = step(start, Message.ChangedQuery({ query: 'kafka' }));
+  const at = (model: Model, clock: number) => cometAt({ ...model, cometClock: clock });
+
+  test('rides every visible Builds on edge in turn, from the foundation to its builder', () => {
+    const route = cometRoute(kafka);
+    expect(route.map(({ type }) => type)).toEqual(Array.from({ length: 5 }, () => 'builds-on'));
+    expect(cometRoute(step(start, Message.ChangedQuery({ query: 'elm' })))).toEqual([]);
+    expect(Option.getOrUndefined(at(kafka, 0))?.edge).toEqual(route[0]);
+    const second = Option.getOrUndefined(at(kafka, cometLeg * 1.5));
+    expect(second?.edge).toEqual(route[1]);
+    expect(second?.along).toBeCloseTo(0.5, 9);
+    expect(Option.getOrUndefined(at(kafka, cometLeg * 5))?.edge).toEqual(route[0]);
+  });
+
+  test('its head sets out from the foundation, trailing its messages', () => {
+    const first = cometRoute(kafka)[0];
+    const head = Option.getOrUndefined(
+      Option.flatMap(asGroup(nodeAt(kafka, 'egg:comet')), ({ children }) =>
+        Option.fromNullishOr(children[0]),
+      ),
+    );
+    const foundation = Option.getOrUndefined(positionOf(kafka, first?.to ?? ''));
+    expect(foundation).toBeDefined();
+    if (foundation !== undefined) {
+      head?.position.forEach((value, axis) =>
+        expect(value).toBeCloseTo(blipPosition(foundation)[axis] ?? 0, 6),
+      );
+    }
+    const messages = Option.match(asGroup(nodeAt(kafka, 'egg:comet')), {
+      onNone: () => 0,
+      onSome: ({ children }) => children.length,
+    });
+    expect(messages).toBeGreaterThan(3);
+  });
+
+  test('only “kafka” sends it; it holds still under reduced motion; the readout explains', () => {
+    expect(cometShows(start)).toBe(false);
+    expect(eggKeys(start)).not.toContain('egg:comet');
+    expect(cometMoves(kafka)).toBe(true);
+    expect(cometMoves({ ...kafka, reducedMotion: true })).toBe(false);
+    const ticked = step(kafka, Message.AdvancedComet({ deltaTimeMs: 250 }));
+    expect(ticked.cometClock).toBe(250);
+    expect(Option.getOrUndefined(eggReadout(kafka))).toContain('append-only log');
+  });
+});
+
 describe('the Monolith', () => {
   const universe = step(start, Message.ClickedUniverse());
 
@@ -383,6 +438,7 @@ describe('magic words', () => {
       'microservices',
       '42',
       'cobol',
+      'kafka',
     ]);
     expect(summoned('  COBOL ')).toEqual(Option.some('cobol'));
     for (const miss of ['monoliths', 'mono', 'cobol code', '', '4 2']) {

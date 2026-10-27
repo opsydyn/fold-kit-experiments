@@ -6,6 +6,7 @@
 import { Duration, Option } from 'effect';
 import { Dom, Subscription } from 'foldkit';
 
+import { cometMoves } from './comet';
 import { konamiCode } from './invaders';
 import { Message } from './message';
 import type { Model } from './model';
@@ -35,6 +36,10 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
   invasion: Subscription.animationFrameEntry({
     isActive: (model) => Option.isSome(model.invasion),
     toMessage: (deltaTimeMs) => Message.AdvancedInvasion({ deltaTimeMs }),
+  }),
+  comet: Subscription.animationFrameEntry({
+    isActive: cometMoves,
+    toMessage: (deltaTimeMs) => Message.AdvancedComet({ deltaTimeMs }),
   }),
   reducedMotion: Subscription.persistentEntry(
     Dom.streamFromMediaQuery({

@@ -6,7 +6,7 @@ import { Option } from 'effect';
 
 import type { MonolithState } from './model';
 
-export const magicWords = ['monolith', 'microservices', '42', 'cobol'] as const;
+export const magicWords = ['monolith', 'microservices', '42', 'cobol', 'kafka'] as const;
 export type MagicWord = (typeof magicWords)[number];
 
 /** The words that bring the Monolith, from any view: whole, or already shattered. */
@@ -15,6 +15,7 @@ export const monolithSummons = {
   microservices: 'shattered',
   '42': null,
   cobol: null,
+  kafka: null,
 } as const satisfies Readonly<Record<MagicWord, MonolithState | null>>;
 
 /** The Monolith a search calls for, in the state it is called in, if it calls for one. */
@@ -27,6 +28,7 @@ export const answers = {
   microservices: null,
   '42': 'Deep Thought has computed the answer. The question is still being worked on.',
   cobol: null,
+  kafka: 'Kafka: one append-only log, replayed along every Builds on edge in turn',
 } as const satisfies Readonly<Record<MagicWord, string | null>>;
 
 /** The egg a search summons: the whole query, trimmed and in any case, must be the word. */

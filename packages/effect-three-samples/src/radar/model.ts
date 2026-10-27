@@ -48,6 +48,8 @@ export const Model = Schema.Struct({
   saucerVisits: Schema.Number,
   /** The Konami code's invasion under way: milliseconds since it began. */
   invasion: Schema.Option(Schema.Number),
+  /** The Kafka comet's clock, in milliseconds: where along its route it has got to. */
+  cometClock: Schema.Number,
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
   /** The category whose sector the camera last stopped at, for the breadcrumb. */
@@ -167,6 +169,7 @@ export const initialModel = (
   monolith: 'whole',
   saucerVisits: 0,
   invasion: Option.none(),
+  cometClock: 0,
   selected: Option.none(),
   cluster: Option.none(),
   journey: Option.none(),

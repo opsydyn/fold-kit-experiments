@@ -3,6 +3,7 @@ import { Match, Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
+import { advanceComet } from './comet';
 import { ringIds, type Ring } from './data';
 import { idOfSaucer } from './easter';
 import { advanceInvasion } from './invaders';
@@ -321,6 +322,7 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
     AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
+    AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
     ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

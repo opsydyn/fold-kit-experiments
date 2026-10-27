@@ -17,6 +17,7 @@ export const Message = defineMessageUnion({
   ClickedMonolith: {},
   EnteredKonamiCode: {},
   AdvancedInvasion: { deltaTimeMs: Schema.Number },
+  AdvancedComet: { deltaTimeMs: Schema.Number },
   ClickedEntry: { id: Schema.String },
   ClickedFlyTo: { id: Schema.String },
   ChangedQuery: { query: Schema.String },

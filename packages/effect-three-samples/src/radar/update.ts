@@ -19,6 +19,7 @@ import {
   isVisible,
   type Model,
   positionOf,
+  type RadarProps,
 } from './model';
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
 import { zoomedPosition, zoomLimits } from './space';
@@ -226,8 +227,8 @@ const orbited = (model: Model, gesture: Gesture): Model =>
     })),
   );
 
-export const init = (props: { readonly assetBase?: string } = {}) => ({
-  model: initialModel(props.assetBase ?? '/models/'),
+export const init = (props: RadarProps = {}) => ({
+  model: initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
 });
 
 const step = (model: Model, message: Message): AppReturn =>

@@ -1,0 +1,57 @@
+---
+/*
+ * A standalone app's document: no site navigation, the viewport its whole canvas, and
+ * nothing that scrolls the page. The app brings its own way back to the site.
+ */
+interface Props {
+  title: string;
+  lang?: string;
+}
+const { title, lang = 'en' } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background: #0a0a14;
+    color: #e8e8f0;
+    font-family: system-ui, sans-serif;
+  }
+
+  /* The island and the app's root fill the viewport, so the app can lay itself out in it. */
+  body > astro-island,
+  body > astro-island > * {
+    display: block;
+    height: 100dvh;
+  }
+</style>

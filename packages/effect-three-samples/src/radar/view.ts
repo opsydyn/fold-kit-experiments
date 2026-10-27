@@ -1,6 +1,6 @@
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Match, Option } from 'effect';
-import type { Document, Html, HtmlBuilder } from 'foldkit/html';
+import type { Attribute, Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { sceneMount } from '../labelledEnvironment';
 import { bodyLabels, bodyOf } from './bodies';
@@ -50,7 +50,7 @@ const readout = (model: Model): string =>
     ),
     {
       onNone: () =>
-        'Hover a blip to read it. Click to pin it, double-click to fly to it; click empty space to clear. Drag to look round.',
+        'Hover a blip to read it · click to pin · double-click to fly there · drag to look round',
       onSome: ({ entry }) => describe(entry),
     },
   );
@@ -61,90 +61,161 @@ const categoryOf = (value: string): CategoryFilter =>
     () => 'all' as const,
   );
 
-const filterControls = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const counts = countRings(presentOf(model), filtersOf(model));
-  return h.div(
-    [h.Class('e3-controls'), h.AriaLabel('Filters')],
+/** A titled group of the sidebar's controls, with any of its own actions beside the title. */
+const panelSection = (
+  h: HtmlBuilder<Message>,
+  title: string,
+  children: ReadonlyArray<Html>,
+  actions: ReadonlyArray<Html> = [],
+): Html =>
+  h.section(
+    [h.Class('e3-panel-section'), h.AriaLabel(title)],
     [
-      h.input([
-        h.Class('e3-text'),
-        h.Type('search'),
-        h.AriaLabel('Search entries'),
-        h.Placeholder('Search entries'),
-        h.Value(model.query),
-        h.OnInput((query) => Message.ChangedQuery({ query })),
-      ]),
-      h.select(
-        [
-          h.Class('e3-text'),
-          h.AriaLabel('Category'),
-          h.Value(model.category),
-          h.OnChange((value) => Message.ChangedCategory({ category: categoryOf(value) })),
-        ],
-        [
-          h.option([h.Value('all')], ['All categories']),
-          ...categoryIds.map((category) =>
-            h.option([h.Value(category)], [categoryLabels[category]]),
-          ),
-        ],
+      h.div(
+        [h.Class('e3-panel-heading-row')],
+        [h.h2([h.Class('e3-panel-heading')], [title]), ...actions],
       ),
-      ...ringIds.map((ring) =>
-        h.button(
+      ...children,
+    ],
+  );
+
+/** A small text action in a section's heading row. */
+const headingAction = (
+  h: HtmlBuilder<Message>,
+  attributes: ReadonlyArray<Attribute<Message>>,
+  label: string,
+): Html => h.button([h.Class('e3-heading-action'), h.Type('button'), ...attributes], [label]);
+
+/** A small square button whose name is spoken and shown on hover, its face a glyph. */
+const iconButton = (
+  h: HtmlBuilder<Message>,
+  glyph: string,
+  label: string,
+  message: Message,
+): Html =>
+  h.button(
+    [
+      h.Class('e3-button e3-icon-button'),
+      h.Type('button'),
+      h.AriaLabel(label),
+      h.Title(label),
+      h.OnClick(message),
+    ],
+    [glyph],
+  );
+
+const findControls = (model: Model, h: HtmlBuilder<Message>): Html =>
+  panelSection(h, 'Find', [
+    h.div(
+      [h.Class('e3-stack')],
+      [
+        h.input([
+          h.Class('e3-text'),
+          h.Type('search'),
+          h.AriaLabel('Search entries'),
+          h.Placeholder('Search entries'),
+          h.Value(model.query),
+          h.OnInput((query) => Message.ChangedQuery({ query })),
+        ]),
+        h.select(
           [
-            h.Class('e3-button'),
-            h.Type('button'),
-            h.AriaPressed(String(model.enabledRings.includes(ring))),
-            h.OnClick(Message.ClickedRing({ ring })),
+            h.Class('e3-text'),
+            h.AriaLabel('Category'),
+            h.Value(model.category),
+            h.OnChange((value) => Message.ChangedCategory({ category: categoryOf(value) })),
           ],
-          [`${ringLabels[ring]} (${counts[ring]})`],
+          [
+            h.option([h.Value('all')], ['All categories']),
+            ...categoryIds.map((category) =>
+              h.option([h.Value(category)], [categoryLabels[category]]),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ]);
+
+const ringControls = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const counts = countRings(presentOf(model), filtersOf(model));
+  return panelSection(
+    h,
+    'Rings',
+    [
+      h.div(
+        [h.Class('e3-grid-2')],
+        ringIds.map((ring) =>
+          h.button(
+            [
+              h.Class('e3-button'),
+              h.Type('button'),
+              h.AriaPressed(String(model.enabledRings.includes(ring))),
+              h.OnClick(Message.ClickedRing({ ring })),
+            ],
+            [`${ringLabels[ring]} (${counts[ring]})`],
+          ),
         ),
       ),
-      button(h, 'Clear filters', Message.ClickedClearFilters()),
     ],
+    [headingAction(h, [h.OnClick(Message.ClickedClearFilters())], 'Clear filters')],
   );
 };
 
-const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [h.Class('e3-controls'), h.AriaLabel('View')],
+const viewControls = (h: HtmlBuilder<Message>): Html =>
+  panelSection(h, 'View', [
+    h.div(
+      [h.Class('e3-toolbar')],
+      [
+        iconButton(h, '↺', 'Turn left', Message.ClickedTurn({ direction: 'left' })),
+        iconButton(h, '↻', 'Turn right', Message.ClickedTurn({ direction: 'right' })),
+        iconButton(h, '−', 'Zoom out', Message.ClickedZoom({ direction: 'out' })),
+        iconButton(h, '+', 'Zoom in', Message.ClickedZoom({ direction: 'in' })),
+      ],
+    ),
+    h.div(
+      [h.Class('e3-grid-2')],
+      [
+        button(h, 'Reset view', Message.ClickedResetView()),
+        button(h, 'Universe view', Message.ClickedUniverse()),
+      ],
+    ),
+  ]);
+
+/** The relationship key: each type's colour and line style beside its name, and a toggle. */
+const relationshipLegend = (model: Model, h: HtmlBuilder<Message>): Html =>
+  panelSection(
+    h,
+    'Relationships',
     [
-      button(h, 'Turn left', Message.ClickedTurn({ direction: 'left' })),
-      button(h, 'Turn right', Message.ClickedTurn({ direction: 'right' })),
-      button(h, 'Zoom in', Message.ClickedZoom({ direction: 'in' })),
-      button(h, 'Zoom out', Message.ClickedZoom({ direction: 'out' })),
-      button(h, 'Reset view', Message.ClickedResetView()),
-      button(h, 'Universe view', Message.ClickedUniverse()),
-      h.button(
+      h.ul(
+        [h.Class('e3-key')],
+        relationshipTypes.map((type) =>
+          h.li(
+            [],
+            [
+              h.span(
+                [
+                  h.Class('e3-edge-swatch'),
+                  h.Style({ borderTop: `3px ${relationshipLines[type]} ${relationshipCss(type)}` }),
+                ],
+                [],
+              ),
+              relationshipLabels[type],
+            ],
+          ),
+        ),
+      ),
+    ],
+    [
+      headingAction(
+        h,
         [
-          h.Class('e3-button'),
-          h.Type('button'),
+          h.AriaLabel('Show relationships'),
           h.AriaPressed(String(model.showRelationships)),
           h.OnClick(Message.ClickedRelationships()),
         ],
-        ['Relationships'],
+        'Show',
       ),
     ],
-  );
-
-/** The relationship key: each type's colour and line style beside its name. */
-const relationshipLegend = (h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [h.Class('e3-controls'), h.AriaLabel('Relationships')],
-    relationshipTypes.map((type) =>
-      h.span(
-        [h.Class('e3-tag')],
-        [
-          h.span(
-            [
-              h.Class('e3-edge-swatch'),
-              h.Style({ borderTop: `3px ${relationshipLines[type]} ${relationshipCss(type)}` }),
-            ],
-            [],
-          ),
-          relationshipLabels[type],
-        ],
-      ),
-    ),
   );
 
 /** One relationship of the pinned entry: choosing it pins the entry at the other end. */
@@ -199,24 +270,28 @@ const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyA
  * rides on every label and list row, never colour alone.
  */
 const legend = (h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [h.Class('e3-controls'), h.AriaLabel('Categories')],
-    categoryIds.map((category) =>
-      h.button(
-        [
-          h.Class('e3-button'),
-          h.Type('button'),
-          h.AriaLabel(`Fly to ${categoryLabels[category]}`),
-          h.OnClick(Message.ClickedCluster({ category })),
-        ],
-        [
-          h.span([h.Class('e3-swatch'), h.Style({ background: categoryCss(category) })], []),
-          `${categoryLabels[category]} · ${bodyLabels[bodyOf[category]]}`,
-        ],
+  panelSection(h, 'Categories', [
+    h.div(
+      [h.Class('e3-stack')],
+      categoryIds.map((category) =>
+        h.button(
+          [
+            h.Class('e3-button e3-legend-button'),
+            h.Type('button'),
+            h.AriaLabel(`Fly to ${categoryLabels[category]}`),
+            h.OnClick(Message.ClickedCluster({ category })),
+          ],
+          [
+            h.span([h.Class('e3-swatch'), h.Style({ background: categoryCss(category) })], []),
+            categoryLabels[category],
+            h.span([h.Class('e3-legend-body')], [bodyLabels[bodyOf[category]]]),
+          ],
+        ),
       ),
     ),
-  );
+  ]);
 
+/** The pinned entry, as a card floating over the stage's top right on wide screens. */
 const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   Option.match(
     Option.flatMap(model.selected, (id) => positionOf(model, id)),
@@ -224,7 +299,7 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
       onNone: () => [],
       onSome: ({ entry }) => [
         h.section(
-          [h.Class('e3-stat'), h.AriaLabel('Selected entry')],
+          [h.Class('e3-details'), h.AriaLabel('Selected entry')],
           [
             h.h3([], [entry.name]),
             h.p([h.Class('e3-note')], [describe(entry)]),
@@ -275,24 +350,29 @@ const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
     [h.Class('e3-table')],
     [
       h.summary([], [`Entries (${visible.length} of ${presentOf(model).length})`]),
-      h.table(
-        [],
+      h.div(
+        [h.Class('e3-table-scroll')],
         [
-          h.caption([], ['Choose an entry to pin it and turn the radar to face it']),
-          h.thead(
+          h.table(
             [],
             [
-              h.tr(
+              h.caption([], ['Choose an entry to pin it and turn the radar to face it']),
+              h.thead(
                 [],
-                ['#', 'Entry', 'Category', 'Ring'].map((heading) =>
-                  h.th([h.Scope('col')], [heading]),
-                ),
+                [
+                  h.tr(
+                    [],
+                    ['#', 'Entry', 'Category', 'Ring'].map((heading) =>
+                      h.th([h.Scope('col')], [heading]),
+                    ),
+                  ),
+                ],
+              ),
+              h.tbody(
+                [],
+                visible.map((position) => entryRow(model, h, position)),
               ),
             ],
-          ),
-          h.tbody(
-            [],
-            visible.map((position) => entryRow(model, h, position)),
           ),
         ],
       ),
@@ -346,8 +426,9 @@ const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   );
   return [
     h.section(
-      [h.Class('e3-timeline'), h.AriaLabel('Timeline')],
+      [h.Class('e3-panel-section e3-timeline'), h.AriaLabel('Timeline')],
       [
+        h.h2([h.Class('e3-panel-heading')], ['Timeline']),
         h.div(
           [h.Class('e3-controls')],
           [
@@ -470,7 +551,45 @@ const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
   );
 };
 
+/** The sidebar's header: the radar's name and the host page's links out. */
+const header = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.header(
+    [h.Class('e3-panel-header')],
+    [
+      h.h1([h.Class('e3-panel-title')], ['3D tech radar']),
+      h.nav(
+        [h.Class('e3-panel-links'), h.AriaLabel('Elsewhere')],
+        model.links.map(({ label, href }) => h.a([h.Href(href)], [label])),
+      ),
+    ],
+  );
+
+/**
+ * The sidebar: every control in one column beside the stage, in the order a reader
+ * reaches for them, from finding an entry to the full list.
+ */
+const sidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.aside(
+    [h.Class('e3-sidebar'), h.AriaLabel('Radar controls')],
+    [
+      header(model, h),
+      findControls(model, h),
+      ringControls(model, h),
+      viewControls(h),
+      ...timeline(model, h),
+      legend(h),
+      relationshipLegend(model, h),
+      entryTable(model, h),
+      h.p([h.Class('e3-note')], [`${demoNotice}.`]),
+    ],
+  );
+
+/**
+ * The radar as a standalone app: the stage fills the screen beside the sidebar, with the
+ * breadcrumb, readout, minimap and pinned entry floating over it, so nothing scrolls.
+ */
 const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
+  sidebar(model, h),
   h.div(
     [h.Class('e3-stage-frame')],
     [
@@ -478,7 +597,7 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
         {
           scene: sceneFor(model),
           mount: sceneMount,
-          className: 'e3-stage e3-stage-square',
+          className: 'e3-stage e3-stage-fill',
           onLifecycle: (lifecycle) => Message.ReceivedSceneLifecycle({ lifecycle }),
           onPointerEnter: ({ key }) => Message.HoveredBlip({ key }),
           onPointerLeave: ({ key }) => Message.LeftBlip({ key }),
@@ -490,24 +609,11 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
         h,
       ),
       breadcrumb(model, h),
+      h.p([h.Class('e3-readout e3-stage-readout'), h.AriaLive('polite')], [readout(model)]),
       minimap(model, h),
     ],
   ),
-  h.p([h.Class('e3-readout'), h.AriaLive('polite')], [readout(model)]),
-  filterControls(model, h),
-  viewControls(model, h),
-  ...timeline(model, h),
-  legend(h),
-  relationshipLegend(h),
   ...details(model, h),
-  h.p(
-    [h.Class('e3-note')],
-    [
-      `${demoNotice}. Each ring is a shell, adopt innermost; each category owns a quarter of `,
-      'the sphere. The 2D radar projects these same coordinates; here they are the scene.',
-    ],
-  ),
-  entryTable(model, h),
 ];
 
 const content = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
@@ -519,5 +625,5 @@ const content = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
   title: '3D tech radar — effect-three',
-  body: h.div([h.Class('e3-sample')], content(model, h)),
+  body: h.div([h.Class('e3-sample e3-app')], content(model, h)),
 });

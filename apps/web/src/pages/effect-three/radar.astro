@@ -1,17 +1,13 @@
 ---
 import SampleApp from '../../apps/effect-three-radar/app';
-import * as barStyles from '../../apps/bar/bar.css';
-import Layout from '../../layouts/Layout.astro';
-import * as layoutStyles from '../../layouts/layout.css';
+import AppLayout from '../../layouts/AppLayout.astro';
+
+const links = [
+  { label: '← effect-three samples', href: '/effect-three' },
+  { label: 'The radar in 2D', href: '/functional-ai-radar' },
+];
 ---
 
-<Layout title="3D tech radar — effect-three">
-  <h1 class={layoutStyles.heading}>3D tech radar</h1>
-  <p>
-    <a href="/effect-three">← All effect-three samples</a> ·
-    <a href="/functional-ai-radar">The same radar in 2D</a>
-  </p>
-  <div class={barStyles.card} style="max-width:880px">
-    <SampleApp client:load assetBase="/models/" />
-  </div>
-</Layout>
+<AppLayout title="3D tech radar — effect-three">
+  <SampleApp client:load assetBase="/models/" links={links} />
+</AppLayout>

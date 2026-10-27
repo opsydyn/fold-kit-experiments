@@ -27,6 +27,7 @@ import {
 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 
+import { capGeometries, capMaterials, capNodes, capReadout, isCapKey } from './capMoons';
 import type { RadarPosition } from './layout';
 import { editionsOf, type Model, type MonolithState, presentOf } from './model';
 import { easeInOut } from './relay';
@@ -379,34 +380,44 @@ export const eggReadout = (model: Model): Option.Option<string> =>
     Option.flatMap(summoned(model.query), (word) => Option.fromNullishOr(answers[word])),
   );
 
+/** Reads what one egg says when the pointer is over a key, if the key is that egg's. */
+type EggReader = (model: Model, key: string) => Option.Option<string>;
+
+/** A reader for an egg recognised by its key alone. */
+const saying =
+  (matches: (key: string) => boolean, say: (model: Model) => string): EggReader =>
+  (model, key) =>
+    Option.map(Option.liftPredicate(key, matches), () => say(model));
+
+const eggReaders: ReadonlyArray<EggReader> = [
+  (model, key) => Option.flatMap(idOfSaucer(key), (id) => saucerReadout(model, id)),
+  (model, key) =>
+    Option.filter(
+      saying(isMonolithKey, ({ monolith }) => monolithReadouts[monolith])(model, key),
+      () => monolithShows(model),
+    ),
+  saying(isProbeKey, () => 'COBOL: still running, very far away'),
+  saying(isCapKey, capReadout),
+];
+
+/** The first of these that has something. */
+const firstSome = (options: ReadonlyArray<Option.Option<string>>): Option.Option<string> =>
+  Option.flatten(Option.fromNullishOr(options.find(Option.isSome)));
+
 /** What the egg under the pointer says. */
 const hoveredReadout = (model: Model): Option.Option<string> =>
-  Option.flatMap(model.hoveredEgg, (key) =>
-    Option.orElse(
-      Option.flatMap(idOfSaucer(key), (id) => saucerReadout(model, id)),
-      () =>
-        Option.map(
-          Option.liftPredicate(key, (hovered) => isMonolithKey(hovered) && monolithShows(model)),
-          () => monolithReadouts[model.monolith],
-        ),
-    ).pipe(
-      Option.orElse(() =>
-        Option.map(
-          Option.liftPredicate(key, (hovered) => isProbeKey(hovered)),
-          () => 'COBOL: still running, very far away',
-        ),
-      ),
-    ),
-  );
+  Option.flatMap(model.hoveredEgg, (key) => firstSome(eggReaders.map((read) => read(model, key))));
 
 /** Every egg's nodes, for the scene to append after the radar's own. */
 export const eggNodes = (model: Model): ReadonlyArray<SceneNode> => [
   ...abductionNodes(model),
   ...monolithNodes(model),
   ...probeNodes(model),
+  ...capNodes(model),
 ];
 
 export const eggGeometries = [
+  ...capGeometries,
   { id: 'egg:hull', geometry: sphere({ radius: 0.26, widthSegments: 24, heightSegments: 12 }) },
   { id: 'egg:dome', geometry: sphere({ radius: 0.1, widthSegments: 16, heightSegments: 8 }) },
   {
@@ -429,6 +440,7 @@ export const eggGeometries = [
 ];
 
 export const eggMaterials = [
+  ...capMaterials,
   { id: 'egg:metal', material: standard({ color: 0xb8bcc8, metalness: 0.6, roughness: 0.35 }) },
   {
     id: 'egg:dome',

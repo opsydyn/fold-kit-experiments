@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import type { SceneNode, Vec3 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 
+import { capHost, capMoons, capOrbit, capShows, missingMoon } from '../src/radar/capMoons';
 import {
   blockCount,
   departuresIn,
@@ -25,7 +26,7 @@ import { Message } from '../src/radar/message';
 import { cameraFov, type Model, positionsOf, visibleOf } from '../src/radar/model';
 import { acrossView, frameOf, viewOf } from '../src/radar/placement';
 import { sceneFor } from '../src/radar/scene';
-import { blipPosition, outerRadius } from '../src/radar/space';
+import { blipPosition, onSphere, outerRadius } from '../src/radar/space';
 import { magicWords, summoned } from '../src/radar/summon';
 import { changesIn, playStep } from '../src/radar/timeline';
 import { init, update } from '../src/radar/update';
@@ -150,6 +151,42 @@ describe('the fallacies of distributed computing', () => {
     expect(fallacies).toHaveLength(8);
     // Hovering anything else leaves the count alone.
     expect(step(third, Message.HoveredEgg({ key: 'egg:monolith' })).saucerVisits).toBe(0);
+  });
+});
+
+describe('the CAP moons', () => {
+  const near = step(start, Message.ClickedFlyTo({ id: capHost.id }));
+  const moonScales = (model: Model): ReadonlyArray<number> =>
+    Option.match(asGroup(firstChild(nodeAt(model, 'egg:cap'))), {
+      onNone: () => [],
+      onSome: ({ children }) => children.map((moon) => moon.scale[0]),
+    });
+
+  test('circle Local-first sync only up close, and only while it is on the radar', () => {
+    expect(capShows(start)).toBe(false);
+    expect(eggKeys(start)).not.toContain('egg:cap');
+    expect(capShows(near)).toBe(true);
+    expect(eggKeys(near)).toContain('egg:cap');
+    expect(capShows(step(near, Message.ChangedQuery({ query: 'elm' })))).toBe(false);
+  });
+
+  test('from any bearing one of the three is gone: you can never see all three', () => {
+    const scales = moonScales(near);
+    expect(scales).toHaveLength(3);
+    expect(scales.filter((scale) => scale === 1)).toHaveLength(2);
+    const gone = new Set(
+      [0, 60, 130, 200, 250, 330].map((bearing) => missingMoon(onSphere(bearing, 20, 6))),
+    );
+    expect([...gone].sort()).toEqual([0, 1, 2]);
+  });
+
+  test('over them, the readout says which two this side keeps', () => {
+    const over = step(near, Message.HoveredEgg({ key: 'egg:cap:moon:1' }));
+    const kept = capMoons.filter((_, index) => index !== missingMoon(near.camera.position));
+    const said = Option.getOrUndefined(eggReadout(over)) ?? '';
+    expect(said.startsWith('CAP: Consistency, Availability, Partition tolerance.')).toBe(true);
+    expect(said.endsWith(`from here, ${kept.join(' and ')}`)).toBe(true);
+    expect(capOrbit.radius).toBeGreaterThan(0.24 * 1.6);
   });
 });
 

@@ -172,13 +172,13 @@ const iconButton = (
 const findControls = (model: Model, h: HtmlBuilder<Message>): Html =>
   panelSection(h, 'Find', [
     h.div(
-      [h.Class('e3-stack')],
+      [h.Class('e3-find')],
       [
         h.input([
           h.Class('e3-text'),
           h.Type('search'),
           h.AriaLabel('Search entries'),
-          h.Placeholder('Search entries'),
+          h.Placeholder('Search'),
           h.Value(model.query),
           h.OnInput((query) => Message.ChangedQuery({ query })),
         ]),
@@ -520,7 +520,14 @@ const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
     h.section(
       [h.Class('e3-panel-section e3-timeline'), h.AriaLabel('Timeline')],
       [
-        h.h2([h.Class('e3-panel-heading')], ['Timeline']),
+        // The edition shown sits beside the heading, so the row below is only its controls.
+        h.div(
+          [h.Class('e3-panel-heading-row')],
+          [
+            h.h2([h.Class('e3-panel-heading')], ['Timeline']),
+            h.span([h.Class('e3-heading-status')], [`${shown.label} · ${shown.authoredOn}`]),
+          ],
+        ),
         h.div(
           [h.Class('e3-controls')],
           [
@@ -536,10 +543,19 @@ const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
               h.Attribute('aria-valuetext', `${shown.label}, ${shown.authoredOn}`),
               h.OnInput((value) => Message.ChangedEdition({ index: Number(value) })),
             ]),
-            h.span([h.Class('e3-note')], [`${shown.label} · ${shown.authoredOn}`]),
           ],
         ),
-        changeList(model, h),
+        // A fixed height, whatever the edition says: the panel never jumps as it plays, and
+        // a busy edition scrolls within. Focusable, so the keyboard can scroll it too.
+        h.div(
+          [
+            h.Class('e3-timeline-log'),
+            h.Attribute('tabindex', '0'),
+            h.Role('region'),
+            h.AriaLabel('What changed in this edition'),
+          ],
+          [changeList(model, h)],
+        ),
       ],
     ),
   ].filter(() => editions.length > 1);
@@ -677,13 +693,10 @@ const tourButtons = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html>
 /** The recorder's state in words, beside its heading. */
 const tourStatus = (model: Model): string =>
   Match.value(model.tour).pipe(
-    Match.tag('Idle', () => 'Record a tour to replay or share'),
+    Match.tag('Idle', () => 'Record one to replay or share'),
     Match.tag('Recording', ({ recording }) => `Recording · ${recording.steps.length} moves`),
     Match.tag('Ready', ({ recording }) => `${recording.steps.length} moves ready`),
-    Match.tag(
-      'Playing',
-      ({ recording, next }) => `Playing · move ${next} of ${recording.steps.length}`,
-    ),
+    Match.tag('Playing', ({ recording, next }) => `Move ${next} of ${recording.steps.length}`),
     Match.exhaustive,
   );
 
@@ -692,10 +705,12 @@ const tourStatus = (model: Model): string =>
  * with a caption for each; saved as a file to send.
  */
 const tourControls = (model: Model, h: HtmlBuilder<Message>): Html =>
-  panelSection(h, 'Tour', [
-    h.p([h.Class('e3-note'), h.AriaLive('polite')], [tourStatus(model)]),
-    h.div([h.Class('e3-controls e3-tour-controls')], tourButtons(model, h)),
-  ]);
+  panelSection(
+    h,
+    'Tour',
+    [h.div([h.Class('e3-controls e3-tour-controls')], tourButtons(model, h))],
+    [h.span([h.Class('e3-heading-status'), h.AriaLive('polite')], [tourStatus(model)])],
+  );
 
 /** While a tour plays, the move just made, in words, over the stage. */
 const tourCaption = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>

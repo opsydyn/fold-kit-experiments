@@ -5,6 +5,7 @@ import type { Return } from 'foldkit/update';
 
 import { ringIds, type Ring } from './data';
 import { idOfSaucer } from './easter';
+import { advanceInvasion } from './invaders';
 import type { RadarPosition } from './layout';
 import { Message } from './message';
 import {
@@ -318,6 +319,8 @@ const step = (model: Model, message: Message): AppReturn =>
         hoveredEgg: (hovered) => Option.filter(hovered, (current) => current !== key),
       }),
     }),
+    EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
+    AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
     ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
     ReceivedSceneLifecycle: () => ({ model }),
   });

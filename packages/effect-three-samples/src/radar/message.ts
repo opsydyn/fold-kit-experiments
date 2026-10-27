@@ -15,6 +15,8 @@ export const Message = defineMessageUnion({
   HoveredEgg: { key: Schema.String },
   LeftEgg: { key: Schema.String },
   ClickedMonolith: {},
+  EnteredKonamiCode: {},
+  AdvancedInvasion: { deltaTimeMs: Schema.Number },
   ClickedEntry: { id: Schema.String },
   ClickedFlyTo: { id: Schema.String },
   ChangedQuery: { query: Schema.String },

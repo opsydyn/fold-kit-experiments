@@ -46,6 +46,8 @@ export const Model = Schema.Struct({
   monolith: MonolithState,
   /** How many times a saucer has been hovered: each visit reads the next fallacy. */
   saucerVisits: Schema.Number,
+  /** The Konami code's invasion under way: milliseconds since it began. */
+  invasion: Schema.Option(Schema.Number),
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
   /** The category whose sector the camera last stopped at, for the breadcrumb. */
@@ -164,6 +166,7 @@ export const initialModel = (
   hoveredEgg: Option.none(),
   monolith: 'whole',
   saucerVisits: 0,
+  invasion: Option.none(),
   selected: Option.none(),
   cluster: Option.none(),
   journey: Option.none(),

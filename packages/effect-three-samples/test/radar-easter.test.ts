@@ -30,6 +30,14 @@ import {
   shatteredAt,
   wholeAt,
 } from '../src/radar/easter';
+import {
+  formationAt,
+  invasionLength,
+  konamiCode,
+  marchAt,
+  marchStep,
+  stepOf,
+} from '../src/radar/invaders';
 import { Message } from '../src/radar/message';
 import { cameraFov, homeCamera, type Model, positionsOf, visibleOf } from '../src/radar/model';
 import { acrossView, frameOf, viewOf } from '../src/radar/placement';
@@ -249,6 +257,58 @@ describe('constellations', () => {
       expect(Option.isNone(alignedOf(off))).toBe(true);
       expect(eggKeys(off)).not.toContain(`egg:sky:${constellation.id}:0`);
     }
+  });
+});
+
+describe('Conway’s Law invaders', () => {
+  const invaded = step(start, Message.EnteredKonamiCode());
+
+  test('the Konami code starts an invasion that ends on its own', () => {
+    expect(konamiCode).toHaveLength(10);
+    expect(Option.isNone(start.invasion)).toBe(true);
+    expect(invaded.invasion).toEqual(Option.some(0));
+    const midway = step(invaded, Message.AdvancedInvasion({ deltaTimeMs: invasionLength / 2 }));
+    expect(midway.invasion).toEqual(Option.some(invasionLength / 2));
+    const over = step(midway, Message.AdvancedInvasion({ deltaTimeMs: invasionLength / 2 }));
+    expect(Option.isNone(over.invasion)).toBe(true);
+    expect(eggKeys(over)).not.toContain('egg:invaders');
+  });
+
+  test('four ranks, one per category in its colour, six aliens each', () => {
+    const formation = asGroup(nodeAt(invaded, 'egg:invaders'));
+    const ranks = Option.match(formation, { onNone: () => [], onSome: ({ children }) => children });
+    expect(ranks).toHaveLength(4);
+    for (const rank of ranks) {
+      expect(rank._tag).toBe('Instances');
+      const count = rank._tag === 'Instances' ? rank.instances.length : 0;
+      expect(count % 6).toBe(0);
+      expect(count).toBeGreaterThan(6 * 20);
+    }
+  });
+
+  test('they march across, turn and drop, and keep still under reduced motion', () => {
+    const [x0, y0] = marchAt(0);
+    const [x1] = marchAt(1);
+    expect(x1).toBeGreaterThan(x0);
+    const [x8, y8] = marchAt(8);
+    const [x9] = marchAt(9);
+    expect(y8).toBeLessThan(y0);
+    expect(x9).toBeLessThan(x8);
+    expect(stepOf(invaded, marchStep * 5)).toBe(5);
+    expect(stepOf({ ...invaded, reducedMotion: true }, marchStep * 5)).toBe(0);
+  });
+
+  test('they hang in front of the radar, up the view, inside a square frame', () => {
+    const camera = invaded.camera.position;
+    const at = formationAt(camera);
+    const view = viewOf(camera, [0, 0, 0]);
+    expect(Math.hypot(at[0] - camera[0], at[1] - camera[1], at[2] - camera[2])).toBeCloseTo(
+      Math.hypot(7, 7 * 0.2),
+      6,
+    );
+    expect(upView(view, at)).toBeGreaterThan(0);
+    expect(upView(view, at)).toBeLessThan(frameOf(cameraFov, 1).y);
+    expect(Option.getOrUndefined(eggReadout(invaded))).toContain('Conway');
   });
 });
 

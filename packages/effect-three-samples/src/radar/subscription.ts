@@ -3,9 +3,10 @@
  * rides an edge, and the reader's reduced-motion preference, so jumps land at once for
  * those who ask.
  */
-import { Option } from 'effect';
+import { Duration, Option } from 'effect';
 import { Dom, Subscription } from 'foldkit';
 
+import { konamiCode } from './invaders';
 import { Message } from './message';
 import type { Model } from './model';
 
@@ -17,6 +18,23 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
   relay: Subscription.animationFrameEntry({
     isActive: (model) => Option.isSome(model.journey),
     toMessage: (deltaTimeMs) => Message.AdvancedRelay({ deltaTimeMs }),
+  }),
+  // The Konami code, anywhere but in a text field: the invaders' cue.
+  konami: Subscription.persistentEntry(
+    Dom.streamFromKeyBindings<Message>({
+      bindings: [
+        {
+          keys: konamiCode,
+          preventDefault: false,
+          mapEvent: () => Message.EnteredKonamiCode(),
+        },
+      ],
+      sequenceTimeout: Duration.seconds(3),
+    }),
+  ),
+  invasion: Subscription.animationFrameEntry({
+    isActive: (model) => Option.isSome(model.invasion),
+    toMessage: (deltaTimeMs) => Message.AdvancedInvasion({ deltaTimeMs }),
   }),
   reducedMotion: Subscription.persistentEntry(
     Dom.streamFromMediaQuery({

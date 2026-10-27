@@ -29,6 +29,7 @@ import { Match, Option } from 'effect';
 
 import { capGeometries, capMaterials, capNodes, capReadout, isCapKey } from './capMoons';
 import { constellationNodes, constellationReadout } from './constellations';
+import { invaderGeometries, invaderNodes, invasionReadout } from './invaders';
 import type { RadarPosition } from './layout';
 import { editionsOf, type Model, type MonolithState, presentOf } from './model';
 import { easeInOut } from './relay';
@@ -379,6 +380,7 @@ const isProbeKey = (key: string): boolean => /^egg:probe(?::|$)/.test(key);
 export const eggReadout = (model: Model): Option.Option<string> =>
   firstSome([
     hoveredReadout(model),
+    invasionReadout(model),
     constellationReadout(model),
     Option.flatMap(summoned(model.query), (word) => Option.fromNullishOr(answers[word])),
   ]);
@@ -418,9 +420,11 @@ export const eggNodes = (model: Model): ReadonlyArray<SceneNode> => [
   ...probeNodes(model),
   ...capNodes(model),
   ...constellationNodes(model),
+  ...invaderNodes(model),
 ];
 
 export const eggGeometries = [
+  ...invaderGeometries,
   ...capGeometries,
   { id: 'egg:hull', geometry: sphere({ radius: 0.26, widthSegments: 24, heightSegments: 12 }) },
   { id: 'egg:dome', geometry: sphere({ radius: 0.1, widthSegments: 16, heightSegments: 8 }) },

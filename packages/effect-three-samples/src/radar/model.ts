@@ -18,6 +18,7 @@ import {
   type RadarPosition,
 } from './layout';
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
+import { summoned } from './summon';
 
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
 export type CategoryFilter = typeof CategoryFilter.Type;
@@ -175,8 +176,12 @@ export const initialModel = (
 /** What the host page hands the radar: where its assets live and its links out. */
 export type RadarProps = Readonly<{ assetBase?: string; links?: ReadonlyArray<Link> }>;
 
+/** The filters in force. A magic word summons an Easter egg and filters nothing. */
+const filterQuery = (query: string): string =>
+  Option.match(summoned(query), { onNone: () => query, onSome: () => '' });
+
 export const filtersOf = (model: Model): RadarFilters => ({
-  query: model.query,
+  query: filterQuery(model.query),
   category: model.category,
   rings: model.enabledRings,
 });

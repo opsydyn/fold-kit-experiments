@@ -24,6 +24,7 @@ import {
 } from './model';
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
 import { zoomedPosition, zoomLimits } from './space';
+import { summonedMonolith } from './summon';
 import { playStep } from './timeline';
 
 type AppReturn = Return<Model, Message>;
@@ -253,7 +254,13 @@ const step = (model: Model, message: Message): AppReturn =>
     ClickedEmptySpace: () => ({ model: modifyFields(model, { selected: () => Option.none() }) }),
     ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
     ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
-    ChangedQuery: ({ query }) => ({ model: reconcile({ ...model, query }) }),
+    ChangedQuery: ({ query }) => ({
+      model: reconcile({
+        ...model,
+        query,
+        monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
+      }),
+    }),
     ChangedCategory: ({ category }) => ({ model: reconcile({ ...model, category }) }),
     ClickedRing: ({ ring }) => ({ model: toggleRing(model, ring) }),
     ClickedClearFilters: () => ({

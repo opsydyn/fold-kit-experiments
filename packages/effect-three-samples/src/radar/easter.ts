@@ -11,6 +11,7 @@ import {
   billboard,
   box,
   cone,
+  cylinder,
   ease,
   fixed,
   group,
@@ -19,6 +20,7 @@ import {
   sharedGeometry,
   sharedMaterial,
   sphere,
+  spin,
   standard,
   torus,
   type Vec3,
@@ -29,6 +31,7 @@ import type { RadarPosition } from './layout';
 import { editionsOf, type Model, type MonolithState, presentOf } from './model';
 import { easeInOut } from './relay';
 import { bearingOf, blipPosition, elevationOf, isBirdsEye, onSphere } from './space';
+import { answers, summoned, summonedMonolith } from './summon';
 import { playStep } from './timeline';
 
 /** Every egg's scene keys start `egg:`, so hovers and clicks on one route to the egg. */
@@ -191,8 +194,9 @@ export const monolithAt = (camera: Vec3): Vec3 => {
   return onSphere(bearingOf(camera) + place.bearing, place.latitude, place.radius);
 };
 
-/** Whether the Monolith is out: only from above, where the radar reads as a map. */
-export const monolithShows = (model: Model): boolean => isBirdsEye(model.camera.position);
+/** Whether the Monolith is out: from above, where the radar reads as a map, or when called. */
+export const monolithShows = (model: Model): boolean =>
+  isBirdsEye(model.camera.position) || Option.isSome(summonedMonolith(model.query));
 
 /** The slab, built of 3 × 8 blocks one deep: 0.1 thick, 0.4 wide and 0.9 tall. */
 const slab = { columns: 3, rows: 8, width: 0.4, height: 0.9, depth: 0.1 } as const;
@@ -290,10 +294,70 @@ const monolithReadouts = {
 } as const satisfies Readonly<Record<MonolithState, string>>;
 
 // ---------------------------------------------------------------------------------------
+// The probe: COBOL. Searching for it sends a small Voyager-style probe round the far sky,
+// dish turned back to the radar: still running, very far away.
+
+/** How far out the probe circles, how high, and how slowly. */
+export const probeOrbit = { radius: 7, height: 2.6, radiansPerSecond: 0.12 } as const;
+
+/** The probe circles the radar, unless motion is reduced: then it holds where it is. */
+const probeCourse = (model: Model) =>
+  Match.value(model.reducedMotion).pipe(
+    Match.when(true, () => fixed([0, -0.5, 0])),
+    Match.orElse(() => spin({ axis: 'y', radiansPerSecond: probeOrbit.radiansPerSecond })),
+  );
+
+const probeNode = (model: Model): SceneNode =>
+  group({
+    key: 'egg:probe',
+    rotation: probeCourse(model),
+    children: [
+      group({
+        key: 'egg:probe:craft',
+        position: [0, probeOrbit.height, probeOrbit.radius],
+        interactive: true,
+        children: [
+          mesh({
+            key: 'egg:probe:bus',
+            geometry: sharedGeometry('egg:bus'),
+            material: sharedMaterial('egg:gold'),
+          }),
+          // The dish faces back down its orbit's radius, towards the radar.
+          mesh({
+            key: 'egg:probe:dish',
+            position: [0, 0, -0.09],
+            rotation: fixed([-Math.PI / 2, 0, 0]),
+            geometry: sharedGeometry('egg:dish'),
+            material: sharedMaterial('egg:metal'),
+          }),
+          mesh({
+            key: 'egg:probe:boom',
+            position: [0.32, 0, 0],
+            rotation: fixed([0, 0, Math.PI / 2]),
+            geometry: sharedGeometry('egg:boom'),
+            material: sharedMaterial('egg:metal'),
+          }),
+        ],
+      }),
+    ],
+  });
+
+export const probeNodes = (model: Model): ReadonlyArray<SceneNode> =>
+  [probeNode(model)].filter(() => Option.contains(summoned(model.query), 'cobol'));
+
+const isProbeKey = (key: string): boolean => /^egg:probe(?::|$)/.test(key);
+
+// ---------------------------------------------------------------------------------------
 // What every egg shares.
 
 /** What the readout says while the pointer is over an egg. */
 export const eggReadout = (model: Model): Option.Option<string> =>
+  Option.orElse(hoveredReadout(model), () =>
+    Option.flatMap(summoned(model.query), (word) => Option.fromNullishOr(answers[word])),
+  );
+
+/** What the egg under the pointer says. */
+const hoveredReadout = (model: Model): Option.Option<string> =>
   Option.flatMap(model.hoveredEgg, (key) =>
     Option.orElse(
       Option.flatMap(idOfSaucer(key), (id) => saucerReadout(model, id)),
@@ -302,6 +366,13 @@ export const eggReadout = (model: Model): Option.Option<string> =>
           Option.liftPredicate(key, (hovered) => isMonolithKey(hovered) && monolithShows(model)),
           () => monolithReadouts[model.monolith],
         ),
+    ).pipe(
+      Option.orElse(() =>
+        Option.map(
+          Option.liftPredicate(key, (hovered) => isProbeKey(hovered)),
+          () => 'COBOL: still running, very far away',
+        ),
+      ),
     ),
   );
 
@@ -309,6 +380,7 @@ export const eggReadout = (model: Model): Option.Option<string> =>
 export const eggNodes = (model: Model): ReadonlyArray<SceneNode> => [
   ...abductionNodes(model),
   ...monolithNodes(model),
+  ...probeNodes(model),
 ];
 
 export const eggGeometries = [
@@ -317,6 +389,15 @@ export const eggGeometries = [
   {
     id: 'egg:rim',
     geometry: torus({ radius: 0.26, tube: 0.015, radialSegments: 6, tubularSegments: 32 }),
+  },
+  { id: 'egg:bus', geometry: box({ width: 0.12, height: 0.08, depth: 0.12 }) },
+  {
+    id: 'egg:dish',
+    geometry: cylinder({ radiusTop: 0.2, radiusBottom: 0.04, height: 0.06, radialSegments: 24 }),
+  },
+  {
+    id: 'egg:boom',
+    geometry: cylinder({ radiusTop: 0.008, radiusBottom: 0.008, height: 0.5, radialSegments: 6 }),
   },
   { id: 'egg:core', geometry: sphere({ radius: 0.36, widthSegments: 12, heightSegments: 8 }) },
   { id: 'egg:block', geometry: box({ width: blockWidth, height: blockHeight, depth: slab.depth }) },
@@ -331,6 +412,7 @@ export const eggMaterials = [
     material: standard({ color: 0x9fe8c8, emissive: 0x2a6a50, opacity: 0.85, transparent: true }),
   },
   { id: 'egg:lights', material: basic({ color: 0xffd36b }) },
+  { id: 'egg:gold', material: standard({ color: 0xc9a24a, metalness: 0.8, roughness: 0.35 }) },
   { id: 'egg:unseen', material: basic({ opacity: 0, transparent: true }) },
   // Black, but glossy enough to catch the key light, so it reads against the night.
   { id: 'egg:monolith', material: standard({ color: 0x0a0a10, metalness: 0.7, roughness: 0.18 }) },

@@ -14,15 +14,17 @@ import {
   liftOf,
   monolithAt,
   monolithShows,
+  probeOrbit,
   saucerRadius,
   shatteredAt,
   wholeAt,
 } from '../src/radar/easter';
 import { Message } from '../src/radar/message';
-import { cameraFov, type Model, positionsOf } from '../src/radar/model';
+import { cameraFov, type Model, positionsOf, visibleOf } from '../src/radar/model';
 import { acrossView, frameOf, viewOf } from '../src/radar/placement';
 import { sceneFor } from '../src/radar/scene';
 import { blipPosition, outerRadius } from '../src/radar/space';
+import { magicWords, summoned } from '../src/radar/summon';
 import { changesIn, playStep } from '../src/radar/timeline';
 import { init, update } from '../src/radar/update';
 
@@ -188,6 +190,68 @@ describe('the Monolith', () => {
     expect(Option.getOrUndefined(eggReadout(shattered))).toContain('Microservices');
     expect(isMonolithKey('egg:monolith')).toBe(true);
     expect(isMonolithKey('egg:monoliths')).toBe(false);
+  });
+});
+
+describe('magic words', () => {
+  const searched = (query: string): Model => step(start, Message.ChangedQuery({ query }));
+
+  test('each word summons its egg; case and spaces do not matter, near misses do', () => {
+    expect(magicWords.map((word) => Option.getOrUndefined(summoned(word)))).toEqual([
+      'monolith',
+      'microservices',
+      '42',
+      'cobol',
+    ]);
+    expect(summoned('  COBOL ')).toEqual(Option.some('cobol'));
+    for (const miss of ['monoliths', 'mono', 'cobol code', '', '4 2']) {
+      expect(Option.isNone(summoned(miss))).toBe(true);
+    }
+  });
+
+  test('a magic word filters nothing: the radar stays full behind the egg', () => {
+    for (const word of magicWords) {
+      expect(visibleOf(searched(word)).length).toBe(visibleOf(start).length);
+    }
+    // An ordinary search still filters.
+    expect(visibleOf(searched('elm')).length).toBeLessThan(visibleOf(start).length);
+  });
+
+  test('“monolith” calls the Monolith from the side, whole; “microservices”, shattered', () => {
+    expect(monolithShows(start)).toBe(false);
+    const whole = searched('monolith');
+    expect(monolithShows(whole)).toBe(true);
+    expect(whole.monolith).toBe('whole');
+    const shattered = searched('microservices');
+    expect(monolithShows(shattered)).toBe(true);
+    expect(shattered.monolith).toBe('shattered');
+    // Clicks still work while summoned, and clearing the search sends it away.
+    expect(step(shattered, Message.ClickedMonolith()).monolith).toBe('whole');
+    expect(monolithShows(step(shattered, Message.ChangedQuery({ query: '' })))).toBe(false);
+  });
+
+  test('“42” is answered in the readout, unless an egg under the pointer speaks first', () => {
+    const answered = searched('42');
+    expect(Option.getOrUndefined(eggReadout(answered))).toContain('Deep Thought');
+    expect(Option.isNone(eggReadout(start))).toBe(true);
+    const over = step(
+      step(answered, Message.ChangedQuery({ query: 'cobol' })),
+      Message.HoveredEgg({ key: 'egg:probe:craft' }),
+    );
+    expect(Option.getOrUndefined(eggReadout(over))).toBe('COBOL: still running, very far away');
+  });
+
+  test('“cobol” sends a probe round the far sky, holding still under reduced motion', () => {
+    expect(eggKeys(start)).not.toContain('egg:probe');
+    const probe = nodeAt(searched('cobol'), 'egg:probe');
+    expect(probe?._tag === 'Group' && probe.rotation._tag).toBe('Spin');
+    const calm = step(
+      step(start, Message.ChangedReducedMotion({ isReducedMotion: true })),
+      Message.ChangedQuery({ query: 'cobol' }),
+    );
+    const held = nodeAt(calm, 'egg:probe');
+    expect(held?._tag === 'Group' && held.rotation._tag).toBe('Fixed');
+    expect(Math.hypot(probeOrbit.radius, probeOrbit.height)).toBeGreaterThan(outerRadius * 2);
   });
 });
 

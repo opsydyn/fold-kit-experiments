@@ -4,11 +4,19 @@ import { modifyFields } from 'foldkit/struct';
 import type { Return } from 'foldkit/update';
 
 import { advanceComet } from './comet';
-import { LoadThemeChoice, SaveThemeChoice } from './command';
+import {
+  CopyLink,
+  LoadThemeChoice,
+  LoadTour,
+  ReplaceLink,
+  SaveThemeChoice,
+  SaveTour,
+} from './command';
 import { ringIds, type Ring } from './data';
 import { idOfSaucer } from './easter';
 import { advanceInvasion } from './invaders';
 import type { RadarPosition } from './layout';
+import { decodeLink, type DeepLink, linkOf, type Standpoint } from './link';
 import { Message } from './message';
 import {
   cameraDamping,
@@ -30,6 +38,16 @@ import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } fro
 import { zoomedPosition, zoomLimits } from './space';
 import { summonedMonolith } from './summon';
 import { playStep } from './timeline';
+import {
+  captionOf,
+  idleTour,
+  isRecordable,
+  leadIn,
+  paceOf,
+  recorded,
+  type Recording,
+  type Tour,
+} from './tour';
 
 type AppReturn = Return<Model, Message>;
 
@@ -233,11 +251,87 @@ const orbited = (model: Model, gesture: Gesture): Model =>
     })),
   );
 
-/** The radar as it opens, and a look for the theme the reader picked last time. */
-export const init = (props: RadarProps = {}): AppReturn => ({
-  model: initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
-  commands: [LoadThemeChoice()],
-});
+/** The edition a link names by its date, if this radar has one of that date. */
+const editionIndex = (model: Model, link: DeepLink): Option.Option<number> =>
+  Option.flatMap(link.edition, (date) =>
+    Option.liftPredicate(
+      editionsOf(model).findIndex(({ authoredOn }) => authoredOn === date),
+      (index) => index >= 0,
+    ),
+  );
+
+/**
+ * Opens the radar where a deep link says: its theme, edition and filters, then its pin,
+ * then where the camera stands. Parts that name nothing in this radar (an entry it lacks,
+ * an edition it never had) are let go.
+ */
+export const applyLink = (model: Model, link: DeepLink): Model => {
+  const edition = Option.getOrElse(editionIndex(model, link), () => model.edition);
+  const themeChoice = Option.getOrElse(link.theme, () => model.themeChoice);
+  const query = Option.getOrElse(link.query, () => model.query);
+  const category = Option.getOrElse(link.category, () => model.category);
+  const enabledRings = Option.getOrElse(link.rings, () => model.enabledRings);
+  const set: Model = reconcile({
+    ...model,
+    themeChoice,
+    edition,
+    query,
+    category,
+    enabledRings,
+    showRelationships: Option.isNone(link.edges) && model.showRelationships,
+  });
+  const pinned = Option.match(
+    Option.filter(link.entry, (id) => isVisible(set, id)),
+    {
+      onNone: () => set,
+      onSome: (id) => ({
+        ...set,
+        selected: Option.some(id),
+        cluster: Option.map(positionOf(set, id), ({ entry }) => entry.category),
+      }),
+    },
+  );
+  return Option.match(link.standpoint, {
+    onNone: () => pinned,
+    onSome: (standpoint) => standAt(pinned, standpoint),
+  });
+};
+
+/** The camera at a link's standpoint; an entry standpoint needs its entry pinned. */
+const standAt = (model: Model, standpoint: Standpoint): Model =>
+  Match.value(standpoint).pipe(
+    Match.tag('Universe', () => ({
+      ...model,
+      cluster: Option.none(),
+      camera: universeCamera(model.camera.position),
+    })),
+    Match.tag('Cluster', ({ category }) => ({
+      ...model,
+      cluster: Option.some(category),
+      camera: clusterCamera(category),
+    })),
+    Match.tag('Entry', () =>
+      Option.match(model.selected, { onNone: () => model, onSome: (id) => flyTo(model, id) }),
+    ),
+    Match.exhaustive,
+  );
+
+/**
+ * The radar as it opens, at the page's deep link if it has one, and a look for the theme
+ * the reader picked last time, unless the link names a theme for this visit.
+ */
+export const init = (props: RadarProps = {}): AppReturn => {
+  const link = decodeLink(props.link ?? {});
+  const model = applyLink(
+    initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
+    link,
+  );
+  const commands = Option.match(link.theme, {
+    onNone: () => [LoadThemeChoice()],
+    onSome: () => [],
+  });
+  return { model, commands };
+};
 
 /**
  * A step only a hovering pointer takes. A finger's "hover" is its press, so on touch the
@@ -366,6 +460,33 @@ const step = (model: Model, message: Message): AppReturn =>
     AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
     AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
     ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
+    CompletedReplaceLink: () => ({ model }),
+    ClickedCopyLink: () => ({ model, commands: [CopyLink()] }),
+    CompletedCopyLink: ({ outcome }) => ({ model: { ...model, linkNotice: Option.some(outcome) } }),
+    ClickedRecord: () => ({
+      model: {
+        ...model,
+        tour: { _tag: 'Recording', recording: { start: linkOf(model), steps: [] } },
+        tourNotice: Option.none(),
+      },
+    }),
+    ClickedStopRecording: () => ({ model: { ...model, tour: stoppedRecording(model.tour) } }),
+    ClickedPlayTour: () => ({ model: startTour(model) }),
+    ClickedStopTour: () => ({ model: { ...model, tour: stoppedTour(model.tour) } }),
+    AdvancedTour: ({ deltaTimeMs }) => advanceTour(model, deltaTimeMs),
+    ClickedSaveTour: () => ({ model, commands: saveCommands(model) }),
+    CompletedSaveTour: () => ({ model }),
+    ClickedLoadTour: () => ({ model, commands: [LoadTour()] }),
+    SucceededLoadTour: ({ recording }) => ({
+      model: {
+        ...model,
+        // SAFETY: LoadTour decodes the file against the tour schema before sending this.
+        tour: { _tag: 'Ready', recording: recording as Recording },
+        tourNotice: Option.some('Tour loaded: press Play to watch it'),
+      },
+    }),
+    FailedLoadTour: ({ reason }) => ({ model: { ...model, tourNotice: Option.some(reason) } }),
+    CancelledLoadTour: () => ({ model }),
     ReceivedSceneLifecycle: () => ({ model }),
   });
 
@@ -383,11 +504,171 @@ const endsJourney: ReadonlySet<Message['_tag']> = new Set([
   'ClickedRelay',
 ]);
 
-export const update = (model: Model, message: Message): AppReturn =>
-  step(
+/** The recording a tour holds, if any. */
+const recordingOf = (tour: Tour): Option.Option<Recording> =>
+  Match.value(tour).pipe(
+    Match.tag('Idle', () => Option.none<Recording>()),
+    Match.orElse(({ recording }) => Option.some(recording)),
+  );
+
+/** Saving a tour: a file of the recording held, if there is one. */
+const saveCommands = (model: Model) =>
+  Option.match(recordingOf(model.tour), {
+    onNone: () => [],
+    onSome: (recording) => [SaveTour({ recording })],
+  });
+
+/** A finished recording ready to play, unless nothing was recorded. */
+const readyOrIdle = (recording: Recording): Tour =>
+  Match.value(recording.steps.length).pipe(
+    Match.when(0, (): Tour => idleTour),
+    Match.orElse((): Tour => ({ _tag: 'Ready', recording })),
+  );
+
+/** Recording stops: what was recorded is ready to play, unless nothing was. */
+const stoppedRecording = (tour: Tour): Tour =>
+  Match.value(tour).pipe(
+    Match.tag('Recording', ({ recording }) => readyOrIdle(recording)),
+    Match.orElse(() => tour),
+  );
+
+/** A tour stops: its recording stays, ready to play again. */
+const stoppedTour = (tour: Tour): Tour =>
+  Match.value(tour).pipe(
+    Match.tag('Playing', ({ recording }): Tour => ({ _tag: 'Ready', recording })),
+    Match.orElse(() => tour),
+  );
+
+/**
+ * The radar a tour starts from: the view as the radar opens, kept to the reader's own
+ * settings (input, theme, contrast, motion, stage), then the recording's start link.
+ */
+const tourStart = (model: Model, recording: Recording): Model =>
+  applyLink(
+    {
+      ...initialModel(model.assetBase, model.data, model.links),
+      input: model.input,
+      themeChoice: model.themeChoice,
+      colorScheme: model.colorScheme,
+      contrast: model.contrast,
+      reducedMotion: model.reducedMotion,
+      stageAspect: model.stageAspect,
+    },
+    decodeLink(Object.fromEntries(new URLSearchParams(recording.start))),
+  );
+
+/** Play: back to where the recording began, the first move a moment later. */
+const startTour = (model: Model): Model =>
+  Option.match(recordingOf(model.tour), {
+    onNone: () => model,
+    onSome: (recording) => ({
+      ...tourStart(model, recording),
+      tour: { _tag: 'Playing', recording, next: 0, wait: leadIn, caption: 'The tour begins' },
+    }),
+  });
+
+/**
+ * A move as a tour replays it. A theme picked on the tour shows without being saved over
+ * the reader's own choice.
+ */
+const replayed = (message: Message): Message =>
+  Match.value(message).pipe(
+    Match.tag('ChoseTheme', ({ choice }) => Message.SucceededLoadThemeChoice({ choice })),
+    Match.orElse(() => message),
+  );
+
+type Playing = Extract<Tour, { _tag: 'Playing' }>;
+
+/** The next move of a tour, made through `update` as if the reader had made it. */
+const playNext = (model: Model, playing: Playing): AppReturn =>
+  Option.match(Option.fromNullishOr(playing.recording.steps[playing.next]), {
+    onNone: () => ({ model: { ...model, tour: { _tag: 'Ready', recording: playing.recording } } }),
+    onSome: (move) => {
+      const result = update({ ...model, tour: idleTour }, replayed(move));
+      return {
+        ...result,
+        model: {
+          ...result.model,
+          tour: {
+            ...playing,
+            next: playing.next + 1,
+            wait: paceOf(result.model, move),
+            caption: captionOf(model, move),
+          },
+        },
+      };
+    },
+  });
+
+/** Waiting out a move: the next is made once its wait has run down. */
+const waitOut = (model: Model, playing: Playing, deltaTimeMs: number): AppReturn => {
+  const left = playing.wait - deltaTimeMs;
+  return Match.value(left > 0).pipe(
+    Match.when(true, (): AppReturn => ({ model: { ...model, tour: { ...playing, wait: left } } })),
+    Match.orElse(() => playNext(model, playing)),
+  );
+};
+
+/** One frame of a tour: it waits out the current move, then makes the next. */
+const advanceTour = (model: Model, deltaTimeMs: number): AppReturn =>
+  Match.value(model.tour).pipe(
+    Match.tag('Playing', (playing) => waitOut(model, playing, deltaTimeMs)),
+    Match.orElse((): AppReturn => ({ model })),
+  );
+
+/** The reader's own move during a tour ends it: the reader has taken the controls. */
+const interrupting = (model: Model, message: Message): Model =>
+  Match.value(model.tour).pipe(
+    Match.tag('Playing', () =>
+      Option.match(Option.liftPredicate(message, isRecordable), {
+        onNone: () => model,
+        onSome: () => ({ ...model, tour: stoppedTour(model.tour) }),
+      }),
+    ),
+    Match.orElse(() => model),
+  );
+
+type Recorder = Extract<Tour, { _tag: 'Recording' }>;
+
+/** One of the reader's moves added to the recording under way. */
+const withMove = (result: AppReturn, tour: Recorder, message: Message): AppReturn =>
+  Option.match(Option.liftPredicate(message, isRecordable), {
+    onNone: () => result,
+    onSome: (move) => ({
+      ...result,
+      model: { ...result.model, tour: { ...tour, recording: recorded(tour.recording, move) } },
+    }),
+  });
+
+/** While recording, each of the reader's moves joins the recording. */
+const recording = (result: AppReturn, message: Message): AppReturn =>
+  Match.value(result.model.tour).pipe(
+    Match.tag('Recording', (tour) => withMove(result, tour, message)),
+    Match.orElse(() => result),
+  );
+
+/**
+ * Keeps the address bar on the view: when a step changes the link, the URL is rewritten
+ * to it, and a "Link copied" notice, now out of date, goes.
+ */
+const withLink = (before: Model, result: AppReturn): AppReturn => {
+  const link = linkOf(result.model);
+  return Match.value(link === linkOf(before)).pipe(
+    Match.when(true, () => result),
+    Match.orElse(() => ({
+      model: { ...result.model, linkNotice: Option.none() },
+      commands: [...(result.commands ?? []), ReplaceLink({ query: link })],
+    })),
+  );
+};
+
+export const update = (model: Model, message: Message): AppReturn => {
+  const ready = interrupting(
     Match.value(endsJourney.has(message._tag) && Option.isSome(model.journey)).pipe(
       Match.when(true, () => ({ ...model, journey: Option.none() })),
       Match.orElse(() => model),
     ),
     message,
   );
+  return withLink(model, recording(step(ready, message), message));
+};

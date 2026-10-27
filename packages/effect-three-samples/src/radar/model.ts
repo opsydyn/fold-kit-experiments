@@ -20,6 +20,7 @@ import {
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 import { summoned } from './summon';
 import { ColorScheme, ContrastSetting, resolveTheme, type Theme, ThemeChoice } from './themes';
+import type { Tour } from './tour';
 
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
 export type CategoryFilter = typeof CategoryFilter.Type;
@@ -61,6 +62,12 @@ export const Model = Schema.Struct({
   monolith: MonolithState,
   /** How many times a saucer has been hovered: each visit reads the next fallacy. */
   saucerVisits: Schema.Number,
+  /** What became of the last Copy link, for the readout until the view next changes. */
+  linkNotice: Schema.Option(Schema.Literals(['copied', 'refused'])),
+  /** The flight recorder (see `Tour` in tour.ts). */
+  tour: Schema.Unknown,
+  /** What the recorder last has to say: a tour that would not load, say. */
+  tourNotice: Schema.Option(Schema.String),
   /** The Konami code's invasion under way: milliseconds since it began. */
   invasion: Schema.Option(Schema.Number),
   /** The Kafka comet's clock, in milliseconds: where along its route it has got to. */
@@ -90,7 +97,8 @@ export const Model = Schema.Struct({
   stageAspect: Schema.Number,
   camera: SceneSchema.Camera,
 });
-export type Model = Omit<typeof Model.Type, 'data'> & Readonly<{ data: RadarData }>;
+export type Model = Omit<typeof Model.Type, 'data' | 'tour'> &
+  Readonly<{ data: RadarData; tour: Tour }>;
 
 /** The camera's vertical field of view, in degrees. */
 export const cameraFov = 40;
@@ -187,6 +195,9 @@ export const initialModel = (
   hoveredEgg: Option.none(),
   monolith: 'whole',
   saucerVisits: 0,
+  linkNotice: Option.none(),
+  tour: { _tag: 'Idle' },
+  tourNotice: Option.none(),
   invasion: Option.none(),
   cometClock: 0,
   selected: Option.none(),
@@ -206,7 +217,12 @@ export const themeOf = (model: Model): Theme =>
   resolveTheme(model.themeChoice, { scheme: model.colorScheme, contrast: model.contrast });
 
 /** What the host page hands the radar: where its assets live and its links out. */
-export type RadarProps = Readonly<{ assetBase?: string; links?: ReadonlyArray<Link> }>;
+export type RadarProps = Readonly<{
+  assetBase?: string;
+  links?: ReadonlyArray<Link>;
+  /** The page's query parameters: a deep link to open on. */
+  link?: Readonly<Record<string, string>>;
+}>;
 
 /** The filters in force. A magic word summons an Easter egg and filters nothing. */
 const filterQuery = (query: string): string =>

@@ -64,9 +64,23 @@ const entryReadout = (model: Model): string =>
     },
   );
 
-/** An Easter egg under the pointer speaks first; otherwise the entries do. */
+/** What became of Copy link, said in the readout. */
+const linkNotices = {
+  copied: 'Link copied: it opens the radar on this view',
+  refused: 'Couldn’t copy the link; the address bar has it',
+} as const;
+
+/** An Easter egg under the pointer speaks first, then Copy link and the recorder, then entries. */
 const readout = (model: Model): string =>
-  Option.getOrElse(eggReadout(model), () => entryReadout(model));
+  Option.getOrElse(
+    Option.orElse(
+      Option.orElse(eggReadout(model), () =>
+        Option.map(model.linkNotice, (notice) => linkNotices[notice]),
+      ),
+      () => model.tourNotice,
+    ),
+    () => entryReadout(model),
+  );
 
 /** The pointer over an egg is the egg's; over anything else, a blip's. */
 const enteredAt = (key: string): Message =>
@@ -372,6 +386,7 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
               [h.Class('e3-controls')],
               [
                 button(h, 'Fly to', Message.ClickedFlyTo({ id: entry.id })),
+                button(h, 'Copy link', Message.ClickedCopyLink()),
                 h.a([h.Href(entry.sourceUrl), h.Target('_blank'), h.Rel('noopener')], ['Source']),
               ],
             ),
@@ -621,12 +636,75 @@ const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
   const stops = trailOf(model);
   return h.nav(
     [h.Class('e3-breadcrumb'), h.AriaLabel('Location')],
-    stops.flatMap((stop, index) => [
-      ...[h.span([h.AriaHidden(true)], ['›'])].filter(() => index > 0),
-      crumb(h, stop.label, stop.message, index === stops.length - 1),
-    ]),
+    [
+      ...stops.flatMap((stop, index) => [
+        ...[h.span([h.AriaHidden(true)], ['›'])].filter(() => index > 0),
+        crumb(h, stop.label, stop.message, index === stops.length - 1),
+      ]),
+      // Where the breadcrumb says the camera is, as a link to send.
+      h.button(
+        [
+          h.Class('e3-crumb e3-crumb-link'),
+          h.Type('button'),
+          h.AriaLabel('Copy a link to this view'),
+          h.Title('Copy a link to this view'),
+          h.OnClick(Message.ClickedCopyLink()),
+        ],
+        ['🔗'],
+      ),
+    ],
   );
 };
+
+/** What the recorder offers, by its state: record, then play, save or load a tour. */
+const tourButtons = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+  Match.value(model.tour).pipe(
+    Match.tag('Idle', () => [
+      button(h, '● Record', Message.ClickedRecord()),
+      button(h, 'Load…', Message.ClickedLoadTour()),
+    ]),
+    Match.tag('Recording', () => [button(h, '■ Stop', Message.ClickedStopRecording())]),
+    Match.tag('Ready', () => [
+      button(h, '▶ Play', Message.ClickedPlayTour()),
+      button(h, '● Record', Message.ClickedRecord()),
+      button(h, 'Save', Message.ClickedSaveTour()),
+      button(h, 'Load…', Message.ClickedLoadTour()),
+    ]),
+    Match.tag('Playing', () => [button(h, '■ Stop tour', Message.ClickedStopTour())]),
+    Match.exhaustive,
+  );
+
+/** The recorder's state in words, beside its heading. */
+const tourStatus = (model: Model): string =>
+  Match.value(model.tour).pipe(
+    Match.tag('Idle', () => 'Record a tour to replay or share'),
+    Match.tag('Recording', ({ recording }) => `Recording · ${recording.steps.length} moves`),
+    Match.tag('Ready', ({ recording }) => `${recording.steps.length} moves ready`),
+    Match.tag(
+      'Playing',
+      ({ recording, next }) => `Playing · move ${next} of ${recording.steps.length}`,
+    ),
+    Match.exhaustive,
+  );
+
+/**
+ * The flight recorder: your moves, recorded as you make them, replayed as a guided tour
+ * with a caption for each; saved as a file to send.
+ */
+const tourControls = (model: Model, h: HtmlBuilder<Message>): Html =>
+  panelSection(h, 'Tour', [
+    h.p([h.Class('e3-note'), h.AriaLive('polite')], [tourStatus(model)]),
+    h.div([h.Class('e3-controls e3-tour-controls')], tourButtons(model, h)),
+  ]);
+
+/** While a tour plays, the move just made, in words, over the stage. */
+const tourCaption = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+  Match.value(model.tour).pipe(
+    Match.tag('Playing', ({ caption }) => [
+      h.p([h.Class('e3-tour-caption'), h.AriaLive('polite')], [caption]),
+    ]),
+    Match.orElse(() => []),
+  );
 
 /** The sidebar's header: the radar's name and the host page's links out. */
 const header = (model: Model, h: HtmlBuilder<Message>): Html =>
@@ -656,6 +734,7 @@ const sidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
       ...timeline(model, h),
       legend(model, h),
       relationshipLegend(model, h),
+      tourControls(model, h),
       entryTable(model, h),
       h.p([h.Class('e3-note')], [`${demoNotice}.`]),
     ],
@@ -686,6 +765,7 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
         h,
       ),
       breadcrumb(model, h),
+      ...tourCaption(model, h),
       h.p([h.Class('e3-readout e3-stage-readout'), h.AriaLive('polite')], [readout(model)]),
       minimap(model, h),
     ],

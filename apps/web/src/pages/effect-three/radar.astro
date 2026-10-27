@@ -2,6 +2,9 @@
 import SampleApp from '../../apps/effect-three-radar/app';
 import AppLayout from '../../layouts/AppLayout.astro';
 
+// The query string is a deep link: the radar opens on the view it describes.
+const link = Object.fromEntries(Astro.url.searchParams);
+
 const links = [
   { label: '← effect-three samples', href: '/effect-three' },
   { label: 'The radar in 2D', href: '/functional-ai-radar' },
@@ -9,5 +12,5 @@ const links = [
 ---
 
 <AppLayout title="3D tech radar — effect-three">
-  <SampleApp client:load assetBase="/models/" links={links} />
+  <SampleApp client:load assetBase="/models/" links={links} link={link} />
 </AppLayout>

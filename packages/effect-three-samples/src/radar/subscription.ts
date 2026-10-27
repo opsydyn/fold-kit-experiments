@@ -11,6 +11,7 @@ import { konamiCode } from './invaders';
 import { Message } from './message';
 import type { Model, PointerInput } from './model';
 import type { ColorScheme, ContrastSetting } from './themes';
+import { isPlaying } from './tour';
 
 /** What a `(prefers-color-scheme: light)` match means. */
 const schemes: ReadonlyArray<ColorScheme> = ['dark', 'light'];
@@ -46,6 +47,11 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
   invasion: Subscription.animationFrameEntry({
     isActive: (model) => Option.isSome(model.invasion),
     toMessage: (deltaTimeMs) => Message.AdvancedInvasion({ deltaTimeMs }),
+  }),
+  // A tour plays to the frame clock: each move waits out its pace, then the next is made.
+  tour: Subscription.animationFrameEntry({
+    isActive: (model) => isPlaying(model.tour),
+    toMessage: (deltaTimeMs) => Message.AdvancedTour({ deltaTimeMs }),
   }),
   comet: Subscription.animationFrameEntry({
     isActive: cometMoves,

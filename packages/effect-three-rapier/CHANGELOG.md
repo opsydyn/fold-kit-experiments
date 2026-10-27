@@ -2,10 +2,9 @@
 
 ## [0.6.1](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-rapier-v0.6.0...effect-three-rapier-v0.6.1) (2026-10-27)
 
-
 ### Miscellaneous Chores
 
-* **effect-three-rapier:** Synchronize effect-three versions
+- **effect-three-rapier:** Synchronize effect-three versions
 
 ## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-rapier-v0.5.0...effect-three-rapier-v0.6.0) (2026-10-21)
 

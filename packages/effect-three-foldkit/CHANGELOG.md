@@ -2,10 +2,9 @@
 
 ## [0.6.1](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-foldkit-v0.6.0...effect-three-foldkit-v0.6.1) (2026-10-27)
 
-
 ### Bug Fixes
 
-* **effect-three:** let a finger's tap on nothing wander a little ([db9e070](https://github.com/opsydyn/fold-kit-experiments/commit/db9e07046baed1f3e61ba0730e085497d52ba0e1))
+- **effect-three:** let a finger's tap on nothing wander a little ([db9e070](https://github.com/opsydyn/fold-kit-experiments/commit/db9e07046baed1f3e61ba0730e085497d52ba0e1))
 
 ## [0.6.0](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-foldkit-v0.5.0...effect-three-foldkit-v0.6.0) (2026-10-21)
 

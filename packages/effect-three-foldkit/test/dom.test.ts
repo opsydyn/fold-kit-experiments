@@ -11,7 +11,7 @@ import {
 
 import { animationFrameScheduler } from '../src/dom/animationFrames.ts';
 import { createLatch, routedWhileOpen } from '../src/dom/latch.ts';
-import { toNdc } from '../src/dom/pointer.ts';
+import { toNdc, toPointerInput } from '../src/dom/pointer.ts';
 import { interceptProperty } from '../src/dom/property.ts';
 import { summarise } from '../src/dom/reconciled.ts';
 import { markTyped, typedScene } from '../src/dom/typedScenes.ts';
@@ -23,6 +23,39 @@ test('client coordinates map to normalised device coordinates', () => {
   expect(toNdc(rect, 300, 150)).toEqual({ x: 1, y: -1 });
   expect(toNdc(rect, 200, 100)).toEqual({ x: 0, y: -0 });
   expect(toNdc({ left: 0, top: 0, width: 0, height: 0 }, 5, 5)).toEqual({ x: 0, y: 0 });
+});
+
+/** A stand-in PointerEvent, as bun has no DOM: only what the conversion reads. */
+class StandInPointerEvent {
+  readonly type = 'pointerdown';
+  readonly clientX = 200;
+  readonly clientY = 100;
+  readonly button = 0;
+  readonly pointerId = 1;
+  readonly shiftKey = false;
+  readonly ctrlKey = false;
+  readonly metaKey = false;
+  readonly altKey = false;
+  readonly pointerType: string;
+  constructor(pointerType: string) {
+    this.pointerType = pointerType;
+  }
+}
+
+/** The device a press of this `pointerType` is converted with. */
+function deviceOf(pointerType: string) {
+  // SAFETY: the stand-in carries every MouseEvent field toPointerInput reads.
+  const event = new StandInPointerEvent(pointerType) as unknown as MouseEvent;
+  const input = toPointerInput(event, { left: 100, top: 50, width: 200, height: 100 });
+  return input?._tag === 'PointerDown' ? input.device : undefined;
+}
+
+test('a press says what pressed: a finger, a pen, or otherwise a mouse', () => {
+  const original = globalThis.PointerEvent;
+  globalThis.PointerEvent = StandInPointerEvent as unknown as typeof PointerEvent;
+  const devices = ['touch', 'pen', 'mouse', ''].map(deviceOf);
+  globalThis.PointerEvent = original;
+  expect(devices).toEqual(['touch', 'pen', 'mouse', 'mouse']);
 });
 
 test('property interception sees the initial value, every set, and restores a data property', () => {

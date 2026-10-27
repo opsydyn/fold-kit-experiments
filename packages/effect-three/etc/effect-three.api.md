@@ -4216,6 +4216,9 @@ export const play: (clip: string, options?: {
 }) => Animation_2;
 
 // @public
+export type PointerDevice = 'mouse' | 'pen' | 'touch';
+
+// @public
 export type PointerInput = {
     readonly _tag: 'PointerMove';
     readonly x: number;
@@ -4228,6 +4231,7 @@ export type PointerInput = {
     readonly button: number;
     readonly pointer?: number;
     readonly modifiers?: Modifiers;
+    readonly device?: PointerDevice;
 } | {
     readonly _tag: 'PointerUp';
     readonly x: number;

@@ -3,7 +3,13 @@
  *
  * @module
  */
-import type { Gestures, Modifiers, PointerInput, SceneEvent } from '@opsydyn/effect-three';
+import type {
+  Gestures,
+  Modifiers,
+  PointerDevice,
+  PointerInput,
+  SceneEvent,
+} from '@opsydyn/effect-three';
 
 /** The part of `DOMRect` the conversion needs. */
 export type Rect = {
@@ -32,6 +38,12 @@ const modifiersOf = (event: MouseEvent): Modifiers => ({
   meta: event.metaKey,
   alt: event.altKey,
 });
+
+/** What pressed: a finger, a pen, or (for anything else, and plain mouse events) a mouse. */
+const deviceOf = (event: MouseEvent): PointerDevice =>
+  event instanceof PointerEvent && (event.pointerType === 'touch' || event.pointerType === 'pen')
+    ? event.pointerType
+    : 'mouse';
 
 /** The pointer's id, or 0 for mouse events that are not pointer events. */
 const pointerIdOf = (event: MouseEvent): number =>
@@ -64,6 +76,7 @@ export const toPointerInput = (event: MouseEvent, rect: Rect): PointerInput | un
         button: event.button,
         pointer,
         modifiers: modifiersOf(event),
+        device: deviceOf(event),
       };
     case 'pointerup':
       return { _tag: 'PointerUp', x, y, button: event.button, pointer };

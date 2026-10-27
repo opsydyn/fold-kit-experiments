@@ -102,6 +102,29 @@ test('a click on nothing is a miss unless the pointer travelled more than two pi
   expect(tracker.input({ _tag: 'PointerUp', x: 0.9, y: 0.9, button: 0 })).toEqual([]);
 });
 
+/** A press by `device` lifted `pixels` to the right, on nothing (0.01 NDC is one pixel). */
+function pressAndLift(
+  tracker: ReturnType<typeof trackerOverCube>,
+  device: 'mouse' | 'pen' | 'touch',
+  pixels: number,
+) {
+  tracker.input({ _tag: 'PointerDown', x: 0.8, y: 0.8, button: 0, device });
+  return tracker.input({ _tag: 'PointerUp', x: 0.8 + pixels * 0.01, y: 0.8, button: 0 });
+}
+
+test('a finger may wander further than a mouse and still miss; a pen is held to the mouse’s', () => {
+  const tracker = trackerOverCube();
+  // The viewport is 200 px wide, so 0.01 NDC is one pixel.
+  expect(pressAndLift(tracker, 'touch', 6)).toEqual([{ _tag: 'PointerMissed', button: 0 }]);
+  expect(pressAndLift(tracker, 'touch', 10)).toEqual([{ _tag: 'PointerMissed', button: 0 }]);
+  expect(pressAndLift(tracker, 'touch', 12)).toEqual([]);
+  expect(pressAndLift(tracker, 'mouse', 6)).toEqual([]);
+  expect(pressAndLift(tracker, 'pen', 6)).toEqual([]);
+  // A press that names no device is a mouse's.
+  tracker.input({ _tag: 'PointerDown', x: 0.8, y: 0.8, button: 0 });
+  expect(tracker.input({ _tag: 'PointerUp', x: 0.86, y: 0.8, button: 0 })).toEqual([]);
+});
+
 test('double-click and context menu go only to the mesh that was pressed', () => {
   const tracker = trackerOverCube();
   tracker.input({ _tag: 'PointerDown', x: 0, y: 0, button: 0 });

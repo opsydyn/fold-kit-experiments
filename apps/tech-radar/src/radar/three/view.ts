@@ -729,17 +729,22 @@ const tourCaption = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html>
     Match.orElse(() => []),
   );
 
+/** The host page's links out, if it gave any: no empty navigation landmark otherwise. */
+const linksOut = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+  model.links.length === 0
+    ? []
+    : [
+        h.nav(
+          [h.Class('e3-panel-links'), h.AriaLabel('Elsewhere')],
+          model.links.map(({ label, href }) => h.a([h.Href(href)], [label])),
+        ),
+      ];
+
 /** The sidebar's header: the radar's name and the host page's links out. */
 const header = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.header(
     [h.Class('e3-panel-header')],
-    [
-      h.h1([h.Class('e3-panel-title')], [model.title]),
-      h.nav(
-        [h.Class('e3-panel-links'), h.AriaLabel('Elsewhere')],
-        model.links.map(({ label, href }) => h.a([h.Href(href)], [label])),
-      ),
-    ],
+    [h.h1([h.Class('e3-panel-title')], [model.title]), ...linksOut(model, h)],
   );
 
 /**

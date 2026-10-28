@@ -8,8 +8,6 @@ import Radar from '../radar/three/app';
 export const prerender = false;
 
 const link = Object.fromEntries(Astro.url.searchParams);
-
-const links = [{ label: 'The radar in 2D', href: '/2d/' }];
 ---
 
 <AppLayout title={radarTitle}>
@@ -19,7 +17,6 @@ const links = [{ label: 'The radar in 2D', href: '/2d/' }];
     title={radarTitle}
     pages={pages}
     assetBase="/models/"
-    links={links}
     link={link}
   />
 </AppLayout>

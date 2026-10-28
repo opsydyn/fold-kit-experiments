@@ -1,0 +1,23 @@
+---
+import { Option } from 'effect';
+
+import EntryPageView from '../../../../components/EntryPage.astro';
+import { editionEntryPaths, entryPage } from '../../../../radar/pages';
+import { editions, radar } from '../../../../radar/radar';
+
+// Every entry on every earlier edition; the current edition's pages are /blip/<id>/.
+export const getStaticPaths = () =>
+  editionEntryPaths(radar, editions).map(({ date, id, index }) => ({
+    params: { date, id },
+    props: { index },
+  }));
+
+const { id } = Astro.params;
+const { index } = Astro.props;
+const page = Option.getOrThrowWith(
+  entryPage(radar, editions, id, index),
+  () => new Error(`No entry ${id} in edition ${index}`),
+);
+---
+
+<EntryPageView page={page} />

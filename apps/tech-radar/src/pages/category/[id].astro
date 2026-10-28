@@ -1,0 +1,53 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import { byCategoryAndRing } from '../../radar/pages';
+import { current, editions, radar } from '../../radar/radar';
+import { categoryIds, categoryLabels, ringLabels } from '../../radar/three/data';
+
+export const getStaticPaths = () => categoryIds.map((id) => ({ params: { id } }));
+
+const { id } = Astro.params;
+const category = categoryIds.find((candidate) => candidate === id) ?? 'techniques';
+const rings =
+  byCategoryAndRing(radar, current).find((group) => group.category === category)?.rings ?? [];
+const edition = editions[current];
+---
+
+<PageLayout title={categoryLabels[category]}>
+  <h1>{categoryLabels[category]}</h1>
+  <p class="muted">
+    {edition?.label} · {edition?.date} ·{' '}
+    <a href={`/?view=cluster:${category}`}>Open it on the 3D radar</a>
+  </p>
+  {
+    rings
+      .filter(({ entries }) => entries.length > 0)
+      .map(({ ring, entries }) => (
+        <section aria-labelledby={`ring-${ring}`}>
+          <h2 id={`ring-${ring}`}>{ringLabels[ring]}</h2>
+          <ul class="entries">
+            {entries.map((entry) => (
+              <li>
+                <a href={`/blip/${entry.id}/`}>{entry.name}</a>
+                <p>{entry.description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+  }
+</PageLayout>
+
+<style>
+  .entries {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .entries p {
+    margin: 0.15rem 0 0;
+    color: var(--muted);
+  }
+</style>

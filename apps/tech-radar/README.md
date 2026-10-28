@@ -11,9 +11,24 @@ bun run --filter @opsydyn/tech-radar typecheck
 
 ## Pages
 
-- `/` is the 3D radar. It renders per request, so its query string is a deep link
-  (`/?entry=futhark&theme=paragon`, `&edition=2026-02-14`).
-- `/2d/` is the 2D radar.
+| Page                         | Rendered    | What it is                                                   |
+| ---------------------------- | ----------- | ------------------------------------------------------------ |
+| `/`                          | per request | The 3D radar. Its query string is a deep link                |
+| `/2d/`                       | at build    | The 2D radar                                                 |
+| `/blip/<id>/`                | at build    | An entry's full page in the current edition                  |
+| `/edition/<date>/blip/<id>/` | at build    | An entry's full page as it stood in an earlier edition       |
+| `/edition/<date>/`           | at build    | An edition: its notes, what changed, its entries by category |
+| `/category/<id>/`            | at build    | A category's entries in the current edition, by ring         |
+| `404`                        | at build    | Unknown addresses                                            |
+
+- **Deep links:** `/?entry=futhark&theme=paragon`, with `&edition=2026-02-14` for an
+  earlier edition, or `/?view=cluster:tools`.
+- **"Open full page"** on the 3D radar's card opens the entry's page for the edition
+  being viewed.
+- **The full pages need no JavaScript.** The movement chart is an SVG drawn at build time,
+  with a table of the same values.
+- `src/radar/pages.ts` works out what each page shows, and is tested in
+  `test/pages.test.ts`.
 
 ## Content
 
@@ -43,7 +58,8 @@ related: # relationships it starts
 
 `src/radar/content.ts` assembles the files into the radar's dataset at build time. A bad
 edit stops the build with the file that caused it. `test/content.test.ts` proves the
-markdown is the same radar as the original's fixture.
+markdown is the same radar as the original's fixture, which the tests keep as stable test
+data in `src/test/fixture.ts`.
 
 ## The radars are copies
 
@@ -52,6 +68,8 @@ markdown is the same radar as the original's fixture.
   stylesheet. Its tests are in `test/three` and run with `bun test`.
 - `src/radar/flat` is a copy of `apps/web/src/apps/functional-ai-radar`. Its tests sit
   beside it and run with vitest, as in apps/web.
+- The copies take the radar's data, title and full-page addresses as props, and drop the
+  original's demo notice. Otherwise they are as copied.
 - The originals are not changed by this app. They share libraries only (effect-three, its
   FoldKit adapter, troika and foldkit-viz), so a library fix reaches both, but a radar
   fix, such as a new theme, has to be ported by hand in either direction.

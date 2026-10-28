@@ -306,6 +306,13 @@ Astro 7, `@opsydyn/astro-foldkit`, `trailingSlash: 'always'`, and no adapter in 
 
 ## Phases
 
+**Progress (2026-10-28):** Phases 1 to 5 are done on `feat/tech-radar-scaffold`, locally.
+Two changes from the plan below:
+
+- `/2d/` is built ahead, not rendered per request: the 2D copy reads no deep links yet.
+- The full pages have no mini-radar yet; they link to the 3D radar on the entry instead.
+  Both are small follow-ups.
+
 Local development comes first. The Cloudflare and Alchemy work waits until the site runs
 locally, so nothing needs your Cloudflare login until Phase 6.
 
@@ -336,10 +343,56 @@ locally, so nothing needs your Cloudflare login until Phase 6.
    - The deploy workflow (prod on `main`, previews by label), with the token and secrets
      set up by you.
    - A link from three-promo, the README, and the CLAUDE.md workspace and command tables.
-8. **Later:** write-ups; a custom domain; optional ADR, author and tag fields with a page
+8. **Final infra stage: review `@alchemy.run/domain`** (below), and decide whether any
+   later feature uses it.
+9. **Later:** write-ups; a custom domain; optional ADR, author and tag fields with a page
    section; a "Take the tour" per edition from a checked-in tour file.
 
 Each phase is its own branch and PR, committed locally and pushed only when asked.
+
+## Final infra stage: reviewing `@alchemy.run/domain`
+
+Read on 2026-10-28 from alchemy.run/domain, /domain/foldkit and /domain/cloudflare.
+
+**What it is.** Not custom domains: `@alchemy.run/domain` is Alchemy's domain-driven
+design library.
+
+- Commands request changes, aggregates decide them, and events record what happened.
+- Views, projections, policies and sagas answer reads, feed stores and decide next steps.
+- `Story` tests describe behaviour in business terms against an in-memory model.
+- On Cloudflare each aggregate, view key and policy becomes a Durable Object, created when
+  the Worker starts. A command's events, state and reply commit together.
+- `bun alchemy dev` runs the same Worker and Durable Objects locally.
+
+**How it meets FoldKit.**
+
+- Its client sends commands over HTTP, mapped to FoldKit Commands that return
+  `Succeeded*` or `Failed*` Messages with typed rejections.
+- A view's `watch` opens a WebSocket, mapped to a FoldKit Subscription.
+- Alchemy also has `Cloudflare.Website.Foldkit`, beside the `Website.Astro` this plan uses.
+  The API Worker shares the site's origin through `assets.runWorkerFirst`.
+
+**Where it could fit the radar.** v1 needs none of it: the radar is markdown, assembled at
+build time, and read-only. It becomes relevant once the radar takes input, for example:
+
+- proposals and votes on blips, or comments;
+- an editorial workflow, where moving a blip is a command and an edition is the event
+  history up to its date (the timeline would read events rather than markdown);
+- live updates to an open radar through a watched view.
+
+**What to check in the review.**
+
+- **Effect versions.** The domain client runs in the browser next to FoldKit, so it must
+  share FoldKit's Effect. FoldKit peers on exactly `effect 4.0.0`; Alchemy's packages
+  peered on `^4.0.5` when this plan was written. The separate infra workspace doesn't help
+  here, because the client is app code.
+- **Astro.** The docs show `Website.Foldkit`, not Astro. Check how an API Worker sits
+  beside `Website.Astro`.
+- **Maturity:** the version, its release status, and the cost of Durable Objects per key.
+- **The local story:** whether `Domain.InMemory` and `Story` tests fit this repo's bun
+  test setup.
+
+The outcome is a decision recorded here: adopt it for a named feature, or not yet.
 
 ## Decisions
 

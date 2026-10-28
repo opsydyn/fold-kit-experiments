@@ -13,9 +13,9 @@ This file is the canonical cross-package product roadmap and release sequence.
 primitive-parity audit, and implementation history. It links here for product
 priorities rather than duplicating their status.
 
-Current package compatibility targets FoldKit `0.167.x`, stable Effect
-`4.0.0`, and the `@foldkit/vite-plugin` `0.27.x` line. See the
-[migration guide](migrations/foldkit-0.167.md). Astro integration `0.8.0` and
+Current package compatibility targets FoldKit `0.167.x` to `0.169.x`, stable Effect
+`4.0.0`, and the `@foldkit/vite-plugin` `0.28.x` line. See the
+[migration guide](migrations/foldkit-0.167.md) and the [0.169 notes](releases/foldkit-0.169.md). Astro integration `0.8.0` and
 Viz `0.11.0` are published; registry and hosted deployment verification is
 recorded in the [release notes](releases/foldkit-0.167.md).
 

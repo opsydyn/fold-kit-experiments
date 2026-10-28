@@ -83,7 +83,7 @@ Config files:
 
 ## Foldkit import style guide
 
-Foldkit 0.167.0 exports submodule functions as **named exports**, not namespace objects.
+Foldkit 0.169.0 exports submodule functions as **named exports**, not namespace objects.
 
 ### foldkit/update
 
@@ -244,10 +244,11 @@ From the Foldkit style guide (adapted):
 
 ## Foldkit version
 
-Currently on `foldkit@0.167.0` with stable Effect `4.0.0` and
-`@foldkit/vite-plugin` `0.27.x`.
+Currently on `foldkit@0.169.0` with stable Effect `4.0.0` and
+`@foldkit/vite-plugin` `0.28.x`. 0.168 and 0.169 needed no code changes from 0.167; see
+`docs/releases/foldkit-0.169.md`. FoldKit still peers on exactly `effect@4.0.0`.
 
-FoldKit 0.167 and stable Effect guidance:
+FoldKit 0.167+ and stable Effect guidance:
 
 - Prefer the renamed helpers `modifyFields`, `streamFromKeyBindings`, `mapEvent`, and
   `filterMapEvent` when migrating code that used their older names.
@@ -272,5 +273,7 @@ The current release includes:
 - `foldkit/update` — `combine`, `refresh`, `Step`, `Return`, `Refreshable` types
 - `foldkit/asyncData` — `fromOptionOrIdle`, `revalidateOrLoad`, `settle`, `matchData`
 - `Route.isEntering`, `RouteTransition` type
+- `Transition.match`, `Transition.matchOrElse`, `Transition.isExiting`, `Transition.isStaying` (0.169)
+- `Lazy.expectAllReused` in `foldkit/test` to check lazy cache reuse (0.169)
 - `preserveScroll: true` on `makeApplication` (already wired in `packages/astro-foldkit/src/client.ts`)
 - `foldkit/http` — browser-safe `Http.layer` for Commands using Effect `HttpClient`

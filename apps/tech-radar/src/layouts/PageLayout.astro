@@ -1,6 +1,6 @@
 ---
 /*
- * A page that scrolls: the 2D radar and the full pages. Each works without JavaScript.
+ * A page that scrolls: the full pages. Each works without JavaScript.
  */
 import { categoryIds, categoryLabels } from '../radar/three/data';
 import { editions, radarTitle } from '../radar/radar';
@@ -26,8 +26,7 @@ const { title, description } = Astro.props;
     <header class="site-header">
       <a class="site-name" href="/">{radarTitle}</a>
       <nav aria-label="Site">
-        <a href="/">3D radar</a>
-        <a href="/2d/">2D radar</a>
+        <a href="/">Radar</a>
         {categoryIds.map((id) => <a href={`/category/${id}/`}>{categoryLabels[id]}</a>)}
       </nav>
     </header>

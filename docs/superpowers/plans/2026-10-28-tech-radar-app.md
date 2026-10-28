@@ -306,6 +306,12 @@ Astro 7, `@opsydyn/astro-foldkit`, `trailingSlash: 'always'`, and no adapter in 
 
 ## Phases
 
+**2D radar removed (2026-10-28):** the app shows the 3D radar only. `/2d/`, the 2D copy
+(`src/radar/flat`), its Vitest tests and its vanilla-extract tooling are gone, and so are
+the follow-ups that needed it (a mini 2D radar on each full page, deep links on `/2d/`).
+The original 2D radar in apps/web is unchanged. The sections below describe the plan as
+first written.
+
 **Progress (2026-10-28):** Phases 1 to 7 are done and merged (#79, #80, and the docs
 PR that follows them). Production is
 <https://tech-radar-techradar-prod-p2g6lgx4bmhwwuk5.opsydyn.workers.dev/>, deployed from
@@ -323,9 +329,8 @@ What the first deploy taught:
 - The Cloudflare account already had Alchemy's state store, which was adopted.
   Two changes from the plan below:
 
-- `/2d/` is built ahead, not rendered per request: the 2D copy reads no deep links yet.
-- The full pages have no mini-radar yet; they link to the 3D radar on the entry instead.
-  Both are small follow-ups.
+- `/2d/` was built ahead, not rendered per request, and the full pages link to the 3D
+  radar rather than show a mini-radar. The 2D radar has since been removed.
 
 Local development comes first. The Cloudflare and Alchemy work waits until the site runs
 locally, so nothing needs your Cloudflare login until Phase 6.

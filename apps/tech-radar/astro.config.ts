@@ -1,5 +1,4 @@
 import foldkit from '@opsydyn/astro-foldkit';
-import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import { defineConfig } from 'astro/config';
 
 // No adapter: Alchemy supplies Cloudflare's when it builds the site (see the plan,
@@ -9,7 +8,4 @@ export default defineConfig({
   trailingSlash: 'always',
   server: { port: 4326 },
   devToolbar: { enabled: false },
-  vite: {
-    plugins: [vanillaExtractPlugin()],
-  },
 });

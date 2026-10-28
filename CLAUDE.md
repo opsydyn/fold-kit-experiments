@@ -19,7 +19,7 @@ Bun workspace monorepo. Thirteen workspaces in active use:
 | `@opsydyn/effect-three-troika`  | `packages/effect-three-troika/`  | Troika distance-field text for effect-three (npm, 0.x)     |
 | `@opsydyn/effect-three-samples` | `packages/effect-three-samples/` | Private effect-three samples for apps/web and three-promo  |
 | `@opsydyn/three-promo`          | `apps/three-promo/`              | effect-three promo site (same layout and styling as promo) |
-| `@opsydyn/tech-radar`           | `apps/tech-radar/`               | Standalone tech radar: 3D and 2D radars, markdown content  |
+| `@opsydyn/tech-radar`           | `apps/tech-radar/`               | Standalone tech radar: the 3D radar, markdown content      |
 | `@opsydyn/tech-radar-infra`     | `infra/tech-radar/`              | Alchemy stack deploying the tech radar to Cloudflare       |
 
 The effect-three packages (core, Foldkit adapter, Rapier, troika) run a **stricter, package-local lint policy** (`oxlint.strict.ts`, `@opsydyn/oxlint-effect@2.0.1`, all rules, TypeScript 7). Read `docs/effect-three/PLAN.md` and `docs/effect-three/adr/` before changing them.
@@ -73,8 +73,8 @@ catalog's (`npm publish` cannot resolve `catalog:`). `bun run check` enforces bo
 `packages/effect-three/scripts/check-single-effect.ts` checks that nothing the apps load
 reaches a second Effect.
 
-The tech radar (`apps/tech-radar`) works from copies of the effect-three sample radar and
-the 2D radar, and leaves the originals unchanged. Its content is markdown in
+The tech radar (`apps/tech-radar`) works from a copy of the effect-three sample radar, and
+leaves the original unchanged. Its content is markdown in
 `apps/tech-radar/src/content`. `.github/workflows/deploy-tech-radar.yml` deploys it with
 Alchemy: production on `main`, previews for PRs labelled `preview`. See the app's and the
 infra workspace's READMEs.

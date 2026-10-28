@@ -1,0 +1,111 @@
+name: Deploy the tech radar to Cloudflare
+
+# The Alchemy stack in infra/tech-radar builds apps/tech-radar and deploys it.
+# - prod: on pushes to main that change the site, or by hand.
+# - pr-<number>: a preview, only for PRs labelled `preview` (Actions minutes are limited).
+#   Removing the label or closing the PR destroys it.
+
+on:
+  push:
+    branches:
+      - main
+    # The site, its stack, and every workspace package the site depends on.
+    paths:
+      - 'apps/tech-radar/**'
+      - 'infra/tech-radar/**'
+      - 'packages/astro-foldkit/**'
+      - 'packages/effect-three/**'
+      - 'packages/effect-three-foldkit/**'
+      - 'packages/effect-three-troika/**'
+      - 'packages/foldkit-viz/**'
+      - 'bun.lock'
+      - '.github/workflows/deploy-tech-radar.yml'
+  pull_request:
+    types: [labeled, unlabeled, synchronize, closed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.TECH_RADAR_CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.TECH_RADAR_CLOUDFLARE_ACCOUNT_ID }}
+
+jobs:
+  deploy:
+    # prod on main; a preview for a labelled, open PR.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.action != 'closed' && github.event.action != 'unlabeled' &&
+       contains(github.event.pull_request.labels.*.name, 'preview'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      STAGE: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'prod' }}
+    concurrency:
+      group: deploy-tech-radar-${{ github.event_name == 'pull_request' && github.event.number || 'prod' }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build the workspace packages the site uses
+        run: bun run --filter @opsydyn/tech-radar prebuild-packages
+
+      - name: Check the Cloudflare credentials are set
+        working-directory: infra/tech-radar
+        run: bunx alchemy provider check-env --no-input
+
+      - name: Deploy
+        working-directory: infra/tech-radar
+        # `shell: bash` adds pipefail, so a failed deploy fails the step despite the tee.
+        shell: bash
+        run: |
+          bunx alchemy deploy --stage "$STAGE" --yes --no-input | tee deploy.log
+          url=$(grep -oE "https://[^' ]+\.workers\.dev" deploy.log | tail -n 1)
+          echo "Deployed $STAGE: $url" >> "$GITHUB_STEP_SUMMARY"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+        id: deploy
+
+      - name: Comment the preview's address on the PR
+        if: github.event_name == 'pull_request' && github.event.action == 'labeled'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.deploy.outputs.url }}
+        run: gh pr comment ${{ github.event.number }} --body "Preview deployed to $URL (stage \`$STAGE\`). Remove the \`preview\` label or close the PR to destroy it."
+
+  destroy-preview:
+    # A preview goes when its PR closes or loses the label. Never prod.
+    if: >-
+      github.event_name == 'pull_request' &&
+      ((github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'preview')) ||
+       (github.event.action == 'unlabeled' && github.event.label.name == 'preview'))
+    runs-on: ubuntu-latest
+    env:
+      STAGE: pr-${{ github.event.number }}
+    concurrency:
+      group: deploy-tech-radar-${{ github.event.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install workspace dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Destroy the preview
+        working-directory: infra/tech-radar
+        run: |
+          case "$STAGE" in pr-[0-9]*) ;; *) echo "Refusing to destroy stage $STAGE"; exit 1 ;; esac
+          bunx alchemy destroy --stage "$STAGE" --yes --no-input

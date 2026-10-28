@@ -36,3 +36,23 @@ bun run plan      # what a deploy would change, for your live_$USER stage
 bun run deploy    # build apps/tech-radar and deploy it
 bun run destroy   # remove the stage
 ```
+
+## From CI
+
+`.github/workflows/deploy-tech-radar.yml` deploys with two repo secrets:
+
+- `TECH_RADAR_CLOUDFLARE_ACCOUNT_ID`
+- `TECH_RADAR_CLOUDFLARE_API_TOKEN`, a token scoped to Workers Scripts and Secrets Store
+  (edit). Make one with your Global API Key, then paste it into `gh`:
+
+```sh
+bunx alchemy provider cloudflare token --name tech-radar-ci --account-id <account id>
+gh secret set TECH_RADAR_CLOUDFLARE_API_TOKEN --repo opsydyn/fold-kit-experiments
+```
+
+The stages:
+
+- **`prod`** deploys on pushes to `main` that change the site, its stack or the packages
+  it uses, and by hand from the Actions tab.
+- **`pr-<number>`** deploys a preview for a PR labelled `preview`, and comments its address.
+  Removing the label or closing the PR destroys it; the job refuses any other stage.

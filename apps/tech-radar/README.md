@@ -15,6 +15,36 @@ bun run --filter @opsydyn/tech-radar typecheck
   (`/?entry=futhark&theme=paragon`, `&edition=2026-02-14`).
 - `/2d/` is the 2D radar.
 
+## Content
+
+The radar is markdown in `src/content`:
+
+- `radar.md`: the title, and an introduction as its body.
+- `editions/<date>.md`: one per edition, named by its date, with a `label`. The newest is
+  the current edition.
+- `entries/<id>.md`: one per entry, named by its id. The body is its full-page write-up.
+
+```markdown
+---
+name: FoldKit
+category: languages-frameworks # techniques, tools, platforms or languages-frameworks
+ring: adopt # in the current edition: adopt, trial, assess or caution
+summary: Model, Message and update-driven interfaces built on TypeScript and Effect.
+source: https://foldkit.dev/
+history: # the earlier editions it was on, and its ring then
+  - edition: '2025-10-14'
+    ring: assess
+related: # relationships it starts
+  - to: elm
+    type: inspired-by # builds-on, complements, inspired-by, guards-against or alternative-to
+    note: "FoldKit's Model, Message and update loop follow the Elm Architecture."
+---
+```
+
+`src/radar/content.ts` assembles the files into the radar's dataset at build time. A bad
+edit stops the build with the file that caused it. `test/content.test.ts` proves the
+markdown is the same radar as the original's fixture.
+
 ## The radars are copies
 
 - `src/radar/three` is a copy of `packages/effect-three-samples/src/radar`, with the two

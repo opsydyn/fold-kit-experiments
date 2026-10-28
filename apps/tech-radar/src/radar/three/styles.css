@@ -1,0 +1,952 @@
+/*
+ * effect-three samples. Colours come from the host page's theme variables (the promo
+ * sites' --surface, --text, --muted, --border, --blue), with dark fallbacks for apps/web.
+ */
+.e3-sample {
+  display: grid;
+  gap: 1rem;
+  color: var(--text, #e8e8f0);
+}
+
+.e3-stage {
+  display: block;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 50% 35%,
+      color-mix(in srgb, var(--blue, #3d79fa) 10%, transparent),
+      transparent 70%
+    ),
+    var(--surface, #12121f);
+  cursor: pointer;
+  width: 100%;
+  height: 380px;
+  overflow: hidden;
+}
+
+.e3-stage-hero {
+  height: 440px;
+}
+
+/* Tall machines and rooms: more height on wide screens, never taller than the viewport. */
+.e3-stage-tall {
+  height: min(560px, 75vh);
+}
+
+/* The stage and what floats over it: the breadcrumb and the minimap. */
+.e3-stage-frame {
+  position: relative;
+}
+
+.e3-breadcrumb {
+  display: flex;
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
+  padding: 0.25rem 0.7rem;
+  max-width: calc(100% - 1.2rem);
+  color: var(--muted, #8a8aa3);
+  font-size: 0.8rem;
+}
+
+.e3-crumb {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0.1rem 0.15rem;
+  color: var(--text, #e8e8f0);
+  font: inherit;
+}
+
+.e3-crumb:hover {
+  color: var(--blue, #3d79fa);
+}
+
+.e3-crumb:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.e3-crumb[aria-current='location'] {
+  font-weight: 600;
+}
+
+.e3-crumb-link {
+  margin-left: 0.2rem;
+  border-left: 1px solid var(--border, #2a2a40);
+  padding-left: 0.5rem;
+}
+
+/*
+ * The radar as a standalone app: the sidebar and the stage side by side, filling the
+ * viewport, so the page never scrolls; only the sidebar does if the window is short.
+ */
+.e3-app {
+  display: grid;
+  position: relative;
+  grid-template-columns: 19rem minmax(0, 1fr);
+  gap: 0;
+  background: var(--page, #0a0a14);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--text, #e8e8f0);
+  transition:
+    background 180ms,
+    color 180ms;
+}
+
+.e3-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  border-right: 1px solid var(--border, #2a2a40);
+  background: var(--panel, #0f0f1a);
+  padding: 0.8rem 1rem;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border, #2a2a40) transparent;
+}
+
+.e3-panel-header {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.e3-panel-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.e3-panel-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.e3-panel-links a {
+  color: var(--muted, #8a8aa3);
+}
+
+.e3-panel-links a:hover {
+  color: var(--text, #e8e8f0);
+}
+
+.e3-panel-section {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.e3-panel-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* The theme picker: a small select beside the View heading. */
+.e3-heading-select {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: var(--surface, #12121f);
+  cursor: pointer;
+  padding: 0.05rem 0.5rem;
+  color: var(--text, #e8e8f0);
+  font: inherit;
+  font-size: 0.75rem;
+}
+
+.e3-heading-select:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+}
+
+.e3-heading-action {
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  color: var(--muted, #8a8aa3);
+  font: inherit;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.e3-heading-action:hover {
+  color: var(--text, #e8e8f0);
+}
+
+.e3-heading-action:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+}
+
+.e3-heading-action[aria-pressed] {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  text-decoration: none;
+}
+
+.e3-heading-action[aria-pressed='true'] {
+  border-color: var(--blue, #3d79fa);
+  background: color-mix(in srgb, var(--blue, #3d79fa) 16%, transparent);
+  color: var(--text, #e8e8f0);
+}
+
+.e3-panel-heading {
+  margin: 0;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Search and category share a row, half each: the select never crowds out the search. */
+.e3-find {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.e3-find .e3-text {
+  min-width: 0;
+}
+
+.e3-find select.e3-text {
+  text-overflow: ellipsis;
+}
+
+/* A section's state, small and muted, at the far end of its heading row. */
+.e3-heading-status {
+  overflow: hidden;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The recorder's buttons stay on one row, sharing it. */
+.e3-sidebar .e3-tour-controls {
+  flex-wrap: nowrap;
+}
+
+.e3-sidebar .e3-tour-controls .e3-button {
+  min-width: 0;
+  padding-inline: 0.5rem;
+  white-space: nowrap;
+}
+
+.e3-sidebar .e3-legend-button {
+  padding-block: 0.2rem;
+}
+
+.e3-stack {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.e3-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.e3-toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.e3-sidebar .e3-button {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.e3-sidebar .e3-text {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.e3-icon-button {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.e3-legend-button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* The body's name gives way first: it shortens rather than wrap the row. */
+.e3-legend-body {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: auto;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.75rem;
+}
+
+.e3-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+}
+
+.e3-sidebar .e3-table {
+  margin-top: 0;
+}
+
+.e3-table-scroll {
+  max-height: 40vh;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.e3-sidebar .e3-table table {
+  width: 100%;
+  font-size: 0.78rem;
+}
+
+.e3-sidebar .e3-table th,
+.e3-sidebar .e3-table td {
+  padding-right: 0.4rem;
+  text-align: left;
+}
+
+.e3-sidebar .e3-table .e3-button {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.e3-sidebar .e3-note {
+  font-size: 0.78rem;
+}
+
+/*
+ * The stage fills its half of the app, edge to edge. The night sky is the frame's, so a
+ * stage letterboxed within it shows no seam.
+ */
+.e3-app .e3-stage-frame {
+  /* The theme's star behind the radar: a glow at the core, ringed by its rim colour. */
+  background:
+    radial-gradient(
+      circle at 50% 42%,
+      color-mix(in srgb, var(--glow, #3d79fa) var(--glow-strength, 10%), transparent),
+      color-mix(in srgb, var(--rim, #3d79fa) var(--rim-strength, 0%), transparent) 46%,
+      transparent 72%
+    ),
+    var(--surface, #12121f);
+  min-width: 0;
+  min-height: 0;
+}
+
+.e3-stage-fill {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  height: 100%;
+}
+
+/*
+ * Wide screens: never taller than wide, so the round radar is not cropped at the sides
+ * in a narrow window; a tall stage becomes a square, centred in the frame.
+ */
+@media (min-width: 761px) {
+  .e3-app .e3-stage-frame {
+    display: grid;
+    align-items: center;
+    container-type: size;
+  }
+
+  .e3-stage-fill {
+    height: min(100cqh, 100cqw);
+  }
+}
+
+/* The pinned entry: a card over the stage's top right, scrolling within if long. */
+.e3-details {
+  display: grid;
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  gap: 0.4rem;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface, #12121f) 82%, transparent);
+  padding: 0.75rem 0.9rem;
+  width: min(20rem, calc(100% - 1.2rem));
+  max-height: calc(100% - 11rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.e3-details h3,
+.e3-details h4,
+.e3-details p {
+  margin: 0;
+}
+
+.e3-details h4 {
+  margin-top: 0.3rem;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.e3-details .e3-button {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* A tour's caption: the move just made, large, centred low over the stage. */
+.e3-tour-caption {
+  position: absolute;
+  bottom: 3.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface, #12121f) 80%, transparent);
+  padding: 0.5rem 1.1rem;
+  max-width: calc(100% - 2rem);
+  font-size: 1.05rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.e3-tour-controls .e3-button {
+  flex: 1 1 auto;
+}
+
+/* The readout: a pill along the stage's bottom, clear of the minimap. */
+.e3-stage-readout {
+  position: absolute;
+  margin: 0;
+  bottom: 0.6rem;
+  left: 0.6rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
+  padding: 0.3rem 0.8rem;
+  max-width: calc(100% - clamp(72px, 22%, 132px) - 2rem);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+/*
+ * Narrow screens: the stage on top, square, and the sidebar beneath it, scrolling on its
+ * own; the pinned entry sits between them rather than over the radar.
+ */
+@media (max-width: 760px) {
+  .e3-app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .e3-app .e3-stage-frame {
+    grid-row: 1;
+  }
+
+  .e3-stage-fill {
+    height: auto;
+    max-height: 58dvh;
+    aspect-ratio: 1;
+    margin-inline: auto;
+  }
+
+  .e3-details {
+    position: static;
+    grid-row: 2;
+    border-radius: 0;
+    border-inline: 0;
+    width: auto;
+    max-height: 30dvh;
+  }
+
+  .e3-sidebar {
+    grid-row: 3;
+    border-top: 1px solid var(--border, #2a2a40);
+    border-right: 0;
+  }
+
+  /* On a phone the readout is how a tapped blip is read: big enough to read at arm's length. */
+  .e3-stage-readout {
+    font-size: 0.85rem;
+  }
+}
+
+/* The radar's timeline: what changed in the shown edition, in a compact list. */
+.e3-timeline {
+  display: grid;
+  gap: 0.4rem;
+}
+
+/*
+ * What changed in the shown edition: always the same height, so the sidebar never jumps
+ * as the timeline plays; an edition with more to say scrolls within.
+ */
+.e3-timeline-log {
+  height: 3.6rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border, #2a2a40) transparent;
+}
+
+.e3-timeline-log:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.e3-timeline-log .e3-note {
+  font-size: 0.8rem;
+}
+
+.e3-timeline-changes {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.8rem;
+}
+
+/* The minimap: the radar from above, small, in the stage's corner. */
+.e3-minimap {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
+  width: clamp(72px, 22%, 132px);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.e3-minimap-quarter {
+  cursor: pointer;
+}
+
+.e3-minimap-quarter:hover {
+  opacity: 0.3;
+}
+
+/* A relationship's line in a legend or list: its colour and line style, inline. */
+.e3-edge-swatch {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.4rem;
+  width: 1.4rem;
+  height: 0;
+}
+
+.e3-relations {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.e3-relations .e3-note {
+  margin: 0.25rem 0 0 0.25rem;
+}
+
+/* A night sky whatever the page's theme: additive stars and sparkles need the dark. */
+.e3-stage-night {
+  background: radial-gradient(circle at 50% 40%, #1a2240, #07080d 75%);
+}
+
+.e3-stage-placeholder {
+  display: grid;
+  place-items: center;
+  cursor: default;
+  color: var(--muted, #8a8aa3);
+}
+
+.e3-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.e3-button {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: var(--surface, #1a1a2e);
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.e3-tag {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: var(--surface, #1a1a2e);
+  padding: 0.2rem 0.6rem;
+  color: var(--text, #e8e8f0);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.e3-button:hover {
+  border-color: var(--blue, #3d79fa);
+}
+
+.e3-button:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+}
+
+.e3-button[aria-pressed='true'] {
+  border-color: var(--blue, #3d79fa);
+  background: color-mix(in srgb, var(--blue, #3d79fa) 16%, transparent);
+}
+
+.e3-swatch {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.e3-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.e3-stat {
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+}
+
+.e3-stat dt {
+  color: var(--muted, #8a8aa3);
+  font-size: 0.75rem;
+}
+
+.e3-stat dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.e3-stat-active dd {
+  color: var(--blue, #6b9bff);
+}
+
+.e3-note {
+  margin: 0;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.875rem;
+}
+
+.e3-range {
+  flex: 1 1 12rem;
+  accent-color: var(--blue, #3d79fa);
+}
+
+.e3-text {
+  font: inherit;
+  color: var(--text, #e8e8f0);
+  background: var(--surface, #12121f);
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  width: min(28rem, 70vw);
+}
+
+.e3-text:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+}
+
+.e3-readout {
+  margin: 0.75rem 0 0;
+  min-height: 1.5em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text, #e8e8f0);
+}
+
+.e3-table {
+  margin-top: 0.75rem;
+  color: var(--text, #e8e8f0);
+  font-size: 0.875rem;
+}
+
+.e3-table summary {
+  cursor: pointer;
+  color: var(--muted, #a0a0b8);
+}
+
+.e3-table table {
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.e3-table caption {
+  text-align: left;
+  color: var(--muted, #a0a0b8);
+  padding-bottom: 0.25rem;
+}
+
+.e3-table th,
+.e3-table td {
+  padding: 0.25rem 0.75rem 0.25rem 0;
+  border-bottom: 1px solid var(--border, #2e2e48);
+  text-align: right;
+}
+
+.e3-table th[scope='row'],
+.e3-table thead th:first-child {
+  text-align: left;
+}
+
+/* A selection box over a stage: the area holds the stage and the box's outline. */
+.e3-select-area {
+  position: relative;
+}
+
+.e3-select-box {
+  position: absolute;
+  /* The stage's border: the box is placed in the canvas's pixels. */
+  margin: 1px;
+  border: 1px dashed var(--fg, #e8e8f0);
+  background: color-mix(in srgb, var(--blue, #3d79fa) 14%, transparent);
+  pointer-events: none;
+}
+
+/* A measuring tape's length, at its middle. */
+.e3-tape-label {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #151520;
+  color: #ffcc33;
+  font:
+    600 12px/1.6 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: nowrap;
+}
+
+/* A schema-generated inspector: a row per field, its name and its control. */
+.e3-inspector-panel {
+  margin-block: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 12px;
+}
+
+.e3-inspector-panel h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.e3-inspector {
+  display: grid;
+  gap: 6px;
+}
+
+.e3-inspector-row {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.e3-inspector-name {
+  color: var(--muted, #8a8aa3);
+}
+
+.e3-inspector-vector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.e3-inspector-row input[type='number'],
+.e3-inspector-row input[type='text'],
+.e3-inspector-row select {
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.e3-inspector-issue {
+  margin: 8px 0 0;
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 480px) {
+  .e3-inspector-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
+
+/* The editor: panels beside one another, under the stage. */
+.e3-editor-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-block: 16px;
+}
+
+.e3-editor-panel {
+  padding: 12px 14px;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.e3-editor-panel h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.e3-inspector-title {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.e3-outline,
+.e3-history {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.e3-outline-row,
+.e3-step {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.e3-outline-row:hover,
+.e3-step:hover {
+  background: color-mix(in srgb, var(--blue, #3d79fa) 10%, transparent);
+}
+
+.e3-outline-row[aria-pressed='true'],
+.e3-step[aria-current='step'] {
+  background: color-mix(in srgb, var(--blue, #3d79fa) 22%, transparent);
+}
+
+.e3-outline-kind {
+  min-width: 6.5rem;
+  color: var(--muted, #8a8aa3);
+}
+
+/* A step off the present's line: a branch kept, not lost. */
+.e3-step-branch {
+  color: var(--muted, #8a8aa3);
+  font-style: italic;
+}
+
+.e3-changes {
+  margin: 0;
+  font:
+    12px/1.6 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  white-space: pre-wrap;
+}
+
+/* A file chooser that looks like the other buttons. */
+.e3-file {
+  position: relative;
+  cursor: pointer;
+}
+
+.e3-file input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* The inspector needs the room: two columns where there are three. */
+@media (min-width: 720px) {
+  .e3-editor-inspector {
+    grid-column: span 2;
+  }
+}
+
+.e3-editor-panel .e3-inspector-row {
+  grid-template-columns: minmax(5rem, 8rem) minmax(0, 1fr);
+}
+
+/* A word before a group of controls: Shot, Light. */
+.e3-controls-label {
+  align-self: center;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.85rem;
+}

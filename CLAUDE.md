@@ -4,7 +4,7 @@ Project conventions and agent guidance for this monorepo.
 
 ## Quick orientation
 
-Bun workspace monorepo. Eleven workspaces in active use:
+Bun workspace monorepo. Thirteen workspaces in active use:
 
 | Workspace                       | Path                             | Purpose                                                    |
 | ------------------------------- | -------------------------------- | ---------------------------------------------------------- |
@@ -19,6 +19,8 @@ Bun workspace monorepo. Eleven workspaces in active use:
 | `@opsydyn/effect-three-troika`  | `packages/effect-three-troika/`  | Troika distance-field text for effect-three (npm, 0.x)     |
 | `@opsydyn/effect-three-samples` | `packages/effect-three-samples/` | Private effect-three samples for apps/web and three-promo  |
 | `@opsydyn/three-promo`          | `apps/three-promo/`              | effect-three promo site (same layout and styling as promo) |
+| `@opsydyn/tech-radar`           | `apps/tech-radar/`               | Standalone tech radar: 3D and 2D radars, markdown content  |
+| `@opsydyn/tech-radar-infra`     | `infra/tech-radar/`              | Alchemy stack deploying the tech radar to Cloudflare       |
 
 The effect-three packages (core, Foldkit adapter, Rapier, troika) run a **stricter, package-local lint policy** (`oxlint.strict.ts`, `@opsydyn/oxlint-effect@2.0.1`, all rules, TypeScript 7). Read `docs/effect-three/PLAN.md` and `docs/effect-three/adr/` before changing them.
 
@@ -41,6 +43,7 @@ bun run check                         # oxlint + oxfmt --check (both must pass)
 bun run check:fix                     # oxfmt then oxlint --fix
 bun run --filter @opsydyn/web dev     # single workspace
 bun dev:three-promo                   # effect-three promo → localhost:4323
+bun dev:tech-radar                    # tech radar → localhost:4326
 bun run relay                         # editor relay → ws://localhost:4325/<room>
 ```
 
@@ -63,6 +66,18 @@ TypeScript 7 and oxlint). In private workspaces write `"catalog:"` (or
 `"catalog:strict"`), never a version. The npm-published packages (`astro-foldkit`,
 `foldkit-viz`, and the four effect-three packages) keep literal versions equal to the
 catalog's (`npm publish` cannot resolve `catalog:`). `bun run check` enforces both via `tools/check-catalog.ts`.
+
+`infra/*` workspaces are separate programs (Alchemy CLIs) and take their versions from
+`workspaces.catalogs.infra` (`"catalog:infra"`), including their own Effect: Alchemy needs
+`effect ^4.0.5` and FoldKit pins exactly `4.0.0`. Bun's isolated install keeps the two apart;
+`packages/effect-three/scripts/check-single-effect.ts` checks that nothing the apps load
+reaches a second Effect.
+
+The tech radar (`apps/tech-radar`) works from copies of the effect-three sample radar and
+the 2D radar, and leaves the originals unchanged. Its content is markdown in
+`apps/tech-radar/src/content`. `.github/workflows/deploy-tech-radar.yml` deploys it with
+Alchemy: production on `main`, previews for PRs labelled `preview`. See the app's and the
+infra workspace's READMEs.
 
 ## Linting — oxlint + oxfmt
 

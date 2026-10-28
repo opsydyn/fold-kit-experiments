@@ -3,6 +3,7 @@ import SourceCode from '../components/SourceCode.astro';
 import Hero from '../examples/hero/app';
 import Layout from '../layouts/Layout.astro';
 import { examples } from '../lib/examples';
+import { techRadar } from '../lib/links';
 import { sitePath } from '../lib/site-path';
 import { teaser } from '../lib/snippets';
 ---
@@ -36,6 +37,13 @@ import { teaser } from '../lib/snippets';
       </a>)}
     </div>
   </section>
+  <section class="showcase built-with" aria-labelledby="built-with-heading">
+    <div class="section-heading">
+      <div><p class="eyebrow">Built with effect-three</p><h2 id="built-with-heading">A tech radar you can fly through.</h2></div>
+      <a class="text-link" href={techRadar}>Open the tech radar <span aria-hidden="true">→</span></a>
+    </div>
+    <p class="built-with-note">A whole site on effect-three and Foldkit: a 3D tech radar written as markdown. It steps back through earlier editions, every view is a shareable link, and each entry opens a page of its own.</p>
+  </section>
   <section class="principles" aria-label="Why effect-three">
     <div><h2>Scenes are data</h2><p>No closures, no three.js objects in your Model. Derive the scene in your view; keyed updates change only what changed.</p></div>
     <div><h2>Effect owns lifetimes</h2><p>Renderers, GPU resources, frame loops and listeners live in a Scope. Unmount, fail or interrupt, and everything is released.</p></div>
@@ -54,4 +62,5 @@ import { teaser } from '../lib/snippets';
   .hero-scene { display: grid; gap: 12px; min-width: 0; }
   .hero-scene .small-note { color: var(--muted); font-size: 13px; text-align: center; }
   .example-card .showcase-image { width: 100%; height: auto; border-radius: 12px; }
+  .built-with-note { max-width: 46rem; margin-top: 12px; color: var(--muted); font-size: 16px; line-height: 1.6; }
 </style>

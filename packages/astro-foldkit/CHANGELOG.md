@@ -2,11 +2,10 @@
 
 ## [0.9.2](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.1...astro-foldkit-v0.9.2) (2026-10-28)
 
-
 ### Bug Fixes
 
-* **deps:** accept FoldKit 0.169 and move the workspace to it ([b5e40b0](https://github.com/opsydyn/fold-kit-experiments/commit/b5e40b0317e594f38c0596aac49f79cccae4a974))
-* **deps:** accept FoldKit 0.169 and move the workspace to it ([fc82d5d](https://github.com/opsydyn/fold-kit-experiments/commit/fc82d5de50151053514e9e7a0ab676a55141e755))
+- **deps:** accept FoldKit 0.169 and move the workspace to it ([b5e40b0](https://github.com/opsydyn/fold-kit-experiments/commit/b5e40b0317e594f38c0596aac49f79cccae4a974))
+- **deps:** accept FoldKit 0.169 and move the workspace to it ([fc82d5d](https://github.com/opsydyn/fold-kit-experiments/commit/fc82d5de50151053514e9e7a0ab676a55141e755))
 
 ## [0.9.1](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.0...astro-foldkit-v0.9.1) (2026-10-19)
 

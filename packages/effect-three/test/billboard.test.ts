@@ -75,3 +75,33 @@ test('a billboard made fixed stops turning, and keeps the angles it is given', (
   expect(graph.object('sign')?.rotation.toArray().slice(0, 3)).toEqual([0, 0, 0.5]);
   graph.dispose();
 });
+
+/** A sign that is either beside a turning post or on it, both billboards. */
+const nestedScene = (eye: Vec3, onPost: boolean) => {
+  const sign = mesh({ key: 'sign', geometry: box(), material: basic(), rotation: billboard() });
+  return scene({
+    camera: perspectiveCamera({ position: eye, lookAt: [0, 0, 0] }),
+    children: [
+      ...(onPost ? [] : [sign]),
+      group({
+        key: 'post',
+        position: [1, 0, 0],
+        rotation: billboard(),
+        children: onPost ? [sign] : [],
+      }),
+    ],
+  });
+};
+
+test('a billboard on a billboard faces the camera on the frame it moves, whatever came first', () => {
+  const graph = createSceneGraph();
+  // The sign is a billboard before the post is one, then moves onto it as the camera moves.
+  graph.reconcile(nestedScene([0, 2, 8], false));
+  graph.tick(0);
+  graph.reconcile(nestedScene([8, 1, 0], true));
+  graph.tick(0.1);
+  const camera = new Quaternion();
+  graph.camera.getWorldQuaternion(camera);
+  expect(sameTurn(worldTurn(graph, 'sign'), camera)).toBe(true);
+  graph.dispose();
+});

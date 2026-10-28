@@ -621,6 +621,8 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
   const spinning = new Set<Entry>();
   // Billboards: turned towards the camera each frame, after everything else has moved.
   const facing = new Set<Entry>();
+  // Parents first, so a billboard inside a billboard reads this frame's parent turn.
+  const facingOrder: Array<Entry> = [];
   const cameraTurn = new Quaternion();
   const parentTurn = new Quaternion();
   // Points that move by themselves (sparkles, stars), ticked in scene time while animating.
@@ -721,6 +723,24 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     if (lockX) object.rotation.x = 0;
     if (lockY) object.rotation.y = 0;
     if (lockZ) object.rotation.z = 0;
+  };
+
+  const depthOf = (object: Object3D): number => {
+    let depth = 0;
+    for (let parent = object.parent; parent !== null; parent = parent.parent) depth += 1;
+    return depth;
+  };
+
+  /**
+   * Faces every billboard, shallowest first: a nested one is turned against its parent's
+   * world rotation, so the parent must have turned this frame. Drei gets this from React
+   * running a parent's frame callback before its child's.
+   */
+  const faceCameras = (): void => {
+    facingOrder.length = 0;
+    facing.forEach((entry) => facingOrder.push(entry));
+    facingOrder.sort((a, b) => depthOf(a.object) - depthOf(b.object));
+    facingOrder.forEach(faceCamera);
   };
 
   /** Where a trail follows its node: the world position, or with `local` its own. */
@@ -1759,7 +1779,7 @@ export const createSceneGraph = (options: SceneGraphOptions = {}): SceneGraph =>
     // After the camera and everything a billboard may sit on have moved.
     if (facing.size > 0) {
       camera.getWorldQuaternion(cameraTurn);
-      facing.forEach(faceCamera);
+      faceCameras();
     }
     edged.forEach(refreshEdges);
     // Reduced motion holds sparkles and stars where they are.

@@ -1,5 +1,6 @@
 ---
 import AppLayout from '../layouts/AppLayout.astro';
+import { pages, radar, radarTitle } from '../radar/radar';
 import Radar from '../radar/three/app';
 
 // Rendered per request, so the query string reaches the server: it is a deep link, and the
@@ -11,6 +12,14 @@ const link = Object.fromEntries(Astro.url.searchParams);
 const links = [{ label: 'The radar in 2D', href: '/2d/' }];
 ---
 
-<AppLayout title="Tech radar">
-  <Radar client:load assetBase="/models/" links={links} link={link} />
+<AppLayout title={radarTitle}>
+  <Radar
+    client:load
+    dataset={radar}
+    title={radarTitle}
+    pages={pages}
+    assetBase="/models/"
+    links={links}
+    link={link}
+  />
 </AppLayout>

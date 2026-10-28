@@ -1,8 +1,8 @@
 import { Scene } from 'foldkit';
 import { describe, expect, it } from 'vitest';
 
+import { loadDemoRadar } from '../../test/fixture';
 import { renderChart } from '../../test/render-chart.test-helper';
-import { demoNotice, loadDemoRadar } from '../three/data';
 import { Message } from './message';
 import { initModel, type Model } from './model';
 import { RadarPointerMount } from './mount';
@@ -19,7 +19,7 @@ async function rendered(model = initial()) {
 describe('functional AI radar rendered contract', () => {
   it('shows provenance, all 32 entries and only front markers in a finite wireframe', async () => {
     const root = await rendered();
-    expect(root.textContent).toContain(demoNotice);
+    expect(root.textContent).toContain('Current edition · 2026-10-14');
     expect(root.querySelectorAll('[data-entry-id]')).toHaveLength(32);
     expect(root.querySelectorAll('[data-shell]')).toHaveLength(4);
     const marks = root.querySelectorAll('[data-blip-id]');

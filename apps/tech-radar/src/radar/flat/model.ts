@@ -1,10 +1,17 @@
 import { Schema } from 'effect';
 import { defineTaggedUnion } from 'foldkit/schema';
 
-import { categoryIds, loadDemoRadar, Ring, ringIds, type RadarData } from '../three/data';
+import {
+  categoryIds,
+  decodeRadarDataset,
+  Ring,
+  ringIds,
+  type RadarData,
+  type RadarDataset,
+} from '../three/data';
 
-/** The 2D radar seeds its own model; it takes no props yet. */
-interface AppInitProps {}
+/** What the host page hands the 2D radar: the radar to draw. */
+export type FlatRadarProps = Readonly<{ dataset: RadarDataset }>;
 
 const Coordinate = Schema.Tuple([Schema.Number, Schema.Number]);
 export const Selection = defineTaggedUnion({
@@ -48,6 +55,6 @@ export function initModel(data: RadarData): Model {
     gesture: Gesture.Idle({ ignoreNextBlipClick: false }),
   };
 }
-export function init(_props: AppInitProps) {
-  return { model: initModel(loadDemoRadar()) };
+export function init(props: FlatRadarProps) {
+  return { model: initModel(decodeRadarDataset(props.dataset)) };
 }

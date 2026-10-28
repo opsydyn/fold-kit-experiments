@@ -13,14 +13,15 @@ import {
 } from '../../src/radar/three/model';
 import { elevationOf, isBirdsEye } from '../../src/radar/three/space';
 import { applyLink, init, update } from '../../src/radar/three/update';
+import { demoRadar } from '../../src/test/fixture';
 
-const start = init().model;
+const start = init({ dataset: demoRadar }).model;
 const step = (model: Model, message: Message): Model => update(model, message).model;
 const steps = (model: Model, messages: ReadonlyArray<Message>): Model =>
   messages.reduce(step, model);
 const paramsOf = (query: string): Readonly<Record<string, string>> =>
   Object.fromEntries(new URLSearchParams(query));
-const opened = (query: string) => init({ link: paramsOf(query) });
+const opened = (query: string) => init({ dataset: demoRadar, link: paramsOf(query) });
 const commandNames = (model: Model, message: Message): ReadonlyArray<string> =>
   (update(model, message).commands ?? []).map(({ name }) => name);
 
@@ -64,7 +65,9 @@ describe('deep links', () => {
     expect(Option.map(foldkit, flightTo)).toEqual(Option.some(model.camera));
     // A link's theme is for this visit: the saved one is not looked for over it.
     expect(commands ?? []).toEqual([]);
-    expect(init().commands?.map(({ name }) => name)).toEqual(['LoadThemeChoice']);
+    expect(init({ dataset: demoRadar }).commands?.map(({ name }) => name)).toEqual([
+      'LoadThemeChoice',
+    ]);
   });
 
   test('a link can stand above the map or at a cluster', () => {

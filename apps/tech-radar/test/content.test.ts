@@ -5,7 +5,7 @@ import { Result, Schema } from 'effect';
 
 import { assembleRadar, type ContentFile, EntryFile } from '../src/radar/content';
 import type { RadarDataset } from '../src/radar/three/data';
-import { demoRadar } from '../src/radar/three/fixture';
+import { demoRadar } from '../src/test/fixture';
 
 const contentDir = new URL('../src/content/', import.meta.url);
 

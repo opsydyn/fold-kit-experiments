@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadDemoRadar, ringIds } from '../three/data';
+import { loadDemoRadar } from '../../test/fixture';
+import { ringIds } from '../three/data';
 import { filterPositions, layoutEntries } from './geometry';
 import { Message } from './message';
 import { initModel, type Model } from './model';

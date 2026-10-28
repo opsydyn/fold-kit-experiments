@@ -6,7 +6,6 @@ import { bodyLabels, bodyOf } from './bodies';
 import {
   categoryIds,
   categoryLabels,
-  demoNotice,
   type RadarEntry,
   relationshipLabels,
   relationshipTypes,
@@ -24,6 +23,7 @@ import {
   themeOf,
   clusterOfLabel,
   editionOf,
+  fullPageOf,
   editionsOf,
   filtersOf,
   type Model,
@@ -369,6 +369,13 @@ const legend = (model: Model, h: HtmlBuilder<Message>): Html =>
     ),
   ]);
 
+/** The pinned entry's full page, as it stood in the edition shown, when the site has one. */
+const fullPageLink = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyArray<Html> =>
+  Option.match(fullPageOf(model, id), {
+    onNone: () => [],
+    onSome: (href) => [h.p([], [h.a([h.Class('e3-full-page'), h.Href(href)], ['Open full page'])])],
+  });
+
 /** The pinned entry, as a card floating over the stage's top right on wide screens. */
 const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   Option.match(
@@ -382,6 +389,7 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             h.h3([], [entry.name]),
             h.p([h.Class('e3-note')], [describe(entry)]),
             h.p([], [entry.description]),
+            ...fullPageLink(model, h, entry.id),
             h.div(
               [h.Class('e3-controls')],
               [
@@ -726,7 +734,7 @@ const header = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.header(
     [h.Class('e3-panel-header')],
     [
-      h.h1([h.Class('e3-panel-title')], ['3D tech radar']),
+      h.h1([h.Class('e3-panel-title')], [model.title]),
       h.nav(
         [h.Class('e3-panel-links'), h.AriaLabel('Elsewhere')],
         model.links.map(({ label, href }) => h.a([h.Href(href)], [label])),
@@ -751,7 +759,6 @@ const sidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
       relationshipLegend(model, h),
       tourControls(model, h),
       entryTable(model, h),
-      h.p([h.Class('e3-note')], [`${demoNotice}.`]),
     ],
   );
 
@@ -796,7 +803,7 @@ const content = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   );
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
-  title: '3D tech radar — effect-three',
+  title: model.title,
   body: h.div(
     [
       h.Class('e3-sample e3-app'),

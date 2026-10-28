@@ -1,10 +1,11 @@
 ---
 import PageLayout from '../../layouts/PageLayout.astro';
 import FlatRadar from '../../radar/flat/app';
+import { radar, radarTitle } from '../../radar/radar';
 ---
 
-<PageLayout title="Tech radar in 2D">
-  <h1>Tech radar</h1>
+<PageLayout title={`${radarTitle} in 2D`}>
+  <h1>{radarTitle}</h1>
   <p><a href="/">The radar in 3D</a></p>
-  <FlatRadar client:load />
+  <FlatRadar client:load dataset={radar} />
 </PageLayout>

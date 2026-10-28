@@ -1,3 +1,5 @@
 import { lazyApp } from '@opsydyn/astro-foldkit/define-app';
 
-export default lazyApp(() => import('./main'));
+import type { FlatRadarProps } from './model';
+
+export default lazyApp<FlatRadarProps>(() => import('./main'));

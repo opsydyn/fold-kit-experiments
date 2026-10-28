@@ -12,8 +12,9 @@ import {
 } from '../../src/radar/three/model';
 import { blipPosition, detailFor, zoomLimits } from '../../src/radar/three/space';
 import { init, update } from '../../src/radar/three/update';
+import { demoRadar } from '../../src/test/fixture';
 
-const start = init().model;
+const start = init({ dataset: demoRadar }).model;
 const step = (model: Model, message: Message): Model => update(model, message).model;
 const distance = (model: Model) => Math.hypot(...model.camera.position);
 

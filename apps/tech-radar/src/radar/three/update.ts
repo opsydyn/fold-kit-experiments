@@ -12,7 +12,7 @@ import {
   SaveThemeChoice,
   SaveTour,
 } from './command';
-import { ringIds, type Ring } from './data';
+import { decodeRadarDataset, ringIds, type Ring } from './data';
 import { idOfSaucer } from './easter';
 import { advanceInvasion } from './invaders';
 import type { RadarPosition } from './layout';
@@ -27,6 +27,7 @@ import {
   universeCamera,
   homeCamera,
   idOfBlip,
+  hostOf,
   initialModel,
   isVisible,
   type Model,
@@ -320,10 +321,18 @@ const standAt = (model: Model, standpoint: Standpoint): Model =>
  * The radar as it opens, at the page's deep link if it has one, and a look for the theme
  * the reader picked last time, unless the link names a theme for this visit.
  */
-export const init = (props: RadarProps = {}): AppReturn => {
+export const init = (props: RadarProps): AppReturn => {
   const link = decodeLink(props.link ?? {});
   const model = applyLink(
-    initialModel(props.assetBase ?? '/models/', undefined, props.links ?? []),
+    initialModel(
+      {
+        assetBase: props.assetBase ?? '/models/',
+        title: props.title ?? 'Tech radar',
+        links: props.links ?? [],
+        pages: Option.fromNullishOr(props.pages),
+      },
+      decodeRadarDataset(props.dataset),
+    ),
     link,
   );
   const commands = Option.match(link.theme, {
@@ -546,7 +555,7 @@ const stoppedTour = (tour: Tour): Tour =>
 const tourStart = (model: Model, recording: Recording): Model =>
   applyLink(
     {
-      ...initialModel(model.assetBase, model.data, model.links),
+      ...initialModel(hostOf(model), model.data),
       input: model.input,
       themeChoice: model.themeChoice,
       colorScheme: model.colorScheme,

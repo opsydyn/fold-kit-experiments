@@ -54,8 +54,9 @@ import { blipPosition, onSphere, outerRadius, zoomLimits } from '../../src/radar
 import { magicWords, summoned } from '../../src/radar/three/summon';
 import { changesIn, playStep } from '../../src/radar/three/timeline';
 import { init, update } from '../../src/radar/three/update';
+import { demoRadar } from '../../src/test/fixture';
 
-const start = init().model;
+const start = init({ dataset: demoRadar }).model;
 const step = (model: Model, message: Message): Model => update(model, message).model;
 const third = step(start, Message.ChangedEdition({ index: 2 }));
 /** Futhark, which left the radar in the third edition, in the ring it held before. */

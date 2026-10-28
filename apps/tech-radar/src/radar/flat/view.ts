@@ -4,7 +4,6 @@ import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 import {
   categoryIds,
   categoryLabels,
-  demoNotice,
   ringIds,
   ringLabels,
   type RadarDataset,
@@ -308,7 +307,7 @@ function ready(model: Model, dataset: RadarDataset, h: HtmlBuilder<Message>): Ht
   return h.div(
     [h.Class(styles.root)],
     [
-      h.p([h.Class(styles.notice)], [demoNotice, ` / authored ${dataset.authoredOn}`]),
+      h.p([h.Class(styles.notice)], [`Current edition · ${dataset.authoredOn}`]),
       h.div(
         [h.Class(styles.filters)],
         [

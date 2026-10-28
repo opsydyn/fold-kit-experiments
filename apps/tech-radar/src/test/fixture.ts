@@ -1,5 +1,10 @@
-/* Original summaries; sources checked 2026-10-14. Rings, relationships and the earlier editions are illustrative fixture placements, not project assessments. */
-import type { RadarDataset } from './data';
+/*
+ * Test data: the original radar's fixture (packages/effect-three-samples), copied with the
+ * radar. The radar's own data is the markdown in src/content; tests use this so they don't
+ * move when the content does. Original summaries; sources checked 2026-10-14. Rings,
+ * relationships and the earlier editions are illustrative placements, not assessments.
+ */
+import { decodeRadarDataset, type RadarData, type RadarDataset } from '../radar/three/data';
 
 export const demoRadar = {
   authoredOn: '2026-10-14',
@@ -414,3 +419,7 @@ export const demoRadar = {
     },
   ],
 } as const satisfies RadarDataset;
+
+export function loadDemoRadar(): RadarData {
+  return decodeRadarDataset(demoRadar);
+}

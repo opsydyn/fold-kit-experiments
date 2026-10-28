@@ -2,8 +2,6 @@
 /* oxlint-disable anti-slop/no-unknown-parameters, linteffect/no-if-statement, linteffect/no-magic-domain-string, linteffect/no-domain-logic-in-conditional, linteffect/no-ternary, linteffect/no-return-in-arrow */
 import { Option, Schema } from 'effect';
 
-import { demoRadar } from './fixture';
-
 export const Category = Schema.Literals([
   'techniques',
   'tools',
@@ -27,10 +25,6 @@ export const ringLabels = {
   assess: 'Assess',
   caution: 'Caution',
 } satisfies Readonly<Record<Ring, string>>;
-/* The notice is human-readable provenance, not a state sentinel. */
-/* oxlint-disable-next-line linteffect/no-string-sentinel-const */
-export const demoNotice =
-  'Original demo dataset - placements are illustrative, not adoption advice';
 export const RelationshipType = Schema.Literals([
   'builds-on',
   'complements',
@@ -156,7 +150,4 @@ function isCalendarDate(text: string): boolean {
     Number.isFinite(date) &&
     new Date(date).toISOString().slice(0, 10) === text
   );
-}
-export function loadDemoRadar(): RadarData {
-  return decodeRadarDataset(demoRadar);
 }

@@ -29,8 +29,9 @@ import { bearingOf, elevationOf, onSphere, shellRadius } from '../../src/radar/t
 import { changesIn, playStep } from '../../src/radar/three/timeline';
 import { trailOf } from '../../src/radar/three/trail';
 import { init, update } from '../../src/radar/three/update';
+import { demoRadar } from '../../src/test/fixture';
 
-const start = init().model;
+const start = init({ dataset: demoRadar }).model;
 const step = (model: Model, message: Message): Model => update(model, message).model;
 const steps = (model: Model, messages: ReadonlyArray<Message>): Model =>
   messages.reduce(step, model);

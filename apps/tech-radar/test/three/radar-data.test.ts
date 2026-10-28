@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'bun:test';
 
-import { decodeRadarDataset, loadDemoRadar } from '../../src/radar/three/data';
-import { demoRadar } from '../../src/radar/three/fixture';
+import { decodeRadarDataset } from '../../src/radar/three/data';
+import { loadDemoRadar } from '../../src/test/fixture';
+import { demoRadar } from '../../src/test/fixture';
 
 const entry = Object.freeze({
   id: 'unison',

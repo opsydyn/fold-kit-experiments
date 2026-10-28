@@ -4,8 +4,8 @@ import { Match, Option, Schema } from 'effect';
 import {
   Category,
   categoryIds,
-  loadDemoRadar,
   type RadarData,
+  type RadarDataset,
   type RadarRelationship,
   Ring,
   ringIds,
@@ -41,10 +41,21 @@ export type PointerInput = typeof PointerInput.Type;
 export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
 export type Link = typeof Link.Type;
 
+/**
+ * Where an entry's full page is, as address templates: `{id}` for the entry, and in
+ * `editionEntry`, `{edition}` for the date of an earlier edition.
+ */
+export const Pages = Schema.Struct({ entry: Schema.String, editionEntry: Schema.String });
+export type Pages = typeof Pages.Type;
+
 export const Model = Schema.Struct({
   assetBase: Schema.String,
+  /** The radar's name, in the sidebar's header and the document's title. */
+  title: Schema.String,
   /** The host page's links, shown in the sidebar's header. */
   links: Schema.Array(Link),
+  /** Where each entry's full page is, when the host site has them. */
+  pages: Schema.Option(Pages),
   /** The decoded dataset, `Ready` or `Failure` (see the type below). */
   data: Schema.Unknown,
   query: Schema.String,
@@ -176,13 +187,19 @@ export const flightTo = (position: RadarPosition) =>
 /** The 2D radar's home view: longitude 0, 20° above the equator. */
 export const homeCamera = cameraFacing(0, 20);
 
-export const initialModel = (
-  assetBase: string,
-  data: RadarData = loadDemoRadar(),
-  links: ReadonlyArray<Link> = [],
-): Model => ({
-  assetBase,
-  links,
+/** What the radar keeps of its host page: its assets, name, links out and full pages. */
+export type Host = Readonly<{
+  assetBase: string;
+  title: string;
+  links: ReadonlyArray<Link>;
+  pages: Option.Option<Pages>;
+}>;
+
+export const initialModel = (host: Host, data: RadarData): Model => ({
+  assetBase: host.assetBase,
+  title: host.title,
+  links: host.links,
+  pages: host.pages,
   data,
   query: '',
   category: 'all',
@@ -216,10 +233,22 @@ export const initialModel = (
 export const themeOf = (model: Model): Theme =>
   resolveTheme(model.themeChoice, { scheme: model.colorScheme, contrast: model.contrast });
 
-/** What the host page hands the radar: where its assets live and its links out. */
+/** The host page the radar is on, as its Model holds it. */
+export const hostOf = (model: Model): Host => ({
+  assetBase: model.assetBase,
+  title: model.title,
+  links: model.links,
+  pages: model.pages,
+});
+
+/** What the host page hands the radar: its data, where its assets live and its links out. */
 export type RadarProps = Readonly<{
+  dataset: RadarDataset;
+  title?: string;
   assetBase?: string;
   links?: ReadonlyArray<Link>;
+  /** Where each entry's full page is; without them, the card has no full-page link. */
+  pages?: Pages;
   /** The page's query parameters: a deep link to open on. */
   link?: Readonly<Record<string, string>>;
 }>;
@@ -262,6 +291,19 @@ export const editionOf = (model: Model): Edition =>
     rings: {},
     absent: [],
   };
+
+/**
+ * The address of an entry's full page, as it stood in the edition shown: an earlier
+ * edition's page while time-travelled to one the entry was on, its current page otherwise.
+ */
+export const fullPageOf = (model: Model, id: string): Option.Option<string> =>
+  Option.map(model.pages, (pages) => {
+    const editions = editionsOf(model);
+    const earlier = model.edition < editions.length - 1 ? editionOf(model) : undefined;
+    return earlier === undefined || earlier.absent.includes(id)
+      ? pages.entry.replaceAll('{id}', id)
+      : pages.editionEntry.replaceAll('{edition}', earlier.authoredOn).replaceAll('{id}', id);
+  });
 
 /**
  * Every entry's slot, in the ring it held in the shown edition, whether or not the

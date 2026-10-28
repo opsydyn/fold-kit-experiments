@@ -428,6 +428,17 @@
   font-size: 0.8rem;
 }
 
+/* The entry's full page: the card's main way on, so it reads as a link, not a control. */
+.e3-full-page {
+  color: var(--blue, #7aa2ff);
+  font-weight: 600;
+  text-underline-offset: 0.2em;
+}
+
+.e3-full-page::after {
+  content: ' →';
+}
+
 /* A tour's caption: the move just made, large, centred low over the stage. */
 .e3-tour-caption {
   position: absolute;

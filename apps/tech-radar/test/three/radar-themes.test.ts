@@ -16,8 +16,9 @@ import {
   themes,
 } from '../../src/radar/three/themes';
 import { init, update } from '../../src/radar/three/update';
+import { demoRadar } from '../../src/test/fixture';
 
-const opened = init();
+const opened = init({ dataset: demoRadar });
 const start = opened.model;
 const step = (model: Model, message: Message): Model => update(model, message).model;
 const allThemes: ReadonlyArray<Theme> = Theme.literals;

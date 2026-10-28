@@ -17,8 +17,9 @@ import {
 import { sceneFor } from '../../src/radar/three/scene';
 import { blipPosition, onSphere, shellRadius } from '../../src/radar/three/space';
 import { init, update } from '../../src/radar/three/update';
+import { demoRadar } from '../../src/test/fixture';
 
-const start = init().model;
+const start = init({ dataset: demoRadar }).model;
 const step = (model: Model, message: Message): Model => update(model, message).model;
 const steps = (model: Model, messages: ReadonlyArray<Message>): Model =>
   messages.reduce(step, model);
@@ -210,7 +211,7 @@ describe('standalone app', () => {
   test('the host page hands the radar its links out; without them there are none', () => {
     expect(start.links).toEqual([]);
     const links = [{ label: '← Samples', href: '/effect-three' }];
-    const hosted = init({ assetBase: '/assets/', links }).model;
+    const hosted = init({ dataset: demoRadar, assetBase: '/assets/', links }).model;
     expect(hosted.links).toEqual(links);
     expect(hosted.assetBase).toBe('/assets/');
   });

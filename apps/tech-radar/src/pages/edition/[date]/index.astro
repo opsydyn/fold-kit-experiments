@@ -6,6 +6,9 @@ import { byCategoryAndRing, changesAt, entryHref } from '../../../radar/pages';
 import { editions, radar } from '../../../radar/radar';
 import { categoryLabels, ringLabels } from '../../../radar/three/data';
 
+// Built ahead and served as a static asset; only `/` renders per request.
+export const prerender = true;
+
 export const getStaticPaths = () =>
   editions.map((edition) => ({ params: { date: edition.date }, props: { edition } }));
 

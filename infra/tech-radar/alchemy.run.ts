@@ -25,7 +25,9 @@ export default Alchemy.Stack(
       rootDir: '../../apps/tech-radar',
       // The site has no sessions, so no KV namespace for them.
       sessionKVBindingName: false,
-      assets: { notFoundHandling: '404-page' },
+      // No `assets.notFoundHandling`: with it, Cloudflare answers a browser navigation that
+      // matches no file with the 404 page and never runs the Worker, so `/` (rendered per
+      // request) would 404. Astro serves its own 404 page for unknown addresses instead.
     });
     return { url: site.url };
   }),

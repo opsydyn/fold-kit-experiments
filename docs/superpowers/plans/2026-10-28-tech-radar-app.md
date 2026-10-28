@@ -306,8 +306,18 @@ Astro 7, `@opsydyn/astro-foldkit`, `trailingSlash: 'always'`, and no adapter in 
 
 ## Phases
 
-**Progress (2026-10-28):** Phases 1 to 5 are done on `feat/tech-radar-scaffold`, locally.
-Two changes from the plan below:
+**Progress (2026-10-28):** Phases 1 to 5 are done on `feat/tech-radar-scaffold`, and
+Phase 6 is deployed to a personal stage (`live_alancurrie`, the default stage name, not
+`dev_$USER`). What the first deploy taught:
+
+- Alchemy builds with `output: 'server'`, so every page but `/` declares
+  `export const prerender = true`.
+- `assets.notFoundHandling: '404-page'` answers browser navigations that match no file
+  without running the Worker, which 404'd `/`. It is left out; Astro serves its 404 page.
+- `@alchemy.run/frontend-frameworks` must also be a dev dependency of the app, where it
+  resolves Effect 4.0.0.
+- The Cloudflare account already had Alchemy's state store, which was adopted.
+  Two changes from the plan below:
 
 - `/2d/` is built ahead, not rendered per request: the 2D copy reads no deep links yet.
 - The full pages have no mini-radar yet; they link to the 3D radar on the entry instead.

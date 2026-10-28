@@ -4,6 +4,9 @@ import { byCategoryAndRing } from '../../radar/pages';
 import { current, editions, radar } from '../../radar/radar';
 import { categoryIds, categoryLabels, ringLabels } from '../../radar/three/data';
 
+// Built ahead and served as a static asset; only `/` renders per request.
+export const prerender = true;
+
 export const getStaticPaths = () => categoryIds.map((id) => ({ params: { id } }));
 
 const { id } = Astro.params;

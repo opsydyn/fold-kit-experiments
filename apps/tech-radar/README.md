@@ -76,6 +76,7 @@ data in `src/test/fixture.ts`.
 
 ## Hosting
 
-Cloudflare, deployed with Alchemy, once the site is complete locally. The config declares
-no adapter because Alchemy supplies Cloudflare's. Until then, `astro dev` serves every page,
-and a production build waits for that adapter.
+Cloudflare, built and deployed by the Alchemy stack in `infra/tech-radar` (see its README).
+The config declares no adapter because Alchemy supplies Cloudflare's, so this app has no
+`build` script of its own: `astro dev` serves every page locally, and Alchemy builds it for
+deploys.

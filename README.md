@@ -57,7 +57,10 @@ fold-kit-experiments/
 ├── apps/
 │   ├── web/               — demo Astro app, chart workbenches and interactive Storybook
 │   ├── promo/             — Foldkit Viz promo site: Astro, light/dark themes
-│   └── three-promo/       — effect-three promo site: same layout and themes, live 3D examples
+│   ├── three-promo/       — effect-three promo site: same layout and themes, live 3D examples
+│   └── tech-radar/        — standalone tech radar: 3D and 2D radars and full pages, from markdown
+├── infra/
+│   └── tech-radar/        — Alchemy stack deploying the tech radar to Cloudflare
 └── packages/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     ├── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
@@ -81,6 +84,7 @@ bun install
 bun dev          # demo app at http://localhost:4321
 bun run dev:promo # promo site at http://localhost:4322
 bun run dev:three-promo # effect-three promo site at http://localhost:4323
+bun run dev:tech-radar # tech radar at http://localhost:4326
 bun storybook    # chart storybook at http://localhost:6006
 ```
 
@@ -144,6 +148,7 @@ declared outside the catalog or a published package's version drifts from it.
 | `bun build`               | Build the packages, demo app and both promo sites     |
 | `bun run dev:promo`       | Start the promo site at `localhost:4322`              |
 | `bun run dev:three-promo` | Start the effect-three promo site at `localhost:4323` |
+| `bun run dev:tech-radar`  | Start the tech radar at `localhost:4326`              |
 | `bun run test`            | Run all workspace test scripts sequentially           |
 | `bun typecheck`           | Typecheck all workspaces                              |
 | `bun run check`           | oxlint + oxfmt format check                           |

@@ -306,9 +306,13 @@ Astro 7, `@opsydyn/astro-foldkit`, `trailingSlash: 'always'`, and no adapter in 
 
 ## Phases
 
-**Progress (2026-10-28):** Phases 1 to 5 are done on `feat/tech-radar-scaffold`, and
-Phase 6 is deployed to a personal stage (`live_alancurrie`, the default stage name, not
-`dev_$USER`). What the first deploy taught:
+**Progress (2026-10-28):** Phases 1 to 7 are done and merged (#79, #80, and the docs
+PR that follows them). Production is
+<https://tech-radar-techradar-prod-p2g6lgx4bmhwwuk5.opsydyn.workers.dev/>, deployed from
+`main` by `.github/workflows/deploy-tech-radar.yml` with the `TECH_RADAR_CLOUDFLARE_*`
+secrets. three-promo links to it, and CLAUDE.md and the README list both new workspaces.
+The personal stage is `live_alancurrie` (Alchemy's default stage name, not `dev_$USER`).
+What the first deploy taught:
 
 - Alchemy builds with `output: 'server'`, so every page but `/` declares
   `export const prerender = true`.

@@ -58,7 +58,7 @@ fold-kit-experiments/
 │   ├── web/               — demo Astro app, chart workbenches and interactive Storybook
 │   ├── promo/             — Foldkit Viz promo site: Astro, light/dark themes
 │   ├── three-promo/       — effect-three promo site: same layout and themes, live 3D examples
-│   └── tech-radar/        — standalone tech radar: 3D and 2D radars and full pages, from markdown
+│   └── tech-radar/        — standalone tech radar: the 3D radar and full pages, from markdown
 ├── infra/
 │   └── tech-radar/        — Alchemy stack deploying the tech radar to Cloudflare
 └── packages/

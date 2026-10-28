@@ -1,6 +1,6 @@
 # @opsydyn/tech-radar
 
-A standalone tech radar: the effect-three radar in 3D and 2D, with full pages for each
+A standalone tech radar: the effect-three radar in 3D, with full pages for each
 entry. The plan is `docs/superpowers/plans/2026-10-28-tech-radar-app.md`.
 
 ```sh
@@ -14,7 +14,6 @@ bun run --filter @opsydyn/tech-radar typecheck
 | Page                         | Rendered    | What it is                                                   |
 | ---------------------------- | ----------- | ------------------------------------------------------------ |
 | `/`                          | per request | The 3D radar. Its query string is a deep link                |
-| `/2d/`                       | at build    | The 2D radar                                                 |
 | `/blip/<id>/`                | at build    | An entry's full page in the current edition                  |
 | `/edition/<date>/blip/<id>/` | at build    | An entry's full page as it stood in an earlier edition       |
 | `/edition/<date>/`           | at build    | An edition: its notes, what changed, its entries by category |
@@ -61,16 +60,14 @@ edit stops the build with the file that caused it. `test/content.test.ts` proves
 markdown is the same radar as the original's fixture, which the tests keep as stable test
 data in `src/test/fixture.ts`.
 
-## The radars are copies
+## The radar is a copy
 
 - `src/radar/three` is a copy of `packages/effect-three-samples/src/radar`, with the two
   helpers it imported (`labelledEnvironment.ts`, `renderer.ts`), `lighten` and the samples'
   stylesheet. Its tests are in `test/three` and run with `bun test`.
-- `src/radar/flat` is a copy of `apps/web/src/apps/functional-ai-radar`. Its tests sit
-  beside it and run with vitest, as in apps/web.
-- The copies take the radar's data, title and full-page addresses as props, and drop the
-  original's demo notice. Otherwise they are as copied.
-- The originals are not changed by this app. They share libraries only (effect-three, its
+- The copy takes the radar's data, title and full-page addresses as props, and drops the
+  original's demo notice. Otherwise it is as copied.
+- The original is not changed by this app. They share libraries only (effect-three, its
   FoldKit adapter, troika and foldkit-viz), so a library fix reaches both, but a radar
   fix, such as a new theme, has to be ported by hand in either direction.
 

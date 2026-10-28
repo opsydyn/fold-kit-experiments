@@ -6,7 +6,7 @@
   "scripts": {
     "prebuild-packages": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && bun run --filter @opsydyn/effect-three-troika build",
     "dev": "bun run prebuild-packages && astro dev",
-    "test": "bun test ./test && vitest run",
+    "test": "bun test ./test",
     "typecheck": "bun run prebuild-packages && astro check"
   },
   "dependencies": {
@@ -15,7 +15,6 @@
     "@opsydyn/effect-three-foldkit": "workspace:*",
     "@opsydyn/effect-three-troika": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
-    "@vanilla-extract/css": "catalog:",
     "astro": "catalog:",
     "effect": "catalog:",
     "foldkit": "catalog:",
@@ -24,10 +23,7 @@
   "devDependencies": {
     "@alchemy.run/frontend-frameworks": "catalog:infra",
     "@astrojs/check": "catalog:",
-    "@vanilla-extract/vite-plugin": "catalog:",
     "bun-types": "catalog:",
-    "happy-dom": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   }
 }

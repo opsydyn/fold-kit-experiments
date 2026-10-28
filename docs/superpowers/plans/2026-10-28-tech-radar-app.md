@@ -357,8 +357,8 @@ locally, so nothing needs your Cloudflare login until Phase 6.
    - The deploy workflow (prod on `main`, previews by label), with the token and secrets
      set up by you.
    - A link from three-promo, the README, and the CLAUDE.md workspace and command tables.
-8. **Final infra stage: review `@alchemy.run/domain`** (below), and decide whether any
-   later feature uses it.
+8. **Final infra stage: review `@alchemy.run/domain`** (below). Done: not yet, with the
+   conditions to revisit.
 9. **Later:** write-ups; a custom domain; optional ADR, author and tag fields with a page
    section; a "Take the tour" per edition from a checked-in tour file.
 
@@ -394,19 +394,58 @@ build time, and read-only. It becomes relevant once the radar takes input, for e
   history up to its date (the timeline would read events rather than markdown);
 - live updates to an open radar through a watched view.
 
-**What to check in the review.**
+**What the review found** (2026-10-28, `@alchemy.run/domain` `2.0.0-beta.84`):
 
-- **Effect versions.** The domain client runs in the browser next to FoldKit, so it must
-  share FoldKit's Effect. FoldKit peers on exactly `effect 4.0.0`; Alchemy's packages
-  peered on `^4.0.5` when this plan was written. The separate infra workspace doesn't help
-  here, because the client is app code.
-- **Astro.** The docs show `Website.Foldkit`, not Astro. Check how an API Worker sits
-  beside `Website.Astro`.
-- **Maturity:** the version, its release status, and the cost of Durable Objects per key.
-- **The local story:** whether `Domain.InMemory` and `Story` tests fit this repo's bun
-  test setup.
+- **Maturity.** It was first published on 2026-10-21, and `2.0.0-beta.84` is its only real
+  release. The example on Alchemy's `main` already uses a newer Story API than the published
+  package (`call`/`succeed` against `expectCall`/`resolve`), so the API is still moving. It
+  is Apache-2.0 and about 1 MB unpacked.
+- **Peers.** `effect ^4.0.5` and `alchemy`, and `alchemy` is not optional. Alchemy's own
+  FoldKit app (`examples/cloudflare-domain/packages/web`) lists `alchemy` as a dependency
+  of the browser package.
+- **Effect: the blocker.** The domain client is browser code that must share FoldKit's
+  Effect, and FoldKit pins exactly `4.0.0`. Alchemy's repository makes FoldKit and the
+  domain work together by overriding Effect for the whole workspace (`overrides: effect:
+4.0.5`, with `foldkit ^0.169.0`), which runs FoldKit on an Effect it doesn't declare.
+  - A spike installed the package with Effect forced to 4.0.0: its source typechecks
+    against 4.0.0. The only errors were in `alchemy`'s own declarations, which want
+    `@effect/platform-node` and Node's types.
+  - Whether it runs on 4.0.0 is unproven. The example on `main` doesn't match the
+    published API, and running the tagged example's tests was not done.
+- **Testing.** Stories run in memory under Vitest with `@effect/vitest` (`it.effect`), not
+  `bun test`. apps/web already uses Vitest, so this fits, as a second runner in the app.
+- **Hosting.** The docs host a model in its own Worker class, with aggregates, views and
+  policies as Durable Objects created at start-up and no bindings declared. The site's
+  Worker binds the model and routes `/api` to it with `assets.runWorkerFirst`. Only
+  `Website.Foldkit` is documented; using it beside `Website.Astro` is untested.
+- **FoldKit integration.** Commands go over HTTP and become FoldKit Commands with typed
+  rejections. `watch` and `events` are WebSockets to the owning Durable Object and become
+  Subscriptions. The local-first guide adds an offline intent queue in `localStorage`,
+  with deduplication by command id. All of this matches how this repo writes FoldKit apps.
 
-The outcome is a decision recorded here: adopt it for a named feature, or not yet.
+**Where it would fit the radar.** Only once the radar takes input. The best first feature
+keeps markdown as the source of truth:
+
+- **Proposals and votes:** a `Proposal` aggregate (`ProposeEntry`, `ProposeMove`, `Vote`,
+  `Accept`, `Reject`) and views per entry and per open edition, watched live on the radar.
+- An accepted proposal becomes a markdown pull request through an `ExternalSystem`
+  (GitHub), so editions are still reviewed and built from markdown.
+- Every write needs sign-in first: the `cloudflare-domain-better-auth` example and the
+  sessions guide cover it.
+
+Making events the source of editions, in place of the markdown, is possible but reverses
+the content decision, so it is not proposed.
+
+**Decision: not yet.** Revisit when all three hold:
+
+1. One Effect can serve both, either because FoldKit widens its `effect` peer to include
+   `>=4.0.5`, or because this repository adopts a repo-wide override after the full test
+   suite passes on it. An override would also remove the infra workspace's separate Effect.
+2. `@alchemy.run/domain` has a few releases behind it, with a stable Story API.
+3. The radar has a named write feature, starting with proposals and votes.
+
+The cheapest next step, if wanted: a spike branch that overrides Effect to 4.0.7 across the
+repository and runs every suite, to learn whether FoldKit already works on it.
 
 ## Decisions
 

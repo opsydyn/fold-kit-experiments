@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.6.1...effect-three-v0.6.2) (2026-10-28)
+
+
+### Bug Fixes
+
+* **effect-three:** face nested billboards parent first ([094b520](https://github.com/opsydyn/fold-kit-experiments/commit/094b520307fae4b25d41fae3d6d9f0af72d6e103))
+
 ## [0.6.1](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.6.0...effect-three-v0.6.1) (2026-10-27)
 
 ### Bug Fixes

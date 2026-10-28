@@ -31,7 +31,7 @@ bun add @opsydyn/foldkit-viz
 
 ## FoldKit compatibility
 
-`@opsydyn/foldkit-viz` targets FoldKit `0.167.x` and stable Effect
+`@opsydyn/foldkit-viz` targets FoldKit `0.167.x` to `0.169.x` and stable Effect
 `4.0.0`. Consumers can use
 `Command.define(name, { interrupt: true, ... })` to replace remote chart-data
 loads while this package remains focused on pure geometry, chart-local state,

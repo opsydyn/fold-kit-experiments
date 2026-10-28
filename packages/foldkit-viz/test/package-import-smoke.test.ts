@@ -262,7 +262,7 @@ it('renders through the packed optional adapter with the installed FoldKit host'
         '--no-audit',
         '--no-fund',
         tarball,
-        'foldkit@0.167.0',
+        'foldkit@0.169.0',
         'effect@4.0.0',
       ],
       { cwd: consumerDir, maxBuffer },

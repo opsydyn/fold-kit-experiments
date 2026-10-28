@@ -6,7 +6,8 @@ and the workarounds we use. Nothing has been reported upstream yet; this note is
 review first.
 
 **Versions:** `foldkit` 0.167.0, `@foldkit/vite-plugin` 0.27.0 (through
-`@opsydyn/astro-foldkit`), `@foldkit/devtools-mcp` 0.24.1, `astro` 7.4.0, Effect 4.0.0,
+`@opsydyn/astro-foldkit`), `@foldkit/devtools-mcp` 0.24.1 (the workspace now pins FoldKit 0.169.0
+and devtools-mcp 0.25.0; these notes were not re-verified), `astro` 7.4.0, Effect 4.0.0,
 Playwright's Chromium (headless), macOS 26, Node 24.15.
 
 ## What works

@@ -3,6 +3,7 @@ dist/
 coverage/
 storybook-static/
 .wrangler/
+.alchemy/
 .worktrees/
 
 # test artifacts (packed tarballs, unpacked smoke dirs)

@@ -11,6 +11,14 @@ versions from the root's `infra` catalog (`effect`, `@effect/platform-node` and
 and the site it builds keeps the app's. `packages/effect-three`'s single-Effect check walks
 the apps and packages, not this workspace.
 
+## The build integration lives in the app too
+
+`Website.Astro` resolves Alchemy's Worker entry point
+(`@alchemy.run/frontend-frameworks/astro/entrypoints/server`) from the app it builds, so
+`apps/tech-radar` lists `@alchemy.run/frontend-frameworks` as a dev dependency. In the app it
+resolves Effect 4.0.0, like everything else there, and the entry point bundled into the
+Worker imports only Astro.
+
 ## Use
 
 Your Alchemy profile needs Cloudflare. Once:

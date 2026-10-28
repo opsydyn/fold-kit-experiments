@@ -2,6 +2,9 @@
 import PageLayout from '../../layouts/PageLayout.astro';
 import FlatRadar from '../../radar/flat/app';
 import { radar, radarTitle } from '../../radar/radar';
+
+// Built ahead and served as a static asset; only `/` renders per request.
+export const prerender = true;
 ---
 
 <PageLayout title={`${radarTitle} in 2D`}>

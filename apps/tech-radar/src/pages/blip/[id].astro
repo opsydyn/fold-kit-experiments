@@ -5,6 +5,9 @@ import EntryPageView from '../../components/EntryPage.astro';
 import { entryPage } from '../../radar/pages';
 import { current, editions, radar } from '../../radar/radar';
 
+// Built ahead and served as a static asset; only `/` renders per request.
+export const prerender = true;
+
 export const getStaticPaths = () => radar.entries.map(({ id }) => ({ params: { id } }));
 
 const { id } = Astro.params;

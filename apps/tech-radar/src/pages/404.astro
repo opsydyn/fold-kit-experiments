@@ -1,5 +1,8 @@
 ---
 import PageLayout from '../layouts/PageLayout.astro';
+
+// Built ahead and served as a static asset; only `/` renders per request.
+export const prerender = true;
 ---
 
 <PageLayout title="Not found">

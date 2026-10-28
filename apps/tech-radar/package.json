@@ -24,6 +24,7 @@
     "three": "catalog:"
   },
   "devDependencies": {
+    "@alchemy.run/frontend-frameworks": "catalog:infra",
     "@astrojs/check": "catalog:",
     "@vanilla-extract/vite-plugin": "catalog:",
     "bun-types": "catalog:",

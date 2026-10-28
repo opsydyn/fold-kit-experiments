@@ -5,6 +5,9 @@ import EntryPageView from '../../../../components/EntryPage.astro';
 import { editionEntryPaths, entryPage } from '../../../../radar/pages';
 import { editions, radar } from '../../../../radar/radar';
 
+// Built ahead and served as a static asset; only `/` renders per request.
+export const prerender = true;
+
 // Every entry on every earlier edition; the current edition's pages are /blip/<id>/.
 export const getStaticPaths = () =>
   editionEntryPaths(radar, editions).map(({ date, id, index }) => ({

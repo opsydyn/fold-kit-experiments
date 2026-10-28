@@ -1,0 +1,82 @@
+---
+import { getEntry, render } from 'astro:content';
+
+import PageLayout from '../../../layouts/PageLayout.astro';
+import { byCategoryAndRing, changesAt, entryHref } from '../../../radar/pages';
+import { editions, radar } from '../../../radar/radar';
+import { categoryLabels, ringLabels } from '../../../radar/three/data';
+
+export const getStaticPaths = () =>
+  editions.map((edition) => ({ params: { date: edition.date }, props: { edition } }));
+
+const { edition } = Astro.props;
+const notes = await getEntry('editions', edition.date);
+const { Content } = notes === undefined ? { Content: undefined } : await render(notes);
+const hasNotes = (notes?.body ?? '').trim() !== '';
+const changes = changesAt(radar, edition.index);
+const radarLink = edition.isCurrent ? '/' : `/?edition=${edition.date}`;
+---
+
+<PageLayout title={`${edition.label} · ${edition.date}`}>
+  <h1>{edition.label}</h1>
+  <p class="muted">
+    {edition.date}{edition.isCurrent && ' · the current edition'} ·{' '}
+    <a href={radarLink}>Open it on the 3D radar</a>
+  </p>
+  {hasNotes && Content !== undefined && <Content />}
+
+  {
+    changes.length > 0 && (
+      <>
+        <h2>What changed</h2>
+        <ul>
+          {changes.map((change) => (
+            <li>{change}</li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+
+  {
+    byCategoryAndRing(radar, edition.index).map(({ category, rings }) => (
+      <section aria-labelledby={`category-${category}`}>
+        <h2 id={`category-${category}`}>{categoryLabels[category]}</h2>
+        <dl class="rings">
+          {rings
+            .filter(({ entries }) => entries.length > 0)
+            .map(({ ring, entries }) => (
+              <>
+                <dt>{ringLabels[ring]}</dt>
+                <dd>
+                  {entries.map((entry, index) => (
+                    <>
+                      {index > 0 && ', '}
+                      <a href={entryHref(radar, entry.id, edition.index)}>{entry.name}</a>
+                    </>
+                  ))}
+                </dd>
+              </>
+            ))}
+        </dl>
+      </section>
+    ))
+  }
+</PageLayout>
+
+<style>
+  .rings {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.4rem 1rem;
+    margin: 0;
+  }
+
+  dt {
+    color: var(--muted);
+  }
+
+  dd {
+    margin: 0;
+  }
+</style>

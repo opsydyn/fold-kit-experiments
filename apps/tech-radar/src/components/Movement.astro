@@ -1,0 +1,131 @@
+---
+/*
+ * An entry's ring across the editions: a step chart, and the same values as a table, so
+ * the chart is never the only way to read them.
+ */
+import { Option } from 'effect';
+
+import { chartSize, movementChart } from '../radar/movement';
+import type { Standing } from '../radar/pages';
+import { ringLabels } from '../radar/three/data';
+
+interface Props {
+  name: string;
+  history: ReadonlyArray<Standing>;
+}
+const { name, history } = Astro.props;
+const chart = movementChart(history);
+const summary = history
+  .map(({ edition, ring }) =>
+    Option.match(ring, {
+      onNone: () => `${edition.label}: not on the radar`,
+      onSome: (placed) => `${edition.label}: ${ringLabels[placed]}`,
+    }),
+  )
+  .join('; ');
+---
+
+<figure class="movement">
+  <svg
+    viewBox={`0 0 ${chartSize.width} ${chartSize.height}`}
+    role="img"
+    aria-label={`${name}'s ring in each edition. ${summary}.`}
+  >
+    {
+      chart.rings.map(({ y, label }) => (
+        <g>
+          <line class="grid" x1={chart.plot.left} x2={chart.plot.right} y1={y} y2={y} />
+          <text class="axis" x={chart.plot.left - 10} y={y} text-anchor="end" dominant-baseline="middle">
+            {label}
+          </text>
+        </g>
+      ))
+    }
+    {
+      chart.editions.map(({ x, label }) => (
+        <text class="axis" x={x} y={chart.plot.bottom + 24} text-anchor="middle">
+          {label}
+        </text>
+      ))
+    }
+    {Option.isSome(chart.path) && <path class="step" d={chart.path.value} />}
+    {
+      chart.marks.map(({ x, y, label, current }) => (
+        <circle class:list={['mark', { current }]} cx={x} cy={y} r={current ? 6 : 5}>
+          <title>{label}</title>
+        </circle>
+      ))
+    }
+  </svg>
+  <div class="table-scroll">
+    <table>
+      <caption class="muted">{name} by edition</caption>
+      <thead>
+        <tr><th scope="col">Edition</th><th scope="col">Date</th><th scope="col">Ring</th></tr>
+      </thead>
+      <tbody>
+        {
+          history.map(({ edition, ring }) => (
+            <tr>
+              <td>{edition.label}</td>
+              <td>{edition.date}</td>
+              <td>
+                {Option.match(ring, {
+                  onNone: () => '—',
+                  onSome: (placed) => ringLabels[placed],
+                })}
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</figure>
+
+<style>
+  .movement {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    max-width: 30rem;
+  }
+
+  .grid {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+
+  .axis {
+    fill: var(--muted);
+    font-size: 13px;
+  }
+
+  .step {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linejoin: round;
+  }
+
+  .mark {
+    fill: var(--accent);
+    stroke: var(--page);
+    stroke-width: 2;
+  }
+
+  .mark.current {
+    fill: var(--text);
+  }
+
+  caption {
+    caption-side: top;
+    text-align: left;
+    padding-bottom: 0.25rem;
+  }
+</style>

@@ -3,15 +3,38 @@
  * page that imports it never reads markdown on a request. A bad edit throws here, which
  * stops the build with the file that caused it.
  */
-import { getCollection } from 'astro:content';
-import { Result } from 'effect';
+import { getCollection, getEntry } from 'astro:content';
+import { Result, Schema } from 'effect';
 
-import { assembleRadar } from './content';
+import { assembleRadar, EditionFile, RadarFile } from './content';
+import { editionsIn } from './pages';
+import type { Pages } from './three/model';
+
+const editionFiles = await getCollection('editions');
 
 export const radar = Result.getOrThrowWith(
-  assembleRadar({
-    editions: await getCollection('editions'),
-    entries: await getCollection('entries'),
-  }),
+  assembleRadar({ editions: editionFiles, entries: await getCollection('entries') }),
   (reason) => new Error(`The radar's markdown: ${reason}`),
 );
+
+const about = Schema.decodeUnknownSync(RadarFile)((await getEntry('radar', 'radar'))?.data);
+
+/** The radar's name, from `radar.md`. */
+export const radarTitle = about.title;
+
+const currentLabel =
+  editionFiles
+    .map(({ data }) => Schema.decodeUnknownSync(EditionFile)(data))
+    .find(({ date }) => date === radar.authoredOn)?.label ?? 'Current edition';
+
+/** Every edition, oldest first, the current one last. */
+export const editions = editionsIn(radar, currentLabel);
+
+/** The current edition's index. */
+export const current = editions.length - 1;
+
+/** Where each entry's full page is, for the radars' "Open full page" links. */
+export const pages: Pages = {
+  entry: '/blip/{id}/',
+  editionEntry: '/edition/{edition}/blip/{id}/',
+};

@@ -1,0 +1,144 @@
+---
+/*
+ * An entry's full page at an edition: what it is, where it stands, how it moved, what it
+ * relates to, and its write-up.
+ */
+import { getEntry, render } from 'astro:content';
+import { Option } from 'effect';
+
+import PageLayout from '../layouts/PageLayout.astro';
+import { type EntryPage, entryHref, radarHref } from '../radar/pages';
+import { radar } from '../radar/radar';
+import { categoryLabels, ringLabels } from '../radar/three/data';
+import Movement from './Movement.astro';
+
+interface Props {
+  page: EntryPage;
+}
+const { page } = Astro.props;
+const { entry, edition, ring, history, relations, previous, next } = page;
+const markdown = await getEntry('entries', entry.id);
+const { Content } = markdown === undefined ? { Content: undefined } : await render(markdown);
+const hasBody = (markdown?.body ?? '').trim() !== '';
+const neighbour = (other: Option.Option<{ id: string; name: string }>) =>
+  Option.map(other, ({ id, name }) => ({ name, href: entryHref(radar, id, edition.index) }));
+const before = neighbour(previous);
+const after = neighbour(next);
+---
+
+<PageLayout
+  title={edition.isCurrent ? entry.name : `${entry.name} · ${edition.label}`}
+  description={entry.description}
+>
+  <article>
+    <p class="muted">
+      <a href={`/category/${entry.category}/`}>{categoryLabels[entry.category]}</a>
+    </p>
+    <h1>{entry.name}</h1>
+    <ul class="chips" aria-label="Placement">
+      <li class="chip">{ringLabels[ring]}</li>
+      <li class="chip">{categoryLabels[entry.category]}</li>
+      <li class="chip">{edition.label} · {edition.date}</li>
+    </ul>
+    {
+      !edition.isCurrent && (
+        <p class="notice">
+          This is {entry.name} as it stood in the {edition.label.toLowerCase()}.{' '}
+          <a href={`/blip/${entry.id}/`}>See it now</a>.
+        </p>
+      )
+    }
+    <p class="summary">{entry.description}</p>
+    <p class="actions">
+      <a href={radarHref(radar, entry.id, edition.index)}>View on the 3D radar</a>
+      <a href={entry.sourceUrl} rel="noopener">Source</a>
+    </p>
+
+    {
+      hasBody && Content !== undefined && (
+        <section class="write-up" aria-label="Write-up">
+          <Content />
+        </section>
+      )
+    }
+
+    <h2>Movement</h2>
+    <Movement name={entry.name} history={history} />
+
+    {
+      relations.length > 0 && (
+        <>
+          <h2>Related</h2>
+          <ul class="relations">
+            {relations.map((relation) => (
+              <li>
+                <span class="muted">{relation.label}</span> <a href={relation.href}>{relation.name}</a>
+                <p>{relation.note}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )
+    }
+
+    <nav class="pager" aria-label={`More in ${categoryLabels[entry.category]}`}>
+      {
+        Option.match(before, {
+          onNone: () => <span />,
+          onSome: ({ name, href }) => <a href={href}>← {name}</a>,
+        })
+      }
+      <a href={`/category/${entry.category}/`}>All {categoryLabels[entry.category]}</a>
+      {
+        Option.match(after, {
+          onNone: () => <span />,
+          onSome: ({ name, href }) => <a href={href}>{name} →</a>,
+        })
+      }
+    </nav>
+  </article>
+</PageLayout>
+
+<style>
+  .summary {
+    font-size: 1.15rem;
+  }
+
+  .notice {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+  }
+
+  .relations {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .relations p {
+    margin: 0.15rem 0 0;
+    color: var(--muted);
+  }
+
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .pager > :last-child {
+    text-align: right;
+  }
+</style>

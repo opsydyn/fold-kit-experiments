@@ -1,0 +1,17 @@
+---
+import { Option } from 'effect';
+
+import EntryPageView from '../../components/EntryPage.astro';
+import { entryPage } from '../../radar/pages';
+import { current, editions, radar } from '../../radar/radar';
+
+export const getStaticPaths = () => radar.entries.map(({ id }) => ({ params: { id } }));
+
+const { id } = Astro.params;
+const page = Option.getOrThrowWith(
+  entryPage(radar, editions, id, current),
+  () => new Error(`No entry ${id}`),
+);
+---
+
+<EntryPageView page={page} />

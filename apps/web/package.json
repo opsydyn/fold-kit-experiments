@@ -34,7 +34,7 @@
     "@opsydyn/effect-three-troika": "workspace:*",
     "@opsydyn/foldkit-viz": "workspace:*",
     "@types/topojson-client": "catalog:",
-    "@vanilla-extract/css": "^1.21.1",
+    "@vanilla-extract/css": "catalog:",
     "astro": "catalog:",
     "effect": "catalog:",
     "fast-json-patch": "3.1.1",
@@ -53,11 +53,11 @@
     "@storybook/addon-a11y": "^10.4.6",
     "@storybook/html": "^10.4.6",
     "@storybook/html-vite": "^10.4.6",
-    "@vanilla-extract/vite-plugin": "^5.2.4",
+    "@vanilla-extract/vite-plugin": "catalog:",
     "happy-dom": "catalog:",
     "storybook": "^10.4.6",
     "typescript": "catalog:",
-    "vitest": "^4.1.10",
+    "vitest": "catalog:",
     "wrangler": "catalog:"
   }
 }

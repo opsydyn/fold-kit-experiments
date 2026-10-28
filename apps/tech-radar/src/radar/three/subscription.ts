@@ -1,0 +1,91 @@
+/**
+ * The radar's subscriptions: animation frames while the timeline plays or a relay jump
+ * rides an edge, and the reader's reduced-motion preference, so jumps land at once for
+ * those who ask.
+ */
+import { Duration, Option } from 'effect';
+import { Dom, Subscription } from 'foldkit';
+
+import { cometMoves } from './comet';
+import { konamiCode } from './invaders';
+import { Message } from './message';
+import type { Model, PointerInput } from './model';
+import type { ColorScheme, ContrastSetting } from './themes';
+import { isPlaying } from './tour';
+
+/** What a `(prefers-color-scheme: light)` match means. */
+const schemes: ReadonlyArray<ColorScheme> = ['dark', 'light'];
+
+/** What a `(prefers-contrast: more)` or `(forced-colors: active)` match means. */
+const contrasts: ReadonlyArray<ContrastSetting> = ['standard', 'more'];
+
+/** What a `(hover: hover)` match means: no, a finger; yes, a mouse or pen. */
+const inputs: ReadonlyArray<PointerInput> = ['touch', 'hover'];
+
+export const subscriptions = Subscription.make<Model, Message>()(() => ({
+  playback: Subscription.animationFrameEntry({
+    isActive: (model) => model.playing,
+    toMessage: (deltaTimeMs) => Message.AdvancedPlayback({ deltaTimeMs }),
+  }),
+  relay: Subscription.animationFrameEntry({
+    isActive: (model) => Option.isSome(model.journey),
+    toMessage: (deltaTimeMs) => Message.AdvancedRelay({ deltaTimeMs }),
+  }),
+  // The Konami code, anywhere but in a text field: the invaders' cue.
+  konami: Subscription.persistentEntry(
+    Dom.streamFromKeyBindings<Message>({
+      bindings: [
+        {
+          keys: konamiCode,
+          preventDefault: false,
+          mapEvent: () => Message.EnteredKonamiCode(),
+        },
+      ],
+      sequenceTimeout: Duration.seconds(3),
+    }),
+  ),
+  invasion: Subscription.animationFrameEntry({
+    isActive: (model) => Option.isSome(model.invasion),
+    toMessage: (deltaTimeMs) => Message.AdvancedInvasion({ deltaTimeMs }),
+  }),
+  // A tour plays to the frame clock: each move waits out its pace, then the next is made.
+  tour: Subscription.animationFrameEntry({
+    isActive: (model) => isPlaying(model.tour),
+    toMessage: (deltaTimeMs) => Message.AdvancedTour({ deltaTimeMs }),
+  }),
+  comet: Subscription.animationFrameEntry({
+    isActive: cometMoves,
+    toMessage: (deltaTimeMs) => Message.AdvancedComet({ deltaTimeMs }),
+  }),
+  // Whether the reader can hover: a phone or tablet cannot, so a tap reads instead.
+  pointerInput: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(hover: hover)',
+      mapMatches: (canHover) =>
+        Message.ChangedPointerInput({ input: inputs[Number(canHover)] ?? 'touch' }),
+    }),
+  ),
+  // The reader's colour scheme, which the theme's Auto choice follows.
+  colorScheme: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(prefers-color-scheme: light)',
+      mapMatches: (isLight) =>
+        Message.ChangedColorScheme({ scheme: schemes[Number(isLight)] ?? 'dark' }),
+    }),
+  ),
+  // A reader who asks for more contrast, or whose system forces its colours, gets High
+  // contrast under Auto.
+  contrast: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(prefers-contrast: more), (forced-colors: active)',
+      mapMatches: (isMore) =>
+        Message.ChangedContrast({ contrast: contrasts[Number(isMore)] ?? 'standard' }),
+    }),
+  ),
+  reducedMotion: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(prefers-reduced-motion: reduce)',
+      mapMatches: (isReducedMotion) => Message.ChangedReducedMotion({ isReducedMotion }),
+    }),
+  ),
+}));

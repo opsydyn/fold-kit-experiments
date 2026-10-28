@@ -1,0 +1,10 @@
+---
+import PageLayout from '../../layouts/PageLayout.astro';
+import FlatRadar from '../../radar/flat/app';
+---
+
+<PageLayout title="Tech radar in 2D">
+  <h1>Tech radar</h1>
+  <p><a href="/">The radar in 3D</a></p>
+  <FlatRadar client:load />
+</PageLayout>

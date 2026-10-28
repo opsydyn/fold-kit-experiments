@@ -1,0 +1,16 @@
+---
+import AppLayout from '../layouts/AppLayout.astro';
+import Radar from '../radar/three/app';
+
+// Rendered per request, so the query string reaches the server: it is a deep link, and the
+// radar opens on the view it describes.
+export const prerender = false;
+
+const link = Object.fromEntries(Astro.url.searchParams);
+
+const links = [{ label: 'The radar in 2D', href: '/2d/' }];
+---
+
+<AppLayout title="Tech radar">
+  <Radar client:load assetBase="/models/" links={links} link={link} />
+</AppLayout>

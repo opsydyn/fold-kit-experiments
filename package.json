@@ -23,6 +23,8 @@
       "@types/pngjs": "6.0.5",
       "@types/three": "0.186.0",
       "@types/topojson-client": "^3.1.5",
+      "@vanilla-extract/css": "^1.21.1",
+      "@vanilla-extract/vite-plugin": "^5.2.4",
       "astro": "7.4.0",
       "bun-types": "^1.3.14",
       "effect": "4.0.0",
@@ -40,6 +42,7 @@
       "topojson-client": "^3.1.0",
       "tsdown": "^0.21.8",
       "typescript": "^6.0.3",
+      "vitest": "^4.1.10",
       "vscode-oniguruma": "2.0.1",
       "world-atlas": "^2.0.2",
       "wrangler": "^4.125.0"
@@ -62,6 +65,7 @@
     "storybook": "bun run --filter @opsydyn/web storybook",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
     "dev:three-promo": "bun run --filter @opsydyn/three-promo dev",
+    "dev:tech-radar": "bun run --filter @opsydyn/tech-radar dev",
     "relay": "bun packages/effect-three-samples/scripts/relay.ts"
   },
   "devDependencies": {

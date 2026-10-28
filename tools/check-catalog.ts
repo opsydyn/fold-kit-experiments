@@ -36,7 +36,7 @@ const catalogs = {
 const workspaces: Array<{ readonly path: string; readonly manifest: Manifest }> = [
   { path: 'package.json', manifest: root },
 ];
-for (const pattern of ['apps/*/package.json', 'packages/*/package.json']) {
+for (const pattern of ['apps/*/package.json', 'packages/*/package.json', 'infra/*/package.json']) {
   for await (const path of new Glob(pattern).scan('.')) {
     workspaces.push({ path, manifest: await read(path) });
   }

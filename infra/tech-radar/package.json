@@ -1,0 +1,23 @@
+{
+  "name": "@opsydyn/tech-radar-infra",
+  "private": true,
+  "description": "The Alchemy stack that builds apps/tech-radar and deploys it to Cloudflare.",
+  "type": "module",
+  "scripts": {
+    "dev": "alchemy dev",
+    "plan": "alchemy plan",
+    "deploy": "alchemy deploy",
+    "destroy": "alchemy destroy",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@alchemy.run/cloudflare": "catalog:infra",
+    "@alchemy.run/frontend-frameworks": "catalog:infra",
+    "@effect/platform-bun": "catalog:infra",
+    "@effect/platform-node": "catalog:infra",
+    "alchemy": "catalog:infra",
+    "bun-types": "catalog:",
+    "effect": "catalog:infra",
+    "typescript": "catalog:"
+  }
+}

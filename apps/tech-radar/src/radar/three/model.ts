@@ -1,3 +1,4 @@
+import { Tooltip } from '@foldkit/ui';
 import { perspectiveCamera, SceneSchema, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option, Schema } from 'effect';
 
@@ -36,6 +37,18 @@ export type MonolithState = typeof MonolithState.Type;
  */
 export const PointerInput = Schema.Literals(['hover', 'touch']);
 export type PointerInput = typeof PointerInput.Type;
+
+/** The sidebar's icon-only buttons: a tooltip names each on hover or keyboard focus. */
+export const IconControl = Schema.Literals(['turn-left', 'turn-right', 'zoom-out', 'zoom-in']);
+export type IconControl = typeof IconControl.Type;
+
+/** Each icon button's tooltip, closed. */
+const closedTooltips = {
+  'turn-left': Tooltip.init({ id: 'radar-turn-left' }),
+  'turn-right': Tooltip.init({ id: 'radar-turn-right' }),
+  'zoom-out': Tooltip.init({ id: 'radar-zoom-out' }),
+  'zoom-in': Tooltip.init({ id: 'radar-zoom-in' }),
+} as const satisfies Readonly<Record<IconControl, Tooltip.Model>>;
 
 /** A way out of the standalone radar, to a page of the host site. */
 export const Link = Schema.Struct({ label: Schema.String, href: Schema.String });
@@ -104,6 +117,15 @@ export const Model = Schema.Struct({
   playClock: Schema.Number,
   /** Whether the relationship edges are drawn. */
   showRelationships: Schema.Boolean,
+  /** Whether the sidebar's entries table is open. */
+  entriesOpen: Schema.Boolean,
+  /** The icon buttons' tooltips. */
+  tooltips: Schema.Struct({
+    'turn-left': Tooltip.Model,
+    'turn-right': Tooltip.Model,
+    'zoom-out': Tooltip.Model,
+    'zoom-in': Tooltip.Model,
+  }),
   /** The stage's width over its height, from the last gesture; square until then. */
   stageAspect: Schema.Number,
   camera: SceneSchema.Camera,
@@ -225,6 +247,8 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   playing: false,
   playClock: 0,
   showRelationships: true,
+  entriesOpen: false,
+  tooltips: closedTooltips,
   stageAspect: 1,
   camera: homeCamera,
 });

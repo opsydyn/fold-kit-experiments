@@ -1,7 +1,8 @@
+import { Tooltip } from '@foldkit/ui';
 import { type Camera, type Gesture, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
-import type { Return } from 'foldkit/update';
+import { foldChildAt, type Return } from 'foldkit/update';
 
 import { advanceComet } from './comet';
 import {
@@ -28,6 +29,7 @@ import {
   homeCamera,
   idOfBlip,
   hostOf,
+  type IconControl,
   initialModel,
   isVisible,
   type Model,
@@ -64,6 +66,20 @@ const orbitLimits = orbitOptions({
 
 /** How far one Zoom button moves the camera towards or away from the centre. */
 const zoomFactors = { in: 0.8, out: 1.25 } as const;
+
+/**
+ * An icon button's tooltip: its own update runs, the next tooltip is written back and its
+ * delay and anchor Commands come back as the radar's. Showing and hiding change nothing
+ * else.
+ */
+const foldTooltip = foldChildAt({
+  update: Tooltip.update,
+  readAt: (model: Model, control: IconControl) => Option.some(model.tooltips[control]),
+  writeAt: (model, control, next) =>
+    modifyFields(model, { tooltips: (tooltips) => ({ ...tooltips, [control]: next }) }),
+  toParentMessage: (control, message) => Message.GotTooltipMessage({ control, message }),
+  foldOutMessage: () => () => (model) => ({ model }),
+});
 
 /** How far one Turn button turns the camera round the radar's axis. */
 const turnStep = Math.PI / 6;
@@ -399,6 +415,8 @@ const step = (model: Model, message: Message): AppReturn =>
       model: reconcile({
         ...model,
         query,
+        // A search opens the entries table, so its matches show as a list too.
+        entriesOpen: model.entriesOpen || query.trim() !== '',
         monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
       }),
     }),
@@ -428,6 +446,8 @@ const step = (model: Model, message: Message): AppReturn =>
     ClickedRelationships: () => ({
       model: modifyFields(model, { showRelationships: (shown) => !shown }),
     }),
+    ToggledEntries: ({ isOpen }) => ({ model: { ...model, entriesOpen: isOpen } }),
+    GotTooltipMessage: ({ control, message }) => foldTooltip(model, control, message),
     MadeGesture: ({ gesture }) => ({
       model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
     }),

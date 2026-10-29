@@ -1,3 +1,4 @@
+import { Disclosure, Switch, Tooltip } from '@foldkit/ui';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Match, Option } from 'effect';
 import type { Attribute, Document, Html, HtmlBuilder } from 'foldkit/html';
@@ -26,6 +27,7 @@ import {
   fullPageOf,
   editionsOf,
   filtersOf,
+  type IconControl,
   type Model,
   positionOf,
   presentOf,
@@ -151,23 +153,49 @@ const themePicker = (model: Model, h: HtmlBuilder<Message>): Html =>
     ThemeChoice.literals.map((choice) => h.option([h.Value(choice)], [choiceLabel(model, choice)])),
   );
 
-/** A small square button whose name is spoken and shown on hover, its face a glyph. */
-const iconButton = (
-  h: HtmlBuilder<Message>,
-  glyph: string,
-  label: string,
-  message: Message,
-): Html =>
-  h.button(
-    [
-      h.Class('e3-button e3-icon-button'),
-      h.Type('button'),
-      h.AriaLabel(label),
-      h.Title(label),
-      h.OnClick(message),
-    ],
-    [glyph],
-  );
+/** What each icon button shows, is called and does. */
+const iconControls = {
+  'turn-left': {
+    glyph: '↺',
+    label: 'Turn left',
+    message: Message.ClickedTurn({ direction: 'left' }),
+  },
+  'turn-right': {
+    glyph: '↻',
+    label: 'Turn right',
+    message: Message.ClickedTurn({ direction: 'right' }),
+  },
+  'zoom-out': { glyph: '−', label: 'Zoom out', message: Message.ClickedZoom({ direction: 'out' }) },
+  'zoom-in': { glyph: '+', label: 'Zoom in', message: Message.ClickedZoom({ direction: 'in' }) },
+} as const satisfies Readonly<
+  Record<IconControl, Readonly<{ glyph: string; label: string; message: Message }>>
+>;
+
+/**
+ * A small square button, its face a glyph. Its name is spoken, and a tooltip shows it on
+ * hover or keyboard focus, as a `title` never does on focus or touch.
+ */
+const iconButton = (model: Model, h: HtmlBuilder<Message>, control: IconControl): Html => {
+  const { glyph, label, message } = iconControls[control];
+  const toView = ({ trigger, panel, isVisible }: Tooltip.RenderInfo): Html =>
+    h.span(
+      [h.Class('e3-tooltip-anchor')],
+      [
+        h.button(
+          [...trigger, h.Class('e3-button e3-icon-button'), h.OnClick(message)],
+          [h.span([h.AriaHidden(true)], [glyph])],
+        ),
+        ...[h.span([...panel, h.Class('e3-tooltip')], [label])].filter(() => isVisible),
+      ],
+    );
+  return h.submodel({
+    slotId: `tooltip-${control}`,
+    model: model.tooltips[control],
+    view: Tooltip.view,
+    viewInputs: { ariaLabel: label, anchor: { placement: 'bottom', gap: 6, padding: 8 }, toView },
+    toParentMessage: (child) => Message.GotTooltipMessage({ control, message: child }),
+  });
+};
 
 const findControls = (model: Model, h: HtmlBuilder<Message>): Html =>
   panelSection(h, 'Find', [
@@ -233,10 +261,10 @@ const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.div(
         [h.Class('e3-toolbar')],
         [
-          iconButton(h, '↺', 'Turn left', Message.ClickedTurn({ direction: 'left' })),
-          iconButton(h, '↻', 'Turn right', Message.ClickedTurn({ direction: 'right' })),
-          iconButton(h, '−', 'Zoom out', Message.ClickedZoom({ direction: 'out' })),
-          iconButton(h, '+', 'Zoom in', Message.ClickedZoom({ direction: 'in' })),
+          iconButton(model, h, 'turn-left'),
+          iconButton(model, h, 'turn-right'),
+          iconButton(model, h, 'zoom-out'),
+          iconButton(model, h, 'zoom-in'),
         ],
       ),
       h.div(
@@ -248,6 +276,34 @@ const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
       ),
     ],
     [themePicker(model, h)],
+  );
+
+/**
+ * Whether the relationships are drawn: a switch beside the heading, read as "Show
+ * relationships". It sends the radar's own toggle, so a recorded tour still replays.
+ */
+const relationshipSwitch = (model: Model, h: HtmlBuilder<Message>): Html =>
+  Switch.view(
+    {
+      id: 'radar-relationships',
+      isChecked: model.showRelationships,
+      onToggle: () => Message.ClickedRelationships(),
+      toView: ({ button: track, label }) =>
+        h.span(
+          [h.Class('e3-switch')],
+          [
+            h.span(
+              [...label, h.Class('e3-switch-label')],
+              ['Show', h.span([h.Class('e3-visually-hidden')], [' relationships'])],
+            ),
+            h.button(
+              [...track, h.Class('e3-switch-track')],
+              [h.span([h.Class('e3-switch-thumb')], [])],
+            ),
+          ],
+        ),
+    },
+    h,
   );
 
 /** The relationship key: each type's colour and line style beside its name, and a toggle. */
@@ -277,17 +333,7 @@ const relationshipLegend = (model: Model, h: HtmlBuilder<Message>): Html =>
         ),
       ),
     ],
-    [
-      headingAction(
-        h,
-        [
-          h.AriaLabel('Show relationships'),
-          h.AriaPressed(String(model.showRelationships)),
-          h.OnClick(Message.ClickedRelationships()),
-        ],
-        'Show',
-      ),
-    ],
+    [relationshipSwitch(model, h)],
   );
 
 /** One relationship of the pinned entry: choosing it pins the entry at the other end. */
@@ -433,39 +479,54 @@ const entryRow = (model: Model, h: HtmlBuilder<Message>, position: RadarPosition
 
 const entryTable = (model: Model, h: HtmlBuilder<Message>): Html => {
   const visible = visibleOf(model);
-  return h.details(
-    [h.Class('e3-table')],
+  return Disclosure.view(
+    {
+      id: 'radar-entries',
+      isOpen: model.entriesOpen,
+      onToggle: (isOpen) => Message.ToggledEntries({ isOpen }),
+      toView: ({ button: toggle, panel, animatePanel }) =>
+        h.div(
+          [h.Class('e3-table')],
+          [
+            h.button(
+              [...toggle, h.Class('e3-table-toggle')],
+              [`Entries (${visible.length} of ${presentOf(model).length})`],
+            ),
+            animatePanel(
+              h.div([...panel, h.Class('e3-table-scroll')], [entryList(model, h, visible)]),
+            ),
+          ],
+        ),
+    },
+    h,
+  );
+};
+
+/** The entries as a table: choosing one pins it and turns the radar to face it. */
+const entryList = (
+  model: Model,
+  h: HtmlBuilder<Message>,
+  visible: ReadonlyArray<RadarPosition>,
+): Html =>
+  h.table(
+    [],
     [
-      h.summary([], [`Entries (${visible.length} of ${presentOf(model).length})`]),
-      h.div(
-        [h.Class('e3-table-scroll')],
+      h.caption([], ['Choose an entry to pin it and turn the radar to face it']),
+      h.thead(
+        [],
         [
-          h.table(
+          h.tr(
             [],
-            [
-              h.caption([], ['Choose an entry to pin it and turn the radar to face it']),
-              h.thead(
-                [],
-                [
-                  h.tr(
-                    [],
-                    ['#', 'Entry', 'Category', 'Ring'].map((heading) =>
-                      h.th([h.Scope('col')], [heading]),
-                    ),
-                  ),
-                ],
-              ),
-              h.tbody(
-                [],
-                visible.map((position) => entryRow(model, h, position)),
-              ),
-            ],
+            ['#', 'Entry', 'Category', 'Ring'].map((heading) => h.th([h.Scope('col')], [heading])),
           ),
         ],
       ),
+      h.tbody(
+        [],
+        visible.map((position) => entryRow(model, h, position)),
+      ),
     ],
   );
-};
 
 /** A click on a category's name stops at its sector; anywhere else it is a blip's. */
 const clickedAt = (key: string): Message =>

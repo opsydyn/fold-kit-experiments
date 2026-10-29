@@ -11,6 +11,7 @@ import {
   detailed,
   directionalLight,
   ease,
+  instant,
   fixed,
   group,
   label,
@@ -99,6 +100,7 @@ import {
   showsMeta,
   showsName,
 } from './space';
+import { type Fold, foldedPoint, foldOf, stagedModel } from './stack';
 import { css, skies, type Theme, themes, type Tokens } from './themes';
 
 /** The theme in force's colours: every colour the scene draws comes from here. */
@@ -253,16 +255,22 @@ const moonNodes = (
  * and moons; further out the body alone; far off a soft dot. The group carries the
  * blip's key, place, size and interactivity, so its parts resolve to the entry.
  */
-const blipNode = (model: Model, position: RadarPosition): SceneNode => {
+const blipNode = (
+  model: Model,
+  position: RadarPosition,
+  fold: Option.Option<Fold> = Option.none(),
+): SceneNode => {
   const { id, category } = position.entry;
   const key = blipKey(id);
   const body = bodyOf[category];
   const surface = litOr(model, id, `body:${category}`);
+  // A fold moves every blip every frame, so it lands each frame where the fold says.
+  const transition = Option.match(fold, { onNone: () => glide, onSome: () => instant() });
   return group({
     key,
-    position: blipPosition(position),
+    position: foldedPoint(blipPosition(position), fold),
     scale: blipScale(model, id),
-    transition: glide,
+    transition,
     interactive: isVisible(model, id),
     detail: detailed({ distances: [...detailDistances] }),
     children: [
@@ -291,15 +299,27 @@ const blipNode = (model: Model, position: RadarPosition): SceneNode => {
   });
 };
 
-const shellNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
+/** The frame of the radar as a fold draws it in and turns it; as it stands otherwise. */
+const foldPose = (fold: Option.Option<Fold>) =>
+  Option.match(fold, {
+    onNone: () => ({}),
+    onSome: ({ squeeze, twist }) => {
+      const size = Math.max(flat, squeeze);
+      return { scale: [size, size, size] as const, rotation: fixed([0, twist, 0]) };
+    },
+  });
+
+const shellNodes = (tokens: Tokens, fold: Option.Option<Fold>): ReadonlyArray<SceneNode> =>
   ringIds.flatMap((ring) => [
     mesh({
       key: `shell:${ring}`,
+      ...foldPose(fold),
       geometry: sharedGeometry(`shell:${ring}`),
       material: sharedMaterial('shell'),
     }),
     line({
       key: `equator:${ring}`,
+      ...foldPose(fold),
       points: equator(shellRadius(ring)),
       color: tokens.guide,
       opacity: 0.55,
@@ -307,10 +327,11 @@ const shellNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
     }),
   ]);
 
-const sectorNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
+const sectorNodes = (tokens: Tokens, fold: Option.Option<Fold>): ReadonlyArray<SceneNode> =>
   sectorBoundaries.map(({ category, points }) =>
     line({
       key: `sector:${category}`,
+      ...foldPose(fold),
       points,
       color: tokens.guide,
       opacity: 0.8,
@@ -942,8 +963,13 @@ const starNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
     }),
   ].filter(() => skies[tokens.sky].starry);
 
-export const sceneFor = (model: Model) =>
-  scene({
+export const sceneFor = (model: Model) => {
+  // The FoldKit egg draws the radar in and unfolds it through the editions: while it
+  // plays, every entry shows, and the labels and edges stand aside.
+  const fold = foldOf(model);
+  const staged = stagedModel(model);
+  const settled = Option.isNone(fold);
+  return scene({
     camera: model.camera,
     gestures: 'scene',
     resources: {
@@ -955,12 +981,15 @@ export const sceneFor = (model: Model) =>
       ambientLight({ key: 'ambient', intensity: 0.9 }),
       directionalLight({ key: 'key-light', intensity: 1.8, position: [4, 6, 5] }),
       directionalLight({ key: 'fill-light', intensity: 0.6, position: [-5, -2, -4] }),
-      ...shellNodes(tokensOf(model)),
-      ...sectorNodes(tokensOf(model)),
-      ...guideLabels(model),
-      ...positionsOf(model).map((position) => blipNode(model, position)),
-      ...visibleRelationships(model).map((relationship) => edgeNode(model, relationship)),
-      ...labelNodes(model),
+      ...shellNodes(tokensOf(model), fold),
+      ...sectorNodes(tokensOf(model), fold),
+      ...guideLabels(model).filter(() => settled),
+      ...positionsOf(staged).map((position) => blipNode(staged, position, fold)),
+      ...visibleRelationships(model)
+        .filter(() => settled)
+        .map((relationship) => edgeNode(model, relationship)),
+      ...labelNodes(model).filter(() => settled),
       ...eggNodes(model),
     ],
   });
+};

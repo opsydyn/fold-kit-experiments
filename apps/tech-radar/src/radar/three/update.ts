@@ -42,6 +42,7 @@ import {
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
 import { searchBox, searchMove, withSearchText } from './search';
 import { zoomedPosition, zoomLimits } from './space';
+import { advanceStackEgg, stackClockAfter } from './stack';
 import { summonedMonolith } from './summon';
 import { playStep } from './timeline';
 import {
@@ -220,6 +221,7 @@ const withQuery = (model: Model, query: string): Model =>
   reconcile({
     ...model,
     query,
+    stackClock: stackClockAfter(model, query),
     entriesOpen: model.entriesOpen || query.trim() !== '',
     monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
   });
@@ -535,6 +537,7 @@ const step = (model: Model, message: Message): AppReturn =>
     EnteredKonamiCode: () => ({ model: { ...model, invasion: Option.some(0) } }),
     AdvancedInvasion: ({ deltaTimeMs }) => ({ model: advanceInvasion(model, deltaTimeMs) }),
     AdvancedComet: ({ deltaTimeMs }) => ({ model: advanceComet(model, deltaTimeMs) }),
+    AdvancedStackEgg: ({ deltaTimeMs }) => ({ model: advanceStackEgg(model, deltaTimeMs) }),
     ClickedMonolith: () => ({ model: { ...model, monolith: decomposed[model.monolith] } }),
     CompletedReplaceLink: () => ({ model }),
     ClickedCopyLink: () => ({ model, commands: [CopyLink()] }),

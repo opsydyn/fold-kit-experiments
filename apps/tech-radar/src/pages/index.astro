@@ -1,8 +1,11 @@
 ---
+import { type CssVariable, fontData } from 'astro:assets';
+
 import AppLayout from '../layouts/AppLayout.astro';
 import { linkPreview } from '../radar/meta';
 import { editions, pages, radar, radarIntro, radarTitle } from '../radar/radar';
 import Radar from '../radar/three/app';
+import { labelFontVariables, Typeface } from '../radar/three/typefaces';
 
 // Rendered per request, so the query string reaches the server: it is a deep link, and the
 // radar opens on the view it describes.
@@ -11,6 +14,20 @@ export const prerender = false;
 const link = Object.fromEntries(Astro.url.searchParams);
 // A shared link's preview says where it goes: the entry it pins, a category or an edition.
 const preview = linkPreview(radar, editions, { title: radarTitle, intro: radarIntro }, link);
+// The 3D labels are drawn by troika, which reads .woff: each typeface's display face as one.
+const woffOf = (variable: CssVariable | undefined) =>
+  variable === undefined
+    ? []
+    : (fontData[variable] ?? [])
+        .flatMap(({ src }) => src)
+        .filter(({ format }) => format === 'woff')
+        .slice(0, 1)
+        .map(({ url }) => url);
+const labelFonts = Object.fromEntries(
+  Typeface.literals.flatMap((typeface) =>
+    woffOf(labelFontVariables[typeface]).map((url) => [typeface, url]),
+  ),
+);
 ---
 
 <AppLayout title={preview.title} description={preview.description}>
@@ -21,5 +38,6 @@ const preview = linkPreview(radar, editions, { title: radarTitle, intro: radarIn
     pages={pages}
     assetBase="/models/"
     link={link}
+    labelFonts={labelFonts}
   />
 </AppLayout>

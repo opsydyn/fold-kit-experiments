@@ -84,11 +84,11 @@ const trailLabel = (card: (typeof cards)[number]) =>
       <div class="hero-text">
         <h1><span class="swatch" aria-hidden="true"></span>{label}</h1>
         {Option.isSome(intro) && <p class="intro">{intro.value}</p>}
-        <p class="muted">
+        <p class="muted data">
           {count} on the radar · {edition.label} ·{' '}
           <a href={`/edition/${edition.date}/`}>{edition.date}</a>
         </p>
-        <ul class="tally" aria-label="Entries in each ring">
+        <ul class="tally data" aria-label="Entries in each ring">
           {
             rings.map(({ ring, cards: inRing }) => (
               <li style={`--shade: ${shade[ring]}`}>
@@ -114,7 +114,7 @@ const trailLabel = (card: (typeof cards)[number]) =>
                       {change.glyph}
                     </span>
                     <a href={change.href}>{change.name}</a>
-                    <span class="muted">{change.text}</span>
+                    <span class="muted data">{change.text}</span>
                   </li>
                 ))}
               </ul>
@@ -131,7 +131,7 @@ const trailLabel = (card: (typeof cards)[number]) =>
           <section class="column" aria-labelledby={`ring-${ring}`} style={`--shade: ${shade[ring]}`}>
             <header class="column-head">
               <h2 id={`ring-${ring}`}>
-                {ringLabels[ring]} <span class="count">{inRing.length}</span>
+                {ringLabels[ring]} <span class="count data">{inRing.length}</span>
               </h2>
               <p class="muted">{ringMeanings[ring]}</p>
             </header>
@@ -146,7 +146,7 @@ const trailLabel = (card: (typeof cards)[number]) =>
                   return (
                     <li class="card" data-entry={card.entry.id}>
                       <p class="card-head">
-                        <span class="number" aria-hidden="true">
+                        <span class="number data" aria-hidden="true">
                           {card.number}
                         </span>
                         <a class="card-title" href={card.href}>
@@ -193,7 +193,7 @@ const trailLabel = (card: (typeof cards)[number]) =>
 
     <section class="over-time" aria-labelledby="over-time">
       <h2 id="over-time">{label} over the editions</h2>
-      <ul class="legend muted" aria-hidden="true">
+      <ul class="legend muted data" aria-hidden="true">
         {
           ringIds.map((ring) => (
             <li style={`--shade: ${shade[ring]}`}>
@@ -209,7 +209,7 @@ const trailLabel = (card: (typeof cards)[number]) =>
             <li class:list={{ shown: shown.index === edition.index }}>
               <a class="bar-label" href={`/edition/${shown.date}/`}>
                 {shown.label}
-                <span class="muted">{shown.date}</span>
+                <span class="muted data">{shown.date}</span>
               </a>
               <span class="track">
                 <span
@@ -230,7 +230,7 @@ const trailLabel = (card: (typeof cards)[number]) =>
                       />
                     ))}
                 </span>
-                <span class="total">{total}</span>
+                <span class="total data">{total}</span>
               </span>
             </li>
           ))

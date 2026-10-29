@@ -3,9 +3,16 @@
  * A page that scrolls: the full pages. Each works without JavaScript.
  */
 import Meta from '../components/Meta.astro';
+import Typefaces from '../components/Typefaces.astro';
 import { pageThemeCss } from '../radar/pageTheme';
 import { editions, radarIntro, radarTitle } from '../radar/radar';
 import { type Category, categoryIds, categoryLabels } from '../radar/three/data';
+import {
+  defaultTypeface,
+  Typeface,
+  typefaceLabels,
+  typefaceStorage,
+} from '../radar/three/typefaces';
 
 interface Props {
   title: string;
@@ -32,6 +39,7 @@ const documentTitle = title === radarTitle ? title : `${title} · ${radarTitle}`
     <title>{documentTitle}</title>
     <Meta title={documentTitle} description={description} />
     <style is:inline set:html={pageThemeCss} />
+    <Typefaces />
   </head>
   <body>
     <header class="site-header">
@@ -66,7 +74,39 @@ const documentTitle = title === radarTitle ? title : `${title} · ${radarTitle}`
           ))
         }
       </nav>
+      <label class="type-picker" hidden>
+        Type
+        <select id="typeface">
+          {
+            Typeface.literals.map((typeface) => (
+              <option value={typeface} selected={typeface === defaultTypeface}>
+                {typefaceLabels[typeface]}
+              </option>
+            ))
+          }
+        </select>
+      </label>
     </footer>
+    <script is:inline define:vars={{ known: Typeface.literals, key: typefaceStorage.key }}>
+      // The type picker needs a script, so it shows only when one runs. The choice is kept
+      // for every page and the 3D radar; the head applied it before the first paint.
+      const picker = document.querySelector('.type-picker');
+      const select = document.querySelector('#typeface');
+      if (picker !== null && select !== null) {
+        const shown = document.documentElement.dataset.typeface;
+        if (known.includes(shown)) select.value = shown;
+        picker.hidden = false;
+        select.addEventListener('change', () => {
+          if (!known.includes(select.value)) return;
+          document.documentElement.dataset.typeface = select.value;
+          try {
+            localStorage.setItem(key, select.value);
+          } catch {
+            // Storage refused: the choice holds for this page only.
+          }
+        });
+      }
+    </script>
   </body>
 </html>
 
@@ -98,8 +138,56 @@ const documentTitle = title === radarTitle ? title : `${title} · ${radarTitle}`
     margin: 0;
     background: var(--page);
     color: var(--text);
-    font-family: system-ui, sans-serif;
+    font-family: var(--type-text);
     line-height: 1.5;
+  }
+
+  /* Names and headings in the display face; readings (rings, counts, dates, labels) in the
+     data face, numbers in columns. */
+  h1,
+  h2,
+  h3,
+  .site-name {
+    font-family: var(--type-display);
+    font-weight: var(--type-display-weight);
+    letter-spacing: var(--type-display-tracking);
+    text-transform: var(--type-display-case);
+  }
+
+  .data,
+  time,
+  table,
+  figcaption,
+  .site-footer,
+  .breadcrumb,
+  svg text {
+    font-family: var(--type-data);
+    font-variant-numeric: tabular-nums slashed-zero;
+  }
+
+  .data,
+  figcaption,
+  .breadcrumb {
+    font-size: calc(1em * var(--type-data-scale));
+  }
+
+  .type-picker {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .type-picker[hidden] {
+    display: none;
+  }
+
+  .type-picker select {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0.2rem 0.4rem;
+    color: var(--text);
+    font: inherit;
   }
 
   a {

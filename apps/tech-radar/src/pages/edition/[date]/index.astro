@@ -55,7 +55,7 @@ const changed = categories.filter((page) => page.changes.length > 0);
 
   <header class="hero">
     <h1>{edition.label}</h1>
-    <p class="muted">
+    <p class="muted data">
       {edition.date}{edition.isCurrent && ' · the current edition'} · {count} entries on the radar
     </p>
     <p class="actions">
@@ -106,7 +106,7 @@ const changed = categories.filter((page) => page.changes.length > 0);
                       {change.glyph}
                     </span>
                     <a href={change.href}>{change.name}</a>
-                    <span class="muted">{change.text}</span>
+                    <span class="muted data">{change.text}</span>
                   </li>
                 ))}
               </ul>
@@ -121,7 +121,7 @@ const changed = categories.filter((page) => page.changes.length > 0);
     <h2 id="entries">Every entry in the {edition.label.toLowerCase()}</h2>
     {
       edition.index > 0 && (
-        <p class="muted key-line">✦ new · ▲ moved in · ▼ moved out · ↺ back on the radar</p>
+        <p class="muted key-line data">✦ new · ▲ moved in · ▼ moved out · ↺ back on the radar</p>
       )
     }
     <div class="categories">
@@ -137,14 +137,14 @@ const changed = categories.filter((page) => page.changes.length > 0);
                 <span class="swatch" aria-hidden="true" />
                 {categoryLabels[page.category]}
               </a>
-              <span class="count">{page.count}</span>
+              <span class="count data">{page.count}</span>
             </h3>
             <dl>
               {page.rings
                 .filter(({ cards }) => cards.length > 0)
                 .map(({ ring, cards }) => (
                   <div class="ring">
-                    <dt>{ringLabels[ring]}</dt>
+                    <dt class="data">{ringLabels[ring]}</dt>
                     <dd>
                       <ul class="entries">
                         {cards.map((card) => (

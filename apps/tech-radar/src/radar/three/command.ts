@@ -9,6 +9,7 @@ import { Command, File, Navigation } from 'foldkit';
 import { Message } from './message';
 import { Theme, ThemeChoice } from './themes';
 import { isRecordable, type Recording } from './tour';
+import { Typeface, typefaceFrom, typefaceStorage } from './typefaces';
 
 /** Where the choice is kept: Auto is kept as nothing at all. */
 export const themeStorage = { key: 'radar-theme' } as const;
@@ -39,6 +40,32 @@ export const SaveThemeChoice = Command.define('SaveThemeChoice', {
     Effect.try(() => store(choice)).pipe(
       Effect.orElseSucceed(() => undefined),
       Effect.map(() => Message.CompletedSaveThemeChoice()),
+    ),
+});
+
+/** The typeface the reader picked last, here or on a full page; the default if none. */
+export const LoadTypeface = Command.define('LoadTypeface', {
+  messages: [Message.SucceededLoadTypeface],
+  execute: Effect.try(() => globalThis.localStorage.getItem(typefaceStorage.key)).pipe(
+    Effect.orElseSucceed(() => null),
+    Effect.map((stored) => Message.SucceededLoadTypeface({ typeface: typefaceFrom(stored) })),
+  ),
+});
+
+/**
+ * Keeps a picked typeface for every page, and marks the document with it: what the radar
+ * portals to <body> (tooltips, the search list) takes its type from there.
+ */
+export const SaveTypeface = Command.define('SaveTypeface', {
+  args: { typeface: Typeface },
+  messages: [Message.CompletedSaveTypeface],
+  execute: ({ typeface }) =>
+    Effect.try(() => {
+      globalThis.document.documentElement.dataset['typeface'] = typeface;
+      globalThis.localStorage.setItem(typefaceStorage.key, typeface);
+    }).pipe(
+      Effect.orElseSucceed(() => undefined),
+      Effect.map(() => Message.CompletedSaveTypeface()),
     ),
 });
 

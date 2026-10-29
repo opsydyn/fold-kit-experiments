@@ -22,6 +22,7 @@ import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 import { summoned } from './summon';
 import { ColorScheme, ContrastSetting, resolveTheme, type Theme, ThemeChoice } from './themes';
 import type { Tour } from './tour';
+import { defaultTypeface, Typeface } from './typefaces';
 
 export const CategoryFilter = Schema.Literals([...categoryIds, 'all']);
 export type CategoryFilter = typeof CategoryFilter.Type;
@@ -78,6 +79,10 @@ export const Model = Schema.Struct({
   input: PointerInput,
   /** The theme the reader picked, or Auto; the one in force is `themeOf`. */
   themeChoice: ThemeChoice,
+  /** The reader's typeface (see typefaces.ts), shared with the full pages. */
+  typeface: Typeface,
+  /** A .woff of each typeface's display face, for the 3D labels; Inter where none is given. */
+  labelFonts: Schema.Record(Schema.String, Schema.String),
   /** The reader's colour scheme and contrast settings, which Auto follows. */
   colorScheme: ColorScheme,
   contrast: ContrastSetting,
@@ -217,6 +222,7 @@ export type Host = Readonly<{
   title: string;
   links: ReadonlyArray<Link>;
   pages: Option.Option<Pages>;
+  labelFonts?: Readonly<Record<string, string>>;
 }>;
 
 export const initialModel = (host: Host, data: RadarData): Model => ({
@@ -231,6 +237,8 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   hovered: Option.none(),
   input: 'hover',
   themeChoice: 'auto',
+  typeface: defaultTypeface,
+  labelFonts: host.labelFonts ?? {},
   colorScheme: 'dark',
   contrast: 'standard',
   hoveredEgg: Option.none(),
@@ -278,6 +286,8 @@ export type RadarProps = Readonly<{
   pages?: Pages;
   /** The page's query parameters: a deep link to open on. */
   link?: Readonly<Record<string, string>>;
+  /** A .woff of each typeface's display face, by typeface, for the 3D labels. */
+  labelFonts?: Readonly<Record<string, string>>;
 }>;
 
 /** The filters in force. A magic word summons an Easter egg and filters nothing. */

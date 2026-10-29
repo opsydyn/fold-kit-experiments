@@ -4,6 +4,7 @@
  * nothing that scrolls the page. The app brings its own way back to the site.
  */
 import Meta from '../components/Meta.astro';
+import Typefaces from '../components/Typefaces.astro';
 
 interface Props {
   title: string;
@@ -22,6 +23,7 @@ const { title, description, lang = 'en' } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <Meta title={title} description={description} />
+    <Typefaces />
   </head>
   <body>
     <slot />
@@ -49,7 +51,7 @@ const { title, description, lang = 'en' } = Astro.props;
   body {
     background: #0a0a14;
     color: #e8e8f0;
-    font-family: system-ui, sans-serif;
+    font-family: var(--type-text);
   }
 
   /* The island and the app's root fill the viewport, so the app can lay itself out in it. */

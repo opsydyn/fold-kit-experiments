@@ -248,7 +248,12 @@ export default defineConfig({
     {
       // Astro page chrome talks directly to browser storage and colour preferences.
       // Storage access can throw even before getItem runs; guard this native boundary.
-      files: ['apps/promo/src/layouts/Layout.astro', 'apps/three-promo/src/layouts/Layout.astro'],
+      files: [
+        'apps/promo/src/layouts/Layout.astro',
+        'apps/three-promo/src/layouts/Layout.astro',
+        'apps/tech-radar/src/components/Typefaces.astro',
+        'apps/tech-radar/src/layouts/PageLayout.astro',
+      ],
       rules: {
         'linteffect/no-try-catch': 'off',
         'linteffect/no-string-sentinel-const': 'off',

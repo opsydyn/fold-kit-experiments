@@ -64,8 +64,8 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
       <div class="hero-text">
         <h1>{entry.name}</h1>
         <p class="standing">
-          <span class="ring-badge">{ringLabels[ring]}</span>
-          <span class={`status status-${statusKind(status)}`}>
+          <span class="ring-badge data">{ringLabels[ring]}</span>
+          <span class={`status data status-${statusKind(status)}`}>
             <span aria-hidden="true">{glyph}</span>
             {statusText(status, ring, edition)}
           </span>
@@ -127,7 +127,7 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
                     <a class="card-title" href={relation.href}>
                       {relation.name}
                     </a>
-                    <p class="card-meta muted">
+                    <p class="card-meta muted data">
                       {Option.match(relation.ring, {
                         onNone: () => 'Not on the radar in this edition',
                         onSome: (held) => ringLabels[held],

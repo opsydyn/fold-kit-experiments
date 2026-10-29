@@ -1,0 +1,128 @@
+---
+/*
+ * A category's quarter of the radar, large: the four ring bands and every entry as a
+ * numbered dot that links to its page. The numbers key the cards beside it.
+ */
+import { Option } from 'effect';
+
+import { categoryLocator, locatorSize } from '../radar/locator';
+import { radar } from '../radar/radar';
+import { type Category, categoryLabels, ringLabels } from '../radar/three/data';
+
+interface Props {
+  category: Category;
+  index: number;
+  editionLabel: string;
+}
+const { category, index, editionLabel } = Astro.props;
+const locator = categoryLocator(radar, index, category, Option.none());
+---
+
+<figure class="map">
+  <svg
+    viewBox={`0 0 ${locatorSize.width} ${locatorSize.height}`}
+    role="group"
+    aria-labelledby="map-caption"
+  >
+    <g transform={`translate(${locator.centre.x} ${locator.centre.y})`}>
+      {
+        locator.bands.map((band) => (
+          <g>
+            <path class="band" d={band.path} />
+            <text class="ring" x={band.labelX} y={locator.labelY} text-anchor="middle">
+              {band.label}
+            </text>
+          </g>
+        ))
+      }
+      {
+        locator.blips.map((blip) => (
+          <a
+            href={blip.href}
+            data-entry={blip.id}
+            aria-label={`${blip.number}. ${blip.name}, ${ringLabels[blip.ring]}`}
+          >
+            <title>
+              {blip.number}. {blip.name} · {ringLabels[blip.ring]}
+            </title>
+            <circle class="hit" cx={blip.x} cy={blip.y} r="13" />
+            <circle class="blip" cx={blip.x} cy={blip.y} r="8.5" />
+            <text
+              class="number"
+              x={blip.x}
+              y={blip.y}
+              text-anchor="middle"
+              dominant-baseline="central"
+              aria-hidden="true"
+            >
+              {blip.number}
+            </text>
+          </a>
+        ))
+      }
+    </g>
+  </svg>
+  <figcaption id="map-caption" class="muted">
+    {categoryLabels[category]} on the radar, {editionLabel.toLowerCase()}: Adopt at the centre
+  </figcaption>
+</figure>
+
+<style>
+  .map {
+    margin: 0;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    max-width: var(--map-width, 22rem);
+    height: auto;
+    overflow: visible;
+  }
+
+  .band {
+    fill: var(--surface);
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+
+  .ring {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .hit {
+    fill: transparent;
+  }
+
+  /* --lit is set while the entry's card or dot is hovered or focused. */
+  .blip {
+    fill: var(--series);
+    stroke: color-mix(in srgb, var(--text) calc(var(--lit, 0) * 100%), var(--page));
+    stroke-width: calc(1.5px + var(--lit, 0) * 1px);
+    transition: stroke 120ms;
+  }
+
+  .number {
+    fill: var(--page);
+    font-size: 9px;
+    font-weight: 700;
+    pointer-events: none;
+  }
+
+  a:focus-visible .hit {
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+
+  figcaption {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blip {
+      transition: none;
+    }
+  }
+</style>

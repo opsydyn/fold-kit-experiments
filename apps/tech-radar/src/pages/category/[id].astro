@@ -1,8 +1,17 @@
 ---
+/*
+ * A category at the current edition: what it holds, its quarter of the radar, what changed
+ * in it, its entries a ring at a time with each one's trail across the editions, and how
+ * its rings filled over the editions. Hovering a card lights its dot on the map, and the
+ * other way round, with CSS alone.
+ */
+import { Option } from 'effect';
+
+import CategoryMap from '../../components/CategoryMap.astro';
 import PageLayout from '../../layouts/PageLayout.astro';
-import { byCategoryAndRing } from '../../radar/pages';
-import { current, editions, radar } from '../../radar/radar';
-import { categoryIds, categoryLabels, ringLabels } from '../../radar/three/data';
+import { categoryPage, trailOf, trailSize } from '../../radar/category';
+import { categoryIntros, current, editions, radar, ringMeanings } from '../../radar/radar';
+import { categoryIds, categoryLabels, ringIds, ringLabels } from '../../radar/three/data';
 
 // Built ahead and served as a static asset; only `/` renders per request.
 export const prerender = true;
@@ -11,48 +20,618 @@ export const getStaticPaths = () => categoryIds.map((id) => ({ params: { id } })
 
 const { id } = Astro.params;
 const category = categoryIds.find((candidate) => candidate === id) ?? 'techniques';
-const rings =
-  byCategoryAndRing(radar, current).find((group) => group.category === category)?.rings ?? [];
-const edition = editions[current];
-const count = rings.reduce((total, { entries }) => total + entries.length, 0);
-const description = `${count} ${categoryLabels[category]} on the radar in the ${(edition?.label ?? '').toLowerCase()}, from Adopt to Caution.`;
+const page = Option.getOrThrowWith(
+  categoryPage(radar, editions, category, current),
+  () => new Error('The radar has no editions'),
+);
+const { edition, count, rings, changes, composition } = page;
+const label = categoryLabels[category];
+const intro = Option.fromNullishOr(categoryIntros[category]);
+const tally = `${count} ${label} on the radar in the ${edition.label.toLowerCase()}, from Adopt to Caution.`;
+const description = Option.match(intro, {
+  onNone: () => tally,
+  onSome: (text) => `${text} ${tally}`,
+});
+const at = categoryIds.indexOf(category);
+const neighbour = (offset: number) => {
+  const other = categoryIds[(at + offset + categoryIds.length) % categoryIds.length] ?? category;
+  return { href: `/category/${other}/`, label: categoryLabels[other] };
+};
+const before = neighbour(-1);
+const after = neighbour(1);
+const widest = Math.max(1, ...composition.map(({ total }) => total));
+/**
+ * Each ring's shade of the category's colour, strongest at Adopt: lifted towards the text
+ * colour, then the colour itself, then two tints towards the surface. It reads in order on
+ * a dark page and a light one, and the legend and table say it in words.
+ */
+const shade = {
+  adopt: 'color-mix(in srgb, var(--series) 62%, var(--text))',
+  trial: 'var(--series)',
+  assess: 'color-mix(in srgb, var(--series) 52%, var(--surface))',
+  caution: 'color-mix(in srgb, var(--series) 26%, var(--surface))',
+} as const;
+const cards = rings.flatMap(({ cards: inRing }) => inRing);
+// A card and its dot share `data-entry`: while either is hovered or focused, both light up.
+const linkCss = cards
+  .map(({ entry }) => {
+    const both = `[data-entry='${entry.id}']`;
+    return `.category-page:has(${both}:is(:hover, :focus-visible, :focus-within)) ${both} { --lit: 1; }`;
+  })
+  .join('\n');
+const trailLabel = (card: (typeof cards)[number]) =>
+  card.history
+    .map(({ edition: shown, ring }) =>
+      Option.match(ring, {
+        onNone: () => `${shown.label}: not on the radar`,
+        onSome: (placed) => `${shown.label}: ${ringLabels[placed]}`,
+      }),
+    )
+    .join('; ');
 ---
 
-<PageLayout title={categoryLabels[category]} description={description} section={category}>
-  <h1>{categoryLabels[category]}</h1>
-  <p class="muted">
-    {edition?.label} · {edition?.date} ·{' '}
-    <a href={`/?view=cluster:${category}`}>Open it on the 3D radar</a>
-  </p>
-  {
-    rings
-      .filter(({ entries }) => entries.length > 0)
-      .map(({ ring, entries }) => (
-        <section aria-labelledby={`ring-${ring}`}>
-          <h2 id={`ring-${ring}`}>{ringLabels[ring]}</h2>
-          <ul class="entries">
-            {entries.map((entry) => (
-              <li>
-                <a href={`/blip/${entry.id}/`}>{entry.name}</a>
-                <p>{entry.description}</p>
+<PageLayout title={label} description={description} section={category} wide>
+  <style is:inline set:html={linkCss} />
+  <article class="category-page" style={`--series: var(--category-${category})`}>
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="/">Radar</a></li>
+        <li><span aria-current="page">{label}</span></li>
+      </ol>
+    </nav>
+
+    <header class="hero">
+      <div class="hero-text">
+        <h1><span class="swatch" aria-hidden="true"></span>{label}</h1>
+        {Option.isSome(intro) && <p class="intro">{intro.value}</p>}
+        <p class="muted">
+          {count} on the radar · {edition.label} ·{' '}
+          <a href={`/edition/${edition.date}/`}>{edition.date}</a>
+        </p>
+        <ul class="tally" aria-label="Entries in each ring">
+          {
+            rings.map(({ ring, cards: inRing }) => (
+              <li style={`--shade: ${shade[ring]}`}>
+                <span class="key" aria-hidden="true" />
+                <strong>{inRing.length}</strong> {ringLabels[ring]}
               </li>
-            ))}
-          </ul>
-        </section>
-      ))
-  }
+            ))
+          }
+        </ul>
+        <p class="actions">
+          <a class="button" href={`/?view=cluster:${category}`}>Open it on the 3D radar</a>
+          <a href={`/edition/${edition.date}/`}>Everything in the {edition.label.toLowerCase()}</a>
+        </p>
+
+        {
+          changes.length > 0 && (
+            <section class="changes" aria-labelledby="changes">
+              <h2 id="changes">New and moved in the {edition.label.toLowerCase()}</h2>
+              <ul>
+                {changes.map((change) => (
+                  <li>
+                    <span class="glyph" aria-hidden="true">
+                      {change.glyph}
+                    </span>
+                    <a href={change.href}>{change.name}</a>
+                    <span class="muted">{change.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+      </div>
+      <CategoryMap category={category} index={edition.index} editionLabel={edition.label} />
+    </header>
+
+    <div class="board">
+      {
+        rings.map(({ ring, cards: inRing }) => (
+          <section class="column" aria-labelledby={`ring-${ring}`} style={`--shade: ${shade[ring]}`}>
+            <header class="column-head">
+              <h2 id={`ring-${ring}`}>
+                {ringLabels[ring]} <span class="count">{inRing.length}</span>
+              </h2>
+              <p class="muted">{ringMeanings[ring]}</p>
+            </header>
+            {inRing.length === 0 ? (
+              <p class="empty muted">
+                No {label.toLowerCase()} in {ringLabels[ring]} in this edition.
+              </p>
+            ) : (
+              <ul class="cards">
+                {inRing.map((card) => {
+                  const trail = trailOf(card.history, edition.index);
+                  return (
+                    <li class="card" data-entry={card.entry.id}>
+                      <p class="card-head">
+                        <span class="number" aria-hidden="true">
+                          {card.number}
+                        </span>
+                        <a class="card-title" href={card.href}>
+                          {card.entry.name}
+                        </a>
+                      </p>
+                      <p class="summary">{card.entry.description}</p>
+                      <div class="card-foot">
+                        <p class:list={['status', { changed: card.changed }]}>
+                          <span aria-hidden="true">{card.glyph}</span> {card.statusLine}
+                        </p>
+                        <svg
+                          class="trail"
+                          viewBox={`0 0 ${trailSize.width} ${trailSize.height}`}
+                          width={trailSize.width}
+                          height={trailSize.height}
+                          role="img"
+                          aria-label={`${card.entry.name}'s ring in each edition. ${trailLabel(card)}.`}
+                        >
+                          {ringIds.map((_, row) => (
+                            <line
+                              class="trail-grid"
+                              x1="0"
+                              x2={trailSize.width}
+                              y1={4 + (row * (trailSize.height - 8)) / (ringIds.length - 1)}
+                              y2={4 + (row * (trailSize.height - 8)) / (ringIds.length - 1)}
+                            />
+                          ))}
+                          <path class="trail-line" d={trail.path} />
+                          {trail.marks.map(({ x, y, current: shown }) => (
+                            <circle class:list={['trail-mark', { shown }]} cx={x} cy={y} r={shown ? 3.5 : 2.5} />
+                          ))}
+                        </svg>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        ))
+      }
+    </div>
+
+    <section class="over-time" aria-labelledby="over-time">
+      <h2 id="over-time">{label} over the editions</h2>
+      <ul class="legend muted" aria-hidden="true">
+        {
+          ringIds.map((ring) => (
+            <li style={`--shade: ${shade[ring]}`}>
+              <span class="key" />
+              {ringLabels[ring]}
+            </li>
+          ))
+        }
+      </ul>
+      <ol class="bars">
+        {
+          composition.map(({ edition: shown, total, rings: counts }) => (
+            <li class:list={{ shown: shown.index === edition.index }}>
+              <a class="bar-label" href={`/edition/${shown.date}/`}>
+                {shown.label}
+                <span class="muted">{shown.date}</span>
+              </a>
+              <span class="track">
+                <span
+                  class="bar"
+                  style={`width: ${(total / widest) * 100}%`}
+                  role="img"
+                  aria-label={`${shown.label}: ${counts
+                    .map(({ ring, count: inRing }) => `${inRing} ${ringLabels[ring]}`)
+                    .join(', ')}`}
+                >
+                  {counts
+                    .filter(({ count: inRing }) => inRing > 0)
+                    .map(({ ring, count: inRing }) => (
+                      <span
+                        class="segment"
+                        style={`flex-grow: ${inRing}; --shade: ${shade[ring]}`}
+                        title={`${ringLabels[ring]}: ${inRing}`}
+                      />
+                    ))}
+                </span>
+                <span class="total">{total}</span>
+              </span>
+            </li>
+          ))
+        }
+      </ol>
+      <details>
+        <summary>The editions as a table</summary>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Edition</th>
+                {ringIds.map((ring) => <th scope="col">{ringLabels[ring]}</th>)}
+                <th scope="col">All</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                composition.map(({ edition: shown, total, rings: counts }) => (
+                  <tr>
+                    <th scope="row">{shown.label}</th>
+                    {counts.map(({ count: inRing }) => <td>{inRing}</td>)}
+                    <td>{total}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <nav class="pager" aria-label="Categories">
+      <a href={before.href}>← {before.label}</a>
+      <a href="/">The whole radar</a>
+      <a href={after.href}>{after.label} →</a>
+    </nav>
+  </article>
 </PageLayout>
 
 <style>
-  .entries {
-    display: grid;
+  .breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .breadcrumb li + li::before {
+    content: '›';
+    margin-right: 0.25rem;
+  }
+
+  h1 {
+    display: flex;
     gap: 0.75rem;
+    align-items: center;
+  }
+
+  .swatch {
+    flex: none;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 999px;
+    background: var(--series);
+  }
+
+  .hero {
+    display: grid;
+    gap: 1.5rem 3rem;
+    align-items: start;
+  }
+
+  @media (min-width: 52rem) {
+    .hero {
+      --map-width: clamp(20rem, 30vw, 30rem);
+      grid-template-columns: minmax(0, 1fr) var(--map-width);
+    }
+  }
+
+  .intro {
+    max-width: 60ch;
+    margin: 0 0 0.5rem;
+    font-size: 1.15rem;
+  }
+
+  .tally,
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin: 0.75rem 0 1rem;
     padding: 0;
     list-style: none;
   }
 
-  .entries p {
-    margin: 0.15rem 0 0;
+  .tally li,
+  .legend li {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+  }
+
+  .key {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.9rem;
+    background: var(--shade);
+    border: 1px solid color-mix(in srgb, var(--series) 60%, var(--border));
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    align-items: center;
+  }
+
+  .button {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--accent);
+    text-decoration: none;
+  }
+
+  .button:hover {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .changes h2 {
+    margin-top: 1.5rem;
+    font-size: 1rem;
+  }
+
+  .changes ul {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .changes li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+    align-items: baseline;
+  }
+
+  .glyph {
+    width: 1rem;
     color: var(--muted);
+    text-align: center;
+  }
+
+  /* The rings side by side: four columns on a wide screen, two on a mid one. */
+  .board {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  @media (min-width: 40rem) {
+    .board {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 72rem) {
+    .board {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .column-head {
+    padding-top: 0.6rem;
+    border-top: 4px solid var(--shade);
+  }
+
+  .column-head h2 {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    margin: 0;
+  }
+
+  .count {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .column-head p {
+    min-height: 2.8em;
+    margin: 0.2rem 0 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .empty {
+    padding: 0.75rem 0.9rem;
+    border: 1px dashed var(--border);
+    font-size: 0.9rem;
+  }
+
+  .cards {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* --lit is set while the card or its dot on the map is hovered or focused. */
+  .card {
+    display: grid;
+    gap: 0.4rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid
+      color-mix(in srgb, var(--series) calc(var(--lit, 0) * 100%), var(--border));
+    background: color-mix(in srgb, var(--series) calc(var(--lit, 0) * 8%), var(--surface));
+    transition:
+      border-color 120ms,
+      background 120ms;
+  }
+
+  .card p {
+    margin: 0;
+  }
+
+  .card-head {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+  }
+
+  .number {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: var(--series);
+    color: var(--page);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .card-title {
+    font-weight: 600;
+  }
+
+  .summary {
+    font-size: 0.95rem;
+  }
+
+  .card-foot {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .status {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .status.changed {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .trail {
+    flex: none;
+  }
+
+  .trail-grid {
+    stroke: var(--border);
+    stroke-width: 0.5;
+  }
+
+  .trail-line {
+    fill: none;
+    stroke: var(--series);
+    stroke-width: 1.5;
+  }
+
+  .trail-mark {
+    fill: var(--surface);
+    stroke: var(--series);
+    stroke-width: 1.5;
+  }
+
+  .trail-mark.shown {
+    fill: var(--series);
+  }
+
+  .over-time {
+    max-width: 52rem;
+    margin-top: 1rem;
+  }
+
+  .legend {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .bars {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .bars li {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .bar-label {
+    display: grid;
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.25;
+    text-decoration: none;
+  }
+
+  .bar-label:hover {
+    text-decoration: underline;
+  }
+
+  .shown .bar-label {
+    font-weight: 700;
+  }
+
+  .bar-label .muted {
+    font-size: 0.8rem;
+    font-weight: 400;
+  }
+
+  .track {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .bar {
+    display: flex;
+    gap: 2px;
+    height: 1.4rem;
+  }
+
+  .segment {
+    background: var(--shade);
+  }
+
+  .total {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  summary {
+    cursor: pointer;
+  }
+
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .pager > :last-child {
+    text-align: right;
+  }
+
+  @media (max-width: 30rem) {
+    .bars li {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card {
+      transition: none;
+    }
   }
 </style>

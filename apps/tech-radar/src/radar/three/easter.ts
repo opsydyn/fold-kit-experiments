@@ -35,6 +35,7 @@ import type { RadarPosition } from './layout';
 import { editionsOf, type Model, type MonolithState, presentOf } from './model';
 import { easeInOut } from './relay';
 import { bearingOf, blipPosition, elevationOf, isBirdsEye, onSphere } from './space';
+import { stackGeometries, stackMaterials, stackNodes, stackReadout } from './stack';
 import { answers, summoned, summonedMonolith } from './summon';
 import { playStep } from './timeline';
 
@@ -322,7 +323,8 @@ const monolithReadouts = {
 
 // ---------------------------------------------------------------------------------------
 // The probe: COBOL. Searching for it sends a small Voyager-style probe round the far sky,
-// dish turned back to the radar: still running, very far away.
+// dish turned back to the radar: still running, very far away. Like the Voyagers, it
+// carries a golden record, and says where it is kept: the trail's last clue.
 
 /** How far out the probe circles, how high, and how slowly. */
 export const probeOrbit = { radius: 7, height: 2.6, radiansPerSecond: 0.12 } as const;
@@ -383,6 +385,7 @@ export const eggReadout = (model: Model): Option.Option<string> =>
     hoveredReadout(model),
     invasionReadout(model),
     constellationReadout(model),
+    stackReadout(model),
     Option.flatMap(summoned(model.query), (word) => Option.fromNullishOr(answers[word])),
   ]);
 
@@ -402,7 +405,10 @@ const eggReaders: ReadonlyArray<EggReader> = [
       saying(isMonolithKey, ({ monolith }) => monolithReadouts[monolith])(model, key),
       () => monolithShows(model),
     ),
-  saying(isProbeKey, () => 'COBOL: still running, very far away'),
+  saying(
+    isProbeKey,
+    () => 'COBOL: still running, very far away. Its golden record is kept with the assets.',
+  ),
   saying(isCapKey, capReadout),
 ];
 
@@ -423,10 +429,12 @@ export const eggNodes = (model: Model): ReadonlyArray<SceneNode> => [
   ...constellationNodes(model),
   ...invaderNodes(model),
   ...cometNodes(model),
+  ...stackNodes(model),
 ];
 
 export const eggGeometries = [
   ...cometGeometries,
+  ...stackGeometries,
   ...invaderGeometries,
   ...capGeometries,
   { id: 'egg:hull', geometry: sphere({ radius: 0.26, widthSegments: 24, heightSegments: 12 }) },
@@ -452,6 +460,7 @@ export const eggGeometries = [
 
 export const eggMaterials = [
   ...cometMaterials,
+  ...stackMaterials,
   ...capMaterials,
   { id: 'egg:metal', material: standard({ color: 0xb8bcc8, metalness: 0.6, roughness: 0.35 }) },
   {

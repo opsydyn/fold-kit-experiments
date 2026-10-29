@@ -19,7 +19,7 @@ import {
   type RadarPosition,
 } from './layout';
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
-import { summoned } from './summon';
+import { filterQuery } from './summon';
 import { ColorScheme, ContrastSetting, resolveTheme, type Theme, ThemeChoice } from './themes';
 import type { Tour } from './tour';
 import { defaultTypeface, Typeface } from './typefaces';
@@ -101,6 +101,8 @@ export const Model = Schema.Struct({
   invasion: Schema.Option(Schema.Number),
   /** The Kafka comet's clock, in milliseconds: where along its route it has got to. */
   cometClock: Schema.Number,
+  /** The stack eggs' clock (astro, foldkit, effect): milliseconds since the word was typed. */
+  stackClock: Schema.Number,
   /** Pinned by a click on a blip or a list entry, cleared by a click on empty space. */
   selected: Schema.Option(Schema.String),
   /** The category whose sector the camera last stopped at, for the breadcrumb. */
@@ -249,6 +251,7 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   tourNotice: Option.none(),
   invasion: Option.none(),
   cometClock: 0,
+  stackClock: 0,
   selected: Option.none(),
   cluster: Option.none(),
   journey: Option.none(),
@@ -291,8 +294,6 @@ export type RadarProps = Readonly<{
 }>;
 
 /** The filters in force. A magic word summons an Easter egg and filters nothing. */
-const filterQuery = (query: string): string =>
-  Option.match(summoned(query), { onNone: () => query, onSome: () => '' });
 
 export const filtersOf = (model: Model): RadarFilters => ({
   query: filterQuery(model.query),

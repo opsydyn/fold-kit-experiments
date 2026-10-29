@@ -440,6 +440,9 @@ describe('magic words', () => {
       '42',
       'cobol',
       'kafka',
+      'astro',
+      'foldkit',
+      'effect',
     ]);
     expect(summoned('  COBOL ')).toEqual(Option.some('cobol'));
     for (const miss of ['monoliths', 'mono', 'cobol code', '', '4 2']) {
@@ -447,9 +450,13 @@ describe('magic words', () => {
     }
   });
 
-  test('a magic word filters nothing: the radar stays full behind the egg', () => {
-    for (const word of magicWords) {
+  test('a magic word filters nothing, unless it names an entry: then it still finds it', () => {
+    const naming = new Set(['foldkit', 'effect']);
+    for (const word of magicWords.filter((magic) => !naming.has(magic))) {
       expect(visibleOf(searched(word)).length).toBe(visibleOf(start).length);
+    }
+    for (const word of naming) {
+      expect(visibleOf(searched(word)).map(({ entry }) => entry.id)).toContain(word);
     }
     // An ordinary search still filters.
     expect(visibleOf(searched('elm')).length).toBeLessThan(visibleOf(start).length);
@@ -476,7 +483,11 @@ describe('magic words', () => {
       step(answered, Message.ChangedQuery({ query: 'cobol' })),
       Message.HoveredEgg({ key: 'egg:probe:craft' }),
     );
-    expect(Option.getOrUndefined(eggReadout(over))).toBe('COBOL: still running, very far away');
+    expect(Option.getOrUndefined(eggReadout(over))).toContain(
+      'COBOL: still running, very far away',
+    );
+    // The trail's last clue: where the catalogue of eggs is kept.
+    expect(Option.getOrUndefined(eggReadout(over))).toContain('golden record');
   });
 
   test('“cobol” sends a probe round the far sky, holding still under reduced motion', () => {

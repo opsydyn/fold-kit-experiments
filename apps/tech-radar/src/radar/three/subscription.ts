@@ -10,6 +10,7 @@ import { cometMoves } from './comet';
 import { konamiCode } from './invaders';
 import { Message } from './message';
 import type { Model, PointerInput } from './model';
+import { stackEggMoves } from './stack';
 import type { ColorScheme, ContrastSetting } from './themes';
 import { isPlaying } from './tour';
 
@@ -56,6 +57,10 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
   comet: Subscription.animationFrameEntry({
     isActive: cometMoves,
     toMessage: (deltaTimeMs) => Message.AdvancedComet({ deltaTimeMs }),
+  }),
+  stackEgg: Subscription.animationFrameEntry({
+    isActive: stackEggMoves,
+    toMessage: (deltaTimeMs) => Message.AdvancedStackEgg({ deltaTimeMs }),
   }),
   // Whether the reader can hover: a phone or tablet cannot, so a tap reads instead.
   pointerInput: Subscription.persistentEntry(

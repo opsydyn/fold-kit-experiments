@@ -1,6 +1,7 @@
 ---
 import AppLayout from '../layouts/AppLayout.astro';
-import { pages, radar, radarTitle } from '../radar/radar';
+import { linkPreview } from '../radar/meta';
+import { editions, pages, radar, radarIntro, radarTitle } from '../radar/radar';
 import Radar from '../radar/three/app';
 
 // Rendered per request, so the query string reaches the server: it is a deep link, and the
@@ -8,9 +9,11 @@ import Radar from '../radar/three/app';
 export const prerender = false;
 
 const link = Object.fromEntries(Astro.url.searchParams);
+// A shared link's preview says where it goes: the entry it pins, a category or an edition.
+const preview = linkPreview(radar, editions, { title: radarTitle, intro: radarIntro }, link);
 ---
 
-<AppLayout title={radarTitle}>
+<AppLayout title={preview.title} description={preview.description}>
   <Radar
     client:load
     dataset={radar}

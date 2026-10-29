@@ -14,9 +14,11 @@ const category = categoryIds.find((candidate) => candidate === id) ?? 'technique
 const rings =
   byCategoryAndRing(radar, current).find((group) => group.category === category)?.rings ?? [];
 const edition = editions[current];
+const count = rings.reduce((total, { entries }) => total + entries.length, 0);
+const description = `${count} ${categoryLabels[category]} on the radar in the ${(edition?.label ?? '').toLowerCase()}, from Adopt to Caution.`;
 ---
 
-<PageLayout title={categoryLabels[category]} section={category}>
+<PageLayout title={categoryLabels[category]} description={description} section={category}>
   <h1>{categoryLabels[category]}</h1>
   <p class="muted">
     {edition?.label} · {edition?.date} ·{' '}

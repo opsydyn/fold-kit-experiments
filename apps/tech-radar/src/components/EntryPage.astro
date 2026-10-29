@@ -41,7 +41,9 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
 ---
 
 <PageLayout
-  title={edition.isCurrent ? entry.name : `${entry.name} · ${edition.label}`}
+  title={edition.isCurrent
+    ? `${entry.name} · ${ringLabels[ring]}`
+    : `${entry.name} · ${ringLabels[ring]} · ${edition.label}`}
   description={entry.description}
   section={entry.category}
   edition={edition.date}
@@ -209,6 +211,10 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
     height: 0.65rem;
     border-radius: 999px;
     background: var(--series);
+  }
+
+  h1 {
+    view-transition-name: entry-name;
   }
 
   .hero {

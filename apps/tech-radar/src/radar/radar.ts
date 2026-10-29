@@ -17,10 +17,14 @@ export const radar = Result.getOrThrowWith(
   (reason) => new Error(`The radar's markdown: ${reason}`),
 );
 
-const about = Schema.decodeUnknownSync(RadarFile)((await getEntry('radar', 'radar'))?.data);
+const radarFile = await getEntry('radar', 'radar');
+const about = Schema.decodeUnknownSync(RadarFile)(radarFile?.data);
 
 /** The radar's name, from `radar.md`. */
 export const radarTitle = about.title;
+
+/** The radar's introduction, the body of `radar.md`, as plain text for link previews. */
+export const radarIntro = (radarFile?.body ?? '').trim();
 
 /** What each ring means, from `radar.md`. */
 export const ringMeanings = about.rings;

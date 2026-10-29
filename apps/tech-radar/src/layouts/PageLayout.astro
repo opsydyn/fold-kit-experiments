@@ -2,12 +2,14 @@
 /*
  * A page that scrolls: the full pages. Each works without JavaScript.
  */
+import Meta from '../components/Meta.astro';
 import { pageThemeCss } from '../radar/pageTheme';
-import { editions, radarTitle } from '../radar/radar';
+import { editions, radarIntro, radarTitle } from '../radar/radar';
 import { type Category, categoryIds, categoryLabels } from '../radar/three/data';
 
 interface Props {
   title: string;
+  /** What the page is about, for search results and link previews; the radar's by default. */
   description?: string;
   /** The category the page belongs to, marked as current in the site's navigation. */
   section?: Category;
@@ -16,7 +18,8 @@ interface Props {
   /** Use the screen's width on big viewports, for a page laid out in columns. */
   wide?: boolean;
 }
-const { title, description, section, edition, wide = false } = Astro.props;
+const { title, description = radarIntro, section, edition, wide = false } = Astro.props;
+const documentTitle = title === radarTitle ? title : `${title} · ${radarTitle}`;
 ---
 
 <!doctype html>
@@ -26,8 +29,8 @@ const { title, description, section, edition, wide = false } = Astro.props;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
-    {description && <meta name="description" content={description} />}
-    <title>{title}</title>
+    <title>{documentTitle}</title>
+    <Meta title={documentTitle} description={description} />
     <style is:inline set:html={pageThemeCss} />
   </head>
   <body>
@@ -68,6 +71,23 @@ const { title, description, section, edition, wide = false } = Astro.props;
 </html>
 
 <style is:global>
+  /* Moving between pages cross-fades, and an entry page's name and locator move into place. */
+  @view-transition {
+    navigation: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none;
+    }
+  }
+
+  .site-header {
+    view-transition-name: site-header;
+  }
+
   *,
   *::before,
   *::after {

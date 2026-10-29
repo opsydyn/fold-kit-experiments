@@ -1,0 +1,29 @@
+---
+/*
+ * What a page tells software about itself, in its head: its canonical address, its link
+ * preview (Open Graph, read by chat apps and social sites) and where the feed and sitemap
+ * are. Every address is on the published site, wherever the page is served from.
+ */
+import { radarTitle } from '../radar/radar';
+
+interface Props {
+  title: string;
+  description: string;
+}
+const { title, description } = Astro.props;
+const site = Astro.site ?? Astro.url;
+const canonical = new URL(Astro.url.pathname, site).href;
+// A deep link's query is the view it opens, so the preview links to it in full.
+const shared = new URL(Astro.url.pathname + Astro.url.search, site).href;
+---
+
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={radarTitle} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={shared} />
+<meta name="twitter:card" content="summary" />
+<link rel="alternate" type="application/atom+xml" title={`${radarTitle} editions`} href="/feed.xml" />
+<link rel="sitemap" href="/sitemap.xml" />

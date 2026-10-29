@@ -20,9 +20,17 @@ const { Content } = notes === undefined ? { Content: undefined } : await render(
 const hasNotes = (notes?.body ?? '').trim() !== '';
 const changes = changesAt(radar, edition.index);
 const radarLink = edition.isCurrent ? '/' : `/?edition=${edition.date}`;
+const description =
+  changes.length === 0
+    ? `The radar's ${edition.label.toLowerCase()}, ${edition.date}.`
+    : `What changed in the radar's ${edition.label.toLowerCase()}, ${edition.date}: ${changes.length} ${changes.length === 1 ? 'change' : 'changes'}.`;
 ---
 
-<PageLayout title={`${edition.label} · ${edition.date}`} edition={edition.date}>
+<PageLayout
+  title={`${edition.label} · ${edition.date}`}
+  description={description}
+  edition={edition.date}
+>
   <h1>{edition.label}</h1>
   <p class="muted">
     {edition.date}{edition.isCurrent && ' · the current edition'} ·{' '}

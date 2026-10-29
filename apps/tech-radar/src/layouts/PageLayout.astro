@@ -13,8 +13,10 @@ interface Props {
   section?: Category;
   /** The edition the page shows, marked as current in the footer. */
   edition?: string;
+  /** Use the screen's width on big viewports, for a page laid out in columns. */
+  wide?: boolean;
 }
-const { title, description, section, edition } = Astro.props;
+const { title, description, section, edition, wide = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -47,7 +49,7 @@ const { title, description, section, edition } = Astro.props;
         }
       </nav>
     </header>
-    <main>
+    <main class:list={{ wide }}>
       <slot />
     </main>
     <footer class="site-footer">
@@ -89,6 +91,11 @@ const { title, description, section, edition } = Astro.props;
     max-width: 52rem;
     margin: 0 auto;
     padding: 1.5rem 1rem 3rem;
+  }
+
+  main.wide {
+    max-width: 110rem;
+    padding-inline: clamp(1rem, 3vw, 2.5rem);
   }
 
   h1 {

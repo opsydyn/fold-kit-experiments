@@ -3,20 +3,20 @@
 The Alchemy stack that builds `apps/tech-radar` and deploys it to Cloudflare as one Worker
 with static assets. See `docs/superpowers/plans/2026-10-28-tech-radar-app.md`.
 
-## Its own Effect
+## The apps' Effect
 
-Alchemy needs `effect ^4.0.5`; FoldKit pins exactly `4.0.0`. This workspace takes its
-versions from the root's `infra` catalog (`effect`, `@effect/platform-node` and
-`@effect/platform-bun` at 4.0.7, and the Alchemy packages), so the CLI runs on one Effect
-and the site it builds keeps the app's. `packages/effect-three`'s single-Effect check walks
-the apps and packages, not this workspace.
+Alchemy accepts `effect ^4.0.5` and FoldKit 0.170 accepts `~4.1.0`, so this workspace runs
+on the apps' Effect 4.1.0 from the root's default catalog (`"catalog:"`). The `infra`
+catalog holds only what the apps don't use: the Alchemy packages and `@effect/platform-node`
+and `@effect/platform-bun`, at 4.1.0. `packages/effect-three`'s single-Effect check walks
+this workspace too, so the CLI and the apps can't drift onto two Effects.
 
 ## The build integration lives in the app too
 
 `Website.Astro` resolves Alchemy's Worker entry point
 (`@alchemy.run/frontend-frameworks/astro/entrypoints/server`) from the app it builds, so
 `apps/tech-radar` lists `@alchemy.run/frontend-frameworks` as a dev dependency. In the app it
-resolves Effect 4.0.0, like everything else there, and the entry point bundled into the
+resolves Effect 4.1.0, like everything else there, and the entry point bundled into the
 Worker imports only Astro.
 
 ## Use

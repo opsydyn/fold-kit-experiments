@@ -177,7 +177,7 @@ import aliases. Tests install, typecheck and build each project in an OS tempora
 directory and render the packed optional adapter under Bun and Node.
 
 The composition APIs shipped in `@opsydyn/foldkit-viz` 0.10.0. The current
-workspace targets FoldKit 0.169.0 and Effect 4.0.0. Local checks, hosted
+workspace targets FoldKit 0.170.0 and Effect 4.1.0. Local checks, hosted
 deployment and npm publication are verified separately.
 
 ## Captured signal comparisons

@@ -452,6 +452,14 @@ the content decision, so it is not proposed.
 The cheapest next step, if wanted: a spike branch that overrides Effect to 4.0.7 across the
 repository and runs every suite, to learn whether FoldKit already works on it.
 
+**Update, 2026-10-29: condition 1 is met.** FoldKit 0.170 peers on Effect `~4.1.0`, which
+Alchemy's `^4.0.5` accepts, so the repository runs on one Effect 4.1.0, infra included, with
+no override (`docs/releases/foldkit-0.170.md`). The overlap is 4.1.x only: if Alchemy needs
+4.2 before FoldKit does, they split again. Conditions 2 and 3 still stand:
+`@alchemy.run/domain` is still on its only release, `2.0.0-beta.84`, and the radar has no
+write feature. One new cost: its Stories run under `@effect/vitest`, whose 4.1 release needs
+Vitest 5, and the repository is on Vitest 4.
+
 ## Decisions
 
 **Settled:**

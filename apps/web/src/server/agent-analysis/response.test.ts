@@ -311,14 +311,20 @@ describe('request-owned SSE lifetime', () => {
         observations.push(item),
       ),
     );
+    // A client reads the stream. The bridge holds one event and produces the next only when
+    // that one is read (Effect 4.1 runs no further ahead), so reading RUN_STARTED is what
+    // brings on the snapshot.
+    const reader = response.body?.getReader();
+    const first = reader?.read();
     await vi.advanceTimersByTimeAsync(650);
+    await first;
     expect(observations).toEqual([
       { _tag: 'Emitted', eventType: 'RUN_STARTED' },
       { _tag: 'Emitted', eventType: 'STATE_SNAPSHOT' },
     ]);
     controller.abort();
     // Abort interrupts the Web Stream bridge; cancellation of an errored body can reject.
-    await response.body?.cancel().catch(() => {});
+    await reader?.cancel().catch(() => {});
     const atDisposal = [...observations];
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(100000);

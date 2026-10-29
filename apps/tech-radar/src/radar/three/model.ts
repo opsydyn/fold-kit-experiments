@@ -1,4 +1,4 @@
-import { Tooltip } from '@foldkit/ui';
+import { Combobox, Tooltip } from '@foldkit/ui';
 import { perspectiveCamera, SceneSchema, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option, Schema } from 'effect';
 
@@ -119,6 +119,8 @@ export const Model = Schema.Struct({
   showRelationships: Schema.Boolean,
   /** Whether the sidebar's entries table is open. */
   entriesOpen: Schema.Boolean,
+  /** The search box: a Combobox whose input follows `query`. */
+  search: Combobox.Model,
   /** The icon buttons' tooltips. */
   tooltips: Schema.Struct({
     'turn-left': Tooltip.Model,
@@ -248,6 +250,7 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   playClock: 0,
   showRelationships: true,
   entriesOpen: false,
+  search: Combobox.init({ id: 'radar-search' }),
   tooltips: closedTooltips,
   stageAspect: 1,
   camera: homeCamera,

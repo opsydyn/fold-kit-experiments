@@ -1,8 +1,8 @@
-import { Tooltip } from '@foldkit/ui';
+import { Combobox, Tooltip } from '@foldkit/ui';
 import { type Camera, type Gesture, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
-import { foldChildAt, type Return } from 'foldkit/update';
+import { foldChild, foldChildAt, type Return } from 'foldkit/update';
 
 import { advanceComet } from './comet';
 import {
@@ -38,6 +38,7 @@ import {
   type RadarProps,
 } from './model';
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
+import { searchBox, searchMove, withSearchText } from './search';
 import { zoomedPosition, zoomLimits } from './space';
 import { summonedMonolith } from './summon';
 import { playStep } from './timeline';
@@ -212,6 +213,49 @@ const chooseEntry = (model: Model, id: string): Model =>
     },
   );
 
+/** A search for `query`: it filters the radar, and opens the entries table to list them. */
+const withQuery = (model: Model, query: string): Model =>
+  reconcile({
+    ...model,
+    query,
+    entriesOpen: model.entriesOpen || query.trim() !== '',
+    monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
+  });
+
+/**
+ * The search box: its own update runs, and picking an entry pins it and faces it, as a row
+ * of the entries table does.
+ */
+const pickedFromSearch =
+  (outMessage: Combobox.OutMessage<string>) =>
+  (model: Model): AppReturn =>
+    Match.value(outMessage).pipe(
+      Match.tag('Selected', ({ value }) => ({ model: chooseEntry(model, value) })),
+      Match.orElse(() => ({ model })),
+    );
+
+const readSearch = (model: Model) => Option.some(model.search);
+
+const foldSearch = foldChild({
+  update: searchBox.update,
+  read: readSearch,
+  write: (model, search) => ({ ...model, search }),
+  toParentMessage: (message) => Message.GotSearchMessage({ message }),
+  foldOutMessage: pickedFromSearch,
+});
+
+/** A search box Message: its own step, and typing is a search, as it always was. */
+const searchStep = (model: Model, message: Combobox.Message): AppReturn => {
+  const result = foldSearch(model, message);
+  return Match.value(message).pipe(
+    Match.tag('UpdatedInputValue', ({ value }) => ({
+      ...result,
+      model: withQuery(result.model, value),
+    })),
+    Match.orElse(() => result),
+  );
+};
+
 /** Applies `apply` to the entry a blip's key names, while the filters show it. */
 const withBlip = (key: string, model: Model, apply: (id: string) => Model): AppReturn => {
   const next = Option.match(
@@ -355,7 +399,7 @@ export const init = (props: RadarProps): AppReturn => {
     onNone: () => [LoadThemeChoice()],
     onSome: () => [],
   });
-  return { model, commands };
+  return { model: withSearchText(model), commands };
 };
 
 /**
@@ -411,15 +455,7 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     ClickedEntry: ({ id }) => ({ model: chooseEntry(model, id) }),
     ClickedFlyTo: ({ id }) => ({ model: flyTo(model, id) }),
-    ChangedQuery: ({ query }) => ({
-      model: reconcile({
-        ...model,
-        query,
-        // A search opens the entries table, so its matches show as a list too.
-        entriesOpen: model.entriesOpen || query.trim() !== '',
-        monolith: Option.getOrElse(summonedMonolith(query), () => model.monolith),
-      }),
-    }),
+    ChangedQuery: ({ query }) => ({ model: withQuery(model, query) }),
     ChangedCategory: ({ category }) => ({ model: reconcile({ ...model, category }) }),
     ClickedRing: ({ ring }) => ({ model: toggleRing(model, ring) }),
     ClickedClearFilters: () => ({
@@ -448,6 +484,7 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     ToggledEntries: ({ isOpen }) => ({ model: { ...model, entriesOpen: isOpen } }),
     GotTooltipMessage: ({ control, message }) => foldTooltip(model, control, message),
+    GotSearchMessage: ({ message }) => searchStep(model, message),
     MadeGesture: ({ gesture }) => ({
       model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
     }),
@@ -645,11 +682,21 @@ const advanceTour = (model: Model, deltaTimeMs: number): AppReturn =>
     Match.orElse((): AppReturn => ({ model })),
   );
 
+/**
+ * The move a Message makes, as a tour records it: most are their own move, and the search
+ * box's typing and picking are the search and the pick they make.
+ */
+const moveOf = (message: Message): Option.Option<Message> =>
+  Match.value(message).pipe(
+    Match.tag('GotSearchMessage', ({ message: search }) => searchMove(search)),
+    Match.orElse(() => Option.liftPredicate(message, isRecordable)),
+  );
+
 /** The reader's own move during a tour ends it: the reader has taken the controls. */
 const interrupting = (model: Model, message: Message): Model =>
   Match.value(model.tour).pipe(
     Match.tag('Playing', () =>
-      Option.match(Option.liftPredicate(message, isRecordable), {
+      Option.match(moveOf(message), {
         onNone: () => model,
         onSome: () => ({ ...model, tour: stoppedTour(model.tour) }),
       }),
@@ -661,7 +708,7 @@ type Recorder = Extract<Tour, { _tag: 'Recording' }>;
 
 /** One of the reader's moves added to the recording under way. */
 const withMove = (result: AppReturn, tour: Recorder, message: Message): AppReturn =>
-  Option.match(Option.liftPredicate(message, isRecordable), {
+  Option.match(moveOf(message), {
     onNone: () => result,
     onSome: (move) => ({
       ...result,
@@ -699,5 +746,7 @@ export const update = (model: Model, message: Message): AppReturn => {
     ),
     message,
   );
-  return withLink(model, recording(step(ready, message), message));
+  const result = recording(step(ready, message), message);
+  // However the query changed (typing, a tour, a link, Clear filters), the search box shows it.
+  return withLink(model, { ...result, model: withSearchText(result.model) });
 };

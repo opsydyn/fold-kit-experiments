@@ -306,6 +306,90 @@
   text-overflow: ellipsis;
 }
 
+/* The search box: an input with a button that lists every entry the radar shows. */
+.e3-search {
+  min-width: 0;
+}
+
+.e3-search-field {
+  display: flex;
+}
+
+.e3-sidebar .e3-search-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.e3-search-toggle {
+  border: 1px solid var(--border, #2a2a40);
+  border-left: 0;
+  background: var(--surface, #12121f);
+  padding: 0 0.45rem;
+  color: var(--muted, #8a8aa3);
+  font: inherit;
+  cursor: pointer;
+}
+
+/*
+ * The search's list is portalled to the page's body, outside the themed radar, so it
+ * keeps one dark style that reads on every theme, as the tooltips do.
+ */
+.e3-search-items {
+  z-index: 50;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid #3a3833;
+  background: #1d1c1a;
+  padding: 0.25rem 0;
+  min-width: 15rem;
+  max-height: min(22rem, 60dvh);
+  overflow-y: auto;
+  color: #f6f3ea;
+  font:
+    0.85rem/1.35 system-ui,
+    sans-serif;
+  list-style: none;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.4);
+}
+
+.e3-search-heading {
+  display: block;
+  padding: 0.45rem 0.65rem 0.15rem;
+  color: #b4afa3;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.e3-search-item {
+  cursor: pointer;
+  padding: 0.3rem 0.65rem;
+}
+
+.e3-search-item[data-active] {
+  background: #3d79fa;
+  color: #fff;
+}
+
+.e3-search-item[data-selected] {
+  font-weight: 600;
+}
+
+.e3-search-entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.e3-search-ring {
+  color: #b4afa3;
+  font-size: 0.8em;
+}
+
+.e3-search-item[data-active] .e3-search-ring {
+  color: #e6ecff;
+}
+
 /* A section's state, small and muted, at the far end of its heading row. */
 .e3-heading-status {
   overflow: hidden;

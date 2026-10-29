@@ -12,6 +12,12 @@ export type SankeyConfig = Readonly<{
   nodeWidth?: number;
   nodePadding?: number;
   iterations?: number;
+  /**
+   * d3-sankey's `nodeSort`. Left out, nodes are ordered within each column as they settle.
+   * `null` keeps each column in the input order, top to bottom, through relaxation: for
+   * nodes with an order of their own, such as ranks or stages.
+   */
+  nodeSort?: null;
 }>;
 
 // OUTPUT TYPES
@@ -74,6 +80,7 @@ export function sankey(
   config: SankeyConfig,
 ): SankeyLayout {
   const { width, height, nodeWidth = 16, nodePadding = 10, iterations = 6 } = config;
+  const keepOrder = config.nodeSort === null;
 
   // Build mutable node map
   const nodeMap = new Map<string, MNode>();
@@ -163,7 +170,7 @@ export function sankey(
 
   // Initial placement: stack nodes top-to-bottom, largest first
   for (const [, col] of columnMap) {
-    col.sort((a, b) => b.value - a.value);
+    if (!keepOrder) col.sort((a, b) => b.value - a.value);
     let y = 0;
     for (const n of col) {
       n.y0 = y;
@@ -191,7 +198,7 @@ export function sankey(
         n.y1 += dy;
       }
     }
-    resolveCollisions(columnMap, nodePadding, height);
+    resolveCollisions(columnMap, nodePadding, height, keepOrder);
 
     // Left-to-right: pull each node toward its sources' centres
     for (const col of colOrder) {
@@ -207,7 +214,7 @@ export function sankey(
         n.y1 += dy;
       }
     }
-    resolveCollisions(columnMap, nodePadding, height);
+    resolveCollisions(columnMap, nodePadding, height, keepOrder);
   }
 
   // Link y-offsets: stack links within each node, sorted toward target/source centres
@@ -253,9 +260,14 @@ export function sankey(
   return { nodes: outputNodes, links: outputLinks };
 }
 
-function resolveCollisions(columnMap: Map<number, MNode[]>, padding: number, height: number): void {
+function resolveCollisions(
+  columnMap: Map<number, MNode[]>,
+  padding: number,
+  height: number,
+  keepOrder: boolean,
+): void {
   for (const [, nodes] of columnMap) {
-    nodes.sort((a, b) => a.y0 - b.y0);
+    if (!keepOrder) nodes.sort((a, b) => a.y0 - b.y0);
 
     // Push down: ensure no overlap from top
     let y = 0;

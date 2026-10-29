@@ -7,7 +7,7 @@
  *
  * @module
  */
-import { Option } from 'effect';
+import { Match, Option } from 'effect';
 
 import {
   type Category,
@@ -16,6 +16,7 @@ import {
   type RadarEntry,
   type Ring,
   ringIds,
+  ringLabels,
 } from './three/data';
 import { type Edition, editionsOf, initialModel, type Model } from './three/model';
 import { type Relation, relationsOf } from './three/relations';
@@ -133,13 +134,88 @@ export const byCategoryAndRing = (
 
 export type Standing = Readonly<{ edition: EditionInfo; ring: Option.Option<Ring> }>;
 
+/**
+ * How an entry came to stand where it does in an edition: new to the radar, back after an
+ * absence, moved in (towards Adopt) or out from another ring, or unchanged since an
+ * edition.
+ */
+export type Status =
+  | Readonly<{ _tag: 'New' }>
+  | Readonly<{ _tag: 'Returned' }>
+  | Readonly<{ _tag: 'Moved'; from: Ring; direction: 'in' | 'out' }>
+  | Readonly<{ _tag: 'Steady'; since: EditionInfo }>;
+
+/** The entry's status at the edition `index` of its history; none if it was absent then. */
+export const statusAt = (history: ReadonlyArray<Standing>, index: number): Option.Option<Status> =>
+  Option.flatMap(Option.fromNullishOr(history[index]), (shown) =>
+    Option.map(shown.ring, (ring): Status => {
+      const before = history.slice(0, index);
+      const holds = (standing: Standing) => Option.contains(standing.ring, ring);
+      // The edition after the last one where it stood anywhere else, or nowhere.
+      const since = history[before.findLastIndex((standing) => !holds(standing)) + 1]?.edition;
+      const steady: Status = { _tag: 'Steady', since: since ?? shown.edition };
+      const fromAbsence = (): Status =>
+        Match.value({
+          first: index === 0,
+          seen: before.some((standing) => Option.isSome(standing.ring)),
+        }).pipe(
+          Match.when({ first: true }, () => steady),
+          Match.when({ seen: true }, (): Status => ({ _tag: 'Returned' })),
+          Match.orElse((): Status => ({ _tag: 'New' })),
+        );
+      const fromRing = (held: Ring): Status =>
+        Match.value(held === ring).pipe(
+          Match.when(true, () => steady),
+          Match.orElse(
+            (): Status => ({
+              _tag: 'Moved',
+              from: held,
+              direction: ringIds.indexOf(ring) < ringIds.indexOf(held) ? 'in' : 'out',
+            }),
+          ),
+        );
+      const previous = Option.flatMap(Option.fromNullishOr(before.at(-1)), ({ ring }) => ring);
+      return Option.match(previous, { onNone: fromAbsence, onSome: fromRing });
+    }),
+  );
+
+/** A status in words, as of the edition shown: "Moved in from Trial in the fourth edition". */
+export const statusText = (status: Status, ring: Ring, edition: EditionInfo): string => {
+  const at = `in the ${edition.label.toLowerCase()}`;
+  return Match.value(status).pipe(
+    Match.tag('New', () => `New ${at}`),
+    Match.tag('Returned', () => `Back on the radar ${at}`),
+    Match.tag(
+      'Moved',
+      ({ from, direction }) => `Moved ${direction} from ${ringLabels[from]} ${at}`,
+    ),
+    Match.tag(
+      'Steady',
+      ({ since }) => `${ringLabels[ring]} since the ${since.label.toLowerCase()}`,
+    ),
+    Match.exhaustive,
+  );
+};
+
 export type EntryPage = Readonly<{
   entry: RadarEntry;
   edition: EditionInfo;
   ring: Ring;
   /** Where it stood in every edition, oldest first: its ring, or none when absent. */
   history: ReadonlyArray<Standing>;
-  relations: ReadonlyArray<Relation & { readonly name: string; readonly href: string }>;
+  status: Status;
+  relations: ReadonlyArray<
+    Relation &
+      Readonly<{
+        name: string;
+        href: string;
+        category: Option.Option<Category>;
+        /** The other entry's ring in the edition, or none if it was not on the radar then. */
+        ring: Option.Option<Ring>;
+      }>
+  >;
+  /** The other entries in its category and ring at this edition, in the radar's order. */
+  peers: ReadonlyArray<Readonly<{ id: string; name: string; href: string }>>;
   /** Its neighbours in its category at this edition, in the radar's order. */
   previous: Option.Option<RadarEntry>;
   next: Option.Option<RadarEntry>;
@@ -160,21 +236,47 @@ export const entryPage = (
       .map((placed) => placed.entry)
       .filter((candidate) => candidate.category === entry.category);
     const at = neighbours.findIndex((candidate) => candidate.id === id);
-    const nameOf = (other: string) =>
-      dataset.entries.find((candidate) => candidate.id === other)?.name ?? other;
+    const find = (other: string) =>
+      Option.fromNullishOr(dataset.entries.find((candidate) => candidate.id === other));
+    const history = editions.map((standing) => ({
+      edition: standing,
+      ring: ringAt(dataset, entry, standing.index),
+    }));
+    const status = Option.getOrElse(
+      statusAt(history, index),
+      (): Status => ({ _tag: 'Steady', since: edition }),
+    );
+    const relations = relationsOf(dataset.relationships ?? [], id).map((relation) => {
+      const other = find(relation.other);
+      const name = Option.match(other, {
+        onNone: () => relation.other,
+        onSome: (found) => found.name,
+      });
+      const category = Option.map(other, (found) => found.category);
+      const otherRing = Option.flatMap(other, (found) => ringAt(dataset, found, index));
+      const href = entryHref(dataset, relation.other, index);
+      return { ...relation, name, href, category, ring: otherRing };
+    });
+    const peers = entriesAt(dataset, index)
+      .filter(
+        (placed) =>
+          placed.entry.category === entry.category &&
+          placed.ring === ring &&
+          placed.entry.id !== id,
+      )
+      .map(({ entry: peer }) => ({
+        id: peer.id,
+        name: peer.name,
+        href: entryHref(dataset, peer.id, index),
+      }));
     return {
       entry,
       edition,
       ring,
-      history: editions.map((standing) => ({
-        edition: standing,
-        ring: ringAt(dataset, entry, standing.index),
-      })),
-      relations: relationsOf(dataset.relationships ?? [], id).map((relation) => ({
-        ...relation,
-        name: nameOf(relation.other),
-        href: entryHref(dataset, relation.other, index),
-      })),
+      history,
+      status,
+      relations,
+      peers,
       previous: Option.fromNullishOr(neighbours[at - 1]),
       next: Option.fromNullishOr(neighbours[at + 1]),
     };

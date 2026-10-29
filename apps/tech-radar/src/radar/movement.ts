@@ -18,13 +18,18 @@ const margin = { top: 14, right: 20, bottom: 34, left: 64 } as const;
 export type MovementChart = Readonly<{
   /** The step line, broken where the entry was absent; none if it was never placed. */
   path: Option.Option<string>;
+  /** One per edition the entry was on; `current` marks the edition the page shows. */
   marks: ReadonlyArray<Readonly<{ x: number; y: number; label: string; current: boolean }>>;
   editions: ReadonlyArray<Readonly<{ x: number; label: string }>>;
   rings: ReadonlyArray<Readonly<{ y: number; label: string }>>;
   plot: Readonly<{ left: number; right: number; top: number; bottom: number }>;
 }>;
 
-export const movementChart = (history: ReadonlyArray<Standing>): MovementChart => {
+/** The chart of `history`, the edition at `shown` (the current one by default) marked. */
+export const movementChart = (
+  history: ReadonlyArray<Standing>,
+  shown: number = history.length - 1,
+): MovementChart => {
   const plot = {
     left: margin.left,
     right: chartSize.width - margin.right,
@@ -63,7 +68,7 @@ export const movementChart = (history: ReadonlyArray<Standing>): MovementChart =
           x: px,
           y: yOf(placed),
           label: `${edition.label} (${edition.date}): ${ringLabels[placed]}`,
-          current: edition.isCurrent,
+          current: edition.index === shown,
         },
       ],
     }),

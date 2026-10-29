@@ -1,22 +1,24 @@
 ---
 /*
- * An entry's full page at an edition: what it is, where it stands, how it moved, what it
- * relates to, and its write-up.
+ * An entry's full page at an edition: where it stands and how it got there, where it sits
+ * among its category, its write-up, how it moved, what it relates to, and its peers.
  */
 import { getEntry, render } from 'astro:content';
-import { Option } from 'effect';
+import { Match, Option } from 'effect';
 
 import PageLayout from '../layouts/PageLayout.astro';
-import { type EntryPage, entryHref, radarHref } from '../radar/pages';
-import { radar } from '../radar/radar';
+import { type EntryPage, entryHref, radarHref, type Status, statusText } from '../radar/pages';
+import { radar, ringMeanings } from '../radar/radar';
 import { categoryLabels, ringLabels } from '../radar/three/data';
+import { relationshipLines } from '../radar/three/scene';
+import Locator from './Locator.astro';
 import Movement from './Movement.astro';
 
 interface Props {
   page: EntryPage;
 }
 const { page } = Astro.props;
-const { entry, edition, ring, history, relations, previous, next } = page;
+const { entry, edition, ring, status, history, relations, peers, previous, next } = page;
 const markdown = await getEntry('entries', entry.id);
 const { Content } = markdown === undefined ? { Content: undefined } : await render(markdown);
 const hasBody = (markdown?.body ?? '').trim() !== '';
@@ -24,35 +26,68 @@ const neighbour = (other: Option.Option<{ id: string; name: string }>) =>
   Option.map(other, ({ id, name }) => ({ name, href: entryHref(radar, id, edition.index) }));
 const before = neighbour(previous);
 const after = neighbour(next);
+const category = categoryLabels[entry.category];
+const categoryHref = `/category/${entry.category}/`;
+const sourceHost = new URL(entry.sourceUrl).hostname.replace(/^www\./, '');
+/** A mark for the status, beside its words: never the only way to read it. */
+const glyph = Match.value(status).pipe(
+  Match.tag('New', () => '✦'),
+  Match.tag('Returned', () => '↺'),
+  Match.tag('Moved', ({ direction }) => (direction === 'in' ? '▲' : '▼')),
+  Match.tag('Steady', () => '●'),
+  Match.exhaustive,
+);
+const statusKind = (current: Status) => current._tag.toLowerCase();
 ---
 
 <PageLayout
   title={edition.isCurrent ? entry.name : `${entry.name} · ${edition.label}`}
   description={entry.description}
+  section={entry.category}
+  edition={edition.date}
 >
-  <article>
-    <p class="muted">
-      <a href={`/category/${entry.category}/`}>{categoryLabels[entry.category]}</a>
-    </p>
-    <h1>{entry.name}</h1>
-    <ul class="chips" aria-label="Placement">
-      <li class="chip">{ringLabels[ring]}</li>
-      <li class="chip">{categoryLabels[entry.category]}</li>
-      <li class="chip">{edition.label} · {edition.date}</li>
-    </ul>
+  <article style={`--series: var(--category-${entry.category})`}>
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <ol>
+        <li><a href="/">Radar</a></li>
+        <li>
+          <a href={categoryHref}><span class="swatch" aria-hidden="true"></span>{category}</a>
+        </li>
+        <li><span aria-current="page">{entry.name}</span></li>
+      </ol>
+    </nav>
+
+    <header class="hero">
+      <div class="hero-text">
+        <h1>{entry.name}</h1>
+        <p class="standing">
+          <span class="ring-badge">{ringLabels[ring]}</span>
+          <span class={`status status-${statusKind(status)}`}>
+            <span aria-hidden="true">{glyph}</span>
+            {statusText(status, ring, edition)}
+          </span>
+        </p>
+        <p class="meaning muted">
+          <strong>{ringLabels[ring]}:</strong>{' '}
+          {ringMeanings[ring]}
+        </p>
+        <p class="summary">{entry.description}</p>
+        <p class="actions">
+          <a class="button" href={radarHref(radar, entry.id, edition.index)}>View on the 3D radar</a>
+          <a href={entry.sourceUrl} rel="noopener">Source <span class="muted">({sourceHost})</span></a>
+        </p>
+      </div>
+      <Locator entry={entry} index={edition.index} editionLabel={edition.label} />
+    </header>
+
     {
       !edition.isCurrent && (
         <p class="notice">
-          This is {entry.name} as it stood in the {edition.label.toLowerCase()}.{' '}
+          This is {entry.name} as it stood in the {edition.label.toLowerCase()}, {edition.date}.{' '}
           <a href={`/blip/${entry.id}/`}>See it now</a>.
         </p>
       )
     }
-    <p class="summary">{entry.description}</p>
-    <p class="actions">
-      <a href={radarHref(radar, entry.id, edition.index)}>View on the 3D radar</a>
-      <a href={entry.sourceUrl} rel="noopener">Source</a>
-    </p>
 
     {
       hasBody && Content !== undefined && (
@@ -63,32 +98,69 @@ const after = neighbour(next);
     }
 
     <h2>Movement</h2>
-    <Movement name={entry.name} history={history} />
+    <Movement name={entry.name} history={history} shown={edition.index} />
 
     {
       relations.length > 0 && (
-        <>
-          <h2>Related</h2>
-          <ul class="relations">
+        <section aria-labelledby="related">
+          <h2 id="related">Related</h2>
+          <ul class="cards">
             {relations.map((relation) => (
-              <li>
-                <span class="muted">{relation.label}</span> <a href={relation.href}>{relation.name}</a>
+              <li class="card">
+                <p class="relation">
+                  <span
+                    class="edge"
+                    aria-hidden="true"
+                    style={`border-top: 3px ${relationshipLines[relation.type]} var(--relationship-${relation.type})`}
+                  />
+                  <span class="muted">{relation.label}</span>
+                </p>
+                <a class="card-title" href={relation.href}>
+                  {relation.name}
+                </a>
+                <p class="card-meta muted">
+                  {Option.match(relation.ring, {
+                    onNone: () => 'Not on the radar in this edition',
+                    onSome: (held) => ringLabels[held],
+                  })}
+                  {Option.match(relation.category, {
+                    onNone: () => '',
+                    onSome: (other) => ` · ${categoryLabels[other]}`,
+                  })}
+                </p>
                 <p>{relation.note}</p>
               </li>
             ))}
           </ul>
-        </>
+        </section>
       )
     }
 
-    <nav class="pager" aria-label={`More in ${categoryLabels[entry.category]}`}>
+    {
+      peers.length > 0 && (
+        <section aria-labelledby="peers">
+          <h2 id="peers">
+            Also in {ringLabels[ring]} · {category}
+          </h2>
+          <ul class="peers">
+            {peers.map((peer) => (
+              <li>
+                <a href={peer.href}>{peer.name}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+
+    <nav class="pager" aria-label={`More in ${category}`}>
       {
         Option.match(before, {
           onNone: () => <span />,
           onSome: ({ name, href }) => <a href={href}>← {name}</a>,
         })
       }
-      <a href={`/category/${entry.category}/`}>All {categoryLabels[entry.category]}</a>
+      <a href={categoryHref}>All {category}</a>
       {
         Option.match(after, {
           onNone: () => <span />,
@@ -100,8 +172,102 @@ const after = neighbour(next);
 </PageLayout>
 
 <style>
+  .breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .breadcrumb li + li::before {
+    content: '›';
+    margin-right: 0.25rem;
+  }
+
+  .breadcrumb a {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+  }
+
+  .swatch {
+    display: inline-block;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    background: var(--series);
+  }
+
+  .hero {
+    display: grid;
+    gap: 1.25rem 2rem;
+    align-items: start;
+  }
+
+  @media (min-width: 44rem) {
+    .hero {
+      grid-template-columns: 1fr 17.5rem;
+    }
+  }
+
+  .standing {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    align-items: center;
+    margin: 0.25rem 0 0.5rem;
+  }
+
+  .ring-badge {
+    padding: 0.2rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--series) 60%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--series) 18%, var(--surface));
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .status {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: baseline;
+  }
+
+  .status-new,
+  .status-moved,
+  .status-returned {
+    font-weight: 600;
+  }
+
+  .meaning {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+  }
+
   .summary {
     font-size: 1.15rem;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    align-items: center;
+  }
+
+  .button {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--accent);
+    border-radius: 0.5rem;
+    text-decoration: none;
+  }
+
+  .button:hover {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
   }
 
   .notice {
@@ -111,22 +277,66 @@ const after = neighbour(next);
     background: var(--surface);
   }
 
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.25rem;
-  }
-
-  .relations {
+  .cards {
     display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
     gap: 0.75rem;
     padding: 0;
     list-style: none;
   }
 
-  .relations p {
-    margin: 0.15rem 0 0;
-    color: var(--muted);
+  .card {
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    background: var(--surface);
+  }
+
+  .card p {
+    margin: 0;
+  }
+
+  .relation {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+
+  .edge {
+    display: inline-block;
+    width: 1.5rem;
+  }
+
+  .card-title {
+    display: inline-block;
+    margin: 0.2rem 0 0.1rem;
+    font-weight: 600;
+  }
+
+  .card-meta {
+    font-size: 0.85rem;
+  }
+
+  .card-meta + p {
+    margin-top: 0.4rem;
+  }
+
+  .peers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .peers a {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    text-decoration: none;
   }
 
   .pager {

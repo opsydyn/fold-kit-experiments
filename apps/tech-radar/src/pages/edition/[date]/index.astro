@@ -20,7 +20,7 @@ const changes = changesAt(radar, edition.index);
 const radarLink = edition.isCurrent ? '/' : `/?edition=${edition.date}`;
 ---
 
-<PageLayout title={`${edition.label} · ${edition.date}`}>
+<PageLayout title={`${edition.label} · ${edition.date}`} edition={edition.date}>
   <h1>{edition.label}</h1>
   <p class="muted">
     {edition.date}{edition.isCurrent && ' · the current edition'} ·{' '}

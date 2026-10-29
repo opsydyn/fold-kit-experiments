@@ -67,11 +67,12 @@ TypeScript 7 and oxlint). In private workspaces write `"catalog:"` (or
 `foldkit-viz`, and the four effect-three packages) keep literal versions equal to the
 catalog's (`npm publish` cannot resolve `catalog:`). `bun run check` enforces both via `tools/check-catalog.ts`.
 
-`infra/*` workspaces are separate programs (Alchemy CLIs) and take their versions from
-`workspaces.catalogs.infra` (`"catalog:infra"`), including their own Effect: Alchemy needs
-`effect ^4.0.5` and FoldKit pins exactly `4.0.0`. Bun's isolated install keeps the two apart;
-`packages/effect-three/scripts/check-single-effect.ts` checks that nothing the apps load
-reaches a second Effect.
+`infra/*` workspaces are separate programs (Alchemy CLIs). They share the apps' Effect from
+the default catalog (`"catalog:"`): Alchemy accepts `effect ^4.0.5` and FoldKit 0.170
+accepts `~4.1.0`. Alchemy itself and its Effect platform packages come from
+`workspaces.catalogs.infra` (`"catalog:infra"`).
+`packages/effect-three/scripts/check-single-effect.ts` checks that the apps, packages and
+infra load one Effect.
 
 The tech radar (`apps/tech-radar`) works from a copy of the effect-three sample radar, and
 leaves the original unchanged. Its content is markdown in
@@ -98,7 +99,7 @@ Config files:
 
 ## Foldkit import style guide
 
-Foldkit 0.169.0 exports submodule functions as **named exports**, not namespace objects.
+Foldkit 0.170.0 exports submodule functions as **named exports**, not namespace objects.
 
 ### foldkit/update
 
@@ -259,9 +260,10 @@ From the Foldkit style guide (adapted):
 
 ## Foldkit version
 
-Currently on `foldkit@0.169.0` with stable Effect `4.0.0` and
-`@foldkit/vite-plugin` `0.28.x`. 0.168 and 0.169 needed no code changes from 0.167; see
-`docs/releases/foldkit-0.169.md`. FoldKit still peers on exactly `effect@4.0.0`.
+Currently on `foldkit@0.170.0` with stable Effect `4.1.0` and
+`@foldkit/vite-plugin` `0.29.x`. FoldKit 0.170 peers on Effect `~4.1.0` (4.1 patches only);
+see `docs/releases/foldkit-0.170.md`. It needed no source changes from 0.169. Effect minor
+releases can change APIs: review each one, as FoldKit does.
 
 FoldKit 0.167+ and stable Effect guidance:
 

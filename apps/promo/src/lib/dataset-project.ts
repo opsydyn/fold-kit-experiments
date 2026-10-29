@@ -43,13 +43,13 @@ export function datasetProject(
         },
         dependencies: {
           '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
-          foldkit: '0.169.0',
-          effect: '4.0.0',
+          foldkit: '0.170.0',
+          effect: '4.1.0',
           '@wooorm/starry-night': '3.11.0',
           'vscode-oniguruma': '2.0.1',
           '@types/hast': '3.0.5',
         },
-        devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.28.0' },
+        devDependencies: { vite: '8.3.1', typescript: '6.0.3', '@foldkit/vite-plugin': '0.29.0' },
         stackblitz: { installDependencies: true, startCommand: 'npm start' },
       },
       null,
@@ -139,7 +139,7 @@ These are the same maintained FoldKit sources as the promo example:
 
 The source panel reads these local files through Vite. Edit a file and the viewer
 and application rebuild together. Replace the static fixtures or adapt the fetch
-Command to your API. Query is experimental in FoldKit 0.169.0.
+Command to your API. Query is experimental in FoldKit 0.170.0.
 
 The compiled Viz modules and their declarations are included under \`vendor/\`,
 so this project does not require the monorepo or an unpublished Viz release.

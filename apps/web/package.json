@@ -46,7 +46,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "catalog:",
-    "@foldkit/devtools": "0.169.0",
+    "@foldkit/devtools": "0.170.0",
     "@foldkit/ui": "catalog:",
     "@happy-dom/global-registrator": "^20.10.6",
     "@playwright/test": "1.62.1",

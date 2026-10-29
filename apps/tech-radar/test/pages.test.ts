@@ -11,6 +11,8 @@ import {
   entryHref,
   entryPage,
   radarHref,
+  statusAt,
+  statusText,
 } from '../src/radar/pages';
 import { demoRadar } from '../src/test/fixture';
 
@@ -81,6 +83,45 @@ describe("an entry's page", () => {
   });
 });
 
+describe("an entry's status", () => {
+  const text = (id: string, index: number) => {
+    const { status, ring, edition } = page(id, index);
+    return statusText(status, ring, edition);
+  };
+
+  test('says when it moved in or out, and from which ring', () => {
+    expect(page('foldkit', 3).status).toEqual({ _tag: 'Moved', from: 'trial', direction: 'in' });
+    expect(text('foldkit', 3)).toBe('Moved in from Trial in the fourth edition');
+  });
+
+  test('says since when it has held its ring', () => {
+    expect(text('foldkit', 2)).toBe('Trial since the second edition');
+    expect(text('llama-cpp', 3)).toBe('Assess since the first edition');
+  });
+
+  test('says when it is new, and when it came back after an absence', () => {
+    expect(text('codex', 2)).toBe('New in the third edition');
+    const history = page('foldkit', 3).history.map((standing, index) =>
+      index === 2 ? { ...standing, ring: Option.none() } : standing,
+    );
+    expect(statusAt(history, 3)).toEqual(Option.some({ _tag: 'Returned' }));
+    expect(statusAt(history, 2)).toEqual(Option.none());
+  });
+});
+
+describe("an entry's company", () => {
+  test('lists the others in its category and ring at that edition', () => {
+    expect(page('foldkit', 3).peers.map(({ id }) => id)).toEqual(['effect']);
+    expect(page('foldkit', 3).peers.map(({ id }) => id)).not.toContain('foldkit');
+  });
+
+  test("gives each relation the other entry's category and its ring then", () => {
+    const elm = page('foldkit', 3).relations.find(({ other }) => other === 'elm');
+    expect(elm?.category).toEqual(Option.some('languages-frameworks'));
+    expect(elm?.ring).toEqual(Option.some('trial'));
+  });
+});
+
 describe('addresses', () => {
   test('an entry on an earlier edition has that edition’s page; otherwise its current one', () => {
     expect(entryHref(demoRadar, 'foldkit', 1)).toBe('/edition/2026-02-14/blip/foldkit/');
@@ -110,6 +151,14 @@ describe('the movement chart', () => {
     expect(codex.marks.at(-1)?.current).toBe(true);
     // One unbroken run: Codex was absent from the first two editions only.
     expect(Option.getOrElse(codex.path, () => '').match(/M/g)).toHaveLength(1);
+  });
+
+  test('marks the edition the page shows, the current one by default', () => {
+    const history = page('foldkit', 1).history;
+    const current = (chart: ReturnType<typeof movementChart>) =>
+      chart.marks.flatMap(({ label, current: marked }) => (marked ? [label] : []));
+    expect(current(movementChart(history))).toEqual(['Fourth edition (2026-10-14): Adopt']);
+    expect(current(movementChart(history, 1))).toEqual(['Second edition (2026-02-14): Trial']);
   });
 
   test('breaks the line in two around an absence in the middle', () => {

@@ -1,0 +1,127 @@
+---
+/*
+ * Where an entry sits on the radar: its category's quarter, the four ring bands with its
+ * own lit, and every entry in the category as a dot that links to its page.
+ */
+import { locatorFor, locatorSize } from '../radar/locator';
+import { radar } from '../radar/radar';
+import { categoryLabels, type RadarEntry, ringLabels } from '../radar/three/data';
+
+interface Props {
+  entry: RadarEntry;
+  index: number;
+  editionLabel: string;
+}
+const { entry, index, editionLabel } = Astro.props;
+const locator = locatorFor(radar, index, entry);
+const category = categoryLabels[entry.category];
+const captionId = `locator-${entry.id}`;
+---
+
+<figure class="locator" style={`--series: var(--category-${entry.category})`}>
+  <svg
+    viewBox={`0 0 ${locatorSize.width} ${locatorSize.height}`}
+    role="group"
+    aria-labelledby={captionId}
+  >
+    <g transform={`translate(${locator.centre.x} ${locator.centre.y})`}>
+      {
+        locator.bands.map((band) => (
+          <g>
+            <path class:list={['band', { current: band.current }]} d={band.path} />
+            <text
+              class:list={['ring', { current: band.current }]}
+              x={band.labelX}
+              y={locator.labelY}
+              text-anchor="middle"
+            >
+              {band.label}
+            </text>
+          </g>
+        ))
+      }
+      {
+        locator.blips.map((blip) => (
+          <a href={blip.href} aria-label={`${blip.name}, ${ringLabels[blip.ring]}`}>
+            <title>
+              {blip.name} · {ringLabels[blip.ring]}
+            </title>
+            <circle class="hit" cx={blip.x} cy={blip.y} r="11" />
+            <circle
+              class:list={['blip', { current: blip.current }]}
+              cx={blip.x}
+              cy={blip.y}
+              r={blip.current ? 7 : 4.5}
+            />
+          </a>
+        ))
+      }
+    </g>
+  </svg>
+  <figcaption id={captionId} class="muted">
+    {entry.name} among {category}, {editionLabel.toLowerCase()}
+  </figcaption>
+</figure>
+
+<style>
+  .locator {
+    margin: 0;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    max-width: 17.5rem;
+    height: auto;
+  }
+
+  .band {
+    fill: var(--surface);
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+
+  .band.current {
+    fill: color-mix(in srgb, var(--series) 18%, var(--surface));
+    stroke: color-mix(in srgb, var(--series) 55%, var(--border));
+  }
+
+  .ring {
+    fill: var(--muted);
+    font-size: 11px;
+  }
+
+  .ring.current {
+    fill: var(--text);
+    font-weight: 600;
+  }
+
+  .hit {
+    fill: transparent;
+  }
+
+  .blip {
+    fill: var(--series);
+    stroke: var(--page);
+    stroke-width: 2;
+  }
+
+  .blip.current {
+    stroke: var(--text);
+  }
+
+  a:hover .blip,
+  a:focus-visible .blip {
+    stroke: var(--accent);
+  }
+
+  a:focus-visible .hit {
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+
+  figcaption {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+  }
+</style>

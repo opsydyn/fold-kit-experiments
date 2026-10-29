@@ -22,6 +22,9 @@ const about = Schema.decodeUnknownSync(RadarFile)((await getEntry('radar', 'rada
 /** The radar's name, from `radar.md`. */
 export const radarTitle = about.title;
 
+/** What each ring means, from `radar.md`. */
+export const ringMeanings = about.rings;
+
 const currentLabel =
   editionFiles
     .map(({ data }) => Schema.decodeUnknownSync(EditionFile)(data))

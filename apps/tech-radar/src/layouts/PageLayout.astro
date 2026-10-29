@@ -2,14 +2,19 @@
 /*
  * A page that scrolls: the full pages. Each works without JavaScript.
  */
-import { categoryIds, categoryLabels } from '../radar/three/data';
+import { pageThemeCss } from '../radar/pageTheme';
 import { editions, radarTitle } from '../radar/radar';
+import { type Category, categoryIds, categoryLabels } from '../radar/three/data';
 
 interface Props {
   title: string;
   description?: string;
+  /** The category the page belongs to, marked as current in the site's navigation. */
+  section?: Category;
+  /** The edition the page shows, marked as current in the footer. */
+  edition?: string;
 }
-const { title, description } = Astro.props;
+const { title, description, section, edition } = Astro.props;
 ---
 
 <!doctype html>
@@ -21,13 +26,25 @@ const { title, description } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     {description && <meta name="description" content={description} />}
     <title>{title}</title>
+    <style is:inline set:html={pageThemeCss} />
   </head>
   <body>
     <header class="site-header">
       <a class="site-name" href="/">{radarTitle}</a>
       <nav aria-label="Site">
         <a href="/">Radar</a>
-        {categoryIds.map((id) => <a href={`/category/${id}/`}>{categoryLabels[id]}</a>)}
+        {
+          categoryIds.map((id) => (
+            <a
+              href={`/category/${id}/`}
+              aria-current={id === section ? 'page' : undefined}
+              style={`--series: var(--category-${id})`}
+            >
+              <span class="nav-swatch" aria-hidden="true" />
+              {categoryLabels[id]}
+            </a>
+          ))
+        }
       </nav>
     </header>
     <main>
@@ -36,23 +53,19 @@ const { title, description } = Astro.props;
     <footer class="site-footer">
       <nav aria-label="Editions">
         <span>Editions:</span>
-        {editions.map((edition) => <a href={`/edition/${edition.date}/`}>{edition.label}</a>)}
+        {
+          editions.map(({ date, label }) => (
+            <a href={`/edition/${date}/`} aria-current={date === edition ? 'page' : undefined}>
+              {label}
+            </a>
+          ))
+        }
       </nav>
     </footer>
   </body>
 </html>
 
 <style is:global>
-  :root {
-    color-scheme: dark;
-    --page: #0a0a14;
-    --surface: #12121f;
-    --border: #2a2a3d;
-    --text: #e8e8f0;
-    --muted: #a3a3bd;
-    --accent: #8fb0ff;
-  }
-
   *,
   *::before,
   *::after {
@@ -110,6 +123,27 @@ const { title, description } = Astro.props;
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 1rem;
+  }
+
+  .site-header nav a {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+  }
+
+  .nav-swatch {
+    display: inline-block;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: var(--series);
+  }
+
+  .site-header nav a[aria-current='page'],
+  .site-footer nav a[aria-current='page'] {
+    color: var(--text);
+    font-weight: 600;
+    text-decoration-thickness: 2px;
   }
 
   .site-name {

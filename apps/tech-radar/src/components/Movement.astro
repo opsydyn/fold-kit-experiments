@@ -12,9 +12,19 @@ import { ringLabels } from '../radar/three/data';
 interface Props {
   name: string;
   history: ReadonlyArray<Standing>;
+  /** The edition the page shows, marked on the chart. */
+  shown: number;
 }
-const { name, history } = Astro.props;
-const chart = movementChart(history);
+const { name, history, shown } = Astro.props;
+const chart = movementChart(history, shown);
+// An entry that never changed ring has nothing to chart: a sentence says it better.
+const held = [...new Set(history.flatMap(({ ring }) => Option.toArray(ring)))];
+const firstOn = history.find(({ ring }) => Option.isSome(ring))?.edition;
+const steady = held.length === 1 && held[0] !== undefined && firstOn !== undefined
+  ? Option.some(
+      `${name} has been in ${ringLabels[held[0]]} in every edition since the ${firstOn.label.toLowerCase()}.`,
+    )
+  : Option.none();
 const summary = history
   .map(({ edition, ring }) =>
     Option.match(ring, {
@@ -26,7 +36,8 @@ const summary = history
 ---
 
 <figure class="movement">
-  <svg
+  {Option.isSome(steady) && <p class="steady">{steady.value}</p>}
+  {Option.isNone(steady) && <svg
     viewBox={`0 0 ${chartSize.width} ${chartSize.height}`}
     role="img"
     aria-label={`${name}'s ring in each edition. ${summary}.`}
@@ -56,7 +67,7 @@ const summary = history
         </circle>
       ))
     }
-  </svg>
+  </svg>}
   <div class="table-scroll">
     <table>
       <caption class="muted">{name} by edition</caption>
@@ -108,19 +119,23 @@ const summary = history
 
   .step {
     fill: none;
-    stroke: var(--accent);
+    stroke: var(--series, var(--accent));
     stroke-width: 2;
     stroke-linejoin: round;
   }
 
   .mark {
-    fill: var(--accent);
+    fill: var(--series, var(--accent));
     stroke: var(--page);
     stroke-width: 2;
   }
 
   .mark.current {
-    fill: var(--text);
+    stroke: var(--text);
+  }
+
+  .steady {
+    margin: 0;
   }
 
   caption {

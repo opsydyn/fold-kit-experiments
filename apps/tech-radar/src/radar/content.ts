@@ -31,8 +31,16 @@ import {
 /** A markdown file as a content collection hands it over: its id and its frontmatter. */
 export type ContentFile = { readonly id: string; readonly data: unknown };
 
-/** `radar.md`: the radar's name; its body is the introduction. */
-export const RadarFile = Schema.Struct({ title: Schema.String });
+/** `radar.md`: the radar's name and what each ring means; its body is the introduction. */
+export const RadarFile = Schema.Struct({
+  title: Schema.String,
+  rings: Schema.Struct({
+    adopt: Schema.String,
+    trial: Schema.String,
+    assess: Schema.String,
+    caution: Schema.String,
+  }),
+});
 export type RadarFile = typeof RadarFile.Type;
 
 export const EditionFile = Schema.Struct({

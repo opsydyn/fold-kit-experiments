@@ -16,7 +16,7 @@ const rings =
 const edition = editions[current];
 ---
 
-<PageLayout title={categoryLabels[category]}>
+<PageLayout title={categoryLabels[category]} section={category}>
   <h1>{categoryLabels[category]}</h1>
   <p class="muted">
     {edition?.label} · {edition?.date} ·{' '}

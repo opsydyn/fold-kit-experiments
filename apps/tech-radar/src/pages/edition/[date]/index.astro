@@ -1,11 +1,18 @@
 ---
+/*
+ * An edition: its notes, how the rings moved since the edition before, what changed in
+ * each category, and every entry on the radar then, a category to a column. Uses the
+ * screen's width on a big viewport.
+ */
 import { getEntry, render } from 'astro:content';
+import { Option } from 'effect';
 
 import Flows from '../../../components/Flows.astro';
 import PageLayout from '../../../layouts/PageLayout.astro';
-import { byCategoryAndRing, changesAt, entryHref } from '../../../radar/pages';
+import { categoryPage } from '../../../radar/category';
+import { changesAt } from '../../../radar/pages';
 import { editions, radar } from '../../../radar/radar';
-import { categoryLabels, ringLabels } from '../../../radar/three/data';
+import { categoryIds, categoryLabels, ringLabels } from '../../../radar/three/data';
 
 // Built ahead and served as a static asset; only `/` renders per request.
 export const prerender = true;
@@ -15,6 +22,7 @@ export const getStaticPaths = () =>
 
 const { edition } = Astro.props;
 const previous = editions[edition.index - 1];
+const next = editions[edition.index + 1];
 const notes = await getEntry('editions', edition.date);
 const { Content } = notes === undefined ? { Content: undefined } : await render(notes);
 const hasNotes = (notes?.body ?? '').trim() !== '';
@@ -24,78 +32,343 @@ const description =
   changes.length === 0
     ? `The radar's ${edition.label.toLowerCase()}, ${edition.date}.`
     : `What changed in the radar's ${edition.label.toLowerCase()}, ${edition.date}: ${changes.length} ${changes.length === 1 ? 'change' : 'changes'}.`;
+const categories = categoryIds.flatMap((category) =>
+  Option.toArray(categoryPage(radar, editions, category, edition.index)),
+);
+const count = categories.reduce((total, page) => total + page.count, 0);
+const changed = categories.filter((page) => page.changes.length > 0);
 ---
 
 <PageLayout
   title={`${edition.label} · ${edition.date}`}
   description={description}
   edition={edition.date}
+  wide
 >
-  <h1>{edition.label}</h1>
-  <p class="muted">
-    {edition.date}{edition.isCurrent && ' · the current edition'} ·{' '}
-    <a href={radarLink}>Open it on the 3D radar</a>
-  </p>
-  {hasNotes && Content !== undefined && <Content />}
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="/">Radar</a></li>
+      <li>Editions</li>
+      <li><span aria-current="page">{edition.label}</span></li>
+    </ol>
+  </nav>
 
-  {
-    previous !== undefined && (
-      <Flows index={edition.index} previousLabel={previous.label} label={edition.label} />
-    )
-  }
+  <header class="hero">
+    <h1>{edition.label}</h1>
+    <p class="muted">
+      {edition.date}{edition.isCurrent && ' · the current edition'} · {count} entries on the radar
+    </p>
+    <p class="actions">
+      <a class="button" href={radarLink}>Open it on the 3D radar</a>
+      {
+        previous !== undefined && (
+          <a href={`/edition/${previous.date}/`}>← {previous.label}</a>
+        )
+      }
+      {next !== undefined && <a href={`/edition/${next.date}/`}>{next.label} →</a>}
+    </p>
+    {hasNotes && Content !== undefined && <div class="notes"><Content /></div>}
+  </header>
 
-  {
-    changes.length > 0 && (
-      <>
-        <h2>What changed</h2>
-        <ul>
-          {changes.map((change) => (
-            <li>{change}</li>
-          ))}
-        </ul>
-      </>
-    )
-  }
+  <div class="overview">
+    {
+      previous !== undefined && (
+        <div class="flows">
+          <Flows index={edition.index} previousLabel={previous.label} label={edition.label} />
+        </div>
+      )
+    }
 
-  {
-    byCategoryAndRing(radar, edition.index).map(({ category, rings }) => (
-      <section aria-labelledby={`category-${category}`}>
-        <h2 id={`category-${category}`}>{categoryLabels[category]}</h2>
-        <dl class="rings">
-          {rings
-            .filter(({ entries }) => entries.length > 0)
-            .map(({ ring, entries }) => (
-              <>
-                <dt>{ringLabels[ring]}</dt>
-                <dd>
-                  {entries.map((entry, index) => (
-                    <>
-                      {index > 0 && ', '}
-                      <a href={entryHref(radar, entry.id, edition.index)}>{entry.name}</a>
-                    </>
-                  ))}
-                </dd>
-              </>
-            ))}
-        </dl>
-      </section>
-    ))
-  }
+    <section class="changes" aria-labelledby="changes">
+      <h2 id="changes">What changed</h2>
+      {
+        previous === undefined ? (
+          <p class="muted">
+            The radar's first edition: {count} entries across {categoryIds.length} categories.
+          </p>
+        ) : changed.length === 0 ? (
+          <p class="muted">Nothing moved since the {previous.label.toLowerCase()}.</p>
+        ) : (
+          changed.map((page) => (
+            <section
+              class="change-group"
+              aria-labelledby={`changes-${page.category}`}
+              style={`--series: var(--category-${page.category})`}
+            >
+              <h3 id={`changes-${page.category}`}>
+                <span class="swatch" aria-hidden="true" />
+                {categoryLabels[page.category]}
+              </h3>
+              <ul>
+                {page.changes.map((change) => (
+                  <li>
+                    <span class="glyph" aria-hidden="true">
+                      {change.glyph}
+                    </span>
+                    <a href={change.href}>{change.name}</a>
+                    <span class="muted">{change.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        )
+      }
+    </section>
+  </div>
+
+  <section aria-labelledby="entries">
+    <h2 id="entries">Every entry in the {edition.label.toLowerCase()}</h2>
+    {
+      edition.index > 0 && (
+        <p class="muted key-line">✦ new · ▲ moved in · ▼ moved out · ↺ back on the radar</p>
+      )
+    }
+    <div class="categories">
+      {
+        categories.map((page) => (
+          <section
+            class="category"
+            aria-labelledby={`category-${page.category}`}
+            style={`--series: var(--category-${page.category})`}
+          >
+            <h3 id={`category-${page.category}`}>
+              <a href={`/category/${page.category}/`}>
+                <span class="swatch" aria-hidden="true" />
+                {categoryLabels[page.category]}
+              </a>
+              <span class="count">{page.count}</span>
+            </h3>
+            <dl>
+              {page.rings
+                .filter(({ cards }) => cards.length > 0)
+                .map(({ ring, cards }) => (
+                  <div class="ring">
+                    <dt>{ringLabels[ring]}</dt>
+                    <dd>
+                      <ul class="entries">
+                        {cards.map((card) => (
+                          <li>
+                            <a href={card.href}>
+                              {card.entry.name}
+                              {card.changed && (
+                                <span class="mark" title={card.statusLine}>
+                                  {' '}
+                                  {card.glyph}
+                                  <span class="visually-hidden">, {card.statusLine}</span>
+                                </span>
+                              )}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </section>
+        ))
+      }
+    </div>
+  </section>
 </PageLayout>
 
 <style>
-  .rings {
+  .breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0 0 1rem;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .breadcrumb li + li::before {
+    content: '›';
+    margin-right: 0.25rem;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    align-items: center;
+  }
+
+  .button {
+    padding: 0.45rem 0.9rem;
+    border: 1px solid var(--accent);
+    text-decoration: none;
+  }
+
+  .button:hover {
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+
+  .notes {
+    max-width: 68ch;
+  }
+
+  /* The sankey and the list of changes side by side when there's room for both. */
+  .overview {
     display: grid;
-    grid-template-columns: max-content 1fr;
-    gap: 0.4rem 1rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 3rem;
+    align-items: start;
+  }
+
+  @media (min-width: 64rem) {
+    .overview {
+      grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
+    }
+
+    .overview > :only-child {
+      grid-column: 1 / -1;
+      max-width: 52rem;
+    }
+  }
+
+  .flows {
+    --flows-width: 52rem;
+  }
+
+  .change-group h3,
+  .category h3 {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 1rem 0 0.4rem;
+    font-size: 1rem;
+  }
+
+  .change-group:first-of-type h3 {
+    margin-top: 0;
+  }
+
+  .change-group ul {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .change-group li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.6rem;
+    align-items: baseline;
+  }
+
+  .glyph {
+    width: 1rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .swatch {
+    flex: none;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    background: var(--series);
+  }
+
+  .key-line {
+    margin: -0.25rem 0 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* A category to a column: four on a wide screen, two on a mid one. */
+  .categories {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 40rem) {
+    .categories {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 72rem) {
+    .categories {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .category {
+    padding-top: 0.6rem;
+    border-top: 4px solid var(--series);
+  }
+
+  .category h3 {
+    justify-content: space-between;
+    margin-top: 0;
+  }
+
+  .category h3 a {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .count {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  dl {
+    display: grid;
+    gap: 0.75rem;
     margin: 0;
   }
 
   dt {
+    margin-bottom: 0.3rem;
     color: var(--muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 
   dd {
     margin: 0;
+  }
+
+  .entries {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .entries a {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    text-decoration: none;
+  }
+
+  .entries a:hover {
+    border-color: var(--series);
+  }
+
+  .mark {
+    color: var(--muted);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 </style>

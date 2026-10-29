@@ -4,10 +4,17 @@
  * among its category, its write-up, how it moved, what it relates to, and its peers.
  */
 import { getEntry, render } from 'astro:content';
-import { Match, Option } from 'effect';
+import { Option } from 'effect';
 
 import PageLayout from '../layouts/PageLayout.astro';
-import { type EntryPage, entryHref, radarHref, type Status, statusText } from '../radar/pages';
+import {
+  type EntryPage,
+  entryHref,
+  radarHref,
+  type Status,
+  statusGlyph,
+  statusText,
+} from '../radar/pages';
 import { radar, ringMeanings } from '../radar/radar';
 import { categoryLabels, ringLabels } from '../radar/three/data';
 import { relationshipLines } from '../radar/three/scene';
@@ -29,14 +36,7 @@ const after = neighbour(next);
 const category = categoryLabels[entry.category];
 const categoryHref = `/category/${entry.category}/`;
 const sourceHost = new URL(entry.sourceUrl).hostname.replace(/^www\./, '');
-/** A mark for the status, beside its words: never the only way to read it. */
-const glyph = Match.value(status).pipe(
-  Match.tag('New', () => '✦'),
-  Match.tag('Returned', () => '↺'),
-  Match.tag('Moved', ({ direction }) => (direction === 'in' ? '▲' : '▼')),
-  Match.tag('Steady', () => '●'),
-  Match.exhaustive,
-);
+const glyph = statusGlyph(status);
 const statusKind = (current: Status) => current._tag.toLowerCase();
 ---
 

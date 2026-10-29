@@ -8,6 +8,7 @@ import { Result, Schema } from 'effect';
 
 import { assembleRadar, EditionFile, RadarFile } from './content';
 import { editionsIn } from './pages';
+import type { Category } from './three/data';
 import type { Pages } from './three/model';
 
 const editionFiles = await getCollection('editions');
@@ -28,6 +29,9 @@ export const radarIntro = (radarFile?.body ?? '').trim();
 
 /** What each ring means, from `radar.md`. */
 export const ringMeanings = about.rings;
+
+/** What each category holds, from `radar.md`, where it says. */
+export const categoryIntros: Partial<Record<Category, string>> = about.categories ?? {};
 
 const currentLabel =
   editionFiles

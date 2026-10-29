@@ -179,6 +179,24 @@ export const statusAt = (history: ReadonlyArray<Standing>, index: number): Optio
     }),
   );
 
+/** Where an entry stood in every edition, oldest first: its ring, or none when absent. */
+export const historyOf = (
+  dataset: RadarDataset,
+  editions: ReadonlyArray<EditionInfo>,
+  entry: RadarEntry,
+): ReadonlyArray<Standing> =>
+  editions.map((edition) => ({ edition, ring: ringAt(dataset, entry, edition.index) }));
+
+/** A mark for a status, shown beside its words: never the only way to read it. */
+export const statusGlyph = (status: Status): string =>
+  Match.value(status).pipe(
+    Match.tag('New', () => '✦'),
+    Match.tag('Returned', () => '↺'),
+    Match.tag('Moved', ({ direction }) => (direction === 'in' ? '▲' : '▼')),
+    Match.tag('Steady', () => '●'),
+    Match.exhaustive,
+  );
+
 /** A status in words, as of the edition shown: "Moved in from Trial in the fourth edition". */
 export const statusText = (status: Status, ring: Ring, edition: EditionInfo): string => {
   const at = `in the ${edition.label.toLowerCase()}`;
@@ -238,10 +256,7 @@ export const entryPage = (
     const at = neighbours.findIndex((candidate) => candidate.id === id);
     const find = (other: string) =>
       Option.fromNullishOr(dataset.entries.find((candidate) => candidate.id === other));
-    const history = editions.map((standing) => ({
-      edition: standing,
-      ring: ringAt(dataset, entry, standing.index),
-    }));
+    const history = historyOf(dataset, editions, entry);
     const status = Option.getOrElse(
       statusAt(history, index),
       (): Status => ({ _tag: 'Steady', since: edition }),

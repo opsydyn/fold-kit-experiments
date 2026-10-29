@@ -9,9 +9,17 @@
  * @module
  */
 import { arc } from '@opsydyn/foldkit-viz/shape/arc';
+import { Option } from 'effect';
 
 import { entriesAt, entryHref } from './pages';
-import { type RadarDataset, type RadarEntry, type Ring, ringIds, ringLabels } from './three/data';
+import {
+  type Category,
+  type RadarDataset,
+  type RadarEntry,
+  type Ring,
+  ringIds,
+  ringLabels,
+} from './three/data';
 import { shellFractions } from './three/layout';
 
 export const locatorSize = { width: 280, height: 290 } as const;
@@ -33,6 +41,8 @@ export type LocatorBand = Readonly<{
 
 export type LocatorBlip = Readonly<{
   id: string;
+  /** Its place in the category, counting from 1 in ring order: the key a category page lists. */
+  number: number;
   name: string;
   ring: Ring;
   href: string;
@@ -73,12 +83,22 @@ const spread = (ring: Ring, count: number): ReadonlyArray<readonly [number, numb
       ];
 };
 
-/** The locator for `entry` among its category's entries at the edition `index`. */
-export const locatorFor = (dataset: RadarDataset, index: number, entry: RadarEntry): Locator => {
+/**
+ * A category's quarter at the edition `index`, every entry in it a dot, numbered in ring
+ * order. The `lit` entry's dot and ring band are marked, if there is one.
+ */
+export const categoryLocator = (
+  dataset: RadarDataset,
+  index: number,
+  category: Category,
+  lit: Option.Option<string>,
+): Locator => {
   const inCategory = entriesAt(dataset, index).filter(
-    (placed) => placed.entry.category === entry.category,
+    (placed) => placed.entry.category === category,
   );
-  const current = inCategory.find((placed) => placed.entry.id === entry.id)?.ring;
+  const isLit = (id: string) => Option.contains(lit, id);
+  const current = inCategory.find((placed) => isLit(placed.entry.id))?.ring;
+  const ordered = ringIds.flatMap((ring) => inCategory.filter((placed) => placed.ring === ring));
   return {
     centre,
     labelY: 16,
@@ -93,20 +113,25 @@ export const locatorFor = (dataset: RadarDataset, index: number, entry: RadarEnt
       };
     }),
     blips: ringIds.flatMap((ring) => {
-      const placed = inCategory.filter((candidate) => candidate.ring === ring);
+      const placed = ordered.filter((candidate) => candidate.ring === ring);
       const points = spread(ring, placed.length);
       return placed.map(({ entry: other }, at) => {
         const [angle, distance] = points[at] ?? [0, 0];
         return {
           id: other.id,
+          number: ordered.findIndex((candidate) => candidate.entry.id === other.id) + 1,
           name: other.name,
           ring,
           href: entryHref(dataset, other.id, index),
           x: Math.sin(angle) * distance,
           y: -Math.cos(angle) * distance,
-          current: other.id === entry.id,
+          current: isLit(other.id),
         };
       });
     }),
   };
 };
+
+/** The locator for `entry` among its category's entries at the edition `index`. */
+export const locatorFor = (dataset: RadarDataset, index: number, entry: RadarEntry): Locator =>
+  categoryLocator(dataset, index, entry.category, Option.some(entry.id));

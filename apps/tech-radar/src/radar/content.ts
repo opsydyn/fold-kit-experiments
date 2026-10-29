@@ -31,7 +31,10 @@ import {
 /** A markdown file as a content collection hands it over: its id and its frontmatter. */
 export type ContentFile = { readonly id: string; readonly data: unknown };
 
-/** `radar.md`: the radar's name and what each ring means; its body is the introduction. */
+/**
+ * `radar.md`: the radar's name, what each ring means and, if given, what each category
+ * holds; its body is the introduction.
+ */
 export const RadarFile = Schema.Struct({
   title: Schema.String,
   rings: Schema.Struct({
@@ -40,6 +43,14 @@ export const RadarFile = Schema.Struct({
     assess: Schema.String,
     caution: Schema.String,
   }),
+  categories: Schema.optionalKey(
+    Schema.Struct({
+      techniques: Schema.optionalKey(Schema.String),
+      tools: Schema.optionalKey(Schema.String),
+      platforms: Schema.optionalKey(Schema.String),
+      'languages-frameworks': Schema.optionalKey(Schema.String),
+    }),
+  ),
 });
 export type RadarFile = typeof RadarFile.Type;
 

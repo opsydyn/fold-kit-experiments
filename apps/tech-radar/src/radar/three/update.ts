@@ -9,9 +9,11 @@ import {
   CopyLink,
   LoadThemeChoice,
   LoadTour,
+  LoadTypeface,
   ReplaceLink,
   SaveThemeChoice,
   SaveTour,
+  SaveTypeface,
 } from './command';
 import { decodeRadarDataset, ringIds, type Ring } from './data';
 import { idOfSaucer } from './easter';
@@ -379,7 +381,8 @@ const standAt = (model: Model, standpoint: Standpoint): Model =>
 
 /**
  * The radar as it opens, at the page's deep link if it has one, and a look for the theme
- * the reader picked last time, unless the link names a theme for this visit.
+ * the reader picked last time, unless the link names a theme for this visit, and for the
+ * typeface they picked last, here or on a full page.
  */
 export const init = (props: RadarProps): AppReturn => {
   const link = decodeLink(props.link ?? {});
@@ -390,15 +393,16 @@ export const init = (props: RadarProps): AppReturn => {
         title: props.title ?? 'Tech radar',
         links: props.links ?? [],
         pages: Option.fromNullishOr(props.pages),
+        labelFonts: props.labelFonts ?? {},
       },
       decodeRadarDataset(props.dataset),
     ),
     link,
   );
-  const commands = Option.match(link.theme, {
-    onNone: () => [LoadThemeChoice()],
-    onSome: () => [],
-  });
+  const commands = [
+    ...Option.match(link.theme, { onNone: () => [LoadThemeChoice()], onSome: () => [] }),
+    LoadTypeface(),
+  ];
   return { model: withSearchText(model), commands };
 };
 
@@ -519,6 +523,12 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     SucceededLoadThemeChoice: ({ choice }) => ({ model: { ...model, themeChoice: choice } }),
     CompletedSaveThemeChoice: () => ({ model }),
+    ChoseTypeface: ({ typeface }) => ({
+      model: { ...model, typeface },
+      commands: [SaveTypeface({ typeface })],
+    }),
+    SucceededLoadTypeface: ({ typeface }) => ({ model: { ...model, typeface } }),
+    CompletedSaveTypeface: () => ({ model }),
     ChangedPointerInput: ({ input }) => ({
       model: { ...model, input, hovered: Option.none(), hoveredEgg: Option.none() },
     }),

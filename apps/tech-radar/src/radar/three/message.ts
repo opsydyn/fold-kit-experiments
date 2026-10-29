@@ -7,6 +7,7 @@ import { defineMessageUnion } from 'foldkit/message';
 import { Category, Ring } from './data';
 import { CategoryFilter, IconControl, PointerInput } from './model';
 import { ColorScheme, ContrastSetting, ThemeChoice } from './themes';
+import { Typeface } from './typefaces';
 
 export const Message = defineMessageUnion({
   HoveredBlip: { key: Schema.String },
@@ -39,6 +40,9 @@ export const Message = defineMessageUnion({
   ChoseTheme: { choice: ThemeChoice },
   SucceededLoadThemeChoice: { choice: ThemeChoice },
   CompletedSaveThemeChoice: {},
+  ChoseTypeface: { typeface: Typeface },
+  SucceededLoadTypeface: { typeface: Typeface },
+  CompletedSaveTypeface: {},
   CompletedReplaceLink: {},
   ClickedCopyLink: {},
   CompletedCopyLink: { outcome: Schema.Literals(['copied', 'refused']) },

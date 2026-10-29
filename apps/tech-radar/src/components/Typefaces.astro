@@ -1,0 +1,30 @@
+---
+/*
+ * The typefaces in a page's head: every family's @font-face (each downloads only when a
+ * page uses it), the default's files preloaded, the roles as custom properties, and the
+ * reader's saved choice applied before the first paint. Without JavaScript the page keeps
+ * the default.
+ */
+import { Font } from 'astro:assets';
+
+import { typefaceCss, typefaceStorage, Typeface } from '../radar/three/typefaces';
+
+---
+
+<Font cssVariable="--font-b612" preload={[{ weight: '400' }, { weight: '700' }]} />
+<Font cssVariable="--font-b612-mono" preload={[{ weight: '400' }]} />
+<Font cssVariable="--font-jost" />
+<Font cssVariable="--font-inter" />
+<Font cssVariable="--font-plex-mono" />
+<Font cssVariable="--font-michroma" />
+<Font cssVariable="--font-exo" />
+<Font cssVariable="--font-share-tech-mono" />
+<style is:inline set:html={typefaceCss}></style>
+<script is:inline define:vars={{ known: Typeface.literals, key: typefaceStorage.key }}>
+  try {
+    const saved = localStorage.getItem(key);
+    if (known.includes(saved)) document.documentElement.dataset.typeface = saved;
+  } catch {
+    // Storage refused: the page keeps the default.
+  }
+</script>

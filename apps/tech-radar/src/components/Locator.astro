@@ -89,7 +89,7 @@ const captionId = `locator-${entry.id}`;
 
   .ring {
     fill: var(--muted);
-    font-size: 11px;
+    font-size: calc(11px * var(--type-data-scale, 1));
   }
 
   .ring.current {

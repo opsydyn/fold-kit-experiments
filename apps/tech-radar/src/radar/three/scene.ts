@@ -138,7 +138,9 @@ const blipRadius = bodyRadius;
 /** The pinned blip grows by this much, so it reads as the one you chose. */
 const pinnedScale = 1.6;
 
-const font = (model: Model): string => `${model.assetBase}inter-latin-400-normal.woff`;
+/** The typeface's display face for the labels, or the radar's own Inter if none is given. */
+const font = (model: Model): string =>
+  model.labelFonts[model.typeface] ?? `${model.assetBase}inter-latin-400-normal.woff`;
 
 const isLit = (model: Model, id: string): boolean =>
   Option.contains(model.hovered, id) || Option.contains(model.selected, id);

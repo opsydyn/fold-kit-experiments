@@ -41,6 +41,7 @@ import { shellRadius } from './space';
 import { cssVariables, themeLabels, ThemeChoice } from './themes';
 import { changesIn } from './timeline';
 import { trailOf } from './trail';
+import { Typeface, typefaceFrom, typefaceLabels, typeVariables } from './typefaces';
 
 const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html =>
   h.button([h.Class('e3-button'), h.Type('button'), h.OnClick(message)], [label]);
@@ -152,6 +153,18 @@ const themePicker = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.OnChange((value) => Message.ChoseTheme({ choice: choiceOf(value) })),
     ],
     ThemeChoice.literals.map((choice) => h.option([h.Value(choice)], [choiceLabel(model, choice)])),
+  );
+
+/** The typeface picker, beside the theme picker. */
+const typefacePicker = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.select(
+    [
+      h.Class('e3-heading-select'),
+      h.AriaLabel('Typeface'),
+      h.Value(model.typeface),
+      h.OnChange((value) => Message.ChoseTypeface({ typeface: typefaceFrom(value) })),
+    ],
+    Typeface.literals.map((typeface) => h.option([h.Value(typeface)], [typefaceLabels[typeface]])),
   );
 
 /** What each icon button shows, is called and does. */
@@ -330,7 +343,7 @@ const viewControls = (model: Model, h: HtmlBuilder<Message>): Html =>
         ],
       ),
     ],
-    [themePicker(model, h)],
+    [typefacePicker(model, h), themePicker(model, h)],
   );
 
 /**
@@ -971,7 +984,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
     [
       h.Class('e3-sample e3-app'),
       h.DataAttribute('theme', themeOf(model)),
-      h.Style(cssVariables(themeOf(model))),
+      h.DataAttribute('typeface', model.typeface),
+      h.Style({ ...cssVariables(themeOf(model)), ...typeVariables(model.typeface) }),
     ],
     content(model, h),
   ),

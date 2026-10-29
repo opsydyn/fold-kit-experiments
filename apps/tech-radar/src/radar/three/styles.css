@@ -1235,3 +1235,43 @@
   color: var(--muted, #8a8aa3);
   font-size: 0.85rem;
 }
+
+/*
+ * Typography: the reader's typeface sets three roles (see typefaces.ts). The radar's root
+ * carries them for the app; the page's root carries them too, for what is portalled to
+ * <body> (tooltips, the search list). Names in the display face; readings (headings, rings,
+ * counts, dates, the readout) in the data face, numbers in columns; the rest in the text face.
+ */
+.e3-sample,
+.e3-tooltip,
+.e3-search-items {
+  font-family: var(--type-text, system-ui, sans-serif);
+}
+
+.e3-panel-title,
+.e3-details h3,
+.e3-tour-caption {
+  font-family: var(--type-display, system-ui, sans-serif);
+  font-weight: var(--type-display-weight, 700);
+  letter-spacing: var(--type-display-tracking, 0);
+  text-transform: var(--type-display-case, none);
+}
+
+.e3-panel-heading,
+.e3-heading-status,
+.e3-breadcrumb,
+.e3-readout,
+.e3-legend-body,
+.e3-timeline-changes,
+.e3-timeline-log,
+.e3-table,
+.e3-details-meta,
+.e3-ring-badge,
+.e3-details-source,
+.e3-details h4,
+.e3-relation-type,
+.e3-search-ring,
+.e3-tooltip {
+  font-family: var(--type-data, ui-monospace, monospace);
+  font-variant-numeric: tabular-nums slashed-zero;
+}

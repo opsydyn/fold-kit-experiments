@@ -45,6 +45,7 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
   description={entry.description}
   section={entry.category}
   edition={edition.date}
+  wide
 >
   <article style={`--series: var(--category-${entry.category})`}>
     <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -89,69 +90,77 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
       )
     }
 
-    {
-      hasBody && Content !== undefined && (
-        <section class="write-up" aria-label="Write-up">
-          <Content />
-        </section>
-      )
-    }
+    <div class="details">
+      <div class="primary">
+        {
+          hasBody && Content !== undefined && (
+            <section class="write-up" aria-label="Write-up">
+              <Content />
+            </section>
+          )
+        }
 
-    <h2>Movement</h2>
-    <Movement name={entry.name} history={history} shown={edition.index} />
-
-    {
-      relations.length > 0 && (
-        <section aria-labelledby="related">
-          <h2 id="related">Related</h2>
-          <ul class="cards">
-            {relations.map((relation) => (
-              <li class="card">
-                <p class="relation">
-                  <span
-                    class="edge"
-                    aria-hidden="true"
-                    style={`border-top: 3px ${relationshipLines[relation.type]} var(--relationship-${relation.type})`}
-                  />
-                  <span class="muted">{relation.label}</span>
-                </p>
-                <a class="card-title" href={relation.href}>
-                  {relation.name}
-                </a>
-                <p class="card-meta muted">
-                  {Option.match(relation.ring, {
-                    onNone: () => 'Not on the radar in this edition',
-                    onSome: (held) => ringLabels[held],
-                  })}
-                  {Option.match(relation.category, {
-                    onNone: () => '',
-                    onSome: (other) => ` · ${categoryLabels[other]}`,
-                  })}
-                </p>
-                <p>{relation.note}</p>
-              </li>
-            ))}
-          </ul>
+        <section aria-labelledby="movement">
+          <h2 id="movement">Movement</h2>
+          <Movement name={entry.name} history={history} shown={edition.index} />
         </section>
-      )
-    }
+      </div>
 
-    {
-      peers.length > 0 && (
-        <section aria-labelledby="peers">
-          <h2 id="peers">
-            Also in {ringLabels[ring]} · {category}
-          </h2>
-          <ul class="peers">
-            {peers.map((peer) => (
-              <li>
-                <a href={peer.href}>{peer.name}</a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )
-    }
+      <div class="secondary">
+        {
+          relations.length > 0 && (
+            <section aria-labelledby="related">
+              <h2 id="related">Related</h2>
+              <ul class="cards">
+                {relations.map((relation) => (
+                  <li class="card">
+                    <p class="relation">
+                      <span
+                        class="edge"
+                        aria-hidden="true"
+                        style={`border-top: 3px ${relationshipLines[relation.type]} var(--relationship-${relation.type})`}
+                      />
+                      <span class="muted">{relation.label}</span>
+                    </p>
+                    <a class="card-title" href={relation.href}>
+                      {relation.name}
+                    </a>
+                    <p class="card-meta muted">
+                      {Option.match(relation.ring, {
+                        onNone: () => 'Not on the radar in this edition',
+                        onSome: (held) => ringLabels[held],
+                      })}
+                      {Option.match(relation.category, {
+                        onNone: () => '',
+                        onSome: (other) => ` · ${categoryLabels[other]}`,
+                      })}
+                    </p>
+                    <p>{relation.note}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+
+        {
+          peers.length > 0 && (
+            <section aria-labelledby="peers">
+              <h2 id="peers">
+                Also in {ringLabels[ring]} · {category}
+              </h2>
+              <ul class="peers">
+                {peers.map((peer) => (
+                  <li>
+                    <a href={peer.href}>{peer.name}</a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        }
+      </div>
+    </div>
 
     <nav class="pager" aria-label={`More in ${category}`}>
       {
@@ -211,6 +220,32 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
   @media (min-width: 44rem) {
     .hero {
       grid-template-columns: 1fr 17.5rem;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .hero {
+      --locator-width: clamp(20rem, 26vw, 28rem);
+      grid-template-columns: minmax(0, 1fr) var(--locator-width);
+      gap: 1.5rem 3rem;
+    }
+  }
+
+  .summary,
+  .meaning,
+  .write-up {
+    max-width: 68ch;
+  }
+
+  .details {
+    display: grid;
+    gap: 0 3rem;
+  }
+
+  @media (min-width: 64rem) {
+    .details {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      align-items: start;
     }
   }
 

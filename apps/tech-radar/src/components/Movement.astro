@@ -36,69 +36,83 @@ const summary = history
 ---
 
 <figure class="movement">
-  {Option.isSome(steady) && <p class="steady">{steady.value}</p>}
-  {Option.isNone(steady) && <svg
-    viewBox={`0 0 ${chartSize.width} ${chartSize.height}`}
-    role="img"
-    aria-label={`${name}'s ring in each edition. ${summary}.`}
-  >
-    {
-      chart.rings.map(({ y, label }) => (
-        <g>
-          <line class="grid" x1={chart.plot.left} x2={chart.plot.right} y1={y} y2={y} />
-          <text class="axis" x={chart.plot.left - 10} y={y} text-anchor="end" dominant-baseline="middle">
+  <div class="layout">
+    {Option.isSome(steady) && <p class="steady">{steady.value}</p>}
+    {Option.isNone(steady) && <svg
+      viewBox={`0 0 ${chartSize.width} ${chartSize.height}`}
+      role="img"
+      aria-label={`${name}'s ring in each edition. ${summary}.`}
+    >
+      {
+        chart.rings.map(({ y, label }) => (
+          <g>
+            <line class="grid" x1={chart.plot.left} x2={chart.plot.right} y1={y} y2={y} />
+            <text class="axis" x={chart.plot.left - 10} y={y} text-anchor="end" dominant-baseline="middle">
+              {label}
+            </text>
+          </g>
+        ))
+      }
+      {
+        chart.editions.map(({ x, label }) => (
+          <text class="axis" x={x} y={chart.plot.bottom + 24} text-anchor="middle">
             {label}
           </text>
-        </g>
-      ))
-    }
-    {
-      chart.editions.map(({ x, label }) => (
-        <text class="axis" x={x} y={chart.plot.bottom + 24} text-anchor="middle">
-          {label}
-        </text>
-      ))
-    }
-    {Option.isSome(chart.path) && <path class="step" d={chart.path.value} />}
-    {
-      chart.marks.map(({ x, y, label, current }) => (
-        <circle class:list={['mark', { current }]} cx={x} cy={y} r={current ? 6 : 5}>
-          <title>{label}</title>
-        </circle>
-      ))
-    }
-  </svg>}
-  <div class="table-scroll">
-    <table>
-      <caption class="muted">{name} by edition</caption>
-      <thead>
-        <tr><th scope="col">Edition</th><th scope="col">Date</th><th scope="col">Ring</th></tr>
-      </thead>
-      <tbody>
-        {
-          history.map(({ edition, ring }) => (
-            <tr>
-              <td>{edition.label}</td>
-              <td>{edition.date}</td>
-              <td>
-                {Option.match(ring, {
-                  onNone: () => '—',
-                  onSome: (placed) => ringLabels[placed],
-                })}
-              </td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
+        ))
+      }
+      {Option.isSome(chart.path) && <path class="step" d={chart.path.value} />}
+      {
+        chart.marks.map(({ x, y, label, current }) => (
+          <circle class:list={['mark', { current }]} cx={x} cy={y} r={current ? 6 : 5}>
+            <title>{label}</title>
+          </circle>
+        ))
+      }
+    </svg>}
+    <div class="table-scroll">
+      <table>
+        <caption class="muted">{name} by edition</caption>
+        <thead>
+          <tr><th scope="col">Edition</th><th scope="col">Date</th><th scope="col">Ring</th></tr>
+        </thead>
+        <tbody>
+          {
+            history.map(({ edition, ring }) => (
+              <tr>
+                <td>{edition.label}</td>
+                <td>{edition.date}</td>
+                <td>
+                  {Option.match(ring, {
+                    onNone: () => '—',
+                    onSome: (placed) => ringLabels[placed],
+                  })}
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </figure>
 
 <style>
   .movement {
-    display: grid;
-    gap: 1rem;
     margin: 0;
+    container-type: inline-size;
+  }
+
+  .layout {
+    display: grid;
+    gap: 1rem 2rem;
+    align-items: start;
+  }
+
+  /* The chart and its table side by side when there's room for both. */
+  @container (min-width: 38rem) {
+    .layout {
+      grid-template-columns: minmax(0, 3fr) minmax(13rem, 2fr);
+    }
   }
 
   svg {

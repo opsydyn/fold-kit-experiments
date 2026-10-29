@@ -196,17 +196,95 @@
   outline-offset: 2px;
 }
 
-.e3-heading-action[aria-pressed] {
-  border: 1px solid var(--border, #2a2a40);
-  border-radius: 999px;
-  padding: 0.05rem 0.55rem;
-  text-decoration: none;
+/* The relationships switch: its label, then a small track whose thumb slides when on. */
+.e3-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted, #8a8aa3);
+  font-size: 0.75rem;
 }
 
-.e3-heading-action[aria-pressed='true'] {
+.e3-switch-label {
+  cursor: pointer;
+}
+
+.e3-switch-track {
+  position: relative;
+  width: 1.9rem;
+  height: 1.05rem;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: var(--surface, #12121f);
+  cursor: pointer;
+  padding: 0;
+  transition: background 120ms ease;
+}
+
+.e3-switch-thumb {
+  position: absolute;
+  top: 50%;
+  left: 0.12rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--muted, #8a8aa3);
+  transform: translateY(-50%);
+  transition: transform 120ms ease;
+}
+
+.e3-switch-track[data-checked] {
   border-color: var(--blue, #3d79fa);
-  background: color-mix(in srgb, var(--blue, #3d79fa) 16%, transparent);
-  color: var(--text, #e8e8f0);
+  background: color-mix(in srgb, var(--blue, #3d79fa) 45%, var(--surface, #12121f));
+}
+
+.e3-switch-track[data-checked] .e3-switch-thumb {
+  background: var(--text, #e8e8f0);
+  transform: translate(0.85rem, -50%);
+}
+
+.e3-switch-track:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .e3-switch-track,
+  .e3-switch-thumb {
+    transition: none;
+  }
+}
+
+/* Text for a screen reader only, as the switch's full name. */
+.e3-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * An icon button's tooltip. It is portalled to the page's body, outside the themed
+ * radar, so it takes one dark style that reads over every theme.
+ */
+.e3-tooltip-anchor {
+  display: grid;
+}
+
+.e3-tooltip {
+  z-index: 50;
+  border-radius: 4px;
+  background: #1d1c1a;
+  padding: 0.2rem 0.5rem;
+  color: #f6f3ea;
+  font:
+    0.75rem/1.4 system-ui,
+    sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
 }
 
 .e3-panel-heading {
@@ -729,9 +807,37 @@
   font-size: 0.875rem;
 }
 
-.e3-table summary {
+/* The entries table's toggle: a full-width row that says how many entries show. */
+.e3-table-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  border: 0;
+  background: none;
   cursor: pointer;
+  padding: 0.2rem 0;
   color: var(--muted, #a0a0b8);
+  font: inherit;
+  text-align: left;
+}
+
+.e3-table-toggle::before {
+  content: '▸';
+  transition: transform 120ms ease;
+}
+
+.e3-table-toggle[data-open]::before {
+  transform: rotate(90deg);
+}
+
+.e3-table-toggle:hover {
+  color: var(--text, #e8e8f0);
+}
+
+.e3-table-toggle:focus-visible {
+  outline: 2px solid var(--blue, #3d79fa);
+  outline-offset: 2px;
 }
 
 .e3-table table {

@@ -10,6 +10,7 @@
     "typecheck": "bun run prebuild-packages && astro check"
   },
   "dependencies": {
+    "@foldkit/ui": "catalog:",
     "@opsydyn/astro-foldkit": "workspace:*",
     "@opsydyn/effect-three": "workspace:*",
     "@opsydyn/effect-three-foldkit": "workspace:*",

@@ -1,10 +1,11 @@
+import { Tooltip } from '@foldkit/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import { Category, Ring } from './data';
-import { CategoryFilter, PointerInput } from './model';
+import { CategoryFilter, IconControl, PointerInput } from './model';
 import { ColorScheme, ContrastSetting, ThemeChoice } from './themes';
 
 export const Message = defineMessageUnion({
@@ -57,6 +58,8 @@ export const Message = defineMessageUnion({
   AdvancedPlayback: { deltaTimeMs: Schema.Number },
   ClickedZoom: { direction: Schema.Literals(['in', 'out']) },
   ClickedRelationships: {},
+  ToggledEntries: { isOpen: Schema.Boolean },
+  GotTooltipMessage: { control: IconControl, message: Tooltip.Message },
   MadeGesture: { gesture: SceneSchema.Gesture },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });

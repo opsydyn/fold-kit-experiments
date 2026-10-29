@@ -4,10 +4,9 @@ All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
 ## [0.14.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.14.0...foldkit-viz-v0.14.1) (2026-10-29)
 
-
 ### Bug Fixes
 
-* **deps:** move to FoldKit 0.170 and Effect 4.1 with one Effect throughout ([ef2f8c2](https://github.com/opsydyn/fold-kit-experiments/commit/ef2f8c28215cf4d497b6483e3e3acc12f7a33496))
+- **deps:** move to FoldKit 0.170 and Effect 4.1 with one Effect throughout ([ef2f8c2](https://github.com/opsydyn/fold-kit-experiments/commit/ef2f8c28215cf4d497b6483e3e3acc12f7a33496))
 
 ## [0.14.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.13.1...foldkit-viz-v0.14.0) (2026-10-29)
 

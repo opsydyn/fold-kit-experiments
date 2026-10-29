@@ -2,10 +2,9 @@
 
 ## [0.9.3](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.2...astro-foldkit-v0.9.3) (2026-10-29)
 
-
 ### Bug Fixes
 
-* **deps:** move to FoldKit 0.170 and Effect 4.1 with one Effect throughout ([ef2f8c2](https://github.com/opsydyn/fold-kit-experiments/commit/ef2f8c28215cf4d497b6483e3e3acc12f7a33496))
+- **deps:** move to FoldKit 0.170 and Effect 4.1 with one Effect throughout ([ef2f8c2](https://github.com/opsydyn/fold-kit-experiments/commit/ef2f8c28215cf4d497b6483e3e3acc12f7a33496))
 
 ## [0.9.2](https://github.com/opsydyn/fold-kit-experiments/compare/astro-foldkit-v0.9.1...astro-foldkit-v0.9.2) (2026-10-28)
 

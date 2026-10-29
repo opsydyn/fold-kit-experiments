@@ -1,0 +1,189 @@
+---
+/*
+ * How the rings moved into an edition: a sankey from each ring in the edition before to
+ * each ring in this one. Ribbons that stayed are grey; ribbons that moved, joined or left
+ * take the accent. Each ribbon names its entries on hover, and the table below says it
+ * all in words, so the chart is never the only way to read it.
+ */
+import { flowChart, flowGutter, flowSize, flowsInto, sideLabel } from '../radar/flows';
+import { radar } from '../radar/radar';
+
+interface Props {
+  index: number;
+  previousLabel: string;
+  label: string;
+}
+const { index, previousLabel, label } = Astro.props;
+const flows = flowsInto(radar, index);
+const chart = flowChart(flows);
+const count = (kinds: ReadonlyArray<string>) =>
+  flows
+    .filter(({ kind }) => kinds.includes(kind))
+    .reduce((sum, { names }) => sum + names.length, 0);
+const summary = [
+  `${count(['stayed'])} stayed in their ring`,
+  `${count(['in'])} moved in towards Adopt`,
+  `${count(['out'])} moved out towards Caution`,
+  `${count(['joined'])} joined`,
+  `${count(['left'])} left`,
+]
+  .filter((part) => !part.startsWith('0 '))
+  .join(', ');
+const from = previousLabel.toLowerCase();
+const to = label.toLowerCase();
+---
+
+{
+  flows.length > 0 && (
+    <section aria-labelledby="flows">
+      <h2 id="flows">How the rings moved</h2>
+      <p class="legend muted">
+        From the {from} (left) to the {to} (right).{' '}
+        <span class="key stayed" aria-hidden="true" /> stayed{' '}
+        <span class="key moved" aria-hidden="true" /> moved, joined or left
+      </p>
+      <figure class="flows">
+        <div class="chart">
+          <svg
+            viewBox={`0 0 ${flowSize.width} ${flowSize.height}`}
+            role="img"
+            aria-label={`Entries from the ${from} to the ${to}: ${summary}.`}
+          >
+            <g transform={`translate(${flowGutter} 0)`}>
+              {chart.ribbons.map(({ path, flow }) => (
+                <path class:list={['ribbon', flow.kind === 'stayed' ? 'stayed' : 'moved']} d={path}>
+                  <title>
+                    {sideLabel(flow.from, 'before')} → {sideLabel(flow.to, 'after')}:{' '}
+                    {flow.names.join(', ')}
+                  </title>
+                </path>
+              ))}
+              {chart.bars.map((bar) => (
+                <g>
+                  <rect class="bar" x={bar.x} y={bar.y} width={bar.width} height={bar.height} />
+                  <text
+                    class="label"
+                    x={bar.labelX}
+                    y={bar.y + bar.height / 2}
+                    text-anchor={bar.anchor}
+                    dominant-baseline="middle"
+                  >
+                    {bar.label} <tspan class="count">{bar.count}</tspan>
+                  </text>
+                </g>
+              ))}
+            </g>
+          </svg>
+        </div>
+        <figcaption class="muted">{summary[0]?.toUpperCase()}{summary.slice(1)}.</figcaption>
+      </figure>
+      <details>
+        <summary>The flows as a table</summary>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">In the {from}</th>
+                <th scope="col">In the {to}</th>
+                <th scope="col">Entries</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flows.map((flow) => (
+                <tr>
+                  <td>{sideLabel(flow.from, 'before')}</td>
+                  <td>{sideLabel(flow.to, 'after')}</td>
+                  <td>{flow.names.join(', ')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+  )
+}
+
+<style>
+  /* On a phone the chart keeps a readable size and scrolls sideways in its own box. */
+  .flows {
+    margin: 0 0 0.75rem;
+  }
+
+  .chart {
+    overflow-x: auto;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    min-width: 30rem;
+    max-width: 44rem;
+    height: auto;
+  }
+
+  .ribbon {
+    transition: opacity 120ms;
+  }
+
+  .ribbon.stayed {
+    fill: color-mix(in srgb, var(--muted) 30%, transparent);
+  }
+
+  .ribbon.moved {
+    fill: color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+
+  .ribbon:hover {
+    opacity: 0.7;
+  }
+
+  .bar {
+    fill: var(--text);
+  }
+
+  .label {
+    fill: var(--text);
+    font-size: 13px;
+  }
+
+  .count {
+    fill: var(--muted);
+  }
+
+  .legend {
+    margin: 0 0 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .key {
+    display: inline-block;
+    width: 0.9rem;
+    height: 0.6rem;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .key.stayed {
+    background: color-mix(in srgb, var(--muted) 30%, transparent);
+  }
+
+  .key.moved {
+    background: color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+
+  figcaption {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+  }
+
+  summary {
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ribbon {
+      transition: none;
+    }
+  }
+</style>

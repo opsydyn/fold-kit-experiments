@@ -1,6 +1,9 @@
 /*
  * effect-three samples. Colours come from the host page's theme variables (the promo
  * sites' --surface, --text, --muted, --border, --blue), with dark fallbacks for apps/web.
+ *
+ * Corners are square throughout. Only what stands for something round keeps a curve: the
+ * category dots, which match the blips, and the minimap of the round radar.
  */
 .e3-sample {
   display: grid;
@@ -11,7 +14,6 @@
 .e3-stage {
   display: block;
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 14px;
   background:
     radial-gradient(
       circle at 50% 35%,
@@ -49,7 +51,6 @@
   gap: 0.35rem;
   backdrop-filter: blur(6px);
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 999px;
   background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
   padding: 0.25rem 0.7rem;
   max-width: calc(100% - 1.2rem);
@@ -73,7 +74,6 @@
 .e3-crumb:focus-visible {
   outline: 2px solid var(--blue, #3d79fa);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .e3-crumb[aria-current='location'] {
@@ -160,7 +160,6 @@
 /* The theme picker: a small select beside the View heading. */
 .e3-heading-select {
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 999px;
   background: var(--surface, #12121f);
   cursor: pointer;
   padding: 0.05rem 0.5rem;
@@ -176,7 +175,6 @@
 
 .e3-heading-action {
   border: 0;
-  border-radius: 4px;
   background: none;
   cursor: pointer;
   padding: 0 0.15rem;
@@ -214,7 +212,6 @@
   width: 1.9rem;
   height: 1.05rem;
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 999px;
   background: var(--surface, #12121f);
   cursor: pointer;
   padding: 0;
@@ -227,7 +224,6 @@
   left: 0.12rem;
   width: 0.75rem;
   height: 0.75rem;
-  border-radius: 999px;
   background: var(--muted, #8a8aa3);
   transform: translateY(-50%);
   transition: transform 120ms ease;
@@ -275,7 +271,6 @@
 
 .e3-tooltip {
   z-index: 50;
-  border-radius: 4px;
   background: #1d1c1a;
   padding: 0.2rem 0.5rem;
   color: #f6f3ea;
@@ -447,7 +442,6 @@
 
 .e3-stage-fill {
   border: 0;
-  border-radius: 0;
   background: transparent;
   height: 100%;
 }
@@ -477,7 +471,6 @@
   gap: 0.4rem;
   backdrop-filter: blur(8px);
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 12px;
   background: color-mix(in srgb, var(--surface, #12121f) 82%, transparent);
   padding: 0.75rem 0.9rem;
   width: min(20rem, calc(100% - 1.2rem));
@@ -526,7 +519,6 @@
   margin: 0;
   backdrop-filter: blur(8px);
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 12px;
   background: color-mix(in srgb, var(--surface, #12121f) 80%, transparent);
   padding: 0.5rem 1.1rem;
   max-width: calc(100% - 2rem);
@@ -547,7 +539,6 @@
   left: 0.6rem;
   backdrop-filter: blur(6px);
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 999px;
   background: color-mix(in srgb, var(--surface, #12121f) 72%, transparent);
   padding: 0.3rem 0.8rem;
   max-width: calc(100% - clamp(72px, 22%, 132px) - 2rem);
@@ -579,7 +570,6 @@
   .e3-details {
     position: static;
     grid-row: 2;
-    border-radius: 0;
     border-inline: 0;
     width: auto;
     max-height: 30dvh;
@@ -618,7 +608,6 @@
 .e3-timeline-log:focus-visible {
   outline: 2px solid var(--blue, #3d79fa);
   outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .e3-timeline-log .e3-note {
@@ -698,7 +687,6 @@
 
 .e3-button {
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 999px;
   background: var(--surface, #1a1a2e);
   cursor: pointer;
   padding: 0.4rem 0.9rem;
@@ -709,7 +697,6 @@
 
 .e3-tag {
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 999px;
   background: var(--surface, #1a1a2e);
   padding: 0.2rem 0.6rem;
   color: var(--text, #e8e8f0);
@@ -749,7 +736,6 @@
 
 .e3-stat {
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 10px;
   padding: 0.5rem 0.75rem;
 }
 
@@ -784,7 +770,6 @@
   color: var(--text, #e8e8f0);
   background: var(--surface, #12121f);
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 8px;
   padding: 0.35rem 0.6rem;
   width: min(28rem, 70vw);
 }
@@ -881,7 +866,6 @@
 /* A measuring tape's length, at its middle. */
 .e3-tape-label {
   padding: 2px 8px;
-  border-radius: 999px;
   background: #151520;
   color: #ffcc33;
   font:
@@ -897,7 +881,6 @@
   margin-block: 16px;
   padding: 12px 16px;
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 12px;
 }
 
 .e3-inspector-panel h3 {
@@ -934,7 +917,6 @@
   min-width: 0;
   padding: 3px 6px;
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -965,7 +947,6 @@
 .e3-editor-panel {
   padding: 12px 14px;
   border: 1px solid var(--border, #2a2a40);
-  border-radius: 12px;
   min-width: 0;
 }
 
@@ -997,7 +978,6 @@
   width: 100%;
   padding: 4px 8px;
   border: 0;
-  border-radius: 6px;
   background: transparent;
   color: inherit;
   font: inherit;

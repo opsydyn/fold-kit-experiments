@@ -2,10 +2,9 @@
 
 ## [0.6.3](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-troika-v0.6.2...effect-three-troika-v0.6.3) (2026-10-29)
 
-
 ### Miscellaneous Chores
 
-* **effect-three-troika:** Synchronize effect-three versions
+- **effect-three-troika:** Synchronize effect-three versions
 
 ## [0.6.2](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-troika-v0.6.1...effect-three-troika-v0.6.2) (2026-10-28)
 

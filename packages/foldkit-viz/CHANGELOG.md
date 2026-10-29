@@ -4,10 +4,9 @@ All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
 ## [0.14.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.13.1...foldkit-viz-v0.14.0) (2026-10-29)
 
-
 ### Features
 
-* **foldkit-viz:** sankey nodeSort null keeps the input order ([0576380](https://github.com/opsydyn/fold-kit-experiments/commit/05763808db7d3a87a35fe06ef7985722b1542589))
+- **foldkit-viz:** sankey nodeSort null keeps the input order ([0576380](https://github.com/opsydyn/fold-kit-experiments/commit/05763808db7d3a87a35fe06ef7985722b1542589))
 
 ## [0.13.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.13.0...foldkit-viz-v0.13.1) (2026-10-28)
 

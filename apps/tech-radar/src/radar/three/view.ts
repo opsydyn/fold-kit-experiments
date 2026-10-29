@@ -398,7 +398,7 @@ const relationButton = (model: Model, h: HtmlBuilder<Message>, relation: Relatio
     [
       h.button(
         [
-          h.Class('e3-button'),
+          h.Class('e3-relation'),
           h.Type('button'),
           h.OnClick(Message.ClickedRelay({ to: relation.other })),
         ],
@@ -406,19 +406,31 @@ const relationButton = (model: Model, h: HtmlBuilder<Message>, relation: Relatio
           h.span(
             [
               h.Class('e3-edge-swatch'),
+              h.AriaHidden(true),
               h.Style({
                 borderTop: `3px ${relationshipLines[relation.type]} ${relationshipCss(themeOf(model), relation.type)}`,
               }),
             ],
             [],
           ),
-          `${relation.label} · ${Option.match(positionOf(model, relation.other), {
-            onNone: () => relation.other,
-            onSome: ({ entry }) => entry.name,
-          })}`,
+          h.span(
+            [],
+            [
+              h.span([h.Class('e3-relation-type')], [`${relation.label} `]),
+              h.strong(
+                [],
+                [
+                  Option.match(positionOf(model, relation.other), {
+                    onNone: () => relation.other,
+                    onSome: ({ entry }) => entry.name,
+                  }),
+                ],
+              ),
+            ],
+          ),
+          h.span([h.Class('e3-relation-note')], [relation.note]),
         ],
       ),
-      h.p([h.Class('e3-note')], [relation.note]),
     ],
   );
 
@@ -429,7 +441,7 @@ const relations = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyA
       () => [],
     ),
     Match.orElse((list) => [
-      h.h4([], ['Relationships']),
+      h.h4([], ['Related']),
       h.ul(
         [h.Class('e3-relations')],
         list.map((relation) => relationButton(model, h, relation)),
@@ -474,10 +486,21 @@ const legend = (model: Model, h: HtmlBuilder<Message>): Html =>
 const fullPageLink = (model: Model, h: HtmlBuilder<Message>, id: string): ReadonlyArray<Html> =>
   Option.match(fullPageOf(model, id), {
     onNone: () => [],
-    onSome: (href) => [h.p([], [h.a([h.Class('e3-full-page'), h.Href(href)], ['Open full page'])])],
+    onSome: (href) => [h.a([h.Class('e3-full-page'), h.Href(href)], ['Full page'])],
   });
 
-/** The pinned entry, as a card floating over the stage's top right on wide screens. */
+/** Where an entry's source lives, as a short host name: "github.com". */
+const hostOf = (url: string): string =>
+  Option.match(Option.liftThrowable(() => new URL(url).hostname.replace(/^www\./, ''))(), {
+    onNone: () => url,
+    onSome: (host) => host,
+  });
+
+/**
+ * The pinned entry, as a card floating over the stage's top right on wide screens: its
+ * category and ring, its name and summary, one row of actions with the full page first,
+ * then what it relates to.
+ */
 const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   Option.match(
     Option.flatMap(model.selected, (id) => positionOf(model, id)),
@@ -485,18 +508,37 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
       onNone: () => [],
       onSome: ({ entry }) => [
         h.section(
-          [h.Class('e3-details'), h.AriaLabel('Selected entry')],
           [
-            h.h3([], [entry.name]),
-            h.p([h.Class('e3-note')], [describe(entry)]),
-            h.p([], [entry.description]),
-            ...fullPageLink(model, h, entry.id),
-            h.div(
-              [h.Class('e3-controls')],
+            h.Class('e3-details'),
+            h.AriaLabel('Selected entry'),
+            h.Style({ '--series': categoryCss(themeOf(model), entry.category) }),
+          ],
+          [
+            h.p(
+              [h.Class('e3-details-meta')],
               [
+                h.span([h.Class('e3-swatch'), h.AriaHidden(true)], []),
+                categoryLabels[entry.category],
+                h.span([h.Class('e3-ring-badge')], [ringLabels[entry.ring]]),
+              ],
+            ),
+            h.h3([], [entry.name]),
+            h.p([h.Class('e3-details-summary')], [entry.description]),
+            h.div(
+              [h.Class('e3-details-actions')],
+              [
+                ...fullPageLink(model, h, entry.id),
                 button(h, 'Fly to', Message.ClickedFlyTo({ id: entry.id })),
                 button(h, 'Copy link', Message.ClickedCopyLink()),
-                h.a([h.Href(entry.sourceUrl), h.Target('_blank'), h.Rel('noopener')], ['Source']),
+              ],
+            ),
+            h.p(
+              [h.Class('e3-details-source')],
+              [
+                h.a(
+                  [h.Href(entry.sourceUrl), h.Target('_blank'), h.Rel('noopener')],
+                  [`Source · ${hostOf(entry.sourceUrl)}`],
+                ),
               ],
             ),
             ...relations(model, h, entry.id),

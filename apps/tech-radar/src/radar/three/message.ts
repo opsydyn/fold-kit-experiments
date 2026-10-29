@@ -1,4 +1,4 @@
-import { Tooltip } from '@foldkit/ui';
+import { Combobox, Tooltip } from '@foldkit/ui';
 import { SceneSchema } from '@opsydyn/effect-three';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Schema } from 'effect';
@@ -60,6 +60,7 @@ export const Message = defineMessageUnion({
   ClickedRelationships: {},
   ToggledEntries: { isOpen: Schema.Boolean },
   GotTooltipMessage: { control: IconControl, message: Tooltip.Message },
+  GotSearchMessage: { message: Combobox.Message },
   MadeGesture: { gesture: SceneSchema.Gesture },
   ReceivedSceneLifecycle: { lifecycle: EffectThreeFoldkit.SceneLifecycle },
 });

@@ -36,6 +36,7 @@ import {
 } from './model';
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
+import { searchBox, searchResults } from './search';
 import { shellRadius } from './space';
 import { cssVariables, themeLabels, ThemeChoice } from './themes';
 import { changesIn } from './timeline';
@@ -197,19 +198,73 @@ const iconButton = (model: Model, h: HtmlBuilder<Message>, control: IconControl)
   });
 };
 
+/**
+ * The search box: typing filters the radar and lists what it shows, a category at a time,
+ * each entry with its ring; picking one pins it and faces it.
+ */
+const searchBoxView = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const results = searchResults(model);
+  const byId = new Map(results.map((position) => [position.entry.id, position.entry]));
+  const nameOf = (id: string) => byId.get(id)?.name ?? id;
+  const ringOf = (id: string) =>
+    Option.match(Option.fromNullishOr(byId.get(id)), {
+      onNone: () => '',
+      onSome: (entry) => ringLabels[entry.ring],
+    });
+  const itemConfig = (id: string) => ({
+    className: 'e3-search-item',
+    content: h.span(
+      [h.Class('e3-search-entry')],
+      [h.span([], [nameOf(id)]), h.span([h.Class('e3-search-ring')], [ringOf(id)])],
+    ),
+  });
+  const headingOf = (key: string) =>
+    Option.match(Option.fromNullishOr(results.find(({ entry }) => entry.category === key)), {
+      onNone: () => undefined,
+      onSome: ({ entry }) => ({
+        className: 'e3-search-heading',
+        content: h.span([], [categoryLabels[entry.category]]),
+      }),
+    });
+  return h.submodel({
+    slotId: 'search',
+    model: model.search,
+    view: searchBox.view,
+    viewInputs: {
+      items: results.map(({ entry }) => entry.id),
+      maybeSelectedValue: model.selected,
+      restingInputValue: model.query,
+      itemToValue: (id) => id,
+      itemToDisplayText: nameOf,
+      itemToConfig: itemConfig,
+      itemGroupKey: (id) => byId.get(id)?.category ?? '',
+      groupToHeading: headingOf,
+      ariaLabel: 'Search entries',
+      inputPlaceholder: 'Search',
+      inputClassName: 'e3-text e3-search-input',
+      className: 'e3-search',
+      inputWrapperClassName: 'e3-search-field',
+      itemsClassName: 'e3-search-items',
+      buttonClassName: 'e3-search-toggle',
+      buttonContent: h.span(
+        [],
+        [
+          h.span([h.AriaHidden(true)], ['▾']),
+          h.span([h.Class('e3-visually-hidden')], ['List the entries']),
+        ],
+      ),
+      anchor: { placement: 'bottom-start', gap: 4, padding: 8 },
+    },
+    toParentMessage: (message) => Message.GotSearchMessage({ message }),
+  });
+};
+
 const findControls = (model: Model, h: HtmlBuilder<Message>): Html =>
   panelSection(h, 'Find', [
     h.div(
       [h.Class('e3-find')],
       [
-        h.input([
-          h.Class('e3-text'),
-          h.Type('search'),
-          h.AriaLabel('Search entries'),
-          h.Placeholder('Search'),
-          h.Value(model.query),
-          h.OnInput((query) => Message.ChangedQuery({ query })),
-        ]),
+        searchBoxView(model, h),
         h.select(
           [
             h.Class('e3-text'),

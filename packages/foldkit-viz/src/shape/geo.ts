@@ -192,9 +192,18 @@ export const geoEquirectangular = makeProjectionFactory(
   152.63,
 );
 
-/** Mercator — conformal cylindrical, preserves shapes */
+/**
+ * Mercator — conformal cylindrical, preserves shapes. The poles are infinitely far away,
+ * so, as d3-geo does, the map stops at a square extent of ±π around its centre (about
+ * ±85.05° latitude): y is held there, and a line to a pole ends at the edge.
+ * Source: https://github.com/d3/d3-geo/blob/main/src/projection/mercator.js (reclip)
+ */
 export const geoMercator = makeProjectionFactory(
-  (lambda, phi) => [lambda, Math.log(Math.tan(Math.PI / 4 + phi / 2))] as const,
+  (lambda, phi) =>
+    [
+      lambda,
+      Math.max(-Math.PI, Math.min(Math.PI, Math.log(Math.tan(Math.PI / 4 + phi / 2)))),
+    ] as const,
   961 / (2 * Math.PI),
 );
 

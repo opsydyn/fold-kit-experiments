@@ -50,12 +50,13 @@ and [Effect 4.1.0](https://github.com/Effect-TS/effect/releases/tag/effect%404.1
   shows `SchemaError: Expected JSON value at ["tweens"]`. The chart works; nothing ships
   differently. Keeping only data in that Model (an easing name, not the function) would
   silence it.
-- **One Effect for the whole repository, infra included.** Alchemy accepts `effect ^4.0.5`,
-  which includes 4.1.0, so `infra/tech-radar` drops its own Effect 4.0.7 and takes the
-  default catalog's. The `infra` catalog keeps the Alchemy packages and moves
-  `@effect/platform-node` and `@effect/platform-bun` to 4.1.0. The single-Effect check now
-  walks `infra/` too. This meets the first of the conditions the `@alchemy.run/domain`
-  review set (`docs/superpowers/plans/2026-10-28-tech-radar-app.md`).
+- **Infra keeps its own Effect 4.0.7 (corrected 2026-10-30).** This release first moved
+  `infra/tech-radar` onto the apps' Effect 4.1.0, because Alchemy declares
+  `effect ^4.0.5`. But Alchemy `2.0.0-beta.84` imports `effect/Crypto`, which 4.1 removed:
+  the CLI could not load ("Cannot find package 'effect'"), and every production deploy of
+  the tech radar failed from that merge until the fix. Infra is back on 4.0.7 from the
+  `infra` catalog, and the single-Effect check walks only the apps and packages again.
+  The first `@alchemy.run/domain` condition is not met after all.
 - **The published packages:**
 
   | Package                         | Was                                                                                          | Now                                                                                                 |

@@ -452,6 +452,13 @@ the content decision, so it is not proposed.
 The cheapest next step, if wanted: a spike branch that overrides Effect to 4.0.7 across the
 repository and runs every suite, to learn whether FoldKit already works on it.
 
+**Correction, 2026-10-30: condition 1 is not met.** Alchemy `2.0.0-beta.84` declares
+`effect ^4.0.5` but imports `effect/Crypto`, which Effect 4.1 removed, so the Alchemy CLI
+cannot run on 4.1: the move below broke every tech radar deploy until infra went back to
+its own Effect 4.0.7. One Effect for FoldKit and Alchemy needs an Alchemy release that works
+on 4.1. The proposals spike's Stories passed on 4.1 only because they never load Alchemy's
+CLI or auth code.
+
 **Update, 2026-10-29: condition 1 is met.** FoldKit 0.170 peers on Effect `~4.1.0`, which
 Alchemy's `^4.0.5` accepts, so the repository runs on one Effect 4.1.0, infra included, with
 no override (`docs/releases/foldkit-0.170.md`). The overlap is 4.1.x only: if Alchemy needs

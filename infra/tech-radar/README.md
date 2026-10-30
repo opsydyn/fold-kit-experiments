@@ -3,13 +3,15 @@
 The Alchemy stack that builds `apps/tech-radar` and deploys it to Cloudflare as one Worker
 with static assets. See `docs/superpowers/plans/2026-10-28-tech-radar-app.md`.
 
-## The apps' Effect
+## Its own Effect
 
-Alchemy accepts `effect ^4.0.5` and FoldKit 0.170 accepts `~4.1.0`, so this workspace runs
-on the apps' Effect 4.1.0 from the root's default catalog (`"catalog:"`). The `infra`
-catalog holds only what the apps don't use: the Alchemy packages and `@effect/platform-node`
-and `@effect/platform-bun`, at 4.1.0. `packages/effect-three`'s single-Effect check walks
-this workspace too, so the CLI and the apps can't drift onto two Effects.
+The apps run on FoldKit 0.170's Effect 4.1. Alchemy `2.0.0-beta.84` declares
+`effect ^4.0.5` but imports `effect/Crypto`, which Effect 4.1 removed, so its CLI fails on
+4.1 ("Cannot find package 'effect'"). This workspace takes its versions from the root's
+`infra` catalog instead (`effect`, `@effect/platform-node` and `@effect/platform-bun` at
+4.0.7, and the Alchemy packages), so the CLI runs on one Effect and the site it builds keeps
+the app's. `packages/effect-three`'s single-Effect check walks the apps and packages, not
+this workspace. Move it back to the apps' Effect once an Alchemy release works on 4.1.
 
 ## The build integration lives in the app too
 

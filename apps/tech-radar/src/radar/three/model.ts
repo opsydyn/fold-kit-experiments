@@ -128,6 +128,8 @@ export const Model = Schema.Struct({
   entriesOpen: Schema.Boolean,
   /** Whether the list of keyboard shortcuts is open. */
   shortcutsOpen: Schema.Boolean,
+  /** On a phone, whether the controls' sheet is pulled up over the radar. */
+  sheetOpen: Schema.Boolean,
   /**
    * What changed since the reader's last visit, if they have been before and the radar
    * has a newer edition since: the edition they last saw, and the changes since.
@@ -274,6 +276,7 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   showRelationships: true,
   entriesOpen: false,
   shortcutsOpen: false,
+  sheetOpen: false,
   sinceVisit: Option.none(),
   search: Combobox.init({ id: 'radar-search' }),
   tooltips: closedTooltips,

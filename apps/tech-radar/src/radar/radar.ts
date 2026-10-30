@@ -6,15 +6,16 @@
 import { getCollection, getEntry } from 'astro:content';
 import { Result, Schema } from 'effect';
 
-import { assembleRadar, EditionFile, RadarFile } from './content';
+import { assembleRadar, EditionFile, entriesByTag, RadarFile } from './content';
 import { editionsIn } from './pages';
 import type { Category } from './three/data';
 import type { Pages } from './three/model';
 
 const editionFiles = await getCollection('editions');
+const entryFiles = await getCollection('entries');
 
 export const radar = Result.getOrThrowWith(
-  assembleRadar({ editions: editionFiles, entries: await getCollection('entries') }),
+  assembleRadar({ editions: editionFiles, entries: entryFiles }),
   (reason) => new Error(`The radar's markdown: ${reason}`),
 );
 
@@ -43,6 +44,9 @@ export const editions = editionsIn(radar, currentLabel);
 
 /** The current edition's index. */
 export const current = editions.length - 1;
+
+/** Each tag and the entries that carry it, for the tag pages. */
+export const tags = entriesByTag(entryFiles);
 
 /** Where each entry's full page is, for the radars' "Open full page" links. */
 export const pages: Pages = {

@@ -4,7 +4,9 @@
  * among its category, its write-up, how it moved, what it relates to, and its peers.
  */
 import { getEntry, render } from 'astro:content';
-import { Option } from 'effect';
+import { Option, Result, Schema } from 'effect';
+
+import { EntryFile } from '../radar/content';
 
 import PageLayout from '../layouts/PageLayout.astro';
 import {
@@ -29,6 +31,12 @@ const { entry, edition, ring, status, history, relations, peers, previous, next 
 const markdown = await getEntry('entries', entry.id);
 const { Content } = markdown === undefined ? { Content: undefined } : await render(markdown);
 const hasBody = (markdown?.body ?? '').trim() !== '';
+// The optional fields the radar itself doesn't draw: who wrote it up, its tags, its record.
+const { author, tags, decision } = Result.getOrElse(
+  Schema.decodeUnknownResult(EntryFile)(markdown?.data),
+  (): Partial<EntryFile> => ({}),
+);
+const tagList = tags ?? [];
 const neighbour = (other: Option.Option<{ id: string; name: string }>) =>
   Option.map(other, ({ id, name }) => ({ name, href: entryHref(radar, id, edition.index) }));
 const before = neighbour(previous);
@@ -99,6 +107,43 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
             <section class="write-up" aria-label="Write-up">
               <Content />
             </section>
+          )
+        }
+
+        {
+          (author !== undefined || tagList.length > 0 || decision !== undefined) && (
+            <dl class="facts">
+              {author !== undefined && (
+                <div>
+                  <dt>Written up by</dt>
+                  <dd>{author}</dd>
+                </div>
+              )}
+              {decision !== undefined && (
+                <div>
+                  <dt>Decision record</dt>
+                  <dd>
+                    <a href={decision} rel="noopener">
+                      Why it's in {ringLabels[ring]}
+                    </a>
+                  </dd>
+                </div>
+              )}
+              {tagList.length > 0 && (
+                <div>
+                  <dt>Tags</dt>
+                  <dd>
+                    <ul class="tags">
+                      {tagList.map((tag) => (
+                        <li>
+                          <a href={`/tag/${tag}/`}>#{tag}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              )}
+            </dl>
           )
         }
 
@@ -370,6 +415,42 @@ const statusKind = (current: Status) => current._tag.toLowerCase();
   .peers a {
     display: inline-block;
     padding: 0.2rem 0.7rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    text-decoration: none;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 2rem;
+    margin: 1.5rem 0 0;
+    font-size: 0.9rem;
+  }
+
+  .facts dt {
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .facts dd {
+    margin: 0.2rem 0 0;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tags a {
+    display: inline-block;
+    padding: 0.1rem 0.55rem;
     border: 1px solid var(--border);
     background: var(--surface);
     text-decoration: none;

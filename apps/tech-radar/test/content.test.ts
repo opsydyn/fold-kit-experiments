@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 
 import { Result, Schema } from 'effect';
 
-import { assembleRadar, type ContentFile, EntryFile } from '../src/radar/content';
+import { assembleRadar, type ContentFile, EntryFile, entriesByTag } from '../src/radar/content';
 import type { RadarDataset } from '../src/radar/three/data';
 import { demoRadar } from '../src/test/fixture';
 
@@ -129,6 +129,12 @@ describe('a bad edit names its file', () => {
     );
   });
 
+  test('a tag that is not lowercase words joined by hyphens', () => {
+    expect(failure(editEntry('bun', (data) => ({ ...data, tags: ['Java Script'] })))).toBe(
+      'entries/bun.md: the tag Java Script must be lowercase words joined by hyphens',
+    );
+  });
+
   test('an edition whose date is not its file name', () => {
     const editions = markdown.editions.map((file) =>
       file.id === '2025-10-14' ? { id: '2025-10-15', data: file.data } : file,
@@ -152,5 +158,24 @@ describe('a bad edit names its file', () => {
     expect(failure({ ...markdown, entries: [...markdown.entries, ninth] })).toBe(
       'The radar: Radar category exceeds eight layout slots',
     );
+  });
+});
+
+describe('the write-ups and tags', () => {
+  test('every entry has a write-up and at least one tag', () => {
+    const bare = readdirSync(new URL('entries', contentDir)).filter((name) => {
+      const text = readFileSync(new URL(`entries/${name}`, contentDir), 'utf8');
+      return text.replace(/^---\n[\s\S]*?\n---/, '').trim() === '';
+    });
+    expect(bare).toEqual([]);
+    expect(markdown.entries.filter(({ id }) => (entryData(id).tags ?? []).length === 0)).toEqual(
+      [],
+    );
+  });
+
+  test('lists each tag once, alphabetically, with the entries that carry it', () => {
+    const tags = entriesByTag(markdown.entries);
+    expect(tags.map(({ tag }) => tag)).toEqual(tags.map(({ tag }) => tag).toSorted());
+    expect(tags.find(({ tag }) => tag === 'gpu')?.ids.toSorted()).toEqual(['futhark', 'webgpu']);
   });
 });

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "prebuild-packages": "bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && bun run --filter @opsydyn/effect-three-troika build",
-    "dev": "bun run prebuild-packages && astro dev",
+    "previews": "bun scripts/previews.ts",
+    "dev": "bun run prebuild-packages && bun run previews && astro dev",
     "test": "bun test ./test",
     "typecheck": "bun run prebuild-packages && astro check"
   },
@@ -24,7 +25,11 @@
   "devDependencies": {
     "@alchemy.run/frontend-frameworks": "catalog:infra",
     "@astrojs/check": "catalog:",
+    "@fontsource/b612": "catalog:",
+    "@fontsource/b612-mono": "catalog:",
     "bun-types": "catalog:",
+    "satori": "catalog:",
+    "sharp": "catalog:",
     "typescript": "catalog:"
   }
 }

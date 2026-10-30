@@ -10,6 +10,7 @@ import { cometMoves } from './comet';
 import { konamiCode } from './invaders';
 import { Message } from './message';
 import type { Model, PointerInput } from './model';
+import { shortcuts } from './shortcuts';
 import { stackEggMoves } from './stack';
 import type { ColorScheme, ContrastSetting } from './themes';
 import { isPlaying } from './tour';
@@ -43,6 +44,15 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
         },
       ],
       sequenceTimeout: Duration.seconds(3),
+    }),
+  ),
+  // The keyboard shortcuts, anywhere but in a text field (see shortcuts.ts). Their own
+  // stream: the Konami code's arrows may not share a table with single presses.
+  shortcuts: Subscription.persistentEntry(
+    Dom.streamFromKeyBindings<Message>({
+      bindings: shortcuts.flatMap(({ shortcut, keys }) =>
+        keys.map((key) => ({ keys: key, mapEvent: () => Message.PressedShortcut({ shortcut }) })),
+      ),
     }),
   ),
   invasion: Subscription.animationFrameEntry({

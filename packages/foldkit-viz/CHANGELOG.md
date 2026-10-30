@@ -2,6 +2,27 @@
 
 All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
+## [0.15.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.14.1...foldkit-viz-v0.15.0) (2026-10-30)
+
+
+### Features
+
+* **tech-radar:** a controls sheet on phones ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **tech-radar:** a guided tour of each edition ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **tech-radar:** a link-preview image for every page ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **tech-radar:** keyboard shortcuts and a list of them ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **tech-radar:** what changed since your last visit ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **tech-radar:** write-ups, tags and tag pages for every entry ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+
+
+### Bug Fixes
+
+* **foldkit-viz:** clip Mercator at its square extent, as d3-geo does ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **samples:** bound a relay socket's connect to five seconds ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **web:** bullet ranges in either order, and the globe's details on phones ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **web:** keep only data in the animated bar chart's Model ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+* **web:** turn off Vitest 5's file module cache ([de64bc6](https://github.com/opsydyn/fold-kit-experiments/commit/de64bc6b8f5f774c8e8980f87c51a23d360e4b3c))
+
 ## [0.14.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.14.0...foldkit-viz-v0.14.1) (2026-10-29)
 
 ### Bug Fixes

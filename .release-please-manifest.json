@@ -1,6 +1,6 @@
 {
   "packages/astro-foldkit": "0.9.3",
-  "packages/foldkit-viz": "0.14.1",
+  "packages/foldkit-viz": "0.15.0",
   "packages/effect-three": "0.6.3",
   "packages/effect-three-foldkit": "0.6.3",
   "packages/effect-three-rapier": "0.6.3",

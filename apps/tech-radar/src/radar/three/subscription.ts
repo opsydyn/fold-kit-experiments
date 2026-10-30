@@ -3,7 +3,7 @@
  * rides an edge, and the reader's reduced-motion preference, so jumps land at once for
  * those who ask.
  */
-import { Duration, Option } from 'effect';
+import { Duration, Option, Stream } from 'effect';
 import { Dom, Subscription } from 'foldkit';
 
 import { cometMoves } from './comet';
@@ -12,6 +12,7 @@ import { Message } from './message';
 import type { Model, PointerInput } from './model';
 import { shortcuts } from './shortcuts';
 import { stackEggMoves } from './stack';
+import { stageAspects } from './stageSize';
 import type { ColorScheme, ContrastSetting } from './themes';
 import { isPlaying } from './tour';
 
@@ -53,6 +54,19 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
       bindings: shortcuts.flatMap(({ shortcut, keys }) =>
         keys.map((key) => ({ keys: key, mapEvent: () => Message.PressedShortcut({ shortcut }) })),
       ),
+    }),
+  ),
+  // The canvas's shape, which the camera's field of view and the labels follow.
+  stageAspect: Subscription.persistentEntry(
+    Stream.map(stageAspects, (aspect) => Message.ResizedStage({ aspect })),
+  ),
+  // Leaving the browser's full screen (Esc, a gesture) leaves the immersive radar too.
+  fullscreen: Subscription.persistentEntry(
+    Dom.streamFromEvent({
+      target: globalThis.document,
+      type: 'fullscreenchange',
+      mapEvent: () =>
+        Message.ChangedFullscreen({ isFullscreen: globalThis.document.fullscreenElement !== null }),
     }),
   ),
   invasion: Subscription.animationFrameEntry({

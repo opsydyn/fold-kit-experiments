@@ -110,6 +110,36 @@ export const SaveLastVisit = Command.define('SaveLastVisit', {
     ),
 });
 
+/**
+ * Asks the browser to fill the screen with the page, for the immersive radar. Phones that
+ * cannot (Safari on iPhone fills the screen only for video) keep the page filling the
+ * window instead, so a refusal changes nothing.
+ */
+export const EnterFullscreen = Command.define('EnterFullscreen', {
+  messages: [Message.CompletedFullscreen],
+  execute: Effect.tryPromise(() => globalThis.document.documentElement.requestFullscreen()).pipe(
+    Effect.match({
+      onFailure: () => Message.CompletedFullscreen(),
+      onSuccess: () => Message.CompletedFullscreen(),
+    }),
+  ),
+});
+
+/** Gives the screen back, if the page has it. */
+export const ExitFullscreen = Command.define('ExitFullscreen', {
+  messages: [Message.CompletedFullscreen],
+  execute: Effect.tryPromise(() =>
+    globalThis.document.fullscreenElement === null
+      ? Promise.resolve()
+      : globalThis.document.exitFullscreen(),
+  ).pipe(
+    Effect.match({
+      onFailure: () => Message.CompletedFullscreen(),
+      onSuccess: () => Message.CompletedFullscreen(),
+    }),
+  ),
+});
+
 /** Puts the cursor in the search box: the `/` shortcut. */
 export const FocusSearch = Command.define('FocusSearch', {
   messages: [Message.CompletedFocusSearch],

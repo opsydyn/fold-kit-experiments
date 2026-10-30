@@ -171,7 +171,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .e3-since,
-  .e3-sidebar[data-sheet='open'] {
+  .e3-sidebar[data-sheet='full'] {
     animation: none;
   }
 }
@@ -859,78 +859,111 @@
  * Narrow screens: the stage on top, square, and the sidebar beneath it, scrolling on its
  * own; the pinned entry sits between them rather than over the radar.
  */
-/* The sheet's handle is for phones only (see the narrow layout below). */
-.e3-sheet-handle {
+/*
+ * Phones only (see the narrow layout below): the sheet's handle, the pinned entry's card in
+ * the sheet, the minimap's button, and "More" in the immersive radar's strip.
+ */
+.e3-sheet-handle,
+.e3-details-sheet,
+.e3-crumb-minimap,
+.e3-details-more {
+  display: none;
+}
+
+/*
+ * The immersive radar, at any width: the stage fills the window and the controls are put
+ * away. Fixed rather than the browser's full screen alone, which Safari on iPhone gives only
+ * to video; inset by the safe areas, so nothing sits under a notch or the home bar.
+ */
+.e3-app[data-immersive='true'] {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  grid-template-columns: minmax(0, 1fr);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  height: 100dvh;
+}
+
+.e3-app[data-immersive='true'] .e3-sidebar,
+.e3-app[data-immersive='true'] .e3-stage-readout {
   display: none;
 }
 
 @media (max-width: 760px) {
   .e3-app {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
   }
 
   .e3-app .e3-stage-frame {
+    display: grid;
     grid-row: 1;
   }
 
+  /*
+   * The canvas fills the space above the sheet. The camera widens its view for a tall stage
+   * (stageSize.ts), so the radar keeps the screen's width and the height shows more of it.
+   */
   .e3-stage-fill {
-    height: auto;
-    max-height: 58dvh;
-    aspect-ratio: 1;
-    margin-inline: auto;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
   }
 
-  .e3-details {
-    position: static;
-    grid-row: 2;
-    border-inline: 0;
-    width: auto;
-    max-height: 30dvh;
-  }
-
-  .e3-sidebar {
-    grid-row: 3;
-    border-top: 1px solid var(--border, #2a2a40);
-    border-right: 0;
-    padding-top: 0;
-  }
-
-  /* With the sheet closed the radar takes the rest of the screen above it. */
-  .e3-app:has(.e3-sidebar[data-sheet='closed']) {
-    grid-template-rows: minmax(0, 1fr) auto auto;
-  }
-
-  .e3-app:has(.e3-sidebar[data-sheet='closed']) .e3-stage-frame {
-    display: grid;
-    align-items: center;
-  }
-
-  /* Still square, so the radar is never cropped; centred in the taller space. */
-  .e3-app:has(.e3-sidebar[data-sheet='closed']) .e3-stage-fill {
-    max-height: 100%;
-  }
-
-  .e3-app:has(.e3-sidebar[data-sheet='closed']) .e3-details {
-    grid-row: 2;
-  }
-
-  /* Closed, the sheet shows its handle, the title and the search; the rest waits. */
-  .e3-sidebar[data-sheet='closed'] {
-    overflow: hidden;
-  }
-
-  .e3-sidebar[data-sheet='closed'] > :not(.e3-sheet-handle, .e3-panel-header, :nth-child(3)) {
+  /* The pinned entry's card is the top of the sheet, not a card over the radar. */
+  .e3-details-stage {
     display: none;
   }
 
-  /* Pulled up, it rises over the radar, which still shows above it. */
-  .e3-sidebar[data-sheet='open'] {
+  .e3-details-sheet {
+    display: grid;
+    position: static;
+    backdrop-filter: none;
+    border: 0;
+    background: none;
+    padding: 0;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .e3-sidebar {
+    grid-row: 2;
+    border-top: 1px solid var(--border, #2a2a40);
+    border-right: 0;
+    border-radius: 14px 14px 0 0;
+    padding-top: 0;
+    padding-bottom: max(0.8rem, env(safe-area-inset-bottom));
+    transition: height 220ms ease-out;
+  }
+
+  /* Peek: the handle, then the pinned entry's first rows, or the search when none is. */
+  .e3-sidebar[data-sheet='peek'] {
+    overflow: hidden;
+  }
+
+  .e3-sidebar[data-sheet='peek']
+    > :not(.e3-sheet-handle, .e3-details-sheet, section[aria-label='Find']),
+  .e3-sidebar[data-sheet='peek'][data-pinned='true'] > section[aria-label='Find'],
+  .e3-sidebar[data-sheet='peek']
+    .e3-details-sheet
+    > :not(.e3-details-meta, h3, .e3-details-actions) {
+    display: none;
+  }
+
+  /* Half: the radar shares the screen with the whole card, or with the first controls. */
+  .e3-sidebar[data-sheet='half'] {
+    height: 46dvh;
+  }
+
+  /* Full: every control, over the radar, which still shows above it. */
+  .e3-sidebar[data-sheet='full'] {
     position: absolute;
     inset: auto 0 0;
     z-index: 6;
-    height: 78dvh;
-    border-radius: 14px 14px 0 0;
+    height: 85dvh;
     box-shadow: 0 -12px 40px rgb(0 0 0 / 0.45);
     animation: e3-sheet-up 260ms ease-out both;
   }
@@ -948,17 +981,18 @@
     top: 0;
     z-index: 1;
     justify-items: center;
-    gap: 0.25rem;
     margin: 0 -1rem;
-    padding: 0.45rem 0 0.35rem;
-    border: 0;
     background: var(--panel, #0f0f1a);
-    color: var(--muted, #9a9ab0);
-    font: inherit;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    cursor: pointer;
+  }
+
+  /* The strip a finger taps or swipes: the page must not scroll while it does. */
+  .e3-sheet-grip-area {
+    display: grid;
+    justify-items: center;
+    width: 100%;
+    padding: 0.55rem 0 0.25rem;
+    cursor: grab;
+    touch-action: none;
   }
 
   .e3-sheet-grip {
@@ -968,9 +1002,54 @@
     background: var(--border, #2a2a40);
   }
 
+  .e3-sheet-stop {
+    padding: 0.1rem 0.75rem 0.4rem;
+    border: 0;
+    background: none;
+    color: var(--muted, #9a9ab0);
+    font: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  /* Once an entry is pinned the sheet says it all, so the readout goes. */
+  .e3-app:has(.e3-sidebar[data-pinned='true']) .e3-stage-readout {
+    display: none;
+  }
+
+  /* The minimap waits for its button. */
+  .e3-crumb-minimap {
+    display: revert;
+  }
+
+  .e3-app:not([data-minimap='true']) .e3-minimap {
+    display: none;
+  }
+
   /* On a phone the readout is how a tapped blip is read: big enough to read at arm's length. */
   .e3-stage-readout {
     font-size: 0.85rem;
+  }
+
+  /* Immersive on a phone: the radar, and only the pinned entry's first rows beneath it. */
+  .e3-app[data-immersive='true'] .e3-sidebar[data-pinned='true'] {
+    display: flex;
+  }
+
+  .e3-app[data-immersive='true'] .e3-sidebar > :not(.e3-details-sheet) {
+    display: none;
+  }
+
+  .e3-app[data-immersive='true'] .e3-details-more {
+    display: revert;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .e3-sidebar {
+    transition: none;
   }
 }
 

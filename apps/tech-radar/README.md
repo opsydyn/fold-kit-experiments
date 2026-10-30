@@ -26,6 +26,15 @@ bun run --filter @opsydyn/tech-radar previews   # render the link previews
   earlier edition, or `/?view=cluster:tools`.
 - **"Open full page"** on the 3D radar's card opens the entry's page for the edition
   being viewed.
+- **On a phone** the controls are a sheet under the radar with three stops: peek (the
+  search, or the pinned entry's name and actions), half (the entry's whole card) and full
+  (every control). Tap or swipe its handle. The canvas fills the space above, and the camera
+  widens its view for the tall stage (`stageSize.ts`), so the radar keeps the screen's width.
+  The readout gives way to the sheet once an entry is pinned, and the minimap waits for its
+  button (◎).
+- **Full screen:** ⤢ by the breadcrumb fills the window with the radar, at any width, and
+  asks the browser for the whole screen where it can (not Safari on iPhone, which allows it
+  only for video). Esc or ⤡ leaves.
 - **The full pages need no JavaScript.** The movement chart is an SVG drawn at build time,
   with a table of the same values.
 - **Link previews:** every page but the 404 has a 1200×630 card at

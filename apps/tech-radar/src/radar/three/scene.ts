@@ -8,6 +8,7 @@ import {
   ambientLight,
   basic,
   billboard,
+  type Camera,
   detailed,
   directionalLight,
   ease,
@@ -101,6 +102,7 @@ import {
   showsName,
 } from './space';
 import { type Fold, foldedPoint, foldOf, stagedModel } from './stack';
+import { fovFor } from './stageSize';
 import { css, skies, type Theme, themes, type Tokens } from './themes';
 
 /** The theme in force's colours: every colour the scene draws comes from here. */
@@ -770,7 +772,7 @@ const labelNodes = (model: Model): ReadonlyArray<SceneNode> => {
     view,
     candidates.map(({ candidate }) => candidate),
     blipObstacles(model),
-    frameOf(cameraFov, model.stageAspect),
+    frameOf(fovFor(cameraFov, model.stageAspect), model.stageAspect),
     Match.value(isBirdsEye(model.camera.position)).pipe(
       Match.when(true, () => mapBudget),
       Match.orElse(() => labelBudget),
@@ -963,6 +965,10 @@ const starNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
     }),
   ].filter(() => skies[tokens.sky].starry);
 
+/** The Model's camera, its field of view widened for a portrait stage (see stageSize.ts). */
+const fitted = (camera: Camera, aspect: number): Camera =>
+  camera._tag === 'Perspective' ? { ...camera, fov: fovFor(camera.fov, aspect) } : camera;
+
 export const sceneFor = (model: Model) => {
   // The FoldKit egg draws the radar in and unfolds it through the editions: while it
   // plays, every entry shows, and the labels and edges stand aside.
@@ -970,7 +976,7 @@ export const sceneFor = (model: Model) => {
   const staged = stagedModel(model);
   const settled = Option.isNone(fold);
   return scene({
-    camera: model.camera,
+    camera: fitted(model.camera, model.stageAspect),
     gestures: 'scene',
     resources: {
       geometries: [...geometries, ...eggGeometries],

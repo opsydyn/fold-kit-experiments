@@ -18,6 +18,7 @@ import {
   type RadarFilters,
   type RadarPosition,
 } from './layout';
+import { SheetStop } from './sheet';
 import { bearingOf, onSphere, shellRadius, zoomLimits } from './space';
 import { filterQuery } from './summon';
 import { ColorScheme, ContrastSetting, resolveTheme, type Theme, ThemeChoice } from './themes';
@@ -128,8 +129,14 @@ export const Model = Schema.Struct({
   entriesOpen: Schema.Boolean,
   /** Whether the list of keyboard shortcuts is open. */
   shortcutsOpen: Schema.Boolean,
-  /** On a phone, whether the controls' sheet is pulled up over the radar. */
-  sheetOpen: Schema.Boolean,
+  /** On a phone, how far the controls' sheet is pulled up (see sheet.ts). */
+  sheet: SheetStop,
+  /** Where a press on the sheet's handle began, while it lasts. */
+  sheetDrag: Schema.Option(Schema.Number),
+  /** Whether the radar fills the screen, with the controls put away. */
+  immersive: Schema.Boolean,
+  /** On a phone, whether the minimap shows: it is put away until asked for. */
+  minimapShown: Schema.Boolean,
   /**
    * What changed since the reader's last visit, if they have been before and the radar
    * has a newer edition since: the edition they last saw, and the changes since.
@@ -276,7 +283,10 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   showRelationships: true,
   entriesOpen: false,
   shortcutsOpen: false,
-  sheetOpen: false,
+  sheet: 'peek',
+  sheetDrag: Option.none(),
+  immersive: false,
+  minimapShown: false,
   sinceVisit: Option.none(),
   search: Combobox.init({ id: 'radar-search' }),
   tooltips: closedTooltips,

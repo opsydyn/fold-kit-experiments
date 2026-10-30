@@ -37,6 +37,7 @@ import {
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
 import { searchBox, searchResults } from './search';
+import type { SheetStop } from './sheet';
 import { shortcuts } from './shortcuts';
 import { shellRadius } from './space';
 import { cssVariables, themeLabels, ThemeChoice } from './themes';
@@ -512,11 +513,16 @@ const hostOf = (url: string): string =>
   });
 
 /**
- * The pinned entry, as a card floating over the stage's top right on wide screens: its
- * category and ring, its name and summary, one row of actions with the full page first,
- * then what it relates to.
+ * The pinned entry's card: its category and ring, its name and summary, one row of actions
+ * with the full page first, then what it relates to. On wide screens it floats over the
+ * stage's top right (`stage`); on a phone it is the top of the controls' sheet (`sheet`),
+ * where peek shows its first rows and half all of it.
  */
-const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+const details = (
+  model: Model,
+  h: HtmlBuilder<Message>,
+  placement: 'stage' | 'sheet',
+): ReadonlyArray<Html> =>
   Option.match(
     Option.flatMap(model.selected, (id) => positionOf(model, id)),
     {
@@ -524,7 +530,7 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
       onSome: ({ entry }) => [
         h.section(
           [
-            h.Class('e3-details'),
+            h.Class(`e3-details e3-details-${placement}`),
             h.AriaLabel('Selected entry'),
             h.Style({ '--series': categoryCss(themeOf(model), entry.category) }),
           ],
@@ -545,6 +551,15 @@ const details = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
                 ...fullPageLink(model, h, entry.id),
                 button(h, 'Fly to', Message.ClickedFlyTo({ id: entry.id })),
                 button(h, 'Copy link', Message.ClickedCopyLink()),
+                // In the immersive radar the sheet is only this card's first rows.
+                h.button(
+                  [
+                    h.Class('e3-button e3-details-more'),
+                    h.Type('button'),
+                    h.OnClick(Message.ClickedMoreFromImmersive()),
+                  ],
+                  ['More ↑'],
+                ),
               ],
             ),
             h.p(
@@ -865,6 +880,30 @@ const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
         ['🔗'],
       ),
+      // On a phone the minimap is put away until asked for; wider screens always show it.
+      h.button(
+        [
+          h.Class('e3-crumb e3-crumb-minimap'),
+          h.Type('button'),
+          h.AriaLabel(model.minimapShown ? 'Hide the minimap' : 'Show the minimap'),
+          h.AriaPressed(String(model.minimapShown)),
+          h.OnClick(Message.ClickedMinimap()),
+        ],
+        ['◎'],
+      ),
+      h.button(
+        [
+          h.Class('e3-crumb e3-crumb-immersive'),
+          h.Type('button'),
+          h.AriaLabel(
+            model.immersive ? 'Leave the full-screen radar' : 'Fill the screen with the radar',
+          ),
+          h.Title(model.immersive ? 'Leave full screen' : 'Full screen'),
+          h.AriaPressed(String(model.immersive)),
+          h.OnClick(Message.ClickedImmersive()),
+        ],
+        [model.immersive ? '⤡' : '⤢'],
+      ),
     ],
   );
 };
@@ -929,23 +968,50 @@ const linksOut = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
         ),
       ];
 
+/** What the sheet's text button does at each stop, and says. */
+const sheetButtons = {
+  peek: { to: 'half', label: 'More ↑' },
+  half: { to: 'full', label: 'All controls ↑' },
+  full: { to: 'peek', label: 'Show the radar ↓' },
+} as const satisfies Readonly<Record<SheetStop, { to: SheetStop; label: string }>>;
+
 /**
- * On a phone the sidebar is a sheet under the radar: closed, it shows the search; pulled
- * up, every control, over the radar. The handle is hidden on wider screens.
+ * On a phone the sidebar is a sheet under the radar, with three stops (see sheet.ts). Its
+ * handle is a strip to tap or swipe, and a button that does the same from a keyboard. The
+ * handle is hidden on wider screens.
  */
-const sheetHandle = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.button(
+const sheetHandle = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const next = sheetButtons[model.sheet];
+  return h.div(
+    [h.Class('e3-sheet-handle')],
     [
-      h.Class('e3-sheet-handle'),
-      h.Type('button'),
-      h.AriaExpanded(model.sheetOpen),
-      h.OnClick(Message.ClickedSheet()),
-    ],
-    [
-      h.span([h.Class('e3-sheet-grip'), h.AriaHidden(true)], []),
-      h.span([], [model.sheetOpen ? 'Show the radar' : 'All controls']),
+      h.div(
+        [
+          h.Class('e3-sheet-grip-area'),
+          h.AriaHidden(true),
+          // Screen coordinates at both ends: only how far the finger travelled matters.
+          h.OnPointerDown((_type, _button, _screenX, screenY) =>
+            Option.some(Message.PressedSheetHandle({ y: screenY })),
+          ),
+          // A touch is captured by the element it began on, so it lifts here even when the
+          // finger has moved off the strip. A mouse uses the button below.
+          h.OnPointerUp((_screenX, screenY) =>
+            Option.some(Message.ReleasedSheetHandle({ y: screenY })),
+          ),
+        ],
+        [h.span([h.Class('e3-sheet-grip')], [])],
+      ),
+      h.button(
+        [
+          h.Class('e3-sheet-stop'),
+          h.Type('button'),
+          h.OnClick(Message.ChoseSheetStop({ stop: next.to })),
+        ],
+        [next.label],
+      ),
     ],
   );
+};
 
 /** The sidebar's header: the radar's name, the shortcuts button and the links out. */
 const header = (model: Model, h: HtmlBuilder<Message>): Html =>
@@ -1066,10 +1132,12 @@ const sidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
     [
       h.Class('e3-sidebar'),
       h.AriaLabel('Radar controls'),
-      h.DataAttribute('sheet', model.sheetOpen ? 'open' : 'closed'),
+      h.DataAttribute('sheet', model.sheet),
+      h.DataAttribute('pinned', String(Option.isSome(model.selected))),
     ],
     [
       sheetHandle(model, h),
+      ...details(model, h, 'sheet'),
       header(model, h),
       findControls(model, h),
       ringControls(model, h),
@@ -1114,7 +1182,7 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
       ...shortcutList(model, h),
     ],
   ),
-  ...details(model, h),
+  ...details(model, h, 'stage'),
 ];
 
 const content = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
@@ -1131,6 +1199,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       h.Class('e3-sample e3-app'),
       h.DataAttribute('theme', themeOf(model)),
       h.DataAttribute('typeface', model.typeface),
+      h.DataAttribute('immersive', String(model.immersive)),
+      h.DataAttribute('minimap', String(model.minimapShown)),
       h.Style({ ...cssVariables(themeOf(model)), ...typeVariables(model.typeface) }),
     ],
     content(model, h),

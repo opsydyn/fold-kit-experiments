@@ -7,6 +7,8 @@ import { foldChild, foldChildAt, type Return } from 'foldkit/update';
 import { advanceComet } from './comet';
 import {
   CopyLink,
+  EnterFullscreen,
+  ExitFullscreen,
   FocusSearch,
   LoadLastVisit,
   LoadThemeChoice,
@@ -47,6 +49,7 @@ import {
 } from './model';
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
 import { searchBox, searchMove, withSearchText } from './search';
+import { sheetAfter } from './sheet';
 import type { Shortcut } from './shortcuts';
 import { zoomedPosition, zoomLimits } from './space';
 import { advanceStackEgg, stackClockAfter } from './stack';
@@ -481,6 +484,26 @@ const returned = (model: Model, lastSeen: string | null): AppReturn => {
   return { model: { ...model, sinceVisit }, commands: remember };
 };
 
+/** A press on the sheet's handle ended at `y`: a tap or a swipe moves the sheet. */
+const released = (model: Model, y: number): Model =>
+  Option.match(model.sheetDrag, {
+    onNone: () => model,
+    onSome: (from) => ({
+      ...model,
+      sheet: sheetAfter(model.sheet, y - from),
+      sheetDrag: Option.none(),
+    }),
+  });
+
+/**
+ * The radar filling the screen, or not: the sheet goes back to peek either way, and the
+ * browser is asked for the whole screen where it can give it.
+ */
+const immersed = (model: Model, immersive: boolean): AppReturn => ({
+  model: { ...model, immersive, sheet: 'peek', sheetDrag: Option.none() },
+  commands: [immersive ? EnterFullscreen() : ExitFullscreen()],
+});
+
 /** The entry chosen, if there is one, as a click in the list would. */
 const chosen = (model: Model, id: Option.Option<string>): Model =>
   Option.match(id, { onNone: () => model, onSome: (next) => chooseEntry(model, next) });
@@ -513,7 +536,9 @@ const pressed = (model: Model, shortcut: Shortcut): AppReturn =>
     Match.when('clear', () =>
       model.shortcutsOpen
         ? { model: { ...model, shortcutsOpen: false } }
-        : step(model, Message.ClickedEmptySpace()),
+        : model.immersive
+          ? immersed(model, false)
+          : step(model, Message.ClickedEmptySpace()),
     ),
     Match.when('toggle-help', () => ({ model: { ...model, shortcutsOpen: !model.shortcutsOpen } })),
     Match.exhaustive,
@@ -573,7 +598,20 @@ const step = (model: Model, message: Message): AppReturn =>
     ToggledEntries: ({ isOpen }) => ({ model: { ...model, entriesOpen: isOpen } }),
     PressedShortcut: ({ shortcut }) => pressed(model, shortcut),
     ClickedShortcuts: () => ({ model: { ...model, shortcutsOpen: !model.shortcutsOpen } }),
-    ClickedSheet: () => ({ model: { ...model, sheetOpen: !model.sheetOpen } }),
+    PressedSheetHandle: ({ y }) => ({ model: { ...model, sheetDrag: Option.some(y) } }),
+    ReleasedSheetHandle: ({ y }) => ({ model: released(model, y) }),
+    ChoseSheetStop: ({ stop }) => ({ model: { ...model, sheet: stop } }),
+    ClickedImmersive: () => immersed(model, !model.immersive),
+    ClickedMoreFromImmersive: () => {
+      const back = immersed(model, false);
+      return { ...back, model: { ...back.model, sheet: 'half' } };
+    },
+    ChangedFullscreen: ({ isFullscreen }) => ({
+      model: { ...model, immersive: model.immersive && isFullscreen },
+    }),
+    CompletedFullscreen: () => ({ model }),
+    ClickedMinimap: () => ({ model: { ...model, minimapShown: !model.minimapShown } }),
+    ResizedStage: ({ aspect }) => ({ model: { ...model, stageAspect: aspect } }),
     CompletedFocusSearch: () => ({ model }),
     CompletedOpenPage: () => ({ model }),
     SucceededLoadLastVisit: ({ edition }) => returned(model, edition),

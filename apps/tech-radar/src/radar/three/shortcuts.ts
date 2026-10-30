@@ -31,7 +31,12 @@ export const shortcuts: ReadonlyArray<
   { shortcut: 'next-edition', keys: [']'], label: ']', does: 'Next edition' },
   { shortcut: 'previous-edition', keys: ['['], label: '[', does: 'Previous edition' },
   { shortcut: 'reset-view', keys: ['R'], label: 'R', does: 'Reset the view' },
-  { shortcut: 'clear', keys: ['Escape'], label: 'Esc', does: 'Unpin, or close this list' },
+  {
+    shortcut: 'clear',
+    keys: ['Escape'],
+    label: 'Esc',
+    does: 'Unpin, close this list or leave the full-screen radar',
+  },
   // `?` is Shift and `/` on most layouts (some report the `/`), and a key of its own on some.
   {
     shortcut: 'toggle-help',

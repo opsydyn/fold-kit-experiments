@@ -170,7 +170,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .e3-since {
+  .e3-since,
+  .e3-sidebar[data-sheet='open'] {
     animation: none;
   }
 }
@@ -858,6 +859,11 @@
  * Narrow screens: the stage on top, square, and the sidebar beneath it, scrolling on its
  * own; the pinned entry sits between them rather than over the radar.
  */
+/* The sheet's handle is for phones only (see the narrow layout below). */
+.e3-sheet-handle {
+  display: none;
+}
+
 @media (max-width: 760px) {
   .e3-app {
     grid-template-columns: minmax(0, 1fr);
@@ -887,6 +893,79 @@
     grid-row: 3;
     border-top: 1px solid var(--border, #2a2a40);
     border-right: 0;
+    padding-top: 0;
+  }
+
+  /* With the sheet closed the radar takes the rest of the screen above it. */
+  .e3-app:has(.e3-sidebar[data-sheet='closed']) {
+    grid-template-rows: minmax(0, 1fr) auto auto;
+  }
+
+  .e3-app:has(.e3-sidebar[data-sheet='closed']) .e3-stage-frame {
+    display: grid;
+    align-items: center;
+  }
+
+  /* Still square, so the radar is never cropped; centred in the taller space. */
+  .e3-app:has(.e3-sidebar[data-sheet='closed']) .e3-stage-fill {
+    max-height: 100%;
+  }
+
+  .e3-app:has(.e3-sidebar[data-sheet='closed']) .e3-details {
+    grid-row: 2;
+  }
+
+  /* Closed, the sheet shows its handle, the title and the search; the rest waits. */
+  .e3-sidebar[data-sheet='closed'] {
+    overflow: hidden;
+  }
+
+  .e3-sidebar[data-sheet='closed'] > :not(.e3-sheet-handle, .e3-panel-header, :nth-child(3)) {
+    display: none;
+  }
+
+  /* Pulled up, it rises over the radar, which still shows above it. */
+  .e3-sidebar[data-sheet='open'] {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 6;
+    height: 78dvh;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 0 -12px 40px rgb(0 0 0 / 0.45);
+    animation: e3-sheet-up 260ms ease-out both;
+  }
+
+  @keyframes e3-sheet-up {
+    from {
+      transform: translateY(30%);
+      opacity: 0.6;
+    }
+  }
+
+  .e3-sheet-handle {
+    display: grid;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    justify-items: center;
+    gap: 0.25rem;
+    margin: 0 -1rem;
+    padding: 0.45rem 0 0.35rem;
+    border: 0;
+    background: var(--panel, #0f0f1a);
+    color: var(--muted, #9a9ab0);
+    font: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .e3-sheet-grip {
+    width: 2.5rem;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border, #2a2a40);
   }
 
   /* On a phone the readout is how a tapped blip is read: big enough to read at arm's length. */

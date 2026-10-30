@@ -573,6 +573,7 @@ const step = (model: Model, message: Message): AppReturn =>
     ToggledEntries: ({ isOpen }) => ({ model: { ...model, entriesOpen: isOpen } }),
     PressedShortcut: ({ shortcut }) => pressed(model, shortcut),
     ClickedShortcuts: () => ({ model: { ...model, shortcutsOpen: !model.shortcutsOpen } }),
+    ClickedSheet: () => ({ model: { ...model, sheetOpen: !model.sheetOpen } }),
     CompletedFocusSearch: () => ({ model }),
     CompletedOpenPage: () => ({ model }),
     SucceededLoadLastVisit: ({ edition }) => returned(model, edition),

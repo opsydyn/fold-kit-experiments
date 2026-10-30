@@ -929,6 +929,24 @@ const linksOut = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
         ),
       ];
 
+/**
+ * On a phone the sidebar is a sheet under the radar: closed, it shows the search; pulled
+ * up, every control, over the radar. The handle is hidden on wider screens.
+ */
+const sheetHandle = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.button(
+    [
+      h.Class('e3-sheet-handle'),
+      h.Type('button'),
+      h.AriaExpanded(model.sheetOpen),
+      h.OnClick(Message.ClickedSheet()),
+    ],
+    [
+      h.span([h.Class('e3-sheet-grip'), h.AriaHidden(true)], []),
+      h.span([], [model.sheetOpen ? 'Show the radar' : 'All controls']),
+    ],
+  );
+
 /** The sidebar's header: the radar's name, the shortcuts button and the links out. */
 const header = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.header(
@@ -1045,8 +1063,13 @@ const shortcutList = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
  */
 const sidebar = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.aside(
-    [h.Class('e3-sidebar'), h.AriaLabel('Radar controls')],
     [
+      h.Class('e3-sidebar'),
+      h.AriaLabel('Radar controls'),
+      h.DataAttribute('sheet', model.sheetOpen ? 'open' : 'closed'),
+    ],
+    [
+      sheetHandle(model, h),
       header(model, h),
       findControls(model, h),
       ringControls(model, h),

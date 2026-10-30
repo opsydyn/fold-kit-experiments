@@ -68,6 +68,7 @@ export const Message = defineMessageUnion({
   ToggledEntries: { isOpen: Schema.Boolean },
   PressedShortcut: { shortcut: Shortcut },
   ClickedShortcuts: {},
+  ClickedSheet: {},
   CompletedFocusSearch: {},
   CompletedOpenPage: {},
   SucceededLoadLastVisit: { edition: Schema.NullOr(Schema.String) },

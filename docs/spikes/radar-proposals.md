@@ -33,8 +33,11 @@ under "Final infra stage: reviewing `@alchemy.run/domain`".
 
 ## What it found
 
-- **Effect lines up.** With FoldKit 0.170 the library resolves the repository's one Effect
-  4.1.0; no override. Condition 1 of the review holds in practice, not just on paper.
+- **Effect only appears to line up.** With FoldKit 0.170 the library resolves the
+  repository's Effect 4.1.0 and the Stories pass, but they never load Alchemy's own runtime.
+  Alchemy `2.0.0-beta.84` imports `effect/Crypto`, which 4.1 removed: the same day, its CLI
+  failed every tech radar deploy on 4.1 until infra went back to Effect 4.0.7. Hosting the
+  model needs Alchemy itself, so condition 1 of the review is not met.
 - **Vitest 5 works.** `@effect/vitest` 4.1 runs the Stories on Vitest 5.0.5, and apps/web's
   408 tests pass on it, once its on-disk module cache is off (vanilla-extract's `.css.ts` files skip their compiler when cached).
 - **The published Story API is the documented one.** `given`/`when`/`then`/`rejected`/
@@ -59,7 +62,8 @@ under "Final infra stage: reviewing `@alchemy.run/domain`".
 
 ## Verdict
 
-Condition 1 (one Effect) is met and proven, and the Vitest cost is paid. Condition 2 (a few
+Condition 1 (one Effect) is not met: Alchemy has to run on Effect 4.1 first. The Vitest
+cost is paid. Condition 2 (a few
 stable releases) still stands: beta.84 is still the only release. Condition 3 (a write
 feature) is now approved in principle. The next step, when the library has moved on, is a
 hosting spike: the `Radar` model in a Worker beside the site, behind sign-in.

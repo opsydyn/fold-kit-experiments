@@ -690,6 +690,21 @@ const changeList = (model: Model, h: HtmlBuilder<Message>): Html => {
  * The radar over time: play through its editions, or scrub to one, and the blips move
  * between shells as their rings changed, joining as they arrived.
  */
+/** The shown edition's own tour, when it changed anything and no tour is playing. */
+const editionTourButton = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+  changesIn(model, model.edition).length > 0 && model.tour._tag !== 'Playing'
+    ? [
+        h.button(
+          [
+            h.Class('e3-button e3-edition-tour'),
+            h.Type('button'),
+            h.OnClick(Message.ClickedEditionTour()),
+          ],
+          [`▶ Tour the ${editionOf(model).label.toLowerCase()}`],
+        ),
+      ]
+    : [];
+
 const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const editions = editionsOf(model);
   const shown = editionOf(model);
@@ -737,6 +752,7 @@ const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
           ],
           [changeList(model, h)],
         ),
+        ...editionTourButton(model, h),
       ],
     ),
   ].filter(() => editions.length > 1);

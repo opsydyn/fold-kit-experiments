@@ -11,13 +11,20 @@ import { Match, Option } from 'effect';
 import { categoryLabels, ringLabels } from './data';
 import { idOfSaucer } from './easter';
 import { invasionLength } from './invaders';
-import type { Message } from './message';
+import { Message } from './message';
 import { type CategoryFilter, editionsOf, idOfBlip, type Model, positionOf } from './model';
 import { themeLabels } from './themes';
-import { playStep } from './timeline';
+import { changesBetween, playStep } from './timeline';
 
-/** A recording: where it began, as a deep link, and the moves made from there. */
-export type Recording = Readonly<{ start: string; steps: ReadonlyArray<Message> }>;
+/**
+ * A recording: where it began, as a deep link, and the moves made from there. A tour the
+ * radar writes itself also says what each move is for; a recorded one says what it does.
+ */
+export type Recording = Readonly<{
+  start: string;
+  steps: ReadonlyArray<Message>;
+  captions?: ReadonlyArray<string>;
+}>;
 
 /**
  * The recorder: idle; recording; holding a finished recording; or playing one, with the
@@ -70,6 +77,32 @@ export const recordable: ReadonlySet<Message['_tag']> = new Set([
 ]);
 
 export const isRecordable = (message: Message): boolean => recordable.has(message._tag);
+
+/**
+ * An edition's own tour: from above the radar, a flight to each entry that joined, moved
+ * or left in it, captioned with the change, then back. None for the first edition, which
+ * changed nothing.
+ */
+export const editionTour = (model: Model, index: number): Option.Option<Recording> => {
+  const editions = editionsOf(model);
+  const changes = changesBetween(model, index - 1, index);
+  return Option.map(
+    Option.filter(Option.fromNullishOr(editions[index]), () => changes.length > 0),
+    ({ authoredOn, label }) => ({
+      start: index === editions.length - 1 ? '' : `edition=${authoredOn}`,
+      steps: [
+        Message.ClickedResetView(),
+        ...changes.map(({ id }) => Message.ClickedFlyTo({ id })),
+        Message.ClickedResetView(),
+      ],
+      captions: [
+        `The ${label.toLowerCase()}: ${changes.length} ${changes.length === 1 ? 'change' : 'changes'}`,
+        ...changes.map(({ text }) => text),
+        `That was the ${label.toLowerCase()}`,
+      ],
+    }),
+  );
+};
 
 /** Moves made a keystroke at a time. */
 const typed: ReadonlySet<string> = new Set(['ChangedQuery']);

@@ -28,6 +28,8 @@ const { Content } = notes === undefined ? { Content: undefined } : await render(
 const hasNotes = (notes?.body ?? '').trim() !== '';
 const changes = changesAt(radar, edition.index);
 const radarLink = edition.isCurrent ? '/' : `/?edition=${edition.date}`;
+// The edition's own tour on the 3D radar: a flight to each change, captioned.
+const tourLink = edition.isCurrent ? '/?tour=edition' : `/?edition=${edition.date}&tour=edition`;
 const description =
   changes.length === 0
     ? `The radar's ${edition.label.toLowerCase()}, ${edition.date}.`
@@ -60,6 +62,7 @@ const changed = categories.filter((page) => page.changes.length > 0);
     </p>
     <p class="actions">
       <a class="button" href={radarLink}>Open it on the 3D radar</a>
+      {changes.length > 0 && <a class="button" href={tourLink}>▶ Take the tour</a>}
       {
         previous !== undefined && (
           <a href={`/edition/${previous.date}/`}>← {previous.label}</a>

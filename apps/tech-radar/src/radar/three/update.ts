@@ -54,6 +54,7 @@ import { summonedMonolith } from './summon';
 import { changesBetween, playStep } from './timeline';
 import {
   captionOf,
+  editionTour,
   idleTour,
   isRecordable,
   leadIn,
@@ -413,7 +414,11 @@ export const init = (props: RadarProps): AppReturn => {
     LoadTypeface(),
     LoadLastVisit(),
   ];
-  return { model: withSearchText(model), commands };
+  const toured = Option.match(link.tour, {
+    onNone: () => model,
+    onSome: () => startEditionTour(model),
+  });
+  return { model: withSearchText(toured), commands };
 };
 
 /**
@@ -635,6 +640,7 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     ClickedStopRecording: () => ({ model: { ...model, tour: stoppedRecording(model.tour) } }),
     ClickedPlayTour: () => ({ model: startTour(model) }),
+    ClickedEditionTour: () => ({ model: startEditionTour(model) }),
     ClickedStopTour: () => ({ model: { ...model, tour: stoppedTour(model.tour) } }),
     AdvancedTour: ({ deltaTimeMs }) => advanceTour(model, deltaTimeMs),
     ClickedSaveTour: () => ({ model, commands: saveCommands(model) }),
@@ -720,6 +726,13 @@ const tourStart = (model: Model, recording: Recording): Model =>
     decodeLink(Object.fromEntries(new URLSearchParams(recording.start))),
   );
 
+/** The shown edition's own tour, played from its start, if it changed anything. */
+const startEditionTour = (model: Model): Model =>
+  Option.match(editionTour(model, model.edition), {
+    onNone: () => model,
+    onSome: (recording) => startTour({ ...model, tour: { _tag: 'Ready', recording } }),
+  });
+
 /** Play: back to where the recording began, the first move a moment later. */
 const startTour = (model: Model): Model =>
   Option.match(recordingOf(model.tour), {
@@ -756,7 +769,7 @@ const playNext = (model: Model, playing: Playing): AppReturn =>
             ...playing,
             next: playing.next + 1,
             wait: paceOf(result.model, move),
-            caption: captionOf(model, move),
+            caption: playing.recording.captions?.[playing.next] ?? captionOf(model, move),
           },
         },
       };

@@ -92,6 +92,8 @@ export async function buildExampleTemplate(
           '@types/hast': '3.0.5',
           foldkit: '0.170.0',
           effect: '4.1.0',
+          // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
+          '@effect/platform-browser': '4.1.0',
         },
       },
       null,
@@ -160,6 +162,8 @@ export async function buildExampleTemplate(
         '@opsydyn/dataset-explorer': 'file:./vendor/source-highlighting',
         foldkit: '0.170.0',
         effect: '4.1.0',
+        // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
+        '@effect/platform-browser': '4.1.0',
         fflate: '0.8.3',
         '@stackblitz/sdk': '1.11.0',
       },

@@ -45,6 +45,8 @@ export function datasetProject(
           '@opsydyn/foldkit-viz': 'file:./vendor/foldkit-viz',
           foldkit: '0.170.0',
           effect: '4.1.0',
+          // FoldKit's browser peer, pinned with Effect: a newer patch can need a newer Effect.
+          '@effect/platform-browser': '4.1.0',
           '@wooorm/starry-night': '3.11.0',
           'vscode-oniguruma': '2.0.1',
           '@types/hast': '3.0.5',

@@ -4,7 +4,7 @@ import { Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
-import type { Model } from './model';
+import { eased, type Model } from './model';
 
 const W = 480,
   H = 260,
@@ -77,12 +77,9 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             [],
             bars.map((bar, i) => {
               const tween = tweens[i];
-              const progress = tween?.progress ?? 1;
-              // Animate from 0 to full height using tweenValue
-              // SAFETY: The app model and message contracts establish this value before the assertion.
-              const animatedValue = tweenValue(0, bar.value, { progress } as Parameters<
-                typeof tweenValue
-              >[2]);
+              // Animate from 0 to full height; a bar without a tween stands at full height.
+              const animatedValue =
+                tween === undefined ? bar.value : tweenValue(0, bar.value, eased(tween));
               const bx = Math.round(xScale.position(bar.label) * 1000) / 1000;
               const bw = Math.round(xScale.bandwidth * 1000) / 1000;
               const barH = Math.max(0, Math.round((PH - yScale(animatedValue)) * 1000) / 1000);

@@ -64,10 +64,11 @@ describe('deep links', () => {
     const foldkit = positionOf(model, 'foldkit');
     expect(Option.map(foldkit, flightTo)).toEqual(Option.some(model.camera));
     // A link's theme is for this visit: the saved one is not looked for over it.
-    expect(commands?.map(({ name }) => name)).toEqual(['LoadTypeface']);
+    expect(commands?.map(({ name }) => name)).toEqual(['LoadTypeface', 'LoadLastVisit']);
     expect(init({ dataset: demoRadar }).commands?.map(({ name }) => name)).toEqual([
       'LoadThemeChoice',
       'LoadTypeface',
+      'LoadLastVisit',
     ]);
   });
 

@@ -62,7 +62,11 @@ describe('themes', () => {
   });
 
   test('a picked theme is saved, and the saved one is looked for as the radar opens', () => {
-    expect(opened.commands?.map(({ name }) => name)).toEqual(['LoadThemeChoice', 'LoadTypeface']);
+    expect(opened.commands?.map(({ name }) => name)).toEqual([
+      'LoadThemeChoice',
+      'LoadTypeface',
+      'LoadLastVisit',
+    ]);
     const chosen = update(start, Message.ChoseTheme({ choice: 'paper' }));
     expect(chosen.model.themeChoice).toBe('paper');
     // Saved, and the address bar picks it up: a picked theme is part of the link.

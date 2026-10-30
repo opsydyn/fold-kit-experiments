@@ -17,7 +17,7 @@
     "@effect/platform-node": "catalog:infra",
     "alchemy": "catalog:infra",
     "bun-types": "catalog:",
-    "effect": "catalog:",
+    "effect": "catalog:infra",
     "typescript": "catalog:"
   }
 }

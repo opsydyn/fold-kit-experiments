@@ -67,12 +67,12 @@ TypeScript 7 and oxlint). In private workspaces write `"catalog:"` (or
 `foldkit-viz`, and the four effect-three packages) keep literal versions equal to the
 catalog's (`npm publish` cannot resolve `catalog:`). `bun run check` enforces both via `tools/check-catalog.ts`.
 
-`infra/*` workspaces are separate programs (Alchemy CLIs). They share the apps' Effect from
-the default catalog (`"catalog:"`): Alchemy accepts `effect ^4.0.5` and FoldKit 0.170
-accepts `~4.1.0`. Alchemy itself and its Effect platform packages come from
-`workspaces.catalogs.infra` (`"catalog:infra"`).
-`packages/effect-three/scripts/check-single-effect.ts` checks that the apps, packages and
-infra load one Effect.
+`infra/*` workspaces are separate programs (Alchemy CLIs) with their own Effect 4.0.7, from
+`workspaces.catalogs.infra` (`"catalog:infra"`) with the Alchemy packages. Alchemy
+`2.0.0-beta.84` declares `effect ^4.0.5` but imports `effect/Crypto`, which Effect 4.1
+removed, so it cannot share the apps' 4.1. Bun's isolated install keeps the two apart;
+`packages/effect-three/scripts/check-single-effect.ts` checks that the apps and packages load
+one Effect.
 
 The tech radar (`apps/tech-radar`) works from a copy of the effect-three sample radar, and
 leaves the original unchanged. Its content is markdown in

@@ -3,7 +3,7 @@ import { Match, Option } from 'effect';
 import type { Return as UpdateReturn } from 'foldkit/update';
 
 import { Message } from './message';
-import type { Model } from './model';
+import { eased, type Model, settled } from './model';
 
 type Return = UpdateReturn<Model, Message>;
 
@@ -11,13 +11,13 @@ const stepTween = (model: Model, tween: Model['tweens'][number], index: number, 
   const delay = index * 60;
   const elapsed0 = model.tweens[0]?.elapsed ?? 0;
   return Match.value(elapsed0 >= delay).pipe(
-    Match.when(true, () => tweenStep(tween, dt)),
+    Match.when(true, () => settled(tweenStep(eased(tween), dt))),
     Match.orElse(() => tween),
   );
 };
 
 const tick = (model: Model, dt: number): Return =>
-  Match.value(allTweensDone(model.tweens)).pipe(
+  Match.value(allTweensDone(model.tweens.map(eased))).pipe(
     Match.when(true, () => ({ model })),
     Match.orElse(() => ({
       model: {

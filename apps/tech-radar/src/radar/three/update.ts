@@ -7,9 +7,11 @@ import { foldChild, foldChildAt, type Return } from 'foldkit/update';
 import { advanceComet } from './comet';
 import {
   CopyLink,
+  FocusSearch,
   LoadThemeChoice,
   LoadTour,
   LoadTypeface,
+  OpenPage,
   ReplaceLink,
   SaveThemeChoice,
   SaveTour,
@@ -27,6 +29,7 @@ import {
   editionsOf,
   clusterCamera,
   flightTo,
+  fullPageOf,
   universeCamera,
   homeCamera,
   idOfBlip,
@@ -38,9 +41,11 @@ import {
   type MonolithState,
   positionOf,
   type RadarProps,
+  visibleOf,
 } from './model';
 import { alongPath, easeInOut, relayDamping, relayDuration, relayWaypoints } from './relay';
 import { searchBox, searchMove, withSearchText } from './search';
+import type { Shortcut } from './shortcuts';
 import { zoomedPosition, zoomLimits } from './space';
 import { advanceStackEgg, stackClockAfter } from './stack';
 import { summonedMonolith } from './summon';
@@ -437,6 +442,57 @@ const decomposed = {
   shattered: 'whole',
 } as const satisfies Readonly<Record<MonolithState, MonolithState>>;
 
+/**
+ * The entry `offset` along from the pinned one, among those the filters show, wrapping at
+ * either end; with nothing pinned, the first going forward and the last going back.
+ */
+const steppedEntry = (model: Model, offset: number): Option.Option<string> => {
+  const ids = visibleOf(model).map(({ entry }) => entry.id);
+  const at = Option.match(model.selected, {
+    onNone: () => (offset > 0 ? -1 : 0),
+    onSome: (id) => ids.indexOf(id),
+  });
+  return Option.fromNullishOr(ids[(at + offset + ids.length) % Math.max(1, ids.length)]);
+};
+
+/** The entry chosen, if there is one, as a click in the list would. */
+const chosen = (model: Model, id: Option.Option<string>): Model =>
+  Option.match(id, { onNone: () => model, onSome: (next) => chooseEntry(model, next) });
+
+/** A flight to the pinned entry, if there is one. */
+const flownTo = (model: Model): Model =>
+  Option.match(model.selected, { onNone: () => model, onSome: (id) => flyTo(model, id) });
+
+/** What a keyboard shortcut does (see shortcuts.ts). */
+const pressed = (model: Model, shortcut: Shortcut): AppReturn =>
+  Match.value(shortcut).pipe(
+    Match.when('focus-search', (): AppReturn => ({ model, commands: [FocusSearch()] })),
+    Match.when('next-entry', () => ({ model: chosen(model, steppedEntry(model, 1)) })),
+    Match.when('previous-entry', () => ({ model: chosen(model, steppedEntry(model, -1)) })),
+    Match.when('next-edition', () =>
+      step(model, Message.ChangedEdition({ index: model.edition + 1 })),
+    ),
+    Match.when('previous-edition', () =>
+      step(model, Message.ChangedEdition({ index: model.edition - 1 })),
+    ),
+    Match.when('fly-to', () => ({ model: flownTo(model) })),
+    Match.when('open-page', (): AppReturn => {
+      const href = Option.flatMap(model.selected, (id) => fullPageOf(model, id));
+      return Option.match(href, {
+        onNone: () => ({ model }),
+        onSome: (page) => ({ model, commands: [OpenPage({ href: page })] }),
+      });
+    }),
+    Match.when('reset-view', () => step(model, Message.ClickedResetView())),
+    Match.when('clear', () =>
+      model.shortcutsOpen
+        ? { model: { ...model, shortcutsOpen: false } }
+        : step(model, Message.ClickedEmptySpace()),
+    ),
+    Match.when('toggle-help', () => ({ model: { ...model, shortcutsOpen: !model.shortcutsOpen } })),
+    Match.exhaustive,
+  );
+
 const step = (model: Model, message: Message): AppReturn =>
   Message.match<AppReturn>(message, {
     HoveredBlip: ({ key }) =>
@@ -489,6 +545,10 @@ const step = (model: Model, message: Message): AppReturn =>
       model: modifyFields(model, { showRelationships: (shown) => !shown }),
     }),
     ToggledEntries: ({ isOpen }) => ({ model: { ...model, entriesOpen: isOpen } }),
+    PressedShortcut: ({ shortcut }) => pressed(model, shortcut),
+    ClickedShortcuts: () => ({ model: { ...model, shortcutsOpen: !model.shortcutsOpen } }),
+    CompletedFocusSearch: () => ({ model }),
+    CompletedOpenPage: () => ({ model }),
     GotTooltipMessage: ({ control, message }) => foldTooltip(model, control, message),
     GotSearchMessage: ({ message }) => searchStep(model, message),
     MadeGesture: ({ gesture }) => ({

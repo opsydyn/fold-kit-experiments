@@ -6,6 +6,7 @@ import { defineMessageUnion } from 'foldkit/message';
 
 import { Category, Ring } from './data';
 import { CategoryFilter, IconControl, PointerInput } from './model';
+import { Shortcut } from './shortcuts';
 import { ColorScheme, ContrastSetting, ThemeChoice } from './themes';
 import { Typeface } from './typefaces';
 
@@ -64,6 +65,10 @@ export const Message = defineMessageUnion({
   ClickedZoom: { direction: Schema.Literals(['in', 'out']) },
   ClickedRelationships: {},
   ToggledEntries: { isOpen: Schema.Boolean },
+  PressedShortcut: { shortcut: Shortcut },
+  ClickedShortcuts: {},
+  CompletedFocusSearch: {},
+  CompletedOpenPage: {},
   GotTooltipMessage: { control: IconControl, message: Tooltip.Message },
   GotSearchMessage: { message: Combobox.Message },
   MadeGesture: { gesture: SceneSchema.Gesture },

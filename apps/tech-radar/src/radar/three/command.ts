@@ -4,7 +4,7 @@
  * nothing it recognises, is Auto, and a save that fails is quietly forgotten.
  */
 import { Effect, Option, Schema } from 'effect';
-import { Command, File, Navigation } from 'foldkit';
+import { Command, Dom, File, Navigation } from 'foldkit';
 
 import { Message } from './message';
 import { Theme, ThemeChoice } from './themes';
@@ -85,6 +85,25 @@ const addressFor = (query: string): string =>
   )}${globalThis.location.hash}`;
 
 /** The address on the clipboard; a refusal (no permission, no clipboard) is reported. */
+/** Puts the cursor in the search box: the `/` shortcut. */
+export const FocusSearch = Command.define('FocusSearch', {
+  messages: [Message.CompletedFocusSearch],
+  // A missing box (the radar still loading) leaves the focus where it is.
+  execute: Dom.focus('.e3-search-input').pipe(
+    Effect.match({
+      onFailure: () => Message.CompletedFocusSearch(),
+      onSuccess: () => Message.CompletedFocusSearch(),
+    }),
+  ),
+});
+
+/** Goes to an entry's full page: the `O` shortcut. */
+export const OpenPage = Command.define('OpenPage', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedOpenPage],
+  execute: ({ href }) => Navigation.load(href).pipe(Effect.map(() => Message.CompletedOpenPage())),
+});
+
 export const CopyLink = Command.define('CopyLink', {
   messages: [Message.CompletedCopyLink],
   execute: Effect.tryPromise(() =>

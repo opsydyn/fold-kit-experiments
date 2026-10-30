@@ -123,6 +123,88 @@
   gap: 0.2rem;
 }
 
+.e3-panel-title-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.e3-shortcuts-button {
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--border, #2a2a40);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted, #9a9ab0);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.e3-shortcuts-button:hover,
+.e3-shortcuts-button[aria-expanded='true'] {
+  border-color: var(--blue, #6c8cff);
+  color: var(--text, #e8e8f0);
+}
+
+.e3-shortcuts {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 5;
+  width: min(22rem, calc(100% - 2rem));
+  transform: translate(-50%, -50%);
+  padding: 0.9rem 1.1rem 1rem;
+  border: 1px solid var(--border, #2a2a40);
+  background: color-mix(in srgb, var(--panel, #0f0f1a) 94%, transparent);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.e3-shortcuts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.e3-shortcuts h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.e3-shortcuts dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.e3-shortcuts dl > div {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  align-items: baseline;
+}
+
+.e3-shortcuts dt,
+.e3-shortcuts dd {
+  margin: 0;
+}
+
+.e3-shortcuts kbd {
+  display: inline-block;
+  min-width: 1.6rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--border, #2a2a40);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: var(--type-data, ui-monospace, monospace);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
 .e3-panel-title {
   margin: 0;
   font-size: 1.1rem;

@@ -37,6 +37,7 @@ import {
 import { type Relation, relationsOf } from './relations';
 import { categoryCss, relationshipCss, relationshipLines, sceneFor } from './scene';
 import { searchBox, searchResults } from './search';
+import { shortcuts } from './shortcuts';
 import { shellRadius } from './space';
 import { cssVariables, themeLabels, ThemeChoice } from './themes';
 import { changesIn } from './timeline';
@@ -51,7 +52,8 @@ const describe = (entry: RadarEntry): string =>
 
 /** What to do, in the reader's own gestures. */
 const hints = {
-  hover: 'Hover a blip to read it · click to pin · double-click to fly there · drag to look round',
+  hover:
+    'Hover a blip to read it · click to pin · double-click to fly there · drag to look round · ? for shortcuts',
   touch: 'Tap a blip to read it · double-tap to fly there · drag to look round',
 } as const satisfies Readonly<Record<PointerInput, string>>;
 
@@ -911,12 +913,63 @@ const linksOut = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
         ),
       ];
 
-/** The sidebar's header: the radar's name and the host page's links out. */
+/** The sidebar's header: the radar's name, the shortcuts button and the links out. */
 const header = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.header(
     [h.Class('e3-panel-header')],
-    [h.h1([h.Class('e3-panel-title')], [model.title]), ...linksOut(model, h)],
+    [
+      h.div(
+        [h.Class('e3-panel-title-row')],
+        [
+          h.h1([h.Class('e3-panel-title')], [model.title]),
+          h.button(
+            [
+              h.Class('e3-shortcuts-button'),
+              h.Type('button'),
+              h.AriaLabel('Keyboard shortcuts'),
+              h.AriaExpanded(model.shortcutsOpen),
+              h.OnClick(Message.ClickedShortcuts()),
+            ],
+            ['?'],
+          ),
+        ],
+      ),
+      ...linksOut(model, h),
+    ],
   );
+
+/** The keyboard shortcuts, while `?` has them open: Esc, `?` or the button closes them. */
+const shortcutList = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+  model.shortcutsOpen
+    ? [
+        h.section(
+          [h.Class('e3-shortcuts'), h.Role('dialog'), h.AriaLabelledBy('e3-shortcuts-title')],
+          [
+            h.div(
+              [h.Class('e3-shortcuts-head')],
+              [
+                h.h2([h.Id('e3-shortcuts-title')], ['Keyboard shortcuts']),
+                h.button(
+                  [
+                    h.Class('e3-button'),
+                    h.Type('button'),
+                    h.AriaLabel('Close the shortcuts'),
+                    h.OnClick(Message.ClickedShortcuts()),
+                  ],
+                  ['×'],
+                ),
+              ],
+            ),
+            h.dl(
+              [],
+              shortcuts.map(({ label, does }) =>
+                h.div([], [h.dt([], [h.kbd([], [label])]), h.dd([], [does])]),
+              ),
+            ),
+          ],
+        ),
+      ]
+    : [];
 
 /**
  * The sidebar: every control in one column beside the stage, in the order a reader
@@ -966,6 +1019,7 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
       ...tourCaption(model, h),
       h.p([h.Class('e3-readout e3-stage-readout'), h.AriaLive('polite')], [readout(model)]),
       minimap(model, h),
+      ...shortcutList(model, h),
     ],
   ),
   ...details(model, h),

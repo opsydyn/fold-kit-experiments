@@ -126,6 +126,8 @@ export const Model = Schema.Struct({
   showRelationships: Schema.Boolean,
   /** Whether the sidebar's entries table is open. */
   entriesOpen: Schema.Boolean,
+  /** Whether the list of keyboard shortcuts is open. */
+  shortcutsOpen: Schema.Boolean,
   /** The search box: a Combobox whose input follows `query`. */
   search: Combobox.Model,
   /** The icon buttons' tooltips. */
@@ -261,6 +263,7 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   playClock: 0,
   showRelationships: true,
   entriesOpen: false,
+  shortcutsOpen: false,
   search: Combobox.init({ id: 'radar-search' }),
   tooltips: closedTooltips,
   stageAspect: 1,

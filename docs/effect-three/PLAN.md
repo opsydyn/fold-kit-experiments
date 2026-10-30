@@ -401,7 +401,7 @@ All recommendations in this plan were accepted. Specifically:
 
 | #   | Decision                                                                                                                                                                                                                |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Adapter seam: **resolved by spike** to a hybrid of `CustomElement` props/events plus a one-shot `Mount.define` for lifecycle ([ADR-002](docs/adr/002-foldkit-adapter-seam.md)).                                         |
+| D1  | Adapter seam: **resolved by spike** to a hybrid of `CustomElement` props/events plus a one-shot `Mount.define` for lifecycle ([ADR-002](adr/002-foldkit-adapter-seam.md)).                                              |
 | D2  | `kernel/` (no `effect` import) / `runtime/` layering is sanctioned; `boundaryPaths` configuration is not an exception.                                                                                                  |
 | D3  | Property engine is `effect/Arbitrary`, wrapped in `test/property.ts`; `effect` pinned exactly.                                                                                                                          |
 | D4  | Animated properties are owned by declarative behaviours, type-enforced; behaviour output is a pure function of elapsed time.                                                                                            |

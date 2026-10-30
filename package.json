@@ -48,7 +48,7 @@
       "topojson-client": "^3.1.0",
       "tsdown": "^0.21.8",
       "typescript": "^6.0.3",
-      "vitest": "^4.1.10",
+      "vitest": "^5.0.5",
       "vscode-oniguruma": "2.0.1",
       "world-atlas": "^2.0.2",
       "wrangler": "^4.125.0"

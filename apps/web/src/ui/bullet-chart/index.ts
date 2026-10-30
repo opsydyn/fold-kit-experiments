@@ -104,7 +104,11 @@ export function view<M>(
     h.g(
       [h.Transform(`translate(${ML},${MT})`)],
       data.map((d, i) => {
-        const maxVal = d.ranges[2];
+        // Ranges in either order: "lower is better" rows list them falling. As d3's bullet
+        // chart does, the scale covers the largest range, value and target, and each band
+        // is drawn from zero, largest first, so the smaller ones sit on top.
+        const ascending = [...d.ranges].sort((a, b) => a - b);
+        const maxVal = Math.max(ascending[2] ?? 0, d.value, d.target);
         const xScale = linear({ domain: [0, maxVal * 1.05], range: [0, PW] });
         const y = i * rowH;
         const midY = y + rowH / 2;
@@ -135,22 +139,22 @@ export function view<M>(
             ),
 
             // Background range bands (poor → satisfactory → good)
-            ...[d.ranges[0], d.ranges[1], d.ranges[2]].map((bound, ri) => {
-              const prev = ri === 0 ? 0 : ri === 1 ? d.ranges[0] : d.ranges[1];
-              const bw = r3(xScale(bound) - xScale(prev));
-              const bx = r3(xScale(prev));
-              return h.rect(
-                [
-                  h.X(String(bx)),
-                  h.Y(String(r3(y + rowH * 0.1))),
-                  h.Width(String(bw)),
-                  h.Height(String(r3(rowH * 0.8))),
-                  h.Fill(RANGE_VARS[ri] ?? 'var(--chart-range-1, #1a1a2e)'),
-                  h.Style({ transition: 'fill 120ms' }),
-                ],
-                [],
-              );
-            }),
+            ...ascending
+              .map((bound, ri) => ({ bound, ri }))
+              .reverse()
+              .map(({ bound, ri }) =>
+                h.rect(
+                  [
+                    h.X('0'),
+                    h.Y(String(r3(y + rowH * 0.1))),
+                    h.Width(String(r3(xScale(bound)))),
+                    h.Height(String(r3(rowH * 0.8))),
+                    h.Fill(RANGE_VARS[ri] ?? 'var(--chart-range-1, #1a1a2e)'),
+                    h.Style({ transition: 'fill 120ms' }),
+                  ],
+                  [],
+                ),
+              ),
 
             // Actual value bar (centred vertically)
             h.rect(

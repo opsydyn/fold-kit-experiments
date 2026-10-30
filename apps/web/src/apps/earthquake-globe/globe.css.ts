@@ -16,7 +16,9 @@ export const workspace = style({
   gridTemplateColumns: 'minmax(0, 2fr) minmax(240px, 1fr)',
   alignItems: 'start',
   gap: '2rem',
-  '@media': { '(max-width: 800px)': { gridTemplateColumns: 'minmax(0, 1fr)' } },
+  // On a phone the selected earthquake sits right under the globe, so the gaps stay small
+  // enough for its details to show without scrolling.
+  '@media': { '(max-width: 800px)': { gridTemplateColumns: 'minmax(0, 1fr)', gap: '1rem' } },
 });
 export const toolbar = style({
   display: 'flex',
@@ -55,7 +57,7 @@ export const globe = style({
 export const side = style({
   paddingTop: '1rem',
   minWidth: 0,
-  '@media': { '(max-width: 800px)': { display: 'flex', flexDirection: 'column' } },
+  '@media': { '(max-width: 800px)': { display: 'flex', flexDirection: 'column', paddingTop: 0 } },
 });
 export const heading = style({ marginBottom: '0.75rem', fontSize: '1rem', fontWeight: 600 });
 export const metadata = style({
@@ -88,6 +90,7 @@ export const legend = style({
   gap: '0.5rem',
   marginBlock: '0.625rem',
   fontSize: '0.8125rem',
+  '@media': { '(max-width: 800px)': { marginBlock: '0.375rem' } },
 });
 export const swatch = style({
   display: 'inline-block',

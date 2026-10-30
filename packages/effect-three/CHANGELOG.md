@@ -2,10 +2,9 @@
 
 ## [0.6.4](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.6.3...effect-three-v0.6.4) (2026-10-30)
 
-
 ### Bug Fixes
 
-* **infra:** run the tech radar's Alchemy CLI on its own Effect 4.0.7 again ([6adea0a](https://github.com/opsydyn/fold-kit-experiments/commit/6adea0a8d6ce21eb28cc203c64e95c236cf04220))
+- **infra:** run the tech radar's Alchemy CLI on its own Effect 4.0.7 again ([6adea0a](https://github.com/opsydyn/fold-kit-experiments/commit/6adea0a8d6ce21eb28cc203c64e95c236cf04220))
 
 ## [0.6.3](https://github.com/opsydyn/fold-kit-experiments/compare/effect-three-v0.6.2...effect-three-v0.6.3) (2026-10-29)
 

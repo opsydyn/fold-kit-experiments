@@ -4,7 +4,7 @@ Project conventions and agent guidance for this monorepo.
 
 ## Quick orientation
 
-Bun workspace monorepo. Thirteen workspaces in active use:
+Bun workspace monorepo. Fourteen workspaces in active use:
 
 | Workspace                       | Path                             | Purpose                                                    |
 | ------------------------------- | -------------------------------- | ---------------------------------------------------------- |
@@ -21,6 +21,7 @@ Bun workspace monorepo. Thirteen workspaces in active use:
 | `@opsydyn/three-promo`          | `apps/three-promo/`              | effect-three promo site (same layout and styling as promo) |
 | `@opsydyn/tech-radar`           | `apps/tech-radar/`               | Standalone tech radar: the 3D radar, markdown content      |
 | `@opsydyn/tech-radar-infra`     | `infra/tech-radar/`              | Alchemy stack deploying the tech radar to Cloudflare       |
+| `@opsydyn/docs`                 | `apps/docs/`                     | `docs/` as a Starlight site (GitHub Pages `/docs/`)        |
 
 The effect-three packages (core, Foldkit adapter, Rapier, troika) run a **stricter, package-local lint policy** (`oxlint.strict.ts`, `@opsydyn/oxlint-effect@2.0.1`, all rules, TypeScript 7). Read `docs/effect-three/PLAN.md` and `docs/effect-three/adr/` before changing them.
 
@@ -44,6 +45,7 @@ bun run check:fix                     # oxfmt then oxlint --fix
 bun run --filter @opsydyn/web dev     # single workspace
 bun dev:three-promo                   # effect-three promo → localhost:4323
 bun dev:tech-radar                    # tech radar → localhost:4326
+bun dev:docs                          # docs site → localhost:4327
 bun run relay                         # editor relay → ws://localhost:4325/<room>
 ```
 
@@ -79,6 +81,14 @@ leaves the original unchanged. Its content is markdown in
 `apps/tech-radar/src/content`. `.github/workflows/deploy-tech-radar.yml` deploys it with
 Alchemy: production on `main`, previews for PRs labelled `preview`. See the app's and the
 infra workspace's READMEs.
+
+## Docs, decisions and spikes
+
+`docs/` is the record of what was decided, tried and shipped; `apps/docs` publishes it
+unchanged as a Starlight site. Decisions go in `docs/adr/` (or a package's own `adr/`),
+spike findings in `docs/spikes/`, upgrade notes in `docs/releases/`. Every file starts
+with a `#` heading, which becomes its page title; relative links work on GitHub and on the
+site. A new folder needs a sidebar entry in `apps/docs/astro.config.ts`.
 
 ## Linting — oxlint + oxfmt
 

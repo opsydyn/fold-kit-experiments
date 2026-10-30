@@ -11,6 +11,7 @@
       "@arethetypeswrong/cli": "0.18.5",
       "@astrojs/check": "^0.9.10",
       "@astrojs/cloudflare": "14.4.0",
+      "@astrojs/starlight": "0.42.6",
       "@dimforge/rapier3d-deterministic-compat": "0.21.0",
       "@effect/platform-browser": "4.1.0",
       "@foldkit/ui": "0.170.0",
@@ -80,6 +81,7 @@
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
     "dev:three-promo": "bun run --filter @opsydyn/three-promo dev",
     "dev:tech-radar": "bun run --filter @opsydyn/tech-radar dev",
+    "dev:docs": "bun run --filter @opsydyn/docs dev",
     "relay": "bun packages/effect-three-samples/scripts/relay.ts"
   },
   "devDependencies": {

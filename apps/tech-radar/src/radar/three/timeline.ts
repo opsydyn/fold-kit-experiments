@@ -31,6 +31,33 @@ const changeOf = (before: Edition, now: Edition, entry: RadarEntry): ReadonlyArr
   );
 };
 
+/**
+ * What changed between two editions, entry by entry: the edition at `from` against the one
+ * at `to`, said in words. Nothing if either is out of range.
+ */
+export const changesBetween = (
+  model: Model,
+  from: number,
+  to: number,
+): ReadonlyArray<Readonly<{ id: string; text: string }>> => {
+  const editions = editionsOf(model);
+  const pair = Option.all([
+    Option.fromNullishOr(editions[from]),
+    Option.fromNullishOr(editions[to]),
+  ]);
+  const entries = Match.value(model.data).pipe(
+    Match.tag('Ready', ({ dataset }) => dataset.entries),
+    Match.orElse((): ReadonlyArray<RadarEntry> => []),
+  );
+  return Option.match(pair, {
+    onNone: () => [],
+    onSome: ([before, now]) =>
+      entries.flatMap((entry) =>
+        changeOf(before, now, entry).map((text) => ({ id: entry.id, text })),
+      ),
+  });
+};
+
 /** What changed in the `index`th edition since the one before it; nothing for the first. */
 export const changesIn = (model: Model, index: number): ReadonlyArray<string> => {
   const editions = editionsOf(model);

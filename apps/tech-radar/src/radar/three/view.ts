@@ -938,6 +938,58 @@ const header = (model: Model, h: HtmlBuilder<Message>): Html =>
     ],
   );
 
+/** What changed since the reader's last visit, until they dismiss it. */
+const sinceVisitNote = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
+  Option.match(model.sinceVisit, {
+    onNone: () => [],
+    onSome: ({ label, changes }) => [
+      h.section(
+        [h.Class('e3-since'), h.AriaLabel('Since your last visit')],
+        [
+          h.div(
+            [h.Class('e3-since-head')],
+            [
+              h.p(
+                [h.Class('e3-since-title')],
+                [
+                  `${changes.length} ${changes.length === 1 ? 'change' : 'changes'} since your last visit`,
+                ],
+              ),
+              h.button(
+                [
+                  h.Class('e3-button'),
+                  h.Type('button'),
+                  h.AriaLabel('Dismiss'),
+                  h.OnClick(Message.ClickedDismissSinceVisit()),
+                ],
+                ['×'],
+              ),
+            ],
+          ),
+          h.p([h.Class('e3-since-from')], [`You last saw the ${label.toLowerCase()}.`]),
+          h.ul(
+            [h.Class('e3-since-list')],
+            changes.map(({ id, text }) =>
+              h.li(
+                [],
+                [
+                  h.button(
+                    [
+                      h.Class('e3-since-change'),
+                      h.Type('button'),
+                      h.OnClick(Message.ClickedFlyTo({ id })),
+                    ],
+                    [text],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  });
+
 /** The keyboard shortcuts, while `?` has them open: Esc, `?` or the button closes them. */
 const shortcutList = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   model.shortcutsOpen
@@ -1019,6 +1071,7 @@ const radar = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
       ...tourCaption(model, h),
       h.p([h.Class('e3-readout e3-stage-readout'), h.AriaLive('polite')], [readout(model)]),
       minimap(model, h),
+      ...sinceVisitNote(model, h),
       ...shortcutList(model, h),
     ],
   ),

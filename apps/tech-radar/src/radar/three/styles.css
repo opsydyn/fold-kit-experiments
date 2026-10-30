@@ -148,6 +148,81 @@
   color: var(--text, #e8e8f0);
 }
 
+.e3-since {
+  position: absolute;
+  top: 3.25rem;
+  left: 0.75rem;
+  z-index: 3;
+  width: min(21rem, calc(100% - 1.5rem));
+  padding: 0.6rem 0.8rem 0.7rem;
+  border: 1px solid var(--border, #2a2a40);
+  border-left: 3px solid var(--blue, #6c8cff);
+  background: color-mix(in srgb, var(--panel, #0f0f1a) 92%, transparent);
+  backdrop-filter: blur(6px);
+  animation: e3-since-in 600ms ease-out both;
+}
+
+@keyframes e3-since-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .e3-since {
+    animation: none;
+  }
+}
+
+.e3-since-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.e3-since-title,
+.e3-since-from {
+  margin: 0;
+}
+
+.e3-since-title {
+  font-weight: 600;
+}
+
+.e3-since-from {
+  color: var(--muted, #9a9ab0);
+  font-size: 0.8rem;
+}
+
+.e3-since-list {
+  display: grid;
+  gap: 0.15rem;
+  max-height: 11rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.e3-since-change {
+  width: 100%;
+  padding: 0.2rem 0.3rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.e3-since-change:hover,
+.e3-since-change:focus-visible {
+  background: color-mix(in srgb, var(--blue, #6c8cff) 18%, transparent);
+}
+
 .e3-shortcuts {
   position: absolute;
   top: 50%;

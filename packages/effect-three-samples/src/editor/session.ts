@@ -56,15 +56,34 @@ const hear = (heard: RelayLink['heard']) => (event: MessageEvent<unknown>) =>
     onSome: (wire) => Queue.offerUnsafe(heard, wire),
   });
 
-/** A socket to `url` that resolves once open and rejects if it never opens. */
-const opening = (url: string, heard: RelayLink['heard']) => () =>
-  new Promise<WebSocket>((resolve, reject) => {
-    const socket = new WebSocket(url);
-    socket.onmessage = hear(heard);
-    socket.onopen = () => resolve(socket);
-    socket.onerror = reject;
-    socket.onclose = () => Queue.endUnsafe(heard);
-  });
+/** A socket to `url`, connecting, that passes on what it hears until it closes. */
+const connect = (url: string, heard: RelayLink['heard']): WebSocket => {
+  const socket = new WebSocket(url);
+  socket.onmessage = hear(heard);
+  socket.onclose = () => Queue.endUnsafe(heard);
+  return socket;
+};
+
+/**
+ * How long a relay has to answer. FoldKit acquires a managed resource uninterruptibly, so
+ * a tab that leaves the relay while it is still connecting waits for the connect to
+ * settle: this bounds that wait, and a relay that never answers fails in good time.
+ */
+export const relayConnectMilliseconds = 5000;
+
+/**
+ * Calls `opened` once `socket` opens, or `refused` if it errors or has not opened within
+ * `relayConnectMilliseconds`. Whichever comes first settles the wait.
+ */
+const whenOpen = (socket: WebSocket, opened: () => void, refused: () => void): void => {
+  const giveUp = setTimeout(refused, relayConnectMilliseconds);
+  const settle = (outcome: () => void) => () => {
+    clearTimeout(giveUp);
+    outcome();
+  };
+  socket.addEventListener('open', settle(opened), { once: true });
+  socket.addEventListener('error', settle(refused), { once: true });
+};
 
 /** This tab's name in the session, once it has one. */
 export const selfOf = (session: Model['session']): Option.Option<string> =>
@@ -89,12 +108,18 @@ export const managedResources = ManagedResource.make<Model, Message>()((entry) =
     acquire: ({ url }) =>
       Effect.gen(function* () {
         const heard = yield* Queue.bounded<Wire, Cause.Done>(relayBacklog);
-        const open = Effect.tryPromise({
-          try: opening(url, heard),
-          catch: () => `No relay at ${url}`,
-        });
-        const socket = yield* Effect.acquireRelease(open, (socket) =>
+        // The socket is the scope's from the start, so a connect that fails or times out
+        // is closed with it.
+        const connecting = Effect.sync(() => connect(url, heard));
+        const socket = yield* Effect.acquireRelease(connecting, (socket) =>
           Effect.sync(() => socket.close()),
+        );
+        yield* Effect.callback<void, string>((resume) =>
+          whenOpen(
+            socket,
+            () => resume(Effect.void),
+            () => resume(Effect.fail(`No relay at ${url}`)),
+          ),
         );
         return { socket, heard };
       }),

@@ -58,7 +58,8 @@ fold-kit-experiments/
 │   ├── web/               — demo Astro app, chart workbenches and interactive Storybook
 │   ├── promo/             — Foldkit Viz promo site: Astro, light/dark themes
 │   ├── three-promo/       — effect-three promo site: same layout and themes, live 3D examples
-│   └── tech-radar/        — standalone tech radar: the 3D radar and full pages, from markdown
+│   ├── tech-radar/        — standalone tech radar: the 3D radar and full pages, from markdown
+│   └── docs/              — docs/ as a Starlight site: decisions, spikes, releases, working notes
 ├── infra/
 │   └── tech-radar/        — Alchemy stack deploying the tech radar to Cloudflare
 └── packages/
@@ -85,6 +86,7 @@ bun dev          # demo app at http://localhost:4321
 bun run dev:promo # promo site at http://localhost:4322
 bun run dev:three-promo # effect-three promo site at http://localhost:4323
 bun run dev:tech-radar # tech radar at http://localhost:4326
+bun run dev:docs # docs site at http://localhost:4327
 bun storybook    # chart storybook at http://localhost:6006
 ```
 
@@ -149,6 +151,7 @@ declared outside the catalog or a published package's version drifts from it.
 | `bun run dev:promo`       | Start the promo site at `localhost:4322`              |
 | `bun run dev:three-promo` | Start the effect-three promo site at `localhost:4323` |
 | `bun run dev:tech-radar`  | Start the tech radar at `localhost:4326`              |
+| `bun run dev:docs`        | Start the docs site at `localhost:4327`               |
 | `bun run test`            | Run all workspace test scripts sequentially           |
 | `bun typecheck`           | Typecheck all workspaces                              |
 | `bun run check`           | oxlint + oxfmt format check                           |
@@ -169,6 +172,7 @@ bun run --filter @opsydyn/web dev
 - **[effect-three](https://opsydyn.github.io/fold-kit-experiments/three/)** — live 3D examples, their source and a guide
 - **[Charts](https://opsydyn-web.opsydyn.workers.dev/charts)** — live demo app (Cloudflare Workers)
 - **[Tech radar](https://tech-radar-techradar-prod-p2g6lgx4bmhwwuk5.opsydyn.workers.dev/)** — the 3D tech radar and its full pages, from markdown (Cloudflare Workers)
+- **[Docs](https://opsydyn.github.io/fold-kit-experiments/docs/)** — decisions, spikes, releases and working notes, from `docs/` (GitHub Pages)
 - **[Storybook](https://opsydyn.github.io/fold-kit-experiments/)** — interactive chart explorer (GitHub Pages)
 - **[API reference](https://opsydyn.github.io/fold-kit-experiments/api/)** — foldkit-viz TypeDoc (GitHub Pages)
 

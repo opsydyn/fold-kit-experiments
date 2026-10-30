@@ -1,0 +1,23 @@
+{
+  "name": "@opsydyn/docs",
+  "private": true,
+  "description": "The repository's docs/ folder as a Starlight site: decisions, spikes, releases and working notes.",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "bun test ./test",
+    "typecheck": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "catalog:",
+    "astro": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "@types/hast": "catalog:",
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
+  }
+}

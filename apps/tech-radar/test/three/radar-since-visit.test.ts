@@ -4,6 +4,7 @@ import { Option } from 'effect';
 
 import { Message } from '../../src/radar/three/message';
 import { editionsOf } from '../../src/radar/three/model';
+import { editionTour } from '../../src/radar/three/tour';
 import { init, update } from '../../src/radar/three/update';
 import { demoRadar } from '../../src/test/fixture';
 
@@ -33,5 +34,25 @@ describe('since your last visit', () => {
     expect(update(shown, Message.ClickedDismissSinceVisit()).model.sinceVisit).toEqual(
       Option.none(),
     );
+  });
+});
+
+describe("an edition's own tour", () => {
+  test('flies to each change in the edition, captioned with it', () => {
+    const last = editions.length - 1;
+    const recording = Option.getOrThrow(editionTour(start, last));
+    expect(recording.start).toBe('');
+    expect(recording.steps.length).toBe((recording.captions ?? []).length);
+    expect(recording.captions).toContain('FoldKit moved from Trial to Adopt');
+    expect(Option.isNone(editionTour(start, 0))).toBe(true);
+  });
+
+  test('plays from a tour=edition link, starting at that edition', () => {
+    const linked = init({
+      dataset: demoRadar,
+      link: { edition: editions[1]?.authoredOn ?? '', tour: 'edition' },
+    }).model;
+    expect(linked.tour._tag).toBe('Playing');
+    expect(linked.edition).toBe(1);
   });
 });

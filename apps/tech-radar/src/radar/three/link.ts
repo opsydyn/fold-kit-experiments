@@ -29,6 +29,8 @@ export type DeepLink = Readonly<{
   rings: Option.Option<ReadonlyArray<Ring>>;
   edges: Option.Option<'off'>;
   theme: Option.Option<Theme>;
+  /** `tour=edition`: play the linked edition's own tour on arrival. */
+  tour: Option.Option<'edition'>;
 }>;
 
 /** A link's query parameters, as the page hands them over. */
@@ -82,6 +84,10 @@ export const decodeLink = (params: LinkParams): DeepLink => ({
   rings: Option.flatMap(param(params, 'rings'), ringsFrom),
   edges: Option.flatMap(param(params, 'edges'), Schema.decodeUnknownOption(Schema.Literal('off'))),
   theme: Option.flatMap(param(params, 'theme'), Schema.decodeUnknownOption(Theme)),
+  tour: Option.flatMap(
+    param(params, 'tour'),
+    Schema.decodeUnknownOption(Schema.Literal('edition')),
+  ),
 });
 
 /** Whether the camera is aimed exactly where `camera` would put it. */

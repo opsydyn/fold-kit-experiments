@@ -51,6 +51,7 @@ export const Message = defineMessageUnion({
   ClickedRecord: {},
   ClickedStopRecording: {},
   ClickedPlayTour: {},
+  ClickedEditionTour: {},
   ClickedStopTour: {},
   AdvancedTour: { deltaTimeMs: Schema.Number },
   ClickedSaveTour: {},

@@ -7,6 +7,7 @@ entry. The plan is `docs/superpowers/plans/2026-10-28-tech-radar-app.md`.
 bun dev:tech-radar   # → localhost:4326
 bun run --filter @opsydyn/tech-radar test
 bun run --filter @opsydyn/tech-radar typecheck
+bun run --filter @opsydyn/tech-radar previews   # render the link previews
 ```
 
 ## Pages
@@ -18,6 +19,7 @@ bun run --filter @opsydyn/tech-radar typecheck
 | `/edition/<date>/blip/<id>/` | at build    | An entry's full page as it stood in an earlier edition       |
 | `/edition/<date>/`           | at build    | An edition: its notes, what changed, its entries by category |
 | `/category/<id>/`            | at build    | A category's entries in the current edition, by ring         |
+| `/tag/<tag>/`                | at build    | A tag's entries in the current edition, by ring              |
 | `404`                        | at build    | Unknown addresses                                            |
 
 - **Deep links:** `/?entry=futhark&theme=paragon`, with `&edition=2026-02-14` for an
@@ -26,6 +28,11 @@ bun run --filter @opsydyn/tech-radar typecheck
   being viewed.
 - **The full pages need no JavaScript.** The movement chart is an SVG drawn at build time,
   with a table of the same values.
+- **Link previews:** every page but the 404 has a 1200×630 card at
+  `/preview/<path>.png` (`/preview/radar.png` for `/`): what the page is, a line about it,
+  and a small radar with its entries lit. `scripts/previews.ts` renders them with satori
+  and sharp into `public/preview/` (ignored by git) before `dev` and the deploy. It runs on
+  Bun, not as an Astro endpoint, because the production build prerenders in workerd.
 - `src/radar/pages.ts` works out what each page shows, and is tested in
   `test/pages.test.ts`.
 
@@ -52,7 +59,12 @@ related: # relationships it starts
   - to: elm
     type: inspired-by # builds-on, complements, inspired-by, guards-against or alternative-to
     note: "FoldKit's Model, Message and update loop follow the Elm Architecture."
+tags: [typescript, functional, web] # optional: lowercase words joined by hyphens
+author: A name # optional: who wrote the write-up
+decision: https://example.com/adr/0007 # optional: the decision record behind its ring
 ---
+
+The write-up: what it is, why it is in its ring, and when it moved.
 ```
 
 `src/radar/content.ts` assembles the files into the radar's dataset at build time. A bad

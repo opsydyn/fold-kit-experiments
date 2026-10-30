@@ -8,6 +8,7 @@ import { Result, Schema } from 'effect';
 
 import { assembleRadar, EditionFile, entriesByTag, RadarFile } from './content';
 import { editionsIn } from './pages';
+import { previewsOf } from './preview';
 import type { Category } from './three/data';
 import type { Pages } from './three/model';
 
@@ -53,3 +54,6 @@ export const pages: Pages = {
   entry: '/blip/{id}/',
   editionEntry: '/edition/{edition}/blip/{id}/',
 };
+
+/** Every page's link preview, served under `/preview/`. */
+export const previews = previewsOf(radar, editions, tags, { title: radarTitle, intro: radarIntro });

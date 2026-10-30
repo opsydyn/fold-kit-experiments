@@ -4,7 +4,8 @@
  * preview (Open Graph, read by chat apps and social sites) and where the feed and sitemap
  * are. Every address is on the published site, wherever the page is served from.
  */
-import { radarTitle } from '../radar/radar';
+import { previewPath } from '../radar/preview';
+import { previews, radarTitle } from '../radar/radar';
 
 interface Props {
   title: string;
@@ -15,6 +16,11 @@ const site = Astro.site ?? Astro.url;
 const canonical = new URL(Astro.url.pathname, site).href;
 // A deep link's query is the view it opens, so the preview links to it in full.
 const shared = new URL(Astro.url.pathname + Astro.url.search, site).href;
+// The page's card, where it has one (every page but the 404 does).
+const card = previewPath(Astro.url.pathname);
+const image = previews.some(({ path }) => path === card)
+  ? new URL(`/preview/${card}.png`, site).href
+  : undefined;
 ---
 
 <meta name="description" content={description} />
@@ -24,6 +30,16 @@ const shared = new URL(Astro.url.pathname + Astro.url.search, site).href;
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
 <meta property="og:url" content={shared} />
-<meta name="twitter:card" content="summary" />
+{
+  image !== undefined && (
+    <>
+      <meta property="og:image" content={image} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={`${title}: ${description}`} />
+    </>
+  )
+}
+<meta name="twitter:card" content={image === undefined ? 'summary' : 'summary_large_image'} />
 <link rel="alternate" type="application/atom+xml" title={`${radarTitle} editions`} href="/feed.xml" />
 <link rel="sitemap" href="/sitemap.xml" />

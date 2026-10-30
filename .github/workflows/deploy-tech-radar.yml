@@ -60,6 +60,9 @@ jobs:
       - name: Build the workspace packages the site uses
         run: bun run --filter @opsydyn/tech-radar prebuild-packages
 
+      - name: Render the link previews
+        run: bun run --filter @opsydyn/tech-radar previews
+
       - name: Check the Cloudflare credentials are set
         working-directory: infra/tech-radar
         run: bunx alchemy provider check-env --no-input

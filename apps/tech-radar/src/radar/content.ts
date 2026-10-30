@@ -7,7 +7,8 @@
  *   The newest is the current edition.
  * - Every entry is a file in `entries/`, named by its id. Its `ring` is the current one;
  *   `history` lists the earlier editions it was on and its ring then; `related` lists the
- *   relationships it starts.
+ *   relationships it starts. `author`, `tags` and `decision` (a link to the decision
+ *   record behind its placement) are optional, and the body is its write-up.
  *
  * A failure names the file it comes from, so a bad edit stops the build with its cause.
  *
@@ -71,6 +72,9 @@ export const EntryFile = Schema.Struct({
   source: Schema.String,
   history: Schema.optionalKey(Schema.Array(Placement)),
   related: Schema.optionalKey(Schema.Array(Related)),
+  author: Schema.optionalKey(Schema.String),
+  tags: Schema.optionalKey(Schema.Array(Schema.String)),
+  decision: Schema.optionalKey(Schema.String),
 });
 export type EntryFile = typeof EntryFile.Type;
 
@@ -101,6 +105,9 @@ const checkEdition = (edition: Edition): Result.Result<Edition, string> =>
     ? Result.succeed(edition)
     : Result.fail(`editions/${edition.id}.md: its date, ${edition.date}, must be its file name`);
 
+/** A tag is its own page's address, so it is lowercase words joined by hyphens. */
+const tagPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
 /** An entry's history names earlier editions, once each; its relationships, other entries. */
 const checkEntry =
   (earlier: ReadonlySet<string>, ids: ReadonlySet<string>) =>
@@ -109,13 +116,16 @@ const checkEntry =
     const editions = (entry.history ?? []).map(({ edition }) => edition);
     const unknownEdition = editions.find((edition) => !earlier.has(edition));
     const unknownEntry = (entry.related ?? []).find(({ to }) => !ids.has(to) || to === entry.id);
+    const badTag = (entry.tags ?? []).find((tag) => !tagPattern.test(tag));
     return unknownEdition !== undefined
       ? Result.fail(`${file}: history names ${unknownEdition}, which is not an earlier edition`)
       : new Set(editions).size < editions.length
         ? Result.fail(`${file}: history names an edition twice`)
         : unknownEntry !== undefined
           ? Result.fail(`${file}: related names ${unknownEntry.to}, which is not another entry`)
-          : Result.succeed(entry);
+          : badTag !== undefined
+            ? Result.fail(`${file}: the tag ${badTag} must be lowercase words joined by hyphens`)
+            : Result.succeed(entry);
   };
 
 /** The entry as the radar holds it, checked alone so a bad field names its file. */
@@ -194,3 +204,19 @@ export const assembleRadar = (files: {
       ? Result.succeed(checked.dataset)
       : Result.fail(`The radar: ${checked.reason}`);
   });
+
+/** Each tag and the ids of the entries that carry it, tags in alphabetical order. */
+export const entriesByTag = (
+  entries: ReadonlyArray<ContentFile>,
+): ReadonlyArray<{ readonly tag: string; readonly ids: ReadonlyArray<string> }> => {
+  const tagged = entries.flatMap(({ id, data }) =>
+    Result.match(Schema.decodeUnknownResult(EntryFile)(data), {
+      onFailure: () => [],
+      onSuccess: ({ tags }) => (tags ?? []).map((tag) => ({ tag, id })),
+    }),
+  );
+  return Arr.sort(new Set(tagged.map(({ tag }) => tag)), Order.String).map((tag) => ({
+    tag,
+    ids: tagged.filter((pair) => pair.tag === tag).map(({ id }) => id),
+  }));
+};

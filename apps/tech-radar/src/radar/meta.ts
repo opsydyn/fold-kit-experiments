@@ -140,9 +140,11 @@ export const feedXml = (
 export const sitePaths = (
   dataset: RadarDataset,
   editions: ReadonlyArray<EditionInfo>,
+  tagNames: ReadonlyArray<string> = [],
 ): ReadonlyArray<string> => [
   '/',
   ...categoryIds.map((id) => `/category/${id}/`),
+  ...tagNames.map((tag) => `/tag/${tag}/`),
   ...editions.map(({ date }) => `/edition/${date}/`),
   ...dataset.entries.map(({ id }) => `/blip/${id}/`),
   ...editionEntryPaths(dataset, editions).map(({ date, id }) => `/edition/${date}/blip/${id}/`),

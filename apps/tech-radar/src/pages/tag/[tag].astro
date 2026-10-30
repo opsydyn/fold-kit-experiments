@@ -1,0 +1,143 @@
+---
+/*
+ * A tag at the current edition: every entry that carries it, a ring at a time, across the
+ * categories.
+ */
+import PageLayout from '../../layouts/PageLayout.astro';
+import { radar, ringMeanings, tags } from '../../radar/radar';
+import { categoryLabels, ringIds, ringLabels } from '../../radar/three/data';
+
+// Built ahead and served as a static asset; only `/` renders per request.
+export const prerender = true;
+
+export const getStaticPaths = () =>
+  tags.map(({ tag, ids }) => ({ params: { tag }, props: { ids } }));
+
+const { tag } = Astro.params;
+const { ids } = Astro.props;
+const entries = radar.entries.filter(({ id }) => ids.includes(id));
+const rings = ringIds
+  .map((ring) => ({ ring, inRing: entries.filter((entry) => entry.ring === ring) }))
+  .filter(({ inRing }) => inRing.length > 0);
+const others = tags.filter((other) => other.tag !== tag);
+const count = `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`;
+---
+
+<PageLayout title={`#${tag}`} description={`${count} on the radar tagged ${tag}.`} wide>
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Radar</a> › <span aria-current="page">#{tag}</span>
+  </nav>
+  <h1>#{tag}</h1>
+  <p class="muted">{count} tagged {tag}, from Adopt to Caution.</p>
+
+  {
+    rings.map(({ ring, inRing }) => (
+      <section aria-labelledby={`ring-${ring}`}>
+        <h2 id={`ring-${ring}`}>{ringLabels[ring]}</h2>
+        <p class="muted meaning">{ringMeanings[ring]}</p>
+        <ul class="cards">
+          {inRing.map((entry) => (
+            <li class="card" style={`--series: var(--category-${entry.category})`}>
+              <a class="card-title" href={`/blip/${entry.id}/`}>
+                {entry.name}
+              </a>
+              <p class="card-meta muted data">
+                <span class="swatch" aria-hidden="true" />
+                {categoryLabels[entry.category]}
+              </p>
+              <p>{entry.description}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+
+  <nav class="others" aria-label="Other tags">
+    <h2>Other tags</h2>
+    <ul>
+      {
+        others.map((other) => (
+          <li>
+            <a href={`/tag/${other.tag}/`}>
+              #{other.tag} <span class="muted">{other.ids.length}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</PageLayout>
+
+<style>
+  .breadcrumb {
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .meaning {
+    margin-top: -0.5rem;
+    font-size: 0.95rem;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 0.75rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .card {
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--series);
+    background: var(--surface);
+  }
+
+  .card p {
+    margin: 0.3rem 0 0;
+  }
+
+  .card-title {
+    font-weight: 600;
+  }
+
+  .card-meta {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+
+  .swatch {
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 999px;
+    background: var(--series);
+  }
+
+  .others {
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .others ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .others a {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    text-decoration: none;
+  }
+</style>

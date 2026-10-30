@@ -8,11 +8,13 @@ import { advanceComet } from './comet';
 import {
   CopyLink,
   FocusSearch,
+  LoadLastVisit,
   LoadThemeChoice,
   LoadTour,
   LoadTypeface,
   OpenPage,
   ReplaceLink,
+  SaveLastVisit,
   SaveThemeChoice,
   SaveTour,
   SaveTypeface,
@@ -49,7 +51,7 @@ import type { Shortcut } from './shortcuts';
 import { zoomedPosition, zoomLimits } from './space';
 import { advanceStackEgg, stackClockAfter } from './stack';
 import { summonedMonolith } from './summon';
-import { playStep } from './timeline';
+import { changesBetween, playStep } from './timeline';
 import {
   captionOf,
   idleTour,
@@ -409,6 +411,7 @@ export const init = (props: RadarProps): AppReturn => {
   const commands = [
     ...Option.match(link.theme, { onNone: () => [LoadThemeChoice()], onSome: () => [] }),
     LoadTypeface(),
+    LoadLastVisit(),
   ];
   return { model: withSearchText(model), commands };
 };
@@ -453,6 +456,24 @@ const steppedEntry = (model: Model, offset: number): Option.Option<string> => {
     onSome: (id) => ids.indexOf(id),
   });
   return Option.fromNullishOr(ids[(at + offset + ids.length) % Math.max(1, ids.length)]);
+};
+
+/**
+ * A returning reader: what changed between the edition they last saw and the current one,
+ * if that is an earlier edition; then the current edition is remembered as seen.
+ */
+const returned = (model: Model, lastSeen: string | null): AppReturn => {
+  const editions = editionsOf(model);
+  const current = editions.length - 1;
+  const seen = editions.findIndex(({ authoredOn }) => authoredOn === lastSeen);
+  const changes = seen >= 0 && seen < current ? changesBetween(model, seen, current) : [];
+  const label = editions[seen]?.label ?? '';
+  const sinceVisit = changes.length > 0 ? Option.some({ label, changes }) : Option.none();
+  const remember = Option.match(Option.fromNullishOr(editions[current]), {
+    onNone: () => [],
+    onSome: ({ authoredOn }) => [SaveLastVisit({ edition: authoredOn })],
+  });
+  return { model: { ...model, sinceVisit }, commands: remember };
 };
 
 /** The entry chosen, if there is one, as a click in the list would. */
@@ -549,6 +570,9 @@ const step = (model: Model, message: Message): AppReturn =>
     ClickedShortcuts: () => ({ model: { ...model, shortcutsOpen: !model.shortcutsOpen } }),
     CompletedFocusSearch: () => ({ model }),
     CompletedOpenPage: () => ({ model }),
+    SucceededLoadLastVisit: ({ edition }) => returned(model, edition),
+    CompletedSaveLastVisit: () => ({ model }),
+    ClickedDismissSinceVisit: () => ({ model: { ...model, sinceVisit: Option.none() } }),
     GotTooltipMessage: ({ control, message }) => foldTooltip(model, control, message),
     GotSearchMessage: ({ message }) => searchStep(model, message),
     MadeGesture: ({ gesture }) => ({

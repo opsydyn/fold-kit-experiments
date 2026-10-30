@@ -85,6 +85,31 @@ const addressFor = (query: string): string =>
   )}${globalThis.location.hash}`;
 
 /** The address on the clipboard; a refusal (no permission, no clipboard) is reported. */
+/** Where the current edition the reader last saw is kept, by its date. */
+export const visitStorage = { key: 'radar-last-visit' } as const;
+
+/** The edition the reader last saw, or null on a first visit or without storage. */
+export const LoadLastVisit = Command.define('LoadLastVisit', {
+  messages: [Message.SucceededLoadLastVisit],
+  execute: Effect.try(() => globalThis.localStorage.getItem(visitStorage.key)).pipe(
+    Effect.orElseSucceed(() => null),
+    Effect.map((edition) => Message.SucceededLoadLastVisit({ edition })),
+  ),
+});
+
+/** Remembers the current edition as seen; a refusal is quietly forgotten. */
+export const SaveLastVisit = Command.define('SaveLastVisit', {
+  args: { edition: Schema.String },
+  messages: [Message.CompletedSaveLastVisit],
+  execute: ({ edition }) =>
+    Effect.try(() => globalThis.localStorage.setItem(visitStorage.key, edition)).pipe(
+      Effect.match({
+        onFailure: () => Message.CompletedSaveLastVisit(),
+        onSuccess: () => Message.CompletedSaveLastVisit(),
+      }),
+    ),
+});
+
 /** Puts the cursor in the search box: the `/` shortcut. */
 export const FocusSearch = Command.define('FocusSearch', {
   messages: [Message.CompletedFocusSearch],

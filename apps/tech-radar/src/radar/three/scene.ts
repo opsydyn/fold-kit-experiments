@@ -48,7 +48,7 @@ import {
   starField,
 } from './bodies';
 import { lighten } from './colours';
-import { comparedWith, movesOf } from './compare';
+import { comparisonMarks } from './compareMarks';
 import {
   categoryIds,
   categoryLabels,
@@ -998,38 +998,6 @@ const renderingFor = (model: Model) =>
     resolution: model.input === 'touch' && model.denseScreen ? 0.7 : 1,
   });
 
-/**
- * Two editions side by side (see compare.ts): a faint ghost where each changed entry stood
- * in the earlier one, and a line from there to where it stands, solid for a move between
- * rings and dashed for one that joined or left the radar.
- */
-const comparisonNodes = (model: Model): ReadonlyArray<SceneNode> =>
-  Option.match(comparedWith(model), {
-    onNone: () => [],
-    onSome: (from) =>
-      movesOf(model, from).flatMap(
-        (move): ReadonlyArray<SceneNode> => [
-          ...[
-            mesh({
-              key: `ghost:${move.id}`,
-              geometry: sharedGeometry(`body:${bodyOf[move.category]}`),
-              material: sharedMaterial(`ghost:${move.category}`),
-              position: move.from,
-            }),
-          ].filter(() => move.kind !== 'joined'),
-          line({
-            key: `move:${move.id}`,
-            points: [move.from, move.to],
-            color: tokensOf(model).categories[move.category],
-            width: 2,
-            opacity: 0.85,
-            transparent: true,
-            ...(move.kind === 'moved' ? dashes.solid : dashes.dashed),
-          }),
-        ],
-      ),
-  });
-
 /** The Model's camera, its field of view widened for a portrait stage (see stageSize.ts). */
 const fitted = (camera: Camera, aspect: number): Camera =>
   camera._tag === 'Perspective' ? { ...camera, fov: fovFor(camera.fov, aspect) } : camera;
@@ -1061,7 +1029,7 @@ export const sceneFor = (model: Model) => {
         .filter(() => settled)
         .map((relationship) => edgeNode(model, relationship)),
       ...labelNodes(model).filter(() => settled),
-      ...comparisonNodes(model).filter(() => settled),
+      ...comparisonMarks(model, tokensOf(model)).filter(() => settled),
       ...eggNodes(model),
     ],
   });

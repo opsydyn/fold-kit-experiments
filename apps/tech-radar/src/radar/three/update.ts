@@ -515,8 +515,9 @@ const advanceMoves = (model: Model, deltaTimeMs: number): Model =>
       const next = clock + deltaTimeMs;
       const playback =
         next >= moveHold + moveGlide ? Option.none() : Option.some({ to, clock: next });
+      // Back on the shown edition, the arrivals play again as the blips glide.
       return next >= moveHold && model.edition !== to
-        ? reconcile({ ...model, edition: to, movePlayback: playback })
+        ? reconcile({ ...model, edition: to, movePlayback: playback, compareClock: 0 })
         : { ...model, movePlayback: playback };
     },
   });
@@ -689,10 +690,14 @@ const step = (model: Model, message: Message): AppReturn =>
           (from) => from >= 0 && from < model.edition,
         ),
         movePlayback: Option.none(),
+        compareClock: 0,
       },
     }),
     ClickedPlayMoves: () => ({ model: playMoves(model) }),
     AdvancedMoves: ({ deltaTimeMs }) => ({ model: advanceMoves(model, deltaTimeMs) }),
+    AdvancedArrivals: ({ deltaTimeMs }) => ({
+      model: { ...model, compareClock: model.compareClock + deltaTimeMs },
+    }),
     ClickedPlay: () => ({ model: togglePlay(model) }),
     AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
     HoveredEgg: ({ key }) => ({ model: visitEgg(model, key) }),

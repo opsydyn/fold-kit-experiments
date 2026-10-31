@@ -697,7 +697,7 @@ const comparisonChanges = (model: Model, h: HtmlBuilder<Message>, from: number):
     ? h.p([h.Class('e3-note'), h.AriaLive('polite')], ['Nothing changed between them.'])
     : h.ul(
         [h.Class('e3-timeline-changes e3-compare-changes'), h.AriaLive('polite')],
-        moves.map(({ id, text }) =>
+        moves.map(({ id, glyph, kind, text }) =>
           h.li(
             [],
             [
@@ -707,7 +707,13 @@ const comparisonChanges = (model: Model, h: HtmlBuilder<Message>, from: number):
                   h.Type('button'),
                   h.OnClick(Message.ClickedFlyTo({ id })),
                 ],
-                [text],
+                [
+                  h.span(
+                    [h.Class(`e3-compare-glyph e3-compare-${kind}`), h.AriaHidden(true)],
+                    [glyph],
+                  ),
+                  text,
+                ],
               ),
             ],
           ),
@@ -784,6 +790,10 @@ const comparisonControls = (model: Model, h: HtmlBuilder<Message>): ReadonlyArra
             ].filter(() => Option.isSome(comparedWith(model)) || playing),
           ],
         ),
+        // What the marks mean, while there is a comparison to read.
+        ...[
+          h.p([h.Class('e3-compare-legend')], ['▲▼ moved in or out · ✦ new · ↺ back · ◌ left']),
+        ].filter(() => Option.isSome(comparedWith(model))),
       ];
 };
 

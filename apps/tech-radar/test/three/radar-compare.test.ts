@@ -2,7 +2,15 @@ import { describe, expect, test } from 'bun:test';
 
 import { Option } from 'effect';
 
-import { comparedWith, moveGlide, moveHold, movesOf } from '../../src/radar/three/compare';
+import {
+  arrivalLength,
+  arrivalProgress,
+  arriving,
+  comparedWith,
+  moveGlide,
+  moveHold,
+  movesOf,
+} from '../../src/radar/three/compare';
 import { decodeLink, linkOf } from '../../src/radar/three/link';
 import { Message } from '../../src/radar/three/message';
 import { editionsOf, type Model } from '../../src/radar/three/model';
@@ -18,22 +26,55 @@ const comparing = step(start, Message.ChoseComparison({ index: 1 }));
 const keys = (model: Model) => sceneFor(model).children.map(({ key }) => key);
 
 describe('comparing two editions', () => {
-  test('finds each entry that moved, joined or left between them', () => {
+  test('tells each change apart: in, out, new, back or gone', () => {
     const moves = movesOf(comparing, 1);
     const foldkit = moves.find(({ id }) => id === 'foldkit');
-    expect(foldkit?.kind).toBe('moved');
-    expect(foldkit?.text).toBe('FoldKit moved from Trial to Adopt');
-    expect(moves.find(({ id }) => id === 'pi')?.kind).toBe('joined');
-    expect(moves.every(({ from, to }) => from.join() !== to.join())).toBe(true);
+    expect(foldkit?.kind).toBe('in');
+    expect(foldkit?.glyph).toBe('▲');
+    expect(foldkit?.text).toBe('FoldKit · Trial → Adopt');
+    expect(moves.find(({ id }) => id === 'pi')?.kind).toBe('new');
+    expect(moves.find(({ id }) => id === 'pi')?.text).toBe('Pi · new in Trial');
   });
 
-  test('draws a ghost where a moved entry stood and a line to where it stands', () => {
-    expect(keys(comparing)).toContain('ghost:foldkit');
-    expect(keys(comparing)).toContain('move:foldkit');
-    // A newcomer had nowhere to stand: a line in from beyond the radar, no ghost.
-    expect(keys(comparing)).toContain('move:pi');
-    expect(keys(comparing)).not.toContain('ghost:pi');
+  test('knows an entry that was on the radar before, then off it, is back', () => {
+    const third = step(start, Message.ChoseComparison({ index: 2 }));
+    const futhark = movesOf(third, 2).find(({ id }) => id === 'futhark');
+    expect(futhark?.kind).toBe('returned');
+    expect(futhark?.glyph).toBe('↺');
+  });
+
+  test('marks each kind its own way', () => {
+    const third = step(start, Message.ChoseComparison({ index: 2 }));
+    expect(keys(third)).toEqual(
+      expect.arrayContaining(['ghost:foldkit', 'move:foldkit', 'chevron:foldkit']),
+    );
+    expect(keys(third)).toEqual(expect.arrayContaining(['halo:pi', 'flare:pi', 'burst:pi']));
+    expect(keys(third)).toEqual(expect.arrayContaining(['comet:futhark', 'comet-head:futhark']));
+    expect(keys(third)).not.toContain('ghost:pi');
     expect(keys(start).some((key) => key.startsWith('move:'))).toBe(false);
+  });
+
+  test('settles the arrivals into their resting marks', () => {
+    const third = step(start, Message.ChoseComparison({ index: 2 }));
+    expect(arriving(third)).toBe(true);
+    const settled = step(third, Message.AdvancedArrivals({ deltaTimeMs: arrivalLength }));
+    expect(arriving(settled)).toBe(false);
+    // The flare and burst burn out; the halo and the comet's tail stay.
+    expect(keys(settled)).toEqual(expect.arrayContaining(['halo:pi', 'comet:futhark']));
+    expect(keys(settled)).not.toContain('flare:pi');
+    expect(keys(settled)).not.toContain('comet-head:futhark');
+    // Under reduced motion the marks rest from the start.
+    const still = step(third, Message.ChangedReducedMotion({ isReducedMotion: true }));
+    expect(arrivalProgress(still)).toBe(1);
+    expect(keys(still)).not.toContain('flare:pi');
+  });
+
+  test('draws an event horizon where an entry that left stood', () => {
+    const left = movesOf({ ...start, edition: 2, comparing: Option.some(1) }, 1).find(
+      ({ kind }) => kind === 'left',
+    );
+    expect(left?.glyph).toBe('◌');
+    expect(left?.from).toEqual(left?.to);
   });
 
   test('only ever compares with an earlier edition', () => {

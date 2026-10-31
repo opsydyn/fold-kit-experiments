@@ -4,6 +4,7 @@ import { Match, Option } from 'effect';
 import type { Attribute, Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { bodyLabels, bodyOf } from './bodies';
+import { comparedWith, movesOf } from './compare';
 import {
   categoryIds,
   categoryLabels,
@@ -683,7 +684,38 @@ const doubleClickedAt = (key: string): Message =>
   );
 
 /** What changed in the shown edition, or that it is where the radar began. */
-const changeList = (model: Model, h: HtmlBuilder<Message>): Html => {
+const changeList = (model: Model, h: HtmlBuilder<Message>): Html =>
+  Option.match(comparedWith(model), {
+    onNone: () => editionChanges(model, h),
+    onSome: (from) => comparisonChanges(model, h, from),
+  });
+
+/** What changed between the compared edition and the shown one, each a flight to its entry. */
+const comparisonChanges = (model: Model, h: HtmlBuilder<Message>, from: number): Html => {
+  const moves = movesOf(model, from);
+  return moves.length === 0
+    ? h.p([h.Class('e3-note'), h.AriaLive('polite')], ['Nothing changed between them.'])
+    : h.ul(
+        [h.Class('e3-timeline-changes e3-compare-changes'), h.AriaLive('polite')],
+        moves.map(({ id, text }) =>
+          h.li(
+            [],
+            [
+              h.button(
+                [
+                  h.Class('e3-since-change'),
+                  h.Type('button'),
+                  h.OnClick(Message.ClickedFlyTo({ id })),
+                ],
+                [text],
+              ),
+            ],
+          ),
+        ),
+      );
+};
+
+const editionChanges = (model: Model, h: HtmlBuilder<Message>): Html => {
   const changes = changesIn(model, model.edition);
   return Match.value({ first: model.edition === 0, quiet: changes.length === 0 }).pipe(
     Match.when({ first: true }, () =>
@@ -705,6 +737,56 @@ const changeList = (model: Model, h: HtmlBuilder<Message>): Html => {
  * The radar over time: play through its editions, or scrub to one, and the blips move
  * between shells as their rings changed, joining as they arrived.
  */
+/**
+ * Two editions side by side: pick an earlier edition to compare the shown one with, and
+ * play the moves between them. Only offered when there is an earlier edition.
+ */
+const comparisonControls = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const editions = editionsOf(model);
+  const earlier = editions.slice(0, model.edition);
+  const chosen = Option.getOrElse(
+    Option.map(comparedWith(model), (from) => String(from)),
+    () => 'none',
+  );
+  const playing = Option.isSome(model.movePlayback);
+  return earlier.length === 0
+    ? []
+    : [
+        h.div(
+          [h.Class('e3-controls e3-compare')],
+          [
+            h.select(
+              [
+                h.Class('e3-text'),
+                h.AriaLabel('Compare with an earlier edition'),
+                h.Value(chosen),
+                h.OnChange((value) =>
+                  Message.ChoseComparison({ index: value === 'none' ? null : Number(value) }),
+                ),
+              ],
+              [
+                h.option([h.Value('none')], ['Compare with…']),
+                ...earlier.map(({ label }, index) =>
+                  h.option([h.Value(String(index))], [`↔ ${label}`]),
+                ),
+              ],
+            ),
+            ...[
+              h.button(
+                [
+                  h.Class('e3-button'),
+                  h.Type('button'),
+                  h.Disabled(playing || model.reducedMotion),
+                  h.OnClick(Message.ClickedPlayMoves()),
+                ],
+                [playing ? 'Playing…' : '▶ Play the moves'],
+              ),
+            ].filter(() => Option.isSome(comparedWith(model)) || playing),
+          ],
+        ),
+      ];
+};
+
 /** The shown edition's own tour, when it changed anything and no tour is playing. */
 const editionTourButton = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   changesIn(model, model.edition).length > 0 && model.tour._tag !== 'Playing'
@@ -767,6 +849,7 @@ const timeline = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
           ],
           [changeList(model, h)],
         ),
+        ...comparisonControls(model, h),
         ...editionTourButton(model, h),
       ],
     ),

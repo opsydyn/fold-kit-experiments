@@ -29,6 +29,8 @@ export type DeepLink = Readonly<{
   rings: Option.Option<ReadonlyArray<Ring>>;
   edges: Option.Option<'off'>;
   theme: Option.Option<Theme>;
+  /** `compare=<date>`: an earlier edition to compare the linked one with. */
+  compare: Option.Option<string>;
   /** `tour=edition`: play the linked edition's own tour on arrival. */
   tour: Option.Option<'edition'>;
 }>;
@@ -84,6 +86,7 @@ export const decodeLink = (params: LinkParams): DeepLink => ({
   rings: Option.flatMap(param(params, 'rings'), ringsFrom),
   edges: Option.flatMap(param(params, 'edges'), Schema.decodeUnknownOption(Schema.Literal('off'))),
   theme: Option.flatMap(param(params, 'theme'), Schema.decodeUnknownOption(Theme)),
+  compare: matching(params, 'compare', calendarDate),
   tour: Option.flatMap(
     param(params, 'tour'),
     Schema.decodeUnknownOption(Schema.Literal('edition')),
@@ -138,6 +141,14 @@ const editionParam = (model: Model): Option.Option<string> => {
   );
 };
 
+/** The earlier edition being compared with, by its date. */
+const compareParam = (model: Model): Option.Option<string> =>
+  Option.flatMap(
+    Option.filter(model.comparing, (from) => from < model.edition),
+    (from) =>
+      Option.map(Option.fromNullishOr(editionsOf(model)[from]), ({ authoredOn }) => authoredOn),
+  );
+
 /** The filters a link carries: only those that differ from the radar as it opens. */
 const ringsParam = (model: Model): Option.Option<string> =>
   Option.map(
@@ -150,6 +161,7 @@ export const linkOf = (model: Model): string => {
   const parts: ReadonlyArray<readonly [string, Option.Option<string>]> = [
     ['entry', model.selected],
     ['edition', editionParam(model)],
+    ['compare', compareParam(model)],
     ['view', Option.map(standpointOf(model), standpointParam)],
     ['q', Option.liftPredicate(model.query.trim(), (query) => query.length > 0)],
     // "all" is no category, so it decodes to nothing and stays out of the link.

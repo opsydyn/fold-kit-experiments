@@ -21,6 +21,7 @@ import {
   SaveTour,
   SaveTypeface,
 } from './command';
+import { comparedWith, moveGlide, moveHold } from './compare';
 import { decodeRadarDataset, ringIds, type Ring } from './data';
 import { idOfSaucer } from './easter';
 import { advanceInvasion } from './invaders';
@@ -329,7 +330,11 @@ const orbited = (model: Model, gesture: Gesture): Model =>
 
 /** The edition a link names by its date, if this radar has one of that date. */
 const editionIndex = (model: Model, link: DeepLink): Option.Option<number> =>
-  Option.flatMap(link.edition, (date) =>
+  indexOfDate(model, link.edition);
+
+/** The index of the edition dated `date`, if there is one. */
+const indexOfDate = (model: Model, date: Option.Option<string>): Option.Option<number> =>
+  Option.flatMap(date, (date) =>
     Option.liftPredicate(
       editionsOf(model).findIndex(({ authoredOn }) => authoredOn === date),
       (index) => index >= 0,
@@ -355,6 +360,7 @@ export const applyLink = (model: Model, link: DeepLink): Model => {
     category,
     enabledRings,
     showRelationships: Option.isNone(link.edges) && model.showRelationships,
+    comparing: Option.filter(indexOfDate(model, link.compare), (from) => from < edition),
   });
   const pinned = Option.match(
     Option.filter(link.entry, (id) => isVisible(set, id)),
@@ -483,6 +489,37 @@ const returned = (model: Model, lastSeen: string | null): AppReturn => {
   });
   return { model: { ...model, sinceVisit }, commands: remember };
 };
+
+/**
+ * "Play the moves": the earlier edition for a beat, then the shown one again, which the
+ * blips glide to. Under reduced motion there is no glide to watch, so nothing plays.
+ */
+const playMoves = (model: Model): Model =>
+  Option.match(comparedWith(model), {
+    onNone: () => model,
+    onSome: (from) =>
+      model.reducedMotion
+        ? model
+        : reconcile({
+            ...model,
+            edition: from,
+            movePlayback: Option.some({ to: model.edition, clock: 0 }),
+          }),
+  });
+
+/** One frame of the moves playing: the hold, then the glide back, then done. */
+const advanceMoves = (model: Model, deltaTimeMs: number): Model =>
+  Option.match(model.movePlayback, {
+    onNone: () => model,
+    onSome: ({ to, clock }) => {
+      const next = clock + deltaTimeMs;
+      const playback =
+        next >= moveHold + moveGlide ? Option.none() : Option.some({ to, clock: next });
+      return next >= moveHold && model.edition !== to
+        ? reconcile({ ...model, edition: to, movePlayback: playback })
+        : { ...model, movePlayback: playback };
+    },
+  });
 
 /** A press on the sheet's handle ended at `y`: a tap or a swipe moves the sheet. */
 const released = (model: Model, y: number): Model =>
@@ -630,14 +667,32 @@ const step = (model: Model, message: Message): AppReturn =>
     ChangedReducedMotion: ({ isReducedMotion }) => ({
       model: { ...model, reducedMotion: isReducedMotion },
     }),
-    ChangedEdition: ({ index }) => ({
-      model: reconcile({
+    ChangedEdition: ({ index }) => {
+      const edition = clampEdition(model, index);
+      return {
+        model: reconcile({
+          ...model,
+          edition,
+          playing: false,
+          playClock: 0,
+          // A comparison is with an earlier edition; scrubbing back past it ends it.
+          comparing: Option.filter(model.comparing, (from) => from < edition),
+          movePlayback: Option.none(),
+        }),
+      };
+    },
+    ChoseComparison: ({ index }) => ({
+      model: {
         ...model,
-        edition: clampEdition(model, index),
-        playing: false,
-        playClock: 0,
-      }),
+        comparing: Option.filter(
+          Option.fromNullishOr(index),
+          (from) => from >= 0 && from < model.edition,
+        ),
+        movePlayback: Option.none(),
+      },
     }),
+    ClickedPlayMoves: () => ({ model: playMoves(model) }),
+    AdvancedMoves: ({ deltaTimeMs }) => ({ model: advanceMoves(model, deltaTimeMs) }),
     ClickedPlay: () => ({ model: togglePlay(model) }),
     AdvancedPlayback: ({ deltaTimeMs }) => ({ model: advancePlayback(model, deltaTimeMs) }),
     HoveredEgg: ({ key }) => ({ model: visitEgg(model, key) }),

@@ -1092,6 +1092,30 @@
   font-size: 0.8rem;
 }
 
+/* Comparing editions: the picker and its play button share a row. */
+.e3-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+}
+
+.e3-compare select {
+  min-width: 0;
+  font-size: 0.8rem;
+}
+
+/* The comparison's changes read like the timeline's, each a flight to its entry. */
+.e3-compare-changes {
+  padding-left: 0;
+  list-style: none;
+}
+
+.e3-compare-changes .e3-since-change {
+  padding: 0.1rem 0;
+  color: inherit;
+  font-size: 0.8rem;
+}
+
 .e3-timeline-changes {
   display: grid;
   gap: 0.15rem;

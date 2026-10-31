@@ -611,7 +611,10 @@ const step = (model: Model, message: Message): AppReturn =>
     }),
     CompletedFullscreen: () => ({ model }),
     ClickedMinimap: () => ({ model: { ...model, minimapShown: !model.minimapShown } }),
-    ResizedStage: ({ aspect }) => ({ model: { ...model, stageAspect: aspect } }),
+    ChangedScreenDensity: ({ isDense }) => ({ model: { ...model, denseScreen: isDense } }),
+    ResizedStage: ({ width, height }) => ({
+      model: { ...model, stageAspect: width / height, stageWidth: width },
+    }),
     CompletedFocusSearch: () => ({ model }),
     CompletedOpenPage: () => ({ model }),
     SucceededLoadLastVisit: ({ edition }) => returned(model, edition),

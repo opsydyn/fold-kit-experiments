@@ -20,6 +20,7 @@ import {
   mesh,
   physical,
   points,
+  renderSettings,
   scene,
   type SceneNode,
   sharedGeometry,
@@ -368,7 +369,7 @@ const guideLabels = (model: Model): ReadonlyArray<SceneNode> => [
         // A click on a category's name stops at its sector.
         interactive: true,
         text: categoryLabels[category],
-        fontSize: 0.26,
+        fontSize: 0.26 * labelScale(model),
         color: tokensOf(model).categories[category],
         outlineWidth: 0.02,
         outlineColor: tokensOf(model).categoryOutline,
@@ -381,7 +382,7 @@ const guideLabels = (model: Model): ReadonlyArray<SceneNode> => [
       position: ringLabelPosition(ring, model.camera.position),
       transition: ringSwing,
       text: ringLabels[ring].toUpperCase(),
-      fontSize: 0.15,
+      fontSize: 0.15 * labelScale(model),
       letterSpacing: 0.12,
       color: tokensOf(model).guide,
     }),
@@ -532,7 +533,8 @@ const placeable = (
 /** The pinned or hovered entry's name, larger, beside its blip. */
 const focusCandidate = (model: Model, view: View, position: RadarPosition): Placeable => {
   const text = position.entry.name;
-  const size = textSize(text, 0.22);
+  const fontSize = 0.22 * labelScale(model);
+  const size = textSize(text, fontSize);
   return placeable(
     'label:focus',
     'focus',
@@ -544,18 +546,32 @@ const focusCandidate = (model: Model, view: View, position: RadarPosition): Plac
         ...slot,
         key: 'label:focus',
         text,
-        fontSize: 0.22,
+        fontSize,
         outlineWidth: 0.02,
       }),
   );
 };
 
 /**
+ * How much smaller labels are drawn on a narrow canvas: a phone's 375 pixels would
+ * otherwise give each name as much of the screen as a desktop's 640, crowding it.
+ */
+export const labelScale = (model: Model): number =>
+  Math.min(1, Math.max(0.72, model.stageWidth / 640));
+
+/** How many labels may show at once: fewer on a narrow canvas, where they are smaller. */
+const budgetFor = (model: Model, budget: typeof labelBudget | typeof mapBudget) => ({
+  ...budget,
+  name: Math.round(budget.name * labelScale(model)),
+  edge: Math.round(budget.edge * labelScale(model)),
+});
+
+/**
  * A name's size: 0.13 units up close, growing with distance beyond that, so names seen
  * on the map from above stay legible rather than shrinking to specks.
  */
 const nameSize = (model: Model, point: Vec3): number =>
-  Math.max(0.13, 0.014 * distanceBetween(model.camera.position, point));
+  Math.max(0.13, 0.014 * distanceBetween(model.camera.position, point)) * labelScale(model);
 
 /** A nearby entry's name, beside its blip. */
 const nameCandidate = (model: Model, view: View, position: RadarPosition): Placeable => {
@@ -649,7 +665,7 @@ const captionPoint = (
  * about ten pixels tall on screen instead of shrinking out of reach.
  */
 const captionSize = (model: Model, point: Vec3): number =>
-  Math.max(0.11, 0.016 * distanceBetween(model.camera.position, point));
+  Math.max(0.11, 0.016 * distanceBetween(model.camera.position, point)) * labelScale(model);
 
 /** A focused edge's type, small, near the related entry where it fits. */
 const edgeCandidate = (model: Model, relationship: RadarRelationship): Placeable => {
@@ -774,8 +790,8 @@ const labelNodes = (model: Model): ReadonlyArray<SceneNode> => {
     blipObstacles(model),
     frameOf(fovFor(cameraFov, model.stageAspect), model.stageAspect),
     Match.value(isBirdsEye(model.camera.position)).pipe(
-      Match.when(true, () => mapBudget),
-      Match.orElse(() => labelBudget),
+      Match.when(true, () => budgetFor(model, mapBudget)),
+      Match.orElse(() => budgetFor(model, labelBudget)),
     ),
   );
   return candidates.flatMap(({ candidate, nodeAt, slots }) =>
@@ -965,6 +981,17 @@ const starNodes = (tokens: Tokens): ReadonlyArray<SceneNode> =>
     }),
   ].filter(() => skies[tokens.sky].starry);
 
+/**
+ * How the radar renders. On a phone it stops redrawing while the full sheet covers it, and
+ * a dense screen draws at 70% of its pixels: three device pixels to a CSS pixel cost more
+ * battery than the eye can tell apart from two.
+ */
+const renderingFor = (model: Model) =>
+  renderSettings({
+    frames: model.input === 'touch' && model.sheet === 'full' ? 'never' : 'demand',
+    resolution: model.input === 'touch' && model.denseScreen ? 0.7 : 1,
+  });
+
 /** The Model's camera, its field of view widened for a portrait stage (see stageSize.ts). */
 const fitted = (camera: Camera, aspect: number): Camera =>
   camera._tag === 'Perspective' ? { ...camera, fov: fovFor(camera.fov, aspect) } : camera;
@@ -978,6 +1005,7 @@ export const sceneFor = (model: Model) => {
   return scene({
     camera: fitted(model.camera, model.stageAspect),
     gestures: 'scene',
+    render: renderingFor(model),
     resources: {
       geometries: [...geometries, ...eggGeometries],
       materials: [...materialsFor(tokensOf(model)), ...eggMaterials],

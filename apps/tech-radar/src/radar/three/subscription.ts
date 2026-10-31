@@ -12,7 +12,7 @@ import { Message } from './message';
 import type { Model, PointerInput } from './model';
 import { shortcuts } from './shortcuts';
 import { stackEggMoves } from './stack';
-import { stageAspects } from './stageSize';
+import { stageSizes } from './stageSize';
 import type { ColorScheme, ContrastSetting } from './themes';
 import { isPlaying } from './tour';
 
@@ -56,9 +56,16 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
       ),
     }),
   ),
+  // A dense phone screen draws the radar at fewer pixels: it looks the same, and costs less.
+  screenDensity: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(min-resolution: 2.5dppx)',
+      mapMatches: (isDense) => Message.ChangedScreenDensity({ isDense }),
+    }),
+  ),
   // The canvas's shape, which the camera's field of view and the labels follow.
   stageAspect: Subscription.persistentEntry(
-    Stream.map(stageAspects, (aspect) => Message.ResizedStage({ aspect })),
+    Stream.map(stageSizes, ({ width, height }) => Message.ResizedStage({ width, height })),
   ),
   // Leaving the browser's full screen (Esc, a gesture) leaves the immersive radar too.
   fullscreen: Subscription.persistentEntry(

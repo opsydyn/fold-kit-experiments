@@ -127,6 +127,8 @@ export const Model = Schema.Struct({
    * (the earlier edition shows until `moveHold`, then the blips glide).
    */
   movePlayback: Schema.Option(Schema.Struct({ to: Schema.Number, clock: Schema.Number })),
+  /** Milliseconds since the comparison's arrivals began playing (see compare.ts). */
+  compareClock: Schema.Number,
   /** Whether the timeline is playing through the editions, and time into the current step. */
   playing: Schema.Boolean,
   playClock: Schema.Number,
@@ -291,6 +293,7 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   edition: editionsIn(data).length - 1,
   comparing: Option.none(),
   movePlayback: Option.none(),
+  compareClock: 0,
   playing: false,
   playClock: 0,
   showRelationships: true,

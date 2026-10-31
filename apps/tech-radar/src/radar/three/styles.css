@@ -890,6 +890,49 @@
   display: none;
 }
 
+/*
+ * Phones either way up, and other short screens: the pinned entry's card is part of the
+ * controls (the sheet in portrait, the side panel in landscape) rather than a card over a
+ * small radar; the readout gives way to it, and the minimap waits for its button.
+ */
+@media (max-width: 760px), (max-height: 500px) {
+  .e3-details-stage {
+    display: none;
+  }
+
+  .e3-details-sheet {
+    display: grid;
+    position: static;
+    backdrop-filter: none;
+    border: 0;
+    background: none;
+    padding: 0;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .e3-app:has(.e3-sidebar[data-pinned='true']) .e3-stage-readout {
+    display: none;
+  }
+
+  .e3-crumb-minimap {
+    display: revert;
+  }
+
+  .e3-app:not([data-minimap='true']) .e3-minimap {
+    display: none;
+  }
+}
+
+/* A phone on its side: the card heads the side panel, ruled off from the controls. */
+@media (max-height: 500px) and (min-width: 761px) {
+  .e3-details-sheet {
+    border-bottom: 1px solid var(--border, #2a2a40);
+    padding-bottom: 0.7rem;
+  }
+}
+
 @media (max-width: 760px) {
   .e3-app {
     grid-template-columns: minmax(0, 1fr);
@@ -910,23 +953,6 @@
     height: 100%;
     max-height: none;
     aspect-ratio: auto;
-  }
-
-  /* The pinned entry's card is the top of the sheet, not a card over the radar. */
-  .e3-details-stage {
-    display: none;
-  }
-
-  .e3-details-sheet {
-    display: grid;
-    position: static;
-    backdrop-filter: none;
-    border: 0;
-    background: none;
-    padding: 0;
-    width: auto;
-    max-height: none;
-    overflow: visible;
   }
 
   .e3-sidebar {
@@ -1012,20 +1038,6 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     cursor: pointer;
-  }
-
-  /* Once an entry is pinned the sheet says it all, so the readout goes. */
-  .e3-app:has(.e3-sidebar[data-pinned='true']) .e3-stage-readout {
-    display: none;
-  }
-
-  /* The minimap waits for its button. */
-  .e3-crumb-minimap {
-    display: revert;
-  }
-
-  .e3-app:not([data-minimap='true']) .e3-minimap {
-    display: none;
   }
 
   /* On a phone the readout is how a tapped blip is read: big enough to read at arm's length. */

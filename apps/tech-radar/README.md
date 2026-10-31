@@ -31,7 +31,9 @@ bun run --filter @opsydyn/tech-radar previews   # render the link previews
   (every control). Tap or swipe its handle. The canvas fills the space above, and the camera
   widens its view for the tall stage (`stageSize.ts`), so the radar keeps the screen's width.
   The readout gives way to the sheet once an entry is pinned, and the minimap waits for its
-  button (◎).
+  button (◎). Labels are drawn smaller, and fewer of them, on a narrow canvas. The radar
+  stops redrawing while the full sheet covers it, and a dense screen draws at 70% of its
+  pixels. On its side, a phone keeps the side panel, with the pinned entry's card at its top.
 - **Full screen:** ⤢ by the breadcrumb fills the window with the radar, at any width, and
   asks the browser for the whole screen where it can (not Safari on iPhone, which allows it
   only for video). Esc or ⤡ leaves.

@@ -4,6 +4,7 @@ import { Option } from 'effect';
 
 import { Message } from '../../src/radar/three/message';
 import type { Model } from '../../src/radar/three/model';
+import { labelScale, sceneFor } from '../../src/radar/three/scene';
 import { sheetAfter, swipeDistance } from '../../src/radar/three/sheet';
 import { fovFor } from '../../src/radar/three/stageSize';
 import { init, update } from '../../src/radar/three/update';
@@ -88,7 +89,16 @@ describe('a tall stage', () => {
   });
 
   test('follows the canvas as it changes shape', () => {
-    expect(step(start, Message.ResizedStage({ aspect: 0.6 })).model.stageAspect).toBe(0.6);
+    const resized = step(start, Message.ResizedStage({ width: 375, height: 625 })).model;
+    expect(resized.stageAspect).toBe(0.6);
+    expect(resized.stageWidth).toBe(375);
+  });
+
+  test('draws labels smaller, and fewer of them, on a narrow canvas', () => {
+    const phone = step(start, Message.ResizedStage({ width: 375, height: 625 })).model;
+    const wide = step(start, Message.ResizedStage({ width: 1200, height: 800 })).model;
+    expect(labelScale(phone)).toBeCloseTo(0.72, 2);
+    expect(labelScale(wide)).toBe(1);
   });
 });
 
@@ -96,5 +106,22 @@ describe('the minimap on a phone', () => {
   test('is put away until its button is pressed', () => {
     expect(start.minimapShown).toBe(false);
     expect(step(start, Message.ClickedMinimap()).model.minimapShown).toBe(true);
+  });
+});
+
+describe('rendering on a phone', () => {
+  const touch = step(start, Message.ChangedPointerInput({ input: 'touch' })).model;
+
+  test('stops redrawing while the full sheet covers the radar', () => {
+    expect(sceneFor(touch).render.frames).toBe('demand');
+    const full = step(touch, Message.ChoseSheetStop({ stop: 'full' })).model;
+    expect(sceneFor(full).render.frames).toBe('never');
+  });
+
+  test('draws a dense screen at fewer pixels, and a mouse-driven one at all of them', () => {
+    const dense = step(touch, Message.ChangedScreenDensity({ isDense: true })).model;
+    expect(sceneFor(dense).render.resolution).toBe(0.7);
+    const desktop = step(start, Message.ChangedScreenDensity({ isDense: true })).model;
+    expect(sceneFor({ ...desktop, input: 'hover' }).render.resolution).toBe(1);
   });
 });

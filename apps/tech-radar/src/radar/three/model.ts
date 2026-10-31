@@ -158,6 +158,10 @@ export const Model = Schema.Struct({
   }),
   /** The stage's width over its height, from the last gesture; square until then. */
   stageAspect: Schema.Number,
+  /** Whether the screen packs 2.5 or more device pixels to a CSS pixel (most phones). */
+  denseScreen: Schema.Boolean,
+  /** The canvas's width in CSS pixels: labels are drawn smaller on a narrow one. */
+  stageWidth: Schema.Number,
   camera: SceneSchema.Camera,
 });
 export type Model = Omit<typeof Model.Type, 'data' | 'tour'> &
@@ -291,6 +295,8 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   search: Combobox.init({ id: 'radar-search' }),
   tooltips: closedTooltips,
   stageAspect: 1,
+  stageWidth: 640,
+  denseScreen: false,
   camera: homeCamera,
 });
 

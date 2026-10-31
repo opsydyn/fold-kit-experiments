@@ -9,13 +9,16 @@ import { Cause, Effect, Queue, Stream } from 'effect';
 /** The canvas, once the radar has drawn it. */
 const stageSelector = '.e3-stage-fill';
 
-/** Watches the canvas's size, calling `emit` with its shape; returns how to stop. */
-const watchStage = (emit: (aspect: number) => void) => (): (() => void) => {
+/** The canvas's size, in CSS pixels. */
+export type StageSize = Readonly<{ width: number; height: number }>;
+
+/** Watches the canvas's size, calling `emit` with it; returns how to stop. */
+const watchStage = (emit: (size: StageSize) => void) => (): (() => void) => {
   const observer = new ResizeObserver((entries) =>
     entries
       .map(({ contentRect }) => contentRect)
       .filter(({ width, height }) => width > 0 && height > 0)
-      .forEach(({ width, height }) => emit(width / height)),
+      .forEach(({ width, height }) => emit({ width, height })),
   );
   const waiting = { frame: 0 };
   const find = (): void => {
@@ -30,13 +33,15 @@ const watchStage = (emit: (aspect: number) => void) => (): (() => void) => {
   };
 };
 
-const connect = (queue: Queue.Queue<number, Cause.Done>) => {
-  const start = Effect.sync(watchStage((aspect) => Queue.offerUnsafe(queue, aspect)));
+const connect = (queue: Queue.Queue<StageSize, Cause.Done>) => {
+  const start = Effect.sync(watchStage((size) => Queue.offerUnsafe(queue, size)));
   return Effect.acquireRelease(start, Effect.sync);
 };
 
-/** The canvas's width over height, each time it changes. */
-export const stageAspects = Stream.callback<number>(connect).pipe(Stream.changes);
+/** The canvas's size, each time it changes. */
+export const stageSizes = Stream.callback<StageSize>(connect).pipe(
+  Stream.changesWith((a, b) => a.width === b.width && a.height === b.height),
+);
 
 /**
  * The camera's vertical field of view, in degrees, for a stage of this shape. A square or

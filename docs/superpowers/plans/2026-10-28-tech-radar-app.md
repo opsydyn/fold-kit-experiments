@@ -125,6 +125,7 @@ export default Alchemy.Stack(
 - **No bindings in v1:** no KV, D1 or secrets. The site is the Worker and its assets.
 - **The URL:** v1 uses the `workers.dev` URL. A custom domain is a later, one-resource
   change.
+  Done 2026-10-31: production is <https://techradar.opsydyn.xyz/>.
 - **Scripts in the infra workspace:**
   - `deploy`: `alchemy deploy`
   - `plan`: `alchemy plan`

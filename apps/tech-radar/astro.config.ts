@@ -8,7 +8,7 @@ const fontsource = fontProviders.fontsource();
 export default defineConfig({
   // Where the radar is published: link previews, the feed and the sitemap give full
   // addresses on it. Preview stages link back to production, which is what a share wants.
-  site: 'https://tech-radar-techradar-prod-p2g6lgx4bmhwwuk5.opsydyn.workers.dev',
+  site: 'https://techradar.opsydyn.xyz',
   integrations: [foldkit()],
   // Fetch a page when a link to it is hovered or focused, so moving between pages is quick.
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },

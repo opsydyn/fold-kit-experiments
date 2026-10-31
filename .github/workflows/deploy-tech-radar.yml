@@ -73,7 +73,9 @@ jobs:
         shell: bash
         run: |
           bunx alchemy deploy --stage "$STAGE" --yes --no-input | tee deploy.log
-          url=$(grep -oE "https://[^' ]+\.workers\.dev" deploy.log | tail -n 1)
+          # The stack's output, `{ url: '…' }`: the custom domain for prod, workers.dev for
+          # previews. A deploy that printed none still passed, so an empty url is no failure.
+          url=$(grep -oE "url: 'https://[^']+'" deploy.log | tail -n 1 | grep -oE "https://[^']+" || true)
           echo "Deployed $STAGE: $url" >> "$GITHUB_STEP_SUMMARY"
           echo "url=$url" >> "$GITHUB_OUTPUT"
         id: deploy

@@ -76,6 +76,11 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
         Message.ChangedFullscreen({ isFullscreen: globalThis.document.fullscreenElement !== null }),
     }),
   ),
+  // "Play the moves" in a comparison: the hold, then the glide (see compare.ts).
+  moves: Subscription.animationFrameEntry({
+    isActive: (model) => Option.isSome(model.movePlayback),
+    toMessage: (deltaTimeMs) => Message.AdvancedMoves({ deltaTimeMs }),
+  }),
   invasion: Subscription.animationFrameEntry({
     isActive: (model) => Option.isSome(model.invasion),
     toMessage: (deltaTimeMs) => Message.AdvancedInvasion({ deltaTimeMs }),

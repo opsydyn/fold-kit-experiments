@@ -120,6 +120,13 @@ export const Model = Schema.Struct({
   reducedMotion: Schema.Boolean,
   /** Which edition the radar shows, oldest first; the last is the current one. */
   edition: Schema.Number,
+  /** An earlier edition to compare the shown one with, side by side (see compare.ts). */
+  comparing: Schema.Option(Schema.Number),
+  /**
+   * "Play the moves" under way: the edition to glide to, and milliseconds since it began
+   * (the earlier edition shows until `moveHold`, then the blips glide).
+   */
+  movePlayback: Schema.Option(Schema.Struct({ to: Schema.Number, clock: Schema.Number })),
   /** Whether the timeline is playing through the editions, and time into the current step. */
   playing: Schema.Boolean,
   playClock: Schema.Number,
@@ -282,6 +289,8 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   journey: Option.none(),
   reducedMotion: false,
   edition: editionsIn(data).length - 1,
+  comparing: Option.none(),
+  movePlayback: Option.none(),
   playing: false,
   playClock: 0,
   showRelationships: true,

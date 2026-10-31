@@ -45,7 +45,9 @@ bun run destroy   # remove the stage
 
 - `TECH_RADAR_CLOUDFLARE_ACCOUNT_ID`
 - `TECH_RADAR_CLOUDFLARE_API_TOKEN`, a token scoped to Workers Scripts and Secrets Store
-  (edit). Make one with your Global API Key, then paste it into `gh`:
+  (edit), and, for production's custom domain, on the `opsydyn.xyz` zone: Zone (read),
+  DNS (edit) and Workers Routes (edit). Make one with your Global API Key, then paste it
+  into `gh`:
 
 ```sh
 bunx alchemy provider cloudflare token --name tech-radar-ci --account-id <account id>
@@ -55,6 +57,9 @@ gh secret set TECH_RADAR_CLOUDFLARE_API_TOKEN --repo opsydyn/fold-kit-experiment
 The stages:
 
 - **`prod`** deploys on pushes to `main` that change the site, its stack or the packages
-  it uses, and by hand from the Actions tab.
+  it uses, and by hand from the Actions tab. It answers at <https://techradar.opsydyn.xyz/>:
+  the stack attaches the hostname as a Workers custom domain, and Cloudflare creates its DNS
+  record (which outranks the zone's `*.opsydyn.xyz` wildcard) and certificate. The
+  `workers.dev` address keeps working.
 - **`pr-<number>`** deploys a preview for a PR labelled `preview`, and comments its address.
   Removing the label or closing the PR destroys it; the job refuses any other stage.

@@ -24,7 +24,7 @@ updates keep every object in place, Effect owns every lifetime (renderers, GPU
 resources, frame loops, listeners), and pointer input comes back as typed FoldKit
 Messages. Animation runs in the frame loop and never reaches `update`.
 
-- **Try it:** the [effect-three promo site](https://opsydyn.github.io/fold-kit-experiments/three/), the [tech radar](https://tech-radar-techradar-prod-p2g6lgx4bmhwwuk5.opsydyn.workers.dev/), or `/effect-three` in the demo app (the sculpture sample has FoldKit DevTools time travel).
+- **Try it:** the [effect-three promo site](https://opsydyn.github.io/fold-kit-experiments/three/), the [tech radar](https://techradar.opsydyn.xyz/), or `/effect-three` in the demo app (the sculpture sample has FoldKit DevTools time travel).
 - **Read it:** the package READMEs ([core](packages/effect-three/README.md), [FoldKit adapter](packages/effect-three-foldkit/README.md), [Rapier](packages/effect-three-rapier/README.md), [troika](packages/effect-three-troika/README.md)), and the [plan, decisions and benchmarks](docs/effect-three/).
 - **Samples:** [`packages/effect-three-samples`](packages/effect-three-samples/) is shared by the demo app and the promo site.
 
@@ -171,7 +171,7 @@ bun run --filter @opsydyn/web dev
 - **[Viz examples](https://opsydyn.github.io/fold-kit-experiments/viz/)** — chart examples, maintained source and standalone downloads
 - **[effect-three](https://opsydyn.github.io/fold-kit-experiments/three/)** — live 3D examples, their source and a guide
 - **[Charts](https://opsydyn-web.opsydyn.workers.dev/charts)** — live demo app (Cloudflare Workers)
-- **[Tech radar](https://tech-radar-techradar-prod-p2g6lgx4bmhwwuk5.opsydyn.workers.dev/)** — the 3D tech radar and its full pages, from markdown (Cloudflare Workers)
+- **[Tech radar](https://techradar.opsydyn.xyz/)** — the 3D tech radar and its full pages, from markdown (Cloudflare Workers)
 - **[Docs](https://opsydyn.github.io/fold-kit-experiments/docs/)** — decisions, spikes, releases and working notes, from `docs/` (GitHub Pages)
 - **[Storybook](https://opsydyn.github.io/fold-kit-experiments/)** — interactive chart explorer (GitHub Pages)
 - **[API reference](https://opsydyn.github.io/fold-kit-experiments/api/)** — foldkit-viz TypeDoc (GitHub Pages)

@@ -14,6 +14,9 @@ import * as Cloudflare from '@alchemy.run/cloudflare';
 import * as Alchemy from 'alchemy';
 import { Effect } from 'effect';
 
+/** Where production is served. */
+const productionHost = 'techradar.opsydyn.xyz';
+
 export default Alchemy.Stack(
   'tech-radar',
   {
@@ -21,8 +24,14 @@ export default Alchemy.Stack(
     state: Cloudflare.state(),
   },
   Effect.gen(function* () {
+    // Production answers at its own hostname, on the opsydyn.xyz zone in this account;
+    // previews and personal stages keep their workers.dev addresses. Cloudflare creates the
+    // DNS record and certificate, and the record outranks the zone's wildcard.
+    const stage = yield* Alchemy.Stage;
+    const domain = stage === 'prod' ? productionHost : null;
     const site = yield* Cloudflare.Website.Astro('TechRadar', {
       rootDir: '../../apps/tech-radar',
+      domain,
       // The site has no sessions, so no KV namespace for them.
       sessionKVBindingName: false,
       // No `assets.notFoundHandling`: with it, Cloudflare answers a browser navigation that

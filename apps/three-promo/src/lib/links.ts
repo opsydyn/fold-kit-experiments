@@ -7,4 +7,4 @@ export const samplesSource = `${repository}/tree/main/packages/effect-three-samp
 export const decisions = `${repository}/tree/main/docs/effect-three`;
 
 /** The tech radar, built with effect-three: apps/tech-radar, deployed from main. */
-export const techRadar = 'https://tech-radar-techradar-prod-p2g6lgx4bmhwwuk5.opsydyn.workers.dev/';
+export const techRadar = 'https://techradar.opsydyn.xyz/';

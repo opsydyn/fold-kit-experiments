@@ -8,8 +8,8 @@
     "test": "npm run build && node --test test/scene.test.mjs"
   },
   "dependencies": {
-    "@opsydyn/effect-three": "0.1.0",
-    "effect": "4.0.0",
+    "@opsydyn/effect-three": "0.6.4",
+    "effect": "4.1.0",
     "three": "0.186.1"
   },
   "devDependencies": {

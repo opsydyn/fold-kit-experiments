@@ -14,9 +14,9 @@ resource, renderer and listener. This skill works without Astro or another skill
 
 Read the installed versions, export maps and declarations before choosing APIs. The
 [headless example](assets/headless/package.json) targets the published
-`@opsydyn/effect-three@0.1.0` with `three@0.186.1` and `effect@4.0.0`, and needs no
-browser. The Foldkit adapter targets FoldKit `0.167.x`. These are qualified baselines,
-not instructions to downgrade another project.
+`@opsydyn/effect-three@0.6.4` with `three@0.186.1` and `effect@4.1.0`, and needs no
+browser. The Foldkit adapter accepts FoldKit `0.167` to `0.170` and is qualified on
+`0.170`. These are qualified baselines, not instructions to downgrade another project.
 
 The four packages are released together at one version, and `-foldkit`, `-rapier` and
 `-troika` take the core as a peer at exactly that version: install matching versions,

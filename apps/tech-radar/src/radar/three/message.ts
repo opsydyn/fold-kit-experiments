@@ -65,6 +65,7 @@ export const Message = defineMessageUnion({
   ChoseComparison: { index: Schema.NullOr(Schema.Number) },
   ClickedPlayMoves: {},
   AdvancedMoves: { deltaTimeMs: Schema.Number },
+  AdvancedArrivals: { deltaTimeMs: Schema.Number },
   ClickedPlay: {},
   AdvancedPlayback: { deltaTimeMs: Schema.Number },
   ClickedZoom: { direction: Schema.Literals(['in', 'out']) },

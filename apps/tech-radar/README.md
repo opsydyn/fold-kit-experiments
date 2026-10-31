@@ -25,11 +25,14 @@ bun run --filter @opsydyn/tech-radar previews   # render the link previews
 - **Deep links:** `/?entry=futhark&theme=paragon`, with `&edition=2026-02-14` for an
   earlier edition, or `/?view=cluster:tools`.
 - **Comparing editions:** "Compare with…" in the timeline shows the shown edition beside an
-  earlier one on the same radar: a faint ghost where each changed entry stood, a line to
-  where it stands (dashed for one that joined or left), and the changes as a list. "Play the
-  moves" shows the earlier edition for a beat and lets the blips glide to the shown one.
-  `&compare=<date>` links to it, and each edition page links to its comparison with the one
-  before (`src/radar/three/compare.ts`).
+  earlier one on the same radar, each change marked with the full pages' symbols. ▲▼ moved:
+  a ghost where it stood, a line to where it stands, a chevron the way it went. ✦ new: first
+  light, a shockwave and a burst as it ignites, then a halo. ↺ back: a periodic comet,
+  coming round its orbit with its tail behind it. ◌ left: an event horizon collapsing on
+  where it stood. The arrivals play when the comparison opens (and rest at once under
+  reduced motion); "Play the moves" shows the earlier edition for a beat and lets the blips
+  glide to the shown one. `&compare=<date>` links to it, and each edition page links to its
+  comparison with the one before (`compare.ts`, `compareMarks.ts`).
 - **"Open full page"** on the 3D radar's card opens the entry's page for the edition
   being viewed.
 - **On a phone** the controls are a sheet under the radar with three stops: peek (the

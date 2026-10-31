@@ -7,6 +7,7 @@ import { Duration, Option, Stream } from 'effect';
 import { Dom, Subscription } from 'foldkit';
 
 import { cometMoves } from './comet';
+import { arriving } from './compare';
 import { konamiCode } from './invaders';
 import { Message } from './message';
 import type { Model, PointerInput } from './model';
@@ -80,6 +81,11 @@ export const subscriptions = Subscription.make<Model, Message>()(() => ({
   moves: Subscription.animationFrameEntry({
     isActive: (model) => Option.isSome(model.movePlayback),
     toMessage: (deltaTimeMs) => Message.AdvancedMoves({ deltaTimeMs }),
+  }),
+  // A comparison's arrivals: first light, a comet coming round, a horizon collapsing.
+  arrivals: Subscription.animationFrameEntry({
+    isActive: arriving,
+    toMessage: (deltaTimeMs) => Message.AdvancedArrivals({ deltaTimeMs }),
   }),
   invasion: Subscription.animationFrameEntry({
     isActive: (model) => Option.isSome(model.invasion),

@@ -180,11 +180,11 @@ describe('Astro page rendering smoke', () => {
           const stateflowResponse = await fetch(`http://127.0.0.1:${port}/stateflow`);
           expect(stateflowResponse.ok).toBe(true);
           const stateflowHtml = await stateflowResponse.text();
-          expectHydratablePage(stateflowHtml, '{}', requestBuildId);
+          expectHydratablePage(stateflowHtml, '{"session":null}', requestBuildId);
           expect(stateflowHtml).toContain('<title>Stateflow Observatory — Loading</title>');
           expect(stateflowHtml).toContain('Current state: Loading');
           expect(stateflowHtml).toContain('aria-label="Request diagnostics state graph"');
-          expect(stateflowHtml).toContain('Recent events');
+          expect(stateflowHtml).toContain('Recorded events');
           expect(stateflowHtml).toContain('Select an event to inspect its recorded facts.');
           expect(stateflowHtml).toContain('Outcome</th>');
           expect(stateflowHtml).toContain('client="load"');

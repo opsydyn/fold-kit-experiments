@@ -87,6 +87,29 @@
 }
 
 /*
+ * The help button's popover: the gestures, a line each. Portalled to the page's body like
+ * the tooltips, so it takes their dark style.
+ */
+.e3-help {
+  display: contents;
+}
+
+.e3-help-panel {
+  z-index: 60;
+  background: #1d1c1a;
+  padding: 0.5rem 0.8rem;
+  color: #f6f3ea;
+  font: 0.8rem/1.6 var(--type-text, system-ui, sans-serif);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+}
+
+.e3-help-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
  * The radar as a standalone app: the sidebar and the stage side by side, filling the
  * viewport, so the page never scrolls; only the sidebar does if the window is short.
  */
@@ -853,6 +876,11 @@
   max-width: calc(100% - clamp(72px, 22%, 132px) - 2rem);
   font-size: 0.8rem;
   pointer-events: none;
+}
+
+/* With nothing to read, the readout is put away: the help button says how. */
+.e3-stage-readout:empty {
+  display: none;
 }
 
 /*

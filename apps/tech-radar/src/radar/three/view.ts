@@ -1,4 +1,4 @@
-import { Disclosure, Switch, Tooltip } from '@foldkit/ui';
+import { Disclosure, Popover, Switch, Tooltip } from '@foldkit/ui';
 import * as EffectThreeFoldkit from '@opsydyn/effect-three-foldkit';
 import { Match, Option } from 'effect';
 import type { Attribute, Document, Html, HtmlBuilder } from 'foldkit/html';
@@ -52,24 +52,26 @@ const button = (h: HtmlBuilder<Message>, label: string, message: Message): Html 
 const describe = (entry: RadarEntry): string =>
   `${entry.name} · ${categoryLabels[entry.category]} · ${ringLabels[entry.ring]}`;
 
-/** What to do, in the reader's own gestures. */
+/** What to do, in the reader's own gestures: the help popover's list. */
 const hints = {
-  hover:
-    'Hover a blip to read it · click to pin · double-click to fly there · drag to look round · ? for shortcuts',
-  touch: 'Tap a blip to read it · double-tap to fly there · drag to look round',
-} as const satisfies Readonly<Record<PointerInput, string>>;
+  hover: [
+    'Hover a blip to read it',
+    'Click to pin it',
+    'Double-click to fly there',
+    'Drag to look round',
+    'Press ? for shortcuts',
+  ],
+  touch: ['Tap a blip to read it', 'Double-tap to fly there', 'Drag to look round'],
+} as const satisfies Readonly<Record<PointerInput, ReadonlyArray<string>>>;
 
-/** The hovered entry, else the pinned one, else a hint. */
-const entryReadout = (model: Model): string =>
-  Option.match(
+/** The hovered entry, else the pinned one. */
+const entryReadout = (model: Model): Option.Option<string> =>
+  Option.map(
     Option.flatMap(
       Option.orElse(model.hovered, () => model.selected),
       (id) => positionOf(model, id),
     ),
-    {
-      onNone: () => hints[model.input],
-      onSome: ({ entry }) => describe(entry),
-    },
+    ({ entry }) => describe(entry),
   );
 
 /** What became of Copy link, said in the readout. */
@@ -78,16 +80,22 @@ const linkNotices = {
   refused: 'Couldn’t copy the link; the address bar has it',
 } as const;
 
-/** An Easter egg under the pointer speaks first, then Copy link and the recorder, then entries. */
+/**
+ * An Easter egg under the pointer speaks first, then Copy link and the recorder, then
+ * entries; with nothing to say the readout is empty and hidden, and the help button says how.
+ */
 const readout = (model: Model): string =>
   Option.getOrElse(
     Option.orElse(
-      Option.orElse(eggReadout(model), () =>
-        Option.map(model.linkNotice, (notice) => linkNotices[notice]),
+      Option.orElse(
+        Option.orElse(eggReadout(model), () =>
+          Option.map(model.linkNotice, (notice) => linkNotices[notice]),
+        ),
+        () => model.tourNotice,
       ),
-      () => model.tourNotice,
+      () => entryReadout(model),
     ),
-    () => entryReadout(model),
+    () => '',
   );
 
 /** The pointer over an egg is the egg's; over anything else, a blip's. */
@@ -952,6 +960,42 @@ const crumb = (h: HtmlBuilder<Message>, label: string, message: Message, current
     [label],
   );
 
+/** The help button in the breadcrumb: a popover listing the gestures for this pointer. */
+const helpButton = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const toView = ({ button, panel, isVisible }: Popover.RenderInfo): Html =>
+    h.span(
+      [h.Class('e3-help')],
+      [
+        h.button(
+          [...button, h.Class('e3-crumb e3-crumb-help'), h.Title('How to move round')],
+          ['?'],
+        ),
+        ...[
+          h.div(
+            [...panel, h.Class('e3-help-panel')],
+            [
+              h.ul(
+                [],
+                hints[model.input].map((hint) => h.li([], [hint])),
+              ),
+            ],
+          ),
+        ].filter(() => isVisible),
+      ],
+    );
+  return h.submodel({
+    slotId: 'help',
+    model: model.help,
+    view: Popover.view,
+    viewInputs: {
+      ariaLabel: 'How to move round the radar',
+      anchor: { placement: 'bottom-end', gap: 6, padding: 8 },
+      toView,
+    },
+    toParentMessage: (message) => Message.GotHelpMessage({ message }),
+  });
+};
+
 /** The trail as a breadcrumb over the stage; the last crumb is where the camera is. */
 const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
   const stops = trailOf(model);
@@ -997,6 +1041,7 @@ const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
         [model.immersive ? '⤡' : '⤢'],
       ),
+      helpButton(model, h),
     ],
   );
 };

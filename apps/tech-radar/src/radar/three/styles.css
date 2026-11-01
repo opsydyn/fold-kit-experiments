@@ -80,6 +80,30 @@
   font-weight: 600;
 }
 
+/*
+ * The bar's icon buttons: a glyph big enough to read, and on a touch screen a 44px target
+ * (a button centres its glyph without a display change, which the minimap's would undo).
+ */
+.e3-crumb-icon {
+  min-width: 1.9rem;
+  min-height: 1.9rem;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+@media (pointer: coarse) {
+  .e3-breadcrumb {
+    gap: 0.15rem;
+    padding-block: 0.1rem;
+  }
+
+  .e3-crumb-icon {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.25rem;
+  }
+}
+
 .e3-crumb-link {
   margin-left: 0.2rem;
   border-left: 1px solid var(--border, #2a2a40);

@@ -967,7 +967,11 @@ const helpButton = (model: Model, h: HtmlBuilder<Message>): Html => {
       [h.Class('e3-help')],
       [
         h.button(
-          [...button, h.Class('e3-crumb e3-crumb-help'), h.Title('How to move round')],
+          [
+            ...button,
+            h.Class('e3-crumb e3-crumb-icon e3-crumb-help'),
+            h.Title('How to move round'),
+          ],
           ['?'],
         ),
         ...[
@@ -1009,7 +1013,7 @@ const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
       // Where the breadcrumb says the camera is, as a link to send.
       h.button(
         [
-          h.Class('e3-crumb e3-crumb-link'),
+          h.Class('e3-crumb e3-crumb-icon e3-crumb-link'),
           h.Type('button'),
           h.AriaLabel('Copy a link to this view'),
           h.Title('Copy a link to this view'),
@@ -1020,7 +1024,7 @@ const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
       // On a phone the minimap is put away until asked for; wider screens always show it.
       h.button(
         [
-          h.Class('e3-crumb e3-crumb-minimap'),
+          h.Class('e3-crumb e3-crumb-icon e3-crumb-minimap'),
           h.Type('button'),
           h.AriaLabel(model.minimapShown ? 'Hide the minimap' : 'Show the minimap'),
           h.AriaPressed(String(model.minimapShown)),
@@ -1030,7 +1034,7 @@ const breadcrumb = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       h.button(
         [
-          h.Class('e3-crumb e3-crumb-immersive'),
+          h.Class('e3-crumb e3-crumb-icon e3-crumb-immersive'),
           h.Type('button'),
           h.AriaLabel(
             model.immersive ? 'Leave the full-screen radar' : 'Fill the screen with the radar',

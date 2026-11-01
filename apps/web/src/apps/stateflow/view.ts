@@ -1,44 +1,37 @@
 import '@opsydyn/dataset-explorer/highlighting.css';
 import { highlightedCode } from '@opsydyn/dataset-explorer/highlighting';
-import { layoutStateFlow } from '@opsydyn/foldkit-viz/stateflow';
 import type {
   StateFlowEdge,
   StateFlowGraph,
-  StateFlowLayout,
-  StateFlowLayoutEdge,
   StateFlowLayoutNode,
 } from '@opsydyn/foldkit-viz/stateflow';
 import { Match, Option } from 'effect';
 import type { Document, Html, HtmlBuilder } from 'foldkit/html';
 
 import { svgRoot } from '../../ui/shared';
-import { fixture } from './fixture';
-import { graphFor } from './graph';
+import { graphFor, tookEdge } from './graph';
+import { nodeHalf, place } from './layered';
+import type { Placed, Route } from './layered';
 import { Message } from './message';
 import type { Model, TransitionFact } from './model';
+import { currentRecord, framesOf, specimenFor, stateTagOf, traceOf } from './replay';
 import { encodeEvent } from './source';
+import type { Frame, Specimen } from './specimen';
+import { specimens } from './specimens';
 
 import * as styles from './stateflow.css';
 
-const guardLabel = (edge: StateFlowEdge): string =>
+const guardLabel = (edge: Readonly<{ guard: string; guardPosition?: number }>): string =>
   Match.value(edge.guard).pipe(
     Match.when('unguarded', () => 'unguarded'),
     Match.orElse((guard) => `${guard} #${edge.guardPosition ?? 0}`),
   );
 
-const isTransitioned = (record: TransitionFact): boolean =>
-  Match.value(record.outcome).pipe(
-    Match.when('transitioned', () => true),
-    Match.orElse(() => false),
-  );
-
-const matchesEdge = (record: TransitionFact, edge: StateFlowEdge): boolean =>
-  [
-    isTransitioned(record),
-    record.from === edge.source,
-    record.target === edge.target,
-    record.messageTag === edge.event,
-  ].every(Boolean);
+const edgeOf = (edge: StateFlowEdge) => ({
+  from: edge.source,
+  messageTag: edge.event,
+  target: edge.target,
+});
 
 const textWhen = (condition: boolean, whenTrue: string, whenFalse = ''): string =>
   Match.value(condition).pipe(
@@ -54,134 +47,57 @@ const activation =
       Match.orElse(() => Option.none()),
     );
 
-const edgePair = (edge: StateFlowEdge): string => [edge.source, edge.target].sort().join(':');
-
-const edgeCaption = (_edge: StateFlowEdge, index: number): string =>
-  String(index + 1).padStart(2, '0');
-
-function edgeLabelPosition(edge: StateFlowLayoutEdge, edges: ReadonlyArray<StateFlowLayoutEdge>) {
-  const pair = edgePair(edge);
-  const peers = edges.filter((candidate) => edgePair(candidate) === pair);
-  const lane = peers.findIndex((candidate) => candidate.id === edge.id) - (peers.length - 1) / 2;
-  const dx = edge.x2 - edge.x1;
-  const dy = edge.y2 - edge.y1;
-  const distance = Math.hypot(dx, dy) || 1;
-  const direction = Match.value(edge.source < edge.target).pipe(
-    Match.when(true, () => 1),
-    Match.orElse(() => -1),
+/** How long ago, in events, an edge last fired: its glow fades with it. */
+const recencyClass = (model: Model, edge: StateFlowEdge): string => {
+  const age = Option.getOrElse(
+    Option.map(Option.fromNullishOr(edge.lastSeenAt), (seen) => model.cursor - seen),
+    () => Number.POSITIVE_INFINITY,
   );
-  const nx = (-dy / distance) * direction;
-  const ny = (dx / distance) * direction;
-  const maxWidth = Math.max(
-    ...peers.map(
-      (candidate) =>
-        edgeCaption(
-          candidate,
-          edges.findIndex((item) => item.id === candidate.id),
-        ).length * 7,
+  return Match.value(age).pipe(
+    Match.when(Number.POSITIVE_INFINITY, () => styles.untriedEdge),
+    Match.when(0, () => styles.freshEdge),
+    Match.when(
+      (value) => value <= 3,
+      () => styles.recentEdge,
     ),
+    Match.orElse(() => styles.staleEdge),
   );
-  // Use one normal for both directions, reserving the full label width and line height.
-  const spacing = Math.abs(nx) * (maxWidth + 16) + Math.abs(ny) * 28;
-  return {
-    x: (edge.x1 + edge.x2) / 2 + nx * lane * spacing,
-    y: (edge.y1 + edge.y2) / 2 + ny * lane * spacing,
-  };
-}
+};
 
-type EdgeLabel = Readonly<{ x: number; y: number; width: number }>;
+const placedFor = (model: Model, graph: StateFlowGraph): Placed =>
+  place(graph, specimenFor(model).initialTag, model.layout, model.narrow ? 'down' : 'across');
 
-const labelsOverlap = (a: EdgeLabel, b: EdgeLabel): boolean =>
-  [Math.abs(a.x - b.x) < (a.width + b.width) / 2 + 8, Math.abs(a.y - b.y) < 24].every(Boolean);
-
-function edgeLabels(layout: StateFlowLayout): ReadonlyArray<EdgeLabel> {
-  const placed: EdgeLabel[] = [];
-  for (const [index, edge] of layout.edges.entries()) {
-    const preferred = edgeLabelPosition(edge, layout.edges);
-    const width = edgeCaption(edge, index).length * 7;
-    // Search nearest positions first; pair lanes remain the preferred placement.
-    const candidates = Array.from({ length: 21 }, (_, row) =>
-      Array.from({ length: 21 }, (_, column) => ({
-        x: preferred.x + (column - 10) * 24,
-        y: preferred.y + (row - 10) * 24,
-        width,
-      })),
-    )
-      .flat()
-      .sort(
-        (a, b) =>
-          Math.hypot(a.x - preferred.x, a.y - preferred.y) -
-          Math.hypot(b.x - preferred.x, b.y - preferred.y),
-      );
-    const position = candidates.find((candidate) =>
-      [
-        candidate.x - width / 2 >= 8,
-        candidate.x + width / 2 <= 892,
-        candidate.y >= 24,
-        candidate.y <= 608,
-        placed.every((label) => !labelsOverlap(candidate, label)),
-        layout.nodes.every(
-          (node) =>
-            ![
-              Math.abs(candidate.x - node.x) < width / 2 + 58,
-              Math.abs(candidate.y - node.y) < 72,
-            ].every(Boolean),
-        ),
-      ].every(Boolean),
-    );
-    placed.push(Option.getOrThrow(Option.fromNullishOr(position)));
-  }
-  return placed;
-}
-
-function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>): Html {
-  const layout = layoutStateFlow(graph, {
-    width: 900,
-    height: 620,
-    linkDistance: 220,
-    collideRadius: 85,
-    strength: -800,
-  });
-  const latest = model.trace.at(-1);
-  const labels = edgeLabels(layout);
-  function edgeView(edge: StateFlowLayoutEdge, index: number): Html {
-    const record = Option.fromNullishOr(model.trace.findLast((item) => matchesEdge(item, edge)));
+function graphView(model: Model, placed: Placed, h: HtmlBuilder<Message>): Html {
+  const specimen = specimenFor(model);
+  const trace = traceOf(model);
+  const latest = currentRecord(model);
+  const active = stateTagOf(model);
+  const inspected = Option.fromNullishOr(
+    trace.find((item) => item.sequence === model.selectedSequence),
+  );
+  function edgeView(route: Route): Html {
+    const { edge } = route;
+    const record = Option.fromNullishOr(trace.findLast((item) => tookEdge(item, edgeOf(edge))));
     const message = Option.match(record, {
       onSome: (item) => Message.SelectedTrace({ sequence: item.sequence }),
       onNone: () => Message.SelectedEdge({ edge: edge.id }),
     });
-    const latestMatch = Option.fromNullishOr(latest).pipe(
-      Option.filter((item) => matchesEdge(item, edge)),
+    const latestMatch = latest.pipe(Option.filter((item) => tookEdge(item, edgeOf(edge))));
+    const pulseSequence = Option.getOrElse(
+      Option.map(latestMatch, (item) => item.sequence),
+      () => 0,
     );
-    const pulseSequence = latestMatch.pipe(
-      Option.map((item) => item.sequence),
-      Option.getOrElse(() => 0),
-    );
-    const labelPosition = Option.getOrThrow(Option.fromNullishOr(labels[index]));
-    const cx = 2 * labelPosition.x - (edge.x1 + edge.x2) / 2;
-    const cy = 2 * labelPosition.y - (edge.y1 + edge.y2) / 2;
-    // Intersect each curve tangent with the rectangular terminal plus four pixels clearance.
-    const startDistance = Math.hypot(cx - edge.x1, cy - edge.y1) || 1;
-    const sx = (cx - edge.x1) / startDistance;
-    const sy = (cy - edge.y1) / startDistance;
-    const startOffset = Math.min(60 / Math.abs(sx), 36 / Math.abs(sy));
-    const endDistance = Math.hypot(edge.x2 - cx, edge.y2 - cy) || 1;
-    const ex = (edge.x2 - cx) / endDistance;
-    const ey = (edge.y2 - cy) / endDistance;
-    const endOffset = Math.min(60 / Math.abs(ex), 36 / Math.abs(ey));
-    const endX = edge.x2 - ex * endOffset;
-    const endY = edge.y2 - ey * endOffset;
-    const routePath = `M${edge.x1 + sx * startOffset},${edge.y1 + sy * startOffset} Q${cx},${cy} ${endX},${endY}`;
-    const inspected = model.trace.find((item) => item.sequence === model.selectedSequence);
     const selected =
-      model.selectedEdge === edge.id || (inspected !== undefined && matchesEdge(inspected, edge));
-    const label = `${index + 1}. ${edge.source} → ${edge.target}: ${edge.event} (${guardLabel(edge)})`;
+      model.selectedEdge === edge.id ||
+      Option.exists(inspected, (item) => tookEdge(item, edgeOf(edge)));
+    const label = `${edge.source} → ${edge.target} on ${edge.event} (${guardLabel(edge)}), taken ${edge.transitionCount} times`;
     return h.g(
       [
         h.Key(`${edge.id}:${pulseSequence}`),
         h.Class(
           [
             styles.edge,
+            recencyClass(model, edge),
             textWhen(edge.guard !== 'unguarded', styles.guardedEdge),
             textWhen(edge.transitionCount > 0, styles.visitedEdge),
             textWhen(Option.isSome(latestMatch), styles.latestEdge),
@@ -200,7 +116,7 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
         h.title([], [label]),
         h.path(
           [
-            h.D(routePath),
+            h.D(route.path),
             h.Fill('none'),
             h.Stroke('transparent'),
             h.StrokeWidth('16'),
@@ -210,52 +126,44 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
           [],
         ),
         h.path(
-          [h.D(routePath), h.Fill('none'), h.Stroke('currentColor'), h.Class(styles.route)],
+          [h.D(route.path), h.Fill('none'), h.Stroke('currentColor'), h.Class(styles.route)],
           [],
         ),
-        h.path(
-          [
-            h.D(
-              `M${endX - ex * 9 - ey * 4},${endY - ey * 9 + ex * 4} L${endX},${endY} L${endX - ex * 9 + ey * 4},${endY - ey * 9 - ex * 4} Z`,
-            ),
-            h.Fill('currentColor'),
-          ],
-          [],
-        ),
+        h.path([h.D(route.arrow), h.Fill('currentColor')], []),
         h.rect(
           [
-            h.X(String(labelPosition.x - 15)),
-            h.Y(String(labelPosition.y - 17)),
-            h.Width('30'),
-            h.Height('22'),
-            h.Class(styles.badge),
+            h.X(String(route.label.x - route.labelWidth / 2)),
+            h.Y(String(route.label.y - 9)),
+            h.Width(String(route.labelWidth)),
+            h.Height('18'),
+            h.Class(styles.labelPlate),
           ],
           [],
         ),
         h.text(
-          [
-            h.X(String(labelPosition.x)),
-            h.Y(String(labelPosition.y - 5)),
-            h.Class(styles.edgeLabel),
-          ],
-          [edgeCaption(edge, index)],
+          [h.X(String(route.label.x)), h.Y(String(route.label.y + 4)), h.Class(styles.edgeLabel)],
+          [edge.event],
         ),
       ],
     );
   }
   function nodeView(node: StateFlowLayoutNode): Html {
-    const active = node.id === model.explorer._tag;
-    const error = Match.value(node.id).pipe(
-      Match.when('Failed', () => true),
-      Match.orElse(() => false),
+    const isActive = node.id === active;
+    const error = specimen.errorStates.includes(node.id);
+    const unreachable = specimen.unreachable.includes(node.id);
+    const ignored = trace.filter((item) => item.outcome === 'ignored' && item.from === node.id);
+    const shrugging = latest.pipe(
+      Option.filter((item) => item.outcome === 'ignored' && item.from === node.id),
     );
-    const status = Match.value({ active, error, visited: node.visitCount > 0 }).pipe(
-      Match.when({ active: true }, () => 'active'),
+    const status = Match.value({ isActive, error, unreachable, visited: node.visitCount > 0 }).pipe(
+      Match.when({ isActive: true }, () => 'active'),
+      Match.when({ unreachable: true }, () => 'unreachable'),
       Match.when({ error: true }, () => 'error state'),
       Match.when({ visited: true }, () => 'visited'),
       Match.orElse(() => node.role),
     );
     const message = Message.SelectedNode({ node: node.id });
+    const ignoredText = textWhen(ignored.length > 0, `, ignored ${ignored.length} messages`);
     return h.g(
       [
         h.Key(node.id),
@@ -265,43 +173,70 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
             styles.node,
             textWhen(node.visitCount > 0, styles.visitedNode),
             textWhen(error, styles.errorNode),
-            textWhen(active, styles.activeNode),
+            textWhen(unreachable, styles.unreachableNode),
+            textWhen(isActive, styles.activeNode),
             textWhen(model.selectedNode === node.id, styles.selectedNode),
           ].join(' '),
         ),
         h.Role('button'),
         h.Tabindex(0),
-        h.AriaLabel(`Select state ${node.label}`),
+        h.AriaLabel(`Select state ${node.label}${ignoredText}`),
         h.AriaPressed(textWhen(model.selectedNode === node.id, 'true', 'false')),
         h.OnClick(message),
         h.OnKeyDownPreventDefault(activation(message)),
       ],
       [
-        h.rect(
-          [h.X('-56'), h.Y('-32'), h.Width('112'), h.Height('64'), h.Class(styles.terminal)],
-          [],
-        ),
-        h.rect(
+        h.g(
           [
-            h.X('-56'),
-            h.Y('-32'),
-            h.Width('112'),
-            h.Height('3'),
-            h.Fill('currentColor'),
-            h.AriaHidden(true),
+            // Keyed by the ignored event, so each new shrug restarts the animation.
+            h.Key(
+              `shrug:${Option.getOrElse(
+                Option.map(shrugging, (item) => item.sequence),
+                () => 0,
+              )}`,
+            ),
+            h.Class(textWhen(Option.isSome(shrugging) && !model.reducedMotion, styles.bounce)),
           ],
-          [],
-        ),
-        h.path(
           [
-            h.D('M-63,-23 V-39 H-47 M47,-39 H63 V-23 M63,23 V39 H47 M-47,39 H-63 V23'),
-            h.Class(styles.selectionBracket),
-            h.AriaHidden(true),
+            h.rect(
+              [
+                h.X(String(-nodeHalf.width)),
+                h.Y(String(-nodeHalf.height)),
+                h.Width(String(nodeHalf.width * 2)),
+                h.Height(String(nodeHalf.height * 2)),
+                h.Class(styles.terminal),
+              ],
+              [],
+            ),
+            h.rect(
+              [
+                h.X(String(-nodeHalf.width)),
+                h.Y(String(-nodeHalf.height)),
+                h.Width(String(nodeHalf.width * 2)),
+                h.Height('3'),
+                h.Fill('currentColor'),
+                h.AriaHidden(true),
+              ],
+              [],
+            ),
+            h.path(
+              [
+                h.D('M-63,-23 V-39 H-47 M47,-39 H63 V-23 M63,23 V39 H47 M-47,39 H-63 V23'),
+                h.Class(styles.selectionBracket),
+                h.AriaHidden(true),
+              ],
+              [],
+            ),
+            h.text([h.Y('-3'), h.Class(styles.nodeLabel)], [node.label]),
+            h.text([h.Y('17'), h.Class(styles.nodeStatus)], [status]),
+            ...[
+              h.text(
+                [h.X('52'), h.Y('-12'), h.Class(styles.ignoredBadge), h.AriaHidden(true)],
+                [`↩${ignored.length}`],
+              ),
+            ].filter(() => ignored.length > 0),
           ],
-          [],
         ),
-        h.text([h.Y('-3'), h.Class(styles.nodeLabel)], [node.label]),
-        h.text([h.Y('17'), h.Class(styles.nodeStatus)], [status]),
       ],
     );
   }
@@ -312,16 +247,16 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
       svgRoot(
         h,
         {
-          width: 900,
-          height: 620,
+          width: placed.width,
+          height: placed.height,
           interactive: true,
-          ariaLabel: 'Request diagnostics state graph',
+          ariaLabel: `${specimen.label} state graph`,
           ariaDescription:
-            'Select a state to highlight related events. Tab reaches states and recorded transitions; Enter or Space selects. Edge numbers refer to the transition key below.',
-          style: { 'min-width': '900px' },
+            'Select a state to highlight related events. Tab reaches states and transitions; Enter or Space selects. Each transition is labelled with the message that fires it.',
+          style: model.narrow ? {} : { 'min-width': `${Math.round(placed.width * 0.8)}px` },
         },
         null,
-        [...layout.edges.map(edgeView), ...layout.nodes.map(nodeView)],
+        [...placed.routes.map(edgeView), ...placed.nodes.map(nodeView)],
       ),
     ],
   );
@@ -329,7 +264,7 @@ function graphView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>)
 
 function inspectorView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>): Html {
   const selected = Option.fromNullishOr(
-    model.trace.find((record) => record.sequence === model.selectedSequence),
+    traceOf(model).find((record) => record.sequence === model.selectedSequence),
   );
   const selectedEdge = Option.fromNullishOr(
     graph.edges.find((edge) => edge.id === model.selectedEdge),
@@ -341,7 +276,7 @@ function inspectorView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Messa
     h.p([h.Class(styles.muted)], ['No recorded event for this transition.']),
   ];
   function eventDetails(record: TransitionFact): ReadonlyArray<Html> {
-    const edges = graph.edges.filter((edge) => matchesEdge(record, edge));
+    const edges = graph.edges.filter((edge) => tookEdge(record, edgeOf(edge)));
     const guards = Option.fromNullishOr(edges.map(guardLabel).join(', ') || undefined);
     return [
       h.p([h.Class(styles.eventName)], [`#${record.sequence} ${record.messageTag}`]),
@@ -362,9 +297,8 @@ function inspectorView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Messa
       ),
     ];
   }
-  const edgeContent = Option.map(selectedEdge, edgeDetails);
   const content = Option.map(selected, eventDetails).pipe(
-    Option.orElse(() => edgeContent),
+    Option.orElse(() => Option.map(selectedEdge, edgeDetails)),
     Option.getOrElse(() => [
       h.p([h.Class(styles.muted)], ['Select an event to inspect its recorded facts.']),
     ]),
@@ -372,6 +306,247 @@ function inspectorView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Messa
   return h.section(
     [h.Class(styles.inspector), h.AriaLabel('Selected trace inspector'), h.Tabindex(0)],
     [h.h2([h.Class(styles.sectionHeading)], ['Event inspector']), ...content],
+  );
+}
+
+/** The swimlane's measures: a column of names, a lane per state, a column of Commands. */
+const lanes = { names: 240, lane: 92, commands: 240, top: 40, row: 26 } as const;
+
+/**
+ * The session as a sequence diagram: a lane per state, in the graph's order, and an arrow
+ * per event from the state it left to the one it reached, the Commands it started beside
+ * it. An ignored message is a ring on its lane. Events past the scrubber are drawn faint;
+ * picking one moves the scrubber there.
+ */
+function swimlaneView(model: Model, order: ReadonlyArray<string>, h: HtmlBuilder<Message>): Html {
+  const frames = framesOf(model);
+  const laneX = (state: string): number =>
+    lanes.names + Math.max(0, order.indexOf(state)) * lanes.lane + lanes.lane / 2;
+  const width = lanes.names + order.length * lanes.lane + lanes.commands;
+  const height = lanes.top + Math.max(1, frames.length) * lanes.row + 8;
+  const rowView = ({ record }: Frame, index: number): Html => {
+    const sequence = index + 1;
+    const y = lanes.top + index * lanes.row + lanes.row / 2;
+    const from = laneX(record.from);
+    const to = laneX(record.target ?? record.from);
+    const transitioned = record.outcome === 'transitioned';
+    const message = Message.ScrubbedTo({ cursor: sequence });
+    const description = transitioned
+      ? `${record.from} → ${record.target ?? ''}`
+      : `ignored in ${record.from} (${record.reason ?? ''})`;
+    const commands = record.commandNames.map((name) => `⇒ ${name}`).join('  ');
+    const mark = Match.value({ transitioned, loop: from === to }).pipe(
+      Match.when({ transitioned: false }, () => [
+        h.circle(
+          [
+            h.Cx(String(from)),
+            h.Cy(String(y)),
+            h.R('5'),
+            h.Fill('none'),
+            h.Stroke('var(--sf-focus)'),
+            h.StrokeWidth('1.5'),
+          ],
+          [],
+        ),
+      ]),
+      Match.when({ loop: true }, () => [
+        h.path(
+          [
+            h.D(
+              `M${from - 6},${y - 3} C${from - 22},${y - 16} ${from + 22},${y - 16} ${from + 6},${y - 3}`,
+            ),
+            h.Fill('none'),
+            h.Stroke('currentColor'),
+            h.StrokeWidth('1.5'),
+          ],
+          [],
+        ),
+      ]),
+      Match.orElse(() => {
+        const direction = Math.sign(to - from);
+        return [
+          h.circle([h.Cx(String(from)), h.Cy(String(y)), h.R('3'), h.Fill('currentColor')], []),
+          h.path(
+            [
+              h.D(`M${from},${y} L${to - direction * 6},${y}`),
+              h.Stroke('currentColor'),
+              h.StrokeWidth('1.5'),
+            ],
+            [],
+          ),
+          h.path(
+            [
+              h.D(`M${to - direction * 8},${y - 4} L${to},${y} L${to - direction * 8},${y + 4} Z`),
+              h.Fill('currentColor'),
+            ],
+            [],
+          ),
+        ];
+      }),
+    );
+    return h.g(
+      [
+        h.Key(String(sequence)),
+        h.Class(
+          [
+            styles.laneRow,
+            textWhen(sequence > model.cursor, styles.laneFuture),
+            textWhen(sequence === model.cursor, styles.laneCurrent),
+          ].join(' '),
+        ),
+        h.Role('button'),
+        h.Tabindex(0),
+        h.AriaLabel(
+          `Replay to event ${sequence}: ${record.messageTag}, ${description}${commands === '' ? '' : `, ${commands}`}`,
+        ),
+        h.AriaCurrent(textWhen(sequence === model.cursor, 'step', 'false')),
+        h.OnClick(message),
+        h.OnKeyDownPreventDefault(activation(message)),
+      ],
+      [
+        ...[
+          h.rect(
+            [
+              h.X('0'),
+              h.Y(String(y - lanes.row / 2)),
+              h.Width(String(width)),
+              h.Height(String(lanes.row)),
+              h.Class(styles.laneBand),
+            ],
+            [],
+          ),
+        ].filter(() => sequence === model.cursor),
+        h.text(
+          [h.X('8'), h.Y(String(y + 4)), h.Class(styles.laneText)],
+          [`${String(sequence).padStart(2, '0')} ${record.messageTag}`.slice(0, 34)],
+        ),
+        ...mark,
+        h.text(
+          [
+            h.X(String(lanes.names + order.length * lanes.lane + 8)),
+            h.Y(String(y + 4)),
+            h.Class(styles.laneCommand),
+          ],
+          [commands],
+        ),
+      ],
+    );
+  };
+  return h.section(
+    [h.Class(styles.swimlane), h.AriaLabel('Swimlane')],
+    [
+      h.h2([h.Class(styles.sectionHeading)], ['Swimlane']),
+      h.p(
+        [h.Class(styles.muted)],
+        [
+          'Each event as an arrow between state lanes, the Commands it started on the right. Pick one to replay to it.',
+        ],
+      ),
+      h.div(
+        [h.Class(styles.laneScroll)],
+        [
+          h.svg(
+            [
+              h.ViewBox(`0 0 ${width} ${height}`),
+              h.Width(String(width)),
+              h.Height(String(height)),
+              h.Role('group'),
+              h.AriaLabel('Events by state'),
+            ],
+            [
+              ...order.flatMap((state) => [
+                h.line(
+                  [
+                    h.X1(String(laneX(state))),
+                    h.X2(String(laneX(state))),
+                    h.Y1('28'),
+                    h.Y2(String(height)),
+                    h.Class(styles.lane),
+                  ],
+                  [],
+                ),
+                h.text(
+                  [h.X(String(laneX(state))), h.Y('18'), h.Class(styles.laneHeading)],
+                  [state],
+                ),
+              ]),
+              ...frames.map(rowView),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+/** Every edge: taken in this trace or not, a test that would take it, or why none can. */
+function coverageView(model: Model, graph: StateFlowGraph, h: HtmlBuilder<Message>): Html {
+  const specimen = specimenFor(model);
+  const seen = graph.edges.filter((edge) => edge.transitionCount > 0).length;
+  const itemFor = (edge: Specimen['edges'][number]): Html => {
+    const taken = graph.edges.find((other) => other.id === edge.id)?.transitionCount ?? 0;
+    const dead = Option.fromNullishOr(specimen.dead.find((item) => item.edgeId === edge.id));
+    const path = Option.fromNullishOr(specimen.coverage.find((item) => item.edgeId === edge.id));
+    const name = `${edge.from} → ${edge.target} on ${edge.messageTag}`;
+    const action = Match.value({
+      dead: Option.getOrNull(Option.map(dead, ({ reason }) => reason)),
+      reachable: Option.isSome(path),
+    }).pipe(
+      Match.when({ dead: Match.string }, ({ dead: reason }) =>
+        h.span([h.Class(styles.coverageDead)], [`dead: ${reason}`]),
+      ),
+      Match.when({ reachable: true }, () =>
+        h.button(
+          [
+            h.Class(styles.smallButton),
+            h.Type('button'),
+            h.AriaLabel(`Copy a test for ${name}`),
+            h.OnClick(Message.ClickedCopyTest({ edge: edge.id })),
+          ],
+          ['Copy test'],
+        ),
+      ),
+      Match.orElse(() => h.span([h.Class(styles.muted)], ['no example reaches it'])),
+    );
+    return h.li(
+      [h.Key(edge.id), h.Class(styles.coverageItem)],
+      [
+        h.span(
+          [
+            h.Class(taken > 0 ? styles.coverageSeen : styles.muted),
+            h.AriaLabel(taken > 0 ? 'taken' : 'not taken'),
+          ],
+          [taken > 0 ? '✓' : '○'],
+        ),
+        h.span(
+          [h.Class(styles.coverageEdge)],
+          [`${name}${edge.guard === 'unguarded' ? '' : ` (${guardLabel(edge)})`}`],
+        ),
+        action,
+      ],
+    );
+  };
+  return h.section(
+    [h.Class(styles.coverage), h.AriaLabel('Coverage')],
+    [
+      h.h2([h.Class(styles.sectionHeading)], ['Coverage']),
+      h.p(
+        [],
+        [
+          `${seen} of ${specimen.edges.length} transitions taken in this trace · ${specimen.coverage.length} reachable from the examples · ${specimen.dead.length} dead`,
+        ],
+      ),
+      ...[
+        h.p([h.Class(styles.coverageDead)], [`Unreachable: ${specimen.unreachable.join(', ')}`]),
+      ].filter(() => specimen.unreachable.length > 0),
+      h.p(
+        [h.Class(styles.muted)],
+        [
+          'Copy test writes a Vitest case: the shortest run of the machine’s named examples that takes the edge, from its initial state.',
+        ],
+      ),
+      h.ul([h.Class(styles.coverageList)], specimen.edges.map(itemFor)),
+    ],
   );
 }
 
@@ -399,18 +574,23 @@ function eventRow(model: Model, record: TransitionFact, h: HtmlBuilder<Message>)
           ),
         ],
       ),
-      ...[record.from, record.outcome, record.target ?? '—', record.reason ?? '—'].map((value) =>
-        h.td([], [value]),
-      ),
+      ...[
+        record.from,
+        record.outcome,
+        record.target ?? '—',
+        record.reason ?? '—',
+        record.commandNames.join(', ') || '—',
+      ].map((value) => h.td([], [value])),
     ],
   );
 }
 
-const timelineView = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.section(
-    [h.Class(styles.timeline), h.AriaLabel('Recent events')],
+const timelineView = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const trace = traceOf(model);
+  return h.section(
+    [h.Class(styles.timeline), h.AriaLabel('Recorded events')],
     [
-      h.h2([h.Class(styles.sectionHeading)], ['Recent events']),
+      h.h2([h.Class(styles.sectionHeading)], ['Recorded events']),
       h.p(
         [h.Class(styles.muted)],
         [
@@ -431,126 +611,217 @@ const timelineView = (model: Model, h: HtmlBuilder<Message>): Html =>
                 [
                   h.tr(
                     [],
-                    ['Sequence', 'Event', 'From', 'Outcome', 'Target', 'Reason'].map((label) =>
-                      h.th([h.Attribute('scope', 'col')], [label]),
+                    ['Sequence', 'Event', 'From', 'Outcome', 'Target', 'Reason', 'Commands'].map(
+                      (label) => h.th([h.Attribute('scope', 'col')], [label]),
                     ),
                   ),
                 ],
               ),
               h.tbody(
                 [],
-                model.trace.slice(-30).map((record) => eventRow(model, record, h)),
+                trace.map((record) => eventRow(model, record, h)),
               ),
             ],
           ),
         ],
       ),
-      ...Match.value(model.trace.length).pipe(
-        Match.when(0, () => [
-          h.p([h.Class(styles.muted)], ['No events yet. Step or play the replay session.']),
-        ]),
-        Match.orElse(() => []),
-      ),
+      ...[
+        h.p([h.Class(styles.muted)], ['No events replayed yet. Step, play or scrub the session.']),
+      ].filter(() => trace.length === 0),
     ],
   );
+};
 
-export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  const graph = graphFor(model);
-  const transitions = model.trace.filter(isTransitioned).length;
-  const playing = Match.value(model.playback).pipe(
-    Match.when('playing', () => true),
-    Match.orElse(() => false),
-  );
+const sourceLabels = {
+  sample: 'the machine’s sample session',
+  recording: 'a recording',
+  link: 'a shared link',
+} as const;
+
+function railView(model: Model, h: HtmlBuilder<Message>): Html {
+  const specimen = specimenFor(model);
+  const playing = model.playback === 'playing';
+  const atStart = model.cursor === 0;
+  const atEnd = model.cursor >= model.events.length;
+  const control = (
+    glyph: string,
+    label: string,
+    message: Message,
+    disabled: boolean,
+    primary = false,
+  ) =>
+    h.button(
+      [
+        h.Class([styles.control, textWhen(primary, styles.primaryControl)].join(' ')),
+        h.Type('button'),
+        h.AriaLabel(label),
+        h.Title(label),
+        h.OnClick(message),
+        h.Disabled(disabled),
+      ],
+      [glyph],
+    );
   const telemetryLabel = Option.match(Option.fromNullishOr(model.lastTelemetrySequence), {
     onNone: () => 'Outbound Port: no emission recorded',
     onSome: (sequence) => `Outbound Port: emitted #${sequence}`,
   });
-  const control = (label: string, message: Message, disabled: boolean) =>
-    h.button([h.Class(styles.control), h.OnClick(message), h.Disabled(disabled)], [label]);
-  const motionPreference = Match.value(model.reducedMotion).pipe(
-    Match.when(true, () => 'reduced'),
-    Match.orElse(() => 'standard'),
+  return h.aside(
+    [h.Class(styles.rail), h.AriaLabel('Machine, replay and Ports')],
+    [
+      h.label(
+        [h.Class(styles.field)],
+        [
+          'Machine',
+          h.select(
+            [
+              h.Class(styles.select),
+              h.AriaLabel('Machine'),
+              h.OnChange((value) => Message.ChoseSpecimen({ specimen: value })),
+            ],
+            specimens.map((candidate) =>
+              h.option(
+                [h.Value(candidate.id), h.Selected(candidate.id === specimen.id)],
+                [candidate.label],
+              ),
+            ),
+          ),
+        ],
+      ),
+      h.p([h.Class(styles.muted)], [specimen.summary]),
+      h.h2([h.Class(styles.sectionHeading)], ['Replay']),
+      h.div(
+        [h.Class(styles.controls)],
+        [
+          control('⏮', 'Reset', Message.ClickedReset(), atStart),
+          control('◀', 'Step back', Message.ClickedStepBack(), atStart),
+          playing
+            ? control('❚❚', 'Pause', Message.ClickedPause(), false, true)
+            : control('▶', 'Play', Message.ClickedPlay(), model.events.length === 0, true),
+          control('▶|', 'Step', Message.ClickedStep(), atEnd),
+          control('⏭', 'To the end', Message.ClickedEnd(), atEnd),
+        ],
+      ),
+      h.label(
+        [h.Class(styles.field)],
+        [
+          `Event ${model.cursor} of ${model.events.length}`,
+          h.input([
+            h.Class(styles.scrubber),
+            h.Type('range'),
+            h.Min('0'),
+            h.Max(String(model.events.length)),
+            h.Step('1'),
+            h.Value(String(model.cursor)),
+            h.AriaLabel('Replay position'),
+            h.OnInput((value) => Message.ScrubbedTo({ cursor: Number(value) })),
+          ]),
+        ],
+      ),
+      h.p([h.Class(styles.muted)], [`Playing ${sourceLabels[model.source]}.`]),
+      h.label(
+        [h.Class(styles.field)],
+        [
+          'Layout',
+          h.select(
+            [
+              h.Class(styles.select),
+              h.AriaLabel('Layout'),
+              h.OnChange((value) =>
+                Message.ChoseLayout({ layout: value === 'force' ? 'force' : 'layered' }),
+              ),
+            ],
+            [
+              h.option([h.Value('layered'), h.Selected(model.layout === 'layered')], ['Layered']),
+              h.option([h.Value('force'), h.Selected(model.layout === 'force')], ['Force (D3)']),
+            ],
+          ),
+        ],
+      ),
+      h.h2([h.Class(styles.sectionHeading)], ['Live']),
+      h.button(
+        [
+          h.Class([styles.control, textWhen(model.live, styles.liveOn)].join(' ')),
+          h.Type('button'),
+          h.AriaPressed(String(model.live)),
+          h.OnClick(Message.ClickedLive()),
+        ],
+        [model.live ? '● Listening' : 'Listen live'],
+      ),
+      ...Option.match(specimen.livePath, {
+        onNone: () => [
+          h.p(
+            [h.Class(styles.muted)],
+            ['No app reports this machine; live mode follows any that do.'],
+          ),
+        ],
+        onSome: (path) => [
+          h.p(
+            [h.Class(styles.muted)],
+            [
+              'Open ',
+              h.a([h.Href(path), h.Target('_blank'), h.Rel('noopener')], [`${specimen.label} ↗`]),
+              ' in another tab and use it: its machine’s messages arrive here.',
+            ],
+          ),
+        ],
+      }),
+      ...[
+        control('Clear recording', 'Clear recording', Message.ClickedClearRecording(), false),
+      ].filter(() => model.source === 'recording' && model.events.length > 0),
+      h.h2([h.Class(styles.sectionHeading)], ['Share']),
+      h.button(
+        [h.Class(styles.control), h.Type('button'), h.OnClick(Message.ClickedCopyLink())],
+        ['Copy link'],
+      ),
+      h.p([h.Class(styles.notice), h.AriaLive('polite')], [model.notice ?? '']),
+      h.h3([h.Class(styles.sectionHeading)], ['Typed Ports']),
+      h.p([], ['Inbound Port: replay input configured']),
+      h.p([], [telemetryLabel]),
+      h.p([h.Class(styles.muted)], ['Telemetry records command emission, not consumer delivery.']),
+    ],
   );
+}
+
+export function view(model: Model, h: HtmlBuilder<Message>): Document {
+  const specimen = specimenFor(model);
+  const graph = graphFor(model);
+  const placed = placedFor(model, graph);
+  const trace = traceOf(model);
+  const transitions = trace.filter((record) => record.outcome === 'transitioned').length;
+  const taken = graph.edges.filter((edge) => edge.transitionCount > 0).length;
+  const active = stateTagOf(model);
   return {
-    title: `Stateflow Observatory — ${model.explorer._tag}`,
+    title: `Stateflow Observatory — ${active}`,
     body: h.div(
       [h.Class(styles.root)],
       [
         h.header(
           [h.Class(styles.header)],
           [
-            h.p([h.Class(styles.current)], [`Current state: ${model.explorer._tag}`]),
+            h.p([h.Class(styles.current)], [`Current state: ${active}`]),
             h.p([], [`Transitions: ${transitions}`]),
-            h.p([], [`Ignored: ${model.trace.length - transitions}`]),
+            h.p([], [`Ignored: ${trace.length - transitions}`]),
+            h.p([], [`Coverage: ${taken} / ${graph.edges.length}`]),
             h.p([], [`Playback: ${model.playback}`]),
-            h.p([], [`Motion preference: ${motionPreference}`]),
           ],
         ),
         h.div(
           [h.Class(styles.workspace)],
           [
-            h.aside(
-              [h.Class(styles.rail), h.AriaLabel('Replay and Ports')],
-              [
-                h.h2([h.Class(styles.sectionHeading)], ['Replay controls']),
-                h.div(
-                  [h.Class(styles.controls)],
-                  [
-                    control(
-                      'Play',
-                      Message.ClickedPlay(),
-                      playing || model.replayIndex >= fixture.length,
-                    ),
-                    control('Pause', Message.ClickedPause(), !playing),
-                    control(
-                      'Step',
-                      Message.ClickedStep(),
-                      playing || model.replayIndex >= fixture.length,
-                    ),
-                    control('Reset', Message.ClickedReset(), false),
-                  ],
-                ),
-                h.p([], ['Replay session: Request diagnostics']),
-                h.p(
-                  [h.Class(styles.muted)],
-                  [`Progress: ${Math.min(model.replayIndex, fixture.length)} / ${fixture.length}`],
-                ),
-                h.h3([h.Class(styles.sectionHeading)], ['Typed Ports']),
-                h.p([], ['Inbound Port: replay input configured']),
-                h.p([], [telemetryLabel]),
-                h.p(
-                  [h.Class(styles.muted)],
-                  ['Telemetry records command emission, not consumer delivery.'],
-                ),
-              ],
-            ),
+            railView(model, h),
             h.section(
               [h.Class(styles.graph), h.AriaLabel('Machine graph')],
               [
-                h.h2([h.Class(styles.sectionHeading)], ['Request diagnostics']),
-                graphView(model, graph, h),
+                h.h2([h.Class(styles.sectionHeading)], [specimen.label]),
+                graphView(model, placed, h),
                 h.ul(
                   [h.Class(styles.legend), h.AriaLabel('Graph signals')],
                   [
                     h.li([h.Class(styles.legendActive)], ['Active / latest']),
-                    h.li([h.Class(styles.legendVisited)], ['Traversed']),
+                    h.li([h.Class(styles.legendVisited)], ['Taken (fades with age)']),
                     h.li([h.Class(styles.legendGuard)], ['Guarded route']),
                     h.li([h.Class(styles.legendError)], ['Failure state']),
-                  ],
-                ),
-                h.details(
-                  [],
-                  [
-                    h.summary([h.Class(styles.keySummary)], ['Transition key']),
-                    h.ol(
-                      [h.Class(styles.edgeKey)],
-                      graph.edges.map((edge) =>
-                        h.li(
-                          [],
-                          [`${edge.source} → ${edge.target} · ${edge.event} · ${guardLabel(edge)}`],
-                        ),
-                      ),
-                    ),
+                    h.li([], ['↩ ignored messages']),
                   ],
                 ),
               ],
@@ -558,6 +829,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             inspectorView(model, graph, h),
           ],
         ),
+        swimlaneView(model, placed.order, h),
+        coverageView(model, graph, h),
         timelineView(model, h),
       ],
     ),

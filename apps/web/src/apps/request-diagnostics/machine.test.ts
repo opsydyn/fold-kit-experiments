@@ -5,6 +5,10 @@ import { Message } from './message';
 import { ExplorerState, initModel, samplePoints } from './model';
 import { update } from './update';
 
+/** The machine's own Commands: every message it takes is also reported to the observatory. */
+const machineCommands = (commands: ReadonlyArray<{ readonly name: string }> | undefined) =>
+  (commands ?? []).filter(({ name }) => name !== 'ReportToObservatory');
+
 const exited = Message.Navigated({
   phase: 'exited',
   path: '/request-diagnostics',
@@ -99,6 +103,12 @@ describe('request diagnostics machine', () => {
     });
   });
 
+  test('reports every message the machine takes to a listening observatory', () => {
+    const { commands } = update(initModel, Message.LoadedMetrics({ points: samplePoints }));
+
+    expect(commands?.map(({ name }) => name)).toEqual(['ReportToObservatory']);
+  });
+
   test('starts the replacement request from the interrupt outcome', () => {
     const { model, commands } = update(
       { ...initModel, explorer: { _tag: 'Cancelling', reason: 'Reload' } },
@@ -106,7 +116,9 @@ describe('request diagnostics machine', () => {
     );
 
     expect(model.explorer).toEqual({ _tag: 'Loading' });
-    expect(commands).toMatchObject([{ name: 'FetchMetrics', key: 'FetchMetrics' }]);
+    expect(machineCommands(commands)).toMatchObject([
+      { name: 'FetchMetrics', key: 'FetchMetrics' },
+    ]);
   });
 
   test('does not replace metrics work after route-exit cancellation', () => {
@@ -116,7 +128,7 @@ describe('request diagnostics machine', () => {
     );
 
     expect(model.explorer).toEqual({ _tag: 'Idle' });
-    expect(commands).toEqual([]);
+    expect(machineCommands(commands)).toEqual([]);
   });
 
   test('does not interrupt completed metrics work on route exit', () => {
@@ -126,7 +138,7 @@ describe('request diagnostics machine', () => {
     );
 
     expect(model.explorer).toEqual({ _tag: 'Ready', points: samplePoints });
-    expect(commands).toEqual([]);
+    expect(machineCommands(commands)).toEqual([]);
   });
 
   test('ignores a late successful load after route-exit cancellation', () => {
@@ -140,7 +152,7 @@ describe('request diagnostics machine', () => {
     expect(nextModel.histogram).toBe(model.histogram);
     expect(nextModel.scatter).toBe(model.scatter);
     expect(nextModel.lastTransition).toBe('LoadedMetrics ignored in Idle');
-    expect(commands).toEqual([]);
+    expect(machineCommands(commands)).toEqual([]);
   });
 
   test('restores all points when a filtered selection is cleared', () => {

@@ -92,6 +92,27 @@ activity visible through a deterministic graph, replay timeline, and inspector.
       interruption/cancellation and replacement sequencing; `foldkit-viz`
       receives derived records and computes geometry synchronously.
 
+**Observatory enhancements (all in `apps/web/src/apps/stateflow`):**
+
+- [x] Specimens: any `Machine.define` machine, erased to plain records with its Message
+      schema and named examples. Request diagnostics and a checkout ship; a picker
+      switches between them.
+- [x] Replay as a fold: the Model keeps encoded events and a cursor, and every state
+      is the machine replayed to the cursor, so a scrubber moves both ways.
+- [x] A layered layout (ranks along the flow, rank-skipping edges over the top, back
+      edges under), with the message on every edge and its recency (`lastSeenAt`) as
+      a fade. App-owned: D3 has no layered layout, so it stays out of `foldkit-viz`
+      until a reference implementation is chosen. The force layout stays selectable.
+- [x] Ignored messages counted and shaken off on their state; a swimlane of the
+      session with each event's Commands.
+- [x] Live mode: request diagnostics reports each machine message on a
+      `BroadcastChannel`; the observatory, listening, records and replays them.
+- [x] Coverage: edges taken in the trace, FoldKit's dead transitions and unreachable
+      states, and a breadth-first search over the named examples whose shortest path
+      to each edge is offered as a Vitest case (and run in `specimen.test.ts`).
+- [x] Shareable sessions as a link (decoded into the page Flags on the server), and a
+      top-to-bottom layout at phone width.
+
 **Release gate:** implementation and documentation do not establish rerelease
 readiness. The packed-consumer and workspace verification gates still apply.
 See the [viz usage](../packages/foldkit-viz/README.md#remote-visual-loads) and

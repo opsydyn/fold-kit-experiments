@@ -2,6 +2,7 @@ import { Effect, Schema } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/http';
 import { Command, Http } from 'foldkit';
 
+import { postLive } from '../stateflow/live';
 import { Message } from './message';
 import { Point } from './model';
 
@@ -21,4 +22,20 @@ export const FetchMetrics = Command.define('FetchMetrics', {
     ),
     Http.layer,
   ),
+});
+
+const encodeMessage = Schema.encodeSync(Schema.fromJsonString(Message));
+
+/**
+ * Reports a message the explorer's Machine took to any Stateflow Observatory listening in
+ * another tab, which replays it live. With none open the message goes nowhere.
+ */
+export const ReportToObservatory = Command.define('ReportToObservatory', {
+  args: { message: Message },
+  messages: [Message.CompletedReportToObservatory],
+  execute: ({ message }) =>
+    Effect.sync(() => {
+      postLive({ specimen: 'request-diagnostics', event: encodeMessage(message) });
+      return Message.CompletedReportToObservatory();
+    }),
 });

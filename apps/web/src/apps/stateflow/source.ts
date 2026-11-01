@@ -2,13 +2,15 @@ import { Option, Schema } from 'effect';
 
 import type { Model } from './model';
 import { TransitionRecorded } from './ports';
+import { framesOf } from './replay';
+
 export const encodeEvent = Schema.encodeSync(
   Schema.fromJsonString(TransitionRecorded, { space: 2 }),
 );
 export const selectedEventSource = (model: Model): string =>
   Option.fromNullishOr(
-    model.trace.find((record) => record.sequence === model.selectedSequence),
+    framesOf(model).find(({ record }) => record.sequence === model.selectedSequence),
   ).pipe(
-    Option.map(encodeEvent),
+    Option.map(({ record }) => encodeEvent(record)),
     Option.getOrElse(() => ''),
   );

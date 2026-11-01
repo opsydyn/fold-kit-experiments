@@ -4,6 +4,10 @@ import { Message } from './message';
 import { initModel } from './model';
 import { update } from './update';
 
+/** The machine's own Commands: every message it takes is also reported to the observatory. */
+const machineCommands = (commands: ReadonlyArray<{ readonly name: string }> | undefined) =>
+  (commands ?? []).filter(({ name }) => name !== 'ReportToObservatory');
+
 describe('request diagnostics navigation lifecycle', () => {
   it.each([
     ['coldLoad', '/', null],
@@ -30,6 +34,6 @@ describe('request diagnostics navigation lifecycle', () => {
     expect(nextModel.explorer).toBe(initModel.explorer);
     expect(nextModel.histogram).toBe(initModel.histogram);
     expect(nextModel.scatter).toBe(initModel.scatter);
-    expect(commands).toEqual([]);
+    expect(machineCommands(commands)).toEqual([]);
   });
 });

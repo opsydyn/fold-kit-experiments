@@ -69,9 +69,9 @@ export const current = style({
 });
 export const workspace = style({
   display: 'grid',
-  gridTemplateColumns: '176px minmax(0, 1fr) 248px',
+  gridTemplateColumns: '228px minmax(0, 1fr) 248px',
   '@media': {
-    '(max-width: 1400px)': { gridTemplateColumns: '176px minmax(0, 1fr)' },
+    '(max-width: 1400px)': { gridTemplateColumns: '228px minmax(0, 1fr)' },
     '(max-width: 700px)': { gridTemplateColumns: 'minmax(0, 1fr)' },
   },
 });
@@ -120,9 +120,8 @@ export const sectionHeading = style({
 export const muted = style({ color: 'var(--sf-muted)', fontSize: '0.75rem' });
 export const controls = style({
   display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: '0.375rem',
-  '@media': { '(max-width: 700px)': { gridTemplateColumns: 'repeat(4, 1fr)' } },
+  gridTemplateColumns: 'repeat(5, 1fr)',
+  gap: '0.25rem',
 });
 export const control = style({
   border: '1px solid var(--sf-line)',
@@ -138,11 +137,16 @@ export const control = style({
   selectors: {
     '&:disabled': { opacity: 0.4, cursor: 'default' },
     '&:hover:not(:disabled)': { borderColor: 'var(--sf-blue)', color: 'var(--sf-blue)' },
-    '&:first-child:not(:disabled)': {
+  },
+});
+export const primaryControl = style({
+  selectors: {
+    '&:not(:disabled)': {
       borderColor: 'var(--sf-blue)',
       background: 'var(--sf-blue)',
       color: '#ffffff',
     },
+    '&:hover:not(:disabled)': { color: '#ffffff' },
   },
 });
 export const graphScroll = style({
@@ -300,3 +304,124 @@ globalStyle(`.${table} th, .${table} td`, {
   padding: '0.65rem 0.75rem',
 });
 globalStyle(`.${table} th`, { color: 'var(--sf-muted)', fontWeight: 500 });
+
+/* The scrubber: every event of the session, the thumb where replay stands. */
+export const scrubber = style({
+  width: '100%',
+  accentColor: 'var(--sf-blue)',
+  cursor: 'pointer',
+});
+export const field = style({
+  display: 'grid',
+  gap: '0.25rem',
+  color: 'var(--sf-muted)',
+  fontFamily: typography.fontFamily,
+  fontSize: '0.75rem',
+});
+export const select = style({
+  border: '1px solid var(--sf-line)',
+  borderRadius: 0,
+  background: 'var(--sf-bg)',
+  padding: '0.4rem',
+  color: 'var(--sf-text)',
+  font: 'inherit',
+});
+export const liveOn = style({
+  borderColor: 'var(--sf-cyan)',
+  color: 'var(--sf-cyan)',
+});
+export const notice = style({ minHeight: '1.25rem', color: 'var(--sf-cyan)', fontSize: '0.75rem' });
+
+/* Recency: an edge glows when it has just fired and fades as the session moves on. */
+export const freshEdge = style({ opacity: 1 });
+export const recentEdge = style({ opacity: 0.8 });
+export const staleEdge = style({ opacity: 0.55 });
+/* Never taken in this trace: drawn faint, for the coverage view's sake. */
+export const untriedEdge = style({ opacity: 0.4 });
+export const unreachableNode = style({ opacity: 0.55 });
+globalStyle(`.${unreachableNode} .${terminal}`, { strokeDasharray: '4 4' });
+export const labelPlate = style({ fill: 'var(--sf-bg)', stroke: 'none', opacity: 0.88 });
+
+/* An ignored message: the state shrugs it off, and counts it. */
+const shrug = keyframes({
+  '0%': { transform: 'translateY(0)' },
+  '30%': { transform: 'translateY(-7px)' },
+  '60%': { transform: 'translateY(0)' },
+  '80%': { transform: 'translateY(-2px)' },
+  '100%': { transform: 'translateY(0)' },
+});
+export const bounce = style({
+  animation: `${shrug} 450ms ease-out`,
+  '@media': { '(prefers-reduced-motion: reduce)': { animation: 'none' } },
+});
+export const ignoredBadge = style({
+  fontFamily: typography.fontFamily,
+  fontSize: '11px',
+  fontWeight: 700,
+  fill: 'var(--sf-focus)',
+  stroke: 'none',
+  textAnchor: 'end',
+});
+
+/* The swimlane: a lane per state, an arrow per event, its Commands beside it. */
+export const swimlane = style({ borderTop: '1px solid var(--sf-line)', padding: '1rem' });
+export const laneScroll = style({ overflowX: 'auto', maxHeight: '420px', overflowY: 'auto' });
+export const laneHeading = style({
+  fontFamily: typography.fontFamily,
+  fontSize: '11px',
+  fontWeight: 600,
+  fill: 'var(--sf-muted)',
+  textAnchor: 'middle',
+});
+export const lane = style({ stroke: 'var(--sf-grid)', strokeWidth: 1 });
+export const laneRow = style({ cursor: 'pointer', color: 'var(--sf-cyan)' });
+export const laneFuture = style({ opacity: 0.3 });
+export const laneCurrent = style({ color: 'var(--sf-blue)' });
+globalStyle(`.${laneRow}:hover`, { color: 'var(--sf-text)' });
+export const laneText = style({
+  fontFamily: typography.fontFamily,
+  fontSize: '11px',
+  fill: 'var(--sf-text)',
+  stroke: 'none',
+});
+export const laneCommand = style({
+  fontFamily: typography.fontFamily,
+  fontSize: '11px',
+  fill: 'var(--sf-focus)',
+  stroke: 'none',
+});
+export const laneBand = style({ fill: 'var(--sf-tint)' });
+
+/* Coverage: every edge, whether the trace took it, and a test that would. */
+export const coverage = style({ borderTop: '1px solid var(--sf-line)', padding: '1rem' });
+export const coverageList = style({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+  gap: '0.25rem 1.5rem',
+  margin: '0.75rem 0 0',
+  padding: 0,
+  listStyle: 'none',
+  fontFamily: typography.fontFamily,
+  fontSize: '0.75rem',
+});
+export const coverageItem = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  borderBottom: '1px dotted var(--sf-line)',
+  padding: '0.35rem 0',
+});
+export const coverageEdge = style({ flex: '1 1 auto', overflowWrap: 'anywhere' });
+export const coverageSeen = style({ color: 'var(--sf-cyan)' });
+export const coverageDead = style({ color: 'var(--sf-error)' });
+export const smallButton = style({
+  border: '1px solid var(--sf-line)',
+  borderRadius: 0,
+  background: 'var(--sf-bg)',
+  cursor: 'pointer',
+  padding: '0.2rem 0.45rem',
+  whiteSpace: 'nowrap',
+  color: 'var(--sf-text)',
+  font: 'inherit',
+  selectors: { '&:hover': { borderColor: 'var(--sf-blue)', color: 'var(--sf-blue)' } },
+});

@@ -1,4 +1,4 @@
-import { Combobox, Tooltip } from '@foldkit/ui';
+import { Combobox, Popover, Tooltip } from '@foldkit/ui';
 import { type Camera, type Gesture, orbit, orbitOptions, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option } from 'effect';
 import { modifyFields } from 'foldkit/struct';
@@ -95,6 +95,15 @@ const foldTooltip = foldChildAt({
     modifyFields(model, { tooltips: (tooltips) => ({ ...tooltips, [control]: next }) }),
   toParentMessage: (control, message) => Message.GotTooltipMessage({ control, message }),
   foldOutMessage: () => () => (model) => ({ model }),
+});
+
+/** The help popover: its own update, its focus and anchor Commands the radar's. */
+const foldHelp = foldChild({
+  update: Popover.update,
+  read: (model: Model) => Option.some(model.help),
+  write: (model, help) => ({ ...model, help }),
+  toParentMessage: (message) => Message.GotHelpMessage({ message }),
+  foldOutMessage: () => (model) => ({ model }),
 });
 
 /** How far one Turn button turns the camera round the radar's axis. */
@@ -660,6 +669,7 @@ const step = (model: Model, message: Message): AppReturn =>
     ClickedDismissSinceVisit: () => ({ model: { ...model, sinceVisit: Option.none() } }),
     GotTooltipMessage: ({ control, message }) => foldTooltip(model, control, message),
     GotSearchMessage: ({ message }) => searchStep(model, message),
+    GotHelpMessage: ({ message }) => foldHelp(model, message),
     MadeGesture: ({ gesture }) => ({
       model: { ...orbited(model, gesture), stageAspect: aspectOf(gesture, model.stageAspect) },
     }),

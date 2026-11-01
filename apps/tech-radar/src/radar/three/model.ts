@@ -1,4 +1,4 @@
-import { Combobox, Tooltip } from '@foldkit/ui';
+import { Combobox, Popover, Tooltip } from '@foldkit/ui';
 import { perspectiveCamera, SceneSchema, type Vec3 } from '@opsydyn/effect-three';
 import { Match, Option, Schema } from 'effect';
 
@@ -158,6 +158,8 @@ export const Model = Schema.Struct({
   ),
   /** The search box: a Combobox whose input follows `query`. */
   search: Combobox.Model,
+  /** The help button's popover: how to read and move round the radar, in the reader's gestures. */
+  help: Popover.Model,
   /** The icon buttons' tooltips. */
   tooltips: Schema.Struct({
     'turn-left': Tooltip.Model,
@@ -305,6 +307,7 @@ export const initialModel = (host: Host, data: RadarData): Model => ({
   minimapShown: false,
   sinceVisit: Option.none(),
   search: Combobox.init({ id: 'radar-search' }),
+  help: Popover.init({ id: 'radar-help' }),
   tooltips: closedTooltips,
   stageAspect: 1,
   stageWidth: 640,

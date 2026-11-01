@@ -8,6 +8,10 @@ import type { Message as AppMessage } from './message';
 import { initModel } from './model';
 import { NavigationPort, NavigationValue } from './navigation';
 
+/** The machine's own Commands: every message it takes is also reported to the observatory. */
+const machineCommands = (commands: ReadonlyArray<{ readonly name: string }> | undefined) =>
+  (commands ?? []).filter(({ name }) => name !== 'ReportToObservatory');
+
 describe('request diagnostics navigation scene', () => {
   it('updates route metadata without rebuilding chart models', () => {
     const model = initModel;
@@ -20,7 +24,7 @@ describe('request diagnostics navigation scene', () => {
       }),
     );
 
-    expect(commands).toEqual([]);
+    expect(machineCommands(commands)).toEqual([]);
     expect(nextModel.histogram).toBe(model.histogram);
     expect(nextModel.scatter).toBe(model.scatter);
     expect(nextModel.route).toEqual({

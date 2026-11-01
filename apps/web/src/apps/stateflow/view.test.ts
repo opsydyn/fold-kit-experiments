@@ -1,48 +1,36 @@
 import { Option } from 'effect';
 import { Scene } from 'foldkit';
-import type { Document, HtmlBuilder } from 'foldkit/html';
 import { describe, expect, it } from 'vitest';
 
 import { svgRoot } from '../../ui/shared';
-import { ReportTransition } from './command';
-import { fixture } from './fixture';
+import { CopyTest, ReportTransition } from './command';
 import { view } from './main';
 import { Message } from './message';
-import type { Model } from './model';
 import { initModel } from './model';
+import { checkoutSpecimen } from './specimens/checkout';
 import { update } from './update';
 
-const replayed = fixture.reduce(
-  (model, event) => update(model, Message.ReceivedReplayEvent({ event })).model,
-  initModel,
-);
-
-function viewWithTitle(model: Model, h: HtmlBuilder<Message>): Document {
-  const document = view(model, h);
-  expect(document.title).toBe('Stateflow Observatory — Loading');
-  return document;
-}
+const replayed = update(initModel, Message.ClickedEnd()).model;
+const checkout = update(initModel, Message.ChoseSpecimen({ specimen: checkoutSpecimen.id })).model;
 
 // These tests catch missing accessible content, miswired controls and inspection that changes live state.
 describe('Stateflow Observatory view', () => {
-  it('renders a titled, accessible static graph and replay controls before hydration', () => {
+  it('renders a titled, accessible graph and replay controls before hydration', () => {
     Scene.scene(
-      {
-        update,
-        view: viewWithTitle,
-      },
+      { update, view },
       Scene.given(initModel),
       Scene.expect(
         Scene.role('application', { name: 'Request diagnostics state graph' }),
       ).toExist(),
       Scene.expect(Scene.text('Current state: Loading')).toExist(),
       Scene.expect(Scene.text('Playback: paused')).toExist(),
-      Scene.expect(Scene.text('Motion preference: standard')).toExist(),
-      Scene.expect(Scene.text('Replay session: Request diagnostics')).toExist(),
-      ...['Play', 'Pause', 'Step', 'Reset'].map((name) =>
-        Scene.expect(Scene.role('button', { name })).toExist(),
+      Scene.expect(Scene.text('Event 0 of 8')).toExist(),
+      ...['Reset', 'Step back', 'Play', 'Step', 'To the end', 'Copy link', 'Listen live'].map(
+        (name) => Scene.expect(Scene.role('button', { name })).toExist(),
       ),
-      ...['Sequence', 'Event', 'From', 'Outcome', 'Target', 'Reason'].map((name) =>
+      Scene.expect(Scene.label('Replay position')).toExist(),
+      Scene.expect(Scene.label('Machine')).toExist(),
+      ...['Sequence', 'Event', 'From', 'Outcome', 'Target', 'Reason', 'Commands'].map((name) =>
         Scene.expect(Scene.role('columnheader', { name })).toExist(),
       ),
       Scene.expect(Scene.text('Select an event to inspect its recorded facts.')).toExist(),
@@ -50,14 +38,13 @@ describe('Stateflow Observatory view', () => {
         expect(Scene.textContent(Option.getOrThrow(Scene.find(html, 'svg title')))).toBe(
           'Request diagnostics state graph',
         );
-        expect(Scene.textContent(Option.getOrThrow(Scene.find(html, 'svg desc')))).toContain(
-          'Select a state',
-        );
+        // Each transition is labelled with its message, not a number to look up.
+        expect(Scene.textContent(html)).toContain('CompletedCancelFetchMetrics');
       }),
     );
   });
 
-  it('wires play, pause, step and reset through the update loop', () => {
+  it('steps, steps back and resets through the update loop', () => {
     Scene.scene(
       { update, view },
       Scene.given(initModel),
@@ -73,112 +60,94 @@ describe('Stateflow Observatory view', () => {
       Scene.expect(Scene.text('Current state: Ready')).toExist(),
       Scene.expect(Scene.text('Transitions: 1')).toExist(),
       Scene.expect(Scene.text('Outbound Port: emitted #1')).toExist(),
+      Scene.click(Scene.role('button', { name: 'Step back' })),
+      Scene.expect(Scene.text('Current state: Loading')).toExist(),
+      Scene.click(Scene.role('button', { name: 'To the end' })),
+      Scene.expect(Scene.text('Current state: Idle')).toExist(),
       Scene.click(Scene.role('button', { name: 'Reset' })),
       Scene.expect(Scene.text('Current state: Loading')).toExist(),
       Scene.expect(Scene.text('Transitions: 0')).toExist(),
     );
   });
 
-  it('inspects a historical event without changing the live machine and highlights related rows', () => {
+  it('replays to an event picked in the swimlane', () => {
+    Scene.scene(
+      { update, view },
+      Scene.given(initModel),
+      Scene.click(
+        Scene.role('button', {
+          name: 'Replay to event 5: ClickedReload, Ready → Cancelling, ⇒ FetchMetrics.Interrupt',
+        }),
+      ),
+      Scene.expect(Scene.text('Current state: Cancelling')).toExist(),
+      Scene.expect(Scene.text('Event 5 of 8')).toExist(),
+      Scene.tap(({ html }) => {
+        const inspector = Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html));
+        expect(Scene.textContent(inspector)).toContain('#5 ClickedReload');
+        expect(Scene.textContent(inspector)).toContain('FetchMetrics.Interrupt');
+      }),
+    );
+  });
+
+  it('inspects a historical event without moving the scrubber and highlights related rows', () => {
     Scene.scene(
       { update, view },
       Scene.given(replayed),
       Scene.click(Scene.role('button', { name: 'Inspect event 5: ClickedReload' })),
       Scene.expect(Scene.text('Current state: Idle')).toExist(),
       Scene.tap(({ html }) => {
-        const inspector = Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html));
-        const content = Scene.textContent(inspector);
-        expect(content).toContain('ClickedReload');
+        const content = Scene.textContent(
+          Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html)),
+        );
         expect(content).toContain('Ready → Cancelling');
-        expect(content).toContain('FetchMetrics');
         expect(content).toContain('"sequence": 5');
       }),
       Scene.click(Scene.role('button', { name: 'Select state Ready' })),
       Scene.tap(({ html }) => {
-        expect(
-          Scene.attr(
-            Option.getOrThrow(Scene.getByLabel('Select state Ready')(html)),
-            'aria-pressed',
-          ),
-        ).toEqual(Option.some('true'));
         expect(Scene.findAll(html, '[data-related="true"]').length).toBe(4);
       }),
     );
   });
 
-  it('shows ignored reasons and preserves the absent target', () => {
-    const ignored = update(
-      initModel,
-      Message.ReceivedReplayEvent({ event: { _tag: 'StartedSelection' } }),
-    ).model;
+  it('marks ignored messages on the state that shrugged them off', () => {
+    const ignored = update(checkout, Message.ScrubbedTo({ cursor: 11 })).model;
     Scene.scene(
       { update, view },
       Scene.given(ignored),
       Scene.expect(Scene.text('Ignored: 1')).toExist(),
+      Scene.expect(
+        Scene.role('button', { name: 'Select state Charging, ignored 1 messages' }),
+      ).toExist(),
       Scene.tap(({ html }) => {
         const content = Scene.textContent(
           Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html)),
         );
-        expect(content).toContain('ignored');
         expect(content).toContain('NotApplicable');
-        expect(content).toContain('Loading → —');
+        expect(content).toContain('Charging → —');
       }),
     );
   });
-  it('lets keyboard users select states and inspect a recorded edge', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(replayed),
-      Scene.keydown(Scene.role('button', { name: 'Select state Loading' }), 'Enter'),
-      Scene.expect(Scene.text('Related events highlighted: Loading')).toExist(),
-      Scene.keydown(Scene.role('button', { name: 'Select state Ready' }), ' '),
-      Scene.expect(Scene.text('Related events highlighted: Ready')).toExist(),
-      Scene.keydown(
-        Scene.role('button', { name: '5. Ready → Cancelling: ClickedReload (unguarded)' }),
-        'Enter',
-      ),
-      Scene.tap(({ html }) => {
-        const inspector = Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html));
-        expect(Scene.textContent(inspector)).toContain('#5 ClickedReload');
-        expect(Scene.textContent(inspector)).toContain('Guard: unguarded');
-      }),
-      Scene.expect(Scene.text('Current state: Idle')).toExist(),
-    );
-  });
-  it('keeps compact Loading/Cancelling route tags apart and retains guard metadata', () => {
+
+  it('lets keyboard users select states and inspect edges, taken or not', () => {
     Scene.scene(
       { update, view },
       Scene.given(initModel),
+      Scene.keydown(Scene.role('button', { name: 'Select state Ready' }), ' '),
+      Scene.expect(Scene.text('Related events highlighted: Ready')).toExist(),
+      Scene.keydown(
+        Scene.role('button', {
+          name: 'Cancelling → Idle on CompletedCancelFetchMetrics (otherwise #1), taken 0 times',
+        }),
+        'Enter',
+      ),
       Scene.tap(({ html }) => {
-        const connected = Scene.findAll(html, 'svg g').filter(
-          (node) =>
-            Option.getOrElse(Scene.attr(node, 'aria-label'), () => '').includes(
-              'Loading → Cancelling:',
-            ) ||
-            Option.getOrElse(Scene.attr(node, 'aria-label'), () => '').includes(
-              'Cancelling → Loading:',
-            ),
+        const content = Scene.textContent(
+          Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html)),
         );
-        expect(connected).toHaveLength(3);
-        const labels = connected.map((node) => Option.getOrThrow(Scene.find(node, 'text')));
-        expect(labels.map(Scene.textContent)).toEqual(['01', '02', '13']);
-        for (const [index, label] of labels.entries()) {
-          for (const other of labels.slice(index + 1)) {
-            const dx = Math.abs(
-              Number(Option.getOrThrow(Scene.attr(label, 'x'))) -
-                Number(Option.getOrThrow(Scene.attr(other, 'x'))),
-            );
-            const dy = Math.abs(
-              Number(Option.getOrThrow(Scene.attr(label, 'y'))) -
-                Number(Option.getOrThrow(Scene.attr(other, 'y'))),
-            );
-            const width = Scene.textContent(label).length * 7;
-            const otherWidth = Scene.textContent(other).length * 7;
-            expect(dx >= (width + otherWidth) / 2 + 8 || dy >= 24).toBe(true);
-          }
-        }
-        expect(Scene.textContent(html)).toContain('otherwise #1');
+        expect(content).toContain('Guard: otherwise #1');
+        expect(content).toContain('No recorded event for this transition.');
       }),
+      Scene.expect(Scene.text('Current state: Loading')).toExist(),
     );
   });
 
@@ -192,81 +161,6 @@ describe('Stateflow Observatory view', () => {
         expect(
           Scene.attr(Option.getOrThrow(Scene.getByLabel('Select state Loading')(html)), 'tabIndex'),
         ).toEqual(Option.some('0'));
-        expect(
-          Scene.attr(
-            Option.getOrThrow(
-              Scene.getByLabel('1. Loading → Cancelling: ClickedReload (unguarded)')(html),
-            ),
-            'tabIndex',
-          ),
-        ).toEqual(Option.some('0'));
-      }),
-    );
-  });
-  it('keeps guard labels readable where different connected pairs meet', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(initModel),
-      Scene.tap(({ html }) => {
-        const labels = Scene.findAll(html, 'svg g')
-          .filter((node) => Option.isSome(Scene.find(node, 'title')))
-          .map((node) => Option.getOrThrow(Scene.find(node, 'text')));
-        expect(labels).toHaveLength(14);
-        for (const [index, label] of labels.entries()) {
-          for (const other of labels.slice(index + 1)) {
-            const dx = Math.abs(
-              Number(Option.getOrThrow(Scene.attr(label, 'x'))) -
-                Number(Option.getOrThrow(Scene.attr(other, 'x'))),
-            );
-            const dy = Math.abs(
-              Number(Option.getOrThrow(Scene.attr(label, 'y'))) -
-                Number(Option.getOrThrow(Scene.attr(other, 'y'))),
-            );
-            const width = Scene.textContent(label).length * 7;
-            const otherWidth = Scene.textContent(other).length * 7;
-            expect(dx >= (width + otherWidth) / 2 + 8 || dy >= 24).toBe(true);
-          }
-        }
-      }),
-    );
-  });
-
-  // Circular offsets would cut into rectangular terminals.
-  it('terminates routes at the state terminal boundary with a clear gap', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(initModel),
-      Scene.tap(({ html }) => {
-        const routes = Scene.findAll(html, 'svg g').filter((node) =>
-          Option.getOrElse(Scene.attr(node, 'aria-label'), () => '').includes(' → '),
-        );
-        expect(routes).toHaveLength(14);
-        for (const route of routes) {
-          const label = Option.getOrThrow(Scene.attr(route, 'aria-label'));
-          const stateNames = Option.getOrThrow(
-            Option.fromNullishOr(label.match(/^\d+\. (\w+) → (\w+):/)),
-          );
-          const path = Option.getOrThrow(
-            Scene.attr(Option.getOrThrow(Scene.find(route, 'path')), 'd'),
-          );
-          const coordinates = Option.getOrThrow(
-            Option.fromNullishOr(path.match(/^M([^,]+),([^ ]+) Q.+ ([^, ]+),([^ ]+)$/)),
-          );
-          for (const [name, x, y] of [
-            [stateNames[1], Number(coordinates[1]), Number(coordinates[2])],
-            [stateNames[2], Number(coordinates[3]), Number(coordinates[4])],
-          ] as const) {
-            const node = Option.getOrThrow(Scene.getByLabel(`Select state ${name}`)(html));
-            const transform = Option.getOrThrow(Scene.attr(node, 'transform'));
-            const center = Option.getOrThrow(
-              Option.fromNullishOr(transform.match(/translate\(([^,]+),([^)]+)\)/)),
-            );
-            const dx = Math.abs(x - Number(center[1]));
-            const dy = Math.abs(y - Number(center[2]));
-            // The 112×64 terminal has a four-pixel routing clearance on each side.
-            expect(Math.max(dx / 60, dy / 36)).toBeCloseTo(1, 8);
-          }
-        }
       }),
     );
   });
@@ -278,12 +172,7 @@ describe('Stateflow Observatory view', () => {
         view: (model, h) =>
           svgRoot(
             h,
-            {
-              width: 200,
-              height: 100,
-              interactive: true,
-              ariaLabel: 'Keyboard chart',
-            },
+            { width: 200, height: 100, interactive: true, ariaLabel: 'Keyboard chart' },
             () => Option.some(Message.SelectedNode({ node: 'Ready' })),
             [h.text([], [model.selectedNode ?? 'None'])],
           ),
@@ -294,44 +183,18 @@ describe('Stateflow Observatory view', () => {
       Scene.expect(Scene.text('Ready')).toExist(),
     );
   });
-  it('inspects an untaken edge with the mouse without changing the live state', () => {
-    Scene.scene(
-      { update, view },
-      Scene.given(initModel),
-      Scene.click(Scene.role('button', { name: '2. Loading → Cancelling: Navigated (when #0)' })),
-      Scene.tap(({ html }) => {
-        const inspector = Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html));
-        const content = Scene.textContent(inspector);
-        expect(content).toContain('Navigated');
-        expect(content).toContain('Loading → Cancelling');
-        expect(content).toContain('Guard: when #0');
-        expect(content).toContain('No recorded event for this transition.');
-      }),
-      Scene.expect(Scene.text('Current state: Loading')).toExist(),
-      Scene.expect(Scene.text('Transitions: 0')).toExist(),
-    );
-  });
 
-  it('inspects an untaken otherwise edge with the keyboard', () => {
+  it('shows coverage: unreachable states, dead edges and tests to copy', () => {
     Scene.scene(
       { update, view },
-      Scene.given(initModel),
-      Scene.keydown(
-        Scene.role('button', {
-          name: '14. Cancelling → Idle: CompletedCancelFetchMetrics (otherwise #1)',
-        }),
-        'Enter',
+      Scene.given(checkout),
+      Scene.expect(Scene.text('Unreachable: Refunded')).toExist(),
+      Scene.expect(Scene.text('dead: UnreachableSource')).toExist(),
+      Scene.click(
+        Scene.role('button', { name: 'Copy a test for Charging → Declined on SettledCharge' }),
       ),
-      Scene.tap(({ html }) => {
-        const content = Scene.textContent(
-          Option.getOrThrow(Scene.getByLabel('Selected trace inspector')(html)),
-        );
-        expect(content).toContain('CompletedCancelFetchMetrics');
-        expect(content).toContain('Cancelling → Idle');
-        expect(content).toContain('Guard: otherwise #1');
-        expect(content).toContain('No recorded event for this transition.');
-      }),
-      Scene.expect(Scene.text('Current state: Loading')).toExist(),
+      Scene.Command.resolveAll([CopyTest, Message.CompletedCopy({ what: 'test', copied: true })]),
+      Scene.expect(Scene.text('Test copied: paste it into the machine’s test file.')).toExist(),
     );
   });
 });

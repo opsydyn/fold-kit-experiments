@@ -4,6 +4,7 @@ import type { Return as UpdateReturn } from 'foldkit/update';
 
 import * as Histogram from '../../ui/histogram-chart';
 import * as Scatter from '../../ui/scatter-chart';
+import { ReportToObservatory } from './command';
 import { diagnosticsMachine } from './machine';
 import { Message } from './message';
 import { ExplorerState, type Model } from './model';
@@ -60,7 +61,7 @@ const runMachine = (model: Model, message: Message): Return => {
     Match.tag('Transitioned', ({ commands: nextCommands }) => nextCommands),
     Match.orElse(() => []),
   );
-  return { model: withCharts, commands };
+  return { model: withCharts, commands: [...commands, ReportToObservatory({ message })] };
 };
 
 const selectionMessage = (
@@ -163,4 +164,5 @@ export const update = (model: Model, message: Message): Return =>
     ChangedSelection: () => runMachine(model, message),
     ClearedSelection: () => runMachine(model, message),
     Navigated: (navigationMessage) => updateNavigation(model, navigationMessage),
+    CompletedReportToObservatory: () => ({ model }),
   });

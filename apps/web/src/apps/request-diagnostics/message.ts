@@ -22,6 +22,7 @@ export const Message = defineMessageUnion({
   Navigated: NavigationValue.fields,
   ReceivedHistogramMessage: { message: Schema.Unknown },
   ReceivedScatterMessage: { message: Schema.Unknown },
+  CompletedReportToObservatory: {},
 });
 export type ReceivedHistogramMessage = Omit<
   typeof Message.ReceivedHistogramMessage.Type,

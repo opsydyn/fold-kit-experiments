@@ -3,15 +3,19 @@ import { Data, Effect } from 'effect';
 import { Runtime } from 'foldkit';
 import { describe, expect, it, vi } from 'vitest';
 
-import { fixture } from './fixture';
+import { Message as DiagnosticsMessage } from '../request-diagnostics/message';
+import { samplePoints } from '../request-diagnostics/model';
 import { managedResources as liveResources } from './main';
 import { Message } from './message';
 import type { Message as AppMessage } from './message';
 import { initModel, Model } from './model';
 import type { Model as AppModel } from './model';
 import { ReplayEventPort, TransitionTelemetryPort } from './ports';
+import type { ReplayEvent } from './ports';
 import { subscriptions } from './subscription';
 import { update } from './update';
+
+const loaded: ReplayEvent = DiagnosticsMessage.LoadedMetrics({ points: samplePoints });
 
 class TestHighlighterUnavailable extends Data.TaggedError('TestHighlighterUnavailable') {}
 
@@ -104,7 +108,8 @@ describe('stateflow Port bridge', () => {
     expect(models.at(-1)?.reducedMotion).toBe(false);
 
     handle.dispose();
-    expect(removeEventListener).toHaveBeenCalledOnce();
+    // Reduced motion and the phone-width layout each listen to a media query.
+    expect(removeEventListener).toHaveBeenCalledTimes(2);
     container.remove();
     vi.unstubAllGlobals();
   });
@@ -131,10 +136,10 @@ describe('stateflow Port bridge', () => {
       }),
     );
 
-    handle.ports.replay.send(fixture[0]);
+    handle.ports.replay.send(loaded);
 
     await vi.waitFor(() => {
-      expect(received).toContainEqual(Message.ReceivedReplayEvent({ event: fixture[0] }));
+      expect(received).toContainEqual(Message.ReceivedReplayEvent({ event: loaded }));
     });
 
     handle.dispose();
@@ -170,10 +175,10 @@ describe('stateflow Port bridge', () => {
       telemetry.push(record),
     );
 
-    handle.ports.replay.send(fixture[0]);
+    handle.ports.replay.send(loaded);
 
     await vi.waitFor(() => {
-      expect(received).toContainEqual(Message.ReceivedReplayEvent({ event: fixture[0] }));
+      expect(received).toContainEqual(Message.ReceivedReplayEvent({ event: loaded }));
       expect(telemetry).toEqual([
         expect.objectContaining({ messageTag: 'LoadedMetrics', outcome: 'transitioned' }),
       ]);

@@ -17,4 +17,14 @@ describe('stateflow graph adapter', () => {
       ]),
     );
   });
+
+  it('counts and dates each edge by the trace up to the scrubber only', () => {
+    const graph = graphFor({ ...initModel, cursor: 2 });
+    const loaded = graph.edges.find((edge) => edge.event === 'LoadedMetrics');
+    const cleared = graph.edges.filter((edge) => edge.event === 'ClearedSelection');
+
+    expect(loaded).toMatchObject({ transitionCount: 1, lastSeenAt: 1 });
+    expect(cleared.every((edge) => edge.transitionCount === 0)).toBe(true);
+    expect(graph.nodes.find((node) => node.id === 'Selecting')?.role).toBe('active');
+  });
 });

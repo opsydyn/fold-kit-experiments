@@ -1,9 +1,8 @@
 // Two copies of `effect` in one program break service tags and instanceof checks (PLAN D7).
-// This follows the installed packages from the root and every app and package workspace,
-// and fails if they can load more than one version. The infra workspaces are not walked:
-// each is its own program (an Alchemy CLI) with its own Effect, never bundled with these.
-// Alchemy 2.0.0-beta.84 declares `effect ^4.0.5` but imports `effect/Crypto`, which Effect
-// 4.1 removed, so its CLI stays on 4.0.x while the apps are on FoldKit 0.170's 4.1.
+// This follows the installed packages from the root and every app, package and infra
+// workspace, and fails if they can load more than one version. The infra workspaces are
+// Alchemy CLIs, never bundled with the apps, but since Alchemy 2.0.0-beta.85 they share the
+// apps' Effect, and this keeps it that way.
 import { existsSync, readdirSync, realpathSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
@@ -41,7 +40,7 @@ const effectVersion = async (packageDir: string): Promise<string | undefined> =>
     : undefined;
 };
 
-const workspaces = ['apps', 'packages'].flatMap((folder) =>
+const workspaces = ['apps', 'packages', 'infra'].flatMap((folder) =>
   readdirSync(join(root, folder))
     .map((name) => join(root, folder, name))
     .filter((dir) => existsSync(join(dir, 'package.json'))),

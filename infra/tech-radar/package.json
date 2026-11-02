@@ -13,11 +13,11 @@
   "devDependencies": {
     "@alchemy.run/cloudflare": "catalog:infra",
     "@alchemy.run/frontend-frameworks": "catalog:infra",
-    "@effect/platform-bun": "catalog:infra",
-    "@effect/platform-node": "catalog:infra",
+    "@effect/platform-bun": "catalog:",
+    "@effect/platform-node": "catalog:",
     "alchemy": "catalog:infra",
     "bun-types": "catalog:",
-    "effect": "catalog:infra",
+    "effect": "catalog:",
     "typescript": "catalog:"
   }
 }

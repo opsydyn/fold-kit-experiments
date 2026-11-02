@@ -62,7 +62,9 @@ under "Final infra stage: reviewing `@alchemy.run/domain`".
 
 ## Verdict
 
-Condition 1 (one Effect) is not met: Alchemy has to run on Effect 4.1 first. The Vitest
+Condition 1 (one Effect) is not met: Alchemy has to run on Effect 4.1 first. _Update,
+2026-11-02:_ it is now. Alchemy `2.0.0-beta.85` moved to Effect 4.1, and the infra workspace
+shares the apps' Effect (see `docs/releases/alchemy-beta-85.md`). The Vitest
 cost is paid. Condition 2 (a few
 stable releases) still stands: beta.84 is still the only release. Condition 3 (a write
 feature) is now approved in principle. The next step, when the library has moved on, is a

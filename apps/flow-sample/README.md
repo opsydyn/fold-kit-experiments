@@ -66,3 +66,42 @@ without a scroll wheel. The percentage shows the current zoom.
 Turn on **Snap to grid** to align nodes as you drag. The node you grab snaps
 to the grid, and the other selected nodes keep their spacing. Dragging a group
 also moves its contents.
+
+**Export JSON** downloads a versioned diagram file. Choose a file under
+**Import JSON** to replace the current diagram and fit it to the canvas.
+Import accepts files up to 5 MiB. Invalid files leave the current diagram in
+place. Export includes nodes, groups, edges and their data. Viewport, undo
+history and browser settings are session state.
+
+Use **Copy**, **Paste**, and **Duplicate** in the toolbar or Ctrl/Cmd+C, V,
+and D from the canvas. Copied groups retain their contents and internal
+connections. The workbench clipboard is available when switching diagrams
+in the same session. Use JSON export to share an entire diagram.
+
+In the grouped Onion Architecture example, drag a node title over an expanded
+group. The highlighted boundary becomes its new parent when you drop. Drag out
+of that boundary to move the node to the enclosing group or canvas root.
+Undo restores the previous position and membership together.
+
+**Snap to nodes** shows a guide when the dragged selection aligns with the
+edge or center of a nearby node. You can combine it with **Snap to grid**.
+
+Hold a node or connection near a canvas edge while dragging to pan toward
+off-screen targets. Release or press Escape to stop.
+
+On a touchscreen, move two fingers together to pan or pinch to zoom.
+A second finger cancels an in-progress node or connection drag.
+
+Turn on **Box select** to draw a selection box with one finger. Turn it off
+to pan with one finger again.
+
+Right-click a node or connection for context actions. With a node title or
+connection focused, use Shift+F10 or the context menu key.
+
+Tap the ellipsis on a node or beside an entry in Connections to open
+its actions without a mouse or keyboard.
+
+Choose **Force layout** to arrange a flat graph with the FoldKit Viz
+simulation. It uses the measured card sizes for spacing and applies the
+result as one undoable edit. The trial supports 1–100 nodes. Use
+**Arrange with ELK** for nested graphs and routed edges.

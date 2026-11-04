@@ -1,14 +1,27 @@
-import type { FlowEdge } from '@opsydyn/foldkit-flow';
+import type { EdgePathStyle, FlowEdge } from '@opsydyn/foldkit-flow';
 import { flowView } from '@opsydyn/foldkit-flow/foldkit';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
+import { supportsForceLayout } from './layout-options';
 import { Message } from './message';
 import type { Model } from './model';
 
+const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
+  { label: 'Automatic', style: null },
+  { label: 'Straight', style: 'straight' },
+  { label: 'Stepped', style: 'stepped' },
+  { label: 'Smooth', style: 'smooth' },
+];
+
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  const button = (label: string, message: Message) =>
+  const button = (label: string, message: Message, disabled = false) =>
     h.button(
-      [h.Type('button'), h.OnClick(message), h.Style({ padding: '10px 16px', cursor: 'pointer' })],
+      [
+        h.Type('button'),
+        h.Disabled(disabled),
+        h.OnClick(message),
+        h.Style({ padding: '10px 16px', cursor: 'pointer' }),
+      ],
       [label],
     );
   const selectedEdge = model.editor.graph.edges.find((edge) =>
@@ -114,7 +127,21 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ],
               ['Snap to grid'],
             ),
-            button('Arrange with ELK', Message.ClickedArrange()),
+            h.button(
+              [
+                h.Type('button'),
+                h.AriaPressed(String(model.editor.snapToAlignment)),
+                h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
+                h.OnClick(Message.ObservedFlowInput({ message: { type: 'AlignmentSnapToggled' } })),
+              ],
+              ['Snap to nodes'],
+            ),
+            button('Arrange with ELK', Message.ClickedArrange({ engine: 'elk' })),
+            button(
+              'Force layout',
+              Message.ClickedArrange({ engine: 'force' }),
+              !supportsForceLayout(model.editor.graph),
+            ),
             button(
               'Group selection',
               Message.ObservedFlowInput({ message: { type: 'SelectionGrouped' } }),
@@ -122,6 +149,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             button(
               'Ungroup',
               Message.ObservedFlowInput({ message: { type: 'SelectionUngrouped' } }),
+            ),
+            button('Copy', Message.ObservedFlowInput({ message: { type: 'CopyPressed' } })),
+            button('Paste', Message.ObservedFlowInput({ message: { type: 'PastePressed' } })),
+            button(
+              'Duplicate',
+              Message.ObservedFlowInput({ message: { type: 'DuplicatePressed' } }),
             ),
             button('Undo', Message.ObservedFlowInput({ message: { type: 'UndoPressed' } })),
             button('Redo', Message.ObservedFlowInput({ message: { type: 'RedoPressed' } })),
@@ -131,8 +164,23 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
             button('Save', Message.ClickedSave()),
             button('Load saved', Message.ClickedLoad()),
+            button('Export JSON', Message.ClickedExport()),
+            h.label(
+              [],
+              [
+                'Import JSON',
+                h.input([
+                  h.Key(`import-${model.importing?.id ?? 'ready'}`),
+                  h.Type('file'),
+                  h.Accept('.json,application/json'),
+                  h.OnFileChange((files) => Message.ChoseImportFiles({ files })),
+                  h.AriaDescribedBy('flow-import-help'),
+                ]),
+              ],
+            ),
           ],
         ),
+        h.p([h.Id('flow-import-help')], ['Importing JSON replaces the current diagram.']),
         ...(selectedEdge
           ? [
               h.div(
@@ -140,6 +188,38 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 [
                   endpointSelect(selectedEdge, 'source'),
                   endpointSelect(selectedEdge, 'target'),
+                  h.label(
+                    [],
+                    [
+                      'Edge path',
+                      h.select(
+                        [
+                          h.AriaLabel('Edge path'),
+                          h.Disabled(model.editor.readOnly),
+                          h.OnChange((value) =>
+                            Message.ObservedFlowInput({
+                              message: {
+                                type: 'EdgePathStyleChanged',
+                                id: selectedEdge.id,
+                                pathStyle:
+                                  edgePathOptions.find(({ style }) => style === value)?.style ??
+                                  null,
+                              },
+                            }),
+                          ),
+                        ],
+                        edgePathOptions.map(({ label, style }) =>
+                          h.option(
+                            [
+                              h.Value(style ?? 'auto'),
+                              h.Selected((selectedEdge.pathStyle ?? null) === style),
+                            ],
+                            [label],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   button(
                     'Solid edge',
                     Message.ObservedFlowInput({
@@ -159,13 +239,47 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         flowView(h, model.editor, {
           id: 'flow-demo',
           themeClassName: 'release-flow-theme',
+          edgeToolbar: true,
+          contextActions: true,
+          autoPan: true,
+          pinchZoom: true,
           resizeHandles: true,
           minimap: true,
           viewportControls: true,
+          selectionModeControl: true,
           label: 'Workflow editor',
           onEvent: (message) => Message.ObservedFlowInput({ message }),
           edgeAppearance: (edge) =>
             edge.data === 'dashed' ? { dashArray: '9 5', strokeWidth: 4 } : {},
+          renderEdge: ({ edge, path, stroke, dashArray, markerEnd }, builder) =>
+            edge.id === 'storage-application'
+              ? builder.g(
+                  [builder.DataAttribute('storage-dependency', '')],
+                  [
+                    builder.path(
+                      [
+                        builder.D(path),
+                        builder.Fill('none'),
+                        builder.Stroke(stroke),
+                        builder.StrokeWidth('6'),
+                        builder.StrokeDasharray(dashArray),
+                        builder.MarkerEnd(markerEnd),
+                      ],
+                      [],
+                    ),
+                    builder.path(
+                      [
+                        builder.D(path),
+                        builder.Fill('none'),
+                        builder.Stroke('var(--flow-background, #eef2f6)'),
+                        builder.StrokeWidth('1.5'),
+                        builder.StrokeDasharray(dashArray),
+                      ],
+                      [],
+                    ),
+                  ],
+                )
+              : undefined,
           renderNode: (node, builder) =>
             builder.div(
               [],

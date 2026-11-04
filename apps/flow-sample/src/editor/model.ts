@@ -118,19 +118,22 @@ export const groupedOnionGraph: FlowGraph = {
 export const Model = Schema.Struct({
   editor: Schema.Unknown,
   active: Schema.NullOr(Schema.Unknown),
+  importing: Schema.NullOr(Schema.Struct({ id: Schema.Number, revision: Schema.Number })),
   sequence: Schema.Number,
   notice: Schema.String,
 });
 export type Model = Readonly<{
   editor: EditorState;
   active: LayoutRequest | null;
+  importing: Readonly<{ id: number; revision: number }> | null;
   sequence: number;
   notice: string;
 }>;
 export const init = () => ({
   model: {
-    editor: createEditor(initialGraph),
+    editor: createEditor(initialGraph, { snapToAlignment: true }),
     active: null,
+    importing: null,
     sequence: 0,
     notice: '',
   } satisfies Model,

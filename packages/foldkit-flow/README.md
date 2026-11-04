@@ -145,6 +145,38 @@ Both participate in undo/redo and graph serialization. The FoldKit view's
 `edgeAppearance` callback can read edge data to customize stroke, width and dash
 pattern. The editor still highlights the selected edge.
 
+Use `renderEdge(context, h)` for custom SVG decoration along `context.path`.
+The context includes the edge, label position, selection state, resolved
+stroke, width and dash array, and an arrow marker reference. Return
+`undefined` to draw the built-in edge. Keep custom SVG decorative and draw it
+along the supplied path so Flow's hit area, reconnect handles, and editable
+label stay aligned. The SVG is hidden from assistive technology. Put
+interactive controls in the host view.
+
+Edge labels appear at the midpoint of the rendered path, including routed
+edges. Select an unlabeled connection and choose **Add label**, or activate
+an existing label to edit it. Enter saves, Escape cancels, and saving a blank
+label removes it. Saving is one undo step. Read-only views display saved labels.
+
+Set an edge's optional `pathStyle` to `straight`, `stepped`, or `smooth`.
+These styles draw between the current ports and take precedence over layout
+routes. `EdgePathStyleChanged` saves the style in one undo step. Pass
+`pathStyle: null` in that event to restore automatic routing. Automatic uses the
+layout route when available and a straight line otherwise.
+
+Enable `edgeToolbar: true` to show Rename, path style, and Delete edge
+controls beside a single selected edge. In the Connections list, activate an
+edge and press Up Arrow to focus its actions. The toolbar uses native controls
+and stays the same size as the canvas zooms. Deleting from the toolbar removes
+only that edge and can be undone.
+
+Use a group's **Collapse** and **Expand** buttons to change its canvas
+presentation. A collapsed group hides its descendants and internal edges.
+Connections that cross the boundary remain visible and attach to the compact
+group. Expand the group to access its individual ports. Collapsing and
+expanding also work in read-only views. They are editor-session actions and
+leave saved documents and undo history intact.
+
 Set `resizeHandles: true` on the FoldKit view to enable pointer resizing.
 The handles adjust width while height follows content. The drag range is 140
 to 320 graph units, extended to include an existing width outside that range.
@@ -203,6 +235,12 @@ remain in canvas coordinates, including inside a group. Dragging or nudging a
 group moves its descendants once, even when some are also selected. Deleting
 a group deletes its descendants and their connections in one undo step.
 
+Drag a node or group title into an expanded boundary to change its parent.
+The deepest eligible group under the pointer highlights as the drop target.
+Drop outside all eligible boundaries to move the selection to the canvas root.
+Only the roots of the dragged selection change parent, so nested contents stay
+together. Position and membership share one undo step. Escape cancels the drag.
+
 Group membership is explicit. Layout engines can return an optional size on a
 group position to fit the boundary to its children. The ELK adapter arranges
 both flat and nested graphs.
@@ -231,3 +269,42 @@ a 20-unit canvas grid. While dragging, the grabbed node snaps to the grid and
 the rest of the selection follows by the same offset, including group contents.
 The grid follows pan and zoom. The setting is session state and each completed
 drag is one undo step.
+
+Copy, Paste, and Duplicate work from canvas focus with Ctrl/Cmd+C, V, and D.
+Enable `snapToAlignment` or send `AlignmentSnapToggled` to align the dragged
+selection's edges and centers with nearby visible nodes. Guides appear within
+six screen pixels of a match at any zoom. Alignment takes priority on a matched
+axis; grid snapping still applies on the other axis. Guides disappear on
+release or cancellation. Set `--flow-alignment-guide` to theme their color.
+
+Set `autoPan: true` on the FoldKit view to pan near the canvas boundary
+during node moves, connection drags, and reconnections. The drag remains
+anchored to the pointer as the viewport moves. Release or Escape stops the
+pan. Viewport travel stays separate from graph undo.
+
+Set `pinchZoom: true` on the FoldKit view for two-finger touch navigation.
+Move both fingers together to pan or change their distance to zoom around
+the midpoint. A second touch cancels an active graph drag. Lifting a finger
+ends navigation without starting another edit. Pinch and pan stay outside
+graph undo and are available in read-only views.
+
+Set `viewportControls: true` and `selectionModeControl: true` to show the
+**Box select** toggle. While it is active, dragging the background draws a
+selection box with touch or a mouse. Toggle it off to resume background pan.
+Two-finger navigation and Shift-drag still work. The mode is editor session
+state and can also be set initially with `selectionMode` or toggled by sending
+`SelectionModeToggled`.
+
+The editor's clipboard lives in session state. Copy includes selected groups,
+their descendants, and connections with both endpoints in the selection.
+Pasted nodes get new IDs, retain their internal hierarchy, and are offset
+from the originals. If a copied node's parent was outside the selection,
+its copy becomes a top-level node. Paste and Duplicate are single undo steps.
+
+Set `contextActions: true` on the FoldKit view to open actions with a
+right-click on a node or edge. Use Shift+F10 or the context menu key on a
+focused node title or connection. Nodes offer Duplicate and Delete, and edges
+offer Delete. Escape dismisses the panel.
+
+The same option adds More actions buttons on nodes and beside entries in
+the Connections list for touch and keyboard access.

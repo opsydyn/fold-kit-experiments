@@ -2,10 +2,11 @@ import { describe, expect, test } from 'bun:test';
 
 import fc from 'fast-check';
 
-import { minimapGeometry } from '../src/geometry';
+import { edgeGeometry, minimapGeometry } from '../src/geometry';
 import {
   applyLayout,
   createEditor,
+  edgePath,
   fitViewport,
   layoutRequest,
   parseGraph,
@@ -529,4 +530,335 @@ test('snapping at zoom moves the selected group and its contents by one common o
   );
   expect(moved.past).toHaveLength(1);
   expect(updateEditor(moved, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+});
+
+test('copy and paste remap a group and internal edge without copying its external edge', () => {
+  const source = graph.nodes[0];
+  if (!source) throw new Error('Missing source fixture');
+  const internal = {
+    id: 'internal',
+    source: { node: 'a', port: 'out' },
+    target: { node: 'b', port: 'in' },
+  };
+  const external = { ...internal, id: 'external', source: { ...internal.source, node: 'outside' } };
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'group',
+        kind: 'group',
+        label: 'Group',
+        position: { x: 0, y: 0 },
+        size: { width: 500, height: 300 },
+        ports: [],
+      },
+      ...graph.nodes.map((node) => ({ ...node, parentId: 'group' })),
+      { ...source, id: 'outside' },
+    ],
+    edges: [internal, external],
+  });
+  const selected = { ...initial, selectedNodes: ['group'] };
+  const copied = updateEditor(selected, { type: 'CopyPressed' });
+  expect(copied.past).toHaveLength(0);
+  const pasted = updateEditor(copied, { type: 'PastePressed' });
+  const [group, a, b] = pasted.graph.nodes.slice(initial.graph.nodes.length);
+  expect(group?.id).not.toBe('group');
+  expect(a?.parentId).toBe(group?.id);
+  expect(b?.parentId).toBe(group?.id);
+  expect(pasted.graph.edges).toHaveLength(3);
+  expect(pasted.graph.edges.at(-1)).toMatchObject({
+    source: { node: a?.id, port: 'out' },
+    target: { node: b?.id, port: 'in' },
+  });
+  expect(updateEditor(pasted, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  const duplicated = updateEditor(selected, { type: 'DuplicatePressed' });
+  expect(duplicated.graph).toEqual(pasted.graph);
+  expect(duplicated.clipboard).toBeNull();
+});
+
+test('edge label edits publish once, preserve the route, and support undo and removal', () => {
+  const id = 'ab';
+  const edge = { id, source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  let state: ReturnType<typeof createEditor> = {
+    ...createEditor({ ...graph, edges: [edge] }),
+    routes: [
+      {
+        id,
+        points: [
+          { x: 140, y: 70 },
+          { x: 300, y: 110 },
+        ],
+      },
+    ],
+  };
+  state = updateEditor(state, { type: 'EdgeLabelEditingStarted', id });
+  state = updateEditor(state, { type: 'EdgeLabelDraftChanged', id, text: 'Discard' });
+  state = updateEditor(state, { type: 'EdgeLabelCancelled', id });
+  expect(state.graph.edges[0]).toEqual(edge);
+  expect(state.past).toHaveLength(0);
+
+  const routes = state.routes;
+  state = updateEditor(state, { type: 'EdgeLabelEditingStarted', id });
+  state = updateEditor(state, { type: 'EdgeLabelDraftChanged', id, text: ' Approve ' });
+  state = updateEditor(state, { type: 'EdgeLabelSaved', id });
+  expect(state.graph.edges[0]?.label).toBe('Approve');
+  expect(state.routes).toBe(routes);
+  expect(state.past).toHaveLength(1);
+
+  state = updateEditor(state, { type: 'UndoPressed' });
+  expect(state.graph.edges[0]).toEqual(edge);
+  state = updateEditor(state, { type: 'RedoPressed' });
+  expect(state.graph.edges[0]?.label).toBe('Approve');
+
+  state = updateEditor(state, { type: 'EdgeLabelEditingStarted', id });
+  state = updateEditor(state, { type: 'EdgeLabelDraftChanged', id, text: ' ' });
+  state = updateEditor(state, { type: 'EdgeLabelSaved', id });
+  expect(state.graph.edges[0]).toEqual(edge);
+});
+
+test('an authored edge path overrides layout and undo restores the automatic route', () => {
+  const id = 'ab';
+  const edge = { id, source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  const routes = [
+    {
+      id,
+      points: [
+        { x: 140, y: 70 },
+        { x: 300, y: 70 },
+        { x: 300, y: 110 },
+      ],
+    },
+  ];
+  const automatic = { ...createEditor({ ...graph, edges: [edge] }), routes };
+  const smooth = updateEditor(automatic, { type: 'EdgePathStyleChanged', id, pathStyle: 'smooth' });
+  const saved = parseGraph(serializeGraph(smooth.graph));
+  expect(saved.edges[0]?.pathStyle).toBe('smooth');
+  const savedEdge = saved.edges[0];
+  if (!savedEdge) throw new Error('Expected the saved edge');
+  const route = routes[0]?.points;
+  expect(edgePath(saved, savedEdge, route)).toContain('C');
+  expect(edgeGeometry(saved, { ...savedEdge, pathStyle: 'stepped' }, route)).toEqual({
+    path: 'M140,70 L220,70 L220,110 L300,110',
+    center: { x: 220, y: 90 },
+  });
+  expect(edgePath(saved, { ...savedEdge, pathStyle: 'straight' }, route)).toBe('M140,70 L300,110');
+  expect(() => parseGraph(serializeGraph(saved).replace('"smooth"', '"unknown"'))).toThrow();
+  const undone = updateEditor(smooth, { type: 'UndoPressed' });
+  expect(undone.routes).toEqual(routes);
+  expect(undone.graph.edges[0]?.pathStyle).toBeUndefined();
+});
+
+test('deleting an edge by ID keeps other selected graph elements and is undoable', () => {
+  const edge = { id: 'ab', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  const initial = createEditor({ ...graph, edges: [edge] });
+  const selected = updateEditor(initial, { type: 'NodeSelected', id: 'a', additive: false });
+  const removed = updateEditor(selected, { type: 'EdgeDeleted', id: edge.id });
+  expect(removed.graph.edges).toEqual([]);
+  expect(removed.graph.nodes).toEqual(initial.graph.nodes);
+  expect(removed.selectedNodes).toEqual(['a']);
+  expect(updateEditor(removed, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  const readOnly = createEditor(initial.graph, { readOnly: true });
+  expect(updateEditor(readOnly, { type: 'EdgeDeleted', id: edge.id })).toBe(readOnly);
+});
+
+test('collapsing nested groups preserves the document and clears hidden selections', () => {
+  const outer = {
+    id: 'outer',
+    label: 'Outer',
+    kind: 'group' as const,
+    position: { x: 0, y: 0 },
+    size: { width: 520, height: 240 },
+    ports: [],
+  };
+  const internal = {
+    id: 'ab',
+    source: { node: 'a', port: 'out' },
+    target: { node: 'b', port: 'in' },
+  };
+  const initial = createEditor({
+    nodes: [
+      outer,
+      { ...outer, id: 'inner', parentId: 'outer' },
+      { ...nodeA, parentId: 'inner' },
+      { ...nodeB, parentId: 'outer' },
+    ],
+    edges: [internal],
+  });
+  const selected = { ...initial, selectedNodes: ['a'], selectedEdges: ['ab'] };
+  const inner = updateEditor(selected, { type: 'GroupCollapseToggled', id: 'inner' });
+  expect(inner.selectedNodes).toEqual([]);
+  expect(inner.selectedEdges).toEqual(['ab']);
+  const collapsed = updateEditor(inner, { type: 'GroupCollapseToggled', id: 'outer' });
+  expect(collapsed.selectedEdges).toEqual([]);
+  expect(collapsed.graph).toBe(initial.graph);
+  expect(collapsed.revision).toBe(initial.revision);
+  expect(collapsed.past).toBe(initial.past);
+  expect(
+    updateEditor(collapsed, { type: 'GroupCollapseToggled', id: 'outer' }).collapsedGroups,
+  ).toEqual(['inner']);
+});
+
+test('dropping into a nested group or outside it commits membership with position', () => {
+  const outer = {
+    id: 'outer',
+    label: 'Outer',
+    kind: 'group' as const,
+    position: { x: 210, y: 0 },
+    size: { width: 460, height: 280 },
+    ports: [],
+  };
+  const initial = createEditor({
+    ...graph,
+    nodes: [
+      ...graph.nodes,
+      outer,
+      { ...outer, id: 'inner', parentId: 'outer', position: { x: 260, y: 35 } },
+    ],
+  });
+  const drag = (state: ReturnType<typeof createEditor>, from: number, to: number) => {
+    const start = updateEditor(state, {
+      type: 'NodeDragStarted',
+      id: 'a',
+      pointer: 1,
+      point: { x: from, y: 55 },
+    });
+    return updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: to, y: 55 } });
+  };
+  const release = (state: ReturnType<typeof createEditor>) =>
+    updateEditor(state, { type: 'PointerReleased', pointer: 1 });
+  const collapsed = updateEditor(initial, { type: 'GroupCollapseToggled', id: 'inner' });
+  const droppedOnParent = release(drag(collapsed, 40, 300));
+  expect(droppedOnParent.graph.nodes[0]?.parentId).toBe('outer');
+
+  const groupDrag = updateEditor(initial, {
+    type: 'NodeDragStarted',
+    id: 'outer',
+    pointer: 2,
+    point: { x: 220, y: 20 },
+  });
+  const groupPreview = updateEditor(groupDrag, {
+    type: 'PointerMoved',
+    pointer: 2,
+    point: { x: 300, y: 55 },
+  });
+  const movedGroup = updateEditor(groupPreview, { type: 'PointerReleased', pointer: 2 });
+  expect(movedGroup.graph.nodes.find((node) => node.id === 'outer')?.parentId).toBeUndefined();
+  expect(movedGroup.graph.nodes.find((node) => node.id === 'inner')?.parentId).toBe('outer');
+
+  const preview = drag(initial, 40, 300);
+  expect(preview.graph.nodes[0]?.parentId).toBeUndefined();
+  expect(updateEditor(preview, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
+  const inside = release(preview);
+  expect(inside.graph.nodes[0]).toMatchObject({ parentId: 'inner', position: { x: 280, y: 30 } });
+  expect(inside.past).toHaveLength(1);
+  expect(updateEditor(inside, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  const outside = release(drag(inside, 300, 180));
+  expect(outside.graph.nodes[0]).toMatchObject({ position: { x: 160, y: 30 } });
+  expect(outside.graph.nodes[0]).not.toHaveProperty('parentId');
+  expect(updateEditor(outside, { type: 'UndoPressed' }).graph).toEqual(inside.graph);
+});
+
+test('alignment snaps within a screen-pixel tolerance and overrides the grid only on its axis', () => {
+  const target = { ...nodeB, position: { x: 280, y: 93 } };
+  const start = (zoom: number) => {
+    const initial = createEditor(
+      { nodes: [nodeA, target], edges: [] },
+      {
+        snapToAlignment: true,
+        snapToGrid: true,
+        viewport: { x: 0, y: 0, zoom },
+      },
+    );
+    return updateEditor(initial, {
+      type: 'NodeDragStarted',
+      id: 'a',
+      pointer: 1,
+      point: { x: 0, y: 0 },
+    });
+  };
+  const drag = (zoom: number, y: number) =>
+    updateEditor(start(zoom), {
+      type: 'PointerMoved',
+      pointer: 1,
+      point: { x: 155 * zoom, y: y * zoom },
+    });
+  const aligned = drag(2, 61);
+  expect(aligned.graph.nodes[0]?.position).toEqual({ x: 180, y: 93 });
+  expect(aligned.gesture).toMatchObject({ guides: [{ axis: 'y', position: 93 }] });
+  const saved = updateEditor(aligned, { type: 'PointerReleased', pointer: 1 });
+  expect(saved.past).toHaveLength(1);
+  expect(saved.gesture).toEqual({ type: 'idle' });
+  expect(updateEditor(saved, { type: 'UndoPressed' }).graph).toEqual(start(2).graph);
+
+  const centered = drag(2, 71);
+  expect(centered.graph.nodes[0]?.position.y).toBe(103);
+  expect(centered.gesture).toMatchObject({ guides: [{ axis: 'y', position: 143 }] });
+  const cancelled = updateEditor(centered, { type: 'GestureCancelled' });
+  expect(cancelled.graph).toEqual(start(2).graph);
+  expect(cancelled.gesture).toEqual({ type: 'idle' });
+  expect(drag(2, 59).graph.nodes[0]?.position.y).toBe(80);
+  expect(drag(1, 59).graph.nodes[0]?.position.y).toBe(93);
+});
+
+test('auto-pan keeps a dragged node under its pointer and leaves viewport movement out of history', () => {
+  const initial = createEditor(graph, { viewport: { x: 20, y: 10, zoom: 2 } });
+  const start = updateEditor(initial, {
+    type: 'NodeDragStarted',
+    id: 'a',
+    pointer: 1,
+    point: { x: 75, y: 90 },
+  });
+  const moved = updateEditor(start, {
+    type: 'DragPanned',
+    pointer: 1,
+    point: { x: 115, y: 90 },
+    delta: { x: -30, y: 0 },
+  });
+  expect(moved.viewport).toEqual({ x: -10, y: 10, zoom: 2 });
+  expect(moved.graph.nodes[0]?.position).toEqual({ x: 55, y: 30 });
+  const stopped = updateEditor(moved, { type: 'PointerReleased', pointer: 1 });
+  expect(stopped.past).toHaveLength(1);
+  const undone = updateEditor(stopped, { type: 'UndoPressed' });
+  expect(undone.graph).toEqual(initial.graph);
+  expect(undone.viewport).toEqual(moved.viewport);
+  expect(
+    updateEditor(stopped, {
+      type: 'DragPanned',
+      pointer: 1,
+      point: { x: 115, y: 90 },
+      delta: { x: -30, y: 0 },
+    }),
+  ).toBe(stopped);
+});
+
+test('pinch cancels a graph drag and keeps the starting world point under the moving midpoint', () => {
+  const initial = createEditor(graph, { viewport: { x: 20, y: 10, zoom: 2 } });
+  const start = updateEditor(initial, {
+    type: 'NodeDragStarted',
+    id: 'a',
+    pointer: 1,
+    point: { x: 70, y: 90 },
+  });
+  const dragged = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 110, y: 90 },
+  });
+  expect(dragged.graph).not.toEqual(initial.graph);
+  const pinch = updateEditor(dragged, {
+    type: 'PinchStarted',
+    center: { x: 120, y: 90 },
+    distance: 100,
+  });
+  expect(pinch.graph).toEqual(initial.graph);
+  const moved = updateEditor(pinch, {
+    type: 'PinchMoved',
+    center: { x: 150, y: 110 },
+    distance: 150,
+  });
+  expect(moved.viewport).toEqual({ x: 0, y: -10, zoom: 3 });
+  expect(updateEditor(moved, { type: 'PointerReleased', pointer: 1 })).toBe(moved);
+  expect(updateEditor(moved, { type: 'GestureCancelled' }).viewport).toEqual(initial.viewport);
+  const ended = updateEditor(moved, { type: 'PinchEnded' });
+  expect(ended.viewport).toEqual(moved.viewport);
+  expect(ended.past).toHaveLength(0);
 });

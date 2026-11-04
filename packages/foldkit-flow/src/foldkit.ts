@@ -1,18 +1,41 @@
+import { Option } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import {
   boxBounds,
-  edgePath,
+  edgeGeometry,
   gridSpacing,
+  groupBoundaryPoint,
   maximumZoom,
   minimapGeometry,
   minimumZoom,
   portPosition,
   screenToWorld,
 } from './geometry';
+import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
 import { FlowInput } from './mount';
-import type { EditorEvent, EditorState, FlowEdge, FlowNode, Port } from './types';
+import type {
+  EdgePathStyle,
+  EditorEvent,
+  EditorState,
+  FlowEdge,
+  FlowNode,
+  Point,
+  Port,
+  Viewport,
+} from './types';
+
+export type FlowEdgeRenderContext = Readonly<{
+  edge: FlowEdge;
+  path: string;
+  labelPosition: Point | undefined;
+  selected: boolean;
+  stroke: string;
+  strokeWidth: string;
+  dashArray: string;
+  markerEnd: string;
+}>;
 
 export type FlowViewOptions<M> = Readonly<{
   /** Unique within the document; prefixes accessible descriptions and SVG markers. */
@@ -21,6 +44,8 @@ export type FlowViewOptions<M> = Readonly<{
   onEvent: (event: EditorEvent) => M;
   /** Uses the host's builder; arbitrary FoldKit controls retain their normal behaviour. */
   renderNode?: (node: FlowNode, h: HtmlBuilder<M>) => Html;
+  /** Decorative SVG along Flow's path. Return undefined to use the built-in renderer. */
+  renderEdge?: (context: FlowEdgeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
   edgeAppearance?: (edge: FlowEdge) => Readonly<{
     stroke?: string;
     strokeWidth?: number;
@@ -28,30 +53,92 @@ export type FlowViewOptions<M> = Readonly<{
   }>;
   /** Classes on the editor root, including classes produced by Pleat's cssClass(). */
   themeClassName?: string;
+  /** Show on-canvas controls for a single selected edge in editable views. */
+  edgeToolbar?: boolean;
+  /** Enable context actions for nodes and edges in editable views. */
+  contextActions?: boolean;
+  /** Pan near the canvas boundary while dragging nodes or connections. */
+  autoPan?: boolean;
+  /** Enable two-finger touch pan and pinch-to-zoom on the canvas. */
+  pinchZoom?: boolean;
   resizeHandles?: boolean;
   minimap?: boolean;
   viewportControls?: boolean;
+  /** Include a box selection toggle in the viewport controls. */
+  selectionModeControl?: boolean;
   height?: number;
 }>;
+function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowViewOptions<M>) {
+  const context = state.context;
+  if (!options.contextActions || state.readOnly || !context) return [];
+  const button = (label: string, event: EditorEvent) =>
+    h.button(
+      [
+        h.Type('button'),
+        h.OnClick(options.onEvent(event)),
+        h.Style({ 'min-height': '36px', 'text-align': 'left', cursor: 'pointer' }),
+      ],
+      [label],
+    );
+  return [
+    h.div(
+      [
+        h.Key(`context:${context.kind}:${context.id}`),
+        h.Role('group'),
+        h.AriaLabel(context.kind === 'node' ? 'Node context actions' : 'Edge context actions'),
+        h.DataAttribute('flow-context-panel', ''),
+        h.DataAttribute('flow-no-drag', ''),
+        h.Style({
+          position: 'absolute',
+          left: `clamp(4px, ${context.point.x}px, max(4px, calc(100% - 176px)))`,
+          top: `clamp(4px, ${context.point.y}px, max(4px, calc(100% - 130px)))`,
+          width: 'min(172px, calc(100% - 8px))',
+          'box-sizing': 'border-box',
+          display: 'grid',
+          gap: '4px',
+          padding: '5px',
+          border: '1px solid var(--flow-node-border, #cbd5e1)',
+          'border-radius': '8px',
+          background: 'var(--flow-node-background, #fff)',
+          'box-shadow': '0 2px 8px rgb(0 0 0 / 0.18)',
+          'z-index': '3',
+        }),
+      ],
+      [
+        ...(context.kind === 'node'
+          ? [
+              button('Duplicate node', { type: 'DuplicatePressed' }),
+              button('Delete node', { type: 'DeletePressed' }),
+            ]
+          : [button('Delete edge', { type: 'EdgeDeleted', id: context.id })]),
+        button('Close', { type: 'ContextDismissed' }),
+      ],
+    ),
+  ];
+}
+
 function viewportControls<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
-  onEvent: (event: EditorEvent) => M,
+  { onEvent, selectionModeControl }: FlowViewOptions<M>,
 ): Html {
   const { surface, viewport } = state;
   const point = { x: (surface?.width ?? 0) / 2, y: (surface?.height ?? 0) / 2 };
   const unavailable = !surface || state.gesture.type !== 'idle';
-  const button = (label: string, event: EditorEvent, disabled: boolean) =>
+  const button = (label: string, event: EditorEvent, disabled: boolean, pressed?: boolean) =>
     h.button(
       [
         h.Type('button'),
         h.Disabled(disabled),
+        ...(pressed === undefined ? [] : [h.AriaPressed(String(pressed))]),
         h.OnClick(onEvent(event)),
         h.Style({
           'min-height': '44px',
           padding: '0 12px',
-          color: 'var(--flow-node-color, #172033)',
-          background: 'var(--flow-node-background, #fff)',
+          color: pressed ? 'var(--flow-control-color, #fff)' : 'var(--flow-node-color, #172033)',
+          background: pressed
+            ? 'var(--flow-selection, #2563eb)'
+            : 'var(--flow-node-background, #fff)',
           border: '1px solid var(--flow-canvas-border, #94a3b8)',
           'border-radius': '6px',
         }),
@@ -83,113 +170,262 @@ function viewportControls<M>(
         unavailable || viewport.zoom <= minimumZoom,
       ),
       button('Fit view', { type: 'FitViewClicked' }, unavailable || state.graph.nodes.length === 0),
+      ...(selectionModeControl
+        ? [button('Box select', { type: 'SelectionModeToggled' }, unavailable, state.selectionMode)]
+        : []),
       h.span([], [`${Math.round(viewport.zoom * 100)}%`]),
     ],
   );
 }
 
-function portStyle(port: Port) {
-  switch (port.side) {
-    case 'left':
-      return {
-        right: 'auto',
-        bottom: 'auto',
-        left: '-12px',
-        top: `calc(${port.offset * 100}% - 12px)`,
-      };
-    case 'right':
-      return {
-        left: 'auto',
-        bottom: 'auto',
-        right: '-12px',
-        top: `calc(${port.offset * 100}% - 12px)`,
-      };
-    case 'top':
-      return {
-        right: 'auto',
-        bottom: 'auto',
-        top: '-12px',
-        left: `calc(${port.offset * 100}% - 12px)`,
-      };
-    case 'bottom':
-      return {
-        right: 'auto',
-        top: 'auto',
-        bottom: '-12px',
-        left: `calc(${port.offset * 100}% - 12px)`,
-      };
-  }
+const pathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
+  { label: 'Automatic', style: null },
+  { label: 'Straight', style: 'straight' },
+  { label: 'Stepped', style: 'stepped' },
+  { label: 'Smooth', style: 'smooth' },
+];
+
+function edgeToolbarPosition(
+  center: Point,
+  viewport: Viewport,
+  handles: readonly Point[],
+  height: number,
+): Point {
+  const { x, y, zoom } = viewport;
+  const centerY = y + center.y * zoom;
+  const handleY = handles.map((point) => y + point.y * zoom);
+  const clearance = 9 * zoom + 6;
+  const below = Math.max(centerY + 26, ...handleY.map((point) => point + clearance));
+  const above = Math.min(centerY - 26, ...handleY.map((point) => point - clearance)) - 82;
+  return { x: x + center.x * zoom, y: below + 82 > height && above >= 6 ? above : below };
 }
+
+function edgeActions<M>(
+  h: HtmlBuilder<M>,
+  options: FlowViewOptions<M>,
+  edge: FlowEdge,
+  anchor: Point,
+  id: string,
+): Html {
+  const width = 256;
+  const action = (label: string, event: EditorEvent, focusTarget = false) =>
+    h.button(
+      [
+        h.Type('button'),
+        ...(focusTarget ? [h.Id(`${id}-rename`)] : []),
+        h.OnClick(options.onEvent(event)),
+        h.Style({ 'min-height': '32px', 'font-size': '13px', cursor: 'pointer' }),
+      ],
+      [label],
+    );
+  return h.div(
+    [
+      h.Id(id),
+      h.Role('group'),
+      h.AriaLabel('Selected edge actions'),
+      h.DataAttribute('flow-no-drag', ''),
+      h.Style({
+        position: 'absolute',
+        left: `clamp(6px, ${anchor.x - width / 2}px, max(6px, calc(100% - ${width + 6}px)))`,
+        top: `clamp(6px, ${anchor.y}px, max(6px, calc(100% - 82px)))`,
+        width: `min(${width}px, calc(100% - 12px))`,
+        'box-sizing': 'border-box',
+        display: 'flex',
+        'align-items': 'center',
+        'justify-content': 'space-between',
+        'flex-wrap': 'wrap',
+        gap: '4px',
+        padding: '5px',
+        'border-radius': '8px',
+        border: '1px solid var(--flow-node-border, #cbd5e1)',
+        background: 'var(--flow-node-background, #fff)',
+        color: 'var(--flow-node-color, #172033)',
+        'box-shadow': '0 2px 8px rgb(0 0 0 / 0.14)',
+        'z-index': '1',
+      }),
+    ],
+    [
+      action('Rename', { type: 'EdgeLabelEditingStarted', id: edge.id }, true),
+      h.select(
+        [
+          h.AriaLabel('Selected edge path style'),
+          h.Style({ 'min-height': '32px', 'font-size': '13px' }),
+          h.OnChange((value) =>
+            options.onEvent({
+              type: 'EdgePathStyleChanged',
+              id: edge.id,
+              pathStyle: pathOptions.find(({ style }) => style === value)?.style ?? null,
+            }),
+          ),
+        ],
+        pathOptions.map(({ label, style }) =>
+          h.option(
+            [h.Value(style ?? 'auto'), h.Selected((edge.pathStyle ?? null) === style)],
+            [label],
+          ),
+        ),
+      ),
+      action('Delete edge', { type: 'EdgeDeleted', id: edge.id }),
+    ],
+  );
+}
+
+function portStyle(port: Port) {
+  const offset = `calc(${port.offset * 100}% - 12px)`;
+  return {
+    left: { right: 'auto', bottom: 'auto', left: '-12px', top: offset },
+    right: { left: 'auto', bottom: 'auto', right: '-12px', top: offset },
+    top: { right: 'auto', bottom: 'auto', top: '-12px', left: offset },
+    bottom: { right: 'auto', top: 'auto', bottom: '-12px', left: offset },
+  }[port.side];
+}
+
 /** A normal FoldKit view: all state and message handling belong to its parent. */
 export function flowView<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
   options: FlowViewOptions<M>,
 ): Html {
+  const presentation = presentGroups(state.graph, state.collapsedGroups);
+  const collapsedGroups = new Set(state.collapsedGroups);
+  const visibleEdges = state.graph.edges.filter((edge) =>
+    edgeIsVisible(edge, presentation.hiddenBy),
+  );
   const minimap =
-    options.minimap && state.surface && state.graph.nodes.length > 0
-      ? minimapGeometry(state.graph, state.surface, state.viewport)
+    options.minimap && state.surface && presentation.nodes.length > 0
+      ? minimapGeometry(presentation, state.surface, state.viewport)
       : null;
   const descriptionId = `${options.id}-help`;
   const transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.zoom})`;
   const drag = state.gesture.type === 'connection-drag' ? state.gesture : null;
   const source = state.connection;
   const sourceNode = source && state.graph.nodes.find((node) => node.id === source.node);
+  const pointer = drag && screenToWorld(drag.point, state.viewport);
+  const sourceGroup = source && presentation.hiddenBy.get(source.node);
   const preview =
-    drag && source && sourceNode
+    pointer && source && sourceNode
       ? {
-          from: portPosition(sourceNode, source.port),
-          to: screenToWorld(drag.point, state.viewport),
+          from: sourceGroup
+            ? groupBoundaryPoint(sourceGroup, pointer)
+            : portPosition(sourceNode, source.port),
+          to: pointer,
         }
       : null;
   const selectionBox =
     state.gesture.type === 'box-selection'
       ? boxBounds(state.gesture.origin, state.gesture.point)
       : null;
-  const groups = state.graph.nodes.filter((node) => node.kind === 'group');
-  const groupsById = new Map(groups.map((group) => [group.id, group]));
-  function depth(node: FlowNode): number {
-    const parent = node.parentId && groupsById.get(node.parentId);
-    return parent ? depth(parent) + 1 : 0;
-  }
-  const boundaries = groups
-    .sort((a, b) => depth(a) - depth(b))
-    .map((node) =>
-      h.div(
-        [
-          h.Key(node.id),
-          h.DataAttribute('flow-group', node.id),
-          h.Style({
-            position: 'absolute',
-            left: `${node.position.x}px`,
-            top: `${node.position.y}px`,
-            width: `${node.size.width}px`,
-            height: `${node.size.height}px`,
-            'box-sizing': 'border-box',
-            'border-radius': 'var(--flow-node-radius, 8px)',
-            border: state.selectedNodes.includes(node.id)
+  const contextEnabled = options.contextActions && !state.readOnly;
+  const contextTrigger = (
+    kind: 'node' | 'edge',
+    id: string,
+    label: string,
+    point: Point,
+    onNode = false,
+  ) =>
+    h.button(
+      [
+        h.Type('button'),
+        h.AriaLabel(`More actions for ${label}`),
+        h.Title('More actions'),
+        h.AriaExpanded(state.context?.kind === kind && state.context.id === id),
+        h.Disabled(state.gesture.type !== 'idle'),
+        h.DataAttribute('flow-no-drag', ''),
+        h.OnClick(options.onEvent({ type: 'ContextOpened', context: { kind, id, point } })),
+        h.Style({
+          position: onNode ? 'absolute' : 'relative',
+          top: onNode ? '8px' : 'auto',
+          right: onNode ? '8px' : 'auto',
+          width: '36px',
+          'min-height': '36px',
+          'flex-shrink': '0',
+          'pointer-events': 'auto',
+          cursor: 'pointer',
+        }),
+      ],
+      ['⋯'],
+    );
+  const nodeContextTrigger = (node: FlowNode) =>
+    contextTrigger(
+      'node',
+      node.id,
+      node.label,
+      {
+        x: state.viewport.x + (node.position.x + node.size.width) * state.viewport.zoom - 36,
+        y: state.viewport.y + node.position.y * state.viewport.zoom + 44,
+      },
+      node.kind !== 'group',
+    );
+  const dropParent = state.gesture.type === 'node-drag' ? state.gesture.dropParent : undefined;
+  const boundaries = groupsInPaintOrder(presentation.nodes).map((node) => {
+    const collapsed = collapsedGroups.has(node.id);
+    const dropTarget = dropParent === node.id;
+    return h.div(
+      [
+        h.Key(node.id),
+        h.DataAttribute('flow-group', node.id),
+        h.DataAttribute('flow-collapsed', String(collapsed)),
+        ...(dropTarget ? [h.DataAttribute('flow-group-drop-target', '')] : []),
+        h.Style({
+          position: 'absolute',
+          left: `${node.position.x}px`,
+          top: `${node.position.y}px`,
+          width: `${node.size.width}px`,
+          height: `${node.size.height}px`,
+          'box-sizing': 'border-box',
+          'border-radius': 'var(--flow-node-radius, 8px)',
+          border: dropTarget
+            ? '2px solid var(--flow-valid-target, #0f766e)'
+            : state.selectedNodes.includes(node.id)
               ? '2px solid var(--flow-selection, #2563eb)'
               : '2px dashed var(--flow-node-border, #64748b)',
-            background: 'var(--flow-group-background, rgb(100 116 139 / 0.08))',
-            'pointer-events': 'none',
-          }),
-        ],
-        [
-          h.button(
-            [
-              h.Type('button'),
-              h.DataAttribute('flow-handle', node.id),
-              h.AriaLabel(`Select ${node.label}`),
-              h.AriaPressed(String(state.selectedNodes.includes(node.id))),
-              h.AriaDescribedBy(descriptionId),
-              h.Style({ 'pointer-events': 'auto', cursor: state.readOnly ? 'pointer' : 'grab' }),
-            ],
-            [node.label],
-          ),
-        ],
-      ),
+          background: collapsed
+            ? 'var(--flow-node-background, #fff)'
+            : 'var(--flow-group-background, rgb(100 116 139 / 0.08))',
+          'box-shadow': dropTarget ? '0 0 0 3px var(--flow-valid-target, #0f766e)' : 'none',
+          display: 'flex',
+          'align-items': 'flex-start',
+          gap: '4px',
+          padding: '4px',
+          'pointer-events': 'none',
+        }),
+      ],
+      [
+        h.button(
+          [
+            h.Type('button'),
+            h.DataAttribute('flow-handle', node.id),
+            h.AriaLabel(`Select ${node.label}`),
+            h.Title(node.label),
+            h.AriaPressed(String(state.selectedNodes.includes(node.id))),
+            h.AriaDescribedBy(descriptionId),
+            h.Style({
+              'pointer-events': 'auto',
+              cursor: state.readOnly ? 'pointer' : 'grab',
+              overflow: 'hidden',
+              'text-overflow': 'ellipsis',
+              'white-space': 'nowrap',
+              'min-height': '28px',
+            }),
+          ],
+          [node.label],
+        ),
+        h.button(
+          [
+            h.Type('button'),
+            h.DataAttribute('flow-no-drag', ''),
+            h.AriaLabel(`${collapsed ? 'Expand' : 'Collapse'} ${node.label}`),
+            h.AriaExpanded(!collapsed),
+            h.OnClick(options.onEvent({ type: 'GroupCollapseToggled', id: node.id })),
+            h.Style({ 'pointer-events': 'auto', cursor: 'pointer', 'min-height': '28px' }),
+          ],
+          [collapsed ? 'Expand' : 'Collapse'],
+        ),
+        ...(contextEnabled ? [nodeContextTrigger(node)] : []),
+      ],
     );
-  const nodes = state.graph.nodes
+  });
+  const nodes = presentation.nodes
     .filter((node) => node.kind !== 'group')
     .map((node) =>
       h.div(
@@ -225,7 +461,7 @@ export function flowView<M>(
               h.AriaDescribedBy(descriptionId),
               h.Style({
                 display: 'block',
-                width: '100%',
+                width: contextEnabled ? 'calc(100% - 36px)' : '100%',
                 'min-height': '32px',
                 'text-align': 'left',
                 cursor: state.readOnly ? 'pointer' : 'grab',
@@ -237,6 +473,7 @@ export function flowView<M>(
             ],
             [node.label],
           ),
+          ...(contextEnabled ? [nodeContextTrigger(node)] : []),
           ...(options.resizeHandles && !state.readOnly
             ? [
                 h.span(
@@ -282,6 +519,7 @@ export function flowView<M>(
                 h.Style({
                   ...portStyle(port),
                   position: 'absolute',
+                  'z-index': '1',
                   width: '24px',
                   height: '24px',
                   padding: '0',
@@ -309,40 +547,152 @@ export function flowView<M>(
       ),
     );
   const markerId = `${options.id}-arrow`;
-  const edges = state.graph.edges.map((edge) => {
+  const routes = new Map(state.routes.map((route) => [route.id, route.points]));
+  const edgeGeometries = visibleEdges.map((edge) => ({
+    edge,
+    ...edgeGeometry(state.graph, edge, routes.get(edge.id), {
+      source: presentation.hiddenBy.get(edge.source.node),
+      target: presentation.hiddenBy.get(edge.target.node),
+    }),
+  }));
+  const toolbarEnabled = options.edgeToolbar && !state.readOnly;
+  const toolbarId = `${encodeURIComponent(options.id)}-edge-actions`;
+  const activeEdge =
+    toolbarEnabled && state.selectedEdges.length === 1
+      ? edgeGeometries.find(({ edge }) => edge.id === state.selectedEdges[0])
+      : undefined;
+  const edges = edgeGeometries.map(({ edge, path, center }) => {
     const appearance = options.edgeAppearance?.(edge);
+    const selected = state.selectedEdges.includes(edge.id);
+    const context: FlowEdgeRenderContext = {
+      edge,
+      path,
+      labelPosition: center,
+      selected,
+      stroke: selected
+        ? 'var(--flow-selection, #2563eb)'
+        : (appearance?.stroke ?? 'var(--flow-edge, #64748b)'),
+      strokeWidth:
+        appearance?.strokeWidth === undefined
+          ? 'var(--flow-edge-width, 3)'
+          : String(appearance.strokeWidth),
+      dashArray: appearance?.dashArray ?? 'none',
+      markerEnd: `url(#${markerId})`,
+    };
+    const custom = options.renderEdge?.(context, h);
+    const hitArea = [
+      h.D(path),
+      h.Fill('none'),
+      h.DataAttribute('flow-edge', edge.id),
+      h.Style({ 'pointer-events': 'stroke', cursor: 'pointer' }),
+    ];
+    if (custom !== undefined) {
+      return h.g(
+        [h.Key(`edge:${edge.id}`)],
+        [
+          h.g([h.Style({ 'pointer-events': 'none' })], [custom]),
+          h.path([...hitArea, h.Stroke('transparent'), h.StrokeWidth('12')], []),
+        ],
+      );
+    }
     return h.path(
       [
         h.Key(`edge:${edge.id}`),
-        h.D(
-          edgePath(state.graph, edge, state.routes.find((route) => route.id === edge.id)?.points),
-        ),
-        h.Fill('none'),
-        h.Stroke(
-          state.selectedEdges.includes(edge.id)
-            ? 'var(--flow-selection, #2563eb)'
-            : (appearance?.stroke ?? 'var(--flow-edge, #64748b)'),
-        ),
-        h.StrokeWidth(
-          appearance?.strokeWidth === undefined
-            ? 'var(--flow-edge-width, 3)'
-            : String(appearance.strokeWidth),
-        ),
-        h.StrokeDasharray(appearance?.dashArray ?? 'none'),
-        h.MarkerEnd(`url(#${markerId})`),
-        h.DataAttribute('flow-edge', edge.id),
-        h.Style({ 'pointer-events': 'stroke', cursor: 'pointer' }),
+        ...hitArea,
+        h.Stroke(context.stroke),
+        h.StrokeWidth(context.strokeWidth),
+        h.StrokeDasharray(context.dashArray),
+        h.MarkerEnd(context.markerEnd),
       ],
       [],
     );
   });
-  const handles = state.readOnly
+  const edgeLabels = edgeGeometries.flatMap(({ edge, center }) => {
+    const draft = state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
+    if (!draft && !edge.label && (state.readOnly || !state.selectedEdges.includes(edge.id)))
+      return [];
+    if (!center) return [];
+    const description = `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`;
+    const cancel = options.onEvent({ type: 'EdgeLabelCancelled', id: edge.id });
+    const chipStyle = {
+      background: 'var(--flow-node-background, #fff)',
+      color: 'var(--flow-node-color, #172033)',
+      border: '1px solid var(--flow-node-border, #cbd5e1)',
+      'border-radius': '6px',
+      padding: '3px 8px',
+      'font-size': '13px',
+      'max-width': '240px',
+      overflow: 'hidden',
+      'text-overflow': 'ellipsis',
+      'white-space': 'nowrap',
+    };
+    return [
+      h.div(
+        [
+          h.Key(`edge-label:${edge.id}`),
+          h.DataAttribute('flow-no-drag', ''),
+          h.Style({
+            position: 'absolute',
+            left: `${center.x}px`,
+            top: `${center.y}px`,
+            transform: 'translate(-50%, -50%)',
+            'pointer-events': state.readOnly ? 'none' : 'auto',
+            'z-index': draft ? '2' : 'auto',
+          }),
+        ],
+        [
+          draft
+            ? h.form(
+                [
+                  h.OnSubmit(options.onEvent({ type: 'EdgeLabelSaved', id: edge.id })),
+                  h.OnKeyDownPreventDefault((key) =>
+                    key === 'Escape' ? Option.some(cancel) : Option.none(),
+                  ),
+                  h.Style({ ...chipStyle, display: 'flex', gap: '4px', 'max-width': 'none' }),
+                ],
+                [
+                  h.input([
+                    h.Type('text'),
+                    h.AriaLabel(`Edge label for ${description}`),
+                    h.Autofocus(true),
+                    h.Value(draft.text),
+                    h.OnInput((text) =>
+                      options.onEvent({ type: 'EdgeLabelDraftChanged', id: edge.id, text }),
+                    ),
+                  ]),
+                  h.button([h.Type('submit')], ['Save label']),
+                  h.button([h.Type('button'), h.OnClick(cancel)], ['Cancel']),
+                ],
+              )
+            : state.readOnly
+              ? h.div([h.Style(chipStyle), h.Title(edge.label ?? '')], [edge.label ?? ''])
+              : h.button(
+                  [
+                    h.Type('button'),
+                    h.AriaLabel(
+                      edge.label
+                        ? `Edit edge label ${edge.label} for ${description}`
+                        : `Add label for ${description}`,
+                    ),
+                    h.Title(edge.label ?? description),
+                    h.DataAttribute('flow-context-edge', edge.id),
+                    h.Style({ ...chipStyle, cursor: 'pointer' }),
+                    h.OnClick(options.onEvent({ type: 'EdgeLabelEditingStarted', id: edge.id })),
+                  ],
+                  [edge.label || 'Add label'],
+                ),
+        ],
+      ),
+    ];
+  });
+  const reconnectPoints = state.readOnly
     ? []
-    : state.graph.edges
+    : visibleEdges
         .filter((edge) => state.selectedEdges.includes(edge.id))
         .flatMap((edge) =>
           (['source', 'target'] as const).flatMap((end) => {
             const endpoint = edge[end];
+            if (presentation.hiddenBy.has(endpoint.node)) return [];
             const node = state.graph.nodes.find((item) => item.id === endpoint.node);
             const port = node?.ports.find((item) => item.id === endpoint.port);
             if (!node || !port) return [];
@@ -354,25 +704,41 @@ export function flowView<M>(
               bottom: [0, 24],
             } as const;
             const [x, y] = offsets[port.side];
-            return [
-              h.circle(
-                [
-                  h.Key(`reconnect:${edge.id}:${end}`),
-                  h.DataAttribute('flow-reconnect', edge.id),
-                  h.DataAttribute('flow-edge-end', end),
-                  h.Cx(String(position.x + x)),
-                  h.Cy(String(position.y + y)),
-                  h.R('9'),
-                  h.Fill('var(--flow-selection, #2563eb)'),
-                  h.Stroke('var(--flow-port-border, #fff)'),
-                  h.StrokeWidth('2'),
-                  h.Style({ 'pointer-events': 'all', cursor: 'grab' }),
-                ],
-                [],
-              ),
-            ];
+            return [{ edge, end, x: position.x + x, y: position.y + y }];
           }),
         );
+  const handles = reconnectPoints.map(({ edge, end, x, y }) =>
+    h.circle(
+      [
+        h.Key(`reconnect:${edge.id}:${end}`),
+        h.DataAttribute('flow-reconnect', edge.id),
+        h.DataAttribute('flow-edge-end', end),
+        h.Cx(String(x)),
+        h.Cy(String(y)),
+        h.R('9'),
+        h.Fill('var(--flow-selection, #2563eb)'),
+        h.Stroke('var(--flow-port-border, #fff)'),
+        h.StrokeWidth('2'),
+        h.Style({ 'pointer-events': 'all', cursor: 'grab' }),
+      ],
+      [],
+    ),
+  );
+  const toolbar =
+    activeEdge?.center && !state.edgeLabelDraft && !drag
+      ? edgeActions(
+          h,
+          options,
+          activeEdge.edge,
+          edgeToolbarPosition(
+            activeEdge.center,
+            state.viewport,
+            reconnectPoints,
+            state.surface?.height ?? options.height ?? 440,
+          ),
+          toolbarId,
+        )
+      : null;
   return h.div(
     [
       h.Id(options.id),
@@ -382,15 +748,26 @@ export function flowView<M>(
       h.p(
         [h.Id(descriptionId)],
         [
-          'Drag a node title to move it. Drag the background to pan, or Shift-drag to select nodes. Scroll to zoom. Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge to drag either endpoint handle. Escape cancels.',
+          'Drag a node title to move it. ',
+          state.selectionMode
+            ? 'Drag the background to select nodes. '
+            : 'Drag the background to pan, or Shift-drag to select nodes. ',
+          'Scroll to zoom. Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge to drag either endpoint handle. Escape cancels.',
+          ...(toolbarEnabled
+            ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
+            : []),
         ],
       ),
-      ...(options.viewportControls ? [viewportControls(h, state, options.onEvent)] : []),
+      ...(options.viewportControls ? [viewportControls(h, state, options)] : []),
       h.div(
         [
           h.Key('surface'),
           h.DataAttribute('flow-surface', options.id),
           h.DataAttribute('flow-readonly', String(state.readOnly)),
+          h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
+          h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
+          h.DataAttribute('flow-selection-mode', String(state.selectionMode)),
+          h.DataAttribute('flow-context-actions', String(Boolean(contextEnabled))),
           h.Tabindex(0),
           h.Role('group'),
           h.AriaLabel(options.label),
@@ -402,6 +779,7 @@ export function flowView<M>(
             height: `${options.height ?? 440}px`,
             width: '100%',
             'touch-action': 'none',
+            cursor: state.selectionMode ? 'crosshair' : 'inherit',
             'background-color': 'var(--flow-background, #eef2f6)',
             'background-image': state.snapToGrid
               ? 'linear-gradient(to right, var(--flow-grid-line, #94a3b855) 1px, transparent 1px), linear-gradient(to bottom, var(--flow-grid-line, #94a3b855) 1px, transparent 1px)'
@@ -457,6 +835,25 @@ export function flowView<M>(
                     ],
                   ),
                   ...edges,
+                  ...(state.gesture.type === 'node-drag'
+                    ? state.gesture.guides.map(({ axis, position, from, to }) =>
+                        h.line(
+                          [
+                            h.Key(`alignment:${axis}`),
+                            h.DataAttribute('flow-alignment-guide', axis),
+                            h.X1(String(axis === 'x' ? position : from)),
+                            h.X2(String(axis === 'x' ? position : to)),
+                            h.Y1(String(axis === 'y' ? position : from)),
+                            h.Y2(String(axis === 'y' ? position : to)),
+                            h.Stroke('var(--flow-alignment-guide, #7c3aed)'),
+                            h.StrokeWidth('2'),
+                            h.StrokeDasharray('5 3'),
+                            h.Style({ 'vector-effect': 'non-scaling-stroke' }),
+                          ],
+                          [],
+                        ),
+                      )
+                    : []),
                   ...handles,
                   ...(preview
                     ? [
@@ -483,6 +880,7 @@ export function flowView<M>(
                 ],
               ),
               ...nodes,
+              ...edgeLabels,
               ...(selectionBox
                 ? [
                     h.div(
@@ -533,8 +931,8 @@ export function flowView<M>(
                   ],
                   [
                     ...[
-                      ...state.graph.nodes.filter((node) => node.kind === 'group'),
-                      ...state.graph.nodes.filter((node) => node.kind !== 'group'),
+                      ...presentation.nodes.filter((node) => node.kind === 'group'),
+                      ...presentation.nodes.filter((node) => node.kind !== 'group'),
                     ].map((node) =>
                       h.rect(
                         [
@@ -569,31 +967,71 @@ export function flowView<M>(
                 ),
               ]
             : []),
+          ...(toolbar && !state.context ? [toolbar] : []),
+          ...contextPanel(h, state, options),
         ],
       ),
       h.div(
         [h.Role('status'), h.AriaLive('polite'), h.Style({ 'min-height': '1.5em' })],
-        [
-          state.notice ??
-            `${state.graph.nodes.length} nodes, ${state.graph.edges.length} connections`,
-        ],
+        [state.notice ?? `${presentation.nodes.length} nodes, ${visibleEdges.length} connections`],
       ),
       h.div(
         [h.Role('group'), h.AriaLabel('Connections')],
-        state.graph.edges.map((edge) =>
-          h.button(
+        visibleEdges.map((edge) => {
+          const label =
+            edge.label ??
+            `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`;
+          const selectionButton = h.button(
             [
               h.Key(edge.id),
               h.Type('button'),
               h.OnClick(options.onEvent({ type: 'EdgeSelected', id: edge.id, additive: false })),
               h.AriaPressed(String(state.selectedEdges.includes(edge.id))),
+              ...(options.contextActions && !state.readOnly
+                ? [
+                    h.OnKeyDownPreventDefault((key, modifiers) =>
+                      key === 'ContextMenu' || (key === 'F10' && modifiers.shiftKey)
+                        ? Option.some(
+                            options.onEvent({
+                              type: 'ContextOpened',
+                              context: { kind: 'edge', id: edge.id, point: { x: 12, y: 12 } },
+                            }),
+                          )
+                        : Option.none(),
+                    ),
+                  ]
+                : []),
+              ...(toolbar && activeEdge?.edge.id === edge.id
+                ? [
+                    h.AriaControls(toolbarId),
+                    h.AriaKeyshortcuts('ArrowUp'),
+                    h.OnKeyDownFocus((key) =>
+                      key === 'ArrowUp'
+                        ? Option.some({
+                            focusSelector: `[id="${toolbarId}-rename"]`,
+                            message: options.onEvent({
+                              type: 'EdgeSelected',
+                              id: edge.id,
+                              additive: false,
+                            }),
+                          })
+                        : Option.none(),
+                    ),
+                  ]
+                : []),
             ],
-            [
-              edge.label ??
-                `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`,
-            ],
-          ),
-        ),
+            [label],
+          );
+          return contextEnabled
+            ? h.span(
+                [
+                  h.Key(edge.id),
+                  h.Style({ display: 'inline-flex', gap: '4px', 'margin-right': '8px' }),
+                ],
+                [selectionButton, contextTrigger('edge', edge.id, label, { x: 12, y: 12 })],
+              )
+            : selectionButton;
+        }),
       ),
     ],
   );

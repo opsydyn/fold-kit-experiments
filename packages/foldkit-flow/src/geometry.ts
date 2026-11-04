@@ -56,7 +56,11 @@ export function portPosition(node: FlowNode, id: string): Point {
       };
   }
 }
-export function minimapGeometry(graph: FlowGraph, surface: Size, viewport: Viewport) {
+export function minimapGeometry(
+  graph: Pick<FlowGraph, 'nodes'>,
+  surface: Size,
+  viewport: Viewport,
+) {
   const origin = screenToWorld({ x: 0, y: 0 }, viewport);
   const visible = {
     ...origin,
@@ -85,6 +89,10 @@ export function minimapGeometry(graph: FlowGraph, surface: Size, viewport: Viewp
 }
 
 export function fitViewport(graph: FlowGraph, size: Size, padding = 24): Viewport {
+  return fitNodes(graph.nodes, size, padding);
+}
+
+export function fitNodes(nodes: readonly FlowNode[], size: Size, padding: number): Viewport {
   if (
     ![size.width, size.height, padding].every(Number.isFinite) ||
     padding < 0 ||
@@ -92,11 +100,11 @@ export function fitViewport(graph: FlowGraph, size: Size, padding = 24): Viewpor
     size.height <= 2 * padding
   )
     throw new FlowError('invalid-edit', 'Viewport must be larger than its padding');
-  if (graph.nodes.length === 0) return { x: 0, y: 0, zoom: 1 };
-  const left = Math.min(...graph.nodes.map((node) => node.position.x));
-  const top = Math.min(...graph.nodes.map((node) => node.position.y));
-  const right = Math.max(...graph.nodes.map((node) => node.position.x + node.size.width));
-  const bottom = Math.max(...graph.nodes.map((node) => node.position.y + node.size.height));
+  if (nodes.length === 0) return { x: 0, y: 0, zoom: 1 };
+  const left = Math.min(...nodes.map((node) => node.position.x));
+  const top = Math.min(...nodes.map((node) => node.position.y));
+  const right = Math.max(...nodes.map((node) => node.position.x + node.size.width));
+  const bottom = Math.max(...nodes.map((node) => node.position.y + node.size.height));
   const zoom = Math.max(
     minimumZoom,
     Math.min(
@@ -111,14 +119,89 @@ export function fitViewport(graph: FlowGraph, size: Size, padding = 24): Viewpor
     zoom,
   };
 }
-/** Straight fallback; optional layout adapters supply polylines. */
-export function edgePath(graph: FlowGraph, edge: FlowEdge, points?: readonly Point[]): string {
-  let path = points;
-  if (!path) {
-    const source = graph.nodes.find((node) => node.id === edge.source.node);
-    const target = graph.nodes.find((node) => node.id === edge.target.node);
-    if (!source || !target) throw new FlowError('invalid-graph', `Missing endpoint for ${edge.id}`);
-    path = [portPosition(source, edge.source.port), portPosition(target, edge.target.port)];
+function polyline(points: readonly Point[]): string {
+  return points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' ');
+}
+
+function nodeCenter(node: FlowNode): Point {
+  return {
+    x: node.position.x + node.size.width / 2,
+    y: node.position.y + node.size.height / 2,
+  };
+}
+
+export function groupBoundaryPoint(group: FlowNode, toward: Point): Point {
+  const center = nodeCenter(group);
+  const dx = toward.x - center.x;
+  const dy = toward.y - center.y;
+  const distance = Math.max(Math.abs(dx) / group.size.width, Math.abs(dy) / group.size.height);
+  if (distance === 0) return { x: center.x + group.size.width / 2, y: center.y };
+  return { x: center.x + dx / (2 * distance), y: center.y + dy / (2 * distance) };
+}
+
+/** The label anchor and SVG path come from the same route. */
+export function edgeGeometry(
+  graph: FlowGraph,
+  edge: FlowEdge,
+  route?: readonly Point[],
+  groups?: Readonly<{ source: FlowNode | undefined; target: FlowNode | undefined }>,
+) {
+  if (edge.pathStyle === undefined && route && !groups?.source && !groups?.target) {
+    return { path: polyline(route), center: polylineMidpoint(route) };
   }
-  return path.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' ');
+  const source = graph.nodes.find((node) => node.id === edge.source.node);
+  const target = graph.nodes.find((node) => node.id === edge.target.node);
+  if (!source || !target) throw new FlowError('invalid-graph', `Missing endpoint for ${edge.id}`);
+  const sourceAnchor = groups?.source
+    ? nodeCenter(groups.source)
+    : portPosition(source, edge.source.port);
+  const targetAnchor = groups?.target
+    ? nodeCenter(groups.target)
+    : portPosition(target, edge.target.port);
+  const start = groups?.source ? groupBoundaryPoint(groups.source, targetAnchor) : sourceAnchor;
+  const end = groups?.target ? groupBoundaryPoint(groups.target, sourceAnchor) : targetAnchor;
+  const center = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+  if (edge.pathStyle === 'stepped' || edge.pathStyle === 'smooth') {
+    const horizontal = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y);
+    const first = horizontal ? { x: center.x, y: start.y } : { x: start.x, y: center.y };
+    const second = horizontal ? { x: center.x, y: end.y } : { x: end.x, y: center.y };
+    // Symmetric control points put the label at the curve's arc-length midpoint.
+    const path =
+      edge.pathStyle === 'smooth'
+        ? `M${start.x},${start.y} C${first.x},${first.y} ${second.x},${second.y} ${end.x},${end.y}`
+        : polyline([start, first, second, end]);
+    return { path, center };
+  }
+  return { path: polyline([start, end]), center };
+}
+
+export function edgePath(graph: FlowGraph, edge: FlowEdge, points?: readonly Point[]): string {
+  return edgeGeometry(graph, edge, points).path;
+}
+
+function polylineMidpoint(points: readonly Point[]): Point | undefined {
+  const [first, ...rest] = points;
+  if (!first) return undefined;
+  const segments: { start: Point; end: Point; length: number }[] = [];
+  let previous = first;
+  for (const end of rest) {
+    segments.push({
+      start: previous,
+      end,
+      length: Math.hypot(end.x - previous.x, end.y - previous.y),
+    });
+    previous = end;
+  }
+  let remaining = segments.reduce((sum, segment) => sum + segment.length, 0) / 2;
+  for (const { start, end, length } of segments) {
+    if (remaining <= length && length > 0) {
+      const fraction = remaining / length;
+      return {
+        x: start.x + (end.x - start.x) * fraction,
+        y: start.y + (end.y - start.y) * fraction,
+      };
+    }
+    remaining -= length;
+  }
+  return first;
 }

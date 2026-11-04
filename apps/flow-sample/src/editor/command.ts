@@ -9,22 +9,23 @@ export const ArrangeFlow = Command.define('ArrangeFlow', {
     json: Schema.String,
     requestId: Schema.String,
     revision: Schema.Number,
+    engine: Schema.Literals(['elk', 'force']),
     direction: Schema.Literals(['RIGHT', 'DOWN']),
   },
   interrupt: true,
   messages: [Message.SucceededLayout, Message.FailedLayout],
-  execute: ({ json, requestId, revision, direction }) =>
-    Effect.tryPromise(() =>
-      // Fetch the layout engine only when the user requests arrangement.
+  execute: ({ json, requestId, revision, direction, engine }) =>
+    Effect.tryPromise(async () => {
+      const request = { requestId, revision, graph: parseGraph(json) };
+      if (engine === 'force') {
+        // oxlint-disable-next-line linteffect/prevent-dynamic-imports
+        const { arrangeWithForce } = await import('./force-layout');
+        return arrangeWithForce(request);
+      }
       // oxlint-disable-next-line linteffect/prevent-dynamic-imports
-      import('@opsydyn/foldkit-flow-elk').then(({ createElkLayout }) =>
-        createElkLayout({ direction, spacing: 32 })({
-          requestId,
-          revision,
-          graph: parseGraph(json),
-        }),
-      ),
-    ).pipe(
+      const { createElkLayout } = await import('@opsydyn/foldkit-flow-elk');
+      return createElkLayout({ direction, spacing: 32 })(request);
+    }).pipe(
       Effect.match({
         onSuccess: (result) => Message.SucceededLayout({ result }),
         onFailure: () => Message.FailedLayout({ requestId }),
@@ -58,4 +59,38 @@ export const LoadFlow = Command.define('LoadFlow', {
       onFailure: () => Message.FailedStorage(),
     }),
   ),
+});
+
+export const ImportFlow = Command.define('ImportFlow', {
+  args: { id: Schema.Number, file: Schema.instanceOf(File) },
+  interrupt: true,
+  messages: [Message.SucceededImport, Message.FailedImport],
+  execute: ({ id, file }) =>
+    Effect.tryPromise(() => file.text().then((text) => serializeGraph(parseGraph(text)))).pipe(
+      Effect.match({
+        onSuccess: (json) => Message.SucceededImport({ id, json }),
+        onFailure: () => Message.FailedImport({ id }),
+      }),
+    ),
+});
+
+export const ExportFlow = Command.define('ExportFlow', {
+  args: { json: Schema.String },
+  messages: [Message.CompletedExport, Message.FailedExport],
+  execute: ({ json }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download: 'foldkit-flow.json',
+      });
+      // Release after the browser has had time to start consuming the URL.
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedExport(),
+        onFailure: () => Message.FailedExport(),
+      }),
+    ),
 });

@@ -95,3 +95,41 @@ positions. Restricting the action to siblings preserves existing ownership when
 a selection spans separate groups. Ungrouping promotes children to the nearest
 remaining ancestor and preserves their connections. Each action is one history
 transaction.
+
+Edge path style is optional authored graph metadata. Straight, stepped, and
+smooth overrides draw from the current port positions. An omitted style keeps
+the layout engine's route, with a straight fallback, so existing version 1
+documents retain their routing behavior. Automatic routing and authored
+overrides share a geometry calculation with the label anchor. Stroke styling
+stays in the view callback. Layout route points remain session data.
+
+Custom edge renderers receive the resolved path and visual state as a view
+callback. They own SVG decoration along that path. Flow owns the hit area,
+reconnection handles and label placement, keeping these interactions shared
+across host renderers.
+
+Group collapse is editor-session presentation state. The view hides descendants
+and internal edges, then projects crossing edges to the visible collapsed
+ancestor's boundary. This preserves authored endpoints, group membership and
+cached layout routes across a collapse and expansion. Projected endpoints are
+visual anchors. Ports remain on the original nodes.
+
+Group drop targets are resolved from the world-space pointer and visible group
+boundaries. The deepest eligible group wins. Collapsed groups and the moving
+subtree are excluded. A drag changes only the selected roots' membership, and
+publishes membership and position together on release.
+
+Drag alignment is opt-in editor-session behavior. It uses visible stationary
+nodes and the moving selection's bounds, with a tolerance measured in screen
+pixels. Alignment overrides the grid only on a matching axis. Guides are
+derived during the drag and share its existing commit and cancellation paths.
+
+Drag auto-pan is opt-in at the FoldKit view. The mounted input adapter owns
+the animation-frame lifetime and reports elapsed viewport movement. The editor
+applies that movement and updates the active drag in the same reducer turn.
+Viewport movement stays outside graph history.
+
+Two-finger navigation is opt-in at the FoldKit view. The input adapter tracks
+the two touch contacts and reports their midpoint and distance. The reducer
+cancels any active drag, then anchors zoom and translation to the starting
+viewport. This keeps touch navigation separate from document history.

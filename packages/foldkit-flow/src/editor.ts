@@ -1,7 +1,8 @@
+import { alignDrag, sameGuides } from './alignment';
 import {
   boxBounds,
   finitePoint,
-  fitViewport,
+  fitNodes,
   gridSpacing,
   minimapGeometry,
   screenToWorld,
@@ -9,6 +10,7 @@ import {
   zoomAt,
 } from './geometry';
 import { copyGraph, FlowError, validateGraph } from './graph';
+import { edgeIsVisible, groupAtDropPoint, presentGroups } from './group-presentation';
 import type {
   EditorEvent,
   EditorOptions,
@@ -29,6 +31,10 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     throw new FlowError('invalid-edit', 'History limit must be an integer from 0 to 1000');
   return {
     graph: copyGraph(graph),
+    context: null,
+    clipboard: null,
+    collapsedGroups: [],
+    edgeLabelDraft: null,
     revision: 0,
     surface: null,
     viewport: { ...viewport },
@@ -41,6 +47,8 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     historyLimit,
     readOnly: options.readOnly ?? false,
     snapToGrid: options.snapToGrid ?? false,
+    snapToAlignment: options.snapToAlignment ?? false,
+    selectionMode: options.selectionMode ?? false,
     routes: [],
     notice: null,
   };
@@ -48,13 +56,22 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
 function history(state: EditorState, before: FlowGraph): readonly FlowGraph[] {
   return state.historyLimit === 0 ? [] : [...state.past, before].slice(-state.historyLimit);
 }
+function retainedCollapsedGroups(state: EditorState, graph: FlowGraph) {
+  return state.collapsedGroups.filter((id) =>
+    graph.nodes.some((node) => node.id === id && node.kind === 'group'),
+  );
+}
+
 /** Shared transaction boundary; document publications invalidate cached routes. */
 export function commitGraph(state: EditorState, graph: FlowGraph): EditorState {
   validateGraph(graph);
   return {
     ...state,
     graph,
+    context: null,
     revision: state.revision + 1,
+    collapsedGroups: retainedCollapsedGroups(state, graph),
+    edgeLabelDraft: null,
     past: history(state, state.graph),
     future: [],
     routes: [],
@@ -80,9 +97,77 @@ function withDescendants(graph: FlowGraph, ids: readonly string[]): ReadonlySet<
   return included;
 }
 
-function move(graph: FlowGraph, ids: readonly string[], delta: Point): FlowGraph {
+function selectedFragment(state: EditorState): FlowGraph {
+  const included = withDescendants(state.graph, state.selectedNodes);
+  return copyGraph({
+    nodes: state.graph.nodes
+      .filter((node) => included.has(node.id))
+      .map((node) => {
+        if (node.parentId === undefined || included.has(node.parentId)) return node;
+        const { parentId: _, ...root } = node;
+        return root;
+      }),
+    edges: state.graph.edges.filter(
+      (edge) => included.has(edge.source.node) && included.has(edge.target.node),
+    ),
+  });
+}
+
+function insertFragment(state: EditorState, fragment: FlowGraph): EditorState {
+  if (fragment.nodes.length === 0) return state;
+  const taken = new Set([...state.graph.nodes, ...state.graph.edges].map((item) => item.id));
+  let sequence = 1;
+  const nextId = () => {
+    while (taken.has(`copy:${sequence}`)) sequence++;
+    return `copy:${sequence++}`;
+  };
+  const ids = new Map(fragment.nodes.map((node) => [node.id, nextId()]));
+  const remap = (id: string): string => {
+    const mapped = ids.get(id);
+    if (!mapped) throw new FlowError('invalid-edit', 'Copied node is missing');
+    return mapped;
+  };
+  const occupied = new Set(
+    state.graph.nodes.map((node) => `${node.position.x},${node.position.y}`),
+  );
+  const step = 2 * gridSpacing;
+  let offset = step;
+  for (let attempt = 0; attempt < state.graph.nodes.length; attempt++) {
+    if (
+      !fragment.nodes.some((node) =>
+        occupied.has(`${node.position.x + offset},${node.position.y + offset}`),
+      )
+    )
+      break;
+    offset += step;
+  }
+  const nodes = fragment.nodes.map((node) => {
+    const copy = {
+      ...node,
+      id: remap(node.id),
+      position: { x: node.position.x + offset, y: node.position.y + offset },
+    };
+    return node.parentId === undefined ? copy : { ...copy, parentId: remap(node.parentId) };
+  });
+  const edges = fragment.edges.map((edge) => ({
+    ...edge,
+    id: nextId(),
+    source: { ...edge.source, node: remap(edge.source.node) },
+    target: { ...edge.target, node: remap(edge.target.node) },
+  }));
+  return {
+    ...commitGraph(state, {
+      nodes: [...state.graph.nodes, ...nodes],
+      edges: [...state.graph.edges, ...edges],
+    }),
+    selectedNodes: nodes.filter((node) => node.parentId === undefined).map((node) => node.id),
+    selectedEdges: [],
+    notice: `${nodes.length} pasted`,
+  };
+}
+
+function move(graph: FlowGraph, moving: ReadonlySet<string>, delta: Point): FlowGraph {
   finitePoint(delta);
-  const moving = withDescendants(graph, ids);
   const moved = {
     ...graph,
     nodes: graph.nodes.map((node) =>
@@ -94,6 +179,28 @@ function move(graph: FlowGraph, ids: readonly string[], delta: Point): FlowGraph
   validateGraph(moved);
   return moved;
 }
+function reparentDraggedNodes(
+  graph: FlowGraph,
+  ids: readonly string[],
+  parentId: string | null,
+): FlowGraph {
+  const moving = withDescendants(graph, ids);
+  const selected = new Set(ids);
+  let changed = false;
+  const nodes = graph.nodes.map((node) => {
+    if (
+      !selected.has(node.id) ||
+      (node.parentId !== undefined && moving.has(node.parentId)) ||
+      (node.parentId ?? null) === parentId
+    )
+      return node;
+    changed = true;
+    const { parentId: _previousParent, ...root } = node;
+    return parentId === null ? root : { ...root, parentId };
+  });
+  return changed ? { ...graph, nodes } : graph;
+}
+
 function selection(ids: readonly string[], id: string, additive: boolean): readonly string[] {
   if (!additive) return [id];
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
@@ -108,7 +215,7 @@ function cancel(state: EditorState): EditorState {
       routes: [],
       connection: null,
     };
-  if (state.gesture.type === 'pan')
+  if (state.gesture.type === 'pan' || state.gesture.type === 'pinch')
     return {
       ...state,
       viewport: state.gesture.before,
@@ -164,17 +271,55 @@ function sameGeometry(a: FlowGraph, b: FlowGraph): boolean {
       node.size.width === b.nodes[index]?.size.width,
   );
 }
+// Metadata edits reuse the nodes and endpoints. Geometry edits replace them.
+function routesForHistory(state: EditorState, graph: FlowGraph): EditorState['routes'] {
+  const before = state.graph;
+  return before.nodes === graph.nodes &&
+    before.edges.length === graph.edges.length &&
+    before.edges.every((edge, index) => {
+      const other = graph.edges[index];
+      return edge.id === other?.id && edge.source === other.source && edge.target === other.target;
+    })
+    ? state.routes
+    : [];
+}
 /** Pure reducer. Consumers retain the returned state in their own Model. */
 export function updateEditor(
   state: EditorState,
   event: EditorEvent,
   policy: EditorPolicy = {},
 ): EditorState {
+  if (
+    state.context &&
+    event.type !== 'ContextOpened' &&
+    event.type !== 'SurfaceMeasured' &&
+    event.type !== 'NodeMeasured'
+  )
+    state = { ...state, context: null };
+
   switch (event.type) {
+    case 'ContextDismissed':
+      return state;
+    case 'ContextOpened': {
+      if (state.readOnly || state.gesture.type !== 'idle') return state;
+      const context = event.context;
+      const items = context.kind === 'node' ? state.graph.nodes : state.graph.edges;
+      if (!items.some((item) => item.id === context.id)) return state;
+      finitePoint(context.point);
+      return {
+        ...state,
+        context,
+        edgeLabelDraft: null,
+        connection: null,
+        selectedNodes: context.kind === 'node' ? [context.id] : [],
+        selectedEdges: context.kind === 'edge' ? [context.id] : [],
+      };
+    }
     case 'NodeSelected':
       if (!state.graph.nodes.some((node) => node.id === event.id)) return state;
       return {
         ...state,
+        edgeLabelDraft: null,
         selectedNodes: selection(state.selectedNodes, event.id, event.additive),
         selectedEdges: event.additive ? state.selectedEdges : [],
       };
@@ -182,13 +327,46 @@ export function updateEditor(
       if (!state.graph.edges.some((edge) => edge.id === event.id)) return state;
       return {
         ...state,
+        edgeLabelDraft: null,
         selectedEdges: selection(state.selectedEdges, event.id, event.additive),
         selectedNodes: event.additive ? state.selectedNodes : [],
       };
+    case 'GroupCollapseToggled': {
+      const group = state.graph.nodes.find((node) => node.id === event.id && node.kind === 'group');
+      if (!group || state.gesture.type !== 'idle') return state;
+      const collapsed = state.collapsedGroups.includes(group.id);
+      const collapsedGroups = collapsed
+        ? state.collapsedGroups.filter((id) => id !== group.id)
+        : [...state.collapsedGroups, group.id];
+      const { hiddenBy } = presentGroups(state.graph, collapsedGroups);
+      const selectedEdges = state.selectedEdges.filter((id) =>
+        state.graph.edges.some((edge) => edge.id === id && edgeIsVisible(edge, hiddenBy)),
+      );
+      return {
+        ...state,
+        collapsedGroups,
+        connection: null,
+        edgeLabelDraft: null,
+        selectedNodes: state.selectedNodes.filter((id) => !hiddenBy.has(id)),
+        selectedEdges,
+        notice: `${group.label} ${collapsed ? 'expanded' : 'collapsed'}`,
+      };
+    }
     case 'SelectionCleared':
-      return { ...state, selectedNodes: [], selectedEdges: [] };
+      return { ...state, edgeLabelDraft: null, selectedNodes: [], selectedEdges: [] };
     case 'GestureCancelled':
       return cancel(state);
+    case 'CopyPressed': {
+      if (state.gesture.type !== 'idle' || state.selectedNodes.length === 0) return state;
+      const clipboard = selectedFragment(state);
+      return { ...state, clipboard, notice: `${clipboard.nodes.length} copied` };
+    }
+    case 'SelectionModeToggled':
+      if (state.gesture.type !== 'idle') return state;
+      return { ...state, selectionMode: !state.selectionMode };
+    case 'AlignmentSnapToggled':
+      if (state.readOnly || state.gesture.type !== 'idle') return state;
+      return { ...state, snapToAlignment: !state.snapToAlignment };
     case 'GridSnapToggled':
       if (state.readOnly || state.gesture.type !== 'idle') return state;
       return { ...state, snapToGrid: !state.snapToGrid };
@@ -200,13 +378,24 @@ export function updateEditor(
       const { surface } = state;
       if (!surface || state.gesture.type !== 'idle' || state.graph.nodes.length === 0) return state;
       const padding = Math.min(24, surface.width / 4, surface.height / 4);
-      return { ...state, viewport: fitViewport(state.graph, surface, padding) };
+      return {
+        ...state,
+        viewport: fitNodes(
+          presentGroups(state.graph, state.collapsedGroups).nodes,
+          surface,
+          padding,
+        ),
+      };
     }
     case 'MinimapClicked': {
       const { surface, viewport } = state;
       if (!surface || state.gesture.type !== 'idle') return state;
       finitePoint(event.point);
-      const { x, y, width, height } = minimapGeometry(state.graph, surface, viewport);
+      const { x, y, width, height } = minimapGeometry(
+        presentGroups(state.graph, state.collapsedGroups),
+        surface,
+        viewport,
+      );
       const worldX = x + Math.max(0, Math.min(1, event.point.x)) * width;
       const worldY = y + Math.max(0, Math.min(1, event.point.y)) * height;
       return {
@@ -221,6 +410,39 @@ export function updateEditor(
     case 'Zoomed':
       if (state.gesture.type !== 'idle') return state;
       return { ...state, viewport: zoomAt(state.viewport, event.point, event.factor) };
+    case 'PinchStarted': {
+      if (!Number.isFinite(event.distance) || event.distance < 1 || state.gesture.type === 'pinch')
+        return state;
+      finitePoint(event.center);
+      const ready =
+        state.gesture.type === 'idle' && state.connection === null ? state : cancel(state);
+      return {
+        ...ready,
+        edgeLabelDraft: null,
+        gesture: {
+          type: 'pinch',
+          center: event.center,
+          distance: event.distance,
+          before: ready.viewport,
+        },
+      };
+    }
+    case 'PinchMoved': {
+      const gesture = state.gesture;
+      if (gesture.type !== 'pinch' || !Number.isFinite(event.distance) || event.distance < 1)
+        return state;
+      finitePoint(event.center);
+      const zoomed = zoomAt(gesture.before, gesture.center, event.distance / gesture.distance);
+      const viewport = {
+        ...zoomed,
+        x: zoomed.x + event.center.x - gesture.center.x,
+        y: zoomed.y + event.center.y - gesture.center.y,
+      };
+      validViewport(viewport);
+      return { ...state, viewport };
+    }
+    case 'PinchEnded':
+      return state.gesture.type === 'pinch' ? { ...state, gesture: { type: 'idle' } } : state;
     case 'BoxSelectionStarted': {
       if (state.gesture.type !== 'idle') return state;
       const origin = screenToWorld(event.point, state.viewport);
@@ -243,9 +465,44 @@ export function updateEditor(
           before: state.viewport,
         },
       };
+    case 'DragPanned': {
+      const gesture = state.gesture;
+      if (
+        state.readOnly ||
+        (gesture.type !== 'node-drag' && gesture.type !== 'connection-drag') ||
+        gesture.pointer !== event.pointer
+      )
+        return state;
+      const { delta, point, pointer, target } = event;
+      finitePoint(delta);
+      const viewport = {
+        ...state.viewport,
+        x: state.viewport.x + delta.x,
+        y: state.viewport.y + delta.y,
+      };
+      validViewport(viewport);
+      return updateEditor(
+        {
+          ...state,
+          viewport,
+          gesture:
+            gesture.type === 'node-drag'
+              ? {
+                  ...gesture,
+                  origin: { x: gesture.origin.x + delta.x, y: gesture.origin.y + delta.y },
+                }
+              : gesture,
+        },
+        target
+          ? { type: 'PointerMoved', point, pointer, target }
+          : { type: 'PointerMoved', point, pointer },
+        policy,
+      );
+    }
     case 'PointerMoved': {
       const gesture = state.gesture;
-      if (gesture.type === 'idle' || gesture.pointer !== event.pointer) return state;
+      if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
+        return state;
       finitePoint(event.point);
       if (gesture.type === 'box-selection')
         return {
@@ -315,24 +572,46 @@ export function updateEditor(
         };
         return { ...state, graph, revision: state.revision + 1, routes: [] };
       }
-      const offset = { x: delta.x / state.viewport.zoom, y: delta.y / state.viewport.zoom };
+      const zoom = state.viewport.zoom;
+      const raw = { x: delta.x / zoom, y: delta.y / zoom };
+      const fallback = { ...raw };
       const anchor =
         state.snapToGrid && gesture.before.nodes.find((node) => node.id === gesture.ids[0]);
-      if (anchor && (offset.x !== 0 || offset.y !== 0)) {
+      if (anchor && (raw.x !== 0 || raw.y !== 0)) {
         const snap = (value: number) => Math.round(value / gridSpacing) * gridSpacing;
-        offset.x = snap(anchor.position.x + offset.x) - anchor.position.x;
-        offset.y = snap(anchor.position.y + offset.y) - anchor.position.y;
+        fallback.x = snap(anchor.position.x + raw.x) - anchor.position.x;
+        fallback.y = snap(anchor.position.y + raw.y) - anchor.position.y;
       }
-      const graph = move(gesture.before, gesture.ids, offset);
-      if (sameGeometry(state.graph, graph)) return state;
-      return { ...state, graph, revision: state.revision + 1, routes: [] };
+      const moving = withDescendants(gesture.before, gesture.ids);
+      const dragging = Math.hypot(delta.x, delta.y) >= 4;
+      const { nodes } = presentGroups(gesture.before, state.collapsedGroups);
+      const { offset, guides } =
+        dragging && state.snapToAlignment
+          ? alignDrag(nodes, moving, state.collapsedGroups, raw, fallback, zoom)
+          : { offset: fallback, guides: [] };
+      const graph = move(gesture.before, moving, offset);
+      const dropParent = dragging
+        ? groupAtDropPoint(
+            nodes,
+            state.collapsedGroups,
+            moving,
+            screenToWorld(event.point, state.viewport),
+          )
+        : undefined;
+      const drag = { ...gesture, dropParent, guides };
+      if (sameGeometry(state.graph, graph))
+        return gesture.dropParent === dropParent && sameGuides(gesture.guides, guides)
+          ? state
+          : { ...state, gesture: drag };
+      return { ...state, graph, gesture: drag, revision: state.revision + 1, routes: [] };
     }
     case 'PointerReleased': {
       const gesture = state.gesture;
-      if (gesture.type === 'idle' || gesture.pointer !== event.pointer) return state;
+      if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
+        return state;
       if (gesture.type === 'box-selection') {
         const bounds = boxBounds(gesture.origin, gesture.point);
-        const enclosed = state.graph.nodes.filter(
+        const enclosed = presentGroups(state.graph, state.collapsedGroups).nodes.filter(
           (node) =>
             node.position.x >= bounds.left &&
             node.position.y >= bounds.top &&
@@ -373,6 +652,14 @@ export function updateEditor(
             : { type: 'PortActivated', endpoint: gesture.target },
           policy,
         );
+      }
+      if (gesture.type === 'node-drag' && gesture.dropParent !== undefined) {
+        const graph = reparentDraggedNodes(state.graph, gesture.ids, gesture.dropParent);
+        if (graph !== state.graph)
+          return {
+            ...commitGraph({ ...state, graph: gesture.before }, graph),
+            notice: gesture.dropParent === null ? 'Moved out of group' : 'Moved into group',
+          };
       }
       if (gesture.type === 'pan' || sameGeometry(state.graph, gesture.before))
         return { ...state, gesture: { type: 'idle' } };
@@ -472,7 +759,9 @@ export function updateEditor(
         selectedEdges: [],
         connection: null,
         gesture: {
-          type: resizing ? 'node-resize' : 'node-drag',
+          ...(resizing
+            ? { type: 'node-resize' as const }
+            : { type: 'node-drag' as const, dropParent: undefined, guides: [] }),
           pointer: event.pointer,
           origin: event.point,
           before: state.graph,
@@ -483,7 +772,10 @@ export function updateEditor(
     case 'SelectionNudged':
       if (state.selectedNodes.length === 0 || (event.delta.x === 0 && event.delta.y === 0))
         return state;
-      return commitGraph(state, move(state.graph, state.selectedNodes, event.delta));
+      return commitGraph(
+        state,
+        move(state.graph, withDescendants(state.graph, state.selectedNodes), event.delta),
+      );
     case 'NodeAdded':
       return commitGraph(state, {
         ...state.graph,
@@ -510,6 +802,51 @@ export function updateEditor(
           node.id === event.id ? { ...node, size: { ...node.size, width: event.width } } : node,
         ),
       });
+    case 'EdgeLabelEditingStarted': {
+      const edge = state.graph.edges.find((edge) => edge.id === event.id);
+      if (!edge || state.edgeLabelDraft?.id === edge.id) return state;
+      return {
+        ...state,
+        selectedNodes: [],
+        selectedEdges: [edge.id],
+        edgeLabelDraft: { id: edge.id, text: edge.label ?? '' },
+      };
+    }
+    case 'EdgeLabelDraftChanged':
+      if (state.edgeLabelDraft?.id !== event.id) return state;
+      return { ...state, edgeLabelDraft: { id: event.id, text: event.text } };
+    case 'EdgeLabelCancelled':
+      if (state.edgeLabelDraft?.id !== event.id) return state;
+      return { ...state, edgeLabelDraft: null };
+    case 'EdgeLabelSaved': {
+      if (state.edgeLabelDraft?.id !== event.id) return state;
+      const edge = state.graph.edges.find((edge) => edge.id === event.id);
+      const label = state.edgeLabelDraft.text.trim();
+      if (!edge || (label || undefined) === edge.label) return { ...state, edgeLabelDraft: null };
+      const { label: _previousLabel, ...unlabeled } = edge;
+      const updated = label ? { ...unlabeled, label } : unlabeled;
+      return {
+        ...commitGraph(state, {
+          ...state.graph,
+          edges: state.graph.edges.map((edge) => (edge.id === event.id ? updated : edge)),
+        }),
+        routes: state.routes,
+        notice: label ? 'Edge label saved' : 'Edge label removed',
+      };
+    }
+    case 'EdgePathStyleChanged': {
+      const edge = state.graph.edges.find((edge) => edge.id === event.id);
+      if (!edge || edge.pathStyle === (event.pathStyle ?? undefined)) return state;
+      const { pathStyle: _previousStyle, ...automatic } = edge;
+      const updated = event.pathStyle ? { ...automatic, pathStyle: event.pathStyle } : automatic;
+      return {
+        ...commitGraph(state, {
+          ...state.graph,
+          edges: state.graph.edges.map((edge) => (edge.id === event.id ? updated : edge)),
+        }),
+        routes: state.routes,
+      };
+    }
     case 'EdgeDataChanged':
       if (!state.graph.edges.some((edge) => edge.id === event.id)) return state;
       return {
@@ -579,6 +916,12 @@ export function updateEditor(
         policy,
       );
     }
+    case 'PastePressed':
+      return state.clipboard ? insertFragment(state, state.clipboard) : state;
+    case 'DuplicatePressed': {
+      const duplicated = insertFragment(state, selectedFragment(state));
+      return duplicated === state ? state : { ...duplicated, notice: 'Selection duplicated' };
+    }
     case 'SelectionGrouped': {
       const selected = state.graph.nodes.filter((node) => state.selectedNodes.includes(node.id));
       const first = selected[0];
@@ -641,6 +984,16 @@ export function updateEditor(
         });
       return { ...commitGraph(state, { ...state.graph, nodes }), notice: 'Selection ungrouped' };
     }
+    case 'EdgeDeleted':
+      if (!state.graph.edges.some((edge) => edge.id === event.id)) return state;
+      return {
+        ...commitGraph(state, {
+          ...state.graph,
+          edges: state.graph.edges.filter((edge) => edge.id !== event.id),
+        }),
+        routes: state.routes.filter((route) => route.id !== event.id),
+        notice: 'Connection deleted',
+      };
     case 'DeletePressed': {
       if (state.selectedNodes.length === 0 && state.selectedEdges.length === 0) return state;
       const removed = withDescendants(state.graph, state.selectedNodes);
@@ -660,13 +1013,15 @@ export function updateEditor(
       return {
         ...state,
         graph,
+        collapsedGroups: retainedCollapsedGroups(state, graph),
         revision: state.revision + 1,
         past: state.past.slice(0, -1),
         future: [state.graph, ...state.future],
-        routes: [],
+        routes: routesForHistory(state, graph),
         connection: null,
         selectedNodes: [],
         selectedEdges: [],
+        edgeLabelDraft: null,
         notice: 'Undone',
       };
     }
@@ -676,13 +1031,15 @@ export function updateEditor(
       return {
         ...state,
         graph,
+        collapsedGroups: retainedCollapsedGroups(state, graph),
         revision: state.revision + 1,
         past: history(state, state.graph),
         future: state.future.slice(1),
-        routes: [],
+        routes: routesForHistory(state, graph),
         connection: null,
         selectedNodes: [],
         selectedEdges: [],
+        edgeLabelDraft: null,
         notice: 'Redone',
       };
     }

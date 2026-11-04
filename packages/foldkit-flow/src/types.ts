@@ -25,24 +25,40 @@ export type FlowNode = Readonly<{
   data?: JsonValue;
 }>;
 export type Endpoint = Readonly<{ node: string; port: string }>;
+export type EdgePathStyle = 'straight' | 'stepped' | 'smooth';
 export type FlowEdge = Readonly<{
   id: string;
   source: Endpoint;
   target: Endpoint;
+  /** Omit to use the layout route, with a straight fallback. */
+  pathStyle?: EdgePathStyle;
   label?: string;
   data?: JsonValue;
 }>;
 export type FlowGraph = Readonly<{ nodes: readonly FlowNode[]; edges: readonly FlowEdge[] }>;
 export type EdgeRoute = Readonly<{ id: string; points: readonly Point[] }>;
+export type AlignmentGuide = Readonly<{
+  /** A fixed x draws a vertical guide; a fixed y draws a horizontal guide. */
+  axis: 'x' | 'y';
+  position: number;
+  from: number;
+  to: number;
+}>;
+type NodeGesture = Readonly<{
+  pointer: number;
+  origin: Point;
+  before: FlowGraph;
+  ids: readonly string[];
+}>;
 export type Gesture =
   | Readonly<{ type: 'idle' }>
-  | Readonly<{
-      type: 'node-drag' | 'node-resize';
-      pointer: number;
-      origin: Point;
-      before: FlowGraph;
-      ids: readonly string[];
-    }>
+  | (NodeGesture &
+      Readonly<{
+        type: 'node-drag';
+        dropParent: string | null | undefined;
+        guides: readonly AlignmentGuide[];
+      }>)
+  | (NodeGesture & Readonly<{ type: 'node-resize' }>)
   | Readonly<{
       type: 'connection-drag';
       pointer: number;
@@ -51,9 +67,15 @@ export type Gesture =
       reconnect?: Readonly<{ id: string; end: 'source' | 'target' }>;
     }>
   | Readonly<{ type: 'box-selection'; pointer: number; origin: Point; point: Point }>
+  | Readonly<{ type: 'pinch'; center: Point; distance: number; before: Viewport }>
   | Readonly<{ type: 'pan'; pointer: number; origin: Point; before: Viewport }>;
+export type EditorContext = Readonly<{ kind: 'node' | 'edge'; id: string; point: Point }>;
 export type EditorState = Readonly<{
+  context: EditorContext | null;
   graph: FlowGraph;
+  clipboard: FlowGraph | null;
+  collapsedGroups: readonly string[];
+  edgeLabelDraft: Readonly<{ id: string; text: string }> | null;
   revision: number;
   viewport: Viewport;
   surface: Size | null;
@@ -66,6 +88,8 @@ export type EditorState = Readonly<{
   historyLimit: number;
   readOnly: boolean;
   snapToGrid: boolean;
+  snapToAlignment: boolean;
+  selectionMode: boolean;
   routes: readonly EdgeRoute[];
   notice: string | null;
 }>;
@@ -74,15 +98,20 @@ export type EditorOptions = Readonly<{
   historyLimit?: number;
   readOnly?: boolean;
   snapToGrid?: boolean;
+  snapToAlignment?: boolean;
+  selectionMode?: boolean;
 }>;
 export type EditorPolicy = Readonly<{
   canConnect?: (edge: FlowEdge, graph: FlowGraph) => string | null;
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =
+  | Readonly<{ type: 'ContextOpened'; context: EditorContext }>
+  | Readonly<{ type: 'ContextDismissed' }>
   | Readonly<{ type: 'NodeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'EdgeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'SelectionCleared' }>
+  | Readonly<{ type: 'GroupCollapseToggled'; id: string }>
   | Readonly<{
       type: 'NodeDragStarted' | 'NodeResizeStarted';
       id: string;
@@ -100,9 +129,14 @@ export type EditorEvent =
     }>
   | Readonly<{ type: 'ConnectionDragStarted'; pointer: number; point: Point; endpoint: Endpoint }>
   | Readonly<{ type: 'PointerMoved'; pointer: number; point: Point; target?: Endpoint }>
+  | Readonly<{ type: 'DragPanned'; pointer: number; point: Point; delta: Point; target?: Endpoint }>
   | Readonly<{ type: 'PointerReleased'; pointer: number }>
+  | Readonly<{ type: 'PinchStarted' | 'PinchMoved'; center: Point; distance: number }>
+  | Readonly<{ type: 'PinchEnded' }>
   | Readonly<{ type: 'GestureCancelled' }>
   | Readonly<{ type: 'GridSnapToggled' }>
+  | Readonly<{ type: 'AlignmentSnapToggled' }>
+  | Readonly<{ type: 'SelectionModeToggled' }>
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>
   | Readonly<{ type: 'FitViewClicked' }>
   | Readonly<{ type: 'MinimapClicked'; point: Point }>
@@ -111,15 +145,24 @@ export type EditorEvent =
   | Readonly<{ type: 'NodeAdded'; node: FlowNode }>
   | Readonly<{ type: 'NodeLabelChanged'; id: string; label: string }>
   | Readonly<{ type: 'NodeWidthChanged'; id: string; width: number }>
+  | Readonly<{ type: 'EdgeLabelEditingStarted'; id: string }>
+  | Readonly<{ type: 'EdgeLabelDraftChanged'; id: string; text: string }>
+  | Readonly<{ type: 'EdgeLabelSaved'; id: string }>
+  | Readonly<{ type: 'EdgeLabelCancelled'; id: string }>
+  | Readonly<{ type: 'EdgePathStyleChanged'; id: string; pathStyle: EdgePathStyle | null }>
   | Readonly<{ type: 'EdgeDataChanged'; id: string; data: JsonValue }>
   | Readonly<{ type: 'NodeMeasured'; id: string; size: Size }>
   | Readonly<{ type: 'SurfaceMeasured'; size: Size }>
   | Readonly<{ type: 'EdgeReconnected'; id: string; end: 'source' | 'target'; endpoint: Endpoint }>
   | Readonly<{ type: 'ConnectionCreated'; edge: FlowEdge }>
   | Readonly<{ type: 'PortActivated'; endpoint: Endpoint }>
+  | Readonly<{ type: 'CopyPressed' }>
+  | Readonly<{ type: 'PastePressed' }>
+  | Readonly<{ type: 'DuplicatePressed' }>
   | Readonly<{ type: 'SelectionGrouped' }>
   | Readonly<{ type: 'SelectionUngrouped' }>
   | Readonly<{ type: 'DeletePressed' }>
+  | Readonly<{ type: 'EdgeDeleted'; id: string }>
   | Readonly<{ type: 'UndoPressed' }>
   | Readonly<{ type: 'RedoPressed' }>;
 export type LayoutRequest = Readonly<{ requestId: string; revision: number; graph: FlowGraph }>;

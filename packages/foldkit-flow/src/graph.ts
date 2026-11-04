@@ -118,6 +118,10 @@ function isEdge(value: unknown): value is FlowEdge {
     isEndpoint(value.source) &&
     'target' in value &&
     isEndpoint(value.target) &&
+    (!('pathStyle' in value) ||
+      value.pathStyle === 'straight' ||
+      value.pathStyle === 'stepped' ||
+      value.pathStyle === 'smooth') &&
     (!('label' in value) || typeof value.label === 'string') &&
     (!('data' in value) || isJson(value.data))
   );

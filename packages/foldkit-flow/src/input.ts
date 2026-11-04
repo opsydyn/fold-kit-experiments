@@ -1,13 +1,27 @@
 import type { BrowserInput } from './input-message';
-import type { Endpoint } from './types';
+import type { Endpoint, Point } from './types';
 
-/** Native resource boundary. Only pointer capture and observer lifetimes are retained. */
+function edgeVelocity(position: number, extent: number): number {
+  const band = Math.min(48, extent / 3);
+  if (band <= 0) return 0;
+  const left = Math.max(0, Math.min(1, (band - position) / band));
+  const right = Math.max(0, Math.min(1, (position - (extent - band)) / band));
+  return 600 * (left - right);
+}
+
+/** Native resource boundary. Owns pointer capture, touch samples, frame scheduling, and observers. */
 export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => void): () => void {
   const window = element.ownerDocument.defaultView;
   if (!window) return () => {};
   // A new binding has no pointer capture, including after DevTools resumes live input.
   emit({ type: 'GestureCancelled' });
   let captured: number | null = null;
+  const touches = new Map<number, Point>();
+  let pinching = false;
+  let nodeDragOrigin: Point | null = null;
+  let panPointer: Point | null = null;
+  let panFrame: number | null = null;
+  let lastPanTime = 0;
   type WireStart = Extract<
     BrowserInput,
     { type: 'ConnectionDragStarted' | 'ReconnectionDragStarted' }
@@ -29,25 +43,148 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const surface = target.closest('[data-flow-surface]');
     return surface === null || surface === element ? target : null;
   };
-  const point = (event: MouseEvent) => {
+  const localPoint = (client: Point) => {
     const rect = element.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    return { x: client.x - rect.left, y: client.y - rect.top };
   };
-  const releaseCapture = () => {
+  const point = (event: MouseEvent) => localPoint({ x: event.clientX, y: event.clientY });
+  const wireTarget = (client: Point) =>
+    wire
+      ? endpointAt(
+          element.ownerDocument.elementFromPoint(client.x, client.y),
+          wire.start.type === 'ReconnectionDragStarted' && wire.start.end === 'source'
+            ? 'output'
+            : 'input',
+        )
+      : undefined;
+  const pan = (time: number) => {
+    panFrame = null;
+    if (captured === null || panPointer === null || element.dataset.flowAutoPan !== 'true') return;
+    const location = localPoint(panPointer);
+    const x = edgeVelocity(location.x, element.clientWidth);
+    const y = edgeVelocity(location.y, element.clientHeight);
+    if (x === 0 && y === 0) return;
+    const seconds = Math.max(0, Math.min(time - lastPanTime, 32)) / 1000;
+    lastPanTime = time;
+    const target = wireTarget(panPointer);
+    if (seconds > 0) {
+      const event = {
+        type: 'DragPanned' as const,
+        pointer: captured,
+        point: location,
+        delta: { x: x * seconds, y: y * seconds },
+      };
+      emit(target ? { ...event, target } : event);
+    }
+    panFrame = window.requestAnimationFrame(pan);
+  };
+  const trackAutoPan = (event: PointerEvent) => {
+    if (element.dataset.flowAutoPan !== 'true') return;
+    const location = point(event);
+    const nodeDragging =
+      nodeDragOrigin &&
+      Math.hypot(location.x - nodeDragOrigin.x, location.y - nodeDragOrigin.y) >= 4;
+    if (!nodeDragging && !wire?.dragging && panPointer === null) return;
+    panPointer = { x: event.clientX, y: event.clientY };
+    if (panFrame !== null) return;
+    lastPanTime = window.performance.now();
+    panFrame = window.requestAnimationFrame(pan);
+  };
+  const stopSingleDrag = () => {
     const pointer = captured;
     captured = null;
     wire = null;
-    if (pointer !== null && element.hasPointerCapture?.(pointer))
-      element.releasePointerCapture(pointer);
+    nodeDragOrigin = null;
+    panPointer = null;
+    if (panFrame !== null) window.cancelAnimationFrame(panFrame);
+    panFrame = null;
+    return pointer;
+  };
+  const releasePointer = (pointer: number) => {
+    if (element.hasPointerCapture?.(pointer)) element.releasePointerCapture(pointer);
+  };
+  const releaseCapture = () => {
+    const pointer = stopSingleDrag();
+    if (pointer !== null) releasePointer(pointer);
+  };
+  const releaseTouches = () => {
+    const pointers = [...touches.keys()];
+    touches.clear();
+    pinching = false;
+    pointers.forEach(releasePointer);
+  };
+  const clientPoint = (event: PointerEvent): Point => ({ x: event.clientX, y: event.clientY });
+  const emitPinch = (type: 'PinchStarted' | 'PinchMoved') => {
+    const [first, second] = touches.values();
+    if (!first || !second) return;
+    emit({
+      type,
+      center: localPoint({ x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 }),
+      distance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)),
+    });
   };
   const listen = (name: string, handler: EventListener) => {
     element.addEventListener(name, handler, { passive: false });
     listeners.push([name, handler]);
   };
-  listen('pointerdown', (event) => {
-    if (!(event instanceof window.PointerEvent) || event.button !== 0 || captured !== null) return;
+  const openContext = (target: Element, location: Point) => {
+    if (element.dataset.flowContextActions !== 'true' || captured !== null || pinching)
+      return false;
+    if (target.closest('input,textarea,select,[contenteditable="true"],[data-flow-context-panel]'))
+      return false;
+    const edge = target.closest('[data-flow-edge],[data-flow-context-edge]');
+    const edgeId =
+      edge?.getAttribute('data-flow-edge') ?? edge?.getAttribute('data-flow-context-edge');
+    const node = target.closest('[data-flow-node],[data-flow-handle]');
+    const nodeId = node?.getAttribute('data-flow-node') ?? node?.getAttribute('data-flow-handle');
+    if (edgeId)
+      emit({ type: 'ContextOpened', context: { kind: 'edge', id: edgeId, point: location } });
+    else if (nodeId)
+      emit({ type: 'ContextOpened', context: { kind: 'node', id: nodeId, point: location } });
+    else return false;
+    return true;
+  };
+  listen('contextmenu', (event) => {
     const target = targetOf(event);
+    if (event instanceof window.MouseEvent && target && openContext(target, point(event)))
+      event.preventDefault();
+  });
+  listen('focusout', (event) => {
+    if (!(event instanceof window.FocusEvent)) return;
+    const panel = targetOf(event)?.closest('[data-flow-context-panel]');
+    const next = event.relatedTarget;
+    if (panel && (!(next instanceof window.Node) || !panel.contains(next)))
+      emit({ type: 'ContextDismissed' });
+  });
+  listen('pointerdown', (event) => {
+    if (!(event instanceof window.PointerEvent) || event.button !== 0) return;
+    const target = targetOf(event);
+    if (
+      target &&
+      !target.closest('[data-flow-context-panel]') &&
+      element.querySelector('[data-flow-context-panel]')
+    )
+      emit({ type: 'ContextDismissed' });
     if (!target || editable(target) || target.closest('[data-flow-minimap]')) return;
+    if (event.pointerType === 'touch' && element.dataset.flowPinchZoom === 'true') {
+      if (touches.size >= 2) {
+        element.setPointerCapture(event.pointerId);
+        event.preventDefault();
+        return;
+      }
+      if (captured !== null && !touches.has(captured)) return;
+      touches.set(event.pointerId, clientPoint(event));
+      if (touches.size === 2) {
+        stopSingleDrag();
+        pinching = true;
+        for (const pointer of touches.keys()) element.setPointerCapture(pointer);
+        element.focus({ preventScroll: true });
+        event.preventDefault();
+        emitPinch('PinchStarted');
+        return;
+      }
+    }
+    if (captured !== null || pinching) return;
     const output = endpointAt(target, 'output');
     const handleEdge = target.closest('[data-flow-reconnect]');
     const edgeId = handleEdge?.getAttribute('data-flow-reconnect');
@@ -96,14 +233,15 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (!resize && handle instanceof window.HTMLElement) handle.focus({ preventScroll: true });
     else element.focus({ preventScroll: true });
     event.preventDefault();
-    if (id)
+    if (id) {
+      if (!resize) nodeDragOrigin = origin;
       emit({
         type: resize ? 'NodeResizeStarted' : 'NodeDragStarted',
         id,
         pointer: event.pointerId,
-        point: point(event),
+        point: origin,
       });
-    else if (event.shiftKey)
+    } else if (event.shiftKey || element.dataset.flowSelectionMode === 'true')
       emit({ type: 'BoxSelectionStarted', pointer: event.pointerId, point: point(event) });
     else {
       emit({ type: 'SelectionCleared' });
@@ -117,22 +255,33 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       wire.dragging = true;
       emit({ ...wire.start, point: location });
     }
-    const target = wire
-      ? endpointAt(
-          element.ownerDocument.elementFromPoint(event.clientX, event.clientY),
-          wire.start.type === 'ReconnectionDragStarted' && wire.start.end === 'source'
-            ? 'output'
-            : 'input',
-        )
-      : undefined;
+    const target = wireTarget({ x: event.clientX, y: event.clientY });
     const moved = { type: 'PointerMoved' as const, pointer: event.pointerId, point: location };
     emit(target ? { ...moved, target } : moved);
   };
   listen('pointermove', (event) => {
-    if (event instanceof window.PointerEvent && event.pointerId === captured) movePointer(event);
+    if (!(event instanceof window.PointerEvent)) return;
+    if (touches.has(event.pointerId)) {
+      touches.set(event.pointerId, clientPoint(event));
+      if (pinching) {
+        event.preventDefault();
+        emitPinch('PinchMoved');
+        return;
+      }
+    }
+    if (event.pointerId !== captured) return;
+    movePointer(event);
+    trackAutoPan(event);
   });
   listen('pointerup', (event) => {
-    if (!(event instanceof window.PointerEvent) || event.pointerId !== captured) return;
+    if (!(event instanceof window.PointerEvent)) return;
+    if (touches.delete(event.pointerId) && pinching) {
+      pinching = false;
+      event.preventDefault();
+      emit({ type: 'PinchEnded' });
+      return;
+    }
+    if (event.pointerId !== captured) return;
     movePointer(event);
     if (wire && !wire.dragging && wire.start.type === 'ConnectionDragStarted') {
       const output = endpointAt(
@@ -147,12 +296,20 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     releaseCapture();
   });
   const cancelled: EventListener = (event) => {
-    if (!(event instanceof window.PointerEvent) || event.pointerId !== captured) return;
+    if (!(event instanceof window.PointerEvent)) return;
+    if (touches.delete(event.pointerId) && pinching) {
+      releaseTouches();
+      emit({ type: 'GestureCancelled' });
+      return;
+    }
+    if (event.pointerId !== captured) return;
     releaseCapture();
     emit({ type: 'GestureCancelled' });
   };
   listen('pointercancel', cancelled);
-  listen('lostpointercapture', cancelled);
+  listen('lostpointercapture', (event) => {
+    if (event.target === element) cancelled(event);
+  });
   listen('click', (event) => {
     const target = targetOf(event);
     if (!target || editable(target)) return;
@@ -205,6 +362,17 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   listen('keydown', (event) => {
     if (!(event instanceof window.KeyboardEvent)) return;
     const target = targetOf(event);
+    if (target && (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10'))) {
+      const rect = target.getBoundingClientRect();
+      if (openContext(target, localPoint({ x: rect.left, y: rect.bottom }))) event.preventDefault();
+      return;
+    }
+    if (target?.closest('[data-flow-context-panel]') && event.key === 'Escape') {
+      event.preventDefault();
+      element.focus({ preventScroll: true });
+      emit({ type: 'ContextDismissed' });
+      return;
+    }
     if (!target || editable(target)) return;
     const id = target.closest('[data-flow-handle]')?.getAttribute('data-flow-handle');
     const step = event.shiftKey ? 20 : 5;
@@ -212,6 +380,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     switch (event.key) {
       case 'Escape':
         releaseCapture();
+        releaseTouches();
         input = { type: 'GestureCancelled' };
         break;
       case 'Delete':
@@ -235,6 +404,15 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
         if (event.ctrlKey || event.metaKey)
           input = { type: event.shiftKey ? 'RedoPressed' : 'UndoPressed' };
         break;
+      case 'c':
+        if (event.ctrlKey || event.metaKey) input = { type: 'CopyPressed' };
+        break;
+      case 'v':
+        if (event.ctrlKey || event.metaKey) input = { type: 'PastePressed' };
+        break;
+      case 'd':
+        if (event.ctrlKey || event.metaKey) input = { type: 'DuplicatePressed' };
+        break;
       case 'y':
         if (event.ctrlKey || event.metaKey) input = { type: 'RedoPressed' };
         break;
@@ -245,10 +423,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     emit(input);
   });
   const blur = () => {
-    if (captured !== null) {
-      releaseCapture();
-      emit({ type: 'GestureCancelled' });
-    }
+    const active = captured !== null || pinching;
+    releaseCapture();
+    releaseTouches();
+    if (active) emit({ type: 'GestureCancelled' });
   };
   window.addEventListener('blur', blur);
   const observed = new Set<Element>();
@@ -273,7 +451,13 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   const resize = new window.ResizeObserver((entries) =>
     entries.forEach((entry) => measure(entry.target)),
   );
+  let focusedPanel: Element | null = null;
   const observe = () => {
+    const panel = element.querySelector('[data-flow-context-panel]');
+    if (panel !== focusedPanel) {
+      focusedPanel = panel;
+      panel?.querySelector('button')?.focus();
+    }
     const nodes = new Set(element.querySelectorAll('[data-flow-node]'));
     for (const node of observed)
       if (!nodes.has(node)) {
@@ -299,5 +483,6 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     resize.disconnect();
     observed.clear();
     releaseCapture();
+    releaseTouches();
   };
 }

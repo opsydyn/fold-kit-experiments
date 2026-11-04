@@ -11,11 +11,13 @@ import {
 } from '@opsydyn/foldkit-flow';
 import type { Return } from 'foldkit/update';
 
-import { ArrangeFlow, LoadFlow, SaveFlow } from './command';
+import { ArrangeFlow, ExportFlow, ImportFlow, LoadFlow, SaveFlow } from './command';
+import { supportsForceLayout } from './layout-options';
 import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
 
 export function update(model: Model, message: Message): Return<Model, Message> {
+  const { snapToGrid, snapToAlignment, selectionMode } = model.editor;
   return Message.match(message, {
     ObservedFlowInput: ({ message: input }) => {
       // SAFETY: flowView and the toolbar emit the package's typed EditorEvent contract.
@@ -30,11 +32,19 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       }[example];
       const surface = model.editor.surface;
       const editor = createEditor(graph, {
-        snapToGrid: model.editor.snapToGrid,
+        snapToGrid,
+        snapToAlignment,
+        selectionMode,
         viewport: fitViewport(graph, surface ?? { width: 800, height: 440 }),
       });
       return {
-        model: { ...model, editor: { ...editor, surface }, active: null, notice: '' },
+        model: {
+          ...model,
+          editor: { ...editor, surface, clipboard: model.editor.clipboard },
+          active: null,
+          importing: null,
+          notice: '',
+        },
       };
     },
     ClickedAdd: () => {
@@ -55,13 +65,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       });
       return { model: { ...model, editor, sequence } };
     },
-    ClickedArrange: () => {
+    ClickedArrange: ({ engine }) => {
+      if (engine === 'force' && !supportsForceLayout(model.editor.graph)) return { model };
       const sequence = model.sequence + 1;
       const active = layoutRequest(model.editor, `layout-${sequence}`);
       return {
         model: { ...model, active, sequence, notice: 'Arranging…' },
         commands: [
           ArrangeFlow({
+            engine,
             json: serializeGraph(active.graph),
             requestId: active.requestId,
             revision: active.revision,
@@ -71,7 +83,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       };
     },
     SucceededLayout: ({ result: raw }) => {
-      // SAFETY: ArrangeFlow returns a validated result from the ELK adapter.
+      // SAFETY: ArrangeFlow returns a layout result from the selected engine.
       const result = raw as LayoutResult;
       if (model.active?.requestId !== result.requestId) return { model };
       const editor = applyLayout(model.editor, model.active, result);
@@ -100,6 +112,72 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model.active?.requestId === requestId
         ? { model: { ...model, active: null, notice: 'Layout failed. Your graph is preserved.' } }
         : { model },
+    ClickedExport: () => ({
+      model,
+      commands: [ExportFlow({ json: serializeGraph(model.editor.graph) })],
+    }),
+    CompletedExport: () => ({ model: { ...model, notice: 'JSON download started.' } }),
+    FailedExport: () => ({ model: { ...model, notice: 'Could not start the JSON download.' } }),
+    ChoseImportFiles: ({ files }) => {
+      const file = files[0];
+      if (!file) return { model };
+      if (file.size > 5 * 1024 * 1024)
+        return {
+          model: { ...model, importing: null, notice: 'Choose a JSON file no larger than 5 MiB.' },
+        };
+      const id = model.sequence + 1;
+      return {
+        model: {
+          ...model,
+          sequence: id,
+          importing: { id, revision: model.editor.revision },
+          notice: 'Reading diagram…',
+        },
+        commands: [ImportFlow({ id, file })],
+      };
+    },
+    FailedImport: ({ id }) =>
+      model.importing?.id === id
+        ? {
+            model: {
+              ...model,
+              importing: null,
+              notice: 'Could not import this JSON diagram. Your current diagram is preserved.',
+            },
+          }
+        : { model },
+    SucceededImport: ({ id, json }) => {
+      if (model.importing?.id !== id) return { model };
+      if (
+        model.importing.revision !== model.editor.revision ||
+        model.editor.gesture.type !== 'idle'
+      )
+        return {
+          model: {
+            ...model,
+            importing: null,
+            notice: 'The diagram changed during import. Choose the file again to replace it.',
+          },
+        };
+      const graph = parseGraph(json);
+      const surface = model.editor.surface;
+      const size = surface ?? { width: 800, height: 440 };
+      const editor = createEditor(graph, {
+        snapToGrid,
+        snapToAlignment,
+        selectionMode,
+        viewport: fitViewport(graph, size, Math.min(24, size.width / 4, size.height / 4)),
+      });
+      return {
+        model: {
+          ...model,
+          editor: { ...editor, surface, clipboard: model.editor.clipboard },
+          active: null,
+          importing: null,
+          notice: 'JSON diagram imported.',
+        },
+      };
+    },
     ClickedSave: () => ({
       model,
       commands: [SaveFlow({ json: serializeGraph(model.editor.graph) })],
@@ -116,10 +194,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model: {
         ...model,
         editor: {
-          ...createEditor(parseGraph(json), { snapToGrid: model.editor.snapToGrid }),
+          ...createEditor(parseGraph(json), { snapToGrid, snapToAlignment, selectionMode }),
           surface: model.editor.surface,
+          clipboard: model.editor.clipboard,
         },
         active: null,
+        importing: null,
         notice: 'Saved graph loaded.',
       },
     }),

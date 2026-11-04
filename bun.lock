@@ -36,6 +36,7 @@
         "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/foldkit-flow": "workspace:*",
         "@opsydyn/foldkit-flow-elk": "workspace:*",
+        "@opsydyn/foldkit-viz": "workspace:*",
         "astro": "catalog:",
         "effect": "catalog:",
         "foldkit": "catalog:",

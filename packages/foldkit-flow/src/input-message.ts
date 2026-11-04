@@ -6,6 +6,15 @@ const Pointer = { pointer: Schema.Number };
 const Endpoint = Schema.Struct({ node: Schema.String, port: Schema.String });
 export const BrowserInput = Schema.Union([
   Schema.Struct({
+    type: Schema.Literal('ContextOpened'),
+    context: Schema.Struct({
+      kind: Schema.Literals(['node', 'edge']),
+      id: Schema.String,
+      point: Point,
+    }),
+  }),
+  Schema.Struct({ type: Schema.Literal('ContextDismissed') }),
+  Schema.Struct({
     type: Schema.Literal('NodeSelected'),
     id: Schema.String,
     additive: Schema.Boolean,
@@ -42,6 +51,19 @@ export const BrowserInput = Schema.Union([
     ...Pointer,
     point: Point,
   }),
+  Schema.Struct({
+    type: Schema.Literal('DragPanned'),
+    ...Pointer,
+    point: Point,
+    delta: Point,
+    target: Schema.optionalKey(Endpoint),
+  }),
+  Schema.Struct({
+    type: Schema.Literals(['PinchStarted', 'PinchMoved']),
+    center: Point,
+    distance: Schema.Number,
+  }),
+  Schema.Struct({ type: Schema.Literal('PinchEnded') }),
   Schema.Struct({ type: Schema.Literal('PointerReleased'), ...Pointer }),
   Schema.Struct({ type: Schema.Literal('MinimapClicked'), point: Point }),
   Schema.Struct({ type: Schema.Literal('Zoomed'), point: Point, factor: Schema.Number }),
@@ -64,6 +86,9 @@ export const BrowserInput = Schema.Union([
       'SelectionCleared',
       'GestureCancelled',
       'DeletePressed',
+      'CopyPressed',
+      'PastePressed',
+      'DuplicatePressed',
       'UndoPressed',
       'RedoPressed',
     ]),

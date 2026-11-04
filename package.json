@@ -55,7 +55,8 @@
       "vitest": "^5.0.5",
       "vscode-oniguruma": "2.0.1",
       "world-atlas": "^2.0.2",
-      "wrangler": "^4.125.0"
+      "wrangler": "^4.125.0",
+      "elkjs": "0.12.1"
     },
     "catalogs": {
       "strict": {
@@ -80,6 +81,7 @@
     "storybook": "bun run --filter @opsydyn/web storybook",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
     "dev:three-promo": "bun run --filter @opsydyn/three-promo dev",
+    "dev:flow-sample": "bun run --filter @opsydyn/flow-sample dev",
     "dev:tech-radar": "bun run --filter @opsydyn/tech-radar dev",
     "dev:docs": "bun run --filter @opsydyn/docs dev",
     "relay": "bun packages/effect-three-samples/scripts/relay.ts"

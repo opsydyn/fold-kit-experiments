@@ -1,0 +1,64 @@
+# FoldKit Flow sample
+
+Astro serves the page shell and hydrates a FoldKit editor island. The release
+workflow starts with a draft, review and publish step. Connect Review to
+Publish, arrange the graph with ELK, then save and reload the draft in your
+browser. This sample edits a diagram of the workflow.
+
+From the workspace root:
+
+```sh
+bun install --frozen-lockfile
+bun run dev:flow-sample
+```
+
+Open http://localhost:4327. Use **Fit view** to see the whole workflow on a
+narrow screen. To build and preview the static site:
+
+```sh
+bun run --filter @opsydyn/flow-sample build
+bun run --filter @opsydyn/flow-sample preview
+```
+
+**Open Onion Architecture** replaces the editor graph with an editable example.
+The UI adapter uses application use cases. The storage adapter implements an
+interface owned by the application. Application code depends on the domain
+model. The arrows represent source dependencies toward the core, following
+[Jeffrey Palermo's original description](https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/).
+
+Choosing **Arrange with ELK** lays out and fits the
+diagram. Canvases narrower than 600 px use top-to-bottom layout. Save the
+current diagram before opening another example if you want to keep your edits.
+
+Each node has a **Width** slider. Select a connection below the canvas to
+choose **Solid edge** or **Dashed edge**. Width and style participate in undo
+and are included when you save a diagram.
+
+Drag the handle at the lower right of a node to change its width live. Escape
+cancels the drag. Releasing the handle records one undo step. The Width slider
+also works with the keyboard.
+
+Select an edge to change its source or target port. Reconnecting keeps the
+edge's style and records one undo step.
+
+A selected edge also shows two circular handles on the canvas. Drag either
+handle to a compatible port, or use the source and target menus below the toolbar.
+
+Open **Grouped Onion Architecture** and drag the Release system or Application
+core title to move the boundary and its contents together. Choose **Arrange with ELK** to lay out the children, fit their boundaries and
+route connections across them. Undo restores the prior arrangement.
+
+Shift-click two or more node titles at the same level and choose **Group
+selection** to wrap them in a boundary. Select a boundary and choose
+**Ungroup** to remove it while keeping the contents and their connections.
+Both actions can be undone.
+
+You can also Shift-drag the canvas background around nodes, then choose
+**Group selection**. A box selects fully enclosed nodes. Press Escape to
+keep your previous selection.
+
+The minimap in the lower-right corner shows the full diagram and the current
+viewport. Click it to center the canvas on that point at the same zoom.
+
+Use **Zoom in**, **Zoom out**, or **Fit view** above the canvas to navigate
+without a scroll wheel. The percentage shows the current zoom.

@@ -59,6 +59,27 @@
           "jsonpath": "$.peerDependencies['@opsydyn/effect-three']"
         }
       ]
+    },
+    "packages/foldkit-flow": {
+      "package-name": "@opsydyn/foldkit-flow",
+      "component": "foldkit-flow",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.1.0"
+    },
+    "packages/foldkit-flow-elk": {
+      "package-name": "@opsydyn/foldkit-flow-elk",
+      "component": "foldkit-flow-elk",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.1.0",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.peerDependencies['@opsydyn/foldkit-flow']"
+        }
+      ]
     }
   },
   "plugins": [
@@ -71,6 +92,11 @@
         "effect-three-rapier",
         "effect-three-troika"
       ]
+    },
+    {
+      "type": "linked-versions",
+      "groupName": "foldkit-flow",
+      "components": ["foldkit-flow", "foldkit-flow-elk"]
     }
   ]
 }

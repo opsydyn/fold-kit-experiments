@@ -1,0 +1,107 @@
+---
+import Editor from '../editor/app';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workflow patterns | FoldKit Flow</title>
+  </head>
+  <body>
+    <header><div>FoldKit Flow <span> / Sample app</span></div></header>
+    <main>
+      <h1>Workflow patterns</h1>
+      <p>Explore a release workflow or an architecture pattern.</p>
+      <Editor client:load />
+      <noscript>Enable JavaScript to edit the workflow.</noscript>
+    </main>
+  </body>
+</html>
+
+<style is:global>
+/* Hallmark | shape: app screen | signature: release workflow canvas */
+/* Critique: keep the toolbar and canvas together on narrow screens. */
+:root {
+  --paper: #f8f6f1;
+  --ink: #232d27;
+  --muted: #4b5e53;
+  --rule: #b8c4ba;
+  --accent: #24543c;
+  --white: #fdfefb;
+  --ui-font: system-ui, sans-serif;
+}
+.release-flow-theme {
+  --flow-background: #e7eee7;
+  --flow-node-background: var(--white);
+  --flow-node-color: var(--ink);
+  --flow-node-border: #647b6d;
+  --flow-edge: #4b6656;
+  --flow-selection: var(--accent);
+  --flow-output-port: var(--accent);
+  --flow-input-port: #345d59;
+  --flow-valid-target: #345d59;
+  --flow-node-radius: 10px;
+}
+html,
+body {
+  overflow-x: clip;
+}
+body {
+  margin: 0;
+  font-family: var(--ui-font);
+  background: var(--paper);
+  color: var(--ink);
+}
+header {
+  border-bottom: 1px solid var(--rule);
+}
+header > div,
+main {
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4%, 3rem);
+}
+header > div {
+  padding-block: 0.85rem;
+  font-weight: 650;
+}
+header span {
+  color: var(--muted);
+  font-weight: 400;
+}
+main {
+  padding-block: 1.5rem;
+}
+h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+p {
+  color: var(--muted);
+}
+button,
+input {
+  font: inherit;
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+[aria-label='Graph actions'] button {
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  min-height: 44px;
+  color: var(--ink);
+  background: var(--white);
+}
+[aria-label='Graph actions'] button:nth-child(2) {
+  background: var(--accent);
+  color: var(--white);
+}
+
+button:active { filter: brightness(.92); }
+h1 { text-wrap: balance; }
+</style>

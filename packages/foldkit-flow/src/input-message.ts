@@ -1,0 +1,73 @@
+import { Schema } from 'effect';
+import { defineMessageUnion } from 'foldkit/message';
+
+const Point = Schema.Struct({ x: Schema.Number, y: Schema.Number });
+const Pointer = { pointer: Schema.Number };
+const Endpoint = Schema.Struct({ node: Schema.String, port: Schema.String });
+export const BrowserInput = Schema.Union([
+  Schema.Struct({
+    type: Schema.Literal('NodeSelected'),
+    id: Schema.String,
+    additive: Schema.Boolean,
+  }),
+  Schema.Struct({
+    type: Schema.Literal('EdgeSelected'),
+    id: Schema.String,
+    additive: Schema.Boolean,
+  }),
+  Schema.Struct({
+    type: Schema.Literals(['NodeDragStarted', 'NodeResizeStarted']),
+    id: Schema.String,
+    ...Pointer,
+    point: Point,
+  }),
+  Schema.Struct({ type: Schema.Literal('BoxSelectionStarted'), ...Pointer, point: Point }),
+  Schema.Struct({ type: Schema.Literal('PanStarted'), ...Pointer, point: Point }),
+  Schema.Struct({
+    type: Schema.Literal('ConnectionDragStarted'),
+    ...Pointer,
+    point: Point,
+    endpoint: Endpoint,
+  }),
+  Schema.Struct({
+    type: Schema.Literal('PointerMoved'),
+    ...Pointer,
+    point: Point,
+    target: Schema.optionalKey(Endpoint),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('ReconnectionDragStarted'),
+    id: Schema.String,
+    end: Schema.Literals(['source', 'target']),
+    ...Pointer,
+    point: Point,
+  }),
+  Schema.Struct({ type: Schema.Literal('PointerReleased'), ...Pointer }),
+  Schema.Struct({ type: Schema.Literal('MinimapClicked'), point: Point }),
+  Schema.Struct({ type: Schema.Literal('Zoomed'), point: Point, factor: Schema.Number }),
+  Schema.Struct({ type: Schema.Literal('SelectionNudged'), delta: Point }),
+  Schema.Struct({
+    type: Schema.Literal('SurfaceMeasured'),
+    size: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('NodeMeasured'),
+    id: Schema.String,
+    size: Schema.Struct({ width: Schema.Number, height: Schema.Number }),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('PortActivated'),
+    endpoint: Endpoint,
+  }),
+  Schema.Struct({
+    type: Schema.Literals([
+      'SelectionCleared',
+      'GestureCancelled',
+      'DeletePressed',
+      'UndoPressed',
+      'RedoPressed',
+    ]),
+  }),
+]);
+export type BrowserInput = typeof BrowserInput.Type;
+export const InputMessage = defineMessageUnion({ ObservedFlowInput: { event: BrowserInput } });

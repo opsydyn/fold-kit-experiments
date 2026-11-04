@@ -1,0 +1,9 @@
+---
+import Flow from '../apps/flow/app';
+import Layout from '../layouts/Layout.astro';
+import * as layoutStyles from '../layouts/layout.css';
+---
+<Layout title="FoldKit Flow">
+  <h1 class={layoutStyles.heading}>FoldKit Flow</h1>
+  <Flow client:load />
+</Layout>

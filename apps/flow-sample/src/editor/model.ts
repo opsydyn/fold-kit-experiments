@@ -1,0 +1,137 @@
+import {
+  createEditor,
+  type EditorState,
+  type FlowGraph,
+  type LayoutRequest,
+} from '@opsydyn/foldkit-flow';
+import { Schema } from 'effect';
+
+export const initialGraph: FlowGraph = {
+  nodes: [
+    {
+      id: 'source',
+      label: 'Draft',
+      position: { x: 40, y: 70 },
+      size: { width: 180, height: 90 },
+      ports: [{ id: 'out', kind: 'output', side: 'right', offset: 0.5 }],
+    },
+    {
+      id: 'review',
+      label: 'Review',
+      position: { x: 360, y: 150 },
+      size: { width: 180, height: 90 },
+      ports: [
+        { id: 'in', kind: 'input', side: 'left', offset: 0.5 },
+        { id: 'out', kind: 'output', side: 'right', offset: 0.5 },
+      ],
+    },
+    {
+      id: 'publish',
+      label: 'Publish',
+      position: { x: 640, y: 70 },
+      size: { width: 180, height: 90 },
+      ports: [{ id: 'in', kind: 'input', side: 'left', offset: 0.5 }],
+    },
+  ],
+  edges: [
+    {
+      id: 'draft-review',
+      source: { node: 'source', port: 'out' },
+      target: { node: 'review', port: 'in' },
+    },
+  ],
+};
+export const onionGraph: FlowGraph = {
+  nodes: [
+    { id: 'ui', label: 'UI adapter', position: { x: 20, y: 20 } },
+    { id: 'storage', label: 'Storage adapter', position: { x: 20, y: 150 } },
+    { id: 'application', label: 'Application', position: { x: 280, y: 85 } },
+    { id: 'domain', label: 'Domain model', position: { x: 540, y: 85 } },
+  ].map((node) => ({
+    ...node,
+    size: { width: 180, height: 90 },
+    ports: [
+      { id: 'in', kind: 'input', side: 'left', offset: 0.5 },
+      { id: 'out', kind: 'output', side: 'right', offset: 0.5 },
+    ],
+  })),
+  edges: [
+    {
+      id: 'ui-application',
+      label: 'UI uses application use cases',
+      source: { node: 'ui', port: 'out' },
+      target: { node: 'application', port: 'in' },
+    },
+    {
+      id: 'storage-application',
+      label: 'Storage implements an application-owned interface',
+      source: { node: 'storage', port: 'out' },
+      target: { node: 'application', port: 'in' },
+    },
+    {
+      id: 'application-domain',
+      label: 'Application uses the domain model',
+      source: { node: 'application', port: 'out' },
+      target: { node: 'domain', port: 'in' },
+    },
+  ],
+};
+
+const coreMembership = new Map([
+  ['application', 'core'],
+  ['domain', 'core'],
+]);
+
+const groupedOffsets = new Map([['storage', 30]]);
+
+export const groupedOnionGraph: FlowGraph = {
+  ...onionGraph,
+  nodes: [
+    {
+      id: 'system',
+      kind: 'group',
+      label: 'Release system',
+      position: { x: 0, y: 0 },
+      size: { width: 780, height: 400 },
+      ports: [],
+    },
+    {
+      id: 'core',
+      kind: 'group',
+      parentId: 'system',
+      label: 'Application core',
+      position: { x: 255, y: 74 },
+      size: { width: 500, height: 232 },
+      ports: [],
+    },
+    ...onionGraph.nodes.map((node) => ({
+      ...node,
+      position: {
+        x: node.position.x,
+        y: node.position.y + 65 + (groupedOffsets.get(node.id) ?? 0),
+      },
+      parentId: coreMembership.get(node.id) ?? 'system',
+    })),
+  ],
+};
+
+export const Model = Schema.Struct({
+  editor: Schema.Unknown,
+  active: Schema.NullOr(Schema.Unknown),
+  sequence: Schema.Number,
+  notice: Schema.String,
+});
+export type Model = Readonly<{
+  editor: EditorState;
+  active: LayoutRequest | null;
+  sequence: number;
+  notice: string;
+}>;
+export const init = () => ({
+  model: {
+    editor: createEditor(initialGraph),
+    active: null,
+    sequence: 0,
+    notice: '',
+  } satisfies Model,
+});

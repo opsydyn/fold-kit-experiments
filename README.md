@@ -17,6 +17,17 @@ All six are published to npm. The four effect-three packages are released togeth
 | [`@opsydyn/effect-three-rapier`](packages/effect-three-rapier/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-rapier)](https://www.npmjs.com/package/@opsydyn/effect-three-rapier)   | Rapier physics for effect-three: bodies, colliders, joints and motors described as data        |
 | [`@opsydyn/effect-three-troika`](packages/effect-three-troika/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-troika)](https://www.npmjs.com/package/@opsydyn/effect-three-troika)   | troika distance-field labels for effect-three: crisp text at any size, described as data       |
 
+## FoldKit Flow (local release candidate)
+
+[`@opsydyn/foldkit-flow`](packages/foldkit-flow/) adds application-owned graph
+editing and an optional native FoldKit view.
+[`@opsydyn/foldkit-flow-elk`](packages/foldkit-flow-elk/) supplies optional ELK
+layout. Both are prepared locally at 0.1.0 and are not yet published to npm.
+Run the demo app and open `/flow`; see the
+[publication guide](docs/releases/foldkit-flow.md) for tarball and release checks.
+Run `bun run dev:flow-sample` to try the standalone Astro app. See the
+[sample README](apps/flow-sample/README.md).
+
 ## effect-three
 
 effect-three describes a Three.js scene as plain data derived from your Model. Keyed

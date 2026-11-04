@@ -1,0 +1,25 @@
+{
+  "name": "@opsydyn/flow-sample",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild-packages": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-flow-elk build",
+    "dev": "bun run prebuild-packages && astro dev",
+    "build": "bun run prebuild-packages && astro build",
+    "preview": "astro preview",
+    "typecheck": "bun run prebuild-packages && astro check"
+  },
+  "dependencies": {
+    "@opsydyn/astro-foldkit": "workspace:*",
+    "@opsydyn/foldkit-flow": "workspace:*",
+    "@opsydyn/foldkit-flow-elk": "workspace:*",
+    "astro": "catalog:",
+    "effect": "catalog:",
+    "foldkit": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
+  }
+}

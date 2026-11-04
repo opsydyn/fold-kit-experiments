@@ -1,0 +1,250 @@
+@opsydyn/web test:e2e: $ bun run --filter @opsydyn/foldkit-flow build && bun run --filter @opsydyn/foldkit-flow-elk build && bun run --filter @opsydyn/foldkit-viz build && bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/effect-three build && bun run --filter @opsydyn/effect-three-foldkit build && bun run --filter @opsydyn/effect-three-rapier build && bun run --filter @opsydyn/effect-three-troika build
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ tsdown v0.21.10 powered by rolldown v1.0.0-rc.17
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ config file: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow/tsdown.config.ts 
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ entry: src/index.ts, src/foldkit.ts
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ target: es2022
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ tsconfig: tsconfig.json
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ Build start
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ Cleaning 9 files
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/foldkit.mjs                15.61 kB │ gzip: 4.50 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/index.mjs                  12.42 kB │ gzip: 3.16 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/foldkit.mjs.map            31.13 kB │ gzip: 8.20 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/index.mjs.map              23.02 kB │ gzip: 5.53 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/geometry-DRziXKOo.mjs.map  15.86 kB │ gzip: 4.19 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/geometry-DRziXKOo.mjs       8.39 kB │ gzip: 2.36 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/index.d.mts                 2.75 kB │ gzip: 1.09 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/foldkit.d.mts               0.81 kB │ gzip: 0.48 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ dist/types-BFOQabZ3.d.mts        4.00 kB │ gzip: 1.21 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ℹ 9 files, total: 113.99 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: ✔ Build complete in 715ms
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow build: Exited with code 0
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ tsdown v0.21.10 powered by rolldown v1.0.0-rc.17
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ config file: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow/tsdown.config.ts 
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ entry: src/index.ts, src/foldkit.ts
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ target: es2022
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ tsconfig: tsconfig.json
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ Build start
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ Cleaning 9 files
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/foldkit.mjs                15.61 kB │ gzip: 4.50 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/index.mjs                  12.42 kB │ gzip: 3.16 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/foldkit.mjs.map            31.13 kB │ gzip: 8.20 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/index.mjs.map              23.02 kB │ gzip: 5.53 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/geometry-DRziXKOo.mjs.map  15.86 kB │ gzip: 4.19 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/geometry-DRziXKOo.mjs       8.39 kB │ gzip: 2.36 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/index.d.mts                 2.75 kB │ gzip: 1.09 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/foldkit.d.mts               0.81 kB │ gzip: 0.48 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ dist/types-BFOQabZ3.d.mts        4.00 kB │ gzip: 1.21 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ℹ 9 files, total: 113.99 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: ✔ Build complete in 699ms
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: @opsydyn/foldkit-flow build: Exited with code 0
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ tsdown v0.21.10 powered by rolldown v1.0.0-rc.17
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ config file: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow-elk/tsdown.config.ts 
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ entry: src/index.ts
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ target: es2022
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ tsconfig: tsconfig.json
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ Build start
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ Cleaning 3 files
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ dist/index.mjs      3.35 kB │ gzip: 1.30 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ dist/index.mjs.map  6.30 kB │ gzip: 2.22 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ dist/index.d.mts    0.60 kB │ gzip: 0.39 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ℹ 3 files, total: 10.25 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: ✔ Build complete in 361ms
+@opsydyn/web test:e2e: @opsydyn/foldkit-flow-elk build: Exited with code 0
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ tsdown v0.21.10 powered by rolldown v1.0.0-rc.17
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ config file: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-viz/tsdown.config.ts 
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ entry: src/index.ts, src/interaction/coordinates.ts, src/interaction/viewport.ts, src/interaction/inspection.ts, src/chart/segments.ts, src/chart/intervalBand.ts, src/chart/errorBars.ts, src/chart/cartesian.ts, src/chart/bars.ts, src/layout/wordcloud.ts, src/layout/text.ts, src/chart/theme.ts, src/foldkit/cartesian.ts, src/foldkit/paint.ts, src/interaction/selection.ts, src/math/scale.ts, src/math/color.ts, src/math/stats.ts, src/simulation/index.ts, src/stateflow/index.ts, src/shape/path.ts, src/shape/arc.ts, src/shape/area.ts, src/shape/line.ts, src/shape/pie.ts, src/shape/lineRadial.ts, src/shape/stack.ts, src/shape/chord.ts, src/shape/sankey.ts, src/hierarchy/index.ts, src/math/zoom.ts, src/math/bin.ts, src/shape/symbol.ts, src/shape/link.ts, src/math/time.ts, src/math/format.ts, src/math/schemes.ts, src/math/random.ts, src/math/ease.ts, src/math/contour.ts, src/math/delaunay.ts, src/shape/geo.ts, src/shape/globe.ts, src/math/array.ts, src/math/brush.ts, src/shape/areaRadial.ts, src/math/tween.ts
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ target: es2022
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ tsconfig: tsconfig.json
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ Build start
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ Cleaning 108 files
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/hierarchy.mjs                  20.23 kB │ gzip: 5.40 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/delaunay.mjs              18.52 kB │ gzip: 5.10 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/line.mjs                 16.48 kB │ gzip: 2.88 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/time.mjs                  12.61 kB │ gzip: 3.11 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/geo.mjs                   9.90 kB │ gzip: 3.23 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/scale.mjs                  8.43 kB │ gzip: 2.37 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/foldkit/cartesian.mjs           7.53 kB │ gzip: 2.17 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/arc.mjs                   5.45 kB │ gzip: 1.55 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/sankey.mjs                5.26 kB │ gzip: 1.72 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/color.mjs                  4.88 kB │ gzip: 1.75 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/schemes.mjs                4.70 kB │ gzip: 1.94 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/index.mjs                       4.63 kB │ gzip: 1.39 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/stack.mjs                 4.61 kB │ gzip: 1.39 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/zoom.mjs                   4.23 kB │ gzip: 1.42 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/bars.mjs                  4.17 kB │ gzip: 1.53 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/layout/wordcloud.mjs            3.69 kB │ gzip: 1.39 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/array.mjs                  3.60 kB │ gzip: 1.29 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/format.mjs                 3.11 kB │ gzip: 1.32 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/path.mjs                  3.04 kB │ gzip: 1.02 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/chord.mjs                 2.95 kB │ gzip: 1.08 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/globe.mjs                 2.93 kB │ gzip: 1.08 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/foldkit/paint.mjs               2.77 kB │ gzip: 0.97 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/tween.mjs                  2.76 kB │ gzip: 1.17 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/symbol.mjs                2.72 kB │ gzip: 1.06 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/theme.mjs                 2.72 kB │ gzip: 1.08 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/contour.mjs                2.38 kB │ gzip: 0.87 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/interaction/viewport.mjs        2.19 kB │ gzip: 0.78 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/ease.mjs                   2.00 kB │ gzip: 0.69 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/bin.mjs                    1.98 kB │ gzip: 0.87 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/areaRadial.mjs            1.87 kB │ gzip: 0.69 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/errorBars.mjs             1.87 kB │ gzip: 0.76 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/layout/text.mjs                 1.78 kB │ gzip: 0.80 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/stateflow.mjs                   1.78 kB │ gzip: 0.70 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/stats.mjs                  1.67 kB │ gzip: 0.71 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/brush.mjs                  1.66 kB │ gzip: 0.67 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/pie.mjs                   1.46 kB │ gzip: 0.63 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/intervalBand.mjs          1.34 kB │ gzip: 0.68 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/interaction/selection.mjs       1.26 kB │ gzip: 0.49 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/area.mjs                  1.19 kB │ gzip: 0.63 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/interaction/inspection.mjs      1.17 kB │ gzip: 0.57 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/link.mjs                  1.14 kB │ gzip: 0.41 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/interaction/coordinates.mjs     1.01 kB │ gzip: 0.49 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/segments.mjs              0.86 kB │ gzip: 0.45 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/random.mjs                 0.85 kB │ gzip: 0.41 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/lineRadial.mjs            0.63 kB │ gzip: 0.36 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/cartesian.mjs             0.17 kB │ gzip: 0.13 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/simulation.mjs                  0.09 kB │ gzip: 0.09 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/simulation-BWcp0yA6.mjs        14.74 kB │ gzip: 3.97 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/cartesian-BTTQt82F.mjs          4.81 kB │ gzip: 1.65 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/layout-BdBpsHrm.mjs             2.63 kB │ gzip: 1.05 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/index.d.mts                     7.25 kB │ gzip: 2.10 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/geo.d.mts                 6.36 kB │ gzip: 2.09 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/scale.d.mts                4.09 kB │ gzip: 1.07 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/foldkit/cartesian.d.mts         3.68 kB │ gzip: 0.98 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/hierarchy.d.mts                 3.39 kB │ gzip: 0.76 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/schemes.d.mts              2.83 kB │ gzip: 0.97 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/zoom.d.mts                 2.72 kB │ gzip: 0.91 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/tween.d.mts                2.48 kB │ gzip: 1.03 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/array.d.mts                2.24 kB │ gzip: 0.71 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/brush.d.mts                2.15 kB │ gzip: 0.88 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/layout/wordcloud.d.mts          1.67 kB │ gzip: 0.69 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/bars.d.mts                1.58 kB │ gzip: 0.69 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/stateflow.d.mts                 1.43 kB │ gzip: 0.47 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/time.d.mts                 1.40 kB │ gzip: 0.63 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/sankey.d.mts              1.27 kB │ gzip: 0.50 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/stack.d.mts               1.25 kB │ gzip: 0.56 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/foldkit/paint.d.mts             1.21 kB │ gzip: 0.46 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/simulation.d.mts                1.15 kB │ gzip: 0.41 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/ease.d.mts                 1.14 kB │ gzip: 0.26 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/bin.d.mts                  1.14 kB │ gzip: 0.60 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/chord.d.mts               1.05 kB │ gzip: 0.36 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/areaRadial.d.mts          1.02 kB │ gzip: 0.48 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/color.d.mts                1.02 kB │ gzip: 0.34 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/errorBars.d.mts           0.99 kB │ gzip: 0.45 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/interaction/selection.d.mts     0.96 kB │ gzip: 0.35 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/intervalBand.d.mts        0.92 kB │ gzip: 0.39 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/interaction/viewport.d.mts      0.83 kB │ gzip: 0.34 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/stats.d.mts                0.81 kB │ gzip: 0.33 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/delaunay.d.mts             0.80 kB │ gzip: 0.31 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/format.d.mts               0.78 kB │ gzip: 0.44 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/contour.d.mts              0.77 kB │ gzip: 0.33 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/cartesian.d.mts           0.73 kB │ gzip: 0.29 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/area.d.mts                0.70 kB │ gzip: 0.42 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/globe.d.mts               0.67 kB │ gzip: 0.33 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/path.d.mts                0.66 kB │ gzip: 0.27 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/layout/text.d.mts               0.64 kB │ gzip: 0.37 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/pie.d.mts                 0.57 kB │ gzip: 0.27 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/segments.d.mts            0.48 kB │ gzip: 0.28 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/interaction/coordinates.d.mts   0.46 kB │ gzip: 0.26 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/link.d.mts                0.46 kB │ gzip: 0.21 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/math/random.d.mts               0.45 kB │ gzip: 0.19 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/interaction/inspection.d.mts    0.44 kB │ gzip: 0.28 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/arc.d.mts                 0.39 kB │ gzip: 0.21 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/chart/theme.d.mts               0.34 kB │ gzip: 0.18 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/lineRadial.d.mts          0.31 kB │ gzip: 0.21 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/symbol.d.mts              0.14 kB │ gzip: 0.12 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/shape/line.d.mts                0.12 kB │ gzip: 0.11 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/cartesian-DfIPBllL.d.mts        2.36 kB │ gzip: 0.70 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/theme-Cf7EGOtf.d.mts            1.99 kB │ gzip: 0.69 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/layout-DJ2ogupX.d.mts           1.01 kB │ gzip: 0.37 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/line-BJcThwI-.d.mts             0.81 kB │ gzip: 0.41 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ dist/symbol-D7iQDBX1.d.mts           0.68 kB │ gzip: 0.43 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ℹ 102 files, total: 289.25 kB
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: ✔ Build complete in 730ms
+@opsydyn/web test:e2e: @opsydyn/foldkit-viz build: Exited with code 0
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ tsdown v0.21.10 powered by rolldown v1.0.0-rc.17
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ config file: /Users/alancurrie/Projects/fold-kit-experiments/packages/astro-foldkit/tsdown.config.ts 
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ entry: src/index.ts, src/client.ts, src/server.ts, src/server-render.ts, src/build-id.ts, src/server-public.ts, src/define-app.ts, src/define-page.ts
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ target: es2022
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ tsconfig: tsconfig.json
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ Build start
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ Cleaning 18 files
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/client.mjs                 8.09 kB │ gzip: 2.63 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/server.mjs                 2.08 kB │ gzip: 0.79 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/index.mjs                  0.81 kB │ gzip: 0.43 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/server-public.mjs          0.77 kB │ gzip: 0.37 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/server-render.mjs          0.40 kB │ gzip: 0.25 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/build-id.mjs               0.35 kB │ gzip: 0.25 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/define-app.mjs             0.27 kB │ gzip: 0.21 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/define-page.mjs            0.20 kB │ gzip: 0.17 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/client.d.mts               2.18 kB │ gzip: 0.75 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/server.d.mts               0.99 kB │ gzip: 0.45 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/define-page.d.mts          0.73 kB │ gzip: 0.33 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/server-public.d.mts        0.63 kB │ gzip: 0.33 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/define-app.d.mts           0.52 kB │ gzip: 0.31 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/index.d.mts                0.49 kB │ gzip: 0.27 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/server-render.d.mts        0.48 kB │ gzip: 0.29 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/build-id.d.mts             0.22 kB │ gzip: 0.18 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/types-DDk3MMb7.d.mts       2.87 kB │ gzip: 0.81 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ dist/navigation-Cy2lnE4G.d.mts  0.43 kB │ gzip: 0.22 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ℹ 18 files, total: 22.52 kB
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: ✔ Build complete in 908ms
+@opsydyn/web test:e2e: @opsydyn/astro-foldkit build: Exited with code 0
+@opsydyn/web test:e2e: @opsydyn/effect-three build: Bundled 73 modules in 7ms
+@opsydyn/web test:e2e: @opsydyn/effect-three build: 
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   index.js                56.17 KB   (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   index-re3rrfwd.js       0.31 MB    (chunk)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   index-4045wme0.js       4.40 KB    (chunk)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   index-ttwy0znv.js       4.75 KB    (chunk)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   kernel/index.js         10.79 KB   (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   webgl/index.js          15.30 KB   (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   webgpu/index.js         12.78 KB   (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   index.js.map            93.11 KB   (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   index-re3rrfwd.js.map   0.86 MB    (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   index-4045wme0.js.map   11.65 KB   (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   index-ttwy0znv.js.map   12.11 KB   (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   kernel/index.js.map     144 bytes  (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   webgl/index.js.map      30.72 KB   (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three build:   webgpu/index.js.map     30.0 KB    (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three build: 
+@opsydyn/web test:e2e: @opsydyn/effect-three build: Exited with code 0
+@opsydyn/web test:e2e: @opsydyn/effect-three-foldkit build: Bundled 37 modules in 4ms
+@opsydyn/web test:e2e: @opsydyn/effect-three-foldkit build: 
+@opsydyn/web test:e2e: @opsydyn/effect-three-foldkit build:   index.js      94.19 KB   (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three-foldkit build:   index.js.map  251.92 KB  (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three-foldkit build: 
+@opsydyn/web test:e2e: @opsydyn/effect-three-foldkit build: Exited with code 0
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build: Bundled 5 modules in 3ms
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build: 
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build:   index.js              13.31 KB  (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build:   deterministic.js      13.35 KB  (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build:   worker.js             10.37 KB  (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build:   index.js.map          32.87 KB  (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build:   deterministic.js.map  32.86 KB  (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build:   worker.js.map         29.19 KB  (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build: 
+@opsydyn/web test:e2e: @opsydyn/effect-three-rapier build: Exited with code 0
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build: Bundled 4 modules in 3ms
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build: 
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build:   index.js               179 bytes  (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build:   index-9kftgr1g.js      2.32 KB    (chunk)
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build:   webgpu.js              12.90 KB   (entry point)
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build:   index.js.map           144 bytes  (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build:   index-9kftgr1g.js.map  6.73 KB    (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build:   webgpu.js.map          30.62 KB   (source map)
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build: 
+@opsydyn/web test:e2e: @opsydyn/effect-three-troika build: Exited with code 0
+@opsydyn/web test:e2e: [WebServer] (node:60870) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+@opsydyn/web test:e2e: [WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+@opsydyn/web test:e2e: 
+@opsydyn/web test:e2e: Running 2 tests using 1 worker
+@opsydyn/web test:e2e: 
+@opsydyn/web test:e2e: (node:60938) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+@opsydyn/web test:e2e: (Use `node --trace-warnings ...` to show where the warning was created)
+@opsydyn/web test:e2e:   ✓  1 [desktop] › e2e/flow.spec.ts:3:1 › edit, connect, drag, cancel, arrange, undo, save and reload a graph (2.4s)
+@opsydyn/web test:e2e: (node:60990) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+@opsydyn/web test:e2e: (Use `node --trace-warnings ...` to show where the warning was created)
+@opsydyn/web test:e2e:   ✓  2 [mobile] › e2e/flow.spec.ts:3:1 › edit, connect, drag, cancel, arrange, undo, save and reload a graph (2.5s)
+@opsydyn/web test:e2e: 
+@opsydyn/web test:e2e:   2 passed (7.8s)
+@opsydyn/web test:e2e: Exited with code 0

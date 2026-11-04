@@ -10,6 +10,8 @@ on:
         options:
           - astro-foldkit
           - foldkit-viz
+          - foldkit-flow
+          - foldkit-flow-elk
           # effect-three's four are released together: publish effect-three first, then
           # the others, which pin it as a peer at the same version.
           - effect-three
@@ -49,11 +51,15 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
 
+      - name: Build Flow core dependency
+        if: ${{ startsWith(inputs.package, 'foldkit-flow') }}
+        run: bun run --filter @opsydyn/foldkit-flow build
+
       - name: Build and typecheck
         run: bun run --filter @opsydyn/${{ inputs.package }} build && bun run --filter @opsydyn/${{ inputs.package }} typecheck
 
       - name: Publish to npm
-        if: ${{ env.NPM_TOKEN != '' && !startsWith(inputs.package, 'effect-three') }}
+        if: ${{ env.NPM_TOKEN != '' && !startsWith(inputs.package, 'effect-three') && !startsWith(inputs.package, 'foldkit-flow') }}
         working-directory: packages/${{ inputs.package }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -63,6 +69,21 @@ jobs:
       # publish would ship `workspace:*`); npm publishes the tarball with provenance.
       - name: Pack and publish to npm (effect-three)
         if: ${{ env.NPM_TOKEN != '' && startsWith(inputs.package, 'effect-three') }}
+        working-directory: packages/${{ inputs.package }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          bun run pack:check
+          npm publish dist/pack/*.tgz --access public --provenance
+
+      - name: Qualify Flow packages and consumer
+        if: ${{ startsWith(inputs.package, 'foldkit-flow') }}
+        run: |
+          bun run --filter @opsydyn/foldkit-flow test
+          bun run --filter @opsydyn/foldkit-flow-elk test
+
+      - name: Pack and publish to npm (FoldKit Flow)
+        if: ${{ env.NPM_TOKEN != '' && startsWith(inputs.package, 'foldkit-flow') }}
         working-directory: packages/${{ inputs.package }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

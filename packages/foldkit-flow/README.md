@@ -225,3 +225,9 @@ canvas on that point at the current zoom. This changes only the viewport.
 Set `viewportControls: true` to show **Zoom in**, **Zoom out**, and **Fit view**
 above the canvas. Zoom is centered on the visible canvas. The controls are
 available in read-only views and work with standard button keyboard input.
+
+Enable `snapToGrid` in editor options or send `GridSnapToggled` to toggle
+a 20-unit canvas grid. While dragging, the grabbed node snaps to the grid and
+the rest of the selection follows by the same offset, including group contents.
+The grid follows pan and zoom. The setting is session state and each completed
+drag is one undo step.

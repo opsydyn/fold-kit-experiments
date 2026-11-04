@@ -65,6 +65,7 @@ export type EditorState = Readonly<{
   future: readonly FlowGraph[];
   historyLimit: number;
   readOnly: boolean;
+  snapToGrid: boolean;
   routes: readonly EdgeRoute[];
   notice: string | null;
 }>;
@@ -72,6 +73,7 @@ export type EditorOptions = Readonly<{
   viewport?: Viewport;
   historyLimit?: number;
   readOnly?: boolean;
+  snapToGrid?: boolean;
 }>;
 export type EditorPolicy = Readonly<{
   canConnect?: (edge: FlowEdge, graph: FlowGraph) => string | null;
@@ -100,6 +102,7 @@ export type EditorEvent =
   | Readonly<{ type: 'PointerMoved'; pointer: number; point: Point; target?: Endpoint }>
   | Readonly<{ type: 'PointerReleased'; pointer: number }>
   | Readonly<{ type: 'GestureCancelled' }>
+  | Readonly<{ type: 'GridSnapToggled' }>
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>
   | Readonly<{ type: 'FitViewClicked' }>
   | Readonly<{ type: 'MinimapClicked'; point: Point }>

@@ -62,3 +62,7 @@ viewport. Click it to center the canvas on that point at the same zoom.
 
 Use **Zoom in**, **Zoom out**, or **Fit view** above the canvas to navigate
 without a scroll wheel. The percentage shows the current zoom.
+
+Turn on **Snap to grid** to align nodes as you drag. The node you grab snaps
+to the grid, and the other selected nodes keep their spacing. Dragging a group
+also moves its contents.

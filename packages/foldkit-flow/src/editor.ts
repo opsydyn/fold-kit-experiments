@@ -2,6 +2,7 @@ import {
   boxBounds,
   finitePoint,
   fitViewport,
+  gridSpacing,
   minimapGeometry,
   screenToWorld,
   validViewport,
@@ -39,6 +40,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     future: [],
     historyLimit,
     readOnly: options.readOnly ?? false,
+    snapToGrid: options.snapToGrid ?? false,
     routes: [],
     notice: null,
   };
@@ -187,6 +189,9 @@ export function updateEditor(
       return { ...state, selectedNodes: [], selectedEdges: [] };
     case 'GestureCancelled':
       return cancel(state);
+    case 'GridSnapToggled':
+      if (state.readOnly || state.gesture.type !== 'idle') return state;
+      return { ...state, snapToGrid: !state.snapToGrid };
     case 'ViewportChanged':
       if (state.gesture.type !== 'idle') return state;
       validViewport(event.viewport);
@@ -310,10 +315,15 @@ export function updateEditor(
         };
         return { ...state, graph, revision: state.revision + 1, routes: [] };
       }
-      const graph = move(gesture.before, gesture.ids, {
-        x: delta.x / state.viewport.zoom,
-        y: delta.y / state.viewport.zoom,
-      });
+      const offset = { x: delta.x / state.viewport.zoom, y: delta.y / state.viewport.zoom };
+      const anchor =
+        state.snapToGrid && gesture.before.nodes.find((node) => node.id === gesture.ids[0]);
+      if (anchor && (offset.x !== 0 || offset.y !== 0)) {
+        const snap = (value: number) => Math.round(value / gridSpacing) * gridSpacing;
+        offset.x = snap(anchor.position.x + offset.x) - anchor.position.x;
+        offset.y = snap(anchor.position.y + offset.y) - anchor.position.y;
+      }
+      const graph = move(gesture.before, gesture.ids, offset);
       if (sameGeometry(state.graph, graph)) return state;
       return { ...state, graph, revision: state.revision + 1, routes: [] };
     }
@@ -466,7 +476,7 @@ export function updateEditor(
           pointer: event.pointer,
           origin: event.point,
           before: state.graph,
-          ids,
+          ids: [event.id, ...ids.filter((id) => id !== event.id)],
         },
       };
     }

@@ -4,6 +4,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 import {
   boxBounds,
   edgePath,
+  gridSpacing,
   maximumZoom,
   minimapGeometry,
   minimumZoom,
@@ -401,7 +402,13 @@ export function flowView<M>(
             height: `${options.height ?? 440}px`,
             width: '100%',
             'touch-action': 'none',
-            background: 'var(--flow-background, #eef2f6)',
+            'background-color': 'var(--flow-background, #eef2f6)',
+            'background-image': state.snapToGrid
+              ? 'linear-gradient(to right, var(--flow-grid-line, #94a3b855) 1px, transparent 1px), linear-gradient(to bottom, var(--flow-grid-line, #94a3b855) 1px, transparent 1px)'
+              : 'none',
+            'background-size': `${gridSpacing * state.viewport.zoom}px ${gridSpacing * state.viewport.zoom}px`,
+            'background-position': `${state.viewport.x}px ${state.viewport.y}px`,
+            'background-origin': 'padding-box',
             border: '1px solid var(--flow-canvas-border, #94a3b8)',
             'border-radius': '10px',
           }),

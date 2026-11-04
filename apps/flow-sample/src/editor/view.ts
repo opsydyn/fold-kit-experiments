@@ -105,6 +105,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
           [
             button('Add node', Message.ClickedAdd()),
+            h.button(
+              [
+                h.Type('button'),
+                h.AriaPressed(String(model.editor.snapToGrid)),
+                h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
+                h.OnClick(Message.ObservedFlowInput({ message: { type: 'GridSnapToggled' } })),
+              ],
+              ['Snap to grid'],
+            ),
             button('Arrange with ELK', Message.ClickedArrange()),
             button(
               'Group selection',

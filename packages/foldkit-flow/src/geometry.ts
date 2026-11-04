@@ -1,6 +1,7 @@
 import { FlowError } from './graph';
 import type { FlowEdge, FlowGraph, FlowNode, Point, Size, Viewport } from './types';
 
+export const gridSpacing = 20;
 export const minimumZoom = 0.1;
 export const maximumZoom = 4;
 

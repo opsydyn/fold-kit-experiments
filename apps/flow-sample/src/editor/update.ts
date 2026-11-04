@@ -30,6 +30,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       }[example];
       const surface = model.editor.surface;
       const editor = createEditor(graph, {
+        snapToGrid: model.editor.snapToGrid,
         viewport: fitViewport(graph, surface ?? { width: 800, height: 440 }),
       });
       return {
@@ -114,7 +115,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SucceededLoad: ({ json }) => ({
       model: {
         ...model,
-        editor: { ...createEditor(parseGraph(json)), surface: model.editor.surface },
+        editor: {
+          ...createEditor(parseGraph(json), { snapToGrid: model.editor.snapToGrid }),
+          surface: model.editor.surface,
+        },
         active: null,
         notice: 'Saved graph loaded.',
       },

@@ -483,3 +483,50 @@ test('fit control works on a small read-only canvas and leaves history intact', 
   expect(fitted.graph).toBe(initial.graph);
   expect(fitted.past).toBe(initial.past);
 });
+
+test('snapping at zoom moves the selected group and its contents by one common offset', () => {
+  const boundary = {
+    id: 'outer',
+    kind: 'group' as const,
+    label: 'Outer',
+    position: { x: 7, y: 9 },
+    size: { width: 600, height: 400 },
+    ports: [],
+  };
+  const initial = createEditor(
+    {
+      nodes: [boundary, ...graph.nodes.map((node) => ({ ...node, parentId: 'outer' }))],
+      edges: [],
+    },
+    { viewport: { x: 35, y: 50, zoom: 2 }, snapToGrid: true },
+  );
+  const selected = { ...initial, selectedNodes: ['a', 'outer'] };
+  const started = updateEditor(selected, {
+    type: 'NodeDragStarted',
+    id: 'outer',
+    pointer: 1,
+    point: { x: 20, y: 20 },
+  });
+  const click = updateEditor(
+    updateEditor(started, {
+      type: 'PointerMoved',
+      pointer: 1,
+      point: { x: 20, y: 20 },
+    }),
+    { type: 'PointerReleased', pointer: 1 },
+  );
+  expect(click.graph).toBe(initial.graph);
+  expect(click.past).toHaveLength(0);
+  const preview = updateEditor(started, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 80, y: 42 },
+  });
+  const moved = updateEditor(preview, { type: 'PointerReleased', pointer: 1 });
+  expect(moved.graph.nodes[0]?.position).toEqual({ x: 40, y: 20 });
+  expect(moved.graph.nodes.map((node) => node.position)).toEqual(
+    initial.graph.nodes.map((node) => ({ x: node.position.x + 33, y: node.position.y + 11 })),
+  );
+  expect(moved.past).toHaveLength(1);
+  expect(updateEditor(moved, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+});

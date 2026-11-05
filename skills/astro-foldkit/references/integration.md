@@ -87,7 +87,7 @@ interrupt only. Do not reload from the interrupt outcome after exit; distinguish
 that from user-requested replacement. Correlate outcomes and ignore stale results.
 Do not depend on an interrupt completion being processed before unmount disposal.
 
-These guarantees describe the island bridge in version 0.8.1. Its page-owner
+These guarantees describe the island bridge in version 0.9.3. Its page-owner
 hydration path does not attach that same explicit bridge/disposal handler. Verify
 the installed implementation before promising retained-page lifecycle support.
 

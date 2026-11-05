@@ -1,11 +1,12 @@
-import type { LayoutRequest, LayoutResult } from '@opsydyn/foldkit-flow';
+import { validateGraph, type LayoutRequest, type LayoutResult } from '@opsydyn/foldkit-flow';
 import { runForceLayout } from '@opsydyn/foldkit-viz/simulation';
 
-import { routeForceEdges } from './force-routes';
-import { supportsForceLayout } from './layout-options';
+import { supportsForceLayout } from './eligibility';
+import { routeForceEdges } from './routes';
 
 export function arrangeWithForce(request: LayoutRequest): LayoutResult {
   const { graph, requestId, revision } = request;
+  validateGraph(graph);
   if (!supportsForceLayout(graph))
     throw new Error('Force layout requires a flat graph of 1–100 nodes.');
 

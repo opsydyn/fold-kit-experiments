@@ -101,8 +101,8 @@ connection focused, use Shift+F10 or the context menu key.
 Tap the ellipsis on a node or beside an entry in Connections to open
 its actions without a mouse or keyboard.
 
-Choose **Force layout** to arrange a flat graph with the FoldKit Viz
-simulation. It uses the measured card sizes for spacing and applies the
+Choose **Force layout** to arrange a flat graph with the `@opsydyn/foldkit-flow-force`
+package, backed by FoldKit Viz simulation. It uses the measured card sizes for spacing and applies the
 result as one undoable edit. The trial supports 1–100 nodes. Use
 **Arrange with ELK** for nested graphs and routed edges.
 

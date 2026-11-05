@@ -1,8 +1,8 @@
 import type { EdgePathStyle, FlowEdge } from '@opsydyn/foldkit-flow';
+import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import { flowView } from '@opsydyn/foldkit-flow/foldkit';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import { supportsForceLayout } from './layout-options';
 import { Message } from './message';
 import type { Model } from './model';
 

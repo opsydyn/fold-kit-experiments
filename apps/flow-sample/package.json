@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild-packages": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-flow-elk build && bun run --filter @opsydyn/foldkit-viz build",
+    "prebuild-packages": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-flow-elk build && bun run --filter @opsydyn/foldkit-flow-force build",
     "dev": "bun run prebuild-packages && astro dev",
     "build": "bun run prebuild-packages && astro build",
     "preview": "astro preview",
@@ -13,7 +13,7 @@
     "@opsydyn/astro-foldkit": "workspace:*",
     "@opsydyn/foldkit-flow": "workspace:*",
     "@opsydyn/foldkit-flow-elk": "workspace:*",
-    "@opsydyn/foldkit-viz": "workspace:*",
+    "@opsydyn/foldkit-flow-force": "workspace:*",
     "astro": "catalog:",
     "effect": "catalog:",
     "foldkit": "catalog:"

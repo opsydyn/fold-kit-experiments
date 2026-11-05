@@ -12,6 +12,7 @@ on:
           - foldkit-viz
           - foldkit-flow
           - foldkit-flow-elk
+          - foldkit-flow-force
           # effect-three's four are released together: publish effect-three first, then
           # the others, which pin it as a peer at the same version.
           - effect-three
@@ -81,6 +82,7 @@ jobs:
         run: |
           bun run --filter @opsydyn/foldkit-flow test
           bun run --filter @opsydyn/foldkit-flow-elk test
+          bun run --filter @opsydyn/foldkit-flow-force test
 
       - name: Pack and publish to npm (FoldKit Flow)
         if: ${{ env.NPM_TOKEN != '' && startsWith(inputs.package, 'foldkit-flow') }}

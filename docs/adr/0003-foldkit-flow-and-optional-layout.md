@@ -145,3 +145,8 @@ height changes grow enabled ancestors outward with padding, preserving canvas
 coordinates. Resizing previews derive expansion from the gesture snapshot so
 cancellation restores the authored bounds. Measurements follow the existing
 history-rebasing policy.
+
+The optional force adapter is distributed as `@opsydyn/foldkit-flow-force`.
+It depends on Viz simulation and Flow's public layout contract. Its eligibility
+subpath stays separate from the simulation entry for lazy-loading hosts.
+The Astro sample imports the adapter and owns its Commands and active request.

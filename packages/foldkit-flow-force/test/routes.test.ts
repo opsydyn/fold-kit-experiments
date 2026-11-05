@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 
 import type { FlowGraph, Point } from '@opsydyn/foldkit-flow';
 
-import { routeForceEdges } from '../src/editor/force-routes';
+import { routeForceEdges } from '../src/routes';
 
 test('separate connections use a free corridor instead of sharing a long segment', () => {
   const positions = [

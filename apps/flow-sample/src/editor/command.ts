@@ -19,8 +19,8 @@ export const ArrangeFlow = Command.define('ArrangeFlow', {
       const request = { requestId, revision, graph: parseGraph(json) };
       if (engine === 'force') {
         // oxlint-disable-next-line linteffect/prevent-dynamic-imports
-        const { arrangeWithForce } = await import('./force-layout');
-        return arrangeWithForce(request);
+        const { createForceLayout } = await import('@opsydyn/foldkit-flow-force');
+        return createForceLayout()(request);
       }
       // oxlint-disable-next-line linteffect/prevent-dynamic-imports
       const { createElkLayout } = await import('@opsydyn/foldkit-flow-elk');

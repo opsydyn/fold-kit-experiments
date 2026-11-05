@@ -6,5 +6,6 @@
   "packages/effect-three-rapier": "0.6.4",
   "packages/effect-three-troika": "0.6.4",
   "packages/foldkit-flow": "0.1.0",
-  "packages/foldkit-flow-elk": "0.1.0"
+  "packages/foldkit-flow-elk": "0.1.0",
+  "packages/foldkit-flow-force": "0.1.0"
 }

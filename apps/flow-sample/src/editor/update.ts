@@ -9,10 +9,10 @@ import {
   type EditorEvent,
   type LayoutResult,
 } from '@opsydyn/foldkit-flow';
+import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import type { Return } from 'foldkit/update';
 
 import { ArrangeFlow, ExportFlow, ImportFlow, LoadFlow, SaveFlow } from './command';
-import { supportsForceLayout } from './layout-options';
 import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
 

@@ -22,7 +22,9 @@ All six are published to npm. The four effect-three packages are released togeth
 [`@opsydyn/foldkit-flow`](packages/foldkit-flow/) adds application-owned graph
 editing and an optional native FoldKit view.
 [`@opsydyn/foldkit-flow-elk`](packages/foldkit-flow-elk/) supplies optional ELK
-layout. Both are prepared locally at 0.1.0 and are not yet published to npm.
+layout. [`@opsydyn/foldkit-flow-force`](packages/foldkit-flow-force/) supplies
+optional force layout and card-avoiding routing using FoldKit Viz.
+The Flow packages are prepared locally at 0.1.0.
 Run the demo app and open `/flow`; see the
 [publication guide](docs/releases/foldkit-flow.md) for tarball and release checks.
 Run `bun run dev:flow-sample` to try the standalone Astro app. See the

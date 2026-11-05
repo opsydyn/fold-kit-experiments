@@ -36,7 +36,7 @@
         "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/foldkit-flow": "workspace:*",
         "@opsydyn/foldkit-flow-elk": "workspace:*",
-        "@opsydyn/foldkit-viz": "workspace:*",
+        "@opsydyn/foldkit-flow-force": "workspace:*",
         "astro": "catalog:",
         "effect": "catalog:",
         "foldkit": "catalog:",
@@ -382,6 +382,25 @@
       "version": "0.1.0",
       "dependencies": {
         "elkjs": "0.12.1",
+      },
+      "devDependencies": {
+        "@arethetypeswrong/cli": "0.18.5",
+        "@opsydyn/foldkit-flow": "workspace:*",
+        "@types/node": "^22.0.0",
+        "bun-types": "^1.3.14",
+        "publint": "0.3.25",
+        "tsdown": "^0.21.8",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@opsydyn/foldkit-flow": "0.1.0",
+      },
+    },
+    "packages/foldkit-flow-force": {
+      "name": "@opsydyn/foldkit-flow-force",
+      "version": "0.1.0",
+      "dependencies": {
+        "@opsydyn/foldkit-viz": "workspace:*",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
@@ -927,6 +946,8 @@
     "@opsydyn/foldkit-flow": ["@opsydyn/foldkit-flow@workspace:packages/foldkit-flow"],
 
     "@opsydyn/foldkit-flow-elk": ["@opsydyn/foldkit-flow-elk@workspace:packages/foldkit-flow-elk"],
+
+    "@opsydyn/foldkit-flow-force": ["@opsydyn/foldkit-flow-force@workspace:packages/foldkit-flow-force"],
 
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
 

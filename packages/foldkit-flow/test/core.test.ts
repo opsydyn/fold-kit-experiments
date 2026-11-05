@@ -922,3 +922,52 @@ test('parent extent clamps a selection together and prevents drag-out reparentin
   expect(updateEditor(dropped, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
   expect(parseGraph(serializeGraph(dropped.graph))).toEqual(dropped.graph);
 });
+
+test('child growth expands opted-in ancestors in the same resize transaction', () => {
+  const group = {
+    kind: 'group' as const,
+    label: 'Group',
+    ports: [],
+    position: { x: 0, y: 0 },
+    size: { width: 200, height: 160 },
+  };
+  const initial = createEditor({
+    nodes: [
+      { ...group, id: 'outer' },
+      { ...group, id: 'inner', parentId: 'outer', expandParent: true },
+      { ...nodeA, parentId: 'inner', expandParent: true },
+    ],
+    edges: [],
+  });
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'a',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const preview = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 180, y: 0 },
+  });
+  expect(preview.graph.nodes[0]?.size.width).toBe(352);
+  expect(updateEditor(preview, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
+  const released = updateEditor(preview, { type: 'PointerReleased', pointer: 1 });
+  expect(released.past).toHaveLength(1);
+  expect(updateEditor(released, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  const copied = updateEditor({ ...initial, selectedNodes: ['a'] }, { type: 'CopyPressed' });
+  expect(copied.clipboard?.nodes[0]).not.toHaveProperty('expandParent');
+  const resized = updateEditor(initial, { type: 'NodeWidthChanged', id: 'a', width: 300 });
+  expect(resized.graph.nodes[1]?.size.width).toBe(336);
+  expect(resized.graph.nodes[0]?.size.width).toBe(352);
+  expect(resized.past).toHaveLength(1);
+  expect(updateEditor(resized, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  const measured = updateEditor(resized, {
+    type: 'NodeMeasured',
+    id: 'a',
+    size: { width: 300, height: 210 },
+  });
+  expect(measured.graph.nodes[1]?.size.height).toBe(256);
+  expect(measured.graph.nodes[0]?.size.height).toBe(272);
+  expect(parseGraph(serializeGraph(measured.graph))).toEqual(measured.graph);
+});

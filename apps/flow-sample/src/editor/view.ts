@@ -169,6 +169,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     ],
                     ['Keep inside parent'],
                   ),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.AriaPressed(String(selectedNode.expandParent ?? false)),
+                      h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
+                      h.OnClick(
+                        Message.ObservedFlowInput({
+                          message: { type: 'NodeExpansionToggled', id: selectedNode.id },
+                        }),
+                      ),
+                    ],
+                    ['Grow parent'],
+                  ),
                 ]
               : []),
             button('Copy', Message.ObservedFlowInput({ message: { type: 'CopyPressed' } })),

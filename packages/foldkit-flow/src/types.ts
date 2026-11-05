@@ -24,6 +24,8 @@ export type FlowNode = Readonly<{
   parentId?: string;
   /** Constrain movement to the authored parent bounds. */
   extent?: 'parent';
+  /** Grow the parent when this node grows beyond its bounds. */
+  expandParent?: boolean;
   data?: JsonValue;
 }>;
 export type Endpoint = Readonly<{ node: string; port: string }>;
@@ -147,6 +149,7 @@ export type EditorEvent =
   | Readonly<{ type: 'NodeAdded'; node: FlowNode }>
   | Readonly<{ type: 'NodeLabelChanged'; id: string; label: string }>
   | Readonly<{ type: 'NodeContainmentToggled'; id: string }>
+  | Readonly<{ type: 'NodeExpansionToggled'; id: string }>
   | Readonly<{ type: 'NodeWidthChanged'; id: string; width: number }>
   | Readonly<{ type: 'EdgeLabelEditingStarted'; id: string }>
   | Readonly<{ type: 'EdgeLabelDraftChanged'; id: string; text: string }>

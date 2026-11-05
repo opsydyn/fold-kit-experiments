@@ -11,6 +11,7 @@ import {
 } from './geometry';
 import { copyGraph, FlowError, validateGraph } from './graph';
 import { edgeIsVisible, groupAtDropPoint, presentGroups } from './group-presentation';
+import { expandParents } from './parent-expansion';
 import type {
   EditorEvent,
   EditorOptions,
@@ -104,7 +105,7 @@ function selectedFragment(state: EditorState): FlowGraph {
       .filter((node) => included.has(node.id))
       .map((node) => {
         if (node.parentId === undefined || included.has(node.parentId)) return node;
-        const { parentId: _, extent: _extent, ...root } = node;
+        const { parentId: _, extent: _extent, expandParent: _expandParent, ...root } = node;
         return root;
       }),
     edges: state.graph.edges.filter(
@@ -235,7 +236,9 @@ function reparentDraggedNodes(
       return node;
     changed = true;
     const { parentId: _previousParent, ...root } = node;
-    return parentId === null ? root : { ...root, parentId };
+    if (parentId !== null) return { ...root, parentId };
+    const { expandParent: _expandParent, ...detached } = root;
+    return detached;
   });
   return changed ? { ...graph, nodes } : graph;
 }
@@ -603,12 +606,15 @@ export function updateEditor(
         );
         if (state.graph.nodes.find((node) => node.id === original.id)?.size.width === width)
           return state;
-        const graph = {
-          ...state.graph,
-          nodes: state.graph.nodes.map((node) =>
-            node.id === original.id ? { ...node, size: { ...node.size, width } } : node,
-          ),
-        };
+        const graph = expandParents(
+          {
+            ...gesture.before,
+            nodes: gesture.before.nodes.map((node) =>
+              node.id === original.id ? { ...node, size: { ...node.size, width } } : node,
+            ),
+          },
+          original.id,
+        );
         return { ...state, graph, revision: state.revision + 1, routes: [] };
       }
       const zoom = state.viewport.zoom;
@@ -740,14 +746,18 @@ export function updateEditor(
         throw new FlowError('invalid-edit', 'Measured size must be positive and finite');
       const node = state.graph.nodes.find((item) => item.id === event.id);
       if (!node || node.kind === 'group' || node.size.height === event.size.height) return state;
-      const measure = (graph: FlowGraph): FlowGraph => ({
-        ...graph,
-        nodes: graph.nodes.map((item) =>
-          item.id === event.id
-            ? { ...item, size: { ...item.size, height: event.size.height } }
-            : item,
-        ),
-      });
+      const measure = (graph: FlowGraph): FlowGraph =>
+        expandParents(
+          {
+            ...graph,
+            nodes: graph.nodes.map((item) =>
+              item.id === event.id
+                ? { ...item, size: { ...item.size, height: event.size.height } }
+                : item,
+            ),
+          },
+          event.id,
+        );
       const gesture =
         state.gesture.type === 'node-drag' || state.gesture.type === 'node-resize'
           ? { ...state.gesture, before: measure(state.gesture.before) }
@@ -829,6 +839,22 @@ export function updateEditor(
       );
       return graph === state.graph ? state : commitGraph(state, graph);
     }
+    case 'NodeExpansionToggled': {
+      const node = state.graph.nodes.find((node) => node.id === event.id);
+      if (!node || node.parentId === undefined) return state;
+      const { expandParent: _expandParent, ...free } = node;
+      const updated = node.expandParent ? free : { ...node, expandParent: true };
+      return commitGraph(
+        state,
+        expandParents(
+          {
+            ...state.graph,
+            nodes: state.graph.nodes.map((node) => (node.id === event.id ? updated : node)),
+          },
+          node.id,
+        ),
+      );
+    }
     case 'NodeContainmentToggled': {
       const node = state.graph.nodes.find((node) => node.id === event.id);
       if (!node || node.parentId === undefined) return state;
@@ -859,12 +885,18 @@ export function updateEditor(
         !state.graph.nodes.some((node) => node.id === event.id && node.size.width !== event.width)
       )
         return state;
-      return commitGraph(state, {
-        ...state.graph,
-        nodes: state.graph.nodes.map((node) =>
-          node.id === event.id ? { ...node, size: { ...node.size, width: event.width } } : node,
+      return commitGraph(
+        state,
+        expandParents(
+          {
+            ...state.graph,
+            nodes: state.graph.nodes.map((node) =>
+              node.id === event.id ? { ...node, size: { ...node.size, width: event.width } } : node,
+            ),
+          },
+          event.id,
         ),
-      });
+      );
     case 'EdgeLabelEditingStarted': {
       const edge = state.graph.edges.find((edge) => edge.id === event.id);
       if (!edge || state.edgeLabelDraft?.id === edge.id) return state;
@@ -1042,7 +1074,7 @@ export function updateEditor(
           let parent = removed.get(node.parentId)?.parentId;
           while (parent !== undefined && removed.has(parent))
             parent = removed.get(parent)?.parentId;
-          const { parentId: _, extent: _extent, ...root } = node;
+          const { parentId: _, extent: _extent, expandParent: _expandParent, ...root } = node;
           return parent === undefined ? root : { ...node, parentId: parent };
         });
       return { ...commitGraph(state, { ...state.graph, nodes }), notice: 'Selection ungrouped' };

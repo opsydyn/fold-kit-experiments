@@ -116,3 +116,6 @@ Shared ports and constrained arrangements can still produce crossings.
 
 In a grouped example, select a child and toggle **Keep inside parent** to
 constrain its drag and keyboard movement. Toggle it off to allow drag-out.
+
+Select a child in a grouped example and enable **Grow parent**, then widen
+the child. Enable it on an inner group to propagate growth to the outer group.

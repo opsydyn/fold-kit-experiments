@@ -315,3 +315,10 @@ A selection moves by one common clamped offset. Moving the parent still moves
 its descendants. Nodes larger than the parent are held on the oversized axis.
 Sizing and content measurement are independent of this movement constraint.
 The optional field is preserved by graph export and import.
+
+Set a child's `expandParent: true` to grow its parent when an authored width
+change or measured content height exceeds the group bounds. Growth adds
+16 units of padding on overflowing sides and preserves canvas positions.
+Enable expansion on an inner group to propagate growth to its own parent.
+Pointer resizing and parent growth share one undo step. Smaller content
+keeps the group's grown bounds.

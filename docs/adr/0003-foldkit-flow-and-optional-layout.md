@@ -139,3 +139,9 @@ Movement intersects the allowed offsets of constrained selection roots, then
 moves the selection together. Descendants moving with their parent keep their
 relative placement. Drag-out retains constrained membership. Detached clipboard
 roots and ungrouped root nodes lose an extent whose parent no longer exists.
+
+Parent expansion is optional authored child metadata. Width edits and measured
+height changes grow enabled ancestors outward with padding, preserving canvas
+coordinates. Resizing previews derive expansion from the gesture snapshot so
+cancellation restores the authored bounds. Measurements follow the existing
+history-rebasing policy.

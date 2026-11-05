@@ -3,6 +3,7 @@ import {
   boxBounds,
   finitePoint,
   fitNodes,
+  fittedGroupBounds,
   gridSpacing,
   minimapGeometry,
   screenToWorld,
@@ -1017,6 +1018,46 @@ export function updateEditor(
       const duplicated = insertFragment(state, selectedFragment(state));
       return duplicated === state ? state : { ...duplicated, notice: 'Selection duplicated' };
     }
+    case 'GroupFitClicked': {
+      const group = state.graph.nodes.find((node) => node.id === event.id && node.kind === 'group');
+      if (!group) return state;
+      const included = withDescendants(state.graph, [group.id]);
+      const contents = state.graph.nodes.filter(
+        (node) => node.id !== group.id && included.has(node.id),
+      );
+      if (contents.length === 0) return { ...state, notice: 'Group has no contents to fit.' };
+      const bounds = fittedGroupBounds(contents);
+      const fitted = {
+        ...group,
+        ...bounds,
+        size: { width: Math.max(224, bounds.size.width), height: Math.max(96, bounds.size.height) },
+      };
+      if (
+        fitted.position.x === group.position.x &&
+        fitted.position.y === group.position.y &&
+        fitted.size.width === group.size.width &&
+        fitted.size.height === group.size.height
+      )
+        return state;
+      const graph = expandParents(
+        {
+          ...state.graph,
+          nodes: state.graph.nodes.map((node) => (node.id === group.id ? fitted : node)),
+        },
+        group.id,
+      );
+      const parent = graph.nodes.find((node) => node.id === group.parentId);
+      if (
+        group.extent === 'parent' &&
+        parent &&
+        (fitted.position.x < parent.position.x ||
+          fitted.position.y < parent.position.y ||
+          fitted.position.x + fitted.size.width > parent.position.x + parent.size.width ||
+          fitted.position.y + fitted.size.height > parent.position.y + parent.size.height)
+      )
+        return { ...state, notice: 'Fitted bounds exceed the parent. Enable Grow parent to fit.' };
+      return { ...commitGraph(state, graph), notice: 'Group fitted to contents' };
+    }
     case 'SelectionGrouped': {
       const selected = state.graph.nodes.filter((node) => state.selectedNodes.includes(node.id));
       const first = selected[0];
@@ -1028,18 +1069,13 @@ export function updateEditor(
         return { ...state, notice: 'Select at least two nodes in the same group.' };
       const included = withDescendants(state.graph, state.selectedNodes);
       const contents = state.graph.nodes.filter((node) => included.has(node.id));
-      const left = Math.min(...contents.map((node) => node.position.x)) - 24;
-      const top = Math.min(...contents.map((node) => node.position.y)) - 48;
-      const right = Math.max(...contents.map((node) => node.position.x + node.size.width)) + 24;
-      const bottom = Math.max(...contents.map((node) => node.position.y + node.size.height)) + 24;
       let index = 1;
       while (state.graph.nodes.some((node) => node.id === `group:${index}`)) index++;
       const boundary: FlowNode = {
         id: `group:${index}`,
         label: `Group ${index}`,
         kind: 'group',
-        position: { x: left, y: top },
-        size: { width: right - left, height: bottom - top },
+        ...fittedGroupBounds(contents),
         ports: [],
       };
       const group =

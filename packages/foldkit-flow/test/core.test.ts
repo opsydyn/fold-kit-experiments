@@ -971,3 +971,64 @@ test('child growth expands opted-in ancestors in the same resize transaction', (
   expect(measured.graph.nodes[0]?.size.height).toBe(272);
   expect(parseGraph(serializeGraph(measured.graph))).toEqual(measured.graph);
 });
+
+test('fitting a group encloses hidden descendants without moving them and is undoable', () => {
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        position: { x: -100, y: -100 },
+        size: { width: 1000, height: 800 },
+        ports: [],
+      },
+      { ...nodeA, parentId: 'g' },
+      { ...nodeB, parentId: 'g' },
+    ],
+    edges: [],
+  });
+  const collapsed = updateEditor(initial, { type: 'GroupCollapseToggled', id: 'g' });
+  const fitted = updateEditor(collapsed, { type: 'GroupFitClicked', id: 'g' });
+  expect(fitted.graph.nodes[0]).toMatchObject({
+    position: { x: -4, y: -18 },
+    size: { width: 488, height: 202 },
+  });
+  expect(fitted.graph.nodes.slice(1)).toEqual(initial.graph.nodes.slice(1));
+  expect(fitted.collapsedGroups).toEqual(['g']);
+  expect(fitted.past).toHaveLength(1);
+  expect(updateEditor(fitted, { type: 'GroupFitClicked', id: 'g' })).toBe(fitted);
+  expect(updateEditor(fitted, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  const readOnly = createEditor(initial.graph, { readOnly: true });
+  expect(updateEditor(readOnly, { type: 'GroupFitClicked', id: 'g' })).toBe(readOnly);
+});
+
+test('fitting respects parent containment and can expand opted-in ancestors', () => {
+  const boundary = { kind: 'group' as const, label: 'Group', ports: [] };
+  const state = createEditor({
+    nodes: [
+      { ...boundary, id: 'outer', position: { x: 0, y: 0 }, size: { width: 300, height: 200 } },
+      {
+        ...boundary,
+        id: 'inner',
+        parentId: 'outer',
+        extent: 'parent',
+        position: { x: 20, y: 20 },
+        size: { width: 250, height: 150 },
+      },
+      { ...nodeB, parentId: 'inner', position: { x: 400, y: 80 } },
+    ],
+    edges: [],
+  });
+  const blocked = updateEditor(state, { type: 'GroupFitClicked', id: 'inner' });
+  expect(blocked.graph).toBe(state.graph);
+  expect(blocked.past).toHaveLength(0);
+  const enabled = updateEditor(state, { type: 'NodeExpansionToggled', id: 'inner' });
+  const fitted = updateEditor(enabled, { type: 'GroupFitClicked', id: 'inner' });
+  expect(fitted.graph.nodes[0]?.size.width).toBeGreaterThan(300);
+  expect(fitted.graph.nodes[2]).toEqual(state.graph.nodes[2]);
+  const outer = state.graph.nodes[0];
+  if (!outer) throw new Error('Missing group fixture');
+  const empty = createEditor({ nodes: [outer], edges: [] });
+  expect(updateEditor(empty, { type: 'GroupFitClicked', id: 'outer' }).past).toHaveLength(0);
+});

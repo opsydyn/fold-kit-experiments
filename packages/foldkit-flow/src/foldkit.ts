@@ -71,6 +71,12 @@ export type FlowViewOptions<M> = Readonly<{
 function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowViewOptions<M>) {
   const context = state.context;
   if (!options.contextActions || state.readOnly || !context) return [];
+  const group =
+    context.kind === 'node'
+      ? state.graph.nodes.find((node) => node.id === context.id && node.kind === 'group')
+      : undefined;
+  const width = group ? 224 : 172;
+  const height = group ? 184 : 130;
   const button = (label: string, event: EditorEvent) =>
     h.button(
       [
@@ -90,9 +96,9 @@ function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowVie
         h.DataAttribute('flow-no-drag', ''),
         h.Style({
           position: 'absolute',
-          left: `clamp(4px, ${context.point.x}px, max(4px, calc(100% - 176px)))`,
-          top: `clamp(4px, ${context.point.y}px, max(4px, calc(100% - 130px)))`,
-          width: 'min(172px, calc(100% - 8px))',
+          left: `clamp(4px, ${context.point.x}px, max(4px, calc(100% - ${width + 4}px)))`,
+          top: `clamp(4px, ${context.point.y}px, max(4px, calc(100% - ${height}px)))`,
+          width: `min(${width}px, calc(100% - 8px))`,
           'box-sizing': 'border-box',
           display: 'grid',
           gap: '4px',
@@ -108,6 +114,9 @@ function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowVie
         ...(context.kind === 'node'
           ? [
               button('Duplicate node', { type: 'DuplicatePressed' }),
+              ...(group
+                ? [button('Fit group to contents', { type: 'GroupFitClicked', id: group.id })]
+                : []),
               button('Delete node', { type: 'DeletePressed' }),
             ]
           : [button('Delete edge', { type: 'EdgeDeleted', id: context.id })]),

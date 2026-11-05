@@ -154,6 +154,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               'Ungroup',
               Message.ObservedFlowInput({ message: { type: 'SelectionUngrouped' } }),
             ),
+            ...(selectedNode?.kind === 'group'
+              ? [
+                  button(
+                    'Fit group to contents',
+                    Message.ObservedFlowInput({
+                      message: { type: 'GroupFitClicked', id: selectedNode.id },
+                    }),
+                    model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                  ),
+                ]
+              : []),
             ...(selectedNode?.parentId
               ? [
                   h.button(

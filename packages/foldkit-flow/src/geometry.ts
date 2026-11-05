@@ -56,6 +56,18 @@ export function portPosition(node: FlowNode, id: string): Point {
       };
   }
 }
+/** Same authored padding for new groups and fitting existing boundaries. */
+export function fittedGroupBounds(contents: readonly FlowNode[]) {
+  const left = Math.min(...contents.map((node) => node.position.x)) - 24;
+  const top = Math.min(...contents.map((node) => node.position.y)) - 48;
+  const right = Math.max(...contents.map((node) => node.position.x + node.size.width)) + 24;
+  const bottom = Math.max(...contents.map((node) => node.position.y + node.size.height)) + 24;
+  return {
+    position: { x: left, y: top },
+    size: { width: right - left, height: bottom - top },
+  };
+}
+
 export function minimapGeometry(
   graph: Pick<FlowGraph, 'nodes'>,
   surface: Size,

@@ -322,3 +322,9 @@ change or measured content height exceeds the group bounds. Growth adds
 Enable expansion on an inner group to propagate growth to its own parent.
 Pointer resizing and parent growth share one undo step. Smaller content
 keeps the group's grown bounds.
+
+Send `GroupFitClicked` with a group ID to fit its authored boundary to all
+descendants. The group context panel exposes **Fit group to contents**.
+Fitting preserves child positions, reserves header space and padding, and
+commits one undo step. Empty groups keep their bounds. A constrained group
+requires enough space in its parent or enabled parent expansion.

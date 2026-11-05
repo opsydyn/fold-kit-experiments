@@ -150,3 +150,8 @@ The optional force adapter is distributed as `@opsydyn/foldkit-flow-force`.
 It depends on Viz simulation and Flow's public layout contract. Its eligibility
 subpath stays separate from the simulation entry for lazy-loading hosts.
 The Astro sample imports the adapter and owns its Commands and active request.
+
+Group fitting is an explicit document edit. It uses authored descendant bounds,
+including hidden contents, with the existing group-creation padding. Fitting
+preserves child canvas positions and uses enabled ancestor expansion. Parent
+containment can reject a fit whose bounds exceed the available parent space.

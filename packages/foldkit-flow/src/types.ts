@@ -116,6 +116,7 @@ export type EditorEvent =
   | Readonly<{ type: 'EdgeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'SelectionCleared' }>
   | Readonly<{ type: 'GroupCollapseToggled'; id: string }>
+  | Readonly<{ type: 'GroupFitClicked'; id: string }>
   | Readonly<{
       type: 'NodeDragStarted' | 'NodeResizeStarted';
       id: string;

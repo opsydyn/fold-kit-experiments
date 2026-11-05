@@ -119,3 +119,6 @@ constrain its drag and keyboard movement. Toggle it off to allow drag-out.
 
 Select a child in a grouped example and enable **Grow parent**, then widen
 the child. Enable it on an inner group to propagate growth to the outer group.
+
+Select a group and choose **Fit group to contents** to tighten its boundary.
+The same action is available through the group's More actions button.

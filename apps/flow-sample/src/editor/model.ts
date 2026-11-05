@@ -116,6 +116,9 @@ export const groupedOnionGraph: FlowGraph = {
   ],
 };
 
+export const PortAnchorPreset = Schema.Literals(['cardinal', 'diagonal']);
+export type PortAnchorPreset = typeof PortAnchorPreset.Type;
+
 export const ConnectionDesign = Schema.Literals(['dashed', 'ribbon', 'hidden']);
 export type ConnectionDesign = typeof ConnectionDesign.Type;
 

@@ -5,6 +5,7 @@
 import {
   FlowError,
   portPosition,
+  portBoundaryPosition,
   validateGraph,
   type EdgeRoute,
   type LayoutEngine,
@@ -80,7 +81,7 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
             height: node.size.height,
             layoutOptions: { 'elk.portConstraints': 'FIXED_POS' },
             ports: node.ports.map((port) => {
-              const point = portPosition(node, port.id);
+              const point = portBoundaryPosition(node, port.id);
               const side = { left: 'WEST', right: 'EAST', top: 'NORTH', bottom: 'SOUTH' }[
                 port.side
               ];
@@ -165,7 +166,24 @@ export function createElkLayout(options: ElkLayoutOptions = {}): LayoutEngine {
       const points = routePoints(sections, edge.id);
       if (!points.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y)))
         throw new FlowError('invalid-layout', `ELK returned an invalid route for ${edge.id}`);
-      return { id: edge.id, points };
+      const sourceNode = request.graph.nodes.find((node) => node.id === edge.source.node);
+      const targetNode = request.graph.nodes.find((node) => node.id === edge.target.node);
+      const sourcePosition = positions.find((position) => position.id === edge.source.node);
+      const targetPosition = positions.find((position) => position.id === edge.target.node);
+      if (!sourceNode || !targetNode || !sourcePosition || !targetPosition)
+        throw new FlowError('invalid-layout', 'Missing routed endpoint');
+      const anchored = [
+        portPosition({ ...sourceNode, position: sourcePosition }, edge.source.port),
+        ...points,
+        portPosition({ ...targetNode, position: targetPosition }, edge.target.port),
+      ];
+      return {
+        id: edge.id,
+        points: anchored.filter((point, index) => {
+          const previous = anchored[index - 1];
+          return !previous || previous.x !== point.x || previous.y !== point.y;
+        }),
+      };
     });
     return { requestId: request.requestId, revision: request.revision, positions, routes };
   };

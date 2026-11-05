@@ -16,7 +16,7 @@ import {
   validViewport,
   zoomAt,
 } from './geometry';
-import { copyGraph, FlowError, validateGraph } from './graph';
+import { copyGraph, FlowError, validateGraph, withPortPosition } from './graph';
 import { edgeIsVisible, groupAtDropPoint, presentGroups } from './group-presentation';
 import { expandParents } from './parent-expansion';
 import type {
@@ -1242,6 +1242,40 @@ export function updateEditor(
       const reason = connectionReason(state.graph, event.edge, policy);
       if (reason !== null) return { ...state, notice: reason, connection: null };
       return { ...commitGraph(state, copyGraph(graph)), notice: 'Connection created' };
+    }
+    case 'PortPositionsChanged': {
+      if (event.positions.length === 0) return state;
+      const byNode = new Map<string, Map<string, (typeof event.positions)[number]['position']>>();
+      for (const { endpoint, position } of event.positions) {
+        const node = state.graph.nodes.find((node) => node.id === endpoint.node);
+        if (!node?.ports.some((port) => port.id === endpoint.port))
+          throw new FlowError('invalid-edit', 'Port position edit references an unknown port');
+        const positions = byNode.get(endpoint.node) ?? new Map();
+        if (positions.has(endpoint.port))
+          throw new FlowError('invalid-edit', 'Port position edit repeats an endpoint');
+        positions.set(endpoint.port, position);
+        byNode.set(endpoint.node, positions);
+      }
+      let changed = false;
+      const nodes = state.graph.nodes.map((node) => {
+        const positions = byNode.get(node.id);
+        if (!positions) return node;
+        const ports = node.ports.map((port) => {
+          const position = positions.get(port.id);
+          if (!position) return port;
+          const updated = withPortPosition(port, position);
+          const same =
+            port.side === position.side &&
+            (port.anchor && position.anchor
+              ? port.anchor.x === position.anchor.x && port.anchor.y === position.anchor.y
+              : port.offset !== undefined && port.offset === position.offset);
+          if (same) return port;
+          changed = true;
+          return updated;
+        });
+        return { ...node, ports };
+      });
+      return changed ? commitGraph(state, { ...state.graph, nodes }) : state;
     }
     case 'PortActivated': {
       const port = state.graph.nodes

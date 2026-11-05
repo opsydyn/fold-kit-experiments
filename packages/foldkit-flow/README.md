@@ -606,7 +606,7 @@ cards/groups use these same primitives.
   Empty boundary space passes pointer events through to its descendants.
 - `flowDragHandle`: a native button carrying selection, movement, focus and drag
   behavior, with its node name and help description.
-- `flowPort`: a native connection button, centered on the Model's side/offset
+- `flowPort`: a native connection button, centered on the Model's authored anchor
   independent of its visual size. Keep ports as direct children of the frame.
 - `flowResizeHandle(builder, context, handle, attributes, children)`: a native
   resize button. Groups support eight directions; ordinary nodes use width-only
@@ -634,8 +634,7 @@ complete circular SVG shells, including different group chrome, ports and resize
 controls. Both use the same graph and package input lifecycle. The SVG artwork is
 inside a measured HTML frame; native buttons retain keyboard behavior.
 
-Arbitrary port anchors and full control/overlay composition remain follow-on
-work. `renderEdge` decorates the shared resolved path; the geometry policy below
+Full control/overlay composition remains follow-on work. `renderEdge` decorates the shared resolved path; the geometry policy below
 changes that path and its label anchor together. Follow-on boundaries are recorded in
 [ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
 
@@ -695,8 +694,8 @@ transforms/overrides and out of `renderEdge` if it differs from the resolved pat
 No policy functions are stored in Model or serialized documents.
 
 The sample's **Edge design** selector demonstrates raised arcs in both node
-presentations. Arbitrary port anchors, obstacle avoidance and custom-route bounds for Fit view
-remain outside this contract. Connection-drag previews use the contract below.
+presentations. Obstacle avoidance and custom-route bounds for Fit view remain
+outside this contract. Connection-drag previews use the contract below.
 
 ## Generated API reference
 
@@ -774,3 +773,69 @@ Gesture data stays in Model; geometry is derived and callbacks remain host view
 configuration. Preview functions and styles are not serialized.
 The sample combines **Edge design** with **Connection preview** choices for
 dashed, ribbon and hidden presentation in both card and SVG node designs.
+
+### Custom port anchors
+
+Ports support two mutually exclusive positions. Existing documents keep their
+cardinal side/offset form. Custom anchors use normalized coordinates in the node
+box; both fractions must be finite and between 0 and 1:
+
+```ts
+import type { Port } from '@opsydyn/foldkit-flow';
+
+const cardinal: Port = { id: 'out', kind: 'output', side: 'right', offset: 0.5 };
+const diagonal: Port = {
+  id: 'out',
+  kind: 'output',
+  side: 'right',
+  anchor: { x: 0.84, y: 0.16 },
+};
+```
+
+`side` is the outward routing/reconnection hint for either form. It does not move
+an explicit anchor. Do not provide both `offset` and `anchor`. `PortPosition`
+models that choice; `PortSide` names its direction. Use `portAnchor(port)` for
+normalized coordinates, `portPosition(node, id)` for the canonical world point,
+and `portBoundaryPosition(node, id)` for its projection onto the hinted box side.
+
+The same authored point drives public port presentation, edge geometry, previews
+and snapping to targets. Coordinates rescale with authored width and measured
+height. Frame primitives separate a border-free coordinate plane from the visual
+shell: frame attributes/classes/styles decorate that measured static shell, so
+borders and padding do not shift port centers. Keep ports as direct logical frame
+children and avoid positioned/transformed wrappers between them and the frame.
+Do not style private geometry elements. The existing restrictions against moving
+frames with CSS transforms or margins still apply.
+
+Change one or many positions atomically through the core:
+
+```ts
+const next = updateEditor(state, {
+  type: 'PortPositionsChanged',
+  positions: [
+    {
+      endpoint: { node: 'review', port: 'out' },
+      position: { side: 'right', anchor: { x: 0.84, y: 0.16 } },
+    },
+  ],
+});
+```
+
+Edits retain IDs, directions, labels and edge metadata. The batch validates before
+publication, detaches anchor coordinates, advances revision, clears cached routes
+and creates one Undo step. Duplicate/unknown endpoints and malformed positions
+are rejected. No-op batches leave history unchanged. Read-only and active-gesture
+protection use the normal core path.
+
+ELK receives fixed boundary projections and rejoins its routes to the exact
+anchors. Force routing extends its leads beyond the hinted node boundary before
+avoiding other cards. Reconnection controls use the same boundary hints so they
+remain reachable outside opaque node shells. Adapter routes may traverse their
+own endpoint node; custom-shape clipping/obstacle geometry is not inferred.
+
+`serializeGraph` preserves anchors in version 1 documents; legacy side/offset
+documents remain readable. Builds predating anchor support may reject custom
+anchor documents. Outside-box anchors and arbitrary routing normals are not
+supported in this slice. The sample's **Port anchors** selector demonstrates
+cardinal and diagonal circle-perimeter positions; it derives its value from the
+document so Undo, Redo and imports stay consistent.

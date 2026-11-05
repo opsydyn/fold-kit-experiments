@@ -35,7 +35,13 @@ import {
 export { resolveFlowDiagnostics } from './diagnostics';
 export type { FlowDiagnostics, FlowDiagnosticOptions } from './diagnostics';
 import { resolveEdgeGeometry, type FlowEdgeGeometryPolicy } from './edge-geometry';
-import { boxBounds, maximumZoom, minimapGeometry, minimumZoom, portPosition } from './geometry';
+import {
+  boxBounds,
+  maximumZoom,
+  minimapGeometry,
+  minimumZoom,
+  portBoundaryPosition,
+} from './geometry';
 export type {
   FlowEdgeGeometry,
   FlowEdgeGeometryContext,
@@ -1024,7 +1030,7 @@ export function flowView<M>(
             const node = state.graph.nodes.find((item) => item.id === endpoint.node);
             const port = node?.ports.find((item) => item.id === endpoint.port);
             if (!node || !port) return [];
-            const position = portPosition(node, port.id);
+            const position = portBoundaryPosition(node, port.id);
             const offsets = {
               left: [-24, 0],
               right: [24, 0],

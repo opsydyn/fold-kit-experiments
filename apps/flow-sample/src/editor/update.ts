@@ -15,6 +15,7 @@ import type { Return } from 'foldkit/update';
 import { ArrangeFlow, ExportFlow, ImportFlow, LoadFlow, SaveFlow } from './command';
 import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
+import { presetPosition } from './port-presets';
 
 export function update(model: Model, message: Message): Return<Model, Message> {
   const { snapToGrid, gridSpacing, snapToAlignment, selectionMode } = model.editor;
@@ -48,6 +49,20 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
+    SelectedPortAnchors: ({ preset }) => ({
+      model: {
+        ...model,
+        editor: updateEditor(model.editor, {
+          type: 'PortPositionsChanged',
+          positions: model.editor.graph.nodes.flatMap((node) =>
+            node.ports.map((port) => ({
+              endpoint: { node: node.id, port: port.id },
+              position: presetPosition(port, preset),
+            })),
+          ),
+        }),
+      },
+    }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     SelectedEdgeDesign: ({ edgeDesign }) => ({ model: { ...model, edgeDesign } }),
     SelectedNodeDesign: ({ nodeDesign }) => ({ model: { ...model, nodeDesign } }),

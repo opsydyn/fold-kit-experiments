@@ -35,7 +35,10 @@ The default view uses those same primitives.
 
 `FlowEdgeGeometryPolicy` resolves a shared path and label anchor for decoration,
 selection, labels and toolbar placement. `renderEdge` decorates that resolved
-path. Ports retain the supported cardinal side/offset geometry contract.
+path. Ports support legacy cardinal side/offset positions or normalized custom
+anchors. `PortPosition` makes those forms mutually exclusive; `portAnchor`,
+`portPosition` and `portBoundaryPosition` share their geometry across presentation
+and layout. `PortPositionsChanged` applies an undoable batch.
 `FlowDiagnosticOptions` supports individual diagnostics and global minimal mode.
 `FlowBackground` supports dots, squares, no background and host-rendered designs.
 
@@ -49,5 +52,5 @@ SVG preview while native port interactions, cancellation and Undo remain shared.
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are
 optional view peers; ELK and force layout are separately installed adapters.
 Policies and view configuration are functions outside serialized documents.
-Arbitrary port anchors and a complete overlay composition API are not part of
-the current contract.
+Outside-box anchors, arbitrary routing normals and a complete overlay
+composition API are not part of the current contract.

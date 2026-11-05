@@ -1,5 +1,6 @@
 import {
   portPosition,
+  portBoundaryPosition,
   type EdgeRoute,
   type FlowEdge,
   type FlowNode,
@@ -39,8 +40,12 @@ function portLead(node: FlowNode, id: string) {
   const port = node.ports.find((item) => item.id === id);
   if (!port) throw new Error(`Missing port ${id} on ${node.id}.`);
   const point = portPosition(node, id);
+  const boundary = portBoundaryPosition(node, id);
   const direction = directions[port.side];
-  return { point, outside: { x: point.x + direction.x * lead, y: point.y + direction.y * lead } };
+  return {
+    point,
+    outside: { x: boundary.x + direction.x * lead, y: boundary.y + direction.y * lead },
+  };
 }
 
 type Segment = Readonly<{ from: Point; to: Point }>;

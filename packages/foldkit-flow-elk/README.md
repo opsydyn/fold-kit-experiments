@@ -28,8 +28,10 @@ In an asynchronous application, the completion handler must use the **current**
 editor and active request from the Model. Never capture those old values and write
 them back on completion. Clear active requests on document replacement.
 
-The default direction is RIGHT; DOWN is also supported. Node sizes and each port's
-side/offset remain authoritative. User IDs are mapped to independent internal IDs.
+The default direction is RIGHT; DOWN is also supported. Node sizes and authored
+port anchors remain authoritative. Legacy side/offset ports keep their
+positions. Custom anchors are projected onto their declared side for ELK, then
+route leads join back to the exact authored points. User IDs are mapped to independent internal IDs.
 Input snapshots are not mutated. Engine failures reject the Promise; missing node
 positions or invalid routes reject with `FlowError` rather than inventing geometry.
 

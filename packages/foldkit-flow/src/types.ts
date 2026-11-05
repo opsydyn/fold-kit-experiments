@@ -3,20 +3,24 @@ export type JsonValue = null | boolean | number | string | readonly JsonValue[] 
 export interface JsonObject {
   readonly [key: string]: JsonValue;
 }
-/** A finite position in canvas/world units unless an input event specifies local CSS pixels. */
+/** Finite 2D coordinates; the owning contract specifies world units, CSS pixels or normalized fractions. */
 export type Point = Readonly<{ x: number; y: number }>;
 /** Positive finite dimensions, in the same coordinate system as the owning value. */
 export type Size = Readonly<{ width: number; height: number }>;
 /** CSS-pixel translation plus a world-to-screen zoom factor. */
 export type Viewport = Readonly<Point & { zoom: number }>;
-/** Named directed connection anchor. Offset is a fraction from 0 to 1 along its cardinal side. */
+/** Outward routing and reconnection direction hint. */
+export type PortSide = 'left' | 'right' | 'top' | 'bottom';
+/** Choose either a cardinal side offset, or normalized box coordinates. Never both. */
+export type PortPosition = Readonly<{ side: PortSide }> &
+  (Readonly<{ offset: number; anchor?: never }> | Readonly<{ anchor: Point; offset?: never }>);
+/** Named directed anchor. Coordinates and offsets are finite fractions from 0 to 1. */
 export type Port = Readonly<{
   id: string;
   kind: 'input' | 'output';
-  side: 'left' | 'right' | 'top' | 'bottom';
-  offset: number;
   label?: string;
-}>;
+}> &
+  PortPosition;
 /** Manual resize bounds in graph units; layout and content measurement are independent. */
 export type NodeResizeLimits = Readonly<{
   minWidth?: number;
@@ -223,6 +227,10 @@ export type EditorEvent =
   | Readonly<{ type: 'SurfaceMeasured'; size: Size }>
   | Readonly<{ type: 'EdgeReconnected'; id: string; end: 'source' | 'target'; endpoint: Endpoint }>
   | Readonly<{ type: 'ConnectionCreated'; edge: FlowEdge }>
+  | Readonly<{
+      type: 'PortPositionsChanged';
+      positions: readonly Readonly<{ endpoint: Endpoint; position: PortPosition }>[];
+    }>
   | Readonly<{ type: 'PortActivated'; endpoint: Endpoint }>
   | Readonly<{ type: 'CopyPressed' }>
   | Readonly<{ type: 'PastePressed' }>

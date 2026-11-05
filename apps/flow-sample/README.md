@@ -206,3 +206,9 @@ Raised-arc previews reuse the finished-edge curve function. Core validation driv
 free/valid/rejected feedback, including duplicate and wrong-direction ports;
 hiding the visual keeps valid drops enabled. See
 [connection preview qualification](evidence/connection-preview.md).
+
+The **Port anchors** selector applies a single undoable document edit using the
+public `PortPositionsChanged` event. Diagonal anchors sit on the SVG circle's
+perimeter. Its value is derived from saved port data, including custom imported
+positions. Both node designs, previews, reconnection, ELK and force layout use the
+same geometry; see [anchor qualification](evidence/port-anchors.md).

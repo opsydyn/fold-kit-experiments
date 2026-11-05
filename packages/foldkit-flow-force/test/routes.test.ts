@@ -55,3 +55,30 @@ test('separate connections use a free corridor instead of sharing a long segment
     }
   }
 });
+
+test('custom interior anchors leave node bounds before obstacle routing and return to authored endpoints', () => {
+  const nodes: FlowGraph['nodes'] = [
+    {
+      id: 'a',
+      label: 'A',
+      position: { x: 0, y: 0 },
+      size: { width: 160, height: 100 },
+      ports: [{ id: 'out', kind: 'output', side: 'right', anchor: { x: 0.75, y: 0.2 } }],
+    },
+    {
+      id: 'b',
+      label: 'B',
+      position: { x: 400, y: 100 },
+      size: { width: 160, height: 100 },
+      ports: [{ id: 'in', kind: 'input', side: 'left', anchor: { x: 0.25, y: 0.8 } }],
+    },
+  ];
+  const result = routeForceEdges(nodes, [
+    { id: 'ab', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } },
+  ]);
+  expect(result).toHaveLength(1);
+  expect(result[0]?.points[0]).toEqual({ x: 120, y: 20 });
+  expect(result[0]?.points[1]).toEqual({ x: 176, y: 20 });
+  expect(result[0]?.points.at(-1)).toEqual({ x: 440, y: 180 });
+  expect(result[0]?.points.at(-2)).toEqual({ x: 384, y: 180 });
+});

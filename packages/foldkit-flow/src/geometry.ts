@@ -1,5 +1,14 @@
 import { FlowError } from './graph';
-import type { EdgePathStyle, FlowEdge, FlowGraph, FlowNode, Point, Size, Viewport } from './types';
+import type {
+  EdgePathStyle,
+  FlowEdge,
+  FlowGraph,
+  FlowNode,
+  Port,
+  Point,
+  Size,
+  Viewport,
+} from './types';
 
 export const gridSpacing = 20;
 export const minimumZoom = 0.1;
@@ -36,26 +45,49 @@ export function boxBounds(origin: Point, point: Point) {
   };
 }
 
+/** Normalized position in the node's box; the side remains an independent routing hint. */
+export function portAnchor(port: Port): Point {
+  if (port.anchor) return port.anchor;
+  switch (port.side) {
+    case 'left':
+      return { x: 0, y: port.offset };
+    case 'right':
+      return { x: 1, y: port.offset };
+    case 'top':
+      return { x: port.offset, y: 0 };
+    case 'bottom':
+      return { x: port.offset, y: 1 };
+  }
+}
+
+/** Canonical world-space anchor used by views, edge geometry and previews. */
 export function portPosition(node: FlowNode, id: string): Point {
   const port = node.ports.find((item) => item.id === id);
   if (!port) throw new FlowError('invalid-graph', `Unknown port ${id} on ${node.id}`);
+  const anchor = portAnchor(port);
+  return {
+    x: node.position.x + node.size.width * anchor.x,
+    y: node.position.y + node.size.height * anchor.y,
+  };
+}
+
+/** Boundary projection along the routing hint; adapters use this before joining back to the authored anchor. */
+export function portBoundaryPosition(node: FlowNode, id: string): Point {
+  const port = node.ports.find((item) => item.id === id);
+  if (!port) throw new FlowError('invalid-graph', `Unknown port ${id} on ${node.id}`);
+  const point = portPosition(node, id);
   switch (port.side) {
     case 'left':
-      return { x: node.position.x, y: node.position.y + node.size.height * port.offset };
+      return { x: node.position.x, y: point.y };
     case 'right':
-      return {
-        x: node.position.x + node.size.width,
-        y: node.position.y + node.size.height * port.offset,
-      };
+      return { x: node.position.x + node.size.width, y: point.y };
     case 'top':
-      return { x: node.position.x + node.size.width * port.offset, y: node.position.y };
+      return { x: point.x, y: node.position.y };
     case 'bottom':
-      return {
-        x: node.position.x + node.size.width * port.offset,
-        y: node.position.y + node.size.height,
-      };
+      return { x: point.x, y: node.position.y + node.size.height };
   }
 }
+
 /** Same authored padding for new groups and fitting existing boundaries. */
 export function fittedGroupBounds(contents: readonly FlowNode[]) {
   const left = Math.min(...contents.map((node) => node.position.x)) - 24;

@@ -6,6 +6,7 @@ import {
   createEditor,
   layoutRequest,
   portPosition,
+  portBoundaryPosition,
   type FlowGraph,
 } from '@opsydyn/foldkit-flow';
 
@@ -117,5 +118,73 @@ test('real ELK lays out nested boundaries and joins routes that cross them', asy
     expect(arranged.routes[0]?.points[0]).toEqual(portPosition(source, 'p:0:0'));
     expect(arranged.routes[0]?.points.at(-1)).toEqual(portPosition(sink, 'in'));
     expect(updateEditor(arranged, { type: 'UndoPressed' }).graph).toEqual(before.graph);
+  }
+});
+
+test('custom anchors route through declared boundary hints and rejoin authored endpoints', async () => {
+  const authored: FlowGraph = {
+    ...graph,
+    nodes: graph.nodes.map((node) => ({
+      ...node,
+      ports: node.ports.map((port) => ({
+        id: port.id,
+        kind: port.kind,
+        side: port.side,
+        anchor: {
+          x: port.kind === 'output' ? 0.75 : 0.25,
+          y: port.kind === 'output' ? 0.15 : 0.85,
+        },
+      })),
+    })),
+  };
+  const before = createEditor(authored),
+    request = layoutRequest(before, 'anchors');
+  const result = await createElkLayout()(request),
+    arranged = applyLayout(before, request, result);
+  const route = result.routes[0],
+    source = arranged.graph.nodes[0],
+    target = arranged.graph.nodes[1];
+  expect(route).toBeDefined();
+  expect(source).toBeDefined();
+  expect(target).toBeDefined();
+  if (!route || !source || !target) return;
+  expect(route.points[0]).toEqual(portPosition(source, 'p:0:0'));
+  expect(route.points.at(-1)).toEqual(portPosition(target, 'in'));
+  expect(route.points[1]?.x).toBe(source.position.x + source.size.width);
+  expect(route.points.at(-2)?.x).toBe(target.position.x);
+  expect(arranged.graph.nodes.map((node) => node.ports)).toEqual(
+    authored.nodes.map((node) => node.ports),
+  );
+  expect(updateEditor(arranged, { type: 'UndoPressed' }).graph).toEqual(before.graph);
+});
+
+test('custom anchors retain their boundary hints for every side under real ELK', async () => {
+  const opposite = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' } as const;
+  for (const side of ['left', 'right', 'top', 'bottom'] as const) {
+    const authored: FlowGraph = {
+      ...graph,
+      nodes: graph.nodes.map((node) => ({
+        ...node,
+        ports: node.ports.map((port) => ({
+          id: port.id,
+          kind: port.kind,
+          side: port.kind === 'output' ? side : opposite[side],
+          anchor: { x: 0.3, y: 0.7 },
+        })),
+      })),
+    };
+    const state = createEditor(authored),
+      request = layoutRequest(state, side),
+      result = await createElkLayout()(request),
+      arranged = applyLayout(state, request, result);
+    const source = arranged.graph.nodes[0],
+      target = arranged.graph.nodes[1],
+      route = result.routes[0];
+    expect(route).toBeDefined();
+    if (!source || !target || !route) return;
+    expect(route.points[1]?.x).toBeCloseTo(portBoundaryPosition(source, 'p:0:0').x, 8);
+    expect(route.points[1]?.y).toBeCloseTo(portBoundaryPosition(source, 'p:0:0').y, 8);
+    expect(route.points.at(-2)?.x).toBeCloseTo(portBoundaryPosition(target, 'in').x, 8);
+    expect(route.points.at(-2)?.y).toBeCloseTo(portBoundaryPosition(target, 'in').y, 8);
   }
 });

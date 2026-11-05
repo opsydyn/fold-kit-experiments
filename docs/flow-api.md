@@ -10,7 +10,7 @@ The route is populated by the updated Pages workflow after merge/deployment.
 The reference includes:
 
 - `@opsydyn/foldkit-flow`: graph/port types, editor state/events, serialization,
-  history, layout publication, shared edge geometry and connection-preview policies.
+  history, layout publication, shared edge geometry, custom port anchors and connection-preview policies.
 - `@opsydyn/foldkit-flow/foldkit`: view options, node/group shells, public
   interaction primitives, diagnostics and background contracts.
 - `@opsydyn/foldkit-flow-elk`: ELK layout options and adapter factory.

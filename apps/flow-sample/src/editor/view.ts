@@ -9,7 +9,15 @@ import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
-import { BackgroundStyle, ConnectionDesign, EdgeDesign, NodeDesign, type Model } from './model';
+import {
+  BackgroundStyle,
+  PortAnchorPreset,
+  ConnectionDesign,
+  EdgeDesign,
+  NodeDesign,
+  type Model,
+} from './model';
+import { currentPreset } from './port-presets';
 import { orbitNode, orbitGroup, raisedEdge, raisedConnection } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
@@ -617,6 +625,53 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.option(
                   [h.Value('hidden'), h.Selected(model.connectionDesign === 'hidden')],
                   ['Hidden'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Port anchors',
+            h.select(
+              [
+                h.AriaLabel('Port anchors'),
+                h.Value(currentPreset(model.editor.graph)),
+                h.Disabled(
+                  model.editor.readOnly ||
+                    model.editor.gesture.type !== 'idle' ||
+                    model.editor.graph.nodes.every((node) => node.ports.length === 0),
+                ),
+                h.OnChange((value) =>
+                  Message.SelectedPortAnchors({
+                    preset: Schema.decodeUnknownSync(PortAnchorPreset)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [
+                    h.Value('cardinal'),
+                    h.Selected(currentPreset(model.editor.graph) === 'cardinal'),
+                  ],
+                  ['Cardinal'],
+                ),
+                h.option(
+                  [
+                    h.Value('diagonal'),
+                    h.Selected(currentPreset(model.editor.graph) === 'diagonal'),
+                  ],
+                  ['Diagonal · circle perimeter'],
+                ),
+                h.option(
+                  [
+                    h.Value('custom'),
+                    h.Selected(currentPreset(model.editor.graph) === 'custom'),
+                    h.Disabled(true),
+                  ],
+                  ['Custom document positions'],
                 ),
               ],
             ),

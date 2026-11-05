@@ -1,6 +1,7 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { FlowDiagnostics } from './diagnostics';
+import { portAnchor } from './geometry';
 import { FlowError } from './graph';
 import type { FlowEdge, EditorState, FlowNode, Port, ResizeHandle } from './types';
 
@@ -45,12 +46,15 @@ export function flowNodeFrame<M>(
   const { node } = context;
   return h.div(
     [
-      ...attributesWithGeometry(h, attributes, {
+      ...attributesWithGeometry(h, [], {
         position: 'absolute',
         left: `${node.position.x}px`,
         top: `${node.position.y}px`,
         width: `${node.size.width}px`,
         'box-sizing': 'border-box',
+        border: '0',
+        padding: '0',
+        margin: '0',
         'pointer-events': 'auto',
       }),
       h.Key(node.id),
@@ -58,7 +62,16 @@ export function flowNodeFrame<M>(
       h.DataAttribute('flow-x', String(node.position.x)),
       h.DataAttribute('flow-y', String(node.position.y)),
     ],
-    children,
+    [
+      h.div(
+        attributesWithGeometry(h, attributes, {
+          position: 'static',
+          width: '100%',
+          'box-sizing': 'border-box',
+        }),
+        children,
+      ),
+    ],
   );
 }
 
@@ -72,13 +85,16 @@ export function flowGroupFrame<M>(
   const { node } = context;
   return h.div(
     [
-      ...attributesWithGeometry(h, attributes, {
+      ...attributesWithGeometry(h, [], {
         position: 'absolute',
         left: `${node.position.x}px`,
         top: `${node.position.y}px`,
         width: `${node.size.width}px`,
         height: `${node.size.height}px`,
         'box-sizing': 'border-box',
+        border: '0',
+        padding: '0',
+        margin: '0',
         'pointer-events': 'none',
       }),
       h.Key(node.id),
@@ -86,7 +102,17 @@ export function flowGroupFrame<M>(
       h.DataAttribute('flow-collapsed', String(context.collapsed)),
       ...(context.dropTarget ? [h.DataAttribute('flow-group-drop-target', '')] : []),
     ],
-    children,
+    [
+      h.div(
+        attributesWithGeometry(h, attributes, {
+          position: 'static',
+          width: '100%',
+          height: '100%',
+          'box-sizing': 'border-box',
+        }),
+        children,
+      ),
+    ],
   );
 }
 
@@ -110,7 +136,7 @@ export function flowDragHandle<M>(
   );
 }
 
-/** Centers the target on its Model side/offset. Style its size and contents freely; keep it a direct frame child. */
+/** Centers the target on its authored normalized anchor. Style size and contents freely; keep it a direct frame child. */
 export function flowPort<M>(
   h: HtmlBuilder<M>,
   context: Context,
@@ -119,17 +145,13 @@ export function flowPort<M>(
   children: Children<M>,
 ): Html {
   const { node, state } = context;
-  const offset = `${port.offset * 100}%`;
-  const anchor = {
-    left: { left: '0', top: offset, transform: 'translate(-50%, -50%)' },
-    right: { left: '100%', top: offset, transform: 'translate(-50%, -50%)' },
-    top: { left: offset, top: '0', transform: 'translate(-50%, -50%)' },
-    bottom: { left: offset, top: '100%', transform: 'translate(-50%, -50%)' },
-  }[port.side];
+  const anchor = portAnchor(port);
   return h.button(
     [
       ...attributesWithGeometry(h, attributes, {
-        ...anchor,
+        left: `${anchor.x * 100}%`,
+        top: `${anchor.y * 100}%`,
+        transform: 'translate(-50%, -50%)',
         right: 'auto',
         bottom: 'auto',
         position: 'absolute',

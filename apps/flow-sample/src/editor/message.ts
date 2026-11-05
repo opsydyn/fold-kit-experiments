@@ -1,10 +1,18 @@
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
-import { ConnectionDesign, EdgeDesign, NodeDesign, BackgroundStyle, DiagnosticFlag } from './model';
+import {
+  PortAnchorPreset,
+  ConnectionDesign,
+  EdgeDesign,
+  NodeDesign,
+  BackgroundStyle,
+  DiagnosticFlag,
+} from './model';
 export const Message = defineMessageUnion({
   ObservedFlowInput: { message: Schema.Unknown },
   SelectedExample: { example: Schema.Literals(['release', 'onion', 'grouped-onion']) },
+  SelectedPortAnchors: { preset: PortAnchorPreset },
   SelectedConnectionDesign: { connectionDesign: ConnectionDesign },
   SelectedEdgeDesign: { edgeDesign: EdgeDesign },
   SelectedNodeDesign: { nodeDesign: NodeDesign },

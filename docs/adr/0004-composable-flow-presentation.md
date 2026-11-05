@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for node/group composition, shared edge geometry and connection previews on
+Accepted for node/group composition, edge geometry, connection previews and custom port anchors on
 2026-11-05 following user approval. The broader layering principle guides subsequent slices; arbitrary
 port geometry and complete overlay/control composition remain follow-on work.
 
@@ -240,3 +240,43 @@ into the sample. Dedicated geometry/render hooks are smaller and preserve core
 ownership. Arbitrary port anchors and full controls/overlay composition remain
 follow-on work. Qualification includes pure and rendered tests, packed consumers,
 TypeDoc, and browser creation/reconnection/cancellation/Undo in both node designs.
+
+## Model-owned custom port anchors
+
+The approved anchor slice adds a mutually exclusive `PortPosition` union:
+legacy cardinal side/offset or normalized box coordinates with a cardinal routing
+hint. Existing ports and documents remain readable. Anchors are finite fractions
+in [0, 1]; both position forms together are invalid. Functions, DOM references and
+view-specific coordinate stores are not added to document data.
+
+The pure core owns normalization, world coordinates, boundary projection,
+validation and the atomic `PortPositionsChanged` event. Positions detach caller
+coordinates and preserve IDs, kind, labels and edges. One batch is one document
+revision/history transaction and invalidates routes/stale layout results. Empty
+or unchanged valid batches do not add history.
+
+The FoldKit frame keeps a border/padding-free coordinate plane around the
+measured static visual shell. Public attributes decorate that shell. This avoids
+CSS borders changing the containing box used by port percentages; the host does
+not copy bindings or compensate with selector overrides. Ordinary height remains
+a measurement fact. Group bounds remain authored. Positioned/transformed nested
+containers are outside the direct-frame-child port contract.
+
+ELK and force adapters consume core boundary projections along the side hint.
+ELK routes its fixed boundary ports then rejoins the authored interior/custom
+points; force leads exit the node box before avoiding other cards. Reconnection
+controls use boundary hints to stay reachable outside opaque node shells. Core
+edge and preview geometry continue to resolve the canonical authored points.
+
+Alternatives rejected: CSS-only handles (geometry disagrees), per-view anchor
+callbacks (layout snapshots cannot reproduce them), and arbitrary routing normals
+or outside-box coordinates in this first slice (larger layout contract). The
+side hint is deliberately separate from the anchor's location. Adapters do not
+infer the node's painted shape or its internal obstacles. Version 1 gains an
+additional accepted port representation; older strict readers may reject it.
+
+Qualification covers invalid/ambiguous data, save/reload, atomic edits and Undo,
+measurement, stale layouts, thick visual borders, real ELK for every side, force
+route leads, external packed APIs and browser geometry/editing in both node
+designs. The sample's coordinate preset is illustrative host data; the reusable
+behavior and contracts ship in packages.

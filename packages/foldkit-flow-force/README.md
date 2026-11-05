@@ -67,3 +67,8 @@ bun run --filter @opsydyn/foldkit-flow-force pack:check
 The package ships ESM, TypeScript declarations, an MIT licence, and third-party
 notices. Publish compatible Flow core and Viz versions before releasing this
 adapter through the repository's manual publish workflow.
+
+Custom normalized port anchors use the core's canonical points. Routing leads
+extend beyond the declared side of the node box before avoiding other cards;
+returned routes start/end at the authored anchors. This does not infer custom
+shape obstacles or arbitrary outward normals.

@@ -2,6 +2,11 @@
 
 ## 0.1.0 (unreleased)
 
+- Add normalized custom port anchors, shared coordinate/boundary helpers and
+  atomic port-position editing with validation, serialization and Undo.
+- Isolate the measured visual shell from the frame coordinate plane so borders
+  and padding do not shift authored anchors.
+
 - Add pure connection-preview geometry and decorative SVG hooks, with core-owned
   valid/rejected target feedback and shared validation for hover and drop.
 - Preserve logical path direction when reconnecting sources and follow authored

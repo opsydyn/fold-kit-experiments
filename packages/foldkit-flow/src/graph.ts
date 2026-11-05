@@ -7,6 +7,7 @@ import type {
   JsonValue,
   Point,
   Port,
+  PortPosition,
   Size,
 } from './types';
 
@@ -69,14 +70,32 @@ function isPort(value: unknown): value is Port {
       value.side === 'right' ||
       value.side === 'top' ||
       value.side === 'bottom') &&
-    'offset' in value &&
-    typeof value.offset === 'number' &&
-    Number.isFinite(value.offset) &&
-    value.offset >= 0 &&
-    value.offset <= 1 &&
+    (('anchor' in value &&
+      !('offset' in value) &&
+      isPoint(value.anchor) &&
+      value.anchor.x >= 0 &&
+      value.anchor.x <= 1 &&
+      value.anchor.y >= 0 &&
+      value.anchor.y <= 1) ||
+      (!('anchor' in value) &&
+        'offset' in value &&
+        typeof value.offset === 'number' &&
+        Number.isFinite(value.offset) &&
+        value.offset >= 0 &&
+        value.offset <= 1)) &&
     (!('label' in value) || typeof value.label === 'string')
   );
 }
+/** Internal edit boundary: validate positioning while preserving identity and detaching anchor values. */
+export function withPortPosition(port: Port, position: PortPosition): Port {
+  if (!isPort({ ...position, id: port.id, kind: port.kind }))
+    throw new FlowError('invalid-edit', 'Invalid port position');
+  const { side: _side, anchor: _anchor, offset: _offset, ...identity } = port;
+  return position.anchor
+    ? { ...identity, side: position.side, anchor: { x: position.anchor.x, y: position.anchor.y } }
+    : { ...identity, side: position.side, offset: position.offset };
+}
+
 function isEndpoint(value: unknown): value is Endpoint {
   return (
     typeof value === 'object' &&

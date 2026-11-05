@@ -62,14 +62,18 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       ],
       { ...options, cwd: directory },
     );
-    const source = `import { createEditor, updateEditor, layoutRequest, applyLayout, resolveConnectionPreview, type FlowConnectionGeometryPolicy, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
+    const source = `import { createEditor, updateEditor, layoutRequest, applyLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type FlowConnectionGeometryPolicy, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
 import { flowView, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, flowEdgeHitTarget, resolveFlowDiagnostics, type FlowViewOptions, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-flow-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
 const externalEdge:FlowEdge={id:'external-edge',source:{node:'a',port:'out'},target:{node:'b',port:'in'},label:'External relation'};
-const graph: FlowGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[{id:'out',kind:'output',side:'right',offset:0.5}]},{id:'b',label:'Target',position:{x:300,y:0},size:{width:100,height:80},ports:[{id:'in',kind:'input',side:'left',offset:0.5}]}],edges:[externalEdge]};
+const graph: FlowGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[{id:'out',kind:'output',side:'right',anchor:{x:0.75,y:0.25}}]},{id:'b',label:'Target',position:{x:300,y:0},size:{width:100,height:80},ports:[{id:'in',kind:'input',side:'left',anchor:{x:0.25,y:0.75}}]}],edges:[externalEdge]};
+const first=graph.nodes[0],firstPort=first?.ports[0];
+if (!first || !firstPort || portAnchor(firstPort).x!==0.75 || portPosition(first,firstPort.id).x!==75 || portBoundaryPosition(first,firstPort.id).x!==100) throw new Error('Missing packed anchor geometry');
+const movedPorts=updateEditor(createEditor(graph),{type:'PortPositionsChanged',positions:[{endpoint:{node:'a',port:'out'},position:{side:'right',anchor:{x:0.6,y:0.4}}}]});
+if (movedPorts.graph.nodes[0]?.ports[0]?.anchor?.x!==0.6 || movedPorts.past.length!==1) throw new Error('Missing packed anchor editing');
 const groupState=createEditor({nodes:[{id:'g',kind:'group',label:'Group',position:{x:0,y:0},size:{width:400,height:200},ports:[]}],edges:[]});
 const sized=updateEditor(groupState,{type:'GroupDimensionChanged',id:'g',dimension:'height',value:240});
 if (sized.graph.nodes[0]?.size.height!==240) throw new Error('Missing packed dimension editing');

@@ -7,6 +7,22 @@ import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import {
+  flowEdgeLabelBadge,
+  flowEdgeLabelForm,
+  flowEdgeLabelInput,
+  flowEdgeLabelCancel,
+  type FlowEdgeLabelContext,
+  type FlowEdgeLabelEditorContext,
+} from './edge-label';
+export {
+  flowEdgeLabelBadge,
+  flowEdgeLabelForm,
+  flowEdgeLabelInput,
+  flowEdgeLabelCancel,
+} from './edge-label';
+export type { FlowEdgeLabelContext, FlowEdgeLabelEditorContext } from './edge-label';
+
+import {
   flowViewportControl,
   flowMinimap,
   flowMinimapViewport,
@@ -121,6 +137,13 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     renderGroupShell?: (context: FlowNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Decorative SVG along Flow's path. Return undefined to use the built-in renderer. */
     renderEdge?: (context: FlowEdgeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** Replaces the badge at the resolved anchor. Undefined uses the default; null hides the badge. */
+    renderEdgeLabel?: (context: FlowEdgeLabelContext, h: HtmlBuilder<M>) => Html | null | undefined;
+    /** Replaces the active inline editor. Undefined uses the default form. */
+    renderEdgeLabelEditor?: (
+      context: FlowEdgeLabelEditorContext,
+      h: HtmlBuilder<M>,
+    ) => Html | undefined;
     /** Resolves one path and label anchor for decoration, selection and controls. */
     edgeGeometry?: FlowEdgeGeometryPolicy;
     /** Pure geometry for new connections and either end of a reconnection. */
@@ -949,25 +972,47 @@ export function flowView<M>(
       ],
     );
   });
-  const edgeLabels = edgeGeometries.flatMap(({ edge, labelPosition: center }) => {
-    const draft = state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
-    if (!draft && !edge.label && (state.readOnly || !state.selectedEdges.includes(edge.id)))
-      return [];
-    if (!center) return [];
-    const description = `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`;
-    const cancel = options.onEvent({ type: 'EdgeLabelCancelled', id: edge.id });
-    const chipStyle = {
-      background: 'var(--flow-node-background, #fff)',
-      color: 'var(--flow-node-color, #172033)',
-      border: '1px solid var(--flow-node-border, #cbd5e1)',
-      'border-radius': '6px',
-      padding: '3px 8px',
-      'font-size': '13px',
-      'max-width': '240px',
-      overflow: 'hidden',
-      'text-overflow': 'ellipsis',
-      'white-space': 'nowrap',
+  const chipStyle = {
+    background: 'var(--flow-node-background, #fff)',
+    color: 'var(--flow-node-color, #172033)',
+    border: '1px solid var(--flow-node-border, #cbd5e1)',
+    'border-radius': '6px',
+    padding: '3px 8px',
+    'font-size': '13px',
+    'max-width': '240px',
+    overflow: 'hidden',
+    'text-overflow': 'ellipsis',
+    'white-space': 'nowrap',
+  };
+  const edgeLabels = edgeGeometries.flatMap(({ edge, labelPosition }) => {
+    const selected = state.selectedEdges.includes(edge.id);
+    const draft =
+      !state.readOnly && state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
+    if (!labelPosition || (!draft && !edge.label && (state.readOnly || !selected))) return [];
+    const context: FlowEdgeLabelContext = {
+      edge,
+      labelPosition,
+      description: `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`,
+      selected,
+      readOnly: state.readOnly,
     };
+    const { onEvent } = options;
+    const editor = draft ? { ...context, draft: draft.text } : null;
+    const content = editor
+      ? (options.renderEdgeLabelEditor?.(editor, h) ??
+        flowEdgeLabelForm(
+          h,
+          editor,
+          onEvent,
+          [h.Style({ ...chipStyle, display: 'flex', gap: '4px', 'max-width': 'none' })],
+          [
+            flowEdgeLabelInput(h, editor, onEvent, []),
+            h.button([h.Type('submit')], ['Save label']),
+            flowEdgeLabelCancel(h, editor, onEvent, [], ['Cancel']),
+          ],
+        ))
+      : options.renderEdgeLabel?.(context, h);
+    if (content === null) return [];
     return [
       h.div(
         [
@@ -975,54 +1020,22 @@ export function flowView<M>(
           h.DataAttribute('flow-no-drag', ''),
           h.Style({
             position: 'absolute',
-            left: `${center.x}px`,
-            top: `${center.y}px`,
+            left: `${labelPosition.x}px`,
+            top: `${labelPosition.y}px`,
             transform: 'translate(-50%, -50%)',
             'pointer-events': state.readOnly ? 'none' : 'auto',
             'z-index': draft ? '2' : 'auto',
           }),
         ],
         [
-          draft
-            ? h.form(
-                [
-                  h.OnSubmit(options.onEvent({ type: 'EdgeLabelSaved', id: edge.id })),
-                  h.OnKeyDownPreventDefault((key) =>
-                    key === 'Escape' ? Option.some(cancel) : Option.none(),
-                  ),
-                  h.Style({ ...chipStyle, display: 'flex', gap: '4px', 'max-width': 'none' }),
-                ],
-                [
-                  h.input([
-                    h.Type('text'),
-                    h.AriaLabel(`Edge label for ${description}`),
-                    h.Autofocus(true),
-                    h.Value(draft.text),
-                    h.OnInput((text) =>
-                      options.onEvent({ type: 'EdgeLabelDraftChanged', id: edge.id, text }),
-                    ),
-                  ]),
-                  h.button([h.Type('submit')], ['Save label']),
-                  h.button([h.Type('button'), h.OnClick(cancel)], ['Cancel']),
-                ],
-              )
-            : state.readOnly
-              ? h.div([h.Style(chipStyle), h.Title(edge.label ?? '')], [edge.label ?? ''])
-              : h.button(
-                  [
-                    h.Type('button'),
-                    h.AriaLabel(
-                      edge.label
-                        ? `Edit edge label ${edge.label} for ${description}`
-                        : `Add label for ${description}`,
-                    ),
-                    h.Title(edge.label ?? description),
-                    h.DataAttribute('flow-context-edge', edge.id),
-                    h.Style({ ...chipStyle, cursor: 'pointer' }),
-                    h.OnClick(options.onEvent({ type: 'EdgeLabelEditingStarted', id: edge.id })),
-                  ],
-                  [edge.label || 'Add label'],
-                ),
+          content ??
+            flowEdgeLabelBadge(
+              h,
+              context,
+              onEvent,
+              [h.Style({ ...chipStyle, cursor: state.readOnly ? 'inherit' : 'pointer' })],
+              [edge.label || 'Add label'],
+            ),
         ],
       ),
     ];

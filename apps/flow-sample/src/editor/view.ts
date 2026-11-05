@@ -18,11 +18,19 @@ import {
   PortAnchorPreset,
   ConnectionDesign,
   EdgeDesign,
+  EdgeLabelDesign,
   NodeDesign,
   type Model,
 } from './model';
 import { currentPreset } from './port-presets';
-import { orbitNode, orbitGroup, raisedEdge, raisedConnection } from './presentation';
+import {
+  orbitNode,
+  orbitGroup,
+  raisedEdge,
+  raisedConnection,
+  edgeBadge,
+  edgeBadgeEditor,
+} from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -605,6 +613,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Edge labels',
+            h.select(
+              [
+                h.AriaLabel('Edge labels'),
+                h.Value(model.edgeLabelDesign),
+                h.OnChange((value) =>
+                  Message.SelectedEdgeLabelDesign({
+                    edgeLabelDesign: Schema.decodeUnknownSync(EdgeLabelDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.edgeLabelDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('badge'), h.Selected(model.edgeLabelDesign === 'badge')],
+                  ['Badge and inline editor'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Connection preview',
             h.select(
               [
@@ -808,6 +844,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             );
           },
           id: 'flow-demo',
+          renderEdgeLabel: (context, builder) =>
+            model.edgeLabelDesign === 'badge' ? edgeBadge(context, builder) : undefined,
+          renderEdgeLabelEditor: (context, builder) =>
+            model.edgeLabelDesign === 'badge' ? edgeBadgeEditor(context, builder) : undefined,
           connectionGeometry: (context) => {
             if (model.edgeDesign === 'raised') return raisedConnection(context);
             return undefined;

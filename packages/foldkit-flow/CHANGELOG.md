@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add custom edge label badges and inline editors through optional FoldKit view
+  hooks and native form primitives. Both use the existing label anchor and draft.
+
 - Add composable viewport controls and minimaps, with typed navigation actions,
   independently styled SVG content and viewport outline, and keyboard navigation.
   Default and custom designs share the same camera events and diagnostics gates.

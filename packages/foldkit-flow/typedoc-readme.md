@@ -53,6 +53,11 @@ provides visible node and camera geometry; use `flowMinimap` for input and
 `flowMinimapViewport` for an optional, separately styled camera outline. The
 `renderViewportControls` and `renderMinimap` hooks use these same contracts.
 
+`renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
+at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
+`flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and
+Model-owned editing.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

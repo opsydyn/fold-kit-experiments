@@ -158,6 +158,35 @@ edges. Select an unlabeled connection and choose **Add label**, or activate
 an existing label to edit it. Enter saves, Escape cancels, and saving a blank
 label removes it. Saving is one undo step. Read-only views display saved labels.
 
+Use `renderEdgeLabel` for a custom badge and `renderEdgeLabelEditor` for an
+inline editor. Each hook receives the edge, selection state, endpoint
+description, and the same world anchor used by the default label. The editor
+also receives the current draft. The view positions both in a protected HTML
+layer on the canvas, so pointer and keyboard input inside a label can be used
+without triggering canvas gestures.
+
+```ts
+// Import these primitives from @opsydyn/foldkit-flow/foldkit.
+renderEdgeLabel: (context, h) =>
+  flowEdgeLabelBadge(h, context, onEvent, [h.Class('relation-badge')], [
+    context.edge.label || 'Add label',
+  ]),
+renderEdgeLabelEditor: (context, h) =>
+  flowEdgeLabelForm(h, context, onEvent, [h.Class('relation-editor')], [
+    flowEdgeLabelInput(h, context, onEvent, []),
+    h.button([h.Type('submit')], ['Apply label']),
+    flowEdgeLabelCancel(h, context, onEvent, [], ['Discard']),
+  ]),
+```
+
+Pass the same `onEvent` mapping used by `flowView`. The badge is a native edit
+button in editable views and static text in read-only views. The form handles
+submit and Escape, while the input reads and updates the Model draft. Return
+`undefined` from either hook to use the default. Return `null` from
+`renderEdgeLabel` to hide the badge while retaining any enabled Rename action.
+The hooks require a resolved label anchor. Saved labels and selected editable
+unlabeled edges are eligible for the badge hook.
+
 Set an edge's optional `pathStyle` to `straight`, `stepped`, or `smooth`.
 These styles draw between the current ports and take precedence over layout
 routes. `EdgePathStyleChanged` saves the style in one undo step. Pass
@@ -666,7 +695,7 @@ complete circular SVG shells, including different group chrome, ports and resize
 controls. Both use the same graph and package input lifecycle. The SVG artwork is
 inside a measured HTML frame; native buttons retain keyboard behavior.
 
-Edge labels, edge action panels and context menus still use the shipped markup. `renderEdge` decorates the shared resolved path; the geometry policy below
+Edge action panels and context menus use the shipped markup. `renderEdge` decorates the shared resolved path; the geometry policy below
 changes that path and its label anchor together. Follow-on boundaries are recorded in
 [ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
 

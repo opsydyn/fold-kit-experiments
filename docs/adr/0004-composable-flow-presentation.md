@@ -291,3 +291,13 @@ its inner SVG defines pointer coordinates. The camera rectangle is an optional
 child so consumers own its placement and paint. Relative keyboard pan events
 update the current viewport without editing the graph or creating history.
 Both hooks respect the existing visibility and diagnostics gates.
+
+### Edge labels
+
+Label hooks render HTML inside Flow's existing positioned frame. The frame
+shares the edge geometry policy's anchor and separates label input from canvas
+gestures. Public badge, form, input and cancel primitives handle the native
+controls while the host owns the contents and styling. A standalone label
+positioning API would require callers to duplicate frame and input bindings.
+Keeping the frame in Flow also gives both renderers the existing read-only,
+draft and undo behavior. Callers can hide a badge independently of editing.

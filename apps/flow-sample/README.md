@@ -217,3 +217,13 @@ same geometry; see [anchor qualification](evidence/port-anchors.md).
 with a padded minimap and independently styled viewport outline. Both use the
 same package primitives, including pointer and keyboard navigation. See
 [navigation qualification](evidence/navigation.md).
+
+Choose **Edge labels → Badge and inline editor** to try the custom label
+presentation with either edge geometry. Select a connection and activate its
+label to edit. Enter applies the draft and Escape discards it.
+See the
+[custom badge](evidence/edge-label-badge.png) and
+[inline editor](evidence/edge-label-editor.png). To replay the Chromium check
+after building the sample, run
+`node --input-type=module < ../flow-sample/evidence/edge-label-browser.mjs`
+from `apps/web`.

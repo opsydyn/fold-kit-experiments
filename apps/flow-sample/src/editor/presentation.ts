@@ -1,6 +1,7 @@
 import {
   portBoundaryPosition,
   type Endpoint,
+  type EditorEvent,
   type FlowGraph,
   type FlowNode,
   type Point,
@@ -8,6 +9,12 @@ import {
 } from '@opsydyn/foldkit-flow';
 import {
   flowDragHandle,
+  flowEdgeLabelBadge,
+  flowEdgeLabelForm,
+  flowEdgeLabelInput,
+  flowEdgeLabelCancel,
+  type FlowEdgeLabelContext,
+  type FlowEdgeLabelEditorContext,
   flowGroupFrame,
   flowNodeFrame,
   flowPort,
@@ -293,3 +300,86 @@ export const raisedConnection: import('@opsydyn/foldkit-flow').FlowConnectionGeo
   if (context.edge?.pathStyle !== undefined) return undefined;
   return connectionPath(context, context.sourceEndpoint, context.targetEndpoint);
 };
+
+const edgeLabelEvent = (message: EditorEvent) => Message.ObservedFlowInput({ message });
+
+export function edgeBadge(context: FlowEdgeLabelContext, h: HtmlBuilder<Message>) {
+  return flowEdgeLabelBadge(
+    h,
+    context,
+    edgeLabelEvent,
+    [
+      h.Class('custom-edge-badge'),
+      h.Style({
+        display: 'inline-flex',
+        'align-items': 'center',
+        gap: '6px',
+        padding: '5px 10px',
+        border: '1px solid #38bdf8',
+        'border-radius': '999px',
+        background: context.selected ? '#075985' : '#f0f9ff',
+        color: context.selected ? '#fff' : '#0c4a6e',
+        cursor: context.readOnly ? 'inherit' : 'pointer',
+        'font-size': '13px',
+      }),
+    ],
+    [
+      h.span([h.AriaHidden(true)], ['↗']),
+      h.span(
+        [
+          h.Style({
+            'max-width': '180px',
+            overflow: 'hidden',
+            'text-overflow': 'ellipsis',
+            'white-space': 'nowrap',
+          }),
+        ],
+        [context.edge.label || 'Add label'],
+      ),
+    ],
+  );
+}
+
+export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuilder<Message>) {
+  return flowEdgeLabelForm(
+    h,
+    context,
+    edgeLabelEvent,
+    [
+      h.Class('custom-edge-editor'),
+      h.Style({
+        display: 'flex',
+        gap: '6px',
+        padding: '6px',
+        border: '2px solid #38bdf8',
+        'border-radius': '12px',
+        background: '#f0f9ff',
+        'box-shadow': '0 4px 12px #0c4a6e33',
+      }),
+    ],
+    [
+      flowEdgeLabelInput(h, context, edgeLabelEvent, [
+        h.Style({
+          width: '145px',
+          padding: '6px 8px',
+          border: '1px solid #7dd3fc',
+          'border-radius': '6px',
+        }),
+      ]),
+      h.button(
+        [
+          h.Type('submit'),
+          h.Style({
+            border: '0',
+            background: '#075985',
+            color: '#fff',
+            'border-radius': '6px',
+            padding: '0 10px',
+          }),
+        ],
+        ['Apply label'],
+      ),
+      flowEdgeLabelCancel(h, context, edgeLabelEvent, [], ['Discard']),
+    ],
+  );
+}

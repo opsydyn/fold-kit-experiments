@@ -12,9 +12,11 @@ markdown and the fixture passes the tech radar's tests, and adding one fails on 
 eight-per-category limit it now documents.
 
 Each folder is self-contained: its entrypoint, agent UI metadata, references and
-assets travel together. Neither is globally installed by this change, bundled
-in an npm package, or dependent on the other skill. Root agent instructions and
-package READMEs provide discovery links.
+assets travel together. None is bundled in an npm package or depends on another skill.
+Root agent instructions and package READMEs provide discovery links, and
+`.claude-plugin/marketplace.json` publishes them to Claude Code as two plugins:
+`foldkit-packages` (the three package skills) and `tech-radar`. `claude plugin validate .`
+checks the manifest, and `claude plugin validate skills` the skills.
 
 ## Standalone Examples
 

@@ -99,7 +99,7 @@ function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowVie
       ? state.graph.nodes.find((node) => node.id === context.id && node.kind === 'group')
       : undefined;
   const width = group ? 224 : 172;
-  const height = group ? 228 : 130;
+  const height = group ? 336 : 130;
   const button = (label: string, event: EditorEvent, pressed?: boolean) =>
     h.button(
       [
@@ -123,6 +123,8 @@ function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowVie
           left: `clamp(4px, ${context.point.x}px, max(4px, calc(100% - ${width + 4}px)))`,
           top: `clamp(4px, ${context.point.y}px, max(4px, calc(100% - ${height}px)))`,
           width: `min(${width}px, calc(100% - 8px))`,
+          'max-height': 'calc(100% - 8px)',
+          'overflow-y': 'auto',
           'box-sizing': 'border-box',
           display: 'grid',
           gap: '4px',
@@ -145,6 +147,64 @@ function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowVie
                       'Lock proportions',
                       { type: 'GroupAspectRatioToggled', id: group.id },
                       group.keepAspectRatio ?? false,
+                    ),
+                    h.div(
+                      [h.Style({ display: 'grid', gap: '4px' })],
+                      [
+                        ...(['width', 'height'] as const).map((dimension) =>
+                          h.label(
+                            [
+                              h.Style({
+                                display: 'grid',
+                                'grid-template-columns': '64px minmax(0, 1fr)',
+                                'align-items': 'center',
+                                gap: '8px',
+                              }),
+                            ],
+                            [
+                              dimension === 'width' ? 'Width' : 'Height',
+                              h.input([
+                                h.Type('number'),
+                                h.Min('0'),
+                                h.Step(String(state.snapToGrid ? state.gridSpacing : 1)),
+                                h.AriaLabel(
+                                  `${dimension === 'width' ? 'Width' : 'Height'} of ${group.label}`,
+                                ),
+                                h.AriaDescribedBy(`${options.id}-group-size-help`),
+                                h.Value(String(Number(group.size[dimension].toPrecision(12)))),
+                                h.Disabled(
+                                  state.collapsedGroups.includes(group.id) ||
+                                    state.gesture.type !== 'idle',
+                                ),
+                                h.Style({
+                                  width: '100%',
+                                  'min-height': '34px',
+                                  'box-sizing': 'border-box',
+                                }),
+                                h.OnChange((value) =>
+                                  options.onEvent({
+                                    type: 'GroupDimensionChanged',
+                                    id: group.id,
+                                    dimension,
+                                    value: Number(value),
+                                  }),
+                                ),
+                              ]),
+                            ],
+                          ),
+                        ),
+                        h.p(
+                          [
+                            h.Id(`${options.id}-group-size-help`),
+                            h.Style({ margin: '4px 0', 'font-size': '12px', 'line-height': '1.4' }),
+                          ],
+                          [
+                            state.collapsedGroups.includes(group.id)
+                              ? 'Expand the group to edit dimensions.'
+                              : 'Values follow grid, limits and locked proportions.',
+                          ],
+                        ),
+                      ],
                     ),
                   ]
                 : []),

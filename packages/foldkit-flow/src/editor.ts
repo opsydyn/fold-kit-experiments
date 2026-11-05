@@ -509,6 +509,7 @@ export function updateEditor(
   if (
     state.context &&
     event.type !== 'ContextOpened' &&
+    event.type !== 'GroupDimensionChanged' &&
     event.type !== 'SurfaceMeasured' &&
     event.type !== 'NodeMeasured'
   )
@@ -1102,22 +1103,37 @@ export function updateEditor(
           node.id === event.id ? { ...node, label: event.label } : node,
         ),
       });
+    case 'GroupDimensionChanged': {
+      if (!Number.isFinite(event.value) || event.value <= 0) return state;
+      const group = state.graph.nodes.find((node) => node.id === event.id && node.kind === 'group');
+      if (!group || state.collapsedGroups.includes(group.id)) return state;
+      const delta =
+        event.dimension === 'width'
+          ? { x: event.value - group.size.width, y: 0 }
+          : { x: 0, y: event.value - group.size.height };
+      const graph = resizeGroup(
+        state.graph,
+        group.id,
+        delta,
+        'bottom-right',
+        state.snapToGrid,
+        state.gridSpacing,
+      );
+      if (graph === state.graph) return state;
+      const context =
+        state.context?.kind === 'node' && state.context.id === group.id ? state.context : null;
+      return { ...commitGraph(state, graph), context, notice: 'Group resized' };
+    }
     case 'NodeWidthChanged': {
       if (!Number.isFinite(event.width) || event.width <= 0) return state;
       const node = state.graph.nodes.find((node) => node.id === event.id);
       if (!node) return state;
-      if (node.kind === 'group') {
-        if (state.collapsedGroups.includes(node.id)) return state;
-        const graph = resizeGroup(
-          state.graph,
-          node.id,
-          { x: event.width - node.size.width, y: 0 },
-          'bottom-right',
-          state.snapToGrid,
-          state.gridSpacing,
+      if (node.kind === 'group')
+        return updateEditor(
+          state,
+          { type: 'GroupDimensionChanged', id: node.id, dimension: 'width', value: event.width },
+          policy,
         );
-        return graph === state.graph ? state : commitGraph(state, graph);
-      }
       const width = Math.max(
         node.resizeLimits?.minWidth ?? 0,
         Math.min(node.resizeLimits?.maxWidth ?? Infinity, event.width),

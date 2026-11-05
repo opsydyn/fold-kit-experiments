@@ -481,3 +481,21 @@ zooming, ignores pointer input, and uses a native polite status region. Releasin
 keeps a selected group's result visible; Escape restores its original dimensions.
 Selection clearing hides it. Theme it with `--flow-resize-readout-background` and
 `--flow-resize-readout-color`, alongside existing node border/color tokens.
+
+### Numeric group dimensions
+
+With `contextActions: true`, open a group's **More actions** panel to edit Width
+and Height in graph units. Each field applies on native change (for example,
+leaving the field), creating one Undo step. The panel stays open for sequential
+edits and displays the resulting dimensions after grid snapping, size/content
+limits, parent containment or expansion, and locked proportions. Controls are
+disabled for collapsed groups and unavailable in read-only views. Escape closes
+the panel; changes already applied remain undoable.
+
+Hosts can dispatch `{ type: 'GroupDimensionChanged', id, dimension: 'height',
+value: 320 }` (or `dimension: 'width'`). Numeric edits anchor the group's top-left
+corner and keep child positions fixed. With proportions locked, changing either
+dimension also scales the other. Invalid/non-positive values and active-gesture
+edits are ignored; repeated clamped values add no history. `NodeWidthChanged`
+continues to support group width through the same geometry path. The fields trim
+floating-point display noise without rounding authored geometry.

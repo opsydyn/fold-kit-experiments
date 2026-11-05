@@ -260,3 +260,15 @@ it with `resizeReadout: false` and use existing state for their own presentation
 No document fields, transactions or Astro-specific editing logic are added.
 SSR tests cover constrained values, cancellation, keyboard rounding and opt-out;
 browser checks cover zoom, actual live updates, selection lifecycle and Undo.
+
+Numeric group sizing uses a `GroupDimensionChanged` fact carrying one dimension
+and a positive value. It reuses the existing resize geometry with a top-left
+anchor; grid, content/size bounds, parent policy and aspect locking remain shared.
+Each applied field is a graph transaction, while invalid/no-op edits retain state.
+Only a matching group context is retained after a successful edit so sequential
+field changes preserve native focus without external draft state or DOM writes.
+The FoldKit context panel owns the numeric inputs and explanatory labels; the
+Astro sample gains them through its existing context-actions option. Legacy width
+edits delegate to this path. Core and browser checks cover limits, locking,
+focus/panel persistence, invalid values, cancellation of the panel and Undo;
+installed-consumer checks cover the new event contract.

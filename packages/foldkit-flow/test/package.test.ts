@@ -62,13 +62,16 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       ],
       { ...options, cwd: directory },
     );
-    const source = `import { createEditor, layoutRequest, applyLayout, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
+    const source = `import { createEditor, updateEditor, layoutRequest, applyLayout, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
 import { flowView, type FlowBackground } from '@opsydyn/foldkit-flow/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-flow-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
 const graph: FlowGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[]}],edges:[]};
+const groupState=createEditor({nodes:[{id:'g',kind:'group',label:'Group',position:{x:0,y:0},size:{width:400,height:200},ports:[]}],edges:[]});
+const sized=updateEditor(groupState,{type:'GroupDimensionChanged',id:'g',dimension:'height',value:240});
+if (sized.graph.nodes[0]?.size.height!==240) throw new Error('Missing packed dimension editing');
 const state=createEditor(graph,{gridSpacing:32});
 const request=layoutRequest(state,'consumer');
 const layout=await createElkLayout()(request);

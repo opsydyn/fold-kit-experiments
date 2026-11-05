@@ -2207,3 +2207,164 @@ test('top and left resize handles align only their moving edges and preserve opp
     expect(preview.gesture).toMatchObject({ type: 'node-resize', guides });
   }
 });
+
+test('numeric group dimensions apply limits without moving children and keep the matching panel open', () => {
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'outer',
+        label: 'Outer',
+        kind: 'group',
+        ports: [],
+        position: { x: 0, y: 0 },
+        size: { width: 600, height: 450 },
+      },
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        position: { x: 40, y: 50 },
+        size: { width: 300, height: 200 },
+        parentId: 'outer',
+        extent: 'parent',
+        resizeLimits: { minWidth: 260, maxWidth: 500, minHeight: 160, maxHeight: 360 },
+      },
+      { ...nodeA, parentId: 'g', position: { x: 80, y: 120 } },
+    ],
+    edges: [],
+  });
+  const opened = updateEditor(initial, {
+    type: 'ContextOpened',
+    context: { kind: 'node', id: 'g', point: { x: 10, y: 10 } },
+  });
+  const wide = updateEditor(opened, {
+    type: 'GroupDimensionChanged',
+    id: 'g',
+    dimension: 'width',
+    value: 800,
+  });
+  expect(wide.graph.nodes[1]?.size).toEqual({ width: 500, height: 200 });
+  expect(wide.graph.nodes[1]?.position).toEqual({ x: 40, y: 50 });
+  expect(wide.graph.nodes[2]).toEqual(initial.graph.nodes[2]);
+  expect(wide.context).toEqual(opened.context);
+  const tall = updateEditor(wide, {
+    type: 'GroupDimensionChanged',
+    id: 'g',
+    dimension: 'height',
+    value: 500,
+  });
+  expect(tall.graph.nodes[1]?.size).toEqual({ width: 500, height: 360 });
+  expect(tall.context).toEqual(opened.context);
+  expect(tall.past).toHaveLength(2);
+  const undoHeight = updateEditor(tall, { type: 'UndoPressed' });
+  expect(undoHeight.graph).toEqual(wide.graph);
+  expect(updateEditor(undoHeight, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  for (const value of [0, -1, NaN, Infinity])
+    expect(
+      updateEditor(opened, { type: 'GroupDimensionChanged', id: 'g', dimension: 'height', value }),
+    ).toBe(opened);
+  expect(
+    updateEditor(wide, { type: 'GroupDimensionChanged', id: 'g', dimension: 'width', value: 800 }),
+  ).toBe(wide);
+  for (const state of [
+    { ...opened, readOnly: true },
+    { ...opened, collapsedGroups: ['g'] },
+  ])
+    expect(
+      updateEditor(state, {
+        type: 'GroupDimensionChanged',
+        id: 'g',
+        dimension: 'height',
+        value: 250,
+      }),
+    ).toBe(state);
+  expect(
+    updateEditor(opened, {
+      type: 'GroupDimensionChanged',
+      id: 'a',
+      dimension: 'height',
+      value: 250,
+    }),
+  ).toBe(opened);
+});
+
+test('numeric dimensions share ratio locking, grid snapping and atomic parent expansion', () => {
+  const fixture: FlowGraph = {
+    nodes: [
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        position: { x: 100, y: 100 },
+        size: { width: 400, height: 200 },
+        keepAspectRatio: true,
+        resizeLimits: { maxWidth: 600, maxHeight: 280 },
+      },
+    ],
+    edges: [],
+  };
+  const initial = createEditor(fixture);
+  const tall = updateEditor(initial, {
+    type: 'GroupDimensionChanged',
+    id: 'g',
+    dimension: 'height',
+    value: 260,
+  });
+  expect(tall.graph.nodes[0]?.size).toEqual({ width: 520, height: 260 });
+  const capped = updateEditor(initial, {
+    type: 'GroupDimensionChanged',
+    id: 'g',
+    dimension: 'width',
+    value: 800,
+  });
+  expect(capped.graph.nodes[0]?.size.width).toBeCloseTo(560, 10);
+  expect(capped.graph.nodes[0]?.size.height).toBeCloseTo(280, 10);
+  const snapped = createEditor(fixture, { snapToGrid: true, gridSpacing: 32 });
+  const wide = updateEditor(snapped, {
+    type: 'GroupDimensionChanged',
+    id: 'g',
+    dimension: 'width',
+    value: 450,
+  });
+  expect(wide.graph.nodes[0]?.size.width).toBeCloseTo(444, 10);
+  expect(wide.graph.nodes[0]?.size.height).toBeCloseTo(222, 10);
+  expect(updateEditor(snapped, { type: 'NodeWidthChanged', id: 'g', width: 450 }).graph).toEqual(
+    wide.graph,
+  );
+  const parent = createEditor({
+    nodes: [
+      {
+        id: 'outer',
+        label: 'Outer',
+        kind: 'group',
+        ports: [],
+        position: { x: 0, y: 0 },
+        size: { width: 400, height: 300 },
+      },
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        parentId: 'outer',
+        extent: 'parent',
+        expandParent: true,
+        position: { x: 40, y: 50 },
+        size: { width: 300, height: 200 },
+      },
+    ],
+    edges: [],
+  });
+  const grown = updateEditor(parent, {
+    type: 'GroupDimensionChanged',
+    id: 'g',
+    dimension: 'height',
+    value: 400,
+  });
+  expect(grown.graph.nodes[0]?.size.height).toBe(466);
+  expect(grown.graph.nodes[1]?.size.height).toBe(400);
+  expect(grown.past).toHaveLength(1);
+  expect(updateEditor(grown, { type: 'UndoPressed' }).graph).toEqual(parent.graph);
+});

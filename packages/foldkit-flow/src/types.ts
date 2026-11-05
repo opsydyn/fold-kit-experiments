@@ -184,6 +184,12 @@ export type EditorEvent =
   | Readonly<{ type: 'NodeContainmentToggled'; id: string }>
   | Readonly<{ type: 'NodeExpansionToggled'; id: string }>
   | Readonly<{ type: 'NodeWidthChanged'; id: string; width: number }>
+  | Readonly<{
+      type: 'GroupDimensionChanged';
+      id: string;
+      dimension: 'width' | 'height';
+      value: number;
+    }>
   | Readonly<{ type: 'EdgeLabelEditingStarted'; id: string }>
   | Readonly<{ type: 'EdgeLabelDraftChanged'; id: string; text: string }>
   | Readonly<{ type: 'EdgeLabelSaved'; id: string }>

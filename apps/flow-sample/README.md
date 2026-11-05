@@ -168,3 +168,9 @@ resizing and while a single expanded group is selected. It shows actual graph
 units after snapping and constraints, including keyboard edits. Escape restores
 the original numbers; clearing selection hides the group readout. The package
 owns this UI, and hosts can disable it with `resizeReadout: false`.
+
+Open a group's **More actions** panel for numeric Width and Height controls.
+Each field applies when its value changes, keeps the panel open, and contributes
+one Undo step. The fields and size readout show the constrained result, including
+snap spacing and locked proportions. Expand collapsed groups before editing.
+These controls and the `GroupDimensionChanged` API are supplied by the package.

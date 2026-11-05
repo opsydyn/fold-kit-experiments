@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add selected-edge toolbar composition with typed actions, native control
+  primitives, and keyboard focus that follows the rendered control order.
+
 - Add custom edge label badges and inline editors through optional FoldKit view
   hooks and native form primitives. Both use the existing label anchor and draft.
 

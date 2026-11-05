@@ -10,6 +10,9 @@ import {
 import {
   flowDragHandle,
   flowEdgeLabelBadge,
+  flowEdgeToolbarButton,
+  flowEdgePathStyleSelect,
+  type FlowEdgeToolbarContext,
   flowEdgeLabelForm,
   flowEdgeLabelInput,
   flowEdgeLabelCancel,
@@ -301,13 +304,13 @@ export const raisedConnection: import('@opsydyn/foldkit-flow').FlowConnectionGeo
   return connectionPath(context, context.sourceEndpoint, context.targetEndpoint);
 };
 
-const edgeLabelEvent = (message: EditorEvent) => Message.ObservedFlowInput({ message });
+const edgeEvent = (message: EditorEvent) => Message.ObservedFlowInput({ message });
 
 export function edgeBadge(context: FlowEdgeLabelContext, h: HtmlBuilder<Message>) {
   return flowEdgeLabelBadge(
     h,
     context,
-    edgeLabelEvent,
+    edgeEvent,
     [
       h.Class('custom-edge-badge'),
       h.Style({
@@ -344,7 +347,7 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
   return flowEdgeLabelForm(
     h,
     context,
-    edgeLabelEvent,
+    edgeEvent,
     [
       h.Class('custom-edge-editor'),
       h.Style({
@@ -358,7 +361,7 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
       }),
     ],
     [
-      flowEdgeLabelInput(h, context, edgeLabelEvent, [
+      flowEdgeLabelInput(h, context, edgeEvent, [
         h.Style({
           width: '145px',
           padding: '6px 8px',
@@ -379,7 +382,58 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
         ],
         ['Apply label'],
       ),
-      flowEdgeLabelCancel(h, context, edgeLabelEvent, [], ['Discard']),
+      flowEdgeLabelCancel(h, context, edgeEvent, [], ['Discard']),
+    ],
+  );
+}
+
+export function compactEdgeToolbar(context: FlowEdgeToolbarContext, h: HtmlBuilder<Message>) {
+  return h.div(
+    [
+      h.Class('compact-edge-actions'),
+      h.Style({
+        display: 'flex',
+        gap: '6px',
+        'align-items': 'center',
+        'flex-wrap': 'wrap',
+        width: 'fit-content',
+        'max-width': '100%',
+        margin: '0 auto',
+        padding: '5px',
+        background: '#f0f9ff',
+        border: '1px solid #38bdf8',
+        'border-radius': '14px',
+        'box-shadow': '0 2px 8px #0c4a6e33',
+      }),
+    ],
+    [
+      flowEdgePathStyleSelect(h, context, edgeEvent, [
+        h.Style({
+          'min-height': '36px',
+          padding: '0 8px',
+          border: '1px solid #7dd3fc',
+          'border-radius': '9px',
+          background: '#fff',
+          color: '#0c4a6e',
+        }),
+      ]),
+      flowEdgeToolbarButton(
+        h,
+        context.actions.deleteEdge,
+        edgeEvent,
+        [
+          h.Style({
+            'min-height': '36px',
+            padding: '0 12px',
+            border: '0',
+            'border-radius': '9px',
+            background: '#fee2e2',
+            color: '#991b1b',
+            cursor: 'pointer',
+          }),
+        ],
+        ['Delete edge'],
+      ),
     ],
   );
 }

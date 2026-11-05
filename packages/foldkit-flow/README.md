@@ -199,6 +199,27 @@ edge and press Up Arrow to focus its actions. The toolbar uses native controls
 and stays the same size as the canvas zooms. Deleting from the toolbar removes
 only that edge and can be undone.
 
+With `edgeToolbar: true`, supply `renderEdgeToolbar` to arrange, style, or
+omit individual actions. Its context contains the selected edge, the shared
+label anchor in world coordinates, and the typed actions `rename`,
+`deleteEdge`, and `changePathStyle`. Use the package primitives or send the
+events through the same `onEvent` mapping as the canvas.
+
+```ts
+// Import these primitives from @opsydyn/foldkit-flow/foldkit.
+renderEdgeToolbar: (context, h) =>
+  h.div([h.Class('edge-actions')], [
+    flowEdgePathStyleSelect(h, context, onEvent, []),
+    flowEdgeToolbarButton(h, context.actions.deleteEdge, onEvent, [], ['Delete edge']),
+  ]),
+```
+
+The positioned frame keeps the same screen-space placement as the default
+toolbar and offers up to 256 px of width. Arrow Up from the selected connection
+focuses the first available control in DOM order, or the group itself when
+there are no eligible controls. Return `undefined` for the default layout or
+`null` to hide the toolbar and its keyboard shortcut for that edge.
+
 Use a group's **Collapse** and **Expand** buttons to change its canvas
 presentation. A collapsed group hides its descendants and internal edges.
 Connections that cross the boundary remain visible and attach to the compact
@@ -695,7 +716,7 @@ complete circular SVG shells, including different group chrome, ports and resize
 controls. Both use the same graph and package input lifecycle. The SVG artwork is
 inside a measured HTML frame; native buttons retain keyboard behavior.
 
-Edge action panels and context menus use the shipped markup. `renderEdge` decorates the shared resolved path; the geometry policy below
+Context menus use the shipped markup. `renderEdge` decorates the shared resolved path; the geometry policy below
 changes that path and its label anchor together. Follow-on boundaries are recorded in
 [ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
 

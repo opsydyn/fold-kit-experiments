@@ -58,6 +58,11 @@ at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and
 Model-owned editing.
 
+`renderEdgeToolbar` replaces the selected-edge controls inside Flow's positioned
+frame. `FlowEdgeToolbarContext` provides the selected edge, label anchor and
+typed actions. Compose `flowEdgeToolbarButton` and `flowEdgePathStyleSelect`
+for native controls.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

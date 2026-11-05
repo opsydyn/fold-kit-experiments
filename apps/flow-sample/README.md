@@ -227,3 +227,8 @@ See the
 after building the sample, run
 `node --input-type=module < ../flow-sample/evidence/edge-label-browser.mjs`
 from `apps/web`.
+
+Choose **Edge actions → Compact · path and delete** and select a connection.
+The compact layout puts path style first and leaves renaming to the edge
+label. Press Up Arrow on the selected connection in the Connections list to
+focus the path style control. [Workbench screenshot](evidence/edge-toolbar-compact.png)

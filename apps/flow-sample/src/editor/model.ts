@@ -122,6 +122,9 @@ export type PortAnchorPreset = typeof PortAnchorPreset.Type;
 export const ConnectionDesign = Schema.Literals(['dashed', 'ribbon', 'hidden']);
 export type ConnectionDesign = typeof ConnectionDesign.Type;
 
+export const EdgeToolbarDesign = Schema.Literals(['standard', 'compact']);
+export type EdgeToolbarDesign = typeof EdgeToolbarDesign.Type;
+
 export const EdgeLabelDesign = Schema.Literals(['standard', 'badge']);
 export type EdgeLabelDesign = typeof EdgeLabelDesign.Type;
 
@@ -160,6 +163,7 @@ export const Model = Schema.Struct({
     connectionList: Schema.Boolean,
   }),
   connectionDesign: ConnectionDesign,
+  edgeToolbarDesign: EdgeToolbarDesign,
   edgeLabelDesign: EdgeLabelDesign,
   edgeDesign: EdgeDesign,
   navigationDesign: NavigationDesign,
@@ -177,6 +181,7 @@ export type Model = Readonly<{
   diagnosticsPanelOpen: boolean;
   diagnostics: FlowDiagnostics;
   connectionDesign: ConnectionDesign;
+  edgeToolbarDesign: EdgeToolbarDesign;
   edgeLabelDesign: EdgeLabelDesign;
   edgeDesign: EdgeDesign;
   navigationDesign: NavigationDesign;
@@ -195,6 +200,7 @@ export const init = () => ({
     diagnosticsPanelOpen: false,
     diagnostics: resolveFlowDiagnostics({}),
     connectionDesign: 'dashed',
+    edgeToolbarDesign: 'standard',
     edgeLabelDesign: 'standard',
     edgeDesign: 'default',
     navigationDesign: 'standard',

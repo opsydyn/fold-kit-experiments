@@ -7,6 +7,14 @@ import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import {
+  flowEdgeToolbarButton,
+  flowEdgePathStyleSelect,
+  type FlowEdgeToolbarContext,
+} from './edge-toolbar';
+export { flowEdgeToolbarButton, flowEdgePathStyleSelect } from './edge-toolbar';
+export type { FlowEdgeToolbarAction, FlowEdgeToolbarContext } from './edge-toolbar';
+
+import {
   flowEdgeLabelBadge,
   flowEdgeLabelForm,
   flowEdgeLabelInput,
@@ -94,7 +102,6 @@ import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presen
 import { FlowInput } from './mount';
 export type { FlowBackground, FlowBackgroundRenderContext } from './background';
 import type {
-  EdgePathStyle,
   EditorEvent,
   EditorState,
   FlowEdge,
@@ -171,6 +178,11 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     themeClassName?: string;
     /** Show on-canvas controls for a single selected edge in editable views. */
     edgeToolbar?: boolean;
+    /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
+    renderEdgeToolbar?: (
+      context: FlowEdgeToolbarContext,
+      h: HtmlBuilder<M>,
+    ) => Html | null | undefined;
     /** Enable context actions for nodes and edges in editable views. */
     contextActions?: boolean;
     /** Pan near the canvas boundary while dragging nodes or connections. */
@@ -412,13 +424,6 @@ function viewportControls<M>(
   );
 }
 
-const pathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
-  { label: 'Automatic', style: null },
-  { label: 'Straight', style: 'straight' },
-  { label: 'Stepped', style: 'stepped' },
-  { label: 'Smooth', style: 'smooth' },
-];
-
 function edgeToolbarPosition(
   center: Point,
   viewport: Viewport,
@@ -434,36 +439,22 @@ function edgeToolbarPosition(
   return { x: x + center.x * zoom, y: below + 82 > height && above >= 6 ? above : below };
 }
 
-function edgeActions<M>(
+function defaultEdgeToolbar<M>(
   h: HtmlBuilder<M>,
-  options: FlowViewOptions<M>,
-  edge: FlowEdge,
-  anchor: Point,
-  id: string,
+  context: FlowEdgeToolbarContext,
+  onEvent: FlowViewOptions<M>['onEvent'],
 ): Html {
-  const width = 256;
-  const action = (label: string, event: EditorEvent, focusTarget = false) =>
-    h.button(
-      [
-        h.Type('button'),
-        ...(focusTarget ? [h.Id(`${id}-rename`)] : []),
-        h.OnClick(options.onEvent(event)),
-        h.Style({ 'min-height': '32px', 'font-size': '13px', cursor: 'pointer' }),
-      ],
-      [label],
+  const action = (descriptor: FlowEdgeToolbarContext['actions']['rename']) =>
+    flowEdgeToolbarButton(
+      h,
+      descriptor,
+      onEvent,
+      [h.Style({ 'min-height': '32px', 'font-size': '13px', cursor: 'pointer' })],
+      [descriptor.label],
     );
   return h.div(
     [
-      h.Id(id),
-      h.Role('group'),
-      h.AriaLabel('Selected edge actions'),
-      h.DataAttribute('flow-no-drag', ''),
       h.Style({
-        position: 'absolute',
-        left: `clamp(6px, ${anchor.x - width / 2}px, max(6px, calc(100% - ${width + 6}px)))`,
-        top: `clamp(6px, ${anchor.y}px, max(6px, calc(100% - 82px)))`,
-        width: `min(${width}px, calc(100% - 12px))`,
-        'box-sizing': 'border-box',
         display: 'flex',
         'align-items': 'center',
         'justify-content': 'space-between',
@@ -475,32 +466,36 @@ function edgeActions<M>(
         background: 'var(--flow-node-background, #fff)',
         color: 'var(--flow-node-color, #172033)',
         'box-shadow': '0 2px 8px rgb(0 0 0 / 0.14)',
-        'z-index': '1',
       }),
     ],
     [
-      action('Rename', { type: 'EdgeLabelEditingStarted', id: edge.id }, true),
-      h.select(
-        [
-          h.AriaLabel('Selected edge path style'),
-          h.Style({ 'min-height': '32px', 'font-size': '13px' }),
-          h.OnChange((value) =>
-            options.onEvent({
-              type: 'EdgePathStyleChanged',
-              id: edge.id,
-              pathStyle: pathOptions.find(({ style }) => style === value)?.style ?? null,
-            }),
-          ),
-        ],
-        pathOptions.map(({ label, style }) =>
-          h.option(
-            [h.Value(style ?? 'auto'), h.Selected((edge.pathStyle ?? null) === style)],
-            [label],
-          ),
-        ),
-      ),
-      action('Delete edge', { type: 'EdgeDeleted', id: edge.id }),
+      action(context.actions.rename),
+      flowEdgePathStyleSelect(h, context, onEvent, [
+        h.Style({ 'min-height': '32px', 'font-size': '13px' }),
+      ]),
+      action(context.actions.deleteEdge),
     ],
+  );
+}
+
+function edgeToolbarFrame<M>(h: HtmlBuilder<M>, anchor: Point, id: string, content: Html): Html {
+  const width = 256;
+  return h.div(
+    [
+      h.Id(id),
+      h.Role('group'),
+      h.AriaLabel('Selected edge actions'),
+      h.Tabindex(-1),
+      h.DataAttribute('flow-no-drag', ''),
+      h.Style({
+        position: 'absolute',
+        left: `clamp(6px, ${anchor.x - width / 2}px, max(6px, calc(100% - ${width + 6}px)))`,
+        top: `clamp(6px, ${anchor.y}px, max(6px, calc(100% - 82px)))`,
+        width: `min(${width}px, calc(100% - 12px))`,
+        'z-index': '1',
+      }),
+    ],
+    [content],
   );
 }
 
@@ -1079,21 +1074,46 @@ export function flowView<M>(
       [],
     ),
   );
+  const toolbarContext: FlowEdgeToolbarContext | undefined =
+    activeEdge?.labelPosition && !state.edgeLabelDraft && !drag && !state.context
+      ? {
+          edge: activeEdge.edge,
+          labelPosition: activeEdge.labelPosition,
+          actions: {
+            rename: {
+              label: 'Rename',
+              event: { type: 'EdgeLabelEditingStarted', id: activeEdge.edge.id },
+            },
+            deleteEdge: {
+              label: 'Delete edge',
+              event: { type: 'EdgeDeleted', id: activeEdge.edge.id },
+            },
+            changePathStyle: (pathStyle) => ({
+              type: 'EdgePathStyleChanged',
+              id: activeEdge.edge.id,
+              pathStyle,
+            }),
+          },
+        }
+      : undefined;
+  const toolbarContent = toolbarContext && options.renderEdgeToolbar?.(toolbarContext, h);
   const toolbar =
-    activeEdge?.labelPosition && !state.edgeLabelDraft && !drag
-      ? edgeActions(
+    toolbarContext && toolbarContent !== null
+      ? edgeToolbarFrame(
           h,
-          options,
-          activeEdge.edge,
           edgeToolbarPosition(
-            activeEdge.labelPosition,
+            toolbarContext.labelPosition,
             state.viewport,
             reconnectPoints,
             state.surface?.height ?? options.height ?? 440,
           ),
           toolbarId,
+          toolbarContent ?? defaultEdgeToolbar(h, toolbarContext, options.onEvent),
         )
       : null;
+  const toolbarSelector = `[id="${toolbarId}"]`;
+  const toolbarControl =
+    ':is(button, select, input, textarea, a[href], [tabindex]):not(:disabled, input[type="hidden"], [tabindex^="-"], [hidden], [hidden] *, [inert], [inert] *)';
   const connections = h.div(
     [
       h.Id(`${options.id}-connections`),
@@ -1134,7 +1154,7 @@ export function flowView<M>(
                 h.OnKeyDownFocus((key) =>
                   key === 'ArrowUp'
                     ? Option.some({
-                        focusSelector: `[id="${toolbarId}-rename"]`,
+                        focusSelector: `${toolbarSelector} ${toolbarControl}, ${toolbarSelector}:not(:has(${toolbarControl}))`,
                         message: options.onEvent({
                           type: 'EdgeSelected',
                           id: edge.id,
@@ -1368,7 +1388,7 @@ export function flowView<M>(
               ]
             : []),
           ...resizeReadout(h, state, options, presentation.nodes, diagnostics),
-          ...(toolbar && !state.context ? [toolbar] : []),
+          ...(toolbar ? [toolbar] : []),
           ...contextPanel(h, state, options, diagnostics),
         ],
       ),

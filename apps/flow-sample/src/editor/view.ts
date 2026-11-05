@@ -19,6 +19,7 @@ import {
   ConnectionDesign,
   EdgeDesign,
   EdgeLabelDesign,
+  EdgeToolbarDesign,
   NodeDesign,
   type Model,
 } from './model';
@@ -30,6 +31,7 @@ import {
   raisedConnection,
   edgeBadge,
   edgeBadgeEditor,
+  compactEdgeToolbar,
 } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
@@ -641,6 +643,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Edge actions',
+            h.select(
+              [
+                h.AriaLabel('Edge actions'),
+                h.Value(model.edgeToolbarDesign),
+                h.OnChange((value) =>
+                  Message.SelectedEdgeToolbarDesign({
+                    edgeToolbarDesign: Schema.decodeUnknownSync(EdgeToolbarDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.edgeToolbarDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('compact'), h.Selected(model.edgeToolbarDesign === 'compact')],
+                  ['Compact · path and delete'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Connection preview',
             h.select(
               [
@@ -908,6 +938,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           background,
           themeClassName: 'release-flow-theme',
           edgeToolbar: true,
+          renderEdgeToolbar: (context, builder) =>
+            model.edgeToolbarDesign === 'compact'
+              ? compactEdgeToolbar(context, builder)
+              : undefined,
           contextActions: true,
           autoPan: true,
           pinchZoom: true,

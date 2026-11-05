@@ -301,3 +301,13 @@ controls while the host owns the contents and styling. A standalone label
 positioning API would require callers to duplicate frame and input bindings.
 Keeping the frame in Flow also gives both renderers the existing read-only,
 draft and undo behavior. Callers can hide a badge independently of editing.
+
+### Selected-edge toolbar
+
+The toolbar hook renders inside Flow's positioned screen-space frame. The
+frame owns visibility, the accessible group and the connection-list focus
+shortcut. The host can compose native action buttons and a path style select,
+or dispatch the typed actions through its own controls. Keeping placement in
+the frame avoids exposing the viewport and handle-clearance calculation as
+part of every custom toolbar. Keyboard entry follows the rendered control
+order so a layout can omit Rename.

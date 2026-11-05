@@ -311,3 +311,13 @@ or dispatch the typed actions through its own controls. Keeping placement in
 the frame avoids exposing the viewport and handle-clearance calculation as
 part of every custom toolbar. Keyboard entry follows the rendered control
 order so a layout can omit Rename.
+
+### Context panels
+
+The context menu hook renders inside a package-owned panel so custom content
+shares the scoped input lifecycle, canvas placement, and dismissal. The host
+receives typed actions for the current target, including sizing constraints
+and diagnostics for groups. The package uses the same native action and
+dimension primitives in its default content. Keyboard entry focuses the
+first available control in the host layout, including a group dimension
+input when it precedes the buttons.

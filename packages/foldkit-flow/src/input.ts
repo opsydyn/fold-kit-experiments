@@ -527,7 +527,23 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const panel = element.querySelector('[data-flow-context-panel]');
     if (panel !== focusedPanel) {
       focusedPanel = panel;
-      panel?.querySelector('button')?.focus();
+      if (panel instanceof window.HTMLElement) {
+        const controls = panel.querySelectorAll(
+          'button, select, input:not([type="hidden"]), textarea, a[href], [tabindex]',
+        );
+        for (const control of controls) {
+          if (
+            !(control instanceof window.HTMLElement) ||
+            control.tabIndex < 0 ||
+            control.matches(':disabled') ||
+            control.closest('[hidden], [inert]')
+          )
+            continue;
+          control.focus();
+          if (window.document.activeElement === control) break;
+        }
+        if (!panel.contains(window.document.activeElement)) panel.focus({ preventScroll: true });
+      }
     }
     const nodes = new Set(element.querySelectorAll('[data-flow-node]'));
     for (const node of observed)

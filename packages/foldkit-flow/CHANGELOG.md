@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add custom node and edge context panels with typed actions, native group
+  dimension inputs, and focus that follows the rendered control order.
+
 - Add selected-edge toolbar composition with typed actions, native control
   primitives, and keyboard focus that follows the rendered control order.
 

@@ -232,3 +232,8 @@ Choose **Edge actions → Compact · path and delete** and select a connection.
 The compact layout puts path style first and leaves renaming to the edge
 label. Press Up Arrow on the selected connection in the Connections list to
 focus the path style control. [Workbench screenshot](evidence/edge-toolbar-compact.png)
+
+Choose **Context menus → Custom action panel**, then right-click a node or
+press Shift+F10 on a node or connection. The custom node panel offers Duplicate,
+the edge panel adds Rename, and the group panel puts Width first.
+[Group panel](evidence/context-menu-group.png) · [Edge panel](evidence/context-menu-edge.png)

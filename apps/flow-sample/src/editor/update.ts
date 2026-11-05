@@ -65,6 +65,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     SelectedNavigationDesign: ({ navigationDesign }) => ({ model: { ...model, navigationDesign } }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
+    SelectedContextMenuDesign: ({ contextMenuDesign }) => ({
+      model: { ...model, contextMenuDesign },
+    }),
     SelectedEdgeToolbarDesign: ({ edgeToolbarDesign }) => ({
       model: { ...model, edgeToolbarDesign },
     }),

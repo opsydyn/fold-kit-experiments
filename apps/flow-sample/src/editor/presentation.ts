@@ -11,6 +11,10 @@ import {
   flowDragHandle,
   flowEdgeLabelBadge,
   flowEdgeToolbarButton,
+  flowContextAction,
+  flowContextDimensionInput,
+  type FlowContextAction,
+  type FlowContextMenuContext,
   flowEdgePathStyleSelect,
   type FlowEdgeToolbarContext,
   flowEdgeLabelForm,
@@ -304,13 +308,13 @@ export const raisedConnection: import('@opsydyn/foldkit-flow').FlowConnectionGeo
   return connectionPath(context, context.sourceEndpoint, context.targetEndpoint);
 };
 
-const edgeEvent = (message: EditorEvent) => Message.ObservedFlowInput({ message });
+const flowEvent = (message: EditorEvent) => Message.ObservedFlowInput({ message });
 
 export function edgeBadge(context: FlowEdgeLabelContext, h: HtmlBuilder<Message>) {
   return flowEdgeLabelBadge(
     h,
     context,
-    edgeEvent,
+    flowEvent,
     [
       h.Class('custom-edge-badge'),
       h.Style({
@@ -347,7 +351,7 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
   return flowEdgeLabelForm(
     h,
     context,
-    edgeEvent,
+    flowEvent,
     [
       h.Class('custom-edge-editor'),
       h.Style({
@@ -361,7 +365,7 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
       }),
     ],
     [
-      flowEdgeLabelInput(h, context, edgeEvent, [
+      flowEdgeLabelInput(h, context, flowEvent, [
         h.Style({
           width: '145px',
           padding: '6px 8px',
@@ -382,7 +386,7 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
         ],
         ['Apply label'],
       ),
-      flowEdgeLabelCancel(h, context, edgeEvent, [], ['Discard']),
+      flowEdgeLabelCancel(h, context, flowEvent, [], ['Discard']),
     ],
   );
 }
@@ -407,7 +411,7 @@ export function compactEdgeToolbar(context: FlowEdgeToolbarContext, h: HtmlBuild
       }),
     ],
     [
-      flowEdgePathStyleSelect(h, context, edgeEvent, [
+      flowEdgePathStyleSelect(h, context, flowEvent, [
         h.Style({
           'min-height': '36px',
           padding: '0 8px',
@@ -420,7 +424,7 @@ export function compactEdgeToolbar(context: FlowEdgeToolbarContext, h: HtmlBuild
       flowEdgeToolbarButton(
         h,
         context.actions.deleteEdge,
-        edgeEvent,
+        flowEvent,
         [
           h.Style({
             'min-height': '36px',
@@ -434,6 +438,86 @@ export function compactEdgeToolbar(context: FlowEdgeToolbarContext, h: HtmlBuild
         ],
         ['Delete edge'],
       ),
+    ],
+  );
+}
+
+export function customContextMenu(context: FlowContextMenuContext, h: HtmlBuilder<Message>) {
+  const button = (action: FlowContextAction) =>
+    flowContextAction(
+      h,
+      action,
+      flowEvent,
+      [
+        h.Style({
+          'min-height': '36px',
+          padding: '0 8px',
+          'text-align': 'left',
+          'border-radius': '7px',
+          border: '1px solid #a5b4fc',
+          background: action.pressed ? '#3730a3' : '#fff',
+          color: action.pressed ? '#fff' : '#312e81',
+          cursor: 'pointer',
+        }),
+      ],
+      [action.label],
+    );
+  const group = context.kind === 'node' ? context.group : undefined;
+  return h.div(
+    [
+      h.Class('custom-context-menu'),
+      h.Style({
+        display: 'grid',
+        gap: '6px',
+        padding: '8px',
+        border: '1px solid #a5b4fc',
+        'border-radius': '12px',
+        background: '#eef2ff',
+        color: '#312e81',
+        'box-shadow': '0 4px 12px #312e8133',
+      }),
+    ],
+    [
+      h.strong(
+        [],
+        [context.kind === 'node' ? context.node.label : (context.edge.label ?? 'Connection')],
+      ),
+      ...(context.kind === 'edge'
+        ? [button(context.rename), button(context.deleteEdge)]
+        : [
+            ...(group
+              ? [
+                  ...(group.showMeasurements
+                    ? [
+                        h.label(
+                          [
+                            h.Style({
+                              display: 'grid',
+                              'grid-template-columns': 'auto minmax(0, 1fr)',
+                              gap: '8px',
+                              'align-items': 'center',
+                            }),
+                          ],
+                          [
+                            'Width',
+                            flowContextDimensionInput(h, group, 'width', flowEvent, [
+                              h.Style({
+                                width: '100%',
+                                'min-height': '34px',
+                                'box-sizing': 'border-box',
+                              }),
+                            ]),
+                          ],
+                        ),
+                      ]
+                    : []),
+                  button(group.fit),
+                  button(group.lockProportions),
+                ]
+              : []),
+            button(context.duplicate),
+          ]),
+      button(context.close),
     ],
   );
 }

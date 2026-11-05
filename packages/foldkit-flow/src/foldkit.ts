@@ -7,6 +7,20 @@ import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import {
+  flowContextAction,
+  flowContextDimensionInput,
+  type FlowContextMenuContext,
+  type FlowContextAction,
+  type FlowGroupContextActions,
+} from './context-menu';
+export { flowContextAction, flowContextDimensionInput } from './context-menu';
+export type {
+  FlowContextAction,
+  FlowContextMenuContext,
+  FlowGroupContextActions,
+} from './context-menu';
+
+import {
   flowEdgeToolbarButton,
   flowEdgePathStyleSelect,
   type FlowEdgeToolbarContext,
@@ -185,6 +199,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     ) => Html | null | undefined;
     /** Enable context actions for nodes and edges in editable views. */
     contextActions?: boolean;
+    /** Replaces the contents of an open node or edge context panel. Undefined uses the default. */
+    renderContextMenu?: (context: FlowContextMenuContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Pan near the canvas boundary while dragging nodes or connections. */
     autoPan?: boolean;
     /** Enable two-finger touch pan and pinch-to-zoom on the canvas. */
@@ -226,143 +242,179 @@ function groupResizeTitle(
     ? `Drag to resize with locked proportions; arrow keys adjust by ${step}`
     : `Drag to resize; arrow keys adjust by ${step}`;
 }
+function contextMenu(
+  state: EditorState,
+  diagnostics: FlowDiagnostics,
+): FlowContextMenuContext | undefined {
+  const context = state.context;
+  if (!context || state.readOnly) return undefined;
+  const close: FlowContextAction = { label: 'Close', event: { type: 'ContextDismissed' } };
+  const { point, id, kind } = context;
+  if (kind === 'edge') {
+    const edge = state.graph.edges.find((edge) => edge.id === id);
+    if (!edge) return undefined;
+    return {
+      kind,
+      edge,
+      point,
+      close,
+      deleteEdge: { label: 'Delete edge', event: { type: 'EdgeDeleted', id } },
+      rename: { label: 'Rename', event: { type: 'EdgeLabelEditingStarted', id } },
+    };
+  }
+
+  const node = state.graph.nodes.find((node) => node.id === id);
+  if (!node) return undefined;
+  const collapsed = state.collapsedGroups.includes(id);
+  const group: FlowGroupContextActions | undefined =
+    node.kind === 'group'
+      ? {
+          node,
+          collapsed,
+          fit: { label: 'Fit group to contents', event: { type: 'GroupFitClicked', id } },
+          lockProportions: {
+            label: 'Lock proportions',
+            event: { type: 'GroupAspectRatioToggled', id },
+            pressed: node.keepAspectRatio ?? false,
+          },
+          showMeasurements: diagnostics.measurements,
+          dimensionsDisabled: collapsed || state.gesture.type !== 'idle',
+          dimensionStep: state.snapToGrid ? state.gridSpacing : 1,
+          changeDimension: (dimension, value) => ({
+            type: 'GroupDimensionChanged',
+            id,
+            dimension,
+            value,
+          }),
+        }
+      : undefined;
+  return {
+    kind,
+    node,
+    point,
+    close,
+    group,
+    duplicate: { label: 'Duplicate node', event: { type: 'DuplicatePressed' } },
+    deleteNode: { label: 'Delete node', event: { type: 'DeletePressed' } },
+  };
+}
+
+function defaultContextMenu<M>(
+  h: HtmlBuilder<M>,
+  context: FlowContextMenuContext,
+  options: FlowViewOptions<M>,
+): Html {
+  const button = (action: FlowContextAction) =>
+    flowContextAction(
+      h,
+      action,
+      options.onEvent,
+      [h.Style({ 'min-height': '36px', 'text-align': 'left', cursor: 'pointer' })],
+      [action.label],
+    );
+  const group = context.kind === 'node' ? context.group : undefined;
+  const helpId = `${options.id}-group-size-help`;
+  return h.div(
+    [
+      h.Style({
+        display: 'grid',
+        gap: '4px',
+        padding: '5px',
+        border: '1px solid var(--flow-node-border, #cbd5e1)',
+        'border-radius': '8px',
+        background: 'var(--flow-node-background, #fff)',
+        'box-shadow': '0 2px 8px rgb(0 0 0 / 0.18)',
+      }),
+    ],
+    [
+      ...(context.kind === 'node'
+        ? [
+            button(context.duplicate),
+            ...(group
+              ? [
+                  button(group.fit),
+                  button(group.lockProportions),
+                  ...(group.showMeasurements
+                    ? [
+                        ...(['width', 'height'] as const).map((dimension) =>
+                          h.label(
+                            [
+                              h.Style({
+                                display: 'grid',
+                                'grid-template-columns': '64px minmax(0, 1fr)',
+                                'align-items': 'center',
+                                gap: '8px',
+                              }),
+                            ],
+                            [
+                              dimension === 'width' ? 'Width' : 'Height',
+                              flowContextDimensionInput(h, group, dimension, options.onEvent, [
+                                h.AriaDescribedBy(helpId),
+                                h.Style({
+                                  width: '100%',
+                                  'min-height': '34px',
+                                  'box-sizing': 'border-box',
+                                }),
+                              ]),
+                            ],
+                          ),
+                        ),
+                        h.p(
+                          [
+                            h.Id(helpId),
+                            h.Style({ margin: '4px 0', 'font-size': '12px', 'line-height': '1.4' }),
+                          ],
+                          [
+                            group.collapsed
+                              ? 'Expand the group to edit dimensions.'
+                              : 'Values follow grid, limits and locked proportions.',
+                          ],
+                        ),
+                      ]
+                    : []),
+                ]
+              : []),
+            button(context.deleteNode),
+          ]
+        : [button(context.deleteEdge)]),
+      button(context.close),
+    ],
+  );
+}
+
 function contextPanel<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
   options: FlowViewOptions<M>,
   diagnostics: FlowDiagnostics,
-) {
-  const context = state.context;
-  if (!options.contextActions || state.readOnly || !context) return [];
-  const group =
-    context.kind === 'node'
-      ? state.graph.nodes.find((node) => node.id === context.id && node.kind === 'group')
-      : undefined;
+): readonly Html[] {
+  const context = options.contextActions ? contextMenu(state, diagnostics) : undefined;
+  if (!context) return [];
+  const group = context.kind === 'node' ? context.group : undefined;
   const width = group ? 224 : 172;
-  const height = group ? (diagnostics.measurements ? 336 : 228) : 130;
-  const button = (label: string, event: EditorEvent, pressed?: boolean) =>
-    h.button(
-      [
-        h.Type('button'),
-        h.OnClick(options.onEvent(event)),
-        ...(pressed === undefined ? [] : [h.AriaPressed(String(pressed))]),
-        h.Style({ 'min-height': '36px', 'text-align': 'left', cursor: 'pointer' }),
-      ],
-      [label],
-    );
+  const height = group ? (group.showMeasurements ? 336 : 228) : 130;
+  const top = `clamp(4px, ${context.point.y}px, max(4px, calc(100% - ${height}px)))`;
+  const id = context.kind === 'node' ? context.node.id : context.edge.id;
   return [
     h.div(
       [
-        h.Key(`context:${context.kind}:${context.id}`),
+        h.Key(`context:${context.kind}:${id}`),
         h.Role('group'),
         h.AriaLabel(context.kind === 'node' ? 'Node context actions' : 'Edge context actions'),
+        h.Tabindex(-1),
         h.DataAttribute('flow-context-panel', ''),
         h.DataAttribute('flow-no-drag', ''),
         h.Style({
           position: 'absolute',
           left: `clamp(4px, ${context.point.x}px, max(4px, calc(100% - ${width + 4}px)))`,
-          top: `clamp(4px, ${context.point.y}px, max(4px, calc(100% - ${height}px)))`,
+          top,
           width: `min(${width}px, calc(100% - 8px))`,
-          'max-height': 'calc(100% - 8px)',
+          'max-height': `calc(100% - ${top} - 4px)`,
           'overflow-y': 'auto',
-          'box-sizing': 'border-box',
-          display: 'grid',
-          gap: '4px',
-          padding: '5px',
-          border: '1px solid var(--flow-node-border, #cbd5e1)',
-          'border-radius': '8px',
-          background: 'var(--flow-node-background, #fff)',
-          'box-shadow': '0 2px 8px rgb(0 0 0 / 0.18)',
           'z-index': '3',
         }),
       ],
-      [
-        ...(context.kind === 'node'
-          ? [
-              button('Duplicate node', { type: 'DuplicatePressed' }),
-              ...(group
-                ? [
-                    button('Fit group to contents', { type: 'GroupFitClicked', id: group.id }),
-                    button(
-                      'Lock proportions',
-                      { type: 'GroupAspectRatioToggled', id: group.id },
-                      group.keepAspectRatio ?? false,
-                    ),
-                    ...(diagnostics.measurements
-                      ? [
-                          h.div(
-                            [h.Style({ display: 'grid', gap: '4px' })],
-                            [
-                              ...(['width', 'height'] as const).map((dimension) =>
-                                h.label(
-                                  [
-                                    h.Style({
-                                      display: 'grid',
-                                      'grid-template-columns': '64px minmax(0, 1fr)',
-                                      'align-items': 'center',
-                                      gap: '8px',
-                                    }),
-                                  ],
-                                  [
-                                    dimension === 'width' ? 'Width' : 'Height',
-                                    h.input([
-                                      h.Type('number'),
-                                      h.Min('0'),
-                                      h.Step(String(state.snapToGrid ? state.gridSpacing : 1)),
-                                      h.AriaLabel(
-                                        `${dimension === 'width' ? 'Width' : 'Height'} of ${group.label}`,
-                                      ),
-                                      h.AriaDescribedBy(`${options.id}-group-size-help`),
-                                      h.Value(
-                                        String(Number(group.size[dimension].toPrecision(12))),
-                                      ),
-                                      h.Disabled(
-                                        state.collapsedGroups.includes(group.id) ||
-                                          state.gesture.type !== 'idle',
-                                      ),
-                                      h.Style({
-                                        width: '100%',
-                                        'min-height': '34px',
-                                        'box-sizing': 'border-box',
-                                      }),
-                                      h.OnChange((value) =>
-                                        options.onEvent({
-                                          type: 'GroupDimensionChanged',
-                                          id: group.id,
-                                          dimension,
-                                          value: Number(value),
-                                        }),
-                                      ),
-                                    ]),
-                                  ],
-                                ),
-                              ),
-                              h.p(
-                                [
-                                  h.Id(`${options.id}-group-size-help`),
-                                  h.Style({
-                                    margin: '4px 0',
-                                    'font-size': '12px',
-                                    'line-height': '1.4',
-                                  }),
-                                ],
-                                [
-                                  state.collapsedGroups.includes(group.id)
-                                    ? 'Expand the group to edit dimensions.'
-                                    : 'Values follow grid, limits and locked proportions.',
-                                ],
-                              ),
-                            ],
-                          ),
-                        ]
-                      : []),
-                  ]
-                : []),
-              button('Delete node', { type: 'DeletePressed' }),
-            ]
-          : [button('Delete edge', { type: 'EdgeDeleted', id: context.id })]),
-        button('Close', { type: 'ContextDismissed' }),
-      ],
+      [options.renderContextMenu?.(context, h) ?? defaultContextMenu(h, context, options)],
     ),
   ];
 }

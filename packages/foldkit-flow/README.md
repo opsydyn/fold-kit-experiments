@@ -220,6 +220,30 @@ focuses the first available control in DOM order, or the group itself when
 there are no eligible controls. Return `undefined` for the default layout or
 `null` to hide the toolbar and its keyboard shortcut for that edge.
 
+With `contextActions: true`, use `renderContextMenu` to replace the contents of
+the node, group, or edge context panel. The context is discriminated by
+`kind` and contains the selected item, surface point, and typed actions.
+Group contexts include fit, aspect ratio, and dimension editing. The package
+still owns panel placement, the accessible group, and input handling.
+
+```ts
+// Import the primitives from @opsydyn/foldkit-flow/foldkit.
+renderContextMenu: (context, h) =>
+  h.div([h.Class('context-panel')], [
+    ...(context.kind === 'edge'
+      ? [flowContextAction(h, context.rename, onEvent, [], ['Rename'])]
+      : [flowContextAction(h, context.duplicate, onEvent, [], ['Duplicate node'])]),
+    flowContextAction(h, context.close, onEvent, [], ['Close']),
+  ]),
+```
+
+Use `flowContextDimensionInput` for a native number field with the current
+value, grid step, and disabled state. The group's `showMeasurements` flag
+carries the effective diagnostics preference. Return `undefined` to use the
+default content. On opening, Flow focuses the first focusable control or the
+panel itself. Escape returns focus to the canvas. Clicking or moving focus
+outside dismisses the panel.
+
 Use a group's **Collapse** and **Expand** buttons to change its canvas
 presentation. A collapsed group hides its descendants and internal edges.
 Connections that cross the boundary remain visible and attach to the compact
@@ -716,7 +740,7 @@ complete circular SVG shells, including different group chrome, ports and resize
 controls. Both use the same graph and package input lifecycle. The SVG artwork is
 inside a measured HTML frame; native buttons retain keyboard behavior.
 
-Context menus use the shipped markup. `renderEdge` decorates the shared resolved path; the geometry policy below
+`renderEdge` decorates the shared resolved path; the geometry policy below
 changes that path and its label anchor together. Follow-on boundaries are recorded in
 [ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
 

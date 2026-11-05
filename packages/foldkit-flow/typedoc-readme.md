@@ -63,6 +63,11 @@ frame. `FlowEdgeToolbarContext` provides the selected edge, label anchor and
 typed actions. Compose `flowEdgeToolbarButton` and `flowEdgePathStyleSelect`
 for native controls.
 
+`renderContextMenu` replaces the contents of the positioned context panel.
+`FlowContextMenuContext` distinguishes node and edge actions and provides
+group sizing where applicable. `flowContextAction` and
+`flowContextDimensionInput` carry native control semantics.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

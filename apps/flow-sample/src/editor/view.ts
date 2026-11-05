@@ -20,6 +20,7 @@ import {
   EdgeDesign,
   EdgeLabelDesign,
   EdgeToolbarDesign,
+  ContextMenuDesign,
   NodeDesign,
   type Model,
 } from './model';
@@ -32,6 +33,7 @@ import {
   edgeBadge,
   edgeBadgeEditor,
   compactEdgeToolbar,
+  customContextMenu,
 } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
@@ -671,6 +673,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Context menus',
+            h.select(
+              [
+                h.AriaLabel('Context menus'),
+                h.Value(model.contextMenuDesign),
+                h.OnChange((value) =>
+                  Message.SelectedContextMenuDesign({
+                    contextMenuDesign: Schema.decodeUnknownSync(ContextMenuDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.contextMenuDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('panel'), h.Selected(model.contextMenuDesign === 'panel')],
+                  ['Custom action panel'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Connection preview',
             h.select(
               [
@@ -943,6 +973,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ? compactEdgeToolbar(context, builder)
               : undefined,
           contextActions: true,
+          renderContextMenu: (context, builder) =>
+            model.contextMenuDesign === 'panel' ? customContextMenu(context, builder) : undefined,
           autoPan: true,
           pinchZoom: true,
           resizeHandles: true,

@@ -543,6 +543,38 @@ inline controls without changing node footprints.
 
 ### Design freedom and public composition
 
+With `viewportControls: true`, supply `renderViewportControls` to lay out or
+omit any action. The context contains `actions`, `diagnostics`,
+`selectionModeControl`, and the current `state`. Use `flowViewportControl` for
+native button semantics, or map an action's `event`, `disabled`, and `pressed`
+fields into your own component. The action `label` supplies the accessible name
+and can be translated or changed to match your visible text.
+
+```ts
+renderViewportControls: ({ actions }, h) =>
+  h.nav([h.AriaLabel('Diagram navigation')], [
+    flowViewportControl(h, { ...actions.fitView, label: 'Frame graph' }, onEvent,
+      [h.Class('frame-action')], ['Frame graph']),
+  ]),
+```
+
+With `minimap: true`, `renderMinimap` receives visible nodes in paint order and
+world bounds from the current Model, including collapsed groups. Compose
+`flowMinimap(h, context, onEvent, frameAttributes, svgChildren)` inside the Flow
+surface for pointer input. Its inner SVG stretches to fit the frame and maps
+clicks using the area inside the border and padding. Draw node marks in world
+coordinates, and add `flowMinimapViewport(h, context.geometry, svgAttributes)`
+when you want a camera outline. You can also draw your own outline from
+`geometry.visible`, or leave it out. Arrow keys pan the camera (Shift takes
+larger steps), Home fits, and Enter or Space centers the overview.
+
+Return `undefined` from either hook to use the shipped design. Existing feature
+flags still control whether hooks are called. Minimal mode and the `overview`
+diagnostic hide the minimap, while zoom and fit remain available. Navigation
+works in read-only mode and leaves graph history unchanged.
+
+### Design freedom and public composition
+
 Freedom and control apply to the engineering API as well as end-user preferences.
 The target is supported composition of complete presentation parts, with stable
 interaction primitives and a headless behavior core. Consumers should not need
@@ -634,7 +666,7 @@ complete circular SVG shells, including different group chrome, ports and resize
 controls. Both use the same graph and package input lifecycle. The SVG artwork is
 inside a measured HTML frame; native buttons retain keyboard behavior.
 
-Full control/overlay composition remains follow-on work. `renderEdge` decorates the shared resolved path; the geometry policy below
+Edge labels, edge action panels and context menus still use the shipped markup. `renderEdge` decorates the shared resolved path; the geometry policy below
 changes that path and its label anchor together. Follow-on boundaries are recorded in
 [ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
 

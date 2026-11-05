@@ -7,6 +7,28 @@ import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import {
+  flowViewportControl,
+  flowMinimap,
+  flowMinimapViewport,
+  viewportControlActions,
+  minimapContext,
+  type FlowViewportControlsContext,
+  type FlowMinimapContext,
+} from './navigation';
+export {
+  flowViewportControl,
+  flowMinimap,
+  flowMinimapViewport,
+  viewportControlActions,
+  minimapContext,
+} from './navigation';
+export type {
+  FlowViewportControl,
+  FlowViewportActions,
+  FlowViewportControlsContext,
+  FlowMinimapContext,
+} from './navigation';
+import {
   flowNodeFrame,
   flowGroupFrame,
   flowDragHandle,
@@ -35,13 +57,7 @@ import {
 export { resolveFlowDiagnostics } from './diagnostics';
 export type { FlowDiagnostics, FlowDiagnosticOptions } from './diagnostics';
 import { resolveEdgeGeometry, type FlowEdgeGeometryPolicy } from './edge-geometry';
-import {
-  boxBounds,
-  maximumZoom,
-  minimapGeometry,
-  minimumZoom,
-  portBoundaryPosition,
-} from './geometry';
+import { boxBounds, portBoundaryPosition } from './geometry';
 export type {
   FlowEdgeGeometry,
   FlowEdgeGeometryContext,
@@ -114,6 +130,13 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
       context: FlowConnectionRenderContext,
       h: HtmlBuilder<M>,
     ) => Html | undefined;
+    /** Replaces the controls layout. Undefined keeps defaults; feature gates still apply. */
+    renderViewportControls?: (
+      context: FlowViewportControlsContext,
+      h: HtmlBuilder<M>,
+    ) => Html | undefined;
+    /** Replaces minimap appearance using the public navigation primitive. */
+    renderMinimap?: (context: FlowMinimapContext, h: HtmlBuilder<M>) => Html | undefined;
     edgeAppearance?: (edge: FlowEdge) => Readonly<{
       stroke?: string;
       strokeWidth?: number;
@@ -315,30 +338,28 @@ function viewportControls<M>(
   { onEvent, selectionModeControl }: FlowViewOptions<M>,
   diagnostics: FlowDiagnostics,
 ): Html {
-  const { surface, viewport } = state;
-  const point = { x: (surface?.width ?? 0) / 2, y: (surface?.height ?? 0) / 2 };
-  const unavailable = !surface || state.gesture.type !== 'idle';
-  const button = (label: string, event: EditorEvent, disabled: boolean, pressed?: boolean) =>
-    h.button(
+  const actions = viewportControlActions(state);
+  const button = (action: typeof actions.zoomIn) =>
+    flowViewportControl(
+      h,
+      action,
+      onEvent,
       [
-        h.Type('button'),
-        h.Disabled(disabled),
-        ...(pressed === undefined ? [] : [h.AriaPressed(String(pressed))]),
-        h.OnClick(onEvent(event)),
         h.Style({
           'min-height': '44px',
           padding: '0 12px',
-          color: pressed ? 'var(--flow-control-color, #fff)' : 'var(--flow-node-color, #172033)',
-          background: pressed
+          color: action.pressed
+            ? 'var(--flow-control-color, #fff)'
+            : 'var(--flow-node-color, #172033)',
+          background: action.pressed
             ? 'var(--flow-selection, #2563eb)'
             : 'var(--flow-node-background, #fff)',
           border: '1px solid var(--flow-canvas-border, #94a3b8)',
           'border-radius': '6px',
         }),
       ],
-      [label],
+      [action.label],
     );
-  const step = 1.25;
   return h.div(
     [
       h.Role('group'),
@@ -352,25 +373,15 @@ function viewportControls<M>(
       }),
     ],
     [
-      button(
-        'Zoom in',
-        { type: 'Zoomed', point, factor: step },
-        unavailable || viewport.zoom >= maximumZoom,
-      ),
-      button(
-        'Zoom out',
-        { type: 'Zoomed', point, factor: 1 / step },
-        unavailable || viewport.zoom <= minimumZoom,
-      ),
-      button('Fit view', { type: 'FitViewClicked' }, unavailable || state.graph.nodes.length === 0),
-      ...(selectionModeControl
-        ? [button('Box select', { type: 'SelectionModeToggled' }, unavailable, state.selectionMode)]
-        : []),
+      button(actions.zoomIn),
+      button(actions.zoomOut),
+      button(actions.fitView),
+      ...(selectionModeControl ? [button(actions.selectionMode)] : []),
       ...(diagnostics.zoomLevel
         ? [
             h.span(
               [h.DataAttribute('flow-zoom-level', '')],
-              [`${Math.round(viewport.zoom * 100)}%`],
+              [`${Math.round(state.viewport.zoom * 100)}%`],
             ),
           ]
         : []),
@@ -577,10 +588,7 @@ export function flowView<M>(
   const visibleEdges = state.graph.edges.filter((edge) =>
     edgeIsVisible(edge, presentation.hiddenBy),
   );
-  const minimap =
-    options.minimap && diagnostics.overview && state.surface && presentation.nodes.length > 0
-      ? minimapGeometry(presentation, state.surface, state.viewport)
-      : null;
+  const minimap = options.minimap && diagnostics.overview ? minimapContext(state) : undefined;
   const descriptionId = `${options.id}-help`;
   const alignmentGuides = !diagnostics.alignmentGuides
     ? []
@@ -1162,7 +1170,19 @@ export function flowView<M>(
             : []),
         ],
       ),
-      ...(options.viewportControls ? [viewportControls(h, state, options, diagnostics)] : []),
+      ...(options.viewportControls
+        ? [
+            options.renderViewportControls?.(
+              {
+                state,
+                diagnostics,
+                actions: viewportControlActions(state),
+                selectionModeControl: Boolean(options.selectionModeControl),
+              },
+              h,
+            ) ?? viewportControls(h, state, options, diagnostics),
+          ]
+        : []),
       h.div(
         [
           h.Key('surface'),
@@ -1285,64 +1305,53 @@ export function flowView<M>(
           ),
           ...(minimap
             ? [
-                h.svg(
-                  [
-                    h.Key('minimap'),
-                    h.DataAttribute('flow-minimap', ''),
-                    h.Role('img'),
-                    h.AriaLabel('Diagram overview'),
-                    h.ViewBox(`${minimap.x} ${minimap.y} ${minimap.width} ${minimap.height}`),
-                    h.Width('160'),
-                    h.Height('100'),
-                    h.Style({
-                      position: 'absolute',
-                      right: '10px',
-                      bottom: '10px',
-                      width: 'min(160px, 34%)',
-                      height: 'auto',
-                      'aspect-ratio': '8 / 5',
-                      background: 'var(--flow-node-background, #fff)',
-                      'border-radius': '6px',
-                      'box-shadow': '0 0 0 1px var(--flow-canvas-border, #94a3b8)',
-                      cursor: 'crosshair',
-                    }),
-                  ],
-                  [
-                    ...[
-                      ...presentation.nodes.filter((node) => node.kind === 'group'),
-                      ...presentation.nodes.filter((node) => node.kind !== 'group'),
-                    ].map((node) =>
-                      h.rect(
-                        [
-                          h.Key(`mini:${node.id}`),
-                          h.X(String(node.position.x)),
-                          h.Y(String(node.position.y)),
-                          h.Width(String(node.size.width)),
-                          h.Height(String(node.size.height)),
-                          h.Fill(
-                            node.kind === 'group'
-                              ? 'var(--flow-group-background, rgb(100 116 139 / 0.15))'
-                              : 'var(--flow-node-border, #64748b)',
-                          ),
-                        ],
-                        [],
+                options.renderMinimap?.(minimap, h) ??
+                  flowMinimap(
+                    h,
+                    minimap,
+                    options.onEvent,
+                    [
+                      h.Key('minimap'),
+                      h.Style({
+                        position: 'absolute',
+                        right: '10px',
+                        bottom: '10px',
+                        width: 'min(160px, 34%)',
+                        height: 'auto',
+                        'aspect-ratio': '8 / 5',
+                        border: '0',
+                        padding: '0',
+                        background: 'var(--flow-node-background, #fff)',
+                        'border-radius': '6px',
+                        'box-shadow': '0 0 0 1px var(--flow-canvas-border, #94a3b8)',
+                        cursor: 'crosshair',
+                      }),
+                    ],
+                    [
+                      ...minimap.nodes.map((node) =>
+                        h.rect(
+                          [
+                            h.Key(`mini:${node.id}`),
+                            h.X(String(node.position.x)),
+                            h.Y(String(node.position.y)),
+                            h.Width(String(node.size.width)),
+                            h.Height(String(node.size.height)),
+                            h.Fill(
+                              node.kind === 'group'
+                                ? 'var(--flow-group-background, rgb(100 116 139 / 0.15))'
+                                : 'var(--flow-node-border, #64748b)',
+                            ),
+                          ],
+                          [],
+                        ),
                       ),
-                    ),
-                    h.rect(
-                      [
-                        h.DataAttribute('flow-minimap-viewport', ''),
-                        h.X(String(minimap.visible.x)),
-                        h.Y(String(minimap.visible.y)),
-                        h.Width(String(minimap.visible.width)),
-                        h.Height(String(minimap.visible.height)),
+                      flowMinimapViewport(h, minimap.geometry, [
                         h.Fill('none'),
                         h.Stroke('var(--flow-selection, #2563eb)'),
                         h.Style({ 'vector-effect': 'non-scaling-stroke' }),
-                      ],
-                      [],
-                    ),
-                  ],
-                ),
+                      ]),
+                    ],
+                  ),
               ]
             : []),
           ...resizeReadout(h, state, options, presentation.nodes, diagnostics),

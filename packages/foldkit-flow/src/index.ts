@@ -7,6 +7,7 @@ export { FlowError, validateGraph, parseGraph, serializeGraph } from './graph';
 export { createEditor, updateEditor } from './editor';
 export {
   fitViewport,
+  minimapGeometry,
   portAnchor,
   portPosition,
   portBoundaryPosition,

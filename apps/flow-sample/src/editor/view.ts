@@ -2,6 +2,9 @@ import type { EdgePathStyle, FlowEdge } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
   flowView,
+  flowViewportControl,
+  flowMinimap,
+  flowMinimapViewport,
   resolveFlowDiagnostics,
   type FlowBackground,
 } from '@opsydyn/foldkit-flow/foldkit';
@@ -10,6 +13,7 @@ import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
 import {
+  NavigationDesign,
   BackgroundStyle,
   PortAnchorPreset,
   ConnectionDesign,
@@ -677,7 +681,132 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Navigation design',
+            h.select(
+              [
+                h.AriaLabel('Navigation design'),
+                h.Value(model.navigationDesign),
+                h.OnChange((value) =>
+                  Message.SelectedNavigationDesign({
+                    navigationDesign: Schema.decodeUnknownSync(NavigationDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.navigationDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('compact'), h.Selected(model.navigationDesign === 'compact')],
+                  ['Compact · framed overview'],
+                ),
+              ],
+            ),
+          ],
+        ),
         flowView(h, model.editor, {
+          renderViewportControls: (context, builder) => {
+            if (model.navigationDesign !== 'compact') return undefined;
+            const control = (action: typeof context.actions.zoomIn, label: string) =>
+              flowViewportControl(
+                builder,
+                action,
+                (event) => Message.ObservedFlowInput({ message: event }),
+                [
+                  builder.Style({
+                    'min-width': '44px',
+                    'min-height': '44px',
+                    border: '0',
+                    'border-radius': '22px',
+                    background: action.pressed ? '#0369a1' : '#e0f2fe',
+                    color: action.pressed ? '#fff' : '#0c4a6e',
+                    padding: '0 16px',
+                    cursor: 'pointer',
+                  }),
+                ],
+                [label],
+              );
+            return builder.nav(
+              [
+                builder.AriaLabel('Viewport controls'),
+                builder.Class('compact-navigation'),
+                builder.Style({
+                  display: 'flex',
+                  gap: '6px',
+                  'align-items': 'center',
+                  'flex-wrap': 'wrap',
+                  'margin-bottom': '8px',
+                }),
+              ],
+              [
+                control(context.actions.zoomOut, '−'),
+                control(context.actions.zoomIn, '+'),
+                control(context.actions.fitView, 'Fit view'),
+                ...(context.selectionModeControl
+                  ? [control(context.actions.selectionMode, 'Box select')]
+                  : []),
+                ...(context.diagnostics.zoomLevel
+                  ? [
+                      builder.span(
+                        [builder.DataAttribute('flow-zoom-level', '')],
+                        [`${Math.round(context.state.viewport.zoom * 100)}%`],
+                      ),
+                    ]
+                  : []),
+              ],
+            );
+          },
+          renderMinimap: (context, builder) => {
+            if (model.navigationDesign !== 'compact') return undefined;
+            return flowMinimap(
+              builder,
+              context,
+              (event) => Message.ObservedFlowInput({ message: event }),
+              [
+                builder.Style({
+                  position: 'absolute',
+                  right: '14px',
+                  bottom: '14px',
+                  width: 'min(210px, 52%)',
+                  height: '130px',
+                  padding: '12px',
+                  border: '3px solid #38bdf8',
+                  'border-radius': '18px',
+                  background: '#f0f9ff',
+                  cursor: 'crosshair',
+                }),
+              ],
+              [
+                ...context.nodes.map((node) =>
+                  builder.rect(
+                    [
+                      builder.X(String(node.position.x)),
+                      builder.Y(String(node.position.y)),
+                      builder.Width(String(node.size.width)),
+                      builder.Height(String(node.size.height)),
+                      builder.Rx('20'),
+                      builder.Fill(
+                        node.kind === 'group' && !context.state.collapsedGroups.includes(node.id)
+                          ? '#bae6fd'
+                          : '#0369a1',
+                      ),
+                    ],
+                    [],
+                  ),
+                ),
+                flowMinimapViewport(builder, context.geometry, [
+                  builder.Fill('none'),
+                  builder.Stroke('#ea580c'),
+                  builder.Style({ 'vector-effect': 'non-scaling-stroke' }),
+                ]),
+              ],
+            );
+          },
           id: 'flow-demo',
           connectionGeometry: (context) => {
             if (model.edgeDesign === 'raised') return raisedConnection(context);

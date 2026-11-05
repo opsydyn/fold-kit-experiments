@@ -212,3 +212,8 @@ public `PortPositionsChanged` event. Diagonal anchors sit on the SVG circle's
 perimeter. Its value is derived from saved port data, including custom imported
 positions. Both node designs, previews, reconnection, ELK and force layout use the
 same geometry; see [anchor qualification](evidence/port-anchors.md).
+
+**Navigation design** switches between the shipped controls and a compact layout
+with a padded minimap and independently styled viewport outline. Both use the
+same package primitives, including pointer and keyboard navigation. See
+[navigation qualification](evidence/navigation.md).

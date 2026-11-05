@@ -1,5 +1,6 @@
 import { FlowError } from './graph';
 import type {
+  FlowMinimapGeometry,
   EdgePathStyle,
   FlowEdge,
   FlowGraph,
@@ -104,7 +105,7 @@ export function minimapGeometry(
   graph: Pick<FlowGraph, 'nodes'>,
   surface: Size,
   viewport: Viewport,
-) {
+): FlowMinimapGeometry {
   const origin = screenToWorld({ x: 0, y: 0 }, viewport);
   const visible = {
     ...origin,

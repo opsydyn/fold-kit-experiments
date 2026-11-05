@@ -47,6 +47,12 @@ connection geometry without synthetic edges. `FlowConnectionFeedback` carries
 free/valid/invalid target state from the core. `renderConnection` replaces the
 SVG preview while native port interactions, cancellation and Undo remain shared.
 
+`FlowViewportControlsContext` provides typed navigation actions for custom control
+layouts. `flowViewportControl` provides native button semantics. `FlowMinimapContext`
+provides visible node and camera geometry; use `flowMinimap` for input and
+`flowMinimapViewport` for an optional, separately styled camera outline. The
+`renderViewportControls` and `renderMinimap` hooks use these same contracts.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

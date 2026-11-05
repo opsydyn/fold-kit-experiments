@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for node/group composition, edge geometry, connection previews and custom port anchors on
+Accepted for node/group composition, edge geometry, connection previews, custom port anchors and viewport navigation on
 2026-11-05 following user approval. The broader layering principle guides subsequent slices; arbitrary
 port geometry and complete overlay/control composition remain follow-on work.
 
@@ -280,3 +280,14 @@ measurement, stale layouts, thick visual borders, real ELK for every side, force
 route leads, external packed APIs and browser geometry/editing in both node
 designs. The sample's coordinate preset is illustrative host data; the reusable
 behavior and contracts ship in packages.
+
+### Viewport navigation
+
+Custom viewport controls consume typed action descriptors from Model. A native
+button primitive carries the event, label, disabled and pressed states; the host
+owns layout and styling. The minimap exposes the same visible graph and world
+bounds used by camera navigation. Its native frame accepts visual styles while
+its inner SVG defines pointer coordinates. The camera rectangle is an optional
+child so consumers own its placement and paint. Relative keyboard pan events
+update the current viewport without editing the graph or creating history.
+Both hooks respect the existing visibility and diagnostics gates.

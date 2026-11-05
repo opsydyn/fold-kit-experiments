@@ -604,6 +604,17 @@ export function updateEditor(
     case 'GridSnapToggled':
       if (state.readOnly || state.gesture.type !== 'idle') return state;
       return { ...state, snapToGrid: !state.snapToGrid };
+    case 'ViewportNudged': {
+      if (state.gesture.type !== 'idle') return state;
+      finitePoint(event.delta);
+      const viewport = {
+        ...state.viewport,
+        x: state.viewport.x + event.delta.x,
+        y: state.viewport.y + event.delta.y,
+      };
+      validViewport(viewport);
+      return { ...state, viewport };
+    }
     case 'ViewportChanged':
       if (state.gesture.type !== 'idle') return state;
       validViewport(event.viewport);

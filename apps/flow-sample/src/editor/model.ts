@@ -125,6 +125,9 @@ export type ConnectionDesign = typeof ConnectionDesign.Type;
 export const EdgeDesign = Schema.Literals(['default', 'raised']);
 export type EdgeDesign = typeof EdgeDesign.Type;
 
+export const NavigationDesign = Schema.Literals(['standard', 'compact']);
+export type NavigationDesign = typeof NavigationDesign.Type;
+
 export const NodeDesign = Schema.Literals(['cards', 'orbits']);
 export type NodeDesign = typeof NodeDesign.Type;
 
@@ -155,6 +158,7 @@ export const Model = Schema.Struct({
   }),
   connectionDesign: ConnectionDesign,
   edgeDesign: EdgeDesign,
+  navigationDesign: NavigationDesign,
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
   editor: Schema.Unknown,
@@ -170,6 +174,7 @@ export type Model = Readonly<{
   diagnostics: FlowDiagnostics;
   connectionDesign: ConnectionDesign;
   edgeDesign: EdgeDesign;
+  navigationDesign: NavigationDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
   editor: EditorState;
@@ -186,6 +191,7 @@ export const init = () => ({
     diagnostics: resolveFlowDiagnostics({}),
     connectionDesign: 'dashed',
     edgeDesign: 'default',
+    navigationDesign: 'standard',
     nodeDesign: 'cards',
     background: 'dots',
     editor: createEditor(initialGraph, { snapToAlignment: true }),

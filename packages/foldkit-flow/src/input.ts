@@ -185,7 +185,12 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       element.querySelector('[data-flow-context-panel]')
     )
       emit({ type: 'ContextDismissed' });
-    if (!target || editable(target) || target.closest('[data-flow-minimap]')) return;
+    if (
+      !target ||
+      editable(target) ||
+      target.closest('[data-flow-minimap], [data-flow-minimap-frame]')
+    )
+      return;
     if (event.pointerType === 'touch' && element.dataset.flowPinchZoom === 'true') {
       if (touches.size >= 2) {
         element.setPointerCapture(event.pointerId);
@@ -336,8 +341,14 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   listen('click', (event) => {
     const target = targetOf(event);
     if (!target || editable(target)) return;
-    const minimap = target.closest('[data-flow-minimap]');
+    const minimap =
+      target.closest('[data-flow-minimap]') ??
+      target.closest('[data-flow-minimap-frame]')?.querySelector('[data-flow-minimap]');
     if (minimap && event instanceof window.MouseEvent) {
+      if (event.detail === 0) {
+        emit({ type: 'MinimapClicked', point: { x: 0.5, y: 0.5 } });
+        return;
+      }
       const bounds = minimap.getBoundingClientRect();
       if (bounds.width > 0 && bounds.height > 0)
         emit({

@@ -201,6 +201,7 @@ export type EditorEvent =
   | Readonly<{ type: 'AlignmentSnapToggled' }>
   | Readonly<{ type: 'SelectionModeToggled' }>
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>
+  | Readonly<{ type: 'ViewportNudged'; delta: Point }>
   | Readonly<{ type: 'FitViewClicked' }>
   | Readonly<{ type: 'MinimapClicked'; point: Point }>
   | Readonly<{ type: 'Zoomed'; point: Point; factor: number }>
@@ -252,3 +253,6 @@ export type LayoutResult = Readonly<{
 }>;
 /** Asynchronous computation only. The host publishes accepted results through applyLayout. */
 export type LayoutEngine = (request: LayoutRequest) => Promise<LayoutResult>;
+
+/** World extent and current camera rectangle used by every minimap renderer. */
+export type FlowMinimapGeometry = Point & Size & Readonly<{ visible: Point & Size }>;

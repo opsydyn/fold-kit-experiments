@@ -2,6 +2,10 @@
 
 ## 0.1.0 (unreleased)
 
+- Add composable viewport controls and minimaps, with typed navigation actions,
+  independently styled SVG content and viewport outline, and keyboard navigation.
+  Default and custom designs share the same camera events and diagnostics gates.
+
 - Add normalized custom port anchors, shared coordinate/boundary helpers and
   atomic port-position editing with validation, serialization and Undo.
 - Isolate the measured visual shell from the frame coordinate plane so borders

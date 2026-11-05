@@ -171,7 +171,9 @@ const settleLabels = (
       halfHeight: nodeHalf.height + 4,
     }),
   );
-  const offsets = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5].map((step) => step * 16);
+  // A label's own height and a little, so two labels a step apart don't touch: a top-to-bottom
+  // gap between ranks fits three of them (0 and ±20) clear of the states.
+  const offsets = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5].map((step) => step * 20);
   return routes.reduce<ReadonlyArray<Route>>((placed, route) => {
     const boxOf = (offset: number): Box => ({
       x: route.label.x,

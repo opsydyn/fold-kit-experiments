@@ -48,6 +48,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
+    SelectedNodeDesign: ({ nodeDesign }) => ({ model: { ...model, nodeDesign } }),
     SelectedBackground: ({ background }) => ({ model: { ...model, background } }),
     ClickedMinimalMode: () => ({ model: { ...model, minimalMode: !model.minimalMode } }),
     ClickedDiagnosticsPanel: () => ({

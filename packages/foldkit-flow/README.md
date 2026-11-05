@@ -549,10 +549,92 @@ interaction primitives and a headless behavior core. Consumers should not need
 private DOM bindings, package forks or CSS specificity overrides to implement a
 design. Presentation and geometry responsibilities must remain explicit.
 
-The current view does **not yet** provide that complete surface: `renderNode`
-customizes contents inside a fixed shell, and `renderEdge` customizes decoration
-while retaining Flow's hit area. Group shells, ports and several controls are
-still fixed implementation. Diagnostics and theme tokens do not remove those
-limits. The code-level audit and proposed composition slices are recorded in
+The optional `/foldkit` entry now exposes `renderNodeShell(context, h)` and
+`renderGroupShell(context, h)` alongside the existing content-only `renderNode`.
+Return `undefined` from a shell hook to use the default for that node. A full shell
+owns its contents; the content-only callback is used only by the default card.
+
+```ts
+import {
+  flowView,
+  flowNodeFrame,
+  flowGroupFrame,
+  flowDragHandle,
+  flowPort,
+} from '@opsydyn/foldkit-flow/foldkit';
+
+flowView(h, model.editor, {
+  id: 'diagram',
+  label: 'Architecture',
+  onEvent: (message) => Message.ObservedFlowInput({ message }),
+  renderNodeShell: (context, builder) =>
+    flowNodeFrame(
+      builder,
+      context,
+      [builder.Class('my-node'), builder.Style({ padding: '16px', background: '#fff' })],
+      [
+        flowDragHandle(builder, context, [], [context.node.label]),
+        ...context.node.ports.map((port) =>
+          flowPort(builder, context, port, [builder.Class('my-port')], ['●']),
+        ),
+        ...context.resizeHandles,
+      ],
+    ),
+  renderGroupShell: (context, builder) =>
+    flowGroupFrame(
+      builder,
+      context,
+      [builder.Class('my-boundary')],
+      [
+        flowDragHandle(builder, context, [], [context.node.label]),
+        ...(context.collapseToggle ? [context.collapseToggle] : []),
+        ...context.resizeHandles,
+      ],
+    ),
+});
+```
+
+Use your host's normal event wrapper for `onEvent`. Every primitive accepts the
+host builder, Model-derived context, normal builder attributes and children.
+There are no default visual styles in the primitives. Classes and `h.Style` can
+own borders, shape, typography, padding, icons and colors directly. The bundled
+cards/groups use these same primitives.
+
+- `flowNodeFrame`: one measured HTML frame per ordinary node. Model owns its
+  position and width; content controls height, reported through `NodeMeasured`.
+- `flowGroupFrame`: one boundary per group, with both dimensions from Model.
+  Empty boundary space passes pointer events through to its descendants.
+- `flowDragHandle`: a native button carrying selection, movement, focus and drag
+  behavior, with its node name and help description.
+- `flowPort`: a native connection button, centered on the Model's side/offset
+  independent of its visual size. Keep ports as direct children of the frame.
+- `flowResizeHandle(builder, context, handle, attributes, children)`: a native
+  resize button. Groups support eight directions; ordinary nodes use width-only
+  resizing (`right`). Arrow keys resize groups; Left/Right resize ordinary nodes.
+  Shift increases the step. Grid snapping, limits, read-only policy and Undo use
+  the same core path as the bundled view.
+
+The context includes `node`, `state`, resolved `diagnostics`, `collapsed` and
+`dropTarget`. It also supplies optional `contextAction`, `collapseToggle` and
+`resizeHandles` from enabled default controls. Place or omit them freely, or use
+native host controls with public editor events. Omit nested interactive controls
+inside drag buttons. Consumers never need to copy private input attributes.
+
+**Geometry contract:** frame position, width, group height, box sizing and input
+markers belong to the primitives. Port position and transform belong to its Model
+anchor. The primitives merge style attributes and apply those geometry properties
+last. Keep frames at the supplied world coordinate level; avoid CSS transforms,
+margins, size constraints or ancestor positioning that would move/scale the frame
+away from Model geometry. Visual node height may intentionally change with
+content or a shell switch; Flow remeasures it and rebases history. Fixed group
+bounds do not auto-fit to new content; use `GroupFitClicked` when desired.
+
+The sample's **Node design** selector switches between the default cards and
+complete circular SVG shells, including different group chrome, ports and resize
+controls. Both use the same graph and package input lifecycle. The SVG artwork is
+inside a measured HTML frame; native buttons retain keyboard behavior.
+
+This slice does not implement arbitrary port anchors, replaceable edge geometry,
+or full control/overlay composition. `renderEdge` still decorates Flow's path and
+retains its hit area. Follow-on boundaries are recorded in
 [ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
-The proposed primitives/slots are not shipped APIs yet.

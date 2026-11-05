@@ -185,6 +185,7 @@ export type EditorEvent =
   | Readonly<{ type: 'NodeLabelChanged'; id: string; label: string }>
   | Readonly<{ type: 'NodeContainmentToggled'; id: string }>
   | Readonly<{ type: 'NodeExpansionToggled'; id: string }>
+  | Readonly<{ type: 'NodeResizeNudged'; id: string; delta: number }>
   | Readonly<{ type: 'NodeWidthChanged'; id: string; width: number }>
   | Readonly<{
       type: 'GroupDimensionChanged';

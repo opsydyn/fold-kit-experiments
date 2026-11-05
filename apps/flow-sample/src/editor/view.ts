@@ -9,7 +9,8 @@ import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
-import { BackgroundStyle, type Model } from './model';
+import { BackgroundStyle, NodeDesign, type Model } from './model';
+import { orbitNode, orbitGroup } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -536,8 +537,41 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ),
             ]
           : []),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Node design',
+            h.select(
+              [
+                h.AriaLabel('Node design'),
+                h.Value(model.nodeDesign),
+                h.OnChange((value) =>
+                  Message.SelectedNodeDesign({
+                    nodeDesign: Schema.decodeUnknownSync(NodeDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option([h.Value('cards'), h.Selected(model.nodeDesign === 'cards')], ['Cards']),
+                h.option(
+                  [h.Value('orbits'), h.Selected(model.nodeDesign === 'orbits')],
+                  ['Orbits · custom SVG shells'],
+                ),
+              ],
+            ),
+          ],
+        ),
         flowView(h, model.editor, {
           id: 'flow-demo',
+          renderNodeShell: (context, builder) => {
+            if (model.nodeDesign === 'orbits') return orbitNode(context, builder);
+            return undefined;
+          },
+          renderGroupShell: (context, builder) => {
+            if (model.nodeDesign === 'orbits') return orbitGroup(context, builder);
+            return undefined;
+          },
           minimalMode: model.minimalMode,
           diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
           background,

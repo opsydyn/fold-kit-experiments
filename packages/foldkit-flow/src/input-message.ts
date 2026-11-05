@@ -30,6 +30,11 @@ export const BrowserInput = Schema.Union([
   }),
   Schema.Struct({ type: Schema.Literal('ContextDismissed') }),
   Schema.Struct({
+    type: Schema.Literal('NodeResizeNudged'),
+    id: Schema.String,
+    delta: Schema.Number,
+  }),
+  Schema.Struct({
     type: Schema.Literal('NodeSelected'),
     id: Schema.String,
     additive: Schema.Boolean,

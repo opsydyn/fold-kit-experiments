@@ -116,6 +116,9 @@ export const groupedOnionGraph: FlowGraph = {
   ],
 };
 
+export const NodeDesign = Schema.Literals(['cards', 'orbits']);
+export type NodeDesign = typeof NodeDesign.Type;
+
 export const BackgroundStyle = Schema.Literals(['dots', 'squares', 'custom', 'none']);
 export type BackgroundStyle = typeof BackgroundStyle.Type;
 
@@ -141,6 +144,7 @@ export const Model = Schema.Struct({
     overview: Schema.Boolean,
     connectionList: Schema.Boolean,
   }),
+  nodeDesign: NodeDesign,
   background: BackgroundStyle,
   editor: Schema.Unknown,
   active: Schema.NullOr(Schema.Unknown),
@@ -153,6 +157,7 @@ export type Model = Readonly<{
   diagnosticsEnabled: boolean;
   diagnosticsPanelOpen: boolean;
   diagnostics: FlowDiagnostics;
+  nodeDesign: NodeDesign;
   background: BackgroundStyle;
   editor: EditorState;
   active: LayoutRequest | null;
@@ -166,6 +171,7 @@ export const init = () => ({
     diagnosticsEnabled: true,
     diagnosticsPanelOpen: false,
     diagnostics: resolveFlowDiagnostics({}),
+    nodeDesign: 'cards',
     background: 'dots',
     editor: createEditor(initialGraph, { snapToAlignment: true }),
     active: null,

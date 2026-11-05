@@ -1128,6 +1128,15 @@ export function updateEditor(
         state.context?.kind === 'node' && state.context.id === group.id ? state.context : null;
       return { ...commitGraph(state, graph), context, notice: 'Group resized' };
     }
+    case 'NodeResizeNudged': {
+      const node = state.graph.nodes.find((node) => node.id === event.id && node.kind !== 'group');
+      if (!node || !Number.isFinite(event.delta)) return state;
+      const proposed = node.size.width + event.delta;
+      const width = state.snapToGrid
+        ? Math.round(proposed / state.gridSpacing) * state.gridSpacing
+        : proposed;
+      return updateEditor(state, { type: 'NodeWidthChanged', id: node.id, width }, policy);
+    }
     case 'NodeWidthChanged': {
       if (!Number.isFinite(event.width) || event.width <= 0) return state;
       const node = state.graph.nodes.find((node) => node.id === event.id);

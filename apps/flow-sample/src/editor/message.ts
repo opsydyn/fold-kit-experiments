@@ -1,10 +1,11 @@
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
-import { BackgroundStyle, DiagnosticFlag } from './model';
+import { NodeDesign, BackgroundStyle, DiagnosticFlag } from './model';
 export const Message = defineMessageUnion({
   ObservedFlowInput: { message: Schema.Unknown },
   SelectedExample: { example: Schema.Literals(['release', 'onion', 'grouped-onion']) },
+  SelectedNodeDesign: { nodeDesign: NodeDesign },
   SelectedBackground: { background: BackgroundStyle },
   ClickedMinimalMode: {},
   ClickedDiagnosticsPanel: {},

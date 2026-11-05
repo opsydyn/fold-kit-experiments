@@ -256,11 +256,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (!id && target.closest('button,a,[data-flow-node],[data-flow-edge]')) return;
     captured = event.pointerId;
     element.setPointerCapture(event.pointerId);
-    if (
-      (!resize || handle?.hasAttribute('data-flow-group-resize')) &&
-      handle instanceof window.HTMLElement
-    )
-      handle.focus({ preventScroll: true });
+    if (handle instanceof window.HTMLElement) handle.focus({ preventScroll: true });
     else element.focus({ preventScroll: true });
     event.preventDefault();
     if (id) {
@@ -409,6 +405,22 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (!target || editable(target)) return;
     const id = target.closest('[data-flow-handle]')?.getAttribute('data-flow-handle');
     const step = event.shiftKey ? 20 : 5;
+    const nodeResize = target
+      .closest('[data-flow-resize]:not([data-flow-group-resize])')
+      ?.getAttribute('data-flow-resize');
+    if (nodeResize && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+      event.preventDefault();
+      const configured = Number(element.dataset.flowGridSpacing);
+      const spacing = Number.isFinite(configured) && configured > 0 ? configured : gridSpacing;
+      const resizeStep =
+        element.dataset.flowGridSnap === 'true' ? spacing * (event.shiftKey ? 4 : 1) : step;
+      emit({
+        type: 'NodeResizeNudged',
+        id: nodeResize,
+        delta: event.key === 'ArrowLeft' ? -resizeStep : resizeStep,
+      });
+      return;
+    }
     const resizeHandle = target.closest('[data-flow-group-resize]');
     const groupResize = resizeHandle?.getAttribute('data-flow-resize');
     if (groupResize && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {

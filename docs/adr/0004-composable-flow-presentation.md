@@ -2,12 +2,9 @@
 
 ## Status
 
-Proposed following the user's 2026-11-05 clarification: freedom and control apply
-to the engineering API, so a designer's vision must be achievable through supported
-composition rather than private implementation copies or CSS overrides.
-
-The principle is agreed; the detailed extension API and implementation below are
-proposed. This review does not claim that the current renderer already meets it.
+Accepted for the first node/group composition slice on 2026-11-05 following
+user approval. The broader layering principle guides subsequent slices; arbitrary
+geometry and complete overlay/control composition remain follow-on work.
 
 ## Context and current evidence
 
@@ -31,7 +28,7 @@ In particular, `renderNode` is called inside an already-built card and `renderEd
 explicitly preserves Flow's hit area. Existing CSS variables and flags are useful,
 but do not establish full markup or interaction composition.
 
-## Decision proposed
+## Decision
 
 Treat design freedom as a public package contract with four layers:
 
@@ -143,8 +140,21 @@ or a browser/framework dependency in the pure core.
 **Verdict: proceed** with the bounded composition slice after review of this
 proposal. This is not approval of an unqualified universal extension API.
 
-## Verification of this review
+## Implementation and qualification
 
-This change records the audit and proposed contract. It adds no renderer hooks,
-geometry policies, styling switches or runtime behavior. Existing package feature
-qualification does not prove the proposed customization surface.
+The first slice adds public unstyled frame, drag-handle, port and resize primitives
+and full node/group shell hooks in the optional `/foldkit` entry. The default view
+uses those primitives. Context supplies optional default controls for composition;
+consumers may instead use native host controls and typed core events.
+
+The sample switches between cards and complete circular SVG shells with custom
+ports, group chrome and resize controls. Content-driven height changes follow the
+existing measurement and history-rebasing path; a shell switch does not rewrite
+document metadata. Ordinary node resize buttons also support keyboard width
+nudging through a typed event, with limits and history retained.
+
+Qualification covers rendered-shell input integration, a packed external consumer,
+and browser journeys for both designs: selection, keyboard movement, drag,
+connection creation, resize/measurement, cancellation, grouping and Undo. Browser
+screenshots and the qualification record live in `apps/flow-sample/evidence/`.
+The remaining follow-on surfaces above are not claimed as implemented.

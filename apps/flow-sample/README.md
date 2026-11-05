@@ -183,3 +183,15 @@ Inline controls are visually hidden with their layout space retained, preserving
 the current diagram. Compact Connections keeps keyboard access to edge actions.
 The package exports `minimalMode`, `diagnostics` and `resolveFlowDiagnostics` for
 other hosts; the workbench only owns its presentation preferences.
+
+### Node/group presentation composition
+
+Use **Node design** to switch between the bundled cards and complete SVG orbit
+shells. The example in `src/editor/presentation.ts` uses the public frame, drag,
+port and resize primitives. Group chrome uses host buttons and typed editor events.
+It shares the package's measurements, input lifecycle, grouping and history.
+The selector lives in the sample; all interaction primitives ship in
+`@opsydyn/foldkit-flow/foldkit`.
+
+See [composition qualification](evidence/composition.md) for browser evidence and
+current geometry limits.

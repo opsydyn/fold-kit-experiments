@@ -2,6 +2,23 @@ import { Option } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
+import {
+  flowNodeFrame,
+  flowGroupFrame,
+  flowDragHandle,
+  flowPort,
+  flowResizeHandle,
+  type FlowNodeRenderContext,
+} from './composition';
+export {
+  flowNodeFrame,
+  flowGroupFrame,
+  flowDragHandle,
+  flowPort,
+  flowResizeHandle,
+} from './composition';
+export type { FlowNodeRenderContext } from './composition';
+
 import { backgroundView, type FlowBackground } from './background';
 import {
   resolveFlowDiagnostics,
@@ -31,7 +48,6 @@ import type {
   FlowEdge,
   FlowNode,
   Point,
-  Port,
   Viewport,
   ResizeHandle,
 } from './types';
@@ -55,6 +71,10 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     onEvent: (event: EditorEvent) => M;
     /** Uses the host's builder; arbitrary FoldKit controls retain their normal behaviour. */
     renderNode?: (node: FlowNode, h: HtmlBuilder<M>) => Html;
+    /** Replaces the complete measured node shell. Compose the public frame and interaction primitives. */
+    renderNodeShell?: (context: FlowNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** Replaces a group boundary. Its frame retains Model-owned bounds and paint order. */
+    renderGroupShell?: (context: FlowNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Decorative SVG along Flow's path. Return undefined to use the built-in renderer. */
     renderEdge?: (context: FlowEdgeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     edgeAppearance?: (edge: FlowEdge) => Readonly<{
@@ -411,16 +431,6 @@ function edgeActions<M>(
   );
 }
 
-function portStyle(port: Port) {
-  const offset = `calc(${port.offset * 100}% - 12px)`;
-  return {
-    left: { right: 'auto', bottom: 'auto', left: '-12px', top: offset },
-    right: { left: 'auto', bottom: 'auto', right: '-12px', top: offset },
-    top: { right: 'auto', bottom: 'auto', top: '-12px', left: offset },
-    bottom: { right: 'auto', top: 'auto', bottom: '-12px', left: offset },
-  }[port.side];
-}
-
 function resizeReadout<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
@@ -563,82 +573,34 @@ export function flowView<M>(
   const boundaries = groupsInPaintOrder(presentation.nodes).map((node) => {
     const collapsed = collapsedGroups.has(node.id);
     const dropTarget = dropParent === node.id;
-    return h.div(
-      [
-        h.Key(node.id),
-        h.DataAttribute('flow-group', node.id),
-        h.DataAttribute('flow-collapsed', String(collapsed)),
-        ...(dropTarget ? [h.DataAttribute('flow-group-drop-target', '')] : []),
-        h.Style({
-          position: 'absolute',
-          left: `${node.position.x}px`,
-          top: `${node.position.y}px`,
-          width: `${node.size.width}px`,
-          height: `${node.size.height}px`,
-          'box-sizing': 'border-box',
-          'border-radius': 'var(--flow-node-radius, 8px)',
-          border: dropTarget
-            ? '2px solid var(--flow-valid-target, #0f766e)'
-            : state.selectedNodes.includes(node.id)
-              ? '2px solid var(--flow-selection, #2563eb)'
-              : '2px dashed var(--flow-node-border, #64748b)',
-          background: collapsed
-            ? 'var(--flow-node-background, #fff)'
-            : 'var(--flow-group-background, rgb(100 116 139 / 0.08))',
-          'box-shadow': dropTarget ? '0 0 0 3px var(--flow-valid-target, #0f766e)' : 'none',
-          display: 'flex',
-          'align-items': 'flex-start',
-          gap: '4px',
-          padding: '4px',
-          'pointer-events': 'none',
-        }),
-      ],
-      [
-        h.button(
-          [
-            h.Type('button'),
-            h.DataAttribute('flow-handle', node.id),
-            h.AriaLabel(`Select ${node.label}`),
-            h.Title(node.label),
-            h.AriaPressed(String(state.selectedNodes.includes(node.id))),
-            h.AriaDescribedBy(descriptionId),
-            h.Style({
-              'pointer-events': 'auto',
-              cursor: state.readOnly ? 'pointer' : 'grab',
-              overflow: 'hidden',
-              'text-overflow': 'ellipsis',
-              'white-space': 'nowrap',
-              'min-height': '28px',
-            }),
-          ],
-          [node.label],
-        ),
-        h.button(
-          [
-            h.Type('button'),
-            h.DataAttribute('flow-no-drag', ''),
-            h.AriaLabel(`${collapsed ? 'Expand' : 'Collapse'} ${node.label}`),
-            h.AriaExpanded(!collapsed),
-            h.OnClick(options.onEvent({ type: 'GroupCollapseToggled', id: node.id })),
-            h.Style({ 'pointer-events': 'auto', cursor: 'pointer', 'min-height': '28px' }),
-          ],
-          [collapsed ? 'Expand' : 'Collapse'],
-        ),
-        ...(contextEnabled ? [nodeContextTrigger(node)] : []),
-        ...(options.resizeHandles &&
+    const base = { node, state, descriptionId, diagnostics, collapsed, dropTarget };
+    const context: FlowNodeRenderContext = {
+      ...base,
+      contextAction: contextEnabled ? nodeContextTrigger(node) : undefined,
+      collapseToggle: h.button(
+        [
+          h.Type('button'),
+          h.DataAttribute('flow-no-drag', ''),
+          h.AriaLabel(`${collapsed ? 'Expand' : 'Collapse'} ${node.label}`),
+          h.AriaExpanded(!collapsed),
+          h.OnClick(options.onEvent({ type: 'GroupCollapseToggled', id: node.id })),
+          h.Style({ 'pointer-events': 'auto', cursor: 'pointer', 'min-height': '28px' }),
+        ],
+        [collapsed ? 'Expand' : 'Collapse'],
+      ),
+      resizeHandles:
+        options.resizeHandles &&
         !state.readOnly &&
         !collapsed &&
         state.selectedNodes.includes(node.id)
           ? resizeHandles.map((handle) =>
-              h.button(
+              flowResizeHandle(
+                h,
+                base,
+                handle,
                 [
                   h.Key(handle),
                   h.Type('button'),
-                  h.DataAttribute('flow-resize', node.id),
-                  h.DataAttribute('flow-resize-handle', handle),
-                  ...(handle.includes('-') ? [h.DataAttribute('flow-resize-corner', handle)] : []),
-                  h.DataAttribute('flow-group-resize', ''),
-                  h.AriaLabel(`Resize ${node.label} from ${handle.replaceAll('-', ' ')}`),
                   h.Title(
                     groupResizeTitle(
                       node,
@@ -689,69 +651,77 @@ export function flowView<M>(
                 ],
               ),
             )
-          : []),
+          : [],
+    };
+    const custom = options.renderGroupShell?.(context, h);
+    if (custom !== undefined) return custom;
+    return flowGroupFrame(
+      h,
+      context,
+      [
+        h.Style({
+          'border-radius': 'var(--flow-node-radius, 8px)',
+          border: dropTarget
+            ? '2px solid var(--flow-valid-target, #0f766e)'
+            : state.selectedNodes.includes(node.id)
+              ? '2px solid var(--flow-selection, #2563eb)'
+              : '2px dashed var(--flow-node-border, #64748b)',
+          background: collapsed
+            ? 'var(--flow-node-background, #fff)'
+            : 'var(--flow-group-background, rgb(100 116 139 / 0.08))',
+          'box-shadow': dropTarget ? '0 0 0 3px var(--flow-valid-target, #0f766e)' : 'none',
+          display: 'flex',
+          'align-items': 'flex-start',
+          gap: '4px',
+          padding: '4px',
+          'pointer-events': 'none',
+        }),
+      ],
+      [
+        flowDragHandle(
+          h,
+          context,
+          [
+            h.Type('button'),
+            h.Title(node.label),
+            h.Style({
+              'pointer-events': 'auto',
+              cursor: state.readOnly ? 'pointer' : 'grab',
+              overflow: 'hidden',
+              'text-overflow': 'ellipsis',
+              'white-space': 'nowrap',
+              'min-height': '28px',
+            }),
+          ],
+          [node.label],
+        ),
+        context.collapseToggle!,
+        ...(context.contextAction ? [context.contextAction] : []),
+        ...context.resizeHandles,
       ],
     );
   });
   const nodes = presentation.nodes
     .filter((node) => node.kind !== 'group')
-    .map((node) =>
-      h.div(
-        [
-          h.Key(node.id),
-          h.DataAttribute('flow-node', node.id),
-          h.DataAttribute('flow-x', String(node.position.x)),
-          h.DataAttribute('flow-y', String(node.position.y)),
-          h.Style({
-            position: 'absolute',
-            left: `${node.position.x}px`,
-            top: `${node.position.y}px`,
-            width: `${node.size.width}px`,
-            'min-height': '64px',
-            'box-sizing': 'border-box',
-            border: state.selectedNodes.includes(node.id)
-              ? '2px solid var(--flow-selection, #2563eb)'
-              : '2px solid var(--flow-node-border, #64748b)',
-            'border-radius': 'var(--flow-node-radius, 8px)',
-            background: 'var(--flow-node-background, #fff)',
-            color: 'var(--flow-node-color, #172033)',
-            padding: '12px',
-            'pointer-events': 'auto',
-          }),
-        ],
-        [
-          h.button(
-            [
-              h.Type('button'),
-              h.DataAttribute('flow-handle', node.id),
-              h.AriaLabel(`Select ${node.label}`),
-              h.AriaPressed(String(state.selectedNodes.includes(node.id))),
-              h.AriaDescribedBy(descriptionId),
-              h.Style({
-                display: 'block',
-                width: contextEnabled ? 'calc(100% - 36px)' : '100%',
-                'min-height': '32px',
-                'text-align': 'left',
-                cursor: state.readOnly ? 'pointer' : 'grab',
-                'font-weight': '600',
-                color: 'inherit',
-                background: 'transparent',
-                border: 'none',
-              }),
-            ],
-            [node.label],
-          ),
-          ...(contextEnabled ? [nodeContextTrigger(node)] : []),
-          ...(options.resizeHandles && !state.readOnly
+    .map((node) => {
+      const base = { node, state, descriptionId, diagnostics, collapsed: false, dropTarget: false };
+      const context: FlowNodeRenderContext = {
+        ...base,
+        contextAction: contextEnabled ? nodeContextTrigger(node) : undefined,
+        resizeHandles:
+          options.resizeHandles && !state.readOnly
             ? [
-                h.span(
+                flowResizeHandle(
+                  h,
+                  base,
+                  'right',
                   [
-                    h.DataAttribute('flow-resize', node.id),
-                    h.AriaHidden(true),
                     h.Style({
                       position: 'absolute',
                       right: '-8px',
                       bottom: '-8px',
+                      border: 'none',
+                      padding: '0',
                       width: '24px',
                       height: '24px',
                       display: 'grid',
@@ -767,25 +737,56 @@ export function flowView<M>(
                   ['↔'],
                 ),
               ]
-            : []),
+            : [],
+      };
+      const custom = options.renderNodeShell?.(context, h);
+      if (custom !== undefined) return custom;
+      return flowNodeFrame(
+        h,
+        context,
+        [
+          h.Style({
+            'min-height': '64px',
+            border: state.selectedNodes.includes(node.id)
+              ? '2px solid var(--flow-selection, #2563eb)'
+              : '2px solid var(--flow-node-border, #64748b)',
+            'border-radius': 'var(--flow-node-radius, 8px)',
+            background: 'var(--flow-node-background, #fff)',
+            color: 'var(--flow-node-color, #172033)',
+            padding: '12px',
+            'pointer-events': 'auto',
+          }),
+        ],
+        [
+          flowDragHandle(
+            h,
+            context,
+            [
+              h.Type('button'),
+              h.Style({
+                display: 'block',
+                width: contextEnabled ? 'calc(100% - 36px)' : '100%',
+                'min-height': '32px',
+                'text-align': 'left',
+                cursor: state.readOnly ? 'pointer' : 'grab',
+                'font-weight': '600',
+                color: 'inherit',
+                background: 'transparent',
+                border: 'none',
+              }),
+            ],
+            [node.label],
+          ),
+          ...(context.contextAction ? [context.contextAction] : []),
+          ...context.resizeHandles,
           ...(options.renderNode ? [options.renderNode(node, h)] : []),
           ...node.ports.map((port) =>
-            h.button(
+            flowPort(
+              h,
+              context,
+              port,
               [
-                h.Key(port.id),
-                h.Type('button'),
-                h.DataAttribute('flow-port', port.id),
-                h.DataAttribute('flow-port-kind', port.kind),
-                h.DataAttribute('flow-owner', node.id),
-                h.Disabled(state.readOnly),
-                h.AriaLabel(
-                  `${port.kind === 'output' ? 'Connect from' : 'Connect to'} ${node.label}: ${port.label ?? port.id}`,
-                ),
-                h.AriaPressed(
-                  String(state.connection?.node === node.id && state.connection.port === port.id),
-                ),
                 h.Style({
-                  ...portStyle(port),
                   position: 'absolute',
                   'z-index': '1',
                   width: '24px',
@@ -812,8 +813,8 @@ export function flowView<M>(
             ),
           ),
         ],
-      ),
-    );
+      );
+    });
   const markerId = `${options.id}-arrow`;
   const routes = new Map(state.routes.map((route) => [route.id, route.points]));
   const edgeGeometries = visibleEdges.map((edge) => ({

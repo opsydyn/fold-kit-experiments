@@ -162,3 +162,9 @@ With **Snap to nodes** enabled, resize a group near visible card edges to align
 its moving boundary and show a guide. Alignment overrides the grid on that axis;
 constraints and proportion locking remain active. Guides clear on release or
 Escape, and Undo restores the original boundary.
+
+A live width × height readout appears at the canvas's lower-left corner during
+resizing and while a single expanded group is selected. It shows actual graph
+units after snapping and constraints, including keyboard edits. Escape restores
+the original numbers; clearing selection hides the group readout. The package
+owns this UI, and hosts can disable it with `resizeReadout: false`.

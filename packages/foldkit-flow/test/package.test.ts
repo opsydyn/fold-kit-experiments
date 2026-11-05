@@ -74,7 +74,7 @@ const request=layoutRequest(state,'consumer');
 const layout=await createElkLayout()(request);
 const arranged=applyLayout(state,request,layout);
 const background:FlowBackground<EditorEvent>={type:'custom',render:(context,h)=>h.div([h.DataAttribute('packed-grid',context.id),h.DataAttribute('packed-spacing',String(context.spacing))],[String(context.spacing)])};
-const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:flowView(h,model,{id:'external',label:'External graph',background,onEvent:event=>event})})},{flags:{},isHydratable:false}));
+const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:flowView(h,model,{id:'external',label:'External graph',background,resizeReadout:false,onEvent:event=>event})})},{flags:{},isHydratable:false}));
 if (!result.html.includes('data-packed-grid="external"')) throw new Error('Missing packed custom grid');
 if (!result.html.includes('data-packed-spacing="32"')) throw new Error('Missing packed grid spacing');
 if (!result.html.includes('External graph')) throw new Error('Missing packed renderer output');

@@ -65,6 +65,8 @@ export type FlowViewOptions<M> = Readonly<{
   pinchZoom?: boolean;
   /** Card width handles and corner/side handles on selected expanded groups. */
   resizeHandles?: boolean;
+  /** Show Model dimensions during resizing and for selected groups with handles. Defaults to true. */
+  resizeReadout?: boolean;
   minimap?: boolean;
   viewportControls?: boolean;
   /** Include a box selection toggle in the viewport controls. */
@@ -316,6 +318,59 @@ function portStyle(port: Port) {
     top: { right: 'auto', bottom: 'auto', top: '-12px', left: offset },
     bottom: { right: 'auto', top: 'auto', bottom: '-12px', left: offset },
   }[port.side];
+}
+
+function resizeReadout<M>(
+  h: HtmlBuilder<M>,
+  state: EditorState,
+  options: FlowViewOptions<M>,
+  nodes: readonly FlowNode[],
+) {
+  if (options.resizeReadout === false || state.readOnly) return [];
+  const gesture = state.gesture;
+  const id =
+    gesture.type === 'node-resize'
+      ? gesture.ids[0]
+      : gesture.type === 'idle' && options.resizeHandles && state.selectedNodes.length === 1
+        ? state.selectedNodes[0]
+        : undefined;
+  const node = nodes.find(
+    (node) => node.id === id && (gesture.type === 'node-resize' || node.kind === 'group'),
+  );
+  if (!node || state.collapsedGroups.includes(node.id)) return [];
+  const width = String(Number(node.size.width.toFixed(2)));
+  const height = String(Number(node.size.height.toFixed(2)));
+  return [
+    h.div(
+      [
+        h.Key('resize-readout'),
+        h.DataAttribute('flow-resize-readout', node.id),
+        h.Role('status'),
+        h.AriaLive('polite'),
+        h.AriaLabel(`${node.label} dimensions in graph units`),
+        h.Title(`${node.label}: ${width} × ${height} graph units`),
+        h.Style({
+          position: 'absolute',
+          left: '8px',
+          bottom: '8px',
+          'z-index': '2',
+          'pointer-events': 'none',
+          padding: '6px 10px',
+          color: 'var(--flow-resize-readout-color, var(--flow-node-color, #172033))',
+          background: 'var(--flow-resize-readout-background, var(--flow-node-background, #fff))',
+          border: '1px solid var(--flow-node-border, #64748b)',
+          'border-radius': '6px',
+          'box-shadow': '0 1px 4px rgb(0 0 0 / 0.12)',
+          'font-size': '12px',
+          'font-weight': '600',
+          'font-variant-numeric': 'tabular-nums',
+          'line-height': '1.4',
+          'white-space': 'nowrap',
+        }),
+      ],
+      [`${width} × ${height}`],
+    ),
+  ];
 }
 
 /** A normal FoldKit view: all state and message handling belong to its parent. */
@@ -1064,6 +1119,7 @@ export function flowView<M>(
                 ),
               ]
             : []),
+          ...resizeReadout(h, state, options, presentation.nodes),
           ...(toolbar && !state.context ? [toolbar] : []),
           ...contextPanel(h, state, options),
         ],

@@ -212,13 +212,13 @@ CSS variables still inherit from ancestors. A host using Pleat can combine a
 class from `cssClass()` with a CSS class that maps its semantic theme tokens
 to the Flow variables. Pleat owns the host theme and style registration.
 
-| Part        | CSS variables                                                                             |
-| ----------- | ----------------------------------------------------------------------------------------- |
-| Canvas      | `--flow-background`, `--flow-canvas-border`, `--flow-grid-line`, `--flow-grid-dot`        |
-| Node        | `--flow-node-background`, `--flow-node-color`, `--flow-node-border`, `--flow-node-radius` |
-| Ports       | `--flow-input-port`, `--flow-output-port`, `--flow-port-border`, `--flow-control-color`   |
-| Edges       | `--flow-edge`, `--flow-edge-width`                                                        |
-| Interaction | `--flow-selection`, `--flow-valid-target`, `--flow-resize-background`                     |
+| Part        | CSS variables                                                                                                                            |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Canvas      | `--flow-background`, `--flow-canvas-border`, `--flow-grid-line`, `--flow-grid-dot`                                                       |
+| Node        | `--flow-node-background`, `--flow-node-color`, `--flow-node-border`, `--flow-node-radius`                                                |
+| Ports       | `--flow-input-port`, `--flow-output-port`, `--flow-port-border`, `--flow-control-color`                                                  |
+| Edges       | `--flow-edge`, `--flow-edge-width`                                                                                                       |
+| Interaction | `--flow-selection`, `--flow-valid-target`, `--flow-resize-background`, `--flow-resize-readout-background`, `--flow-resize-readout-color` |
 
 For example, given a Pleat theme that exposes the app's semantic CSS tokens:
 
@@ -465,3 +465,19 @@ remain authoritative: a guide is shown only if the resulting edge reaches its
 target. Guides live in the resize gesture, clear when leaving the target, and
 vanish on release or Escape. A completed resize remains one Undo step. The
 FoldKit renderer draws them using the existing `--flow-alignment-guide` token.
+
+### Live resize dimensions
+
+The FoldKit view shows a width × height readout in the canvas's lower-left corner
+during pointer resizing. With `resizeHandles: true`, it also stays visible for a
+single selected, expanded group so keyboard resizing has the same feedback.
+Card readouts are transient. Read-only views and collapsed/hidden groups omit it.
+Set `resizeReadout: false` to disable the built-in readout for a custom UI.
+
+Values come from the current Model in graph units, including snapping, limits,
+locked proportions and measured card height. Up to two decimal places are shown;
+this never rounds authored geometry. The badge stays the same screen size while
+zooming, ignores pointer input, and uses a native polite status region. Releasing
+keeps a selected group's result visible; Escape restores its original dimensions.
+Selection clearing hides it. Theme it with `--flow-resize-readout-background` and
+`--flow-resize-readout-color`, alongside existing node border/color tokens.

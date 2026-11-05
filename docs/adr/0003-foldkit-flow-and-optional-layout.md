@@ -249,3 +249,14 @@ The existing FoldKit SVG guide renderer now reads both drag and resize gestures.
 Keyboard edits retain their discrete transaction semantics. Tests cover zoom,
 multiple handles, grid precedence, locked ratios, hidden targets, constrained
 and stale guides, cancellation and Undo; Chromium checks the active overlay.
+
+Resize dimension feedback is derived directly from visible Model nodes in the
+FoldKit view. A screen-space, pointer-transparent status badge shows up to two
+decimal places without changing geometry. It is present during pointer resizing
+and for one selected expanded group with resize handles, giving keyboard edits
+the same feedback without new focus state or input events. Card feedback remains
+transient; collapsed/hidden groups and read-only views omit it. Hosts can disable
+it with `resizeReadout: false` and use existing state for their own presentation.
+No document fields, transactions or Astro-specific editing logic are added.
+SSR tests cover constrained values, cancellation, keyboard rounding and opt-out;
+browser checks cover zoom, actual live updates, selection lifecycle and Undo.

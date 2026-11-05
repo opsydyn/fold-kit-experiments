@@ -157,3 +157,8 @@ is enabled, or four with Shift.
 Dots, squares, custom graph paper, snapped dragging and resize handles all follow
 it. Changing spacing leaves authored geometry and Undo history intact. The choice
 survives example changes, import, and loading a saved diagram during this session.
+
+With **Snap to nodes** enabled, resize a group near visible card edges to align
+its moving boundary and show a guide. Alignment overrides the grid on that axis;
+constraints and proportion locking remain active. Guides clear on release or
+Escape, and Undo restores the original boundary.

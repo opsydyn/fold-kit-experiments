@@ -450,3 +450,18 @@ placement offsets use two grid intervals. Explicit background `gap` remains an
 independent visual override. Grid spacing is editor session state, excluded from
 graph JSON; hosts can persist preferences separately. The sample retains it when
 switching examples and loading/importing diagrams.
+
+### Resize alignment guides
+
+Enable `snapToAlignment` (the sample's **Snap to nodes**) for magnetic group
+resizing. Pointer drags align moving edges to nearby visible card edges and
+collapsed group edges within six screen pixels. Expanded boundaries and the
+resized group's descendants are excluded. Corner handles can align both axes;
+side handles align their moving axis. Keyboard sizing keeps its existing steps.
+
+Alignment overrides the grid only on a matching axis. With locked proportions,
+the closest matched edge drives uniform scaling. Content, parent and size limits
+remain authoritative: a guide is shown only if the resulting edge reaches its
+target. Guides live in the resize gesture, clear when leaving the target, and
+vanish on release or Escape. A completed resize remains one Undo step. The
+FoldKit renderer draws them using the existing `--flow-alignment-guide` token.

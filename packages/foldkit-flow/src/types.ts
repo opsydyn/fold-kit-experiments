@@ -74,7 +74,13 @@ export type Gesture =
         dropParent: string | null | undefined;
         guides: readonly AlignmentGuide[];
       }>)
-  | (NodeGesture & Readonly<{ type: 'node-resize'; corner?: ResizeCorner; handle?: ResizeHandle }>)
+  | (NodeGesture &
+      Readonly<{
+        type: 'node-resize';
+        corner?: ResizeCorner;
+        handle?: ResizeHandle;
+        guides?: readonly AlignmentGuide[];
+      }>)
   | Readonly<{
       type: 'connection-drag';
       pointer: number;

@@ -1,4 +1,10 @@
-import { alignDrag, sameGuides } from './alignment';
+import {
+  alignDrag,
+  alignResize,
+  resizeGuides,
+  sameGuides,
+  type ResizeAlignment,
+} from './alignment';
 import {
   boxBounds,
   finitePoint,
@@ -68,6 +74,7 @@ function resizeGroup(
   handle: ResizeHandle = 'bottom-right',
   snapToGrid = false,
   spacing = defaultGridSpacing,
+  alignment: readonly ResizeAlignment[] = [],
 ): FlowGraph {
   const group = graph.nodes.find((node) => node.id === id && node.kind === 'group');
   if (!group || (delta.x === 0 && delta.y === 0)) return graph;
@@ -85,8 +92,14 @@ function resizeGroup(
   const bottom = group.position.y + group.size.height;
   const snapped = (edge: number, offset: number) =>
     snapToGrid && offset !== 0 ? Math.round((edge + offset) / spacing) * spacing - edge : offset;
-  const x = vertical ? 0 : snapped(left ? group.position.x : right, delta.x);
-  const y = horizontal ? 0 : snapped(top ? group.position.y : bottom, delta.y);
+  const x = vertical
+    ? 0
+    : (alignment.find((match) => match.axis === 'x')?.offset ??
+      snapped(left ? group.position.x : right, delta.x));
+  const y = horizontal
+    ? 0
+    : (alignment.find((match) => match.axis === 'y')?.offset ??
+      snapped(top ? group.position.y : bottom, delta.y));
   const growth = { x: left ? -x : x, y: top ? -y : y };
   if (growth.x === 0 && growth.y === 0) return graph;
   const included = withDescendants(graph, [id]);
@@ -171,7 +184,9 @@ function resizeGroup(
     if (minimumScale > maximumScale) return graph;
     const x = growth.x / group.size.width;
     const y = growth.y / group.size.height;
-    const requested = 1 + (Math.abs(x) >= Math.abs(y) ? x : y);
+    const driver = alignment[0]?.axis;
+    const requested =
+      1 + (driver === 'x' ? x : driver === 'y' ? y : Math.abs(x) >= Math.abs(y) ? x : y);
     const scale = Math.max(minimumScale, Math.min(maximumScale, requested));
     // Repeated edits at a floating-point boundary must not create history entries.
     if (Math.abs(scale - 1) <= Number.EPSILON * 4) return graph;
@@ -770,19 +785,36 @@ export function updateEditor(
         const original = gesture.before.nodes.find((node) => node.id === gesture.ids[0]);
         if (!original) return state;
         if (original.kind === 'group') {
+          const raw = { x: delta.x / state.viewport.zoom, y: delta.y / state.viewport.zoom };
+          const handle = gesture.handle ?? gesture.corner ?? 'bottom-right';
+          const { nodes } = presentGroups(gesture.before, state.collapsedGroups);
+          const alignment =
+            state.snapToAlignment && Math.hypot(delta.x, delta.y) >= 4
+              ? alignResize(
+                  nodes,
+                  original,
+                  withDescendants(gesture.before, [original.id]),
+                  state.collapsedGroups,
+                  raw,
+                  handle,
+                  state.viewport.zoom,
+                )
+              : [];
           const graph = resizeGroup(
             gesture.before,
             original.id,
-            {
-              x: delta.x / state.viewport.zoom,
-              y: delta.y / state.viewport.zoom,
-            },
-            gesture.handle ?? gesture.corner,
+            raw,
+            handle,
             state.snapToGrid,
             state.gridSpacing,
+            alignment,
           );
-          if (sameGeometry(state.graph, graph)) return state;
-          return { ...state, graph, revision: state.revision + 1, routes: [] };
+          const resized = graph.nodes.find((node) => node.id === original.id) ?? original;
+          const guides = resizeGuides(resized, handle, alignment, state.viewport.zoom);
+          const resize = { ...gesture, guides };
+          if (sameGeometry(state.graph, graph))
+            return sameGuides(gesture.guides ?? [], guides) ? state : { ...state, gesture: resize };
+          return { ...state, gesture: resize, graph, revision: state.revision + 1, routes: [] };
         }
         const initial = original.size.width;
         const minimum =
@@ -1010,6 +1042,7 @@ export function updateEditor(
             ? {
                 type: 'node-resize' as const,
                 handle: event.handle ?? event.corner ?? 'bottom-right',
+                guides: [],
               }
             : { type: 'node-drag' as const, dropParent: undefined, guides: [] }),
           pointer: event.pointer,

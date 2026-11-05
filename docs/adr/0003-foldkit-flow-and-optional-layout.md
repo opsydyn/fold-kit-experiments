@@ -237,3 +237,15 @@ hosts. This avoids a second independently configured snap grid. Graph JSON stays
 unchanged; the sample preserves preferences when replacing diagrams. Regression
 checks cover invalid/fractional values, Undo, renderer context, keyboard input,
 installed package types and browser use of the spacing control.
+
+Group resize alignment reuses the editor's opt-in alignment setting and the
+existing screen-space capture/proximity thresholds. Candidate moving edges are
+compared with visible card/collapsed-group edges, excluding the resized subtree.
+Matched axes bypass grid rounding; locked proportions choose the closest match
+as their scale driver. Final geometry still passes through content, parent and
+size constraints, and only reached targets produce guides. Resize gesture state
+owns transient guides, including guide-only updates without revision changes.
+The existing FoldKit SVG guide renderer now reads both drag and resize gestures.
+Keyboard edits retain their discrete transaction semantics. Tests cover zoom,
+multiple handles, grid precedence, locked ratios, hidden targets, constrained
+and stale guides, cancellation and Undo; Chromium checks the active overlay.

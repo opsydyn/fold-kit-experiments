@@ -334,6 +334,12 @@ export function flowView<M>(
       ? minimapGeometry(presentation, state.surface, state.viewport)
       : null;
   const descriptionId = `${options.id}-help`;
+  const alignmentGuides =
+    state.gesture.type === 'node-drag'
+      ? state.gesture.guides
+      : state.gesture.type === 'node-resize'
+        ? (state.gesture.guides ?? [])
+        : [];
   const transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.zoom})`;
   const drag = state.gesture.type === 'connection-drag' ? state.gesture : null;
   const source = state.connection;
@@ -928,25 +934,23 @@ export function flowView<M>(
                     ],
                   ),
                   ...edges,
-                  ...(state.gesture.type === 'node-drag'
-                    ? state.gesture.guides.map(({ axis, position, from, to }) =>
-                        h.line(
-                          [
-                            h.Key(`alignment:${axis}`),
-                            h.DataAttribute('flow-alignment-guide', axis),
-                            h.X1(String(axis === 'x' ? position : from)),
-                            h.X2(String(axis === 'x' ? position : to)),
-                            h.Y1(String(axis === 'y' ? position : from)),
-                            h.Y2(String(axis === 'y' ? position : to)),
-                            h.Stroke('var(--flow-alignment-guide, #7c3aed)'),
-                            h.StrokeWidth('2'),
-                            h.StrokeDasharray('5 3'),
-                            h.Style({ 'vector-effect': 'non-scaling-stroke' }),
-                          ],
-                          [],
-                        ),
-                      )
-                    : []),
+                  ...alignmentGuides.map(({ axis, position, from, to }) =>
+                    h.line(
+                      [
+                        h.Key(`alignment:${axis}`),
+                        h.DataAttribute('flow-alignment-guide', axis),
+                        h.X1(String(axis === 'x' ? position : from)),
+                        h.X2(String(axis === 'x' ? position : to)),
+                        h.Y1(String(axis === 'y' ? position : from)),
+                        h.Y2(String(axis === 'y' ? position : to)),
+                        h.Stroke('var(--flow-alignment-guide, #7c3aed)'),
+                        h.StrokeWidth('2'),
+                        h.StrokeDasharray('5 3'),
+                        h.Style({ 'vector-effect': 'non-scaling-stroke' }),
+                      ],
+                      [],
+                    ),
+                  ),
                   ...handles,
                   ...(preview
                     ? [

@@ -1962,3 +1962,248 @@ test('grid spacing validates initialization and preference changes without creat
       ?.position,
   ).toEqual({ x: 12.5, y: 12.5 });
 });
+
+test('group resize alignment overrides grid on a matched edge with screen-space tolerance', () => {
+  const fixture: FlowGraph = {
+    nodes: [
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        position: { x: 100, y: 100 },
+        size: { width: 400, height: 200 },
+      },
+      { ...nodeA, id: 'neighbor', position: { x: 603, y: 150 } },
+    ],
+    edges: [],
+  };
+  for (const [zoom, aligned] of [
+    [2, true],
+    [4, false],
+  ] as const) {
+    const initial = createEditor(fixture, {
+      snapToGrid: true,
+      snapToAlignment: true,
+      viewport: { x: 0, y: 0, zoom },
+    });
+    const start = updateEditor(initial, {
+      type: 'NodeResizeStarted',
+      id: 'g',
+      handle: 'right',
+      pointer: 1,
+      point: { x: 0, y: 0 },
+    });
+    const preview = updateEditor(start, {
+      type: 'PointerMoved',
+      pointer: 1,
+      point: { x: 101 * zoom, y: 0 },
+    });
+    expect(preview.graph.nodes[0]?.size.width).toBe(aligned ? 503 : 500);
+    expect(preview.gesture).toMatchObject({
+      type: 'node-resize',
+      guides: aligned ? [{ axis: 'x', position: 603, from: 100, to: 300 }] : [],
+    });
+    expect(preview.graph.nodes[1]).toEqual(initial.graph.nodes[1]);
+    expect(updateEditor(preview, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
+    const released = updateEditor(preview, { type: 'PointerReleased', pointer: 1 });
+    expect(released.gesture.type).toBe('idle');
+    expect(released.past).toHaveLength(1);
+    expect(updateEditor(released, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  }
+});
+
+test('resize alignment respects locked proportions and suppresses impossible or stale guides', () => {
+  const fixture: FlowGraph = {
+    nodes: [
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        position: { x: 100, y: 100 },
+        size: { width: 400, height: 200 },
+        keepAspectRatio: true,
+      },
+      { ...nodeA, id: 'neighbor', position: { x: 603, y: 360 } },
+    ],
+    edges: [],
+  };
+  const initial = createEditor(fixture, { snapToGrid: true, snapToAlignment: true });
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const preview = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 101, y: 58 },
+  });
+  expect(preview.graph.nodes[0]?.size.width).toBeCloseTo(503, 10);
+  expect(preview.graph.nodes[0]?.size.height).toBeCloseTo(251.5, 10);
+  expect(preview.gesture).toMatchObject({
+    type: 'node-resize',
+    guides: [{ axis: 'x', position: 603, from: 100, to: 440 }],
+  });
+  const limited = createEditor(
+    {
+      ...fixture,
+      nodes: fixture.nodes.map((node) =>
+        node.id === 'g'
+          ? { ...node, keepAspectRatio: false, resizeLimits: { maxWidth: 503 } }
+          : { ...node, position: { x: 603, y: 150 } },
+      ),
+    },
+    { snapToGrid: true, snapToAlignment: true },
+  );
+  const limitStart = updateEditor(limited, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    handle: 'right',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const atLimit = updateEditor(limitStart, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 101, y: 0 },
+  });
+  expect(atLimit.gesture).toMatchObject({
+    guides: [{ axis: 'x', position: 603, from: 100, to: 300 }],
+  });
+  const away = updateEditor(atLimit, { type: 'PointerMoved', pointer: 1, point: { x: 130, y: 0 } });
+  expect(away.graph).toEqual(atLimit.graph);
+  expect(away.revision).toBe(atLimit.revision);
+  expect(away.gesture).toMatchObject({ guides: [] });
+  const blocked = createEditor(
+    {
+      ...limited.graph,
+      nodes: limited.graph.nodes.map((node) =>
+        node.id === 'g' ? { ...node, resizeLimits: { maxWidth: 502 } } : node,
+      ),
+    },
+    { snapToAlignment: true },
+  );
+  const blockedStart = updateEditor(blocked, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    handle: 'right',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const blockedPreview = updateEditor(blockedStart, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 101, y: 0 },
+  });
+  expect(blockedPreview.graph.nodes[0]?.size.width).toBe(502);
+  expect(blockedPreview.gesture).toMatchObject({ guides: [] });
+});
+
+test('resize alignment ignores hidden nodes and remains opt-in', () => {
+  const fixture: FlowGraph = {
+    nodes: [
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        position: { x: 100, y: 100 },
+        size: { width: 400, height: 200 },
+      },
+      {
+        id: 'h',
+        label: 'Hidden',
+        kind: 'group',
+        ports: [],
+        position: { x: 550, y: 0 },
+        size: { width: 500, height: 400 },
+      },
+      { ...nodeA, id: 'neighbor', parentId: 'h', position: { x: 603, y: 150 } },
+    ],
+    edges: [],
+  };
+  for (const options of [
+    { snapToAlignment: false, collapsedGroups: [] },
+    { snapToAlignment: true, collapsedGroups: ['h'] },
+  ]) {
+    const initial = {
+      ...createEditor(fixture, { snapToGrid: true, snapToAlignment: options.snapToAlignment }),
+      collapsedGroups: options.collapsedGroups,
+    };
+    const start = updateEditor(initial, {
+      type: 'NodeResizeStarted',
+      id: 'g',
+      handle: 'right',
+      pointer: 1,
+      point: { x: 0, y: 0 },
+    });
+    const preview = updateEditor(start, {
+      type: 'PointerMoved',
+      pointer: 1,
+      point: { x: 101, y: 0 },
+    });
+    expect(preview.graph.nodes[0]?.size.width).toBe(500);
+    expect(preview.gesture).toMatchObject({ guides: [] });
+  }
+});
+
+test('top and left resize handles align only their moving edges and preserve opposite anchors', () => {
+  const initial = createEditor(
+    {
+      nodes: [
+        {
+          id: 'g',
+          label: 'Group',
+          kind: 'group',
+          ports: [],
+          position: { x: 100, y: 100 },
+          size: { width: 400, height: 300 },
+        },
+        { ...nodeA, id: 'neighbor', position: { x: 50, y: 50 }, size: { width: 80, height: 80 } },
+      ],
+      edges: [],
+    },
+    { snapToAlignment: true, snapToGrid: true },
+  );
+  for (const [handle, point, position, size, guides] of [
+    [
+      'top-left',
+      { x: 32, y: 32 },
+      { x: 130, y: 130 },
+      { width: 370, height: 270 },
+      [
+        { axis: 'x', position: 130, from: 50, to: 400 },
+        { axis: 'y', position: 130, from: 50, to: 500 },
+      ],
+    ],
+    [
+      'left',
+      { x: 32, y: 999 },
+      { x: 130, y: 100 },
+      { width: 370, height: 300 },
+      [{ axis: 'x', position: 130, from: 50, to: 400 }],
+    ],
+    [
+      'top',
+      { x: 999, y: 32 },
+      { x: 100, y: 130 },
+      { width: 400, height: 270 },
+      [{ axis: 'y', position: 130, from: 50, to: 500 }],
+    ],
+  ] as const) {
+    const start = updateEditor(initial, {
+      type: 'NodeResizeStarted',
+      id: 'g',
+      pointer: 1,
+      point: { x: 0, y: 0 },
+      handle,
+    });
+    const preview = updateEditor(start, { type: 'PointerMoved', pointer: 1, point });
+    expect(preview.graph.nodes[0]?.position).toEqual(position);
+    expect(preview.graph.nodes[0]?.size).toEqual(size);
+    expect(preview.gesture).toMatchObject({ type: 'node-resize', guides });
+  }
+});

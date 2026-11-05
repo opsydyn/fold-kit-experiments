@@ -70,7 +70,10 @@ Shared dependency versions live once, in the root `package.json` catalogs
 TypeScript 7 and oxlint). In private workspaces write `"catalog:"` (or
 `"catalog:strict"`), never a version. The npm-published packages (`astro-foldkit`,
 `foldkit-viz`, and the four effect-three packages) keep literal versions equal to the
-catalog's (`npm publish` cannot resolve `catalog:`). `bun run check` enforces both via `tools/check-catalog.ts`.
+catalog's (`npm publish` cannot resolve `catalog:`). Effect and FoldKit packages
+(`effect`, `@effect/*`, `foldkit`, `@foldkit/*`) always come from a catalog, even when one
+workspace uses them, so they upgrade together. `bun run check` enforces all of this via
+`tools/check-catalog.ts`.
 
 `infra/*` workspaces are separate programs (Alchemy CLIs) on the apps' Effect 4.1 from the
 main catalog, with the Alchemy packages from `workspaces.catalogs.infra` (`"catalog:infra"`).

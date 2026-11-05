@@ -5,6 +5,9 @@
  *   private workspace (`catalog:` or `catalog:<name>`), and the catalog must define it.
  * - Packages published to npm cannot use `catalog:`: CI publishes them with `npm publish`,
  *   which does not resolve it. They keep literal versions, which must equal a catalog's.
+ * - Effect and FoldKit move in lockstep (FoldKit pins an Effect minor), so in private
+ *   workspaces every `effect`, `@effect/*`, `foldkit` and `@foldkit/*` dependency comes
+ *   from a catalog, even when only one workspace uses it.
  * - peerDependencies are ranges chosen for consumers, so they are left alone.
  *
  *   bun tools/check-catalog.ts
@@ -57,6 +60,8 @@ for (const { name, path } of declarations) {
 }
 
 const problems: Array<string> = [];
+/** The packages that upgrade together: Effect's and FoldKit's. */
+const lockstep = /^(?:effect|foldkit|@effect\/.+|@foldkit\/.+)$/;
 const isPublished = (manifest: Manifest, path: string): boolean =>
   path !== 'package.json' && manifest.private !== true;
 
@@ -84,6 +89,8 @@ for (const { path, manifest, section, name, version } of declarations) {
     }
   } else if ((usedBy.get(name)?.size ?? 0) > 1) {
     problems.push(`${where}: shared by several workspaces, so declare it in a catalog`);
+  } else if (lockstep.test(name)) {
+    problems.push(`${where}: Effect and FoldKit packages come from a catalog`);
   }
 }
 

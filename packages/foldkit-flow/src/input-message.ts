@@ -3,6 +3,9 @@ import { defineMessageUnion } from 'foldkit/message';
 
 const Point = Schema.Struct({ x: Schema.Number, y: Schema.Number });
 const Pointer = { pointer: Schema.Number };
+const Corner = Schema.optionalKey(
+  Schema.Literals(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
+);
 const Endpoint = Schema.Struct({ node: Schema.String, port: Schema.String });
 export const BrowserInput = Schema.Union([
   Schema.Struct({
@@ -26,6 +29,7 @@ export const BrowserInput = Schema.Union([
   }),
   Schema.Struct({
     type: Schema.Literals(['NodeDragStarted', 'NodeResizeStarted']),
+    corner: Corner,
     id: Schema.String,
     ...Pointer,
     point: Point,
@@ -68,7 +72,12 @@ export const BrowserInput = Schema.Union([
   Schema.Struct({ type: Schema.Literal('MinimapClicked'), point: Point }),
   Schema.Struct({ type: Schema.Literal('Zoomed'), point: Point, factor: Schema.Number }),
   Schema.Struct({ type: Schema.Literal('SelectionNudged'), delta: Point }),
-  Schema.Struct({ type: Schema.Literal('GroupResizeNudged'), id: Schema.String, delta: Point }),
+  Schema.Struct({
+    type: Schema.Literal('GroupResizeNudged'),
+    id: Schema.String,
+    delta: Point,
+    corner: Corner,
+  }),
   Schema.Struct({
     type: Schema.Literal('SurfaceMeasured'),
     size: Schema.Struct({ width: Schema.Number, height: Schema.Number }),

@@ -123,7 +123,7 @@ the child. Enable it on an inner group to propagate growth to the outer group.
 Select a group and choose **Fit group to contents** to tighten its boundary.
 The same action is available through the group's More actions button.
 
-Select an expanded group and drag its bottom-right resize handle to adjust its
+Select an expanded group and drag any corner resize handle to adjust its
 boundary in both dimensions. Focus the handle and use arrow keys (Shift for a
 larger step) for keyboard resizing. Contents stay fixed and Undo restores bounds.
 
@@ -135,3 +135,7 @@ Select a group and activate **Lock proportions** to scale its boundary uniformly
 The same action is in the package's group context panel. Pointer and keyboard
 resizing preserve the current ratio within the available bounds; children stay
 fixed. Toggling and resizing are separate Undo steps.
+
+Selected expanded groups expose all four corner handles. Each has a directional
+accessible label and supports arrow keys; the opposite corner and children stay
+fixed. Top/left resizing moves the boundary origin without moving the contents.

@@ -34,6 +34,15 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const id = port.getAttribute('data-flow-port');
     return node && id ? { node, port: id } : undefined;
   };
+  const cornerOf = (handle: Element | null | undefined) => {
+    const corner = handle?.getAttribute('data-flow-resize-corner');
+    return corner === 'top-left' ||
+      corner === 'top-right' ||
+      corner === 'bottom-left' ||
+      corner === 'bottom-right'
+      ? corner
+      : undefined;
+  };
   const listeners: Array<readonly [string, EventListener]> = [];
   const editable = (target: Element): boolean =>
     target.closest('input,textarea,select,[contenteditable="true"],[data-flow-no-drag]') !== null;
@@ -239,12 +248,14 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     event.preventDefault();
     if (id) {
       if (!resize) nodeDragOrigin = origin;
-      emit({
+      const input: BrowserInput = {
         type: resize ? 'NodeResizeStarted' : 'NodeDragStarted',
         id,
         pointer: event.pointerId,
         point: origin,
-      });
+      };
+      const corner = cornerOf(resize);
+      emit(corner ? { ...input, corner } : input);
     } else if (event.shiftKey || element.dataset.flowSelectionMode === 'true')
       emit({ type: 'BoxSelectionStarted', pointer: event.pointerId, point: point(event) });
     else {
@@ -380,19 +391,20 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (!target || editable(target)) return;
     const id = target.closest('[data-flow-handle]')?.getAttribute('data-flow-handle');
     const step = event.shiftKey ? 20 : 5;
-    const groupResize = target
-      .closest('[data-flow-group-resize]')
-      ?.getAttribute('data-flow-resize');
+    const resizeHandle = target.closest('[data-flow-group-resize]');
+    const groupResize = resizeHandle?.getAttribute('data-flow-resize');
     if (groupResize && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
       event.preventDefault();
-      emit({
+      const input: BrowserInput = {
         type: 'GroupResizeNudged',
         id: groupResize,
         delta: {
           x: event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0,
           y: event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0,
         },
-      });
+      };
+      const corner = cornerOf(resizeHandle);
+      emit(corner ? { ...input, corner } : input);
       return;
     }
     let input: BrowserInput | null = null;

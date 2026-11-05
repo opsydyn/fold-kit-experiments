@@ -184,8 +184,8 @@ Escape or pointer cancellation restores the starting width. Releasing commits
 one undo step. Provide a keyboard control via `NodeWidthChanged` when enabling
 handles in an editable view.
 
-Selected expanded groups show a bottom-right handle that adjusts both width and
-height, without moving their origin or children. Shrinking stops at the contents
+Selected expanded groups show four corner handles that adjust width and height.
+The opposite corner stays anchored and children keep their canvas positions. Shrinking stops at the contents
 plus 24 units of padding, with a minimum of 224 × 96 (or the starting dimensions
 when already tighter). Parent containment clamps
 growth unless `expandParent` enables ancestor expansion. Focus the handle and use
@@ -365,9 +365,17 @@ shows it beside Fit group to contents. The toggle is saved, copied and undoable.
 Cards cannot declare this field because their height follows content.
 
 Manual pointer, keyboard and width edits then scale both dimensions together
-from the group's current proportions, keeping its origin and children fixed.
+from the group's current proportions, keeping the opposite corner and children fixed.
 Pointer resizing follows the larger proportional change in either axis. The
 scale is bounded by both dimensions' resize limits, contents and parent extent;
 conflicting bounds leave the graph unchanged. Escape cancels a pointer drag,
 and releasing commits once. Repeated edits at a bound do not add Undo entries.
 Layout and explicit fitting can establish new proportions for the next resize.
+
+Pointer `NodeResizeStarted` and keyboard `GroupResizeNudged` accept an optional
+`corner`: `'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'`. Omitting it
+preserves bottom-right behavior. `delta` follows the moving corner's canvas
+direction: moving a left handle right shrinks width; moving a top handle down
+shrinks height. Pointer positions remain surface CSS pixels, with zoom handled
+by the reducer. Top handles reserve 48 units above contents for the group header;
+other moving boundaries reserve 24. Existing tighter bounds are preserved.

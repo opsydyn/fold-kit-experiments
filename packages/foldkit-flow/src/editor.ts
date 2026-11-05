@@ -23,6 +23,7 @@ import type {
   FlowEdge,
   Endpoint,
   Point,
+  ResizeCorner,
 } from './types';
 
 export function createEditor(graph: FlowGraph, options: EditorOptions = {}): EditorState {
@@ -55,10 +56,20 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     notice: null,
   };
 }
-/** Bottom-right resizing keeps the authored origin and every descendant fixed. */
-function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
+/** Keep the opposite corner anchored and every descendant fixed. */
+function resizeGroup(
+  graph: FlowGraph,
+  id: string,
+  delta: Point,
+  corner: ResizeCorner = 'bottom-right',
+): FlowGraph {
   const group = graph.nodes.find((node) => node.id === id && node.kind === 'group');
   if (!group || (delta.x === 0 && delta.y === 0)) return graph;
+  const left = corner.endsWith('left');
+  const top = corner.startsWith('top');
+  const right = group.position.x + group.size.width;
+  const bottom = group.position.y + group.size.height;
+  const growth = { x: left ? -delta.x : delta.x, y: top ? -delta.y : delta.y };
   const included = withDescendants(graph, [id]);
   const contents = graph.nodes.filter((node) => node.id !== id && included.has(node.id));
   const limits = group.resizeLimits;
@@ -70,7 +81,11 @@ function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
       group.size.width,
       Math.max(
         1,
-        ...contents.map((node) => node.position.x + node.size.width + 24 - group.position.x),
+        ...contents.map((node) =>
+          left
+            ? right - node.position.x + 24
+            : node.position.x + node.size.width + 24 - group.position.x,
+        ),
       ),
     ),
   );
@@ -80,16 +95,23 @@ function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
       group.size.height,
       Math.max(
         1,
-        ...contents.map((node) => node.position.y + node.size.height + 24 - group.position.y),
+        ...contents.map((node) =>
+          top
+            ? bottom - node.position.y + 48
+            : node.position.y + node.size.height + 24 - group.position.y,
+        ),
       ),
     ),
   );
   const parent = graph.nodes.find((node) => node.id === group.parentId);
   if (parent && group.extent === 'parent' && !group.expandParent) {
-    maximumWidth = Math.min(maximumWidth, parent.position.x + parent.size.width - group.position.x);
+    maximumWidth = Math.min(
+      maximumWidth,
+      left ? right - parent.position.x : parent.position.x + parent.size.width - group.position.x,
+    );
     maximumHeight = Math.min(
       maximumHeight,
-      parent.position.y + parent.size.height - group.position.y,
+      top ? bottom - parent.position.y : parent.position.y + parent.size.height - group.position.y,
     );
   }
   let width: number;
@@ -104,8 +126,8 @@ function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
       maximumHeight / group.size.height,
     );
     if (minimumScale > maximumScale) return graph;
-    const x = delta.x / group.size.width;
-    const y = delta.y / group.size.height;
+    const x = growth.x / group.size.width;
+    const y = growth.y / group.size.height;
     const requested = 1 + (Math.abs(x) >= Math.abs(y) ? x : y);
     const scale = Math.max(minimumScale, Math.min(maximumScale, requested));
     // Repeated edits at a floating-point boundary must not create history entries.
@@ -114,25 +136,34 @@ function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
     height = group.size.height * scale;
   } else {
     if (
-      (delta.x !== 0 && minimumWidth > maximumWidth) ||
-      (delta.y !== 0 && minimumHeight > maximumHeight)
+      (growth.x !== 0 && minimumWidth > maximumWidth) ||
+      (growth.y !== 0 && minimumHeight > maximumHeight)
     )
       return graph;
     width =
-      delta.x === 0
+      growth.x === 0
         ? group.size.width
-        : Math.max(minimumWidth, Math.min(maximumWidth, group.size.width + delta.x));
+        : Math.max(minimumWidth, Math.min(maximumWidth, group.size.width + growth.x));
     height =
-      delta.y === 0
+      growth.y === 0
         ? group.size.height
-        : Math.max(minimumHeight, Math.min(maximumHeight, group.size.height + delta.y));
+        : Math.max(minimumHeight, Math.min(maximumHeight, group.size.height + growth.y));
   }
   if (width === group.size.width && height === group.size.height) return graph;
   return expandParents(
     {
       ...graph,
       nodes: graph.nodes.map((node) =>
-        node.id === id ? { ...node, size: { width, height } } : node,
+        node.id === id
+          ? {
+              ...node,
+              position: {
+                x: left ? right - width : group.position.x,
+                y: top ? bottom - height : group.position.y,
+              },
+              size: { width, height },
+            }
+          : node,
       ),
     },
     id,
@@ -686,10 +717,15 @@ export function updateEditor(
         const original = gesture.before.nodes.find((node) => node.id === gesture.ids[0]);
         if (!original) return state;
         if (original.kind === 'group') {
-          const graph = resizeGroup(gesture.before, original.id, {
-            x: delta.x / state.viewport.zoom,
-            y: delta.y / state.viewport.zoom,
-          });
+          const graph = resizeGroup(
+            gesture.before,
+            original.id,
+            {
+              x: delta.x / state.viewport.zoom,
+              y: delta.y / state.viewport.zoom,
+            },
+            gesture.corner,
+          );
           if (sameGeometry(state.graph, graph)) return state;
           return { ...state, graph, revision: state.revision + 1, routes: [] };
         }
@@ -916,7 +952,7 @@ export function updateEditor(
         connection: null,
         gesture: {
           ...(resizing
-            ? { type: 'node-resize' as const }
+            ? { type: 'node-resize' as const, corner: event.corner ?? 'bottom-right' }
             : { type: 'node-drag' as const, dropParent: undefined, guides: [] }),
           pointer: event.pointer,
           origin: event.point,
@@ -1138,7 +1174,7 @@ export function updateEditor(
     case 'GroupResizeNudged': {
       if (state.collapsedGroups.includes(event.id)) return state;
       finitePoint(event.delta);
-      const graph = resizeGroup(state.graph, event.id, event.delta);
+      const graph = resizeGroup(state.graph, event.id, event.delta, event.corner);
       return graph === state.graph
         ? state
         : { ...commitGraph(state, graph), notice: 'Group resized' };

@@ -24,6 +24,7 @@ import type {
   Point,
   Port,
   Viewport,
+  ResizeCorner,
 } from './types';
 
 export type FlowEdgeRenderContext = Readonly<{
@@ -69,6 +70,12 @@ export type FlowViewOptions<M> = Readonly<{
   selectionModeControl?: boolean;
   height?: number;
 }>;
+const resizeCorners: readonly ResizeCorner[] = [
+  'top-left',
+  'top-right',
+  'bottom-left',
+  'bottom-right',
+];
 function groupResizeTitle(node: FlowNode): string {
   return node.keepAspectRatio
     ? 'Drag to resize with locked proportions; arrow keys adjust by 5, Shift by 20'
@@ -449,23 +456,28 @@ export function flowView<M>(
         !state.readOnly &&
         !collapsed &&
         state.selectedNodes.includes(node.id)
-          ? [
+          ? resizeCorners.map((corner) =>
               h.button(
                 [
+                  h.Key(corner),
                   h.Type('button'),
                   h.DataAttribute('flow-resize', node.id),
+                  h.DataAttribute('flow-resize-corner', corner),
                   h.DataAttribute('flow-group-resize', ''),
-                  h.AriaLabel(`Resize ${node.label}`),
+                  h.AriaLabel(`Resize ${node.label} from ${corner.replaceAll('-', ' ')}`),
                   h.Title(groupResizeTitle(node)),
                   h.Style({
                     position: 'absolute',
-                    right: '-8px',
-                    bottom: '-8px',
+                    [corner.endsWith('left') ? 'left' : 'right']: '-8px',
+                    [corner.startsWith('top') ? 'top' : 'bottom']: '-8px',
                     width: '28px',
                     height: '28px',
                     padding: '0',
                     'pointer-events': 'auto',
-                    cursor: 'nwse-resize',
+                    cursor:
+                      corner === 'top-left' || corner === 'bottom-right'
+                        ? 'nwse-resize'
+                        : 'nesw-resize',
                     'touch-action': 'none',
                     'user-select': 'none',
                     color: 'var(--flow-control-color, #fff)',
@@ -474,9 +486,9 @@ export function flowView<M>(
                     border: '2px solid var(--flow-selection, #2563eb)',
                   }),
                 ],
-                ['⤡'],
+                [corner === 'top-left' || corner === 'bottom-right' ? '⤡' : '⤢'],
               ),
-            ]
+            )
           : []),
       ],
     );

@@ -73,5 +73,13 @@ test('group resize keyboard arrows emit dimensions rather than moving the select
     { type: 'GroupResizeNudged', id: 'g', delta: { x: 5, y: 0 } },
     { type: 'GroupResizeNudged', id: 'g', delta: { x: 0, y: -20 } },
   ]);
+  handle?.setAttribute('data-flow-resize-corner', 'top-left');
+  handle?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  expect(events.at(-1)).toEqual({
+    type: 'GroupResizeNudged',
+    id: 'g',
+    corner: 'top-left',
+    delta: { x: 5, y: 0 },
+  });
   release();
 });

@@ -188,3 +188,14 @@ A fixed numeric aspect ratio is deferred: locking the current proportions avoids
 resizing a group when the toggle is pressed. Layout and explicit fitting retain
 their independent behavior. Regressions cover bound conflicts, no-op history,
 serialization, cancellation and Undo; browser checks exercise both toggle sites.
+
+Group resizing now carries an optional corner on pointer-start and keyboard
+facts. Omitted corners retain the existing bottom-right contract. All four
+handles use the package geometry function with signed axis growth and the
+opposite corner as anchor. Top/left bounds account for fixed child coordinates
+and header padding; parent extent is measured from the opposite edge. Uniform
+scaling uses the same anchor and constraint intersection. This extends the
+existing gesture snapshot and one-step history instead of moving descendants
+or adding sample-only interaction state. Core tests cover all corners at zoom,
+content and parent limits, expansion, locking, cancellation and Undo; browser
+checks exercise the rendered handles and keyboard direction.

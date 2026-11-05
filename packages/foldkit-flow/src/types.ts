@@ -58,6 +58,7 @@ export type AlignmentGuide = Readonly<{
   from: number;
   to: number;
 }>;
+export type ResizeCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 type NodeGesture = Readonly<{
   pointer: number;
   origin: Point;
@@ -72,7 +73,7 @@ export type Gesture =
         dropParent: string | null | undefined;
         guides: readonly AlignmentGuide[];
       }>)
-  | (NodeGesture & Readonly<{ type: 'node-resize' }>)
+  | (NodeGesture & Readonly<{ type: 'node-resize'; corner?: ResizeCorner }>)
   | Readonly<{
       type: 'connection-drag';
       pointer: number;
@@ -128,9 +129,10 @@ export type EditorEvent =
   | Readonly<{ type: 'GroupCollapseToggled'; id: string }>
   | Readonly<{ type: 'GroupFitClicked'; id: string }>
   | Readonly<{ type: 'GroupAspectRatioToggled'; id: string }>
-  | Readonly<{ type: 'GroupResizeNudged'; id: string; delta: Point }>
+  | Readonly<{ type: 'GroupResizeNudged'; id: string; delta: Point; corner?: ResizeCorner }>
   | Readonly<{
       type: 'NodeDragStarted' | 'NodeResizeStarted';
+      corner?: ResizeCorner;
       id: string;
       pointer: number;
       point: Point;

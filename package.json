@@ -76,7 +76,7 @@
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build",
     "test": "bun test ./.github/scripts/format-release-changelogs.test.js && bun run --sequential --filter '*' test",
     "typecheck": "bun run --sequential --filter '*' typecheck",
-    "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts",
+    "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
     "dev:three-promo": "bun run --filter @opsydyn/three-promo dev",

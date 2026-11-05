@@ -24,7 +24,7 @@ import type {
   Point,
   Port,
   Viewport,
-  ResizeCorner,
+  ResizeHandle,
 } from './types';
 
 export type FlowEdgeRenderContext = Readonly<{
@@ -62,7 +62,7 @@ export type FlowViewOptions<M> = Readonly<{
   autoPan?: boolean;
   /** Enable two-finger touch pan and pinch-to-zoom on the canvas. */
   pinchZoom?: boolean;
-  /** Card width handles and two-dimensional handles on selected expanded groups. */
+  /** Card width handles and corner/side handles on selected expanded groups. */
   resizeHandles?: boolean;
   minimap?: boolean;
   viewportControls?: boolean;
@@ -70,11 +70,15 @@ export type FlowViewOptions<M> = Readonly<{
   selectionModeControl?: boolean;
   height?: number;
 }>;
-const resizeCorners: readonly ResizeCorner[] = [
+const resizeHandles: readonly ResizeHandle[] = [
   'top-left',
   'top-right',
   'bottom-left',
   'bottom-right',
+  'top',
+  'right',
+  'bottom',
+  'left',
 ];
 function groupResizeTitle(node: FlowNode): string {
   return node.keepAspectRatio
@@ -456,28 +460,40 @@ export function flowView<M>(
         !state.readOnly &&
         !collapsed &&
         state.selectedNodes.includes(node.id)
-          ? resizeCorners.map((corner) =>
+          ? resizeHandles.map((handle) =>
               h.button(
                 [
-                  h.Key(corner),
+                  h.Key(handle),
                   h.Type('button'),
                   h.DataAttribute('flow-resize', node.id),
-                  h.DataAttribute('flow-resize-corner', corner),
+                  h.DataAttribute('flow-resize-handle', handle),
+                  ...(handle.includes('-') ? [h.DataAttribute('flow-resize-corner', handle)] : []),
                   h.DataAttribute('flow-group-resize', ''),
-                  h.AriaLabel(`Resize ${node.label} from ${corner.replaceAll('-', ' ')}`),
+                  h.AriaLabel(`Resize ${node.label} from ${handle.replaceAll('-', ' ')}`),
                   h.Title(groupResizeTitle(node)),
                   h.Style({
                     position: 'absolute',
-                    [corner.endsWith('left') ? 'left' : 'right']: '-8px',
-                    [corner.startsWith('top') ? 'top' : 'bottom']: '-8px',
+                    ...(handle === 'top' || handle === 'bottom'
+                      ? { left: 'calc(50% - 14px)', [handle]: '-8px' }
+                      : handle === 'left' || handle === 'right'
+                        ? { top: 'calc(50% - 14px)', [handle]: '-8px' }
+                        : {
+                            [handle.endsWith('left') ? 'left' : 'right']: '-8px',
+                            [handle.startsWith('top') ? 'top' : 'bottom']: '-8px',
+                          }),
                     width: '28px',
                     height: '28px',
                     padding: '0',
                     'pointer-events': 'auto',
+                    'z-index': '3',
                     cursor:
-                      corner === 'top-left' || corner === 'bottom-right'
-                        ? 'nwse-resize'
-                        : 'nesw-resize',
+                      handle === 'top' || handle === 'bottom'
+                        ? 'ns-resize'
+                        : handle === 'left' || handle === 'right'
+                          ? 'ew-resize'
+                          : handle === 'top-left' || handle === 'bottom-right'
+                            ? 'nwse-resize'
+                            : 'nesw-resize',
                     'touch-action': 'none',
                     'user-select': 'none',
                     color: 'var(--flow-control-color, #fff)',
@@ -486,7 +502,15 @@ export function flowView<M>(
                     border: '2px solid var(--flow-selection, #2563eb)',
                   }),
                 ],
-                [corner === 'top-left' || corner === 'bottom-right' ? '⤡' : '⤢'],
+                [
+                  handle === 'top' || handle === 'bottom'
+                    ? '↕'
+                    : handle === 'left' || handle === 'right'
+                      ? '↔'
+                      : handle === 'top-left' || handle === 'bottom-right'
+                        ? '⤡'
+                        : '⤢',
+                ],
               ),
             )
           : []),

@@ -184,7 +184,8 @@ Escape or pointer cancellation restores the starting width. Releasing commits
 one undo step. Provide a keyboard control via `NodeWidthChanged` when enabling
 handles in an editable view.
 
-Selected expanded groups show four corner handles that adjust width and height.
+Selected expanded groups show four corner handles and four midpoint side handles.
+Corners adjust width and height; unlocked sides adjust only their own axis.
 The opposite corner stays anchored and children keep their canvas positions. Shrinking stops at the contents
 plus 24 units of padding, with a minimum of 224 × 96 (or the starting dimensions
 when already tighter). Parent containment clamps
@@ -365,17 +366,24 @@ shows it beside Fit group to contents. The toggle is saved, copied and undoable.
 Cards cannot declare this field because their height follows content.
 
 Manual pointer, keyboard and width edits then scale both dimensions together
-from the group's current proportions, keeping the opposite corner and children fixed.
-Pointer resizing follows the larger proportional change in either axis. The
+from the group's current proportions, keeping children fixed. Corner handles anchor
+the opposite corner; side handles anchor the opposite edge and preserve the
+perpendicular center. Corner resizing follows the larger proportional axis change. The
 scale is bounded by both dimensions' resize limits, contents and parent extent;
 conflicting bounds leave the graph unchanged. Escape cancels a pointer drag,
 and releasing commits once. Repeated edits at a bound do not add Undo entries.
 Layout and explicit fitting can establish new proportions for the next resize.
 
 Pointer `NodeResizeStarted` and keyboard `GroupResizeNudged` accept an optional
-`corner`: `'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'`. Omitting it
-preserves bottom-right behavior. `delta` follows the moving corner's canvas
+`handle`: `'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top' | 'right' | 'bottom' | 'left'`.
+The existing `corner` field remains supported; `handle` takes precedence when both
+are supplied. Omitting both preserves bottom-right behavior. `delta` follows the moving handle's canvas
 direction: moving a left handle right shrinks width; moving a top handle down
 shrinks height. Pointer positions remain surface CSS pixels, with zoom handled
 by the reducer. Top handles reserve 48 units above contents for the group header;
 other moving boundaries reserve 24. Existing tighter bounds are preserved.
+
+Side handles ignore perpendicular pointer movement and keyboard arrows. With
+proportions locked, the dragged axis drives both dimensions and the perpendicular
+center stays fixed. Limits, content padding and parent bounds apply to the full
+result, including the centered dimension. A conflicting intersection is a no-op.

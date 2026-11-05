@@ -6,6 +6,18 @@ const Pointer = { pointer: Schema.Number };
 const Corner = Schema.optionalKey(
   Schema.Literals(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
 );
+const Handle = Schema.optionalKey(
+  Schema.Literals([
+    'top-left',
+    'top-right',
+    'bottom-left',
+    'bottom-right',
+    'top',
+    'right',
+    'bottom',
+    'left',
+  ]),
+);
 const Endpoint = Schema.Struct({ node: Schema.String, port: Schema.String });
 export const BrowserInput = Schema.Union([
   Schema.Struct({
@@ -30,6 +42,7 @@ export const BrowserInput = Schema.Union([
   Schema.Struct({
     type: Schema.Literals(['NodeDragStarted', 'NodeResizeStarted']),
     corner: Corner,
+    handle: Handle,
     id: Schema.String,
     ...Pointer,
     point: Point,
@@ -77,6 +90,7 @@ export const BrowserInput = Schema.Union([
     id: Schema.String,
     delta: Point,
     corner: Corner,
+    handle: Handle,
   }),
   Schema.Struct({
     type: Schema.Literal('SurfaceMeasured'),

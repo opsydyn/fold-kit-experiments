@@ -1616,3 +1616,154 @@ test('locked top-left resizing respects size limits without moving the bottom-ri
     }),
   ).toBe(resized);
 });
+
+test('side handles change only their axis at zoom and anchor the opposite edge', () => {
+  const initial = createEditor(
+    {
+      nodes: [
+        {
+          id: 'g',
+          label: 'Group',
+          kind: 'group',
+          ports: [],
+          position: { x: 100, y: 100 },
+          size: { width: 400, height: 300 },
+        },
+        { ...nodeA, parentId: 'g', position: { x: 200, y: 200 } },
+      ],
+      edges: [],
+    },
+    { viewport: { x: 0, y: 0, zoom: 2 } },
+  );
+  for (const [handle, point, position, size] of [
+    ['left', { x: -80, y: 90 }, { x: 60, y: 100 }, { width: 440, height: 300 }],
+    ['right', { x: 80, y: 90 }, { x: 100, y: 100 }, { width: 440, height: 300 }],
+    ['top', { x: 90, y: -40 }, { x: 100, y: 80 }, { width: 400, height: 320 }],
+    ['bottom', { x: 90, y: 40 }, { x: 100, y: 100 }, { width: 400, height: 320 }],
+  ] as const) {
+    const start = updateEditor(initial, {
+      type: 'NodeResizeStarted',
+      id: 'g',
+      pointer: 1,
+      point: { x: 0, y: 0 },
+      handle,
+    });
+    const preview = updateEditor(start, { type: 'PointerMoved', pointer: 1, point });
+    expect(preview.graph.nodes[0]?.position).toEqual(position);
+    expect(preview.graph.nodes[0]?.size).toEqual(size);
+    expect(preview.graph.nodes[1]).toEqual(initial.graph.nodes[1]);
+    expect(updateEditor(preview, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
+    const released = updateEditor(preview, { type: 'PointerReleased', pointer: 1 });
+    expect(released.past).toHaveLength(1);
+    expect(updateEditor(released, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  }
+});
+
+test('locked side handles preserve the perpendicular center and intersect parent bounds', () => {
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'outer',
+        label: 'Outer',
+        kind: 'group',
+        ports: [],
+        position: { x: 0, y: 0 },
+        size: { width: 600, height: 400 },
+      },
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        position: { x: 100, y: 100 },
+        size: { width: 400, height: 200 },
+        parentId: 'outer',
+        extent: 'parent',
+        keepAspectRatio: true,
+      },
+    ],
+    edges: [],
+  });
+  const right = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'right',
+    delta: { x: 1000, y: 999 },
+  });
+  expect(right.graph.nodes[1]?.size).toEqual({ width: 500, height: 250 });
+  expect(right.graph.nodes[1]?.position).toEqual({ x: 100, y: 75 });
+  const top = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'top',
+    delta: { x: 999, y: -1000 },
+  });
+  expect(top.graph.nodes[1]?.size).toEqual({ width: 600, height: 300 });
+  expect(top.graph.nodes[1]?.position).toEqual({ x: 0, y: 0 });
+  expect(
+    updateEditor(right, {
+      type: 'GroupResizeNudged',
+      id: 'g',
+      handle: 'right',
+      delta: { x: 5, y: 0 },
+    }),
+  ).toBe(right);
+  expect(
+    updateEditor(initial, {
+      type: 'GroupResizeNudged',
+      id: 'g',
+      handle: 'right',
+      delta: { x: 0, y: 20 },
+    }),
+  ).toBe(initial);
+});
+
+test('side resizing protects centered contents, honors limits and expands parents atomically', () => {
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'outer',
+        label: 'Outer',
+        kind: 'group',
+        ports: [],
+        position: { x: 50, y: 50 },
+        size: { width: 500, height: 300 },
+      },
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        position: { x: 100, y: 100 },
+        size: { width: 400, height: 200 },
+        parentId: 'outer',
+        expandParent: true,
+        keepAspectRatio: true,
+        resizeLimits: { maxWidth: 600 },
+      },
+      { ...nodeA, parentId: 'g', position: { x: 200, y: 160 } },
+    ],
+    edges: [],
+  });
+  const small = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'left',
+    delta: { x: 1000, y: 0 },
+  });
+  // The 48-unit header above y=160 requires top <= 112: height >= 176 at center y=200.
+  expect(small.graph.nodes[1]?.size).toEqual({ width: 352, height: 176 });
+  expect(small.graph.nodes[1]?.position).toEqual({ x: 148, y: 112 });
+  expect(small.graph.nodes[2]).toEqual(initial.graph.nodes[2]);
+  const large = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'left',
+    delta: { x: -1000, y: 0 },
+  });
+  expect(large.graph.nodes[1]?.size).toEqual({ width: 600, height: 300 });
+  expect(large.graph.nodes[1]?.position).toEqual({ x: -100, y: 50 });
+  expect(large.graph.nodes[0]?.position).toEqual({ x: -116, y: 50 });
+  expect(large.past).toHaveLength(1);
+  expect(updateEditor(large, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+});

@@ -136,6 +136,11 @@ The same action is in the package's group context panel. Pointer and keyboard
 resizing preserve the current ratio within the available bounds; children stay
 fixed. Toggling and resizing are separate Undo steps.
 
-Selected expanded groups expose all four corner handles. Each has a directional
+Selected expanded groups expose four corner handles and four side handles. Each has a directional
 accessible label and supports arrow keys; the opposite corner and children stay
 fixed. Top/left resizing moves the boundary origin without moving the contents.
+
+Side handles resize one axis when unlocked. With **Lock proportions**, dragging a
+side scales both dimensions around the perpendicular center. Arrow keys on a side
+handle affect its axis only; Shift keeps the larger step. All geometry is owned
+by the Flow package, including legacy corner-event compatibility.

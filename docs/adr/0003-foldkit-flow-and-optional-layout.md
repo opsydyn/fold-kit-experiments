@@ -199,3 +199,14 @@ existing gesture snapshot and one-step history instead of moving descendants
 or adding sample-only interaction state. Core tests cover all corners at zoom,
 content and parent limits, expansion, locking, cancellation and Undo; browser
 checks exercise the rendered handles and keyboard direction.
+
+Side resizing extends the interaction contract with `ResizeHandle` and an
+optional `handle` field on pointer/keyboard facts. Legacy `corner` inputs remain
+valid; explicit handles take precedence. Side handles ignore perpendicular input.
+Unlocked sides change only their axis; locked sides scale uniformly, anchoring
+the opposite edge and perpendicular center. Centered content and parent bounds
+constrain both sides of the perpendicular dimension, including header padding.
+This follows standard side-handle behavior while preserving authored children.
+All eight handles share the same reducer, snapshot, cancellation and history
+paths. Tests cover zoom, axis filtering, centered constraints, expansion and Undo;
+the sample exercises the package view without new editing logic.

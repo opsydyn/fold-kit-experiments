@@ -43,6 +43,22 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       ? corner
       : undefined;
   };
+  const handleOf = (element: Element | null | undefined) => {
+    const handle = element?.getAttribute('data-flow-resize-handle');
+    switch (handle) {
+      case 'top-left':
+      case 'top-right':
+      case 'bottom-left':
+      case 'bottom-right':
+      case 'top':
+      case 'right':
+      case 'bottom':
+      case 'left':
+        return handle;
+      default:
+        return undefined;
+    }
+  };
   const listeners: Array<readonly [string, EventListener]> = [];
   const editable = (target: Element): boolean =>
     target.closest('input,textarea,select,[contenteditable="true"],[data-flow-no-drag]') !== null;
@@ -255,7 +271,8 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
         point: origin,
       };
       const corner = cornerOf(resize);
-      emit(corner ? { ...input, corner } : input);
+      const handle = handleOf(resize);
+      emit(handle ? { ...input, handle } : corner ? { ...input, corner } : input);
     } else if (event.shiftKey || element.dataset.flowSelectionMode === 'true')
       emit({ type: 'BoxSelectionStarted', pointer: event.pointerId, point: point(event) });
     else {
@@ -404,7 +421,8 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
         },
       };
       const corner = cornerOf(resizeHandle);
-      emit(corner ? { ...input, corner } : input);
+      const handle = handleOf(resizeHandle);
+      emit(handle ? { ...input, handle } : corner ? { ...input, corner } : input);
       return;
     }
     let input: BrowserInput | null = null;

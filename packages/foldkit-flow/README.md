@@ -351,8 +351,23 @@ Each supplied limit must be finite and positive; a minimum cannot exceed its
 maximum. Partial limits are supported and survive save/load, clipboard and Undo.
 Cards apply width limits to pointer handles and `NodeWidthChanged`; card height
 continues to follow content. Groups apply both axes through pointer handles,
-`GroupResizeNudged` and width edits. Only edited axes change. Group contents and
+`GroupResizeNudged` and width edits. When proportions are unlocked, only edited axes change. Group contents and
 parent containment can prevent a resize when there is no valid size. Existing
 nodes may start outside their limits; their next manual edit clamps the edited
 axis. Layout, Fit group to contents, measurements and ancestor expansion remain
 independent of manual resize limits. Omitting the field preserves default ranges.
+
+### Lock group proportions
+
+Set `keepAspectRatio: true` on a group, or dispatch `GroupAspectRatioToggled` with
+its `id`. The package context panel offers **Lock proportions**; the sample also
+shows it beside Fit group to contents. The toggle is saved, copied and undoable.
+Cards cannot declare this field because their height follows content.
+
+Manual pointer, keyboard and width edits then scale both dimensions together
+from the group's current proportions, keeping its origin and children fixed.
+Pointer resizing follows the larger proportional change in either axis. The
+scale is bounded by both dimensions' resize limits, contents and parent extent;
+conflicting bounds leave the graph unchanged. Escape cancels a pointer drag,
+and releasing commits once. Repeated edits at a bound do not add Undo entries.
+Layout and explicit fitting can establish new proportions for the next resize.

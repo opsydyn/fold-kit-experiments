@@ -176,3 +176,15 @@ clip content or reject layout publications. Group content and parent constraints
 still prevent unsafe shrinking; conflicting bounds leave the graph unchanged.
 Core tests cover clamping, invalid metadata, document round-trips and Undo;
 the sample's width control reads the authored bounds instead of hard-coded ones.
+
+Group proportion locking is authored as optional `keepAspectRatio` metadata.
+The package toggle is a document transaction. Manual resizing projects the
+larger proportional axis change onto a uniform scale, then clamps that scale
+to the intersection of content, explicit size and parent bounds. An empty
+intersection leaves the document unchanged. Uniform scaling changes the group
+boundary only; child positions and sizes stay authored. This reuses the existing
+pointer and keyboard geometry path rather than maintaining separate algorithms.
+A fixed numeric aspect ratio is deferred: locking the current proportions avoids
+resizing a group when the toggle is pressed. Layout and explicit fitting retain
+their independent behavior. Regressions cover bound conflicts, no-op history,
+serialization, cancellation and Undo; browser checks exercise both toggle sites.

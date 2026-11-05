@@ -125,6 +125,8 @@ function isNode(value: unknown): value is FlowNode {
     value.ports.every(isPort) &&
     (!('kind' in value) || value.kind === 'group') &&
     (!('resizeLimits' in value) || isResizeLimits(value.resizeLimits)) &&
+    (!('keepAspectRatio' in value) ||
+      ('kind' in value && value.kind === 'group' && typeof value.keepAspectRatio === 'boolean')) &&
     (!('parentId' in value) || typeof value.parentId === 'string') &&
     (!('extent' in value) || value.extent === 'parent') &&
     (!('expandParent' in value) || typeof value.expandParent === 'boolean') &&

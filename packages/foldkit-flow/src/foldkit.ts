@@ -69,6 +69,11 @@ export type FlowViewOptions<M> = Readonly<{
   selectionModeControl?: boolean;
   height?: number;
 }>;
+function groupResizeTitle(node: FlowNode): string {
+  return node.keepAspectRatio
+    ? 'Drag to resize with locked proportions; arrow keys adjust by 5, Shift by 20'
+    : 'Drag to resize; arrow keys adjust by 5, Shift by 20';
+}
 function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowViewOptions<M>) {
   const context = state.context;
   if (!options.contextActions || state.readOnly || !context) return [];
@@ -77,12 +82,13 @@ function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowVie
       ? state.graph.nodes.find((node) => node.id === context.id && node.kind === 'group')
       : undefined;
   const width = group ? 224 : 172;
-  const height = group ? 184 : 130;
-  const button = (label: string, event: EditorEvent) =>
+  const height = group ? 228 : 130;
+  const button = (label: string, event: EditorEvent, pressed?: boolean) =>
     h.button(
       [
         h.Type('button'),
         h.OnClick(options.onEvent(event)),
+        ...(pressed === undefined ? [] : [h.AriaPressed(String(pressed))]),
         h.Style({ 'min-height': '36px', 'text-align': 'left', cursor: 'pointer' }),
       ],
       [label],
@@ -116,7 +122,14 @@ function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowVie
           ? [
               button('Duplicate node', { type: 'DuplicatePressed' }),
               ...(group
-                ? [button('Fit group to contents', { type: 'GroupFitClicked', id: group.id })]
+                ? [
+                    button('Fit group to contents', { type: 'GroupFitClicked', id: group.id }),
+                    button(
+                      'Lock proportions',
+                      { type: 'GroupAspectRatioToggled', id: group.id },
+                      group.keepAspectRatio ?? false,
+                    ),
+                  ]
                 : []),
               button('Delete node', { type: 'DeletePressed' }),
             ]
@@ -443,7 +456,7 @@ export function flowView<M>(
                   h.DataAttribute('flow-resize', node.id),
                   h.DataAttribute('flow-group-resize', ''),
                   h.AriaLabel(`Resize ${node.label}`),
-                  h.Title('Drag to resize; arrow keys adjust by 5, Shift by 20'),
+                  h.Title(groupResizeTitle(node)),
                   h.Style({
                     position: 'absolute',
                     right: '-8px',

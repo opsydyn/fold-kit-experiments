@@ -27,6 +27,8 @@ export type FlowNode = Readonly<{
   size: Size;
   ports: readonly Port[];
   resizeLimits?: NodeResizeLimits;
+  /** Groups only: preserve the starting proportions during manual resizing. */
+  keepAspectRatio?: boolean;
   kind?: 'group';
   /** A group ID. Positions are always in canvas coordinates. */
   parentId?: string;
@@ -125,6 +127,7 @@ export type EditorEvent =
   | Readonly<{ type: 'SelectionCleared' }>
   | Readonly<{ type: 'GroupCollapseToggled'; id: string }>
   | Readonly<{ type: 'GroupFitClicked'; id: string }>
+  | Readonly<{ type: 'GroupAspectRatioToggled'; id: string }>
   | Readonly<{ type: 'GroupResizeNudged'; id: string; delta: Point }>
   | Readonly<{
       type: 'NodeDragStarted' | 'NodeResizeStarted';

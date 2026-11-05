@@ -62,8 +62,8 @@ function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
   const included = withDescendants(graph, [id]);
   const contents = graph.nodes.filter((node) => node.id !== id && included.has(node.id));
   const limits = group.resizeLimits;
-  const maximumWidth = limits?.maxWidth ?? Infinity;
-  const maximumHeight = limits?.maxHeight ?? Infinity;
+  let maximumWidth = limits?.maxWidth ?? Infinity;
+  let maximumHeight = limits?.maxHeight ?? Infinity;
   const minimumWidth = Math.max(
     limits?.minWidth ?? Math.min(224, group.size.width, maximumWidth),
     Math.min(
@@ -84,24 +84,48 @@ function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
       ),
     ),
   );
-  if (
-    (delta.x !== 0 && minimumWidth > maximumWidth) ||
-    (delta.y !== 0 && minimumHeight > maximumHeight)
-  )
-    return graph;
-  let width =
-    delta.x === 0
-      ? group.size.width
-      : Math.max(minimumWidth, Math.min(maximumWidth, group.size.width + delta.x));
-  let height =
-    delta.y === 0
-      ? group.size.height
-      : Math.max(minimumHeight, Math.min(maximumHeight, group.size.height + delta.y));
   const parent = graph.nodes.find((node) => node.id === group.parentId);
   if (parent && group.extent === 'parent' && !group.expandParent) {
-    width = Math.min(width, parent.position.x + parent.size.width - group.position.x);
-    height = Math.min(height, parent.position.y + parent.size.height - group.position.y);
-    if (width < minimumWidth || height < minimumHeight) return graph;
+    maximumWidth = Math.min(maximumWidth, parent.position.x + parent.size.width - group.position.x);
+    maximumHeight = Math.min(
+      maximumHeight,
+      parent.position.y + parent.size.height - group.position.y,
+    );
+  }
+  let width: number;
+  let height: number;
+  if (group.keepAspectRatio) {
+    const minimumScale = Math.max(
+      minimumWidth / group.size.width,
+      minimumHeight / group.size.height,
+    );
+    const maximumScale = Math.min(
+      maximumWidth / group.size.width,
+      maximumHeight / group.size.height,
+    );
+    if (minimumScale > maximumScale) return graph;
+    const x = delta.x / group.size.width;
+    const y = delta.y / group.size.height;
+    const requested = 1 + (Math.abs(x) >= Math.abs(y) ? x : y);
+    const scale = Math.max(minimumScale, Math.min(maximumScale, requested));
+    // Repeated edits at a floating-point boundary must not create history entries.
+    if (Math.abs(scale - 1) <= Number.EPSILON * 4) return graph;
+    width = group.size.width * scale;
+    height = group.size.height * scale;
+  } else {
+    if (
+      (delta.x !== 0 && minimumWidth > maximumWidth) ||
+      (delta.y !== 0 && minimumHeight > maximumHeight)
+    )
+      return graph;
+    width =
+      delta.x === 0
+        ? group.size.width
+        : Math.max(minimumWidth, Math.min(maximumWidth, group.size.width + delta.x));
+    height =
+      delta.y === 0
+        ? group.size.height
+        : Math.max(minimumHeight, Math.min(maximumHeight, group.size.height + delta.y));
   }
   if (width === group.size.width && height === group.size.height) return graph;
   return expandParents(
@@ -1097,6 +1121,19 @@ export function updateEditor(
     case 'DuplicatePressed': {
       const duplicated = insertFragment(state, selectedFragment(state));
       return duplicated === state ? state : { ...duplicated, notice: 'Selection duplicated' };
+    }
+    case 'GroupAspectRatioToggled': {
+      const group = state.graph.nodes.find((node) => node.id === event.id && node.kind === 'group');
+      if (!group) return state;
+      return {
+        ...commitGraph(state, {
+          ...state.graph,
+          nodes: state.graph.nodes.map((node) =>
+            node.id === group.id ? { ...node, keepAspectRatio: !group.keepAspectRatio } : node,
+          ),
+        }),
+        notice: group.keepAspectRatio ? 'Group proportions unlocked' : 'Group proportions locked',
+      };
     }
     case 'GroupResizeNudged': {
       if (state.collapsedGroups.includes(event.id)) return state;

@@ -163,6 +163,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     }),
                     model.editor.readOnly || model.editor.gesture.type !== 'idle',
                   ),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.AriaPressed(String(selectedNode.keepAspectRatio ?? false)),
+                      h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
+                      h.OnClick(
+                        Message.ObservedFlowInput({
+                          message: { type: 'GroupAspectRatioToggled', id: selectedNode.id },
+                        }),
+                      ),
+                    ],
+                    ['Lock proportions'],
+                  ),
                 ]
               : []),
             ...(selectedNode?.parentId

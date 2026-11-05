@@ -130,3 +130,8 @@ larger step) for keyboard resizing. Contents stay fixed and Undo restores bounds
 Imported nodes can declare `resizeLimits` for manual width and group boundary
 editing. Card width sliders show the imported limits; all enforcement lives in
 the Flow package. Layout and measured card height remain content-driven.
+
+Select a group and activate **Lock proportions** to scale its boundary uniformly.
+The same action is in the package's group context panel. Pointer and keyboard
+resizing preserve the current ratio within the available bounds; children stay
+fixed. Toggling and resizing are separate Undo steps.

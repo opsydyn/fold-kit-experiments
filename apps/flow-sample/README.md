@@ -109,3 +109,10 @@ result as one undoable edit. The trial supports 1–100 nodes. Use
 Force layout tries right-angle routes for automatic edges and keeps authored
 path styles. If its candidate routes are blocked, the edge uses its usual
 automatic fallback.
+
+Automatic force routes prefer corridors that avoid earlier edges. The routing
+heuristic balances distance against nearby parallel segments and crossings.
+Shared ports and constrained arrangements can still produce crossings.
+
+In a grouped example, select a child and toggle **Keep inside parent** to
+constrain its drag and keyboard movement. Toggle it off to allow drag-out.

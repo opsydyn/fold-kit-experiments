@@ -43,6 +43,35 @@ function portLead(node: FlowNode, id: string) {
   return { point, outside: { x: point.x + direction.x * lead, y: point.y + direction.y * lead } };
 }
 
+type Segment = Readonly<{ from: Point; to: Point }>;
+
+function corridorPenalty(from: Point, to: Point, occupied: readonly Segment[]): number {
+  if (from.x === to.x && from.y === to.y) return 0;
+  const vertical = from.x === to.x;
+  const axis = vertical ? 'y' : 'x';
+  const across = vertical ? 'x' : 'y';
+  const low = Math.min(from[axis], to[axis]);
+  const high = Math.max(from[axis], to[axis]);
+  let penalty = 0;
+  for (const segment of occupied) {
+    const otherVertical = segment.from.x === segment.to.x;
+    if (vertical === otherVertical) {
+      if (Math.abs(from[across] - segment.from[across]) >= 12) continue;
+      const overlap =
+        Math.min(high, Math.max(segment.from[axis], segment.to[axis])) -
+        Math.max(low, Math.min(segment.from[axis], segment.to[axis]));
+      penalty += Math.max(0, overlap) * 4;
+    } else if (
+      segment.from[axis] > low &&
+      segment.from[axis] < high &&
+      from[across] > Math.min(segment.from[across], segment.to[across]) &&
+      from[across] < Math.max(segment.from[across], segment.to[across])
+    )
+      penalty += 48;
+  }
+  return penalty;
+}
+
 export function routeForceEdges(
   nodes: readonly FlowNode[],
   edges: readonly FlowEdge[],
@@ -51,6 +80,7 @@ export function routeForceEdges(
   const obstacles = nodes.map(obstacle);
   const columns = [...new Set(obstacles.flatMap(({ left, right }) => [left, right]))];
   const rows = [...new Set(obstacles.flatMap(({ top, bottom }) => [top, bottom]))];
+  const occupied: Segment[] = [];
   return edges.flatMap((edge) => {
     const source = byId.get(edge.source.node);
     const target = byId.get(edge.target.node);
@@ -73,9 +103,21 @@ export function routeForceEdges(
     )
       return [];
 
+    const laneColumns = occupied.flatMap(({ from }) => [from.x - 12, from.x + 12]);
+    const laneRows = occupied.flatMap(({ from }) => [from.y - 12, from.y + 12]);
     const candidates = [
-      ...[a.x, b.x, (a.x + b.x) / 2, ...columns].map((x) => [a, { x, y: a.y }, { x, y: b.y }, b]),
-      ...[a.y, b.y, (a.y + b.y) / 2, ...rows].map((y) => [a, { x: a.x, y }, { x: b.x, y }, b]),
+      ...[...new Set([a.x, b.x, (a.x + b.x) / 2, ...columns, ...laneColumns])].map((x) => [
+        a,
+        { x, y: a.y },
+        { x, y: b.y },
+        b,
+      ]),
+      ...[...new Set([a.y, b.y, (a.y + b.y) / 2, ...rows, ...laneRows])].map((y) => [
+        a,
+        { x: a.x, y },
+        { x: b.x, y },
+        b,
+      ]),
     ];
     const directDistance = Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
     let shortest: Point[] | undefined;
@@ -90,7 +132,8 @@ export function routeForceEdges(
           clear = false;
           break;
         }
-        length += Math.abs(to.x - from.x) + Math.abs(to.y - from.y);
+        length +=
+          Math.abs(to.x - from.x) + Math.abs(to.y - from.y) + corridorPenalty(from, to, occupied);
       }
       if (clear && length < distance) {
         distance = length;
@@ -99,6 +142,11 @@ export function routeForceEdges(
       }
     }
     if (!shortest) return [];
+    for (let index = 1; index < shortest.length; index++) {
+      const from = shortest[index - 1];
+      const to = shortest[index];
+      if (from && to && (from.x !== to.x || from.y !== to.y)) occupied.push({ from, to });
+    }
     const points = [start.point, ...shortest, end.point];
     return [
       {

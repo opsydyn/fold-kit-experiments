@@ -133,3 +133,9 @@ Two-finger navigation is opt-in at the FoldKit view. The input adapter tracks
 the two touch contacts and reports their midpoint and distance. The reducer
 cancels any active drag, then anchors zoom and translation to the starting
 viewport. This keeps touch navigation separate from document history.
+
+Optional parent extent is authored on a child as `extent: 'parent'`.
+Movement intersects the allowed offsets of constrained selection roots, then
+moves the selection together. Descendants moving with their parent keep their
+relative placement. Drag-out retains constrained membership. Detached clipboard
+roots and ungrouped root nodes lose an extent whose parent no longer exists.

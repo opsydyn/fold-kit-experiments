@@ -104,7 +104,7 @@ function selectedFragment(state: EditorState): FlowGraph {
       .filter((node) => included.has(node.id))
       .map((node) => {
         if (node.parentId === undefined || included.has(node.parentId)) return node;
-        const { parentId: _, ...root } = node;
+        const { parentId: _, extent: _extent, ...root } = node;
         return root;
       }),
     edges: state.graph.edges.filter(
@@ -166,13 +166,51 @@ function insertFragment(state: EditorState, fragment: FlowGraph): EditorState {
   };
 }
 
+function containedOffset(graph: FlowGraph, moving: ReadonlySet<string>, delta: Point): Point {
+  if (delta.x === 0 && delta.y === 0) return delta;
+  let left = -Infinity;
+  let right = Infinity;
+  let top = -Infinity;
+  let bottom = Infinity;
+  const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+  for (const node of graph.nodes) {
+    if (
+      node.extent !== 'parent' ||
+      !moving.has(node.id) ||
+      node.parentId === undefined ||
+      moving.has(node.parentId)
+    )
+      continue;
+    const parent = byId.get(node.parentId);
+    if (!parent) continue;
+    const fitsX = node.size.width <= parent.size.width;
+    const fitsY = node.size.height <= parent.size.height;
+    left = Math.max(left, fitsX ? parent.position.x - node.position.x : 0);
+    right = Math.min(
+      right,
+      fitsX ? parent.position.x + parent.size.width - node.position.x - node.size.width : 0,
+    );
+    top = Math.max(top, fitsY ? parent.position.y - node.position.y : 0);
+    bottom = Math.min(
+      bottom,
+      fitsY ? parent.position.y + parent.size.height - node.position.y - node.size.height : 0,
+    );
+  }
+  return {
+    x: left > right ? 0 : Math.max(left, Math.min(right, delta.x)),
+    y: top > bottom ? 0 : Math.max(top, Math.min(bottom, delta.y)),
+  };
+}
+
 function move(graph: FlowGraph, moving: ReadonlySet<string>, delta: Point): FlowGraph {
   finitePoint(delta);
+  const offset = containedOffset(graph, moving, delta);
+  if (offset.x === 0 && offset.y === 0) return graph;
   const moved = {
     ...graph,
     nodes: graph.nodes.map((node) =>
       moving.has(node.id)
-        ? { ...node, position: { x: node.position.x + delta.x, y: node.position.y + delta.y } }
+        ? { ...node, position: { x: node.position.x + offset.x, y: node.position.y + offset.y } }
         : node,
     ),
   };
@@ -189,6 +227,7 @@ function reparentDraggedNodes(
   let changed = false;
   const nodes = graph.nodes.map((node) => {
     if (
+      node.extent === 'parent' ||
       !selected.has(node.id) ||
       (node.parentId !== undefined && moving.has(node.parentId)) ||
       (node.parentId ?? null) === parentId
@@ -589,18 +628,29 @@ export function updateEditor(
         dragging && state.snapToAlignment
           ? alignDrag(nodes, moving, state.collapsedGroups, raw, fallback, zoom)
           : { offset: fallback, guides: [] };
-      const graph = move(gesture.before, moving, offset);
-      const dropParent = dragging
-        ? groupAtDropPoint(
-            nodes,
-            state.collapsedGroups,
-            moving,
-            screenToWorld(event.point, state.viewport),
-          )
-        : undefined;
-      const drag = { ...gesture, dropParent, guides };
+      const bounded = containedOffset(gesture.before, moving, offset);
+      const visibleGuides = bounded.x === offset.x && bounded.y === offset.y ? guides : [];
+      const graph = move(gesture.before, moving, bounded);
+      const canReparent = gesture.ids.some((id) => {
+        const node = gesture.before.nodes.find((node) => node.id === id);
+        return (
+          node &&
+          node.extent !== 'parent' &&
+          (node.parentId === undefined || !moving.has(node.parentId))
+        );
+      });
+      const dropParent =
+        dragging && canReparent
+          ? groupAtDropPoint(
+              nodes,
+              state.collapsedGroups,
+              moving,
+              screenToWorld(event.point, state.viewport),
+            )
+          : undefined;
+      const drag = { ...gesture, dropParent, guides: visibleGuides };
       if (sameGeometry(state.graph, graph))
-        return gesture.dropParent === dropParent && sameGuides(gesture.guides, guides)
+        return gesture.dropParent === dropParent && sameGuides(gesture.guides, visibleGuides)
           ? state
           : { ...state, gesture: drag };
       return { ...state, graph, gesture: drag, revision: state.revision + 1, routes: [] };
@@ -769,13 +819,26 @@ export function updateEditor(
         },
       };
     }
-    case 'SelectionNudged':
+    case 'SelectionNudged': {
       if (state.selectedNodes.length === 0 || (event.delta.x === 0 && event.delta.y === 0))
         return state;
-      return commitGraph(
-        state,
-        move(state.graph, withDescendants(state.graph, state.selectedNodes), event.delta),
+      const graph = move(
+        state.graph,
+        withDescendants(state.graph, state.selectedNodes),
+        event.delta,
       );
+      return graph === state.graph ? state : commitGraph(state, graph);
+    }
+    case 'NodeContainmentToggled': {
+      const node = state.graph.nodes.find((node) => node.id === event.id);
+      if (!node || node.parentId === undefined) return state;
+      const { extent: _extent, ...free } = node;
+      const updated = node.extent === 'parent' ? free : { ...node, extent: 'parent' as const };
+      return commitGraph(state, {
+        ...state.graph,
+        nodes: state.graph.nodes.map((node) => (node.id === event.id ? updated : node)),
+      });
+    }
     case 'NodeAdded':
       return commitGraph(state, {
         ...state.graph,
@@ -979,8 +1042,8 @@ export function updateEditor(
           let parent = removed.get(node.parentId)?.parentId;
           while (parent !== undefined && removed.has(parent))
             parent = removed.get(parent)?.parentId;
-          const { parentId: _, ...root } = node;
-          return parent === undefined ? root : { ...root, parentId: parent };
+          const { parentId: _, extent: _extent, ...root } = node;
+          return parent === undefined ? root : { ...node, parentId: parent };
         });
       return { ...commitGraph(state, { ...state.graph, nodes }), notice: 'Selection ungrouped' };
     }

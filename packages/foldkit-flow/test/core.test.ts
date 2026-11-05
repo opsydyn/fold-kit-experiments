@@ -862,3 +862,63 @@ test('pinch cancels a graph drag and keeps the starting world point under the mo
   expect(ended.viewport).toEqual(moved.viewport);
   expect(ended.past).toHaveLength(0);
 });
+
+test('parent extent clamps a selection together and prevents drag-out reparenting', () => {
+  const parent = {
+    id: 'parent',
+    kind: 'group' as const,
+    label: 'Parent',
+    position: { x: 0, y: 0 },
+    size: { width: 500, height: 240 },
+    ports: [],
+  };
+  const initial = createEditor({
+    nodes: [
+      parent,
+      { ...nodeA, parentId: 'parent', extent: 'parent' },
+      { ...nodeB, parentId: 'parent' },
+    ],
+    edges: [],
+  });
+  expect(() =>
+    createEditor({
+      nodes: [{ ...nodeA, extent: 'parent' }],
+      edges: [],
+    }),
+  ).toThrow('requires a parent');
+  const movedParent = updateEditor(
+    { ...initial, selectedNodes: ['parent', 'a'] },
+    {
+      type: 'SelectionNudged',
+      delta: { x: 50, y: 50 },
+    },
+  );
+  expect(movedParent.graph.nodes[1]?.position).toEqual({ x: 70, y: 80 });
+  const copied = updateEditor({ ...initial, selectedNodes: ['a'] }, { type: 'CopyPressed' });
+  expect(copied.clipboard?.nodes[0]).not.toHaveProperty('extent');
+  const ungrouped = updateEditor(
+    { ...initial, selectedNodes: ['parent'] },
+    { type: 'SelectionUngrouped' },
+  );
+  expect(ungrouped.graph.nodes[0]).not.toHaveProperty('extent');
+  const selected = { ...initial, selectedNodes: ['a', 'b'] };
+  const nudged = updateEditor(selected, { type: 'SelectionNudged', delta: { x: -100, y: 200 } });
+  expect(nudged.graph.nodes[1]?.position).toEqual({ x: 0, y: 160 });
+  expect(nudged.graph.nodes[2]?.position).toEqual({ x: 280, y: 190 });
+  const start = updateEditor(initial, {
+    type: 'NodeDragStarted',
+    id: 'a',
+    pointer: 1,
+    point: { x: 30, y: 40 },
+  });
+  const moved = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: -100, y: -100 },
+  });
+  expect(moved.graph.nodes[1]?.position).toEqual({ x: 0, y: 0 });
+  const dropped = updateEditor(moved, { type: 'PointerReleased', pointer: 1 });
+  expect(dropped.graph.nodes[1]?.parentId).toBe('parent');
+  expect(updateEditor(dropped, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  expect(parseGraph(serializeGraph(dropped.graph))).toEqual(dropped.graph);
+});

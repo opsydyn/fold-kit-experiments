@@ -24,6 +24,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ],
       [label],
     );
+  const selectedNode =
+    model.editor.selectedNodes.length === 1
+      ? model.editor.graph.nodes.find((node) => node.id === model.editor.selectedNodes[0])
+      : undefined;
   const selectedEdge = model.editor.graph.edges.find((edge) =>
     model.editor.selectedEdges.includes(edge.id),
   );
@@ -150,6 +154,23 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               'Ungroup',
               Message.ObservedFlowInput({ message: { type: 'SelectionUngrouped' } }),
             ),
+            ...(selectedNode?.parentId
+              ? [
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.AriaPressed(String(selectedNode.extent === 'parent')),
+                      h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
+                      h.OnClick(
+                        Message.ObservedFlowInput({
+                          message: { type: 'NodeContainmentToggled', id: selectedNode.id },
+                        }),
+                      ),
+                    ],
+                    ['Keep inside parent'],
+                  ),
+                ]
+              : []),
             button('Copy', Message.ObservedFlowInput({ message: { type: 'CopyPressed' } })),
             button('Paste', Message.ObservedFlowInput({ message: { type: 'PastePressed' } })),
             button(

@@ -308,3 +308,10 @@ offer Delete. Escape dismisses the panel.
 
 The same option adds More actions buttons on nodes and beside entries in
 the Connections list for touch and keyboard access.
+
+Set a child's `extent: 'parent'` to constrain pointer drags and keyboard nudges
+to its parent's authored bounds. The child keeps its parent on drag-out.
+A selection moves by one common clamped offset. Moving the parent still moves
+its descendants. Nodes larger than the parent are held on the oversized axis.
+Sizing and content measurement are independent of this movement constraint.
+The optional field is preserved by graph export and import.

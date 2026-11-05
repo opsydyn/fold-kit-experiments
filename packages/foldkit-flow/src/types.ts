@@ -22,6 +22,8 @@ export type FlowNode = Readonly<{
   kind?: 'group';
   /** A group ID. Positions are always in canvas coordinates. */
   parentId?: string;
+  /** Constrain movement to the authored parent bounds. */
+  extent?: 'parent';
   data?: JsonValue;
 }>;
 export type Endpoint = Readonly<{ node: string; port: string }>;
@@ -144,6 +146,7 @@ export type EditorEvent =
   | Readonly<{ type: 'SelectionNudged'; delta: Point }>
   | Readonly<{ type: 'NodeAdded'; node: FlowNode }>
   | Readonly<{ type: 'NodeLabelChanged'; id: string; label: string }>
+  | Readonly<{ type: 'NodeContainmentToggled'; id: string }>
   | Readonly<{ type: 'NodeWidthChanged'; id: string; width: number }>
   | Readonly<{ type: 'EdgeLabelEditingStarted'; id: string }>
   | Readonly<{ type: 'EdgeLabelDraftChanged'; id: string; text: string }>

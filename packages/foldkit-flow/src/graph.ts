@@ -104,6 +104,7 @@ function isNode(value: unknown): value is FlowNode {
     value.ports.every(isPort) &&
     (!('kind' in value) || value.kind === 'group') &&
     (!('parentId' in value) || typeof value.parentId === 'string') &&
+    (!('extent' in value) || value.extent === 'parent') &&
     (!('data' in value) || isJson(value.data))
   );
 }
@@ -166,6 +167,8 @@ export function validateGraph(graph: FlowGraph): void {
   for (const node of graph.nodes) {
     if (node.kind === 'group' && node.ports.length > 0)
       throw new FlowError('invalid-graph', `Group ${node.id} cannot have ports`);
+    if (node.extent === 'parent' && node.parentId === undefined)
+      throw new FlowError('invalid-graph', `Node ${node.id} requires a parent for its extent`);
     const visited = new Set([node.id]);
     let parentId = node.parentId;
     while (parentId !== undefined) {

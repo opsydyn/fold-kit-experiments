@@ -540,3 +540,19 @@ These are view preferences, not graph document fields. Minimal mode never turns
 off snapping, constraints or other editing behavior. The workbench demonstrates
 global and individual toggles, retains stored flag choices, and hides its own
 inline controls without changing node footprints.
+
+### Design freedom and public composition
+
+Freedom and control apply to the engineering API as well as end-user preferences.
+The target is supported composition of complete presentation parts, with stable
+interaction primitives and a headless behavior core. Consumers should not need
+private DOM bindings, package forks or CSS specificity overrides to implement a
+design. Presentation and geometry responsibilities must remain explicit.
+
+The current view does **not yet** provide that complete surface: `renderNode`
+customizes contents inside a fixed shell, and `renderEdge` customizes decoration
+while retaining Flow's hit area. Group shells, ports and several controls are
+still fixed implementation. Diagnostics and theme tokens do not remove those
+limits. The code-level audit and proposed composition slices are recorded in
+[ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
+The proposed primitives/slots are not shipped APIs yet.

@@ -1,6 +1,5 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
-import { gridSpacing } from './geometry';
 import type { EditorState, Size, Viewport } from './types';
 
 export type FlowBackgroundRenderContext = Readonly<{
@@ -40,13 +39,13 @@ export function backgroundView<M>(
         ],
         [
           preset.render(
-            { id, viewport: state.viewport, surface: state.surface, spacing: gridSpacing },
+            { id, viewport: state.viewport, surface: state.surface, spacing: state.gridSpacing },
             h,
           ),
         ],
       ),
     ];
-  const gap = preset.gap ?? gridSpacing;
+  const gap = preset.gap ?? state.gridSpacing;
   const size = preset.size ?? 1;
   if (!Number.isFinite(gap) || gap <= 0 || !Number.isFinite(size) || size <= 0)
     throw new RangeError('Background gap and size must be finite and positive');

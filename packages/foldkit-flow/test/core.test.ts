@@ -1888,3 +1888,77 @@ test('resize limits and locked proportions take precedence over the snap grid', 
   expect(unchanged.graph).toEqual(initial.graph);
   expect(updateEditor(unchanged, { type: 'PointerReleased', pointer: 1 }).past).toHaveLength(0);
 });
+
+test('configured grid spacing drives node dragging, group resizing and survives Undo', () => {
+  const initial = createEditor(
+    {
+      nodes: [
+        {
+          id: 'g',
+          label: 'Group',
+          kind: 'group',
+          ports: [],
+          position: { x: 103, y: 107 },
+          size: { width: 402, height: 302 },
+        },
+      ],
+      edges: [],
+    },
+    { snapToGrid: true, gridSpacing: 32 },
+  );
+  expect(initial.gridSpacing).toBe(32);
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+    handle: 'right',
+  });
+  const resized = updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: 20, y: 0 } });
+  expect(resized.graph.nodes[0]?.size).toEqual({ width: 409, height: 302 });
+  const released = updateEditor(resized, { type: 'PointerReleased', pointer: 1 });
+  const changed = updateEditor(released, { type: 'GridSpacingChanged', spacing: 50 });
+  expect(changed.graph).toBe(released.graph);
+  expect(changed.revision).toBe(released.revision);
+  expect(changed.past).toBe(released.past);
+  const undone = updateEditor(changed, { type: 'UndoPressed' });
+  expect(undone.graph).toEqual(initial.graph);
+  expect(undone.gridSpacing).toBe(50);
+  const drag = updateEditor(undone, {
+    type: 'NodeDragStarted',
+    id: 'g',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const moved = updateEditor(drag, { type: 'PointerMoved', pointer: 1, point: { x: 20, y: 20 } });
+  expect(moved.graph.nodes[0]?.position).toEqual({ x: 100, y: 150 });
+  expect(updateEditor(moved, { type: 'GridSpacingChanged', spacing: 10 })).toBe(moved);
+});
+
+test('grid spacing validates initialization and preference changes without creating history', () => {
+  const initial = createEditor(graph);
+  expect(initial.gridSpacing).toBe(20);
+  for (const spacing of [0, -1, NaN, Infinity]) {
+    expect(() => createEditor(graph, { gridSpacing: spacing })).toThrow('Grid spacing');
+    expect(updateEditor(initial, { type: 'GridSpacingChanged', spacing })).toBe(initial);
+  }
+  const changed = updateEditor(initial, { type: 'GridSpacingChanged', spacing: 12.5 });
+  expect(changed.gridSpacing).toBe(12.5);
+  expect(changed.graph).toBe(initial.graph);
+  expect(changed.past).toHaveLength(0);
+  expect(changed.future).toBe(initial.future);
+  expect(updateEditor(changed, { type: 'GridSpacingChanged', spacing: 12.5 })).toBe(changed);
+  const readOnly = { ...initial, readOnly: true };
+  expect(updateEditor(readOnly, { type: 'GridSpacingChanged', spacing: 40 })).toBe(readOnly);
+  const start = updateEditor(
+    createEditor(
+      { nodes: [{ ...nodeA, position: { x: 10, y: 10 } }], edges: [] },
+      { snapToGrid: true, gridSpacing: 12.5 },
+    ),
+    { type: 'NodeDragStarted', id: 'a', pointer: 1, point: { x: 0, y: 0 } },
+  );
+  expect(
+    updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: 4, y: 4 } }).graph.nodes[0]
+      ?.position,
+  ).toEqual({ x: 12.5, y: 12.5 });
+});

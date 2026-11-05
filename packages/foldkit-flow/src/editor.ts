@@ -4,7 +4,7 @@ import {
   finitePoint,
   fitNodes,
   fittedGroupBounds,
-  gridSpacing,
+  gridSpacing as defaultGridSpacing,
   minimapGeometry,
   screenToWorld,
   validViewport,
@@ -29,6 +29,9 @@ import type {
 export function createEditor(graph: FlowGraph, options: EditorOptions = {}): EditorState {
   const viewport = options.viewport ?? { x: 0, y: 0, zoom: 1 };
   validViewport(viewport);
+  const gridSpacing = options.gridSpacing ?? defaultGridSpacing;
+  if (!Number.isFinite(gridSpacing) || gridSpacing <= 0)
+    throw new FlowError('invalid-edit', 'Grid spacing must be finite and positive');
   const historyLimit = options.historyLimit ?? 100;
   if (!Number.isInteger(historyLimit) || historyLimit < 0 || historyLimit > 1000)
     throw new FlowError('invalid-edit', 'History limit must be an integer from 0 to 1000');
@@ -50,6 +53,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     historyLimit,
     readOnly: options.readOnly ?? false,
     snapToGrid: options.snapToGrid ?? false,
+    gridSpacing,
     snapToAlignment: options.snapToAlignment ?? false,
     selectionMode: options.selectionMode ?? false,
     routes: [],
@@ -63,6 +67,7 @@ function resizeGroup(
   delta: Point,
   handle: ResizeHandle = 'bottom-right',
   snapToGrid = false,
+  spacing = defaultGridSpacing,
 ): FlowGraph {
   const group = graph.nodes.find((node) => node.id === id && node.kind === 'group');
   if (!group || (delta.x === 0 && delta.y === 0)) return graph;
@@ -79,9 +84,7 @@ function resizeGroup(
   const right = group.position.x + group.size.width;
   const bottom = group.position.y + group.size.height;
   const snapped = (edge: number, offset: number) =>
-    snapToGrid && offset !== 0
-      ? Math.round((edge + offset) / gridSpacing) * gridSpacing - edge
-      : offset;
+    snapToGrid && offset !== 0 ? Math.round((edge + offset) / spacing) * spacing - edge : offset;
   const x = vertical ? 0 : snapped(left ? group.position.x : right, delta.x);
   const y = horizontal ? 0 : snapped(top ? group.position.y : bottom, delta.y);
   const growth = { x: left ? -x : x, y: top ? -y : y };
@@ -287,7 +290,7 @@ function insertFragment(state: EditorState, fragment: FlowGraph): EditorState {
   const occupied = new Set(
     state.graph.nodes.map((node) => `${node.position.x},${node.position.y}`),
   );
-  const step = 2 * gridSpacing;
+  const step = 2 * state.gridSpacing;
   let offset = step;
   for (let attempt = 0; attempt < state.graph.nodes.length; attempt++) {
     if (
@@ -566,6 +569,16 @@ export function updateEditor(
     case 'AlignmentSnapToggled':
       if (state.readOnly || state.gesture.type !== 'idle') return state;
       return { ...state, snapToAlignment: !state.snapToAlignment };
+    case 'GridSpacingChanged':
+      if (
+        state.readOnly ||
+        state.gesture.type !== 'idle' ||
+        !Number.isFinite(event.spacing) ||
+        event.spacing <= 0 ||
+        event.spacing === state.gridSpacing
+      )
+        return state;
+      return { ...state, gridSpacing: event.spacing };
     case 'GridSnapToggled':
       if (state.readOnly || state.gesture.type !== 'idle') return state;
       return { ...state, snapToGrid: !state.snapToGrid };
@@ -766,6 +779,7 @@ export function updateEditor(
             },
             gesture.handle ?? gesture.corner,
             state.snapToGrid,
+            state.gridSpacing,
           );
           if (sameGeometry(state.graph, graph)) return state;
           return { ...state, graph, revision: state.revision + 1, routes: [] };
@@ -795,7 +809,7 @@ export function updateEditor(
       const anchor =
         state.snapToGrid && gesture.before.nodes.find((node) => node.id === gesture.ids[0]);
       if (anchor && (raw.x !== 0 || raw.y !== 0)) {
-        const snap = (value: number) => Math.round(value / gridSpacing) * gridSpacing;
+        const snap = (value: number) => Math.round(value / state.gridSpacing) * state.gridSpacing;
         fallback.x = snap(anchor.position.x + raw.x) - anchor.position.x;
         fallback.y = snap(anchor.position.y + raw.y) - anchor.position.y;
       }
@@ -1067,6 +1081,7 @@ export function updateEditor(
           { x: event.width - node.size.width, y: 0 },
           'bottom-right',
           state.snapToGrid,
+          state.gridSpacing,
         );
         return graph === state.graph ? state : commitGraph(state, graph);
       }
@@ -1230,6 +1245,7 @@ export function updateEditor(
         event.delta,
         event.handle ?? event.corner,
         state.snapToGrid,
+        state.gridSpacing,
       );
       return graph === state.graph
         ? state

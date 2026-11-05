@@ -149,6 +149,11 @@ Use **Background** to choose dots, squares, custom graph paper, or no grid.
 Dots are the default. The custom example composes native FoldKit builder nodes
 using the viewport and package grid spacing; it has no external rendering state.
 Changing backgrounds leaves the diagram and Undo history intact. **Snap to grid**
-is independent: group resize edges use the 20-unit grid, with constraints and
-proportion locking taking precedence. Resize arrow keys step by 20 when snapping
-is enabled, or 80 with Shift.
+is independent: group resize edges use the configured grid, with constraints and
+proportion locking taking precedence. Resize arrow keys step by one grid interval when snapping
+is enabled, or four with Shift.
+
+**Grid spacing** sets a shared positive spacing in graph units (default 20).
+Dots, squares, custom graph paper, snapped dragging and resize handles all follow
+it. Changing spacing leaves authored geometry and Undo history intact. The choice
+survives example changes, import, and loading a saved diagram during this session.

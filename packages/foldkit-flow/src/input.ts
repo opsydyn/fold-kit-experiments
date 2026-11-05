@@ -413,8 +413,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const groupResize = resizeHandle?.getAttribute('data-flow-resize');
     if (groupResize && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
       event.preventDefault();
+      const configured = Number(element.dataset.flowGridSpacing);
+      const spacing = Number.isFinite(configured) && configured > 0 ? configured : gridSpacing;
       const resizeStep =
-        element.dataset.flowGridSnap === 'true' ? gridSpacing * (event.shiftKey ? 4 : 1) : step;
+        element.dataset.flowGridSnap === 'true' ? spacing * (event.shiftKey ? 4 : 1) : step;
       const input: BrowserInput = {
         type: 'GroupResizeNudged',
         id: groupResize,

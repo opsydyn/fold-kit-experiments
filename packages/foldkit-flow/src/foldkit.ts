@@ -83,8 +83,8 @@ const resizeHandles: readonly ResizeHandle[] = [
   'bottom',
   'left',
 ];
-function groupResizeTitle(node: FlowNode, snapToGrid: boolean): string {
-  const step = snapToGrid ? '20, Shift by 80' : '5, Shift by 20';
+function groupResizeTitle(node: FlowNode, snapToGrid: boolean, spacing: number): string {
+  const step = snapToGrid ? `${spacing}, Shift by ${spacing * 4}` : '5, Shift by 20';
   return node.keepAspectRatio
     ? `Drag to resize with locked proportions; arrow keys adjust by ${step}`
     : `Drag to resize; arrow keys adjust by ${step}`;
@@ -474,7 +474,7 @@ export function flowView<M>(
                   ...(handle.includes('-') ? [h.DataAttribute('flow-resize-corner', handle)] : []),
                   h.DataAttribute('flow-group-resize', ''),
                   h.AriaLabel(`Resize ${node.label} from ${handle.replaceAll('-', ' ')}`),
-                  h.Title(groupResizeTitle(node, state.snapToGrid)),
+                  h.Title(groupResizeTitle(node, state.snapToGrid, state.gridSpacing)),
                   h.Style({
                     position: 'absolute',
                     ...(handle === 'top' || handle === 'bottom'
@@ -861,6 +861,7 @@ export function flowView<M>(
           h.DataAttribute('flow-surface', options.id),
           h.DataAttribute('flow-readonly', String(state.readOnly)),
           h.DataAttribute('flow-grid-snap', String(state.snapToGrid)),
+          h.DataAttribute('flow-grid-spacing', String(state.gridSpacing)),
           h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
           h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
           h.DataAttribute('flow-selection-mode', String(state.selectionMode)),

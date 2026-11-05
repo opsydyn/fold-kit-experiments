@@ -17,7 +17,7 @@ import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
 
 export function update(model: Model, message: Message): Return<Model, Message> {
-  const { snapToGrid, snapToAlignment, selectionMode } = model.editor;
+  const { snapToGrid, gridSpacing, snapToAlignment, selectionMode } = model.editor;
   return Message.match(message, {
     ObservedFlowInput: ({ message: input }) => {
       // SAFETY: flowView and the toolbar emit the package's typed EditorEvent contract.
@@ -33,6 +33,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const surface = model.editor.surface;
       const editor = createEditor(graph, {
         snapToGrid,
+        gridSpacing,
         snapToAlignment,
         selectionMode,
         viewport: fitViewport(graph, surface ?? { width: 800, height: 440 }),
@@ -165,6 +166,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const size = surface ?? { width: 800, height: 440 };
       const editor = createEditor(graph, {
         snapToGrid,
+        gridSpacing,
         snapToAlignment,
         selectionMode,
         viewport: fitViewport(graph, size, Math.min(24, size.width / 4, size.height / 4)),
@@ -195,7 +197,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model: {
         ...model,
         editor: {
-          ...createEditor(parseGraph(json), { snapToGrid, snapToAlignment, selectionMode }),
+          ...createEditor(parseGraph(json), {
+            snapToGrid,
+            gridSpacing,
+            snapToAlignment,
+            selectionMode,
+          }),
           surface: model.editor.surface,
           clipboard: model.editor.clipboard,
         },

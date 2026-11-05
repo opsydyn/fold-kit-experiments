@@ -191,7 +191,7 @@ plus 24 units of padding, with a minimum of 224 × 96 (or the starting dimension
 when already tighter). Parent containment clamps
 growth unless `expandParent` enables ancestor expansion. Focus the handle and use
 arrow keys to adjust by 5 graph units, or Shift+Arrow by 20. With grid snapping
-on, these steps are 20 and 80 respectively. Each keyboard action
+on, these steps are one and four grid intervals respectively. Each keyboard action
 is one undo step; pointer drags commit once and Escape restores the original
 bounds. Hosts can dispatch `GroupResizeNudged` with an `id` and `{ x, y }` delta.
 Collapsed and read-only groups cannot be resized.
@@ -277,7 +277,7 @@ above the canvas. Zoom is centered on the visible canvas. The controls are
 available in read-only views and work with standard button keyboard input.
 
 Enable `snapToGrid` in editor options or send `GridSnapToggled` to toggle
-a 20-unit canvas grid. While dragging, the grabbed node snaps to the grid and
+a canvas grid (`gridSpacing`, default 20 units). While dragging, the grabbed node snaps to the grid and
 the rest of the selection follows by the same offset, including group contents.
 Group resize handles and width edits snap the moving boundary in canvas units,
 including top/left boundaries and side handles. Size limits, content and parent
@@ -397,8 +397,8 @@ result, including the centered dimension. A conflicting intersection is a no-op.
 
 `flowView` defaults to dots even when snapping is off. Built-in backgrounds accept
 positive finite `gap` (graph units) and `size` (dot radius or square line width),
-plus a CSS `color`. Both defaults are `gap: 20, size: 1`. Visual gap is independent
-of the editor's 20-unit snap spacing. Use `{ type: 'none' }` for a plain canvas.
+plus a CSS `color`. An omitted gap follows `editor.gridSpacing` (default 20);
+size defaults to 1. An explicit visual gap overrides spacing only for that backdrop. Use `{ type: 'none' }` for a plain canvas.
 
 ```ts
 flowView(h, model.editor, {
@@ -434,3 +434,19 @@ background: {
 `@opsydyn/foldkit-flow/foldkit`. Background selection belongs to the host Model;
 it never changes the graph or Undo history. The sample demonstrates dots,
 squares, a composed custom graph-paper renderer, and no grid.
+
+### Shared grid spacing
+
+Initialize `createEditor(graph, { gridSpacing: 32, snapToGrid: true })`, or dispatch
+`{ type: 'GridSpacingChanged', spacing: 32 }`. Spacing must be finite and positive;
+fractional units are supported. Invalid initialization throws; invalid, redundant,
+read-only or active-gesture changes are ignored. Changing spacing does not move
+nodes, change revision or add an Undo step. Undo/Redo retain the current preference.
+
+Node drag snapping, group boundary snapping, resize keyboard steps, default dots
+and squares, and custom renderer `context.spacing` share the setting. Resize keys
+move one interval, or four with Shift, while snapping is enabled. Duplicate/paste
+placement offsets use two grid intervals. Explicit background `gap` remains an
+independent visual override. Grid spacing is editor session state, excluded from
+graph JSON; hosts can persist preferences separately. The sample retains it when
+switching examples and loading/importing diagrams.

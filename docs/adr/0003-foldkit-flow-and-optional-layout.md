@@ -226,3 +226,14 @@ screen-space layer rather than mutating DOM or maintaining another state owner.
 The Astro host stores only its presentation choice. Package SSR and packed-consumer
 checks cover defaults, custom-builder composition and public types; core/browser
 checks cover snapped resizing, pan/zoom, constraints, cancellation and Undo.
+
+Grid spacing is now validated editor preference state, defaulting to 20 units.
+`GridSpacingChanged` updates it only while idle and editable, without a graph
+transaction or revision change. Drag/resize math, resize-key steps, default
+background gaps and custom renderer context read the same Model value. Explicit
+visual gaps remain overrides. The mounted input adapter receives the preference
+through the surface attributes, with the previous 20-unit fallback for older
+hosts. This avoids a second independently configured snap grid. Graph JSON stays
+unchanged; the sample preserves preferences when replacing diagrams. Regression
+checks cover invalid/fractional values, Undo, renderer context, keyboard input,
+installed package types and browser use of the spacing control.

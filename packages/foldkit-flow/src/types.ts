@@ -104,6 +104,8 @@ export type EditorState = Readonly<{
   historyLimit: number;
   readOnly: boolean;
   snapToGrid: boolean;
+  /** Snap spacing in graph units; shared by default backgrounds. */
+  gridSpacing: number;
   snapToAlignment: boolean;
   selectionMode: boolean;
   routes: readonly EdgeRoute[];
@@ -114,6 +116,7 @@ export type EditorOptions = Readonly<{
   historyLimit?: number;
   readOnly?: boolean;
   snapToGrid?: boolean;
+  gridSpacing?: number;
   snapToAlignment?: boolean;
   selectionMode?: boolean;
 }>;
@@ -162,6 +165,7 @@ export type EditorEvent =
   | Readonly<{ type: 'PinchEnded' }>
   | Readonly<{ type: 'GestureCancelled' }>
   | Readonly<{ type: 'GridSnapToggled' }>
+  | Readonly<{ type: 'GridSpacingChanged'; spacing: number }>
   | Readonly<{ type: 'AlignmentSnapToggled' }>
   | Readonly<{ type: 'SelectionModeToggled' }>
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>

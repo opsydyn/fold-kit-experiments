@@ -206,6 +206,26 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ),
               ],
             ),
+            h.label(
+              [h.Style({ display: 'inline-flex', 'align-items': 'center', gap: '6px' })],
+              [
+                'Grid spacing ',
+                h.input([
+                  h.Type('number'),
+                  h.AriaLabel('Grid spacing'),
+                  h.Min('0'),
+                  h.Step('any'),
+                  h.Value(String(model.editor.gridSpacing)),
+                  h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
+                  h.Style({ width: '72px', 'min-height': '32px' }),
+                  h.OnChange((value) =>
+                    Message.ObservedFlowInput({
+                      message: { type: 'GridSpacingChanged', spacing: Number(value) },
+                    }),
+                  ),
+                ]),
+              ],
+            ),
             button('Arrange with ELK', Message.ClickedArrange({ engine: 'elk' })),
             button(
               'Force layout',

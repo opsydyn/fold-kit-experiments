@@ -7,13 +7,16 @@ import type { HtmlBuilder } from 'foldkit/html';
 import { flowView, type FlowBackground } from '../src/foldkit';
 import { createEditor, type EditorEvent } from '../src/index';
 
-async function render(background?: FlowBackground<EditorEvent>) {
+async function render(background?: FlowBackground<EditorEvent>, gridSpacing = 20) {
   const result = await Effect.runPromise(
     renderToString(
       {
         Flags: Schema.Struct({}),
         init: () => ({
-          model: createEditor({ nodes: [], edges: [] }, { viewport: { x: 30, y: 50, zoom: 2 } }),
+          model: createEditor(
+            { nodes: [], edges: [] },
+            { viewport: { x: 30, y: 50, zoom: 2 }, gridSpacing },
+          ),
         }),
         view: (model, h: HtmlBuilder<EditorEvent>) => ({
           title: 'Grid',
@@ -60,4 +63,18 @@ test('invalid built-in background dimensions are rejected', async () => {
   for (const gap of [0, -1, Infinity])
     await expect(render({ type: 'dots', gap })).rejects.toThrow('Background');
   await expect(render({ type: 'squares', size: 0 })).rejects.toThrow('Background');
+});
+
+test('default and custom backgrounds share editor spacing while explicit gaps override visuals', async () => {
+  expect(await render({ type: 'squares' }, 32)).toContain('64px 64px');
+  expect(await render({ type: 'dots' }, 12.5)).toContain('25px 25px');
+  expect(await render({ type: 'squares', gap: 40 }, 32)).toContain('80px 80px');
+  const custom = await render(
+    {
+      type: 'custom',
+      render: ({ spacing }, h) => h.div([h.DataAttribute('shared-spacing', String(spacing))], []),
+    },
+    32,
+  );
+  expect(custom).toContain('data-shared-spacing="32"');
 });

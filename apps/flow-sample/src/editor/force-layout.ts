@@ -1,6 +1,7 @@
 import type { LayoutRequest, LayoutResult } from '@opsydyn/foldkit-flow';
 import { runForceLayout } from '@opsydyn/foldkit-viz/simulation';
 
+import { routeForceEdges } from './force-routes';
 import { supportsForceLayout } from './layout-options';
 
 export function arrangeWithForce(request: LayoutRequest): LayoutResult {
@@ -38,10 +39,15 @@ export function arrangeWithForce(request: LayoutRequest): LayoutResult {
     )
   )
     throw new Error('Force layout left overlapping cards.');
+  const placed = graph.nodes.map((node, index) => {
+    const card = cards[index];
+    if (!card) throw new Error(`Missing force position for ${node.id}.`);
+    return { ...node, position: { x: card.x, y: card.y } };
+  });
   return {
     requestId,
     revision,
     positions: cards.map(({ id, x, y }) => ({ id, x, y })),
-    routes: [],
+    routes: routeForceEdges(placed, graph.edges),
   };
 }

@@ -78,3 +78,34 @@ export function flowContextDimensionInput<M>(
     h.OnChange((value) => onEvent(group.changeDimension(dimension, Number(value)))),
   ]);
 }
+
+/** Model-derived state and event for a context panel trigger. */
+export type FlowContextTrigger = Readonly<{
+  label: string;
+  expanded: boolean;
+  disabled: boolean;
+  event: Extract<EditorEvent, { type: 'ContextOpened' }>;
+}>;
+
+/** Native trigger for a context panel. Consumers choose its contents and styles. */
+export function flowContextTrigger<M>(
+  h: HtmlBuilder<M>,
+  action: FlowContextTrigger,
+  onEvent: (event: EditorEvent) => M,
+  attributes: Parameters<HtmlBuilder<M>['button']>[0],
+  children: Parameters<HtmlBuilder<M>['button']>[1],
+): Html {
+  return h.button(
+    [
+      ...attributes,
+      h.Type('button'),
+      h.AriaLabel(action.label),
+      h.Title('More actions'),
+      h.AriaExpanded(action.expanded),
+      h.Disabled(action.disabled),
+      h.DataAttribute('flow-no-drag', ''),
+      h.OnClick(onEvent(action.event)),
+    ],
+    children,
+  );
+}

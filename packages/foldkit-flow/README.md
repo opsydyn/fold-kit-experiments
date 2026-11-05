@@ -244,6 +244,30 @@ default content. On opening, Flow focuses the first focusable control or the
 panel itself. Escape returns focus to the canvas. Clicking or moving focus
 outside dismisses the panel.
 
+Use `renderConnections` to arrange the visible edges in a custom list. The
+context provides their selected state, endpoint labels, optional context
+actions, and whether the list is compact or read-only. Flow owns the named
+Connections group and its compact disclosure, and calls the renderer only
+when the list is open. Edges hidden inside collapsed groups are filtered
+before the renderer runs.
+
+```ts
+// Import these primitives from @opsydyn/foldkit-flow/foldkit.
+renderConnections: ({ entries }, h) =>
+  h.ul([], entries.map((entry) =>
+    h.li([h.Key(entry.edge.id)], [
+      flowConnectionButton(h, entry, onEvent, [], [entry.label]),
+      ...(entry.contextAction
+        ? [flowContextTrigger(h, entry.contextAction, onEvent, [], ['⋯'])]
+        : []),
+    ]),
+  )),
+```
+
+The selection button includes Arrow Up to the active toolbar and Shift+F10
+or the Context Menu key when context actions are available. Return
+`undefined` for the default list.
+
 Use a group's **Collapse** and **Expand** buttons to change its canvas
 presentation. A collapsed group hides its descendants and internal edges.
 Connections that cross the boundary remain visible and attach to the compact

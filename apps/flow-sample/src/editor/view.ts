@@ -21,6 +21,7 @@ import {
   EdgeLabelDesign,
   EdgeToolbarDesign,
   ContextMenuDesign,
+  ConnectionListDesign,
   NodeDesign,
   type Model,
 } from './model';
@@ -34,6 +35,7 @@ import {
   edgeBadgeEditor,
   compactEdgeToolbar,
   customContextMenu,
+  connectionRows,
 } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
@@ -701,6 +703,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Connection list layout',
+            h.select(
+              [
+                h.AriaLabel('Connection list layout'),
+                h.Value(model.connectionListDesign),
+                h.OnChange((value) =>
+                  Message.SelectedConnectionListDesign({
+                    connectionListDesign: Schema.decodeUnknownSync(ConnectionListDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.connectionListDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('rows'), h.Selected(model.connectionListDesign === 'rows')],
+                  ['Connection rows'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Connection preview',
             h.select(
               [
@@ -972,6 +1002,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)
               : undefined,
+          renderConnections: (context, builder) =>
+            model.connectionListDesign === 'rows' ? connectionRows(context, builder) : undefined,
           contextActions: true,
           renderContextMenu: (context, builder) =>
             model.contextMenuDesign === 'panel' ? customContextMenu(context, builder) : undefined,

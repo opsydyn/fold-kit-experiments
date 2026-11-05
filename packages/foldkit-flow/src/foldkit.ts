@@ -2,22 +2,32 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
-import { Option } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import {
+  flowConnectionButton,
+  type FlowConnectionEntry,
+  type FlowConnectionsContext,
+} from './connections';
+export { flowConnectionButton } from './connections';
+export type { FlowConnectionEntry, FlowConnectionsContext } from './connections';
+
+import {
   flowContextAction,
   flowContextDimensionInput,
+  flowContextTrigger,
+  type FlowContextTrigger,
   type FlowContextMenuContext,
   type FlowContextAction,
   type FlowGroupContextActions,
 } from './context-menu';
-export { flowContextAction, flowContextDimensionInput } from './context-menu';
+export { flowContextAction, flowContextDimensionInput, flowContextTrigger } from './context-menu';
 export type {
   FlowContextAction,
   FlowContextMenuContext,
   FlowGroupContextActions,
+  FlowContextTrigger,
 } from './context-menu';
 
 import {
@@ -197,6 +207,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
       context: FlowEdgeToolbarContext,
       h: HtmlBuilder<M>,
     ) => Html | null | undefined;
+    /** Replaces the list contents. The compact disclosure and accessible group stay owned by Flow. */
+    renderConnections?: (context: FlowConnectionsContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Enable context actions for nodes and edges in editable views. */
     contextActions?: boolean;
     /** Replaces the contents of an open node or edge context panel. Undefined uses the default. */
@@ -676,22 +688,23 @@ export function flowView<M>(
       ? boxBounds(state.gesture.origin, state.gesture.point)
       : null;
   const contextEnabled = options.contextActions && !state.readOnly;
-  const contextTrigger = (
+  const contextAction = (
     kind: 'node' | 'edge',
     id: string,
     label: string,
     point: Point,
-    onNode = false,
-  ) =>
-    h.button(
+  ): FlowContextTrigger => ({
+    label: `More actions for ${label}`,
+    expanded: state.context?.kind === kind && state.context.id === id,
+    disabled: state.gesture.type !== 'idle',
+    event: { type: 'ContextOpened', context: { kind, id, point } },
+  });
+  const contextTrigger = (action: FlowContextTrigger, onNode = false) =>
+    flowContextTrigger(
+      h,
+      action,
+      options.onEvent,
       [
-        h.Type('button'),
-        h.AriaLabel(`More actions for ${label}`),
-        h.Title('More actions'),
-        h.AriaExpanded(state.context?.kind === kind && state.context.id === id),
-        h.Disabled(state.gesture.type !== 'idle'),
-        h.DataAttribute('flow-no-drag', ''),
-        h.OnClick(options.onEvent({ type: 'ContextOpened', context: { kind, id, point } })),
         h.Style({
           position: onNode ? 'absolute' : 'relative',
           top: onNode ? '8px' : 'auto',
@@ -707,13 +720,10 @@ export function flowView<M>(
     );
   const nodeContextTrigger = (node: FlowNode) =>
     contextTrigger(
-      'node',
-      node.id,
-      node.label,
-      {
+      contextAction('node', node.id, node.label, {
         x: state.viewport.x + (node.position.x + node.size.width) * state.viewport.zoom - 36,
         y: state.viewport.y + node.position.y * state.viewport.zoom + 44,
-      },
+      }),
       node.kind !== 'group',
     );
   const dropParent = state.gesture.type === 'node-drag' ? state.gesture.dropParent : undefined;
@@ -1163,74 +1173,53 @@ export function flowView<M>(
           toolbarContent ?? defaultEdgeToolbar(h, toolbarContext, options.onEvent),
         )
       : null;
-  const toolbarSelector = `[id="${toolbarId}"]`;
-  const toolbarControl =
-    ':is(button, select, input, textarea, a[href], [tabindex]):not(:disabled, input[type="hidden"], [tabindex^="-"], [hidden], [hidden] *, [inert], [inert] *)';
-  const connections = h.div(
-    [
-      h.Id(`${options.id}-connections`),
-      h.DataAttribute('flow-connections', diagnostics.connectionList ? 'expanded' : 'compact'),
-      h.Role('group'),
-      h.AriaLabel('Connections'),
-    ],
-    visibleEdges.map((edge) => {
+  const connections = () => {
+    const nodeLabels = new Map(state.graph.nodes.map((node) => [node.id, node.label]));
+    const compact = !diagnostics.connectionList;
+    const entries = visibleEdges.map((edge): FlowConnectionEntry => {
+      const sourceLabel = nodeLabels.get(edge.source.node) ?? 'Source';
+      const targetLabel = nodeLabels.get(edge.target.node) ?? 'Target';
       const label =
         edge.label ??
-        (diagnostics.connectionList
-          ? `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`
-          : `${state.graph.nodes.find((node) => node.id === edge.source.node)?.label ?? 'Source'} → ${state.graph.nodes.find((node) => node.id === edge.target.node)?.label ?? 'Target'}`);
-      const selectionButton = h.button(
-        [
-          h.Key(edge.id),
-          h.Type('button'),
-          h.OnClick(options.onEvent({ type: 'EdgeSelected', id: edge.id, additive: false })),
-          h.AriaPressed(String(state.selectedEdges.includes(edge.id))),
-          ...(options.contextActions && !state.readOnly
-            ? [
-                h.OnKeyDownPreventDefault((key, modifiers) =>
-                  key === 'ContextMenu' || (key === 'F10' && modifiers.shiftKey)
-                    ? Option.some(
-                        options.onEvent({
-                          type: 'ContextOpened',
-                          context: { kind: 'edge', id: edge.id, point: { x: 12, y: 12 } },
-                        }),
-                      )
-                    : Option.none(),
-                ),
-              ]
-            : []),
-          ...(toolbar && activeEdge?.edge.id === edge.id
-            ? [
-                h.AriaControls(toolbarId),
-                h.AriaKeyshortcuts('ArrowUp'),
-                h.OnKeyDownFocus((key) =>
-                  key === 'ArrowUp'
-                    ? Option.some({
-                        focusSelector: `${toolbarSelector} ${toolbarControl}, ${toolbarSelector}:not(:has(${toolbarControl}))`,
-                        message: options.onEvent({
-                          type: 'EdgeSelected',
-                          id: edge.id,
-                          additive: false,
-                        }),
-                      })
-                    : Option.none(),
-                ),
-              ]
-            : []),
-        ],
-        [label],
-      );
-      return contextEnabled
-        ? h.span(
-            [
-              h.Key(edge.id),
-              h.Style({ display: 'inline-flex', gap: '4px', 'margin-right': '8px' }),
-            ],
-            [selectionButton, contextTrigger('edge', edge.id, label, { x: 12, y: 12 })],
-          )
-        : selectionButton;
-    }),
-  );
+        (compact
+          ? `${sourceLabel} → ${targetLabel}`
+          : `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`);
+      return {
+        edge,
+        label,
+        sourceLabel,
+        targetLabel,
+        selected: state.selectedEdges.includes(edge.id),
+        contextAction: contextEnabled
+          ? contextAction('edge', edge.id, label, { x: 12, y: 12 })
+          : undefined,
+        toolbarId: toolbar && activeEdge?.edge.id === edge.id ? toolbarId : undefined,
+      };
+    });
+    const custom = options.renderConnections?.({ entries, compact, readOnly: state.readOnly }, h);
+    return h.div(
+      [
+        h.Id(`${options.id}-connections`),
+        h.DataAttribute('flow-connections', compact ? 'compact' : 'expanded'),
+        h.Role('group'),
+        h.AriaLabel('Connections'),
+      ],
+      custom
+        ? [custom]
+        : entries.map((entry) => {
+            const selection = flowConnectionButton(h, entry, options.onEvent, [], [entry.label]);
+            return entry.contextAction
+              ? h.span(
+                  [
+                    h.Key(entry.edge.id),
+                    h.Style({ display: 'inline-flex', gap: '4px', 'margin-right': '8px' }),
+                  ],
+                  [selection, contextTrigger(entry.contextAction)],
+                )
+              : selection;
+          }),
+    );
+  };
   return h.div(
     [
       h.Id(options.id),
@@ -1454,7 +1443,7 @@ export function flowView<M>(
         [state.notice ?? `${presentation.nodes.length} nodes, ${visibleEdges.length} connections`],
       ),
       ...(diagnostics.connectionList
-        ? [connections]
+        ? [connections()]
         : [
             h.div(
               [],
@@ -1472,7 +1461,7 @@ export function flowView<M>(
                   ],
                   ['Connections'],
                 ),
-                ...(state.connectionsExpanded ? [connections] : []),
+                ...(state.connectionsExpanded ? [connections()] : []),
               ],
             ),
           ]),

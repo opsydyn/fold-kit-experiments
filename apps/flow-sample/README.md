@@ -237,3 +237,7 @@ Choose **Context menus → Custom action panel**, then right-click a node or
 press Shift+F10 on a node or connection. The custom node panel offers Duplicate,
 the edge panel adds Rename, and the group panel puts Width first.
 [Group panel](evidence/context-menu-group.png) · [Edge panel](evidence/context-menu-edge.png)
+
+Choose **Connection list layout → Connection rows** for a list with endpoint
+names and selection styling. The rows also work inside the Connections
+disclosure in minimal mode. [Workbench screenshot](evidence/connection-rows.png)

@@ -12,6 +12,9 @@ import {
   flowEdgeLabelBadge,
   flowEdgeToolbarButton,
   flowContextAction,
+  flowContextTrigger,
+  flowConnectionButton,
+  type FlowConnectionsContext,
   flowContextDimensionInput,
   type FlowContextAction,
   type FlowContextMenuContext,
@@ -519,5 +522,84 @@ export function customContextMenu(context: FlowContextMenuContext, h: HtmlBuilde
           ]),
       button(context.close),
     ],
+  );
+}
+
+export function connectionRows(context: FlowConnectionsContext, h: HtmlBuilder<Message>) {
+  return h.ul(
+    [
+      h.Class('connection-rows'),
+      h.Role('list'),
+      h.Style({
+        display: 'grid',
+        gap: '5px',
+        margin: '8px 0',
+        padding: '0',
+        'list-style': 'none',
+        'max-width': '420px',
+      }),
+    ],
+    context.entries.map((entry) => {
+      const endpoints = `${entry.sourceLabel} → ${entry.targetLabel}`;
+      const label = entry.edge.label ?? endpoints;
+      return h.li(
+        [
+          h.Key(entry.edge.id),
+          h.Style({
+            display: 'flex',
+            gap: '5px',
+            background: entry.selected ? '#dbeafe' : '#f8fafc',
+            padding: '4px',
+            'border-radius': '10px',
+            border: '1px solid #bfdbfe',
+          }),
+        ],
+        [
+          flowConnectionButton(
+            h,
+            { ...entry, label },
+            flowEvent,
+            [
+              h.Style({
+                flex: '1',
+                'min-width': '0',
+                display: 'grid',
+                gap: '2px',
+                'min-height': '38px',
+                border: '0',
+                padding: '4px 8px',
+                'text-align': 'left',
+                background: 'transparent',
+                color: '#1e3a8a',
+                cursor: 'pointer',
+              }),
+            ],
+            [
+              h.strong([], [label]),
+              ...(!context.compact && entry.edge.label ? [h.small([], [endpoints])] : []),
+            ],
+          ),
+          ...(entry.contextAction
+            ? [
+                flowContextTrigger(
+                  h,
+                  { ...entry.contextAction, label: `More actions for ${label}` },
+                  flowEvent,
+                  [
+                    h.Style({
+                      border: '1px solid #bfdbfe',
+                      'border-radius': '8px',
+                      background: '#fff',
+                      color: '#1e3a8a',
+                      width: '38px',
+                    }),
+                  ],
+                  ['⋯'],
+                ),
+              ]
+            : []),
+        ],
+      );
+    }),
   );
 }

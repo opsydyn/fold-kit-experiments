@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add Connections list composition with native selection and context buttons,
+  shared keyboard shortcuts, and the existing compact disclosure.
+
 - Add custom node and edge context panels with typed actions, native group
   dimension inputs, and focus that follows the rendered control order.
 

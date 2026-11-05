@@ -321,3 +321,11 @@ and diagnostics for groups. The package uses the same native action and
 dimension primitives in its default content. Keyboard entry focuses the
 first available control in the host layout, including a group dimension
 input when it precedes the buttons.
+
+### Connections list
+
+The list hook receives only edges visible in the canvas presentation. Flow
+keeps the named group, compact disclosure, and selection state. The host
+composes native selection and context buttons inside its own layout. Keeping
+the disclosure in Flow gives the renderer the same behavior in standard,
+minimal, and read-only views without a second source of expansion state.

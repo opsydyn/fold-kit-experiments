@@ -68,6 +68,11 @@ for native controls.
 group sizing where applicable. `flowContextAction` and
 `flowContextDimensionInput` carry native control semantics.
 
+`renderConnections` replaces the visible connection entries inside the named
+group. `FlowConnectionsContext` carries the filtered edges and their selection,
+labels and available actions. Compose `flowConnectionButton` and
+`flowContextTrigger` for native interaction.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

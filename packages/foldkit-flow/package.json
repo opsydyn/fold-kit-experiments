@@ -50,7 +50,8 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "bun test ./test",
-    "pack:check": "bun run build && publint && bun ../../tools/pack-flow.ts foldkit-flow"
+    "pack:check": "bun run build && publint && bun ../../tools/pack-flow.ts foldkit-flow",
+    "docs": "bun run --filter @opsydyn/foldkit-flow build && bun run --filter @opsydyn/foldkit-viz build && typedoc"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
@@ -62,6 +63,7 @@
     "happy-dom": "^20.10.6",
     "publint": "0.3.25",
     "tsdown": "^0.21.8",
+    "typedoc": "^0.28.19",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {

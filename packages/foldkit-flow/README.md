@@ -697,3 +697,19 @@ No policy functions are stored in Model or serialized documents.
 The sample's **Edge design** selector demonstrates raised arcs in both node
 presentations. Arbitrary port anchors, custom connection-drag previews, obstacle
 avoidance and custom-route bounds for Fit view remain outside this contract.
+
+## Generated API reference
+
+```sh
+bun run --filter @opsydyn/foldkit-flow docs
+# Open packages/foldkit-flow/docs/index.html through a local static server.
+```
+
+The TypeDoc reference covers the public core and FoldKit entry points, optional
+ELK and force adapters, and the lightweight force eligibility subpath. Signatures,
+fields, unions and source links come from TypeScript exports. Its landing page
+explains Model ownership, composition and package boundaries.
+
+The Pages workflow builds the [Flow API reference](https://opsydyn.github.io/fold-kit-experiments/flow/api/).
+That route becomes available when the updated workflow reaches Pages; generating
+it locally does not publish the site or npm packages.

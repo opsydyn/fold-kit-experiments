@@ -1,3 +1,7 @@
+/**
+ * Optional bounded force layout adapter for flat graphs.
+ * @module Force
+ */
 import type { LayoutEngine } from '@opsydyn/foldkit-flow';
 
 import { arrangeWithForce } from './layout';

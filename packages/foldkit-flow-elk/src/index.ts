@@ -1,3 +1,7 @@
+/**
+ * Optional ELK layout adapter; the host owns request publication and worker lifetime.
+ * @module ELK
+ */
 import {
   FlowError,
   portPosition,

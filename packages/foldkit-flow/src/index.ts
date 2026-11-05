@@ -1,3 +1,7 @@
+/**
+ * Dependency-free graph, editor, geometry and layout contracts.
+ * @module Core
+ */
 export type * from './types';
 export { FlowError, validateGraph, parseGraph, serializeGraph } from './graph';
 export { createEditor, updateEditor } from './editor';

@@ -32,6 +32,7 @@ import type {
   ResizeHandle,
 } from './types';
 
+/** Validate and detach an authored graph, then initialize host-owned editor state. Throws FlowError for invalid input. */
 export function createEditor(graph: FlowGraph, options: EditorOptions = {}): EditorState {
   const viewport = options.viewport ?? { x: 0, y: 0, zoom: 1 };
   validViewport(viewport);

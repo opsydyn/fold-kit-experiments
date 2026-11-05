@@ -1,0 +1,26 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/index.ts",
+    "src/foldkit.ts",
+    "../foldkit-flow-elk/src/index.ts",
+    "../foldkit-flow-force/src/index.ts",
+    "../foldkit-flow-force/src/eligibility.ts"
+  ],
+  "entryPointStrategy": "resolve",
+  "tsconfig": "tsconfig.docs.json",
+  "out": "docs",
+  "name": "FoldKit Flow API",
+  "includeVersion": true,
+  "readme": "typedoc-readme.md",
+  "navigationLinks": {
+    "Repository docs": "/fold-kit-experiments/docs/",
+    "Viz API": "/fold-kit-experiments/api/",
+    "GitHub": "https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-flow"
+  },
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "sort": ["source-order"],
+  "disableSources": false,
+  "treatWarningsAsErrors": true
+}

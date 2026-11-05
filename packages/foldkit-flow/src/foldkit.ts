@@ -1,3 +1,7 @@
+/**
+ * Optional native FoldKit views and interaction primitives using the host builder.
+ * @module FoldKit
+ */
 import { Option } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';

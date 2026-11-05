@@ -3,9 +3,13 @@ export type JsonValue = null | boolean | number | string | readonly JsonValue[] 
 export interface JsonObject {
   readonly [key: string]: JsonValue;
 }
+/** A finite position in canvas/world units unless an input event specifies local CSS pixels. */
 export type Point = Readonly<{ x: number; y: number }>;
+/** Positive finite dimensions, in the same coordinate system as the owning value. */
 export type Size = Readonly<{ width: number; height: number }>;
+/** CSS-pixel translation plus a world-to-screen zoom factor. */
 export type Viewport = Readonly<Point & { zoom: number }>;
+/** Named directed connection anchor. Offset is a fraction from 0 to 1 along its cardinal side. */
 export type Port = Readonly<{
   id: string;
   kind: 'input' | 'output';
@@ -20,10 +24,13 @@ export type NodeResizeLimits = Readonly<{
   minHeight?: number;
   maxHeight?: number;
 }>;
+/** Authored node or portless group. Positions stay in canvas coordinates when grouped. */
 export type FlowNode = Readonly<{
   id: string;
   label: string;
+  /** Canvas/world coordinates, independent of the viewport and parent position. */
   position: Point;
+  /** Authored width; the native view measures ordinary-node content height. Group bounds are authored. */
   size: Size;
   ports: readonly Port[];
   resizeLimits?: NodeResizeLimits;
@@ -40,6 +47,7 @@ export type FlowNode = Readonly<{
 }>;
 export type Endpoint = Readonly<{ node: string; port: string }>;
 export type EdgePathStyle = 'straight' | 'stepped' | 'smooth';
+/** A directed output-to-input connection with stable identity and JSON-compatible metadata. */
 export type FlowEdge = Readonly<{
   id: string;
   source: Endpoint;
@@ -49,6 +57,7 @@ export type FlowEdge = Readonly<{
   label?: string;
   data?: JsonValue;
 }>;
+/** Serializable document data. Selection, gestures, viewport and history belong to EditorState. */
 export type FlowGraph = Readonly<{ nodes: readonly FlowNode[]; edges: readonly FlowEdge[] }>;
 export type EdgeRoute = Readonly<{ id: string; points: readonly Point[] }>;
 export type AlignmentGuide = Readonly<{
@@ -92,6 +101,7 @@ export type Gesture =
   | Readonly<{ type: 'pinch'; center: Point; distance: number; before: Viewport }>
   | Readonly<{ type: 'pan'; pointer: number; origin: Point; before: Viewport }>;
 export type EditorContext = Readonly<{ kind: 'node' | 'edge'; id: string; point: Point }>;
+/** Host-owned editor Model. Retain the complete state returned by updateEditor; serialize graph data separately. */
 export type EditorState = Readonly<{
   context: EditorContext | null;
   connectionsExpanded: boolean;
@@ -99,6 +109,7 @@ export type EditorState = Readonly<{
   clipboard: FlowGraph | null;
   collapsedGroups: readonly string[];
   edgeLabelDraft: Readonly<{ id: string; text: string }> | null;
+  /** Monotonic document freshness token; Undo does not rewind it. */
   revision: number;
   viewport: Viewport;
   surface: Size | null;
@@ -118,6 +129,7 @@ export type EditorState = Readonly<{
   routes: readonly EdgeRoute[];
   notice: string | null;
 }>;
+/** Initial editor preferences. History defaults to 100 entries; grid spacing defaults to 20 world units. */
 export type EditorOptions = Readonly<{
   viewport?: Viewport;
   historyLimit?: number;
@@ -127,7 +139,9 @@ export type EditorOptions = Readonly<{
   snapToAlignment?: boolean;
   selectionMode?: boolean;
 }>;
+/** Host connection validation, shared by creation and reconnection. */
 export type EditorPolicy = Readonly<{
+  /** Return a rejection reason, or null to accept. Reconnection excludes the replaced edge from graph. */
   canConnect?: (edge: FlowEdge, graph: FlowGraph) => string | null;
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
@@ -213,11 +227,14 @@ export type EditorEvent =
   | Readonly<{ type: 'EdgeDeleted'; id: string }>
   | Readonly<{ type: 'UndoPressed' }>
   | Readonly<{ type: 'RedoPressed' }>;
+/** Detached graph snapshot with request identity and document revision for stale-result protection. */
 export type LayoutRequest = Readonly<{ requestId: string; revision: number; graph: FlowGraph }>;
+/** Every node exactly once in world coordinates; optional sizes apply only to groups. Routes identify existing edges. */
 export type LayoutResult = Readonly<{
   requestId: string;
   revision: number;
   positions: readonly Readonly<Point & { id: string; size?: Size }>[];
   routes: readonly EdgeRoute[];
 }>;
+/** Asynchronous computation only. The host publishes accepted results through applyLayout. */
 export type LayoutEngine = (request: LayoutRequest) => Promise<LayoutResult>;

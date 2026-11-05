@@ -56,7 +56,8 @@
       "vscode-oniguruma": "2.0.1",
       "world-atlas": "^2.0.2",
       "wrangler": "^4.125.0",
-      "elkjs": "0.12.1"
+      "elkjs": "0.12.1",
+      "typedoc": "^0.28.19"
     },
     "catalogs": {
       "strict": {

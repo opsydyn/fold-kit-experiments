@@ -42,6 +42,9 @@ jobs:
       - name: Build TypeDoc
         run: bun run --filter @opsydyn/foldkit-viz docs
 
+      - name: Build Flow TypeDoc
+        run: bun run --filter @opsydyn/foldkit-flow docs
+
       - name: Build Viz promo
         run: bun run --filter @opsydyn/promo build
         env:
@@ -68,9 +71,10 @@ jobs:
 
       - name: Assemble site
         run: |
-          mkdir -p _site/api _site/viz _site/three _site/docs
+          mkdir -p _site/api _site/flow/api _site/viz _site/three _site/docs
           cp -r apps/web/storybook-static/. _site/
           cp -r packages/foldkit-viz/docs/. _site/api/
+          cp -r packages/foldkit-flow/docs/. _site/flow/api/
           cp -r apps/promo/dist/. _site/viz/
           cp -r apps/three-promo/dist/. _site/three/
           cp -r apps/docs/dist/. _site/docs/

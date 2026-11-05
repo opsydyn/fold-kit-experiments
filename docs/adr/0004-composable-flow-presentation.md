@@ -351,3 +351,11 @@ The marquee hook renders inside a frame positioned with the same world
 bounds that the core uses on release. Consumers supply decorative content
 without implementing pointer capture, normalization or hit testing. The
 frame remains available in minimal mode as active gesture feedback.
+
+### Canvas help and status
+
+Help and status hooks render content within the accessible description
+and live region owned by Flow. Hosts can change wording and visual
+presentation using the default text and current Model context. Diagnostic
+visibility applies to the outer containers so assistive technology can
+still read the custom content in minimal mode.

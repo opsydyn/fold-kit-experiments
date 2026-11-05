@@ -179,6 +179,24 @@ export type FlowSelectionMarqueeContext = Readonly<{
   viewport: Viewport;
 }>;
 
+/** Default canvas guidance and the controls it describes. */
+export type FlowCanvasHelpContext = Readonly<{
+  defaultText: string;
+  selectionMode: boolean;
+  edgeToolbar: boolean;
+  readOnly: boolean;
+  visible: boolean;
+}>;
+
+/** Current canvas notice or the summary used when no notice is active. */
+export type FlowCanvasStatusContext = Readonly<{
+  defaultText: string;
+  notice: string | null;
+  nodeCount: number;
+  connectionCount: number;
+  visible: boolean;
+}>;
+
 export type FlowViewOptions<M> = FlowDiagnosticOptions &
   Readonly<{
     /** Unique within the document; prefixes accessible descriptions and SVG markers. */
@@ -232,6 +250,10 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
       context: FlowEdgeToolbarContext,
       h: HtmlBuilder<M>,
     ) => Html | null | undefined;
+    /** Replaces canvas guidance inside the existing accessible description. */
+    renderCanvasHelp?: (context: FlowCanvasHelpContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** Replaces status content inside the existing polite live region. */
+    renderCanvasStatus?: (context: FlowCanvasStatusContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Replaces the list contents. The compact disclosure and accessible group stay owned by Flow. */
     renderConnections?: (context: FlowConnectionsContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Replaces the decorative selection marquee. Undefined uses the default; null omits it. */
@@ -795,6 +817,72 @@ function connectionPreviewView<M>(
   );
 }
 
+function canvasHelpView<M>(
+  h: HtmlBuilder<M>,
+  options: FlowViewOptions<M>,
+  state: EditorState,
+  descriptionId: string,
+  edgeToolbar: boolean,
+  visible: boolean,
+): Html {
+  const defaultText = [
+    'Drag a node title to move it. ',
+    state.selectionMode
+      ? 'Drag the background to select nodes. '
+      : 'Drag the background to pan, or Shift-drag to select nodes. ',
+    'Scroll to zoom. Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge to drag either endpoint handle. Escape cancels.',
+    ...(edgeToolbar
+      ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
+      : []),
+  ].join('');
+  const custom = options.renderCanvasHelp?.(
+    {
+      defaultText,
+      selectionMode: state.selectionMode,
+      readOnly: state.readOnly,
+      edgeToolbar,
+      visible,
+    },
+    h,
+  );
+  const attributes = [
+    h.Id(descriptionId),
+    h.DataAttribute('flow-help', ''),
+    ...(visible ? [] : [h.Style(visuallyHidden)]),
+  ];
+  return custom === undefined ? h.p(attributes, [defaultText]) : h.div(attributes, [custom]);
+}
+
+function canvasStatusView<M>(
+  h: HtmlBuilder<M>,
+  options: FlowViewOptions<M>,
+  notice: string | null,
+  nodeCount: number,
+  connectionCount: number,
+  visible: boolean,
+): Html {
+  const defaultText = notice ?? `${nodeCount} nodes, ${connectionCount} connections`;
+  const custom = options.renderCanvasStatus?.(
+    {
+      defaultText,
+      notice,
+      nodeCount,
+      connectionCount,
+      visible,
+    },
+    h,
+  );
+  return h.div(
+    [
+      h.DataAttribute('flow-status', ''),
+      h.Role('status'),
+      h.AriaLive('polite'),
+      h.Style(visible ? { 'min-height': '1.5em' } : visuallyHidden),
+    ],
+    [custom ?? defaultText],
+  );
+}
+
 /** A normal FoldKit view: all state and message handling belong to its parent. */
 export function flowView<M>(
   h: HtmlBuilder<M>,
@@ -1109,7 +1197,7 @@ export function flowView<M>(
       targetGroup: presentation.hiddenBy.get(edge.target.node),
     }),
   }));
-  const toolbarEnabled = options.edgeToolbar && !state.readOnly;
+  const toolbarEnabled = options.edgeToolbar === true && !state.readOnly;
   const toolbarId = `${encodeURIComponent(options.id)}-edge-actions`;
   const activeEdge =
     toolbarEnabled && state.selectedEdges.length === 1
@@ -1353,23 +1441,7 @@ export function flowView<M>(
       h.Class(options.themeClassName ? `foldkit-flow ${options.themeClassName}` : 'foldkit-flow'),
     ],
     [
-      h.p(
-        [
-          h.Id(descriptionId),
-          h.DataAttribute('flow-help', ''),
-          ...(diagnostics.instructions ? [] : [h.Style(visuallyHidden)]),
-        ],
-        [
-          'Drag a node title to move it. ',
-          state.selectionMode
-            ? 'Drag the background to select nodes. '
-            : 'Drag the background to pan, or Shift-drag to select nodes. ',
-          'Scroll to zoom. Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge to drag either endpoint handle. Escape cancels.',
-          ...(toolbarEnabled
-            ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
-            : []),
-        ],
-      ),
+      canvasHelpView(h, options, state, descriptionId, toolbarEnabled, diagnostics.instructions),
       ...(options.viewportControls
         ? [
             options.renderViewportControls?.(
@@ -1522,14 +1594,13 @@ export function flowView<M>(
           ...contextPanel(h, state, options, diagnostics),
         ],
       ),
-      h.div(
-        [
-          h.DataAttribute('flow-status', ''),
-          h.Role('status'),
-          h.AriaLive('polite'),
-          h.Style(diagnostics.status ? { 'min-height': '1.5em' } : visuallyHidden),
-        ],
-        [state.notice ?? `${presentation.nodes.length} nodes, ${visibleEdges.length} connections`],
+      canvasStatusView(
+        h,
+        options,
+        state.notice,
+        presentation.nodes.length,
+        visibleEdges.length,
+        diagnostics.status,
       ),
       ...(diagnostics.connectionList
         ? [connections()]

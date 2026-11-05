@@ -256,3 +256,8 @@ resize handle toward the right edge of UI adapter.
 Choose **Selection marquee → Hatched outline**, then Shift-drag the background
 or use **Box select**. The same outline is available in minimal mode.
 [Workbench screenshot](evidence/selection-marquee.png)
+
+Choose **Canvas help and status → Help card and status badge** for a custom
+guide and a compact notice badge. The help follows the selection mode and
+the badge announces the result of editor actions.
+[Workbench screenshot](evidence/canvas-copy.png)

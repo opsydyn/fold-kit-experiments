@@ -25,6 +25,7 @@ import {
   ResizeReadoutDesign,
   AlignmentGuideDesign,
   SelectionMarqueeDesign,
+  CanvasCopyDesign,
   NodeDesign,
   type Model,
 } from './model';
@@ -42,6 +43,8 @@ import {
   labeledResizeReadout,
   endpointAlignmentGuide,
   hatchedSelectionMarquee,
+  canvasHelpCard,
+  canvasStatusCard,
 } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
@@ -821,6 +824,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Canvas help and status',
+            h.select(
+              [
+                h.AriaLabel('Canvas help and status'),
+                h.Value(model.canvasCopyDesign),
+                h.OnChange((value) =>
+                  Message.SelectedCanvasCopyDesign({
+                    canvasCopyDesign: Schema.decodeUnknownSync(CanvasCopyDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.canvasCopyDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('card'), h.Selected(model.canvasCopyDesign === 'card')],
+                  ['Help card and status badge'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Connection preview',
             h.select(
               [
@@ -1092,6 +1123,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)
               : undefined,
+          renderCanvasHelp: (context, builder) =>
+            model.canvasCopyDesign === 'card' ? canvasHelpCard(context, builder) : undefined,
+          renderCanvasStatus: (context, builder) =>
+            model.canvasCopyDesign === 'card' ? canvasStatusCard(context, builder) : undefined,
           renderSelectionMarquee: (context, builder) =>
             model.selectionMarqueeDesign === 'hatched'
               ? hatchedSelectionMarquee(context, builder)

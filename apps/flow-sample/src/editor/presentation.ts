@@ -18,6 +18,8 @@ import {
   type FlowResizeReadoutContext,
   type FlowAlignmentGuideContext,
   type FlowSelectionMarqueeContext,
+  type FlowCanvasHelpContext,
+  type FlowCanvasStatusContext,
   flowContextDimensionInput,
   type FlowContextAction,
   type FlowContextMenuContext,
@@ -696,5 +698,44 @@ export function hatchedSelectionMarquee(
       }),
     ],
     [],
+  );
+}
+
+export function canvasHelpCard(context: FlowCanvasHelpContext, h: HtmlBuilder<Message>) {
+  return h.div(
+    [
+      h.Class('canvas-help-card'),
+      h.Style({
+        background: '#eff6ff',
+        color: '#1e3a8a',
+        padding: '10px 14px',
+        margin: '8px 0',
+        border: '1px solid #bfdbfe',
+        'border-radius': '10px',
+        'line-height': '1.45',
+      }),
+    ],
+    [
+      h.strong([], ['Canvas controls']),
+      h.p([h.Style({ margin: '4px 0 0' })], [context.defaultText]),
+    ],
+  );
+}
+
+export function canvasStatusCard(context: FlowCanvasStatusContext, h: HtmlBuilder<Message>) {
+  const summary = `${context.nodeCount} ${context.nodeCount === 1 ? 'node' : 'nodes'} · ${context.connectionCount} ${context.connectionCount === 1 ? 'connection' : 'connections'}`;
+  return h.span(
+    [
+      h.Class('canvas-status-card'),
+      h.Style({
+        display: 'inline-block',
+        color: '#0f4c3a',
+        background: '#d1fae5',
+        padding: '4px 10px',
+        margin: '6px 0',
+        'border-radius': '999px',
+      }),
+    ],
+    [context.notice ?? summary],
   );
 }

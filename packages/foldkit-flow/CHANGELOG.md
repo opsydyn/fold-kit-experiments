@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add custom canvas help and status content with the existing accessible
+  descriptions, polite live region, and diagnostics visibility.
+
 - Add a custom box-selection marquee using Flow's normalized selection bounds
   and existing gesture lifecycle.
 

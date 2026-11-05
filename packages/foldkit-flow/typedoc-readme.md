@@ -85,6 +85,10 @@ viewport for screen-size styling. Effective diagnostics gate the hook.
 box-selection frame. `FlowSelectionMarqueeContext` provides normalized world
 bounds and the viewport.
 
+`renderCanvasHelp` and `renderCanvasStatus` customize guidance and notices
+inside the existing accessible description and polite live region. The
+contexts provide default copy and the effective visibility preference.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

@@ -122,6 +122,9 @@ export type PortAnchorPreset = typeof PortAnchorPreset.Type;
 export const ConnectionDesign = Schema.Literals(['dashed', 'ribbon', 'hidden']);
 export type ConnectionDesign = typeof ConnectionDesign.Type;
 
+export const CanvasCopyDesign = Schema.Literals(['standard', 'card']);
+export type CanvasCopyDesign = typeof CanvasCopyDesign.Type;
+
 export const SelectionMarqueeDesign = Schema.Literals(['standard', 'hatched']);
 export type SelectionMarqueeDesign = typeof SelectionMarqueeDesign.Type;
 
@@ -178,6 +181,7 @@ export const Model = Schema.Struct({
     connectionList: Schema.Boolean,
   }),
   connectionDesign: ConnectionDesign,
+  canvasCopyDesign: CanvasCopyDesign,
   selectionMarqueeDesign: SelectionMarqueeDesign,
   alignmentGuideDesign: AlignmentGuideDesign,
   resizeReadoutDesign: ResizeReadoutDesign,
@@ -201,6 +205,7 @@ export type Model = Readonly<{
   diagnosticsPanelOpen: boolean;
   diagnostics: FlowDiagnostics;
   connectionDesign: ConnectionDesign;
+  canvasCopyDesign: CanvasCopyDesign;
   selectionMarqueeDesign: SelectionMarqueeDesign;
   alignmentGuideDesign: AlignmentGuideDesign;
   resizeReadoutDesign: ResizeReadoutDesign;
@@ -225,6 +230,7 @@ export const init = () => ({
     diagnosticsPanelOpen: false,
     diagnostics: resolveFlowDiagnostics({}),
     connectionDesign: 'dashed',
+    canvasCopyDesign: 'standard',
     selectionMarqueeDesign: 'standard',
     alignmentGuideDesign: 'standard',
     resizeReadoutDesign: 'standard',

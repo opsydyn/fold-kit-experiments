@@ -654,6 +654,30 @@ edits are ignored; repeated clamped values add no history. `NodeWidthChanged`
 continues to support group width through the same geometry path. The fields trim
 floating-point display noise without rounding authored geometry.
 
+### Custom canvas help and status
+
+Use `renderCanvasHelp` for instructions and `renderCanvasStatus` for notices
+or a diagram summary. Both receive `defaultText` and the effective
+`visible` flag. Help also includes the selection mode, toolbar availability,
+and read-only state. Status includes the current notice and visible node
+and connection counts.
+
+```ts
+renderCanvasHelp: ({ defaultText }, h) =>
+  h.div([h.Class('canvas-help-card')], [
+    h.strong([], ['Canvas controls']),
+    h.p([], [defaultText]),
+  ]),
+renderCanvasStatus: ({ defaultText }, h) =>
+  h.span([h.Class('canvas-status-badge')], [defaultText]),
+```
+
+Flow keeps the description ID referenced by the canvas and node controls,
+and updates status inside the existing polite live region. Diagnostics
+visually hide these containers while preserving their accessible content.
+Keep meaningful text in both renderers, including when `visible` is false.
+Return `undefined` to use the default copy.
+
 ### Diagnostics and minimal mode
 
 Use `minimalMode: true` for a clean package view, or `diagnostics: false` to

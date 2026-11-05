@@ -162,6 +162,36 @@ test('minimal mode removes overlays and numbers while retaining accessible help 
   ).toBeNull();
 });
 
+test('custom canvas copy keeps its accessible bindings when diagnostics hide it', async () => {
+  const state = { ...initial, selectionMode: true, notice: 'Custom notice' };
+  const options = {
+    renderCanvasHelp: (context, h) => h.div([h.Class('help-content')], [context.defaultText]),
+    renderCanvasStatus: (context, h) =>
+      h.span([h.Class('status-content')], [context.notice ?? context.defaultText]),
+  } satisfies Partial<FlowViewOptions<EditorEvent>>;
+  const visible = await render(state, options);
+  const help = visible.querySelector('[data-flow-help]');
+  expect(help?.querySelector('.help-content')?.textContent).toContain(
+    'Drag the background to select nodes.',
+  );
+  expect(visible.querySelector('[data-flow-surface]')?.getAttribute('aria-describedby')).toBe(
+    help?.id,
+  );
+  expect(visible.querySelector('[data-flow-handle="a"]')?.getAttribute('aria-describedby')).toBe(
+    help?.id,
+  );
+  const quiet = await render(state, { ...options, minimalMode: true });
+  const quietHelp = quiet.querySelector('[data-flow-help]');
+  const quietStatus = quiet.querySelector('[data-flow-status]');
+  expect(quietHelp?.id).toBe(help?.id ?? '');
+  expect(quietHelp?.getAttribute('style')).toContain('position: absolute');
+  expect(quietHelp?.querySelector('.help-content')?.textContent).toBe(help?.textContent ?? '');
+  expect(quietStatus?.getAttribute('style')).toContain('position: absolute');
+  expect(quietStatus?.getAttribute('role')).toBe('status');
+  expect(quietStatus?.getAttribute('aria-live')).toBe('polite');
+  expect(quietStatus?.querySelector('.status-content')?.textContent).toBe('Custom notice');
+});
+
 test('custom selection marquees use normalized world bounds in minimal mode', async () => {
   const state = { ...initial, viewport: { x: 20, y: 30, zoom: 2 } };
   const start = updateEditor(state, {

@@ -151,16 +151,12 @@ export function groupBoundaryPoint(group: FlowNode, toward: Point): Point {
   return { x: center.x + dx / (2 * distance), y: center.y + dy / (2 * distance) };
 }
 
-/** The label anchor and SVG path come from the same route. */
-export function edgeGeometry(
+/** Canonical port or projected collapsed-group boundary anchors in world coordinates. */
+export function edgeEndpoints(
   graph: FlowGraph,
   edge: FlowEdge,
-  route?: readonly Point[],
   groups?: Readonly<{ source: FlowNode | undefined; target: FlowNode | undefined }>,
 ) {
-  if (edge.pathStyle === undefined && route && !groups?.source && !groups?.target) {
-    return { path: polyline(route), center: polylineMidpoint(route) };
-  }
   const source = graph.nodes.find((node) => node.id === edge.source.node);
   const target = graph.nodes.find((node) => node.id === edge.target.node);
   if (!source || !target) throw new FlowError('invalid-graph', `Missing endpoint for ${edge.id}`);
@@ -172,6 +168,20 @@ export function edgeGeometry(
     : portPosition(target, edge.target.port);
   const start = groups?.source ? groupBoundaryPoint(groups.source, targetAnchor) : sourceAnchor;
   const end = groups?.target ? groupBoundaryPoint(groups.target, sourceAnchor) : targetAnchor;
+  return { source: start, target: end };
+}
+
+/** The label anchor and SVG path come from the same route. */
+export function edgeGeometry(
+  graph: FlowGraph,
+  edge: FlowEdge,
+  route?: readonly Point[],
+  groups?: Readonly<{ source: FlowNode | undefined; target: FlowNode | undefined }>,
+) {
+  if (edge.pathStyle === undefined && route && !groups?.source && !groups?.target) {
+    return { path: polyline(route), center: polylineMidpoint(route) };
+  }
+  const { source: start, target: end } = edgeEndpoints(graph, edge, groups);
   const center = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
   if (edge.pathStyle === 'stepped' || edge.pathStyle === 'smooth') {
     const horizontal = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y);

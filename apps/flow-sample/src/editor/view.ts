@@ -9,8 +9,8 @@ import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
-import { BackgroundStyle, NodeDesign, type Model } from './model';
-import { orbitNode, orbitGroup } from './presentation';
+import { BackgroundStyle, EdgeDesign, NodeDesign, type Model } from './model';
+import { orbitNode, orbitGroup, raisedEdge } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -562,8 +562,40 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Edge design',
+            h.select(
+              [
+                h.AriaLabel('Edge design'),
+                h.Value(model.edgeDesign),
+                h.OnChange((value) =>
+                  Message.SelectedEdgeDesign({
+                    edgeDesign: Schema.decodeUnknownSync(EdgeDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('default'), h.Selected(model.edgeDesign === 'default')],
+                  ['Default'],
+                ),
+                h.option(
+                  [h.Value('raised'), h.Selected(model.edgeDesign === 'raised')],
+                  ['Raised arcs'],
+                ),
+              ],
+            ),
+          ],
+        ),
         flowView(h, model.editor, {
           id: 'flow-demo',
+          edgeGeometry: (context) => {
+            if (model.edgeDesign === 'raised') return raisedEdge(context);
+            return undefined;
+          },
           renderNodeShell: (context, builder) => {
             if (model.nodeDesign === 'orbits') return orbitNode(context, builder);
             return undefined;

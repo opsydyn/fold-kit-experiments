@@ -195,3 +195,8 @@ The selector lives in the sample; all interaction primitives ship in
 
 See [composition qualification](evidence/composition.md) for browser evidence and
 current geometry limits.
+
+Use **Edge design** to compare default routing with raised arcs. The sample's
+pure geometry policy preserves explicit path styles and ELK routes. Path drawing,
+selection and label editing use the package's shared geometry result. See
+[edge geometry qualification](evidence/edge-geometry.md).

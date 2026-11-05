@@ -1,7 +1,8 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { FlowDiagnostics } from './diagnostics';
-import type { EditorState, FlowNode, Port, ResizeHandle } from './types';
+import { FlowError } from './graph';
+import type { FlowEdge, EditorState, FlowNode, Port, ResizeHandle } from './types';
 
 /** Model-derived shell context. Optional controls can be placed or omitted by the shell. */
 export type FlowNodeRenderContext = Readonly<{
@@ -183,5 +184,27 @@ export function flowResizeHandle<M>(
       h.AriaDescribedBy(context.descriptionId),
     ],
     children,
+  );
+}
+
+/** A shared SVG selection target. Keep decorative paths pointer-inert and use this resolved path. */
+export function flowEdgeHitTarget<M>(
+  h: HtmlBuilder<M>,
+  context: Readonly<{ edge: FlowEdge; path: string; hitWidth?: number }>,
+  attributes: Parameters<HtmlBuilder<M>['path']>[0] = [],
+): Html {
+  const width = context.hitWidth ?? 12;
+  if (!Number.isFinite(width) || width <= 0)
+    throw new FlowError('invalid-edit', 'Edge hit width must be positive and finite');
+  return h.path(
+    [
+      ...attributesWithGeometry(h, attributes, { 'pointer-events': 'stroke', cursor: 'pointer' }),
+      h.DataAttribute('flow-edge', context.edge.id),
+      h.D(context.path),
+      h.Fill('none'),
+      h.Stroke('transparent'),
+      h.StrokeWidth(String(width)),
+    ],
+    [],
   );
 }

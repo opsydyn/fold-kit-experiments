@@ -198,3 +198,21 @@ export function orbitGroup(context: FlowNodeRenderContext, h: HtmlBuilder<Messag
     ],
   );
 }
+
+/** A pure geometry policy; visual paths, selection and label placement share its result. */
+export const raisedEdge: import('@opsydyn/foldkit-flow').FlowEdgeGeometryPolicy = ({
+  source,
+  target,
+  edge,
+  route,
+}) => {
+  if (edge.pathStyle !== undefined || route) return undefined;
+  const control = { x: (source.x + target.x) / 2, y: Math.min(source.y, target.y) - 100 };
+  return {
+    path: `M${source.x},${source.y} Q${control.x},${control.y} ${target.x},${target.y}`,
+    labelPosition: {
+      x: (source.x + 2 * control.x + target.x) / 4,
+      y: (source.y + 2 * control.y + target.y) / 4,
+    },
+  };
+};

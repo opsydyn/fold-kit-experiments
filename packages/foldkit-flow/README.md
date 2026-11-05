@@ -634,7 +634,66 @@ complete circular SVG shells, including different group chrome, ports and resize
 controls. Both use the same graph and package input lifecycle. The SVG artwork is
 inside a measured HTML frame; native buttons retain keyboard behavior.
 
-This slice does not implement arbitrary port anchors, replaceable edge geometry,
-or full control/overlay composition. `renderEdge` still decorates Flow's path and
-retains its hit area. Follow-on boundaries are recorded in
+Arbitrary port anchors and full control/overlay composition remain follow-on
+work. `renderEdge` decorates the shared resolved path; the geometry policy below
+changes that path and its label anchor together. Follow-on boundaries are recorded in
 [ADR 0004](https://github.com/opsydyn/fold-kit-experiments/blob/main/docs/adr/0004-composable-flow-presentation.md).
+
+### Shared custom edge geometry
+
+Use `FlowEdgeGeometryPolicy` and `resolveEdgeGeometry` from the dependency-free
+root entry, or pass a policy as `flowView`'s `edgeGeometry` option. The optional
+FoldKit entry also re-exports the policy/context/result types.
+
+```ts
+import type { FlowEdgeGeometryPolicy } from '@opsydyn/foldkit-flow';
+
+const raisedArc: FlowEdgeGeometryPolicy = ({ source, target, edge, route }) => {
+  // Preserve authored styles and layout routing in this example.
+  if (edge.pathStyle !== undefined || route) return undefined;
+  const control = { x: (source.x + target.x) / 2, y: Math.min(source.y, target.y) - 100 };
+  return {
+    path: `M${source.x},${source.y} Q${control.x},${control.y} ${target.x},${target.y}`,
+    labelPosition: {
+      x: (source.x + 2 * control.x + target.x) / 4,
+      y: (source.y + 2 * control.y + target.y) / 4,
+    },
+  };
+};
+
+// Include these options alongside your normal id, label and onEvent options:
+// edgeGeometry: raisedArc,
+// edgeAppearance: (edge) => ({ hitWidth: 18 }),
+```
+
+The policy context contains `graph`, `edge`, `source`, `target`, `route`,
+`sourceGroup`, `targetGroup` and `defaultGeometry`. Coordinates are world units.
+Endpoints already account for collapsed groups. The default geometry already
+resolves authored path styles and layout routing. An accepted custom result takes
+precedence; returning `undefined` preserves the default. A pure headless consumer
+uses `resolveEdgeGeometry(graph, edge, { policy, route, sourceGroup, targetGroup })`.
+The original `edgePath` helper continues to return built-in geometry.
+
+One resolved `path` feeds SVG decoration and selection. Its `labelPosition` feeds
+on-canvas labels, label editing and toolbar placement. Set `labelPosition` to
+`undefined` to omit those anchored parts. Connection-list selection and actions
+remain available. `renderEdge` receives this same resolved path/anchor and remains
+a decorative callback. Draw along `context.path` to retain interaction agreement.
+
+The public `flowEdgeHitTarget(builder, { edge, path, hitWidth }, attributes?)`
+primitive encapsulates SVG selection bindings for composed presentations.
+`flowView` uses it for both default and custom decoration, with a transparent
+12-unit selection corridor. `edgeAppearance.hitWidth` controls that width per
+edge. It must be positive and finite. Native connection-list controls continue
+to provide keyboard selection; reconnection handles stay anchored to ports.
+
+Policies must be pure, keep their path endpoints at the supplied canonical
+anchors, and choose their label anchor deliberately. The package rejects empty
+paths and non-finite label coordinates with `FlowError`; it does not validate SVG
+syntax or infer label positions by reading the DOM. Keep path geometry out of CSS
+transforms/overrides and out of `renderEdge` if it differs from the resolved path.
+No policy functions are stored in Model or serialized documents.
+
+The sample's **Edge design** selector demonstrates raised arcs in both node
+presentations. Arbitrary port anchors, custom connection-drag previews, obstacle
+avoidance and custom-route bounds for Fit view remain outside this contract.

@@ -62,13 +62,14 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       ],
       { ...options, cwd: directory },
     );
-    const source = `import { createEditor, updateEditor, layoutRequest, applyLayout, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
-import { flowView, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, resolveFlowDiagnostics, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
+    const source = `import { createEditor, updateEditor, layoutRequest, applyLayout, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
+import { flowView, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, flowEdgeHitTarget, resolveFlowDiagnostics, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-flow-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
-const graph: FlowGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[{id:'out',kind:'output',side:'right',offset:0.5}]}],edges:[]};
+const externalEdge:FlowEdge={id:'external-edge',source:{node:'a',port:'out'},target:{node:'b',port:'in'},label:'External relation'};
+const graph: FlowGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[{id:'out',kind:'output',side:'right',offset:0.5}]},{id:'b',label:'Target',position:{x:300,y:0},size:{width:100,height:80},ports:[{id:'in',kind:'input',side:'left',offset:0.5}]}],edges:[externalEdge]};
 const groupState=createEditor({nodes:[{id:'g',kind:'group',label:'Group',position:{x:0,y:0},size:{width:400,height:200},ports:[]}],edges:[]});
 const sized=updateEditor(groupState,{type:'GroupDimensionChanged',id:'g',dimension:'height',value:240});
 if (sized.graph.nodes[0]?.size.height!==240) throw new Error('Missing packed dimension editing');
@@ -78,12 +79,15 @@ const state=createEditor(graph,{gridSpacing:32});
 const request=layoutRequest(state,'consumer');
 const layout=await createElkLayout()(request);
 const arranged=applyLayout(state,request,layout);
+const policy:FlowEdgeGeometryPolicy=({source,target})=>({path:'M'+source.x+','+source.y+' L'+target.x+','+target.y,labelPosition:{x:(source.x+target.x)/2,y:(source.y+target.y)/2}});
+const geometry=resolveEdgeGeometry(arranged.graph,externalEdge,{policy});
 const background:FlowBackground<EditorEvent>={type:'custom',render:(context,h)=>h.div([h.DataAttribute('packed-grid',context.id),h.DataAttribute('packed-spacing',String(context.spacing))],[String(context.spacing)])};
-const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:flowView(h,model,{id:'external',label:'External graph',background,minimalMode:true,diagnostics:{status:true},resizeReadout:false,onEvent:event=>event,renderGroupShell:(context,builder)=>flowGroupFrame(builder,context,[],[flowDragHandle(builder,context,[],[context.node.label])]),renderNodeShell:(context,builder)=>flowNodeFrame(builder,context,[builder.Class('packed-shell')],[flowDragHandle(builder,context,[],[context.node.label]),...context.node.ports.map(port=>flowPort(builder,context,port,[],['→'])),flowResizeHandle(builder,context,'right',[],['Resize'])])})})},{flags:{},isHydratable:false}));
+const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:h.div([],[h.svg([], [flowEdgeHitTarget(h,{edge:externalEdge,path:geometry.path})]),flowView(h,model,{id:'external',label:'External graph',edgeGeometry:policy,background,minimalMode:true,diagnostics:{status:true},resizeReadout:false,onEvent:event=>event,renderGroupShell:(context,builder)=>flowGroupFrame(builder,context,[],[flowDragHandle(builder,context,[],[context.node.label])]),renderNodeShell:(context,builder)=>flowNodeFrame(builder,context,[builder.Class('packed-shell')],[flowDragHandle(builder,context,[],[context.node.label]),...context.node.ports.map(port=>flowPort(builder,context,port,[],['→'])),flowResizeHandle(builder,context,'right',[],['Resize'])])})])})},{flags:{},isHydratable:false}));
 if (!result.html.includes('data-packed-grid="external"')) throw new Error('Missing packed custom grid');
 if (!result.html.includes('data-packed-spacing="32"')) throw new Error('Missing packed grid spacing');
 if (!result.html.includes('External graph')) throw new Error('Missing packed renderer output');
 if (!result.html.includes('packed-shell') || !result.html.includes('Connect from External: out')) throw new Error('Missing packed composition');
+if (!result.html.includes(geometry.path)) throw new Error('Missing packed shared edge geometry');
 console.log('packed-consumer-ok');
 `;
     const consumer = path.join(directory, 'consumer.ts');

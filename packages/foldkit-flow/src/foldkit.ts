@@ -8,6 +8,7 @@ import {
   flowDragHandle,
   flowPort,
   flowResizeHandle,
+  flowEdgeHitTarget,
   type FlowNodeRenderContext,
 } from './composition';
 export {
@@ -16,6 +17,7 @@ export {
   flowDragHandle,
   flowPort,
   flowResizeHandle,
+  flowEdgeHitTarget,
 } from './composition';
 export type { FlowNodeRenderContext } from './composition';
 
@@ -28,9 +30,9 @@ import {
 } from './diagnostics';
 export { resolveFlowDiagnostics } from './diagnostics';
 export type { FlowDiagnostics, FlowDiagnosticOptions } from './diagnostics';
+import { resolveEdgeGeometry, type FlowEdgeGeometryPolicy } from './edge-geometry';
 import {
   boxBounds,
-  edgeGeometry,
   groupBoundaryPoint,
   maximumZoom,
   minimapGeometry,
@@ -38,6 +40,11 @@ import {
   portPosition,
   screenToWorld,
 } from './geometry';
+export type {
+  FlowEdgeGeometry,
+  FlowEdgeGeometryContext,
+  FlowEdgeGeometryPolicy,
+} from './edge-geometry';
 import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
 import { FlowInput } from './mount';
 export type { FlowBackground, FlowBackgroundRenderContext } from './background';
@@ -77,10 +84,14 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     renderGroupShell?: (context: FlowNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Decorative SVG along Flow's path. Return undefined to use the built-in renderer. */
     renderEdge?: (context: FlowEdgeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** Resolves one path and label anchor for decoration, selection and controls. */
+    edgeGeometry?: FlowEdgeGeometryPolicy;
     edgeAppearance?: (edge: FlowEdge) => Readonly<{
       stroke?: string;
       strokeWidth?: number;
       dashArray?: string;
+      /** Selection corridor in world units; defaults to 12. Must be positive and finite. */
+      hitWidth?: number;
     }>;
     /** Classes on the editor root, including classes produced by Pleat's cssClass(). */
     themeClassName?: string;
@@ -819,9 +830,11 @@ export function flowView<M>(
   const routes = new Map(state.routes.map((route) => [route.id, route.points]));
   const edgeGeometries = visibleEdges.map((edge) => ({
     edge,
-    ...edgeGeometry(state.graph, edge, routes.get(edge.id), {
-      source: presentation.hiddenBy.get(edge.source.node),
-      target: presentation.hiddenBy.get(edge.target.node),
+    ...resolveEdgeGeometry(state.graph, edge, {
+      policy: options.edgeGeometry,
+      route: routes.get(edge.id),
+      sourceGroup: presentation.hiddenBy.get(edge.source.node),
+      targetGroup: presentation.hiddenBy.get(edge.target.node),
     }),
   }));
   const toolbarEnabled = options.edgeToolbar && !state.readOnly;
@@ -830,13 +843,13 @@ export function flowView<M>(
     toolbarEnabled && state.selectedEdges.length === 1
       ? edgeGeometries.find(({ edge }) => edge.id === state.selectedEdges[0])
       : undefined;
-  const edges = edgeGeometries.map(({ edge, path, center }) => {
+  const edges = edgeGeometries.map(({ edge, path, labelPosition }) => {
     const appearance = options.edgeAppearance?.(edge);
     const selected = state.selectedEdges.includes(edge.id);
     const context: FlowEdgeRenderContext = {
       edge,
       path,
-      labelPosition: center,
+      labelPosition,
       selected,
       stroke: selected
         ? 'var(--flow-selection, #2563eb)'
@@ -849,34 +862,28 @@ export function flowView<M>(
       markerEnd: `url(#${markerId})`,
     };
     const custom = options.renderEdge?.(context, h);
-    const hitArea = [
-      h.D(path),
-      h.Fill('none'),
-      h.DataAttribute('flow-edge', edge.id),
-      h.Style({ 'pointer-events': 'stroke', cursor: 'pointer' }),
-    ];
-    if (custom !== undefined) {
-      return h.g(
-        [h.Key(`edge:${edge.id}`)],
+    const decoration =
+      custom ??
+      h.path(
         [
-          h.g([h.Style({ 'pointer-events': 'none' })], [custom]),
-          h.path([...hitArea, h.Stroke('transparent'), h.StrokeWidth('12')], []),
+          h.D(path),
+          h.Fill('none'),
+          h.Stroke(context.stroke),
+          h.StrokeWidth(context.strokeWidth),
+          h.StrokeDasharray(context.dashArray),
+          h.MarkerEnd(context.markerEnd),
         ],
+        [],
       );
-    }
-    return h.path(
+    return h.g(
+      [h.Key(`edge:${edge.id}`)],
       [
-        h.Key(`edge:${edge.id}`),
-        ...hitArea,
-        h.Stroke(context.stroke),
-        h.StrokeWidth(context.strokeWidth),
-        h.StrokeDasharray(context.dashArray),
-        h.MarkerEnd(context.markerEnd),
+        h.g([h.Style({ 'pointer-events': 'none' })], [decoration]),
+        flowEdgeHitTarget(h, { edge, path, hitWidth: appearance?.hitWidth ?? 12 }),
       ],
-      [],
     );
   });
-  const edgeLabels = edgeGeometries.flatMap(({ edge, center }) => {
+  const edgeLabels = edgeGeometries.flatMap(({ edge, labelPosition: center }) => {
     const draft = state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
     if (!draft && !edge.label && (state.readOnly || !state.selectedEdges.includes(edge.id)))
       return [];
@@ -994,13 +1001,13 @@ export function flowView<M>(
     ),
   );
   const toolbar =
-    activeEdge?.center && !state.edgeLabelDraft && !drag
+    activeEdge?.labelPosition && !state.edgeLabelDraft && !drag
       ? edgeActions(
           h,
           options,
           activeEdge.edge,
           edgeToolbarPosition(
-            activeEdge.center,
+            activeEdge.labelPosition,
             state.viewport,
             reconnectPoints,
             state.surface?.height ?? options.height ?? 440,

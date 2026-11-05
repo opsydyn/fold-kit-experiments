@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted for the first node/group composition slice on 2026-11-05 following
-user approval. The broader layering principle guides subsequent slices; arbitrary
-geometry and complete overlay/control composition remain follow-on work.
+Accepted for the node/group composition and shared edge geometry slices on
+2026-11-05 following user approval. The broader layering principle guides subsequent slices; arbitrary
+port geometry and complete overlay/control composition remain follow-on work.
 
-## Context and current evidence
+## Context at the initial audit
 
 ADR 0003 separates the pure editor from its optional FoldKit view and layout
 adapters. That boundary remains useful. Presentation flexibility is incomplete:
@@ -158,3 +158,39 @@ and browser journeys for both designs: selection, keyboard movement, drag,
 connection creation, resize/measurement, cancellation, grouping and Undo. Browser
 screenshots and the qualification record live in `apps/flow-sample/evidence/`.
 The remaining follow-on surfaces above are not claimed as implemented.
+
+## Shared edge geometry policy
+
+The next approved slice adds a pure `FlowEdgeGeometryPolicy` and
+`resolveEdgeGeometry` to the headless entry. It receives canonical endpoints,
+projected collapsed-group boundaries, layout route points and the built-in
+geometry. It returns one SVG path and an optional label anchor. Returning
+`undefined` retains the existing authored-style/layout/default behavior.
+
+The FoldKit view resolves geometry once per visible edge. Decoration, the public
+`flowEdgeHitTarget` primitive, labels and toolbar placement consume that result.
+The selection corridor defaults to 12 world units and may be set per edge through
+`edgeAppearance.hitWidth`. Default decoration now uses the same transparent
+selection corridor as custom decoration. Native connection-list controls retain
+the keyboard selection path; reconnection handles remain tied to canonical ports.
+
+A custom policy is explicit view configuration, not serialized graph metadata or
+a second state machine. It may choose to override an authored style or layout
+route; it sees the built-in result so it can preserve either. The sample's raised
+arcs preserve explicit styles and layout routes. Policies must honor the supplied
+endpoints and provide a label anchor consistent with their path; the package does
+not parse arbitrary SVG to infer anchors. Empty paths, non-finite anchors and
+invalid hit widths fail with the existing `FlowError` contract.
+
+Alternatives rejected: changing only the decorative callback (leaves stale hit
+areas/labels), separate callbacks for path/hit/label geometry (can disagree), and a
+new SVG routing/parser dependency (unnecessary for a caller-owned pure policy).
+There is no new runtime dependency or document format. Arbitrary port anchors,
+custom connection previews and a complete control/overlay slot API remain future
+slices. Custom edge routes do not expand Fit view bounds or avoid obstacles
+automatically; those capabilities need a separate bounds/routing contract.
+
+Qualification covers pure resolution/fallback, collapsed projections, rendered
+path/hit/label/toolbar agreement, packed consumers, and browser editing journeys
+in both card and SVG node designs. Evidence is recorded in
+`apps/flow-sample/evidence/edge-geometry.md`.

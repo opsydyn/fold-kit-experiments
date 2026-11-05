@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Tech radar'
+  short_description: 'Edit, preview and deploy the tech radar'
+  default_prompt: 'Use $tech-radar to add or move an entry on the tech radar, keep the fixture in step, and preview it.'

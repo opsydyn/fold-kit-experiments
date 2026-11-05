@@ -30,6 +30,7 @@ For consumer-facing package work, read the relevant independent skill:
 `skills/foldkit-viz/SKILL.md` for chart geometry and rendering, or
 `skills/effect-three/SKILL.md` for 3D scenes (core, FoldKit adapter, Rapier,
 troika). Load more than one only when the task uses those packages together. Their bundled examples work outside this repo.
+For the tech radar's content, editions or deploys, read `skills/tech-radar/SKILL.md`.
 
 1. Run `bun typecheck` — understand baseline errors before touching anything
 2. Run `bun run check` — understand baseline lint/format state

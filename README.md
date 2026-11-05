@@ -44,6 +44,11 @@ Three independent consumer skills are maintained alongside the packages:
   the FoldKit adapter, Rapier physics and troika labels, Model-owned cameras and XR,
   WebGL or WebGPU, and headless tests; no Astro dependency.
 
+One skill is for this repository's own app:
+
+- [tech-radar](skills/tech-radar/SKILL.md): adding and moving entries on the tech radar,
+  editions, keeping its test fixture in step, previews and deploys.
+
 Install any complete skill folder through your agent host's skill installer,
 preserving its `SKILL.md`, `agents`, `references` and `assets`. They are not
 installed by the npm packages and do not require each other. Each includes a

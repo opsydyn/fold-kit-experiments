@@ -50,7 +50,12 @@ export default defineConfig({
         folder('effect-three decisions', 'effect-three/adr', true),
         {
           label: 'Spikes',
-          items: ['spikes/radar-proposals', 'effect-three/spike-results', 'examples/ag-ui-spike'],
+          items: [
+            'spikes/radar-proposals',
+            'spikes/mutant-cafe',
+            'effect-three/spike-results',
+            'examples/ag-ui-spike',
+          ],
         },
         folder('Releases', 'releases'),
         folder('Assessments', 'assessments'),

@@ -1,3 +1,4 @@
+import { Option } from 'effect';
 import { describe, expect, it } from 'vitest';
 
 import { Message as DiagnosticsMessage } from '../request-diagnostics/message';
@@ -5,7 +6,7 @@ import { samplePoints } from '../request-diagnostics/model';
 import { Message } from './message';
 import { initModel } from './model';
 import type { Model } from './model';
-import { stateTagOf, traceOf } from './replay';
+import { currentRecord, stateTagOf, traceOf } from './replay';
 import { checkoutSpecimen } from './specimens/checkout';
 import { update, withSession } from './update';
 
@@ -157,5 +158,54 @@ describe('stateflow replay update', () => {
     expect(link.commands?.map((command) => command.name)).toEqual(['CopySessionLink']);
     expect(test.commands?.map((command) => command.name)).toEqual(['CopyTest']);
     expect(copied.model.notice).toContain('Test copied');
+  });
+
+  it('resets to the start of the same session', () => {
+    const reset = run(initModel, [Message.ClickedEnd(), Message.ClickedReset()]);
+
+    expect(reset).toMatchObject({
+      specimen: initModel.specimen,
+      events: initModel.events,
+      cursor: 0,
+      playback: 'paused',
+      selectedSequence: null,
+    });
+    expect(Option.isNone(currentRecord(reset))).toBe(true);
+  });
+
+  it('holds the record of the event at the scrubber', () => {
+    const stepped = update(initModel, Message.ClickedStep()).model;
+
+    expect(Option.getOrNull(currentRecord(stepped))).toMatchObject({
+      sequence: 1,
+      outcome: 'transitioned',
+      from: 'Loading',
+      messageTag: 'LoadedMetrics',
+      target: 'Ready',
+    });
+  });
+
+  it('steps nowhere, and reports nothing, with no events to replay', () => {
+    const empty = run(initModel, [Message.ClickedClearRecording()]);
+    const stepped = update({ ...empty, playback: 'playing' }, Message.ClickedStep());
+
+    expect(stepped.model).toMatchObject({ events: [], cursor: 0, playback: 'paused' });
+    expect(stepped.commands).toBeUndefined();
+  });
+
+  it('switches between the layered and the force layout', () => {
+    const force = update(initModel, Message.ChoseLayout({ layout: 'force' })).model;
+
+    expect(force.layout).toBe('force');
+    expect(update(force, Message.ChoseLayout({ layout: 'layered' })).model.layout).toBe('layered');
+  });
+
+  it('copies nothing for an edge the coverage search found no path to', () => {
+    const checkout = { ...initModel, specimen: 'checkout', events: checkoutSpecimen.sample };
+    const dead = checkoutSpecimen.dead[0]?.edgeId ?? '';
+    const result = update(checkout, Message.ClickedCopyTest({ edge: dead }));
+
+    expect(result.model).toBe(checkout);
+    expect(result.commands).toBeUndefined();
   });
 });

@@ -81,6 +81,10 @@ dimensions, and resize phase. The effective measurements preference gates it.
 `FlowAlignmentGuideContext` provides world endpoints, gesture phase, and
 viewport for screen-size styling. Effective diagnostics gate the hook.
 
+`renderSelectionMarquee` replaces the decoration inside the positioned
+box-selection frame. `FlowSelectionMarqueeContext` provides normalized world
+bounds and the viewport.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

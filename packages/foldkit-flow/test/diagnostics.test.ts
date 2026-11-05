@@ -162,6 +162,41 @@ test('minimal mode removes overlays and numbers while retaining accessible help 
   ).toBeNull();
 });
 
+test('custom selection marquees use normalized world bounds in minimal mode', async () => {
+  const state = { ...initial, viewport: { x: 20, y: 30, zoom: 2 } };
+  const start = updateEditor(state, {
+    type: 'BoxSelectionStarted',
+    pointer: 1,
+    point: { x: 320, y: 350 },
+  });
+  const active = updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: 60, y: 70 } });
+  const renderer = mock<NonNullable<FlowViewOptions<EditorEvent>['renderSelectionMarquee']>>(
+    ({ bounds, viewport }, h) =>
+      h.div(
+        [h.Class('custom-marquee')],
+        [`${bounds.left},${bounds.top} → ${bounds.right},${bounds.bottom} at ${viewport.zoom}×`],
+      ),
+  );
+  const options = {
+    minimalMode: true,
+    diagnostics: false,
+    renderSelectionMarquee: renderer,
+  } as const;
+  const selector = '[data-flow-selection-box]';
+  const marquee = (await render(active, options)).querySelector(selector);
+  expect(marquee?.querySelector('.custom-marquee')?.textContent).toBe('20,20 → 150,160 at 2×');
+  expect(marquee?.getAttribute('aria-hidden')).toBe('true');
+  expect(marquee?.getAttribute('style')).toContain('width: 130px');
+  expect(marquee?.getAttribute('style')).toContain('height: 140px');
+  expect(marquee?.getAttribute('style')).toContain('pointer-events: none');
+  renderer.mockClear();
+  expect((await render(state, options)).querySelector(selector)).toBeNull();
+  expect(renderer).not.toHaveBeenCalled();
+  expect(
+    (await render(active, { renderSelectionMarquee: () => null })).querySelector(selector),
+  ).toBeNull();
+});
+
 test('custom alignment guides receive resolved resize endpoints and respect diagnostics', async () => {
   const start = updateEditor(initial, {
     type: 'NodeResizeStarted',

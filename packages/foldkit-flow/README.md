@@ -584,6 +584,28 @@ Flow calls the hook only for resolved guides when the effective
 `alignmentGuides` diagnostic is enabled. Guide visibility is independent
 of snapping.
 
+### Custom box-selection marquee
+
+Use `renderSelectionMarquee(context, h)` to replace the decoration during
+a box-selection gesture. The context contains normalized `bounds` in graph
+coordinates and the current `viewport`. Flow positions and sizes the frame
+using the same bounds as selection on release. Use decorative content that
+fills the frame.
+
+```ts
+renderSelectionMarquee: (_, h) =>
+  h.div([h.Style({
+    position: 'absolute',
+    inset: '0',
+    border: '2px dashed #0f766e',
+    background: 'rgb(20 184 166 / 0.15)',
+  })], []),
+```
+
+Return `undefined` for the default outline or `null` to omit the decoration.
+The frame ignores pointer input and stays available during selection in
+minimal mode.
+
 ### Live resize dimensions
 
 The FoldKit view shows a width × height readout in the canvas's lower-left corner

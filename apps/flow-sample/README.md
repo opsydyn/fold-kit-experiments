@@ -252,3 +252,7 @@ enabled. In the release example, drag Review upward until it aligns with
 Draft. In grouped Onion Architecture, drag the Application core's left
 resize handle toward the right edge of UI adapter.
 [Drag guide](evidence/alignment-guide-drag.png) · [Resize guide](evidence/alignment-guide-resize.png)
+
+Choose **Selection marquee → Hatched outline**, then Shift-drag the background
+or use **Box select**. The same outline is available in minimal mode.
+[Workbench screenshot](evidence/selection-marquee.png)

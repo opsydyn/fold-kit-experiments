@@ -24,6 +24,7 @@ import {
   ConnectionListDesign,
   ResizeReadoutDesign,
   AlignmentGuideDesign,
+  SelectionMarqueeDesign,
   NodeDesign,
   type Model,
 } from './model';
@@ -40,6 +41,7 @@ import {
   connectionRows,
   labeledResizeReadout,
   endpointAlignmentGuide,
+  hatchedSelectionMarquee,
 } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
@@ -791,6 +793,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Selection marquee',
+            h.select(
+              [
+                h.AriaLabel('Selection marquee'),
+                h.Value(model.selectionMarqueeDesign),
+                h.OnChange((value) =>
+                  Message.SelectedSelectionMarqueeDesign({
+                    selectionMarqueeDesign: Schema.decodeUnknownSync(SelectionMarqueeDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.selectionMarqueeDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('hatched'), h.Selected(model.selectionMarqueeDesign === 'hatched')],
+                  ['Hatched outline'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Connection preview',
             h.select(
               [
@@ -1061,6 +1091,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           renderEdgeToolbar: (context, builder) =>
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)
+              : undefined,
+          renderSelectionMarquee: (context, builder) =>
+            model.selectionMarqueeDesign === 'hatched'
+              ? hatchedSelectionMarquee(context, builder)
               : undefined,
           renderAlignmentGuide: (context, builder) =>
             model.alignmentGuideDesign === 'endpoints'

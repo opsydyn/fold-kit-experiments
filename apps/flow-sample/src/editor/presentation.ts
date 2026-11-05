@@ -17,6 +17,7 @@ import {
   type FlowConnectionsContext,
   type FlowResizeReadoutContext,
   type FlowAlignmentGuideContext,
+  type FlowSelectionMarqueeContext,
   flowContextDimensionInput,
   type FlowContextAction,
   type FlowContextMenuContext,
@@ -675,5 +676,25 @@ export function endpointAlignmentGuide(
       dot(start),
       dot(end),
     ],
+  );
+}
+
+export function hatchedSelectionMarquee(
+  context: FlowSelectionMarqueeContext,
+  h: HtmlBuilder<Message>,
+) {
+  return h.div(
+    [
+      h.Class('hatched-selection-marquee'),
+      h.Style({
+        position: 'absolute',
+        inset: '0',
+        border: `${2 / context.viewport.zoom}px dashed #0f766e`,
+        'border-radius': '8px',
+        background: 'repeating-linear-gradient(135deg, #14b8a629 0 4px, #ccfbf125 4px 12px)',
+        'box-sizing': 'border-box',
+      }),
+    ],
+    [],
   );
 }

@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add a custom box-selection marquee using Flow's normalized selection bounds
+  and existing gesture lifecycle.
+
 - Add custom alignment guide SVG for dragging and resizing using the core's
   resolved endpoints and the existing alignment diagnostics.
 

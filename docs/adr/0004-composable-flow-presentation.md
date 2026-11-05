@@ -344,3 +344,10 @@ The guide hook renders decorative SVG in the existing world layer. The
 package passes resolved endpoints and viewport without asking the host to
 recompute snapping. Effective alignment diagnostics run before the hook,
 and the core still owns which guides are active.
+
+### Selection marquee
+
+The marquee hook renders inside a frame positioned with the same world
+bounds that the core uses on release. Consumers supply decorative content
+without implementing pointer capture, normalization or hit testing. The
+frame remains available in minimal mode as active gesture feedback.

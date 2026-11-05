@@ -173,6 +173,12 @@ export type FlowAlignmentGuideContext = Readonly<{
   viewport: Viewport;
 }>;
 
+/** Normalized selection bounds in graph coordinates and the current camera. */
+export type FlowSelectionMarqueeContext = Readonly<{
+  bounds: Readonly<{ left: number; top: number; right: number; bottom: number }>;
+  viewport: Viewport;
+}>;
+
 export type FlowViewOptions<M> = FlowDiagnosticOptions &
   Readonly<{
     /** Unique within the document; prefixes accessible descriptions and SVG markers. */
@@ -228,6 +234,11 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     ) => Html | null | undefined;
     /** Replaces the list contents. The compact disclosure and accessible group stay owned by Flow. */
     renderConnections?: (context: FlowConnectionsContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** Replaces the decorative selection marquee. Undefined uses the default; null omits it. */
+    renderSelectionMarquee?: (
+      context: FlowSelectionMarqueeContext,
+      h: HtmlBuilder<M>,
+    ) => Html | null | undefined;
     /** Enable context actions for nodes and edges in editable views. */
     contextActions?: boolean;
     /** Replaces the contents of an open node or edge context panel. Undefined uses the default. */
@@ -592,6 +603,45 @@ function edgeToolbarFrame<M>(h: HtmlBuilder<M>, anchor: Point, id: string, conte
   );
 }
 
+function selectionMarquee<M>(
+  h: HtmlBuilder<M>,
+  state: EditorState,
+  options: FlowViewOptions<M>,
+): readonly Html[] {
+  const { gesture, viewport } = state;
+  if (gesture.type !== 'box-selection') return [];
+  const bounds = boxBounds(gesture.origin, gesture.point);
+  const custom = options.renderSelectionMarquee?.({ bounds, viewport }, h);
+  if (custom === null) return [];
+  const placement = {
+    position: 'absolute',
+    left: `${bounds.left}px`,
+    top: `${bounds.top}px`,
+    width: `${bounds.right - bounds.left}px`,
+    height: `${bounds.bottom - bounds.top}px`,
+    'box-sizing': 'border-box',
+    'pointer-events': 'none',
+  };
+  return [
+    h.div(
+      [
+        h.AriaHidden(true),
+        h.DataAttribute('flow-selection-box', ''),
+        h.Style(
+          custom === undefined
+            ? {
+                ...placement,
+                border: '1px solid var(--flow-selection, #2563eb)',
+                background: 'var(--flow-selection-background, rgb(37 99 235 / 0.12))',
+              }
+            : placement,
+        ),
+      ],
+      custom === undefined ? [] : [custom],
+    ),
+  ];
+}
+
 function alignmentGuideViews<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
@@ -763,10 +813,6 @@ export function flowView<M>(
   const drag = state.gesture.type === 'connection-drag' ? state.gesture : null;
   const preview = resolveConnectionPreview(state, options.connectionGeometry);
   const previewView = connectionPreviewView(h, preview, options);
-  const selectionBox =
-    state.gesture.type === 'box-selection'
-      ? boxBounds(state.gesture.origin, state.gesture.point)
-      : null;
   const contextEnabled = options.contextActions && !state.readOnly;
   const contextAction = (
     kind: 'node' | 'edge',
@@ -1417,28 +1463,7 @@ export function flowView<M>(
               ),
               ...nodes,
               ...edgeLabels,
-              ...(selectionBox
-                ? [
-                    h.div(
-                      [
-                        h.AriaHidden(true),
-                        h.DataAttribute('flow-selection-box', ''),
-                        h.Style({
-                          position: 'absolute',
-                          left: `${selectionBox.left}px`,
-                          top: `${selectionBox.top}px`,
-                          width: `${selectionBox.right - selectionBox.left}px`,
-                          height: `${selectionBox.bottom - selectionBox.top}px`,
-                          border: '1px solid var(--flow-selection, #2563eb)',
-                          background: 'var(--flow-selection-background, rgb(37 99 235 / 0.12))',
-                          'box-sizing': 'border-box',
-                          'pointer-events': 'none',
-                        }),
-                      ],
-                      [],
-                    ),
-                  ]
-                : []),
+              ...selectionMarquee(h, state, options),
             ],
           ),
           ...(minimap

@@ -11,20 +11,24 @@ interaction policy. This skill works without Astro or its integration skill.
 
 ## Establish the consumer contract
 
-Read the installed version, export map and declarations before selecting APIs.
-The [pure scatter example](assets/scatter/package.json) targets the published
-`@opsydyn/foldkit-viz@0.11.0` contract and installs neither FoldKit, Effect nor
-Astro. Optional FoldKit adapters target FoldKit `0.167.x` and Effect `4.0.0`.
-These are qualified baselines, not instructions to downgrade another project.
+Read the installed version, export map and declarations before selecting APIs. The [pure
+scatter example](assets/scatter/package.json) targets the published
+`@opsydyn/foldkit-viz@0.15.0` contract and installs neither FoldKit, Effect nor Astro.
+Optional FoldKit adapters peer on FoldKit `>=0.167.0 <0.171.0` and Effect 4, and are
+qualified on FoldKit `0.170.0` with Effect `4.1.0`. These are qualified baselines, not
+instructions to downgrade another project. When using the adapters, pin
+`@effect/platform-browser` to the same version as `effect` (`4.1.0` here). FoldKit 0.170
+accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which requires an equal or
+newer `effect` and fails to resolve against an exact `4.1.0`.
 
-Repository main can be ahead of its package version. Workspace-only additions
-include `chart/bars`, `foldkit/paint`, `layout/wordcloud`, `layout/text`,
+Every subpath in the repository's export map is published in `0.15.0`, including
+`chart/bars`, `foldkit/paint`, `layout/wordcloud`, `layout/text`,
 `interaction/coordinates`, `interaction/viewport`, `interaction/inspection`,
-`chart/segments`, `chart/intervalBand` and `chart/errorBars`. Do not infer npm
-availability from the workspace's `0.11.0` manifest; check the installed
-tarball/export map before importing them. Word-cloud collision bounds are
-conservative measured rectangles, not pixel-mask D3 parity. Supplied interval
-geometry does not infer confidence or statistical significance.
+`chart/segments`, `chart/intervalBand`, `chart/errorBars` and `stateflow`. Repository
+main can still move ahead of the published version: check an older installed tarball's
+export map before importing a newer subpath. Word-cloud collision bounds are
+conservative measured rectangles, not pixel-mask D3 parity. Supplied interval geometry
+does not infer confidence or statistical significance.
 
 ## Choose the smallest layer
 
@@ -35,6 +39,7 @@ geometry does not infer confidence or statistical significance.
 | Parent-owned selection values                 | `/interaction/selection`                                            |
 | Themes and series styles                      | `/chart/theme`                                                      |
 | FoldKit SVG frame, axes, marks, legend, table | `/foldkit/cartesian` with the parent's `HtmlBuilder`                |
+| State-machine graph layout                    | `/stateflow` (`layoutStateFlow`)                                    |
 
 The root is framework-free. Optional adapters are not an app runtime; they
 return `Html`, not a complete `Document`, and must not create a second builder.

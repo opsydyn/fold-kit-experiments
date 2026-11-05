@@ -13,9 +13,14 @@ Commands and remote-data policy. No chart package is required.
 
 Read the consumer's manifest, lockfile and installed package exports before
 choosing APIs. This skill's runnable example targets `@opsydyn/astro-foldkit`
-`0.8.1`, FoldKit `0.167.0`, Effect `4.0.0` and Astro `7.2.8`. This is a tested
+`0.9.3`, FoldKit `0.170.0`, Effect `4.1.0` and Astro `7.4.0`. `0.9.3` peers on FoldKit
+`>=0.170.0 <0.171.0` and Effect `~4.1.0`: an app on an older FoldKit needs an older
+release of the integration, not this one. This is a tested
 baseline, not a claim about the latest release or every supported Astro version.
 For a different version, check its declarations and release notes first.
+With FoldKit, pin `@effect/platform-browser` to the same version as `effect` (`4.1.0`
+here). FoldKit 0.170 accepts `~4.1.0`, so npm otherwise picks the newest `4.1.x`, which
+requires an equal or newer `effect` and fails to resolve against an exact `4.1.0`.
 
 Use package imports, including the default integration import from
 `@opsydyn/astro-foldkit`. Do not substitute monorepo source paths. A local

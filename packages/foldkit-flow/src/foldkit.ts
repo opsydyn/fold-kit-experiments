@@ -61,6 +61,7 @@ export type FlowViewOptions<M> = Readonly<{
   autoPan?: boolean;
   /** Enable two-finger touch pan and pinch-to-zoom on the canvas. */
   pinchZoom?: boolean;
+  /** Card width handles and two-dimensional handles on selected expanded groups. */
   resizeHandles?: boolean;
   minimap?: boolean;
   viewportControls?: boolean;
@@ -431,6 +432,39 @@ export function flowView<M>(
           [collapsed ? 'Expand' : 'Collapse'],
         ),
         ...(contextEnabled ? [nodeContextTrigger(node)] : []),
+        ...(options.resizeHandles &&
+        !state.readOnly &&
+        !collapsed &&
+        state.selectedNodes.includes(node.id)
+          ? [
+              h.button(
+                [
+                  h.Type('button'),
+                  h.DataAttribute('flow-resize', node.id),
+                  h.DataAttribute('flow-group-resize', ''),
+                  h.AriaLabel(`Resize ${node.label}`),
+                  h.Title('Drag to resize; arrow keys adjust by 5, Shift by 20'),
+                  h.Style({
+                    position: 'absolute',
+                    right: '-8px',
+                    bottom: '-8px',
+                    width: '28px',
+                    height: '28px',
+                    padding: '0',
+                    'pointer-events': 'auto',
+                    cursor: 'nwse-resize',
+                    'touch-action': 'none',
+                    'user-select': 'none',
+                    color: 'var(--flow-control-color, #fff)',
+                    background: 'var(--flow-resize-background, #334155)',
+                    'border-radius': '6px',
+                    border: '2px solid var(--flow-selection, #2563eb)',
+                  }),
+                ],
+                ['⤡'],
+              ),
+            ]
+          : []),
       ],
     );
   });

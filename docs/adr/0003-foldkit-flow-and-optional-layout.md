@@ -155,3 +155,13 @@ Group fitting is an explicit document edit. It uses authored descendant bounds,
 including hidden contents, with the existing group-creation padding. Fitting
 preserves child canvas positions and uses enabled ancestor expansion. Parent
 containment can reject a fit whose bounds exceed the available parent space.
+
+Group resize handles reuse the package's pointer gesture and graph transaction
+boundary. Expanded groups resize from the bottom-right, preserving origin and
+child canvas positions. Descendant bounds plus padding set the shrink limit;
+parent extent clamps growth unless expansion is enabled. Keyboard input reports
+`GroupResizeNudged` to the same geometry path. The FoldKit view owns the handle;
+Astro consumes it through `resizeHandles`. This avoids a second sample-only
+editing implementation. Moving children or scaling their coordinates during a
+resize would change the document unexpectedly, so boundary editing leaves them
+fixed. Core and browser checks cover zoom, containment, cancellation and Undo.

@@ -68,6 +68,7 @@ export const BrowserInput = Schema.Union([
   Schema.Struct({ type: Schema.Literal('MinimapClicked'), point: Point }),
   Schema.Struct({ type: Schema.Literal('Zoomed'), point: Point, factor: Schema.Number }),
   Schema.Struct({ type: Schema.Literal('SelectionNudged'), delta: Point }),
+  Schema.Struct({ type: Schema.Literal('GroupResizeNudged'), id: Schema.String, delta: Point }),
   Schema.Struct({
     type: Schema.Literal('SurfaceMeasured'),
     size: Schema.Struct({ width: Schema.Number, height: Schema.Number }),

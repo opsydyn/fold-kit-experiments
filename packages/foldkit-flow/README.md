@@ -178,11 +178,21 @@ expanding also work in read-only views. They are editor-session actions and
 leave saved documents and undo history intact.
 
 Set `resizeHandles: true` on the FoldKit view to enable pointer resizing.
-The handles adjust width while height follows content. The drag range is 140
+Card handles adjust width while height follows content. The drag range is 140
 to 320 graph units, extended to include an existing width outside that range.
 Escape or pointer cancellation restores the starting width. Releasing commits
 one undo step. Provide a keyboard control via `NodeWidthChanged` when enabling
 handles in an editable view.
+
+Selected expanded groups show a bottom-right handle that adjusts both width and
+height, without moving their origin or children. Shrinking stops at the contents
+plus 24 units of padding, with a minimum of 224 × 96 (or the starting dimensions
+when already tighter). Parent containment clamps
+growth unless `expandParent` enables ancestor expansion. Focus the handle and use
+arrow keys to adjust by 5 graph units, or Shift+Arrow by 20. Each keyboard action
+is one undo step; pointer drags commit once and Escape restores the original
+bounds. Hosts can dispatch `GroupResizeNudged` with an `id` and `{ x, y }` delta.
+Collapsed and read-only groups cannot be resized.
 
 Drag from an output port to see a preview and highlight an eligible input.
 You can also activate an output and then an input with Enter or Space.

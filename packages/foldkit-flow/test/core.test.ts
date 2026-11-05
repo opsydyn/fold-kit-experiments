@@ -1032,3 +1032,140 @@ test('fitting respects parent containment and can expand opted-in ancestors', ()
   const empty = createEditor({ nodes: [outer], edges: [] });
   expect(updateEditor(empty, { type: 'GroupFitClicked', id: 'outer' }).past).toHaveLength(0);
 });
+
+test('group handles resize both dimensions at zoom without moving children and commit once', () => {
+  const initial = createEditor(
+    {
+      nodes: [
+        {
+          id: 'g',
+          label: 'Group',
+          kind: 'group',
+          position: { x: 0, y: 0 },
+          size: { width: 500, height: 300 },
+          ports: [],
+        },
+        { ...nodeA, parentId: 'g', position: { x: 50, y: 60 } },
+      ],
+      edges: [],
+    },
+    { viewport: { x: 0, y: 0, zoom: 2 } },
+  );
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  expect(updateEditor(start, { type: 'PointerMoved', pointer: 2, point: { x: 200, y: 100 } })).toBe(
+    start,
+  );
+  const preview = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 200, y: 100 },
+  });
+  expect(preview.graph.nodes[0]?.size).toEqual({ width: 600, height: 350 });
+  expect(preview.graph.nodes[1]).toEqual(initial.graph.nodes[1]);
+  expect(preview.past).toHaveLength(0);
+  expect(updateEditor(preview, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
+  const released = updateEditor(preview, { type: 'PointerReleased', pointer: 1 });
+  expect(released.past).toHaveLength(1);
+  expect(updateEditor(released, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  expect(
+    updateEditor(updateEditor(released, { type: 'UndoPressed' }), { type: 'RedoPressed' }).graph,
+  ).toEqual(preview.graph);
+  const shrink = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: -2000, y: -2000 },
+  });
+  expect(shrink.graph.nodes[0]?.size).toEqual({ width: 224, height: 164 });
+  expect(shrink.graph.nodes[1]).toEqual(initial.graph.nodes[1]);
+});
+
+test('group resizing respects parent bounds and expansion, with keyboard and read-only guards', () => {
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'outer',
+        label: 'Outer',
+        kind: 'group',
+        position: { x: 0, y: 0 },
+        size: { width: 400, height: 300 },
+        ports: [],
+      },
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        position: { x: 40, y: 50 },
+        size: { width: 250, height: 150 },
+        ports: [],
+        parentId: 'outer',
+        extent: 'parent',
+      },
+    ],
+    edges: [],
+  });
+  const bounded = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    delta: { x: 500, y: 500 },
+  });
+  expect(bounded.graph.nodes[1]?.size).toEqual({ width: 360, height: 250 });
+  expect(bounded.graph.nodes[0]).toEqual(initial.graph.nodes[0]);
+  expect(bounded.past).toHaveLength(1);
+  const growing = updateEditor(initial, { type: 'NodeExpansionToggled', id: 'g' });
+  const grown = updateEditor(growing, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    delta: { x: 500, y: 500 },
+  });
+  expect(grown.graph.nodes[1]?.size).toEqual({ width: 750, height: 650 });
+  expect(grown.graph.nodes[0]?.size).toEqual({ width: 806, height: 716 });
+  expect(updateEditor(grown, { type: 'UndoPressed' }).graph).toEqual(growing.graph);
+  for (const state of [
+    { ...initial, readOnly: true },
+    { ...initial, collapsedGroups: ['g'] },
+  ]) {
+    expect(updateEditor(state, { type: 'GroupResizeNudged', id: 'g', delta: { x: 5, y: 5 } })).toBe(
+      state,
+    );
+    expect(
+      updateEditor(state, {
+        type: 'NodeResizeStarted',
+        id: 'g',
+        pointer: 1,
+        point: { x: 0, y: 0 },
+      }),
+    ).toBe(state);
+  }
+  expect(updateEditor(initial, { type: 'GroupResizeNudged', id: 'g', delta: { x: 0, y: 0 } })).toBe(
+    initial,
+  );
+});
+
+test('resizing a tight authored group preserves its untouched axis', () => {
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        position: { x: 0, y: 0 },
+        size: { width: 300, height: 140 },
+        ports: [],
+      },
+      { ...nodeA, parentId: 'g', position: { x: 50, y: 60 } },
+    ],
+    edges: [],
+  });
+  const wider = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    delta: { x: 5, y: 0 },
+  });
+  expect(wider.graph.nodes[0]?.size).toEqual({ width: 305, height: 140 });
+  expect(wider.graph.nodes[1]).toEqual(initial.graph.nodes[1]);
+});

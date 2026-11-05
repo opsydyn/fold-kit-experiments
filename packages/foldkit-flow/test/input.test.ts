@@ -42,3 +42,36 @@ test('input cleanup removes listeners and text fields retain their editing keys'
   expect(events).toHaveLength(3);
   releaseAgain();
 });
+
+test('group resize keyboard arrows emit dimensions rather than moving the selection', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'KeyboardEvent', {
+    value: window.KeyboardEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  const element = document.createElement('div');
+  element.innerHTML = '<button data-flow-group-resize data-flow-resize="g">Resize group</button>';
+  const events: EditorEvent[] = [];
+  const release = bindInput(element, (event) => events.push(event));
+  events.length = 0;
+  const handle = element.querySelector('button');
+  for (const [key, shiftKey] of [
+    ['ArrowRight', false],
+    ['ArrowUp', true],
+  ] as const) {
+    const event = new KeyboardEvent('keydown', {
+      key,
+      shiftKey,
+      bubbles: true,
+      cancelable: true,
+    });
+    handle?.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+  }
+  expect(events).toEqual([
+    { type: 'GroupResizeNudged', id: 'g', delta: { x: 5, y: 0 } },
+    { type: 'GroupResizeNudged', id: 'g', delta: { x: 0, y: -20 } },
+  ]);
+  release();
+});

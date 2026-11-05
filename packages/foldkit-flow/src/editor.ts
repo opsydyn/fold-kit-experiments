@@ -55,6 +55,46 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     notice: null,
   };
 }
+/** Bottom-right resizing keeps the authored origin and every descendant fixed. */
+function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
+  const group = graph.nodes.find((node) => node.id === id && node.kind === 'group');
+  if (!group || (delta.x === 0 && delta.y === 0)) return graph;
+  const included = withDescendants(graph, [id]);
+  const contents = graph.nodes.filter((node) => node.id !== id && included.has(node.id));
+  const minimumWidth = Math.min(
+    group.size.width,
+    Math.max(
+      224,
+      ...contents.map((node) => node.position.x + node.size.width + 24 - group.position.x),
+    ),
+  );
+  const minimumHeight = Math.min(
+    group.size.height,
+    Math.max(
+      96,
+      ...contents.map((node) => node.position.y + node.size.height + 24 - group.position.y),
+    ),
+  );
+  let width = Math.max(minimumWidth, group.size.width + delta.x);
+  let height = Math.max(minimumHeight, group.size.height + delta.y);
+  const parent = graph.nodes.find((node) => node.id === group.parentId);
+  if (parent && group.extent === 'parent' && !group.expandParent) {
+    width = Math.min(width, parent.position.x + parent.size.width - group.position.x);
+    height = Math.min(height, parent.position.y + parent.size.height - group.position.y);
+    if (width < minimumWidth || height < minimumHeight) return graph;
+  }
+  if (width === group.size.width && height === group.size.height) return graph;
+  return expandParents(
+    {
+      ...graph,
+      nodes: graph.nodes.map((node) =>
+        node.id === id ? { ...node, size: { width, height } } : node,
+      ),
+    },
+    id,
+  );
+}
+
 function history(state: EditorState, before: FlowGraph): readonly FlowGraph[] {
   return state.historyLimit === 0 ? [] : [...state.past, before].slice(-state.historyLimit);
 }
@@ -600,6 +640,14 @@ export function updateEditor(
       if (gesture.type === 'node-resize') {
         const original = gesture.before.nodes.find((node) => node.id === gesture.ids[0]);
         if (!original) return state;
+        if (original.kind === 'group') {
+          const graph = resizeGroup(gesture.before, original.id, {
+            x: delta.x / state.viewport.zoom,
+            y: delta.y / state.viewport.zoom,
+          });
+          if (sameGeometry(state.graph, graph)) return state;
+          return { ...state, graph, revision: state.revision + 1, routes: [] };
+        }
         const initial = original.size.width;
         const width = Math.max(
           Math.min(140, initial),
@@ -812,6 +860,7 @@ export function updateEditor(
       if (!state.graph.nodes.some((node) => node.id === event.id)) return state;
       finitePoint(event.point);
       const resizing = event.type === 'NodeResizeStarted';
+      if (resizing && state.collapsedGroups.includes(event.id)) return state;
       const ids =
         !resizing && state.selectedNodes.includes(event.id) ? state.selectedNodes : [event.id];
       return {
@@ -1017,6 +1066,14 @@ export function updateEditor(
     case 'DuplicatePressed': {
       const duplicated = insertFragment(state, selectedFragment(state));
       return duplicated === state ? state : { ...duplicated, notice: 'Selection duplicated' };
+    }
+    case 'GroupResizeNudged': {
+      if (state.collapsedGroups.includes(event.id)) return state;
+      finitePoint(event.delta);
+      const graph = resizeGroup(state.graph, event.id, event.delta);
+      return graph === state.graph
+        ? state
+        : { ...commitGraph(state, graph), notice: 'Group resized' };
     }
     case 'GroupFitClicked': {
       const group = state.graph.nodes.find((node) => node.id === event.id && node.kind === 'group');

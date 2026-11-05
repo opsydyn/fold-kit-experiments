@@ -230,7 +230,11 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (!id && target.closest('button,a,[data-flow-node],[data-flow-edge]')) return;
     captured = event.pointerId;
     element.setPointerCapture(event.pointerId);
-    if (!resize && handle instanceof window.HTMLElement) handle.focus({ preventScroll: true });
+    if (
+      (!resize || handle?.hasAttribute('data-flow-group-resize')) &&
+      handle instanceof window.HTMLElement
+    )
+      handle.focus({ preventScroll: true });
     else element.focus({ preventScroll: true });
     event.preventDefault();
     if (id) {
@@ -376,6 +380,21 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (!target || editable(target)) return;
     const id = target.closest('[data-flow-handle]')?.getAttribute('data-flow-handle');
     const step = event.shiftKey ? 20 : 5;
+    const groupResize = target
+      .closest('[data-flow-group-resize]')
+      ?.getAttribute('data-flow-resize');
+    if (groupResize && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+      event.preventDefault();
+      emit({
+        type: 'GroupResizeNudged',
+        id: groupResize,
+        delta: {
+          x: event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0,
+          y: event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0,
+        },
+      });
+      return;
+    }
     let input: BrowserInput | null = null;
     switch (event.key) {
       case 'Escape':

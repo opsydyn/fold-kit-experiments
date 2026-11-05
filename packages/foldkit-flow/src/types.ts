@@ -69,6 +69,12 @@ export type AlignmentGuide = Readonly<{
 }>;
 export type ResizeCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type ResizeHandle = ResizeCorner | 'top' | 'right' | 'bottom' | 'left';
+/** Rejected candidate details, kept only while hovering an incompatible or disallowed port. */
+export type ConnectionRejection = Readonly<{ endpoint: Endpoint; reason: string }>;
+/** Accepted and rejected targets are mutually exclusive; an absent rejection with null target means free space. */
+export type ConnectionTarget =
+  | Readonly<{ target: Endpoint; rejected?: never }>
+  | Readonly<{ target: null; rejected?: ConnectionRejection }>;
 type NodeGesture = Readonly<{
   pointer: number;
   origin: Point;
@@ -90,13 +96,13 @@ export type Gesture =
         handle?: ResizeHandle;
         guides?: readonly AlignmentGuide[];
       }>)
-  | Readonly<{
+  | (Readonly<{
       type: 'connection-drag';
       pointer: number;
       point: Point;
-      target: Endpoint | null;
       reconnect?: Readonly<{ id: string; end: 'source' | 'target' }>;
-    }>
+    }> &
+      ConnectionTarget)
   | Readonly<{ type: 'box-selection'; pointer: number; origin: Point; point: Point }>
   | Readonly<{ type: 'pinch'; center: Point; distance: number; before: Viewport }>
   | Readonly<{ type: 'pan'; pointer: number; origin: Point; before: Viewport }>;

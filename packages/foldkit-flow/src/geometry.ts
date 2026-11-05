@@ -1,5 +1,5 @@
 import { FlowError } from './graph';
-import type { FlowEdge, FlowGraph, FlowNode, Point, Size, Viewport } from './types';
+import type { EdgePathStyle, FlowEdge, FlowGraph, FlowNode, Point, Size, Viewport } from './types';
 
 export const gridSpacing = 20;
 export const minimumZoom = 0.1;
@@ -182,14 +182,19 @@ export function edgeGeometry(
     return { path: polyline(route), center: polylineMidpoint(route) };
   }
   const { source: start, target: end } = edgeEndpoints(graph, edge, groups);
+  return geometryBetween(start, end, edge.pathStyle);
+}
+
+/** Shared built-in path geometry for committed edges and incomplete connection previews. */
+export function geometryBetween(start: Point, end: Point, style?: EdgePathStyle) {
   const center = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
-  if (edge.pathStyle === 'stepped' || edge.pathStyle === 'smooth') {
+  if (style === 'stepped' || style === 'smooth') {
     const horizontal = Math.abs(end.x - start.x) >= Math.abs(end.y - start.y);
     const first = horizontal ? { x: center.x, y: start.y } : { x: start.x, y: center.y };
     const second = horizontal ? { x: center.x, y: end.y } : { x: end.x, y: center.y };
     // Symmetric control points put the label at the curve's arc-length midpoint.
     const path =
-      edge.pathStyle === 'smooth'
+      style === 'smooth'
         ? `M${start.x},${start.y} C${first.x},${first.y} ${second.x},${second.y} ${end.x},${end.y}`
         : polyline([start, first, second, end]);
     return { path, center };

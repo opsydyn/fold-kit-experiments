@@ -62,8 +62,8 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       ],
       { ...options, cwd: directory },
     );
-    const source = `import { createEditor, updateEditor, layoutRequest, applyLayout, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
-import { flowView, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, flowEdgeHitTarget, resolveFlowDiagnostics, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
+    const source = `import { createEditor, updateEditor, layoutRequest, applyLayout, resolveConnectionPreview, type FlowConnectionGeometryPolicy, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
+import { flowView, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, flowEdgeHitTarget, resolveFlowDiagnostics, type FlowViewOptions, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-flow-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
@@ -81,13 +81,19 @@ const layout=await createElkLayout()(request);
 const arranged=applyLayout(state,request,layout);
 const policy:FlowEdgeGeometryPolicy=({source,target})=>({path:'M'+source.x+','+source.y+' L'+target.x+','+target.y,labelPosition:{x:(source.x+target.x)/2,y:(source.y+target.y)/2}});
 const geometry=resolveEdgeGeometry(arranged.graph,externalEdge,{policy});
+const previewPolicy:FlowConnectionGeometryPolicy=({source,target})=>({path:'M'+source.x+','+source.y+' L'+target.x+','+target.y,labelPosition:undefined});
+const dragging=updateEditor(arranged,{type:'ConnectionDragStarted',endpoint:{node:'a',port:'out'},pointer:1,point:{x:100,y:80}});
+const preview=resolveConnectionPreview(dragging,previewPolicy);
+if (!preview || preview.feedback.type!=='free') throw new Error('Missing packed connection preview resolver');
+const previewOptions:FlowViewOptions<EditorEvent>={id:'external-preview',label:'External preview',onEvent:event=>event,connectionGeometry:previewPolicy,renderConnection:(context,builder)=>builder.path([builder.D(context.path),builder.Stroke(context.stroke),builder.DataAttribute('packed-preview','')],[])};
 const background:FlowBackground<EditorEvent>={type:'custom',render:(context,h)=>h.div([h.DataAttribute('packed-grid',context.id),h.DataAttribute('packed-spacing',String(context.spacing))],[String(context.spacing)])};
-const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:h.div([],[h.svg([], [flowEdgeHitTarget(h,{edge:externalEdge,path:geometry.path})]),flowView(h,model,{id:'external',label:'External graph',edgeGeometry:policy,background,minimalMode:true,diagnostics:{status:true},resizeReadout:false,onEvent:event=>event,renderGroupShell:(context,builder)=>flowGroupFrame(builder,context,[],[flowDragHandle(builder,context,[],[context.node.label])]),renderNodeShell:(context,builder)=>flowNodeFrame(builder,context,[builder.Class('packed-shell')],[flowDragHandle(builder,context,[],[context.node.label]),...context.node.ports.map(port=>flowPort(builder,context,port,[],['→'])),flowResizeHandle(builder,context,'right',[],['Resize'])])})])})},{flags:{},isHydratable:false}));
+const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:h.div([],[flowView(h,dragging,previewOptions),h.svg([], [flowEdgeHitTarget(h,{edge:externalEdge,path:geometry.path})]),flowView(h,model,{id:'external',label:'External graph',connectionGeometry:previewPolicy,renderConnection:(context,builder)=>builder.path([builder.D(context.path),builder.Stroke(context.stroke)],[]),edgeGeometry:policy,background,minimalMode:true,diagnostics:{status:true},resizeReadout:false,onEvent:event=>event,renderGroupShell:(context,builder)=>flowGroupFrame(builder,context,[],[flowDragHandle(builder,context,[],[context.node.label])]),renderNodeShell:(context,builder)=>flowNodeFrame(builder,context,[builder.Class('packed-shell')],[flowDragHandle(builder,context,[],[context.node.label]),...context.node.ports.map(port=>flowPort(builder,context,port,[],['→'])),flowResizeHandle(builder,context,'right',[],['Resize'])])})])})},{flags:{},isHydratable:false}));
 if (!result.html.includes('data-packed-grid="external"')) throw new Error('Missing packed custom grid');
 if (!result.html.includes('data-packed-spacing="32"')) throw new Error('Missing packed grid spacing');
 if (!result.html.includes('External graph')) throw new Error('Missing packed renderer output');
 if (!result.html.includes('packed-shell') || !result.html.includes('Connect from External: out')) throw new Error('Missing packed composition');
 if (!result.html.includes(geometry.path)) throw new Error('Missing packed shared edge geometry');
+if (!result.html.includes('data-packed-preview')) throw new Error('Missing packed preview renderer');
 console.log('packed-consumer-ok');
 `;
     const consumer = path.join(directory, 'consumer.ts');

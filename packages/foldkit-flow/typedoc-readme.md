@@ -39,10 +39,15 @@ path. Ports retain the supported cardinal side/offset geometry contract.
 `FlowDiagnosticOptions` supports individual diagnostics and global minimal mode.
 `FlowBackground` supports dots, squares, no background and host-rendered designs.
 
+`resolveConnectionPreview` and `FlowConnectionGeometryPolicy` expose incomplete
+connection geometry without synthetic edges. `FlowConnectionFeedback` carries
+free/valid/invalid target state from the core. `renderConnection` replaces the
+SVG preview while native port interactions, cancellation and Undo remain shared.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are
 optional view peers; ELK and force layout are separately installed adapters.
 Policies and view configuration are functions outside serialized documents.
-Arbitrary port anchors, custom connection-drag previews and a complete overlay
-composition API are not part of the current contract.
+Arbitrary port anchors and a complete overlay composition API are not part of
+the current contract.

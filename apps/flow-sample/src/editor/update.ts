@@ -48,6 +48,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
+    SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     SelectedEdgeDesign: ({ edgeDesign }) => ({ model: { ...model, edgeDesign } }),
     SelectedNodeDesign: ({ nodeDesign }) => ({ model: { ...model, nodeDesign } }),
     SelectedBackground: ({ background }) => ({ model: { ...model, background } }),

@@ -49,11 +49,16 @@ export function resolveEdgeGeometry(
       targetGroup: options.targetGroup,
       defaultGeometry,
     }) ?? defaultGeometry;
+  return checkedGeometry(geometry, `edge ${edge.id}`);
+}
+
+/** Shared validation at the host geometry-policy boundary. */
+export function checkedGeometry(geometry: FlowEdgeGeometry, description: string): FlowEdgeGeometry {
   if (
     !geometry.path.trim() ||
     (geometry.labelPosition &&
       ![geometry.labelPosition.x, geometry.labelPosition.y].every(Number.isFinite))
   )
-    throw new FlowError('invalid-edit', `Invalid edge geometry for ${edge.id}`);
+    throw new FlowError('invalid-edit', `Invalid geometry for ${description}`);
   return geometry;
 }

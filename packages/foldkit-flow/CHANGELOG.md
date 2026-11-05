@@ -2,6 +2,11 @@
 
 ## 0.1.0 (unreleased)
 
+- Add pure connection-preview geometry and decorative SVG hooks, with core-owned
+  valid/rejected target feedback and shared validation for hover and drop.
+- Preserve logical path direction when reconnecting sources and follow authored
+  path styles, canonical target anchors and collapsed-group projections.
+
 - Add pure custom edge geometry policies shared by decoration, selection, labels
   and toolbar anchors, plus a public SVG hit-target primitive and per-edge hit width.
 

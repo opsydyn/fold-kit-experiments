@@ -28,8 +28,9 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     { type: 'ConnectionDragStarted' | 'ReconnectionDragStarted' }
   >;
   let wire: { start: WireStart; dragging: boolean } | null = null;
-  const endpointAt = (target: Element | null, kind: 'input' | 'output'): Endpoint | undefined => {
-    const port = target?.closest(`[data-flow-port-kind="${kind}"]`);
+  const endpointAt = (target: Element | null, kind?: 'input' | 'output'): Endpoint | undefined => {
+    const selector = kind ? `[data-flow-port-kind="${kind}"]` : '[data-flow-port]';
+    const port = target?.closest(selector);
     if (port?.closest('[data-flow-surface]') !== element) return undefined;
     const node = port.getAttribute('data-flow-owner');
     const id = port.getAttribute('data-flow-port');
@@ -75,14 +76,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   };
   const point = (event: MouseEvent) => localPoint({ x: event.clientX, y: event.clientY });
   const wireTarget = (client: Point) =>
-    wire
-      ? endpointAt(
-          element.ownerDocument.elementFromPoint(client.x, client.y),
-          wire.start.type === 'ReconnectionDragStarted' && wire.start.end === 'source'
-            ? 'output'
-            : 'input',
-        )
-      : undefined;
+    wire ? endpointAt(element.ownerDocument.elementFromPoint(client.x, client.y)) : undefined;
   const pan = (time: number) => {
     panFrame = null;
     if (captured === null || panPointer === null || element.dataset.flowAutoPan !== 'true') return;

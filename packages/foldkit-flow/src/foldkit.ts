@@ -35,20 +35,23 @@ import {
 export { resolveFlowDiagnostics } from './diagnostics';
 export type { FlowDiagnostics, FlowDiagnosticOptions } from './diagnostics';
 import { resolveEdgeGeometry, type FlowEdgeGeometryPolicy } from './edge-geometry';
-import {
-  boxBounds,
-  groupBoundaryPoint,
-  maximumZoom,
-  minimapGeometry,
-  minimumZoom,
-  portPosition,
-  screenToWorld,
-} from './geometry';
+import { boxBounds, maximumZoom, minimapGeometry, minimumZoom, portPosition } from './geometry';
 export type {
   FlowEdgeGeometry,
   FlowEdgeGeometryContext,
   FlowEdgeGeometryPolicy,
 } from './edge-geometry';
+import {
+  resolveConnectionPreview,
+  type FlowConnectionPreview,
+  type FlowConnectionGeometryPolicy,
+} from './connection-preview';
+export type {
+  FlowConnectionFeedback,
+  FlowConnectionPreviewContext,
+  FlowConnectionGeometryPolicy,
+  FlowConnectionPreview,
+} from './connection-preview';
 import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
 import { FlowInput } from './mount';
 export type { FlowBackground, FlowBackgroundRenderContext } from './background';
@@ -74,6 +77,14 @@ export type FlowEdgeRenderContext = Readonly<{
   markerEnd: string;
 }>;
 
+/** Geometry, core target feedback and default appearance for a decorative preview renderer. */
+export type FlowConnectionRenderContext = FlowConnectionPreview &
+  Readonly<{
+    stroke: string;
+    strokeWidth: string;
+    dashArray: string;
+  }>;
+
 export type FlowViewOptions<M> = FlowDiagnosticOptions &
   Readonly<{
     /** Unique within the document; prefixes accessible descriptions and SVG markers. */
@@ -90,6 +101,13 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     renderEdge?: (context: FlowEdgeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Resolves one path and label anchor for decoration, selection and controls. */
     edgeGeometry?: FlowEdgeGeometryPolicy;
+    /** Pure geometry for new connections and either end of a reconnection. */
+    connectionGeometry?: FlowConnectionGeometryPolicy;
+    /** Decorative SVG using the resolved preview path. Undefined keeps the default; empty SVG omits the visual. */
+    renderConnection?: (
+      context: FlowConnectionRenderContext,
+      h: HtmlBuilder<M>,
+    ) => Html | undefined;
     edgeAppearance?: (edge: FlowEdge) => Readonly<{
       stroke?: string;
       strokeWidth?: number;
@@ -500,6 +518,47 @@ function resizeReadout<M>(
   ];
 }
 
+function connectionPreviewView<M>(
+  h: HtmlBuilder<M>,
+  preview: FlowConnectionPreview | undefined,
+  options: FlowViewOptions<M>,
+): Html | undefined {
+  if (!preview) return undefined;
+  const context: FlowConnectionRenderContext = {
+    ...preview,
+    stroke:
+      preview.feedback.type === 'valid'
+        ? 'var(--flow-valid-target, #0f766e)'
+        : preview.feedback.type === 'invalid'
+          ? 'var(--flow-invalid-target, #dc2626)'
+          : 'var(--flow-selection, #2563eb)',
+    strokeWidth: '3',
+    dashArray: '6 4',
+  };
+  const decoration =
+    options.renderConnection?.(context, h) ??
+    h.path(
+      [
+        h.D(context.path),
+        h.Fill('none'),
+        h.Stroke(context.stroke),
+        h.StrokeWidth(context.strokeWidth),
+        h.StrokeDasharray(context.dashArray),
+      ],
+      [],
+    );
+  return h.g(
+    [
+      h.Key('connection-preview'),
+      h.DataAttribute('flow-connection-preview', ''),
+      h.DataAttribute('flow-connection-state', context.feedback.type),
+      h.AriaHidden(true),
+      h.Style({ 'pointer-events': 'none' }),
+    ],
+    [decoration],
+  );
+}
+
 /** A normal FoldKit view: all state and message handling belong to its parent. */
 export function flowView<M>(
   h: HtmlBuilder<M>,
@@ -526,19 +585,8 @@ export function flowView<M>(
         : [];
   const transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.zoom})`;
   const drag = state.gesture.type === 'connection-drag' ? state.gesture : null;
-  const source = state.connection;
-  const sourceNode = source && state.graph.nodes.find((node) => node.id === source.node);
-  const pointer = drag && screenToWorld(drag.point, state.viewport);
-  const sourceGroup = source && presentation.hiddenBy.get(source.node);
-  const preview =
-    pointer && source && sourceNode
-      ? {
-          from: sourceGroup
-            ? groupBoundaryPoint(sourceGroup, pointer)
-            : portPosition(sourceNode, source.port),
-          to: pointer,
-        }
-      : null;
+  const preview = resolveConnectionPreview(state, options.connectionGeometry);
+  const previewView = connectionPreviewView(h, preview, options);
   const selectionBox =
     state.gesture.type === 'box-selection'
       ? boxBounds(state.gesture.origin, state.gesture.point)
@@ -1200,28 +1248,7 @@ export function flowView<M>(
                     ),
                   ),
                   ...handles,
-                  ...(preview
-                    ? [
-                        h.path(
-                          [
-                            h.Key('connection-preview'),
-                            h.DataAttribute('flow-connection-preview', ''),
-                            h.D(
-                              `M ${preview.from.x} ${preview.from.y} L ${preview.to.x} ${preview.to.y}`,
-                            ),
-                            h.Fill('none'),
-                            h.Stroke(
-                              drag?.target
-                                ? 'var(--flow-valid-target, #0f766e)'
-                                : 'var(--flow-selection, #2563eb)',
-                            ),
-                            h.StrokeWidth('3'),
-                            h.StrokeDasharray('6 4'),
-                          ],
-                          [],
-                        ),
-                      ]
-                    : []),
+                  ...(previewView ? [previewView] : []),
                 ],
               ),
               ...nodes,

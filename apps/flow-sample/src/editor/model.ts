@@ -116,6 +116,9 @@ export const groupedOnionGraph: FlowGraph = {
   ],
 };
 
+export const ConnectionDesign = Schema.Literals(['dashed', 'ribbon', 'hidden']);
+export type ConnectionDesign = typeof ConnectionDesign.Type;
+
 export const EdgeDesign = Schema.Literals(['default', 'raised']);
 export type EdgeDesign = typeof EdgeDesign.Type;
 
@@ -147,6 +150,7 @@ export const Model = Schema.Struct({
     overview: Schema.Boolean,
     connectionList: Schema.Boolean,
   }),
+  connectionDesign: ConnectionDesign,
   edgeDesign: EdgeDesign,
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
@@ -161,6 +165,7 @@ export type Model = Readonly<{
   diagnosticsEnabled: boolean;
   diagnosticsPanelOpen: boolean;
   diagnostics: FlowDiagnostics;
+  connectionDesign: ConnectionDesign;
   edgeDesign: EdgeDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
@@ -176,6 +181,7 @@ export const init = () => ({
     diagnosticsEnabled: true,
     diagnosticsPanelOpen: false,
     diagnostics: resolveFlowDiagnostics({}),
+    connectionDesign: 'dashed',
     edgeDesign: 'default',
     nodeDesign: 'cards',
     background: 'dots',

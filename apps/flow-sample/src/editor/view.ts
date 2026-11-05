@@ -9,8 +9,8 @@ import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
-import { BackgroundStyle, EdgeDesign, NodeDesign, type Model } from './model';
-import { orbitNode, orbitGroup, raisedEdge } from './presentation';
+import { BackgroundStyle, ConnectionDesign, EdgeDesign, NodeDesign, type Model } from './model';
+import { orbitNode, orbitGroup, raisedEdge, raisedConnection } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -590,8 +590,83 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Connection preview',
+            h.select(
+              [
+                h.AriaLabel('Connection preview'),
+                h.Value(model.connectionDesign),
+                h.OnChange((value) =>
+                  Message.SelectedConnectionDesign({
+                    connectionDesign: Schema.decodeUnknownSync(ConnectionDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('dashed'), h.Selected(model.connectionDesign === 'dashed')],
+                  ['Dashed'],
+                ),
+                h.option(
+                  [h.Value('ribbon'), h.Selected(model.connectionDesign === 'ribbon')],
+                  ['Ribbon'],
+                ),
+                h.option(
+                  [h.Value('hidden'), h.Selected(model.connectionDesign === 'hidden')],
+                  ['Hidden'],
+                ),
+              ],
+            ),
+          ],
+        ),
         flowView(h, model.editor, {
           id: 'flow-demo',
+          connectionGeometry: (context) => {
+            if (model.edgeDesign === 'raised') return raisedConnection(context);
+            return undefined;
+          },
+          renderConnection: (context, builder) => {
+            if (model.connectionDesign === 'hidden') return builder.g([], []);
+            if (model.connectionDesign !== 'ribbon') return undefined;
+            const pointer = context.movingEnd === 'source' ? context.source : context.target;
+            return builder.g(
+              [builder.DataAttribute('preview-design', 'ribbon')],
+              [
+                builder.path(
+                  [
+                    builder.D(context.path),
+                    builder.Fill('none'),
+                    builder.Stroke(context.stroke),
+                    builder.StrokeWidth('10'),
+                    builder.Opacity('.25'),
+                  ],
+                  [],
+                ),
+                builder.path(
+                  [
+                    builder.D(context.path),
+                    builder.Fill('none'),
+                    builder.Stroke(context.stroke),
+                    builder.StrokeWidth('3'),
+                    builder.StrokeLinecap('round'),
+                  ],
+                  [],
+                ),
+                builder.circle(
+                  [
+                    builder.Cx(String(pointer.x)),
+                    builder.Cy(String(pointer.y)),
+                    builder.R('6'),
+                    builder.Fill(context.stroke),
+                  ],
+                  [],
+                ),
+              ],
+            );
+          },
           edgeGeometry: (context) => {
             if (model.edgeDesign === 'raised') return raisedEdge(context);
             return undefined;

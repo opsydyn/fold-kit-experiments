@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for the node/group composition and shared edge geometry slices on
+Accepted for node/group composition, shared edge geometry and connection previews on
 2026-11-05 following user approval. The broader layering principle guides subsequent slices; arbitrary
 port geometry and complete overlay/control composition remain follow-on work.
 
@@ -209,3 +209,34 @@ source exports remain the authority. TypeDoc warnings fail the Flow docs build.
 The docs site, sample and Viz API provide discovery links. Updating the workflow
 prepares publication after merge; local generation does not deploy or publish npm
 packages. No new hosting service or runtime dependency is introduced.
+
+## Connection-preview composition
+
+The next approved slice exposes `resolveConnectionPreview` and a separate
+`FlowConnectionGeometryPolicy` in the pure core, plus `connectionGeometry` and
+`renderConnection` in the optional FoldKit view. Both preview and finished-edge
+policies accept logical source/target points and return the same geometry shape.
+Hosts can share a pure curve function without inventing graph edges or fake ports
+for free cursor positions. Existing-edge metadata is available only when
+reconnecting. Authored built-in path styles use a shared geometry helper.
+
+The reducer keeps accepted targets mutually exclusive with optional rejected
+endpoint/reason details. Hover and drop share direction, duplicate and host-policy
+validation. Native input reports any hovered port so wrong-direction ports can
+produce explicit feedback. Preview resolution reads this Model feedback without
+running the connection policy again. Canonical anchors, world-space cursor
+conversion and collapsed boundary projection stay in the package. Reconnecting
+a source draws from the moving output toward the fixed input.
+
+The SVG slot is decorative and uses the host builder; the package retains the
+pointer-inert preview layer and input lifetime. Undefined keeps the default wire;
+empty SVG omits its visual without changing validation or commit behavior.
+Invalid feedback also reaches the existing live status. No new runtime,
+persistence format, duplicate gesture store or DOM mutation is introduced.
+
+Alternatives rejected: reusing the complete-edge context with fabricated IDs,
+re-evaluating connection policy in the view, and copying private input bindings
+into the sample. Dedicated geometry/render hooks are smaller and preserve core
+ownership. Arbitrary port anchors and full controls/overlay composition remain
+follow-on work. Qualification includes pure and rendered tests, packed consumers,
+TypeDoc, and browser creation/reconnection/cancellation/Undo in both node designs.

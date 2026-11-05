@@ -24,6 +24,7 @@ import type {
   EditorOptions,
   EditorPolicy,
   EditorState,
+  ConnectionTarget,
   FlowGraph,
   FlowNode,
   FlowEdge,
@@ -459,15 +460,15 @@ function proposedEdge(graph: FlowGraph, source: Endpoint, target: Endpoint) {
   return { id: `edge:${index}`, source, target };
 }
 
-function reconnectionReason(
+function connectionReason(
   graph: FlowGraph,
   edge: FlowEdge,
-  end: 'source' | 'target',
   policy: EditorPolicy,
+  replacedId?: string,
 ) {
-  if (portKind(graph, edge[end]) !== (end === 'source' ? 'output' : 'input'))
+  if (portKind(graph, edge.source) !== 'output' || portKind(graph, edge.target) !== 'input')
     return 'Choose a compatible port.';
-  const remaining = graph.edges.filter((item) => item.id !== edge.id);
+  const remaining = graph.edges.filter((item) => item.id !== replacedId);
   if (
     remaining.some(
       (item) =>
@@ -743,38 +744,31 @@ export function updateEditor(
           gesture: { ...gesture, point: screenToWorld(event.point, state.viewport) },
         };
       if (gesture.type === 'connection-drag') {
-        if (gesture.reconnect) {
-          const { id, end } = gesture.reconnect;
-          const existing = state.graph.edges.find((edge) => edge.id === id);
-          const target =
-            event.target &&
-            existing &&
-            reconnectionReason(state.graph, { ...existing, [end]: event.target }, end, policy) ===
-              null
-              ? event.target
-              : null;
-          return { ...state, gesture: { ...gesture, point: event.point, target } };
-        }
-        const source = state.connection;
-        const target = event.target;
+        const existing =
+          gesture.reconnect && state.graph.edges.find((edge) => edge.id === gesture.reconnect?.id);
+        const candidate = event.target;
         const edge =
-          source && target && portKind(state.graph, target) === 'input'
-            ? proposedEdge(state.graph, source, target)
-            : null;
-        const duplicate =
-          edge &&
-          state.graph.edges.some(
-            (existing) =>
-              existing.source.node === edge.source.node &&
-              existing.source.port === edge.source.port &&
-              existing.target.node === edge.target.node &&
-              existing.target.port === edge.target.port,
-          );
-        const allowed =
-          edge && !duplicate && (policy.canConnect?.(edge, state.graph) ?? null) === null;
+          candidate && state.connection
+            ? existing && gesture.reconnect
+              ? { ...existing, [gesture.reconnect.end]: candidate }
+              : proposedEdge(state.graph, state.connection, candidate)
+            : undefined;
+        const reason = edge ? connectionReason(state.graph, edge, policy, existing?.id) : null;
+        const feedback: ConnectionTarget =
+          candidate && edge
+            ? reason === null
+              ? { target: candidate }
+              : { target: null, rejected: { endpoint: candidate, reason } }
+            : { target: null };
+        const { target: _target, rejected: _rejected, ...previous } = gesture;
         return {
           ...state,
-          gesture: { ...gesture, point: event.point, target: allowed ? edge.target : null },
+          gesture: { ...previous, point: event.point, ...feedback },
+          notice:
+            feedback.rejected?.reason ??
+            (feedback.target
+              ? 'Release to connect.'
+              : 'Drag to a compatible port. Escape cancels.'),
         };
       }
       const delta = { x: event.point.x - gesture.origin.x, y: event.point.y - gesture.origin.y };
@@ -1232,7 +1226,7 @@ export function updateEditor(
       if (previous.node === event.endpoint.node && previous.port === event.endpoint.port)
         return state;
       const edge = { ...existing, [event.end]: { ...event.endpoint } };
-      const reason = reconnectionReason(state.graph, edge, event.end, policy);
+      const reason = connectionReason(state.graph, edge, policy, edge.id);
       if (reason !== null) return { ...state, notice: reason };
       return {
         ...commitGraph(state, {
@@ -1245,18 +1239,8 @@ export function updateEditor(
     case 'ConnectionCreated': {
       const graph = { ...state.graph, edges: [...state.graph.edges, event.edge] };
       validateGraph(graph);
-      const reason = policy.canConnect?.(event.edge, state.graph) ?? null;
+      const reason = connectionReason(state.graph, event.edge, policy);
       if (reason !== null) return { ...state, notice: reason, connection: null };
-      if (
-        state.graph.edges.some(
-          (edge) =>
-            edge.source.node === event.edge.source.node &&
-            edge.source.port === event.edge.source.port &&
-            edge.target.node === event.edge.target.node &&
-            edge.target.port === event.edge.target.port,
-        )
-      )
-        return { ...state, notice: 'These ports are already connected', connection: null };
       return { ...commitGraph(state, copyGraph(graph)), notice: 'Connection created' };
     }
     case 'PortActivated': {

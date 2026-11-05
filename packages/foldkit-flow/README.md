@@ -695,8 +695,8 @@ transforms/overrides and out of `renderEdge` if it differs from the resolved pat
 No policy functions are stored in Model or serialized documents.
 
 The sample's **Edge design** selector demonstrates raised arcs in both node
-presentations. Arbitrary port anchors, custom connection-drag previews, obstacle
-avoidance and custom-route bounds for Fit view remain outside this contract.
+presentations. Arbitrary port anchors, obstacle avoidance and custom-route bounds for Fit view
+remain outside this contract. Connection-drag previews use the contract below.
 
 ## Generated API reference
 
@@ -713,3 +713,64 @@ explains Model ownership, composition and package boundaries.
 The Pages workflow builds the [Flow API reference](https://opsydyn.github.io/fold-kit-experiments/flow/api/).
 That route becomes available when the updated workflow reaches Pages; generating
 it locally does not publish the site or npm packages.
+
+### Connection-drag previews
+
+`resolveConnectionPreview(state, geometryPolicy?)` is a pure core helper. It
+returns no preview for idle state, keyboard-only port selection or read-only
+views. An active preview contains logical output-to-input `source`/`target`
+points in world units, the actual world `pointer`, nullable endpoint identities,
+`movingEnd`, projected `sourceGroup`/`targetGroup`, and the existing `edge` when
+reconnecting. New incomplete connections have no synthetic edge or fake port ID.
+
+`FlowConnectionFeedback` is a union: `free`, `valid` with an accepted endpoint,
+or `invalid` with a rejected endpoint and reason. Feedback comes from the same
+core validation used on drop, including direction, duplicate and host-policy
+checks. `Gesture.target` remains the accepted endpoint or null. Its optional
+`rejected` details are mutually exclusive with an accepted target.
+
+The view exposes two independent hooks:
+
+```ts
+import type {
+  FlowConnectionGeometryPolicy,
+  FlowEdgeGeometryPolicy,
+  Point,
+} from '@opsydyn/foldkit-flow';
+
+// Share one pure curve function across both policy contexts.
+const curve = ({ source, target }: { source: Point; target: Point }) => ({
+  path: `M${source.x},${source.y} Q${source.x},${target.y} ${target.x},${target.y}`,
+  labelPosition: undefined,
+});
+const edgeGeometry: FlowEdgeGeometryPolicy = curve;
+const connectionGeometry: FlowConnectionGeometryPolicy = curve;
+
+// flowView options alongside the host's normal id, label and onEvent:
+// edgeGeometry,
+// connectionGeometry,
+// renderConnection: (context, builder) => builder.path([
+//   builder.D(context.path), builder.Fill('none'),
+//   builder.Stroke(context.stroke), builder.StrokeWidth('5'),
+// ], []),
+```
+
+`connectionGeometry` returns the same geometry result shape as the finished-edge
+policy, or `undefined` for built-in geometry. Defaults are straight for new
+connections and follow authored path style during reconnection. Valid and
+rejected hovered ports use their canonical anchors; free space uses the cursor.
+Source reconnection keeps the logical output at the path start.
+
+`renderConnection` receives that geometry and core feedback plus default `stroke`,
+`strokeWidth` and `dashArray`. It owns decorative SVG through the host builder;
+return `undefined` for the default dashed wire, or empty SVG to omit the visual
+without disabling the interaction. The package owns pointer capture and the
+pointer-inert, hidden-from-assistive-technology preview layer. Preview SVG must
+stay decorative. Existing native port buttons retain keyboard operation.
+
+Default colors use `--flow-selection`, `--flow-valid-target` and
+`--flow-invalid-target`. Rejection reasons also reach the existing live status.
+Gesture data stays in Model; geometry is derived and callbacks remain host view
+configuration. Preview functions and styles are not serialized.
+The sample combines **Edge design** with **Connection preview** choices for
+dashed, ribbon and hidden presentation in both card and SVG node designs.

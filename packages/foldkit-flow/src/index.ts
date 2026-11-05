@@ -14,3 +14,10 @@ export type {
   FlowEdgeGeometryPolicy,
   FlowEdgeGeometryOptions,
 } from './edge-geometry';
+export { resolveConnectionPreview } from './connection-preview';
+export type {
+  FlowConnectionFeedback,
+  FlowConnectionPreviewContext,
+  FlowConnectionGeometryPolicy,
+  FlowConnectionPreview,
+} from './connection-preview';

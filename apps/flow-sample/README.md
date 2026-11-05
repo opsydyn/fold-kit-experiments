@@ -200,3 +200,9 @@ Use **Edge design** to compare default routing with raised arcs. The sample's
 pure geometry policy preserves explicit path styles and ELK routes. Path drawing,
 selection and label editing use the package's shared geometry result. See
 [edge geometry qualification](evidence/edge-geometry.md).
+
+The **Connection preview** selector offers dashed, ribbon and hidden visuals.
+Raised-arc previews reuse the finished-edge curve function. Core validation drives
+free/valid/rejected feedback, including duplicate and wrong-direction ports;
+hiding the visual keeps valid drops enabled. See
+[connection preview qualification](evidence/connection-preview.md).

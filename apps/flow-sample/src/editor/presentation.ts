@@ -199,14 +199,14 @@ export function orbitGroup(context: FlowNodeRenderContext, h: HtmlBuilder<Messag
   );
 }
 
-/** A pure geometry policy; visual paths, selection and label placement share its result. */
-export const raisedEdge: import('@opsydyn/foldkit-flow').FlowEdgeGeometryPolicy = ({
+/** One endpoint-only curve function serves finished edges and incomplete previews. */
+function raisedPath({
   source,
   target,
-  edge,
-  route,
-}) => {
-  if (edge.pathStyle !== undefined || route) return undefined;
+}: Readonly<{
+  source: import('@opsydyn/foldkit-flow').Point;
+  target: import('@opsydyn/foldkit-flow').Point;
+}>) {
   const control = { x: (source.x + target.x) / 2, y: Math.min(source.y, target.y) - 100 };
   return {
     path: `M${source.x},${source.y} Q${control.x},${control.y} ${target.x},${target.y}`,
@@ -215,4 +215,18 @@ export const raisedEdge: import('@opsydyn/foldkit-flow').FlowEdgeGeometryPolicy 
       y: (source.y + 2 * control.y + target.y) / 4,
     },
   };
+}
+
+/** Preserve explicit authored styles and layout routing for finished edges. */
+export const raisedEdge: import('@opsydyn/foldkit-flow').FlowEdgeGeometryPolicy = (context) => {
+  if (context.edge.pathStyle !== undefined || context.route) return undefined;
+  return raisedPath(context);
+};
+
+/** Reconnection drops invalidate layout routing; authored styles still use the built-in geometry. */
+export const raisedConnection: import('@opsydyn/foldkit-flow').FlowConnectionGeometryPolicy = (
+  context,
+) => {
+  if (context.edge?.pathStyle !== undefined) return undefined;
+  return raisedPath(context);
 };

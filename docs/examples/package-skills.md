@@ -26,7 +26,10 @@ retain it there. These starter assets intentionally carry no monorepo lockfile.
 | `skills/effect-three/assets/headless`         | `npm install`, `npm run check`, `npm test`                                                                                                                                              | Published effect-three 0.6.4, three 0.186.1, Effect 4.1.0; three Node tests (identity, release, atomic rejection); no browser or FoldKit           |
 | `skills/effect-three/assets/foldkit-scene.ts` | Typecheck beside `headless/src/scene.ts` (with the DOM lib) in a consumer with the four effect-three 0.6.4 packages, FoldKit 0.170.0, Effect 4.1.0 and `@effect/platform-browser` 4.1.0 | Compiled against the published packages; not rendered (it needs a WebGL2 browser)                                                                  |
 
-These checks were last run on 2026-11-05. They are not part of the
+These checks were last run on 2026-11-05. `bun run check` runs `tools/check-skills.ts`,
+which fails when an example pins a third-party version other than the root catalog's,
+or a SKILL.md names a version its examples don't install, and warns when an `@opsydyn/*`
+pin is behind the package. It reads versions only: re-run the examples when they change. They are not part of the
 root workspace test script: skill assets are outside the workspace globs, and
 the repository's normal lint/format configuration excludes `skills/**`.
 Re-run them when changing assets or supported package versions; explicitly

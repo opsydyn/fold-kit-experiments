@@ -73,6 +73,10 @@ group. `FlowConnectionsContext` carries the filtered edges and their selection,
 labels and available actions. Compose `flowConnectionButton` and
 `flowContextTrigger` for native interaction.
 
+`renderResizeReadout` replaces the badge content within Flow's positioned
+status region. `FlowResizeReadoutContext` carries the Model node, formatted
+dimensions, and resize phase. The effective measurements preference gates it.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

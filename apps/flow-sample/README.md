@@ -241,3 +241,8 @@ the edge panel adds Rename, and the group panel puts Width first.
 Choose **Connection list layout → Connection rows** for a list with endpoint
 names and selection styling. The rows also work inside the Connections
 disclosure in minimal mode. [Workbench screenshot](evidence/connection-rows.png)
+
+Choose **Resize readout → Labeled dimensions**, then drag a card resize handle
+or select an expanded group. The badge responds to the Measurements setting,
+the global diagnostics switch, and minimal mode.
+[Card resize](evidence/resize-readout-node.png) · [Group resize](evidence/resize-readout-group.png)

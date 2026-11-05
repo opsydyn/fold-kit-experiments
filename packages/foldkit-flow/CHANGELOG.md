@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add custom node and group resize readouts with Model dimensions and the
+  existing measurements diagnostics and live-region behavior.
+
 - Add Connections list composition with native selection and context buttons,
   shared keyboard shortcuts, and the existing compact disclosure.
 

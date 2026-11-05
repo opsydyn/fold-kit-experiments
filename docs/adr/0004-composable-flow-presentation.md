@@ -329,3 +329,11 @@ keeps the named group, compact disclosure, and selection state. The host
 composes native selection and context buttons inside its own layout. Keeping
 the disclosure in Flow gives the renderer the same behavior in standard,
 minimal, and read-only views without a second source of expansion state.
+
+### Resize readouts
+
+The readout hook replaces badge content inside Flow's positioned status
+region. It receives the current Model node, its formatted dimensions and
+whether it is being resized or shown as a selected group. The existing
+eligibility and measurement rules run before the hook so custom content
+shares the same diagnostics behavior.

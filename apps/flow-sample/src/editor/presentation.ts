@@ -15,6 +15,7 @@ import {
   flowContextTrigger,
   flowConnectionButton,
   type FlowConnectionsContext,
+  type FlowResizeReadoutContext,
   flowContextDimensionInput,
   type FlowContextAction,
   type FlowContextMenuContext,
@@ -601,5 +602,45 @@ export function connectionRows(context: FlowConnectionsContext, h: HtmlBuilder<M
         ],
       );
     }),
+  );
+}
+
+export function labeledResizeReadout(context: FlowResizeReadoutContext, h: HtmlBuilder<Message>) {
+  const dimension = (label: string, value: string) =>
+    h.span(
+      [
+        h.Style({
+          display: 'inline-flex',
+          gap: '4px',
+          background: '#fff7ed',
+          color: '#7c2d12',
+          padding: '3px 7px',
+          'border-radius': '5px',
+          'font-variant-numeric': 'tabular-nums',
+        }),
+      ],
+      [label, h.strong([], [value])],
+    );
+  return h.div(
+    [
+      h.Class('labeled-resize-readout'),
+      h.Style({
+        display: 'flex',
+        'align-items': 'center',
+        'flex-wrap': 'wrap',
+        gap: '6px',
+        padding: '5px 7px',
+        'border-radius': '9px',
+        background: context.phase === 'resizing' ? '#9a3412' : '#431407',
+        color: '#fff',
+        'font-size': '12px',
+        'box-shadow': '0 2px 8px #43140740',
+      }),
+    ],
+    [
+      h.strong([], [context.node.label]),
+      dimension('Width', context.widthText),
+      dimension('Height', context.heightText),
+    ],
   );
 }

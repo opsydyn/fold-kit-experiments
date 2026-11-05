@@ -122,6 +122,9 @@ export type PortAnchorPreset = typeof PortAnchorPreset.Type;
 export const ConnectionDesign = Schema.Literals(['dashed', 'ribbon', 'hidden']);
 export type ConnectionDesign = typeof ConnectionDesign.Type;
 
+export const ResizeReadoutDesign = Schema.Literals(['standard', 'labeled']);
+export type ResizeReadoutDesign = typeof ResizeReadoutDesign.Type;
+
 export const ConnectionListDesign = Schema.Literals(['standard', 'rows']);
 export type ConnectionListDesign = typeof ConnectionListDesign.Type;
 
@@ -169,6 +172,7 @@ export const Model = Schema.Struct({
     connectionList: Schema.Boolean,
   }),
   connectionDesign: ConnectionDesign,
+  resizeReadoutDesign: ResizeReadoutDesign,
   connectionListDesign: ConnectionListDesign,
   contextMenuDesign: ContextMenuDesign,
   edgeToolbarDesign: EdgeToolbarDesign,
@@ -189,6 +193,7 @@ export type Model = Readonly<{
   diagnosticsPanelOpen: boolean;
   diagnostics: FlowDiagnostics;
   connectionDesign: ConnectionDesign;
+  resizeReadoutDesign: ResizeReadoutDesign;
   connectionListDesign: ConnectionListDesign;
   contextMenuDesign: ContextMenuDesign;
   edgeToolbarDesign: EdgeToolbarDesign;
@@ -210,6 +215,7 @@ export const init = () => ({
     diagnosticsPanelOpen: false,
     diagnostics: resolveFlowDiagnostics({}),
     connectionDesign: 'dashed',
+    resizeReadoutDesign: 'standard',
     connectionListDesign: 'standard',
     contextMenuDesign: 'standard',
     edgeToolbarDesign: 'standard',

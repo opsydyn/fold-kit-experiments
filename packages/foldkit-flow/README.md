@@ -570,7 +570,21 @@ The FoldKit view shows a width × height readout in the canvas's lower-left corn
 during pointer resizing. With `resizeHandles: true`, it also stays visible for a
 single selected, expanded group so keyboard resizing has the same feedback.
 Card readouts are transient. Read-only views and collapsed/hidden groups omit it.
-Set `resizeReadout: false` to disable the built-in readout for a custom UI.
+Set `resizeReadout: false` to disable the readout. To replace its appearance,
+use `renderResizeReadout(context, h)` with the host's typed FoldKit builder.
+
+```ts
+renderResizeReadout: ({ node, widthText, heightText }, h) =>
+  h.div([h.Class('dimensions')], [
+    node.label + ' · Width ' + widthText + ' · Height ' + heightText,
+  ]),
+```
+
+The renderer receives the node with raw Model dimensions, the formatted
+values, and the `resizing` or `selected-group` phase. Flow keeps placement
+and the polite status region. Return `undefined` for the default badge or
+`null` to omit an eligible readout. The renderer runs only when the effective
+`measurements` diagnostic and the readout option allow it.
 
 Values come from the current Model in graph units, including snapping, limits,
 locked proportions and measured card height. Up to two decimal places are shown;

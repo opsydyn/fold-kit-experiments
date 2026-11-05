@@ -1,11 +1,11 @@
-import { expect, test } from 'bun:test';
+import { expect, mock, test } from 'bun:test';
 
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { flowView, resolveFlowDiagnostics, type FlowDiagnosticOptions } from '../src/foldkit';
+import { flowView, resolveFlowDiagnostics, type FlowViewOptions } from '../src/foldkit';
 import {
   createEditor,
   serializeGraph,
@@ -56,7 +56,7 @@ const initial = {
   surface: { width: 800, height: 440 },
 };
 
-async function render(state: EditorState, options: FlowDiagnosticOptions = {}) {
+async function render(state: EditorState, options: Partial<FlowViewOptions<EditorEvent>> = {}) {
   const result = await Effect.runPromise(
     renderToString(
       {
@@ -159,6 +159,48 @@ test('minimal mode removes overlays and numbers while retaining accessible help 
     (await render(opened, { minimalMode: true })).querySelector(
       'input[aria-label="Width of Group"]',
     ),
+  ).toBeNull();
+});
+
+test('custom resize readouts receive Model dimensions and stay behind the diagnostics gates', async () => {
+  const selected = updateEditor(initial, { type: 'NodeSelected', id: 'g', additive: false });
+  const active = updateEditor(selected, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    handle: 'right',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const options = {
+    renderResizeReadout: (context, h) =>
+      h.span(
+        [h.Class('custom-readout')],
+        [context.phase, context.widthText + ' by ' + context.heightText],
+      ),
+  } satisfies Partial<FlowViewOptions<EditorEvent>>;
+  const selector = '[data-flow-resize-readout="g"]';
+  const activeReadout = (await render(active, options)).querySelector(selector);
+  expect(activeReadout?.getAttribute('aria-live')).toBe('polite');
+  expect(activeReadout?.querySelector('.custom-readout')?.textContent).toBe('resizing400 by 200');
+  expect((await render(selected, options)).querySelector(selector)?.textContent).toBe(
+    'selected-group400 by 200',
+  );
+  for (const flags of [
+    { diagnostics: { measurements: false } },
+    { diagnostics: false },
+    { minimalMode: true },
+    { resizeReadout: false },
+  ] as const) {
+    const renderResizeReadout = mock(options.renderResizeReadout);
+    const document = await render(selected, { ...flags, renderResizeReadout });
+    expect(document.querySelector(selector)).toBeNull();
+    expect(renderResizeReadout).not.toHaveBeenCalled();
+  }
+  expect(
+    (await render({ ...selected, readOnly: true }, options)).querySelector(selector),
+  ).toBeNull();
+  expect(
+    (await render(selected, { renderResizeReadout: () => null })).querySelector(selector),
   ).toBeNull();
 });
 

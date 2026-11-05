@@ -154,6 +154,15 @@ export type FlowConnectionRenderContext = FlowConnectionPreview &
     dashArray: string;
   }>;
 
+/** Model dimensions for the current resize readout, before any view styling. */
+export type FlowResizeReadoutContext = Readonly<{
+  node: FlowNode;
+  phase: 'resizing' | 'selected-group';
+  /** Default formatting in graph units, rounded to two decimal places. */
+  widthText: string;
+  heightText: string;
+}>;
+
 export type FlowViewOptions<M> = FlowDiagnosticOptions &
   Readonly<{
     /** Unique within the document; prefixes accessible descriptions and SVG markers. */
@@ -221,6 +230,11 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     resizeHandles?: boolean;
     /** Show Model dimensions during resizing and for selected groups with handles. Defaults to true. */
     resizeReadout?: boolean;
+    /** Replaces the contents of an eligible readout. Undefined uses the default; null omits it. */
+    renderResizeReadout?: (
+      context: FlowResizeReadoutContext,
+      h: HtmlBuilder<M>,
+    ) => Html | null | undefined;
     minimap?: boolean;
     viewportControls?: boolean;
     /** Include a box selection toggle in the viewport controls. */
@@ -582,8 +596,15 @@ function resizeReadout<M>(
     (node) => node.id === id && (gesture.type === 'node-resize' || node.kind === 'group'),
   );
   if (!node || state.collapsedGroups.includes(node.id)) return [];
-  const width = String(Number(node.size.width.toFixed(2)));
-  const height = String(Number(node.size.height.toFixed(2)));
+  const context: FlowResizeReadoutContext = {
+    node,
+    phase: gesture.type === 'node-resize' ? 'resizing' : 'selected-group',
+    widthText: String(Number(node.size.width.toFixed(2))),
+    heightText: String(Number(node.size.height.toFixed(2))),
+  };
+  const { widthText, heightText } = context;
+  const content = options.renderResizeReadout?.(context, h);
+  if (content === null) return [];
   return [
     h.div(
       [
@@ -592,27 +613,37 @@ function resizeReadout<M>(
         h.Role('status'),
         h.AriaLive('polite'),
         h.AriaLabel(`${node.label} dimensions in graph units`),
-        h.Title(`${node.label}: ${width} × ${height} graph units`),
+        h.Title(`${node.label}: ${widthText} × ${heightText} graph units`),
         h.Style({
           position: 'absolute',
           left: '8px',
           bottom: '8px',
           'z-index': '2',
           'pointer-events': 'none',
-          padding: '6px 10px',
-          color: 'var(--flow-resize-readout-color, var(--flow-node-color, #172033))',
-          background: 'var(--flow-resize-readout-background, var(--flow-node-background, #fff))',
-          border: '1px solid var(--flow-node-border, #64748b)',
-          'border-radius': '6px',
-          'box-shadow': '0 1px 4px rgb(0 0 0 / 0.12)',
-          'font-size': '12px',
-          'font-weight': '600',
-          'font-variant-numeric': 'tabular-nums',
-          'line-height': '1.4',
-          'white-space': 'nowrap',
         }),
       ],
-      [`${width} × ${height}`],
+      [
+        content ??
+          h.div(
+            [
+              h.Style({
+                padding: '6px 10px',
+                color: 'var(--flow-resize-readout-color, var(--flow-node-color, #172033))',
+                background:
+                  'var(--flow-resize-readout-background, var(--flow-node-background, #fff))',
+                border: '1px solid var(--flow-node-border, #64748b)',
+                'border-radius': '6px',
+                'box-shadow': '0 1px 4px rgb(0 0 0 / 0.12)',
+                'font-size': '12px',
+                'font-weight': '600',
+                'font-variant-numeric': 'tabular-nums',
+                'line-height': '1.4',
+                'white-space': 'nowrap',
+              }),
+            ],
+            [`${widthText} × ${heightText}`],
+          ),
+      ],
     ),
   ];
 }

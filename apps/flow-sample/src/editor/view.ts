@@ -22,6 +22,7 @@ import {
   EdgeToolbarDesign,
   ContextMenuDesign,
   ConnectionListDesign,
+  ResizeReadoutDesign,
   NodeDesign,
   type Model,
 } from './model';
@@ -36,6 +37,7 @@ import {
   compactEdgeToolbar,
   customContextMenu,
   connectionRows,
+  labeledResizeReadout,
 } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
@@ -731,6 +733,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Resize readout',
+            h.select(
+              [
+                h.AriaLabel('Resize readout'),
+                h.Value(model.resizeReadoutDesign),
+                h.OnChange((value) =>
+                  Message.SelectedResizeReadoutDesign({
+                    resizeReadoutDesign: Schema.decodeUnknownSync(ResizeReadoutDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.resizeReadoutDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('labeled'), h.Selected(model.resizeReadoutDesign === 'labeled')],
+                  ['Labeled dimensions'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Connection preview',
             h.select(
               [
@@ -1001,6 +1031,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           renderEdgeToolbar: (context, builder) =>
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)
+              : undefined,
+          renderResizeReadout: (context, builder) =>
+            model.resizeReadoutDesign === 'labeled'
+              ? labeledResizeReadout(context, builder)
               : undefined,
           renderConnections: (context, builder) =>
             model.connectionListDesign === 'rows' ? connectionRows(context, builder) : undefined,

@@ -144,3 +144,11 @@ Side handles resize one axis when unlocked. With **Lock proportions**, dragging 
 side scales both dimensions around the perpendicular center. Arrow keys on a side
 handle affect its axis only; Shift keeps the larger step. All geometry is owned
 by the Flow package, including legacy corner-event compatibility.
+
+Use **Background** to choose dots, squares, custom graph paper, or no grid.
+Dots are the default. The custom example composes native FoldKit builder nodes
+using the viewport and package grid spacing; it has no external rendering state.
+Changing backgrounds leaves the diagram and Undo history intact. **Snap to grid**
+is independent: group resize edges use the 20-unit grid, with constraints and
+proportion locking taking precedence. Resize arrow keys step by 20 when snapping
+is enabled, or 80 with Shift.

@@ -1,3 +1,4 @@
+import { gridSpacing } from './geometry';
 import type { BrowserInput } from './input-message';
 import type { Endpoint, Point } from './types';
 
@@ -412,12 +413,14 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const groupResize = resizeHandle?.getAttribute('data-flow-resize');
     if (groupResize && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
       event.preventDefault();
+      const resizeStep =
+        element.dataset.flowGridSnap === 'true' ? gridSpacing * (event.shiftKey ? 4 : 1) : step;
       const input: BrowserInput = {
         type: 'GroupResizeNudged',
         id: groupResize,
         delta: {
-          x: event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0,
-          y: event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0,
+          x: event.key === 'ArrowLeft' ? -resizeStep : event.key === 'ArrowRight' ? resizeStep : 0,
+          y: event.key === 'ArrowUp' ? -resizeStep : event.key === 'ArrowDown' ? resizeStep : 0,
         },
       };
       const corner = cornerOf(resizeHandle);

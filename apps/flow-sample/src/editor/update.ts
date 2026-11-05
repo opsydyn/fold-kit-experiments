@@ -47,6 +47,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
+    SelectedBackground: ({ background }) => ({ model: { ...model, background } }),
     ClickedAdd: () => {
       let sequence = model.sequence + 1;
       while (model.editor.graph.nodes.some((node) => node.id === `step-${sequence}`)) sequence++;

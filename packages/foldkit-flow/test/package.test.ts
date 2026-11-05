@@ -62,17 +62,20 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       ],
       { ...options, cwd: directory },
     );
-    const source = `import { createEditor, layoutRequest, applyLayout, type FlowGraph } from '@opsydyn/foldkit-flow';
-import { flowView } from '@opsydyn/foldkit-flow/foldkit';
+    const source = `import { createEditor, layoutRequest, applyLayout, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
+import { flowView, type FlowBackground } from '@opsydyn/foldkit-flow/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-flow-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
+import type { HtmlBuilder } from 'foldkit/html';
 const graph: FlowGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[]}],edges:[]};
 const state=createEditor(graph);
 const request=layoutRequest(state,'consumer');
 const layout=await createElkLayout()(request);
 const arranged=applyLayout(state,request,layout);
-const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h)=>({title:'Consumer',body:flowView(h,model,{id:'external',label:'External graph',onEvent:event=>event})})},{flags:{},isHydratable:false}));
+const background:FlowBackground<EditorEvent>={type:'custom',render:(context,h)=>h.div([h.DataAttribute('packed-grid',context.id)],[String(context.spacing)])};
+const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:flowView(h,model,{id:'external',label:'External graph',background,onEvent:event=>event})})},{flags:{},isHydratable:false}));
+if (!result.html.includes('data-packed-grid="external"')) throw new Error('Missing packed custom grid');
 if (!result.html.includes('External graph')) throw new Error('Missing packed renderer output');
 console.log('packed-consumer-ok');
 `;

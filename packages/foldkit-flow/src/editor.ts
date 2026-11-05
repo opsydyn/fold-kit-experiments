@@ -62,6 +62,7 @@ function resizeGroup(
   id: string,
   delta: Point,
   handle: ResizeHandle = 'bottom-right',
+  snapToGrid = false,
 ): FlowGraph {
   const group = graph.nodes.find((node) => node.id === id && node.kind === 'group');
   if (!group || (delta.x === 0 && delta.y === 0)) return graph;
@@ -77,10 +78,13 @@ function resizeGroup(
   };
   const right = group.position.x + group.size.width;
   const bottom = group.position.y + group.size.height;
-  const growth = {
-    x: vertical ? 0 : left ? -delta.x : delta.x,
-    y: horizontal ? 0 : top ? -delta.y : delta.y,
-  };
+  const snapped = (edge: number, offset: number) =>
+    snapToGrid && offset !== 0
+      ? Math.round((edge + offset) / gridSpacing) * gridSpacing - edge
+      : offset;
+  const x = vertical ? 0 : snapped(left ? group.position.x : right, delta.x);
+  const y = horizontal ? 0 : snapped(top ? group.position.y : bottom, delta.y);
+  const growth = { x: left ? -x : x, y: top ? -y : y };
   if (growth.x === 0 && growth.y === 0) return graph;
   const included = withDescendants(graph, [id]);
   const contents = graph.nodes.filter((node) => node.id !== id && included.has(node.id));
@@ -761,6 +765,7 @@ export function updateEditor(
               y: delta.y / state.viewport.zoom,
             },
             gesture.handle ?? gesture.corner,
+            state.snapToGrid,
           );
           if (sameGeometry(state.graph, graph)) return state;
           return { ...state, graph, revision: state.revision + 1, routes: [] };
@@ -1056,7 +1061,13 @@ export function updateEditor(
       if (!node) return state;
       if (node.kind === 'group') {
         if (state.collapsedGroups.includes(node.id)) return state;
-        const graph = resizeGroup(state.graph, node.id, { x: event.width - node.size.width, y: 0 });
+        const graph = resizeGroup(
+          state.graph,
+          node.id,
+          { x: event.width - node.size.width, y: 0 },
+          'bottom-right',
+          state.snapToGrid,
+        );
         return graph === state.graph ? state : commitGraph(state, graph);
       }
       const width = Math.max(
@@ -1213,7 +1224,13 @@ export function updateEditor(
     case 'GroupResizeNudged': {
       if (state.collapsedGroups.includes(event.id)) return state;
       finitePoint(event.delta);
-      const graph = resizeGroup(state.graph, event.id, event.delta, event.handle ?? event.corner);
+      const graph = resizeGroup(
+        state.graph,
+        event.id,
+        event.delta,
+        event.handle ?? event.corner,
+        state.snapToGrid,
+      );
       return graph === state.graph
         ? state
         : { ...commitGraph(state, graph), notice: 'Group resized' };

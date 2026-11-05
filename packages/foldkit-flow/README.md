@@ -190,7 +190,8 @@ The opposite corner stays anchored and children keep their canvas positions. Shr
 plus 24 units of padding, with a minimum of 224 × 96 (or the starting dimensions
 when already tighter). Parent containment clamps
 growth unless `expandParent` enables ancestor expansion. Focus the handle and use
-arrow keys to adjust by 5 graph units, or Shift+Arrow by 20. Each keyboard action
+arrow keys to adjust by 5 graph units, or Shift+Arrow by 20. With grid snapping
+on, these steps are 20 and 80 respectively. Each keyboard action
 is one undo step; pointer drags commit once and Escape restores the original
 bounds. Hosts can dispatch `GroupResizeNudged` with an `id` and `{ x, y }` delta.
 Collapsed and read-only groups cannot be resized.
@@ -213,7 +214,7 @@ to the Flow variables. Pleat owns the host theme and style registration.
 
 | Part        | CSS variables                                                                             |
 | ----------- | ----------------------------------------------------------------------------------------- |
-| Canvas      | `--flow-background`, `--flow-canvas-border`                                               |
+| Canvas      | `--flow-background`, `--flow-canvas-border`, `--flow-grid-line`, `--flow-grid-dot`        |
 | Node        | `--flow-node-background`, `--flow-node-color`, `--flow-node-border`, `--flow-node-radius` |
 | Ports       | `--flow-input-port`, `--flow-output-port`, `--flow-port-border`, `--flow-control-color`   |
 | Edges       | `--flow-edge`, `--flow-edge-width`                                                        |
@@ -278,8 +279,12 @@ available in read-only views and work with standard button keyboard input.
 Enable `snapToGrid` in editor options or send `GridSnapToggled` to toggle
 a 20-unit canvas grid. While dragging, the grabbed node snaps to the grid and
 the rest of the selection follows by the same offset, including group contents.
-The grid follows pan and zoom. The setting is session state and each completed
-drag is one undo step.
+Group resize handles and width edits snap the moving boundary in canvas units,
+including top/left boundaries and side handles. Size limits, content and parent
+constraints, and locked proportions take precedence when a grid intersection
+cannot satisfy them. Resizing preserves fixed children and its opposite anchor.
+The setting is session state and each completed drag is one undo step.
+Background appearance is configured separately and follows pan and zoom.
 
 Copy, Paste, and Duplicate work from canvas focus with Ctrl/Cmd+C, V, and D.
 Enable `snapToAlignment` or send `AlignmentSnapToggled` to align the dragged
@@ -387,3 +392,45 @@ Side handles ignore perpendicular pointer movement and keyboard arrows. With
 proportions locked, the dragged axis drives both dimensions and the perpendicular
 center stays fixed. Limits, content padding and parent bounds apply to the full
 result, including the centered dimension. A conflicting intersection is a no-op.
+
+### Background grids
+
+`flowView` defaults to dots even when snapping is off. Built-in backgrounds accept
+positive finite `gap` (graph units) and `size` (dot radius or square line width),
+plus a CSS `color`. Both defaults are `gap: 20, size: 1`. Visual gap is independent
+of the editor's 20-unit snap spacing. Use `{ type: 'none' }` for a plain canvas.
+
+```ts
+flowView(h, model.editor, {
+  id: 'workflow',
+  label: 'Workflow',
+  onEvent: (message) => Message.ObservedFlowInput({ message }),
+  background: { type: 'squares', gap: 20, size: 1, color: 'var(--grid-color)' },
+});
+```
+
+For a custom layout, use `{ type: 'custom', render }`. The callback receives
+`{ id, viewport, surface, spacing }` and the host's typed `HtmlBuilder`. `surface`
+can be `null` before measurement. Return ordinary FoldKit HTML/SVG; keep it
+decorative. Flow places it behind the graph in a non-interactive, aria-hidden
+screen-space layer. Apply the supplied viewport when drawing canvas-space grids.
+No browser mutation, effects, or second UI runtime is needed.
+
+```ts
+background: {
+  type: 'custom',
+  render: ({ viewport, spacing }, builder) => builder.div([
+    builder.Style({
+      position: 'absolute', inset: '0',
+      'background-image': 'radial-gradient(circle, #64748b 1px, transparent 1px)',
+      'background-size': `${spacing * viewport.zoom}px ${spacing * viewport.zoom}px`,
+      'background-position': `${viewport.x - spacing * viewport.zoom / 2}px ${viewport.y - spacing * viewport.zoom / 2}px`,
+    }),
+  ], []),
+}
+```
+
+`FlowBackground<Message>` and `FlowBackgroundRenderContext` are exported from
+`@opsydyn/foldkit-flow/foldkit`. Background selection belongs to the host Model;
+it never changes the graph or Undo history. The sample demonstrates dots,
+squares, a composed custom graph-paper renderer, and no grid.

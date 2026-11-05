@@ -2,10 +2,10 @@ import { Option } from 'effect';
 import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
+import { backgroundView, type FlowBackground } from './background';
 import {
   boxBounds,
   edgeGeometry,
-  gridSpacing,
   groupBoundaryPoint,
   maximumZoom,
   minimapGeometry,
@@ -15,6 +15,7 @@ import {
 } from './geometry';
 import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
 import { FlowInput } from './mount';
+export type { FlowBackground, FlowBackgroundRenderContext } from './background';
 import type {
   EdgePathStyle,
   EditorEvent,
@@ -69,6 +70,8 @@ export type FlowViewOptions<M> = Readonly<{
   /** Include a box selection toggle in the viewport controls. */
   selectionModeControl?: boolean;
   height?: number;
+  /** Decorative background, independent of snapping. Defaults to dots. */
+  background?: FlowBackground<M>;
 }>;
 const resizeHandles: readonly ResizeHandle[] = [
   'top-left',
@@ -80,10 +83,11 @@ const resizeHandles: readonly ResizeHandle[] = [
   'bottom',
   'left',
 ];
-function groupResizeTitle(node: FlowNode): string {
+function groupResizeTitle(node: FlowNode, snapToGrid: boolean): string {
+  const step = snapToGrid ? '20, Shift by 80' : '5, Shift by 20';
   return node.keepAspectRatio
-    ? 'Drag to resize with locked proportions; arrow keys adjust by 5, Shift by 20'
-    : 'Drag to resize; arrow keys adjust by 5, Shift by 20';
+    ? `Drag to resize with locked proportions; arrow keys adjust by ${step}`
+    : `Drag to resize; arrow keys adjust by ${step}`;
 }
 function contextPanel<M>(h: HtmlBuilder<M>, state: EditorState, options: FlowViewOptions<M>) {
   const context = state.context;
@@ -470,7 +474,7 @@ export function flowView<M>(
                   ...(handle.includes('-') ? [h.DataAttribute('flow-resize-corner', handle)] : []),
                   h.DataAttribute('flow-group-resize', ''),
                   h.AriaLabel(`Resize ${node.label} from ${handle.replaceAll('-', ' ')}`),
-                  h.Title(groupResizeTitle(node)),
+                  h.Title(groupResizeTitle(node, state.snapToGrid)),
                   h.Style({
                     position: 'absolute',
                     ...(handle === 'top' || handle === 'bottom'
@@ -856,6 +860,7 @@ export function flowView<M>(
           h.Key('surface'),
           h.DataAttribute('flow-surface', options.id),
           h.DataAttribute('flow-readonly', String(state.readOnly)),
+          h.DataAttribute('flow-grid-snap', String(state.snapToGrid)),
           h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
           h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
           h.DataAttribute('flow-selection-mode', String(state.selectionMode)),
@@ -873,17 +878,12 @@ export function flowView<M>(
             'touch-action': 'none',
             cursor: state.selectionMode ? 'crosshair' : 'inherit',
             'background-color': 'var(--flow-background, #eef2f6)',
-            'background-image': state.snapToGrid
-              ? 'linear-gradient(to right, var(--flow-grid-line, #94a3b855) 1px, transparent 1px), linear-gradient(to bottom, var(--flow-grid-line, #94a3b855) 1px, transparent 1px)'
-              : 'none',
-            'background-size': `${gridSpacing * state.viewport.zoom}px ${gridSpacing * state.viewport.zoom}px`,
-            'background-position': `${state.viewport.x}px ${state.viewport.y}px`,
-            'background-origin': 'padding-box',
             border: '1px solid var(--flow-canvas-border, #94a3b8)',
             'border-radius': '10px',
           }),
         ],
         [
+          ...backgroundView(h, state, options.id, options.background),
           h.div(
             [
               h.Style({

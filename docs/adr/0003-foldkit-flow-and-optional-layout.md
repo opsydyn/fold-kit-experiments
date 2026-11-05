@@ -210,3 +210,19 @@ This follows standard side-handle behavior while preserving authored children.
 All eight handles share the same reducer, snapshot, cancellation and history
 paths. Tests cover zoom, axis filtering, centered constraints, expansion and Undo;
 the sample exercises the package view without new editing logic.
+
+Group resize snapping uses the existing 20-unit grid on the moving canvas edge,
+after input coordinates are converted by zoom. Masked side axes remain untouched.
+Content/parent bounds and aspect locking take precedence over exact grid alignment.
+The input adapter reads the Model's snap flag from the existing surface boundary
+and uses grid-sized keyboard steps to avoid keys rounding back to the same edge.
+Snapping retains the gesture snapshot and single graph transaction.
+
+Backgrounds are an independent FoldKit view contract: dots by default, squares,
+none, or a custom render callback using the host HtmlBuilder and viewport/surface
+context. Built-ins support visual gap, mark size and CSS color; visual gap does
+not alter snap math. The callback returns declarative HTML/SVG into a decorative
+screen-space layer rather than mutating DOM or maintaining another state owner.
+The Astro host stores only its presentation choice. Package SSR and packed-consumer
+checks cover defaults, custom-builder composition and public types; core/browser
+checks cover snapped resizing, pan/zoom, constraints, cancellation and Undo.

@@ -1767,3 +1767,124 @@ test('side resizing protects centered contents, honors limits and expands parent
   expect(large.past).toHaveLength(1);
   expect(updateEditor(large, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
 });
+
+test('resize snapping targets moving edges in canvas coordinates at zoom', () => {
+  const initial = createEditor(
+    {
+      nodes: [
+        {
+          id: 'g',
+          label: 'Group',
+          kind: 'group',
+          ports: [],
+          position: { x: 103, y: 107 },
+          size: { width: 402, height: 302 },
+        },
+      ],
+      edges: [],
+    },
+    { snapToGrid: true, viewport: { x: 30, y: 40, zoom: 2 } },
+  );
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const preview = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 14, y: 16 },
+  });
+  expect(preview.graph.nodes[0]?.position).toEqual({ x: 103, y: 107 });
+  expect(preview.graph.nodes[0]?.size).toEqual({ width: 417, height: 313 });
+  const released = updateEditor(preview, { type: 'PointerReleased', pointer: 1 });
+  expect(released.past).toHaveLength(1);
+  expect(updateEditor(released, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  expect(updateEditor(preview, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
+  const left = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'top-left',
+    delta: { x: 7, y: 8 },
+  });
+  expect(left.graph.nodes[0]?.position).toEqual({ x: 120, y: 120 });
+  expect(left.graph.nodes[0]?.size).toEqual({ width: 385, height: 289 });
+  const side = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'right',
+    delta: { x: 7, y: 999 },
+  });
+  expect(side.graph.nodes[0]?.size).toEqual({ width: 417, height: 302 });
+  expect(
+    updateEditor(initial, { type: 'NodeWidthChanged', id: 'g', width: 411 }).graph.nodes[0]?.size
+      .width,
+  ).toBe(417);
+});
+
+test('resize limits and locked proportions take precedence over the snap grid', () => {
+  const initial = createEditor(
+    {
+      nodes: [
+        {
+          id: 'g',
+          label: 'Group',
+          kind: 'group',
+          ports: [],
+          position: { x: 100, y: 100 },
+          size: { width: 400, height: 200 },
+          keepAspectRatio: true,
+        },
+      ],
+      edges: [],
+    },
+    { snapToGrid: true },
+  );
+  const right = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'right',
+    delta: { x: 13, y: 0 },
+  });
+  expect(right.graph.nodes[0]?.size).toEqual({ width: 420, height: 210 });
+  expect(right.graph.nodes[0]?.position).toEqual({ x: 100, y: 95 });
+  const limited = createEditor(
+    {
+      nodes: [
+        {
+          ...initial.graph.nodes[0],
+          id: 'g',
+          label: 'Group',
+          ports: [],
+          position: { x: 100, y: 100 },
+          size: { width: 400, height: 200 },
+          resizeLimits: { maxHeight: 205 },
+        },
+      ],
+      edges: [],
+    },
+    { snapToGrid: true },
+  );
+  const capped = updateEditor(limited, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'right',
+    delta: { x: 100, y: 0 },
+  });
+  expect(capped.graph.nodes[0]?.size.width).toBeCloseTo(410, 10);
+  expect(capped.graph.nodes[0]?.size.height).toBeCloseTo(205, 10);
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const unchanged = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 3, y: 0 },
+  });
+  expect(unchanged.graph).toEqual(initial.graph);
+  expect(updateEditor(unchanged, { type: 'PointerReleased', pointer: 1 }).past).toHaveLength(0);
+});

@@ -89,5 +89,22 @@ test('group resize keyboard arrows emit dimensions rather than moving the select
     handle: 'left',
     delta: { x: -5, y: 0 },
   });
+  element.dataset.flowGridSnap = 'true';
+  handle?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+  expect(events.at(-1)).toEqual({
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'left',
+    delta: { x: -20, y: 0 },
+  });
+  handle?.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true, bubbles: true }),
+  );
+  expect(events.at(-1)).toEqual({
+    type: 'GroupResizeNudged',
+    id: 'g',
+    handle: 'left',
+    delta: { x: -80, y: 0 },
+  });
   release();
 });

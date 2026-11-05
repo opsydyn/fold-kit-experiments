@@ -115,7 +115,11 @@ export const groupedOnionGraph: FlowGraph = {
   ],
 };
 
+export const BackgroundStyle = Schema.Literals(['dots', 'squares', 'custom', 'none']);
+export type BackgroundStyle = typeof BackgroundStyle.Type;
+
 export const Model = Schema.Struct({
+  background: BackgroundStyle,
   editor: Schema.Unknown,
   active: Schema.NullOr(Schema.Unknown),
   importing: Schema.NullOr(Schema.Struct({ id: Schema.Number, revision: Schema.Number })),
@@ -123,6 +127,7 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  background: BackgroundStyle;
   editor: EditorState;
   active: LayoutRequest | null;
   importing: Readonly<{ id: number; revision: number }> | null;
@@ -131,6 +136,7 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    background: 'dots',
     editor: createEditor(initialGraph, { snapToAlignment: true }),
     active: null,
     importing: null,

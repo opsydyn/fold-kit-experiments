@@ -1,10 +1,11 @@
 import type { EdgePathStyle, FlowEdge } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
-import { flowView } from '@opsydyn/foldkit-flow/foldkit';
+import { flowView, type FlowBackground } from '@opsydyn/foldkit-flow/foldkit';
+import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
-import type { Model } from './model';
+import { BackgroundStyle, type Model } from './model';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -24,6 +25,44 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ],
       [label],
     );
+  const background: FlowBackground<Message> =
+    model.background === 'custom'
+      ? {
+          type: 'custom',
+          render: ({ viewport, spacing }, builder) => {
+            const pitch = spacing * viewport.zoom;
+            const position = `${viewport.x}px ${viewport.y}px`;
+            return builder.div(
+              [
+                builder.DataAttribute('custom-flow-grid', 'graph-paper'),
+                builder.Style({
+                  position: 'absolute',
+                  inset: '0',
+                  'background-image':
+                    'linear-gradient(to right, #94a3b833 1px, transparent 1px), linear-gradient(to bottom, #94a3b833 1px, transparent 1px)',
+                  'background-size': `${pitch}px ${pitch}px`,
+                  'background-position': position,
+                }),
+              ],
+              [
+                builder.div(
+                  [
+                    builder.Style({
+                      position: 'absolute',
+                      inset: '0',
+                      'background-image':
+                        'linear-gradient(to right, #64748b66 1px, transparent 1px), linear-gradient(to bottom, #64748b66 1px, transparent 1px)',
+                      'background-size': `${pitch * 5}px ${pitch * 5}px`,
+                      'background-position': position,
+                    }),
+                  ],
+                  [],
+                ),
+              ],
+            );
+          },
+        }
+      : { type: model.background };
   const selectedNode =
     model.editor.selectedNodes.length === 1
       ? model.editor.graph.nodes.find((node) => node.id === model.editor.selectedNodes[0])
@@ -139,6 +178,33 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.OnClick(Message.ObservedFlowInput({ message: { type: 'AlignmentSnapToggled' } })),
               ],
               ['Snap to nodes'],
+            ),
+            h.label(
+              [],
+              [
+                'Background ',
+                h.select(
+                  [
+                    h.AriaLabel('Background style'),
+                    h.Value(model.background),
+                    h.OnChange((value) =>
+                      Message.SelectedBackground({
+                        background: Schema.decodeUnknownSync(BackgroundStyle)(value),
+                      }),
+                    ),
+                  ],
+                  (
+                    [
+                      ['dots', 'Dots'],
+                      ['squares', 'Squares'],
+                      ['custom', 'Custom graph paper'],
+                      ['none', 'None'],
+                    ] as const
+                  ).map(([value, label]) =>
+                    h.option([h.Value(value), h.Selected(model.background === value)], [label]),
+                  ),
+                ),
+              ],
             ),
             button('Arrange with ELK', Message.ClickedArrange({ engine: 'elk' })),
             button(
@@ -296,6 +362,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           : []),
         flowView(h, model.editor, {
           id: 'flow-demo',
+          background,
           themeClassName: 'release-flow-theme',
           edgeToolbar: true,
           contextActions: true,

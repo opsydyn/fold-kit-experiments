@@ -564,6 +564,26 @@ target. Guides live in the resize gesture, clear when leaving the target, and
 vanish on release or Escape. A completed resize remains one Undo step. The
 FoldKit renderer draws them using the existing `--flow-alignment-guide` token.
 
+Use `renderAlignmentGuide(context, h)` to replace the decorative SVG for
+either drag or resize guides. The context provides the resolved guide,
+`start` and `end` in graph coordinates, the gesture phase, and the viewport.
+Use the supplied endpoints so the decoration follows the snap result.
+
+```ts
+renderAlignmentGuide: ({ start, end }, h) =>
+  h.line([
+    h.X1(String(start.x)), h.Y1(String(start.y)),
+    h.X2(String(end.x)), h.Y2(String(end.y)),
+    h.Stroke('#0f766e'), h.StrokeWidth('2'),
+    h.Style({ 'vector-effect': 'non-scaling-stroke' }),
+  ], []),
+```
+
+Return `undefined` for the default dashed guide or `null` to omit it.
+Flow calls the hook only for resolved guides when the effective
+`alignmentGuides` diagnostic is enabled. Guide visibility is independent
+of snapping.
+
 ### Live resize dimensions
 
 The FoldKit view shows a width × height readout in the canvas's lower-left corner

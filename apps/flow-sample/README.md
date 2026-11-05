@@ -246,3 +246,9 @@ Choose **Resize readout → Labeled dimensions**, then drag a card resize handle
 or select an expanded group. The badge responds to the Measurements setting,
 the global diagnostics switch, and minimal mode.
 [Card resize](evidence/resize-readout-node.png) · [Group resize](evidence/resize-readout-group.png)
+
+Choose **Alignment guide design → Solid with endpoints** with **Snap to nodes**
+enabled. In the release example, drag Review upward until it aligns with
+Draft. In grouped Onion Architecture, drag the Application core's left
+resize handle toward the right edge of UI adapter.
+[Drag guide](evidence/alignment-guide-drag.png) · [Resize guide](evidence/alignment-guide-resize.png)

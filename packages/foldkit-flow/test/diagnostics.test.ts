@@ -162,6 +162,51 @@ test('minimal mode removes overlays and numbers while retaining accessible help 
   ).toBeNull();
 });
 
+test('custom alignment guides receive resolved resize endpoints and respect diagnostics', async () => {
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    handle: 'right',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const active = updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: 101, y: 0 } });
+  const renderer = mock<NonNullable<FlowViewOptions<EditorEvent>['renderAlignmentGuide']>>(
+    ({ phase, start, end }, h) =>
+      h.line(
+        [
+          h.DataAttribute('guide-phase', phase),
+          h.X1(String(start.x)),
+          h.Y1(String(start.y)),
+          h.X2(String(end.x)),
+          h.Y2(String(end.y)),
+        ],
+        [],
+      ),
+  );
+  const document = await render(active, { renderAlignmentGuide: renderer });
+  const line = document.querySelector(
+    '[data-flow-alignment-guide="x"] [data-guide-phase="resize"]',
+  );
+  expect(line?.getAttribute('x1')).toBe('603');
+  expect(line?.getAttribute('x2')).toBe('603');
+  expect(line?.getAttribute('y1')).toBe('100');
+  expect(line?.getAttribute('y2')).toBe('300');
+  expect(line?.closest('svg')?.getAttribute('aria-hidden')).toBe('true');
+  for (const flags of [
+    { diagnostics: { alignmentGuides: false } },
+    { diagnostics: false },
+    { minimalMode: true },
+  ] as const) {
+    renderer.mockClear();
+    const quiet = await render(active, { ...flags, renderAlignmentGuide: renderer });
+    expect(quiet.querySelector('[data-flow-alignment-guide]')).toBeNull();
+    expect(renderer).not.toHaveBeenCalled();
+  }
+  const omitted = await render(active, { renderAlignmentGuide: () => null });
+  expect(omitted.querySelector('[data-flow-alignment-guide]')).toBeNull();
+});
+
 test('custom resize readouts receive Model dimensions and stay behind the diagnostics gates', async () => {
   const selected = updateEditor(initial, { type: 'NodeSelected', id: 'g', additive: false });
   const active = updateEditor(selected, {

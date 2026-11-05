@@ -126,6 +126,7 @@ import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presen
 import { FlowInput } from './mount';
 export type { FlowBackground, FlowBackgroundRenderContext } from './background';
 import type {
+  AlignmentGuide,
   EditorEvent,
   EditorState,
   FlowEdge,
@@ -161,6 +162,15 @@ export type FlowResizeReadoutContext = Readonly<{
   /** Default formatting in graph units, rounded to two decimal places. */
   widthText: string;
   heightText: string;
+}>;
+
+/** A resolved snap guide and its endpoints in the canvas world coordinate space. */
+export type FlowAlignmentGuideContext = Readonly<{
+  guide: AlignmentGuide;
+  start: Point;
+  end: Point;
+  phase: 'drag' | 'resize';
+  viewport: Viewport;
 }>;
 
 export type FlowViewOptions<M> = FlowDiagnosticOptions &
@@ -230,6 +240,11 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     resizeHandles?: boolean;
     /** Show Model dimensions during resizing and for selected groups with handles. Defaults to true. */
     resizeReadout?: boolean;
+    /** Decorative SVG for a resolved guide. Undefined uses the default; null omits that guide. */
+    renderAlignmentGuide?: (
+      context: FlowAlignmentGuideContext,
+      h: HtmlBuilder<M>,
+    ) => Html | null | undefined;
     /** Replaces the contents of an eligible readout. Undefined uses the default; null omits it. */
     renderResizeReadout?: (
       context: FlowResizeReadoutContext,
@@ -577,6 +592,47 @@ function edgeToolbarFrame<M>(h: HtmlBuilder<M>, anchor: Point, id: string, conte
   );
 }
 
+function alignmentGuideViews<M>(
+  h: HtmlBuilder<M>,
+  state: EditorState,
+  options: FlowViewOptions<M>,
+  diagnostics: FlowDiagnostics,
+): readonly Html[] {
+  const { gesture, viewport } = state;
+  if (
+    !diagnostics.alignmentGuides ||
+    (gesture.type !== 'node-drag' && gesture.type !== 'node-resize')
+  )
+    return [];
+  return (gesture.guides ?? []).flatMap((guide) => {
+    const { axis, position, from, to } = guide;
+    const start = axis === 'x' ? { x: position, y: from } : { x: from, y: position };
+    const end = axis === 'x' ? { x: position, y: to } : { x: to, y: position };
+    const phase = gesture.type === 'node-drag' ? 'drag' : 'resize';
+    const custom = options.renderAlignmentGuide?.({ guide, start, end, phase, viewport }, h);
+    if (custom === null) return [];
+    const attributes = [h.Key(`alignment:${axis}`), h.DataAttribute('flow-alignment-guide', axis)];
+    if (custom !== undefined)
+      return [h.g([...attributes, h.Style({ 'pointer-events': 'none' })], [custom])];
+    return [
+      h.line(
+        [
+          ...attributes,
+          h.X1(String(start.x)),
+          h.Y1(String(start.y)),
+          h.X2(String(end.x)),
+          h.Y2(String(end.y)),
+          h.Stroke('var(--flow-alignment-guide, #7c3aed)'),
+          h.StrokeWidth('2'),
+          h.StrokeDasharray('5 3'),
+          h.Style({ 'vector-effect': 'non-scaling-stroke' }),
+        ],
+        [],
+      ),
+    ];
+  });
+}
+
 function resizeReadout<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
@@ -703,13 +759,6 @@ export function flowView<M>(
   );
   const minimap = options.minimap && diagnostics.overview ? minimapContext(state) : undefined;
   const descriptionId = `${options.id}-help`;
-  const alignmentGuides = !diagnostics.alignmentGuides
-    ? []
-    : state.gesture.type === 'node-drag'
-      ? state.gesture.guides
-      : state.gesture.type === 'node-resize'
-        ? (state.gesture.guides ?? [])
-        : [];
   const transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.zoom})`;
   const drag = state.gesture.type === 'connection-drag' ? state.gesture : null;
   const preview = resolveConnectionPreview(state, options.connectionGeometry);
@@ -1361,23 +1410,7 @@ export function flowView<M>(
                     ],
                   ),
                   ...edges,
-                  ...alignmentGuides.map(({ axis, position, from, to }) =>
-                    h.line(
-                      [
-                        h.Key(`alignment:${axis}`),
-                        h.DataAttribute('flow-alignment-guide', axis),
-                        h.X1(String(axis === 'x' ? position : from)),
-                        h.X2(String(axis === 'x' ? position : to)),
-                        h.Y1(String(axis === 'y' ? position : from)),
-                        h.Y2(String(axis === 'y' ? position : to)),
-                        h.Stroke('var(--flow-alignment-guide, #7c3aed)'),
-                        h.StrokeWidth('2'),
-                        h.StrokeDasharray('5 3'),
-                        h.Style({ 'vector-effect': 'non-scaling-stroke' }),
-                      ],
-                      [],
-                    ),
-                  ),
+                  ...alignmentGuideViews(h, state, options, diagnostics),
                   ...handles,
                   ...(previewView ? [previewView] : []),
                 ],

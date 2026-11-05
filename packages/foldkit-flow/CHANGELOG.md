@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add custom alignment guide SVG for dragging and resizing using the core's
+  resolved endpoints and the existing alignment diagnostics.
+
 - Add custom node and group resize readouts with Model dimensions and the
   existing measurements diagnostics and live-region behavior.
 

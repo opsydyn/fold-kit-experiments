@@ -77,6 +77,10 @@ labels and available actions. Compose `flowConnectionButton` and
 status region. `FlowResizeReadoutContext` carries the Model node, formatted
 dimensions, and resize phase. The effective measurements preference gates it.
 
+`renderAlignmentGuide` replaces the SVG for an eligible snap guide.
+`FlowAlignmentGuideContext` provides world endpoints, gesture phase, and
+viewport for screen-size styling. Effective diagnostics gate the hook.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

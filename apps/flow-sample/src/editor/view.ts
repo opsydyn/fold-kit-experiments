@@ -23,6 +23,7 @@ import {
   ContextMenuDesign,
   ConnectionListDesign,
   ResizeReadoutDesign,
+  AlignmentGuideDesign,
   NodeDesign,
   type Model,
 } from './model';
@@ -38,6 +39,7 @@ import {
   customContextMenu,
   connectionRows,
   labeledResizeReadout,
+  endpointAlignmentGuide,
 } from './presentation';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
@@ -761,6 +763,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Alignment guide design',
+            h.select(
+              [
+                h.AriaLabel('Alignment guide design'),
+                h.Value(model.alignmentGuideDesign),
+                h.OnChange((value) =>
+                  Message.SelectedAlignmentGuideDesign({
+                    alignmentGuideDesign: Schema.decodeUnknownSync(AlignmentGuideDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('standard'), h.Selected(model.alignmentGuideDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('endpoints'), h.Selected(model.alignmentGuideDesign === 'endpoints')],
+                  ['Solid with endpoints'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Connection preview',
             h.select(
               [
@@ -1031,6 +1061,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           renderEdgeToolbar: (context, builder) =>
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)
+              : undefined,
+          renderAlignmentGuide: (context, builder) =>
+            model.alignmentGuideDesign === 'endpoints'
+              ? endpointAlignmentGuide(context, builder)
               : undefined,
           renderResizeReadout: (context, builder) =>
             model.resizeReadoutDesign === 'labeled'

@@ -16,6 +16,7 @@ import {
   flowConnectionButton,
   type FlowConnectionsContext,
   type FlowResizeReadoutContext,
+  type FlowAlignmentGuideContext,
   flowContextDimensionInput,
   type FlowContextAction,
   type FlowContextMenuContext,
@@ -641,6 +642,38 @@ export function labeledResizeReadout(context: FlowResizeReadoutContext, h: HtmlB
       h.strong([], [context.node.label]),
       dimension('Width', context.widthText),
       dimension('Height', context.heightText),
+    ],
+  );
+}
+
+export function endpointAlignmentGuide(
+  context: FlowAlignmentGuideContext,
+  h: HtmlBuilder<Message>,
+) {
+  const { start, end, phase, viewport } = context;
+  const color = phase === 'drag' ? '#0f766e' : '#be185d';
+  const dot = (point: Point) =>
+    h.circle(
+      [h.Cx(String(point.x)), h.Cy(String(point.y)), h.R(String(4 / viewport.zoom)), h.Fill(color)],
+      [],
+    );
+  return h.g(
+    [h.Class('endpoint-alignment-guide'), h.DataAttribute('guide-phase', phase)],
+    [
+      h.line(
+        [
+          h.X1(String(start.x)),
+          h.Y1(String(start.y)),
+          h.X2(String(end.x)),
+          h.Y2(String(end.y)),
+          h.Stroke(color),
+          h.StrokeWidth('2'),
+          h.Style({ 'vector-effect': 'non-scaling-stroke' }),
+        ],
+        [],
+      ),
+      dot(start),
+      dot(end),
     ],
   );
 }

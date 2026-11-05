@@ -337,3 +337,10 @@ region. It receives the current Model node, its formatted dimensions and
 whether it is being resized or shown as a selected group. The existing
 eligibility and measurement rules run before the hook so custom content
 shares the same diagnostics behavior.
+
+### Alignment guides
+
+The guide hook renders decorative SVG in the existing world layer. The
+package passes resolved endpoints and viewport without asking the host to
+recompute snapping. Effective alignment diagnostics run before the hook,
+and the core still owns which guides are active.

@@ -44,6 +44,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
   return {
     graph: copyGraph(graph),
     context: null,
+    connectionsExpanded: false,
     clipboard: null,
     collapsedGroups: [],
     edgeLabelDraft: null,
@@ -579,6 +580,9 @@ export function updateEditor(
       const clipboard = selectedFragment(state);
       return { ...state, clipboard, notice: `${clipboard.nodes.length} copied` };
     }
+    case 'ConnectionListToggled':
+      if (state.gesture.type !== 'idle') return state;
+      return { ...state, connectionsExpanded: !state.connectionsExpanded };
     case 'SelectionModeToggled':
       if (state.gesture.type !== 'idle') return state;
       return { ...state, selectionMode: !state.selectionMode };

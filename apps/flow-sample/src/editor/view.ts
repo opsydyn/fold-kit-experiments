@@ -1,6 +1,10 @@
 import type { EdgePathStyle, FlowEdge } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
-import { flowView, type FlowBackground } from '@opsydyn/foldkit-flow/foldkit';
+import {
+  flowView,
+  resolveFlowDiagnostics,
+  type FlowBackground,
+} from '@opsydyn/foldkit-flow/foldkit';
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
@@ -25,6 +29,30 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ],
       [label],
     );
+  const diagnostics = resolveFlowDiagnostics({
+    minimalMode: model.minimalMode,
+    diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
+  });
+  const hidden = {
+    position: 'absolute',
+    width: '1px',
+    height: '1px',
+    padding: '0',
+    margin: '-1px',
+    overflow: 'hidden',
+    clip: 'rect(0, 0, 0, 0)',
+    'white-space': 'nowrap',
+    border: '0',
+  } as const;
+  const diagnosticOptions = [
+    ['measurements', 'Measurements'],
+    ['alignmentGuides', 'Alignment guides'],
+    ['zoomLevel', 'Zoom percentage'],
+    ['status', 'Visible status'],
+    ['instructions', 'Instructions'],
+    ['overview', 'Overview'],
+    ['connectionList', 'Connection list'],
+  ] as const;
   const background: FlowBackground<Message> =
     model.background === 'custom'
       ? {
@@ -131,201 +159,329 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     body: h.div(
       [],
       [
-        h.p(
-          [],
-          [
-            'Open an example to replace the current diagram. Shift-drag the canvas background or Shift-click node titles to select several. Save keeps a copy in this browser.',
-          ],
-        ),
         h.div(
           [
             h.Role('group'),
-            h.AriaLabel('Examples'),
-            h.Style({ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }),
-          ],
-          [
-            button('Open release workflow', Message.SelectedExample({ example: 'release' })),
-            button('Open Onion Architecture', Message.SelectedExample({ example: 'onion' })),
-            button(
-              'Open grouped Onion Architecture',
-              Message.SelectedExample({ example: 'grouped-onion' }),
-            ),
-          ],
-        ),
-        h.p([], ['In Onion Architecture, arrows show source dependencies toward the domain.']),
-        h.div(
-          [
-            h.Role('group'),
-            h.AriaLabel('Graph actions'),
+            h.AriaLabel('Presentation'),
             h.Style({ display: 'flex', gap: '8px', 'flex-wrap': 'wrap', 'margin-bottom': '12px' }),
           ],
           [
-            button('Add node', Message.ClickedAdd()),
             h.button(
               [
                 h.Type('button'),
-                h.AriaPressed(String(model.editor.snapToGrid)),
-                h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                h.OnClick(Message.ObservedFlowInput({ message: { type: 'GridSnapToggled' } })),
+                h.AriaPressed(String(model.minimalMode)),
+                h.Disabled(model.editor.gesture.type !== 'idle'),
+                h.OnClick(Message.ClickedMinimalMode()),
               ],
-              ['Snap to grid'],
+              ['Minimal mode'],
             ),
             h.button(
               [
                 h.Type('button'),
-                h.AriaPressed(String(model.editor.snapToAlignment)),
-                h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                h.OnClick(Message.ObservedFlowInput({ message: { type: 'AlignmentSnapToggled' } })),
+                h.AriaExpanded(model.diagnosticsPanelOpen),
+                h.OnClick(Message.ClickedDiagnosticsPanel()),
               ],
-              ['Snap to nodes'],
-            ),
-            h.label(
-              [],
-              [
-                'Background ',
-                h.select(
-                  [
-                    h.AriaLabel('Background style'),
-                    h.Value(model.background),
-                    h.OnChange((value) =>
-                      Message.SelectedBackground({
-                        background: Schema.decodeUnknownSync(BackgroundStyle)(value),
-                      }),
-                    ),
-                  ],
-                  (
-                    [
-                      ['dots', 'Dots'],
-                      ['squares', 'Squares'],
-                      ['custom', 'Custom graph paper'],
-                      ['none', 'None'],
-                    ] as const
-                  ).map(([value, label]) =>
-                    h.option([h.Value(value), h.Selected(model.background === value)], [label]),
-                  ),
-                ),
-              ],
-            ),
-            h.label(
-              [h.Style({ display: 'inline-flex', 'align-items': 'center', gap: '6px' })],
-              [
-                'Grid spacing ',
-                h.input([
-                  h.Type('number'),
-                  h.AriaLabel('Grid spacing'),
-                  h.Min('0'),
-                  h.Step('any'),
-                  h.Value(String(model.editor.gridSpacing)),
-                  h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                  h.Style({ width: '72px', 'min-height': '32px' }),
-                  h.OnChange((value) =>
-                    Message.ObservedFlowInput({
-                      message: { type: 'GridSpacingChanged', spacing: Number(value) },
-                    }),
-                  ),
-                ]),
-              ],
-            ),
-            button('Arrange with ELK', Message.ClickedArrange({ engine: 'elk' })),
-            button(
-              'Force layout',
-              Message.ClickedArrange({ engine: 'force' }),
-              !supportsForceLayout(model.editor.graph),
-            ),
-            button(
-              'Group selection',
-              Message.ObservedFlowInput({ message: { type: 'SelectionGrouped' } }),
-            ),
-            button(
-              'Ungroup',
-              Message.ObservedFlowInput({ message: { type: 'SelectionUngrouped' } }),
-            ),
-            ...(selectedNode?.kind === 'group'
-              ? [
-                  button(
-                    'Fit group to contents',
-                    Message.ObservedFlowInput({
-                      message: { type: 'GroupFitClicked', id: selectedNode.id },
-                    }),
-                    model.editor.readOnly || model.editor.gesture.type !== 'idle',
-                  ),
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.AriaPressed(String(selectedNode.keepAspectRatio ?? false)),
-                      h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                      h.OnClick(
-                        Message.ObservedFlowInput({
-                          message: { type: 'GroupAspectRatioToggled', id: selectedNode.id },
-                        }),
-                      ),
-                    ],
-                    ['Lock proportions'],
-                  ),
-                ]
-              : []),
-            ...(selectedNode?.parentId
-              ? [
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.AriaPressed(String(selectedNode.extent === 'parent')),
-                      h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                      h.OnClick(
-                        Message.ObservedFlowInput({
-                          message: { type: 'NodeContainmentToggled', id: selectedNode.id },
-                        }),
-                      ),
-                    ],
-                    ['Keep inside parent'],
-                  ),
-                  h.button(
-                    [
-                      h.Type('button'),
-                      h.AriaPressed(String(selectedNode.expandParent ?? false)),
-                      h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                      h.OnClick(
-                        Message.ObservedFlowInput({
-                          message: { type: 'NodeExpansionToggled', id: selectedNode.id },
-                        }),
-                      ),
-                    ],
-                    ['Grow parent'],
-                  ),
-                ]
-              : []),
-            button('Copy', Message.ObservedFlowInput({ message: { type: 'CopyPressed' } })),
-            button('Paste', Message.ObservedFlowInput({ message: { type: 'PastePressed' } })),
-            button(
-              'Duplicate',
-              Message.ObservedFlowInput({ message: { type: 'DuplicatePressed' } }),
-            ),
-            button('Undo', Message.ObservedFlowInput({ message: { type: 'UndoPressed' } })),
-            button('Redo', Message.ObservedFlowInput({ message: { type: 'RedoPressed' } })),
-            button(
-              'Delete selected',
-              Message.ObservedFlowInput({ message: { type: 'DeletePressed' } }),
-            ),
-            button('Save', Message.ClickedSave()),
-            button('Load saved', Message.ClickedLoad()),
-            button('Export JSON', Message.ClickedExport()),
-            h.label(
-              [],
-              [
-                'Import JSON',
-                h.input([
-                  h.Key(`import-${model.importing?.id ?? 'ready'}`),
-                  h.Type('file'),
-                  h.Accept('.json,application/json'),
-                  h.OnFileChange((files) => Message.ChoseImportFiles({ files })),
-                  h.AriaDescribedBy('flow-import-help'),
-                ]),
-              ],
+              ['Diagnostics'],
             ),
           ],
         ),
-        h.p([h.Id('flow-import-help')], ['Importing JSON replaces the current diagram.']),
-        ...(selectedEdge
+        ...(model.diagnosticsPanelOpen
+          ? [
+              h.div(
+                [
+                  h.Role('group'),
+                  h.AriaLabel('Diagnostic options'),
+                  h.Style({
+                    display: 'flex',
+                    gap: '12px',
+                    'flex-wrap': 'wrap',
+                    'margin-bottom': '12px',
+                  }),
+                ],
+                [
+                  h.label(
+                    [],
+                    [
+                      h.input([
+                        h.Type('checkbox'),
+                        h.Checked(model.diagnosticsEnabled),
+                        h.Disabled(model.minimalMode || model.editor.gesture.type !== 'idle'),
+                        h.OnClick(Message.ClickedDiagnosticsEnabled()),
+                      ]),
+                      'Show diagnostics',
+                    ],
+                  ),
+                  ...diagnosticOptions.map(([diagnostic, label]) =>
+                    h.label(
+                      [],
+                      [
+                        h.input([
+                          h.Type('checkbox'),
+                          h.Checked(model.diagnostics[diagnostic]),
+                          h.Disabled(
+                            model.minimalMode ||
+                              !model.diagnosticsEnabled ||
+                              model.editor.gesture.type !== 'idle',
+                          ),
+                          h.OnClick(Message.ClickedDiagnostic({ diagnostic })),
+                        ]),
+                        label,
+                      ],
+                    ),
+                  ),
+                  h.p(
+                    [],
+                    [
+                      'Minimal mode and the global switch override individual flags; stored choices return when re-enabled.',
+                    ],
+                  ),
+                ],
+              ),
+            ]
+          : []),
+        h.p(diagnostics.instructions ? [] : [h.Style(hidden)], [
+          'Open an example to replace the current diagram. Shift-drag the canvas background or Shift-click node titles to select several. Save keeps a copy in this browser.',
+        ]),
+        ...(model.minimalMode
+          ? []
+          : [
+              h.div(
+                [
+                  h.Role('group'),
+                  h.AriaLabel('Examples'),
+                  h.Style({ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }),
+                ],
+                [
+                  button('Open release workflow', Message.SelectedExample({ example: 'release' })),
+                  button('Open Onion Architecture', Message.SelectedExample({ example: 'onion' })),
+                  button(
+                    'Open grouped Onion Architecture',
+                    Message.SelectedExample({ example: 'grouped-onion' }),
+                  ),
+                ],
+              ),
+            ]),
+        h.p(diagnostics.instructions ? [] : [h.Style(hidden)], [
+          'In Onion Architecture, arrows show source dependencies toward the domain.',
+        ]),
+        ...(model.minimalMode
+          ? [
+              h.div(
+                [h.Role('group'), h.AriaLabel('Graph actions')],
+                [
+                  button('Undo', Message.ObservedFlowInput({ message: { type: 'UndoPressed' } })),
+                  button('Redo', Message.ObservedFlowInput({ message: { type: 'RedoPressed' } })),
+                ],
+              ),
+            ]
+          : [
+              h.div(
+                [
+                  h.Role('group'),
+                  h.AriaLabel('Graph actions'),
+                  h.Style({
+                    display: 'flex',
+                    gap: '8px',
+                    'flex-wrap': 'wrap',
+                    'margin-bottom': '12px',
+                  }),
+                ],
+                [
+                  button('Add node', Message.ClickedAdd()),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.AriaPressed(String(model.editor.snapToGrid)),
+                      h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
+                      h.OnClick(
+                        Message.ObservedFlowInput({ message: { type: 'GridSnapToggled' } }),
+                      ),
+                    ],
+                    ['Snap to grid'],
+                  ),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.AriaPressed(String(model.editor.snapToAlignment)),
+                      h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
+                      h.OnClick(
+                        Message.ObservedFlowInput({ message: { type: 'AlignmentSnapToggled' } }),
+                      ),
+                    ],
+                    ['Snap to nodes'],
+                  ),
+                  h.label(
+                    [],
+                    [
+                      'Background ',
+                      h.select(
+                        [
+                          h.AriaLabel('Background style'),
+                          h.Value(model.background),
+                          h.OnChange((value) =>
+                            Message.SelectedBackground({
+                              background: Schema.decodeUnknownSync(BackgroundStyle)(value),
+                            }),
+                          ),
+                        ],
+                        (
+                          [
+                            ['dots', 'Dots'],
+                            ['squares', 'Squares'],
+                            ['custom', 'Custom graph paper'],
+                            ['none', 'None'],
+                          ] as const
+                        ).map(([value, label]) =>
+                          h.option(
+                            [h.Value(value), h.Selected(model.background === value)],
+                            [label],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  ...(diagnostics.measurements
+                    ? [
+                        h.label(
+                          [
+                            h.Style({
+                              display: 'inline-flex',
+                              'align-items': 'center',
+                              gap: '6px',
+                            }),
+                          ],
+                          [
+                            'Grid spacing ',
+                            h.input([
+                              h.Type('number'),
+                              h.AriaLabel('Grid spacing'),
+                              h.Min('0'),
+                              h.Step('any'),
+                              h.Value(String(model.editor.gridSpacing)),
+                              h.Disabled(
+                                model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                              ),
+                              h.Style({ width: '72px', 'min-height': '32px' }),
+                              h.OnChange((value) =>
+                                Message.ObservedFlowInput({
+                                  message: { type: 'GridSpacingChanged', spacing: Number(value) },
+                                }),
+                              ),
+                            ]),
+                          ],
+                        ),
+                      ]
+                    : []),
+                  button('Arrange with ELK', Message.ClickedArrange({ engine: 'elk' })),
+                  button(
+                    'Force layout',
+                    Message.ClickedArrange({ engine: 'force' }),
+                    !supportsForceLayout(model.editor.graph),
+                  ),
+                  button(
+                    'Group selection',
+                    Message.ObservedFlowInput({ message: { type: 'SelectionGrouped' } }),
+                  ),
+                  button(
+                    'Ungroup',
+                    Message.ObservedFlowInput({ message: { type: 'SelectionUngrouped' } }),
+                  ),
+                  ...(selectedNode?.kind === 'group'
+                    ? [
+                        button(
+                          'Fit group to contents',
+                          Message.ObservedFlowInput({
+                            message: { type: 'GroupFitClicked', id: selectedNode.id },
+                          }),
+                          model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                        ),
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.AriaPressed(String(selectedNode.keepAspectRatio ?? false)),
+                            h.Disabled(
+                              model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                            ),
+                            h.OnClick(
+                              Message.ObservedFlowInput({
+                                message: { type: 'GroupAspectRatioToggled', id: selectedNode.id },
+                              }),
+                            ),
+                          ],
+                          ['Lock proportions'],
+                        ),
+                      ]
+                    : []),
+                  ...(selectedNode?.parentId
+                    ? [
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.AriaPressed(String(selectedNode.extent === 'parent')),
+                            h.Disabled(
+                              model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                            ),
+                            h.OnClick(
+                              Message.ObservedFlowInput({
+                                message: { type: 'NodeContainmentToggled', id: selectedNode.id },
+                              }),
+                            ),
+                          ],
+                          ['Keep inside parent'],
+                        ),
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.AriaPressed(String(selectedNode.expandParent ?? false)),
+                            h.Disabled(
+                              model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                            ),
+                            h.OnClick(
+                              Message.ObservedFlowInput({
+                                message: { type: 'NodeExpansionToggled', id: selectedNode.id },
+                              }),
+                            ),
+                          ],
+                          ['Grow parent'],
+                        ),
+                      ]
+                    : []),
+                  button('Copy', Message.ObservedFlowInput({ message: { type: 'CopyPressed' } })),
+                  button('Paste', Message.ObservedFlowInput({ message: { type: 'PastePressed' } })),
+                  button(
+                    'Duplicate',
+                    Message.ObservedFlowInput({ message: { type: 'DuplicatePressed' } }),
+                  ),
+                  button('Undo', Message.ObservedFlowInput({ message: { type: 'UndoPressed' } })),
+                  button('Redo', Message.ObservedFlowInput({ message: { type: 'RedoPressed' } })),
+                  button(
+                    'Delete selected',
+                    Message.ObservedFlowInput({ message: { type: 'DeletePressed' } }),
+                  ),
+                  button('Save', Message.ClickedSave()),
+                  button('Load saved', Message.ClickedLoad()),
+                  button('Export JSON', Message.ClickedExport()),
+                  h.label(
+                    [],
+                    [
+                      'Import JSON',
+                      h.input([
+                        h.Key(`import-${model.importing?.id ?? 'ready'}`),
+                        h.Type('file'),
+                        h.Accept('.json,application/json'),
+                        h.OnFileChange((files) => Message.ChoseImportFiles({ files })),
+                        h.AriaDescribedBy('flow-import-help'),
+                      ]),
+                    ],
+                  ),
+                ],
+              ),
+            ]),
+        h.p(
+          [h.Id('flow-import-help'), ...(diagnostics.instructions ? [] : [h.Style(hidden)])],
+          ['Importing JSON replaces the current diagram.'],
+        ),
+        ...(!model.minimalMode && selectedEdge
           ? [
               h.div(
                 [h.Role('group'), h.AriaLabel('Selected connection')],
@@ -382,6 +538,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           : []),
         flowView(h, model.editor, {
           id: 'flow-demo',
+          minimalMode: model.minimalMode,
+          diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
           background,
           themeClassName: 'release-flow-theme',
           edgeToolbar: true,
@@ -427,7 +585,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               : undefined,
           renderNode: (node, builder) =>
             builder.div(
-              [],
+              [builder.Style({ visibility: model.minimalMode ? 'hidden' : 'visible' })],
               [
                 builder.input([
                   builder.AriaLabel(`Label for ${node.id}`),
@@ -445,7 +603,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   }),
                 ]),
                 builder.label(
-                  [],
+                  [
+                    builder.Style({
+                      visibility:
+                        !model.minimalMode && diagnostics.measurements ? 'visible' : 'hidden',
+                    }),
+                  ],
                   [
                     'Width',
                     builder.input([
@@ -477,7 +640,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ],
             ),
         }),
-        h.p([h.Role('status'), h.AriaLive('polite')], [model.notice]),
+        h.p(
+          [
+            h.Role('status'),
+            h.AriaLive('polite'),
+            ...(diagnostics.status ? [] : [h.Style(hidden)]),
+          ],
+          [model.notice],
+        ),
       ],
     ),
   };

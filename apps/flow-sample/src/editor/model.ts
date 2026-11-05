@@ -4,6 +4,7 @@ import {
   type FlowGraph,
   type LayoutRequest,
 } from '@opsydyn/foldkit-flow';
+import { resolveFlowDiagnostics, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
 import { Schema } from 'effect';
 
 export const initialGraph: FlowGraph = {
@@ -118,7 +119,28 @@ export const groupedOnionGraph: FlowGraph = {
 export const BackgroundStyle = Schema.Literals(['dots', 'squares', 'custom', 'none']);
 export type BackgroundStyle = typeof BackgroundStyle.Type;
 
+export const DiagnosticFlag = Schema.Literals([
+  'measurements',
+  'alignmentGuides',
+  'zoomLevel',
+  'status',
+  'instructions',
+  'overview',
+  'connectionList',
+]);
 export const Model = Schema.Struct({
+  minimalMode: Schema.Boolean,
+  diagnosticsEnabled: Schema.Boolean,
+  diagnosticsPanelOpen: Schema.Boolean,
+  diagnostics: Schema.Struct({
+    measurements: Schema.Boolean,
+    alignmentGuides: Schema.Boolean,
+    zoomLevel: Schema.Boolean,
+    status: Schema.Boolean,
+    instructions: Schema.Boolean,
+    overview: Schema.Boolean,
+    connectionList: Schema.Boolean,
+  }),
   background: BackgroundStyle,
   editor: Schema.Unknown,
   active: Schema.NullOr(Schema.Unknown),
@@ -127,6 +149,10 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  minimalMode: boolean;
+  diagnosticsEnabled: boolean;
+  diagnosticsPanelOpen: boolean;
+  diagnostics: FlowDiagnostics;
   background: BackgroundStyle;
   editor: EditorState;
   active: LayoutRequest | null;
@@ -136,6 +162,10 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    minimalMode: false,
+    diagnosticsEnabled: true,
+    diagnosticsPanelOpen: false,
+    diagnostics: resolveFlowDiagnostics({}),
     background: 'dots',
     editor: createEditor(initialGraph, { snapToAlignment: true }),
     active: null,

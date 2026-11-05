@@ -49,6 +49,19 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       };
     },
     SelectedBackground: ({ background }) => ({ model: { ...model, background } }),
+    ClickedMinimalMode: () => ({ model: { ...model, minimalMode: !model.minimalMode } }),
+    ClickedDiagnosticsPanel: () => ({
+      model: { ...model, diagnosticsPanelOpen: !model.diagnosticsPanelOpen },
+    }),
+    ClickedDiagnosticsEnabled: () => ({
+      model: { ...model, diagnosticsEnabled: !model.diagnosticsEnabled },
+    }),
+    ClickedDiagnostic: ({ diagnostic }) => ({
+      model: {
+        ...model,
+        diagnostics: { ...model.diagnostics, [diagnostic]: !model.diagnostics[diagnostic] },
+      },
+    }),
     ClickedAdd: () => {
       let sequence = model.sequence + 1;
       while (model.editor.graph.nodes.some((node) => node.id === `step-${sequence}`)) sequence++;

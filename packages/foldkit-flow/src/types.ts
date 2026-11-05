@@ -94,6 +94,7 @@ export type Gesture =
 export type EditorContext = Readonly<{ kind: 'node' | 'edge'; id: string; point: Point }>;
 export type EditorState = Readonly<{
   context: EditorContext | null;
+  connectionsExpanded: boolean;
   graph: FlowGraph;
   clipboard: FlowGraph | null;
   collapsedGroups: readonly string[];
@@ -133,6 +134,7 @@ export type EditorPolicy = Readonly<{
 export type EditorEvent =
   | Readonly<{ type: 'ContextOpened'; context: EditorContext }>
   | Readonly<{ type: 'ContextDismissed' }>
+  | Readonly<{ type: 'ConnectionListToggled' }>
   | Readonly<{ type: 'NodeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'EdgeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'SelectionCleared' }>

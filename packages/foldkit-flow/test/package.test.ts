@@ -63,7 +63,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       { ...options, cwd: directory },
     );
     const source = `import { createEditor, updateEditor, layoutRequest, applyLayout, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
-import { flowView, type FlowBackground } from '@opsydyn/foldkit-flow/foldkit';
+import { flowView, resolveFlowDiagnostics, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-flow-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
@@ -72,12 +72,14 @@ const graph: FlowGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},siz
 const groupState=createEditor({nodes:[{id:'g',kind:'group',label:'Group',position:{x:0,y:0},size:{width:400,height:200},ports:[]}],edges:[]});
 const sized=updateEditor(groupState,{type:'GroupDimensionChanged',id:'g',dimension:'height',value:240});
 if (sized.graph.nodes[0]?.size.height!==240) throw new Error('Missing packed dimension editing');
+const quiet:FlowDiagnostics=resolveFlowDiagnostics({minimalMode:true,diagnostics:{measurements:true}});
+if (Object.values(quiet).some(Boolean)) throw new Error('Minimal mode did not override diagnostics');
 const state=createEditor(graph,{gridSpacing:32});
 const request=layoutRequest(state,'consumer');
 const layout=await createElkLayout()(request);
 const arranged=applyLayout(state,request,layout);
 const background:FlowBackground<EditorEvent>={type:'custom',render:(context,h)=>h.div([h.DataAttribute('packed-grid',context.id),h.DataAttribute('packed-spacing',String(context.spacing))],[String(context.spacing)])};
-const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:flowView(h,model,{id:'external',label:'External graph',background,resizeReadout:false,onEvent:event=>event})})},{flags:{},isHydratable:false}));
+const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:flowView(h,model,{id:'external',label:'External graph',background,minimalMode:true,diagnostics:{status:true},resizeReadout:false,onEvent:event=>event})})},{flags:{},isHydratable:false}));
 if (!result.html.includes('data-packed-grid="external"')) throw new Error('Missing packed custom grid');
 if (!result.html.includes('data-packed-spacing="32"')) throw new Error('Missing packed grid spacing');
 if (!result.html.includes('External graph')) throw new Error('Missing packed renderer output');

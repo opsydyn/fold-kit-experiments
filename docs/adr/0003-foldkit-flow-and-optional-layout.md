@@ -272,3 +272,16 @@ Astro sample gains them through its existing context-actions option. Legacy widt
 edits delegate to this path. Core and browser checks cover limits, locking,
 focus/panel persistence, invalid values, cancellation of the panel and Undo;
 installed-consumer checks cover the new event contract.
+
+Diagnostic presentation is controlled by FoldKit view options: a master minimal
+mode, a global diagnostic switch and individual flags. A pure exported resolver
+makes precedence available to consumer renderers. Measurements include numeric
+group inputs and size tips; guide visibility does not disable snapping. Help and
+status retain offscreen accessible content. Hiding the verbose connection list
+uses a Model-owned compact disclosure, preserving keyboard edge access without
+invisible focus targets. Its session toggle does not mutate graph history.
+Backgrounds and functional editing controls remain separately configurable.
+The workbench applies the resolved settings to its custom controls and retains
+layout footprints while hiding them, so presentation toggles preserve geometry.
+SSR, installed-consumer and browser checks cover default compatibility, per-flag
+control, master precedence, preference restoration and continued editing.

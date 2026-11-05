@@ -174,3 +174,12 @@ Each field applies when its value changes, keeps the panel open, and contributes
 one Undo step. The fields and size readout show the constrained result, including
 snap spacing and locked proportions. Expand collapsed groups before editing.
 These controls and the `GroupDimensionChanged` API are supplied by the package.
+
+**Minimal mode** removes diagnostic clutter and reduces the workbench toolbar.
+**Diagnostics** opens global and individual switches for measurements, guides,
+zoom percentage, visible status, instructions, overview and the verbose connection
+list. Minimal mode/global-off take precedence; re-enabling restores saved choices.
+Inline controls are visually hidden with their layout space retained, preserving
+the current diagram. Compact Connections keeps keyboard access to edge actions.
+The package exports `minimalMode`, `diagnostics` and `resolveFlowDiagnostics` for
+other hosts; the workbench only owns its presentation preferences.

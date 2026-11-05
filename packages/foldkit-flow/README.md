@@ -499,3 +499,44 @@ dimension also scales the other. Invalid/non-positive values and active-gesture
 edits are ignored; repeated clamped values add no history. `NodeWidthChanged`
 continues to support group width through the same geometry path. The fields trim
 floating-point display noise without rounding authored geometry.
+
+### Diagnostics and minimal mode
+
+Use `minimalMode: true` for a clean package view, or `diagnostics: false` to
+suppress all diagnostic presentation. Both override individual flags. Defaults
+preserve existing presentation. Configure individual diagnostics with:
+
+```ts
+flowView(h, model.editor, {
+  id: 'workflow',
+  label: 'Workflow',
+  onEvent: (message) => Message.ObservedFlowInput({ message }),
+  minimalMode: model.minimalMode,
+  diagnostics: {
+    measurements: false, // size readout, numeric group inputs and numeric resize tips
+    alignmentGuides: false, // visual lines; snapping remains active
+    zoomLevel: false, // percentage; zoom controls remain usable
+    status: false, // visually hide notices/counts, retain polite announcements
+    instructions: false, // visually hide help, retain accessible descriptions
+    overview: false, // hide an enabled minimap
+    connectionList: false, // replace the verbose list with a compact Connections disclosure
+  },
+});
+```
+
+Connection actions remain keyboard-accessible through the compact disclosure.
+Its `ConnectionListToggled` fact updates editor session state without changing
+graph geometry, revision or Undo history; it also works in read-only views.
+Opening it is an explicit inspection action. Full lists keep their existing
+presentation. Graph labels, ports, selection/resize handles, background styles
+and editing controls are not diagnostics and retain their own options.
+
+`resolveFlowDiagnostics(options)` and the `FlowDiagnostics` /
+`FlowDiagnosticOptions` types are exported from `/foldkit`. Use the resolver in
+custom node renderers or host chrome to apply the same effective flags; the
+package cannot identify diagnostics in arbitrary consumer content. The existing
+`resizeReadout: false` option still independently hides just the size badge.
+These are view preferences, not graph document fields. Minimal mode never turns
+off snapping, constraints or other editing behavior. The workbench demonstrates
+global and individual toggles, retains stored flag choices, and hides its own
+inline controls without changing node footprints.

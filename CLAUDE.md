@@ -36,6 +36,7 @@ Read the one relevant to the task; none requires another or an upstream checkout
 Combine them only for tasks that span those packages. Their examples pin the catalog's
 versions (`tools/check-skills.ts`, part of `bun run check`): upgrading FoldKit, Effect or
 Astro means re-qualifying them (`docs/examples/package-skills.md`).
+`skills/tech-radar/SKILL.md` covers the tech radar's content, editions and deploys.
 
 ```sh
 bun dev                               # demo app → localhost:4321

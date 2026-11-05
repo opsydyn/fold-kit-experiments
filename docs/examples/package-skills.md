@@ -6,6 +6,11 @@ Three independent skills are maintained in this repository:
 - [foldkit-viz](../../skills/foldkit-viz/SKILL.md)
 - [effect-three](../../skills/effect-three/SKILL.md)
 
+A fourth, [tech-radar](../../skills/tech-radar/SKILL.md), is for this repository's own
+app rather than a package. It was checked by following it: moving an entry's ring in the
+markdown and the fixture passes the tech radar's tests, and adding one fails on the
+eight-per-category limit it now documents.
+
 Each folder is self-contained: its entrypoint, agent UI metadata, references and
 assets travel together. Neither is globally installed by this change, bundled
 in an npm package, or dependent on the other skill. Root agent instructions and

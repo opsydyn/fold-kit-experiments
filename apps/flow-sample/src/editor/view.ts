@@ -351,8 +351,18 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     builder.input([
                       builder.Type('range'),
                       builder.AriaLabel(`Width for ${node.label}`),
-                      builder.Min('140'),
-                      builder.Max('320'),
+                      builder.Min(
+                        String(
+                          node.resizeLimits?.minWidth ??
+                            Math.min(140, node.size.width, node.resizeLimits?.maxWidth ?? Infinity),
+                        ),
+                      ),
+                      builder.Max(
+                        String(
+                          node.resizeLimits?.maxWidth ??
+                            Math.max(320, node.size.width, node.resizeLimits?.minWidth ?? 0),
+                        ),
+                      ),
                       builder.Step('10'),
                       builder.Value(String(node.size.width)),
                       builder.Style({ width: '100%', 'touch-action': 'pan-x' }),

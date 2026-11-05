@@ -61,22 +61,42 @@ function resizeGroup(graph: FlowGraph, id: string, delta: Point): FlowGraph {
   if (!group || (delta.x === 0 && delta.y === 0)) return graph;
   const included = withDescendants(graph, [id]);
   const contents = graph.nodes.filter((node) => node.id !== id && included.has(node.id));
-  const minimumWidth = Math.min(
-    group.size.width,
-    Math.max(
-      224,
-      ...contents.map((node) => node.position.x + node.size.width + 24 - group.position.x),
+  const limits = group.resizeLimits;
+  const maximumWidth = limits?.maxWidth ?? Infinity;
+  const maximumHeight = limits?.maxHeight ?? Infinity;
+  const minimumWidth = Math.max(
+    limits?.minWidth ?? Math.min(224, group.size.width, maximumWidth),
+    Math.min(
+      group.size.width,
+      Math.max(
+        1,
+        ...contents.map((node) => node.position.x + node.size.width + 24 - group.position.x),
+      ),
     ),
   );
-  const minimumHeight = Math.min(
-    group.size.height,
-    Math.max(
-      96,
-      ...contents.map((node) => node.position.y + node.size.height + 24 - group.position.y),
+  const minimumHeight = Math.max(
+    limits?.minHeight ?? Math.min(96, group.size.height, maximumHeight),
+    Math.min(
+      group.size.height,
+      Math.max(
+        1,
+        ...contents.map((node) => node.position.y + node.size.height + 24 - group.position.y),
+      ),
     ),
   );
-  let width = Math.max(minimumWidth, group.size.width + delta.x);
-  let height = Math.max(minimumHeight, group.size.height + delta.y);
+  if (
+    (delta.x !== 0 && minimumWidth > maximumWidth) ||
+    (delta.y !== 0 && minimumHeight > maximumHeight)
+  )
+    return graph;
+  let width =
+    delta.x === 0
+      ? group.size.width
+      : Math.max(minimumWidth, Math.min(maximumWidth, group.size.width + delta.x));
+  let height =
+    delta.y === 0
+      ? group.size.height
+      : Math.max(minimumHeight, Math.min(maximumHeight, group.size.height + delta.y));
   const parent = graph.nodes.find((node) => node.id === group.parentId);
   if (parent && group.extent === 'parent' && !group.expandParent) {
     width = Math.min(width, parent.position.x + parent.size.width - group.position.x);
@@ -351,7 +371,8 @@ function sameGeometry(a: FlowGraph, b: FlowGraph): boolean {
     (node, index) =>
       node.position.x === b.nodes[index]?.position.x &&
       node.position.y === b.nodes[index]?.position.y &&
-      node.size.width === b.nodes[index]?.size.width,
+      node.size.width === b.nodes[index]?.size.width &&
+      node.size.height === b.nodes[index]?.size.height,
   );
 }
 // Metadata edits reuse the nodes and endpoints. Geometry edits replace them.
@@ -649,10 +670,11 @@ export function updateEditor(
           return { ...state, graph, revision: state.revision + 1, routes: [] };
         }
         const initial = original.size.width;
-        const width = Math.max(
-          Math.min(140, initial),
-          Math.min(Math.max(320, initial), initial + delta.x / state.viewport.zoom),
-        );
+        const minimum =
+          original.resizeLimits?.minWidth ??
+          Math.min(140, initial, original.resizeLimits?.maxWidth ?? Infinity);
+        const maximum = original.resizeLimits?.maxWidth ?? Math.max(320, initial, minimum);
+        const width = Math.max(minimum, Math.min(maximum, initial + delta.x / state.viewport.zoom));
         if (state.graph.nodes.find((node) => node.id === original.id)?.size.width === width)
           return state;
         const graph = expandParents(
@@ -929,24 +951,33 @@ export function updateEditor(
           node.id === event.id ? { ...node, label: event.label } : node,
         ),
       });
-    case 'NodeWidthChanged':
+    case 'NodeWidthChanged': {
       if (!Number.isFinite(event.width) || event.width <= 0) return state;
-      if (
-        !state.graph.nodes.some((node) => node.id === event.id && node.size.width !== event.width)
-      )
-        return state;
+      const node = state.graph.nodes.find((node) => node.id === event.id);
+      if (!node) return state;
+      if (node.kind === 'group') {
+        if (state.collapsedGroups.includes(node.id)) return state;
+        const graph = resizeGroup(state.graph, node.id, { x: event.width - node.size.width, y: 0 });
+        return graph === state.graph ? state : commitGraph(state, graph);
+      }
+      const width = Math.max(
+        node.resizeLimits?.minWidth ?? 0,
+        Math.min(node.resizeLimits?.maxWidth ?? Infinity, event.width),
+      );
+      if (width === node.size.width) return state;
       return commitGraph(
         state,
         expandParents(
           {
             ...state.graph,
             nodes: state.graph.nodes.map((node) =>
-              node.id === event.id ? { ...node, size: { ...node.size, width: event.width } } : node,
+              node.id === event.id ? { ...node, size: { ...node.size, width } } : node,
             ),
           },
           event.id,
         ),
       );
+    }
     case 'EdgeLabelEditingStarted': {
       const edge = state.graph.edges.find((edge) => edge.id === event.id);
       if (!edge || state.edgeLabelDraft?.id === edge.id) return state;

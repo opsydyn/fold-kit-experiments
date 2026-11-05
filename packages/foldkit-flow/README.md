@@ -338,3 +338,21 @@ descendants. The group context panel exposes **Fit group to contents**.
 Fitting preserves child positions, reserves header space and padding, and
 commits one undo step. Empty groups keep their bounds. A constrained group
 requires enough space in its parent or enabled parent expansion.
+
+### Per-node resize limits
+
+Set optional `resizeLimits` on a node to customize manual resizing in graph units:
+
+```ts
+resizeLimits: { minWidth: 180, maxWidth: 520, minHeight: 120, maxHeight: 400 }
+```
+
+Each supplied limit must be finite and positive; a minimum cannot exceed its
+maximum. Partial limits are supported and survive save/load, clipboard and Undo.
+Cards apply width limits to pointer handles and `NodeWidthChanged`; card height
+continues to follow content. Groups apply both axes through pointer handles,
+`GroupResizeNudged` and width edits. Only edited axes change. Group contents and
+parent containment can prevent a resize when there is no valid size. Existing
+nodes may start outside their limits; their next manual edit clamps the edited
+axis. Layout, Fit group to contents, measurements and ancestor expansion remain
+independent of manual resize limits. Omitting the field preserves default ranges.

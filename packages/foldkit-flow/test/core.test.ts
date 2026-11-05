@@ -1169,3 +1169,169 @@ test('resizing a tight authored group preserves its untouched axis', () => {
   expect(wider.graph.nodes[0]?.size).toEqual({ width: 305, height: 140 });
   expect(wider.graph.nodes[1]).toEqual(initial.graph.nodes[1]);
 });
+
+test('per-node width limits clamp pointer and keyboard edits and survive document operations', () => {
+  const initial = createEditor({
+    nodes: [{ ...nodeA, resizeLimits: { minWidth: 100, maxWidth: 500 } }],
+    edges: [],
+  });
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'a',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const large = updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: 1000, y: 0 } });
+  expect(large.graph.nodes[0]?.size.width).toBe(500);
+  const small = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: -1000, y: 0 },
+  });
+  expect(small.graph.nodes[0]?.size.width).toBe(100);
+  expect(updateEditor(large, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
+  const keyed = updateEditor(initial, { type: 'NodeWidthChanged', id: 'a', width: 900 });
+  expect(keyed.graph.nodes[0]?.size.width).toBe(500);
+  expect(updateEditor(keyed, { type: 'NodeWidthChanged', id: 'a', width: 800 })).toBe(keyed);
+  expect(updateEditor(keyed, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  expect(parseGraph(serializeGraph(keyed.graph))).toEqual(keyed.graph);
+  const duplicated = updateEditor({ ...keyed, selectedNodes: ['a'] }, { type: 'DuplicatePressed' });
+  expect(duplicated.graph.nodes[1]?.resizeLimits).toEqual({ minWidth: 100, maxWidth: 500 });
+});
+
+test('group resize limits bound both axes and reject a conflict with content or parent bounds', () => {
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        position: { x: 0, y: 0 },
+        size: { width: 500, height: 300 },
+        ports: [],
+        resizeLimits: { minWidth: 260, maxWidth: 600, minHeight: 180, maxHeight: 400 },
+      },
+      { ...nodeA, parentId: 'g', position: { x: 50, y: 60 } },
+    ],
+    edges: [],
+  });
+  const big = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    delta: { x: 1000, y: 1000 },
+  });
+  expect(big.graph.nodes[0]?.size).toEqual({ width: 600, height: 400 });
+  const small = updateEditor(initial, {
+    type: 'GroupResizeNudged',
+    id: 'g',
+    delta: { x: -1000, y: -1000 },
+  });
+  expect(small.graph.nodes[0]?.size).toEqual({ width: 260, height: 180 });
+  expect(small.graph.nodes[1]).toEqual(initial.graph.nodes[1]);
+  const conflicting = createEditor({
+    ...initial.graph,
+    nodes: initial.graph.nodes.map((node) =>
+      node.id === 'g' ? { ...node, resizeLimits: { maxWidth: 150 } } : node,
+    ),
+  });
+  expect(
+    updateEditor(conflicting, { type: 'GroupResizeNudged', id: 'g', delta: { x: -1, y: 0 } }),
+  ).toBe(conflicting);
+  const contained = createEditor({
+    nodes: [
+      {
+        id: 'outer',
+        kind: 'group',
+        label: 'Outer',
+        ports: [],
+        position: { x: 0, y: 0 },
+        size: { width: 200, height: 200 },
+      },
+      ...initial.graph.nodes.map((node) =>
+        node.id === 'g' ? { ...node, parentId: 'outer', extent: 'parent' as const } : node,
+      ),
+    ],
+    edges: [],
+  });
+  expect(
+    updateEditor(contained, { type: 'GroupResizeNudged', id: 'g', delta: { x: 1, y: 0 } }),
+  ).toBe(contained);
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const preview = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 1000, y: 1000 },
+  });
+  expect(preview.graph).toEqual(big.graph);
+  const committed = updateEditor(preview, { type: 'PointerReleased', pointer: 1 });
+  expect(committed.past).toHaveLength(1);
+  expect(updateEditor(committed, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+});
+
+test('resize limits reject malformed metadata and accept partial limits outside legacy defaults', () => {
+  for (const resizeLimits of [
+    null,
+    'wide',
+    { minWidth: 0 },
+    { maxHeight: -2 },
+    { minHeight: Infinity },
+    { minWidth: 300, maxWidth: 200 },
+    { minHeight: 100, maxHeight: 50 },
+  ]) {
+    expect(() =>
+      parseGraph(
+        JSON.stringify({ version: 1, graph: { nodes: [{ ...nodeA, resizeLimits }], edges: [] } }),
+      ),
+    ).toThrow();
+  }
+  for (const [resizeLimits, requested, expected] of [
+    [{ maxWidth: 90 }, 20, 20],
+    [{ minWidth: 500 }, 20, 500],
+  ] as const) {
+    const initial = createEditor({ nodes: [{ ...nodeA, resizeLimits }], edges: [] });
+    expect(
+      updateEditor(initial, { type: 'NodeWidthChanged', id: 'a', width: requested }).graph.nodes[0]
+        ?.size.width,
+    ).toBe(expected);
+  }
+});
+
+test('height continues resizing after width reaches its limit and height-only drags are undoable', () => {
+  const initial = createEditor({
+    nodes: [
+      {
+        id: 'g',
+        label: 'Group',
+        kind: 'group',
+        ports: [],
+        position: { x: 0, y: 0 },
+        size: { width: 300, height: 200 },
+        resizeLimits: { maxWidth: 320, maxHeight: 400 },
+      },
+    ],
+    edges: [],
+  });
+  const start = updateEditor(initial, {
+    type: 'NodeResizeStarted',
+    id: 'g',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const wide = updateEditor(start, { type: 'PointerMoved', pointer: 1, point: { x: 50, y: 20 } });
+  const tall = updateEditor(wide, { type: 'PointerMoved', pointer: 1, point: { x: 100, y: 150 } });
+  expect(tall.graph.nodes[0]?.size).toEqual({ width: 320, height: 350 });
+  const heightOnly = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 0, y: 50 },
+  });
+  expect(heightOnly.graph.nodes[0]?.size).toEqual({ width: 300, height: 250 });
+  const released = updateEditor(heightOnly, { type: 'PointerReleased', pointer: 1 });
+  expect(released.past).toHaveLength(1);
+  expect(updateEditor(released, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+});

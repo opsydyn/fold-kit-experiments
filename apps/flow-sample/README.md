@@ -126,3 +126,7 @@ The same action is available through the group's More actions button.
 Select an expanded group and drag its bottom-right resize handle to adjust its
 boundary in both dimensions. Focus the handle and use arrow keys (Shift for a
 larger step) for keyboard resizing. Contents stay fixed and Undo restores bounds.
+
+Imported nodes can declare `resizeLimits` for manual width and group boundary
+editing. Card width sliders show the imported limits; all enforcement lives in
+the Flow package. Layout and measured card height remain content-driven.

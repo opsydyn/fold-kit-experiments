@@ -13,12 +13,20 @@ export type Port = Readonly<{
   offset: number;
   label?: string;
 }>;
+/** Manual resize bounds in graph units; layout and content measurement are independent. */
+export type NodeResizeLimits = Readonly<{
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+}>;
 export type FlowNode = Readonly<{
   id: string;
   label: string;
   position: Point;
   size: Size;
   ports: readonly Port[];
+  resizeLimits?: NodeResizeLimits;
   kind?: 'group';
   /** A group ID. Positions are always in canvas coordinates. */
   parentId?: string;

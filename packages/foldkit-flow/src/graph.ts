@@ -3,6 +3,7 @@ import type {
   FlowEdge,
   FlowGraph,
   FlowNode,
+  NodeResizeLimits,
   JsonValue,
   Point,
   Port,
@@ -86,6 +87,26 @@ function isEndpoint(value: unknown): value is Endpoint {
     typeof value.port === 'string'
   );
 }
+function isResizeLimits(value: unknown): value is NodeResizeLimits {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const dimension = (limit: unknown): limit is number =>
+    typeof limit === 'number' && Number.isFinite(limit) && limit > 0;
+  if (
+    ('minWidth' in value && !dimension(value.minWidth)) ||
+    ('maxWidth' in value && !dimension(value.maxWidth)) ||
+    ('minHeight' in value && !dimension(value.minHeight)) ||
+    ('maxHeight' in value && !dimension(value.maxHeight))
+  )
+    return false;
+  return (
+    (!('minWidth' in value) ||
+      !('maxWidth' in value) ||
+      Number(value.minWidth) <= Number(value.maxWidth)) &&
+    (!('minHeight' in value) ||
+      !('maxHeight' in value) ||
+      Number(value.minHeight) <= Number(value.maxHeight))
+  );
+}
 function isNode(value: unknown): value is FlowNode {
   return (
     typeof value === 'object' &&
@@ -103,6 +124,7 @@ function isNode(value: unknown): value is FlowNode {
     Array.isArray(value.ports) &&
     value.ports.every(isPort) &&
     (!('kind' in value) || value.kind === 'group') &&
+    (!('resizeLimits' in value) || isResizeLimits(value.resizeLimits)) &&
     (!('parentId' in value) || typeof value.parentId === 'string') &&
     (!('extent' in value) || value.extent === 'parent') &&
     (!('expandParent' in value) || typeof value.expandParent === 'boolean') &&

@@ -165,3 +165,14 @@ Astro consumes it through `resizeHandles`. This avoids a second sample-only
 editing implementation. Moving children or scaling their coordinates during a
 resize would change the document unexpectedly, so boundary editing leaves them
 fixed. Core and browser checks cover zoom, containment, cancellation and Undo.
+
+Manual resize limits are optional node document metadata (`resizeLimits`),
+validated as positive finite dimensions with ordered minima and maxima. They
+travel with saved nodes and clipboard copies; the reducer applies them to
+pointer and keyboard edits. They are interaction bounds rather than global
+geometry invariants: layout, measurement, explicit group fitting and automatic
+ancestor expansion retain their existing contracts. A strict global bound would
+clip content or reject layout publications. Group content and parent constraints
+still prevent unsafe shrinking; conflicting bounds leave the graph unchanged.
+Core tests cover clamping, invalid metadata, document round-trips and Undo;
+the sample's width control reads the authored bounds instead of hard-coded ones.

@@ -73,6 +73,13 @@ export function presentVisibleGraph(state: PresentationState) {
   return { ...presentation, edges };
 }
 
+/** Connections that can be revealed, including those inside collapsed groups. */
+export function revealableEdges(
+  state: Pick<EditorState, 'graph' | 'visibility'>,
+): readonly FlowEdge[] {
+  return presentVisibleGraph({ ...state, collapsedGroups: [] }).edges;
+}
+
 /** Parents paint below nested groups. Siblings keep document order. */
 export function groupsInPaintOrder(nodes: readonly FlowNode[]): FlowNode[] {
   const groups = nodes.filter((node) => node.kind === 'group');

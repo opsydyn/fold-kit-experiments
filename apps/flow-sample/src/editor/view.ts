@@ -23,6 +23,7 @@ import { workbenchPolicy } from './editor-policy';
 import { Message } from './message';
 import {
   ThemePreference,
+  SearchScope,
   NavigationDesign,
   WheelNavigation,
   BackgroundStyle,
@@ -62,7 +63,7 @@ import {
   canvasHelpCard,
   canvasStatusCard,
 } from './presentation';
-import { searchNodes } from './search';
+import { searchDiagram } from './search';
 import { workbenchThemes } from './theme';
 
 type WorkbenchEdgeHooks = {
@@ -229,7 +230,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const selectedEdge = model.editor.graph.edges.find((edge) =>
     model.editor.selectedEdges.includes(edge.id),
   );
-  const matches = searchNodes(model.editor, model.nodeQuery);
+  const matches = searchDiagram(model.editor, model.searchQuery, model.searchScope);
+  const searchItem = model.searchScope === 'nodes' ? 'node' : 'connection';
   const canReveal = model.editor.surface !== null && model.editor.gesture.type === 'idle';
   const policy = workbenchPolicy(model);
   const endpointSelect = (edge: FlowEdge, end: EdgeEnd) => {
@@ -1428,7 +1430,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.form(
           [
             h.Role('search'),
-            h.AriaLabel('Diagram nodes'),
+            h.AriaLabel(`Diagram ${model.searchScope}`),
             h.Style({
               display: 'flex',
               'flex-wrap': 'wrap',
@@ -1436,50 +1438,68 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               'align-items': 'center',
               margin: '12px 0',
             }),
-            h.OnSubmit(Message.SubmittedNodeSearch()),
+            h.OnSubmit(Message.SubmittedDiagramSearch()),
           ],
           [
             h.label(
               [],
               [
-                'Find a node ',
+                `Find a ${searchItem} `,
                 h.input([
                   h.Type('search'),
-                  h.Value(model.nodeQuery),
+                  h.Value(model.searchQuery),
                   h.Placeholder('Label or ID'),
-                  h.OnInput((query) => Message.ChangedNodeSearch({ query })),
+                  h.OnInput((query) => Message.ChangedDiagramSearch({ query })),
                 ]),
+              ],
+            ),
+            h.select(
+              [
+                h.AriaLabel('Search scope'),
+                h.Value(model.searchScope),
+                h.OnChange((value) =>
+                  Message.SelectedSearchScope({
+                    scope: Schema.decodeUnknownSync(SearchScope)(value),
+                  }),
+                ),
+              ],
+              [
+                h.option([h.Value('nodes'), h.Selected(model.searchScope === 'nodes')], ['Nodes']),
+                h.option(
+                  [h.Value('connections'), h.Selected(model.searchScope === 'connections')],
+                  ['Connections'],
+                ),
               ],
             ),
             h.button(
               [h.Type('submit'), h.Disabled(!canReveal || matches.length === 0)],
               ['Reveal first match'],
             ),
-            ...(model.nodeQuery.trim()
+            ...(model.searchQuery.trim()
               ? [
                   h.p(
                     [h.Role('status'), h.Style({ margin: '0' })],
                     [
                       matches.length === 0
-                        ? 'No matching nodes'
+                        ? `No matching ${model.searchScope}`
                         : matches.length > 8
-                          ? `Showing 8 of ${matches.length} matching nodes`
+                          ? `Showing 8 of ${matches.length} matching ${model.searchScope}`
                           : matches.length === 1
-                            ? '1 matching node'
-                            : `${matches.length} matching nodes`,
+                            ? `1 matching ${searchItem}`
+                            : `${matches.length} matching ${model.searchScope}`,
                     ],
                   ),
                   ...matches
                     .slice(0, 8)
-                    .map((node) =>
+                    .map(({ label, event }) =>
                       h.button(
                         [
-                          h.Key(node.id),
+                          h.Key(event.id),
                           h.Type('button'),
                           h.Disabled(!canReveal),
-                          h.OnClick(flowInput({ type: 'NodeRevealRequested', id: node.id })),
+                          h.OnClick(flowInput(event)),
                         ],
-                        [`Reveal ${node.label} (${node.id})`],
+                        [label],
                       ),
                     ),
                 ]

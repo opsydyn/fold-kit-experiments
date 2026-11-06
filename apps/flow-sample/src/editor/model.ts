@@ -193,6 +193,9 @@ export const ColorScheme = Schema.Literals(['light', 'dark']);
 export const ThemePreference = Schema.Literals(['system', 'light', 'dark']);
 export type ThemePreference = typeof ThemePreference.Type;
 
+export const SearchScope = Schema.Literals(['nodes', 'connections']);
+export type SearchScope = typeof SearchScope.Type;
+
 export const Model = Schema.Struct({
   themePreference: Schema.NullOr(ThemePreference),
   systemColorScheme: Schema.NullOr(ColorScheme),
@@ -200,7 +203,8 @@ export const Model = Schema.Struct({
   viewportCulling: Schema.Boolean,
   retainNodeViews: Schema.Boolean,
   includeCamera: Schema.Boolean,
-  nodeQuery: Schema.String,
+  searchQuery: Schema.String,
+  searchScope: SearchScope,
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
   diagnosticsPanelOpen: Schema.Boolean,
@@ -248,7 +252,8 @@ export type Model = Readonly<{
   viewportCulling: boolean;
   retainNodeViews: boolean;
   includeCamera: boolean;
-  nodeQuery: string;
+  searchQuery: string;
+  searchScope: SearchScope;
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
   diagnosticsPanelOpen: boolean;
@@ -289,7 +294,8 @@ export const init = () => ({
     viewportCulling: false,
     retainNodeViews: false,
     includeCamera: false,
-    nodeQuery: '',
+    searchQuery: '',
+    searchScope: 'nodes' as const,
     showWorldAnnotation: false,
     diagnosticsEnabled: true,
     diagnosticsPanelOpen: false,

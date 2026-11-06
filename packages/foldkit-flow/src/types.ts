@@ -289,6 +289,7 @@ export type EditorEvent =
   | Readonly<{ type: 'ViewportNudged'; delta: Point }>
   | Readonly<{ type: 'FitViewClicked' }>
   | Readonly<{ type: 'NodeRevealRequested'; id: string }>
+  | Readonly<{ type: 'EdgeRevealRequested'; id: string }>
   | Readonly<{ type: 'FitViewDurationChanged'; duration: number }>
   | Readonly<{ type: 'FitViewAnimationFrame'; id: number; time: number; reducedMotion: boolean }>
   | Readonly<{ type: 'MinimapClicked'; point: Point }>

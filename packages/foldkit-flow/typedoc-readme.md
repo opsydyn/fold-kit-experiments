@@ -130,6 +130,10 @@ marquee preview agree with the reducer.
 the editor's zoom limits and Fit view timing. `revealableNodes` provides the
 eligible nodes for host search controls.
 
+`EdgeRevealRequested` frames a connection's endpoints and applicable
+stored route. `revealableEdges` includes collapsed connections and excludes
+those hidden by the editor's visibility settings.
+
 `FlowSnapshot`, `serializeSnapshot`, and `parseSnapshot` add an optional
 camera to the version 1 graph document. Graph-only v1 files remain valid.
 

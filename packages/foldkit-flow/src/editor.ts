@@ -25,6 +25,7 @@ import {
   groupAtDropPoint,
   presentEditorGroups,
   revealableNodes,
+  revealableEdges,
   presentVisibleGraph,
   withDescendants,
 } from './group-presentation';
@@ -603,6 +604,34 @@ function startFit(state: EditorState, to: Viewport): EditorState {
   };
 }
 
+function expandRevealAncestors(state: EditorState, targets: readonly FlowNode[]): EditorState {
+  if (!state.collapsedGroups.length) return state;
+  const ancestors = new Set<string>();
+  for (const target of targets) {
+    let parent = target.parentId;
+    while (parent !== undefined && !ancestors.has(parent)) {
+      ancestors.add(parent);
+      parent = state.graph.nodes.find((node) => node.id === parent)?.parentId;
+    }
+  }
+  return { ...state, collapsedGroups: state.collapsedGroups.filter((id) => !ancestors.has(id)) };
+}
+
+function fitReveal(
+  state: EditorState,
+  surface: NonNullable<EditorState['surface']>,
+  bounds: readonly Pick<FlowNode, 'position' | 'size'>[],
+): EditorState {
+  const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
+  return startFit(
+    state,
+    fitNodes(bounds, surface, padding, {
+      ...state.zoomLimits,
+      maxZoom: state.viewport.zoom,
+    }),
+  );
+}
+
 function advanceFit(
   state: EditorState,
   event: Extract<EditorEvent, { type: 'FitViewAnimationFrame' }>,
@@ -850,22 +879,31 @@ export function updateEditor(
       const target = revealableNodes(state).find((node) => node.id === event.id);
       if (!target) return state;
 
-      const ancestors = new Set<string>();
-      let parent = target.parentId;
-      while (parent !== undefined) {
-        ancestors.add(parent);
-        parent = graph.nodes.find((node) => node.id === parent)?.parentId;
-      }
-      const collapsedGroups = state.collapsedGroups.filter((id) => !ancestors.has(id));
-      const next = { ...state, collapsedGroups, notice: `Revealed ${target.label}.` };
+      const next = expandRevealAncestors(state, [target]);
       const displayed =
         presentEditorGroups(next).nodes.find((node) => node.id === event.id) ?? target;
-      const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
-      const to = fitNodes([displayed], surface, padding, {
-        ...state.zoomLimits,
-        maxZoom: state.viewport.zoom,
-      });
-      return startFit(next, to);
+      return fitReveal({ ...next, notice: `Revealed ${target.label}.` }, surface, [displayed]);
+    }
+    case 'EdgeRevealRequested': {
+      const { surface, graph } = state;
+      if (!surface || state.gesture.type !== 'idle') return state;
+      const edge = revealableEdges(state).find((item) => item.id === event.id);
+      if (!edge) return state;
+      const source = graph.nodes.find((node) => node.id === edge.source.node);
+      const target = graph.nodes.find((node) => node.id === edge.target.node);
+      if (!source || !target) return state;
+
+      const endpoints = [source, target];
+      const next = expandRevealAncestors(state, endpoints);
+      const route =
+        edge.pathStyle === undefined ? state.routes.find(({ id }) => id === edge.id) : undefined;
+      const routeBounds =
+        route?.points.map((position) => ({ position, size: { width: 0, height: 0 } })) ?? [];
+      return fitReveal(
+        { ...next, notice: `Revealed connection ${edge.label || edge.id}.` },
+        surface,
+        [...endpoints, ...routeBounds],
+      );
     }
     case 'FitViewDurationChanged':
       if (

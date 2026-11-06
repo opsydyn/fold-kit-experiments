@@ -382,3 +382,8 @@ Use **Find a node** to search by label or ID. Select a result or press Enter
 to reveal the first match. Searching can find nodes inside collapsed groups,
 and revealing a result opens its ancestors.
 [Workbench screenshot](evidence/reveal-node.png)
+
+Set **Search scope** to **Connections** to search by edge label, ID,
+node name, or endpoint such as `source:out`. Reveal frames the connection
+and opens collapsed ancestors of its endpoints.
+[Connection search screenshot](evidence/reveal-connection.png)

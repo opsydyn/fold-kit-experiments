@@ -751,6 +751,18 @@ It includes nodes inside collapsed groups and filters explicitly hidden
 nodes and descendants. Reveal requires a measured canvas and an idle
 gesture, and works in read-only mode.
 
+### Reveal a connection
+
+Send `{ type: 'EdgeRevealRequested', id }` to frame both endpoint nodes
+and the stored route when the edge uses it. Flow opens collapsed ancestors
+of the endpoints, preserves selection and history, and uses the same zoom
+and timing rules as node reveal. The frame uses authored endpoint bounds and
+stored route points. Custom SVG path extensions can extend beyond that frame.
+
+Use `revealableEdges(state)` for connection search. It includes edges inside
+collapsed groups and excludes explicitly hidden edges or edges with hidden
+endpoints.
+
 ### Save the camera with the graph
 
 Call `serializeSnapshot({ graph, viewport })` to include pan and zoom in a

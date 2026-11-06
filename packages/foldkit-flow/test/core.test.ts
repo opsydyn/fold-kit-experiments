@@ -3029,3 +3029,55 @@ test('revealing a node opens its ancestors and centers it without editing the gr
     }).viewport,
   ).toEqual(revealed.viewport);
 });
+
+test('revealing a connection frames its routed path and opens only its endpoint ancestors', () => {
+  const group = {
+    id: 'g',
+    label: 'Group',
+    kind: 'group' as const,
+    position: { x: 0, y: 0 },
+    size: { width: 700, height: 240 },
+    ports: [],
+  };
+  const edge = { id: 'ab', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  const initial = createEditor({
+    nodes: [
+      group,
+      { ...group, id: 'inner', parentId: group.id },
+      { ...group, id: 'other' },
+      { ...nodeA, parentId: group.id },
+      { ...nodeB, parentId: 'inner' },
+    ],
+    edges: [edge],
+  });
+  const state = {
+    ...initial,
+    surface: { width: 800, height: 440 },
+    collapsedGroups: ['g', 'inner', 'other'],
+    selectedNodes: ['other'],
+    readOnly: true,
+    routes: [
+      {
+        id: edge.id,
+        points: [
+          { x: 140, y: 70 },
+          { x: 250, y: -350 },
+          { x: 300, y: 110 },
+        ],
+      },
+    ],
+  };
+  const reveal = { type: 'EdgeRevealRequested', id: edge.id } as const;
+  const revealed = updateEditor(state, reveal);
+  expect(revealed.collapsedGroups).toEqual(['other']);
+  expect(revealed.viewport.zoom).toBeCloseTo(392 / 510);
+  expect(revealed.viewport.y - 350 * revealed.viewport.zoom).toBeCloseTo(24);
+  expect(revealed.graph).toBe(state.graph);
+  expect(revealed.past).toBe(state.past);
+  expect(revealed.routes).toBe(state.routes);
+  expect(revealed.selectedNodes).toBe(state.selectedNodes);
+  for (const visibility of [{ hiddenEdgeIds: ['ab'] }, { hiddenNodeIds: ['inner'] }]) {
+    const hidden = updateEditor(state, { type: 'VisibilityChanged', visibility });
+    expect(updateEditor(hidden, reveal)).toBe(hidden);
+  }
+});

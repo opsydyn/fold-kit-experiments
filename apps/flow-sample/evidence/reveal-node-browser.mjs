@@ -75,9 +75,66 @@ async function qualify() {
         },
       });
     }
+    await button('Collapse Application core').click();
+    await button('Collapse Release system').click();
+    const dependency = surface.locator('[data-flow-edge="application-domain"]');
+    await expect(dependency).toHaveCount(0);
+    await page.getByRole('combobox', { name: 'Search scope' }).selectOption('connections');
+    const edgeSearch = page.getByRole('searchbox', { name: 'Find a connection' });
+    await edgeSearch.fill('USES THE DOMAIN');
+    await button(
+      'Reveal connection Application uses the domain model (Application: out → Domain model: in)',
+    ).click();
+    await expect(dependency).toBeVisible();
+    await expect(button('Collapse Application core')).toBeVisible();
+    await expect(button('Collapse Release system')).toBeVisible();
+    await expect
+      .poll(async () => {
+        const [canvas, source, target] = await Promise.all([
+          surface.boundingBox(),
+          node('application').boundingBox(),
+          node('domain').boundingBox(),
+        ]);
+        return Math.abs((source.x + target.x + target.width) / 2 - (canvas.x + canvas.width / 2));
+      })
+      .toBeLessThan(3);
+    const edgeScreenshot = process.env.FLOW_EDGE_REVEAL_SCREENSHOT;
+    if (edgeScreenshot) {
+      await surface.scrollIntoViewIfNeeded();
+      const canvas = await surface.boundingBox();
+      const form = await page.getByRole('search', { name: 'Diagram connections' }).boundingBox();
+      await page.screenshot({
+        path: edgeScreenshot,
+        clip: {
+          x: canvas.x,
+          y: form.y - 4,
+          width: canvas.width,
+          height: canvas.y + canvas.height - form.y + 27,
+        },
+      });
+    }
+
+    await button('Open release workflow').click();
+    await button('Select Draft').click();
+    await edgeSearch.fill('source:out');
+    const draftReview = button('Reveal connection Draft: out → Review: in');
+    await expect(draftReview).toBeVisible();
+    await edgeSearch.press('Enter');
+    await expect(page.locator('[data-flow-status]')).toHaveText(
+      'Revealed connection draft-review.',
+    );
+    await expect(button('Select Draft')).toHaveAttribute('aria-pressed', 'true');
+    const hideEdge = page.getByRole('checkbox', { name: 'Hide Draft → Review edge' });
+    await hideEdge.check();
+    await expect(page.getByText('No matching connections', { exact: true })).toBeVisible();
+    await hideEdge.uncheck();
+    await expect(draftReview).toBeVisible();
+    const hideReview = page.getByRole('checkbox', { name: 'Hide Review node' });
+    await hideReview.check();
+    await expect(page.getByText('No matching connections', { exact: true })).toBeVisible();
     expect(errors).toEqual([]);
     console.log(
-      'Reveal search centers nodes, preserves selection, excludes hidden nodes, and opens collapsed ancestors',
+      'Reveal search frames nodes and connections, preserves selection, and respects collapse and visibility',
     );
   };
   await run().finally(() => browser.close());

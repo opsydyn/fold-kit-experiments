@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add reveal-connection navigation for endpoint nodes and stored routes,
+  with a visibility-aware connection list for host search controls.
+
 - Add reveal-node navigation with collapsed ancestor expansion and a
   visibility-aware node list for host search controls.
 

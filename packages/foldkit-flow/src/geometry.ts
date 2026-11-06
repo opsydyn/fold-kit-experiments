@@ -163,7 +163,7 @@ export function fitViewport(
 }
 
 export function fitNodes(
-  nodes: readonly FlowNode[],
+  nodes: readonly Pick<FlowNode, 'position' | 'size'>[],
   size: Size,
   padding: number,
   zoomLimits: ZoomLimits,

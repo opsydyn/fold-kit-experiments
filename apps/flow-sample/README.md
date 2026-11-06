@@ -320,3 +320,8 @@ and remembers your selection in the same browser. The page applies the saved
 or system theme before the workbench loads. Changing themes keeps the current
 diagram, selection, and viewport.
 [Light mode](evidence/theme-light.png) · [Dark mode](evidence/theme-dark.png)
+
+Enable **Lock Review and Domain model** to keep those nodes fixed while editing.
+You can still select them. In Grouped onion, the lock on Domain model also
+blocks moving its parent groups.
+[Workbench screenshot](evidence/node-movement-policy.png)

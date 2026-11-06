@@ -143,8 +143,14 @@ export type {
   FlowConnectionGeometryPolicy,
   FlowConnectionPreview,
 } from './connection-preview';
-import { edgeIsVisible, groupsInPaintOrder, presentGroups } from './group-presentation';
+import {
+  edgeIsVisible,
+  groupsInPaintOrder,
+  presentGroups,
+  withDescendants,
+} from './group-presentation';
 import { FlowInput } from './mount';
+import { movementReason } from './movement';
 export type { FlowBackground, FlowBackgroundRenderContext } from './background';
 import type {
   AlignmentGuide,
@@ -312,6 +318,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     canDelete?: EditorPolicy['canDelete'];
     /** Use the reducer's reconnection policy to omit handles for locked endpoints. */
     canReconnect?: EditorPolicy['canReconnect'];
+    /** Use the reducer's movement policy to show locked handles. */
+    canMoveNode?: EditorPolicy['canMoveNode'];
     /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
     renderEdgeToolbar?: (
       context: FlowEdgeToolbarContext,
@@ -1095,6 +1103,12 @@ export function flowView<M>(
       node.kind !== 'group',
     );
   const dropParent = state.gesture.type === 'node-drag' ? state.gesture.dropParent : undefined;
+  const moveDisabledReason = (node: FlowNode) => {
+    if (!options.canMoveNode) return undefined;
+    return node.kind === 'group'
+      ? movementReason(state.graph, withDescendants(state.graph, [node.id]), options.canMoveNode)
+      : (options.canMoveNode(node, state.graph) ?? undefined);
+  };
   const boundaries = groupsInPaintOrder(presentation.nodes).map((node) => {
     const collapsed = collapsedGroups.has(node.id);
     const dropTarget = dropParent === node.id;
@@ -1106,6 +1120,7 @@ export function flowView<M>(
       collapsed,
       dropTarget,
       selectionPreview: previewIds.has(node.id),
+      moveDisabledReason: moveDisabledReason(node),
     };
     const context: FlowNodeRenderContext = {
       ...base,
@@ -1247,6 +1262,7 @@ export function flowView<M>(
         collapsed: false,
         dropTarget: false,
         selectionPreview: previewIds.has(node.id),
+        moveDisabledReason: moveDisabledReason(node),
       };
       const context: FlowNodeRenderContext = {
         ...base,

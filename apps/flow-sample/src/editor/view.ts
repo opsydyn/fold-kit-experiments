@@ -1188,6 +1188,24 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        h.label(
+          [
+            h.Style({
+              display: 'inline-flex',
+              'align-items': 'center',
+              gap: '6px',
+              margin: '0 8px',
+            }),
+          ],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.lockKeyNodes),
+              h.OnClick(Message.ClickedLockKeyNodes()),
+            ]),
+            'Lock Review and Domain model',
+          ],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
@@ -1364,6 +1382,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           edgeToolbar: true,
           canDelete: policy.canDelete,
           canReconnect: policy.canReconnect,
+          canMoveNode: policy.canMoveNode,
           renderEdgeToolbar: (context, builder) =>
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)

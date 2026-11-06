@@ -15,6 +15,8 @@ export type FlowNodeRenderContext = Readonly<{
   dropTarget: boolean;
   /** Would be selected if the current marquee were released. */
   selectionPreview: boolean;
+  /** Movement lock for this node or one of its descendants. Selection remains available. */
+  moveDisabledReason?: string | undefined;
   contextAction?: Html;
   collapseToggle?: Html;
   resizeHandles: readonly Html[];
@@ -159,9 +161,18 @@ export function flowDragHandle<M>(
 ): Html {
   return h.button(
     [
-      ...attributesWithGeometry(h, attributes, { 'pointer-events': 'auto' }),
+      ...attributesWithGeometry(
+        h,
+        attributes,
+        context.moveDisabledReason === undefined
+          ? { 'pointer-events': 'auto' }
+          : { 'pointer-events': 'auto', cursor: 'pointer' },
+      ),
       h.Type('button'),
       h.DataAttribute('flow-handle', context.node.id),
+      ...(context.moveDisabledReason === undefined
+        ? []
+        : [h.DataAttribute('flow-move-locked', ''), h.Title(context.moveDisabledReason)]),
       h.AriaLabel(`Select ${context.node.label}`),
       h.AriaPressed(String(context.state.selectedNodes.includes(context.node.id))),
       h.AriaDescribedBy(context.descriptionId),

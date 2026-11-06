@@ -199,6 +199,8 @@ export type EditorPolicy = Readonly<{
   canReconnect?: (edge: FlowEdge, end: EdgeEnd, graph: FlowGraph) => string | null;
   /** Return a rejection reason for the complete deletion, or null to accept it. */
   canDelete?: (candidate: DeletionCandidate, graph: FlowGraph) => string | null;
+  /** Return a reason to block movement or null to allow it. Group moves check every descendant. */
+  canMoveNode?: (node: FlowNode, graph: FlowGraph) => string | null;
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =

@@ -114,6 +114,10 @@ zoom, or native page scrolling through `FlowViewOptions.wheelNavigation`.
 and reconnection drags. The browser adapter sends ordered candidates and the
 editor applies the normal connection policy.
 
+`EditorPolicy.canMoveNode` controls drag and keyboard movement. Flow checks
+all nodes in the move, including group descendants, before changing the graph.
+Use `FlowViewOptions.canMoveNode` to show locked handles.
+
 `EditorPolicy.canReconnect` locks individual source or target ends. Pass
 the same callback to `FlowViewOptions.canReconnect` to omit locked handles.
 The reducer rechecks permission on commit, and `canConnect` still validates

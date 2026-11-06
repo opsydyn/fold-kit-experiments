@@ -208,6 +208,7 @@ export const Model = Schema.Struct({
   }),
   connectionDesign: ConnectionDesign,
   protectDeletions: Schema.Boolean,
+  lockKeyNodes: Schema.Boolean,
   reconnectLock: ReconnectLock,
   snapConnections: Schema.Boolean,
   canvasCopyDesign: CanvasCopyDesign,
@@ -240,6 +241,7 @@ export type Model = Readonly<{
   diagnostics: FlowDiagnostics;
   connectionDesign: ConnectionDesign;
   protectDeletions: boolean;
+  lockKeyNodes: boolean;
   reconnectLock: ReconnectLock;
   snapConnections: boolean;
   canvasCopyDesign: CanvasCopyDesign;
@@ -273,6 +275,7 @@ export const init = () => ({
     diagnostics: resolveFlowDiagnostics({}),
     connectionDesign: 'dashed',
     protectDeletions: false,
+    lockKeyNodes: false,
     reconnectLock: 'none',
     snapConnections: false,
     canvasCopyDesign: 'standard',

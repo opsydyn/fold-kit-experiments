@@ -526,6 +526,61 @@ test('dragging either edge endpoint preserves the original edge until a valid dr
   expect(updateEditor(started, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
 });
 
+test('node movement policy blocks an entire selection or group and rolls back a denied drag', () => {
+  const group = {
+    id: 'group',
+    kind: 'group' as const,
+    label: 'Group',
+    position: { x: 0, y: 0 },
+    size: { width: 400, height: 300 },
+    ports: [],
+  };
+  const initial = createEditor({
+    nodes: [group, { ...nodeA, parentId: group.id }, nodeB],
+    edges: [],
+  });
+  const selected = updateEditor(initial, { type: 'NodeSelected', id: group.id, additive: false });
+  const policy: EditorPolicy = {
+    canMoveNode: (node) => (node.id === 'a' ? 'Source is locked.' : null),
+  };
+  const drag = {
+    type: 'NodeDragStarted',
+    id: group.id,
+    pointer: 1,
+    point: { x: 20, y: 20 },
+  } as const;
+  const blocked = updateEditor(selected, drag, policy);
+  expect(blocked.gesture.type).toBe('idle');
+  expect(blocked.selectedNodes).toEqual([group.id]);
+  expect(blocked.graph).toBe(initial.graph);
+  expect(blocked.notice).toBe('Source is locked.');
+
+  const mixed = updateEditor(selected, { type: 'NodeSelected', id: 'b', additive: true });
+  const nudge = { type: 'SelectionNudged', delta: { x: 15, y: 0 } } as const;
+  const denied = updateEditor(mixed, nudge, policy);
+  expect(denied.graph).toBe(initial.graph);
+  expect(denied.past).toBe(initial.past);
+  expect(denied.revision).toBe(initial.revision);
+
+  const started = updateEditor(selected, drag);
+  const pointerMove = { type: 'PointerMoved', pointer: 1, point: { x: 65, y: 20 } } as const;
+  const preview = updateEditor(started, pointerMove);
+  expect(preview.graph).not.toBe(initial.graph);
+  const release = { type: 'PointerReleased', pointer: 1 } as const;
+  for (const event of [pointerMove, release]) {
+    const cancelled = updateEditor(preview, event, policy);
+    expect(cancelled.gesture.type).toBe('idle');
+    expect(cancelled.graph).toBe(initial.graph);
+    expect(cancelled.past).toBe(initial.past);
+    expect(cancelled.notice).toBe('Source is locked.');
+  }
+
+  const movable = updateEditor(selected, { type: 'NodeSelected', id: 'b', additive: false });
+  const moved = updateEditor(movable, nudge, policy);
+  expect(moved.graph.nodes.find((node) => node.id === 'b')?.position.x).toBe(nodeB.position.x + 15);
+  expect(updateEditor(moved, { type: 'UndoPressed' }).graph).toBe(initial.graph);
+});
+
 test('nested group moves include each descendant once and undo restores the hierarchy', () => {
   const boundary = {
     kind: 'group' as const,

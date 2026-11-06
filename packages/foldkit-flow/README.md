@@ -691,6 +691,16 @@ Flow calls the hook only for resolved guides when the effective
 `alignmentGuides` diagnostic is enabled. Guide visibility is independent
 of snapping.
 
+### Lock node movement
+
+Pass `canMoveNode(node, graph)` in `EditorPolicy` to allow or block dragging
+and keyboard nudging. Return `null` to allow a node to move, or a reason to
+block it. A move checks the entire selection, including descendants of groups.
+One locked node blocks the whole move. A drag uses the graph as it was at the
+start of the gesture and checks the policy again before committing. Pass the
+same callback to `flowView` to expose the lock on node handles. Custom shells
+receive `moveDisabledReason` and can still use `flowDragHandle` for selection.
+
 ### Protect nodes and edges from deletion
 
 Pass a pure `canDelete` callback in `EditorPolicy` to `updateEditor`. It

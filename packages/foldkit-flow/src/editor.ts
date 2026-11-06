@@ -27,6 +27,7 @@ import {
   presentGroups,
   withDescendants,
 } from './group-presentation';
+import { movementReason } from './movement';
 import { expandParents } from './parent-expansion';
 import { resolveBoxSelection } from './selection-preview';
 import type {
@@ -963,6 +964,9 @@ export function updateEditor(
         );
         return { ...state, graph, revision: state.revision + 1, routes: [] };
       }
+      const moving = withDescendants(gesture.before, gesture.ids);
+      const reason = movementReason(gesture.before, moving, policy.canMoveNode);
+      if (reason !== undefined) return { ...cancel(state), notice: reason };
       const zoom = state.viewport.zoom;
       const raw = { x: delta.x / zoom, y: delta.y / zoom };
       const fallback = { ...raw };
@@ -973,7 +977,6 @@ export function updateEditor(
         fallback.x = snap(anchor.position.x + raw.x) - anchor.position.x;
         fallback.y = snap(anchor.position.y + raw.y) - anchor.position.y;
       }
-      const moving = withDescendants(gesture.before, gesture.ids);
       const dragging = Math.hypot(delta.x, delta.y) >= 4;
       const { nodes } = presentGroups(gesture.before, state.collapsedGroups);
       const { offset, guides } =
@@ -1039,6 +1042,11 @@ export function updateEditor(
             : { type: 'PortActivated', endpoint: gesture.target },
           policy,
         );
+      }
+      if (gesture.type === 'node-drag' && policy.canMoveNode) {
+        const moving = withDescendants(gesture.before, gesture.ids);
+        const reason = movementReason(gesture.before, moving, policy.canMoveNode);
+        if (reason !== undefined) return { ...cancel(state), notice: reason };
       }
       if (gesture.type === 'node-drag' && gesture.dropParent !== undefined) {
         const graph = reparentDraggedNodes(state.graph, gesture.ids, gesture.dropParent);
@@ -1149,11 +1157,17 @@ export function updateEditor(
       if (resizing && state.collapsedGroups.includes(event.id)) return state;
       const ids =
         !resizing && state.selectedNodes.includes(event.id) ? state.selectedNodes : [event.id];
+      const selected = { ...state, selectedNodes: ids, selectedEdges: [], connection: null };
+      if (!resizing && policy.canMoveNode) {
+        const reason = movementReason(
+          state.graph,
+          withDescendants(state.graph, ids),
+          policy.canMoveNode,
+        );
+        if (reason !== undefined) return { ...selected, notice: reason };
+      }
       return {
-        ...state,
-        selectedNodes: ids,
-        selectedEdges: [],
-        connection: null,
+        ...selected,
         gesture: {
           ...(resizing
             ? {
@@ -1172,11 +1186,10 @@ export function updateEditor(
     case 'SelectionNudged': {
       if (state.selectedNodes.length === 0 || (event.delta.x === 0 && event.delta.y === 0))
         return state;
-      const graph = move(
-        state.graph,
-        withDescendants(state.graph, state.selectedNodes),
-        event.delta,
-      );
+      const moving = withDescendants(state.graph, state.selectedNodes);
+      const reason = movementReason(state.graph, moving, policy.canMoveNode);
+      if (reason !== undefined) return { ...state, notice: reason };
+      const graph = move(state.graph, moving, event.delta);
       return graph === state.graph ? state : commitGraph(state, graph);
     }
     case 'NodeExpansionToggled': {

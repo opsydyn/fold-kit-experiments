@@ -298,3 +298,8 @@ Choose **Node toolbar → Standard** for the package controls or **Compact ·
 below node** for a custom toolbar. Select one node or group and zoom to see
 the controls stay the same size. **Off** hides the toolbar.
 [Workbench screenshot](evidence/node-toolbar.png)
+
+In the release workflow, enable **World annotation** to show the custom
+release gate above Review. The annotation moves and scales with the node.
+Activate it to select Review, or toggle **World annotation** off to hide it.
+[Workbench screenshot](evidence/world-overlay.png)

@@ -9,6 +9,8 @@ import {
 } from '@opsydyn/foldkit-flow';
 import {
   flowDragHandle,
+  flowWorldOverlayItem,
+  type FlowWorldOverlayContext,
   flowEdgeLabelBadge,
   flowEdgeToolbarButton,
   flowContextAction,
@@ -399,6 +401,61 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
         ['Apply label'],
       ),
       flowEdgeLabelCancel(h, context, flowEvent, [], ['Discard']),
+    ],
+  );
+}
+
+export function releaseGateAnnotation(context: FlowWorldOverlayContext, h: HtmlBuilder<Message>) {
+  const review = context.nodes.find((node) => node.id === 'review');
+  if (!review) return null;
+  const position = { x: review.position.x + review.size.width / 2, y: review.position.y - 14 };
+  return h.div(
+    [],
+    [
+      flowWorldOverlayItem(
+        h,
+        { position },
+        [
+          h.AriaHidden(true),
+          h.DataAttribute('release-gate-leader', ''),
+          h.Style({ width: '2px', height: '14px', background: '#376855' }),
+        ],
+        [],
+      ),
+      flowWorldOverlayItem(
+        h,
+        { position, interactive: true },
+        [h.Style({ transform: 'translate(-50%, -100%)' })],
+        [
+          h.button(
+            [
+              h.Type('button'),
+              h.AriaLabel('Inspect Review'),
+              h.OnClick(flowEvent({ type: 'NodeSelected', id: review.id, additive: false })),
+              h.Style({
+                display: 'grid',
+                gap: '4px',
+                width: '160px',
+                padding: '10px 12px',
+                border: '1px solid #4f826e',
+                'border-radius': '8px',
+                'text-align': 'left',
+                background: '#18392e',
+                color: '#fff',
+                'box-shadow': '0 3px 10px rgb(23 57 46 / 0.22)',
+                cursor: 'pointer',
+              }),
+            ],
+            [
+              h.span(
+                [h.Style({ 'font-size': '10px', 'letter-spacing': '.08em', color: '#b4ddcb' })],
+                ['RELEASE GATE'],
+              ),
+              h.strong([h.Style({ 'font-size': '14px' })], ['Review required']),
+            ],
+          ),
+        ],
+      ),
     ],
   );
 }

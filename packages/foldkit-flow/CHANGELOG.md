@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add a world-space overlay slot and a positioning primitive for decorative
+  annotations and interactive host content.
+
 - Add an opt-in selected-node toolbar with screen-space placement, custom
   contents, and shared duplicate and delete actions.
 

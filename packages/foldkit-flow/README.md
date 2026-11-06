@@ -193,6 +193,24 @@ routes. `EdgePathStyleChanged` saves the style in one undo step. Pass
 `pathStyle: null` in that event to restore automatic routing. Automatic uses the
 layout route when available and a straight line otherwise.
 
+Supply `renderWorldOverlay` to draw annotations and domain visuals in diagram
+coordinates. Its context includes the visible nodes and edges, selection,
+viewport, and measured surface. The layer shares the node transform and is
+clipped to the canvas. Return `null` or `undefined` to omit it. Overlay
+visibility is controlled by the host, including in minimal mode.
+
+Use `flowWorldOverlayItem` from `@opsydyn/foldkit-flow/foldkit` to anchor
+HTML at a world point. Decorative items pass pointer input through by
+default. Set `interactive: true` for native controls that handle their
+own input while Flow's canvas gestures and shortcuts stay out of the way.
+
+```ts
+renderWorldOverlay: (_context, h) =>
+  flowWorldOverlayItem(h, { position: { x: 180, y: 60 } }, [], [
+    h.span([], ['Review required']),
+  ]),
+```
+
 With `nodeToolbar: true`, selecting one visible node or group shows **Duplicate
 node** and **Delete node**. The toolbar follows the node in screen space and
 keeps its size as you zoom. Supply `nodeToolbar: { placement: 'bottom', offset: 12 }`

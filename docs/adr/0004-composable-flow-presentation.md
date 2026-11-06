@@ -318,6 +318,15 @@ positioning API would require callers to duplicate frame and input bindings.
 Keeping the frame in Flow also gives both renderers the existing read-only,
 draft and undo behavior. Callers can hide a badge independently of editing.
 
+### World overlay
+
+The view renders host overlay content in the same transformed layer as
+the visible graph. This shares the canvas clip and camera projection
+without a separate coordinate or DOM lifecycle. The host decides what to
+display and owns its messages. The positioning primitive passes pointer
+input through by default and uses the existing input exclusion for
+interactive items.
+
 ### Selected-node toolbar
 
 The view projects the visible node boundary into canvas CSS pixels and

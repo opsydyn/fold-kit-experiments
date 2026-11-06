@@ -181,6 +181,7 @@ export const DiagnosticFlag = Schema.Literals([
 ]);
 export const Model = Schema.Struct({
   minimalMode: Schema.Boolean,
+  showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
   diagnosticsPanelOpen: Schema.Boolean,
   diagnostics: Schema.Struct({
@@ -216,6 +217,7 @@ export const Model = Schema.Struct({
 });
 export type Model = Readonly<{
   minimalMode: boolean;
+  showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
   diagnosticsPanelOpen: boolean;
   diagnostics: FlowDiagnostics;
@@ -244,6 +246,7 @@ export type Model = Readonly<{
 export const init = () => ({
   model: {
     minimalMode: false,
+    showWorldAnnotation: false,
     diagnosticsEnabled: true,
     diagnosticsPanelOpen: false,
     diagnostics: resolveFlowDiagnostics({}),

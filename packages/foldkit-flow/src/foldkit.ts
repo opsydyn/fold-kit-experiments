@@ -106,8 +106,9 @@ export {
   flowPort,
   flowResizeHandle,
   flowEdgeHitTarget,
+  flowWorldOverlayItem,
 } from './composition';
-export type { FlowNodeRenderContext } from './composition';
+export type { FlowNodeRenderContext, FlowWorldOverlayItemOptions } from './composition';
 
 import { backgroundView, type FlowBackground } from './background';
 import {
@@ -152,6 +153,7 @@ import type {
   FlowEdge,
   FlowNode,
   Point,
+  Size,
   Viewport,
   ResizeHandle,
 } from './types';
@@ -225,12 +227,32 @@ export type FlowCanvasStatusContext = Readonly<{
   visible: boolean;
 }>;
 
+/** Visible diagram presentation for a host-rendered layer in world coordinates. */
+export type FlowWorldOverlayContext = Readonly<{
+  /** The unique document ID supplied to flowView. */
+  id: string;
+  viewport: Viewport;
+  surface: Size | null;
+  /** Visible nodes, including the presentation bounds of collapsed groups. */
+  nodes: readonly FlowNode[];
+  /** Visible edges keep their authored endpoint IDs. */
+  edges: readonly FlowEdge[];
+  selectedNodeIds: readonly string[];
+  selectedEdgeIds: readonly string[];
+  readOnly: boolean;
+}>;
+
 export type FlowViewOptions<M> = FlowDiagnosticOptions &
   Readonly<{
     /** Unique within the document; prefixes accessible descriptions and SVG markers. */
     id: string;
     label: string;
     onEvent: (event: EditorEvent) => M;
+    /** Host content under the world transform. Null or undefined omits the layer. */
+    renderWorldOverlay?: (
+      context: FlowWorldOverlayContext,
+      h: HtmlBuilder<M>,
+    ) => Html | null | undefined;
     /** Uses the host's builder; arbitrary FoldKit controls retain their normal behaviour. */
     renderNode?: (node: FlowNode, h: HtmlBuilder<M>) => Html;
     /** Replaces the complete measured node shell. Compose the public frame and interaction primitives. */
@@ -1001,6 +1023,19 @@ export function flowView<M>(
   const visibleEdges = state.graph.edges.filter((edge) =>
     edgeIsVisible(edge, presentation.hiddenBy),
   );
+  const worldOverlay = options.renderWorldOverlay?.(
+    {
+      id: options.id,
+      viewport: state.viewport,
+      surface: state.surface,
+      nodes: presentation.nodes,
+      edges: visibleEdges,
+      selectedNodeIds: state.selectedNodes,
+      selectedEdgeIds: state.selectedEdges,
+      readOnly: state.readOnly,
+    },
+    h,
+  );
   const minimap = options.minimap && diagnostics.overview ? minimapContext(state) : undefined;
   const descriptionId = `${options.id}-help`;
   const transform = `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.zoom})`;
@@ -1695,6 +1730,17 @@ export function flowView<M>(
               ),
               ...nodes,
               ...edgeLabels,
+              ...(worldOverlay === null || worldOverlay === undefined
+                ? []
+                : [
+                    h.div(
+                      [
+                        h.DataAttribute('flow-world-overlay', ''),
+                        h.Style({ position: 'absolute', inset: '0', 'pointer-events': 'none' }),
+                      ],
+                      [worldOverlay],
+                    ),
+                  ]),
               ...selectionMarquee(h, state, options, selectionPreview),
             ],
           ),

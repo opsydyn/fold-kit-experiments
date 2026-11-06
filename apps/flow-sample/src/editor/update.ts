@@ -130,6 +130,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedEdgeDesign: ({ edgeDesign }) => ({ model: { ...model, edgeDesign } }),
     SelectedNodeDesign: ({ nodeDesign }) => ({ model: { ...model, nodeDesign } }),
     SelectedBackground: ({ background }) => ({ model: { ...model, background } }),
+    ClickedWorldAnnotation: () => ({
+      model: { ...model, showWorldAnnotation: !model.showWorldAnnotation },
+    }),
     ClickedMinimalMode: () => ({ model: { ...model, minimalMode: !model.minimalMode } }),
     ClickedDiagnosticsPanel: () => ({
       model: { ...model, diagnosticsPanelOpen: !model.diagnosticsPanelOpen },

@@ -1,9 +1,9 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { FlowDiagnostics } from './diagnostics';
-import { portAnchor } from './geometry';
+import { finitePoint, portAnchor } from './geometry';
 import { FlowError } from './graph';
-import type { FlowEdge, EditorState, FlowNode, Port, ResizeHandle } from './types';
+import type { FlowEdge, EditorState, FlowNode, Point, Port, ResizeHandle } from './types';
 
 /** Model-derived shell context. Optional controls can be placed or omitted by the shell. */
 export type FlowNodeRenderContext = Readonly<{
@@ -36,6 +36,36 @@ function attributesWithGeometry<M>(
     ...attributes.filter((attribute) => !('_tag' in attribute) || attribute._tag !== 'Style'),
     h.Style({ ...style, ...geometry }),
   ];
+}
+
+export type FlowWorldOverlayItemOptions = Readonly<{
+  /** Anchor in world coordinates. */
+  position: Point;
+  /** Receives pointer input and opts out of Flow canvas gestures and shortcuts. Defaults to false. */
+  interactive?: boolean;
+}>;
+
+/** Positions arbitrary host content inside a world overlay using graph units. */
+export function flowWorldOverlayItem<M>(
+  h: HtmlBuilder<M>,
+  { position, interactive }: FlowWorldOverlayItemOptions,
+  attributes: Attributes<M>,
+  children: Children<M>,
+): Html {
+  finitePoint(position);
+  return h.div(
+    [
+      ...attributesWithGeometry(h, attributes, {
+        position: 'absolute',
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        'pointer-events': interactive ? 'auto' : 'none',
+      }),
+      h.DataAttribute('flow-world-overlay-item', ''),
+      ...(interactive ? [h.DataAttribute('flow-no-drag', '')] : []),
+    ],
+    children,
+  );
 }
 
 /** Content height is measured through Flow's scoped input lifecycle; width and position come from Model. */

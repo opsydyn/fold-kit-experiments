@@ -45,6 +45,7 @@ import {
   raisedConnection,
   edgeBadge,
   edgeBadgeEditor,
+  releaseGateAnnotation,
   compactNodeToolbar,
   compactEdgeToolbar,
   customContextMenu,
@@ -219,6 +220,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.OnClick(Message.ClickedMinimalMode()),
               ],
               ['Minimal mode'],
+            ),
+            h.button(
+              [
+                h.Type('button'),
+                h.AriaPressed(String(model.showWorldAnnotation)),
+                h.OnClick(Message.ClickedWorldAnnotation()),
+              ],
+              ['World annotation'],
             ),
             h.button(
               [
@@ -1258,6 +1267,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             if (model.edgeDesign === 'raised') return raisedEdge(context);
             return undefined;
           },
+          renderWorldOverlay: (context, builder) =>
+            model.showWorldAnnotation ? releaseGateAnnotation(context, builder) : null,
           renderNodeShell: (context, builder) => {
             if (model.nodeDesign === 'orbits') return orbitNode(context, builder);
             return undefined;

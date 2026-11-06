@@ -58,6 +58,10 @@ at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and
 Model-owned editing.
 
+`renderWorldOverlay` receives `FlowWorldOverlayContext` and renders host
+content inside the camera transform. `flowWorldOverlayItem` anchors
+arbitrary FoldKit content at a world position and can opt into input.
+
 `nodeToolbar` enables actions anchored to one selected node or group. The
 toolbar stays at screen size. `FlowNodeToolbarOptions` controls placement
 and gap, and `renderNodeToolbar` receives `FlowNodeToolbarContext` for
@@ -117,5 +121,5 @@ navigation cancels the transition.
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are
 optional view peers; ELK and force layout are separately installed adapters.
 Policies and view configuration are functions outside serialized documents.
-Outside-box anchors, arbitrary routing normals and a complete overlay
-composition API are not part of the current contract.
+Outside-box anchors and arbitrary routing normals are not part of the
+current contract.

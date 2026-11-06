@@ -26,6 +26,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   let backgroundPressed = false;
   let backgroundClickCount = 0;
   let spaceHeld = false;
+  let middlePanning = false;
   type WireStart = Extract<
     BrowserInput,
     { type: 'ConnectionDragStarted' | 'ReconnectionDragStarted' }
@@ -72,6 +73,20 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (!(target instanceof window.Element)) return null;
     const surface = target.closest('[data-flow-surface]');
     return surface === null || surface === element ? target : null;
+  };
+  const hitsCanvasItem = (target: Element): boolean =>
+    target.closest('button,a,[data-flow-node],[data-flow-edge]') !== null;
+  const middlePanBackground = (event: Event): boolean => {
+    if (element.dataset.flowMiddleButtonPan !== 'true') return false;
+    const target = targetOf(event);
+    return (
+      target !== null &&
+      !editable(target) &&
+      !hitsCanvasItem(target) &&
+      !target.closest(
+        '[data-flow-minimap], [data-flow-minimap-frame], [data-flow-context-panel], [data-flow-handle], [data-flow-resize], [data-flow-reconnect], [data-flow-port]',
+      )
+    );
   };
   const localPoint = (client: Point) => {
     const rect = element.getBoundingClientRect();
@@ -154,6 +169,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   const stopSingleDrag = () => {
     const pointer = captured;
     captured = null;
+    middlePanning = false;
     wire = null;
     nodeDragOrigin = null;
     panPointer = null;
@@ -232,7 +248,20 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       emit({ type: 'ContextDismissed' });
   });
   listen('pointerdown', (event) => {
-    if (!(event instanceof window.PointerEvent) || event.button !== 0) return;
+    if (!(event instanceof window.PointerEvent)) return;
+    if (event.button === 1) {
+      if (captured !== null || pinching || !middlePanBackground(event)) return;
+      backgroundPressed = false;
+      backgroundClickCount = 0;
+      middlePanning = true;
+      captured = event.pointerId;
+      element.setPointerCapture(event.pointerId);
+      element.focus({ preventScroll: true });
+      event.preventDefault();
+      emit({ type: 'PanStarted', pointer: event.pointerId, point: point(event) });
+      return;
+    }
+    if (event.button !== 0) return;
     backgroundPressed = false;
     const target = targetOf(event);
     if (
@@ -309,7 +338,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       emit({ type: 'NodeSelected', id, additive: false });
       return;
     }
-    if (!id && target.closest('button,a,[data-flow-node],[data-flow-edge]')) return;
+    if (!id && hitsCanvasItem(target)) return;
     captured = event.pointerId;
     element.setPointerCapture(event.pointerId);
     if (handle instanceof window.HTMLElement) handle.focus({ preventScroll: true });
@@ -364,6 +393,12 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     }
     if (event.pointerId !== captured) return;
     movePointer(event);
+    // A mouse chord reports middle release in a move while another button is held.
+    if (middlePanning && (event.buttons & 4) === 0) {
+      emit({ type: 'PointerReleased', pointer: event.pointerId });
+      releaseCapture();
+      return;
+    }
     trackAutoPan(event);
   });
   listen('pointerup', (event) => {
@@ -402,6 +437,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   listen('pointercancel', cancelled);
   listen('lostpointercapture', (event) => {
     if (event.target === element) cancelled(event);
+  });
+  listen('auxclick', (event) => {
+    if (event instanceof window.MouseEvent && event.button === 1 && middlePanBackground(event))
+      event.preventDefault();
   });
   listen('click', (event) => {
     const target = targetOf(event);

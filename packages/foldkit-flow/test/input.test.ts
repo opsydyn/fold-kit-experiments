@@ -298,6 +298,73 @@ test('Space temporarily pans from the focused canvas and resets on release or fo
   release();
 });
 
+test('middle-button pan uses the background and ends when the middle button is released', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'MouseEvent', { value: window.MouseEvent, configurable: true });
+  Object.defineProperty(globalThis, 'PointerEvent', {
+    value: window.PointerEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  const surface = document.createElement('div');
+  surface.dataset.flowSurface = '';
+  surface.dataset.flowSelectionMode = 'true';
+  surface.dataset.flowZoomAreaMode = 'true';
+  surface.setPointerCapture = () => {};
+  surface.hasPointerCapture = () => false;
+  const link = document.createElement('a');
+  link.href = '/example';
+  const input = document.createElement('input');
+  surface.append(link, input);
+  const events: EditorEvent[] = [];
+  const release = bindInput(surface, (event) => events.push(event));
+  const pointer = (type: string, button: number, buttons: number, target: Element = surface) => {
+    const event = new PointerEvent(type, {
+      button,
+      buttons,
+      pointerId: 1,
+      pointerType: 'mouse',
+      bubbles: true,
+      cancelable: true,
+    });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  const auxClick = (target: Element) => {
+    const event = new MouseEvent('auxclick', { button: 1, bubbles: true, cancelable: true });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  events.length = 0;
+  expect(pointer('pointerdown', 1, 4)).toBe(false);
+  expect(auxClick(surface)).toBe(false);
+  expect(events).toEqual([]);
+  surface.dataset.flowMiddleButtonPan = 'true';
+  expect(pointer('pointerdown', 1, 4, link)).toBe(false);
+  expect(pointer('pointerdown', 1, 4, input)).toBe(false);
+  expect(auxClick(link)).toBe(false);
+  expect(events).toEqual([]);
+  expect(pointer('pointerdown', 1, 4)).toBe(true);
+  pointer('pointermove', 0, 5);
+  pointer('pointermove', 1, 1);
+  pointer('pointerup', 0, 0);
+  expect(events.map(({ type }) => type)).toEqual([
+    'PanStarted',
+    'PointerMoved',
+    'PointerMoved',
+    'PointerReleased',
+  ]);
+  expect(auxClick(surface)).toBe(true);
+
+  events.length = 0;
+  pointer('pointerdown', 0, 1);
+  expect(events[0]?.type).toBe('ZoomAreaStarted');
+  pointer('pointerup', 0, 0);
+  release();
+  expect(pointer('pointerdown', 1, 4)).toBe(false);
+  expect(auxClick(surface)).toBe(false);
+});
+
 test('node focus tracking follows the containing frame and ignores nested editors', () => {
   const window = new Window();
   Object.defineProperty(globalThis, 'FocusEvent', {

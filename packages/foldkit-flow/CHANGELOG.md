@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in middle-button background panning while retaining the current
+  selection and canvas tool.
+
 - Add opt-in Space-drag panning that preserves selection and the current
   canvas tool.
 

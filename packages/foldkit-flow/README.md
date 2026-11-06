@@ -506,6 +506,12 @@ Releasing Space during a drag lets it finish. Escape cancels the drag,
 and focus loss clears the shortcut. Space continues to activate buttons
 and enter text when those controls have focus. The feature defaults to off.
 
+Set `middleButtonPan: true` to pan by middle-dragging the canvas background.
+The gesture preserves selection and leaves Box select or Zoom to area
+ready for a primary-button drag. Links and controls keep their native
+middle-click behavior. This option defaults to off and is independent of
+Space-drag and wheel navigation.
+
 Pass `zoomLimits: { minZoom: 0.75, maxZoom: 1.3 }` and
 `fitViewPadding: 96` to `createEditor` to customize the camera. Wheel,
 pinch, double-click, toolbar, and Fit view share the inclusive range. Both limits must

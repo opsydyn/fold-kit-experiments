@@ -232,6 +232,7 @@ export type FlowCanvasHelpContext = Readonly<{
   wheelNavigation: FlowWheelNavigation;
   doubleClickZoom?: boolean;
   spaceToPan?: boolean;
+  middleButtonPan?: boolean;
 }>;
 
 /** Current canvas notice or the summary used when no notice is active. */
@@ -377,6 +378,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     doubleClickZoom?: boolean | number;
     /** Hold Space with the canvas focused to pan from the background. Defaults to false. */
     spaceToPan?: boolean;
+    /** Pan by dragging the canvas background with the middle button. Defaults to false. */
+    middleButtonPan?: boolean;
     /** Card width handles and corner/side handles on selected expanded groups. */
     resizeHandles?: boolean;
     /** Show Model dimensions during resizing and for selected groups with handles. Defaults to true. */
@@ -1030,6 +1033,7 @@ function canvasHelpView<M>(
   const zoomAreaActive = Boolean(state.zoomAreaMode) || state.gesture.type === 'zoom-area';
   const doubleClickZoom = Boolean(options.doubleClickZoom);
   const spaceToPan = options.spaceToPan === true;
+  const middleButtonPan = options.middleButtonPan === true;
   const wheelNavigation = options.wheelNavigation ?? 'zoom';
   const wheelHelp =
     wheelNavigation === 'pan'
@@ -1049,6 +1053,7 @@ function canvasHelpView<M>(
       ? ['Double-click the background to zoom in. ']
       : []),
     ...(spaceToPan ? ['Focus the canvas, then hold Space and drag the background to pan. '] : []),
+    ...(middleButtonPan ? ['Middle-drag the background to pan. '] : []),
     'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
     ...(edgeToolbar
       ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
@@ -1064,6 +1069,7 @@ function canvasHelpView<M>(
       wheelNavigation,
       doubleClickZoom,
       spaceToPan,
+      middleButtonPan,
       visible,
     },
     h,
@@ -1947,6 +1953,7 @@ export function flowView<M>(
           h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
           h.DataAttribute('flow-double-click-zoom', String(doubleClickZoomFactor || '')),
           h.DataAttribute('flow-space-to-pan', String(options.spaceToPan === true)),
+          h.DataAttribute('flow-middle-button-pan', String(options.middleButtonPan === true)),
           h.DataAttribute(
             'flow-fit-animation',
             state.fitViewTransition.type === 'fitting' ? String(state.fitViewTransition.id) : '',
@@ -1966,7 +1973,7 @@ export function flowView<M>(
             width: '100%',
             'touch-action': 'none',
             cursor:
-              options.spaceToPan && state.gesture.type === 'pan'
+              (options.spaceToPan || options.middleButtonPan) && state.gesture.type === 'pan'
                 ? 'grabbing'
                 : state.selectionMode || state.zoomAreaMode || state.gesture.type === 'zoom-area'
                   ? 'crosshair'

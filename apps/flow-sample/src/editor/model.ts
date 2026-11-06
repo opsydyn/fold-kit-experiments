@@ -238,6 +238,7 @@ export const Model = Schema.Struct({
   wheelNavigation: WheelNavigation,
   doubleClickZoom: Schema.Boolean,
   spaceToPan: Schema.Boolean,
+  middleButtonPan: Schema.Boolean,
   navigationDesign: NavigationDesign,
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
@@ -281,6 +282,7 @@ export type Model = Readonly<{
   wheelNavigation: WheelNavigation;
   doubleClickZoom: boolean;
   spaceToPan: boolean;
+  middleButtonPan: boolean;
   navigationDesign: NavigationDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
@@ -325,6 +327,7 @@ export const init = () => ({
     wheelNavigation: 'zoom',
     doubleClickZoom: true,
     spaceToPan: true,
+    middleButtonPan: true,
     navigationDesign: 'standard',
     nodeDesign: 'cards',
     background: 'dots',

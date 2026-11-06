@@ -310,6 +310,12 @@ background drag. The current canvas tool stays in the Model. Reusing
 the existing gesture gives Space-drag the same camera and pointer
 cancellation rules without changing graph history.
 
+Middle-drag uses the same pan gesture through a separate opt-in view
+option. The input binding owns the button and capture lifetime and
+reserves the gesture for the canvas background. Links and controls keep
+native auxiliary clicks. The existing camera state and tool selection
+stay in the Model.
+
 Zoom limits and Fit view padding live in editor preferences so gestures,
 toolbar actions, and host camera updates share the same range. Keeping
 the range in the view alone would leave programmatic viewport changes and

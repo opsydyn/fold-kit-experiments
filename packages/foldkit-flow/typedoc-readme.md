@@ -123,6 +123,8 @@ zoom, or native page scrolling through `FlowViewOptions.wheelNavigation`.
 double-click zoom, with a default or caller-supplied multiplier.
 `FlowViewOptions.spaceToPan` enables temporary background panning while
 Space is held on the focused canvas.
+`FlowViewOptions.middleButtonPan` independently enables background panning
+with the middle mouse button.
 
 `FlowViewOptions.connectionDropRadius` enables nearby targeting for connection
 and reconnection drags. The browser adapter sends ordered candidates and the

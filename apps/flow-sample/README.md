@@ -408,3 +408,8 @@ With **Space-drag to pan** enabled, focus the canvas and hold Space while
 dragging its background. Try it with **Box select** active, then release
 Space to draw a selection on the next drag.
 [Workbench screenshot](evidence/space-to-pan.png)
+
+Enable **Middle-drag to pan** to drag the canvas background with the
+middle mouse button. Try it with **Box select** active, then use a
+primary-button drag to draw the marquee.
+[Workbench screenshot](evidence/middle-button-pan.png)

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { arch, cpus, release } from 'node:os';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 import { chromium, expect } from '@playwright/test';
 const server = createServer(async (req, res) => {
@@ -24,7 +25,10 @@ const runs = 3;
 const samplesPerRun = 20;
 const warmup = 4;
 const worldSelector = ':scope > div[style*="transform-origin"]';
-const comparison = process.env.FLOW_BENCHMARK_COMPARE_CULLING === '1';
+const sustained = process.env.FLOW_BENCHMARK_BURST === '1';
+const comparison = sustained || process.env.FLOW_BENCHMARK_COMPARE_CULLING === '1';
+const burstInputs = 180;
+const burstHz = 120;
 const cases = comparison
   ? [
       { name: 'Large · default', nodes: 320, edges: 452, minimal: false, culling: false },
@@ -137,6 +141,153 @@ async function measure(page, surface, point, kind) {
   return observed.slice(warmup);
 }
 
+async function measureBurst(page, surface, world, point, kind) {
+  const pan = kind === 'pan';
+  const session = await page.context().newCDPSession(page);
+  const run = async () => {
+    const readCamera = () =>
+      world.evaluate((element) => {
+        const matrix = new DOMMatrixReadOnly(element.style.transform);
+        return { x: matrix.e, y: matrix.f, zoom: matrix.a };
+      });
+    const start = await readCamera();
+    await page.mouse.move(point.x, point.y);
+    if (pan)
+      await session.send('Input.dispatchMouseEvent', {
+        ...point,
+        type: 'mousePressed',
+        button: 'left',
+        buttons: 1,
+        force: 0.5,
+        clickCount: 1,
+      });
+    await surface.evaluate(
+      (element, { selector, eventName }) => {
+        const world = element.querySelector(selector);
+        let delivered = 0;
+        let commits = 0;
+        let previousTime;
+        let previousCommits = 0;
+        let frame;
+        const intervals = [];
+        const onInput = (event) => {
+          if (event.isTrusted) delivered += 1;
+        };
+        const readTransform = (style) => style?.match(/(?:^|;)\s*transform:\s*([^;]+)/)?.[1];
+        const observer = new MutationObserver((records) => {
+          // Old values preserve intermediate commits when one observer callback receives several.
+          const transforms = records.map(({ oldValue }) => readTransform(oldValue));
+          transforms.push(world.style.transform);
+          for (let index = 0; index < records.length; index++)
+            if (transforms[index] !== transforms[index + 1]) commits += 1;
+        });
+        function tick(time) {
+          if (previousTime !== undefined)
+            intervals.push({ gapMs: time - previousTime, commits: commits - previousCommits });
+          previousTime = time;
+          previousCommits = commits;
+          frame = requestAnimationFrame(tick);
+        }
+        element.addEventListener(eventName, onInput, { capture: true, passive: true });
+        observer.observe(world, {
+          attributes: true,
+          attributeFilter: ['style'],
+          attributeOldValue: true,
+        });
+        window.flowBurstProbe = {
+          stop() {
+            observer.disconnect();
+            cancelAnimationFrame(frame);
+            element.removeEventListener(eventName, onInput, true);
+            delete window.flowBurstProbe;
+            return { delivered, commits, intervals };
+          },
+        };
+        return new Promise((resolve) => {
+          frame = requestAnimationFrame((time) => {
+            tick(time);
+            resolve();
+          });
+        });
+      },
+      { selector: worldSelector, eventName: pan ? 'pointermove' : 'wheel' },
+    );
+
+    const sent = [];
+    const dispatchErrors = [];
+    const startedAt = performance.now();
+    for (let index = 0; index < burstInputs; index++) {
+      const delay = startedAt + (index * 1000) / burstHz - performance.now();
+      if (delay > 0) await sleep(delay);
+      const input = pan
+        ? {
+            type: 'mouseMoved',
+            x: point.x + index + 1,
+            y: point.y,
+            button: 'left',
+            buttons: 1,
+            force: 0.5,
+          }
+        : { type: 'mouseWheel', ...point, deltaX: 0, deltaY: -1 };
+      sent.push(
+        session.send('Input.dispatchMouseEvent', input).catch((error) => {
+          dispatchErrors.push(String(error));
+        }),
+      );
+    }
+    const dispatchMs = Math.round(performance.now() - startedAt);
+    await Promise.all(sent);
+    expect(dispatchErrors).toEqual([]);
+
+    // Check the final gesture result so coalescing cannot quietly drop the total motion.
+    const expected = pan ? start.x + burstInputs : start.zoom * Math.exp(burstInputs * 0.002);
+    await expect
+      .poll(async () => {
+        const camera = await readCamera();
+        return Math.abs((pan ? camera.x : camera.zoom) - expected);
+      })
+      .toBeLessThan(pan ? 1.1 : 0.005);
+    const result = await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => resolve(window.flowBurstProbe.stop())),
+        ),
+    );
+    if (pan)
+      await session.send('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x: point.x + burstInputs,
+        y: point.y,
+        button: 'left',
+        buttons: 0,
+        clickCount: 1,
+      });
+    expect(result.delivered).toBeGreaterThan(0);
+    expect(result.commits).toBeGreaterThan(0);
+    expect(result.intervals.length).toBeGreaterThan(0);
+    return { dispatchMs, ...result };
+  };
+  return run().finally(() => session.detach());
+}
+
+function summarizeBursts(bursts) {
+  const intervals = bursts.flatMap(({ intervals }) => intervals);
+  return {
+    runs: bursts.map(({ delivered, commits, dispatchMs, intervals }) => ({
+      delivered,
+      commits,
+      dispatchMs,
+      observedMs: Math.round(intervals.reduce((total, { gapMs }) => total + gapMs, 0)),
+    })),
+    frameGapMs: summarize(intervals, 'gapMs'),
+    maxFrameGapMs: Math.round(Math.max(...intervals.map(({ gapMs }) => gapMs)) * 10) / 10,
+    frames: intervals.length,
+    framesOver25Ms: intervals.filter(({ gapMs }) => gapMs > 25).length,
+    multiCommitFrames: intervals.filter(({ commits }) => commits > 1).length,
+    extraCommits: intervals.reduce((total, { commits }) => total + Math.max(0, commits - 1), 0),
+  };
+}
+
 function summarize(samples, field) {
   const sorted = samples.map((sample) => sample[field]).sort((left, right) => left - right);
   const percentile = (fraction) =>
@@ -170,6 +321,15 @@ async function qualify(browser, fixture) {
 
     const results = {};
     for (const kind of ['pan', 'zoom']) {
+      if (sustained) {
+        const bursts = [];
+        for (let run = 0; run < runs; run++) {
+          const point = await prepareCamera(page, surface, world);
+          bursts.push(await measureBurst(page, surface, world, point, kind));
+        }
+        results[kind] = summarizeBursts(bursts);
+        continue;
+      }
       const samples = [];
       for (let run = 0; run < runs; run++) {
         const point = await prepareCamera(page, surface, world);
@@ -221,8 +381,9 @@ async function benchmark() {
           host: { arch: arch(), release: release(), cpu: cpus()[0]?.model },
           viewport,
           runs,
-          samplesPerRun,
-          warmup,
+          samplesPerRun: sustained ? burstInputs : samplesPerRun,
+          warmup: sustained ? 0 : warmup,
+          burst: sustained ? { inputs: burstInputs, hz: burstHz } : null,
           results,
         },
         null,

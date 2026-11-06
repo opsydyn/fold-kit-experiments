@@ -92,3 +92,53 @@ presentation timing remain separate measurements.
 The driver confirmed that the minimap still showed all 320 nodes, the
 Connections list exposed all 452 edges, and Fit view remounted the full
 workflow. [Zoomed canvas and full minimap](viewport-culling.png)
+
+## Sustained input profile
+
+Run the burst profile from `apps/web` after building the workbench.
+
+```sh
+FLOW_BENCHMARK_BURST=1 bun - < ../flow-sample/evidence/camera-benchmark.mjs
+FLOW_BENCHMARK_BURST=1 FLOW_BENCHMARK_REVERSE=1 bun - < ../flow-sample/evidence/camera-benchmark.mjs
+```
+
+The driver offers 180 Chromium input packets at 120 Hz in each burst. It
+starts near 100% zoom and drives three bursts per operation and culling
+mode. Pan holds the pointer down and advances it by 180 CSS pixels. Wheel
+zoom sends 180 one-pixel steps around a fixed anchor. The driver verifies
+that the camera reaches the expected endpoint and counts trusted events
+delivered to the surface separately from packets offered. [Chromium input protocol](https://chromedevtools.github.io/devtools-protocol/tot/Input/#method-dispatchMouseEvent)
+
+A mutation observer counts distinct camera transforms, including intermediate
+changes delivered in one observer callback. The animation-frame probe
+records callback gaps and the number of commits between callbacks. It starts
+just before input and stops after the final camera update. The observation
+window includes the tail of work after the last offered packet. These are
+headless callback timings and DOM commits. Presented frames and reducer work
+before a DOM commit require separate measurement. [DOM mutation observers](https://dom.spec.whatwg.org/#mutation-observers) · [HTML animation frames](https://html.spec.whatwg.org/multipage/imagebitmap-and-animations.html#animation-frames)
+
+The paired runs used the same headless Chromium 151 build and Apple M4 Pro
+as the serial benchmark, with default diagnostics. The driver offered each
+burst in 1.491–1.494 seconds. Counts and observation windows are ranges
+across six bursts per row. Frame-gap p95 is the range of the two case
+orders, each calculated from its three bursts.
+
+| Operation  | Culling | Events delivered / burst | DOM commits / burst | Frame gap p95 | Observation window |
+| ---------- | ------- | -----------------------: | ------------------: | ------------: | -----------------: |
+| Drag pan   | Off     |                    45–52 |               44–51 |  34.7–50.0 ms |      1.565–1.583 s |
+| Drag pan   | On      |                  145–179 |                  91 |  17.8–18.4 ms |      1.531–1.534 s |
+| Wheel zoom | Off     |                       92 |               87–89 |  49.0–50.1 ms |      3.017–3.417 s |
+| Wheel zoom | On      |                  166–180 |               89–90 |  17.9–18.5 ms |      1.617–1.635 s |
+
+Culling kept every observed callback gap below 25 ms. With culling off,
+763 of 870 intervals exceeded 25 ms. The wheel observation window extended
+well beyond packet dispatch with culling off, even though the final scale
+matched the expected scale.
+
+All 2,008 observed intervals contained at most one camera DOM commit.
+Explicit frame batching has no duplicate DOM commits to eliminate in
+these runs. To decide whether it can save work earlier, profile reducer
+and view execution during the wheel burst with culling off and identify where the
+extra time goes before testing a scheduler change.
+
+![p95 callback gaps with culling on and off](camera-burst-profile.png)

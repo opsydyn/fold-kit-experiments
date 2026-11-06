@@ -355,3 +355,7 @@ Enable **Viewport culling** and zoom into the large workflow to mount fewer
 canvas items while keeping the minimap and Connections list complete.
 [Benchmark comparison](evidence/camera-benchmark.md#viewport-culling-comparison) ·
 [Workbench screenshot](evidence/viewport-culling.png)
+
+The [sustained input profile](evidence/camera-benchmark.md#sustained-input-profile)
+adds timed drag and wheel bursts, with frame gaps and camera commits reported
+for both culling modes.

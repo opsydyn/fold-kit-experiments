@@ -150,6 +150,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedNavigationDesign: ({ navigationDesign }) => ({ model: { ...model, navigationDesign } }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
+    SelectedReconnectionSnap: ({ reconnectionSnap }) => ({
+      model: { ...model, reconnectionSnap },
+    }),
     ClickedPortLock: ({ port }) => ({
       model: {
         ...model,

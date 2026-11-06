@@ -99,7 +99,11 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const target = endpointAt(ownerDocument.elementFromPoint(client.x, client.y));
     if (target) return { target };
 
-    const radius = Number(element.dataset.flowConnectionDropRadius);
+    const radius = Number(
+      wire.start.type === 'ReconnectionDragStarted'
+        ? element.dataset.flowReconnectionDropRadius
+        : element.dataset.flowConnectionDropRadius,
+    );
     if (!(radius > 0)) return {};
     const surface = element.getBoundingClientRect();
     if (

@@ -28,6 +28,7 @@ async function qualify() {
     const surface = page.locator('[data-flow-surface]');
     const preview = surface.locator('[data-flow-connection-preview]');
     const publish = button('Connect to Publish: in');
+    const reconnectionRadius = page.getByRole('combobox', { name: 'Reconnection snap radius' });
     const nearPort = async (locator, offset) => {
       const box = await locator.boundingBox();
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - offset, { steps: 6 });
@@ -43,15 +44,17 @@ async function qualify() {
 
     await page.goto('http://127.0.0.1:' + server.address().port);
     await expect(surface).toHaveAttribute('data-flow-connection-drop-radius', '0');
+    await expect(surface).toHaveAttribute('data-flow-reconnection-drop-radius', '0');
     await begin(button('Connect from Review: out'));
     await nearPort(publish, 24);
     await expect(preview).toHaveAttribute('data-flow-connection-state', 'free');
     await page.mouse.up();
     await expect(button('review:out → publish:in')).toHaveCount(0);
 
-    const snap = button('Snap drops to nearby ports');
+    const snap = button('Snap new connections');
     await snap.click();
     await expect(surface).toHaveAttribute('data-flow-connection-drop-radius', '32');
+    await expect(surface).toHaveAttribute('data-flow-reconnection-drop-radius', '32');
     await button('Zoom in').click();
     await expect(page.getByText('125%', { exact: true })).toBeVisible();
     await page.getByRole('combobox', { name: 'Wheel navigation' }).selectOption('pan');
@@ -99,9 +102,59 @@ async function qualify() {
     await expect(button('source:out → publish:in')).toBeVisible();
     await button('Undo').click();
     await expect(button('source:out → review:in')).toBeVisible();
+
+    await reconnectionRadius.selectOption('exact');
+    await expect(surface).toHaveAttribute('data-flow-reconnection-drop-radius', '0');
+    await expect(surface).toHaveAttribute('data-flow-connection-drop-radius', '32');
+    await button('source:out → review:in').click();
+    await begin(handle('target'));
+    await nearPort(publish, 24);
+    await expect(preview).toHaveAttribute('data-flow-connection-state', 'free');
+    await page.mouse.up();
+    await expect(button('source:out → review:in')).toBeVisible();
+    await begin(handle('target'));
+    await nearPort(publish, 0);
+    await expect(preview).toHaveAttribute('data-flow-connection-state', 'valid');
+    await page.mouse.up();
+    await expect(button('source:out → publish:in')).toBeVisible();
+    await button('Undo').click();
+
+    await snap.click();
+    await reconnectionRadius.selectOption('wide');
+    await expect(surface).toHaveAttribute('data-flow-connection-drop-radius', '0');
+    await expect(surface).toHaveAttribute('data-flow-reconnection-drop-radius', '48');
+    await begin(button('Connect from Review: out'));
+    await nearPort(publish, 24);
+    await expect(preview).toHaveAttribute('data-flow-connection-state', 'free');
+    await page.mouse.up();
+    await expect(button('review:out → publish:in')).toHaveCount(0);
+    await button('source:out → review:in').click();
+    await begin(handle('target'));
+    await nearPort(publish, 50);
+    await expect(preview).toHaveAttribute('data-flow-connection-state', 'free');
+    await nearPort(publish, 42);
+    await expect(preview).toHaveAttribute('data-flow-connection-state', 'valid');
+    const screenshot = process.env.FLOW_RECONNECTION_DROP_RADIUS_SCREENSHOT;
+    if (screenshot) {
+      const canvas = await surface.boundingBox();
+      const toggle = await snap.boundingBox();
+      await page.screenshot({
+        path: screenshot,
+        clip: {
+          x: canvas.x,
+          y: toggle.y - 6,
+          width: canvas.width,
+          height: canvas.y + canvas.height - toggle.y + 6,
+        },
+      });
+    }
+    await page.mouse.up();
+    await expect(button('source:out → publish:in')).toBeVisible();
+    await button('Undo').click();
+    await expect(button('source:out → review:in')).toBeVisible();
     expect(errors).toEqual([]);
     console.log(
-      'Exact-only default, zoomed radius preview, creation and both reconnection ends passed.',
+      'Inherited, exact-only and independent reconnection radii passed at 125% zoom, including both ends and Undo.',
     );
   };
   await run().finally(() => browser.close());

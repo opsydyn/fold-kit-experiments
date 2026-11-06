@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Allow an independent reconnection drop radius while inheriting the
+  connection radius by default.
+
 - Add opt-in middle-button background panning while retaining the current
   selection and canvas tool.
 

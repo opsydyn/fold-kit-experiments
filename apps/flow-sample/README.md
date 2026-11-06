@@ -309,10 +309,11 @@ the connection to see the remaining handle and the disabled port selector
 for the locked end. The setting applies only to the Draft → Review edge.
 [Workbench screenshot](evidence/reconnect-permission.png)
 
-Enable **Snap drops to nearby ports** to try a 32 px radius for new
-connections and reconnections. Hover near a compatible port to preview
-the drop before releasing.
-[Workbench screenshot](evidence/connection-drop-radius.png)
+Enable **Snap new connections** to try a 32 px radius. Set
+**Reconnection snap radius** to match that setting, require an exact hit,
+or use 48 px. Hover near a compatible port to preview the drop before
+releasing.
+[Workbench screenshot](evidence/reconnection-drop-radius.png)
 
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System

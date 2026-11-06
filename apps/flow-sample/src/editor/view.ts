@@ -31,6 +31,7 @@ import {
   ConnectionDesign,
   EdgeDesign,
   ReconnectLock,
+  ReconnectionSnap,
   EdgeLabelDesign,
   NodeToolbarDesign,
   EdgeToolbarDesign,
@@ -73,6 +74,12 @@ type WorkbenchEdgeHooks = {
 
 const workbenchNodeCache = createLazy();
 const flowInput = (message: EditorEvent) => Message.ObservedFlowInput({ message });
+
+const reconnectionRadiusOptions = {
+  match: {},
+  exact: { reconnectionDropRadius: 0 },
+  wide: { reconnectionDropRadius: 48 },
+} as const;
 function renderWorkbenchNode(
   node: FlowNode,
   builder: HtmlBuilder<Message>,
@@ -1321,7 +1328,33 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.AriaPressed(String(model.snapConnections)),
             h.OnClick(Message.ClickedConnectionSnap()),
           ],
-          ['Snap drops to nearby ports'],
+          ['Snap new connections'],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Reconnection snap radius',
+            h.select(
+              [
+                h.AriaLabel('Reconnection snap radius'),
+                h.Value(model.reconnectionSnap),
+                h.OnChange((value) =>
+                  Message.SelectedReconnectionSnap({
+                    reconnectionSnap: Schema.decodeUnknownSync(ReconnectionSnap)(value),
+                  }),
+                ),
+              ],
+              (
+                [
+                  ['match', 'Match new connections'],
+                  ['exact', 'Exact ports only'],
+                  ['wide', '48 px radius'],
+                ] as const
+              ).map(([value, label]) =>
+                h.option([h.Value(value), h.Selected(model.reconnectionSnap === value)], [label]),
+              ),
+            ),
+          ],
         ),
         h.label(
           [h.Class('workbench-theme-picker')],
@@ -1767,6 +1800,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.contextMenuDesign === 'panel' ? customContextMenu(context, builder) : undefined,
           autoPan: true,
           connectionDropRadius: model.snapConnections ? 32 : 0,
+          ...reconnectionRadiusOptions[model.reconnectionSnap],
           pinchZoom: true,
           resizeHandles: true,
           minimap: true,

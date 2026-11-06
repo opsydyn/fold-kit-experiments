@@ -367,6 +367,11 @@ handles and preserves exact hits. The reducer selects the first candidate
 that passes the existing connection policy, keeping eligibility and the
 commit independent of the browser.
 
+The view can set a separate reconnection radius. An omitted override
+inherits the connection radius, and an explicit zero requires an exact
+hit. The binding selects the radius for the current gesture and uses the
+same candidate and policy path for both operations.
+
 ### Reconnection permission
 
 A host policy evaluates the existing edge and requested end. The native

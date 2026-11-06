@@ -126,9 +126,10 @@ Space is held on the focused canvas.
 `FlowViewOptions.middleButtonPan` independently enables background panning
 with the middle mouse button.
 
-`FlowViewOptions.connectionDropRadius` enables nearby targeting for connection
-and reconnection drags. The browser adapter sends ordered candidates and the
-editor applies the normal connection policy.
+`FlowViewOptions.connectionDropRadius` enables nearby targeting for new
+connections. `FlowViewOptions.reconnectionDropRadius` overrides it for
+reconnection drags. Both use CSS pixels. The browser adapter sends ordered
+candidates and the editor applies the normal connection policy.
 
 `EditorPolicy.canMoveNode` controls drag and keyboard movement. Flow checks
 all nodes in the move, including group descendants, before changing the graph.

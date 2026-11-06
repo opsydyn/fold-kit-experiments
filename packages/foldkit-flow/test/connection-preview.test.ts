@@ -5,7 +5,7 @@ import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
 import { Window } from 'happy-dom';
 
-import { flowView } from '../src/foldkit';
+import { flowView, type FlowViewOptions } from '../src/foldkit';
 import {
   createEditor,
   updateEditor,
@@ -205,7 +205,11 @@ test('reconnection retains authored path style and projects a fixed hidden endpo
   ).toThrow();
 });
 
-async function renderPreview(state: EditorState, hidden = false) {
+async function renderPreview(
+  state: EditorState,
+  hidden = false,
+  radii: Pick<FlowViewOptions<EditorEvent>, 'connectionDropRadius' | 'reconnectionDropRadius'> = {},
+) {
   const result = await Effect.runPromise(
     renderToString(
       {
@@ -217,6 +221,7 @@ async function renderPreview(state: EditorState, hidden = false) {
             id: 'preview',
             label: 'Connections',
             onEvent: (event) => event,
+            ...radii,
             minimalMode: true,
             connectionGeometry: ({ source, target }) => ({
               path: `M${source.x},${source.y} Q200,-50 ${target.x},${target.y}`,
@@ -248,6 +253,20 @@ async function renderPreview(state: EditorState, hidden = false) {
   window.document.body.innerHTML = result.html;
   return window.document;
 }
+
+test('reconnection radius inherits the connection radius and accepts an explicit zero', async () => {
+  for (const [radii, [connectionRadius, reconnectionRadius]] of [
+    [{}, ['0', '0']],
+    [{ connectionDropRadius: 32 }, ['32', '32']],
+    [{ connectionDropRadius: 32, reconnectionDropRadius: 0 }, ['32', '0']],
+    [{ reconnectionDropRadius: 48 }, ['0', '48']],
+  ] as const) {
+    const document = await renderPreview(start(), false, radii);
+    const surface = document.querySelector('[data-flow-surface]');
+    expect(surface?.getAttribute('data-flow-connection-drop-radius')).toBe(connectionRadius);
+    expect(surface?.getAttribute('data-flow-reconnection-drop-radius')).toBe(reconnectionRadius);
+  }
+});
 
 test('preview geometry and SVG slots use the host builder, remain decorative, and can omit the visual without disabling a drop', async () => {
   const ready = updateEditor(start(), {

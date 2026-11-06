@@ -165,6 +165,9 @@ const PortLocks = Schema.Struct({ draftOutput: Schema.Boolean, publishInput: Sch
 export const ReconnectLock = Schema.Literals(['none', 'source', 'target', 'both']);
 export type ReconnectLock = typeof ReconnectLock.Type;
 
+export const ReconnectionSnap = Schema.Literals(['match', 'exact', 'wide']);
+export type ReconnectionSnap = typeof ReconnectionSnap.Type;
+
 export const EdgeDesign = Schema.Literals(['default', 'raised']);
 export type EdgeDesign = typeof EdgeDesign.Type;
 
@@ -225,6 +228,7 @@ export const Model = Schema.Struct({
   reconnectLock: ReconnectLock,
   portLocks: PortLocks,
   snapConnections: Schema.Boolean,
+  reconnectionSnap: ReconnectionSnap,
   canvasCopyDesign: CanvasCopyDesign,
   selectionMarqueeDesign: SelectionMarqueeDesign,
   alignmentGuideDesign: AlignmentGuideDesign,
@@ -269,6 +273,7 @@ export type Model = Readonly<{
   reconnectLock: ReconnectLock;
   portLocks: typeof PortLocks.Type;
   snapConnections: boolean;
+  reconnectionSnap: ReconnectionSnap;
   canvasCopyDesign: CanvasCopyDesign;
   selectionMarqueeDesign: SelectionMarqueeDesign;
   alignmentGuideDesign: AlignmentGuideDesign;
@@ -314,6 +319,7 @@ export const init = () => ({
     reconnectLock: 'none',
     portLocks: { draftOutput: false, publishInput: false },
     snapConnections: false,
+    reconnectionSnap: 'match',
     canvasCopyDesign: 'standard',
     selectionMarqueeDesign: 'standard',
     alignmentGuideDesign: 'standard',

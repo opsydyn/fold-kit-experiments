@@ -143,12 +143,7 @@ export type {
   FlowConnectionGeometryPolicy,
   FlowConnectionPreview,
 } from './connection-preview';
-import {
-  edgeIsVisible,
-  groupsInPaintOrder,
-  presentGroups,
-  withDescendants,
-} from './group-presentation';
+import { groupsInPaintOrder, presentVisibleGraph, withDescendants } from './group-presentation';
 import { FlowInput } from './mount';
 import { movementReason } from './movement';
 export type { FlowBackground, FlowBackgroundRenderContext } from './background';
@@ -1047,7 +1042,7 @@ export function flowView<M>(
   if (!Number.isFinite(connectionDropRadius) || connectionDropRadius < 0)
     throw new RangeError('Connection drop radius must be finite and non-negative');
   const diagnostics = resolveFlowDiagnostics(options);
-  const presentation = presentGroups(state.graph, state.collapsedGroups);
+  const presentation = presentVisibleGraph(state);
   const selectionPreview =
     state.gesture.type === 'box-selection'
       ? resolveBoxSelection(state, state.gesture, presentation.nodes, options.canSelectNode)
@@ -1056,9 +1051,7 @@ export function flowView<M>(
     options.selectionPreviewHighlights === false ? [] : selectionPreview?.previewNodeIds,
   );
   const collapsedGroups = new Set(state.collapsedGroups);
-  const visibleEdges = state.graph.edges.filter((edge) =>
-    edgeIsVisible(edge, presentation.hiddenBy),
-  );
+  const visibleEdges = presentation.edges;
   const worldOverlay = options.renderWorldOverlay?.(
     {
       id: options.id,

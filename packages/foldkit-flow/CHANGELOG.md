@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add per-item visibility for the canvas, minimap, Connections list, and
+  navigation while preserving the authored graph.
+
 - Add per-port connection permissions for wire creation and reconnection, with
   disabled port controls and rejection feedback.
 

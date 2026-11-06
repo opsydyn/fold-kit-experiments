@@ -35,6 +35,10 @@ export const Message = defineMessageUnion({
   ClickedLockKeyNodes: {},
   ClickedLockNodeSizes: {},
   ClickedExcludeSelection: {},
+  ClickedVisibilityToggle: {
+    field: Schema.Literals(['hiddenNodeIds', 'hiddenEdgeIds']),
+    id: Schema.String,
+  },
   ClickedConnectionSnap: {},
   ClickedPortLock: { port: PortLock },
   SelectedReconnectLock: { reconnectLock: ReconnectLock },

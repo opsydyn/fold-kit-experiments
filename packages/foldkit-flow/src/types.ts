@@ -118,6 +118,12 @@ export type Gesture =
   | Readonly<{ type: 'pinch'; center: Point; distance: number; before: Viewport }>
   | Readonly<{ type: 'pan'; pointer: number; origin: Point; before: Viewport }>;
 export type EditorContext = Readonly<{ kind: 'node' | 'edge'; id: string; point: Point }>;
+/** Session-only visibility. Hidden groups also hide their descendants and incident edges. */
+export type FlowVisibility = Readonly<{
+  hiddenNodeIds?: readonly string[];
+  hiddenEdgeIds?: readonly string[];
+}>;
+
 /** Host-owned editor Model. Retain the complete state returned by updateEditor; serialize graph data separately. */
 export type EditorState = Readonly<{
   context: EditorContext | null;
@@ -125,6 +131,7 @@ export type EditorState = Readonly<{
   graph: FlowGraph;
   clipboard: FlowGraph | null;
   collapsedGroups: readonly string[];
+  visibility?: FlowVisibility | undefined;
   edgeLabelDraft: Readonly<{ id: string; text: string }> | null;
   /** Monotonic document freshness token; Undo does not rewind it. */
   revision: number;
@@ -165,6 +172,7 @@ export type FitViewTransition =
 /** Initial editor preferences. History defaults to 100 entries; grid spacing defaults to 20 world units. */
 export type EditorOptions = Readonly<{
   viewport?: Viewport;
+  visibility?: FlowVisibility;
   /** Inclusive zoom range for camera operations. Defaults to 0.1–4. */
   zoomLimits?: ZoomLimits;
   /** Fit inset in CSS pixels, capped at a quarter of the shorter surface side. Defaults to 24. */
@@ -218,6 +226,7 @@ export type EditorEvent =
   | Readonly<{ type: 'NodeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'EdgeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'SelectionCleared' }>
+  | Readonly<{ type: 'VisibilityChanged'; visibility: FlowVisibility }>
   | Readonly<{ type: 'GroupCollapseToggled'; id: string }>
   | Readonly<{ type: 'GroupFitClicked'; id: string }>
   | Readonly<{ type: 'GroupAspectRatioToggled'; id: string }>

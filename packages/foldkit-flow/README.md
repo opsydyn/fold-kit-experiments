@@ -738,6 +738,26 @@ shells, connection rows, and edge labels receive `selectionDisabledReason`.
 These callbacks govern new selection attempts. To clear a selection after
 changing the policy, send `SelectionCleared`.
 
+### Hide nodes and edges
+
+Use `createEditor(graph, { visibility })` for initial visibility and send
+`VisibilityChanged` to replace it during the session. Omit either list to
+show those items again.
+
+```ts
+const next = updateEditor(state, {
+  type: 'VisibilityChanged',
+  visibility: { hiddenNodeIds: ['review'], hiddenEdgeIds: ['optional-link'] },
+});
+```
+
+Hiding a node hides its incident edges. Hiding a group also hides its
+descendants. Collapsed groups still project edges between visible boundaries.
+The canvas, minimap, Connections list, Fit view, and marquee use the same
+visible items. Changing visibility clears hidden selections and cancels
+in-progress gestures. The underlying graph, exports, and Undo history retain
+the authored items. Use editor policies to restrict edits to graph data.
+
 ### Protect nodes and edges from deletion
 
 Pass a pure `canDelete` callback in `EditorPolicy` to `updateEditor`. It

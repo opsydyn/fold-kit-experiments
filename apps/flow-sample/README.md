@@ -340,3 +340,8 @@ Use **Port connections** to lock Draft's output or Publish's input independently
 Draft → Review stays visible when Draft's output is locked. Drag from Review to
 a locked Publish input to see the rejection reason.
 [Workbench screenshot](evidence/port-permission.png)
+
+Use **Item visibility** to hide Review or its incoming edge independently.
+The canvas, overview, and Connections list reflect the filter, while Export
+JSON keeps the full graph.
+[Workbench screenshot](evidence/item-visibility.png)

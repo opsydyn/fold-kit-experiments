@@ -116,6 +116,20 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     SelectedReconnectLock: ({ reconnectLock }) => ({ model: { ...model, reconnectLock } }),
     ClickedLockNodeSizes: () => ({ model: { ...model, lockNodeSizes: !model.lockNodeSizes } }),
+    ClickedVisibilityToggle: ({ field, id }) => {
+      const visibility = model.editor.visibility ?? {};
+      const ids = visibility[field] ?? [];
+      const hidden = ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
+      return {
+        model: {
+          ...model,
+          editor: updateEditor(model.editor, {
+            type: 'VisibilityChanged',
+            visibility: { ...visibility, [field]: hidden },
+          }),
+        },
+      };
+    },
     ClickedExcludeSelection: () => ({
       model: {
         ...model,

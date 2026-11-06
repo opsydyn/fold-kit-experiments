@@ -126,6 +126,10 @@ ancestors grown by those edits. Pass the same callback to
 can be selected. Pass the same callbacks to `flowView` so the controls and
 marquee preview agree with the reducer.
 
+`FlowVisibility` stores hidden node and edge IDs in the editor session. Set it
+at initialization or replace it with `VisibilityChanged`. Canvas, minimap,
+Connections, and marquee use the same filtered presentation.
+
 `EditorPolicy.canConnectPort` locks individual outputs and inputs. Pass it to
 `flowView` to disable the matching controls, including composed `flowPort`
 buttons. New connections check both ports. Reconnection checks the replacement

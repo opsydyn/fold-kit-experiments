@@ -1180,6 +1180,62 @@ test('deleting an edge by ID keeps other selected graph elements and is undoable
   expect(updateEditor(readOnly, { type: 'EdgeDeleted', id: edge.id })).toBe(readOnly);
 });
 
+test('visibility is reversible session state shared by selection, fit and minimap navigation', () => {
+  const outer = {
+    id: 'outer',
+    label: 'Outer',
+    kind: 'group' as const,
+    position: { x: 0, y: 0 },
+    size: { width: 520, height: 240 },
+    ports: [],
+  };
+  const edge = { id: 'ab', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  const surface = { width: 800, height: 440 };
+  const initial = {
+    ...createEditor({ nodes: [outer, { ...nodeA, parentId: 'outer' }, nodeB], edges: [edge] }),
+    surface,
+  };
+  const selected = updateEditor(
+    updateEditor(initial, { type: 'NodeSelected', id: 'a', additive: false }),
+    { type: 'EdgeSelected', id: edge.id, additive: true },
+  );
+  const hidden = updateEditor(selected, {
+    type: 'VisibilityChanged',
+    visibility: { hiddenNodeIds: ['outer'] },
+  });
+  expect(hidden.graph).toBe(initial.graph);
+  expect(hidden.revision).toBe(initial.revision);
+  expect(hidden.past).toBe(initial.past);
+  expect(hidden.selectedNodes).toEqual([]);
+  expect(hidden.selectedEdges).toEqual([]);
+  expect(updateEditor(hidden, { type: 'NodeSelected', id: 'a', additive: false })).toBe(hidden);
+  expect(updateEditor(hidden, { type: 'EdgeSelected', id: edge.id, additive: false })).toBe(hidden);
+
+  const reference = { ...createEditor({ nodes: [nodeB], edges: [] }), surface };
+  const fit = { type: 'FitViewClicked' } as const;
+  const click = { type: 'MinimapClicked', point: { x: 0.15, y: 0.3 } } as const;
+  expect(updateEditor(hidden, fit).viewport).toEqual(updateEditor(reference, fit).viewport);
+  expect(updateEditor(hidden, click).viewport).toEqual(updateEditor(reference, click).viewport);
+
+  const started = updateEditor(hidden, {
+    type: 'BoxSelectionStarted',
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const moved = updateEditor(started, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 620, y: 300 },
+  });
+  expect(updateEditor(moved, { type: 'PointerReleased', pointer: 1 }).selectedNodes).toEqual(['b']);
+
+  const reveal = updateEditor(hidden, { type: 'VisibilityChanged', visibility: {} });
+  expect(reveal.graph).toBe(initial.graph);
+  expect(
+    updateEditor(reveal, { type: 'EdgeSelected', id: edge.id, additive: false }).selectedEdges,
+  ).toEqual([edge.id]);
+});
+
 test('collapsing nested groups preserves the document and clears hidden selections', () => {
   const outer = {
     id: 'outer',

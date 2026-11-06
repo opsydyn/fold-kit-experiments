@@ -3,7 +3,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { FlowDiagnostics } from './diagnostics';
 import { minimapGeometry } from './geometry';
-import { groupsInPaintOrder, presentGroups } from './group-presentation';
+import { groupsInPaintOrder, presentEditorGroups } from './group-presentation';
 import type { EditorEvent, EditorState, FlowMinimapGeometry, FlowNode } from './types';
 
 /** Wheel behavior inside the canvas. Pan mode uses Ctrl/Command-wheel to zoom. */
@@ -40,6 +40,9 @@ type Children<M> = Parameters<HtmlBuilder<M>['button']>[1];
 export function viewportControlActions(state: EditorState): FlowViewportActions {
   const point = { x: (state.surface?.width ?? 0) / 2, y: (state.surface?.height ?? 0) / 2 };
   const unavailable = !state.surface || state.gesture.type !== 'idle';
+  const nodes = state.visibility?.hiddenNodeIds?.length
+    ? presentEditorGroups(state).nodes
+    : state.graph.nodes;
   return {
     zoomIn: {
       label: 'Zoom in',
@@ -54,7 +57,7 @@ export function viewportControlActions(state: EditorState): FlowViewportActions 
     fitView: {
       label: 'Fit view',
       event: { type: 'FitViewClicked' },
-      disabled: unavailable || state.graph.nodes.length === 0,
+      disabled: unavailable || nodes.length === 0,
     },
     selectionMode: {
       label: 'Box select',
@@ -89,7 +92,7 @@ export function flowViewportControl<M>(
 /** Collapsed-group presentation, in paint order, shared by default and custom minimaps. */
 export function minimapContext(state: EditorState): FlowMinimapContext | undefined {
   if (!state.surface) return undefined;
-  const presentation = presentGroups(state.graph, state.collapsedGroups);
+  const presentation = presentEditorGroups(state);
   if (!presentation.nodes.length) return undefined;
   return {
     state,

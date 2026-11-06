@@ -1,15 +1,23 @@
-import type { FlowEdge, FlowGraph, FlowNode, Point } from './types';
+import type { EditorState, FlowEdge, FlowGraph, FlowNode, Point } from './types';
 
 const collapsedSize = { width: 224, height: 56 };
 
 /** Presentation only. The authored nodes and endpoints remain in the document. */
-export function presentGroups(graph: FlowGraph, collapsedGroups: readonly string[]) {
+export function presentGroups(
+  graph: FlowGraph,
+  collapsedGroups: readonly string[],
+  hiddenNodeIds?: readonly string[],
+) {
+  const excludedNodes = hiddenNodeIds?.length ? withDescendants(graph, hiddenNodeIds) : undefined;
+  const authored = excludedNodes
+    ? graph.nodes.filter((node) => !excludedNodes.has(node.id))
+    : graph.nodes;
   const hiddenBy = new Map<string, FlowNode>();
-  if (collapsedGroups.length === 0) return { nodes: graph.nodes, hiddenBy };
+  if (collapsedGroups.length === 0) return { nodes: authored, hiddenBy, excludedNodes };
 
   const collapsed = new Set(collapsedGroups);
   const byId = new Map(
-    graph.nodes.map((node) => [
+    authored.map((node) => [
       node.id,
       collapsed.has(node.id) ? { ...node, size: collapsedSize } : node,
     ]),
@@ -26,12 +34,36 @@ export function presentGroups(graph: FlowGraph, collapsedGroups: readonly string
     if (boundary) hiddenBy.set(node.id, boundary);
     else nodes.push(node);
   }
-  return { nodes, hiddenBy };
+  return { nodes, hiddenBy, excludedNodes };
 }
 
 export function edgeIsVisible(edge: FlowEdge, hiddenBy: ReadonlyMap<string, FlowNode>): boolean {
   const sourceGroup = hiddenBy.get(edge.source.node);
   return !sourceGroup || sourceGroup !== hiddenBy.get(edge.target.node);
+}
+
+type PresentationState = Pick<EditorState, 'graph' | 'collapsedGroups' | 'visibility'>;
+
+export function presentEditorGroups(state: PresentationState, graph = state.graph) {
+  return presentGroups(graph, state.collapsedGroups, state.visibility?.hiddenNodeIds);
+}
+
+/** Compose filtering and collapse without changing authored nodes or endpoints. */
+export function presentVisibleGraph(state: PresentationState) {
+  const { graph, visibility } = state;
+  const presentation = presentEditorGroups(state);
+  const { excludedNodes, hiddenBy } = presentation;
+  const hiddenEdges = visibility?.hiddenEdgeIds?.length
+    ? new Set(visibility.hiddenEdgeIds)
+    : undefined;
+  const edges = graph.edges.filter(
+    (edge) =>
+      !hiddenEdges?.has(edge.id) &&
+      !excludedNodes?.has(edge.source.node) &&
+      !excludedNodes?.has(edge.target.node) &&
+      edgeIsVisible(edge, hiddenBy),
+  );
+  return { ...presentation, edges };
 }
 
 /** Parents paint below nested groups. Siblings keep document order. */

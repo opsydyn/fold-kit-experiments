@@ -1279,6 +1279,37 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        h.fieldset(
+          [h.Style({ margin: '12px 0', padding: '8px 12px', border: '1px solid currentColor' })],
+          [
+            h.legend([], ['Item visibility']),
+            ...(
+              [
+                ['hiddenNodeIds', 'review', 'Hide Review node'],
+                ['hiddenEdgeIds', 'draft-review', 'Hide Draft → Review edge'],
+              ] as const
+            ).map(([field, id, label]) =>
+              h.label(
+                [
+                  h.Style({
+                    display: 'inline-flex',
+                    'align-items': 'center',
+                    gap: '6px',
+                    'margin-right': '16px',
+                  }),
+                ],
+                [
+                  h.input([
+                    h.Type('checkbox'),
+                    h.Checked(model.editor.visibility?.[field]?.includes(id) ?? false),
+                    h.OnClick(Message.ClickedVisibilityToggle({ field, id })),
+                  ]),
+                  label,
+                ],
+              ),
+            ),
+          ],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;

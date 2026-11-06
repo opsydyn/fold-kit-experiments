@@ -22,9 +22,9 @@ import {
 } from './geometry';
 import { copyGraph, FlowError, validateGraph, withPortPosition } from './graph';
 import {
-  edgeIsVisible,
   groupAtDropPoint,
-  presentGroups,
+  presentEditorGroups,
+  presentVisibleGraph,
   withDescendants,
 } from './group-presentation';
 import { movementReason } from './movement';
@@ -37,6 +37,7 @@ import type {
   EditorState,
   ConnectionTarget,
   FlowGraph,
+  FlowVisibility,
   FlowNode,
   FlowEdge,
   Endpoint,
@@ -49,6 +50,32 @@ import type {
 function validateFitViewPadding(padding: number): void {
   if (!Number.isFinite(padding) || padding < 0)
     throw new FlowError('invalid-edit', 'Fit view padding must be finite and non-negative');
+}
+
+function copyVisibility(visibility?: FlowVisibility): FlowVisibility | undefined {
+  if (!visibility?.hiddenNodeIds?.length && !visibility?.hiddenEdgeIds?.length) return undefined;
+  return {
+    hiddenNodeIds: [...new Set(visibility.hiddenNodeIds)],
+    hiddenEdgeIds: [...new Set(visibility.hiddenEdgeIds)],
+  };
+}
+
+function retainVisibleSelection(state: EditorState): EditorState {
+  const { nodes, edges } = presentVisibleGraph(state);
+  const nodeIds = new Set(nodes.map(({ id }) => id));
+  const edgeIds = new Set(edges.map(({ id }) => id));
+  return {
+    ...state,
+    selectedNodes: state.selectedNodes.filter((id) => nodeIds.has(id)),
+    selectedEdges: state.selectedEdges.filter((id) => edgeIds.has(id)),
+  };
+}
+
+function selectionIsVisible(state: EditorState, kind: 'node' | 'edge', id: string): boolean {
+  if (!state.visibility) return true;
+  const items =
+    kind === 'node' ? presentEditorGroups(state).nodes : presentVisibleGraph(state).edges;
+  return items.some((item) => item.id === id);
 }
 
 /** Validate and detach an authored graph, then initialize host-owned editor state. Throws FlowError for invalid input. */
@@ -74,6 +101,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     connectionsExpanded: false,
     clipboard: null,
     collapsedGroups: [],
+    visibility: copyVisibility(options.visibility),
     edgeLabelDraft: null,
     revision: 0,
     surface: null,
@@ -634,6 +662,7 @@ export function updateEditor(
           ? state.graph.edges.find((item) => item.id === context.id)
           : undefined;
       if (!node && !edge) return state;
+      if (!selectionIsVisible(state, context.kind, context.id)) return state;
       const reason = node
         ? policy.canSelectNode?.(node, state.graph)
         : edge && policy.canSelectEdge?.(edge, state.graph);
@@ -654,6 +683,7 @@ export function updateEditor(
       if (id !== undefined) {
         const node = state.graph.nodes.find((item) => item.id === id);
         if (!node) return state;
+        if (!selectionIsVisible(state, 'node', id)) return state;
         const reason = policy.canSelectNode?.(node, state.graph) ?? null;
         if (reason !== null) return { ...state, notice: reason };
         const additive = event.type === 'NodeSelected' && event.additive;
@@ -677,6 +707,7 @@ export function updateEditor(
     case 'EdgeSelected': {
       const edge = state.graph.edges.find((item) => item.id === event.id);
       if (!edge) return state;
+      if (!selectionIsVisible(state, 'edge', edge.id)) return state;
       const reason = policy.canSelectEdge?.(edge, state.graph) ?? null;
       if (reason !== null) return { ...state, notice: reason };
       return {
@@ -693,19 +724,22 @@ export function updateEditor(
       const collapsedGroups = collapsed
         ? state.collapsedGroups.filter((id) => id !== group.id)
         : [...state.collapsedGroups, group.id];
-      const { hiddenBy } = presentGroups(state.graph, collapsedGroups);
-      const selectedEdges = state.selectedEdges.filter((id) =>
-        state.graph.edges.some((edge) => edge.id === id && edgeIsVisible(edge, hiddenBy)),
-      );
-      return {
+      return retainVisibleSelection({
         ...cancelFit(state),
         collapsedGroups,
         connection: null,
         edgeLabelDraft: null,
-        selectedNodes: state.selectedNodes.filter((id) => !hiddenBy.has(id)),
-        selectedEdges,
         notice: `${group.label} ${collapsed ? 'expanded' : 'collapsed'}`,
-      };
+      });
+    }
+    case 'VisibilityChanged': {
+      const settled = state.gesture.type === 'idle' ? state : cancel(state);
+      return retainVisibleSelection({
+        ...cancelFit(settled),
+        visibility: copyVisibility(event.visibility),
+        connection: null,
+        edgeLabelDraft: null,
+      });
     }
     case 'SelectionCleared':
       return { ...state, edgeLabelDraft: null, selectedNodes: [], selectedEdges: [] };
@@ -770,14 +804,11 @@ export function updateEditor(
     }
     case 'FitViewClicked': {
       const { surface } = state;
-      if (!surface || state.gesture.type !== 'idle' || state.graph.nodes.length === 0) return state;
+      if (!surface || state.gesture.type !== 'idle') return state;
+      const { nodes } = presentEditorGroups(state);
+      if (nodes.length === 0) return state;
       const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
-      const to = fitNodes(
-        presentGroups(state.graph, state.collapsedGroups).nodes,
-        surface,
-        padding,
-        state.zoomLimits,
-      );
+      const to = fitNodes(nodes, surface, padding, state.zoomLimits);
       const from = state.viewport;
       if (
         state.fitViewDuration === 0 ||
@@ -807,11 +838,9 @@ export function updateEditor(
       const { surface, viewport } = state;
       if (!surface || state.gesture.type !== 'idle') return state;
       finitePoint(event.point);
-      const { x, y, width, height } = minimapGeometry(
-        presentGroups(state.graph, state.collapsedGroups),
-        surface,
-        viewport,
-      );
+      const presentation = presentEditorGroups(state);
+      if (state.visibility && presentation.nodes.length === 0) return state;
+      const { x, y, width, height } = minimapGeometry(presentation, surface, viewport);
       const worldX = x + Math.max(0, Math.min(1, event.point.x)) * width;
       const worldY = y + Math.max(0, Math.min(1, event.point.y)) * height;
       return {
@@ -983,7 +1012,7 @@ export function updateEditor(
         if (original.kind === 'group') {
           const raw = { x: delta.x / state.viewport.zoom, y: delta.y / state.viewport.zoom };
           const handle = gesture.handle ?? gesture.corner ?? 'bottom-right';
-          const { nodes } = presentGroups(gesture.before, state.collapsedGroups);
+          const { nodes } = presentEditorGroups(state, gesture.before);
           const alignment =
             state.snapToAlignment && Math.hypot(delta.x, delta.y) >= 4
               ? alignResize(
@@ -1049,7 +1078,7 @@ export function updateEditor(
         fallback.y = snap(anchor.position.y + raw.y) - anchor.position.y;
       }
       const dragging = Math.hypot(delta.x, delta.y) >= 4;
-      const { nodes } = presentGroups(gesture.before, state.collapsedGroups);
+      const { nodes } = presentEditorGroups(state, gesture.before);
       const { offset, guides } =
         dragging && state.snapToAlignment
           ? alignDrag(nodes, moving, state.collapsedGroups, raw, fallback, zoom)
@@ -1089,7 +1118,7 @@ export function updateEditor(
         const { previewNodeIds: selectedNodes } = resolveBoxSelection(
           state,
           gesture,
-          presentGroups(state.graph, state.collapsedGroups).nodes,
+          presentEditorGroups(state).nodes,
           policy.canSelectNode,
         );
         return {
@@ -1231,7 +1260,7 @@ export function updateEditor(
     case 'NodeResizeStarted':
     case 'NodeDragStarted': {
       const node = state.graph.nodes.find((item) => item.id === event.id);
-      if (!node) return state;
+      if (!node || !selectionIsVisible(state, 'node', node.id)) return state;
       finitePoint(event.point);
       const selectionReason = policy.canSelectNode?.(node, state.graph) ?? null;
       if (selectionReason !== null) return { ...state, notice: selectionReason };
@@ -1370,7 +1399,12 @@ export function updateEditor(
     }
     case 'EdgeLabelEditingStarted': {
       const edge = state.graph.edges.find((edge) => edge.id === event.id);
-      if (!edge || state.edgeLabelDraft?.id === edge.id) return state;
+      if (
+        !edge ||
+        state.edgeLabelDraft?.id === edge.id ||
+        !selectionIsVisible(state, 'edge', edge.id)
+      )
+        return state;
       const reason = policy.canSelectEdge?.(edge, state.graph) ?? null;
       if (reason !== null) return { ...state, notice: reason };
       return {

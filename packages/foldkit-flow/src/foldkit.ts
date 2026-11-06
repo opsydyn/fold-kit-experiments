@@ -320,6 +320,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     canReconnect?: EditorPolicy['canReconnect'];
     /** Use the reducer's movement policy to show locked handles. */
     canMoveNode?: EditorPolicy['canMoveNode'];
+    /** Use the reducer's resize policy to hide locked handles and disable dimension controls. */
+    canResizeNode?: EditorPolicy['canResizeNode'];
     /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
     renderEdgeToolbar?: (
       context: FlowEdgeToolbarContext,
@@ -435,6 +437,7 @@ function contextMenu(
   state: EditorState,
   diagnostics: FlowDiagnostics,
   canDelete: EditorPolicy['canDelete'],
+  canResizeNode: EditorPolicy['canResizeNode'],
 ): FlowContextMenuContext | undefined {
   const context = state.context;
   if (!context || state.readOnly) return undefined;
@@ -460,19 +463,26 @@ function contextMenu(
   const node = state.graph.nodes.find((node) => node.id === id);
   if (!node) return undefined;
   const collapsed = state.collapsedGroups.includes(id);
+  const resizeDisabledReason = canResizeNode?.(node, state.graph) ?? undefined;
   const group: FlowGroupContextActions | undefined =
     node.kind === 'group'
       ? {
           node,
           collapsed,
-          fit: { label: 'Fit group to contents', event: { type: 'GroupFitClicked', id } },
+          fit: {
+            label: 'Fit group to contents',
+            event: { type: 'GroupFitClicked', id },
+            disabledReason: resizeDisabledReason,
+          },
           lockProportions: {
             label: 'Lock proportions',
             event: { type: 'GroupAspectRatioToggled', id },
             pressed: node.keepAspectRatio ?? false,
           },
           showMeasurements: diagnostics.measurements,
-          dimensionsDisabled: collapsed || state.gesture.type !== 'idle',
+          dimensionsDisabled:
+            collapsed || state.gesture.type !== 'idle' || resizeDisabledReason !== undefined,
+          resizeDisabledReason,
           dimensionStep: state.snapToGrid ? state.gridSpacing : 1,
           changeDimension: (dimension, value) => ({
             type: 'GroupDimensionChanged',
@@ -558,9 +568,10 @@ function defaultContextMenu<M>(
                             h.Style({ margin: '4px 0', 'font-size': '12px', 'line-height': '1.4' }),
                           ],
                           [
-                            group.collapsed
-                              ? 'Expand the group to edit dimensions.'
-                              : 'Values follow grid, limits and locked proportions.',
+                            group.resizeDisabledReason ??
+                              (group.collapsed
+                                ? 'Expand the group to edit dimensions.'
+                                : 'Values follow grid, limits and locked proportions.'),
                           ],
                         ),
                       ]
@@ -586,7 +597,7 @@ function contextPanel<M>(
   diagnostics: FlowDiagnostics,
 ): readonly Html[] {
   const context = options.contextActions
-    ? contextMenu(state, diagnostics, options.canDelete)
+    ? contextMenu(state, diagnostics, options.canDelete, options.canResizeNode)
     : undefined;
   if (!context) return [];
   const group = context.kind === 'node' ? context.group : undefined;
@@ -1112,6 +1123,10 @@ export function flowView<M>(
   const boundaries = groupsInPaintOrder(presentation.nodes).map((node) => {
     const collapsed = collapsedGroups.has(node.id);
     const dropTarget = dropParent === node.id;
+    const authored = collapsed
+      ? (state.graph.nodes.find((item) => item.id === node.id) ?? node)
+      : node;
+    const resizeDisabledReason = options.canResizeNode?.(authored, state.graph) ?? undefined;
     const base = {
       node,
       state,
@@ -1121,6 +1136,7 @@ export function flowView<M>(
       dropTarget,
       selectionPreview: previewIds.has(node.id),
       moveDisabledReason: moveDisabledReason(node),
+      resizeDisabledReason,
     };
     const context: FlowNodeRenderContext = {
       ...base,
@@ -1140,6 +1156,7 @@ export function flowView<M>(
         options.resizeHandles &&
         !state.readOnly &&
         !collapsed &&
+        resizeDisabledReason === undefined &&
         state.selectedNodes.includes(node.id)
           ? resizeHandles.map((handle) =>
               flowResizeHandle(
@@ -1254,6 +1271,7 @@ export function flowView<M>(
   const nodes = presentation.nodes
     .filter((node) => node.kind !== 'group')
     .map((node) => {
+      const resizeDisabledReason = options.canResizeNode?.(node, state.graph) ?? undefined;
       const base = {
         node,
         state,
@@ -1263,12 +1281,13 @@ export function flowView<M>(
         dropTarget: false,
         selectionPreview: previewIds.has(node.id),
         moveDisabledReason: moveDisabledReason(node),
+        resizeDisabledReason,
       };
       const context: FlowNodeRenderContext = {
         ...base,
         contextAction: contextEnabled ? nodeContextTrigger(node) : undefined,
         resizeHandles:
-          options.resizeHandles && !state.readOnly
+          options.resizeHandles && !state.readOnly && resizeDisabledReason === undefined
             ? [
                 flowResizeHandle(
                   h,

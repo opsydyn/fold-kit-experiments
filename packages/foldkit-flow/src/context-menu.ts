@@ -17,6 +17,7 @@ export type FlowGroupContextActions = Readonly<{
   showMeasurements: boolean;
   dimensionStep: number;
   dimensionsDisabled: boolean;
+  resizeDisabledReason?: string | undefined;
   changeDimension: (dimension: 'width' | 'height', value: number) => EditorEvent;
 }>;
 

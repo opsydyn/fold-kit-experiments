@@ -260,6 +260,23 @@ function resizeGroup(
   );
 }
 
+/** Explicit resize edits preserve node order, including when they expand ancestors. */
+function resizeChangeReason(
+  before: FlowGraph,
+  after: FlowGraph,
+  canResizeNode: EditorPolicy['canResizeNode'],
+): string | null {
+  if (!canResizeNode || before === after) return null;
+  for (const [index, node] of before.nodes.entries()) {
+    const next = after.nodes[index];
+    if (!next || (next.size.width === node.size.width && next.size.height === node.size.height))
+      continue;
+    const reason = canResizeNode(node, before);
+    if (reason !== null) return reason;
+  }
+  return null;
+}
+
 function history(state: EditorState, before: FlowGraph): readonly FlowGraph[] {
   return state.historyLimit === 0 ? [] : [...state.past, before].slice(-state.historyLimit);
 }
@@ -938,6 +955,8 @@ export function updateEditor(
             state.gridSpacing,
             alignment,
           );
+          const reason = resizeChangeReason(gesture.before, graph, policy.canResizeNode);
+          if (reason !== null) return { ...cancel(state), notice: reason };
           const resized = graph.nodes.find((node) => node.id === original.id) ?? original;
           const guides = resizeGuides(resized, handle, alignment, state.viewport.zoom);
           const resize = { ...gesture, guides };
@@ -962,6 +981,8 @@ export function updateEditor(
           },
           original.id,
         );
+        const reason = resizeChangeReason(gesture.before, graph, policy.canResizeNode);
+        if (reason !== null) return { ...cancel(state), notice: reason };
         return { ...state, graph, revision: state.revision + 1, routes: [] };
       }
       const moving = withDescendants(gesture.before, gesture.ids);
@@ -1042,6 +1063,10 @@ export function updateEditor(
             : { type: 'PortActivated', endpoint: gesture.target },
           policy,
         );
+      }
+      if (gesture.type === 'node-resize') {
+        const reason = resizeChangeReason(gesture.before, state.graph, policy.canResizeNode);
+        if (reason !== null) return { ...cancel(state), notice: reason };
       }
       if (gesture.type === 'node-drag' && policy.canMoveNode) {
         const moving = withDescendants(gesture.before, gesture.ids);
@@ -1151,10 +1176,15 @@ export function updateEditor(
       };
     case 'NodeResizeStarted':
     case 'NodeDragStarted': {
-      if (!state.graph.nodes.some((node) => node.id === event.id)) return state;
+      const node = state.graph.nodes.find((item) => item.id === event.id);
+      if (!node) return state;
       finitePoint(event.point);
       const resizing = event.type === 'NodeResizeStarted';
-      if (resizing && state.collapsedGroups.includes(event.id)) return state;
+      if (resizing) {
+        if (state.collapsedGroups.includes(event.id)) return state;
+        const reason = policy.canResizeNode?.(node, state.graph) ?? null;
+        if (reason !== null) return { ...state, notice: reason };
+      }
       const ids =
         !resizing && state.selectedNodes.includes(event.id) ? state.selectedNodes : [event.id];
       const selected = { ...state, selectedNodes: ids, selectedEdges: [], connection: null };
@@ -1249,6 +1279,8 @@ export function updateEditor(
         state.gridSpacing,
       );
       if (graph === state.graph) return state;
+      const reason = resizeChangeReason(state.graph, graph, policy.canResizeNode);
+      if (reason !== null) return { ...state, notice: reason };
       const context =
         state.context?.kind === 'node' && state.context.id === group.id ? state.context : null;
       return { ...commitGraph(state, graph), context, notice: 'Group resized' };
@@ -1277,18 +1309,17 @@ export function updateEditor(
         Math.min(node.resizeLimits?.maxWidth ?? Infinity, event.width),
       );
       if (width === node.size.width) return state;
-      return commitGraph(
-        state,
-        expandParents(
-          {
-            ...state.graph,
-            nodes: state.graph.nodes.map((node) =>
-              node.id === event.id ? { ...node, size: { ...node.size, width } } : node,
-            ),
-          },
-          event.id,
-        ),
+      const graph = expandParents(
+        {
+          ...state.graph,
+          nodes: state.graph.nodes.map((node) =>
+            node.id === event.id ? { ...node, size: { ...node.size, width } } : node,
+          ),
+        },
+        event.id,
       );
+      const reason = resizeChangeReason(state.graph, graph, policy.canResizeNode);
+      return reason === null ? commitGraph(state, graph) : { ...state, notice: reason };
     }
     case 'EdgeLabelEditingStarted': {
       const edge = state.graph.edges.find((edge) => edge.id === event.id);
@@ -1460,13 +1491,17 @@ export function updateEditor(
         state.snapToGrid,
         state.gridSpacing,
       );
-      return graph === state.graph
-        ? state
-        : { ...commitGraph(state, graph), notice: 'Group resized' };
+      if (graph === state.graph) return state;
+      const reason = resizeChangeReason(state.graph, graph, policy.canResizeNode);
+      return reason === null
+        ? { ...commitGraph(state, graph), notice: 'Group resized' }
+        : { ...state, notice: reason };
     }
     case 'GroupFitClicked': {
       const group = state.graph.nodes.find((node) => node.id === event.id && node.kind === 'group');
       if (!group) return state;
+      const locked = policy.canResizeNode?.(group, state.graph) ?? null;
+      if (locked !== null) return { ...state, notice: locked };
       const included = withDescendants(state.graph, [group.id]);
       const contents = state.graph.nodes.filter(
         (node) => node.id !== group.id && included.has(node.id),
@@ -1502,7 +1537,10 @@ export function updateEditor(
           fitted.position.y + fitted.size.height > parent.position.y + parent.size.height)
       )
         return { ...state, notice: 'Fitted bounds exceed the parent. Enable Grow parent to fit.' };
-      return { ...commitGraph(state, graph), notice: 'Group fitted to contents' };
+      const reason = resizeChangeReason(state.graph, graph, policy.canResizeNode);
+      return reason === null
+        ? { ...commitGraph(state, graph), notice: 'Group fitted to contents' }
+        : { ...state, notice: reason };
     }
     case 'SelectionGrouped': {
       const selected = state.graph.nodes.filter((node) => state.selectedNodes.includes(node.id));

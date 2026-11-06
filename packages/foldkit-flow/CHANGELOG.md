@@ -2,6 +2,8 @@
 
 ## 0.1.0 (unreleased)
 
+- Add a per-node resize policy for pointer, keyboard, and explicit dimension edits.
+
 - Add a per-node movement policy for drag and keyboard moves, including group descendants.
 
 - Add typed scoped themes with light and dark presets and native control

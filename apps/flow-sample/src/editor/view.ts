@@ -462,7 +462,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           Message.ObservedFlowInput({
                             message: { type: 'GroupFitClicked', id: selectedNode.id },
                           }),
-                          model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                          model.editor.readOnly ||
+                            model.editor.gesture.type !== 'idle' ||
+                            (policy.canResizeNode?.(selectedNode, model.editor.graph) ?? null) !==
+                              null,
                         ),
                         h.button(
                           [
@@ -1206,6 +1209,24 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             'Lock Review and Domain model',
           ],
         ),
+        h.label(
+          [
+            h.Style({
+              display: 'inline-flex',
+              'align-items': 'center',
+              gap: '6px',
+              margin: '0 8px',
+            }),
+          ],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.lockNodeSizes),
+              h.OnClick(Message.ClickedLockNodeSizes()),
+            ]),
+            'Lock Review and Application core dimensions',
+          ],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
@@ -1383,6 +1404,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           canDelete: policy.canDelete,
           canReconnect: policy.canReconnect,
           canMoveNode: policy.canMoveNode,
+          canResizeNode: policy.canResizeNode,
           renderEdgeToolbar: (context, builder) =>
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)
@@ -1479,6 +1501,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     builder.input([
                       builder.Type('range'),
                       builder.AriaLabel(`Width for ${node.label}`),
+                      builder.Disabled(
+                        model.editor.readOnly ||
+                          (policy.canResizeNode?.(node, model.editor.graph) ?? null) !== null,
+                      ),
                       builder.Min(
                         String(
                           node.resizeLimits?.minWidth ??

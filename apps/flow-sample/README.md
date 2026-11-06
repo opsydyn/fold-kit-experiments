@@ -325,3 +325,8 @@ Enable **Lock Review and Domain model** to keep those nodes fixed while editing.
 You can still select them. In Grouped onion, the lock on Domain model also
 blocks moving its parent groups.
 [Workbench screenshot](evidence/node-movement-policy.png)
+
+Enable **Lock Review and Application core dimensions** to disable their
+resize controls while leaving movement available. In Grouped onion, the
+Application core context menu shows the reason next to its dimension controls.
+[Workbench screenshot](evidence/node-resize-policy.png)

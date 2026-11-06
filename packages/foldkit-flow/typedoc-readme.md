@@ -118,6 +118,10 @@ editor applies the normal connection policy.
 all nodes in the move, including group descendants, before changing the graph.
 Use `FlowViewOptions.canMoveNode` to show locked handles.
 
+`EditorPolicy.canResizeNode` controls explicit dimension edits, including
+ancestors grown by those edits. Pass the same callback to
+`FlowViewOptions.canResizeNode` to disable resize controls.
+
 `EditorPolicy.canReconnect` locks individual source or target ends. Pass
 the same callback to `FlowViewOptions.canReconnect` to omit locked handles.
 The reducer rechecks permission on commit, and `canConnect` still validates

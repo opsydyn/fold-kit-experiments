@@ -1,4 +1,4 @@
-import type { EditorPolicy } from '@opsydyn/foldkit-flow';
+import type { EditorPolicy, FlowNode } from '@opsydyn/foldkit-flow';
 import { Schema } from 'effect';
 
 import type { Model } from './model';
@@ -19,8 +19,11 @@ export function workbenchPolicy({
   protectDeletions,
   reconnectLock,
   lockKeyNodes,
-}: Pick<Model, 'protectDeletions' | 'reconnectLock' | 'lockKeyNodes'>): EditorPolicy &
-  Required<Pick<EditorPolicy, 'canReconnect'>> {
+  lockNodeSizes,
+}: Pick<
+  Model,
+  'protectDeletions' | 'reconnectLock' | 'lockKeyNodes' | 'lockNodeSizes'
+>): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
   const canReconnect: NonNullable<EditorPolicy['canReconnect']> = (edge, end) =>
     edge.id === 'draft-review' && (reconnectLock === end || reconnectLock === 'both')
       ? end === 'source'
@@ -28,11 +31,20 @@ export function workbenchPolicy({
         : 'Target reconnection is locked.'
       : null;
   const policy = protectDeletions ? { ...requiredItemPolicy, canReconnect } : { canReconnect };
-  return lockKeyNodes
+  const movementPolicy = lockKeyNodes
     ? {
         ...policy,
-        canMoveNode: (node) =>
+        canMoveNode: (node: FlowNode) =>
           node.id === 'review' || node.id === 'domain' ? `${node.label} is locked in place.` : null,
       }
     : policy;
+  return lockNodeSizes
+    ? {
+        ...movementPolicy,
+        canResizeNode: (node) =>
+          node.id === 'review' || node.id === 'core'
+            ? `${node.label} dimensions are locked.`
+            : null,
+      }
+    : movementPolicy;
 }

@@ -209,6 +209,7 @@ export const Model = Schema.Struct({
   connectionDesign: ConnectionDesign,
   protectDeletions: Schema.Boolean,
   lockKeyNodes: Schema.Boolean,
+  lockNodeSizes: Schema.Boolean,
   reconnectLock: ReconnectLock,
   snapConnections: Schema.Boolean,
   canvasCopyDesign: CanvasCopyDesign,
@@ -242,6 +243,7 @@ export type Model = Readonly<{
   connectionDesign: ConnectionDesign;
   protectDeletions: boolean;
   lockKeyNodes: boolean;
+  lockNodeSizes: boolean;
   reconnectLock: ReconnectLock;
   snapConnections: boolean;
   canvasCopyDesign: CanvasCopyDesign;
@@ -276,6 +278,7 @@ export const init = () => ({
     connectionDesign: 'dashed',
     protectDeletions: false,
     lockKeyNodes: false,
+    lockNodeSizes: false,
     reconnectLock: 'none',
     snapConnections: false,
     canvasCopyDesign: 'standard',

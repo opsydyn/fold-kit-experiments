@@ -701,6 +701,18 @@ start of the gesture and checks the policy again before committing. Pass the
 same callback to `flowView` to expose the lock on node handles. Custom shells
 receive `moveDisabledReason` and can still use `flowDragHandle` for selection.
 
+### Lock node dimensions
+
+Pass `canResizeNode(node, graph)` in `EditorPolicy` to restrict explicit
+resizing. Return a reason to block an edit or `null` to allow it. The policy
+covers pointer resizing, keyboard resize steps, direct dimension edits, and
+Fit group to contents. If an edit would also grow an ancestor with locked
+dimensions, Flow rejects the whole edit.
+
+Pass the same callback to `flowView` to hide locked resize handles and
+disable group dimension controls. Custom node shells receive
+`resizeDisabledReason`. Movement permissions apply separately.
+
 ### Protect nodes and edges from deletion
 
 Pass a pure `canDelete` callback in `EditorPolicy` to `updateEditor`. It

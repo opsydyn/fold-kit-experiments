@@ -624,6 +624,9 @@ export function customContextMenu(context: FlowContextMenuContext, h: HtmlBuilde
                         ),
                       ]
                     : []),
+                  ...(group.resizeDisabledReason === undefined
+                    ? []
+                    : [h.small([], [group.resizeDisabledReason])]),
                   button(group.fit),
                   button(group.lockProportions),
                 ]

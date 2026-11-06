@@ -106,6 +106,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     SelectedReconnectLock: ({ reconnectLock }) => ({ model: { ...model, reconnectLock } }),
+    ClickedLockNodeSizes: () => ({ model: { ...model, lockNodeSizes: !model.lockNodeSizes } }),
     ClickedLockKeyNodes: () => ({ model: { ...model, lockKeyNodes: !model.lockKeyNodes } }),
     ClickedDeletionProtection: () => ({
       model: { ...model, protectDeletions: !model.protectDeletions },

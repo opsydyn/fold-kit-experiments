@@ -201,6 +201,8 @@ export type EditorPolicy = Readonly<{
   canDelete?: (candidate: DeletionCandidate, graph: FlowGraph) => string | null;
   /** Return a reason to block movement or null to allow it. Group moves check every descendant. */
   canMoveNode?: (node: FlowNode, graph: FlowGraph) => string | null;
+  /** Return a reason to block a resize, or null to allow it. Checks any ancestors grown by that edit. */
+  canResizeNode?: (node: FlowNode, graph: FlowGraph) => string | null;
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =

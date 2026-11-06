@@ -17,6 +17,8 @@ export type FlowNodeRenderContext = Readonly<{
   selectionPreview: boolean;
   /** Movement lock for this node or one of its descendants. Selection remains available. */
   moveDisabledReason?: string | undefined;
+  /** Reason explicit resize controls are unavailable for this node. */
+  resizeDisabledReason?: string | undefined;
   contextAction?: Html;
   collapseToggle?: Html;
   resizeHandles: readonly Html[];
@@ -244,7 +246,12 @@ export function flowResizeHandle<M>(
             ...(handle.includes('-') ? [h.DataAttribute('flow-resize-corner', handle)] : []),
           ]
         : []),
-      h.Disabled(context.state.readOnly || context.collapsed),
+      h.Disabled(
+        context.state.readOnly || context.collapsed || context.resizeDisabledReason !== undefined,
+      ),
+      ...(context.resizeDisabledReason === undefined
+        ? []
+        : [h.Title(context.resizeDisabledReason)]),
       h.AriaLabel(
         `Resize ${context.node.label}${group ? ` from ${handle.replaceAll('-', ' ')}` : ''}`,
       ),

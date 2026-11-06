@@ -17,6 +17,7 @@ import {
   zoomAt,
   type FlowGraph,
   type EditorPolicy,
+  type EditorEvent,
   type LayoutResult,
 } from '../src/index';
 
@@ -524,6 +525,58 @@ test('dragging either edge endpoint preserves the original edge until a valid dr
     initial.graph,
   );
   expect(updateEditor(started, { type: 'GestureCancelled' }).graph).toEqual(initial.graph);
+});
+
+test('resize permission blocks explicit dimension edits and restores an in-flight resize', () => {
+  const group = {
+    id: 'g',
+    kind: 'group' as const,
+    label: 'Group',
+    position: { x: 0, y: 0 },
+    size: { width: 250, height: 200 },
+    ports: [],
+  };
+  const initial = createEditor({
+    nodes: [group, { ...nodeA, parentId: group.id, expandParent: true }, nodeB],
+    edges: [],
+  });
+  const policy: EditorPolicy = {
+    canResizeNode: (node) => (node.id === 'a' || node.id === 'g' ? 'Size is locked.' : null),
+  };
+  const start = { type: 'NodeResizeStarted', id: 'a', pointer: 1, point: { x: 0, y: 0 } } as const;
+  const blocked = updateEditor(initial, start, policy);
+  expect(blocked.gesture.type).toBe('idle');
+  expect(blocked.notice).toBe('Size is locked.');
+  const events: EditorEvent[] = [
+    { type: 'NodeWidthChanged', id: 'a', width: 300 },
+    { type: 'NodeResizeNudged', id: 'a', delta: 40 },
+    { type: 'GroupDimensionChanged', id: 'g', dimension: 'height', value: 320 },
+    { type: 'GroupResizeNudged', id: 'g', delta: { x: 40, y: 20 } },
+    { type: 'GroupFitClicked', id: 'g' },
+  ];
+  for (const event of events) {
+    const denied = updateEditor(initial, event, policy);
+    expect(denied.graph).toBe(initial.graph);
+    expect(denied.past).toBe(initial.past);
+    expect(denied.notice).toBe('Size is locked.');
+  }
+  const lockedParent: EditorPolicy = {
+    canResizeNode: (node) => (node.id === 'g' ? 'Parent size is locked.' : null),
+  };
+  expect(updateEditor(initial, events[0]!, lockedParent).notice).toBe('Parent size is locked.');
+  const preview = updateEditor(updateEditor(initial, start), {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 180, y: 0 },
+  });
+  expect(preview.graph).not.toBe(initial.graph);
+  const reverted = updateEditor(preview, { type: 'PointerReleased', pointer: 1 }, lockedParent);
+  expect(reverted.gesture.type).toBe('idle');
+  expect(reverted.graph).toBe(initial.graph);
+  expect(reverted.past).toBe(initial.past);
+  const selected = updateEditor(initial, { type: 'NodeSelected', id: 'a', additive: false });
+  const moved = updateEditor(selected, { type: 'SelectionNudged', delta: { x: 10, y: 0 } }, policy);
+  expect(moved.graph.nodes.find((node) => node.id === 'a')?.position.x).toBe(nodeA.position.x + 10);
 });
 
 test('node movement policy blocks an entire selection or group and rolls back a denied drag', () => {

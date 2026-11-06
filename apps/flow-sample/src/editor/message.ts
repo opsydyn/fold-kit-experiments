@@ -32,6 +32,7 @@ export const Message = defineMessageUnion({
   SelectedConnectionDesign: { connectionDesign: ConnectionDesign },
   ClickedDeletionProtection: {},
   ClickedLockKeyNodes: {},
+  ClickedLockNodeSizes: {},
   ClickedConnectionSnap: {},
   SelectedReconnectLock: { reconnectLock: ReconnectLock },
   SelectedCanvasCopyDesign: { canvasCopyDesign: CanvasCopyDesign },

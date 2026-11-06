@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in viewport culling for canvas nodes and built-in edges, with full
+  graph navigation and Connections retained.
+
 - Add per-item visibility for the canvas, minimap, Connections list, and
   navigation while preserving the authored graph.
 

@@ -24,24 +24,32 @@ const runs = 3;
 const samplesPerRun = 20;
 const warmup = 4;
 const worldSelector = ':scope > div[style*="transform-origin"]';
-const cases = [
-  { name: 'Release · default', nodes: 3, edges: 1, minimal: false },
-  { name: 'Large · default', nodes: 320, edges: 452, minimal: false },
-  { name: 'Large · minimal', nodes: 320, edges: 452, minimal: true },
-];
+const comparison = process.env.FLOW_BENCHMARK_COMPARE_CULLING === '1';
+const cases = comparison
+  ? [
+      { name: 'Large · default', nodes: 320, edges: 452, minimal: false, culling: false },
+      { name: 'Large · culled', nodes: 320, edges: 452, minimal: false, culling: true },
+    ]
+  : [
+      { name: 'Release · default', nodes: 3, edges: 1, minimal: false },
+      { name: 'Large · default', nodes: 320, edges: 452, minimal: false },
+      { name: 'Large · minimal', nodes: 320, edges: 452, minimal: true },
+    ];
 
 async function backgroundPoint(surface) {
-  return surface.evaluate((element) => {
+  return surface.evaluate((element, centerGraph) => {
     const box = element.getBoundingClientRect();
-    for (let y = 48; y < box.height - 48; y += 14) {
-      for (let x = 64; x < box.width / 2; x += 14) {
+    const startX = centerGraph ? box.width / 2 - 100 : 64;
+    const startY = centerGraph ? box.height / 2 - 65 : 48;
+    for (let y = startY; y < box.height - 48; y += 14) {
+      for (let x = startX; x < box.width / 2 + (centerGraph ? 100 : 0); x += 14) {
         const left = Math.round(box.left + x);
         const top = Math.round(box.top + y);
         if (document.elementFromPoint(left, top) === element) return { x: left, y: top };
       }
     }
     throw new Error('No canvas background point available for camera input');
-  });
+  }, comparison);
 }
 
 async function prepareCamera(page, surface, world) {
@@ -154,6 +162,11 @@ async function qualify(browser, fixture) {
     }
     if (fixture.minimal)
       await page.getByRole('button', { name: 'Minimal mode', exact: true }).click();
+    if (fixture.culling) {
+      const toggle = page.getByRole('button', { name: 'Viewport culling', exact: true });
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    }
 
     const results = {};
     for (const kind of ['pan', 'zoom']) {
@@ -171,8 +184,26 @@ async function qualify(browser, fixture) {
     }
     const elements = await page.locator('*').count();
     const canvasElements = await surface.locator('*').count();
+    const mountedNodes = await surface.locator('[data-flow-node]').count();
+    const mountedEdges = await surface.locator('[data-flow-edge]').count();
+    if (fixture.culling) {
+      expect(mountedNodes).toBeGreaterThan(0);
+      expect(mountedNodes).toBeLessThan(fixture.nodes);
+      expect(mountedEdges).toBeGreaterThan(0);
+      expect(mountedEdges).toBeLessThan(fixture.edges);
+      await expect(
+        surface.locator('[data-flow-minimap] rect:not([data-flow-minimap-viewport])'),
+      ).toHaveCount(fixture.nodes);
+      await expect(page.locator('[data-flow-connections] button[aria-pressed]')).toHaveCount(
+        fixture.edges,
+      );
+      const screenshot = process.env.FLOW_BENCHMARK_CULLING_SCREENSHOT;
+      if (screenshot) await surface.screenshot({ path: screenshot, timeout: 15000 });
+      await page.getByRole('button', { name: 'Fit view', exact: true }).click();
+      await expect(surface.locator('[data-flow-node]')).toHaveCount(fixture.nodes);
+    }
     expect(errors).toEqual([]);
-    return { ...fixture, elements, canvasElements, ...results };
+    return { ...fixture, elements, canvasElements, mountedNodes, mountedEdges, ...results };
   };
   return run().finally(() => page.close());
 }

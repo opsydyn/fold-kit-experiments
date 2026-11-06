@@ -132,6 +132,7 @@ export type EditorState = Readonly<{
   clipboard: FlowGraph | null;
   collapsedGroups: readonly string[];
   visibility?: FlowVisibility | undefined;
+  focusedNodeId?: string | null;
   edgeLabelDraft: Readonly<{ id: string; text: string }> | null;
   /** Monotonic document freshness token; Undo does not rewind it. */
   revision: number;
@@ -223,6 +224,7 @@ export type EditorEvent =
   | Readonly<{ type: 'ContextOpened'; context: EditorContext }>
   | Readonly<{ type: 'ContextDismissed' }>
   | Readonly<{ type: 'ConnectionListToggled' }>
+  | Readonly<{ type: 'NodeFocusChanged'; id: string | null }>
   | Readonly<{ type: 'NodeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'EdgeSelected'; id: string; additive: boolean }>
   | Readonly<{ type: 'SelectionCleared' }>

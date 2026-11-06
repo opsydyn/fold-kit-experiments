@@ -186,6 +186,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     FailedColorSchemeSave: () => ({
       model: { ...model, notice: 'Theme changed for this visit. Your browser could not save it.' },
     }),
+    ClickedViewportCulling: () => ({
+      model: { ...model, viewportCulling: !model.viewportCulling },
+    }),
     ClickedMinimalMode: () => ({ model: { ...model, minimalMode: !model.minimalMode } }),
     ClickedDiagnosticsPanel: () => ({
       model: { ...model, diagnosticsPanelOpen: !model.diagnosticsPanelOpen },

@@ -370,3 +370,56 @@ test('compact connection disclosure stays model-owned and available read-only wi
   );
   expect(doc.querySelector('[data-flow-connections]')?.textContent).toContain('Dependency');
 });
+
+test('viewport culling preserves crossing edges and leaves the overview and connections complete', async () => {
+  const state = {
+    ...initial,
+    graph: {
+      ...initial.graph,
+      edges: initial.graph.edges.map(({ label: _label, ...edge }) => edge),
+    },
+    surface: { width: 100, height: 100 },
+    viewport: { x: -375, y: -140, zoom: 1 },
+  };
+  const document = await render(state, { viewportCulling: { overscan: 0 } });
+  expect(document.querySelectorAll('[data-flow-node]')).toHaveLength(0);
+  expect(document.querySelector('[data-flow-edge="ab"]')).not.toBeNull();
+  expect(
+    document.querySelectorAll('[data-flow-minimap] rect:not([data-flow-minimap-viewport])'),
+  ).toHaveLength(3);
+  expect(
+    document.querySelector('[data-flow-connections] button[aria-label="a:out → b:in"]'),
+  ).not.toBeNull();
+
+  const away = { ...state, viewport: { x: 800, y: 800, zoom: 1 } };
+  const unmeasured = await render({ ...away, surface: null }, { viewportCulling: true });
+  expect(unmeasured.querySelectorAll('[data-flow-node]')).toHaveLength(2);
+  const routed = await render(
+    {
+      ...away,
+      routes: [
+        {
+          id: 'ab',
+          points: [
+            { x: 250, y: 190 },
+            { x: -750, y: -750 },
+            { x: 603, y: 190 },
+          ],
+        },
+      ],
+    },
+    { viewportCulling: true },
+  );
+  expect(routed.querySelector('[data-flow-edge="ab"]')).not.toBeNull();
+  const culled = await render(away, { viewportCulling: true });
+  expect(culled.querySelector('[data-flow-edge="ab"]')).toBeNull();
+  const focused = await render(
+    { ...away, focusedNodeId: 'a', selectedEdges: ['ab'] },
+    { viewportCulling: true },
+  );
+  expect(focused.querySelector('[data-flow-node="a"]')).not.toBeNull();
+  expect(focused.querySelector('[data-flow-edge="ab"]')).not.toBeNull();
+
+  const custom = await render(away, { viewportCulling: true, edgeGeometry: () => undefined });
+  expect(custom.querySelector('[data-flow-edge="ab"]')).not.toBeNull();
+});

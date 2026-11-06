@@ -45,6 +45,7 @@ import {
   orbitNode,
   orbitGroup,
   raisedEdge,
+  storageDependencyEdge,
   raisedConnection,
   edgeBadge,
   edgeBadgeEditor,
@@ -60,6 +61,11 @@ import {
   canvasStatusCard,
 } from './presentation';
 import { workbenchThemes } from './theme';
+
+type WorkbenchEdgeHooks = {
+  edgeGeometry?: typeof raisedEdge;
+  renderEdge?: typeof storageDependencyEdge;
+};
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -218,6 +224,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ],
     );
   };
+  const edgeHooks: WorkbenchEdgeHooks = {};
+  if (model.edgeDesign === 'raised') edgeHooks.edgeGeometry = raisedEdge;
+  if (model.editor.graph.edges.some((edge) => edge.id === 'storage-application'))
+    edgeHooks.renderEdge = storageDependencyEdge;
   return {
     title,
     body: h.div(
@@ -238,6 +248,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.OnClick(Message.ClickedMinimalMode()),
               ],
               ['Minimal mode'],
+            ),
+            h.button(
+              [
+                h.Type('button'),
+                h.AriaPressed(String(model.viewportCulling)),
+                h.Disabled(model.editor.gesture.type !== 'idle'),
+                h.OnClick(Message.ClickedViewportCulling()),
+              ],
+              ['Viewport culling'],
             ),
             h.button(
               [
@@ -1461,10 +1480,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ],
             );
           },
-          edgeGeometry: (context) => {
-            if (model.edgeDesign === 'raised') return raisedEdge(context);
-            return undefined;
-          },
+          ...edgeHooks,
+          viewportCulling: model.viewportCulling,
           renderWorldOverlay: (context, builder) =>
             model.showWorldAnnotation ? releaseGateAnnotation(context, builder) : null,
           renderNodeShell: (context, builder) => {
@@ -1531,35 +1548,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           onEvent: (message) => Message.ObservedFlowInput({ message }),
           edgeAppearance: (edge) =>
             edge.data === 'dashed' ? { dashArray: '9 5', strokeWidth: 4 } : {},
-          renderEdge: ({ edge, path, stroke, dashArray, markerEnd }, builder) =>
-            edge.id === 'storage-application'
-              ? builder.g(
-                  [builder.DataAttribute('storage-dependency', '')],
-                  [
-                    builder.path(
-                      [
-                        builder.D(path),
-                        builder.Fill('none'),
-                        builder.Stroke(stroke),
-                        builder.StrokeWidth('6'),
-                        builder.StrokeDasharray(dashArray),
-                        builder.MarkerEnd(markerEnd),
-                      ],
-                      [],
-                    ),
-                    builder.path(
-                      [
-                        builder.D(path),
-                        builder.Fill('none'),
-                        builder.Stroke('var(--flow-background, #eef2f6)'),
-                        builder.StrokeWidth('1.5'),
-                        builder.StrokeDasharray(dashArray),
-                      ],
-                      [],
-                    ),
-                  ],
-                )
-              : undefined,
           renderNode: (node, builder) =>
             builder.div(
               [builder.Style({ visibility: model.minimalMode ? 'hidden' : 'visible' })],

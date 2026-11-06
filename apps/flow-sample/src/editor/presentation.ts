@@ -11,6 +11,7 @@ import {
   flowDragHandle,
   flowWorldOverlayItem,
   type FlowWorldOverlayContext,
+  type FlowEdgeRenderContext,
   flowEdgeLabelBadge,
   flowEdgeToolbarButton,
   flowContextAction,
@@ -42,6 +43,40 @@ import {
 import type { HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
+
+export function storageDependencyEdge(
+  { edge, path, stroke, dashArray, markerEnd }: FlowEdgeRenderContext,
+  h: HtmlBuilder<Message>,
+) {
+  return edge.id === 'storage-application'
+    ? h.g(
+        [h.DataAttribute('storage-dependency', '')],
+        [
+          h.path(
+            [
+              h.D(path),
+              h.Fill('none'),
+              h.Stroke(stroke),
+              h.StrokeWidth('6'),
+              h.StrokeDasharray(dashArray),
+              h.MarkerEnd(markerEnd),
+            ],
+            [],
+          ),
+          h.path(
+            [
+              h.D(path),
+              h.Fill('none'),
+              h.Stroke('var(--flow-background, #eef2f6)'),
+              h.StrokeWidth('1.5'),
+              h.StrokeDasharray(dashArray),
+            ],
+            [],
+          ),
+        ],
+      )
+    : undefined;
+}
 
 /** A complete shell composed exclusively from supported package primitives. */
 export function orbitNode(context: FlowNodeRenderContext, h: HtmlBuilder<Message>) {

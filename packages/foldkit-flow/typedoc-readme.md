@@ -126,6 +126,10 @@ ancestors grown by those edits. Pass the same callback to
 can be selected. Pass the same callbacks to `flowView` so the controls and
 marquee preview agree with the reducer.
 
+`FlowViewOptions.viewportCulling` opts into mounting canvas items near the
+measured viewport. `FlowViewportCulling` accepts a CSS-pixel overscan value.
+The minimap, Fit view, and Connections list retain the full visible graph.
+
 `FlowVisibility` stores hidden node and edge IDs in the editor session. Set it
 at initialization or replace it with `VisibilityChanged`. Canvas, minimap,
 Connections, and marquee use the same filtered presentation.

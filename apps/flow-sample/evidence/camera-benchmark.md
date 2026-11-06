@@ -63,3 +63,32 @@ Use the same inputs and compare DOM size and listener-to-update p95. Keep
 the graph, Fit view, minimap, and Connections list based on the full visible
 workflow. This run measures the cost of the current path. Profiling or an
 A/B run is needed to attribute savings to culling.
+
+## Viewport culling comparison
+
+Run the two-mode comparison from `apps/web` after building the workbench.
+
+```sh
+FLOW_BENCHMARK_COMPARE_CULLING=1 bun - < ../flow-sample/evidence/camera-benchmark.mjs
+FLOW_BENCHMARK_COMPARE_CULLING=1 FLOW_BENCHMARK_REVERSE=1 bun - < ../flow-sample/evidence/camera-benchmark.mjs
+```
+
+This comparison uses default diagnostics in both modes and searches for the
+zoom anchor near the middle of the workflow. Use these paired measurements
+for the culling comparison. Each range covers the forward and reverse runs
+on the same headless Chromium and host described above.
+
+| Mode    | Mounted nodes / edges near 100% | Canvas elements | Pan listener to update p95 | Zoom listener to update p95 |
+| ------- | ------------------------------: | --------------: | -------------------------: | --------------------------: |
+| Default |                       320 / 452 |           5,657 |               26.7–26.9 ms |                26.8–27.3 ms |
+| Culling |                         30 / 53 |             871 |               10.2–10.4 ms |                11.0–11.1 ms |
+
+Culling removed about 85% of canvas elements and reduced listener-to-update
+p95 by about 60%. Event-to-next-frame p95 changed by under 2 ms for pan
+(31.8–32.5 ms default, 33.3–33.7 ms culled) and zoom
+(49.7–50.3 ms default, 49.9–50.0 ms culled). Continuous input and
+presentation timing remain separate measurements.
+
+The driver confirmed that the minimap still showed all 320 nodes, the
+Connections list exposed all 452 edges, and Fit view remounted the full
+workflow. [Zoomed canvas and full minimap](viewport-culling.png)

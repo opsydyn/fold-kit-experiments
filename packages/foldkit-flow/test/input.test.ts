@@ -7,8 +7,11 @@ import type { EditorEvent } from '../src/types';
 
 const previousEvent = Object.getOwnPropertyDescriptor(globalThis, 'KeyboardEvent');
 const previousWheelEvent = Object.getOwnPropertyDescriptor(globalThis, 'WheelEvent');
+const previousFocusEvent = Object.getOwnPropertyDescriptor(globalThis, 'FocusEvent');
 const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
 afterEach(() => {
+  if (previousFocusEvent) Object.defineProperty(globalThis, 'FocusEvent', previousFocusEvent);
+  else Reflect.deleteProperty(globalThis, 'FocusEvent');
   if (previousWheelEvent) Object.defineProperty(globalThis, 'WheelEvent', previousWheelEvent);
   else Reflect.deleteProperty(globalThis, 'WheelEvent');
   if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
@@ -173,5 +176,38 @@ test('wheel navigation changes in place and preserves editable and page scrollin
   element.dataset.flowWheelNavigation = 'off';
   expect(wheel({ deltaY: 20, ctrlKey: true })).toBe(false);
   expect(events).toEqual([]);
+  release();
+});
+
+test('node focus tracking follows the containing frame and ignores nested editors', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'FocusEvent', {
+    value: window.FocusEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  const surface = document.createElement('div');
+  surface.dataset.flowSurface = '';
+  surface.innerHTML = `
+    <div data-flow-node="a"><button>First</button><input></div>
+    <div data-flow-group="g"><button>Group</button></div>
+    <div data-flow-surface><div data-flow-node="nested"><button>Nested</button></div></div>
+  `;
+  const events: EditorEvent[] = [];
+  const release = bindInput(surface, (event) => events.push(event));
+  const first = surface.querySelector('[data-flow-node="a"] button');
+  const same = surface.querySelector('input');
+  const group = surface.querySelector('[data-flow-group] button');
+  const nested = surface.querySelector('[data-flow-node="nested"] button');
+  first?.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  first?.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: same }));
+  same?.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: group }));
+  group?.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: nested }));
+  nested?.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  expect(events.slice(1)).toEqual([
+    { type: 'NodeFocusChanged', id: 'a' },
+    { type: 'NodeFocusChanged', id: 'g' },
+    { type: 'NodeFocusChanged', id: null },
+  ]);
   release();
 });

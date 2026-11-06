@@ -127,6 +127,7 @@ import { resolveDeletion } from './deletion';
 import { resolveEdgeGeometry, type FlowEdgeGeometryPolicy } from './edge-geometry';
 import { portBoundaryPosition } from './geometry';
 import { resolveBoxSelection, type BoxSelectionPreview } from './selection-preview';
+import { viewportItems, type FlowViewportCulling } from './viewport-culling';
 export type {
   FlowEdgeGeometry,
   FlowEdgeGeometryContext,
@@ -247,6 +248,8 @@ export type FlowWorldOverlayContext = Readonly<{
   readOnly: boolean;
 }>;
 
+export type { FlowViewportCulling } from './viewport-culling';
+
 export type FlowViewOptions<M> = FlowDiagnosticOptions &
   Readonly<{
     /** Unique within the document; prefixes accessible descriptions and SVG markers. */
@@ -366,6 +369,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
       h: HtmlBuilder<M>,
     ) => Html | null | undefined;
     minimap?: boolean;
+    /** Mount only canvas items near the measured viewport. Disabled by default. */
+    viewportCulling?: FlowViewportCulling;
     viewportControls?: boolean;
     /** Include a box selection toggle in the viewport controls. */
     selectionModeControl?: boolean;
@@ -1052,6 +1057,14 @@ export function flowView<M>(
   );
   const collapsedGroups = new Set(state.collapsedGroups);
   const visibleEdges = presentation.edges;
+  const routes = new Map(state.routes.map((route) => [route.id, route.points]));
+  const canvas = viewportItems(
+    state,
+    presentation,
+    routes,
+    Boolean(options.edgeGeometry || options.renderEdge),
+    options.viewportCulling,
+  );
   const worldOverlay = options.renderWorldOverlay?.(
     {
       id: options.id,
@@ -1117,7 +1130,12 @@ export function flowView<M>(
       ? movementReason(state.graph, withDescendants(state.graph, [node.id]), options.canMoveNode)
       : (options.canMoveNode(node, state.graph) ?? undefined);
   };
-  const boundaries = groupsInPaintOrder(presentation.nodes).map((node) => {
+  const canvasNodeIds =
+    canvas.nodes === presentation.nodes ? undefined : new Set(canvas.nodes.map(({ id }) => id));
+  const canvasGroups = groupsInPaintOrder(presentation.nodes).filter(
+    (node) => canvasNodeIds?.has(node.id) ?? true,
+  );
+  const boundaries = canvasGroups.map((node) => {
     const collapsed = collapsedGroups.has(node.id);
     const dropTarget = dropParent === node.id;
     const authored = collapsed
@@ -1272,7 +1290,7 @@ export function flowView<M>(
       ],
     );
   });
-  const nodes = presentation.nodes
+  const nodes = canvas.nodes
     .filter((node) => node.kind !== 'group')
     .map((node) => {
       const resizeDisabledReason = options.canResizeNode?.(node, state.graph) ?? undefined;
@@ -1411,8 +1429,7 @@ export function flowView<M>(
       );
     });
   const markerId = `${options.id}-arrow`;
-  const routes = new Map(state.routes.map((route) => [route.id, route.points]));
-  const edgeGeometries = visibleEdges.map((edge) => ({
+  const edgeGeometries = canvas.edges.map((edge) => ({
     edge,
     selectionDisabledReason: options.canSelectEdge?.(edge, state.graph) ?? undefined,
     ...resolveEdgeGeometry(state.graph, edge, {
@@ -1645,7 +1662,8 @@ export function flowView<M>(
   const connections = () => {
     const nodeLabels = new Map(state.graph.nodes.map((node) => [node.id, node.label]));
     const compact = !diagnostics.connectionList;
-    const entries = edgeGeometries.map(({ edge, selectionDisabledReason }): FlowConnectionEntry => {
+    const entries = visibleEdges.map((edge): FlowConnectionEntry => {
+      const selectionDisabledReason = options.canSelectEdge?.(edge, state.graph) ?? undefined;
       const sourceLabel = nodeLabels.get(edge.source.node) ?? 'Source';
       const targetLabel = nodeLabels.get(edge.target.node) ?? 'Target';
       const label =

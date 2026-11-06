@@ -207,10 +207,23 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (event instanceof window.MouseEvent && target && openContext(target, point(event)))
       event.preventDefault();
   });
+  let focusedNode: string | null = null;
+  const trackNodeFocus = (target: Element | null) => {
+    const frame = target?.closest('[data-flow-node], [data-flow-group]');
+    const id =
+      frame?.closest('[data-flow-surface]') === element
+        ? (frame.getAttribute('data-flow-node') ?? frame.getAttribute('data-flow-group'))
+        : null;
+    if (id === focusedNode) return;
+    focusedNode = id;
+    emit({ type: 'NodeFocusChanged', id });
+  };
+  listen('focusin', (event) => trackNodeFocus(targetOf(event)));
   listen('focusout', (event) => {
     if (!(event instanceof window.FocusEvent)) return;
     const panel = targetOf(event)?.closest('[data-flow-context-panel]');
     const next = event.relatedTarget;
+    trackNodeFocus(next instanceof window.Element ? next : null);
     if (panel && (!(next instanceof window.Node) || !panel.contains(next)))
       emit({ type: 'ContextDismissed' });
   });
@@ -632,6 +645,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   resize.observe(element);
   measure(element);
   observe();
+  trackNodeFocus(element.ownerDocument.activeElement);
   return () => {
     for (const [name, handler] of listeners) element.removeEventListener(name, handler);
     window.removeEventListener('blur', blur);

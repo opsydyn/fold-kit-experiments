@@ -621,6 +621,10 @@ export function updateEditor(
   policy: EditorPolicy = {},
 ): EditorState {
   if (event.type === 'FitViewAnimationFrame') return advanceFit(state, event);
+  if (event.type === 'NodeFocusChanged')
+    return (state.focusedNodeId ?? null) === event.id
+      ? state
+      : { ...state, focusedNodeId: event.id };
   switch (event.type) {
     case 'ViewportNudged':
     case 'ViewportChanged':

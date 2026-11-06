@@ -738,6 +738,23 @@ shells, connection rows, and edge labels receive `selectionDisabledReason`.
 These callbacks govern new selection attempts. To clear a selection after
 changing the policy, send `SelectionCleared`.
 
+### Cull canvas items outside the viewport
+
+Set `viewportCulling: true` on `flowView` to mount canvas items near the
+measured viewport. The default is off. Use `{ overscan: 96 }` to customize the
+buffer in CSS pixels. Before the surface is measured, the whole canvas renders.
+
+Focused and selected items stay mounted, along with active gesture items.
+Built-in edge bounds include crossing edges and routes. Authored edge labels
+and edges with custom geometry or drawing hooks stay mounted so their content
+can extend beyond the default bounds. Custom node shells can choose more
+overscan for content that extends outside their node frame. Offscreen shells
+can remount as the camera moves, so keep their durable state in the Model.
+The tab order includes mounted canvas controls.
+
+Fit view, the minimap, the Connections list, world overlay inputs, and graph
+operations still use the full visible graph.
+
 ### Hide nodes and edges
 
 Use `createEditor(graph, { visibility })` for initial visibility and send

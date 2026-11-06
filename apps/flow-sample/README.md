@@ -350,3 +350,8 @@ Choose **Open large workflow (320 nodes)** to inspect a deterministic workflow
 with 452 edges. See the [camera benchmark](evidence/camera-benchmark.md) for
 the measurements and repeatable Chromium driver.
 [Workbench screenshot](evidence/large-workflow.png)
+
+Enable **Viewport culling** and zoom into the large workflow to mount fewer
+canvas items while keeping the minimap and Connections list complete.
+[Benchmark comparison](evidence/camera-benchmark.md#viewport-culling-comparison) ·
+[Workbench screenshot](evidence/viewport-culling.png)

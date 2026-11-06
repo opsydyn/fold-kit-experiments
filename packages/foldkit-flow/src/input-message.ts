@@ -29,6 +29,7 @@ export const BrowserInput = Schema.Union([
     }),
   }),
   Schema.Struct({ type: Schema.Literal('ContextDismissed') }),
+  Schema.Struct({ type: Schema.Literal('NodeFocusChanged'), id: Schema.NullOr(Schema.String) }),
   Schema.Struct({
     type: Schema.Literal('NodeResizeNudged'),
     id: Schema.String,

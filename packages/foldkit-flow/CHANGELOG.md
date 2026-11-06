@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add an opt-in selected-node toolbar with screen-space placement, custom
+  contents, and shared duplicate and delete actions.
+
 - Configure zoom limits and Fit view padding in the editor. Wheel, pinch,
   controls, and animated fitting share the configured range.
 

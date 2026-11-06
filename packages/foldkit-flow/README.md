@@ -193,6 +193,20 @@ routes. `EdgePathStyleChanged` saves the style in one undo step. Pass
 `pathStyle: null` in that event to restore automatic routing. Automatic uses the
 layout route when available and a straight line otherwise.
 
+With `nodeToolbar: true`, selecting one visible node or group shows **Duplicate
+node** and **Delete node**. The toolbar follows the node in screen space and
+keeps its size as you zoom. Supply `nodeToolbar: { placement: 'bottom', offset: 12 }`
+to choose a side and a gap in CSS pixels. The default places it above the
+node and switches below when the node is near the top. The canvas clips the
+toolbar at its edges.
+
+`renderNodeToolbar` receives the visible node, viewport, screen-space anchor,
+and action descriptors. Compose native buttons with `flowContextAction`, or
+use your own FoldKit controls. Return `undefined` for the default contents
+or `null` to suppress the toolbar for that selection. Deletion uses the same
+`canDelete` policy as the keyboard and context actions. The toolbar is an
+editing control, so it can appear in minimal mode when enabled.
+
 Enable `edgeToolbar: true` to show Rename, path style, and Delete edge
 controls beside a single selected edge. In the Connections list, activate an
 edge and press Up Arrow to focus its actions. The toolbar uses native controls

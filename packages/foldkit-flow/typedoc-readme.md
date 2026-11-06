@@ -58,6 +58,11 @@ at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and
 Model-owned editing.
 
+`nodeToolbar` enables actions anchored to one selected node or group. The
+toolbar stays at screen size. `FlowNodeToolbarOptions` controls placement
+and gap, and `renderNodeToolbar` receives `FlowNodeToolbarContext` for
+custom content. Use `flowContextAction` to render the native action buttons.
+
 `renderEdgeToolbar` replaces the selected-edge controls inside Flow's positioned
 frame. `FlowEdgeToolbarContext` provides the selected edge, label anchor and
 typed actions. Compose `flowEdgeToolbarButton` and `flowEdgePathStyleSelect`

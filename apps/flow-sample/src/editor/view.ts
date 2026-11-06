@@ -26,6 +26,7 @@ import {
   ConnectionDesign,
   EdgeDesign,
   EdgeLabelDesign,
+  NodeToolbarDesign,
   EdgeToolbarDesign,
   ContextMenuDesign,
   ConnectionListDesign,
@@ -44,6 +45,7 @@ import {
   raisedConnection,
   edgeBadge,
   edgeBadgeEditor,
+  compactNodeToolbar,
   compactEdgeToolbar,
   customContextMenu,
   connectionRows,
@@ -671,6 +673,35 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Node toolbar',
+            h.select(
+              [
+                h.AriaLabel('Node toolbar'),
+                h.Value(model.nodeToolbarDesign),
+                h.OnChange((value) =>
+                  Message.SelectedNodeToolbarDesign({
+                    nodeToolbarDesign: Schema.decodeUnknownSync(NodeToolbarDesign)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option([h.Value('off'), h.Selected(model.nodeToolbarDesign === 'off')], ['Off']),
+                h.option(
+                  [h.Value('standard'), h.Selected(model.nodeToolbarDesign === 'standard')],
+                  ['Standard'],
+                ),
+                h.option(
+                  [h.Value('compact'), h.Selected(model.nodeToolbarDesign === 'compact')],
+                  ['Compact · below node'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Edge actions',
             h.select(
               [
@@ -1239,6 +1270,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
           background,
           themeClassName: 'release-flow-theme',
+          nodeToolbar:
+            model.nodeToolbarDesign === 'compact'
+              ? { placement: 'bottom', offset: 12 }
+              : model.nodeToolbarDesign === 'standard',
+          renderNodeToolbar: (context, builder) =>
+            model.nodeToolbarDesign === 'compact'
+              ? compactNodeToolbar(context, builder)
+              : undefined,
           edgeToolbar: true,
           canDelete: model.protectDeletions ? requiredItemPolicy.canDelete : undefined,
           renderEdgeToolbar: (context, builder) =>

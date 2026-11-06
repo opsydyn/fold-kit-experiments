@@ -146,6 +146,9 @@ export type ConnectionListDesign = typeof ConnectionListDesign.Type;
 export const ContextMenuDesign = Schema.Literals(['standard', 'panel']);
 export type ContextMenuDesign = typeof ContextMenuDesign.Type;
 
+export const NodeToolbarDesign = Schema.Literals(['off', 'standard', 'compact']);
+export type NodeToolbarDesign = typeof NodeToolbarDesign.Type;
+
 export const EdgeToolbarDesign = Schema.Literals(['standard', 'compact']);
 export type EdgeToolbarDesign = typeof EdgeToolbarDesign.Type;
 
@@ -197,6 +200,7 @@ export const Model = Schema.Struct({
   resizeReadoutDesign: ResizeReadoutDesign,
   connectionListDesign: ConnectionListDesign,
   contextMenuDesign: ContextMenuDesign,
+  nodeToolbarDesign: NodeToolbarDesign,
   edgeToolbarDesign: EdgeToolbarDesign,
   edgeLabelDesign: EdgeLabelDesign,
   edgeDesign: EdgeDesign,
@@ -223,6 +227,7 @@ export type Model = Readonly<{
   resizeReadoutDesign: ResizeReadoutDesign;
   connectionListDesign: ConnectionListDesign;
   contextMenuDesign: ContextMenuDesign;
+  nodeToolbarDesign: NodeToolbarDesign;
   edgeToolbarDesign: EdgeToolbarDesign;
   edgeLabelDesign: EdgeLabelDesign;
   edgeDesign: EdgeDesign;
@@ -250,6 +255,7 @@ export const init = () => ({
     resizeReadoutDesign: 'standard',
     connectionListDesign: 'standard',
     contextMenuDesign: 'standard',
+    nodeToolbarDesign: 'off',
     edgeToolbarDesign: 'standard',
     edgeLabelDesign: 'standard',
     edgeDesign: 'default',

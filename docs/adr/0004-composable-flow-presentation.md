@@ -318,6 +318,15 @@ positioning API would require callers to duplicate frame and input bindings.
 Keeping the frame in Flow also gives both renderers the existing read-only,
 draft and undo behavior. Callers can hide a badge independently of editing.
 
+### Selected-node toolbar
+
+The view projects the visible node boundary into canvas CSS pixels and
+renders the toolbar next to the world layer. Keeping controls outside the
+scaled layer preserves their size and avoids inverse transforms in host
+renderers. The host chooses placement and contents. Duplicate and delete
+reuse the existing selection actions and deletion policy, so toolbar edits
+use the same transactions as keyboard and context actions.
+
 ### Selected-edge toolbar
 
 The toolbar hook renders inside Flow's positioned screen-space frame. The

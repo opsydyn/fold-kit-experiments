@@ -25,6 +25,7 @@ import {
   type FlowContextMenuContext,
   flowEdgePathStyleSelect,
   type FlowEdgeToolbarContext,
+  type FlowNodeToolbarContext,
   flowEdgeLabelForm,
   flowEdgeLabelInput,
   flowEdgeLabelCancel,
@@ -398,6 +399,49 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
         ['Apply label'],
       ),
       flowEdgeLabelCancel(h, context, flowEvent, [], ['Discard']),
+    ],
+  );
+}
+
+export function compactNodeToolbar(context: FlowNodeToolbarContext, h: HtmlBuilder<Message>) {
+  return h.div(
+    [
+      h.Class('compact-node-actions'),
+      h.Style({
+        display: 'flex',
+        'align-items': 'center',
+        gap: '6px',
+        padding: '5px',
+        'border-radius': '10px',
+        background: '#17392e',
+        color: '#fff',
+        'box-shadow': '0 3px 10px rgb(23 57 46 / 0.25)',
+      }),
+    ],
+    [
+      h.span(
+        [h.Style({ 'font-size': '12px', 'font-weight': '600', padding: '0 6px' })],
+        [context.node.label],
+      ),
+      ...[context.actions.duplicate, context.actions.deleteNode].map((action, index) =>
+        flowContextAction(
+          h,
+          action,
+          flowEvent,
+          [
+            h.Style({
+              'min-height': '36px',
+              padding: '0 10px',
+              border: '1px solid #bfd2c8',
+              'border-radius': '6px',
+              background: index === 0 ? '#edf7f1' : '#fff2ed',
+              color: index === 0 ? '#17392e' : '#842c20',
+              opacity: action.disabledReason === undefined ? '1' : '0.65',
+            }),
+          ],
+          [index === 0 ? 'Duplicate' : 'Delete'],
+        ),
+      ),
     ],
   );
 }

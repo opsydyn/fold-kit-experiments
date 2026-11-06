@@ -39,6 +39,18 @@ export { flowEdgeToolbarButton, flowEdgePathStyleSelect } from './edge-toolbar';
 export type { FlowEdgeToolbarAction, FlowEdgeToolbarContext } from './edge-toolbar';
 
 import {
+  nodeToolbarContext,
+  nodeToolbarView,
+  type FlowNodeToolbarContext,
+  type FlowNodeToolbarOptions,
+} from './node-toolbar';
+export type {
+  FlowNodeToolbarContext,
+  FlowNodeToolbarOptions,
+  FlowNodeToolbarPlacement,
+} from './node-toolbar';
+
+import {
   flowEdgeLabelBadge,
   flowEdgeLabelForm,
   flowEdgeLabelInput,
@@ -259,6 +271,13 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     }>;
     /** Classes on the editor root, including classes produced by Pleat's cssClass(). */
     themeClassName?: string;
+    /** Show a screen-sized toolbar for a single selected node in editable views. */
+    nodeToolbar?: boolean | FlowNodeToolbarOptions;
+    /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
+    renderNodeToolbar?: (
+      context: FlowNodeToolbarContext,
+      h: HtmlBuilder<M>,
+    ) => Html | null | undefined;
     /** Show on-canvas controls for a single selected edge in editable views. */
     edgeToolbar?: boolean;
     /** Use the same pure deletion policy passed to updateEditor to disable protected actions. */
@@ -354,6 +373,24 @@ function deletionExplanation<M>(h: HtmlBuilder<M>, reason: string | undefined): 
     : [h.small([h.Style({ 'flex-basis': '100%', 'overflow-wrap': 'anywhere' })], [reason])];
 }
 
+function selectedNodeActions(
+  state: EditorState,
+  canDelete: EditorPolicy['canDelete'],
+): FlowNodeToolbarContext['actions'] {
+  return {
+    duplicate: { label: 'Duplicate node', event: { type: 'DuplicatePressed' } },
+    deleteNode: {
+      label: 'Delete node',
+      event: { type: 'DeletePressed' },
+      disabledReason: deletionReason(
+        state.graph,
+        { nodeIds: state.selectedNodes, edgeIds: state.selectedEdges },
+        canDelete,
+      ),
+    },
+  };
+}
+
 function contextMenu(
   state: EditorState,
   diagnostics: FlowDiagnostics,
@@ -411,16 +448,7 @@ function contextMenu(
     point,
     close,
     group,
-    duplicate: { label: 'Duplicate node', event: { type: 'DuplicatePressed' } },
-    deleteNode: {
-      label: 'Delete node',
-      event: { type: 'DeletePressed' },
-      disabledReason: deletionReason(
-        state.graph,
-        { nodeIds: state.selectedNodes, edgeIds: state.selectedEdges },
-        canDelete,
-      ),
-    },
+    ...selectedNodeActions(state, canDelete),
   };
 }
 
@@ -1450,6 +1478,28 @@ export function flowView<M>(
       [],
     ),
   );
+  const nodeToolbarOptions = options.nodeToolbar === true ? {} : options.nodeToolbar;
+  const toolbarNode =
+    nodeToolbarOptions &&
+    !state.readOnly &&
+    state.gesture.type === 'idle' &&
+    !state.context &&
+    !state.connection &&
+    state.selectedNodes.length === 1 &&
+    state.selectedEdges.length === 0
+      ? presentation.nodes.find((node) => node.id === state.selectedNodes[0])
+      : undefined;
+  const selectedNodeToolbar =
+    toolbarNode && nodeToolbarOptions
+      ? nodeToolbarContext(
+          toolbarNode,
+          state.viewport,
+          nodeToolbarOptions,
+          selectedNodeActions(state, options.canDelete),
+        )
+      : undefined;
+  const nodeToolbarContent =
+    selectedNodeToolbar && options.renderNodeToolbar?.(selectedNodeToolbar, h);
   const toolbarContext: FlowEdgeToolbarContext | undefined =
     activeEdge?.labelPosition && !state.edgeLabelDraft && !drag && !state.context
       ? {
@@ -1701,6 +1751,9 @@ export function flowView<M>(
             : []),
           ...resizeReadout(h, state, options, presentation.nodes, diagnostics),
           ...(toolbar ? [toolbar] : []),
+          ...(selectedNodeToolbar && nodeToolbarContent !== null
+            ? [nodeToolbarView(h, selectedNodeToolbar, options.onEvent, nodeToolbarContent)]
+            : []),
           ...contextPanel(h, state, options, diagnostics),
         ],
       ),

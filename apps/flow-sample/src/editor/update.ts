@@ -120,6 +120,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedContextMenuDesign: ({ contextMenuDesign }) => ({
       model: { ...model, contextMenuDesign },
     }),
+    SelectedNodeToolbarDesign: ({ nodeToolbarDesign }) => ({
+      model: { ...model, nodeToolbarDesign },
+    }),
     SelectedEdgeToolbarDesign: ({ edgeToolbarDesign }) => ({
       model: { ...model, edgeToolbarDesign },
     }),

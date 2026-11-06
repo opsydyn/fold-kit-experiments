@@ -292,6 +292,11 @@ child so consumers own its placement and paint. Relative keyboard pan events
 update the current viewport without editing the graph or creating history.
 Both hooks respect the existing visibility and diagnostics gates.
 
+Wheel navigation is a view option. The scoped input binding translates
+wheel deltas into the existing viewport pan or zoom events, so the Model
+keeps camera ownership and graph history stays separate. An off mode
+leaves wheel input to the browser, and canvas help follows the option.
+
 ### Edge labels
 
 Label hooks render HTML inside Flow's existing positioned frame. The frame

@@ -155,6 +155,9 @@ export type EdgeLabelDesign = typeof EdgeLabelDesign.Type;
 export const EdgeDesign = Schema.Literals(['default', 'raised']);
 export type EdgeDesign = typeof EdgeDesign.Type;
 
+export const WheelNavigation = Schema.Literals(['zoom', 'pan', 'off']);
+export type WheelNavigation = typeof WheelNavigation.Type;
+
 export const NavigationDesign = Schema.Literals(['standard', 'compact']);
 export type NavigationDesign = typeof NavigationDesign.Type;
 
@@ -197,6 +200,7 @@ export const Model = Schema.Struct({
   edgeToolbarDesign: EdgeToolbarDesign,
   edgeLabelDesign: EdgeLabelDesign,
   edgeDesign: EdgeDesign,
+  wheelNavigation: WheelNavigation,
   navigationDesign: NavigationDesign,
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
@@ -222,6 +226,7 @@ export type Model = Readonly<{
   edgeToolbarDesign: EdgeToolbarDesign;
   edgeLabelDesign: EdgeLabelDesign;
   edgeDesign: EdgeDesign;
+  wheelNavigation: WheelNavigation;
   navigationDesign: NavigationDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
@@ -248,6 +253,7 @@ export const init = () => ({
     edgeToolbarDesign: 'standard',
     edgeLabelDesign: 'standard',
     edgeDesign: 'default',
+    wheelNavigation: 'zoom',
     navigationDesign: 'standard',
     nodeDesign: 'cards',
     background: 'dots',

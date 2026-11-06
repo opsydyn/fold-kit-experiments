@@ -278,3 +278,8 @@ While drawing a box, dashed outlines preview the nodes that will be
 selected on release. The **Orbits** node design styles the same preview
 with its own dashed ring.
 [Card preview](evidence/selection-preview.png) · [Orbit preview](evidence/selection-preview-orbits.png)
+
+Choose **Wheel navigation → Scroll to pan · Ctrl/Command to zoom** to pan
+with a wheel or trackpad. Choose **Page scrolling** to leave wheel gestures
+to the page. The canvas help updates with the chosen behavior.
+[Workbench screenshot](evidence/wheel-navigation.png)

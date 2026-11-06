@@ -396,6 +396,19 @@ during node moves, connection drags, and reconnections. The drag remains
 anchored to the pointer as the viewport moves. Release or Escape stops the
 pan. Viewport travel stays separate from graph undo.
 
+Set `wheelNavigation` to choose how the canvas handles wheel and trackpad
+scrolling:
+
+| Mode     | Behavior                                                                  |
+| -------- | ------------------------------------------------------------------------- |
+| `'zoom'` | The default. Vertical wheel motion zooms around the cursor.               |
+| `'pan'`  | Scroll pans in both axes. Hold Ctrl or Command to zoom around the cursor. |
+| `'off'`  | Wheel events keep their native page or browser behavior.                  |
+
+The option applies only to wheel input on the canvas. Editable controls
+keep their own wheel behavior. Flow updates its default help text to match
+the option. Custom help receives the same `wheelNavigation` value.
+
 Set `pinchZoom: true` on the FoldKit view for two-finger touch navigation.
 Move both fingers together to pan or change their distance to zoom around
 the midpoint. A second touch cancels an active graph drag. Lifting a finger

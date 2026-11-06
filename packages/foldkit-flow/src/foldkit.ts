@@ -62,6 +62,7 @@ import {
   minimapContext,
   type FlowViewportControlsContext,
   type FlowMinimapContext,
+  type FlowWheelNavigation,
 } from './navigation';
 export {
   flowViewportControl,
@@ -75,6 +76,7 @@ export type {
   FlowViewportActions,
   FlowViewportControlsContext,
   FlowMinimapContext,
+  FlowWheelNavigation,
 } from './navigation';
 import {
   flowNodeFrame,
@@ -199,6 +201,7 @@ export type FlowCanvasHelpContext = Readonly<{
   edgeToolbar: boolean;
   readOnly: boolean;
   visible: boolean;
+  wheelNavigation: FlowWheelNavigation;
 }>;
 
 /** Current canvas notice or the summary used when no notice is active. */
@@ -286,6 +289,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     autoPan?: boolean;
     /** Enable two-finger touch pan and pinch-to-zoom on the canvas. */
     pinchZoom?: boolean;
+    /** Defaults to cursor-anchored zoom. Off leaves wheel input to the page. */
+    wheelNavigation?: FlowWheelNavigation;
     /** Card width handles and corner/side handles on selected expanded groups. */
     resizeHandles?: boolean;
     /** Show Model dimensions during resizing and for selected groups with handles. Defaults to true. */
@@ -882,12 +887,20 @@ function canvasHelpView<M>(
   edgeToolbar: boolean,
   visible: boolean,
 ): Html {
+  const wheelNavigation = options.wheelNavigation ?? 'zoom';
+  const wheelHelp =
+    wheelNavigation === 'pan'
+      ? 'Scroll to pan. Hold Ctrl or Command while scrolling to zoom. '
+      : wheelNavigation === 'zoom'
+        ? 'Scroll to zoom. '
+        : '';
   const defaultText = [
     'Drag a node title to move it. ',
     state.selectionMode
       ? 'Drag the background to select nodes. '
       : 'Drag the background to pan, or Shift-drag to select nodes. ',
-    'Scroll to zoom. Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge to drag either endpoint handle. Escape cancels.',
+    wheelHelp,
+    'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge to drag either endpoint handle. Escape cancels.',
     ...(edgeToolbar
       ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
       : []),
@@ -898,6 +911,7 @@ function canvasHelpView<M>(
       selectionMode: state.selectionMode,
       readOnly: state.readOnly,
       edgeToolbar,
+      wheelNavigation,
       visible,
     },
     h,
@@ -1555,6 +1569,7 @@ export function flowView<M>(
           h.DataAttribute('flow-grid-spacing', String(state.gridSpacing)),
           h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
           h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
+          h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
           h.DataAttribute('flow-selection-mode', String(state.selectionMode)),
           h.DataAttribute('flow-context-actions', String(Boolean(contextEnabled))),
           h.Tabindex(0),

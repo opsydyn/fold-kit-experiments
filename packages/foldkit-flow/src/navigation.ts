@@ -6,6 +6,9 @@ import { maximumZoom, minimumZoom, minimapGeometry } from './geometry';
 import { groupsInPaintOrder, presentGroups } from './group-presentation';
 import type { EditorEvent, EditorState, FlowMinimapGeometry, FlowNode } from './types';
 
+/** Wheel behavior inside the canvas. Pan mode uses Ctrl/Command-wheel to zoom. */
+export type FlowWheelNavigation = 'zoom' | 'pan' | 'off';
+
 /** A Model-derived action; consumers supply the content and appearance. */
 export type FlowViewportControl = Readonly<{
   label: string;

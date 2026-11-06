@@ -3,6 +3,7 @@ import { defineMessageUnion } from 'foldkit/message';
 
 import {
   NavigationDesign,
+  WheelNavigation,
   PortAnchorPreset,
   ConnectionDesign,
   EdgeDesign,
@@ -21,6 +22,7 @@ import {
 export const Message = defineMessageUnion({
   ObservedFlowInput: { message: Schema.Unknown },
   SelectedExample: { example: Schema.Literals(['release', 'onion', 'grouped-onion']) },
+  SelectedWheelNavigation: { wheelNavigation: WheelNavigation },
   SelectedNavigationDesign: { navigationDesign: NavigationDesign },
   SelectedPortAnchors: { preset: PortAnchorPreset },
   SelectedConnectionDesign: { connectionDesign: ConnectionDesign },

@@ -94,6 +94,9 @@ contexts provide default copy and the effective visibility preference.
 items a deletion would remove. Pass the same callback to the view to expose
 the rejection reason through its action descriptors.
 
+`FlowWheelNavigation` configures wheel zoom, two-axis panning with modifier
+zoom, or native page scrolling through `FlowViewOptions.wheelNavigation`.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

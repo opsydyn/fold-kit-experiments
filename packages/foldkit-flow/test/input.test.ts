@@ -6,8 +6,11 @@ import { bindInput } from '../src/input';
 import type { EditorEvent } from '../src/types';
 
 const previousEvent = Object.getOwnPropertyDescriptor(globalThis, 'KeyboardEvent');
+const previousWheelEvent = Object.getOwnPropertyDescriptor(globalThis, 'WheelEvent');
 const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
 afterEach(() => {
+  if (previousWheelEvent) Object.defineProperty(globalThis, 'WheelEvent', previousWheelEvent);
+  else Reflect.deleteProperty(globalThis, 'WheelEvent');
   if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
   else Reflect.deleteProperty(globalThis, 'document');
   if (previousEvent) Object.defineProperty(globalThis, 'KeyboardEvent', previousEvent);
@@ -123,5 +126,52 @@ test('group resize keyboard arrows emit dimensions rather than moving the select
     handle: 'left',
     delta: { x: -128, y: 0 },
   });
+  release();
+});
+
+test('wheel navigation changes in place and preserves editable and page scrolling', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'WheelEvent', { value: window.WheelEvent, configurable: true });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  const element = document.createElement('div');
+  element.innerHTML = '<input>';
+  Object.defineProperties(element, { clientWidth: { value: 800 }, clientHeight: { value: 400 } });
+  const events: EditorEvent[] = [];
+  const release = bindInput(element, (event) => events.push(event));
+  events.length = 0;
+  const wheel = (options: WheelEventInit, target: Element = element) => {
+    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, ...options });
+    Object.defineProperties(event, {
+      clientX: { value: options.clientX ?? 0 },
+      clientY: { value: options.clientY ?? 0 },
+      ctrlKey: { value: options.ctrlKey ?? false },
+      metaKey: { value: options.metaKey ?? false },
+    });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  expect(wheel({ deltaY: 20, clientX: 40, clientY: 60 })).toBe(true);
+  expect(events.pop()).toEqual({
+    type: 'Zoomed',
+    point: { x: 40, y: 60 },
+    factor: Math.exp(-0.04),
+  });
+  element.dataset.flowWheelNavigation = 'pan';
+  expect(wheel({ deltaX: 2, deltaY: -3, deltaMode: 1 })).toBe(true);
+  expect(events.pop()).toEqual({ type: 'ViewportNudged', delta: { x: -32, y: 48 } });
+  expect(wheel({ deltaX: 1, deltaY: 1, deltaMode: 2 })).toBe(true);
+  expect(events.pop()).toEqual({ type: 'ViewportNudged', delta: { x: -800, y: -400 } });
+  for (const modifiers of [{ ctrlKey: true }, { metaKey: true }]) {
+    expect(wheel({ ...modifiers, deltaY: 20, clientX: 40, clientY: 60 })).toBe(true);
+    expect(events.pop()).toEqual({
+      type: 'Zoomed',
+      point: { x: 40, y: 60 },
+      factor: Math.exp(-0.04),
+    });
+  }
+  expect(wheel({ deltaY: 20 }, element.querySelector('input')!)).toBe(false);
+  element.dataset.flowWheelNavigation = 'off';
+  expect(wheel({ deltaY: 20, ctrlKey: true })).toBe(false);
+  expect(events).toEqual([]);
   release();
 });

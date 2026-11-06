@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in wheel panning with Ctrl or Command to zoom, and an off mode for
+  native page scrolling. Cursor-anchored wheel zoom remains the default.
+
 - Preview pending box-selected nodes while dragging, with a separate shell
   highlight state and the same resolver used on release.
 

@@ -383,10 +383,19 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   listen('wheel', (event) => {
     const target = targetOf(event);
     if (!(event instanceof window.WheelEvent) || !target || editable(target)) return;
+    const navigation = element.dataset.flowWheelNavigation;
+    if (navigation === 'off') return;
     event.preventDefault();
     const pixels =
       event.deltaY *
       (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientHeight : 1);
+    if (navigation === 'pan' && !event.ctrlKey && !event.metaKey) {
+      const horizontal =
+        event.deltaX *
+        (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientWidth : 1);
+      emit({ type: 'ViewportNudged', delta: { x: -horizontal, y: -pixels } });
+      return;
+    }
     emit({
       type: 'Zoomed',
       point: point(event),

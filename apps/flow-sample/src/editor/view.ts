@@ -15,6 +15,7 @@ import { requiredItemPolicy } from './deletion-policy';
 import { Message } from './message';
 import {
   NavigationDesign,
+  WheelNavigation,
   BackgroundStyle,
   PortAnchorPreset,
   ConnectionDesign,
@@ -997,6 +998,38 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Wheel navigation',
+            h.select(
+              [
+                h.AriaLabel('Wheel navigation'),
+                h.Value(model.wheelNavigation),
+                h.OnChange((value) =>
+                  Message.SelectedWheelNavigation({
+                    wheelNavigation: Schema.decodeUnknownSync(WheelNavigation)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('zoom'), h.Selected(model.wheelNavigation === 'zoom')],
+                  ['Scroll to zoom'],
+                ),
+                h.option(
+                  [h.Value('pan'), h.Selected(model.wheelNavigation === 'pan')],
+                  ['Scroll to pan · Ctrl/Command to zoom'],
+                ),
+                h.option(
+                  [h.Value('off'), h.Selected(model.wheelNavigation === 'off')],
+                  ['Page scrolling'],
+                ),
+              ],
+            ),
+          ],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
@@ -1096,6 +1129,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             );
           },
           id: 'flow-demo',
+          wheelNavigation: model.wheelNavigation,
           renderEdgeLabel: (context, builder) =>
             model.edgeLabelDesign === 'badge' ? edgeBadge(context, builder) : undefined,
           renderEdgeLabelEditor: (context, builder) =>

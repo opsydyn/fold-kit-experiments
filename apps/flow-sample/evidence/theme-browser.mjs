@@ -25,9 +25,41 @@ function cameraTransform(element) {
   return world.style.transform;
 }
 
+async function expectShellTheme(browser, system, saved, expected) {
+  const page = await browser.newPage({ colorScheme: system });
+  await page.route('**/*', (route) =>
+    route.request().resourceType() === 'script' ? route.abort() : route.continue(),
+  );
+  if (saved !== null) {
+    await page.addInitScript((preference) => {
+      if (preference === 'blocked') {
+        Object.defineProperty(window, 'localStorage', {
+          get() {
+            throw new DOMException('Storage is disabled', 'SecurityError');
+          },
+        });
+        return;
+      }
+      localStorage.setItem('opsydyn.foldkit-flow.color-scheme.v1', preference);
+    }, saved);
+  }
+  await page.goto('http://127.0.0.1:' + server.address().port);
+  await expect(page.locator('[data-flow-surface]')).toHaveCount(0);
+  await expect(page.locator('html')).toHaveCSS('color-scheme', expected);
+  await expect(page.locator('body')).toHaveCSS(
+    'background-color',
+    expected === 'dark' ? 'rgb(16, 28, 25)' : 'rgb(248, 246, 241)',
+  );
+  await page.close();
+}
+
 async function qualify() {
   const browser = await chromium.launch();
   const run = async () => {
+    await expectShellTheme(browser, 'dark', null, 'dark');
+    await expectShellTheme(browser, 'light', 'dark', 'dark');
+    await expectShellTheme(browser, 'dark', 'light', 'light');
+    await expectShellTheme(browser, 'dark', 'blocked', 'dark');
     const page = await browser.newPage({
       viewport: { width: 1280, height: 1100 },
       colorScheme: 'light',
@@ -107,6 +139,7 @@ async function qualify() {
     await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
     await freshTheme.selectOption('light');
     await expect(freshSurface).toHaveCSS('color-scheme', 'light');
+    await expect(fresh.locator('body')).toHaveCSS('background-color', 'rgb(248, 246, 241)');
     await fresh.reload();
     await expect(freshTheme).toBeEnabled();
     await expect(freshSurface).toHaveCSS('color-scheme', 'light');
@@ -152,9 +185,7 @@ async function qualify() {
       blocked.getByText('Theme changed for this visit. Your browser could not save it.'),
     ).toBeVisible();
     expect(errors).toEqual([]);
-    console.log(
-      'Theme switching, live System mode, reload persistence and blocked storage passed.',
-    );
+    console.log('First paint, live System mode, reload persistence and blocked storage passed.');
   };
   await run().finally(() => browser.close());
 }

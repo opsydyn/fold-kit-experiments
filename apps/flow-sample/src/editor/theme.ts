@@ -5,6 +5,8 @@ import {
   type FlowTheme,
 } from '@opsydyn/foldkit-flow/foldkit';
 
+export const themePreferenceStorageKey = 'opsydyn.foldkit-flow.color-scheme.v1';
+
 export const workbenchThemes = {
   light: {
     ...flowLightTheme,

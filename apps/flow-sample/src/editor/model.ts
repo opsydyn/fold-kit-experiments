@@ -192,7 +192,7 @@ export type ThemePreference = typeof ThemePreference.Type;
 
 export const Model = Schema.Struct({
   themePreference: Schema.NullOr(ThemePreference),
-  systemColorScheme: ColorScheme,
+  systemColorScheme: Schema.NullOr(ColorScheme),
   minimalMode: Schema.Boolean,
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
@@ -232,7 +232,7 @@ export const Model = Schema.Struct({
 });
 export type Model = Readonly<{
   themePreference: ThemePreference | null;
-  systemColorScheme: FlowColorScheme;
+  systemColorScheme: FlowColorScheme | null;
   minimalMode: boolean;
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
@@ -265,7 +265,7 @@ export type Model = Readonly<{
 export const init = () => ({
   model: {
     themePreference: null,
-    systemColorScheme: 'light',
+    systemColorScheme: null,
     minimalMode: false,
     showWorldAnnotation: false,
     diagnosticsEnabled: true,

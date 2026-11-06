@@ -4,12 +4,11 @@ import { Command } from 'foldkit';
 
 import { Message } from './message';
 import { ThemePreference } from './model';
-
-const colorSchemeKey = 'opsydyn.foldkit-flow.color-scheme.v1';
+import { themePreferenceStorageKey } from './theme';
 
 export const LoadThemePreference = Command.define('LoadThemePreference', {
   messages: [Message.LoadedThemePreference],
-  execute: Effect.try(() => globalThis.localStorage.getItem(colorSchemeKey)).pipe(
+  execute: Effect.try(() => globalThis.localStorage.getItem(themePreferenceStorageKey)).pipe(
     Effect.match({
       onSuccess: (stored) =>
         Message.LoadedThemePreference({
@@ -24,7 +23,9 @@ export const SaveThemePreference = Command.define('SaveThemePreference', {
   args: { themePreference: ThemePreference },
   messages: [Message.CompletedColorSchemeSave, Message.FailedColorSchemeSave],
   execute: ({ themePreference }) =>
-    Effect.try(() => globalThis.localStorage.setItem(colorSchemeKey, themePreference)).pipe(
+    Effect.try(() =>
+      globalThis.localStorage.setItem(themePreferenceStorageKey, themePreference),
+    ).pipe(
       Effect.match({
         onSuccess: () => Message.CompletedColorSchemeSave(),
         onFailure: () => Message.FailedColorSchemeSave(),

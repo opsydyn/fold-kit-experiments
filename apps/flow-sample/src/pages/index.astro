@@ -1,5 +1,6 @@
 ---
 import Editor from '../editor/app';
+import { themePreferenceStorageKey } from '../editor/theme';
 ---
 <!doctype html>
 <html lang="en">
@@ -7,6 +8,22 @@ import Editor from '../editor/app';
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Workflow patterns | FoldKit Flow</title>
+    <script is:inline define:vars={{ themePreferenceStorageKey }}>
+      // Set the shell color before the FoldKit island starts.
+      function readStoredTheme() {
+        // oxlint-disable-next-line linteffect/no-try-catch -- This inline browser script runs before the Effect runtime loads.
+        try {
+          return localStorage.getItem(themePreferenceStorageKey);
+        } catch {
+          return null;
+        }
+      }
+      const saved = readStoredTheme();
+      const scheme = saved === 'light' || saved === 'dark'
+        ? saved
+        : window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.flowInitialColorScheme = scheme;
+    </script>
   </head>
   <body>
     <header><div>FoldKit Flow <span> / Sample app</span></div></header>
@@ -33,6 +50,7 @@ import Editor from '../editor/app';
   --panel: #fdfefb;
   --ui-font: system-ui, sans-serif;
 }
+:root[data-flow-initial-color-scheme='dark']:not(:has([data-flow-workbench-color-scheme])),
 :root:has([data-flow-workbench-color-scheme='dark']) {
   color-scheme: dark;
   --paper: #101c19;

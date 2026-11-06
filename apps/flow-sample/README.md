@@ -316,6 +316,7 @@ the drop before releasing.
 
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
-and remembers your selection in the same browser. Changing themes keeps the
-current diagram, selection, and viewport.
+and remembers your selection in the same browser. The page applies the saved
+or system theme before the workbench loads. Changing themes keeps the current
+diagram, selection, and viewport.
 [Light mode](evidence/theme-light.png) · [Dark mode](evidence/theme-dark.png)

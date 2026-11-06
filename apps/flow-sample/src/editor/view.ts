@@ -69,8 +69,10 @@ const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | nul
 ];
 
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  const themePreference = model.themePreference ?? 'system';
+  const title = 'Workflow patterns | FoldKit Flow';
+  const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
+  if (themePreference === null || colorScheme === null) return { title, body: h.div([], []) };
   const button = (label: string, message: Message, disabled = false) =>
     h.button(
       [
@@ -214,7 +216,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     );
   };
   return {
-    title: 'Workflow patterns | FoldKit Flow',
+    title,
     body: h.div(
       [h.DataAttribute('flow-workbench-color-scheme', colorScheme)],
       [
@@ -1172,7 +1174,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.select(
               [
                 h.Value(themePreference),
-                h.Disabled(model.themePreference === null),
                 h.OnChange((value) =>
                   Message.SelectedThemePreference({
                     themePreference: Schema.decodeUnknownSync(ThemePreference)(value),

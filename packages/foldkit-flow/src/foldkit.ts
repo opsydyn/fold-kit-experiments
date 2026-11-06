@@ -1220,9 +1220,17 @@ function nodeViews<M, S extends NodeControlState>(
     });
 }
 
+function mountedNodeMask(authored: readonly FlowNode[], mounted: readonly FlowNode[]) {
+  if (authored === mounted) return undefined;
+  const visible = new Set(mounted);
+  // Index the mask against the authored array so a new culling array can still hit the slot.
+  return authored.map((node) => (visible.has(node) ? '1' : '0')).join('');
+}
+
 function retainedNodeLayer<M>(
   h: HtmlBuilder<M>,
   graph: FlowGraph,
+  mountedMask: string | undefined,
   selectedNodes: readonly string[],
   readOnly: boolean,
   descriptionId: string,
@@ -1254,7 +1262,9 @@ function retainedNodeLayer<M>(
     [h.Style({ display: 'contents' })],
     nodeViews(
       h,
-      graph.nodes,
+      mountedMask === undefined
+        ? graph.nodes
+        : graph.nodes.filter((_, index) => mountedMask[index] === '1'),
       { graph, selectedNodes, readOnly, connection: null },
       options,
       resolveFlowDiagnostics({}),
@@ -1503,7 +1513,7 @@ export function flowView<M>(
     );
   });
   const canRetainNodes =
-    canvas.nodes === state.graph.nodes &&
+    presentation.nodes === state.graph.nodes &&
     (state.gesture.type === 'idle' || state.gesture.type === 'pan') &&
     !state.connection &&
     !state.context &&
@@ -1519,6 +1529,7 @@ export function flowView<M>(
         canRetainNodes(retainedNodeLayer, [
           h,
           state.graph,
+          mountedNodeMask(state.graph.nodes, canvas.nodes),
           state.selectedNodes,
           state.readOnly,
           descriptionId,

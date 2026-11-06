@@ -71,9 +71,30 @@ async function qualify() {
     await page.mouse.move(panBox.x + 45, panBox.y + 15);
     await page.mouse.up();
     await expect(trigger).toBeEnabled();
+    await button('Viewport culling').click();
+    await button('Fit view').click();
+    const publish = page.getByRole('textbox', { name: 'Label for publish', exact: true });
+    await publish.fill('Published later');
+    await expect(button('Select Published later')).toBeVisible();
+    const previousPublish = await publish.elementHandle();
+    const cullBox = await surface.boundingBox();
+    await page.mouse.move(cullBox.x + 15, cullBox.y + 15);
+    await page.mouse.wheel(0, -500);
+    await expect
+      .poll(() => publish.evaluate((node) => node.getBoundingClientRect().left))
+      .toBeGreaterThan(cullBox.x + cullBox.width + 96);
+    await expect(publish).toBeFocused();
+    await surface.focus();
+    await expect(publish).toHaveCount(0);
+    await button('Fit view').click();
+    await expect(publish).toHaveValue('Published later');
+    expect(await publish.evaluate((node, previous) => node === previous, previousPublish)).toBe(
+      false,
+    );
+    await expect(button('Connect to Published later: in')).toBeEnabled();
     expect(errors).toEqual([]);
     console.log(
-      'Retained nodes preserve focus, edit, selection, live menu position and port policy',
+      'Retained nodes preserve focus, edit, selection, live menu position, port policy and culling remounts',
     );
   };
   await run().finally(() => browser.close());

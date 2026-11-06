@@ -367,3 +367,7 @@ view, DOM patch, and style-validation paths.
 Enable **Retain node views** to try the built-in card prototype. The
 [retained node comparison](evidence/camera-benchmark.md#retained-node-views)
 uses the large workflow with viewport culling off.
+
+Enable **Viewport culling** and **Retain node views** together to reuse the
+mounted node layer while its membership stays the same.
+[Combined benchmark](evidence/camera-benchmark.md#retention-with-viewport-culling)

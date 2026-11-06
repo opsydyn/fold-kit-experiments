@@ -423,3 +423,32 @@ test('viewport culling preserves crossing edges and leaves the overview and conn
   const custom = await render(away, { viewportCulling: true, edgeGeometry: () => undefined });
   expect(custom.querySelector('[data-flow-edge="ab"]')).not.toBeNull();
 });
+
+test('culled node layers retain their arguments until mounted membership changes', async () => {
+  const calls: Array<readonly unknown[]> = [];
+  const nodeViewCache: NonNullable<FlowViewOptions<EditorEvent>['nodeViewCache']> = (
+    view,
+    args,
+  ) => {
+    calls.push(args);
+    return view(...args);
+  };
+  const state = {
+    ...initial,
+    surface: { width: 180, height: 180 },
+    viewport: { x: -100, y: -100, zoom: 1 },
+  };
+  const onEvent = (event: EditorEvent) => event;
+  const options = { nodeViewCache, viewportCulling: { overscan: 0 }, onEvent };
+  const first = await render(state, options);
+  await render({ ...state, viewport: { ...state.viewport, x: -110 } }, options);
+  const shifted = await render({ ...state, viewport: { ...state.viewport, x: -560 } }, options);
+
+  expect(first.querySelector('[data-flow-node="a"]')).not.toBeNull();
+  expect(first.querySelector('[data-flow-node="b"]')).toBeNull();
+  expect(shifted.querySelector('[data-flow-node="a"]')).toBeNull();
+  expect(shifted.querySelector('[data-flow-node="b"]')).not.toBeNull();
+  expect(calls).toHaveLength(3);
+  expect(calls[0]?.every((arg, index) => arg === calls[1]?.[index])).toBe(true);
+  expect(calls[1]).not.toEqual(calls[2]);
+});

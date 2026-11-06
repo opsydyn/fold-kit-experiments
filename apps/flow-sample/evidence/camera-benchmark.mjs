@@ -26,42 +26,45 @@ const samplesPerRun = 20;
 const warmup = 4;
 const worldSelector = ':scope > div[style*="transform-origin"]';
 const cpuProfilePath = process.env.FLOW_BENCHMARK_CPU_PROFILE;
+const compareCulledRetained = process.env.FLOW_BENCHMARK_COMPARE_CULLED_RETAINED === '1';
 const compareRetained = process.env.FLOW_BENCHMARK_COMPARE_RETAINED === '1';
 const sustained =
   compareRetained || Boolean(cpuProfilePath) || process.env.FLOW_BENCHMARK_BURST === '1';
 const scenarioRuns = cpuProfilePath ? 1 : runs;
-const comparison = sustained || process.env.FLOW_BENCHMARK_COMPARE_CULLING === '1';
+const comparison =
+  compareCulledRetained || sustained || process.env.FLOW_BENCHMARK_COMPARE_CULLING === '1';
 const burstInputs = 180;
 const burstHz = 120;
-const cases = compareRetained
-  ? [
-      {
-        name: 'Large · default',
-        nodes: 320,
-        edges: 452,
-        minimal: false,
-        culling: false,
-        retain: false,
-      },
-      {
-        name: 'Large · retained',
-        nodes: 320,
-        edges: 452,
-        minimal: false,
-        culling: false,
-        retain: true,
-      },
-    ]
-  : comparison
+const cases =
+  compareCulledRetained || compareRetained
     ? [
-        { name: 'Large · default', nodes: 320, edges: 452, minimal: false, culling: false },
-        { name: 'Large · culled', nodes: 320, edges: 452, minimal: false, culling: true },
+        {
+          name: compareCulledRetained ? 'Large · culled' : 'Large · default',
+          nodes: 320,
+          edges: 452,
+          minimal: false,
+          culling: compareCulledRetained,
+          retain: false,
+        },
+        {
+          name: compareCulledRetained ? 'Large · culled and retained' : 'Large · retained',
+          nodes: 320,
+          edges: 452,
+          minimal: false,
+          culling: compareCulledRetained,
+          retain: true,
+        },
       ]
-    : [
-        { name: 'Release · default', nodes: 3, edges: 1, minimal: false },
-        { name: 'Large · default', nodes: 320, edges: 452, minimal: false },
-        { name: 'Large · minimal', nodes: 320, edges: 452, minimal: true },
-      ];
+    : comparison
+      ? [
+          { name: 'Large · default', nodes: 320, edges: 452, minimal: false, culling: false },
+          { name: 'Large · culled', nodes: 320, edges: 452, minimal: false, culling: true },
+        ]
+      : [
+          { name: 'Release · default', nodes: 3, edges: 1, minimal: false },
+          { name: 'Large · default', nodes: 320, edges: 452, minimal: false },
+          { name: 'Large · minimal', nodes: 320, edges: 452, minimal: true },
+        ];
 
 async function backgroundPoint(surface) {
   return surface.evaluate((element, centerGraph) => {
@@ -362,7 +365,8 @@ async function qualify(browser, fixture) {
       const point = await prepareCamera(page, surface, world);
       await measureBurst(page, surface, world, point, 'zoom');
     }
-    const operations = cpuProfilePath || compareRetained ? ['zoom'] : ['pan', 'zoom'];
+    const operations =
+      cpuProfilePath || compareRetained || compareCulledRetained ? ['zoom'] : ['pan', 'zoom'];
     for (const kind of operations) {
       if (sustained) {
         const bursts = [];

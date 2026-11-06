@@ -224,3 +224,39 @@ also verifies focus and DOM identity through zoom, graph editing, selection,
 context-menu placement, port locks, and disabled controls during drag-pan.
 
 ![Wheel burst with node retention off and on](retained-node-views.png)
+
+## Retention with viewport culling
+
+Both cases use culling, default cards, and default diagnostics. The
+retained layer is reused when its mounted node set is unchanged. A
+membership change rebuilds the layer from the Model. A browser regression
+edits Publish, moves it outside the viewport, verifies focus keeps it
+mounted, then blurs it and confirms Fit view remounts the edited node
+with its port available.
+
+Run the following from `apps/web` after building the workbench. Repeat
+with `FLOW_BENCHMARK_REVERSE=1` to swap the case order.
+
+```sh
+FLOW_BENCHMARK_COMPARE_CULLED_RETAINED=1 bun - < ../flow-sample/evidence/camera-benchmark.mjs
+FLOW_BENCHMARK_COMPARE_CULLED_RETAINED=1 FLOW_BENCHMARK_BURST=1 bun - < ../flow-sample/evidence/camera-benchmark.mjs
+bun - < ../flow-sample/evidence/retained-node-views-browser.mjs
+```
+
+Paired runs on headless Chromium 151.0.7922.34 and Apple M4 Pro used the
+same camera inputs in both modes. Serial ranges cover the two orders
+with 60 samples per case in each order. Burst ranges cover both case
+orders with six bursts per mode.
+
+| Mode                  | Serial listener to update p50 | Serial listener to update p95 | Burst callback gap p95 | Burst observation window |
+| --------------------- | ----------------------------: | ----------------------------: | ---------------------: | -----------------------: |
+| Culling               |                    8.9–9.2 ms |                  10.7–11.1 ms |                17.7 ms |            1.633–1.634 s |
+| Culling and retention |                    6.4–7.9 ms |                   9.6–11.5 ms |           17.7–17.8 ms |            1.633–1.634 s |
+
+Retention reduced median serial update time. The p95 update ranges
+overlapped, and sustained wheel pacing was effectively unchanged.
+Both cases ended the serial run with 30 nodes and 53 edges mounted
+and the burst run with 16 nodes and 35 edges mounted. The minimap and
+Connections list retained the full visible workflow.
+
+![Culling and node retention benchmark](culled-node-retention.png)

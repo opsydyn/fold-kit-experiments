@@ -742,11 +742,15 @@ changing the policy, send `SelectionCleared`.
 
 Pass one FoldKit `createLazy()` slot per canvas as `nodeViewCache`.
 Keep `onEvent` and any `renderNode` callback stable to reuse the node and
-port layer across camera-only renders. Graph edits, selection changes, and
-changes to the inputs of the retained layer rebuild it.
+port layer across camera-only renders. With viewport culling enabled, the
+layer is reused while the mounted node set stays the same. Entering or leaving
+the overscan area rebuilds the layer from the current graph. The slot holds
+one layer per canvas. Graph edits, selection changes, and changes to the
+other layer inputs also rebuild it.
 
 The prototype uses the live path for custom node shells, node policies,
-filtered node arrays, open context panels, and editing gestures. The
+node filtering through visibility or group collapse, open context panels,
+and editing gestures. The
 retained context trigger resolves its anchor against the latest viewport
 when activated.
 

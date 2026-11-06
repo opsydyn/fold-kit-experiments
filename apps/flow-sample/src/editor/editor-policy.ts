@@ -18,12 +18,18 @@ const requiredItemPolicy = {
 export function workbenchPolicy({
   protectDeletions,
   reconnectLock,
+  portLocks,
   lockKeyNodes,
   lockNodeSizes,
   excludeSelection,
 }: Pick<
   Model,
-  'protectDeletions' | 'reconnectLock' | 'lockKeyNodes' | 'lockNodeSizes' | 'excludeSelection'
+  | 'protectDeletions'
+  | 'reconnectLock'
+  | 'lockKeyNodes'
+  | 'lockNodeSizes'
+  | 'excludeSelection'
+  | 'portLocks'
 >): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
   const canReconnect: NonNullable<EditorPolicy['canReconnect']> = (edge, end) =>
     edge.id === 'draft-review' && (reconnectLock === end || reconnectLock === 'both')
@@ -31,7 +37,15 @@ export function workbenchPolicy({
         ? 'Source reconnection is locked.'
         : 'Target reconnection is locked.'
       : null;
-  const policy = protectDeletions ? { ...requiredItemPolicy, canReconnect } : { canReconnect };
+  const canConnectPort: NonNullable<EditorPolicy['canConnectPort']> = ({ node, port }) => {
+    if (portLocks.draftOutput && node === 'source' && port === 'out')
+      return 'Draft output is closed to new connections.';
+    return portLocks.publishInput && node === 'publish' && port === 'in'
+      ? 'Publish input is closed to new connections.'
+      : null;
+  };
+  const connections = { canReconnect, canConnectPort };
+  const policy = protectDeletions ? { ...requiredItemPolicy, ...connections } : connections;
   const movementPolicy = lockKeyNodes
     ? {
         ...policy,

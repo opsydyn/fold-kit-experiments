@@ -40,6 +40,7 @@ import type {
   FlowNode,
   FlowEdge,
   Endpoint,
+  EdgeEnd,
   Point,
   ResizeHandle,
   Viewport,
@@ -504,11 +505,18 @@ function connectionReason(
   graph: FlowGraph,
   edge: FlowEdge,
   policy: EditorPolicy,
-  replacedId?: string,
+  replaced?: Readonly<{ id: string; end: EdgeEnd }>,
 ) {
   if (portKind(graph, edge.source) !== 'output' || portKind(graph, edge.target) !== 'input')
     return 'Choose a compatible port.';
-  const remaining = graph.edges.filter((item) => item.id !== replacedId);
+  const sourceReason =
+    replaced?.end === 'target' ? null : policy.canConnectPort?.(edge.source, graph);
+  const portReason =
+    sourceReason ??
+    (replaced?.end === 'source' ? null : policy.canConnectPort?.(edge.target, graph)) ??
+    null;
+  if (portReason !== null) return portReason;
+  const remaining = graph.edges.filter((item) => item.id !== replaced?.id);
   if (
     remaining.some(
       (item) =>
@@ -939,7 +947,7 @@ export function updateEditor(
               existing && gesture.reconnect
                 ? { ...existing, [gesture.reconnect.end]: candidate }
                 : proposedEdge(state.graph, state.connection, candidate);
-            const reason = connectionReason(state.graph, edge, policy, existing?.id);
+            const reason = connectionReason(state.graph, edge, policy, gesture.reconnect);
             if (reason === null) {
               feedback = { target: candidate };
               break;
@@ -1203,8 +1211,10 @@ export function updateEditor(
         notice: 'Drag to a compatible port. Escape cancels.',
       };
     }
-    case 'ConnectionDragStarted':
+    case 'ConnectionDragStarted': {
       if (portKind(state.graph, event.endpoint) !== 'output') return state;
+      const reason = policy.canConnectPort?.(event.endpoint, state.graph) ?? null;
+      if (reason !== null) return { ...state, notice: reason };
       finitePoint(event.point);
       return {
         ...state,
@@ -1217,6 +1227,7 @@ export function updateEditor(
         },
         notice: 'Drag to an input port. Escape cancels.',
       };
+    }
     case 'NodeResizeStarted':
     case 'NodeDragStarted': {
       const node = state.graph.nodes.find((item) => item.id === event.id);
@@ -1427,7 +1438,7 @@ export function updateEditor(
       const locked = policy.canReconnect?.(existing, event.end, state.graph) ?? null;
       if (locked !== null) return { ...state, notice: locked };
       const edge = { ...existing, [event.end]: { ...event.endpoint } };
-      const reason = connectionReason(state.graph, edge, policy, edge.id);
+      const reason = connectionReason(state.graph, edge, policy, event);
       if (reason !== null) return { ...state, notice: reason };
       return {
         ...commitGraph(state, {
@@ -1483,12 +1494,15 @@ export function updateEditor(
         .find((node) => node.id === event.endpoint.node)
         ?.ports.find((item) => item.id === event.endpoint.port);
       if (!port) return state;
-      if (port.kind === 'output')
+      if (port.kind === 'output') {
+        const reason = policy.canConnectPort?.(event.endpoint, state.graph) ?? null;
+        if (reason !== null) return { ...state, notice: reason };
         return {
           ...state,
           connection: { ...event.endpoint },
           notice: 'Choose an input port to connect. Escape cancels.',
         };
+      }
       if (!state.connection) return { ...state, notice: 'Choose an output port first' };
       return updateEditor(
         state,

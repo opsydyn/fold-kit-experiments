@@ -226,6 +226,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (
       !target ||
       editable(target) ||
+      target.closest('[data-flow-port]:disabled') ||
       target.closest('[data-flow-minimap], [data-flow-minimap-frame]')
     )
       return;

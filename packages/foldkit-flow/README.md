@@ -396,6 +396,17 @@ The preview and release use the first eligible nearby port in distance order.
 An exact port hit takes priority and can show its normal rejection reason.
 The distance stays constant in screen space as the canvas zooms.
 
+Pass `canConnectPort(endpoint, graph)` to both `updateEditor` and `flowView`
+to lock individual ports. Return a reason to block the port or `null` to allow
+it. Locked outputs cannot start new wires, and locked inputs reject drops.
+Existing edges stay visible. Reconnecting an edge checks the destination port
+for the end being moved. Use `canReconnect` to lock the edge end itself and
+`canConnect` for rules that depend on the proposed pair.
+
+The view disables locked port buttons, including custom shells that use
+`flowPort`. Use `data-flow-port-locked` to style them. The reducer checks the
+policy again before committing pointer, keyboard, and direct connection edits.
+
 Pass the same `canReconnect` callback to `updateEditor` and `flowView` to
 lock specific edge ends. The callback receives the existing edge, the end
 (`'source'` or `'target'`), and the full graph. Return a reason to lock the

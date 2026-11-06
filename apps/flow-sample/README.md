@@ -335,3 +335,8 @@ Enable **Exclude Review and its incoming connection from selection** to keep
 both items visible while excluding them from selection. Drag a marquee across
 Draft and Review to preview and select Draft alone.
 [Workbench screenshot](evidence/selection-policy.png)
+
+Use **Port connections** to lock Draft's output or Publish's input independently.
+Draft → Review stays visible when Draft's output is locked. Drag from Review to
+a locked Publish input to see the rejection reason.
+[Workbench screenshot](evidence/port-permission.png)

@@ -415,6 +415,63 @@ test('nearby drop candidates skip denied ports while exact hits retain rejection
   expect(committed.past).toHaveLength(1);
 });
 
+test('port permissions guard wire starts, drops and direct edits without changing existing edges', () => {
+  const initial = createEditor({ ...graph, nodes: [...graph.nodes, { ...nodeB, id: 'c' }] });
+  const source = { node: 'a', port: 'out' };
+  const target = { node: 'b', port: 'in' };
+  const alternate = { node: 'c', port: 'in' };
+  const edge = { id: 'ab', source, target };
+  const point = { x: 100, y: 100 };
+  const activateSource = { type: 'PortActivated', endpoint: source } as const;
+  const drag = { type: 'ConnectionDragStarted', pointer: 1, point, endpoint: source } as const;
+  const release = { type: 'PointerReleased', pointer: 1 } as const;
+  const outputLocked: EditorPolicy = {
+    canConnectPort: ({ node }) => (node === source.node ? 'Output is locked' : null),
+  };
+  const inputLocked: EditorPolicy = {
+    canConnectPort: ({ node }) => (node === target.node ? 'Input is locked' : null),
+  };
+  for (const event of [activateSource, drag]) {
+    const denied = updateEditor(initial, event, outputLocked);
+    expect(denied.connection).toBeNull();
+    expect(denied.gesture.type).toBe('idle');
+    expect(denied.notice).toBe('Output is locked');
+  }
+  const armed = updateEditor(initial, activateSource, inputLocked);
+  const refused = updateEditor(armed, { type: 'PortActivated', endpoint: target }, inputLocked);
+  expect(refused.graph).toBe(initial.graph);
+  expect(refused.notice).toBe('Input is locked');
+  expect(updateEditor(initial, { type: 'ConnectionCreated', edge }, outputLocked).graph).toBe(
+    initial.graph,
+  );
+
+  const started = updateEditor(initial, drag, inputLocked);
+  const move = { type: 'PointerMoved', pointer: 1, point } as const;
+  const exact = updateEditor(started, { ...move, target }, inputLocked);
+  expect(exact.gesture).toMatchObject({
+    target: null,
+    rejected: { endpoint: target, reason: 'Input is locked' },
+  });
+  const nearby = updateEditor(
+    started,
+    { ...move, nearbyTargets: [target, alternate] },
+    inputLocked,
+  );
+  expect(nearby.gesture).toMatchObject({ target: alternate });
+  expect(updateEditor(nearby, release, outputLocked).graph).toBe(initial.graph);
+  expect(updateEditor(nearby, release, inputLocked).graph.edges[0]?.target).toEqual(alternate);
+
+  const existing = createEditor({ ...initial.graph, edges: [edge] });
+  const reconnect = { type: 'EdgeReconnected', id: edge.id, end: 'target' } as const;
+  const moved = updateEditor(existing, { ...reconnect, endpoint: alternate }, outputLocked);
+  expect(moved.graph.edges).toEqual([{ ...edge, target: alternate }]);
+  const denied = updateEditor(moved, { ...reconnect, endpoint: target }, inputLocked);
+  expect(denied.graph).toBe(moved.graph);
+  expect(denied.revision).toBe(moved.revision);
+  expect(denied.past).toBe(moved.past);
+  expect(denied.notice).toBe('Input is locked');
+});
+
 test('reconnecting an edge preserves identity and data, and rejects incompatible or denied ports', () => {
   const target = { node: 'b', port: 'in' };
   const edge = { id: 'ab', source: { node: 'a', port: 'out' }, target, data: 'dashed' };

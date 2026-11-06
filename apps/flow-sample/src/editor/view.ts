@@ -186,28 +186,31 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               }),
             ),
           ],
-          ports.map(({ endpoint, label }, index) =>
-            h.option(
+          ports.map(({ endpoint, label }, index) => {
+            const portReason = policy.canConnectPort?.(endpoint, model.editor.graph) ?? null;
+            return h.option(
               [
                 h.Value(String(index)),
                 h.Disabled(
-                  model.editor.graph.edges.some(
-                    (other) =>
-                      other.id !== edge.id &&
-                      other[end].node === endpoint.node &&
-                      other[end].port === endpoint.port &&
-                      (end === 'source'
-                        ? other.target.node === edge.target.node &&
-                          other.target.port === edge.target.port
-                        : other.source.node === edge.source.node &&
-                          other.source.port === edge.source.port),
-                  ),
+                  portReason !== null ||
+                    model.editor.graph.edges.some(
+                      (other) =>
+                        other.id !== edge.id &&
+                        other[end].node === endpoint.node &&
+                        other[end].port === endpoint.port &&
+                        (end === 'source'
+                          ? other.target.node === edge.target.node &&
+                            other.target.port === edge.target.port
+                          : other.source.node === edge.source.node &&
+                            other.source.port === edge.source.port),
+                    ),
                 ),
                 h.Selected(edge[end].node === endpoint.node && edge[end].port === endpoint.port),
+                ...(portReason === null ? [] : [h.Title(portReason)]),
               ],
               [label],
-            ),
-          ),
+            );
+          }),
         ),
         ...(reason === null
           ? []
@@ -1245,6 +1248,37 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             'Exclude Review and its incoming connection from selection',
           ],
         ),
+        h.fieldset(
+          [h.Style({ margin: '12px 0', padding: '8px 12px', border: '1px solid currentColor' })],
+          [
+            h.legend([], ['Port connections']),
+            ...(
+              [
+                ['draftOutput', 'Lock Draft output'],
+                ['publishInput', 'Lock Publish input'],
+              ] as const
+            ).map(([port, label]) =>
+              h.label(
+                [
+                  h.Style({
+                    display: 'inline-flex',
+                    'align-items': 'center',
+                    gap: '6px',
+                    'margin-right': '16px',
+                  }),
+                ],
+                [
+                  h.input([
+                    h.Type('checkbox'),
+                    h.Checked(model.portLocks[port]),
+                    h.OnClick(Message.ClickedPortLock({ port })),
+                  ]),
+                  label,
+                ],
+              ),
+            ),
+          ],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
@@ -1421,6 +1455,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           edgeToolbar: true,
           canDelete: policy.canDelete,
           canReconnect: policy.canReconnect,
+          canConnectPort: policy.canConnectPort,
           canMoveNode: policy.canMoveNode,
           canResizeNode: policy.canResizeNode,
           canSelectNode: policy.canSelectNode,

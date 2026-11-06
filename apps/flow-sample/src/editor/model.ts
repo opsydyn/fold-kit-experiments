@@ -159,6 +159,9 @@ export type EdgeToolbarDesign = typeof EdgeToolbarDesign.Type;
 export const EdgeLabelDesign = Schema.Literals(['standard', 'badge']);
 export type EdgeLabelDesign = typeof EdgeLabelDesign.Type;
 
+export const PortLock = Schema.Literals(['draftOutput', 'publishInput']);
+const PortLocks = Schema.Struct({ draftOutput: Schema.Boolean, publishInput: Schema.Boolean });
+
 export const ReconnectLock = Schema.Literals(['none', 'source', 'target', 'both']);
 export type ReconnectLock = typeof ReconnectLock.Type;
 
@@ -212,6 +215,7 @@ export const Model = Schema.Struct({
   lockNodeSizes: Schema.Boolean,
   excludeSelection: Schema.Boolean,
   reconnectLock: ReconnectLock,
+  portLocks: PortLocks,
   snapConnections: Schema.Boolean,
   canvasCopyDesign: CanvasCopyDesign,
   selectionMarqueeDesign: SelectionMarqueeDesign,
@@ -247,6 +251,7 @@ export type Model = Readonly<{
   lockNodeSizes: boolean;
   excludeSelection: boolean;
   reconnectLock: ReconnectLock;
+  portLocks: typeof PortLocks.Type;
   snapConnections: boolean;
   canvasCopyDesign: CanvasCopyDesign;
   selectionMarqueeDesign: SelectionMarqueeDesign;
@@ -283,6 +288,7 @@ export const init = () => ({
     lockNodeSizes: false,
     excludeSelection: false,
     reconnectLock: 'none',
+    portLocks: { draftOutput: false, publishInput: false },
     snapConnections: false,
     canvasCopyDesign: 'standard',
     selectionMarqueeDesign: 'standard',

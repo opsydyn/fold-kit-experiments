@@ -126,6 +126,11 @@ ancestors grown by those edits. Pass the same callback to
 can be selected. Pass the same callbacks to `flowView` so the controls and
 marquee preview agree with the reducer.
 
+`EditorPolicy.canConnectPort` locks individual outputs and inputs. Pass it to
+`flowView` to disable the matching controls, including composed `flowPort`
+buttons. New connections check both ports. Reconnection checks the replacement
+port and preserves the fixed endpoint.
+
 `EditorPolicy.canReconnect` locks individual source or target ends. Pass
 the same callback to `FlowViewOptions.canReconnect` to omit locked handles.
 The reducer rechecks permission on commit, and `canConnect` still validates

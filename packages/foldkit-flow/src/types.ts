@@ -195,6 +195,8 @@ export type DeletionDecision =
 export type EditorPolicy = Readonly<{
   /** Return a rejection reason, or null to accept. Reconnection excludes the replaced edge from graph. */
   canConnect?: (edge: FlowEdge, graph: FlowGraph) => string | null;
+  /** Return a reason to block new connections at this endpoint, or null to allow them. */
+  canConnectPort?: (endpoint: Endpoint, graph: FlowGraph) => string | null;
   /** Return a reason to lock an end, or null to allow attempts. Receives the existing edge and full graph. */
   canReconnect?: (edge: FlowEdge, end: EdgeEnd, graph: FlowGraph) => string | null;
   /** Return a rejection reason for the complete deletion, or null to accept it. */

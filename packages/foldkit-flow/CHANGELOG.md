@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add per-port connection permissions for wire creation and reconnection, with
+  disabled port controls and rejection feedback.
+
 - Add per-node and per-edge selection policies, with shared rules for marquee
   preview and release.
 

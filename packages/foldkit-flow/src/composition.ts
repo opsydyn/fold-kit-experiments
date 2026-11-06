@@ -3,7 +3,15 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 import type { FlowDiagnostics } from './diagnostics';
 import { finitePoint, portAnchor } from './geometry';
 import { FlowError } from './graph';
-import type { FlowEdge, EditorState, FlowNode, Point, Port, ResizeHandle } from './types';
+import type {
+  EditorPolicy,
+  FlowEdge,
+  EditorState,
+  FlowNode,
+  Point,
+  Port,
+  ResizeHandle,
+} from './types';
 
 /** Model-derived shell context. Optional controls can be placed or omitted by the shell. */
 export type FlowNodeRenderContext = Readonly<{
@@ -21,6 +29,8 @@ export type FlowNodeRenderContext = Readonly<{
   resizeDisabledReason?: string | undefined;
   /** Reason this node cannot be selected. */
   selectionDisabledReason?: string | undefined;
+  /** Use the editor's port policy when rendering custom port controls. */
+  canConnectPort?: EditorPolicy['canConnectPort'];
   contextAction?: Html;
   collapseToggle?: Html;
   resizeHandles: readonly Html[];
@@ -198,6 +208,7 @@ export function flowPort<M>(
 ): Html {
   const { node, state } = context;
   const anchor = portAnchor(port);
+  const reason = context.canConnectPort?.({ node: node.id, port: port.id }, state.graph) ?? null;
   return h.button(
     [
       ...attributesWithGeometry(h, attributes, {
@@ -214,7 +225,8 @@ export function flowPort<M>(
       h.DataAttribute('flow-port', port.id),
       h.DataAttribute('flow-port-kind', port.kind),
       h.DataAttribute('flow-owner', node.id),
-      h.Disabled(state.readOnly),
+      h.Disabled(state.readOnly || reason !== null),
+      ...(reason === null ? [] : [h.DataAttribute('flow-port-locked', ''), h.Title(reason)]),
       h.AriaLabel(
         `${port.kind === 'output' ? 'Connect from' : 'Connect to'} ${node.label}: ${port.label ?? port.id}`,
       ),

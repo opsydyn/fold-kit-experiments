@@ -105,6 +105,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedNavigationDesign: ({ navigationDesign }) => ({ model: { ...model, navigationDesign } }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
+    ClickedPortLock: ({ port }) => ({
+      model: {
+        ...model,
+        portLocks: { ...model.portLocks, [port]: !model.portLocks[port] },
+        editor: model.editor.connection
+          ? updateEditor(model.editor, { type: 'GestureCancelled' })
+          : model.editor,
+      },
+    }),
     SelectedReconnectLock: ({ reconnectLock }) => ({ model: { ...model, reconnectLock } }),
     ClickedLockNodeSizes: () => ({ model: { ...model, lockNodeSizes: !model.lockNodeSizes } }),
     ClickedExcludeSelection: () => ({

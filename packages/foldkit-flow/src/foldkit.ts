@@ -318,6 +318,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     canDelete?: EditorPolicy['canDelete'];
     /** Use the reducer's reconnection policy to omit handles for locked endpoints. */
     canReconnect?: EditorPolicy['canReconnect'];
+    /** Use the reducer's port policy to disable built-in and composed port controls. */
+    canConnectPort?: EditorPolicy['canConnectPort'];
     /** Use the reducer's movement policy to show locked handles. */
     canMoveNode?: EditorPolicy['canMoveNode'];
     /** Use the reducer's resize policy to hide locked handles and disable dimension controls. */
@@ -1141,6 +1143,7 @@ export function flowView<M>(
       moveDisabledReason: moveDisabledReason(node),
       resizeDisabledReason,
       selectionDisabledReason,
+      canConnectPort: options.canConnectPort,
     };
     const context: FlowNodeRenderContext = {
       ...base,
@@ -1292,6 +1295,7 @@ export function flowView<M>(
         moveDisabledReason: moveDisabledReason(node),
         resizeDisabledReason,
         selectionDisabledReason,
+        canConnectPort: options.canConnectPort,
       };
       const context: FlowNodeRenderContext = {
         ...base,

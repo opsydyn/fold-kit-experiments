@@ -3,7 +3,14 @@
  * @module Core
  */
 export type * from './types';
-export { FlowError, validateGraph, parseGraph, serializeGraph } from './graph';
+export {
+  FlowError,
+  validateGraph,
+  parseGraph,
+  serializeGraph,
+  parseSnapshot,
+  serializeSnapshot,
+} from './graph';
 export { createEditor, updateEditor } from './editor';
 export { resolveDeletion } from './deletion';
 export {

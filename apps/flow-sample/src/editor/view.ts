@@ -642,6 +642,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     'Delete selected',
                     Message.ObservedFlowInput({ message: { type: 'DeletePressed' } }),
                   ),
+                  h.label(
+                    [],
+                    [
+                      h.input([
+                        h.Type('checkbox'),
+                        h.Checked(model.includeCamera),
+                        h.OnClick(Message.ClickedIncludeCamera()),
+                      ]),
+                      'Include camera',
+                    ],
+                  ),
                   button('Save', Message.ClickedSave()),
                   button('Load saved', Message.ClickedLoad()),
                   button('Export JSON', Message.ClickedExport()),

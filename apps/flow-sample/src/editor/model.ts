@@ -199,6 +199,7 @@ export const Model = Schema.Struct({
   minimalMode: Schema.Boolean,
   viewportCulling: Schema.Boolean,
   retainNodeViews: Schema.Boolean,
+  includeCamera: Schema.Boolean,
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
   diagnosticsPanelOpen: Schema.Boolean,
@@ -245,6 +246,7 @@ export type Model = Readonly<{
   minimalMode: boolean;
   viewportCulling: boolean;
   retainNodeViews: boolean;
+  includeCamera: boolean;
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
   diagnosticsPanelOpen: boolean;
@@ -284,6 +286,7 @@ export const init = () => ({
     minimalMode: false,
     viewportCulling: false,
     retainNodeViews: false,
+    includeCamera: false,
     showWorldAnnotation: false,
     diagnosticsEnabled: true,
     diagnosticsPanelOpen: false,

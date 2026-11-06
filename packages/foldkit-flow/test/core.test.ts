@@ -10,8 +10,10 @@ import {
   fitViewport,
   layoutRequest,
   parseGraph,
+  parseSnapshot,
   portPosition,
   serializeGraph,
+  serializeSnapshot,
   screenToWorld,
   updateEditor,
   zoomAt,
@@ -2943,4 +2945,32 @@ test('numeric dimensions share ratio locking, grid snapping and atomic parent ex
   expect(grown.graph.nodes[1]?.size.height).toBe(400);
   expect(grown.past).toHaveLength(1);
   expect(updateEditor(grown, { type: 'UndoPressed' }).graph).toEqual(parent.graph);
+});
+
+test('snapshots restore a camera and accept graph-only v1 documents', () => {
+  const legacy = '{"version":1,"graph":{"nodes":[],"edges":[]}}';
+  const stored =
+    '{"version":1,"graph":{"nodes":[],"edges":[]},"viewport":{"x":-83,"y":107,"zoom":1.75}}';
+  const empty = { nodes: [], edges: [] };
+  const viewport = { x: -83, y: 107, zoom: 1.75 };
+  expect(parseSnapshot(legacy)).toEqual({ graph: empty });
+  expect(parseSnapshot(stored)).toEqual({ graph: empty, viewport });
+  expect(parseGraph(stored)).toEqual(empty);
+
+  const editor = updateEditor(createEditor(graph), { type: 'ViewportChanged', viewport });
+  expect(JSON.parse(serializeSnapshot(editor))).toEqual({ version: 1, graph, viewport });
+  expect(parseSnapshot(serializeSnapshot(editor))).toEqual({ graph, viewport });
+  expect(serializeSnapshot({ graph })).toBe(serializeGraph(graph));
+
+  for (const invalid of [
+    'null',
+    '{}',
+    '{"x":0,"y":0,"zoom":0}',
+    '{"x":1e999,"y":0,"zoom":1}',
+    '{"x":0,"y":0,"zoom":"1"}',
+  ]) {
+    expect(() => parseSnapshot(legacy.slice(0, -1) + ',"viewport":' + invalid + '}')).toThrow();
+  }
+  expect(() => parseSnapshot(stored.replace('"version":1', '"version":2'))).toThrow();
+  expect(() => serializeSnapshot({ graph, viewport: { ...viewport, y: Infinity } })).toThrow();
 });

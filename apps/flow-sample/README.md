@@ -371,3 +371,9 @@ uses the large workflow with viewport culling off.
 Enable **Viewport culling** and **Retain node views** together to reuse the
 mounted node layer while its membership stays the same.
 [Combined benchmark](evidence/camera-benchmark.md#retention-with-viewport-culling)
+
+Enable **Include camera** before **Save** or **Export JSON** to store the
+current pan and zoom. **Load saved** and **Import JSON** restore any saved
+camera within the active zoom limits. Graph-only saves still use the
+initial camera, and graph-only imports still fit the diagram.
+[Restored workbench screenshot](evidence/camera-snapshot.png)

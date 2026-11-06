@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add an optional camera to graph snapshots with backward-compatible v1
+  graph-only decoding.
+
 - Add an opt-in lazy slot for retaining the built-in node and port layer
   across eligible camera updates, including a stable culled node set.
 

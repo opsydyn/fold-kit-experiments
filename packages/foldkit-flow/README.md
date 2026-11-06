@@ -738,6 +738,25 @@ shells, connection rows, and edge labels receive `selectionDisabledReason`.
 These callbacks govern new selection attempts. To clear a selection after
 changing the policy, send `SelectionCleared`.
 
+### Save the camera with the graph
+
+Call `serializeSnapshot({ graph, viewport })` to include pan and zoom in a
+version 1 document. `parseSnapshot(text)` validates the graph and any camera
+it contains. For graph-only documents, the returned snapshot omits
+`viewport`. `serializeGraph` and `parseGraph` continue to read and write the
+graph on its own.
+
+```ts
+const saved = serializeSnapshot(editor);
+const { graph, viewport } = parseSnapshot(saved);
+const reopened = createEditor(graph, viewport ? { viewport } : {});
+```
+
+Snapshots include the authored graph and optional camera. Selection, undo
+history, routes, and active gestures are session state. The viewport must
+have finite pan coordinates and a positive finite zoom. Hosts using custom
+zoom limits can bound the saved zoom before initializing the editor.
+
 ### Retain built-in node views during camera updates
 
 Pass one FoldKit `createLazy()` slot per canvas as `nodeViewCache`.

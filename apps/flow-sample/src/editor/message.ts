@@ -71,6 +71,7 @@ export const Message = defineMessageUnion({
   ClickedAdd: {},
   ClickedArrange: { engine: Schema.Literals(['elk', 'force']) },
   ClickedSave: {},
+  ClickedIncludeCamera: {},
   ClickedExport: {},
   ChoseImportFiles: { files: Schema.Array(Schema.instanceOf(File)) },
   SucceededImport: { id: Schema.Number, json: Schema.String },

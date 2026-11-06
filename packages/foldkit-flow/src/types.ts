@@ -68,6 +68,8 @@ export type FlowEdge = Readonly<{
 }>;
 /** Serializable document data. Selection, gestures, viewport and history belong to EditorState. */
 export type FlowGraph = Readonly<{ nodes: readonly FlowNode[]; edges: readonly FlowEdge[] }>;
+/** Versioned document content. Graph-only documents omit the camera. */
+export type FlowSnapshot = Readonly<{ graph: FlowGraph; viewport?: Viewport }>;
 export type EdgeRoute = Readonly<{ id: string; points: readonly Point[] }>;
 export type AlignmentGuide = Readonly<{
   /** A fixed x draws a vertical guide; a fixed y draws a horizontal guide. */

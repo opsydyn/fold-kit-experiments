@@ -3,12 +3,14 @@ import {
   createEditor,
   fitViewport,
   layoutRequest,
-  parseGraph,
+  parseSnapshot,
   serializeGraph,
+  serializeSnapshot,
   updateEditor,
   type EditorEvent,
   type EditorState,
   type FlowGraph,
+  type FlowSnapshot,
   type LayoutResult,
 } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
@@ -49,6 +51,32 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     fitViewPadding,
     zoomLimits,
   } = model.editor;
+  const snapshotJson = () =>
+    model.includeCamera ? serializeSnapshot(model.editor) : serializeGraph(model.editor.graph);
+  const restoreDocument = ({ graph, viewport }: FlowSnapshot, fitGraphOnly: boolean) => {
+    const boundedZoom = (zoom: number) =>
+      Math.max(zoomLimits.minZoom, Math.min(zoom, zoomLimits.maxZoom));
+    const camera = viewport
+      ? { ...viewport, zoom: boundedZoom(viewport.zoom) }
+      : fitGraphOnly
+        ? frameGraph(graph, model.editor)
+        : { x: 0, y: 0, zoom: boundedZoom(1) };
+    return {
+      ...createEditor(graph, {
+        snapToGrid,
+        gridSpacing,
+        snapToAlignment,
+        selectionMode,
+        boxSelectionMatch,
+        fitViewDuration,
+        fitViewPadding,
+        zoomLimits,
+        viewport: camera,
+      }),
+      surface: model.editor.surface,
+      clipboard: model.editor.clipboard,
+    };
+  };
   return Message.match(message, {
     ObservedFlowInput: ({ message: input }) => {
       // SAFETY: flowView and the toolbar emit the package's typed EditorEvent contract.
@@ -267,9 +295,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model.active?.requestId === requestId
         ? { model: { ...model, active: null, notice: 'Layout failed. Your graph is preserved.' } }
         : { model },
+    ClickedIncludeCamera: () => ({ model: { ...model, includeCamera: !model.includeCamera } }),
     ClickedExport: () => ({
       model,
-      commands: [ExportFlow({ json: serializeGraph(model.editor.graph) })],
+      commands: [ExportFlow({ json: snapshotJson() })],
     }),
     CompletedExport: () => ({ model: { ...model, notice: 'JSON download started.' } }),
     FailedExport: () => ({ model: { ...model, notice: 'Could not start the JSON download.' } }),
@@ -314,23 +343,11 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             notice: 'The diagram changed during import. Choose the file again to replace it.',
           },
         };
-      const graph = parseGraph(json);
-      const surface = model.editor.surface;
-      const editor = createEditor(graph, {
-        snapToGrid,
-        gridSpacing,
-        snapToAlignment,
-        selectionMode,
-        boxSelectionMatch,
-        fitViewDuration,
-        fitViewPadding,
-        zoomLimits,
-        viewport: frameGraph(graph, model.editor),
-      });
+      const editor = restoreDocument(parseSnapshot(json), true);
       return {
         model: {
           ...model,
-          editor: { ...editor, surface, clipboard: model.editor.clipboard },
+          editor,
           active: null,
           importing: null,
           notice: 'JSON diagram imported.',
@@ -339,7 +356,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     },
     ClickedSave: () => ({
       model,
-      commands: [SaveFlow({ json: serializeGraph(model.editor.graph) })],
+      commands: [SaveFlow({ json: snapshotJson() })],
     }),
     ClickedLoad: () => ({ model, commands: [LoadFlow()] }),
     SucceededSave: () => ({ model: { ...model, notice: 'Saved on this browser.' } }),
@@ -352,20 +369,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SucceededLoad: ({ json }) => ({
       model: {
         ...model,
-        editor: {
-          ...createEditor(parseGraph(json), {
-            snapToGrid,
-            gridSpacing,
-            snapToAlignment,
-            selectionMode,
-            boxSelectionMatch,
-            fitViewDuration,
-            fitViewPadding,
-            zoomLimits,
-          }),
-          surface: model.editor.surface,
-          clipboard: model.editor.clipboard,
-        },
+        editor: restoreDocument(parseSnapshot(json), false),
         active: null,
         importing: null,
         notice: 'Saved graph loaded.',

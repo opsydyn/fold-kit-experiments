@@ -3,12 +3,14 @@ import type {
   FlowEdge,
   FlowGraph,
   FlowNode,
+  FlowSnapshot,
   NodeResizeLimits,
   JsonValue,
   Point,
   Port,
   PortPosition,
   Size,
+  Viewport,
 } from './types';
 
 export class FlowError extends Error {
@@ -245,16 +247,56 @@ export function serializeGraph(graph: FlowGraph): string {
 function isDocument(value: unknown): value is { version: 1; graph?: unknown } {
   return typeof value === 'object' && value !== null && 'version' in value && value.version === 1;
 }
-/** SyntaxError and FlowError are deliberately caller-visible. */
-export function parseGraph(text: string): FlowGraph {
+function parseDocument(text: string): { graph: FlowGraph; viewport?: unknown } {
   const value: unknown = JSON.parse(text);
   if (!isDocument(value))
     throw new FlowError('invalid-graph', 'Unsupported graph document version');
-  if (!('graph' in value) || !isGraph(value.graph))
-    throw new FlowError('invalid-graph', 'Invalid graph document');
+  if (!isGraph(value.graph)) throw new FlowError('invalid-graph', 'Invalid graph document');
   validateGraph(value.graph);
-  return value.graph;
+  return 'viewport' in value
+    ? { graph: value.graph, viewport: value.viewport }
+    : { graph: value.graph };
 }
+
+/** SyntaxError and FlowError are deliberately caller-visible. */
+export function parseGraph(text: string): FlowGraph {
+  return parseDocument(text).graph;
+}
+
+function assertDocumentViewport(value: unknown): asserts value is Viewport {
+  if (
+    !isPoint(value) ||
+    !('zoom' in value) ||
+    typeof value.zoom !== 'number' ||
+    !Number.isFinite(value.zoom) ||
+    value.zoom <= 0
+  )
+    throw new FlowError(
+      'invalid-graph',
+      'Snapshot viewport requires finite coordinates and positive zoom',
+    );
+}
+
+function viewportFields({ x, y, zoom }: Viewport): Viewport {
+  return { x, y, zoom };
+}
+
+/** Save the graph and an optional camera. Other editor state is excluded. */
+export function serializeSnapshot({ graph, viewport }: FlowSnapshot): string {
+  if (viewport === undefined) return serializeGraph(graph);
+  validateGraph(graph);
+  assertDocumentViewport(viewport);
+  return JSON.stringify({ version: 1, graph, viewport: viewportFields(viewport) });
+}
+
+/** Read a graph-only v1 document or a v1 document with a validated camera. */
+export function parseSnapshot(text: string): FlowSnapshot {
+  const document = parseDocument(text);
+  if (!('viewport' in document)) return { graph: document.graph };
+  assertDocumentViewport(document.viewport);
+  return { graph: document.graph, viewport: viewportFields(document.viewport) };
+}
+
 export function copyGraph(graph: FlowGraph): FlowGraph {
   return parseGraph(serializeGraph(graph));
 }

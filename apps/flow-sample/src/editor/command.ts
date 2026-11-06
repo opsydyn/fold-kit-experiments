@@ -1,4 +1,4 @@
-import { parseGraph, serializeGraph } from '@opsydyn/foldkit-flow';
+import { parseGraph, parseSnapshot } from '@opsydyn/foldkit-flow';
 import { Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
 
@@ -76,13 +76,12 @@ export const SaveFlow = Command.define('SaveFlow', {
 });
 export const LoadFlow = Command.define('LoadFlow', {
   messages: [Message.SucceededLoad, Message.FailedStorage],
-  execute: Effect.try(() =>
-    serializeGraph(
-      parseGraph(
-        globalThis.localStorage.getItem('opsydyn.foldkit-flow.release-sample.v1') ?? 'null',
-      ),
-    ),
-  ).pipe(
+  execute: Effect.try(() => {
+    const json =
+      globalThis.localStorage.getItem('opsydyn.foldkit-flow.release-sample.v1') ?? 'null';
+    parseSnapshot(json);
+    return json;
+  }).pipe(
     Effect.match({
       onSuccess: (json) => Message.SucceededLoad({ json }),
       onFailure: () => Message.FailedStorage(),
@@ -95,7 +94,12 @@ export const ImportFlow = Command.define('ImportFlow', {
   interrupt: true,
   messages: [Message.SucceededImport, Message.FailedImport],
   execute: ({ id, file }) =>
-    Effect.tryPromise(() => file.text().then((text) => serializeGraph(parseGraph(text)))).pipe(
+    Effect.tryPromise(() =>
+      file.text().then((text) => {
+        parseSnapshot(text);
+        return text;
+      }),
+    ).pipe(
       Effect.match({
         onSuccess: (json) => Message.SucceededImport({ id, json }),
         onFailure: () => Message.FailedImport({ id }),

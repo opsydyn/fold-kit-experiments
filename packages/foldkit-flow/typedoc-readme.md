@@ -126,6 +126,9 @@ ancestors grown by those edits. Pass the same callback to
 can be selected. Pass the same callbacks to `flowView` so the controls and
 marquee preview agree with the reducer.
 
+`FlowSnapshot`, `serializeSnapshot`, and `parseSnapshot` add an optional
+camera to the version 1 graph document. Graph-only v1 files remain valid.
+
 `FlowViewOptions.nodeViewCache` accepts a per-canvas FoldKit lazy slot to
 retain built-in node and port views across eligible camera-only updates.
 With culling, the slot tracks the currently mounted node set.

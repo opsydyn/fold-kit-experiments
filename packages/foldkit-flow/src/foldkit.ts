@@ -330,6 +330,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     renderContextMenu?: (context: FlowContextMenuContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Pan near the canvas boundary while dragging nodes or connections. */
     autoPan?: boolean;
+    /** Snap drops near an eligible port within this CSS-pixel radius. Defaults to exact hits only. */
+    connectionDropRadius?: number;
     /** Enable two-finger touch pan and pinch-to-zoom on the canvas. */
     pinchZoom?: boolean;
     /** Defaults to cursor-anchored zoom. Off leaves wheel input to the page. */
@@ -1012,6 +1014,9 @@ export function flowView<M>(
   state: EditorState,
   options: FlowViewOptions<M>,
 ): Html {
+  const connectionDropRadius = options.connectionDropRadius ?? 0;
+  if (!Number.isFinite(connectionDropRadius) || connectionDropRadius < 0)
+    throw new RangeError('Connection drop radius must be finite and non-negative');
   const diagnostics = resolveFlowDiagnostics(options);
   const presentation = presentGroups(state.graph, state.collapsedGroups);
   const selectionPreview =
@@ -1656,6 +1661,7 @@ export function flowView<M>(
           h.DataAttribute('flow-grid-snap', String(state.snapToGrid)),
           h.DataAttribute('flow-grid-spacing', String(state.gridSpacing)),
           h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
+          h.DataAttribute('flow-connection-drop-radius', String(connectionDropRadius)),
           h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
           h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
           h.DataAttribute(

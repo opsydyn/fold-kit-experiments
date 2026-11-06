@@ -29,6 +29,7 @@ export const Message = defineMessageUnion({
   SelectedPortAnchors: { preset: PortAnchorPreset },
   SelectedConnectionDesign: { connectionDesign: ConnectionDesign },
   ClickedDeletionProtection: {},
+  ClickedConnectionSnap: {},
   SelectedReconnectLock: { reconnectLock: ReconnectLock },
   SelectedCanvasCopyDesign: { canvasCopyDesign: CanvasCopyDesign },
   SelectedSelectionMarqueeDesign: { selectionMarqueeDesign: SelectionMarqueeDesign },

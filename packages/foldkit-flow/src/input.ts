@@ -75,8 +75,46 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     return { x: client.x - rect.left, y: client.y - rect.top };
   };
   const point = (event: MouseEvent) => localPoint({ x: event.clientX, y: event.clientY });
-  const wireTarget = (client: Point) =>
-    wire ? endpointAt(element.ownerDocument.elementFromPoint(client.x, client.y)) : undefined;
+  const wireTargets = (client: Point) => {
+    if (!wire) return {};
+    const { ownerDocument } = element;
+    const target = endpointAt(ownerDocument.elementFromPoint(client.x, client.y));
+    if (target) return { target };
+
+    const radius = Number(element.dataset.flowConnectionDropRadius);
+    if (!(radius > 0)) return {};
+    const surface = element.getBoundingClientRect();
+    if (
+      client.x < surface.left ||
+      client.x >= surface.right ||
+      client.y < surface.top ||
+      client.y >= surface.bottom
+    )
+      return {};
+
+    const kind =
+      wire.start.type === 'ReconnectionDragStarted' && wire.start.end === 'source'
+        ? 'output'
+        : 'input';
+    const nearby = [];
+    for (const port of element.querySelectorAll(`[data-flow-port-kind="${kind}"]`)) {
+      const rect = port.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const distance = Math.hypot(client.x - x, client.y - y);
+      if (
+        distance > radius ||
+        ownerDocument.elementFromPoint(x, y)?.closest('[data-flow-port]') !== port
+      )
+        continue;
+      const endpoint = endpointAt(port, kind);
+      if (endpoint) nearby.push({ endpoint, distance });
+    }
+    if (nearby.length === 0) return {};
+    nearby.sort((a, b) => a.distance - b.distance);
+    return { nearbyTargets: nearby.map(({ endpoint }) => endpoint) };
+  };
   const pan = (time: number) => {
     panFrame = null;
     if (captured === null || panPointer === null || element.dataset.flowAutoPan !== 'true') return;
@@ -86,15 +124,15 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (x === 0 && y === 0) return;
     const seconds = Math.max(0, Math.min(time - lastPanTime, 32)) / 1000;
     lastPanTime = time;
-    const target = wireTarget(panPointer);
     if (seconds > 0) {
       const event = {
         type: 'DragPanned' as const,
         pointer: captured,
         point: location,
         delta: { x: x * seconds, y: y * seconds },
+        ...wireTargets(panPointer),
       };
-      emit(target ? { ...event, target } : event);
+      emit(event);
     }
     panFrame = window.requestAnimationFrame(pan);
   };
@@ -283,9 +321,12 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       wire.dragging = true;
       emit({ ...wire.start, point: location });
     }
-    const target = wireTarget({ x: event.clientX, y: event.clientY });
-    const moved = { type: 'PointerMoved' as const, pointer: event.pointerId, point: location };
-    emit(target ? { ...moved, target } : moved);
+    emit({
+      type: 'PointerMoved',
+      pointer: event.pointerId,
+      point: location,
+      ...wireTargets(event),
+    });
   };
   listen('pointermove', (event) => {
     if (!(event instanceof window.PointerEvent)) return;

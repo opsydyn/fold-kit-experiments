@@ -1153,6 +1153,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        h.button(
+          [
+            h.Type('button'),
+            h.AriaPressed(String(model.snapConnections)),
+            h.OnClick(Message.ClickedConnectionSnap()),
+          ],
+          ['Snap drops to nearby ports'],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
@@ -1355,6 +1363,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           renderContextMenu: (context, builder) =>
             model.contextMenuDesign === 'panel' ? customContextMenu(context, builder) : undefined,
           autoPan: true,
+          connectionDropRadius: model.snapConnections ? 32 : 0,
           pinchZoom: true,
           resizeHandles: true,
           minimap: true,

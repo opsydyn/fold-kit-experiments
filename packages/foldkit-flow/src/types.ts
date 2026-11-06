@@ -236,8 +236,22 @@ export type EditorEvent =
       point: Point;
     }>
   | Readonly<{ type: 'ConnectionDragStarted'; pointer: number; point: Point; endpoint: Endpoint }>
-  | Readonly<{ type: 'PointerMoved'; pointer: number; point: Point; target?: Endpoint }>
-  | Readonly<{ type: 'DragPanned'; pointer: number; point: Point; delta: Point; target?: Endpoint }>
+  | Readonly<{
+      type: 'PointerMoved';
+      pointer: number;
+      point: Point;
+      target?: Endpoint;
+      /** Nearby rendered ports in ascending distance order, used only without an exact target. */
+      nearbyTargets?: readonly Endpoint[];
+    }>
+  | Readonly<{
+      type: 'DragPanned';
+      pointer: number;
+      point: Point;
+      delta: Point;
+      target?: Endpoint;
+      nearbyTargets?: readonly Endpoint[];
+    }>
   | Readonly<{ type: 'PointerReleased'; pointer: number }>
   | Readonly<{ type: 'PinchStarted' | 'PinchMoved'; center: Point; distance: number }>
   | Readonly<{ type: 'PinchEnded' }>

@@ -2,6 +2,8 @@
 
 ## 0.1.0 (unreleased)
 
+- Add an opt-in CSS-pixel drop radius for connection and reconnection drags.
+
 - Add per-edge source and target reconnection permissions shared by
   the view and reducer.
 

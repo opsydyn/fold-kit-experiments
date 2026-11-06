@@ -65,6 +65,7 @@ export const BrowserInput = Schema.Union([
     ...Pointer,
     point: Point,
     target: Schema.optionalKey(Endpoint),
+    nearbyTargets: Schema.optionalKey(Schema.Array(Endpoint)),
   }),
   Schema.Struct({
     type: Schema.Literal('ReconnectionDragStarted'),
@@ -79,6 +80,7 @@ export const BrowserInput = Schema.Union([
     point: Point,
     delta: Point,
     target: Schema.optionalKey(Endpoint),
+    nearbyTargets: Schema.optionalKey(Schema.Array(Endpoint)),
   }),
   Schema.Struct({
     type: Schema.Literals(['PinchStarted', 'PinchMoved']),

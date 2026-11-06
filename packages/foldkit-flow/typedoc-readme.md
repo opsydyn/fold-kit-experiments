@@ -106,6 +106,10 @@ the rejection reason through its action descriptors.
 `FlowWheelNavigation` configures wheel zoom, two-axis panning with modifier
 zoom, or native page scrolling through `FlowViewOptions.wheelNavigation`.
 
+`FlowViewOptions.connectionDropRadius` enables nearby targeting for connection
+and reconnection drags. The browser adapter sends ordered candidates and the
+editor applies the normal connection policy.
+
 `EditorPolicy.canReconnect` locks individual source or target ends. Pass
 the same callback to `FlowViewOptions.canReconnect` to omit locked handles.
 The reducer rechecks permission on commit, and `canConnect` still validates

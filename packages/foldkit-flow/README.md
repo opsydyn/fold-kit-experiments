@@ -370,6 +370,12 @@ See [Pleat's FoldKit and theme APIs](https://github.com/Manzanita-Research/pleat
 Select an edge to expose its available endpoint handles. Drag a handle to a
 compatible port to reconnect the edge. Escape or dropping elsewhere cancels.
 
+Set `connectionDropRadius: 32` on the view to snap connection and reconnection
+drops within 32 CSS pixels of a rendered port center. The default is zero.
+The preview and release use the first eligible nearby port in distance order.
+An exact port hit takes priority and can show its normal rejection reason.
+The distance stays constant in screen space as the canvas zooms.
+
 Pass the same `canReconnect` callback to `updateEditor` and `flowView` to
 lock specific edge ends. The callback receives the existing edge, the end
 (`'source'` or `'target'`), and the full graph. Return a reason to lock the

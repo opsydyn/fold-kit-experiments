@@ -380,6 +380,40 @@ test('connection drag previews only eligible targets and commits through normal 
   expect(updateEditor(result, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
 });
 
+test('nearby drop candidates skip denied ports while exact hits retain rejection feedback', () => {
+  const initial = createEditor({ ...graph, nodes: [...graph.nodes, { ...nodeB, id: 'c' }] });
+  const point = { x: 100, y: 100 };
+  const source = { node: 'a', port: 'out' };
+  const blocked = { node: 'b', port: 'in' };
+  const allowed = { node: 'c', port: 'in' };
+  const policy: EditorPolicy = {
+    canConnect: (edge) => (edge.target.node === blocked.node ? 'Blocked target' : null),
+  };
+  const started = updateEditor(initial, {
+    type: 'ConnectionDragStarted',
+    endpoint: source,
+    pointer: 1,
+    point,
+  });
+  const move = {
+    type: 'PointerMoved',
+    pointer: 1,
+    point,
+    nearbyTargets: [blocked, allowed],
+  } as const;
+  const exact = updateEditor(started, { ...move, target: blocked }, policy);
+  expect(exact.gesture).toMatchObject({
+    target: null,
+    rejected: { endpoint: blocked, reason: 'Blocked target' },
+  });
+  const nearby = updateEditor(started, move, policy);
+  expect(nearby.gesture).toMatchObject({ target: allowed });
+  expect(nearby.graph).toBe(initial.graph);
+  const committed = updateEditor(nearby, { type: 'PointerReleased', pointer: 1 }, policy);
+  expect(committed.graph.edges[0]).toMatchObject({ source, target: allowed });
+  expect(committed.past).toHaveLength(1);
+});
+
 test('reconnecting an edge preserves identity and data, and rejects incompatible or denied ports', () => {
   const target = { node: 'b', port: 'in' };
   const edge = { id: 'ab', source: { node: 'a', port: 'out' }, target, data: 'dashed' };

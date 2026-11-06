@@ -318,6 +318,14 @@ positioning API would require callers to duplicate frame and input bindings.
 Keeping the frame in Flow also gives both renderers the existing read-only,
 draft and undo behavior. Callers can hide a badge independently of editing.
 
+### Connection drop radius
+
+The input binding measures rendered port centers in CSS pixels and sends
+nearby candidates in distance order. This uses the host's actual rendered
+handles and preserves exact hits. The reducer selects the first candidate
+that passes the existing connection policy, keeping eligibility and the
+commit independent of the browser.
+
 ### Reconnection permission
 
 A host policy evaluates the existing edge and requested end. The native

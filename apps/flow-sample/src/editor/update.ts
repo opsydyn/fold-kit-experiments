@@ -97,6 +97,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedWheelNavigation: ({ wheelNavigation }) => ({ model: { ...model, wheelNavigation } }),
     SelectedNavigationDesign: ({ navigationDesign }) => ({ model: { ...model, navigationDesign } }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
+    ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     SelectedReconnectLock: ({ reconnectLock }) => ({ model: { ...model, reconnectLock } }),
     ClickedDeletionProtection: () => ({
       model: { ...model, protectDeletions: !model.protectDeletions },

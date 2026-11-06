@@ -308,3 +308,8 @@ Use **Draft → Review reconnection** to lock either end of that edge. Select
 the connection to see the remaining handle and the disabled port selector
 for the locked end. The setting applies only to the Draft → Review edge.
 [Workbench screenshot](evidence/reconnect-permission.png)
+
+Enable **Snap drops to nearby ports** to try a 32 px radius for new
+connections and reconnections. Hover near a compatible port to preview
+the drop before releasing.
+[Workbench screenshot](evidence/connection-drop-radius.png)

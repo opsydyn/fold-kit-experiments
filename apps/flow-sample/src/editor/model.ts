@@ -199,6 +199,7 @@ export const Model = Schema.Struct({
   connectionDesign: ConnectionDesign,
   protectDeletions: Schema.Boolean,
   reconnectLock: ReconnectLock,
+  snapConnections: Schema.Boolean,
   canvasCopyDesign: CanvasCopyDesign,
   selectionMarqueeDesign: SelectionMarqueeDesign,
   alignmentGuideDesign: AlignmentGuideDesign,
@@ -228,6 +229,7 @@ export type Model = Readonly<{
   connectionDesign: ConnectionDesign;
   protectDeletions: boolean;
   reconnectLock: ReconnectLock;
+  snapConnections: boolean;
   canvasCopyDesign: CanvasCopyDesign;
   selectionMarqueeDesign: SelectionMarqueeDesign;
   alignmentGuideDesign: AlignmentGuideDesign;
@@ -258,6 +260,7 @@ export const init = () => ({
     connectionDesign: 'dashed',
     protectDeletions: false,
     reconnectLock: 'none',
+    snapConnections: false,
     canvasCopyDesign: 'standard',
     selectionMarqueeDesign: 'standard',
     alignmentGuideDesign: 'standard',

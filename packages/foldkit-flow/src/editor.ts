@@ -829,7 +829,7 @@ export function updateEditor(
         gesture.pointer !== event.pointer
       )
         return state;
-      const { delta, point, pointer, target } = event;
+      const { type: _type, delta, ...move } = event;
       finitePoint(delta);
       const viewport = {
         ...state.viewport,
@@ -849,9 +849,7 @@ export function updateEditor(
                 }
               : gesture,
         },
-        target
-          ? { type: 'PointerMoved', point, pointer, target }
-          : { type: 'PointerMoved', point, pointer },
+        { ...move, type: 'PointerMoved' },
         policy,
       );
     }
@@ -873,20 +871,23 @@ export function updateEditor(
             policy.canReconnect?.(existing, gesture.reconnect.end, state.graph) ?? null;
           if (reason !== null) return { ...cancel(state), notice: reason };
         }
-        const candidate = event.target;
-        const edge =
-          candidate && state.connection
-            ? existing && gesture.reconnect
-              ? { ...existing, [gesture.reconnect.end]: candidate }
-              : proposedEdge(state.graph, state.connection, candidate)
-            : undefined;
-        const reason = edge ? connectionReason(state.graph, edge, policy, existing?.id) : null;
-        const feedback: ConnectionTarget =
-          candidate && edge
-            ? reason === null
-              ? { target: candidate }
-              : { target: null, rejected: { endpoint: candidate, reason } }
-            : { target: null };
+        let feedback: ConnectionTarget = { target: null };
+        if (state.connection) {
+          const candidates = event.target ? [event.target] : (event.nearbyTargets ?? []);
+          for (const candidate of candidates) {
+            const edge =
+              existing && gesture.reconnect
+                ? { ...existing, [gesture.reconnect.end]: candidate }
+                : proposedEdge(state.graph, state.connection, candidate);
+            const reason = connectionReason(state.graph, edge, policy, existing?.id);
+            if (reason === null) {
+              feedback = { target: candidate };
+              break;
+            }
+            if (event.target)
+              feedback = { target: null, rejected: { endpoint: candidate, reason } };
+          }
+        }
         const { target: _target, rejected: _rejected, ...previous } = gesture;
         return {
           ...state,

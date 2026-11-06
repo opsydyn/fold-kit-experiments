@@ -192,6 +192,49 @@ test('custom canvas copy keeps its accessible bindings when diagnostics hide it'
   expect(quietStatus?.querySelector('.status-content')?.textContent).toBe('Custom notice');
 });
 
+test('marquee preview highlights pending nodes without announcing them as selected', async () => {
+  const state = { ...initial, boxSelectionMatch: 'partial', selectedNodes: ['b'] } as const;
+  const start = updateEditor(state, {
+    type: 'BoxSelectionStarted',
+    pointer: 1,
+    point: { x: 180, y: 170 },
+  });
+  const active = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 140, y: 140 },
+  });
+  const options = {
+    renderSelectionMarquee: (context, h) =>
+      h.div([h.Class('preview-ids')], [context.previewNodeIds.join(',')]),
+  } satisfies Partial<FlowViewOptions<EditorEvent>>;
+  const preview = await render(active, options);
+  expect(
+    preview.querySelector('[data-flow-node="a"]')?.getAttribute('data-flow-selection-preview'),
+  ).toBe('true');
+  expect(
+    preview.querySelector('[data-flow-group="g"]')?.hasAttribute('data-flow-selection-preview'),
+  ).toBe(false);
+  expect(preview.querySelector('[data-flow-handle="a"]')?.getAttribute('aria-pressed')).toBe(
+    'false',
+  );
+  expect(preview.querySelector('[data-flow-handle="b"]')?.getAttribute('aria-pressed')).toBe(
+    'true',
+  );
+  expect(preview.querySelector('.preview-ids')?.textContent).toBe('a');
+  const released = updateEditor(active, { type: 'PointerReleased', pointer: 1 });
+  expect(released.selectedNodes).toEqual(['a']);
+  expect(released.past).toBe(state.past);
+  const committed = await render(released);
+  expect(committed.querySelector('[data-flow-selection-preview]')).toBeNull();
+  const hidden = await render(active, { ...options, selectionPreviewHighlights: false });
+  expect(hidden.querySelector('[data-flow-selection-preview]')).toBeNull();
+  expect(hidden.querySelector('.preview-ids')?.textContent).toBe('a');
+  const cancelled = updateEditor(active, { type: 'GestureCancelled' });
+  expect(cancelled.selectedNodes).toEqual(['b']);
+  expect((await render(cancelled)).querySelector('[data-flow-selection-preview]')).toBeNull();
+});
+
 test('custom selection marquees use normalized world bounds in minimal mode', async () => {
   const state = { ...initial, viewport: { x: 20, y: 30, zoom: 2 } };
   const start = updateEditor(state, {

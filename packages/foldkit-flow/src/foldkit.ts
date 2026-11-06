@@ -106,7 +106,8 @@ export { resolveFlowDiagnostics } from './diagnostics';
 export type { FlowDiagnostics, FlowDiagnosticOptions } from './diagnostics';
 import { resolveDeletion } from './deletion';
 import { resolveEdgeGeometry, type FlowEdgeGeometryPolicy } from './edge-geometry';
-import { boxBounds, portBoundaryPosition } from './geometry';
+import { portBoundaryPosition } from './geometry';
+import { resolveBoxSelection, type BoxSelectionPreview } from './selection-preview';
 export type {
   FlowEdgeGeometry,
   FlowEdgeGeometryContext,
@@ -180,7 +181,13 @@ export type FlowAlignmentGuideContext = Readonly<{
 
 /** Normalized selection bounds in graph coordinates and the current camera. */
 export type FlowSelectionMarqueeContext = Readonly<{
-  bounds: Readonly<{ left: number; top: number; right: number; bottom: number }>;
+  bounds: Readonly<{
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  }>;
+  previewNodeIds: readonly string[];
   match: BoxSelectionMatch;
   viewport: Viewport;
 }>;
@@ -264,6 +271,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     renderCanvasStatus?: (context: FlowCanvasStatusContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Replaces the list contents. The compact disclosure and accessible group stay owned by Flow. */
     renderConnections?: (context: FlowConnectionsContext, h: HtmlBuilder<M>) => Html | undefined;
+    /** Enables pending node highlights and shell preview state. Defaults to true. */
+    selectionPreviewHighlights?: boolean;
     /** Replaces the decorative selection marquee. Undefined uses the default; null omits it. */
     renderSelectionMarquee?: (
       context: FlowSelectionMarqueeContext,
@@ -673,12 +682,13 @@ function selectionMarquee<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
   options: FlowViewOptions<M>,
+  preview: BoxSelectionPreview | undefined,
 ): readonly Html[] {
-  const { gesture, viewport } = state;
-  if (gesture.type !== 'box-selection') return [];
-  const bounds = boxBounds(gesture.origin, gesture.point);
+  if (!preview) return [];
+  const { bounds, previewNodeIds } = preview;
+  const { viewport } = state;
   const custom = options.renderSelectionMarquee?.(
-    { bounds, viewport, match: state.boxSelectionMatch },
+    { bounds, viewport, match: state.boxSelectionMatch, previewNodeIds },
     h,
   );
   if (custom === null) return [];
@@ -938,6 +948,13 @@ export function flowView<M>(
 ): Html {
   const diagnostics = resolveFlowDiagnostics(options);
   const presentation = presentGroups(state.graph, state.collapsedGroups);
+  const selectionPreview =
+    state.gesture.type === 'box-selection'
+      ? resolveBoxSelection(state, state.gesture, presentation.nodes)
+      : undefined;
+  const previewIds = new Set(
+    options.selectionPreviewHighlights === false ? [] : selectionPreview?.previewNodeIds,
+  );
   const collapsedGroups = new Set(state.collapsedGroups);
   const visibleEdges = state.graph.edges.filter((edge) =>
     edgeIsVisible(edge, presentation.hiddenBy),
@@ -991,7 +1008,15 @@ export function flowView<M>(
   const boundaries = groupsInPaintOrder(presentation.nodes).map((node) => {
     const collapsed = collapsedGroups.has(node.id);
     const dropTarget = dropParent === node.id;
-    const base = { node, state, descriptionId, diagnostics, collapsed, dropTarget };
+    const base = {
+      node,
+      state,
+      descriptionId,
+      diagnostics,
+      collapsed,
+      dropTarget,
+      selectionPreview: previewIds.has(node.id),
+    };
     const context: FlowNodeRenderContext = {
       ...base,
       contextAction: contextEnabled ? nodeContextTrigger(node) : undefined,
@@ -1084,6 +1109,8 @@ export function flowView<M>(
             : state.selectedNodes.includes(node.id)
               ? '2px solid var(--flow-selection, #2563eb)'
               : '2px dashed var(--flow-node-border, #64748b)',
+          outline: context.selectionPreview ? '2px dashed var(--flow-selection, #2563eb)' : 'none',
+          'outline-offset': '2px',
           background: collapsed
             ? 'var(--flow-node-background, #fff)'
             : 'var(--flow-group-background, rgb(100 116 139 / 0.08))',
@@ -1122,7 +1149,15 @@ export function flowView<M>(
   const nodes = presentation.nodes
     .filter((node) => node.kind !== 'group')
     .map((node) => {
-      const base = { node, state, descriptionId, diagnostics, collapsed: false, dropTarget: false };
+      const base = {
+        node,
+        state,
+        descriptionId,
+        diagnostics,
+        collapsed: false,
+        dropTarget: false,
+        selectionPreview: previewIds.has(node.id),
+      };
       const context: FlowNodeRenderContext = {
         ...base,
         contextAction: contextEnabled ? nodeContextTrigger(node) : undefined,
@@ -1168,6 +1203,10 @@ export function flowView<M>(
             border: state.selectedNodes.includes(node.id)
               ? '2px solid var(--flow-selection, #2563eb)'
               : '2px solid var(--flow-node-border, #64748b)',
+            outline: context.selectionPreview
+              ? '2px dashed var(--flow-selection, #2563eb)'
+              : 'none',
+            'outline-offset': '2px',
             'border-radius': 'var(--flow-node-radius, 8px)',
             background: 'var(--flow-node-background, #fff)',
             color: 'var(--flow-node-color, #172033)',
@@ -1587,7 +1626,7 @@ export function flowView<M>(
               ),
               ...nodes,
               ...edgeLabels,
-              ...selectionMarquee(h, state, options),
+              ...selectionMarquee(h, state, options, selectionPreview),
             ],
           ),
           ...(minimap

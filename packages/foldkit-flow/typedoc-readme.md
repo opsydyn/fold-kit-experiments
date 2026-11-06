@@ -83,7 +83,8 @@ viewport for screen-size styling. Effective diagnostics gate the hook.
 
 `renderSelectionMarquee` replaces the decoration inside the positioned
 box-selection frame. `FlowSelectionMarqueeContext` provides normalized world
-bounds, viewport, and the current `BoxSelectionMatch` rule.
+bounds, viewport, the current `BoxSelectionMatch` rule, and pending node IDs.
+Node and group shells receive `selectionPreview` separately from selection.
 
 `renderCanvasHelp` and `renderCanvasStatus` customize guidance and notices
 inside the existing accessible description and polite live region. The

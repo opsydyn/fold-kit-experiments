@@ -626,11 +626,24 @@ select its children independently. Collapsed groups match using their
 visible bounds, and hidden descendants stay excluded. Selection is applied
 on release.
 
+### Live box-selection preview
+
+While drawing a marquee, Flow highlights the nodes that would be selected
+on release. The preview uses the same match rule, collapsed-group
+projection, and ancestor selection as the final selection. Pressed states
+and selection actions continue to reflect the committed selection until
+release. Escape clears the preview and keeps the prior selection.
+
+Custom node and group shells receive `selectionPreview` for their own
+highlight styling. Set `selectionPreviewHighlights: false` to disable node
+highlights. The marquee hook still receives `previewNodeIds` so a host can
+show its own feedback. Preview remains available in minimal mode.
+
 ### Custom box-selection marquee
 
 Use `renderSelectionMarquee(context, h)` to replace the decoration during
 a box-selection gesture. The context contains normalized `bounds` in graph
-coordinates, the current `viewport`, and the matching rule. Flow positions and sizes the frame
+coordinates, the current `viewport`, the matching rule, and `previewNodeIds`. Flow positions and sizes the frame
 using the same bounds as selection on release. Use decorative content that
 fills the frame.
 

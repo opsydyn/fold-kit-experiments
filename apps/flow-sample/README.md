@@ -273,3 +273,8 @@ it with one Undo.
 Use **Box selection match → Partial overlap** to include cards only partly
 inside the marquee. Draw the same box in **Full containment** to compare.
 [Workbench screenshot](evidence/partial-selection.png)
+
+While drawing a box, dashed outlines preview the nodes that will be
+selected on release. The **Orbits** node design styles the same preview
+with its own dashed ring.
+[Card preview](evidence/selection-preview.png) · [Orbit preview](evidence/selection-preview-orbits.png)

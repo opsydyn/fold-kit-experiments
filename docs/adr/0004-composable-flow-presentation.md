@@ -359,3 +359,8 @@ and live region owned by Flow. Hosts can change wording and visual
 presentation using the default text and current Model context. Diagnostic
 visibility applies to the outer containers so assistive technology can
 still read the custom content in minimal mode.
+
+Preview and release use one resolver against the current Model and visible
+node bounds. Shells receive a separate highlight flag and the marquee gets
+the pending node IDs. This keeps the committed selection, action targets
+and pressed states stable during the gesture.

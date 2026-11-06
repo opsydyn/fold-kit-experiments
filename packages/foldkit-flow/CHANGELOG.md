@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Preview pending box-selected nodes while dragging, with a separate shell
+  highlight state and the same resolver used on release.
+
 - Add optional partial-overlap box selection for cards and collapsed groups.
   Full containment remains the default and applies to expanded group frames.
 

@@ -13,6 +13,8 @@ export type FlowNodeRenderContext = Readonly<{
   diagnostics: FlowDiagnostics;
   collapsed: boolean;
   dropTarget: boolean;
+  /** Would be selected if the current marquee were released. */
+  selectionPreview: boolean;
   contextAction?: Html;
   collapseToggle?: Html;
   resizeHandles: readonly Html[];
@@ -59,6 +61,7 @@ export function flowNodeFrame<M>(
       }),
       h.Key(node.id),
       h.DataAttribute('flow-node', node.id),
+      ...(context.selectionPreview ? [h.DataAttribute('flow-selection-preview', 'true')] : []),
       h.DataAttribute('flow-x', String(node.position.x)),
       h.DataAttribute('flow-y', String(node.position.y)),
     ],
@@ -99,6 +102,7 @@ export function flowGroupFrame<M>(
       }),
       h.Key(node.id),
       h.DataAttribute('flow-group', node.id),
+      ...(context.selectionPreview ? [h.DataAttribute('flow-selection-preview', 'true')] : []),
       h.DataAttribute('flow-collapsed', String(context.collapsed)),
       ...(context.dropTarget ? [h.DataAttribute('flow-group-drop-target', '')] : []),
     ],

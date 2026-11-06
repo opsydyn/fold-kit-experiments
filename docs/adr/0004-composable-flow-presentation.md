@@ -297,6 +297,11 @@ wheel deltas into the existing viewport pan or zoom events, so the Model
 keeps camera ownership and graph history stays separate. An off mode
 leaves wheel input to the browser, and canvas help follows the option.
 
+Animated Fit view is an editor preference. The Model owns the camera
+transition and rejects stale frames. The scoped input binding supplies frame
+timestamps and the browser's reduced-motion preference. Direct viewport input
+interrupts the fit from the current camera position.
+
 ### Edge labels
 
 Label hooks render HTML inside Flow's existing positioned frame. The frame

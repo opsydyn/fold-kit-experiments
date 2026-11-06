@@ -37,6 +37,7 @@ import type {
   Endpoint,
   Point,
   ResizeHandle,
+  Viewport,
 } from './types';
 
 /** Validate and detach an authored graph, then initialize host-owned editor state. Throws FlowError for invalid input. */
@@ -46,6 +47,9 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
   const gridSpacing = options.gridSpacing ?? defaultGridSpacing;
   if (!Number.isFinite(gridSpacing) || gridSpacing <= 0)
     throw new FlowError('invalid-edit', 'Grid spacing must be finite and positive');
+  const fitViewDuration = options.fitViewDuration ?? 0;
+  if (!Number.isFinite(fitViewDuration) || fitViewDuration < 0)
+    throw new FlowError('invalid-edit', 'Fit view duration must be finite and non-negative');
   const historyLimit = options.historyLimit ?? 100;
   if (!Number.isInteger(historyLimit) || historyLimit < 0 || historyLimit > 1000)
     throw new FlowError('invalid-edit', 'History limit must be an integer from 0 to 1000');
@@ -59,6 +63,8 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     revision: 0,
     surface: null,
     viewport: { ...viewport },
+    fitViewDuration,
+    fitViewTransition: { type: 'idle', id: 0 },
     selectedNodes: [],
     selectedEdges: [],
     connection: null,
@@ -251,7 +257,7 @@ function retainedCollapsedGroups(state: EditorState, graph: FlowGraph) {
 export function commitGraph(state: EditorState, graph: FlowGraph): EditorState {
   validateGraph(graph);
   return {
-    ...state,
+    ...cancelFit(state),
     graph,
     context: null,
     revision: state.revision + 1,
@@ -495,12 +501,61 @@ function routesForHistory(state: EditorState, graph: FlowGraph): EditorState['ro
     ? state.routes
     : [];
 }
+function cancelFit(state: EditorState): EditorState {
+  const transition = state.fitViewTransition;
+  return transition.type === 'idle'
+    ? state
+    : { ...state, fitViewTransition: { type: 'idle', id: transition.id } };
+}
+
+function advanceFit(
+  state: EditorState,
+  event: Extract<EditorEvent, { type: 'FitViewAnimationFrame' }>,
+): EditorState {
+  const transition = state.fitViewTransition;
+  if (transition.type !== 'fitting' || transition.id !== event.id || !Number.isFinite(event.time))
+    return state;
+
+  const { from, to, startedAt } = transition;
+  if (event.reducedMotion) return { ...cancelFit(state), viewport: to };
+  if (startedAt === null)
+    return { ...state, fitViewTransition: { ...transition, startedAt: event.time } };
+
+  const progress = (event.time - startedAt) / state.fitViewDuration;
+  if (progress >= 1) return { ...cancelFit(state), viewport: to };
+  if (progress <= 0) return state;
+  const eased = 1 - (1 - progress) ** 3;
+  const interpolate = (key: keyof Viewport) => from[key] * (1 - eased) + to[key] * eased;
+  return {
+    ...state,
+    viewport: { x: interpolate('x'), y: interpolate('y'), zoom: interpolate('zoom') },
+  };
+}
+
 /** Pure reducer. Consumers retain the returned state in their own Model. */
 export function updateEditor(
   state: EditorState,
   event: EditorEvent,
   policy: EditorPolicy = {},
 ): EditorState {
+  if (event.type === 'FitViewAnimationFrame') return advanceFit(state, event);
+  switch (event.type) {
+    case 'ViewportNudged':
+    case 'ViewportChanged':
+    case 'MinimapClicked':
+    case 'Zoomed':
+    case 'PanStarted':
+    case 'PinchStarted':
+    case 'NodeDragStarted':
+    case 'NodeResizeStarted':
+    case 'BoxSelectionStarted':
+    case 'ConnectionDragStarted':
+    case 'ReconnectionDragStarted':
+    case 'GestureCancelled':
+      state = cancelFit(state);
+      break;
+  }
+
   if (
     state.context &&
     event.type !== 'ContextOpened' &&
@@ -556,7 +611,7 @@ export function updateEditor(
         state.graph.edges.some((edge) => edge.id === id && edgeIsVisible(edge, hiddenBy)),
       );
       return {
-        ...state,
+        ...cancelFit(state),
         collapsedGroups,
         connection: null,
         edgeLabelDraft: null,
@@ -618,15 +673,36 @@ export function updateEditor(
       const { surface } = state;
       if (!surface || state.gesture.type !== 'idle' || state.graph.nodes.length === 0) return state;
       const padding = Math.min(24, surface.width / 4, surface.height / 4);
+      const to = fitNodes(
+        presentGroups(state.graph, state.collapsedGroups).nodes,
+        surface,
+        padding,
+      );
+      const from = state.viewport;
+      if (
+        state.fitViewDuration === 0 ||
+        (from.x === to.x && from.y === to.y && from.zoom === to.zoom)
+      )
+        return { ...cancelFit(state), viewport: to };
       return {
         ...state,
-        viewport: fitNodes(
-          presentGroups(state.graph, state.collapsedGroups).nodes,
-          surface,
-          padding,
-        ),
+        fitViewTransition: {
+          type: 'fitting',
+          id: state.fitViewTransition.id + 1,
+          from,
+          to,
+          startedAt: null,
+        },
       };
     }
+    case 'FitViewDurationChanged':
+      if (
+        !Number.isFinite(event.duration) ||
+        event.duration < 0 ||
+        event.duration === state.fitViewDuration
+      )
+        return state;
+      return { ...cancelFit(state), fitViewDuration: event.duration };
     case 'MinimapClicked': {
       const { surface, viewport } = state;
       if (!surface || state.gesture.type !== 'idle') return state;
@@ -944,7 +1020,9 @@ export function updateEditor(
         event.size.height <= 0
       )
         return state;
-      return { ...state, surface: event.size };
+      if (state.surface?.width === event.size.width && state.surface.height === event.size.height)
+        return state;
+      return { ...cancelFit(state), surface: event.size };
     case 'NodeMeasured': {
       if (
         !Number.isFinite(event.size.width) ||
@@ -972,7 +1050,7 @@ export function updateEditor(
           ? { ...state.gesture, before: measure(state.gesture.before) }
           : state.gesture;
       return {
-        ...state,
+        ...cancelFit(state),
         graph: measure(state.graph),
         past: state.past.map(measure),
         future: state.future.map(measure),
@@ -1447,7 +1525,7 @@ export function updateEditor(
       const graph = state.past.at(-1);
       if (!graph) return state;
       return {
-        ...state,
+        ...cancelFit(state),
         graph,
         collapsedGroups: retainedCollapsedGroups(state, graph),
         revision: state.revision + 1,
@@ -1465,7 +1543,7 @@ export function updateEditor(
       const graph = state.future[0];
       if (!graph) return state;
       return {
-        ...state,
+        ...cancelFit(state),
         graph,
         collapsedGroups: retainedCollapsedGroups(state, graph),
         revision: state.revision + 1,

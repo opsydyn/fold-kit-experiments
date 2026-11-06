@@ -409,6 +409,13 @@ The option applies only to wheel input on the canvas. Editable controls
 keep their own wheel behavior. Flow updates its default help text to match
 the option. Custom help receives the same `wheelNavigation` value.
 
+Pass `fitViewDuration: 400` to `createEditor` to animate Fit view over
+400 milliseconds. The default is zero for instant fitting. The FoldKit
+view fits immediately when the browser prefers reduced motion. Panning,
+zooming, or starting a canvas gesture takes over from the current camera
+position. Dispatch `FitViewDurationChanged` to update the preference at
+runtime. Camera movement stays outside graph history.
+
 Set `pinchZoom: true` on the FoldKit view for two-finger touch navigation.
 Move both fingers together to pan or change their distance to zoom around
 the midpoint. A second touch cancels an active graph drag. Lifting a finger

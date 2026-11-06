@@ -124,6 +124,9 @@ export type EditorState = Readonly<{
   /** Monotonic document freshness token; Undo does not rewind it. */
   revision: number;
   viewport: Viewport;
+  /** Fit duration in milliseconds. Zero fits instantly. */
+  fitViewDuration: number;
+  fitViewTransition: FitViewTransition;
   surface: Size | null;
   selectedNodes: readonly string[];
   selectedEdges: readonly string[];
@@ -142,9 +145,21 @@ export type EditorState = Readonly<{
   routes: readonly EdgeRoute[];
   notice: string | null;
 }>;
+/** Transient camera state. The ID identifies frames belonging to the current fit. */
+export type FitViewTransition =
+  | Readonly<{ type: 'idle'; id: number }>
+  | Readonly<{
+      type: 'fitting';
+      id: number;
+      from: Viewport;
+      to: Viewport;
+      startedAt: number | null;
+    }>;
 /** Initial editor preferences. History defaults to 100 entries; grid spacing defaults to 20 world units. */
 export type EditorOptions = Readonly<{
   viewport?: Viewport;
+  /** Opt into animated Fit view with a positive duration in milliseconds. Defaults to zero. */
+  fitViewDuration?: number;
   historyLimit?: number;
   readOnly?: boolean;
   snapToGrid?: boolean;
@@ -222,6 +237,8 @@ export type EditorEvent =
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>
   | Readonly<{ type: 'ViewportNudged'; delta: Point }>
   | Readonly<{ type: 'FitViewClicked' }>
+  | Readonly<{ type: 'FitViewDurationChanged'; duration: number }>
+  | Readonly<{ type: 'FitViewAnimationFrame'; id: number; time: number; reducedMotion: boolean }>
   | Readonly<{ type: 'MinimapClicked'; point: Point }>
   | Readonly<{ type: 'Zoomed'; point: Point; factor: number }>
   | Readonly<{ type: 'SelectionNudged'; delta: Point }>

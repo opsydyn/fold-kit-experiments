@@ -97,6 +97,11 @@ the rejection reason through its action descriptors.
 `FlowWheelNavigation` configures wheel zoom, two-axis panning with modifier
 zoom, or native page scrolling through `FlowViewOptions.wheelNavigation`.
 
+`EditorOptions.fitViewDuration` opts into animated Fit view. The editor owns
+`FitViewTransition` and handles `FitViewAnimationFrame` events from the
+FoldKit view, including the browser's reduced-motion preference. Direct
+navigation cancels the transition.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

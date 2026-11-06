@@ -1030,6 +1030,24 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.editor.fitViewDuration > 0),
+              h.OnClick(
+                Message.ObservedFlowInput({
+                  message: {
+                    type: 'FitViewDurationChanged',
+                    duration: model.editor.fitViewDuration === 0 ? 400 : 0,
+                  },
+                }),
+              ),
+            ]),
+            'Animate Fit view',
+          ],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;

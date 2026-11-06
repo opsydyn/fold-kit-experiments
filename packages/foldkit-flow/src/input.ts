@@ -569,6 +569,25 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   };
   const mutations = new window.MutationObserver(observe);
   mutations.observe(element, { childList: true, subtree: true });
+  let fitFrame: number | null = null;
+  const scheduleFitFrame = () => {
+    const id = Number(element.dataset.flowFitAnimation);
+    if (fitFrame !== null || !Number.isSafeInteger(id) || id <= 0) return;
+    fitFrame = window.requestAnimationFrame((time) => {
+      fitFrame = null;
+      if (Number(element.dataset.flowFitAnimation) === id)
+        emit({
+          type: 'FitViewAnimationFrame',
+          id,
+          time,
+          reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+        });
+      scheduleFitFrame();
+    });
+  };
+  const fitMutations = new window.MutationObserver(scheduleFitFrame);
+  fitMutations.observe(element, { attributeFilter: ['data-flow-fit-animation'] });
+  scheduleFitFrame();
   resize.observe(element);
   measure(element);
   observe();
@@ -576,6 +595,8 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     for (const [name, handler] of listeners) element.removeEventListener(name, handler);
     window.removeEventListener('blur', blur);
     mutations.disconnect();
+    fitMutations.disconnect();
+    if (fitFrame !== null) window.cancelAnimationFrame(fitFrame);
     resize.disconnect();
     observed.clear();
     releaseCapture();

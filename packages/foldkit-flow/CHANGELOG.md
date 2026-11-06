@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in animated Fit view with instant fitting for reduced motion and
+  cancellation when the user takes control of the viewport.
+
 - Add opt-in wheel panning with Ctrl or Command to zoom, and an off mode for
   native page scrolling. Cursor-anchored wheel zoom remains the default.
 

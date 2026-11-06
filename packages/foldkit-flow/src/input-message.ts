@@ -89,6 +89,12 @@ export const BrowserInput = Schema.Union([
   Schema.Struct({ type: Schema.Literal('PointerReleased'), ...Pointer }),
   Schema.Struct({ type: Schema.Literal('MinimapClicked'), point: Point }),
   Schema.Struct({ type: Schema.Literal('ViewportNudged'), delta: Point }),
+  Schema.Struct({
+    type: Schema.Literal('FitViewAnimationFrame'),
+    id: Schema.Number,
+    time: Schema.Number,
+    reducedMotion: Schema.Boolean,
+  }),
   Schema.Struct({ type: Schema.Literal('Zoomed'), point: Point, factor: Schema.Number }),
   Schema.Struct({ type: Schema.Literal('SelectionNudged'), delta: Point }),
   Schema.Struct({

@@ -587,6 +587,43 @@ test('fit control works on a small read-only canvas and leaves history intact', 
   expect(fitted.past).toBe(initial.past);
 });
 
+test('animated fit interpolates the camera and finishes at the instant fit target', () => {
+  const initial = updateEditor(createEditor(graph, { fitViewDuration: 400 }), {
+    type: 'SurfaceMeasured',
+    size: { width: 800, height: 440 },
+  });
+  const click = { type: 'FitViewClicked' } as const;
+  const target = updateEditor({ ...initial, fitViewDuration: 0 }, click).viewport;
+  const fitting = updateEditor(initial, click);
+  const frame = {
+    type: 'FitViewAnimationFrame',
+    id: fitting.fitViewTransition.id,
+    reducedMotion: false,
+  } as const;
+  const start = updateEditor(fitting, { ...frame, time: 100 });
+  const middle = updateEditor(start, { ...frame, time: 300 });
+  const done = updateEditor(middle, { ...frame, time: 500 });
+
+  expect(start.viewport).toEqual(initial.viewport);
+  expect(middle.viewport).not.toEqual(start.viewport);
+  expect(middle.viewport).not.toEqual(target);
+  expect(done.viewport).toEqual(target);
+  expect(done.fitViewTransition.type).toBe('idle');
+  expect(done.graph).toBe(initial.graph);
+  expect(done.past).toBe(initial.past);
+  expect(done.revision).toBe(initial.revision);
+  expect(updateEditor(fitting, { ...frame, time: 100, reducedMotion: true }).viewport).toEqual(
+    target,
+  );
+
+  const interrupted = updateEditor(middle, { type: 'ViewportNudged', delta: { x: 12, y: 0 } });
+  expect(interrupted.viewport.x).toBe(middle.viewport.x + 12);
+  expect(updateEditor(interrupted, { ...frame, time: 500 })).toBe(interrupted);
+  expect(updateEditor(updateEditor(middle, click), { ...frame, time: 500 }).viewport).toBe(
+    middle.viewport,
+  );
+});
+
 test('snapping at zoom moves the selected group and its contents by one common offset', () => {
   const boundary = {
     id: 'outer',

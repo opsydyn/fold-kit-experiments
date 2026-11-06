@@ -1570,6 +1570,10 @@ export function flowView<M>(
           h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
           h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
           h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
+          h.DataAttribute(
+            'flow-fit-animation',
+            state.fitViewTransition.type === 'fitting' ? String(state.fitViewTransition.id) : '',
+          ),
           h.DataAttribute('flow-selection-mode', String(state.selectionMode)),
           h.DataAttribute('flow-context-actions', String(Boolean(contextEnabled))),
           h.Tabindex(0),

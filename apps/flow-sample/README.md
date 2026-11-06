@@ -283,3 +283,8 @@ Choose **Wheel navigation → Scroll to pan · Ctrl/Command to zoom** to pan
 with a wheel or trackpad. Choose **Page scrolling** to leave wheel gestures
 to the page. The canvas help updates with the chosen behavior.
 [Workbench screenshot](evidence/wheel-navigation.png)
+
+Enable **Animate Fit view**, zoom away from the diagram, then choose
+**Fit view** to ease back to the fitted camera. Pan or zoom while it moves
+to take over. The fit is instant when the system prefers reduced motion.
+[Workbench screenshot](evidence/fit-view-animation.png)

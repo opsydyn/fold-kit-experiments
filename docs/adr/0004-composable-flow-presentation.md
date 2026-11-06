@@ -297,6 +297,13 @@ wheel deltas into the existing viewport pan or zoom events, so the Model
 keeps camera ownership and graph history stays separate. An off mode
 leaves wheel input to the browser, and canvas help follows the option.
 
+Double-click zoom is a separate opt-in view option. The scoped input
+binding recognizes two ordinary background presses and sends the existing
+`Zoomed` event. Reusing this event gives double-clicks the same anchor,
+limits, and fit interruption behavior as other zoom gestures. Gesture
+recognition stays in the binding because it depends on native click
+sequence and pointer capture.
+
 Zoom limits and Fit view padding live in editor preferences so gestures,
 toolbar actions, and host camera updates share the same range. Keeping
 the range in the view alone would leave programmatic viewport changes and

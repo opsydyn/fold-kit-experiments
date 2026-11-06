@@ -23,6 +23,8 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   let panPointer: Point | null = null;
   let panFrame: number | null = null;
   let lastPanTime = 0;
+  let backgroundPressed = false;
+  let backgroundClickCount = 0;
   type WireStart = Extract<
     BrowserInput,
     { type: 'ConnectionDragStarted' | 'ReconnectionDragStarted' }
@@ -229,6 +231,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   });
   listen('pointerdown', (event) => {
     if (!(event instanceof window.PointerEvent) || event.button !== 0) return;
+    backgroundPressed = false;
     const target = targetOf(event);
     if (
       target &&
@@ -326,6 +329,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     else if (event.shiftKey || element.dataset.flowSelectionMode === 'true')
       emit({ type: 'BoxSelectionStarted', pointer: event.pointerId, point: origin });
     else {
+      backgroundPressed = Boolean(element.dataset.flowDoubleClickZoom);
       emit({ type: 'SelectionCleared' });
       emit({ type: 'PanStarted', pointer: event.pointerId, point: point(event) });
     }
@@ -397,6 +401,14 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   });
   listen('click', (event) => {
     const target = targetOf(event);
+    // Capture can retarget the click to the surface. Use the original press to
+    // distinguish a pane click from a control or a consumed marquee gesture.
+    if (event instanceof window.MouseEvent && event.detail > 0) {
+      if (!backgroundPressed) backgroundClickCount = 0;
+      else if (event.detail === 1) backgroundClickCount = 1;
+      else backgroundClickCount += 1;
+      backgroundPressed = false;
+    }
     if (!target || editable(target)) return;
     const minimap =
       target.closest('[data-flow-minimap]') ??
@@ -436,6 +448,15 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const handle = target.closest('[data-flow-handle]')?.getAttribute('data-flow-handle');
     if (handle && event instanceof window.MouseEvent && event.detail === 0)
       emit({ type: 'NodeSelected', id: handle, additive: event.shiftKey });
+  });
+  listen('dblclick', (event) => {
+    if (backgroundClickCount < 2 || !(event instanceof window.MouseEvent) || !targetOf(event))
+      return;
+    backgroundClickCount = 0;
+    const factor = Number(element.dataset.flowDoubleClickZoom);
+    if (!Number.isFinite(factor) || factor <= 1) return;
+    event.preventDefault();
+    emit({ type: 'Zoomed', point: point(event), factor });
   });
   listen('wheel', (event) => {
     const target = targetOf(event);

@@ -119,6 +119,8 @@ the rejection reason through its action descriptors.
 
 `FlowWheelNavigation` configures wheel zoom, two-axis panning with modifier
 zoom, or native page scrolling through `FlowViewOptions.wheelNavigation`.
+`FlowViewOptions.doubleClickZoom` independently enables background
+double-click zoom, with a default or caller-supplied multiplier.
 
 `FlowViewOptions.connectionDropRadius` enables nearby targeting for connection
 and reconnection drags. The browser adapter sends ordered candidates and the

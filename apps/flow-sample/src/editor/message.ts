@@ -31,6 +31,7 @@ export const Message = defineMessageUnion({
     example: Schema.Literals(['release', 'onion', 'grouped-onion', 'large-workflow']),
   },
   SelectedWheelNavigation: { wheelNavigation: WheelNavigation },
+  ClickedDoubleClickZoom: {},
   SelectedNavigationDesign: { navigationDesign: NavigationDesign },
   SelectedPortAnchors: { preset: PortAnchorPreset },
   SelectedConnectionDesign: { connectionDesign: ConnectionDesign },

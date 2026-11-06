@@ -492,9 +492,16 @@ The option applies only to wheel input on the canvas. Editable controls
 keep their own wheel behavior. Flow updates its default help text to match
 the option. Custom help receives the same `wheelNavigation` value.
 
+Set `doubleClickZoom: true` to zoom in 1.25× around the pointer when
+double-clicking the background. You can supply a finite multiplier
+greater than 1 for a different step. The feature defaults to off and
+works independently of wheel and pinch zoom. Box select, Zoom to area,
+and interactive canvas items keep their own input behavior. Background
+clicks still clear selection during normal navigation.
+
 Pass `zoomLimits: { minZoom: 0.75, maxZoom: 1.3 }` and
 `fitViewPadding: 96` to `createEditor` to customize the camera. Wheel,
-pinch, toolbar, and Fit view share the inclusive range. Both limits must
+pinch, double-click, toolbar, and Fit view share the inclusive range. Both limits must
 be finite and positive, and equal limits fix the zoom. An explicit
 `viewport` must be in range. Without one, Flow starts at the allowed zoom
 closest to 1.

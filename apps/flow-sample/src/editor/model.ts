@@ -236,6 +236,7 @@ export const Model = Schema.Struct({
   edgeLabelDesign: EdgeLabelDesign,
   edgeDesign: EdgeDesign,
   wheelNavigation: WheelNavigation,
+  doubleClickZoom: Schema.Boolean,
   navigationDesign: NavigationDesign,
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
@@ -277,6 +278,7 @@ export type Model = Readonly<{
   edgeLabelDesign: EdgeLabelDesign;
   edgeDesign: EdgeDesign;
   wheelNavigation: WheelNavigation;
+  doubleClickZoom: boolean;
   navigationDesign: NavigationDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
@@ -319,6 +321,7 @@ export const init = () => ({
     edgeLabelDesign: 'standard',
     edgeDesign: 'default',
     wheelNavigation: 'zoom',
+    doubleClickZoom: true,
     navigationDesign: 'standard',
     nodeDesign: 'cards',
     background: 'dots',

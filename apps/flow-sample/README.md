@@ -399,3 +399,7 @@ control in both navigation designs. [Marquee screenshot](evidence/zoom-area.png)
 After a fit or search reveal, use **Back to previous view** to return to
 the prior camera position. Both navigation designs expose the same
 package action. [Workbench screenshot](evidence/previous-view.png)
+
+Toggle **Double-click zoom** independently of **Wheel navigation**.
+With it enabled, double-click the canvas background to zoom around
+the pointer. [Workbench screenshot](evidence/double-click-zoom.png)

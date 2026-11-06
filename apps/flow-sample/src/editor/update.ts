@@ -140,6 +140,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       },
     }),
     SelectedWheelNavigation: ({ wheelNavigation }) => ({ model: { ...model, wheelNavigation } }),
+    ClickedDoubleClickZoom: () => ({
+      model: { ...model, doubleClickZoom: !model.doubleClickZoom },
+    }),
     SelectedNavigationDesign: ({ navigationDesign }) => ({ model: { ...model, navigationDesign } }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),

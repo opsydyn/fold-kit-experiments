@@ -8,8 +8,14 @@ import type { EditorEvent } from '../src/types';
 const previousEvent = Object.getOwnPropertyDescriptor(globalThis, 'KeyboardEvent');
 const previousWheelEvent = Object.getOwnPropertyDescriptor(globalThis, 'WheelEvent');
 const previousFocusEvent = Object.getOwnPropertyDescriptor(globalThis, 'FocusEvent');
+const previousMouseEvent = Object.getOwnPropertyDescriptor(globalThis, 'MouseEvent');
+const previousPointerEvent = Object.getOwnPropertyDescriptor(globalThis, 'PointerEvent');
 const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
 afterEach(() => {
+  if (previousMouseEvent) Object.defineProperty(globalThis, 'MouseEvent', previousMouseEvent);
+  else Reflect.deleteProperty(globalThis, 'MouseEvent');
+  if (previousPointerEvent) Object.defineProperty(globalThis, 'PointerEvent', previousPointerEvent);
+  else Reflect.deleteProperty(globalThis, 'PointerEvent');
   if (previousFocusEvent) Object.defineProperty(globalThis, 'FocusEvent', previousFocusEvent);
   else Reflect.deleteProperty(globalThis, 'FocusEvent');
   if (previousWheelEvent) Object.defineProperty(globalThis, 'WheelEvent', previousWheelEvent);
@@ -177,6 +183,58 @@ test('wheel navigation changes in place and preserves editable and page scrollin
   expect(wheel({ deltaY: 20, ctrlKey: true })).toBe(false);
   expect(events).toEqual([]);
   release();
+});
+
+test('double-click zoom uses two background presses and its own configured factor', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'MouseEvent', { value: window.MouseEvent, configurable: true });
+  Object.defineProperty(globalThis, 'PointerEvent', {
+    value: window.PointerEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  const surface = document.createElement('div');
+  surface.dataset.flowSurface = '';
+  surface.dataset.flowWheelNavigation = 'off';
+  const input = document.createElement('input');
+  const button = document.createElement('button');
+  surface.append(input, button);
+  surface.setPointerCapture = () => {};
+  surface.hasPointerCapture = () => false;
+  // SAFETY: Happy DOM supplies the standard rectangle coordinates used by the binding.
+  surface.getBoundingClientRect = () => new window.DOMRect(10, 20, 800, 400) as DOMRect;
+  const events: EditorEvent[] = [];
+  const release = bindInput(surface, (event) => {
+    events.push(event);
+    if (event.type === 'ZoomAreaStarted') surface.dataset.flowZoomAreaMode = 'false';
+  });
+  const location = { clientX: 60, clientY: 95, bubbles: true, cancelable: true };
+  const doubleClick = (target: Element = surface) => {
+    for (const detail of [1, 2]) {
+      for (const type of ['pointerdown', 'pointerup'])
+        target.dispatchEvent(new PointerEvent(type, { ...location, pointerId: 1 }));
+      target.dispatchEvent(new MouseEvent('click', { ...location, detail }));
+    }
+    const event = new MouseEvent('dblclick', { ...location, detail: 2 });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  const zooms = () => events.filter(({ type }) => type === 'Zoomed');
+  expect(doubleClick()).toBe(false);
+  surface.dataset.flowDoubleClickZoom = '1.5';
+  expect(doubleClick()).toBe(true);
+  expect(zooms()).toEqual([{ type: 'Zoomed', point: { x: 50, y: 75 }, factor: 1.5 }]);
+  expect(doubleClick(input)).toBe(false);
+  expect(doubleClick(button)).toBe(false);
+  surface.dataset.flowSelectionMode = 'true';
+  expect(doubleClick()).toBe(false);
+  surface.dataset.flowSelectionMode = 'false';
+  surface.dataset.flowZoomAreaMode = 'true';
+  expect(doubleClick()).toBe(false);
+  expect(events.some(({ type }) => type === 'ZoomAreaStarted')).toBe(true);
+  expect(zooms()).toHaveLength(1);
+  release();
+  expect(doubleClick()).toBe(false);
 });
 
 test('node focus tracking follows the containing frame and ignores nested editors', () => {

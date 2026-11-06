@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in pointer-anchored background double-click zoom with a
+  configurable multiplier.
+
 - Add an opt-in Back to previous view control for returning from a
   camera fit or search reveal.
 

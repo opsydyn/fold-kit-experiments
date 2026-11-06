@@ -230,6 +230,7 @@ export type FlowCanvasHelpContext = Readonly<{
   readOnly: boolean;
   visible: boolean;
   wheelNavigation: FlowWheelNavigation;
+  doubleClickZoom?: boolean;
 }>;
 
 /** Current canvas notice or the summary used when no notice is active. */
@@ -371,6 +372,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     pinchZoom?: boolean;
     /** Defaults to cursor-anchored zoom. Off leaves wheel input to the page. */
     wheelNavigation?: FlowWheelNavigation;
+    /** Opt in to 1.25× background double-click zoom, or provide a finite multiplier greater than 1. */
+    doubleClickZoom?: boolean | number;
     /** Card width handles and corner/side handles on selected expanded groups. */
     resizeHandles?: boolean;
     /** Show Model dimensions during resizing and for selected groups with handles. Defaults to true. */
@@ -1022,6 +1025,7 @@ function canvasHelpView<M>(
   visible: boolean,
 ): Html {
   const zoomAreaActive = Boolean(state.zoomAreaMode) || state.gesture.type === 'zoom-area';
+  const doubleClickZoom = Boolean(options.doubleClickZoom);
   const wheelNavigation = options.wheelNavigation ?? 'zoom';
   const wheelHelp =
     wheelNavigation === 'pan'
@@ -1037,6 +1041,9 @@ function canvasHelpView<M>(
         ? 'Drag the background to select nodes. '
         : 'Drag the background to pan, or Shift-drag to select nodes. ',
     wheelHelp,
+    ...(doubleClickZoom && !zoomAreaActive && !state.selectionMode
+      ? ['Double-click the background to zoom in. ']
+      : []),
     'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
     ...(edgeToolbar
       ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
@@ -1050,6 +1057,7 @@ function canvasHelpView<M>(
       readOnly: state.readOnly,
       edgeToolbar,
       wheelNavigation,
+      doubleClickZoom,
       visible,
     },
     h,
@@ -1335,6 +1343,14 @@ export function flowView<M>(
   const connectionDropRadius = options.connectionDropRadius ?? 0;
   if (!Number.isFinite(connectionDropRadius) || connectionDropRadius < 0)
     throw new RangeError('Connection drop radius must be finite and non-negative');
+  const { doubleClickZoom } = options;
+  const doubleClickZoomFactor = doubleClickZoom === true ? 1.25 : doubleClickZoom;
+  if (
+    doubleClickZoomFactor !== undefined &&
+    doubleClickZoomFactor !== false &&
+    (!Number.isFinite(doubleClickZoomFactor) || doubleClickZoomFactor <= 1)
+  )
+    throw new RangeError('Double-click zoom factor must be finite and greater than 1');
   const diagnostics = resolveFlowDiagnostics(options);
   const presentation = presentVisibleGraph(state);
   const selectionPreview =
@@ -1923,6 +1939,7 @@ export function flowView<M>(
           h.DataAttribute('flow-connection-drop-radius', String(connectionDropRadius)),
           h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
           h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
+          h.DataAttribute('flow-double-click-zoom', String(doubleClickZoomFactor || '')),
           h.DataAttribute(
             'flow-fit-animation',
             state.fitViewTransition.type === 'fitting' ? String(state.fitViewTransition.id) : '',

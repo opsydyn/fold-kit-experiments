@@ -1218,6 +1218,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           [
             h.input([
               h.Type('checkbox'),
+              h.Checked(model.doubleClickZoom),
+              h.OnClick(Message.ClickedDoubleClickZoom()),
+            ]),
+            'Double-click zoom',
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
               h.Checked(model.editor.fitViewPadding === 96),
               h.Disabled(model.editor.gesture.type !== 'idle'),
               h.OnClick(
@@ -1609,6 +1620,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           },
           id: 'flow-demo',
           wheelNavigation: model.wheelNavigation,
+          doubleClickZoom: model.doubleClickZoom,
           renderEdgeLabel: (context, builder) =>
             model.edgeLabelDesign === 'badge' ? edgeBadge(context, builder) : undefined,
           renderEdgeLabelEditor: (context, builder) =>

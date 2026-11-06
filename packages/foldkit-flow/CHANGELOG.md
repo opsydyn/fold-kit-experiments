@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add an opt-in lazy slot for retaining the built-in node and port layer
+  across eligible camera updates.
+
 - Add opt-in viewport culling for canvas nodes and built-in edges, with full
   graph navigation and Connections retained.
 

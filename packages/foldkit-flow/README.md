@@ -738,6 +738,18 @@ shells, connection rows, and edge labels receive `selectionDisabledReason`.
 These callbacks govern new selection attempts. To clear a selection after
 changing the policy, send `SelectionCleared`.
 
+### Retain built-in node views during camera updates
+
+Pass one FoldKit `createLazy()` slot per canvas as `nodeViewCache`.
+Keep `onEvent` and any `renderNode` callback stable to reuse the node and
+port layer across camera-only renders. Graph edits, selection changes, and
+changes to the inputs of the retained layer rebuild it.
+
+The prototype uses the live path for custom node shells, node policies,
+filtered node arrays, open context panels, and editing gestures. The
+retained context trigger resolves its anchor against the latest viewport
+when activated.
+
 ### Cull canvas items outside the viewport
 
 Set `viewportCulling: true` on `flowView` to mount canvas items near the

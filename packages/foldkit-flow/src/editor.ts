@@ -674,7 +674,19 @@ export function updateEditor(
       finitePoint(context.point);
       return {
         ...state,
-        context,
+        context:
+          node && event.anchorToNode
+            ? {
+                ...context,
+                point: {
+                  x:
+                    state.viewport.x +
+                    (node.position.x + node.size.width) * state.viewport.zoom -
+                    36,
+                  y: state.viewport.y + node.position.y * state.viewport.zoom + 44,
+                },
+              }
+            : context,
         edgeLabelDraft: null,
         connection: null,
         selectedNodes: context.kind === 'node' ? [context.id] : [],

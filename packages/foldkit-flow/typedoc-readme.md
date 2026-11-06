@@ -126,6 +126,9 @@ ancestors grown by those edits. Pass the same callback to
 can be selected. Pass the same callbacks to `flowView` so the controls and
 marquee preview agree with the reducer.
 
+`FlowViewOptions.nodeViewCache` accepts a per-canvas FoldKit lazy slot to
+retain built-in node and port views across eligible camera-only updates.
+
 `FlowViewOptions.viewportCulling` opts into mounting canvas items near the
 measured viewport. `FlowViewportCulling` accepts a CSS-pixel overscan value.
 The minimap, Fit view, and Connections list retain the full visible graph.

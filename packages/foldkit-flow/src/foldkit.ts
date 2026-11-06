@@ -3,7 +3,7 @@
  * @module FoldKit
  */
 import { Mount } from 'foldkit';
-import type { Html, HtmlBuilder } from 'foldkit/html';
+import { createLazy, type Html, type HtmlBuilder } from 'foldkit/html';
 
 import {
   flowConnectionButton,
@@ -98,6 +98,7 @@ import {
   flowResizeHandle,
   flowEdgeHitTarget,
   type FlowNodeRenderContext,
+  type NodeControlState,
 } from './composition';
 export {
   flowNodeFrame,
@@ -263,8 +264,12 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     ) => Html | null | undefined;
     /** Uses the host's builder; arbitrary FoldKit controls retain their normal behaviour. */
     renderNode?: (node: FlowNode, h: HtmlBuilder<M>) => Html;
+    /** Use a separate FoldKit lazy slot per canvas to retain the built-in node layer. */
+    nodeViewCache?: ReturnType<typeof createLazy> | undefined;
     /** Replaces the complete measured node shell. Compose the public frame and interaction primitives. */
-    renderNodeShell?: (context: FlowNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
+    renderNodeShell?:
+      | ((context: FlowNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined)
+      | undefined;
     /** Replaces a group boundary. Its frame retains Model-owned bounds and paint order. */
     renderGroupShell?: (context: FlowNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined;
     /** Decorative SVG along Flow's path. Return undefined to use the built-in renderer. */
@@ -1037,6 +1042,230 @@ function canvasStatusView<M>(
   );
 }
 
+function nodeContextStyles<M>(h: HtmlBuilder<M>, onNode: boolean) {
+  return [
+    h.Style({
+      position: onNode ? 'absolute' : 'relative',
+      top: onNode ? '8px' : 'auto',
+      right: onNode ? '8px' : 'auto',
+      width: '36px',
+      'min-height': '36px',
+      'flex-shrink': '0',
+      'pointer-events': 'auto',
+      cursor: 'pointer',
+    }),
+  ];
+}
+
+type NodeShellContext<S> = Omit<FlowNodeRenderContext, 'state'> & { state: S };
+type NodeViewOptions<M, S> = Pick<
+  FlowViewOptions<M>,
+  'resizeHandles' | 'canMoveNode' | 'canResizeNode' | 'canSelectNode' | 'canConnectPort'
+> & {
+  renderNode?: FlowViewOptions<M>['renderNode'];
+  renderNodeShell?:
+    | ((context: NodeShellContext<S>, h: HtmlBuilder<M>) => Html | undefined)
+    | undefined;
+};
+
+function nodeViews<M, S extends NodeControlState>(
+  h: HtmlBuilder<M>,
+  nodes: readonly FlowNode[],
+  state: S,
+  options: NodeViewOptions<M, S>,
+  diagnostics: FlowDiagnostics,
+  descriptionId: string,
+  contextEnabled: boolean,
+  nodeContextTrigger: (node: FlowNode) => Html,
+  target: EditorState['connection'],
+  previewIds?: ReadonlySet<string>,
+): readonly Html[] {
+  return nodes
+    .filter((node) => node.kind !== 'group')
+    .map((node) => {
+      const resizeDisabledReason = options.canResizeNode?.(node, state.graph) ?? undefined;
+      const selectionDisabledReason = options.canSelectNode?.(node, state.graph) ?? undefined;
+      const base = {
+        node,
+        state,
+        descriptionId,
+        diagnostics,
+        collapsed: false,
+        dropTarget: false,
+        selectionPreview: previewIds?.has(node.id) ?? false,
+        moveDisabledReason: options.canMoveNode?.(node, state.graph) ?? undefined,
+        resizeDisabledReason,
+        selectionDisabledReason,
+        canConnectPort: options.canConnectPort,
+      };
+      const context: NodeShellContext<S> = {
+        ...base,
+        contextAction:
+          contextEnabled && selectionDisabledReason === undefined
+            ? nodeContextTrigger(node)
+            : undefined,
+        resizeHandles:
+          options.resizeHandles &&
+          !state.readOnly &&
+          selectionDisabledReason === undefined &&
+          resizeDisabledReason === undefined
+            ? [
+                flowResizeHandle(
+                  h,
+                  base,
+                  'right',
+                  [
+                    h.Style({
+                      position: 'absolute',
+                      right: '-8px',
+                      bottom: '-8px',
+                      border: 'none',
+                      padding: '0',
+                      width: '24px',
+                      height: '24px',
+                      display: 'grid',
+                      'place-items': 'center',
+                      cursor: 'ew-resize',
+                      'touch-action': 'none',
+                      'user-select': 'none',
+                      color: 'var(--flow-control-color, #fff)',
+                      background: 'var(--flow-resize-background, #334155)',
+                      'border-radius': '6px',
+                    }),
+                  ],
+                  ['↔'],
+                ),
+              ]
+            : [],
+      };
+      const custom = options.renderNodeShell?.(context, h);
+      if (custom !== undefined) return custom;
+      return flowNodeFrame(
+        h,
+        context,
+        [
+          h.Style({
+            'min-height': '64px',
+            border: state.selectedNodes.includes(node.id)
+              ? '2px solid var(--flow-selection, #2563eb)'
+              : '2px solid var(--flow-node-border, #64748b)',
+            outline: context.selectionPreview
+              ? '2px dashed var(--flow-selection, #2563eb)'
+              : 'none',
+            'outline-offset': '2px',
+            'border-radius': 'var(--flow-node-radius, 8px)',
+            background: 'var(--flow-node-background, #fff)',
+            color: 'var(--flow-node-color, #172033)',
+            padding: '12px',
+            'pointer-events': 'auto',
+          }),
+        ],
+        [
+          flowDragHandle(
+            h,
+            context,
+            [
+              h.Type('button'),
+              h.Style({
+                display: 'block',
+                width: contextEnabled ? 'calc(100% - 36px)' : '100%',
+                'min-height': '32px',
+                'text-align': 'left',
+                cursor: state.readOnly ? 'pointer' : 'grab',
+                'font-weight': '600',
+                color: 'inherit',
+                background: 'transparent',
+                border: 'none',
+              }),
+            ],
+            [node.label],
+          ),
+          ...(context.contextAction ? [context.contextAction] : []),
+          ...context.resizeHandles,
+          ...(options.renderNode ? [options.renderNode(node, h)] : []),
+          ...node.ports.map((port) =>
+            flowPort(
+              h,
+              context,
+              port,
+              [
+                h.Style({
+                  position: 'absolute',
+                  'z-index': '1',
+                  width: '24px',
+                  height: '24px',
+                  padding: '0',
+                  'border-radius': '50%',
+                  border:
+                    target?.node === node.id && target.port === port.id
+                      ? '3px solid var(--flow-node-color, #172033)'
+                      : '2px solid var(--flow-port-border, #fff)',
+                  'box-shadow':
+                    target?.node === node.id && target.port === port.id
+                      ? '0 0 0 3px var(--flow-valid-target, #0f766e)'
+                      : 'none',
+                  background:
+                    port.kind === 'output'
+                      ? 'var(--flow-output-port, #2563eb)'
+                      : 'var(--flow-input-port, #0f766e)',
+                  color: 'var(--flow-control-color, #fff)',
+                  cursor: 'crosshair',
+                }),
+              ],
+              [port.kind === 'output' ? '+' : '−'],
+            ),
+          ),
+        ],
+      );
+    });
+}
+
+function retainedNodeLayer<M>(
+  h: HtmlBuilder<M>,
+  graph: FlowGraph,
+  selectedNodes: readonly string[],
+  readOnly: boolean,
+  descriptionId: string,
+  resizeHandles: boolean,
+  contextEnabled: boolean,
+  idle: boolean,
+  onEvent: FlowViewOptions<M>['onEvent'],
+  renderNode: FlowViewOptions<M>['renderNode'],
+): Html {
+  const nodeContextTrigger = (node: FlowNode) =>
+    flowContextTrigger(
+      h,
+      {
+        label: `More actions for ${node.label}`,
+        expanded: false,
+        disabled: !idle,
+        event: {
+          type: 'ContextOpened',
+          context: { kind: 'node', id: node.id, point: { x: 0, y: 0 } },
+          anchorToNode: true,
+        },
+      },
+      onEvent,
+      nodeContextStyles(h, true),
+      ['⋯'],
+    );
+  const options = { resizeHandles, renderNode };
+  return h.div(
+    [h.Style({ display: 'contents' })],
+    nodeViews(
+      h,
+      graph.nodes,
+      { graph, selectedNodes, readOnly, connection: null },
+      options,
+      resolveFlowDiagnostics({}),
+      descriptionId,
+      contextEnabled,
+      nodeContextTrigger,
+      null,
+    ),
+  );
+}
+
 /** A normal FoldKit view: all state and message handling belong to its parent. */
 export function flowView<M>(
   h: HtmlBuilder<M>,
@@ -1097,24 +1326,7 @@ export function flowView<M>(
     event: { type: 'ContextOpened', context: { kind, id, point } },
   });
   const contextTrigger = (action: FlowContextTrigger, onNode = false) =>
-    flowContextTrigger(
-      h,
-      action,
-      options.onEvent,
-      [
-        h.Style({
-          position: onNode ? 'absolute' : 'relative',
-          top: onNode ? '8px' : 'auto',
-          right: onNode ? '8px' : 'auto',
-          width: '36px',
-          'min-height': '36px',
-          'flex-shrink': '0',
-          'pointer-events': 'auto',
-          cursor: 'pointer',
-        }),
-      ],
-      ['⋯'],
-    );
+    flowContextTrigger(h, action, options.onEvent, nodeContextStyles(h, onNode), ['⋯']);
   const nodeContextTrigger = (node: FlowNode) =>
     contextTrigger(
       contextAction('node', node.id, node.label, {
@@ -1290,144 +1502,49 @@ export function flowView<M>(
       ],
     );
   });
-  const nodes = canvas.nodes
-    .filter((node) => node.kind !== 'group')
-    .map((node) => {
-      const resizeDisabledReason = options.canResizeNode?.(node, state.graph) ?? undefined;
-      const selectionDisabledReason = options.canSelectNode?.(node, state.graph) ?? undefined;
-      const base = {
-        node,
-        state,
-        descriptionId,
-        diagnostics,
-        collapsed: false,
-        dropTarget: false,
-        selectionPreview: previewIds.has(node.id),
-        moveDisabledReason: moveDisabledReason(node),
-        resizeDisabledReason,
-        selectionDisabledReason,
-        canConnectPort: options.canConnectPort,
-      };
-      const context: FlowNodeRenderContext = {
-        ...base,
-        contextAction:
-          contextEnabled && selectionDisabledReason === undefined
-            ? nodeContextTrigger(node)
-            : undefined,
-        resizeHandles:
-          options.resizeHandles &&
-          !state.readOnly &&
-          selectionDisabledReason === undefined &&
-          resizeDisabledReason === undefined
-            ? [
-                flowResizeHandle(
-                  h,
-                  base,
-                  'right',
-                  [
-                    h.Style({
-                      position: 'absolute',
-                      right: '-8px',
-                      bottom: '-8px',
-                      border: 'none',
-                      padding: '0',
-                      width: '24px',
-                      height: '24px',
-                      display: 'grid',
-                      'place-items': 'center',
-                      cursor: 'ew-resize',
-                      'touch-action': 'none',
-                      'user-select': 'none',
-                      color: 'var(--flow-control-color, #fff)',
-                      background: 'var(--flow-resize-background, #334155)',
-                      'border-radius': '6px',
-                    }),
-                  ],
-                  ['↔'],
-                ),
-              ]
-            : [],
-      };
-      const custom = options.renderNodeShell?.(context, h);
-      if (custom !== undefined) return custom;
-      return flowNodeFrame(
+  const canRetainNodes =
+    canvas.nodes === state.graph.nodes &&
+    (state.gesture.type === 'idle' || state.gesture.type === 'pan') &&
+    !state.connection &&
+    !state.context &&
+    !options.renderNodeShell &&
+    !options.canMoveNode &&
+    !options.canResizeNode &&
+    !options.canSelectNode &&
+    !options.canConnectPort
+      ? options.nodeViewCache
+      : undefined;
+  const nodes = canRetainNodes
+    ? [
+        canRetainNodes(retainedNodeLayer, [
+          h,
+          state.graph,
+          state.selectedNodes,
+          state.readOnly,
+          descriptionId,
+          Boolean(options.resizeHandles),
+          Boolean(contextEnabled),
+          state.gesture.type === 'idle',
+          options.onEvent,
+          options.renderNode,
+        ]),
+      ]
+    : nodeViews(
         h,
-        context,
-        [
-          h.Style({
-            'min-height': '64px',
-            border: state.selectedNodes.includes(node.id)
-              ? '2px solid var(--flow-selection, #2563eb)'
-              : '2px solid var(--flow-node-border, #64748b)',
-            outline: context.selectionPreview
-              ? '2px dashed var(--flow-selection, #2563eb)'
-              : 'none',
-            'outline-offset': '2px',
-            'border-radius': 'var(--flow-node-radius, 8px)',
-            background: 'var(--flow-node-background, #fff)',
-            color: 'var(--flow-node-color, #172033)',
-            padding: '12px',
-            'pointer-events': 'auto',
-          }),
-        ],
-        [
-          flowDragHandle(
-            h,
-            context,
-            [
-              h.Type('button'),
-              h.Style({
-                display: 'block',
-                width: contextEnabled ? 'calc(100% - 36px)' : '100%',
-                'min-height': '32px',
-                'text-align': 'left',
-                cursor: state.readOnly ? 'pointer' : 'grab',
-                'font-weight': '600',
-                color: 'inherit',
-                background: 'transparent',
-                border: 'none',
-              }),
-            ],
-            [node.label],
-          ),
-          ...(context.contextAction ? [context.contextAction] : []),
-          ...context.resizeHandles,
-          ...(options.renderNode ? [options.renderNode(node, h)] : []),
-          ...node.ports.map((port) =>
-            flowPort(
-              h,
-              context,
-              port,
-              [
-                h.Style({
-                  position: 'absolute',
-                  'z-index': '1',
-                  width: '24px',
-                  height: '24px',
-                  padding: '0',
-                  'border-radius': '50%',
-                  border:
-                    drag?.target?.node === node.id && drag.target.port === port.id
-                      ? '3px solid var(--flow-node-color, #172033)'
-                      : '2px solid var(--flow-port-border, #fff)',
-                  'box-shadow':
-                    drag?.target?.node === node.id && drag.target.port === port.id
-                      ? '0 0 0 3px var(--flow-valid-target, #0f766e)'
-                      : 'none',
-                  background:
-                    port.kind === 'output'
-                      ? 'var(--flow-output-port, #2563eb)'
-                      : 'var(--flow-input-port, #0f766e)',
-                  color: 'var(--flow-control-color, #fff)',
-                  cursor: 'crosshair',
-                }),
-              ],
-              [port.kind === 'output' ? '+' : '−'],
-            ),
-          ),
-        ],
+        canvas.nodes,
+        state,
+        options,
+        diagnostics,
+        descriptionId,
+        Boolean(contextEnabled),
+        nodeContextTrigger,
+        drag?.target ?? null,
+        previewIds,
       );
-    });
+  const nodeLayer =
+    options.nodeViewCache && !canRetainNodes
+      ? [h.div([h.Style({ display: 'contents' })], nodes)]
+      : nodes;
   const markerId = `${options.id}-arrow`;
   const edgeGeometries = canvas.edges.map((edge) => ({
     edge,
@@ -1815,7 +1932,7 @@ export function flowView<M>(
                   ...(previewView ? [previewView] : []),
                 ],
               ),
-              ...nodes,
+              ...nodeLayer,
               ...edgeLabels,
               ...(worldOverlay === null || worldOverlay === undefined
                 ? []

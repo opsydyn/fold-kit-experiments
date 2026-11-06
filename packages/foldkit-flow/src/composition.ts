@@ -35,7 +35,11 @@ export type FlowNodeRenderContext = Readonly<{
   collapseToggle?: Html;
   resizeHandles: readonly Html[];
 }>;
-type Context = Omit<FlowNodeRenderContext, 'resizeHandles'>;
+export type NodeControlState = Pick<
+  EditorState,
+  'graph' | 'readOnly' | 'selectedNodes' | 'connection'
+>;
+type Context = Omit<FlowNodeRenderContext, 'resizeHandles' | 'state'> & { state: NodeControlState };
 type Attributes<M> = Parameters<HtmlBuilder<M>['div']>[0];
 type Children<M> = Parameters<HtmlBuilder<M>['div']>[1];
 

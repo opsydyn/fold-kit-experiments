@@ -63,6 +63,7 @@ export const Message = defineMessageUnion({
   FailedColorSchemeSave: {},
   ClickedMinimalMode: {},
   ClickedViewportCulling: {},
+  ClickedRetainNodeViews: {},
   ClickedWorldAnnotation: {},
   ClickedDiagnosticsPanel: {},
   ClickedDiagnosticsEnabled: {},

@@ -4,6 +4,8 @@ import {
   type EdgeEnd,
   type EdgePathStyle,
   type FlowEdge,
+  type FlowNode,
+  type EditorEvent,
 } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
@@ -15,7 +17,7 @@ import {
   type FlowBackground,
 } from '@opsydyn/foldkit-flow/foldkit';
 import { Schema } from 'effect';
-import type { Document, HtmlBuilder } from 'foldkit/html';
+import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchPolicy } from './editor-policy';
 import { Message } from './message';
@@ -66,6 +68,74 @@ type WorkbenchEdgeHooks = {
   edgeGeometry?: typeof raisedEdge;
   renderEdge?: typeof storageDependencyEdge;
 };
+
+const workbenchNodeCache = createLazy();
+const flowInput = (message: EditorEvent) => Message.ObservedFlowInput({ message });
+function renderWorkbenchNode(
+  node: FlowNode,
+  builder: HtmlBuilder<Message>,
+  minimalMode: boolean,
+  measurements: boolean,
+  resizeDisabled: boolean,
+) {
+  return builder.div(
+    [builder.Style({ visibility: minimalMode ? 'hidden' : 'visible' })],
+    [
+      builder.input([
+        builder.AriaLabel(`Label for ${node.id}`),
+        builder.Value(node.label),
+        builder.OnInput((label) =>
+          Message.ObservedFlowInput({
+            message: { type: 'NodeLabelChanged', id: node.id, label },
+          }),
+        ),
+        builder.Style({
+          width: '100%',
+          'box-sizing': 'border-box',
+          'margin-top': '8px',
+          'min-height': '30px',
+        }),
+      ]),
+      builder.label(
+        [
+          builder.Style({
+            visibility: measurements ? 'visible' : 'hidden',
+          }),
+        ],
+        [
+          'Width',
+          builder.input([
+            builder.Type('range'),
+            builder.AriaLabel(`Width for ${node.label}`),
+            builder.Disabled(resizeDisabled),
+            builder.Min(
+              String(
+                node.resizeLimits?.minWidth ??
+                  Math.min(140, node.size.width, node.resizeLimits?.maxWidth ?? Infinity),
+              ),
+            ),
+            builder.Max(
+              String(
+                node.resizeLimits?.maxWidth ??
+                  Math.max(320, node.size.width, node.resizeLimits?.minWidth ?? 0),
+              ),
+            ),
+            builder.Step('10'),
+            builder.Value(String(node.size.width)),
+            builder.Style({ width: '100%', 'touch-action': 'pan-x' }),
+            builder.OnChange((value) =>
+              Message.ObservedFlowInput({
+                message: { type: 'NodeWidthChanged', id: node.id, width: Number(value) },
+              }),
+            ),
+          ]),
+        ],
+      ),
+    ],
+  );
+}
+const renderDefaultNode = (node: FlowNode, builder: HtmlBuilder<Message>) =>
+  renderWorkbenchNode(node, builder, false, true, false);
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -257,6 +327,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.OnClick(Message.ClickedViewportCulling()),
               ],
               ['Viewport culling'],
+            ),
+            h.button(
+              [
+                h.Type('button'),
+                h.AriaPressed(String(model.retainNodeViews)),
+                h.OnClick(Message.ClickedRetainNodeViews()),
+              ],
+              ['Retain node views'],
             ),
             h.button(
               [
@@ -1482,12 +1560,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           },
           ...edgeHooks,
           viewportCulling: model.viewportCulling,
+          nodeViewCache: model.retainNodeViews ? workbenchNodeCache : undefined,
           renderWorldOverlay: (context, builder) =>
             model.showWorldAnnotation ? releaseGateAnnotation(context, builder) : null,
-          renderNodeShell: (context, builder) => {
-            if (model.nodeDesign === 'orbits') return orbitNode(context, builder);
-            return undefined;
-          },
+          renderNodeShell: model.nodeDesign === 'orbits' ? orbitNode : undefined,
           renderGroupShell: (context, builder) => {
             if (model.nodeDesign === 'orbits') return orbitGroup(context, builder);
             return undefined;
@@ -1507,7 +1583,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           edgeToolbar: true,
           canDelete: policy.canDelete,
           canReconnect: policy.canReconnect,
-          canConnectPort: policy.canConnectPort,
+          canConnectPort:
+            model.portLocks.draftOutput || model.portLocks.publishInput
+              ? policy.canConnectPort
+              : undefined,
           canMoveNode: policy.canMoveNode,
           canResizeNode: policy.canResizeNode,
           canSelectNode: policy.canSelectNode,
@@ -1545,69 +1624,24 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           viewportControls: true,
           selectionModeControl: true,
           label: 'Workflow editor',
-          onEvent: (message) => Message.ObservedFlowInput({ message }),
+          onEvent: flowInput,
           edgeAppearance: (edge) =>
             edge.data === 'dashed' ? { dashArray: '9 5', strokeWidth: 4 } : {},
-          renderNode: (node, builder) =>
-            builder.div(
-              [builder.Style({ visibility: model.minimalMode ? 'hidden' : 'visible' })],
-              [
-                builder.input([
-                  builder.AriaLabel(`Label for ${node.id}`),
-                  builder.Value(node.label),
-                  builder.OnInput((label) =>
-                    Message.ObservedFlowInput({
-                      message: { type: 'NodeLabelChanged', id: node.id, label },
-                    }),
-                  ),
-                  builder.Style({
-                    width: '100%',
-                    'box-sizing': 'border-box',
-                    'margin-top': '8px',
-                    'min-height': '30px',
-                  }),
-                ]),
-                builder.label(
-                  [
-                    builder.Style({
-                      visibility:
-                        !model.minimalMode && diagnostics.measurements ? 'visible' : 'hidden',
-                    }),
-                  ],
-                  [
-                    'Width',
-                    builder.input([
-                      builder.Type('range'),
-                      builder.AriaLabel(`Width for ${node.label}`),
-                      builder.Disabled(
-                        model.editor.readOnly ||
-                          (policy.canResizeNode?.(node, model.editor.graph) ?? null) !== null,
-                      ),
-                      builder.Min(
-                        String(
-                          node.resizeLimits?.minWidth ??
-                            Math.min(140, node.size.width, node.resizeLimits?.maxWidth ?? Infinity),
-                        ),
-                      ),
-                      builder.Max(
-                        String(
-                          node.resizeLimits?.maxWidth ??
-                            Math.max(320, node.size.width, node.resizeLimits?.minWidth ?? 0),
-                        ),
-                      ),
-                      builder.Step('10'),
-                      builder.Value(String(node.size.width)),
-                      builder.Style({ width: '100%', 'touch-action': 'pan-x' }),
-                      builder.OnChange((value) =>
-                        Message.ObservedFlowInput({
-                          message: { type: 'NodeWidthChanged', id: node.id, width: Number(value) },
-                        }),
-                      ),
-                    ]),
-                  ],
-                ),
-              ],
-            ),
+          renderNode:
+            model.minimalMode ||
+            !diagnostics.measurements ||
+            model.editor.readOnly ||
+            policy.canResizeNode
+              ? (node, builder) =>
+                  renderWorkbenchNode(
+                    node,
+                    builder,
+                    model.minimalMode,
+                    !model.minimalMode && diagnostics.measurements,
+                    model.editor.readOnly ||
+                      (policy.canResizeNode?.(node, model.editor.graph) ?? null) !== null,
+                  )
+              : renderDefaultNode,
         }),
         h.p(
           [

@@ -198,6 +198,7 @@ export const Model = Schema.Struct({
   systemColorScheme: Schema.NullOr(ColorScheme),
   minimalMode: Schema.Boolean,
   viewportCulling: Schema.Boolean,
+  retainNodeViews: Schema.Boolean,
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
   diagnosticsPanelOpen: Schema.Boolean,
@@ -243,6 +244,7 @@ export type Model = Readonly<{
   systemColorScheme: FlowColorScheme | null;
   minimalMode: boolean;
   viewportCulling: boolean;
+  retainNodeViews: boolean;
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
   diagnosticsPanelOpen: boolean;
@@ -281,6 +283,7 @@ export const init = () => ({
     systemColorScheme: null,
     minimalMode: false,
     viewportCulling: false,
+    retainNodeViews: false,
     showWorldAnnotation: false,
     diagnosticsEnabled: true,
     diagnosticsPanelOpen: false,

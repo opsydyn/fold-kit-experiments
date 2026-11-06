@@ -221,7 +221,7 @@ export type EditorPolicy = Readonly<{
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =
-  | Readonly<{ type: 'ContextOpened'; context: EditorContext }>
+  | Readonly<{ type: 'ContextOpened'; context: EditorContext; anchorToNode?: boolean }>
   | Readonly<{ type: 'ContextDismissed' }>
   | Readonly<{ type: 'ConnectionListToggled' }>
   | Readonly<{ type: 'NodeFocusChanged'; id: string | null }>

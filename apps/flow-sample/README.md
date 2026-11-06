@@ -363,3 +363,7 @@ for both culling modes.
 The [wheel zoom CPU profile](evidence/camera-benchmark.md#wheel-zoom-cpu-profile)
 captures the same workload with culling off and attributes samples to the
 view, DOM patch, and style-validation paths.
+
+Enable **Retain node views** to try the built-in card prototype. The
+[retained node comparison](evidence/camera-benchmark.md#retained-node-views)
+uses the large workflow with viewport culling off.

@@ -193,3 +193,34 @@ change with the same burst before pursuing edge routing or input scheduling.
 [Representative Chromium CPU profile](wheel-zoom-unculled.cpuprofile)
 
 ![Wheel zoom CPU sample attribution](camera-cpu-profile.png)
+
+## Retained node views
+
+Use the same 180-packet wheel burst with culling off in both cases. The
+comparison uses default cards and diagnostics and verifies the final zoom.
+
+```sh
+FLOW_BENCHMARK_COMPARE_RETAINED=1 bun - < ../flow-sample/evidence/camera-benchmark.mjs
+FLOW_BENCHMARK_COMPARE_RETAINED=1 FLOW_BENCHMARK_REVERSE=1 bun - < ../flow-sample/evidence/camera-benchmark.mjs
+```
+
+The retained layer uses a FoldKit lazy slot to reuse the built-in node
+and port VNodes across camera-only updates. The prototype preserves
+style validation when it builds a subtree.
+
+Both case orders used headless Chromium 151.0.7922.34 on Apple M4 Pro.
+All 320 nodes and 452 edges remained mounted in both cases. Ranges cover
+both case orders and six bursts per mode. The driver offered input in
+1.491–1.493 seconds.
+
+| Node views | p95 callback gap | Observation window | Camera commits per burst |
+| ---------- | ---------------: | -----------------: | -----------------------: |
+| Rebuilt    |     34.0–34.4 ms |      2.966–2.967 s |                    85–88 |
+| Retained   |     17.8–17.9 ms |      1.533–1.650 s |                    89–91 |
+
+These are headless animation-frame callback measurements. Chromium reached
+the expected final zoom in both modes. The retained-view browser scenario
+also verifies focus and DOM identity through zoom, graph editing, selection,
+context-menu placement, port locks, and disabled controls during drag-pan.
+
+![Wheel burst with node retention off and on](retained-node-views.png)

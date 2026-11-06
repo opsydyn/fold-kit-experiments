@@ -186,6 +186,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     FailedColorSchemeSave: () => ({
       model: { ...model, notice: 'Theme changed for this visit. Your browser could not save it.' },
     }),
+    ClickedRetainNodeViews: () => ({
+      model: { ...model, retainNodeViews: !model.retainNodeViews },
+    }),
     ClickedViewportCulling: () => ({
       model: { ...model, viewportCulling: !model.viewportCulling },
     }),

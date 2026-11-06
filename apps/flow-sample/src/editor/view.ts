@@ -1544,6 +1544,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 control(context.actions.zoomOut, '−'),
                 control(context.actions.zoomIn, '+'),
                 control(context.actions.fitView, 'Fit view'),
+                control(context.actions.fitSelection, context.actions.fitSelection.label),
                 ...(context.selectionModeControl
                   ? [control(context.actions.selectionMode, 'Box select')]
                   : []),
@@ -1717,6 +1718,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           resizeHandles: true,
           minimap: true,
           viewportControls: true,
+          fitSelectionControl: true,
           selectionModeControl: true,
           label: 'Workflow editor',
           onEvent: flowInput,

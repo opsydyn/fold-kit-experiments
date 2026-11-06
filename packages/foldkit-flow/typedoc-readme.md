@@ -126,6 +126,10 @@ ancestors grown by those edits. Pass the same callback to
 can be selected. Pass the same callbacks to `flowView` so the controls and
 marquee preview agree with the reducer.
 
+`FitSelectionClicked` frames selected visible nodes and edges.
+`fitSelectionControl` enables the stock button, and
+`FlowViewportActions.fitSelection` supplies the action for custom controls.
+
 `NodeRevealRequested` centers a node, opens collapsed ancestors, and honors
 the editor's zoom limits and Fit view timing. `revealableNodes` provides the
 eligible nodes for host search controls.

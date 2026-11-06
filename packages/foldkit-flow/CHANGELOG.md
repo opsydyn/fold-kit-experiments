@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add Fit selection for mixed node and edge selections, with an opt-in
+  viewport button and a composable action.
+
 - Add reveal-connection navigation for endpoint nodes and stored routes,
   with a visibility-aware connection list for host search controls.
 

@@ -377,6 +377,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     /** Mount only canvas items near the measured viewport. Disabled by default. */
     viewportCulling?: FlowViewportCulling;
     viewportControls?: boolean;
+    /** Include Fit selection in the viewport controls. */
+    fitSelectionControl?: boolean;
     /** Include a box selection toggle in the viewport controls. */
     selectionModeControl?: boolean;
     height?: number;
@@ -641,7 +643,7 @@ function contextPanel<M>(
 function viewportControls<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
-  { onEvent, selectionModeControl }: FlowViewOptions<M>,
+  { onEvent, selectionModeControl, fitSelectionControl }: FlowViewOptions<M>,
   diagnostics: FlowDiagnostics,
 ): Html {
   const actions = viewportControlActions(state);
@@ -682,6 +684,7 @@ function viewportControls<M>(
       button(actions.zoomIn),
       button(actions.zoomOut),
       button(actions.fitView),
+      ...(fitSelectionControl ? [button(actions.fitSelection)] : []),
       ...(selectionModeControl ? [button(actions.selectionMode)] : []),
       ...(diagnostics.zoomLevel
         ? [
@@ -1854,6 +1857,7 @@ export function flowView<M>(
                 diagnostics,
                 actions: viewportControlActions(state),
                 selectionModeControl: Boolean(options.selectionModeControl),
+                fitSelectionControl: Boolean(options.fitSelectionControl),
               },
               h,
             ) ?? viewportControls(h, state, options, diagnostics),

@@ -738,6 +738,20 @@ shells, connection rows, and edge labels receive `selectionDisabledReason`.
 These callbacks govern new selection attempts. To clear a selection after
 changing the policy, send `SelectionCleared`.
 
+### Fit the selection
+
+Set `fitSelectionControl: true` with `viewportControls: true` to show
+**Fit selection**. Custom viewport controls can render
+`context.actions.fitSelection` with `flowViewportControl`. The action
+emits `{ type: 'FitSelectionClicked' }`.
+
+Fit selection frames selected visible nodes and connections together.
+For edges, it uses the displayed endpoint bounds and any stored route
+used by the built-in path. A collapsed endpoint uses its group boundary.
+The camera follows the configured padding, zoom limits, and Fit view
+animation, including reduced motion. Selection and undo history are
+preserved. Custom SVG geometry can extend outside the fitted bounds.
+
 ### Reveal a node
 
 Send `{ type: 'NodeRevealRequested', id }` to center a node. Flow keeps the

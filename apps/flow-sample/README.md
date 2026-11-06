@@ -387,3 +387,7 @@ Set **Search scope** to **Connections** to search by edge label, ID,
 node name, or endpoint such as `source:out`. Reveal frames the connection
 and opens collapsed ancestors of its endpoints.
 [Connection search screenshot](evidence/reveal-connection.png)
+
+Use **Fit selection** in the standard or compact viewport controls to
+frame selected nodes and connections. Select a connection and Shift-click
+a node to frame them together. [Workbench screenshot](evidence/fit-selection.png)

@@ -20,6 +20,7 @@ export type FlowViewportActions = Readonly<{
   zoomIn: FlowViewportControl;
   zoomOut: FlowViewportControl;
   fitView: FlowViewportControl;
+  fitSelection: FlowViewportControl;
   selectionMode: FlowViewportControl;
 }>;
 export type FlowViewportControlsContext = Readonly<{
@@ -27,6 +28,7 @@ export type FlowViewportControlsContext = Readonly<{
   diagnostics: FlowDiagnostics;
   actions: FlowViewportActions;
   selectionModeControl: boolean;
+  fitSelectionControl?: boolean;
 }>;
 export type FlowMinimapContext = Readonly<{
   state: EditorState;
@@ -58,6 +60,11 @@ export function viewportControlActions(state: EditorState): FlowViewportActions 
       label: 'Fit view',
       event: { type: 'FitViewClicked' },
       disabled: unavailable || nodes.length === 0,
+    },
+    fitSelection: {
+      label: 'Fit selection',
+      event: { type: 'FitSelectionClicked' },
+      disabled: unavailable || (!state.selectedNodes.length && !state.selectedEdges.length),
     },
     selectionMode: {
       label: 'Box select',

@@ -3081,3 +3081,64 @@ test('revealing a connection frames its routed path and opens only its endpoint 
     expect(updateEditor(hidden, reveal)).toBe(hidden);
   }
 });
+
+test('Fit selection frames mixed selections and follows collapsed edge projection', () => {
+  const group = {
+    id: 'group',
+    label: 'Group',
+    kind: 'group' as const,
+    position: { x: 0, y: 0 },
+    size: { width: 280, height: 180 },
+    ports: [],
+  };
+  const extra = { ...nodeB, id: 'extra', position: { x: 640, y: 50 } };
+  const edge = { id: 'ab', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  const initial = createEditor({
+    nodes: [group, { ...nodeA, parentId: group.id }, nodeB, extra],
+    edges: [edge],
+  });
+  const state = {
+    ...initial,
+    surface: { width: 800, height: 440 },
+    selectedNodes: ['extra'],
+    selectedEdges: [edge.id],
+    routes: [
+      {
+        id: edge.id,
+        points: [
+          { x: 140, y: 70 },
+          { x: 250, y: -350 },
+          { x: 300, y: 110 },
+        ],
+      },
+    ],
+  };
+  const fit = { type: 'FitSelectionClicked' } as const;
+  const fitted = updateEditor(state, fit);
+  expect(fitted.viewport.zoom).toBeCloseTo(392 / 510);
+  expect(fitted.viewport.x).toBeCloseTo(400 - 410 * fitted.viewport.zoom);
+  expect(fitted.viewport.y - 350 * fitted.viewport.zoom).toBeCloseTo(24);
+  expect(fitted.graph).toBe(state.graph);
+  expect(fitted.selectedNodes).toBe(state.selectedNodes);
+  expect(fitted.selectedEdges).toBe(state.selectedEdges);
+  expect(fitted.past).toBe(state.past);
+
+  const collapsed = { ...state, collapsedGroups: [group.id], selectedNodes: [], readOnly: true };
+  const projected = updateEditor(collapsed, fit);
+  expect(projected.viewport.zoom).toBeCloseTo(752 / 460);
+  expect(projected.viewport.x).toBeCloseTo(24);
+  expect(projected.collapsedGroups).toBe(collapsed.collapsedGroups);
+  const empty = { ...state, selectedNodes: [], selectedEdges: [] };
+  expect(updateEditor(empty, fit)).toBe(empty);
+
+  const animated = updateEditor({ ...state, fitViewDuration: 200 }, fit);
+  expect(animated.fitViewTransition.type).toBe('fitting');
+  expect(
+    updateEditor(animated, {
+      type: 'FitViewAnimationFrame',
+      id: animated.fitViewTransition.id,
+      time: 0,
+      reducedMotion: true,
+    }).viewport,
+  ).toEqual(fitted.viewport);
+});

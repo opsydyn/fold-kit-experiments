@@ -617,6 +617,34 @@ function expandRevealAncestors(state: EditorState, targets: readonly FlowNode[])
   return { ...state, collapsedGroups: state.collapsedGroups.filter((id) => !ancestors.has(id)) };
 }
 
+function storedRouteBounds(state: EditorState, edge: FlowEdge) {
+  if (edge.pathStyle !== undefined) return [];
+  return (
+    state.routes
+      .find(({ id }) => id === edge.id)
+      ?.points.map((position) => ({
+        position,
+        size: { width: 0, height: 0 },
+      })) ?? []
+  );
+}
+
+function selectionBounds(state: EditorState): readonly Pick<FlowNode, 'position' | 'size'>[] {
+  if (!state.selectedNodes.length && !state.selectedEdges.length) return [];
+  const { nodes, edges, hiddenBy } = presentVisibleGraph(state);
+  const ids = new Set(state.selectedNodes);
+  const selectedEdges = new Set(state.selectedEdges);
+  const routes = edges.flatMap((edge) => {
+    if (!selectedEdges.has(edge.id)) return [];
+    const source = hiddenBy.get(edge.source.node);
+    const target = hiddenBy.get(edge.target.node);
+    ids.add(source?.id ?? edge.source.node);
+    ids.add(target?.id ?? edge.target.node);
+    return source || target ? [] : storedRouteBounds(state, edge);
+  });
+  return [...nodes.filter(({ id }) => ids.has(id)), ...routes];
+}
+
 function fitReveal(
   state: EditorState,
   surface: NonNullable<EditorState['surface']>,
@@ -864,10 +892,14 @@ export function updateEditor(
         fitViewPadding,
       };
     }
-    case 'FitViewClicked': {
+    case 'FitViewClicked':
+    case 'FitSelectionClicked': {
       const { surface } = state;
       if (!surface || state.gesture.type !== 'idle') return state;
-      const { nodes } = presentEditorGroups(state);
+      const nodes =
+        event.type === 'FitSelectionClicked'
+          ? selectionBounds(state)
+          : presentEditorGroups(state).nodes;
       if (nodes.length === 0) return state;
       const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
       const to = fitNodes(nodes, surface, padding, state.zoomLimits);
@@ -895,14 +927,10 @@ export function updateEditor(
 
       const endpoints = [source, target];
       const next = expandRevealAncestors(state, endpoints);
-      const route =
-        edge.pathStyle === undefined ? state.routes.find(({ id }) => id === edge.id) : undefined;
-      const routeBounds =
-        route?.points.map((position) => ({ position, size: { width: 0, height: 0 } })) ?? [];
       return fitReveal(
         { ...next, notice: `Revealed connection ${edge.label || edge.id}.` },
         surface,
-        [...endpoints, ...routeBounds],
+        [...endpoints, ...storedRouteBounds(state, edge)],
       );
     }
     case 'FitViewDurationChanged':

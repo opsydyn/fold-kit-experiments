@@ -403,3 +403,8 @@ package action. [Workbench screenshot](evidence/previous-view.png)
 Toggle **Double-click zoom** independently of **Wheel navigation**.
 With it enabled, double-click the canvas background to zoom around
 the pointer. [Workbench screenshot](evidence/double-click-zoom.png)
+
+With **Space-drag to pan** enabled, focus the canvas and hold Space while
+dragging its background. Try it with **Box select** active, then release
+Space to draw a selection on the next drag.
+[Workbench screenshot](evidence/space-to-pan.png)

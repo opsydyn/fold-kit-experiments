@@ -25,6 +25,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   let lastPanTime = 0;
   let backgroundPressed = false;
   let backgroundClickCount = 0;
+  let spaceHeld = false;
   type WireStart = Extract<
     BrowserInput,
     { type: 'ConnectionDragStarted' | 'ReconnectionDragStarted' }
@@ -223,6 +224,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   listen('focusin', (event) => trackNodeFocus(targetOf(event)));
   listen('focusout', (event) => {
     if (!(event instanceof window.FocusEvent)) return;
+    if (event.target === element) spaceHeld = false;
     const panel = targetOf(event)?.closest('[data-flow-context-panel]');
     const next = event.relatedTarget;
     trackNodeFocus(next instanceof window.Element ? next : null);
@@ -324,14 +326,16 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       const corner = cornerOf(resize);
       const handle = handleOf(resize);
       emit(handle ? { ...input, handle } : corner ? { ...input, corner } : input);
-    } else if (element.dataset.flowZoomAreaMode === 'true')
+    } else if (spaceHeld && element.dataset.flowSpaceToPan === 'true')
+      emit({ type: 'PanStarted', pointer: event.pointerId, point: origin });
+    else if (element.dataset.flowZoomAreaMode === 'true')
       emit({ type: 'ZoomAreaStarted', pointer: event.pointerId, point: origin });
     else if (event.shiftKey || element.dataset.flowSelectionMode === 'true')
       emit({ type: 'BoxSelectionStarted', pointer: event.pointerId, point: origin });
     else {
       backgroundPressed = Boolean(element.dataset.flowDoubleClickZoom);
       emit({ type: 'SelectionCleared' });
-      emit({ type: 'PanStarted', pointer: event.pointerId, point: point(event) });
+      emit({ type: 'PanStarted', pointer: event.pointerId, point: origin });
     }
   });
   const movePointer = (event: PointerEvent) => {
@@ -483,6 +487,18 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   listen('keydown', (event) => {
     if (!(event instanceof window.KeyboardEvent)) return;
     const target = targetOf(event);
+    if (
+      target === element &&
+      event.key === ' ' &&
+      element.dataset.flowSpaceToPan === 'true' &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      if (!event.repeat) spaceHeld = true;
+      event.preventDefault();
+      return;
+    }
     if (target && (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10'))) {
       const rect = target.getBoundingClientRect();
       if (openContext(target, localPoint({ x: rect.left, y: rect.bottom }))) event.preventDefault();
@@ -537,6 +553,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     let input: BrowserInput | null = null;
     switch (event.key) {
       case 'Escape':
+        spaceHeld = false;
         releaseCapture();
         releaseTouches();
         input = { type: 'GestureCancelled' };
@@ -579,7 +596,11 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     event.preventDefault();
     emit(input);
   });
+  listen('keyup', (event) => {
+    if (event instanceof window.KeyboardEvent && event.key === ' ') spaceHeld = false;
+  });
   const blur = () => {
+    spaceHeld = false;
     const active = captured !== null || pinching;
     releaseCapture();
     releaseTouches();

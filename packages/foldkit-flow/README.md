@@ -499,6 +499,13 @@ works independently of wheel and pinch zoom. Box select, Zoom to area,
 and interactive canvas items keep their own input behavior. Background
 clicks still clear selection during normal navigation.
 
+Set `spaceToPan: true` to pan temporarily with Space. Focus the canvas,
+hold Space, then drag from the background. The drag preserves selection
+and leaves Box select or Zoom to area available for the next drag.
+Releasing Space during a drag lets it finish. Escape cancels the drag,
+and focus loss clears the shortcut. Space continues to activate buttons
+and enter text when those controls have focus. The feature defaults to off.
+
 Pass `zoomLimits: { minZoom: 0.75, maxZoom: 1.3 }` and
 `fitViewPadding: 96` to `createEditor` to customize the camera. Wheel,
 pinch, double-click, toolbar, and Fit view share the inclusive range. Both limits must

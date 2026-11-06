@@ -304,6 +304,12 @@ limits, and fit interruption behavior as other zoom gestures. Gesture
 recognition stays in the binding because it depends on native click
 sequence and pointer capture.
 
+Space-drag is an opt-in view shortcut for a focused canvas. The scoped
+binding samples the held key and uses the existing pan gesture for a
+background drag. The current canvas tool stays in the Model. Reusing
+the existing gesture gives Space-drag the same camera and pointer
+cancellation rules without changing graph history.
+
 Zoom limits and Fit view padding live in editor preferences so gestures,
 toolbar actions, and host camera updates share the same range. Keeping
 the range in the view alone would leave programmatic viewport changes and

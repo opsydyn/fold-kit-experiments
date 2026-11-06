@@ -32,6 +32,7 @@ export const Message = defineMessageUnion({
   },
   SelectedWheelNavigation: { wheelNavigation: WheelNavigation },
   ClickedDoubleClickZoom: {},
+  ClickedSpaceToPan: {},
   SelectedNavigationDesign: { navigationDesign: NavigationDesign },
   SelectedPortAnchors: { preset: PortAnchorPreset },
   SelectedConnectionDesign: { connectionDesign: ConnectionDesign },

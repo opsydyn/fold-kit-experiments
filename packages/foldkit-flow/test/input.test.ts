@@ -237,6 +237,67 @@ test('double-click zoom uses two background presses and its own configured facto
   expect(doubleClick()).toBe(false);
 });
 
+test('Space temporarily pans from the focused canvas and resets on release or focus loss', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'KeyboardEvent', {
+    value: window.KeyboardEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'PointerEvent', {
+    value: window.PointerEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'FocusEvent', { value: window.FocusEvent, configurable: true });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  const surface = document.createElement('div');
+  surface.dataset.flowSurface = '';
+  surface.dataset.flowSelectionMode = 'true';
+  surface.setPointerCapture = () => {};
+  surface.hasPointerCapture = () => false;
+  const input = document.createElement('input');
+  const button = document.createElement('button');
+  surface.append(input, button);
+  const events: EditorEvent[] = [];
+  const release = bindInput(surface, (event) => events.push(event));
+  const key = (type: 'keydown' | 'keyup', target: Element = surface, repeat = false) => {
+    const event = new KeyboardEvent(type, { key: ' ', bubbles: true, cancelable: true, repeat });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  function drag() {
+    events.length = 0;
+    for (const type of ['pointerdown', 'pointermove', 'pointerup'])
+      surface.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1 }));
+    return events.map(({ type }) => type);
+  }
+
+  expect(key('keydown')).toBe(false);
+  expect(drag()).toContain('BoxSelectionStarted');
+  surface.dataset.flowSpaceToPan = 'true';
+  expect(key('keydown', input)).toBe(false);
+  expect(key('keydown', button)).toBe(false);
+  expect(drag()).toContain('BoxSelectionStarted');
+
+  surface.dataset.flowZoomAreaMode = 'true';
+  expect(key('keydown')).toBe(true);
+  expect(drag()).toEqual(['PanStarted', 'PointerMoved', 'PointerMoved', 'PointerReleased']);
+  key('keyup');
+  expect(drag()).toContain('ZoomAreaStarted');
+
+  surface.dataset.flowZoomAreaMode = 'false';
+  key('keydown');
+  surface.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: input }));
+  expect(drag()).toContain('BoxSelectionStarted');
+  key('keydown');
+  window.dispatchEvent(new window.Event('blur'));
+  expect(drag()).toContain('BoxSelectionStarted');
+  key('keydown');
+  surface.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  key('keydown', surface, true);
+  expect(drag()).toContain('BoxSelectionStarted');
+  release();
+});
+
 test('node focus tracking follows the containing frame and ignores nested editors', () => {
   const window = new Window();
   Object.defineProperty(globalThis, 'FocusEvent', {

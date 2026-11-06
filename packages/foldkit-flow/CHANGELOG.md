@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in Space-drag panning that preserves selection and the current
+  canvas tool.
+
 - Add opt-in pointer-anchored background double-click zoom with a
   configurable multiplier.
 

@@ -231,6 +231,7 @@ export type FlowCanvasHelpContext = Readonly<{
   visible: boolean;
   wheelNavigation: FlowWheelNavigation;
   doubleClickZoom?: boolean;
+  spaceToPan?: boolean;
 }>;
 
 /** Current canvas notice or the summary used when no notice is active. */
@@ -374,6 +375,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     wheelNavigation?: FlowWheelNavigation;
     /** Opt in to 1.25× background double-click zoom, or provide a finite multiplier greater than 1. */
     doubleClickZoom?: boolean | number;
+    /** Hold Space with the canvas focused to pan from the background. Defaults to false. */
+    spaceToPan?: boolean;
     /** Card width handles and corner/side handles on selected expanded groups. */
     resizeHandles?: boolean;
     /** Show Model dimensions during resizing and for selected groups with handles. Defaults to true. */
@@ -1026,6 +1029,7 @@ function canvasHelpView<M>(
 ): Html {
   const zoomAreaActive = Boolean(state.zoomAreaMode) || state.gesture.type === 'zoom-area';
   const doubleClickZoom = Boolean(options.doubleClickZoom);
+  const spaceToPan = options.spaceToPan === true;
   const wheelNavigation = options.wheelNavigation ?? 'zoom';
   const wheelHelp =
     wheelNavigation === 'pan'
@@ -1044,6 +1048,7 @@ function canvasHelpView<M>(
     ...(doubleClickZoom && !zoomAreaActive && !state.selectionMode
       ? ['Double-click the background to zoom in. ']
       : []),
+    ...(spaceToPan ? ['Focus the canvas, then hold Space and drag the background to pan. '] : []),
     'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
     ...(edgeToolbar
       ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
@@ -1058,6 +1063,7 @@ function canvasHelpView<M>(
       edgeToolbar,
       wheelNavigation,
       doubleClickZoom,
+      spaceToPan,
       visible,
     },
     h,
@@ -1940,6 +1946,7 @@ export function flowView<M>(
           h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
           h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
           h.DataAttribute('flow-double-click-zoom', String(doubleClickZoomFactor || '')),
+          h.DataAttribute('flow-space-to-pan', String(options.spaceToPan === true)),
           h.DataAttribute(
             'flow-fit-animation',
             state.fitViewTransition.type === 'fitting' ? String(state.fitViewTransition.id) : '',
@@ -1959,9 +1966,11 @@ export function flowView<M>(
             width: '100%',
             'touch-action': 'none',
             cursor:
-              state.selectionMode || state.zoomAreaMode || state.gesture.type === 'zoom-area'
-                ? 'crosshair'
-                : 'inherit',
+              options.spaceToPan && state.gesture.type === 'pan'
+                ? 'grabbing'
+                : state.selectionMode || state.zoomAreaMode || state.gesture.type === 'zoom-area'
+                  ? 'crosshair'
+                  : 'inherit',
             'background-color': 'var(--flow-background, #eef2f6)',
             border: '1px solid var(--flow-canvas-border, #94a3b8)',
             'border-radius': '10px',

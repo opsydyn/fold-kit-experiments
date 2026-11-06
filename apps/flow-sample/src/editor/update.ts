@@ -143,6 +143,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedDoubleClickZoom: () => ({
       model: { ...model, doubleClickZoom: !model.doubleClickZoom },
     }),
+    ClickedSpaceToPan: () => ({ model: { ...model, spaceToPan: !model.spaceToPan } }),
     SelectedNavigationDesign: ({ navigationDesign }) => ({ model: { ...model, navigationDesign } }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),

@@ -367,8 +367,22 @@ A per-edge `edgeAppearance` stroke or width takes precedence over the default
 edge tokens, and the selection token controls the selected stroke.
 See [Pleat's FoldKit and theme APIs](https://github.com/Manzanita-Research/pleat#theming).
 
-Select an edge to expose its endpoint handles. Drag either handle to a
+Select an edge to expose its available endpoint handles. Drag a handle to a
 compatible port to reconnect the edge. Escape or dropping elsewhere cancels.
+
+Pass the same `canReconnect` callback to `updateEditor` and `flowView` to
+lock specific edge ends. The callback receives the existing edge, the end
+(`'source'` or `'target'`), and the full graph. Return a reason to lock the
+end or `null` to allow an attempt. Locked handles are omitted. The reducer
+checks again during a drag and before committing, including for direct
+`EdgeReconnected` events from an inspector. Allowed targets still go
+through port validation and `canConnect`.
+
+```ts
+const canReconnect: EditorPolicy['canReconnect'] = (edge, end) =>
+  edge.id === 'approval' && end === 'source' ? 'Approval source is locked.' : null;
+```
+
 Hosts can offer the same edit through keyboard controls using `EdgeReconnected`.
 
 A node with `kind: 'group'` draws a boundary. Set a node's `parentId` to a

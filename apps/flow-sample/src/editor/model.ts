@@ -155,6 +155,9 @@ export type EdgeToolbarDesign = typeof EdgeToolbarDesign.Type;
 export const EdgeLabelDesign = Schema.Literals(['standard', 'badge']);
 export type EdgeLabelDesign = typeof EdgeLabelDesign.Type;
 
+export const ReconnectLock = Schema.Literals(['none', 'source', 'target', 'both']);
+export type ReconnectLock = typeof ReconnectLock.Type;
+
 export const EdgeDesign = Schema.Literals(['default', 'raised']);
 export type EdgeDesign = typeof EdgeDesign.Type;
 
@@ -195,6 +198,7 @@ export const Model = Schema.Struct({
   }),
   connectionDesign: ConnectionDesign,
   protectDeletions: Schema.Boolean,
+  reconnectLock: ReconnectLock,
   canvasCopyDesign: CanvasCopyDesign,
   selectionMarqueeDesign: SelectionMarqueeDesign,
   alignmentGuideDesign: AlignmentGuideDesign,
@@ -223,6 +227,7 @@ export type Model = Readonly<{
   diagnostics: FlowDiagnostics;
   connectionDesign: ConnectionDesign;
   protectDeletions: boolean;
+  reconnectLock: ReconnectLock;
   canvasCopyDesign: CanvasCopyDesign;
   selectionMarqueeDesign: SelectionMarqueeDesign;
   alignmentGuideDesign: AlignmentGuideDesign;
@@ -252,6 +257,7 @@ export const init = () => ({
     diagnostics: resolveFlowDiagnostics({}),
     connectionDesign: 'dashed',
     protectDeletions: false,
+    reconnectLock: 'none',
     canvasCopyDesign: 'standard',
     selectionMarqueeDesign: 'standard',
     alignmentGuideDesign: 'standard',

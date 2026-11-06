@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add per-edge source and target reconnection permissions shared by
+  the view and reducer.
+
 - Add a world-space overlay slot and a positioning primitive for decorative
   annotations and interactive host content.
 

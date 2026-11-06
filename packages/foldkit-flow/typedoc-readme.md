@@ -106,6 +106,11 @@ the rejection reason through its action descriptors.
 `FlowWheelNavigation` configures wheel zoom, two-axis panning with modifier
 zoom, or native page scrolling through `FlowViewOptions.wheelNavigation`.
 
+`EditorPolicy.canReconnect` locks individual source or target ends. Pass
+the same callback to `FlowViewOptions.canReconnect` to omit locked handles.
+The reducer rechecks permission on commit, and `canConnect` still validates
+the proposed connection.
+
 `EditorOptions.zoomLimits` and `EditorOptions.fitViewPadding` configure the
 camera shared by input, toolbar actions, and Fit view. Hosts can replace both
 with `ViewportConstraintsChanged` or pass `ZoomLimits` to the geometry helpers

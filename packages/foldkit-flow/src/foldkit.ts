@@ -304,6 +304,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     edgeToolbar?: boolean;
     /** Use the same pure deletion policy passed to updateEditor to disable protected actions. */
     canDelete?: EditorPolicy['canDelete'];
+    /** Use the reducer's reconnection policy to omit handles for locked endpoints. */
+    canReconnect?: EditorPolicy['canReconnect'];
     /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
     renderEdgeToolbar?: (
       context: FlowEdgeToolbarContext,
@@ -950,7 +952,7 @@ function canvasHelpView<M>(
       ? 'Drag the background to select nodes. '
       : 'Drag the background to pan, or Shift-drag to select nodes. ',
     wheelHelp,
-    'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge to drag either endpoint handle. Escape cancels.',
+    'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
     ...(edgeToolbar
       ? [' In the Connections list, select an edge and press Up Arrow to reach its actions.']
       : []),
@@ -1480,6 +1482,7 @@ export function flowView<M>(
         .filter((edge) => state.selectedEdges.includes(edge.id))
         .flatMap((edge) =>
           (['source', 'target'] as const).flatMap((end) => {
+            if ((options.canReconnect?.(edge, end, state.graph) ?? null) !== null) return [];
             const endpoint = edge[end];
             if (presentation.hiddenBy.has(endpoint.node)) return [];
             const node = state.graph.nodes.find((item) => item.id === endpoint.node);

@@ -303,3 +303,8 @@ In the release workflow, enable **World annotation** to show the custom
 release gate above Review. The annotation moves and scales with the node.
 Activate it to select Review, or toggle **World annotation** off to hide it.
 [Workbench screenshot](evidence/world-overlay.png)
+
+Use **Draft → Review reconnection** to lock either end of that edge. Select
+the connection to see the remaining handle and the disabled port selector
+for the locked end. The setting applies only to the Draft → Review edge.
+[Workbench screenshot](evidence/reconnect-permission.png)

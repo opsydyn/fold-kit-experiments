@@ -868,6 +868,11 @@ export function updateEditor(
       if (gesture.type === 'connection-drag') {
         const existing =
           gesture.reconnect && state.graph.edges.find((edge) => edge.id === gesture.reconnect?.id);
+        if (existing && gesture.reconnect) {
+          const reason =
+            policy.canReconnect?.(existing, gesture.reconnect.end, state.graph) ?? null;
+          if (reason !== null) return { ...cancel(state), notice: reason };
+        }
         const candidate = event.target;
         const edge =
           candidate && state.connection
@@ -1105,6 +1110,8 @@ export function updateEditor(
     case 'ReconnectionDragStarted': {
       const edge = state.graph.edges.find((item) => item.id === event.id);
       if (!edge) return state;
+      const reason = policy.canReconnect?.(edge, event.end, state.graph) ?? null;
+      if (reason !== null) return { ...state, notice: reason };
       finitePoint(event.point);
       return {
         ...state,
@@ -1334,6 +1341,8 @@ export function updateEditor(
       const previous = existing[event.end];
       if (previous.node === event.endpoint.node && previous.port === event.endpoint.port)
         return state;
+      const locked = policy.canReconnect?.(existing, event.end, state.graph) ?? null;
+      if (locked !== null) return { ...state, notice: locked };
       const edge = { ...existing, [event.end]: { ...event.endpoint } };
       const reason = connectionReason(state.graph, edge, policy, edge.id);
       if (reason !== null) return { ...state, notice: reason };

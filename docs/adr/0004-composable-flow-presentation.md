@@ -318,6 +318,14 @@ positioning API would require callers to duplicate frame and input bindings.
 Keeping the frame in Flow also gives both renderers the existing read-only,
 draft and undo behavior. Callers can hide a badge independently of editing.
 
+### Reconnection permission
+
+A host policy evaluates the existing edge and requested end. The native
+view uses it to omit handles. The reducer applies it to drag and direct
+edits so a stale handle or custom inspector cannot bypass the rule. This
+separates endpoint permission from target validation, which still uses
+the proposed edge and the existing connection policy.
+
 ### World overlay
 
 The view renders host overlay content in the same transformed layer as

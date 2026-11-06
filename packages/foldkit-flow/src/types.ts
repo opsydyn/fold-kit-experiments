@@ -53,6 +53,9 @@ export type FlowNode = Readonly<{
 }>;
 export type Endpoint = Readonly<{ node: string; port: string }>;
 export type EdgePathStyle = 'straight' | 'stepped' | 'smooth';
+/** The endpoint of an existing directed edge. */
+export type EdgeEnd = 'source' | 'target';
+
 /** A directed output-to-input connection with stable identity and JSON-compatible metadata. */
 export type FlowEdge = Readonly<{
   id: string;
@@ -108,7 +111,7 @@ export type Gesture =
       type: 'connection-drag';
       pointer: number;
       point: Point;
-      reconnect?: Readonly<{ id: string; end: 'source' | 'target' }>;
+      reconnect?: Readonly<{ id: string; end: EdgeEnd }>;
     }> &
       ConnectionTarget)
   | Readonly<{ type: 'box-selection'; pointer: number; origin: Point; point: Point }>
@@ -192,6 +195,8 @@ export type DeletionDecision =
 export type EditorPolicy = Readonly<{
   /** Return a rejection reason, or null to accept. Reconnection excludes the replaced edge from graph. */
   canConnect?: (edge: FlowEdge, graph: FlowGraph) => string | null;
+  /** Return a reason to lock an end, or null to allow attempts. Receives the existing edge and full graph. */
+  canReconnect?: (edge: FlowEdge, end: EdgeEnd, graph: FlowGraph) => string | null;
   /** Return a rejection reason for the complete deletion, or null to accept it. */
   canDelete?: (candidate: DeletionCandidate, graph: FlowGraph) => string | null;
 }>;
@@ -226,7 +231,7 @@ export type EditorEvent =
   | Readonly<{
       type: 'ReconnectionDragStarted';
       id: string;
-      end: 'source' | 'target';
+      end: EdgeEnd;
       pointer: number;
       point: Point;
     }>
@@ -271,7 +276,7 @@ export type EditorEvent =
   | Readonly<{ type: 'EdgeDataChanged'; id: string; data: JsonValue }>
   | Readonly<{ type: 'NodeMeasured'; id: string; size: Size }>
   | Readonly<{ type: 'SurfaceMeasured'; size: Size }>
-  | Readonly<{ type: 'EdgeReconnected'; id: string; end: 'source' | 'target'; endpoint: Endpoint }>
+  | Readonly<{ type: 'EdgeReconnected'; id: string; end: EdgeEnd; endpoint: Endpoint }>
   | Readonly<{ type: 'ConnectionCreated'; edge: FlowEdge }>
   | Readonly<{
       type: 'PortPositionsChanged';

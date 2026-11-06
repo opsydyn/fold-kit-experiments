@@ -16,6 +16,7 @@ import {
   updateEditor,
   zoomAt,
   type FlowGraph,
+  type EditorPolicy,
   type LayoutResult,
 } from '../src/index';
 
@@ -395,6 +396,75 @@ test('reconnecting an edge preserves identity and data, and rejects incompatible
   expect(updateEditor(initial, event, { canConnect: () => 'Denied' }).graph).toEqual(initial.graph);
   const updated = updateEditor(initial, event);
   expect(updated.graph.edges).toEqual([{ ...edge, target: event.endpoint }]);
+  expect(updateEditor(updated, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+});
+
+test('reconnection policy protects one endpoint across drag and direct edits', () => {
+  const edge = { id: 'ab', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  const initial = createEditor({
+    nodes: [
+      ...graph.nodes,
+      { ...nodeA, id: 'alternate-source' },
+      { ...nodeB, id: 'alternate-target' },
+    ],
+    edges: [edge],
+  });
+  const lockedSource: EditorPolicy = {
+    canReconnect: (current, end) =>
+      current.id === edge.id && end === 'source' ? 'Source is locked' : null,
+  };
+  const start = {
+    type: 'ReconnectionDragStarted',
+    id: edge.id,
+    end: 'source',
+    pointer: 1,
+    point: { x: 100, y: 100 },
+  } as const;
+  const blockedStart = updateEditor(initial, start, lockedSource);
+  expect(blockedStart.gesture.type).toBe('idle');
+  expect(blockedStart.notice).toBe('Source is locked');
+  const denied = updateEditor(
+    initial,
+    {
+      type: 'EdgeReconnected',
+      id: edge.id,
+      end: 'source',
+      endpoint: { node: 'alternate-source', port: 'out' },
+    },
+    lockedSource,
+  );
+  expect(denied.graph).toBe(initial.graph);
+  expect(denied.past).toBe(initial.past);
+  expect(denied.revision).toBe(initial.revision);
+  expect(denied.notice).toBe('Source is locked');
+
+  const started = updateEditor(initial, { ...start, end: 'target' }, lockedSource);
+  const endpoint = { node: 'alternate-target', port: 'in' };
+  const move = {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 200, y: 100 },
+    target: endpoint,
+  } as const;
+  const ready = updateEditor(started, move, lockedSource);
+  const lockedTarget: EditorPolicy = {
+    canReconnect: (current, end, currentGraph) =>
+      current === currentGraph.edges[0] && end === 'target' ? 'Target is locked' : null,
+  };
+  const cancelled = updateEditor(started, move, lockedTarget);
+  expect(cancelled.gesture.type).toBe('idle');
+  expect(cancelled.connection).toBeNull();
+  expect(cancelled.notice).toBe('Target is locked');
+
+  const release = { type: 'PointerReleased', pointer: 1 } as const;
+  const deniedRelease = updateEditor(ready, release, lockedTarget);
+  expect(deniedRelease.gesture.type).toBe('idle');
+  expect(deniedRelease.graph).toBe(initial.graph);
+  expect(deniedRelease.past).toBe(initial.past);
+  expect(deniedRelease.notice).toBe('Target is locked');
+  const updated = updateEditor(ready, release, lockedSource);
+  expect(updated.graph.edges).toEqual([{ ...edge, target: endpoint }]);
+  expect(updated.past).toHaveLength(1);
   expect(updateEditor(updated, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
 });
 

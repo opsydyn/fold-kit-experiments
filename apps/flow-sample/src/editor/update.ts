@@ -15,7 +15,7 @@ import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import type { Return } from 'foldkit/update';
 
 import { ArrangeFlow, ExportFlow, ImportFlow, LoadFlow, SaveFlow } from './command';
-import { requiredItemPolicy } from './deletion-policy';
+import { workbenchPolicy } from './editor-policy';
 import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
 import { presetPosition } from './port-presets';
@@ -48,11 +48,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return {
         model: {
           ...model,
-          editor: updateEditor(
-            model.editor,
-            event,
-            model.protectDeletions ? requiredItemPolicy : undefined,
-          ),
+          editor: updateEditor(model.editor, event, workbenchPolicy(model)),
         },
       };
     },
@@ -101,6 +97,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedWheelNavigation: ({ wheelNavigation }) => ({ model: { ...model, wheelNavigation } }),
     SelectedNavigationDesign: ({ navigationDesign }) => ({ model: { ...model, navigationDesign } }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
+    SelectedReconnectLock: ({ reconnectLock }) => ({ model: { ...model, reconnectLock } }),
     ClickedDeletionProtection: () => ({
       model: { ...model, protectDeletions: !model.protectDeletions },
     }),

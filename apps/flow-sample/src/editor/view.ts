@@ -1,6 +1,7 @@
 import {
   defaultFitViewPadding,
   defaultZoomLimits,
+  type EdgeEnd,
   type EdgePathStyle,
   type FlowEdge,
 } from '@opsydyn/foldkit-flow';
@@ -16,7 +17,7 @@ import {
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
-import { requiredItemPolicy } from './deletion-policy';
+import { workbenchPolicy } from './editor-policy';
 import { Message } from './message';
 import {
   NavigationDesign,
@@ -25,6 +26,7 @@ import {
   PortAnchorPreset,
   ConnectionDesign,
   EdgeDesign,
+  ReconnectLock,
   EdgeLabelDesign,
   NodeToolbarDesign,
   EdgeToolbarDesign,
@@ -144,7 +146,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const selectedEdge = model.editor.graph.edges.find((edge) =>
     model.editor.selectedEdges.includes(edge.id),
   );
-  const endpointSelect = (edge: FlowEdge, end: 'source' | 'target') => {
+  const policy = workbenchPolicy(model);
+  const endpointSelect = (edge: FlowEdge, end: EdgeEnd) => {
+    const reason = policy.canReconnect(edge, end, model.editor.graph);
+    const reasonId = `flow-reconnect-${end}-reason`;
     const kind = end === 'source' ? 'output' : 'input';
     const label = end === 'source' ? 'Source port' : 'Target port';
     const ports = model.editor.graph.nodes.flatMap((node) =>
@@ -162,7 +167,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.select(
           [
             h.AriaLabel(label),
-            h.Disabled(model.editor.readOnly),
+            h.Disabled(model.editor.readOnly || reason !== null),
+            ...(reason === null ? [] : [h.AriaDescribedBy(reasonId)]),
             h.OnChange((value) =>
               Message.ObservedFlowInput({
                 message: {
@@ -197,6 +203,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ),
         ),
+        ...(reason === null
+          ? []
+          : [h.small([h.Id(reasonId), h.Style({ margin: '0 6px' })], [reason])]),
       ],
     );
   };
@@ -1116,6 +1125,34 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             'Animate Fit view',
           ],
         ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Draft → Review reconnection',
+            h.select(
+              [
+                h.AriaLabel('Draft to Review reconnection'),
+                h.Value(model.reconnectLock),
+                h.OnChange((value) =>
+                  Message.SelectedReconnectLock({
+                    reconnectLock: Schema.decodeUnknownSync(ReconnectLock)(value),
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              (
+                [
+                  ['none', 'Both ends enabled'],
+                  ['source', 'Source locked'],
+                  ['target', 'Target locked'],
+                  ['both', 'Both ends locked'],
+                ] as const
+              ).map(([value, label]) =>
+                h.option([h.Value(value), h.Selected(model.reconnectLock === value)], [label]),
+              ),
+            ),
+          ],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
@@ -1290,7 +1327,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ? compactNodeToolbar(context, builder)
               : undefined,
           edgeToolbar: true,
-          canDelete: model.protectDeletions ? requiredItemPolicy.canDelete : undefined,
+          canDelete: policy.canDelete,
+          canReconnect: policy.canReconnect,
           renderEdgeToolbar: (context, builder) =>
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)

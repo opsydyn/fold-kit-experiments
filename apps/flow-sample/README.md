@@ -359,3 +359,7 @@ canvas items while keeping the minimap and Connections list complete.
 The [sustained input profile](evidence/camera-benchmark.md#sustained-input-profile)
 adds timed drag and wheel bursts, with frame gaps and camera commits reported
 for both culling modes.
+
+The [wheel zoom CPU profile](evidence/camera-benchmark.md#wheel-zoom-cpu-profile)
+captures the same workload with culling off and attributes samples to the
+view, DOM patch, and style-validation paths.

@@ -142,3 +142,54 @@ and view execution during the wheel burst with culling off and identify where th
 extra time goes before testing a scheduler change.
 
 ![p95 callback gaps with culling on and off](camera-burst-profile.png)
+
+## Wheel zoom CPU profile
+
+The capture uses the same large workflow, default diagnostics, and culling
+off. Each run starts at about 100% zoom, drives one warm-up burst, resets the
+camera, then samples the next 180-packet, 120 Hz wheel burst through the
+last verified camera update. Chromium's V8 profiler was configured to
+sample every 1 ms. The production build enables source maps only for this
+capture. The summary maps generated frames through the app map and then
+through workspace package maps where available.
+[Chrome DevTools Profiler protocol](https://chromedevtools.github.io/devtools-protocol/tot/Profiler/)
+
+```sh
+FLOW_BENCHMARK_SOURCEMAPS=1 bun run --filter @opsydyn/flow-sample build
+cd apps/web
+for trial in 1 2 3; do
+  FLOW_BENCHMARK_CPU_PROFILE="/tmp/flow-wheel-$trial.cpuprofile" bun - < ../flow-sample/evidence/camera-benchmark.mjs
+done
+bun ../flow-sample/evidence/camera-cpu-summary.mjs /tmp/flow-wheel-{1,2,3}.cpuprofile
+```
+
+The three profiles used headless Chromium 151.0.7922.34 on the Apple M4 Pro.
+All three reached the expected zoom, with 92 delivered events and 88
+camera commits each. Capture windows were 3.019–3.035 seconds. V8 recorded
+2,352–2,367 samples per capture, including 1,780–1,799 active stack samples.
+The denominator excludes V8's idle, program, and garbage-collector frames.
+Percentages describe sample shares. Inclusive rows can overlap with their
+descendants, and the profile does not attribute Chrome's native paint or
+compositor work.
+
+| Sampled work                                    | Attribution | Active samples |
+| ----------------------------------------------- | ----------- | -------------: |
+| FoldKit render path                             | Inclusive   |          98.8% |
+| FoldKit view construction                       | Inclusive   |     75.2–75.5% |
+| Flow node view construction, including controls | Inclusive   |     54.2–55.2% |
+| Flow port builder                               | Inclusive   |     17.9–18.8% |
+| FoldKit VNode patch                             | Inclusive   |     23.3–23.6% |
+| Connections list construction                   | Inclusive   |     10.0–10.1% |
+| Edge geometry resolution                        | Inclusive   |       2.7–3.5% |
+| Inline style validation                         | Self        |     28.5–30.4% |
+| HTML builder Style handler                      | Self        |     12.9–13.4% |
+| VNode attribute patching                        | Self        |       8.7–9.3% |
+
+The camera changes the world transform while the workbench still rebuilds
+node and port HTML. The largest measured opportunity is to reuse those
+subtrees across camera-only updates. The CPU profiles support testing that
+change with the same burst before pursuing edge routing or input scheduling.
+
+[Representative Chromium CPU profile](wheel-zoom-unculled.cpuprofile)
+
+![Wheel zoom CPU sample attribution](camera-cpu-profile.png)

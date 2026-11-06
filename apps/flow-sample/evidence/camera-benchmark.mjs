@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { arch, cpus, release } from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -25,7 +25,9 @@ const runs = 3;
 const samplesPerRun = 20;
 const warmup = 4;
 const worldSelector = ':scope > div[style*="transform-origin"]';
-const sustained = process.env.FLOW_BENCHMARK_BURST === '1';
+const cpuProfilePath = process.env.FLOW_BENCHMARK_CPU_PROFILE;
+const sustained = Boolean(cpuProfilePath) || process.env.FLOW_BENCHMARK_BURST === '1';
+const scenarioRuns = cpuProfilePath ? 1 : runs;
 const comparison = sustained || process.env.FLOW_BENCHMARK_COMPARE_CULLING === '1';
 const burstInputs = 180;
 const burstHz = 120;
@@ -141,7 +143,7 @@ async function measure(page, surface, point, kind) {
   return observed.slice(warmup);
 }
 
-async function measureBurst(page, surface, world, point, kind) {
+async function measureBurst(page, surface, world, point, kind, profilePath) {
   const pan = kind === 'pan';
   const session = await page.context().newCDPSession(page);
   const run = async () => {
@@ -213,6 +215,11 @@ async function measureBurst(page, surface, world, point, kind) {
       { selector: worldSelector, eventName: pan ? 'pointermove' : 'wheel' },
     );
 
+    if (profilePath) {
+      await session.send('Profiler.enable');
+      await session.send('Profiler.setSamplingInterval', { interval: 1000 });
+      await session.send('Profiler.start');
+    }
     const sent = [];
     const dispatchErrors = [];
     const startedAt = performance.now();
@@ -253,6 +260,11 @@ async function measureBurst(page, surface, world, point, kind) {
           requestAnimationFrame(() => resolve(window.flowBurstProbe.stop())),
         ),
     );
+    if (profilePath) {
+      const { profile } = await session.send('Profiler.stop');
+      expect(profile.samples?.length).toBeGreaterThan(0);
+      await writeFile(profilePath, JSON.stringify(profile));
+    }
     if (pan)
       await session.send('Input.dispatchMouseEvent', {
         type: 'mouseReleased',
@@ -320,12 +332,17 @@ async function qualify(browser, fixture) {
     }
 
     const results = {};
-    for (const kind of ['pan', 'zoom']) {
+    if (cpuProfilePath) {
+      const point = await prepareCamera(page, surface, world);
+      await measureBurst(page, surface, world, point, 'zoom');
+    }
+    const operations = cpuProfilePath ? ['zoom'] : ['pan', 'zoom'];
+    for (const kind of operations) {
       if (sustained) {
         const bursts = [];
-        for (let run = 0; run < runs; run++) {
+        for (let run = 0; run < scenarioRuns; run++) {
           const point = await prepareCamera(page, surface, world);
-          bursts.push(await measureBurst(page, surface, world, point, kind));
+          bursts.push(await measureBurst(page, surface, world, point, kind, cpuProfilePath));
         }
         results[kind] = summarizeBursts(bursts);
         continue;
@@ -372,7 +389,9 @@ async function benchmark() {
   const browser = await chromium.launch();
   const run = async () => {
     const results = [];
-    const order = process.env.FLOW_BENCHMARK_REVERSE === '1' ? [...cases].reverse() : cases;
+    const selectedCases = cpuProfilePath ? cases.filter((fixture) => !fixture.culling) : cases;
+    const order =
+      process.env.FLOW_BENCHMARK_REVERSE === '1' ? [...selectedCases].reverse() : selectedCases;
     for (const fixture of order) results.push(await qualify(browser, fixture));
     console.log(
       JSON.stringify(
@@ -380,7 +399,8 @@ async function benchmark() {
           chromium: browser.version(),
           host: { arch: arch(), release: release(), cpu: cpus()[0]?.model },
           viewport,
-          runs,
+          runs: scenarioRuns,
+          cpuProfileWarmupBursts: cpuProfilePath ? 1 : 0,
           samplesPerRun: sustained ? burstInputs : samplesPerRun,
           warmup: sustained ? 0 : warmup,
           burst: sustained ? { inputs: burstInputs, hz: burstHz } : null,

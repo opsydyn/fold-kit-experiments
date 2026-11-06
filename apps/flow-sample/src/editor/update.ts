@@ -23,6 +23,7 @@ import {
   SaveFlow,
 } from './command';
 import { workbenchPolicy } from './editor-policy';
+import { createLargeWorkflowGraph } from './large-workflow';
 import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
 import { presetPosition } from './port-presets';
@@ -60,11 +61,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       };
     },
     SelectedExample: ({ example }) => {
-      const graph = {
-        release: initialGraph,
-        onion: onionGraph,
-        'grouped-onion': groupedOnionGraph,
-      }[example];
+      const graph =
+        example === 'large-workflow'
+          ? createLargeWorkflowGraph()
+          : { release: initialGraph, onion: onionGraph, 'grouped-onion': groupedOnionGraph }[
+              example
+            ];
       const surface = model.editor.surface;
       const editor = createEditor(graph, {
         snapToGrid,

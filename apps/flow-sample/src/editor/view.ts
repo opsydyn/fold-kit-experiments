@@ -330,6 +330,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     'Open grouped Onion Architecture',
                     Message.SelectedExample({ example: 'grouped-onion' }),
                   ),
+                  button(
+                    'Open large workflow (320 nodes)',
+                    Message.SelectedExample({ example: 'large-workflow' }),
+                  ),
                 ],
               ),
             ]),

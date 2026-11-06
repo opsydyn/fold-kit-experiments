@@ -1,0 +1,204 @@
+import { readFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import { arch, cpus, release } from 'node:os';
+
+import { chromium, expect } from '@playwright/test';
+const server = createServer(async (req, res) => {
+  const path = req.url === '/' ? '/index.html' : req.url;
+  await readFile('../flow-sample/dist' + path)
+    .then((body) => {
+      res.setHeader(
+        'Content-Type',
+        path.endsWith('.js') ? 'text/javascript' : path.endsWith('.css') ? 'text/css' : 'text/html',
+      );
+      res.end(body);
+    })
+    .catch(() => res.writeHead(404).end());
+});
+await new Promise((resolve, reject) =>
+  server.once('error', reject).listen(0, '127.0.0.1', resolve),
+);
+
+const viewport = { width: 1280, height: 1100 };
+const runs = 3;
+const samplesPerRun = 20;
+const warmup = 4;
+const worldSelector = ':scope > div[style*="transform-origin"]';
+const cases = [
+  { name: 'Release · default', nodes: 3, edges: 1, minimal: false },
+  { name: 'Large · default', nodes: 320, edges: 452, minimal: false },
+  { name: 'Large · minimal', nodes: 320, edges: 452, minimal: true },
+];
+
+async function backgroundPoint(surface) {
+  return surface.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    for (let y = 48; y < box.height - 48; y += 14) {
+      for (let x = 64; x < box.width / 2; x += 14) {
+        const left = Math.round(box.left + x);
+        const top = Math.round(box.top + y);
+        if (document.elementFromPoint(left, top) === element) return { x: left, y: top };
+      }
+    }
+    throw new Error('No canvas background point available for camera input');
+  });
+}
+
+async function prepareCamera(page, surface, world) {
+  await page.getByRole('button', { name: 'Fit view', exact: true }).click();
+  await surface.scrollIntoViewIfNeeded();
+  const zoom = () =>
+    world.evaluate((element) => Number(element.style.transform.match(/scale\(([^)]+)\)/)?.[1]));
+  let current = await zoom();
+  for (let attempt = 0; attempt < 5 && Math.abs(current - 1) > 0.01; attempt++) {
+    const point = await backgroundPoint(surface);
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.wheel(0, Math.round(Math.max(-500, Math.min(500, Math.log(current) / 0.002))));
+    await expect.poll(zoom).not.toBe(current);
+    current = await zoom();
+  }
+  expect(current).toBeCloseTo(1, 2);
+  return backgroundPoint(surface);
+}
+
+async function measure(page, surface, point, kind) {
+  const pan = kind === 'pan';
+  await page.mouse.move(point.x, point.y);
+  if (pan) await page.mouse.down();
+  await surface.evaluate(
+    (element, { selector, eventName }) => {
+      const world = element.querySelector(selector);
+      let transform = world.style.transform;
+      let pending;
+      const samples = [];
+      const onInput = (event) => {
+        if (event.isTrusted)
+          pending = { inputTime: event.timeStamp, listenerTime: performance.now() };
+      };
+      const observer = new MutationObserver(() => {
+        const next = world.style.transform;
+        if (next === transform) return;
+        transform = next;
+        if (pending === undefined) return;
+        const { inputTime, listenerTime } = pending;
+        pending = undefined;
+        const updateTime = performance.now();
+        requestAnimationFrame(() =>
+          samples.push({
+            listenerToUpdateMs: updateTime - listenerTime,
+            updateMs: updateTime - inputTime,
+            frameMs: performance.now() - inputTime,
+          }),
+        );
+      });
+      element.addEventListener(eventName, onInput, { capture: true, passive: true });
+      observer.observe(world, { attributes: true, attributeFilter: ['style'] });
+      window.flowCameraProbe = {
+        samples,
+        stop() {
+          observer.disconnect();
+          element.removeEventListener(eventName, onInput, true);
+          delete window.flowCameraProbe;
+          return samples;
+        },
+      };
+    },
+    { selector: worldSelector, eventName: pan ? 'pointermove' : 'wheel' },
+  );
+
+  for (let index = 0; index < warmup + samplesPerRun; index++) {
+    // Reversible input in ten-step legs. The four warmups start with a shorter out-and-back.
+    const leg = index < warmup ? index : (index - warmup) % 20;
+    const steps = index < warmup ? 2 : 10;
+    if (pan) {
+      const offset = leg < steps ? leg + 1 : 2 * steps - leg - 1;
+      await page.mouse.move(point.x + offset * 14, point.y + offset * 3);
+    } else {
+      await page.mouse.wheel(0, leg < steps ? -28 : 28);
+    }
+    const ready = await page.waitForFunction(
+      (count) => window.flowCameraProbe.samples.length === count,
+      index + 1,
+      { timeout: 5000 },
+    );
+    await ready.dispose();
+  }
+  if (pan) await page.mouse.up();
+  const observed = await page.evaluate(() => window.flowCameraProbe.stop());
+  expect(observed).toHaveLength(warmup + samplesPerRun);
+  return observed.slice(warmup);
+}
+
+function summarize(samples, field) {
+  const sorted = samples.map((sample) => sample[field]).sort((left, right) => left - right);
+  const percentile = (fraction) =>
+    Math.round(sorted[Math.ceil(sorted.length * fraction) - 1] * 10) / 10;
+  return { p50: percentile(0.5), p95: percentile(0.95) };
+}
+
+async function qualify(browser, fixture) {
+  const page = await browser.newPage({ viewport, colorScheme: 'light', reducedMotion: 'reduce' });
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(String(error)));
+  const run = async () => {
+    await page.goto('http://127.0.0.1:' + server.address().port);
+    if (fixture.nodes > 3)
+      await page.getByRole('button', { name: 'Open large workflow (320 nodes)' }).click();
+    const surface = page.locator('[data-flow-surface]');
+    const world = surface.locator(worldSelector);
+    await expect(surface.locator('[data-flow-node]')).toHaveCount(fixture.nodes);
+    await expect(surface.locator('[data-flow-edge]')).toHaveCount(fixture.edges);
+    if (fixture.name === 'Large · default') {
+      const screenshot = process.env.FLOW_BENCHMARK_SCREENSHOT;
+      if (screenshot) await surface.screenshot({ path: screenshot, timeout: 15000 });
+    }
+    if (fixture.minimal)
+      await page.getByRole('button', { name: 'Minimal mode', exact: true }).click();
+
+    const results = {};
+    for (const kind of ['pan', 'zoom']) {
+      const samples = [];
+      for (let run = 0; run < runs; run++) {
+        const point = await prepareCamera(page, surface, world);
+        samples.push(...(await measure(page, surface, point, kind)));
+      }
+      results[kind] = {
+        samples: samples.length,
+        domUpdateMs: summarize(samples, 'updateMs'),
+        nextFrameMs: summarize(samples, 'frameMs'),
+        listenerToUpdateMs: summarize(samples, 'listenerToUpdateMs'),
+      };
+    }
+    const elements = await page.locator('*').count();
+    const canvasElements = await surface.locator('*').count();
+    expect(errors).toEqual([]);
+    return { ...fixture, elements, canvasElements, ...results };
+  };
+  return run().finally(() => page.close());
+}
+
+async function benchmark() {
+  const browser = await chromium.launch();
+  const run = async () => {
+    const results = [];
+    const order = process.env.FLOW_BENCHMARK_REVERSE === '1' ? [...cases].reverse() : cases;
+    for (const fixture of order) results.push(await qualify(browser, fixture));
+    console.log(
+      JSON.stringify(
+        {
+          chromium: browser.version(),
+          host: { arch: arch(), release: release(), cpu: cpus()[0]?.model },
+          viewport,
+          runs,
+          samplesPerRun,
+          warmup,
+          results,
+        },
+        null,
+        2,
+      ),
+    );
+  };
+  await run().finally(() => browser.close());
+}
+await benchmark().finally(() => new Promise((resolve) => server.close(resolve)));

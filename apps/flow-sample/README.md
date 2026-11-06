@@ -345,3 +345,8 @@ Use **Item visibility** to hide Review or its incoming edge independently.
 The canvas, overview, and Connections list reflect the filter, while Export
 JSON keeps the full graph.
 [Workbench screenshot](evidence/item-visibility.png)
+
+Choose **Open large workflow (320 nodes)** to inspect a deterministic workflow
+with 452 edges. See the [camera benchmark](evidence/camera-benchmark.md) for
+the measurements and repeatable Chromium driver.
+[Workbench screenshot](evidence/large-workflow.png)

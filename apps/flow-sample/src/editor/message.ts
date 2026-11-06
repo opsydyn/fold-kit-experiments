@@ -26,7 +26,9 @@ import {
 } from './model';
 export const Message = defineMessageUnion({
   ObservedFlowInput: { message: Schema.Unknown },
-  SelectedExample: { example: Schema.Literals(['release', 'onion', 'grouped-onion']) },
+  SelectedExample: {
+    example: Schema.Literals(['release', 'onion', 'grouped-onion', 'large-workflow']),
+  },
   SelectedWheelNavigation: { wheelNavigation: WheelNavigation },
   SelectedNavigationDesign: { navigationDesign: NavigationDesign },
   SelectedPortAnchors: { preset: PortAnchorPreset },

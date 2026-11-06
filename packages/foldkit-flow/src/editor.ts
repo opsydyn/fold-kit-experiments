@@ -71,6 +71,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     gridSpacing,
     snapToAlignment: options.snapToAlignment ?? false,
     selectionMode: options.selectionMode ?? false,
+    boxSelectionMatch: options.boxSelectionMatch ?? 'full',
     routes: [],
     notice: null,
   };
@@ -576,6 +577,9 @@ export function updateEditor(
     case 'ConnectionListToggled':
       if (state.gesture.type !== 'idle') return state;
       return { ...state, connectionsExpanded: !state.connectionsExpanded };
+    case 'BoxSelectionMatchChanged':
+      if (state.gesture.type !== 'idle' || event.match === state.boxSelectionMatch) return state;
+      return { ...state, boxSelectionMatch: event.match };
     case 'SelectionModeToggled':
       if (state.gesture.type !== 'idle') return state;
       return { ...state, selectionMode: !state.selectionMode };
@@ -887,20 +891,33 @@ export function updateEditor(
         return state;
       if (gesture.type === 'box-selection') {
         const bounds = boxBounds(gesture.origin, gesture.point);
-        const enclosed = presentGroups(state.graph, state.collapsedGroups).nodes.filter(
-          (node) =>
-            node.position.x >= bounds.left &&
-            node.position.y >= bounds.top &&
-            node.position.x + node.size.width <= bounds.right &&
-            node.position.y + node.size.height <= bounds.bottom,
-        );
-        const enclosedIds = new Set(enclosed.map((node) => node.id));
+        const collapsed = new Set(state.collapsedGroups);
+        const partial = state.boxSelectionMatch === 'partial';
+        const hasArea = bounds.left < bounds.right && bounds.top < bounds.bottom;
+        const matched = presentGroups(state.graph, state.collapsedGroups).nodes.filter((node) => {
+          const { x, y } = node.position;
+          const right = x + node.size.width;
+          const bottom = y + node.size.height;
+          // Expanded groups keep enclosure semantics so a marquee can select their children.
+          if (partial && (node.kind !== 'group' || collapsed.has(node.id)))
+            return (
+              hasArea &&
+              x < bounds.right &&
+              y < bounds.bottom &&
+              right > bounds.left &&
+              bottom > bounds.top
+            );
+          return (
+            x >= bounds.left && y >= bounds.top && right <= bounds.right && bottom <= bounds.bottom
+          );
+        });
+        const matchedIds = new Set(matched.map((node) => node.id));
         const byId = new Map(state.graph.nodes.map((node) => [node.id, node]));
-        const selectedNodes = enclosed
+        const selectedNodes = matched
           .filter((node) => {
             let parent = node.parentId;
             while (parent !== undefined) {
-              if (enclosedIds.has(parent)) return false;
+              if (matchedIds.has(parent)) return false;
               parent = byId.get(parent)?.parentId;
             }
             return true;

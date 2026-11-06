@@ -128,6 +128,7 @@ import { FlowInput } from './mount';
 export type { FlowBackground, FlowBackgroundRenderContext } from './background';
 import type {
   AlignmentGuide,
+  BoxSelectionMatch,
   DeletionTargets,
   EditorPolicy,
   FlowGraph,
@@ -180,6 +181,7 @@ export type FlowAlignmentGuideContext = Readonly<{
 /** Normalized selection bounds in graph coordinates and the current camera. */
 export type FlowSelectionMarqueeContext = Readonly<{
   bounds: Readonly<{ left: number; top: number; right: number; bottom: number }>;
+  match: BoxSelectionMatch;
   viewport: Viewport;
 }>;
 
@@ -675,7 +677,10 @@ function selectionMarquee<M>(
   const { gesture, viewport } = state;
   if (gesture.type !== 'box-selection') return [];
   const bounds = boxBounds(gesture.origin, gesture.point);
-  const custom = options.renderSelectionMarquee?.({ bounds, viewport }, h);
+  const custom = options.renderSelectionMarquee?.(
+    { bounds, viewport, match: state.boxSelectionMatch },
+    h,
+  );
   if (custom === null) return [];
   const placement = {
     position: 'absolute',

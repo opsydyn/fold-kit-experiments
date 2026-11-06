@@ -269,3 +269,7 @@ Application core cannot be deleted while it contains the required node.
 Delete Publish in the release workflow to see an allowed edit and restore
 it with one Undo.
 [Protected edge](evidence/deletion-protected-edge.png) · [Protected group](evidence/deletion-protected-group.png)
+
+Use **Box selection match → Partial overlap** to include cards only partly
+inside the marquee. Draw the same box in **Full containment** to compare.
+[Workbench screenshot](evidence/partial-selection.png)

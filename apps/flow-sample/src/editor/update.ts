@@ -19,7 +19,8 @@ import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model
 import { presetPosition } from './port-presets';
 
 export function update(model: Model, message: Message): Return<Model, Message> {
-  const { snapToGrid, gridSpacing, snapToAlignment, selectionMode } = model.editor;
+  const { snapToGrid, gridSpacing, snapToAlignment, selectionMode, boxSelectionMatch } =
+    model.editor;
   return Message.match(message, {
     ObservedFlowInput: ({ message: input }) => {
       // SAFETY: flowView and the toolbar emit the package's typed EditorEvent contract.
@@ -47,6 +48,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         gridSpacing,
         snapToAlignment,
         selectionMode,
+        boxSelectionMatch,
         viewport: fitViewport(graph, surface ?? { width: 800, height: 440 }),
       });
       return {
@@ -234,6 +236,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         gridSpacing,
         snapToAlignment,
         selectionMode,
+        boxSelectionMatch,
         viewport: fitViewport(graph, size, Math.min(24, size.width / 4, size.height / 4)),
       });
       return {
@@ -267,6 +270,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             gridSpacing,
             snapToAlignment,
             selectionMode,
+            boxSelectionMatch,
           }),
           surface: model.editor.surface,
           clipboard: model.editor.clipboard,

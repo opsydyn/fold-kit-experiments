@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add optional partial-overlap box selection for cards and collapsed groups.
+  Full containment remains the default and applies to expanded group frames.
+
 - Add a pure deletion policy shared by keyboard deletion, context actions and
   the edge toolbar. A rejection protects the full transaction, including
   descendants and incident edges.

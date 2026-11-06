@@ -805,6 +805,38 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
+            'Box selection match',
+            h.select(
+              [
+                h.AriaLabel('Box selection match'),
+                h.Value(model.editor.boxSelectionMatch),
+                h.Disabled(model.editor.gesture.type !== 'idle'),
+                h.OnChange((value) =>
+                  Message.ObservedFlowInput({
+                    message: {
+                      type: 'BoxSelectionMatchChanged',
+                      match: Schema.decodeUnknownSync(Schema.Literals(['full', 'partial']))(value),
+                    },
+                  }),
+                ),
+                h.Style({ padding: '8px' }),
+              ],
+              [
+                h.option(
+                  [h.Value('full'), h.Selected(model.editor.boxSelectionMatch === 'full')],
+                  ['Full containment'],
+                ),
+                h.option(
+                  [h.Value('partial'), h.Selected(model.editor.boxSelectionMatch === 'partial')],
+                  ['Partial overlap'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
             'Selection marquee',
             h.select(
               [

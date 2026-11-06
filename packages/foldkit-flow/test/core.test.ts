@@ -510,6 +510,54 @@ test('reverse box selection at zoom replaces selection only on release', () => {
   expect(result.viewport).toEqual(initial.viewport);
 });
 
+test('partial marquee selects intersecting cards without swallowing their expanded group', () => {
+  const initial = createEditor(
+    {
+      nodes: [
+        {
+          id: 'g',
+          kind: 'group',
+          label: 'Group',
+          position: { x: 0, y: 0 },
+          size: { width: 240, height: 200 },
+          ports: [],
+        },
+        { ...nodeA, parentId: 'g' },
+        nodeB,
+      ],
+      edges: [],
+    },
+    { viewport: { x: 25, y: 30, zoom: 2 } },
+  );
+  const draw = (
+    state: typeof initial,
+    start: { x: number; y: number },
+    end: { x: number; y: number },
+  ) => {
+    const started = updateEditor(state, { type: 'BoxSelectionStarted', pointer: 1, point: start });
+    return updateEditor(started, { type: 'PointerMoved', pointer: 1, point: end });
+  };
+  const release = (state: typeof initial) =>
+    updateEditor(state, { type: 'PointerReleased', pointer: 1 });
+  const start = { x: 325, y: 170 };
+  const end = { x: 205, y: 70 };
+  expect(release(draw(initial, start, end)).selectedNodes).toEqual([]);
+  const partial = updateEditor(initial, { type: 'BoxSelectionMatchChanged', match: 'partial' });
+  const active = draw(partial, start, end);
+  expect(active.selectedNodes).toEqual([]);
+  expect(updateEditor(active, { type: 'BoxSelectionMatchChanged', match: 'full' })).toBe(active);
+  const selected = release(active);
+  expect(selected.selectedNodes).toEqual(['a']);
+  expect(selected.graph).toBe(initial.graph);
+  expect(selected.past).toBe(initial.past);
+  expect(selected.revision).toBe(initial.revision);
+  expect(release(draw(partial, { x: 305, y: 90 }, { x: 325, y: 150 })).selectedNodes).toEqual([]);
+  expect(release(draw(partial, end, end)).selectedNodes).toEqual([]);
+  expect(release(draw(partial, { x: 25, y: 30 }, { x: 505, y: 430 })).selectedNodes).toEqual(['g']);
+  const collapsed = updateEditor(partial, { type: 'GroupCollapseToggled', id: 'g' });
+  expect(release(draw(collapsed, start, end)).selectedNodes).toEqual(['g']);
+});
+
 test('minimap navigation centers the chosen map point without changing zoom or history', () => {
   const initial = createEditor(graph, { viewport: { x: 50, y: 30, zoom: 2 } });
   const state = updateEditor(initial, {

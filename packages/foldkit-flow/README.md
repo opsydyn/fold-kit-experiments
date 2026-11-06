@@ -611,11 +611,26 @@ with their own targets. The policy may run during rendering and again when
 the editor handles a deletion, so keep it synchronous and pure. The host
 decides how to identify required items.
 
+### Box selection matching
+
+Full containment is the default. To include cards that overlap only part of
+the marquee, initialize the editor with `boxSelectionMatch: 'partial'` or
+send `{ type: 'BoxSelectionMatchChanged', match: 'partial' }` while idle.
+The setting applies to both Shift-drag and Box select. It belongs to the
+editor session and is separate from the saved graph and Undo history.
+
+Partial matching requires positive-area overlap. Touching an edge or
+drawing a zero-area rectangle selects no items by overlap. Expanded group
+frames still require full containment, so a marquee inside a group can
+select its children independently. Collapsed groups match using their
+visible bounds, and hidden descendants stay excluded. Selection is applied
+on release.
+
 ### Custom box-selection marquee
 
 Use `renderSelectionMarquee(context, h)` to replace the decoration during
 a box-selection gesture. The context contains normalized `bounds` in graph
-coordinates and the current `viewport`. Flow positions and sizes the frame
+coordinates, the current `viewport`, and the matching rule. Flow positions and sizes the frame
 using the same bounds as selection on release. Use decorative content that
 fills the frame.
 

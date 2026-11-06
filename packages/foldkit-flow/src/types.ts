@@ -71,6 +71,8 @@ export type AlignmentGuide = Readonly<{
   from: number;
   to: number;
 }>;
+/** How a box-selection gesture matches node bounds. */
+export type BoxSelectionMatch = 'full' | 'partial';
 export type ResizeCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type ResizeHandle = ResizeCorner | 'top' | 'right' | 'bottom' | 'left';
 /** Rejected candidate details, kept only while hovering an incompatible or disallowed port. */
@@ -136,6 +138,7 @@ export type EditorState = Readonly<{
   gridSpacing: number;
   snapToAlignment: boolean;
   selectionMode: boolean;
+  boxSelectionMatch: BoxSelectionMatch;
   routes: readonly EdgeRoute[];
   notice: string | null;
 }>;
@@ -148,6 +151,7 @@ export type EditorOptions = Readonly<{
   gridSpacing?: number;
   snapToAlignment?: boolean;
   selectionMode?: boolean;
+  boxSelectionMatch?: BoxSelectionMatch;
 }>;
 /** Explicit targets before group descendants and incident edges are included. */
 export type DeletionTargets = Readonly<{ nodeIds: readonly string[]; edgeIds: readonly string[] }>;
@@ -214,6 +218,7 @@ export type EditorEvent =
   | Readonly<{ type: 'GridSpacingChanged'; spacing: number }>
   | Readonly<{ type: 'AlignmentSnapToggled' }>
   | Readonly<{ type: 'SelectionModeToggled' }>
+  | Readonly<{ type: 'BoxSelectionMatchChanged'; match: BoxSelectionMatch }>
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>
   | Readonly<{ type: 'ViewportNudged'; delta: Point }>
   | Readonly<{ type: 'FitViewClicked' }>

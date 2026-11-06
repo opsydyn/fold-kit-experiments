@@ -321,8 +321,10 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       const corner = cornerOf(resize);
       const handle = handleOf(resize);
       emit(handle ? { ...input, handle } : corner ? { ...input, corner } : input);
-    } else if (event.shiftKey || element.dataset.flowSelectionMode === 'true')
-      emit({ type: 'BoxSelectionStarted', pointer: event.pointerId, point: point(event) });
+    } else if (element.dataset.flowZoomAreaMode === 'true')
+      emit({ type: 'ZoomAreaStarted', pointer: event.pointerId, point: origin });
+    else if (event.shiftKey || element.dataset.flowSelectionMode === 'true')
+      emit({ type: 'BoxSelectionStarted', pointer: event.pointerId, point: origin });
     else {
       emit({ type: 'SelectionCleared' });
       emit({ type: 'PanStarted', pointer: event.pointerId, point: point(event) });

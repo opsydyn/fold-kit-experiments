@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add Zoom to area with an opt-in viewport control and a composable
+  drag preview.
+
 - Add Fit selection for mixed node and edge selections, with an opt-in
   viewport button and a composable action.
 

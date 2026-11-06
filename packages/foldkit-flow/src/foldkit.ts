@@ -126,7 +126,7 @@ export { resolveFlowDiagnostics } from './diagnostics';
 export type { FlowDiagnostics, FlowDiagnosticOptions } from './diagnostics';
 import { resolveDeletion } from './deletion';
 import { resolveEdgeGeometry, type FlowEdgeGeometryPolicy } from './edge-geometry';
-import { portBoundaryPosition } from './geometry';
+import { boxBounds, portBoundaryPosition } from './geometry';
 import { resolveBoxSelection, type BoxSelectionPreview } from './selection-preview';
 import { viewportItems, type FlowViewportCulling } from './viewport-culling';
 export type {
@@ -215,10 +215,17 @@ export type FlowSelectionMarqueeContext = Readonly<{
   viewport: Viewport;
 }>;
 
+/** Normalized world bounds of the pending camera fit. */
+export type FlowZoomAreaMarqueeContext = Readonly<{
+  bounds: Readonly<ReturnType<typeof boxBounds>>;
+  viewport: Viewport;
+}>;
+
 /** Default canvas guidance and the controls it describes. */
 export type FlowCanvasHelpContext = Readonly<{
   defaultText: string;
   selectionMode: boolean;
+  zoomAreaActive?: boolean;
   edgeToolbar: boolean;
   readOnly: boolean;
   visible: boolean;
@@ -347,6 +354,11 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
       context: FlowSelectionMarqueeContext,
       h: HtmlBuilder<M>,
     ) => Html | null | undefined;
+    /** Replaces the Zoom to area marquee. Undefined uses the default; null omits it. */
+    renderZoomAreaMarquee?: (
+      context: FlowZoomAreaMarqueeContext,
+      h: HtmlBuilder<M>,
+    ) => Html | null | undefined;
     /** Enable context actions for nodes and edges in editable views. */
     contextActions?: boolean;
     /** Replaces the contents of an open node or edge context panel. Undefined uses the default. */
@@ -379,6 +391,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     viewportControls?: boolean;
     /** Include Fit selection in the viewport controls. */
     fitSelectionControl?: boolean;
+    /** Include the one-shot Zoom to area toggle in the viewport controls. */
+    zoomAreaControl?: boolean;
     /** Include a box selection toggle in the viewport controls. */
     selectionModeControl?: boolean;
     height?: number;
@@ -643,7 +657,7 @@ function contextPanel<M>(
 function viewportControls<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
-  { onEvent, selectionModeControl, fitSelectionControl }: FlowViewOptions<M>,
+  { onEvent, selectionModeControl, fitSelectionControl, zoomAreaControl }: FlowViewOptions<M>,
   diagnostics: FlowDiagnostics,
 ): Html {
   const actions = viewportControlActions(state);
@@ -685,6 +699,7 @@ function viewportControls<M>(
       button(actions.zoomOut),
       button(actions.fitView),
       ...(fitSelectionControl ? [button(actions.fitSelection)] : []),
+      ...(zoomAreaControl ? [button(actions.zoomArea)] : []),
       ...(selectionModeControl ? [button(actions.selectionMode)] : []),
       ...(diagnostics.zoomLevel
         ? [
@@ -787,6 +802,25 @@ function selectionMarquee<M>(
     { bounds, viewport, match: state.boxSelectionMatch, previewNodeIds },
     h,
   );
+  return marqueeFrame(h, bounds, 'selection', custom);
+}
+
+function zoomAreaMarquee<M>(
+  h: HtmlBuilder<M>,
+  { gesture, viewport }: EditorState,
+  { renderZoomAreaMarquee }: FlowViewOptions<M>,
+): readonly Html[] {
+  if (gesture.type !== 'zoom-area') return [];
+  const bounds = boxBounds(gesture.origin, gesture.point);
+  return marqueeFrame(h, bounds, 'zoom-area', renderZoomAreaMarquee?.({ bounds, viewport }, h));
+}
+
+function marqueeFrame<M>(
+  h: HtmlBuilder<M>,
+  bounds: FlowZoomAreaMarqueeContext['bounds'],
+  kind: 'selection' | 'zoom-area',
+  custom: Html | null | undefined,
+): readonly Html[] {
   if (custom === null) return [];
   const placement = {
     position: 'absolute',
@@ -801,12 +835,12 @@ function selectionMarquee<M>(
     h.div(
       [
         h.AriaHidden(true),
-        h.DataAttribute('flow-selection-box', ''),
+        h.DataAttribute(`flow-${kind}-box`, ''),
         h.Style(
           custom === undefined
             ? {
                 ...placement,
-                border: '1px solid var(--flow-selection, #2563eb)',
+                border: `1px ${kind === 'zoom-area' ? 'dashed' : 'solid'} var(--flow-selection, #2563eb)`,
                 background: 'var(--flow-selection-background, rgb(37 99 235 / 0.12))',
               }
             : placement,
@@ -978,6 +1012,7 @@ function canvasHelpView<M>(
   edgeToolbar: boolean,
   visible: boolean,
 ): Html {
+  const zoomAreaActive = Boolean(state.zoomAreaMode) || state.gesture.type === 'zoom-area';
   const wheelNavigation = options.wheelNavigation ?? 'zoom';
   const wheelHelp =
     wheelNavigation === 'pan'
@@ -987,9 +1022,11 @@ function canvasHelpView<M>(
         : '';
   const defaultText = [
     'Drag a node title to move it. ',
-    state.selectionMode
-      ? 'Drag the background to select nodes. '
-      : 'Drag the background to pan, or Shift-drag to select nodes. ',
+    zoomAreaActive
+      ? 'Drag the background to zoom to an area. '
+      : state.selectionMode
+        ? 'Drag the background to select nodes. '
+        : 'Drag the background to pan, or Shift-drag to select nodes. ',
     wheelHelp,
     'Tab to a title, then use arrow keys to move it. Drag from an output to an input, or activate the two ports in order with Enter or Space. Select an edge and drag an available endpoint handle to reconnect. Escape cancels.',
     ...(edgeToolbar
@@ -1000,6 +1037,7 @@ function canvasHelpView<M>(
     {
       defaultText,
       selectionMode: state.selectionMode,
+      zoomAreaActive,
       readOnly: state.readOnly,
       edgeToolbar,
       wheelNavigation,
@@ -1858,6 +1896,7 @@ export function flowView<M>(
                 actions: viewportControlActions(state),
                 selectionModeControl: Boolean(options.selectionModeControl),
                 fitSelectionControl: Boolean(options.fitSelectionControl),
+                zoomAreaControl: Boolean(options.zoomAreaControl),
               },
               h,
             ) ?? viewportControls(h, state, options, diagnostics),
@@ -1879,6 +1918,7 @@ export function flowView<M>(
             state.fitViewTransition.type === 'fitting' ? String(state.fitViewTransition.id) : '',
           ),
           h.DataAttribute('flow-selection-mode', String(state.selectionMode)),
+          h.DataAttribute('flow-zoom-area-mode', String(Boolean(state.zoomAreaMode))),
           h.DataAttribute('flow-context-actions', String(Boolean(contextEnabled))),
           h.Tabindex(0),
           h.Role('group'),
@@ -1891,7 +1931,10 @@ export function flowView<M>(
             height: `${options.height ?? 440}px`,
             width: '100%',
             'touch-action': 'none',
-            cursor: state.selectionMode ? 'crosshair' : 'inherit',
+            cursor:
+              state.selectionMode || state.zoomAreaMode || state.gesture.type === 'zoom-area'
+                ? 'crosshair'
+                : 'inherit',
             'background-color': 'var(--flow-background, #eef2f6)',
             border: '1px solid var(--flow-canvas-border, #94a3b8)',
             'border-radius': '10px',
@@ -1961,6 +2004,7 @@ export function flowView<M>(
                     ),
                   ]),
               ...selectionMarquee(h, state, options, selectionPreview),
+              ...zoomAreaMarquee(h, state, options),
             ],
           ),
           ...(minimap

@@ -752,6 +752,22 @@ The camera follows the configured padding, zoom limits, and Fit view
 animation, including reduced motion. Selection and undo history are
 preserved. Custom SVG geometry can extend outside the fitted bounds.
 
+### Zoom to an area
+
+Set `zoomAreaControl: true` with `viewportControls: true` to show **Zoom to
+area**. Custom viewport controls can use `context.actions.zoomArea` with
+`flowViewportControl`. The action emits `ZoomAreaModeToggled`. The next
+background drag fits its rectangle and returns to the previous canvas mode.
+Each side must span at least 5 CSS pixels. Escape on the canvas or the
+pressed control cancels.
+
+The fit uses the configured padding, zoom limits, animation, and reduced
+motion behavior. It works in read-only views and preserves selection and
+undo history. Use `renderZoomAreaMarquee(context, h)` to paint the preview
+inside Flow's pointer-inert frame. The context provides normalized world
+bounds and the viewport. Return `undefined` for the default or `null` to
+hide the decoration.
+
 ### Reveal a node
 
 Send `{ type: 'NodeRevealRequested', id }` to center a node. Flow keeps the

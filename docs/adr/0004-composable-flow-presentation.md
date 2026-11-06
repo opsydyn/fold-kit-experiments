@@ -308,6 +308,13 @@ transition and rejects stale frames. The scoped input binding supplies frame
 timestamps and the browser's reduced-motion preference. Direct viewport input
 interrupts the fit from the current camera position.
 
+Zoom to area extends the same camera contract. The core owns the one-shot
+tool, normalized world bounds, and final fit. The scoped FoldKit binding
+reuses pointer capture and cancellation, and the optional viewport action
+and marquee slot let hosts choose how the tool looks. A distinct gesture
+keeps box selection policy and preview highlights out of camera navigation.
+Both fits use the existing camera limits, padding, and animation.
+
 ### Edge labels
 
 Label hooks render HTML inside Flow's existing positioned frame. The frame

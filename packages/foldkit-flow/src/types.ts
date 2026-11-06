@@ -117,6 +117,7 @@ export type Gesture =
     }> &
       ConnectionTarget)
   | Readonly<{ type: 'box-selection'; pointer: number; origin: Point; point: Point }>
+  | Readonly<{ type: 'zoom-area'; pointer: number; origin: Point; point: Point }>
   | Readonly<{ type: 'pinch'; center: Point; distance: number; before: Viewport }>
   | Readonly<{ type: 'pan'; pointer: number; origin: Point; before: Viewport }>;
 export type EditorContext = Readonly<{ kind: 'node' | 'edge'; id: string; point: Point }>;
@@ -158,6 +159,8 @@ export type EditorState = Readonly<{
   gridSpacing: number;
   snapToAlignment: boolean;
   selectionMode: boolean;
+  /** Whether the next background drag will fit its area. */
+  zoomAreaMode?: boolean;
   boxSelectionMatch: BoxSelectionMatch;
   routes: readonly EdgeRoute[];
   notice: string | null;
@@ -250,6 +253,7 @@ export type EditorEvent =
       point: Point;
     }>
   | Readonly<{ type: 'BoxSelectionStarted'; pointer: number; point: Point }>
+  | Readonly<{ type: 'ZoomAreaStarted'; pointer: number; point: Point }>
   | Readonly<{ type: 'PanStarted'; pointer: number; point: Point }>
   | Readonly<{
       type: 'ReconnectionDragStarted';
@@ -283,6 +287,7 @@ export type EditorEvent =
   | Readonly<{ type: 'GridSpacingChanged'; spacing: number }>
   | Readonly<{ type: 'AlignmentSnapToggled' }>
   | Readonly<{ type: 'SelectionModeToggled' }>
+  | Readonly<{ type: 'ZoomAreaModeToggled' }>
   | Readonly<{ type: 'BoxSelectionMatchChanged'; match: BoxSelectionMatch }>
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>
   | Readonly<{ type: 'ViewportConstraintsChanged'; zoomLimits: ZoomLimits; fitViewPadding: number }>

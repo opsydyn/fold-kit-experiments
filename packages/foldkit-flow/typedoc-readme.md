@@ -99,6 +99,11 @@ box-selection frame. `FlowSelectionMarqueeContext` provides normalized world
 bounds, viewport, the current `BoxSelectionMatch` rule, and pending node IDs.
 Node and group shells receive `selectionPreview` separately from selection.
 
+`zoomAreaControl` enables the one-shot **Zoom to area** control.
+`FlowViewportActions.zoomArea` exposes the typed toggle for custom controls.
+`renderZoomAreaMarquee` receives the pending camera fit's normalized world
+bounds and viewport in `FlowZoomAreaMarqueeContext`.
+
 `renderCanvasHelp` and `renderCanvasStatus` customize guidance and notices
 inside the existing accessible description and polite live region. The
 contexts provide default copy and the effective visibility preference.

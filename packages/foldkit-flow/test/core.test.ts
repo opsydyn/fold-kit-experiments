@@ -833,6 +833,75 @@ test('reverse box selection at zoom replaces selection only on release', () => {
   expect(result.viewport).toEqual(initial.viewport);
 });
 
+test('Zoom to area fits a reverse drag without changing selection or history', () => {
+  const initial = {
+    ...createEditor(graph, {
+      viewport: { x: 25, y: 30, zoom: 2 },
+      zoomLimits: { minZoom: 0.5, maxZoom: 3 },
+      fitViewPadding: 20,
+      readOnly: true,
+      selectionMode: true,
+    }),
+    selectedNodes: ['b'],
+  };
+  const toggle = { type: 'ZoomAreaModeToggled' } as const;
+  const start = { type: 'ZoomAreaStarted', pointer: 1, point: { x: 265, y: 190 } } as const;
+  const release = { type: 'PointerReleased', pointer: 1 } as const;
+  expect(updateEditor(initial, toggle)).toBe(initial);
+  const measured = updateEditor(initial, {
+    type: 'SurfaceMeasured',
+    size: { width: 400, height: 300 },
+  });
+  expect(updateEditor(measured, start)).toBe(measured);
+  const armed = updateEditor(measured, toggle);
+  expect(armed.zoomAreaMode).toBe(true);
+  const started = updateEditor(armed, start);
+  expect(updateEditor(started, { ...release, pointer: 2 })).toBe(started);
+  const preview = updateEditor(started, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 65, y: 90 },
+  });
+  expect(preview.viewport).toBe(measured.viewport);
+
+  for (const abandoned of [
+    updateEditor(armed, { type: 'GestureCancelled' }),
+    updateEditor(preview, { type: 'GestureCancelled' }),
+    updateEditor(started, release),
+    updateEditor(
+      updateEditor(started, { type: 'PointerMoved', pointer: 1, point: { x: 263, y: 100 } }),
+      release,
+    ),
+  ]) {
+    expect(abandoned.zoomAreaMode).toBe(false);
+    expect(abandoned.gesture.type).toBe('idle');
+    expect(abandoned.viewport).toBe(measured.viewport);
+    expect(abandoned.selectedNodes).toBe(measured.selectedNodes);
+  }
+
+  const fitted = updateEditor(preview, release);
+  expect(fitted.viewport).toEqual({ x: -10, y: -15, zoom: 3 });
+  expect(fitted.zoomAreaMode).toBe(false);
+  expect(fitted.selectionMode).toBe(true);
+  expect(fitted.selectedNodes).toBe(measured.selectedNodes);
+  expect(fitted.selectedEdges).toBe(measured.selectedEdges);
+  expect(fitted.graph).toBe(measured.graph);
+  expect(fitted.revision).toBe(measured.revision);
+  expect(fitted.past).toBe(measured.past);
+  expect(fitted.future).toBe(measured.future);
+  const animated = updateEditor({ ...preview, fitViewDuration: 150 }, release);
+  expect(animated.viewport).toBe(preview.viewport);
+  expect(animated.fitViewTransition.type).toBe('fitting');
+  expect(
+    updateEditor(animated, {
+      type: 'FitViewAnimationFrame',
+      id: animated.fitViewTransition.id,
+      time: 0,
+      reducedMotion: true,
+    }).viewport,
+  ).toEqual(fitted.viewport);
+});
+
 test('partial marquee selects intersecting cards without swallowing their expanded group', () => {
   const initial = createEditor(
     {

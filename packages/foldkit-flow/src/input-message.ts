@@ -53,7 +53,11 @@ export const BrowserInput = Schema.Union([
     ...Pointer,
     point: Point,
   }),
-  Schema.Struct({ type: Schema.Literal('BoxSelectionStarted'), ...Pointer, point: Point }),
+  Schema.Struct({
+    type: Schema.Literals(['BoxSelectionStarted', 'ZoomAreaStarted']),
+    ...Pointer,
+    point: Point,
+  }),
   Schema.Struct({ type: Schema.Literal('PanStarted'), ...Pointer, point: Point }),
   Schema.Struct({
     type: Schema.Literal('ConnectionDragStarted'),

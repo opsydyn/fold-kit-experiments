@@ -21,6 +21,7 @@ export type FlowViewportActions = Readonly<{
   zoomOut: FlowViewportControl;
   fitView: FlowViewportControl;
   fitSelection: FlowViewportControl;
+  zoomArea: FlowViewportControl;
   selectionMode: FlowViewportControl;
 }>;
 export type FlowViewportControlsContext = Readonly<{
@@ -29,6 +30,7 @@ export type FlowViewportControlsContext = Readonly<{
   actions: FlowViewportActions;
   selectionModeControl: boolean;
   fitSelectionControl?: boolean;
+  zoomAreaControl?: boolean;
 }>;
 export type FlowMinimapContext = Readonly<{
   state: EditorState;
@@ -66,6 +68,12 @@ export function viewportControlActions(state: EditorState): FlowViewportActions 
       event: { type: 'FitSelectionClicked' },
       disabled: unavailable || (!state.selectedNodes.length && !state.selectedEdges.length),
     },
+    zoomArea: {
+      label: 'Zoom to area',
+      event: { type: 'ZoomAreaModeToggled' },
+      disabled: unavailable,
+      pressed: Boolean(state.zoomAreaMode) || state.gesture.type === 'zoom-area',
+    },
     selectionMode: {
       label: 'Box select',
       event: { type: 'SelectionModeToggled' },
@@ -90,6 +98,13 @@ export function flowViewportControl<M>(
       h.AriaLabel(action.label),
       h.Disabled(action.disabled),
       ...(action.pressed === undefined ? [] : [h.AriaPressed(String(action.pressed))]),
+      ...(action.event.type === 'ZoomAreaModeToggled' && action.pressed && !action.disabled
+        ? [
+            h.OnKeyDownPreventDefault((key) =>
+              key === 'Escape' ? Option.some(onEvent({ type: 'GestureCancelled' })) : Option.none(),
+            ),
+          ]
+        : []),
       h.OnClick(onEvent(action.event)),
     ],
     children,

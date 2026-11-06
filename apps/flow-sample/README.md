@@ -391,3 +391,7 @@ and opens collapsed ancestors of its endpoints.
 Use **Fit selection** in the standard or compact viewport controls to
 frame selected nodes and connections. Select a connection and Shift-click
 a node to frame them together. [Workbench screenshot](evidence/fit-selection.png)
+
+Use **Zoom to area**, then drag from the canvas background to frame a
+region. The workbench supplies its own marquee styling and offers the
+control in both navigation designs. [Marquee screenshot](evidence/zoom-area.png)

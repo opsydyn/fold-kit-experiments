@@ -7,6 +7,7 @@ import {
 } from './alignment';
 import { resolveDeletion } from './deletion';
 import {
+  boxBounds,
   clampZoom,
   defaultFitViewPadding,
   defaultZoomLimits,
@@ -604,6 +605,15 @@ function startFit(state: EditorState, to: Viewport): EditorState {
   };
 }
 
+function fitEditorBounds(
+  state: EditorState,
+  surface: NonNullable<EditorState['surface']>,
+  bounds: readonly Pick<FlowNode, 'position' | 'size'>[],
+): EditorState {
+  const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
+  return startFit(state, fitNodes(bounds, surface, padding, state.zoomLimits));
+}
+
 function expandRevealAncestors(state: EditorState, targets: readonly FlowNode[]): EditorState {
   if (!state.collapsedGroups.length) return state;
   const ancestors = new Set<string>();
@@ -834,6 +844,12 @@ export function updateEditor(
     case 'SelectionCleared':
       return { ...state, edgeLabelDraft: null, selectedNodes: [], selectedEdges: [] };
     case 'GestureCancelled':
+      if (
+        state.gesture.type === 'zoom-area' ||
+        (state.zoomAreaMode && state.gesture.type === 'idle')
+      )
+        return { ...state, zoomAreaMode: false, gesture: { type: 'idle' }, notice: null };
+      if (state.zoomAreaMode) return cancel({ ...state, zoomAreaMode: false });
       return cancel(state);
     case 'CopyPressed': {
       if (state.gesture.type !== 'idle' || state.selectedNodes.length === 0) return state;
@@ -849,6 +865,13 @@ export function updateEditor(
     case 'SelectionModeToggled':
       if (state.gesture.type !== 'idle') return state;
       return { ...state, selectionMode: !state.selectionMode };
+    case 'ZoomAreaModeToggled':
+      if (!state.surface || state.gesture.type !== 'idle') return state;
+      return {
+        ...state,
+        zoomAreaMode: !state.zoomAreaMode,
+        notice: state.zoomAreaMode ? null : 'Drag the canvas background to zoom to an area',
+      };
     case 'AlignmentSnapToggled':
       if (state.readOnly || state.gesture.type !== 'idle') return state;
       return { ...state, snapToAlignment: !state.snapToAlignment };
@@ -901,9 +924,7 @@ export function updateEditor(
           ? selectionBounds(state)
           : presentEditorGroups(state).nodes;
       if (nodes.length === 0) return state;
-      const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
-      const to = fitNodes(nodes, surface, padding, state.zoomLimits);
-      return startFit(state, to);
+      return fitEditorBounds(state, surface, nodes);
     }
     case 'NodeRevealRequested': {
       const { surface, graph } = state;
@@ -1013,6 +1034,15 @@ export function updateEditor(
         gesture: { type: 'box-selection', pointer: event.pointer, origin, point: origin },
       };
     }
+    case 'ZoomAreaStarted': {
+      if (!state.zoomAreaMode || !state.surface || state.gesture.type !== 'idle') return state;
+      const origin = screenToWorld(event.point, state.viewport);
+      return {
+        ...cancelFit(state),
+        zoomAreaMode: false,
+        gesture: { type: 'zoom-area', pointer: event.pointer, origin, point: origin },
+      };
+    }
     case 'PanStarted':
       if (state.gesture.type !== 'idle') return state;
       finitePoint(event.point);
@@ -1062,7 +1092,7 @@ export function updateEditor(
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
         return state;
       finitePoint(event.point);
-      if (gesture.type === 'box-selection')
+      if (gesture.type === 'box-selection' || gesture.type === 'zoom-area')
         return {
           ...state,
           gesture: { ...gesture, point: screenToWorld(event.point, state.viewport) },
@@ -1221,6 +1251,17 @@ export function updateEditor(
       const gesture = state.gesture;
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
         return state;
+      if (gesture.type === 'zoom-area') {
+        const settled = { ...state, gesture: { type: 'idle' } as const, notice: null };
+        const { left, top, right, bottom } = boxBounds(gesture.origin, gesture.point);
+        const width = right - left;
+        const height = bottom - top;
+        const { zoom } = state.viewport;
+        if (!state.surface || width * zoom < 5 || height * zoom < 5) return settled;
+        return fitEditorBounds({ ...settled, notice: 'Zoomed to area' }, state.surface, [
+          { position: { x: left, y: top }, size: { width, height } },
+        ]);
+      }
       if (gesture.type === 'box-selection') {
         const { previewNodeIds: selectedNodes } = resolveBoxSelection(
           state,

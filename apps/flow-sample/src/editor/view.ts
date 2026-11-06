@@ -1545,6 +1545,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 control(context.actions.zoomIn, '+'),
                 control(context.actions.fitView, 'Fit view'),
                 control(context.actions.fitSelection, context.actions.fitSelection.label),
+                control(context.actions.zoomArea, context.actions.zoomArea.label),
                 ...(context.selectionModeControl
                   ? [control(context.actions.selectionMode, 'Box select')]
                   : []),
@@ -1699,6 +1700,21 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.selectionMarqueeDesign === 'hatched'
               ? hatchedSelectionMarquee(context, builder)
               : undefined,
+          renderZoomAreaMarquee: ({ viewport }, builder) =>
+            builder.div(
+              [
+                builder.Class('workbench-zoom-area'),
+                builder.Style({
+                  position: 'absolute',
+                  inset: '0',
+                  border: `${2 / viewport.zoom}px dashed var(--flow-selection, #2563eb)`,
+                  'border-radius': `${8 / viewport.zoom}px`,
+                  background: 'var(--flow-selection-background, rgb(37 99 235 / 0.12))',
+                  'box-sizing': 'border-box',
+                }),
+              ],
+              [],
+            ),
           renderAlignmentGuide: (context, builder) =>
             model.alignmentGuideDesign === 'endpoints'
               ? endpointAlignmentGuide(context, builder)
@@ -1719,6 +1735,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           minimap: true,
           viewportControls: true,
           fitSelectionControl: true,
+          zoomAreaControl: true,
           selectionModeControl: true,
           label: 'Workflow editor',
           onEvent: flowInput,

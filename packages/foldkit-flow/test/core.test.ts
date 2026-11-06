@@ -2974,3 +2974,58 @@ test('snapshots restore a camera and accept graph-only v1 documents', () => {
   expect(() => parseSnapshot(stored.replace('"version":1', '"version":2'))).toThrow();
   expect(() => serializeSnapshot({ graph, viewport: { ...viewport, y: Infinity } })).toThrow();
 });
+
+test('revealing a node opens its ancestors and centers it without editing the graph', () => {
+  const group = {
+    id: 'outer',
+    label: 'Outer',
+    kind: 'group' as const,
+    position: { x: 0, y: 0 },
+    size: { width: 600, height: 240 },
+    ports: [],
+  };
+  const initial = createEditor({
+    nodes: [
+      group,
+      { ...group, id: 'inner', parentId: group.id },
+      nodeA,
+      { ...nodeB, parentId: 'inner' },
+    ],
+    edges: [],
+  });
+  const state = {
+    ...initial,
+    surface: { width: 800, height: 440 },
+    collapsedGroups: ['outer', 'inner'],
+    selectedNodes: ['a'],
+    readOnly: true,
+  };
+  const reveal = { type: 'NodeRevealRequested', id: 'b' } as const;
+  const revealed = updateEditor(state, reveal);
+  expect(revealed.viewport).toEqual({ x: 20, y: 110, zoom: 1 });
+  expect(revealed.collapsedGroups).toEqual([]);
+  expect(revealed.graph).toBe(initial.graph);
+  expect(revealed.revision).toBe(initial.revision);
+  expect(revealed.past).toBe(initial.past);
+  expect(revealed.selectedNodes).toBe(state.selectedNodes);
+
+  const zoomed = { ...state, viewport: { x: 0, y: 0, zoom: 4 } };
+  expect(updateEditor(zoomed, reveal).viewport.zoom).toBeCloseTo(3.92);
+  const hidden = updateEditor(state, {
+    type: 'VisibilityChanged',
+    visibility: { hiddenNodeIds: ['outer'] },
+  });
+  expect(updateEditor(hidden, reveal)).toBe(hidden);
+  expect(updateEditor(state, { ...reveal, id: 'unknown' })).toBe(state);
+
+  const animated = updateEditor({ ...state, fitViewDuration: 200 }, reveal);
+  expect(animated.fitViewTransition.type).toBe('fitting');
+  expect(
+    updateEditor(animated, {
+      type: 'FitViewAnimationFrame',
+      id: animated.fitViewTransition.id,
+      time: 0,
+      reducedMotion: true,
+    }).viewport,
+  ).toEqual(revealed.viewport);
+});

@@ -29,6 +29,7 @@ import { createLargeWorkflowGraph } from './large-workflow';
 import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
 import { presetPosition } from './port-presets';
+import { searchNodes } from './search';
 
 function frameGraph(graph: FlowGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
   const size = surface ?? { width: 800, height: 440 };
@@ -85,6 +86,17 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: {
           ...model,
           editor: updateEditor(model.editor, event, workbenchPolicy(model)),
+        },
+      };
+    },
+    ChangedNodeSearch: ({ query }) => ({ model: { ...model, nodeQuery: query } }),
+    SubmittedNodeSearch: () => {
+      const node = searchNodes(model.editor, model.nodeQuery)[0];
+      if (!node) return { model };
+      return {
+        model: {
+          ...model,
+          editor: updateEditor(model.editor, { type: 'NodeRevealRequested', id: node.id }),
         },
       };
     },

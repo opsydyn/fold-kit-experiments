@@ -13,6 +13,7 @@ export {
 } from './graph';
 export { createEditor, updateEditor } from './editor';
 export { resolveDeletion } from './deletion';
+export { revealableNodes } from './group-presentation';
 export {
   defaultFitViewPadding,
   defaultZoomLimits,

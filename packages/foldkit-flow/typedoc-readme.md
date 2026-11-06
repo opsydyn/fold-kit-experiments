@@ -126,6 +126,10 @@ ancestors grown by those edits. Pass the same callback to
 can be selected. Pass the same callbacks to `flowView` so the controls and
 marquee preview agree with the reducer.
 
+`NodeRevealRequested` centers a node, opens collapsed ancestors, and honors
+the editor's zoom limits and Fit view timing. `revealableNodes` provides the
+eligible nodes for host search controls.
+
 `FlowSnapshot`, `serializeSnapshot`, and `parseSnapshot` add an optional
 camera to the version 1 graph document. Graph-only v1 files remain valid.
 

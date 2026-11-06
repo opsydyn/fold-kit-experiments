@@ -738,6 +738,19 @@ shells, connection rows, and edge labels receive `selectionDisabledReason`.
 These callbacks govern new selection attempts. To clear a selection after
 changing the policy, send `SelectionCleared`.
 
+### Reveal a node
+
+Send `{ type: 'NodeRevealRequested', id }` to center a node. Flow keeps the
+current zoom when the node fits and zooms out as needed within the active
+limits. It expands collapsed ancestors and uses the existing Fit view timing,
+including reduced motion. Graph edits, selection, and history are separate
+from this camera action.
+
+Use `revealableNodes(state)` to populate a search or navigation control.
+It includes nodes inside collapsed groups and filters explicitly hidden
+nodes and descendants. Reveal requires a measured canvas and an idle
+gesture, and works in read-only mode.
+
 ### Save the camera with the graph
 
 Call `serializeSnapshot({ graph, viewport })` to include pan and zoom in a

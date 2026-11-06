@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add reveal-node navigation with collapsed ancestor expansion and a
+  visibility-aware node list for host search controls.
+
 - Add an optional camera to graph snapshots with backward-compatible v1
   graph-only decoding.
 

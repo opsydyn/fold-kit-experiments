@@ -48,6 +48,13 @@ export function presentEditorGroups(state: PresentationState, graph = state.grap
   return presentGroups(graph, state.collapsedGroups, state.visibility?.hiddenNodeIds);
 }
 
+/** Nodes that can be revealed, including descendants of collapsed groups. */
+export function revealableNodes(
+  state: Pick<EditorState, 'graph' | 'visibility'>,
+): readonly FlowNode[] {
+  return presentGroups(state.graph, [], state.visibility?.hiddenNodeIds).nodes;
+}
+
 /** Compose filtering and collapse without changing authored nodes or endpoints. */
 export function presentVisibleGraph(state: PresentationState) {
   const { graph, visibility } = state;

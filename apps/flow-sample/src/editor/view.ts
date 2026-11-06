@@ -62,6 +62,7 @@ import {
   canvasHelpCard,
   canvasStatusCard,
 } from './presentation';
+import { searchNodes } from './search';
 import { workbenchThemes } from './theme';
 
 type WorkbenchEdgeHooks = {
@@ -228,6 +229,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const selectedEdge = model.editor.graph.edges.find((edge) =>
     model.editor.selectedEdges.includes(edge.id),
   );
+  const matches = searchNodes(model.editor, model.nodeQuery);
+  const canReveal = model.editor.surface !== null && model.editor.gesture.type === 'idle';
   const policy = workbenchPolicy(model);
   const endpointSelect = (edge: FlowEdge, end: EdgeEnd) => {
     const reason = policy.canReconnect(edge, end, model.editor.graph);
@@ -1420,6 +1423,67 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ],
               ),
             ),
+          ],
+        ),
+        h.form(
+          [
+            h.Role('search'),
+            h.AriaLabel('Diagram nodes'),
+            h.Style({
+              display: 'flex',
+              'flex-wrap': 'wrap',
+              gap: '8px',
+              'align-items': 'center',
+              margin: '12px 0',
+            }),
+            h.OnSubmit(Message.SubmittedNodeSearch()),
+          ],
+          [
+            h.label(
+              [],
+              [
+                'Find a node ',
+                h.input([
+                  h.Type('search'),
+                  h.Value(model.nodeQuery),
+                  h.Placeholder('Label or ID'),
+                  h.OnInput((query) => Message.ChangedNodeSearch({ query })),
+                ]),
+              ],
+            ),
+            h.button(
+              [h.Type('submit'), h.Disabled(!canReveal || matches.length === 0)],
+              ['Reveal first match'],
+            ),
+            ...(model.nodeQuery.trim()
+              ? [
+                  h.p(
+                    [h.Role('status'), h.Style({ margin: '0' })],
+                    [
+                      matches.length === 0
+                        ? 'No matching nodes'
+                        : matches.length > 8
+                          ? `Showing 8 of ${matches.length} matching nodes`
+                          : matches.length === 1
+                            ? '1 matching node'
+                            : `${matches.length} matching nodes`,
+                    ],
+                  ),
+                  ...matches
+                    .slice(0, 8)
+                    .map((node) =>
+                      h.button(
+                        [
+                          h.Key(node.id),
+                          h.Type('button'),
+                          h.Disabled(!canReveal),
+                          h.OnClick(flowInput({ type: 'NodeRevealRequested', id: node.id })),
+                        ],
+                        [`Reveal ${node.label} (${node.id})`],
+                      ),
+                    ),
+                ]
+              : []),
           ],
         ),
         flowView(h, model.editor, {

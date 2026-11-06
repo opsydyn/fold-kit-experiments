@@ -288,6 +288,7 @@ export type EditorEvent =
   | Readonly<{ type: 'ViewportConstraintsChanged'; zoomLimits: ZoomLimits; fitViewPadding: number }>
   | Readonly<{ type: 'ViewportNudged'; delta: Point }>
   | Readonly<{ type: 'FitViewClicked' }>
+  | Readonly<{ type: 'NodeRevealRequested'; id: string }>
   | Readonly<{ type: 'FitViewDurationChanged'; duration: number }>
   | Readonly<{ type: 'FitViewAnimationFrame'; id: number; time: number; reducedMotion: boolean }>
   | Readonly<{ type: 'MinimapClicked'; point: Point }>

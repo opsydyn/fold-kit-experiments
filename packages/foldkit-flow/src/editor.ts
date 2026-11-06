@@ -24,6 +24,7 @@ import { copyGraph, FlowError, validateGraph, withPortPosition } from './graph';
 import {
   groupAtDropPoint,
   presentEditorGroups,
+  revealableNodes,
   presentVisibleGraph,
   withDescendants,
 } from './group-presentation';
@@ -586,6 +587,22 @@ function cancelFit(state: EditorState): EditorState {
     : { ...state, fitViewTransition: { type: 'idle', id: transition.id } };
 }
 
+function startFit(state: EditorState, to: Viewport): EditorState {
+  const from = state.viewport;
+  if (state.fitViewDuration === 0 || (from.x === to.x && from.y === to.y && from.zoom === to.zoom))
+    return { ...cancelFit(state), viewport: to };
+  return {
+    ...state,
+    fitViewTransition: {
+      type: 'fitting',
+      id: state.fitViewTransition.id + 1,
+      from,
+      to,
+      startedAt: null,
+    },
+  };
+}
+
 function advanceFit(
   state: EditorState,
   event: Extract<EditorEvent, { type: 'FitViewAnimationFrame' }>,
@@ -825,22 +842,30 @@ export function updateEditor(
       if (nodes.length === 0) return state;
       const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
       const to = fitNodes(nodes, surface, padding, state.zoomLimits);
-      const from = state.viewport;
-      if (
-        state.fitViewDuration === 0 ||
-        (from.x === to.x && from.y === to.y && from.zoom === to.zoom)
-      )
-        return { ...cancelFit(state), viewport: to };
-      return {
-        ...state,
-        fitViewTransition: {
-          type: 'fitting',
-          id: state.fitViewTransition.id + 1,
-          from,
-          to,
-          startedAt: null,
-        },
-      };
+      return startFit(state, to);
+    }
+    case 'NodeRevealRequested': {
+      const { surface, graph } = state;
+      if (!surface || state.gesture.type !== 'idle') return state;
+      const target = revealableNodes(state).find((node) => node.id === event.id);
+      if (!target) return state;
+
+      const ancestors = new Set<string>();
+      let parent = target.parentId;
+      while (parent !== undefined) {
+        ancestors.add(parent);
+        parent = graph.nodes.find((node) => node.id === parent)?.parentId;
+      }
+      const collapsedGroups = state.collapsedGroups.filter((id) => !ancestors.has(id));
+      const next = { ...state, collapsedGroups, notice: `Revealed ${target.label}.` };
+      const displayed =
+        presentEditorGroups(next).nodes.find((node) => node.id === event.id) ?? target;
+      const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
+      const to = fitNodes([displayed], surface, padding, {
+        ...state.zoomLimits,
+        maxZoom: state.viewport.zoom,
+      });
+      return startFit(next, to);
     }
     case 'FitViewDurationChanged':
       if (

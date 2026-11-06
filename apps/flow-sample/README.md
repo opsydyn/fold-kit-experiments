@@ -377,3 +377,8 @@ current pan and zoom. **Load saved** and **Import JSON** restore any saved
 camera within the active zoom limits. Graph-only saves still use the
 initial camera, and graph-only imports still fit the diagram.
 [Restored workbench screenshot](evidence/camera-snapshot.png)
+
+Use **Find a node** to search by label or ID. Select a result or press Enter
+to reveal the first match. Searching can find nodes inside collapsed groups,
+and revealing a result opens its ancestors.
+[Workbench screenshot](evidence/reveal-node.png)

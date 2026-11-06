@@ -24,25 +24,23 @@ import Editor from '../editor/app';
 /* Hallmark | shape: app screen | signature: release workflow canvas */
 /* Critique: keep the toolbar and canvas together on narrow screens. */
 :root {
+  color-scheme: light;
   --paper: #f8f6f1;
   --ink: #232d27;
   --muted: #4b5e53;
   --rule: #b8c4ba;
   --accent: #24543c;
-  --white: #fdfefb;
+  --panel: #fdfefb;
   --ui-font: system-ui, sans-serif;
 }
-.release-flow-theme {
-  --flow-background: #e7eee7;
-  --flow-node-background: var(--white);
-  --flow-node-color: var(--ink);
-  --flow-node-border: #647b6d;
-  --flow-edge: #4b6656;
-  --flow-selection: var(--accent);
-  --flow-output-port: var(--accent);
-  --flow-input-port: #345d59;
-  --flow-valid-target: #345d59;
-  --flow-node-radius: 10px;
+:root:has([data-flow-workbench-color-scheme='dark']) {
+  color-scheme: dark;
+  --paper: #101c19;
+  --ink: #e5f3eb;
+  --muted: #b4c9be;
+  --rule: #486157;
+  --accent: #8ee0b9;
+  --panel: #21342d;
 }
 html,
 body {
@@ -87,6 +85,23 @@ button,
 input {
   font: inherit;
 }
+a {
+  color: var(--accent);
+}
+.workbench-theme-toggle {
+  margin-inline-start: 0.5rem;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  color: var(--ink);
+  background: var(--panel);
+}
+.workbench-theme-toggle[aria-pressed='true'] {
+  color: var(--paper);
+  background: var(--accent);
+  border-color: var(--accent);
+}
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
@@ -96,11 +111,11 @@ input {
   border-radius: 0.35rem;
   min-height: 44px;
   color: var(--ink);
-  background: var(--white);
+  background: var(--panel);
 }
 [aria-label='Graph actions'] button[aria-pressed='true'] {
   background: var(--accent);
-  color: var(--white);
+  color: var(--panel);
 }
 
 button:active { filter: brightness(.92); }

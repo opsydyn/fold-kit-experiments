@@ -110,6 +110,10 @@ export {
 } from './composition';
 export type { FlowNodeRenderContext, FlowWorldOverlayItemOptions } from './composition';
 
+import { flowThemeStyle, type FlowTheme } from './theme';
+export { flowLightTheme, flowDarkTheme } from './theme';
+export type { FlowColorScheme, FlowTheme, FlowThemeToken, FlowThemeTokens } from './theme';
+
 import { backgroundView, type FlowBackground } from './background';
 import {
   resolveFlowDiagnostics,
@@ -293,6 +297,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     }>;
     /** Classes on the editor root, including classes produced by Pleat's cssClass(). */
     themeClassName?: string;
+    /** Scoped token overrides and optional native color scheme. */
+    theme?: FlowTheme;
     /** Show a screen-sized toolbar for a single selected node in editable views. */
     nodeToolbar?: boolean | FlowNodeToolbarOptions;
     /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
@@ -1637,6 +1643,7 @@ export function flowView<M>(
       h.Id(options.id),
       h.DataAttribute('flow-minimal', String(options.minimalMode === true)),
       h.Class(options.themeClassName ? `foldkit-flow ${options.themeClassName}` : 'foldkit-flow'),
+      ...(options.theme ? [h.Style(flowThemeStyle(options.theme))] : []),
     ],
     [
       canvasHelpView(h, options, state, descriptionId, toolbarEnabled, diagnostics.instructions),

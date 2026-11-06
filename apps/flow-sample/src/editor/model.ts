@@ -4,7 +4,11 @@ import {
   type FlowGraph,
   type LayoutRequest,
 } from '@opsydyn/foldkit-flow';
-import { resolveFlowDiagnostics, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
+import {
+  resolveFlowDiagnostics,
+  type FlowColorScheme,
+  type FlowDiagnostics,
+} from '@opsydyn/foldkit-flow/foldkit';
 import { Schema } from 'effect';
 
 export const initialGraph: FlowGraph = {
@@ -183,6 +187,7 @@ export const DiagnosticFlag = Schema.Literals([
   'connectionList',
 ]);
 export const Model = Schema.Struct({
+  colorScheme: Schema.Literals(['light', 'dark']),
   minimalMode: Schema.Boolean,
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
@@ -221,6 +226,7 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  colorScheme: FlowColorScheme;
   minimalMode: boolean;
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
@@ -252,6 +258,7 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    colorScheme: 'light',
     minimalMode: false,
     showWorldAnnotation: false,
     diagnosticsEnabled: true,

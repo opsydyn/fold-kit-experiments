@@ -181,9 +181,9 @@ export function orbitGroup(context: FlowNodeRenderContext, h: HtmlBuilder<Messag
       h.Style({
         border: `2px ${context.dropTarget ? 'solid' : 'dotted'} ${selected || context.dropTarget ? '#f97316' : '#38bdf8'}`,
         'border-radius': '28px',
-        outline: context.selectionPreview ? '2px dashed #0f766e' : 'none',
+        outline: context.selectionPreview ? '2px dashed var(--flow-valid-target, #0f766e)' : 'none',
         'outline-offset': '2px',
-        background: context.collapsed ? '#dbeafe' : 'rgb(56 189 248 / 0.05)',
+        background: context.collapsed ? 'light-dark(#dbeafe, #253b58)' : 'rgb(56 189 248 / 0.05)',
         padding: '6px',
         display: 'flex',
         gap: '6px',
@@ -338,8 +338,8 @@ export function edgeBadge(context: FlowEdgeLabelContext, h: HtmlBuilder<Message>
         padding: '5px 10px',
         border: '1px solid #38bdf8',
         'border-radius': '999px',
-        background: context.selected ? '#075985' : '#f0f9ff',
-        color: context.selected ? '#fff' : '#0c4a6e',
+        background: context.selected ? '#075985' : 'light-dark(#f0f9ff, #152b3c)',
+        color: context.selected ? '#fff' : 'light-dark(#0c4a6e, #bde7ff)',
         cursor: context.readOnly ? 'inherit' : 'pointer',
         'font-size': '13px',
       }),
@@ -374,7 +374,7 @@ export function edgeBadgeEditor(context: FlowEdgeLabelEditorContext, h: HtmlBuil
         padding: '6px',
         border: '2px solid #38bdf8',
         'border-radius': '12px',
-        background: '#f0f9ff',
+        background: 'light-dark(#f0f9ff, #152b3c)',
         'box-shadow': '0 4px 12px #0c4a6e33',
       }),
     ],
@@ -491,8 +491,9 @@ export function compactNodeToolbar(context: FlowNodeToolbarContext, h: HtmlBuild
               padding: '0 10px',
               border: '1px solid #bfd2c8',
               'border-radius': '6px',
-              background: index === 0 ? '#edf7f1' : '#fff2ed',
-              color: index === 0 ? '#17392e' : '#842c20',
+              background:
+                index === 0 ? 'light-dark(#edf7f1, #254436)' : 'light-dark(#fff2ed, #402c28)',
+              color: index === 0 ? 'light-dark(#17392e, #d8f7e8)' : 'light-dark(#842c20, #ffc4b7)',
               opacity: action.disabledReason === undefined ? '1' : '0.65',
             }),
           ],
@@ -516,7 +517,7 @@ export function compactEdgeToolbar(context: FlowEdgeToolbarContext, h: HtmlBuild
         'max-width': '100%',
         margin: '0 auto',
         padding: '5px',
-        background: '#f0f9ff',
+        background: 'light-dark(#f0f9ff, #152b3c)',
         border: '1px solid #38bdf8',
         'border-radius': '14px',
         'box-shadow': '0 2px 8px #0c4a6e33',
@@ -529,8 +530,8 @@ export function compactEdgeToolbar(context: FlowEdgeToolbarContext, h: HtmlBuild
           padding: '0 8px',
           border: '1px solid #7dd3fc',
           'border-radius': '9px',
-          background: '#fff',
-          color: '#0c4a6e',
+          background: 'light-dark(#fff, #1c2d3c)',
+          color: 'light-dark(#0c4a6e, #bde7ff)',
         }),
       ]),
       flowEdgeToolbarButton(
@@ -543,8 +544,8 @@ export function compactEdgeToolbar(context: FlowEdgeToolbarContext, h: HtmlBuild
             padding: '0 12px',
             border: '0',
             'border-radius': '9px',
-            background: '#fee2e2',
-            color: '#991b1b',
+            background: 'light-dark(#fee2e2, #49262f)',
+            color: 'light-dark(#991b1b, #ffc2c8)',
             cursor: 'pointer',
           }),
         ],
@@ -567,8 +568,8 @@ export function customContextMenu(context: FlowContextMenuContext, h: HtmlBuilde
           'text-align': 'left',
           'border-radius': '7px',
           border: '1px solid #a5b4fc',
-          background: action.pressed ? '#3730a3' : '#fff',
-          color: action.pressed ? '#fff' : '#312e81',
+          background: action.pressed ? '#3730a3' : 'light-dark(#fff, #2e2d48)',
+          color: action.pressed ? '#fff' : 'light-dark(#312e81, #d9d6ff)',
           cursor: 'pointer',
         }),
       ],
@@ -584,8 +585,8 @@ export function customContextMenu(context: FlowContextMenuContext, h: HtmlBuilde
         padding: '8px',
         border: '1px solid #a5b4fc',
         'border-radius': '12px',
-        background: '#eef2ff',
-        color: '#312e81',
+        background: 'light-dark(#eef2ff, #282940)',
+        color: 'light-dark(#312e81, #d9d6ff)',
         'box-shadow': '0 4px 12px #312e8133',
       }),
     ],
@@ -657,7 +658,9 @@ export function connectionRows(context: FlowConnectionsContext, h: HtmlBuilder<M
           h.Style({
             display: 'flex',
             gap: '5px',
-            background: entry.selected ? '#dbeafe' : '#f8fafc',
+            background: entry.selected
+              ? 'light-dark(#dbeafe, #253b58)'
+              : 'light-dark(#f8fafc, #1b2d3d)',
             padding: '4px',
             'border-radius': '10px',
             border: '1px solid #bfdbfe',
@@ -679,7 +682,7 @@ export function connectionRows(context: FlowConnectionsContext, h: HtmlBuilder<M
                 padding: '4px 8px',
                 'text-align': 'left',
                 background: 'transparent',
-                color: '#1e3a8a',
+                color: 'light-dark(#1e3a8a, #c4d9ff)',
                 cursor: 'pointer',
               }),
             ],
@@ -698,8 +701,8 @@ export function connectionRows(context: FlowConnectionsContext, h: HtmlBuilder<M
                     h.Style({
                       border: '1px solid #bfdbfe',
                       'border-radius': '8px',
-                      background: '#fff',
-                      color: '#1e3a8a',
+                      background: 'light-dark(#fff, #1c2d3c)',
+                      color: 'light-dark(#1e3a8a, #c4d9ff)',
                       width: '38px',
                     }),
                   ],
@@ -720,8 +723,8 @@ export function labeledResizeReadout(context: FlowResizeReadoutContext, h: HtmlB
         h.Style({
           display: 'inline-flex',
           gap: '4px',
-          background: '#fff7ed',
-          color: '#7c2d12',
+          background: 'light-dark(#fff7ed, #462d1e)',
+          color: 'light-dark(#7c2d12, #ffd9ba)',
           padding: '3px 7px',
           'border-radius': '5px',
           'font-variant-numeric': 'tabular-nums',
@@ -758,7 +761,7 @@ export function endpointAlignmentGuide(
   h: HtmlBuilder<Message>,
 ) {
   const { start, end, phase, viewport } = context;
-  const color = phase === 'drag' ? '#0f766e' : '#be185d';
+  const color = phase === 'drag' ? 'var(--flow-valid-target)' : 'light-dark(#be185d, #f5a6d0)';
   const dot = (point: Point) =>
     h.circle(
       [h.Cx(String(point.x)), h.Cy(String(point.y)), h.R(String(4 / viewport.zoom)), h.Fill(color)],
@@ -795,7 +798,7 @@ export function hatchedSelectionMarquee(
       h.Style({
         position: 'absolute',
         inset: '0',
-        border: `${2 / context.viewport.zoom}px dashed #0f766e`,
+        border: `${2 / context.viewport.zoom}px dashed var(--flow-valid-target, #0f766e)`,
         'border-radius': '8px',
         background: 'repeating-linear-gradient(135deg, #14b8a629 0 4px, #ccfbf125 4px 12px)',
         'box-sizing': 'border-box',
@@ -810,8 +813,8 @@ export function canvasHelpCard(context: FlowCanvasHelpContext, h: HtmlBuilder<Me
     [
       h.Class('canvas-help-card'),
       h.Style({
-        background: '#eff6ff',
-        color: '#1e3a8a',
+        background: 'light-dark(#eff6ff, #192c40)',
+        color: 'light-dark(#1e3a8a, #c4d9ff)',
         padding: '10px 14px',
         margin: '8px 0',
         border: '1px solid #bfdbfe',
@@ -833,8 +836,8 @@ export function canvasStatusCard(context: FlowCanvasStatusContext, h: HtmlBuilde
       h.Class('canvas-status-card'),
       h.Style({
         display: 'inline-block',
-        color: '#0f4c3a',
-        background: '#d1fae5',
+        color: 'light-dark(#0f4c3a, #b9efda)',
+        background: 'light-dark(#d1fae5, #1f4537)',
         padding: '4px 10px',
         margin: '6px 0',
         'border-radius': '999px',

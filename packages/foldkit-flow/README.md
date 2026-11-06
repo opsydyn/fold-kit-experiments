@@ -337,6 +337,26 @@ with the previous version of that edge removed.
 
 ### Scoped themes and Pleat
 
+Pass `theme: flowLightTheme` or `theme: flowDarkTheme` to a FoldKit view.
+The presets cover the canvas, nodes, groups, ports, edges, and interaction
+feedback. Each also sets the color scheme for native controls within that
+editor. The presets and the typed token contract are exported by
+`@opsydyn/foldkit-flow/foldkit`.
+
+```ts
+import { flowDarkTheme, type FlowTheme } from '@opsydyn/foldkit-flow/foldkit';
+
+const theme: FlowTheme = {
+  ...flowDarkTheme,
+  tokens: { ...flowDarkTheme.tokens, selection: 'var(--app-accent)' },
+};
+```
+
+Explicit `theme.tokens` take precedence over class values for the same
+tokens. Supply a partial token object to inherit the other variables from
+the host. The editor's theme can change on any render without recreating
+its state.
+
 Set `themeClassName` on a Flow view to scope a theme to that editor. Existing
 CSS variables still inherit from ancestors. A host using Pleat can combine a
 class from `cssClass()` with a CSS class that maps its semantic theme tokens

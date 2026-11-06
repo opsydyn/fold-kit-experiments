@@ -1,0 +1,53 @@
+import {
+  flowDarkTheme,
+  flowLightTheme,
+  type FlowColorScheme,
+  type FlowTheme,
+} from '@opsydyn/foldkit-flow/foldkit';
+
+export const workbenchThemes = {
+  light: {
+    ...flowLightTheme,
+    tokens: {
+      ...flowLightTheme.tokens,
+      background: '#e7eee7',
+      nodeBackground: 'var(--panel)',
+      nodeColor: 'var(--ink)',
+      nodeBorder: '#647b6d',
+      nodeRadius: '10px',
+      edge: '#4b6656',
+      selection: 'var(--accent)',
+      outputPort: 'var(--accent)',
+      inputPort: '#345d59',
+      validTarget: '#345d59',
+      resizeReadoutBackground: 'var(--panel)',
+      resizeReadoutColor: 'var(--ink)',
+    },
+  },
+  dark: {
+    ...flowDarkTheme,
+    tokens: {
+      ...flowDarkTheme.tokens,
+      background: '#142320',
+      canvasBorder: '#4b665c',
+      gridLine: '#91b5a43d',
+      gridDot: '#91b5a45c',
+      nodeBackground: 'var(--panel)',
+      nodeColor: 'var(--ink)',
+      nodeBorder: '#648276',
+      nodeRadius: '10px',
+      groupBackground: 'rgb(145 181 164 / 0.11)',
+      edge: '#a0c3b1',
+      selection: 'var(--accent)',
+      selectionBackground: 'rgb(142 224 185 / 0.15)',
+      outputPort: 'var(--accent)',
+      inputPort: '#84cdd0',
+      validTarget: '#84cdd0',
+      portBorder: '#142320',
+      controlColor: '#10241c',
+      resizeBackground: '#a2c7ba',
+      resizeReadoutBackground: 'var(--panel)',
+      resizeReadoutColor: 'var(--ink)',
+    },
+  },
+} satisfies Record<FlowColorScheme, FlowTheme>;

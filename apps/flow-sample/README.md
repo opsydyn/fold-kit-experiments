@@ -313,3 +313,8 @@ Enable **Snap drops to nearby ports** to try a 32 px radius for new
 connections and reconnections. Hover near a compatible port to preview
 the drop before releasing.
 [Workbench screenshot](evidence/connection-drop-radius.png)
+
+Use **Dark mode** to switch the Astro page and the FoldKit canvas together.
+The workbench starts in light mode and keeps the current diagram, selection,
+and viewport when the mode changes.
+[Light mode](evidence/theme-light.png) · [Dark mode](evidence/theme-dark.png)

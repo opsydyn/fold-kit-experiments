@@ -318,6 +318,14 @@ positioning API would require callers to duplicate frame and input bindings.
 Keeping the frame in Flow also gives both renderers the existing read-only,
 draft and undo behavior. Callers can hide a badge independently of editing.
 
+### Scoped theme presets
+
+Typed themes write CSS tokens at the FoldKit view root. This scopes colors
+and native control schemes per editor, and the existing class and inherited
+variable path remains available. An explicitly supplied token overrides its
+class value. The app owns theme selection, so changing modes requires only a
+view update and preserves the graph, viewport, and history.
+
 ### Connection drop radius
 
 The input binding measures rendered port centers in CSS pixels and sends

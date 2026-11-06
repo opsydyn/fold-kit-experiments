@@ -131,6 +131,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedWorldAnnotation: () => ({
       model: { ...model, showWorldAnnotation: !model.showWorldAnnotation },
     }),
+    ClickedColorScheme: (): Return<Model, Message> => ({
+      model: { ...model, colorScheme: model.colorScheme === 'light' ? 'dark' : 'light' },
+    }),
     ClickedMinimalMode: () => ({ model: { ...model, minimalMode: !model.minimalMode } }),
     ClickedDiagnosticsPanel: () => ({
       model: { ...model, diagnosticsPanelOpen: !model.diagnosticsPanelOpen },

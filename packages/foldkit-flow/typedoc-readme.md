@@ -58,6 +58,10 @@ at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and
 Model-owned editing.
 
+`FlowTheme` configures the editor's scoped CSS tokens and native control
+scheme. Use `flowLightTheme` and `flowDarkTheme` as presets or pass a partial
+`FlowThemeTokens` object. `themeClassName` continues to support host CSS classes.
+
 `renderWorldOverlay` receives `FlowWorldOverlayContext` and renders host
 content inside the camera transform. `flowWorldOverlayItem` anchors
 arbitrary FoldKit content at a world position and can opt into input.

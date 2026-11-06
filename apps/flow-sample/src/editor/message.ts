@@ -43,6 +43,7 @@ export const Message = defineMessageUnion({
   SelectedEdgeDesign: { edgeDesign: EdgeDesign },
   SelectedNodeDesign: { nodeDesign: NodeDesign },
   SelectedBackground: { background: BackgroundStyle },
+  ClickedColorScheme: {},
   ClickedMinimalMode: {},
   ClickedWorldAnnotation: {},
   ClickedDiagnosticsPanel: {},

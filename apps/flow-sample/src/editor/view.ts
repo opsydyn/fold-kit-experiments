@@ -58,6 +58,7 @@ import {
   canvasHelpCard,
   canvasStatusCard,
 } from './presentation';
+import { workbenchThemes } from './theme';
 
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
@@ -115,7 +116,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   position: 'absolute',
                   inset: '0',
                   'background-image':
-                    'linear-gradient(to right, #94a3b833 1px, transparent 1px), linear-gradient(to bottom, #94a3b833 1px, transparent 1px)',
+                    'linear-gradient(to right, var(--flow-grid-line, #94a3b833) 1px, transparent 1px), linear-gradient(to bottom, var(--flow-grid-line, #94a3b833) 1px, transparent 1px)',
                   'background-size': `${pitch}px ${pitch}px`,
                   'background-position': position,
                 }),
@@ -127,7 +128,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       position: 'absolute',
                       inset: '0',
                       'background-image':
-                        'linear-gradient(to right, #64748b66 1px, transparent 1px), linear-gradient(to bottom, #64748b66 1px, transparent 1px)',
+                        'linear-gradient(to right, var(--flow-grid-dot, #64748b66) 1px, transparent 1px), linear-gradient(to bottom, var(--flow-grid-dot, #64748b66) 1px, transparent 1px)',
                       'background-size': `${pitch * 5}px ${pitch * 5}px`,
                       'background-position': position,
                     }),
@@ -212,7 +213,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   return {
     title: 'Workflow patterns | FoldKit Flow',
     body: h.div(
-      [],
+      [h.DataAttribute('flow-workbench-color-scheme', model.colorScheme)],
       [
         h.div(
           [
@@ -1161,6 +1162,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
           ['Snap drops to nearby ports'],
         ),
+        h.button(
+          [
+            h.Class('workbench-theme-toggle'),
+            h.Type('button'),
+            h.AriaPressed(String(model.colorScheme === 'dark')),
+            h.OnClick(Message.ClickedColorScheme()),
+          ],
+          ['Dark mode'],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
@@ -1175,8 +1185,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     'min-height': '44px',
                     border: '0',
                     'border-radius': '22px',
-                    background: action.pressed ? '#0369a1' : '#e0f2fe',
-                    color: action.pressed ? '#fff' : '#0c4a6e',
+                    background: action.pressed ? '#0369a1' : 'light-dark(#e0f2fe, #20384a)',
+                    color: action.pressed ? '#fff' : 'light-dark(#0c4a6e, #bde7ff)',
                     padding: '0 16px',
                     cursor: 'pointer',
                   }),
@@ -1229,7 +1239,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   padding: '12px',
                   border: '3px solid #38bdf8',
                   'border-radius': '18px',
-                  background: '#f0f9ff',
+                  background: 'light-dark(#f0f9ff, #152b3c)',
                   cursor: 'crosshair',
                 }),
               ],
@@ -1325,7 +1335,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           minimalMode: model.minimalMode,
           diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
           background,
-          themeClassName: 'release-flow-theme',
+          theme: workbenchThemes[model.colorScheme],
           nodeToolbar:
             model.nodeToolbarDesign === 'compact'
               ? { placement: 'bottom', offset: 12 }

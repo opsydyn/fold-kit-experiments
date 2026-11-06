@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add typed scoped themes with light and dark presets and native control
+  color schemes.
+
 - Add an opt-in CSS-pixel drop radius for connection and reconnection drags.
 
 - Add per-edge source and target reconnection permissions shared by

@@ -9,33 +9,53 @@ import type {
   Point,
   Size,
   Viewport,
+  ZoomLimits,
 } from './types';
 
 export const gridSpacing = 20;
-export const minimumZoom = 0.1;
-export const maximumZoom = 4;
+export const defaultZoomLimits: ZoomLimits = Object.freeze({ minZoom: 0.1, maxZoom: 4 });
+export const defaultFitViewPadding = 24;
+
+export function validateZoomLimits({ minZoom, maxZoom }: ZoomLimits): void {
+  if (!Number.isFinite(minZoom) || !Number.isFinite(maxZoom) || minZoom <= 0 || maxZoom < minZoom)
+    throw new FlowError('invalid-edit', 'Zoom limits must be finite, positive and ordered');
+}
+export function clampZoom(zoom: number, { minZoom, maxZoom }: ZoomLimits): number {
+  return Math.max(minZoom, Math.min(maxZoom, zoom));
+}
 
 export function finitePoint(point: Point): void {
   if (!Number.isFinite(point.x) || !Number.isFinite(point.y))
     throw new FlowError('invalid-edit', 'Point coordinates must be finite');
 }
-export function validViewport(viewport: Viewport): void {
+export function validViewport(viewport: Viewport, { minZoom, maxZoom }: ZoomLimits): void {
   finitePoint(viewport);
-  if (!Number.isFinite(viewport.zoom) || viewport.zoom < minimumZoom || viewport.zoom > maximumZoom)
-    throw new FlowError('invalid-edit', 'Zoom must be between 0.1 and 4');
+  if (!Number.isFinite(viewport.zoom) || viewport.zoom < minZoom || viewport.zoom > maxZoom)
+    throw new FlowError('invalid-edit', `Zoom must be between ${minZoom} and ${maxZoom}`);
 }
 export function screenToWorld(point: Point, viewport: Viewport): Point {
   finitePoint(point);
-  validViewport(viewport);
+  finitePoint(viewport);
+  if (!Number.isFinite(viewport.zoom) || viewport.zoom <= 0)
+    throw new FlowError('invalid-edit', 'Zoom must be finite and positive');
   return { x: (point.x - viewport.x) / viewport.zoom, y: (point.y - viewport.y) / viewport.zoom };
 }
 /** Keep the world point under the cursor stationary while zooming. */
-export function zoomAt(viewport: Viewport, point: Point, factor: number): Viewport {
+export function zoomAt(
+  viewport: Viewport,
+  point: Point,
+  factor: number,
+  zoomLimits: ZoomLimits = defaultZoomLimits,
+): Viewport {
+  validateZoomLimits(zoomLimits);
   const world = screenToWorld(point, viewport);
   if (!Number.isFinite(factor) || factor <= 0)
     throw new FlowError('invalid-edit', 'Zoom factor must be positive and finite');
-  const zoom = Math.max(minimumZoom, Math.min(maximumZoom, viewport.zoom * factor));
-  return { x: point.x - world.x * zoom, y: point.y - world.y * zoom, zoom };
+  const zoom = clampZoom(viewport.zoom * factor, zoomLimits);
+  if (zoom === viewport.zoom) return viewport;
+  const next = { x: point.x - world.x * zoom, y: point.y - world.y * zoom, zoom };
+  validViewport(next, zoomLimits);
+  return next;
 }
 export function boxBounds(origin: Point, point: Point) {
   return {
@@ -133,11 +153,22 @@ export function minimapGeometry(
   };
 }
 
-export function fitViewport(graph: FlowGraph, size: Size, padding = 24): Viewport {
-  return fitNodes(graph.nodes, size, padding);
+export function fitViewport(
+  graph: FlowGraph,
+  size: Size,
+  padding = defaultFitViewPadding,
+  zoomLimits: ZoomLimits = defaultZoomLimits,
+): Viewport {
+  return fitNodes(graph.nodes, size, padding, zoomLimits);
 }
 
-export function fitNodes(nodes: readonly FlowNode[], size: Size, padding: number): Viewport {
+export function fitNodes(
+  nodes: readonly FlowNode[],
+  size: Size,
+  padding: number,
+  zoomLimits: ZoomLimits,
+): Viewport {
+  validateZoomLimits(zoomLimits);
   if (
     ![size.width, size.height, padding].every(Number.isFinite) ||
     padding < 0 ||
@@ -145,18 +176,17 @@ export function fitNodes(nodes: readonly FlowNode[], size: Size, padding: number
     size.height <= 2 * padding
   )
     throw new FlowError('invalid-edit', 'Viewport must be larger than its padding');
-  if (nodes.length === 0) return { x: 0, y: 0, zoom: 1 };
+  if (nodes.length === 0) return { x: 0, y: 0, zoom: clampZoom(1, zoomLimits) };
   const left = Math.min(...nodes.map((node) => node.position.x));
   const top = Math.min(...nodes.map((node) => node.position.y));
   const right = Math.max(...nodes.map((node) => node.position.x + node.size.width));
   const bottom = Math.max(...nodes.map((node) => node.position.y + node.size.height));
-  const zoom = Math.max(
-    minimumZoom,
+  const zoom = clampZoom(
     Math.min(
-      maximumZoom,
       (size.width - 2 * padding) / (right - left),
       (size.height - 2 * padding) / (bottom - top),
     ),
+    zoomLimits,
   );
   return {
     x: (size.width - (right + left) * zoom) / 2,

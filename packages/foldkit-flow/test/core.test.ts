@@ -587,6 +587,66 @@ test('fit control works on a small read-only canvas and leaves history intact', 
   expect(fitted.past).toBe(initial.past);
 });
 
+test('custom zoom limits apply to wheel and pinch while preserving the world anchor', () => {
+  const zoomLimits = { minZoom: 5, maxZoom: 8 };
+  const initial = createEditor(graph, { zoomLimits });
+  expect(initial.viewport.zoom).toBe(5);
+  const point = { x: 100, y: 150 };
+  const zoomed = updateEditor(initial, { type: 'Zoomed', point, factor: 10 });
+  expect(zoomed.viewport).toEqual({ x: -60, y: -90, zoom: 8 });
+  expect(screenToWorld(point, zoomed.viewport)).toEqual({ x: 20, y: 30 });
+  const pinch = updateEditor(zoomed, { type: 'PinchStarted', center: point, distance: 100 });
+  const moved = updateEditor(pinch, {
+    type: 'PinchMoved',
+    center: { x: 110, y: 170 },
+    distance: 10,
+  });
+  expect(moved.viewport).toEqual({ x: 10, y: 20, zoom: 5 });
+  expect(() =>
+    updateEditor(initial, {
+      type: 'ViewportChanged',
+      viewport: { x: 0, y: 0, zoom: 4 },
+    }),
+  ).toThrow();
+  expect(() => createEditor(graph, { zoomLimits: { minZoom: 3, maxZoom: 2 } })).toThrow();
+  expect(() => createEditor(graph, { fitViewPadding: -1 })).toThrow();
+});
+
+test('Fit view uses authored padding and changing constraints cancels a running fit', () => {
+  const zoomLimits = { minZoom: 0.75, maxZoom: 1.6 };
+  const size = { width: 800, height: 440 };
+  const measured = updateEditor(createEditor(graph, { zoomLimits, fitViewPadding: 100 }), {
+    type: 'SurfaceMeasured',
+    size,
+  });
+  const click = { type: 'FitViewClicked' } as const;
+  const fitted = updateEditor(measured, click);
+  expect(fitted.viewport.zoom).toBeCloseTo(600 / 440);
+  expect(fitted.viewport.x + 20 * fitted.viewport.zoom).toBeCloseTo(100);
+  expect(fitViewport(graph, size, 0, zoomLimits).zoom).toBe(1.6);
+  const fitting = updateEditor(
+    { ...fitted, viewport: measured.viewport, fitViewDuration: 400 },
+    click,
+  );
+  const constrained = updateEditor(fitting, {
+    type: 'ViewportConstraintsChanged',
+    zoomLimits: { minZoom: 1.5, maxZoom: 1.5 },
+    fitViewPadding: 0,
+  });
+  expect(constrained.viewport).toEqual({ x: -200, y: -110, zoom: 1.5 });
+  expect(constrained.fitViewTransition.type).toBe('idle');
+  expect(
+    updateEditor(constrained, {
+      type: 'FitViewAnimationFrame',
+      id: fitting.fitViewTransition.id,
+      time: 500,
+      reducedMotion: true,
+    }),
+  ).toBe(constrained);
+  expect(constrained.graph).toBe(measured.graph);
+  expect(constrained.past).toBe(measured.past);
+});
+
 test('animated fit interpolates the camera and finishes at the instant fit target', () => {
   const initial = updateEditor(createEditor(graph, { fitViewDuration: 400 }), {
     type: 'SurfaceMeasured',

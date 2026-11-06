@@ -90,7 +90,7 @@ input observation stops while DevTools displays a historical view. Resuming inpu
 cancels any unfinished gesture retained in that Model snapshot.
 
 - Drag node titles; Shift-click titles to select several. Drag the background to pan.
-- Scroll over the surface to zoom around the pointer (0.1–4). The surface owns touch
+- Scroll over the surface to zoom around the pointer (0.1–4× by default). The surface owns touch
   gestures; this initial version supports one pointer, not pinch zoom.
 - Tab to titles; Enter/Space selects and arrow keys move. Shift uses larger steps.
 - Activate an output port, then an input port, by mouse or keyboard to connect.
@@ -408,6 +408,21 @@ scrolling:
 The option applies only to wheel input on the canvas. Editable controls
 keep their own wheel behavior. Flow updates its default help text to match
 the option. Custom help receives the same `wheelNavigation` value.
+
+Pass `zoomLimits: { minZoom: 0.75, maxZoom: 1.3 }` and
+`fitViewPadding: 96` to `createEditor` to customize the camera. Wheel,
+pinch, toolbar, and Fit view share the inclusive range. Both limits must
+be finite and positive, and equal limits fix the zoom. An explicit
+`viewport` must be in range. Without one, Flow starts at the allowed zoom
+closest to 1.
+
+Fit view uses CSS pixels for padding and caps the inset at a quarter of the
+shorter canvas side. The defaults are 0.1–4× and 24 px. Dispatch
+`ViewportConstraintsChanged` while idle to change both settings. If the
+current zoom falls outside the new range, Flow clamps around the canvas
+center and stops any running fit. For host-controlled camera operations,
+`zoomAt` and `fitViewport` take the same `ZoomLimits` as an optional fourth
+argument.
 
 Pass `fitViewDuration: 400` to `createEditor` to animate Fit view over
 400 milliseconds. The default is zero for instant fitting. The FoldKit

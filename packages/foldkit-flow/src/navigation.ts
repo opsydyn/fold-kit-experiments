@@ -2,7 +2,7 @@ import { Match, Option } from 'effect';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { FlowDiagnostics } from './diagnostics';
-import { maximumZoom, minimumZoom, minimapGeometry } from './geometry';
+import { minimapGeometry } from './geometry';
 import { groupsInPaintOrder, presentGroups } from './group-presentation';
 import type { EditorEvent, EditorState, FlowMinimapGeometry, FlowNode } from './types';
 
@@ -44,12 +44,12 @@ export function viewportControlActions(state: EditorState): FlowViewportActions 
     zoomIn: {
       label: 'Zoom in',
       event: { type: 'Zoomed', point, factor: 1.25 },
-      disabled: unavailable || state.viewport.zoom >= maximumZoom,
+      disabled: unavailable || state.viewport.zoom >= state.zoomLimits.maxZoom,
     },
     zoomOut: {
       label: 'Zoom out',
       event: { type: 'Zoomed', point, factor: 1 / 1.25 },
-      disabled: unavailable || state.viewport.zoom <= minimumZoom,
+      disabled: unavailable || state.viewport.zoom <= state.zoomLimits.minZoom,
     },
     fitView: {
       label: 'Fit view',

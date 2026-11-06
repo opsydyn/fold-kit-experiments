@@ -288,3 +288,8 @@ Enable **Animate Fit view**, zoom away from the diagram, then choose
 **Fit view** to ease back to the fitted camera. Pan or zoom while it moves
 to take over. The fit is instant when the system prefers reduced motion.
 [Workbench screenshot](evidence/fit-view-animation.png)
+
+Enable **Constrain camera** to try 75–130% zoom and a 96 px fit inset. Wheel,
+pinch, and toolbar zoom stop at the same limits. **Fit view** uses the inset
+for instant and animated fitting.
+[Workbench screenshot](evidence/viewport-constraints.png)

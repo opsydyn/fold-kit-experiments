@@ -7,6 +7,8 @@ import {
   serializeGraph,
   updateEditor,
   type EditorEvent,
+  type EditorState,
+  type FlowGraph,
   type LayoutResult,
 } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
@@ -18,6 +20,16 @@ import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
 import { presetPosition } from './port-presets';
 
+function frameGraph(graph: FlowGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
+  const size = surface ?? { width: 800, height: 440 };
+  return fitViewport(
+    graph,
+    size,
+    Math.min(fitViewPadding, size.width / 4, size.height / 4),
+    zoomLimits,
+  );
+}
+
 export function update(model: Model, message: Message): Return<Model, Message> {
   const {
     snapToGrid,
@@ -26,6 +38,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     selectionMode,
     boxSelectionMatch,
     fitViewDuration,
+    fitViewPadding,
+    zoomLimits,
   } = model.editor;
   return Message.match(message, {
     ObservedFlowInput: ({ message: input }) => {
@@ -56,7 +70,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         selectionMode,
         boxSelectionMatch,
         fitViewDuration,
-        viewport: fitViewport(graph, surface ?? { width: 800, height: 440 }),
+        fitViewPadding,
+        zoomLimits,
+        viewport: frameGraph(graph, model.editor),
       });
       return {
         model: {
@@ -172,10 +188,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
               ? editor
               : updateEditor(editor, {
                   type: 'ViewportChanged',
-                  viewport: fitViewport(
-                    editor.graph,
-                    editor.surface ?? { width: 800, height: 440 },
-                  ),
+                  viewport: frameGraph(editor.graph, editor),
                 }),
           active: null,
           notice:
@@ -238,7 +251,6 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         };
       const graph = parseGraph(json);
       const surface = model.editor.surface;
-      const size = surface ?? { width: 800, height: 440 };
       const editor = createEditor(graph, {
         snapToGrid,
         gridSpacing,
@@ -246,7 +258,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         selectionMode,
         boxSelectionMatch,
         fitViewDuration,
-        viewport: fitViewport(graph, size, Math.min(24, size.width / 4, size.height / 4)),
+        fitViewPadding,
+        zoomLimits,
+        viewport: frameGraph(graph, model.editor),
       });
       return {
         model: {
@@ -281,6 +295,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             selectionMode,
             boxSelectionMatch,
             fitViewDuration,
+            fitViewPadding,
+            zoomLimits,
           }),
           surface: model.editor.surface,
           clipboard: model.editor.clipboard,

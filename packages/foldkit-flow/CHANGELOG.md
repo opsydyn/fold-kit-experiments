@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Configure zoom limits and Fit view padding in the editor. Wheel, pinch,
+  controls, and animated fitting share the configured range.
+
 - Add opt-in animated Fit view with instant fitting for reduced motion and
   cancellation when the user takes control of the viewport.
 

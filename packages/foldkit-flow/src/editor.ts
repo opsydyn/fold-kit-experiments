@@ -7,12 +7,16 @@ import {
 } from './alignment';
 import { resolveDeletion } from './deletion';
 import {
+  clampZoom,
+  defaultFitViewPadding,
+  defaultZoomLimits,
   finitePoint,
   fitNodes,
   fittedGroupBounds,
   gridSpacing as defaultGridSpacing,
   minimapGeometry,
   screenToWorld,
+  validateZoomLimits,
   validViewport,
   zoomAt,
 } from './geometry';
@@ -40,10 +44,19 @@ import type {
   Viewport,
 } from './types';
 
+function validateFitViewPadding(padding: number): void {
+  if (!Number.isFinite(padding) || padding < 0)
+    throw new FlowError('invalid-edit', 'Fit view padding must be finite and non-negative');
+}
+
 /** Validate and detach an authored graph, then initialize host-owned editor state. Throws FlowError for invalid input. */
 export function createEditor(graph: FlowGraph, options: EditorOptions = {}): EditorState {
-  const viewport = options.viewport ?? { x: 0, y: 0, zoom: 1 };
-  validViewport(viewport);
+  const zoomLimits = options.zoomLimits ?? defaultZoomLimits;
+  validateZoomLimits(zoomLimits);
+  const fitViewPadding = options.fitViewPadding ?? defaultFitViewPadding;
+  validateFitViewPadding(fitViewPadding);
+  const viewport = options.viewport ?? { x: 0, y: 0, zoom: clampZoom(1, zoomLimits) };
+  validViewport(viewport, zoomLimits);
   const gridSpacing = options.gridSpacing ?? defaultGridSpacing;
   if (!Number.isFinite(gridSpacing) || gridSpacing <= 0)
     throw new FlowError('invalid-edit', 'Grid spacing must be finite and positive');
@@ -63,6 +76,8 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     revision: 0,
     surface: null,
     viewport: { ...viewport },
+    zoomLimits: { ...zoomLimits },
+    fitViewPadding,
     fitViewDuration,
     fitViewTransition: { type: 'idle', id: 0 },
     selectedNodes: [],
@@ -528,7 +543,11 @@ function advanceFit(
   const interpolate = (key: keyof Viewport) => from[key] * (1 - eased) + to[key] * eased;
   return {
     ...state,
-    viewport: { x: interpolate('x'), y: interpolate('y'), zoom: interpolate('zoom') },
+    viewport: {
+      x: interpolate('x'),
+      y: interpolate('y'),
+      zoom: clampZoom(interpolate('zoom'), state.zoomLimits),
+    },
   };
 }
 
@@ -662,21 +681,34 @@ export function updateEditor(
         x: state.viewport.x + event.delta.x,
         y: state.viewport.y + event.delta.y,
       };
-      validViewport(viewport);
+      validViewport(viewport, state.zoomLimits);
       return { ...state, viewport };
     }
     case 'ViewportChanged':
       if (state.gesture.type !== 'idle') return state;
-      validViewport(event.viewport);
+      validViewport(event.viewport, state.zoomLimits);
       return { ...state, viewport: { ...event.viewport } };
+    case 'ViewportConstraintsChanged': {
+      if (state.gesture.type !== 'idle') return state;
+      const { zoomLimits, fitViewPadding } = event;
+      validateFitViewPadding(fitViewPadding);
+      const center = { x: (state.surface?.width ?? 0) / 2, y: (state.surface?.height ?? 0) / 2 };
+      return {
+        ...cancelFit(state),
+        viewport: zoomAt(state.viewport, center, 1, zoomLimits),
+        zoomLimits: { ...zoomLimits },
+        fitViewPadding,
+      };
+    }
     case 'FitViewClicked': {
       const { surface } = state;
       if (!surface || state.gesture.type !== 'idle' || state.graph.nodes.length === 0) return state;
-      const padding = Math.min(24, surface.width / 4, surface.height / 4);
+      const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
       const to = fitNodes(
         presentGroups(state.graph, state.collapsedGroups).nodes,
         surface,
         padding,
+        state.zoomLimits,
       );
       const from = state.viewport;
       if (
@@ -725,7 +757,10 @@ export function updateEditor(
     }
     case 'Zoomed':
       if (state.gesture.type !== 'idle') return state;
-      return { ...state, viewport: zoomAt(state.viewport, event.point, event.factor) };
+      return {
+        ...state,
+        viewport: zoomAt(state.viewport, event.point, event.factor, state.zoomLimits),
+      };
     case 'PinchStarted': {
       if (!Number.isFinite(event.distance) || event.distance < 1 || state.gesture.type === 'pinch')
         return state;
@@ -748,13 +783,18 @@ export function updateEditor(
       if (gesture.type !== 'pinch' || !Number.isFinite(event.distance) || event.distance < 1)
         return state;
       finitePoint(event.center);
-      const zoomed = zoomAt(gesture.before, gesture.center, event.distance / gesture.distance);
+      const zoomed = zoomAt(
+        gesture.before,
+        gesture.center,
+        event.distance / gesture.distance,
+        state.zoomLimits,
+      );
       const viewport = {
         ...zoomed,
         x: zoomed.x + event.center.x - gesture.center.x,
         y: zoomed.y + event.center.y - gesture.center.y,
       };
-      validViewport(viewport);
+      validViewport(viewport, state.zoomLimits);
       return { ...state, viewport };
     }
     case 'PinchEnded':
@@ -796,7 +836,7 @@ export function updateEditor(
         x: state.viewport.x + delta.x,
         y: state.viewport.y + delta.y,
       };
-      validViewport(viewport);
+      validViewport(viewport, state.zoomLimits);
       return updateEditor(
         {
           ...state,

@@ -9,6 +9,8 @@ export type Point = Readonly<{ x: number; y: number }>;
 export type Size = Readonly<{ width: number; height: number }>;
 /** CSS-pixel translation plus a world-to-screen zoom factor. */
 export type Viewport = Readonly<Point & { zoom: number }>;
+/** Inclusive positive, finite zoom limits. Equal limits fix the zoom. */
+export type ZoomLimits = Readonly<{ minZoom: number; maxZoom: number }>;
 /** Outward routing and reconnection direction hint. */
 export type PortSide = 'left' | 'right' | 'top' | 'bottom';
 /** Choose either a cardinal side offset, or normalized box coordinates. Never both. */
@@ -124,6 +126,8 @@ export type EditorState = Readonly<{
   /** Monotonic document freshness token; Undo does not rewind it. */
   revision: number;
   viewport: Viewport;
+  zoomLimits: ZoomLimits;
+  fitViewPadding: number;
   /** Fit duration in milliseconds. Zero fits instantly. */
   fitViewDuration: number;
   fitViewTransition: FitViewTransition;
@@ -158,6 +162,10 @@ export type FitViewTransition =
 /** Initial editor preferences. History defaults to 100 entries; grid spacing defaults to 20 world units. */
 export type EditorOptions = Readonly<{
   viewport?: Viewport;
+  /** Inclusive zoom range for camera operations. Defaults to 0.1–4. */
+  zoomLimits?: ZoomLimits;
+  /** Fit inset in CSS pixels, capped at a quarter of the shorter surface side. Defaults to 24. */
+  fitViewPadding?: number;
   /** Opt into animated Fit view with a positive duration in milliseconds. Defaults to zero. */
   fitViewDuration?: number;
   historyLimit?: number;
@@ -235,6 +243,7 @@ export type EditorEvent =
   | Readonly<{ type: 'SelectionModeToggled' }>
   | Readonly<{ type: 'BoxSelectionMatchChanged'; match: BoxSelectionMatch }>
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>
+  | Readonly<{ type: 'ViewportConstraintsChanged'; zoomLimits: ZoomLimits; fitViewPadding: number }>
   | Readonly<{ type: 'ViewportNudged'; delta: Point }>
   | Readonly<{ type: 'FitViewClicked' }>
   | Readonly<{ type: 'FitViewDurationChanged'; duration: number }>

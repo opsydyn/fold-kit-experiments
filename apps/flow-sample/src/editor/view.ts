@@ -1,4 +1,9 @@
-import type { EdgePathStyle, FlowEdge } from '@opsydyn/foldkit-flow';
+import {
+  defaultFitViewPadding,
+  defaultZoomLimits,
+  type EdgePathStyle,
+  type FlowEdge,
+} from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
   flowView,
@@ -1028,6 +1033,29 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ),
               ],
             ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.editor.fitViewPadding === 96),
+              h.Disabled(model.editor.gesture.type !== 'idle'),
+              h.OnClick(
+                Message.ObservedFlowInput({
+                  message: {
+                    type: 'ViewportConstraintsChanged',
+                    zoomLimits:
+                      model.editor.fitViewPadding === 96
+                        ? defaultZoomLimits
+                        : { minZoom: 0.75, maxZoom: 1.3 },
+                    fitViewPadding: model.editor.fitViewPadding === 96 ? defaultFitViewPadding : 96,
+                  },
+                }),
+              ),
+            ]),
+            'Constrain camera (75–130% zoom, 96 px fit padding)',
           ],
         ),
         h.label(

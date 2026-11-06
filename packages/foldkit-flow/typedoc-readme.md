@@ -97,6 +97,11 @@ the rejection reason through its action descriptors.
 `FlowWheelNavigation` configures wheel zoom, two-axis panning with modifier
 zoom, or native page scrolling through `FlowViewOptions.wheelNavigation`.
 
+`EditorOptions.zoomLimits` and `EditorOptions.fitViewPadding` configure the
+camera shared by input, toolbar actions, and Fit view. Hosts can replace both
+with `ViewportConstraintsChanged` or pass `ZoomLimits` to the geometry helpers
+`zoomAt` and `fitViewport`.
+
 `EditorOptions.fitViewDuration` opts into animated Fit view. The editor owns
 `FitViewTransition` and handles `FitViewAnimationFrame` events from the
 FoldKit view, including the browser's reduced-motion preference. Direct

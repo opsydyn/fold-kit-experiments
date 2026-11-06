@@ -3,32 +3,28 @@ import { Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
 
 import { Message } from './message';
-import { ColorScheme } from './model';
+import { ThemePreference } from './model';
 
 const colorSchemeKey = 'opsydyn.foldkit-flow.color-scheme.v1';
 
-export const LoadColorScheme = Command.define('LoadColorScheme', {
-  messages: [Message.LoadedColorScheme],
+export const LoadThemePreference = Command.define('LoadThemePreference', {
+  messages: [Message.LoadedThemePreference],
   execute: Effect.try(() => globalThis.localStorage.getItem(colorSchemeKey)).pipe(
     Effect.match({
-      onSuccess: (stored) => (Schema.is(ColorScheme)(stored) ? stored : null),
-      onFailure: () => null,
+      onSuccess: (stored) =>
+        Message.LoadedThemePreference({
+          themePreference: Schema.is(ThemePreference)(stored) ? stored : 'system',
+        }),
+      onFailure: () => Message.LoadedThemePreference({ themePreference: 'system' }),
     }),
-    Effect.map((stored) =>
-      Message.LoadedColorScheme({
-        colorScheme:
-          stored ??
-          (globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-      }),
-    ),
   ),
 });
 
-export const SaveColorScheme = Command.define('SaveColorScheme', {
-  args: { colorScheme: ColorScheme },
+export const SaveThemePreference = Command.define('SaveThemePreference', {
+  args: { themePreference: ThemePreference },
   messages: [Message.CompletedColorSchemeSave, Message.FailedColorSchemeSave],
-  execute: ({ colorScheme }) =>
-    Effect.try(() => globalThis.localStorage.setItem(colorSchemeKey, colorScheme)).pipe(
+  execute: ({ themePreference }) =>
+    Effect.try(() => globalThis.localStorage.setItem(colorSchemeKey, themePreference)).pipe(
       Effect.match({
         onSuccess: () => Message.CompletedColorSchemeSave(),
         onFailure: () => Message.FailedColorSchemeSave(),

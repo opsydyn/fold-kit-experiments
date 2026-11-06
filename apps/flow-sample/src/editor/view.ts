@@ -20,6 +20,7 @@ import type { Document, HtmlBuilder } from 'foldkit/html';
 import { workbenchPolicy } from './editor-policy';
 import { Message } from './message';
 import {
+  ThemePreference,
   NavigationDesign,
   WheelNavigation,
   BackgroundStyle,
@@ -68,6 +69,8 @@ const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | nul
 ];
 
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
+  const themePreference = model.themePreference ?? 'system';
+  const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
   const button = (label: string, message: Message, disabled = false) =>
     h.button(
       [
@@ -213,7 +216,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   return {
     title: 'Workflow patterns | FoldKit Flow',
     body: h.div(
-      [h.DataAttribute('flow-workbench-color-scheme', model.colorScheme ?? 'light')],
+      [h.DataAttribute('flow-workbench-color-scheme', colorScheme)],
       [
         h.div(
           [
@@ -1162,15 +1165,27 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
           ['Snap drops to nearby ports'],
         ),
-        h.button(
+        h.label(
+          [h.Class('workbench-theme-picker')],
           [
-            h.Class('workbench-theme-toggle'),
-            h.Type('button'),
-            h.AriaPressed(String(model.colorScheme === 'dark')),
-            h.Disabled(model.colorScheme === null),
-            h.OnClick(Message.ClickedColorScheme()),
+            'Theme',
+            h.select(
+              [
+                h.Value(themePreference),
+                h.Disabled(model.themePreference === null),
+                h.OnChange((value) =>
+                  Message.SelectedThemePreference({
+                    themePreference: Schema.decodeUnknownSync(ThemePreference)(value),
+                  }),
+                ),
+              ],
+              [
+                h.option([h.Value('system'), h.Selected(themePreference === 'system')], ['System']),
+                h.option([h.Value('light'), h.Selected(themePreference === 'light')], ['Light']),
+                h.option([h.Value('dark'), h.Selected(themePreference === 'dark')], ['Dark']),
+              ],
+            ),
           ],
-          ['Dark mode'],
         ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
@@ -1336,7 +1351,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           minimalMode: model.minimalMode,
           diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
           background,
-          theme: workbenchThemes[model.colorScheme ?? 'light'],
+          theme: workbenchThemes[colorScheme],
           nodeToolbar:
             model.nodeToolbarDesign === 'compact'
               ? { placement: 'bottom', offset: 12 }

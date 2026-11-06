@@ -35,7 +35,7 @@ async function qualify() {
     const errors = [];
     page.on('pageerror', (error) => errors.push(String(error)));
     const button = (name) => page.getByRole('button', { name, exact: true });
-    const toggle = button('Dark mode');
+    const theme = page.getByRole('combobox', { name: 'Theme', exact: true });
     const surface = page.locator('[data-flow-surface]');
     const body = page.locator('body');
     const card = surface.locator('[data-flow-node="review"] > div');
@@ -51,7 +51,7 @@ async function qualify() {
     const screenshot = async (mode) => {
       await surface.scrollIntoViewIfNeeded();
       const canvas = await surface.boundingBox();
-      const control = await toggle.boundingBox();
+      const control = await theme.boundingBox();
       await page.screenshot({
         path: `/tmp/foldkit-flow-theme-${mode}.png`,
         clip: {
@@ -72,15 +72,15 @@ async function qualify() {
     await expect(page.getByText('146%', { exact: true })).toBeVisible();
     const camera = await surface.evaluate(cameraTransform);
 
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(theme).toHaveValue('system');
     await expect(body).toHaveCSS('background-color', 'rgb(248, 246, 241)');
     await expect(surface).toHaveCSS('background-color', 'rgb(231, 238, 231)');
     await expect(card).toHaveCSS('background-color', 'rgb(253, 254, 251)');
     await expect(nativeInput).toHaveCSS('color-scheme', 'light');
     await screenshot('light');
 
-    await toggle.press('Enter');
-    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await theme.selectOption('dark');
+    await expect(theme).toHaveValue('dark');
     await expect(body).toHaveCSS('background-color', 'rgb(16, 28, 25)');
     await expect(surface).toHaveCSS('background-color', 'rgb(20, 35, 32)');
     await expect(card).toHaveCSS('background-color', 'rgb(33, 52, 45)');
@@ -93,30 +93,47 @@ async function qualify() {
     await screenshot('dark');
     expect(await exportGraph()).toEqual(graph);
 
-    await toggle.click();
+    await theme.selectOption('light');
     await expect(surface).toHaveCSS('background-color', 'rgb(231, 238, 231)');
     await expect(body).toHaveCSS('background-color', 'rgb(248, 246, 241)');
     await expect(nativeInput).toHaveCSS('color-scheme', 'light');
     expect(await surface.evaluate(cameraTransform)).toBe(camera);
     const fresh = await browser.newPage({ colorScheme: 'dark' });
-    const freshToggle = fresh.getByRole('button', { name: 'Dark mode', exact: true });
+    const freshTheme = fresh.getByRole('combobox', { name: 'Theme', exact: true });
     const freshSurface = fresh.locator('[data-flow-surface]');
     const url = 'http://127.0.0.1:' + server.address().port;
     await fresh.goto(url);
-    await expect(freshToggle).toBeEnabled();
+    await expect(freshTheme).toBeEnabled();
     await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
-    await freshToggle.click();
+    await freshTheme.selectOption('light');
     await expect(freshSurface).toHaveCSS('color-scheme', 'light');
     await fresh.reload();
-    await expect(freshToggle).toBeEnabled();
+    await expect(freshTheme).toBeEnabled();
     await expect(freshSurface).toHaveCSS('color-scheme', 'light');
 
-    await freshToggle.click();
+    await freshTheme.selectOption('dark');
     await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
     await fresh.emulateMedia({ colorScheme: 'light' });
     await fresh.reload();
-    await expect(freshToggle).toBeEnabled();
+    await expect(freshTheme).toBeEnabled();
     await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
+
+    await expect(freshTheme).toHaveValue('dark');
+    await freshTheme.selectOption('system');
+    await expect(freshSurface).toHaveCSS('color-scheme', 'light');
+    await fresh.emulateMedia({ colorScheme: 'dark' });
+    await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
+    await freshTheme.selectOption('light');
+    await fresh.emulateMedia({ colorScheme: 'light' });
+    await fresh.emulateMedia({ colorScheme: 'dark' });
+    await expect(freshSurface).toHaveCSS('color-scheme', 'light');
+    await freshTheme.selectOption('system');
+    await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
+    await fresh.reload();
+    await expect(freshTheme).toBeEnabled();
+    await expect(freshTheme).toHaveValue('system');
+    await fresh.emulateMedia({ colorScheme: 'light' });
+    await expect(freshSurface).toHaveCSS('color-scheme', 'light');
 
     const blocked = await browser.newPage({ colorScheme: 'dark' });
     await blocked.addInitScript(() => {
@@ -129,13 +146,15 @@ async function qualify() {
     await blocked.goto(url);
     const blockedSurface = blocked.locator('[data-flow-surface]');
     await expect(blockedSurface).toHaveCSS('color-scheme', 'dark');
-    await blocked.getByRole('button', { name: 'Dark mode', exact: true }).click();
+    await blocked.getByRole('combobox', { name: 'Theme', exact: true }).selectOption('light');
     await expect(blockedSurface).toHaveCSS('color-scheme', 'light');
     await expect(
       blocked.getByText('Theme changed for this visit. Your browser could not save it.'),
     ).toBeVisible();
     expect(errors).toEqual([]);
-    console.log('Theme switching, system default, reload persistence and blocked storage passed.');
+    console.log(
+      'Theme switching, live System mode, reload persistence and blocked storage passed.',
+    );
   };
   await run().finally(() => browser.close());
 }

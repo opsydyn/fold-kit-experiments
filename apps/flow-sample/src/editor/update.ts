@@ -19,7 +19,7 @@ import {
   ExportFlow,
   ImportFlow,
   LoadFlow,
-  SaveColorScheme,
+  SaveThemePreference,
   SaveFlow,
 } from './command';
 import { workbenchPolicy } from './editor-policy';
@@ -138,14 +138,16 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedWorldAnnotation: () => ({
       model: { ...model, showWorldAnnotation: !model.showWorldAnnotation },
     }),
-    LoadedColorScheme: ({ colorScheme }) => ({
-      model: model.colorScheme === null ? { ...model, colorScheme } : model,
+    LoadedThemePreference: ({ themePreference }) => ({
+      model: model.themePreference === null ? { ...model, themePreference } : model,
     }),
-    ClickedColorScheme: (): Return<Model, Message> => {
-      if (model.colorScheme === null) return { model };
-      const colorScheme = model.colorScheme === 'light' ? 'dark' : 'light';
-      return { model: { ...model, colorScheme }, commands: [SaveColorScheme({ colorScheme })] };
-    },
+    ChangedSystemColorScheme: ({ colorScheme }) => ({
+      model: { ...model, systemColorScheme: colorScheme },
+    }),
+    SelectedThemePreference: ({ themePreference }) => ({
+      model: { ...model, themePreference },
+      commands: [SaveThemePreference({ themePreference })],
+    }),
     CompletedColorSchemeSave: () => ({ model }),
     FailedColorSchemeSave: () => ({
       model: { ...model, notice: 'Theme changed for this visit. Your browser could not save it.' },

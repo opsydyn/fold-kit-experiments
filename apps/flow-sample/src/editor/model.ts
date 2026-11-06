@@ -187,9 +187,12 @@ export const DiagnosticFlag = Schema.Literals([
   'connectionList',
 ]);
 export const ColorScheme = Schema.Literals(['light', 'dark']);
+export const ThemePreference = Schema.Literals(['system', 'light', 'dark']);
+export type ThemePreference = typeof ThemePreference.Type;
 
 export const Model = Schema.Struct({
-  colorScheme: Schema.NullOr(ColorScheme),
+  themePreference: Schema.NullOr(ThemePreference),
+  systemColorScheme: ColorScheme,
   minimalMode: Schema.Boolean,
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
@@ -228,7 +231,8 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
-  colorScheme: FlowColorScheme | null;
+  themePreference: ThemePreference | null;
+  systemColorScheme: FlowColorScheme;
   minimalMode: boolean;
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
@@ -260,7 +264,8 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
-    colorScheme: null,
+    themePreference: null,
+    systemColorScheme: 'light',
     minimalMode: false,
     showWorldAnnotation: false,
     diagnosticsEnabled: true,

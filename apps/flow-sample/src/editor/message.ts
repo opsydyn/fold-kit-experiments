@@ -3,6 +3,7 @@ import { defineMessageUnion } from 'foldkit/message';
 
 import {
   ColorScheme,
+  ThemePreference,
   NavigationDesign,
   WheelNavigation,
   PortAnchorPreset,
@@ -44,8 +45,9 @@ export const Message = defineMessageUnion({
   SelectedEdgeDesign: { edgeDesign: EdgeDesign },
   SelectedNodeDesign: { nodeDesign: NodeDesign },
   SelectedBackground: { background: BackgroundStyle },
-  ClickedColorScheme: {},
-  LoadedColorScheme: { colorScheme: ColorScheme },
+  SelectedThemePreference: { themePreference: ThemePreference },
+  LoadedThemePreference: { themePreference: ThemePreference },
+  ChangedSystemColorScheme: { colorScheme: ColorScheme },
   CompletedColorSchemeSave: {},
   FailedColorSchemeSave: {},
   ClickedMinimalMode: {},

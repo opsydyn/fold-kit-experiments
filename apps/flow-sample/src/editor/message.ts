@@ -2,6 +2,7 @@ import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 
 import {
+  ColorScheme,
   NavigationDesign,
   WheelNavigation,
   PortAnchorPreset,
@@ -44,6 +45,9 @@ export const Message = defineMessageUnion({
   SelectedNodeDesign: { nodeDesign: NodeDesign },
   SelectedBackground: { background: BackgroundStyle },
   ClickedColorScheme: {},
+  LoadedColorScheme: { colorScheme: ColorScheme },
+  CompletedColorSchemeSave: {},
+  FailedColorSchemeSave: {},
   ClickedMinimalMode: {},
   ClickedWorldAnnotation: {},
   ClickedDiagnosticsPanel: {},

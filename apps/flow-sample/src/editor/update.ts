@@ -14,7 +14,14 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import type { Return } from 'foldkit/update';
 
-import { ArrangeFlow, ExportFlow, ImportFlow, LoadFlow, SaveFlow } from './command';
+import {
+  ArrangeFlow,
+  ExportFlow,
+  ImportFlow,
+  LoadFlow,
+  SaveColorScheme,
+  SaveFlow,
+} from './command';
 import { workbenchPolicy } from './editor-policy';
 import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
@@ -131,8 +138,17 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedWorldAnnotation: () => ({
       model: { ...model, showWorldAnnotation: !model.showWorldAnnotation },
     }),
-    ClickedColorScheme: (): Return<Model, Message> => ({
-      model: { ...model, colorScheme: model.colorScheme === 'light' ? 'dark' : 'light' },
+    LoadedColorScheme: ({ colorScheme }) => ({
+      model: model.colorScheme === null ? { ...model, colorScheme } : model,
+    }),
+    ClickedColorScheme: (): Return<Model, Message> => {
+      if (model.colorScheme === null) return { model };
+      const colorScheme = model.colorScheme === 'light' ? 'dark' : 'light';
+      return { model: { ...model, colorScheme }, commands: [SaveColorScheme({ colorScheme })] };
+    },
+    CompletedColorSchemeSave: () => ({ model }),
+    FailedColorSchemeSave: () => ({
+      model: { ...model, notice: 'Theme changed for this visit. Your browser could not save it.' },
     }),
     ClickedMinimalMode: () => ({ model: { ...model, minimalMode: !model.minimalMode } }),
     ClickedDiagnosticsPanel: () => ({

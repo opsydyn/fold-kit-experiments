@@ -186,8 +186,10 @@ export const DiagnosticFlag = Schema.Literals([
   'overview',
   'connectionList',
 ]);
+export const ColorScheme = Schema.Literals(['light', 'dark']);
+
 export const Model = Schema.Struct({
-  colorScheme: Schema.Literals(['light', 'dark']),
+  colorScheme: Schema.NullOr(ColorScheme),
   minimalMode: Schema.Boolean,
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
@@ -226,7 +228,7 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
-  colorScheme: FlowColorScheme;
+  colorScheme: FlowColorScheme | null;
   minimalMode: boolean;
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
@@ -258,7 +260,7 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
-    colorScheme: 'light',
+    colorScheme: null,
     minimalMode: false,
     showWorldAnnotation: false,
     diagnosticsEnabled: true,

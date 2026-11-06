@@ -213,7 +213,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   return {
     title: 'Workflow patterns | FoldKit Flow',
     body: h.div(
-      [h.DataAttribute('flow-workbench-color-scheme', model.colorScheme)],
+      [h.DataAttribute('flow-workbench-color-scheme', model.colorScheme ?? 'light')],
       [
         h.div(
           [
@@ -1167,6 +1167,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Class('workbench-theme-toggle'),
             h.Type('button'),
             h.AriaPressed(String(model.colorScheme === 'dark')),
+            h.Disabled(model.colorScheme === null),
             h.OnClick(Message.ClickedColorScheme()),
           ],
           ['Dark mode'],
@@ -1335,7 +1336,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           minimalMode: model.minimalMode,
           diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,
           background,
-          theme: workbenchThemes[model.colorScheme],
+          theme: workbenchThemes[model.colorScheme ?? 'light'],
           nodeToolbar:
             model.nodeToolbarDesign === 'compact'
               ? { placement: 'bottom', offset: 12 }

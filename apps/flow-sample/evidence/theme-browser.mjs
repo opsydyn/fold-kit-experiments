@@ -28,7 +28,10 @@ function cameraTransform(element) {
 async function qualify() {
   const browser = await chromium.launch();
   const run = async () => {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 1100 } });
+    const page = await browser.newPage({
+      viewport: { width: 1280, height: 1100 },
+      colorScheme: 'light',
+    });
     const errors = [];
     page.on('pageerror', (error) => errors.push(String(error)));
     const button = (name) => page.getByRole('button', { name, exact: true });
@@ -95,10 +98,44 @@ async function qualify() {
     await expect(body).toHaveCSS('background-color', 'rgb(248, 246, 241)');
     await expect(nativeInput).toHaveCSS('color-scheme', 'light');
     expect(await surface.evaluate(cameraTransform)).toBe(camera);
+    const fresh = await browser.newPage({ colorScheme: 'dark' });
+    const freshToggle = fresh.getByRole('button', { name: 'Dark mode', exact: true });
+    const freshSurface = fresh.locator('[data-flow-surface]');
+    const url = 'http://127.0.0.1:' + server.address().port;
+    await fresh.goto(url);
+    await expect(freshToggle).toBeEnabled();
+    await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
+    await freshToggle.click();
+    await expect(freshSurface).toHaveCSS('color-scheme', 'light');
+    await fresh.reload();
+    await expect(freshToggle).toBeEnabled();
+    await expect(freshSurface).toHaveCSS('color-scheme', 'light');
+
+    await freshToggle.click();
+    await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
+    await fresh.emulateMedia({ colorScheme: 'light' });
+    await fresh.reload();
+    await expect(freshToggle).toBeEnabled();
+    await expect(freshSurface).toHaveCSS('color-scheme', 'dark');
+
+    const blocked = await browser.newPage({ colorScheme: 'dark' });
+    await blocked.addInitScript(() => {
+      Object.defineProperty(window, 'localStorage', {
+        get() {
+          throw new DOMException('Storage is disabled', 'SecurityError');
+        },
+      });
+    });
+    await blocked.goto(url);
+    const blockedSurface = blocked.locator('[data-flow-surface]');
+    await expect(blockedSurface).toHaveCSS('color-scheme', 'dark');
+    await blocked.getByRole('button', { name: 'Dark mode', exact: true }).click();
+    await expect(blockedSurface).toHaveCSS('color-scheme', 'light');
+    await expect(
+      blocked.getByText('Theme changed for this visit. Your browser could not save it.'),
+    ).toBeVisible();
     expect(errors).toEqual([]);
-    console.log(
-      'Light and dark modes reached the Astro shell, canvas and native controls while preserving graph, selection and viewport.',
-    );
+    console.log('Theme switching, system default, reload persistence and blocked storage passed.');
   };
   await run().finally(() => browser.close());
 }

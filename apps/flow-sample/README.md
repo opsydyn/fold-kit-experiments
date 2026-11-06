@@ -315,6 +315,7 @@ the drop before releasing.
 [Workbench screenshot](evidence/connection-drop-radius.png)
 
 Use **Dark mode** to switch the Astro page and the FoldKit canvas together.
-The workbench starts in light mode and keeps the current diagram, selection,
-and viewport when the mode changes.
+The workbench reads the system preference when it opens. Once you use the
+switch, your choice takes precedence on later visits in the same browser.
+Changing modes keeps the current diagram, selection, and viewport.
 [Light mode](evidence/theme-light.png) · [Dark mode](evidence/theme-dark.png)

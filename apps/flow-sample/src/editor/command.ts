@@ -3,6 +3,38 @@ import { Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
 
 import { Message } from './message';
+import { ColorScheme } from './model';
+
+const colorSchemeKey = 'opsydyn.foldkit-flow.color-scheme.v1';
+
+export const LoadColorScheme = Command.define('LoadColorScheme', {
+  messages: [Message.LoadedColorScheme],
+  execute: Effect.try(() => globalThis.localStorage.getItem(colorSchemeKey)).pipe(
+    Effect.match({
+      onSuccess: (stored) => (Schema.is(ColorScheme)(stored) ? stored : null),
+      onFailure: () => null,
+    }),
+    Effect.map((stored) =>
+      Message.LoadedColorScheme({
+        colorScheme:
+          stored ??
+          (globalThis.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+      }),
+    ),
+  ),
+});
+
+export const SaveColorScheme = Command.define('SaveColorScheme', {
+  args: { colorScheme: ColorScheme },
+  messages: [Message.CompletedColorSchemeSave, Message.FailedColorSchemeSave],
+  execute: ({ colorScheme }) =>
+    Effect.try(() => globalThis.localStorage.setItem(colorSchemeKey, colorScheme)).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedColorSchemeSave(),
+        onFailure: () => Message.FailedColorSchemeSave(),
+      }),
+    ),
+});
 
 export const ArrangeFlow = Command.define('ArrangeFlow', {
   args: {

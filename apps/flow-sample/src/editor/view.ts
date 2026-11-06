@@ -1546,6 +1546,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 control(context.actions.fitView, 'Fit view'),
                 control(context.actions.fitSelection, context.actions.fitSelection.label),
                 control(context.actions.zoomArea, context.actions.zoomArea.label),
+                control(context.actions.previousView, context.actions.previousView.label),
                 ...(context.selectionModeControl
                   ? [control(context.actions.selectionMode, 'Box select')]
                   : []),
@@ -1736,6 +1737,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           viewportControls: true,
           fitSelectionControl: true,
           zoomAreaControl: true,
+          previousViewControl: true,
           selectionModeControl: true,
           label: 'Workflow editor',
           onEvent: flowInput,

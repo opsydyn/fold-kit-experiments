@@ -393,6 +393,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     fitSelectionControl?: boolean;
     /** Include the one-shot Zoom to area toggle in the viewport controls. */
     zoomAreaControl?: boolean;
+    /** Include Back to previous view in the viewport controls. */
+    previousViewControl?: boolean;
     /** Include a box selection toggle in the viewport controls. */
     selectionModeControl?: boolean;
     height?: number;
@@ -657,7 +659,13 @@ function contextPanel<M>(
 function viewportControls<M>(
   h: HtmlBuilder<M>,
   state: EditorState,
-  { onEvent, selectionModeControl, fitSelectionControl, zoomAreaControl }: FlowViewOptions<M>,
+  {
+    onEvent,
+    selectionModeControl,
+    fitSelectionControl,
+    zoomAreaControl,
+    previousViewControl,
+  }: FlowViewOptions<M>,
   diagnostics: FlowDiagnostics,
 ): Html {
   const actions = viewportControlActions(state);
@@ -700,6 +708,7 @@ function viewportControls<M>(
       button(actions.fitView),
       ...(fitSelectionControl ? [button(actions.fitSelection)] : []),
       ...(zoomAreaControl ? [button(actions.zoomArea)] : []),
+      ...(previousViewControl ? [button(actions.previousView)] : []),
       ...(selectionModeControl ? [button(actions.selectionMode)] : []),
       ...(diagnostics.zoomLevel
         ? [
@@ -1897,6 +1906,7 @@ export function flowView<M>(
                 selectionModeControl: Boolean(options.selectionModeControl),
                 fitSelectionControl: Boolean(options.fitSelectionControl),
                 zoomAreaControl: Boolean(options.zoomAreaControl),
+                previousViewControl: Boolean(options.previousViewControl),
               },
               h,
             ) ?? viewportControls(h, state, options, diagnostics),

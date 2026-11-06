@@ -104,6 +104,11 @@ Node and group shells receive `selectionPreview` separately from selection.
 `renderZoomAreaMarquee` receives the pending camera fit's normalized world
 bounds and viewport in `FlowZoomAreaMarqueeContext`.
 
+`previousViewControl` enables **Back to previous view**.
+`FlowViewportActions.previousView` exposes the same action for custom
+controls. The reducer restores the session checkpoint from the last
+camera fit independently of graph history.
+
 `renderCanvasHelp` and `renderCanvasStatus` customize guidance and notices
 inside the existing accessible description and polite live region. The
 contexts provide default copy and the effective visibility preference.

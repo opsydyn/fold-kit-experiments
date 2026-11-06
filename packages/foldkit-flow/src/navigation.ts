@@ -22,6 +22,7 @@ export type FlowViewportActions = Readonly<{
   fitView: FlowViewportControl;
   fitSelection: FlowViewportControl;
   zoomArea: FlowViewportControl;
+  previousView: FlowViewportControl;
   selectionMode: FlowViewportControl;
 }>;
 export type FlowViewportControlsContext = Readonly<{
@@ -31,6 +32,7 @@ export type FlowViewportControlsContext = Readonly<{
   selectionModeControl: boolean;
   fitSelectionControl?: boolean;
   zoomAreaControl?: boolean;
+  previousViewControl?: boolean;
 }>;
 export type FlowMinimapContext = Readonly<{
   state: EditorState;
@@ -73,6 +75,11 @@ export function viewportControlActions(state: EditorState): FlowViewportActions 
       event: { type: 'ZoomAreaModeToggled' },
       disabled: unavailable,
       pressed: Boolean(state.zoomAreaMode) || state.gesture.type === 'zoom-area',
+    },
+    previousView: {
+      label: 'Back to previous view',
+      event: { type: 'PreviousViewClicked' },
+      disabled: unavailable || !state.previousViewport,
     },
     selectionMode: {
       label: 'Box select',

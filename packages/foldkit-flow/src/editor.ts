@@ -589,9 +589,13 @@ function cancelFit(state: EditorState): EditorState {
     : { ...state, fitViewTransition: { type: 'idle', id: transition.id } };
 }
 
+function sameViewport(a: Viewport, b: Viewport): boolean {
+  return a.x === b.x && a.y === b.y && a.zoom === b.zoom;
+}
+
 function startFit(state: EditorState, to: Viewport): EditorState {
   const from = state.viewport;
-  if (state.fitViewDuration === 0 || (from.x === to.x && from.y === to.y && from.zoom === to.zoom))
+  if (state.fitViewDuration === 0 || sameViewport(from, to))
     return { ...cancelFit(state), viewport: to };
   return {
     ...state,
@@ -609,9 +613,15 @@ function fitEditorBounds(
   state: EditorState,
   surface: NonNullable<EditorState['surface']>,
   bounds: readonly Pick<FlowNode, 'position' | 'size'>[],
+  zoomLimits = state.zoomLimits,
 ): EditorState {
   const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
-  return startFit(state, fitNodes(bounds, surface, padding, state.zoomLimits));
+  const to = fitNodes(bounds, surface, padding, zoomLimits);
+  const transition = state.fitViewTransition;
+  if (sameViewport(state.viewport, to)) return cancelFit(state);
+  if (state.previousViewport && transition.type === 'fitting' && sameViewport(transition.to, to))
+    return startFit(state, to);
+  return startFit({ ...state, previousViewport: state.viewport }, to);
 }
 
 function expandRevealAncestors(state: EditorState, targets: readonly FlowNode[]): EditorState {
@@ -660,14 +670,10 @@ function fitReveal(
   surface: NonNullable<EditorState['surface']>,
   bounds: readonly Pick<FlowNode, 'position' | 'size'>[],
 ): EditorState {
-  const padding = Math.min(state.fitViewPadding, surface.width / 4, surface.height / 4);
-  return startFit(
-    state,
-    fitNodes(bounds, surface, padding, {
-      ...state.zoomLimits,
-      maxZoom: state.viewport.zoom,
-    }),
-  );
+  return fitEditorBounds(state, surface, bounds, {
+    ...state.zoomLimits,
+    maxZoom: state.viewport.zoom,
+  });
 }
 
 function advanceFit(
@@ -925,6 +931,13 @@ export function updateEditor(
           : presentEditorGroups(state).nodes;
       if (nodes.length === 0) return state;
       return fitEditorBounds(state, surface, nodes);
+    }
+    case 'PreviousViewClicked': {
+      const { surface, previousViewport } = state;
+      if (!surface || !previousViewport || state.gesture.type !== 'idle') return state;
+      const center = { x: surface.width / 2, y: surface.height / 2 };
+      const to = zoomAt(previousViewport, center, 1, state.zoomLimits);
+      return startFit({ ...state, previousViewport: null, notice: 'Restored previous view' }, to);
     }
     case 'NodeRevealRequested': {
       const { surface, graph } = state;

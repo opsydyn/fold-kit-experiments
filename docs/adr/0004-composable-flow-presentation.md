@@ -315,6 +315,13 @@ and marquee slot let hosts choose how the tool looks. A distinct gesture
 keeps box selection policy and preview highlights out of camera navigation.
 Both fits use the existing camera limits, padding, and animation.
 
+Back to previous view stores one camera checkpoint in the editor Model.
+Fits and search reveals capture the camera they depart from. Manual
+navigation and graph edits leave the checkpoint available, and Back
+consumes it. This keeps the action independent of graph undo and snapshot
+serialization. A full camera history would also require grouping
+continuous gestures, which this single-step return does not need.
+
 ### Edge labels
 
 Label hooks render HTML inside Flow's existing positioned frame. The frame

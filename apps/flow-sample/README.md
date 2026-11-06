@@ -395,3 +395,7 @@ a node to frame them together. [Workbench screenshot](evidence/fit-selection.png
 Use **Zoom to area**, then drag from the canvas background to frame a
 region. The workbench supplies its own marquee styling and offers the
 control in both navigation designs. [Marquee screenshot](evidence/zoom-area.png)
+
+After a fit or search reveal, use **Back to previous view** to return to
+the prior camera position. Both navigation designs expose the same
+package action. [Workbench screenshot](evidence/previous-view.png)

@@ -768,6 +768,20 @@ inside Flow's pointer-inert frame. The context provides normalized world
 bounds and the viewport. Return `undefined` for the default or `null` to
 hide the decoration.
 
+### Back to previous view
+
+Set `previousViewControl: true` with `viewportControls: true` to show
+**Back to previous view**. Custom controls can use
+`context.actions.previousView` with `flowViewportControl`, or send
+`{ type: 'PreviousViewClicked' }` directly.
+
+Flow keeps one session checkpoint. Fit view, Fit selection, Zoom to area,
+and node or connection reveal capture the camera before moving it.
+Manual pan and zoom leave the checkpoint available. Back uses it once,
+respects the current zoom limits and reduced-motion preference, and works
+in read-only views. It preserves the current selection, group expansion,
+graph, and undo history. Snapshots save the current camera only.
+
 ### Reveal a node
 
 Send `{ type: 'NodeRevealRequested', id }` to center a node. Flow keeps the

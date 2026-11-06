@@ -889,6 +889,7 @@ test('Zoom to area fits a reverse drag without changing selection or history', (
   expect(fitted.revision).toBe(measured.revision);
   expect(fitted.past).toBe(measured.past);
   expect(fitted.future).toBe(measured.future);
+  expect(updateEditor(fitted, { type: 'PreviousViewClicked' }).viewport).toEqual(measured.viewport);
   const animated = updateEditor({ ...preview, fitViewDuration: 150 }, release);
   expect(animated.viewport).toBe(preview.viewport);
   expect(animated.fitViewTransition.type).toBe('fitting');
@@ -3145,6 +3146,9 @@ test('revealing a connection frames its routed path and opens only its endpoint 
   expect(revealed.past).toBe(state.past);
   expect(revealed.routes).toBe(state.routes);
   expect(revealed.selectedNodes).toBe(state.selectedNodes);
+  const restored = updateEditor(revealed, { type: 'PreviousViewClicked' });
+  expect(restored.viewport).toEqual(state.viewport);
+  expect(restored.collapsedGroups).toBe(revealed.collapsedGroups);
   for (const visibility of [{ hiddenEdgeIds: ['ab'] }, { hiddenNodeIds: ['inner'] }]) {
     const hidden = updateEditor(state, { type: 'VisibilityChanged', visibility });
     expect(updateEditor(hidden, reveal)).toBe(hidden);
@@ -3210,4 +3214,70 @@ test('Fit selection frames mixed selections and follows collapsed edge projectio
       reducedMotion: true,
     }).viewport,
   ).toEqual(fitted.viewport);
+});
+
+test('previous view restores the latest fit origin once, separately from graph undo', () => {
+  const initial = createEditor(graph, { viewport: { x: 100, y: 50, zoom: 2 } });
+  const state = {
+    ...updateEditor(initial, { type: 'NodeLabelChanged', id: 'a', label: 'Edited source' }),
+    surface: { width: 800, height: 440 },
+    selectedNodes: ['a'],
+  };
+  const back = { type: 'PreviousViewClicked' } as const;
+  expect(updateEditor(state, back)).toBe(state);
+  const fitted = updateEditor(state, { type: 'FitViewClicked' });
+  const focused = updateEditor(fitted, { type: 'FitSelectionClicked' });
+  expect(focused.viewport).not.toEqual(fitted.viewport);
+  const repeated = updateEditor(focused, { type: 'FitSelectionClicked' });
+  const panned = updateEditor(repeated, { type: 'ViewportNudged', delta: { x: 24, y: -40 } });
+  const restored = updateEditor(panned, back);
+  expect(restored.viewport).toEqual(fitted.viewport);
+  expect(restored.graph).toBe(state.graph);
+  expect(restored.selectedNodes).toBe(state.selectedNodes);
+  expect(restored.past).toBe(state.past);
+  expect(restored.future).toBe(state.future);
+  expect(restored.revision).toBe(state.revision);
+  expect(updateEditor(restored, back)).toBe(restored);
+  const undone = updateEditor(restored, { type: 'UndoPressed' });
+  expect(undone.graph.nodes[0]?.label).toBe('Source');
+  expect(undone.viewport).toBe(restored.viewport);
+
+  const constrained = updateEditor(fitted, {
+    type: 'ViewportConstraintsChanged',
+    zoomLimits: { minZoom: 0.5, maxZoom: 1.5 },
+    fitViewPadding: 24,
+  });
+  expect(updateEditor({ ...constrained, readOnly: true }, back).viewport).toEqual({
+    x: 175,
+    y: 92.5,
+    zoom: 1.5,
+  });
+});
+
+test('previous view can reverse a running fit and ignores its stale animation frames', () => {
+  const state = {
+    ...createEditor(graph, { fitViewDuration: 200 }),
+    surface: { width: 800, height: 440 },
+  };
+  const fit = { type: 'FitViewClicked' } as const;
+  const fitting = updateEditor(state, fit);
+  const frame = { type: 'FitViewAnimationFrame', id: fitting.fitViewTransition.id } as const;
+  const progressed = updateEditor(
+    updateEditor(fitting, { ...frame, time: 0, reducedMotion: false }),
+    { ...frame, time: 60, reducedMotion: false },
+  );
+  expect(progressed.viewport).not.toEqual(state.viewport);
+  const repeated = updateEditor(progressed, fit);
+  const returning = updateEditor(repeated, { type: 'PreviousViewClicked' });
+  expect(returning.viewport).toBe(progressed.viewport);
+  expect(returning.fitViewTransition.id).not.toBe(frame.id);
+  expect(updateEditor(returning, { ...frame, time: 200, reducedMotion: false })).toBe(returning);
+  const restored = updateEditor(returning, {
+    ...frame,
+    id: returning.fitViewTransition.id,
+    time: 60,
+    reducedMotion: true,
+  });
+  expect(restored.viewport).toEqual(state.viewport);
+  expect(restored.fitViewTransition.type).toBe('idle');
 });

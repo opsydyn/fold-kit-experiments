@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add an opt-in Back to previous view control for returning from a
+  camera fit or search reveal.
+
 - Add Zoom to area with an opt-in viewport control and a composable
   drag preview.
 

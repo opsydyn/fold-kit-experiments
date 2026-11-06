@@ -140,6 +140,8 @@ export type EditorState = Readonly<{
   /** Monotonic document freshness token; Undo does not rewind it. */
   revision: number;
   viewport: Viewport;
+  /** Session checkpoint captured before the most recent camera fit. */
+  previousViewport?: Viewport | null;
   zoomLimits: ZoomLimits;
   fitViewPadding: number;
   /** Fit duration in milliseconds. Zero fits instantly. */
@@ -294,6 +296,7 @@ export type EditorEvent =
   | Readonly<{ type: 'ViewportNudged'; delta: Point }>
   | Readonly<{ type: 'FitViewClicked' }>
   | Readonly<{ type: 'FitSelectionClicked' }>
+  | Readonly<{ type: 'PreviousViewClicked' }>
   | Readonly<{ type: 'NodeRevealRequested'; id: string }>
   | Readonly<{ type: 'EdgeRevealRequested'; id: string }>
   | Readonly<{ type: 'FitViewDurationChanged'; duration: number }>

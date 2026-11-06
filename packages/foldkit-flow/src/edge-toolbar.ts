@@ -2,7 +2,11 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { EdgePathStyle, EditorEvent, FlowEdge, Point } from './types';
 
-export type FlowEdgeToolbarAction = Readonly<{ label: string; event: EditorEvent }>;
+export type FlowEdgeToolbarAction = Readonly<{
+  label: string;
+  event: EditorEvent;
+  disabledReason?: string;
+}>;
 
 export type FlowEdgeToolbarContext = Readonly<{
   edge: FlowEdge;
@@ -31,7 +35,15 @@ export function flowEdgeToolbarButton<M>(
   children: Parameters<HtmlBuilder<M>['button']>[1],
 ): Html {
   return h.button(
-    [...attributes, h.Type('button'), h.AriaLabel(action.label), h.OnClick(onEvent(action.event))],
+    [
+      ...attributes,
+      h.Type('button'),
+      h.AriaLabel(action.label),
+      ...(action.disabledReason === undefined
+        ? []
+        : [h.Disabled(true), h.Title(action.disabledReason)]),
+      h.OnClick(onEvent(action.event)),
+    ],
     children,
   );
 }

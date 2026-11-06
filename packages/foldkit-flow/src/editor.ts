@@ -5,6 +5,7 @@ import {
   sameGuides,
   type ResizeAlignment,
 } from './alignment';
+import { resolveDeletion } from './deletion';
 import {
   boxBounds,
   finitePoint,
@@ -17,7 +18,12 @@ import {
   zoomAt,
 } from './geometry';
 import { copyGraph, FlowError, validateGraph, withPortPosition } from './graph';
-import { edgeIsVisible, groupAtDropPoint, presentGroups } from './group-presentation';
+import {
+  edgeIsVisible,
+  groupAtDropPoint,
+  presentGroups,
+  withDescendants,
+} from './group-presentation';
 import { expandParents } from './parent-expansion';
 import type {
   EditorEvent,
@@ -260,21 +266,6 @@ export function commitGraph(state: EditorState, graph: FlowGraph): EditorState {
     selectedEdges: state.selectedEdges.filter((id) => graph.edges.some((edge) => edge.id === id)),
   };
 }
-function withDescendants(graph: FlowGraph, ids: readonly string[]): ReadonlySet<string> {
-  const children = new Map<string, string[]>();
-  for (const node of graph.nodes) {
-    if (node.parentId === undefined) continue;
-    const siblings = children.get(node.parentId) ?? [];
-    siblings.push(node.id);
-    children.set(node.parentId, siblings);
-  }
-  const included = new Set(ids);
-  for (const id of included) {
-    for (const child of children.get(id) ?? []) included.add(child);
-  }
-  return included;
-}
-
 function selectedFragment(state: EditorState): FlowGraph {
   const included = withDescendants(state.graph, state.selectedNodes);
   return copyGraph({
@@ -1441,27 +1432,27 @@ export function updateEditor(
       return { ...commitGraph(state, { ...state.graph, nodes }), notice: 'Selection ungrouped' };
     }
     case 'EdgeDeleted':
-      if (!state.graph.edges.some((edge) => edge.id === event.id)) return state;
-      return {
-        ...commitGraph(state, {
-          ...state.graph,
-          edges: state.graph.edges.filter((edge) => edge.id !== event.id),
-        }),
-        routes: state.routes.filter((route) => route.id !== event.id),
-        notice: 'Connection deleted',
-      };
     case 'DeletePressed': {
-      if (state.selectedNodes.length === 0 && state.selectedEdges.length === 0) return state;
-      const removed = withDescendants(state.graph, state.selectedNodes);
-      return commitGraph(state, {
-        nodes: state.graph.nodes.filter((node) => !removed.has(node.id)),
-        edges: state.graph.edges.filter(
-          (edge) =>
-            !state.selectedEdges.includes(edge.id) &&
-            !removed.has(edge.source.node) &&
-            !removed.has(edge.target.node),
-        ),
+      const targets =
+        event.type === 'EdgeDeleted'
+          ? { nodeIds: [], edgeIds: [event.id] }
+          : { nodeIds: state.selectedNodes, edgeIds: state.selectedEdges };
+      const decision = resolveDeletion(state.graph, targets, policy.canDelete);
+      if (decision.type === 'empty') return state;
+      if (decision.type === 'blocked') return { ...state, notice: decision.reason };
+      const nodeIds = new Set(decision.candidate.nodes.map((node) => node.id));
+      const edgeIds = new Set(decision.candidate.edges.map((edge) => edge.id));
+      const committed = commitGraph(state, {
+        nodes: state.graph.nodes.filter((node) => !nodeIds.has(node.id)),
+        edges: state.graph.edges.filter((edge) => !edgeIds.has(edge.id)),
       });
+      return event.type === 'EdgeDeleted'
+        ? {
+            ...committed,
+            routes: state.routes.filter((route) => !edgeIds.has(route.id)),
+            notice: 'Connection deleted',
+          }
+        : committed;
     }
     case 'UndoPressed': {
       const graph = state.past.at(-1);

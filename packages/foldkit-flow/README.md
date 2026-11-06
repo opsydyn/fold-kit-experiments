@@ -584,6 +584,33 @@ Flow calls the hook only for resolved guides when the effective
 `alignmentGuides` diagnostic is enabled. Guide visibility is independent
 of snapping.
 
+### Protect nodes and edges from deletion
+
+Pass a pure `canDelete` callback in `EditorPolicy` to `updateEditor`. It
+receives the nodes and edges that would be removed, including selected
+groups' descendants and incident edges, and the original graph. Return a
+reason to reject the entire deletion or `null` to accept it. A rejection
+sets the editor notice and preserves the graph, revision, and Undo/Redo
+history. Accepted deletions use the existing transaction boundary.
+
+```ts
+const canDelete: NonNullable<EditorPolicy['canDelete']> = ({ nodes, edges }) =>
+  nodes.some((node) => node.id === 'required-step') ||
+  edges.some((edge) => edge.id === 'required-link')
+    ? 'This workflow step or connection is required.'
+    : null;
+
+const next = updateEditor(state, event, { canDelete });
+const view = flowView(h, next, { id: 'workflow', label: 'Workflow', onEvent, canDelete });
+```
+
+Pass the same callback to `flowView` for disabled Delete actions and their
+reason in the built-in context panels and edge toolbar. Custom controls can
+read `disabledReason` from the action descriptors or call `resolveDeletion`
+with their own targets. The policy may run during rendering and again when
+the editor handles a deletion, so keep it synchronous and pure. The host
+decides how to identify required items.
+
 ### Custom box-selection marquee
 
 Use `renderSelectionMarquee(context, h)` to replace the decoration during

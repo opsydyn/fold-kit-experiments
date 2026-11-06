@@ -2,6 +2,10 @@
 
 ## 0.1.0 (unreleased)
 
+- Add a pure deletion policy shared by keyboard deletion, context actions and
+  the edge toolbar. A rejection protects the full transaction, including
+  descendants and incident edges.
+
 - Add custom canvas help and status content with the existing accessible
   descriptions, polite live region, and diagnostics visibility.
 

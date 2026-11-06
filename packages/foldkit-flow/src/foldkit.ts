@@ -104,6 +104,7 @@ import {
 } from './diagnostics';
 export { resolveFlowDiagnostics } from './diagnostics';
 export type { FlowDiagnostics, FlowDiagnosticOptions } from './diagnostics';
+import { resolveDeletion } from './deletion';
 import { resolveEdgeGeometry, type FlowEdgeGeometryPolicy } from './edge-geometry';
 import { boxBounds, portBoundaryPosition } from './geometry';
 export type {
@@ -127,6 +128,9 @@ import { FlowInput } from './mount';
 export type { FlowBackground, FlowBackgroundRenderContext } from './background';
 import type {
   AlignmentGuide,
+  DeletionTargets,
+  EditorPolicy,
+  FlowGraph,
   EditorEvent,
   EditorState,
   FlowEdge,
@@ -245,6 +249,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     themeClassName?: string;
     /** Show on-canvas controls for a single selected edge in editable views. */
     edgeToolbar?: boolean;
+    /** Use the same pure deletion policy passed to updateEditor to disable protected actions. */
+    canDelete?: EditorPolicy['canDelete'];
     /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
     renderEdgeToolbar?: (
       context: FlowEdgeToolbarContext,
@@ -316,9 +322,26 @@ function groupResizeTitle(
     ? `Drag to resize with locked proportions; arrow keys adjust by ${step}`
     : `Drag to resize; arrow keys adjust by ${step}`;
 }
+function deletionReason(
+  graph: FlowGraph,
+  targets: DeletionTargets,
+  canDelete: EditorPolicy['canDelete'],
+): string | undefined {
+  if (!canDelete) return undefined;
+  const decision = resolveDeletion(graph, targets, canDelete);
+  return decision.type === 'blocked' ? decision.reason : undefined;
+}
+
+function deletionExplanation<M>(h: HtmlBuilder<M>, reason: string | undefined): readonly Html[] {
+  return reason === undefined
+    ? []
+    : [h.small([h.Style({ 'flex-basis': '100%', 'overflow-wrap': 'anywhere' })], [reason])];
+}
+
 function contextMenu(
   state: EditorState,
   diagnostics: FlowDiagnostics,
+  canDelete: EditorPolicy['canDelete'],
 ): FlowContextMenuContext | undefined {
   const context = state.context;
   if (!context || state.readOnly) return undefined;
@@ -332,7 +355,11 @@ function contextMenu(
       edge,
       point,
       close,
-      deleteEdge: { label: 'Delete edge', event: { type: 'EdgeDeleted', id } },
+      deleteEdge: {
+        label: 'Delete edge',
+        event: { type: 'EdgeDeleted', id },
+        disabledReason: deletionReason(state.graph, { nodeIds: [], edgeIds: [id] }, canDelete),
+      },
       rename: { label: 'Rename', event: { type: 'EdgeLabelEditingStarted', id } },
     };
   }
@@ -369,7 +396,15 @@ function contextMenu(
     close,
     group,
     duplicate: { label: 'Duplicate node', event: { type: 'DuplicatePressed' } },
-    deleteNode: { label: 'Delete node', event: { type: 'DeletePressed' } },
+    deleteNode: {
+      label: 'Delete node',
+      event: { type: 'DeletePressed' },
+      disabledReason: deletionReason(
+        state.graph,
+        { nodeIds: state.selectedNodes, edgeIds: state.selectedEdges },
+        canDelete,
+      ),
+    },
   };
 }
 
@@ -449,8 +484,12 @@ function defaultContextMenu<M>(
                 ]
               : []),
             button(context.deleteNode),
+            ...deletionExplanation(h, context.deleteNode.disabledReason),
           ]
-        : [button(context.deleteEdge)]),
+        : [
+            button(context.deleteEdge),
+            ...deletionExplanation(h, context.deleteEdge.disabledReason),
+          ]),
       button(context.close),
     ],
   );
@@ -462,7 +501,9 @@ function contextPanel<M>(
   options: FlowViewOptions<M>,
   diagnostics: FlowDiagnostics,
 ): readonly Html[] {
-  const context = options.contextActions ? contextMenu(state, diagnostics) : undefined;
+  const context = options.contextActions
+    ? contextMenu(state, diagnostics, options.canDelete)
+    : undefined;
   if (!context) return [];
   const group = context.kind === 'node' ? context.group : undefined;
   const width = group ? 224 : 172;
@@ -600,6 +641,7 @@ function defaultEdgeToolbar<M>(
         h.Style({ 'min-height': '32px', 'font-size': '13px' }),
       ]),
       action(context.actions.deleteEdge),
+      ...deletionExplanation(h, context.actions.deleteEdge.disabledReason),
     ],
   );
 }
@@ -1363,6 +1405,11 @@ export function flowView<M>(
             deleteEdge: {
               label: 'Delete edge',
               event: { type: 'EdgeDeleted', id: activeEdge.edge.id },
+              disabledReason: deletionReason(
+                state.graph,
+                { nodeIds: [], edgeIds: [activeEdge.edge.id] },
+                options.canDelete,
+              ),
             },
             changePathStyle: (pathStyle) => ({
               type: 'EdgePathStyleChanged',

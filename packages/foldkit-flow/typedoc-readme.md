@@ -89,6 +89,10 @@ bounds and the viewport.
 inside the existing accessible description and polite live region. The
 contexts provide default copy and the effective visibility preference.
 
+`resolveDeletion` and `EditorPolicy.canDelete` evaluate the complete set of
+items a deletion would remove. Pass the same callback to the view to expose
+the rejection reason through its action descriptors.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

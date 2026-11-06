@@ -98,6 +98,60 @@ describe('parent-owned editor', () => {
     expect(state.graph.nodes[0]?.position).toEqual({ x: 70, y: 50 });
   });
 
+  test('deletion protection checks descendants and incident edges before committing', () => {
+    const edge = {
+      id: 'ab',
+      source: { node: 'a', port: 'out' },
+      target: { node: 'b', port: 'in' },
+    };
+    const initial = createEditor({
+      nodes: [
+        {
+          id: 'g',
+          kind: 'group',
+          label: 'Group',
+          position: { x: 0, y: 0 },
+          size: { width: 200, height: 180 },
+          ports: [],
+        },
+        { ...nodeA, parentId: 'g' },
+        nodeB,
+      ],
+      edges: [edge],
+    });
+    const selected = updateEditor(initial, { type: 'NodeSelected', id: 'g', additive: false });
+    const protectedLink = {
+      canConnect: () => null,
+      canDelete: (candidate: FlowGraph) =>
+        candidate.edges.some((item) => item.id === 'ab') ? 'Required link' : null,
+    };
+    const protectedChild = {
+      canConnect: () => null,
+      canDelete: (candidate: FlowGraph) =>
+        candidate.nodes.some((item) => item.id === 'a') ? 'Required child' : null,
+    };
+    for (const [policy, reason] of [
+      [protectedLink, 'Required link'],
+      [protectedChild, 'Required child'],
+    ] as const) {
+      const rejected = updateEditor(selected, { type: 'DeletePressed' }, policy);
+      expect(rejected.graph).toBe(selected.graph);
+      expect(rejected.revision).toBe(selected.revision);
+      expect(rejected.past).toBe(selected.past);
+      expect(rejected.future).toBe(selected.future);
+      expect(rejected.selectedNodes).toEqual(['g']);
+      expect(rejected.notice).toBe(reason);
+    }
+    const rejectedEdge = updateEditor(selected, { type: 'EdgeDeleted', id: 'ab' }, protectedLink);
+    expect(rejectedEdge.graph).toBe(selected.graph);
+    expect(rejectedEdge.notice).toBe('Required link');
+    const allowed = updateEditor(selected, { type: 'DeletePressed' });
+    expect(allowed.graph.nodes.map((node) => node.id)).toEqual(['b']);
+    expect(allowed.graph.edges).toEqual([]);
+    expect(allowed.past).toHaveLength(1);
+    expect(updateEditor(allowed, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  });
+
   test('connection policy is app-owned and deletion removes incident edges atomically', () => {
     const edge = {
       id: 'ab',

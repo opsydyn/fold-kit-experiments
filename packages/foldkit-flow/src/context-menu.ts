@@ -6,6 +6,7 @@ export type FlowContextAction = Readonly<{
   label: string;
   event: EditorEvent;
   pressed?: boolean;
+  disabledReason?: string;
 }>;
 
 export type FlowGroupContextActions = Readonly<{
@@ -51,6 +52,9 @@ export function flowContextAction<M>(
       ...attributes,
       h.Type('button'),
       h.AriaLabel(action.label),
+      ...(action.disabledReason === undefined
+        ? []
+        : [h.Disabled(true), h.Title(action.disabledReason)]),
       ...(action.pressed === undefined ? [] : [h.AriaPressed(String(action.pressed))]),
       h.OnClick(onEvent(action.event)),
     ],

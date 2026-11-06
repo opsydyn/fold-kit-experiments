@@ -11,6 +11,7 @@ import {
 import { Schema } from 'effect';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
+import { requiredItemPolicy } from './deletion-policy';
 import { Message } from './message';
 import {
   NavigationDesign,
@@ -490,6 +491,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   ),
                   button('Undo', Message.ObservedFlowInput({ message: { type: 'UndoPressed' } })),
                   button('Redo', Message.ObservedFlowInput({ message: { type: 'RedoPressed' } })),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.AriaPressed(String(model.protectDeletions)),
+                      h.OnClick(Message.ClickedDeletionProtection()),
+                    ],
+                    ['Protect required items'],
+                  ),
                   button(
                     'Delete selected',
                     Message.ObservedFlowInput({ message: { type: 'DeletePressed' } }),
@@ -1119,6 +1128,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           background,
           themeClassName: 'release-flow-theme',
           edgeToolbar: true,
+          canDelete: model.protectDeletions ? requiredItemPolicy.canDelete : undefined,
           renderEdgeToolbar: (context, builder) =>
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)

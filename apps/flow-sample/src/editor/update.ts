@@ -13,6 +13,7 @@ import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import type { Return } from 'foldkit/update';
 
 import { ArrangeFlow, ExportFlow, ImportFlow, LoadFlow, SaveFlow } from './command';
+import { requiredItemPolicy } from './deletion-policy';
 import { Message } from './message';
 import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
 import { presetPosition } from './port-presets';
@@ -23,7 +24,16 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ObservedFlowInput: ({ message: input }) => {
       // SAFETY: flowView and the toolbar emit the package's typed EditorEvent contract.
       const event = input as EditorEvent;
-      return { model: { ...model, editor: updateEditor(model.editor, event) } };
+      return {
+        model: {
+          ...model,
+          editor: updateEditor(
+            model.editor,
+            event,
+            model.protectDeletions ? requiredItemPolicy : undefined,
+          ),
+        },
+      };
     },
     SelectedExample: ({ example }) => {
       const graph = {
@@ -65,6 +75,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     SelectedNavigationDesign: ({ navigationDesign }) => ({ model: { ...model, navigationDesign } }),
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
+    ClickedDeletionProtection: () => ({
+      model: { ...model, protectDeletions: !model.protectDeletions },
+    }),
     SelectedCanvasCopyDesign: ({ canvasCopyDesign }) => ({ model: { ...model, canvasCopyDesign } }),
     SelectedSelectionMarqueeDesign: ({ selectionMarqueeDesign }) => ({
       model: { ...model, selectionMarqueeDesign },

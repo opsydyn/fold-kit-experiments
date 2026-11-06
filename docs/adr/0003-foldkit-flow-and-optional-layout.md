@@ -285,3 +285,17 @@ The workbench applies the resolved settings to its custom controls and retains
 layout footprints while hiding them, so presentation toggles preserve geometry.
 SSR, installed-consumer and browser checks cover default compatibility, per-flag
 control, master precedence, preference restoration and continued editing.
+
+## Deletion protection
+
+The editor resolves explicit targets, group descendants and incident edges
+before evaluating a pure host policy. Both selection deletion and direct
+edge deletion use this result. A rejection publishes a notice without
+changing the document or its history. Allowed deletion keeps its single
+transaction and Undo.
+
+A host that intercepts raw Delete events would need to reproduce cascade
+rules. A persisted flag would also prescribe how every consumer stores
+protection. The package instead exposes the complete candidate and accepts
+the host's decision. The view uses the same resolver for disabled action
+states and reasons.

@@ -66,3 +66,18 @@ export function groupAtDropPoint(
       )?.id ?? null
   );
 }
+
+export function withDescendants(graph: FlowGraph, ids: readonly string[]): ReadonlySet<string> {
+  const children = new Map<string, string[]>();
+  for (const node of graph.nodes) {
+    if (node.parentId === undefined) continue;
+    const siblings = children.get(node.parentId) ?? [];
+    siblings.push(node.id);
+    children.set(node.parentId, siblings);
+  }
+  const included = new Set(ids);
+  for (const id of included) {
+    for (const child of children.get(id) ?? []) included.add(child);
+  }
+  return included;
+}

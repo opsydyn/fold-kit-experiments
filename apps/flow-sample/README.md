@@ -261,3 +261,11 @@ Choose **Canvas help and status → Help card and status badge** for a custom
 guide and a compact notice badge. The help follows the selection mode and
 the badge announces the result of editor actions.
 [Workbench screenshot](evidence/canvas-copy.png)
+
+Turn on **Protect required items** to protect the Draft → Review connection
+and the Domain model node in the Onion Architecture examples. Draft and
+Review cannot be deleted while they have the protected connection, and
+Application core cannot be deleted while it contains the required node.
+Delete Publish in the release workflow to see an allowed edit and restore
+it with one Undo.
+[Protected edge](evidence/deletion-protected-edge.png) · [Protected group](evidence/deletion-protected-group.png)

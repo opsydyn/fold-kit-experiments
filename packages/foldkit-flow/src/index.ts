@@ -5,6 +5,7 @@
 export type * from './types';
 export { FlowError, validateGraph, parseGraph, serializeGraph } from './graph';
 export { createEditor, updateEditor } from './editor';
+export { resolveDeletion } from './deletion';
 export {
   fitViewport,
   minimapGeometry,

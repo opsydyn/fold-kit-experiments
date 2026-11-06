@@ -37,6 +37,7 @@ export const initialGraph: FlowGraph = {
   edges: [
     {
       id: 'draft-review',
+      data: { deletionProtected: true },
       source: { node: 'source', port: 'out' },
       target: { node: 'review', port: 'in' },
     },
@@ -47,7 +48,12 @@ export const onionGraph: FlowGraph = {
     { id: 'ui', label: 'UI adapter', position: { x: 20, y: 20 } },
     { id: 'storage', label: 'Storage adapter', position: { x: 20, y: 150 } },
     { id: 'application', label: 'Application', position: { x: 280, y: 85 } },
-    { id: 'domain', label: 'Domain model', position: { x: 540, y: 85 } },
+    {
+      id: 'domain',
+      label: 'Domain model',
+      position: { x: 540, y: 85 },
+      data: { deletionProtected: true },
+    },
   ].map((node) => ({
     ...node,
     size: { width: 180, height: 90 },
@@ -181,6 +187,7 @@ export const Model = Schema.Struct({
     connectionList: Schema.Boolean,
   }),
   connectionDesign: ConnectionDesign,
+  protectDeletions: Schema.Boolean,
   canvasCopyDesign: CanvasCopyDesign,
   selectionMarqueeDesign: SelectionMarqueeDesign,
   alignmentGuideDesign: AlignmentGuideDesign,
@@ -205,6 +212,7 @@ export type Model = Readonly<{
   diagnosticsPanelOpen: boolean;
   diagnostics: FlowDiagnostics;
   connectionDesign: ConnectionDesign;
+  protectDeletions: boolean;
   canvasCopyDesign: CanvasCopyDesign;
   selectionMarqueeDesign: SelectionMarqueeDesign;
   alignmentGuideDesign: AlignmentGuideDesign;
@@ -230,6 +238,7 @@ export const init = () => ({
     diagnosticsPanelOpen: false,
     diagnostics: resolveFlowDiagnostics({}),
     connectionDesign: 'dashed',
+    protectDeletions: false,
     canvasCopyDesign: 'standard',
     selectionMarqueeDesign: 'standard',
     alignmentGuideDesign: 'standard',

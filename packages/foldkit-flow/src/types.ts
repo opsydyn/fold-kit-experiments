@@ -149,10 +149,24 @@ export type EditorOptions = Readonly<{
   snapToAlignment?: boolean;
   selectionMode?: boolean;
 }>;
-/** Host connection validation, shared by creation and reconnection. */
+/** Explicit targets before group descendants and incident edges are included. */
+export type DeletionTargets = Readonly<{ nodeIds: readonly string[]; edgeIds: readonly string[] }>;
+/** Items the edit would remove, including cascades. Endpoints may remain in the original graph. */
+export type DeletionCandidate = Readonly<{
+  nodes: readonly FlowNode[];
+  edges: readonly FlowEdge[];
+}>;
+export type DeletionDecision =
+  | Readonly<{ type: 'empty' }>
+  | Readonly<{ type: 'blocked'; reason: string }>
+  | Readonly<{ type: 'allowed'; candidate: DeletionCandidate }>;
+
+/** Pure host rules evaluated by the editor. */
 export type EditorPolicy = Readonly<{
   /** Return a rejection reason, or null to accept. Reconnection excludes the replaced edge from graph. */
   canConnect?: (edge: FlowEdge, graph: FlowGraph) => string | null;
+  /** Return a rejection reason for the complete deletion, or null to accept it. */
+  canDelete?: (candidate: DeletionCandidate, graph: FlowGraph) => string | null;
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =

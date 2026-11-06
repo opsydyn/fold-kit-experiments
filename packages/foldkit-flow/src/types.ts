@@ -203,6 +203,10 @@ export type EditorPolicy = Readonly<{
   canMoveNode?: (node: FlowNode, graph: FlowGraph) => string | null;
   /** Return a reason to block a resize, or null to allow it. Checks any ancestors grown by that edit. */
   canResizeNode?: (node: FlowNode, graph: FlowGraph) => string | null;
+  /** Return a reason to exclude this node from direct and marquee selection, or null to allow it. */
+  canSelectNode?: (node: FlowNode, graph: FlowGraph) => string | null;
+  /** Return a reason to exclude this edge from selection, or null to allow it. */
+  canSelectEdge?: (edge: FlowEdge, graph: FlowGraph) => string | null;
 }>;
 /** Facts from input adapters. Positions are local CSS pixels before viewport transforms. */
 export type EditorEvent =
@@ -273,7 +277,7 @@ export type EditorEvent =
   | Readonly<{ type: 'FitViewAnimationFrame'; id: number; time: number; reducedMotion: boolean }>
   | Readonly<{ type: 'MinimapClicked'; point: Point }>
   | Readonly<{ type: 'Zoomed'; point: Point; factor: number }>
-  | Readonly<{ type: 'SelectionNudged'; delta: Point }>
+  | Readonly<{ type: 'SelectionNudged'; delta: Point; id?: string }>
   | Readonly<{ type: 'NodeAdded'; node: FlowNode }>
   | Readonly<{ type: 'NodeLabelChanged'; id: string; label: string }>
   | Readonly<{ type: 'NodeContainmentToggled'; id: string }>

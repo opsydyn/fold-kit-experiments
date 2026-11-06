@@ -98,7 +98,11 @@ export const BrowserInput = Schema.Union([
     reducedMotion: Schema.Boolean,
   }),
   Schema.Struct({ type: Schema.Literal('Zoomed'), point: Point, factor: Schema.Number }),
-  Schema.Struct({ type: Schema.Literal('SelectionNudged'), delta: Point }),
+  Schema.Struct({
+    type: Schema.Literal('SelectionNudged'),
+    delta: Point,
+    id: Schema.optionalKey(Schema.String),
+  }),
   Schema.Struct({
     type: Schema.Literal('GroupResizeNudged'),
     id: Schema.String,

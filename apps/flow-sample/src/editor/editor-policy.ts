@@ -20,9 +20,10 @@ export function workbenchPolicy({
   reconnectLock,
   lockKeyNodes,
   lockNodeSizes,
+  excludeSelection,
 }: Pick<
   Model,
-  'protectDeletions' | 'reconnectLock' | 'lockKeyNodes' | 'lockNodeSizes'
+  'protectDeletions' | 'reconnectLock' | 'lockKeyNodes' | 'lockNodeSizes' | 'excludeSelection'
 >): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
   const canReconnect: NonNullable<EditorPolicy['canReconnect']> = (edge, end) =>
     edge.id === 'draft-review' && (reconnectLock === end || reconnectLock === 'both')
@@ -38,7 +39,7 @@ export function workbenchPolicy({
           node.id === 'review' || node.id === 'domain' ? `${node.label} is locked in place.` : null,
       }
     : policy;
-  return lockNodeSizes
+  const resizePolicy: EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> = lockNodeSizes
     ? {
         ...movementPolicy,
         canResizeNode: (node) =>
@@ -47,4 +48,13 @@ export function workbenchPolicy({
             : null,
       }
     : movementPolicy;
+  return excludeSelection
+    ? {
+        ...resizePolicy,
+        canSelectNode: (node) =>
+          node.id === 'review' ? 'Review is excluded from selection.' : null,
+        canSelectEdge: (edge) =>
+          edge.id === 'draft-review' ? 'Draft → Review is excluded from selection.' : null,
+      }
+    : resizePolicy;
 }

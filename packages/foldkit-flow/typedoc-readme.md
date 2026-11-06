@@ -122,6 +122,10 @@ Use `FlowViewOptions.canMoveNode` to show locked handles.
 ancestors grown by those edits. Pass the same callback to
 `FlowViewOptions.canResizeNode` to disable resize controls.
 
+`EditorPolicy.canSelectNode` and `EditorPolicy.canSelectEdge` govern which items
+can be selected. Pass the same callbacks to `flowView` so the controls and
+marquee preview agree with the reducer.
+
 `EditorPolicy.canReconnect` locks individual source or target ends. Pass
 the same callback to `FlowViewOptions.canReconnect` to omit locked handles.
 The reducer rechecks permission on commit, and `canConnect` still validates

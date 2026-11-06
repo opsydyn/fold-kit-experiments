@@ -509,16 +509,16 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
         input = { type: 'DeletePressed' };
         break;
       case 'ArrowLeft':
-        if (id) input = { type: 'SelectionNudged', delta: { x: -step, y: 0 } };
+        if (id) input = { type: 'SelectionNudged', id, delta: { x: -step, y: 0 } };
         break;
       case 'ArrowRight':
-        if (id) input = { type: 'SelectionNudged', delta: { x: step, y: 0 } };
+        if (id) input = { type: 'SelectionNudged', id, delta: { x: step, y: 0 } };
         break;
       case 'ArrowUp':
-        if (id) input = { type: 'SelectionNudged', delta: { x: 0, y: -step } };
+        if (id) input = { type: 'SelectionNudged', id, delta: { x: 0, y: -step } };
         break;
       case 'ArrowDown':
-        if (id) input = { type: 'SelectionNudged', delta: { x: 0, y: step } };
+        if (id) input = { type: 'SelectionNudged', id, delta: { x: 0, y: step } };
         break;
       case 'z':
       case 'Z':
@@ -540,7 +540,6 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     }
     if (!input) return;
     event.preventDefault();
-    if (id && input.type === 'SelectionNudged') emit({ type: 'NodeSelected', id, additive: false });
     emit(input);
   });
   const blur = () => {

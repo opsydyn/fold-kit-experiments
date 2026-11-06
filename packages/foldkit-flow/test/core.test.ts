@@ -700,6 +700,58 @@ test('group and ungroup preserve positions and edges while changing nested membe
   });
 });
 
+test('selection policies guard direct, implicit and marquee selection', () => {
+  const boundary = {
+    id: 'g',
+    kind: 'group' as const,
+    label: 'Group',
+    position: { x: 0, y: 0 },
+    size: { width: 500, height: 300 },
+    ports: [],
+  };
+  const edge = { id: 'ab', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } };
+  const initial = createEditor({
+    nodes: [boundary, { ...nodeA, parentId: 'g' }, nodeB],
+    edges: [edge],
+  });
+  const selected = updateEditor(initial, { type: 'NodeSelected', id: 'a', additive: false });
+  const policy: EditorPolicy = {
+    canSelectNode: (node) => (node.id === 'a' ? null : 'Node is excluded.'),
+    canSelectEdge: () => 'Edge is excluded.',
+  };
+  const point = { x: 0, y: 0 };
+  const events: EditorEvent[] = [
+    { type: 'NodeSelected', id: 'b', additive: false },
+    { type: 'NodeDragStarted', id: 'b', pointer: 1, point },
+    { type: 'NodeResizeStarted', id: 'b', pointer: 1, point },
+    { type: 'SelectionNudged', id: 'b', delta: { x: 5, y: 0 } },
+    { type: 'EdgeSelected', id: 'ab', additive: true },
+    { type: 'EdgeLabelEditingStarted', id: 'ab' },
+    { type: 'ContextOpened', context: { kind: 'edge', id: 'ab', point } },
+  ];
+  for (const event of events) {
+    const denied = updateEditor(selected, event, policy);
+    expect(denied.selectedNodes).toEqual(['a']);
+    expect(denied.selectedEdges).toEqual([]);
+    expect(denied.gesture.type).toBe('idle');
+    expect(denied.graph).toBe(initial.graph);
+    expect(denied.context).toBeNull();
+    expect(denied.edgeLabelDraft).toBeNull();
+  }
+  const start = updateEditor(initial, { type: 'BoxSelectionStarted', pointer: 1, point });
+  const preview = updateEditor(start, {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 600, y: 400 },
+  });
+  expect(
+    updateEditor(preview, { type: 'PointerReleased', pointer: 1 }, policy).selectedNodes,
+  ).toEqual(['a']);
+  const copied = updateEditor(selected, { type: 'DuplicatePressed' }, policy);
+  expect(copied.graph.nodes).toHaveLength(initial.graph.nodes.length + 1);
+  expect(copied.selectedNodes).toEqual([]);
+});
+
 test('reverse box selection at zoom replaces selection only on release', () => {
   const initial = createEditor(graph, { viewport: { x: 25, y: 30, zoom: 2 } });
   const selected = { ...initial, selectedNodes: ['b'] };

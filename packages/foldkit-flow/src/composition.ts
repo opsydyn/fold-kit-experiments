@@ -19,6 +19,8 @@ export type FlowNodeRenderContext = Readonly<{
   moveDisabledReason?: string | undefined;
   /** Reason explicit resize controls are unavailable for this node. */
   resizeDisabledReason?: string | undefined;
+  /** Reason this node cannot be selected. */
+  selectionDisabledReason?: string | undefined;
   contextAction?: Html;
   collapseToggle?: Html;
   resizeHandles: readonly Html[];
@@ -175,6 +177,9 @@ export function flowDragHandle<M>(
       ...(context.moveDisabledReason === undefined
         ? []
         : [h.DataAttribute('flow-move-locked', ''), h.Title(context.moveDisabledReason)]),
+      ...(context.selectionDisabledReason === undefined
+        ? []
+        : [h.Disabled(true), h.Title(context.selectionDisabledReason)]),
       h.AriaLabel(`Select ${context.node.label}`),
       h.AriaPressed(String(context.state.selectedNodes.includes(context.node.id))),
       h.AriaDescribedBy(context.descriptionId),
@@ -229,6 +234,7 @@ export function flowResizeHandle<M>(
   attributes: Attributes<M>,
   children: Children<M>,
 ): Html {
+  const disabledReason = context.selectionDisabledReason ?? context.resizeDisabledReason;
   const group = context.node.kind === 'group';
   return h.button(
     [
@@ -246,12 +252,8 @@ export function flowResizeHandle<M>(
             ...(handle.includes('-') ? [h.DataAttribute('flow-resize-corner', handle)] : []),
           ]
         : []),
-      h.Disabled(
-        context.state.readOnly || context.collapsed || context.resizeDisabledReason !== undefined,
-      ),
-      ...(context.resizeDisabledReason === undefined
-        ? []
-        : [h.Title(context.resizeDisabledReason)]),
+      h.Disabled(context.state.readOnly || context.collapsed || disabledReason !== undefined),
+      ...(disabledReason === undefined ? [] : [h.Title(disabledReason)]),
       h.AriaLabel(
         `Resize ${context.node.label}${group ? ` from ${handle.replaceAll('-', ' ')}` : ''}`,
       ),

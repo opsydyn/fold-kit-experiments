@@ -11,6 +11,7 @@ export type FlowConnectionEntry = Readonly<{
   sourceLabel: string;
   targetLabel: string;
   selected: boolean;
+  selectionDisabledReason?: string | undefined;
   contextAction?: FlowContextTrigger;
   /** Present when the selected edge has a rendered action toolbar. */
   toolbarId?: string;
@@ -34,7 +35,7 @@ export function flowConnectionButton<M>(
   children: Parameters<HtmlBuilder<M>['button']>[1],
 ): Html {
   const select = onEvent({ type: 'EdgeSelected', id: entry.edge.id, additive: false });
-  const { contextAction, toolbarId } = entry;
+  const { contextAction, toolbarId, selectionDisabledReason } = entry;
   const toolbarSelector = `[id="${toolbarId}"]`;
   return h.button(
     [
@@ -43,6 +44,9 @@ export function flowConnectionButton<M>(
       ...attributes,
       h.Type('button'),
       h.OnClick(select),
+      ...(selectionDisabledReason === undefined
+        ? []
+        : [h.Disabled(true), h.Title(selectionDisabledReason)]),
       h.AriaPressed(String(entry.selected)),
       ...(contextAction && !contextAction.disabled
         ? [

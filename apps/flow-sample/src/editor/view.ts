@@ -1227,6 +1227,24 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             'Lock Review and Application core dimensions',
           ],
         ),
+        h.label(
+          [
+            h.Style({
+              display: 'inline-flex',
+              'align-items': 'center',
+              gap: '6px',
+              margin: '0 8px',
+            }),
+          ],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.excludeSelection),
+              h.OnClick(Message.ClickedExcludeSelection()),
+            ]),
+            'Exclude Review and its incoming connection from selection',
+          ],
+        ),
         flowView(h, model.editor, {
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
@@ -1405,6 +1423,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           canReconnect: policy.canReconnect,
           canMoveNode: policy.canMoveNode,
           canResizeNode: policy.canResizeNode,
+          canSelectNode: policy.canSelectNode,
+          canSelectEdge: policy.canSelectEdge,
           renderEdgeToolbar: (context, builder) =>
             model.edgeToolbarDesign === 'compact'
               ? compactEdgeToolbar(context, builder)

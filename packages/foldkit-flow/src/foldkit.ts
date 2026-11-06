@@ -322,6 +322,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     canMoveNode?: EditorPolicy['canMoveNode'];
     /** Use the reducer's resize policy to hide locked handles and disable dimension controls. */
     canResizeNode?: EditorPolicy['canResizeNode'];
+    canSelectNode?: EditorPolicy['canSelectNode'];
+    canSelectEdge?: EditorPolicy['canSelectEdge'];
     /** Replaces the toolbar contents. Undefined uses the default; null hides the toolbar. */
     renderEdgeToolbar?: (
       context: FlowEdgeToolbarContext,
@@ -1046,7 +1048,7 @@ export function flowView<M>(
   const presentation = presentGroups(state.graph, state.collapsedGroups);
   const selectionPreview =
     state.gesture.type === 'box-selection'
-      ? resolveBoxSelection(state, state.gesture, presentation.nodes)
+      ? resolveBoxSelection(state, state.gesture, presentation.nodes, options.canSelectNode)
       : undefined;
   const previewIds = new Set(
     options.selectionPreviewHighlights === false ? [] : selectionPreview?.previewNodeIds,
@@ -1127,6 +1129,7 @@ export function flowView<M>(
       ? (state.graph.nodes.find((item) => item.id === node.id) ?? node)
       : node;
     const resizeDisabledReason = options.canResizeNode?.(authored, state.graph) ?? undefined;
+    const selectionDisabledReason = options.canSelectNode?.(authored, state.graph) ?? undefined;
     const base = {
       node,
       state,
@@ -1137,10 +1140,14 @@ export function flowView<M>(
       selectionPreview: previewIds.has(node.id),
       moveDisabledReason: moveDisabledReason(node),
       resizeDisabledReason,
+      selectionDisabledReason,
     };
     const context: FlowNodeRenderContext = {
       ...base,
-      contextAction: contextEnabled ? nodeContextTrigger(node) : undefined,
+      contextAction:
+        contextEnabled && selectionDisabledReason === undefined
+          ? nodeContextTrigger(node)
+          : undefined,
       collapseToggle: h.button(
         [
           h.Type('button'),
@@ -1156,6 +1163,7 @@ export function flowView<M>(
         options.resizeHandles &&
         !state.readOnly &&
         !collapsed &&
+        selectionDisabledReason === undefined &&
         resizeDisabledReason === undefined &&
         state.selectedNodes.includes(node.id)
           ? resizeHandles.map((handle) =>
@@ -1272,6 +1280,7 @@ export function flowView<M>(
     .filter((node) => node.kind !== 'group')
     .map((node) => {
       const resizeDisabledReason = options.canResizeNode?.(node, state.graph) ?? undefined;
+      const selectionDisabledReason = options.canSelectNode?.(node, state.graph) ?? undefined;
       const base = {
         node,
         state,
@@ -1282,12 +1291,19 @@ export function flowView<M>(
         selectionPreview: previewIds.has(node.id),
         moveDisabledReason: moveDisabledReason(node),
         resizeDisabledReason,
+        selectionDisabledReason,
       };
       const context: FlowNodeRenderContext = {
         ...base,
-        contextAction: contextEnabled ? nodeContextTrigger(node) : undefined,
+        contextAction:
+          contextEnabled && selectionDisabledReason === undefined
+            ? nodeContextTrigger(node)
+            : undefined,
         resizeHandles:
-          options.resizeHandles && !state.readOnly && resizeDisabledReason === undefined
+          options.resizeHandles &&
+          !state.readOnly &&
+          selectionDisabledReason === undefined &&
+          resizeDisabledReason === undefined
             ? [
                 flowResizeHandle(
                   h,
@@ -1401,6 +1417,7 @@ export function flowView<M>(
   const routes = new Map(state.routes.map((route) => [route.id, route.points]));
   const edgeGeometries = visibleEdges.map((edge) => ({
     edge,
+    selectionDisabledReason: options.canSelectEdge?.(edge, state.graph) ?? undefined,
     ...resolveEdgeGeometry(state.graph, edge, {
       policy: options.edgeGeometry,
       route: routes.get(edge.id),
@@ -1466,15 +1483,17 @@ export function flowView<M>(
     'text-overflow': 'ellipsis',
     'white-space': 'nowrap',
   };
-  const edgeLabels = edgeGeometries.flatMap(({ edge, labelPosition }) => {
+  const edgeLabels = edgeGeometries.flatMap(({ edge, labelPosition, selectionDisabledReason }) => {
     const selected = state.selectedEdges.includes(edge.id);
+    const labelEditable = !state.readOnly && selectionDisabledReason === undefined;
     const draft =
-      !state.readOnly && state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
-    if (!labelPosition || (!draft && !edge.label && (state.readOnly || !selected))) return [];
+      labelEditable && state.edgeLabelDraft?.id === edge.id ? state.edgeLabelDraft : null;
+    if (!labelPosition || (!draft && !edge.label && (!labelEditable || !selected))) return [];
     const context: FlowEdgeLabelContext = {
       edge,
       labelPosition,
       description: `${edge.source.node}:${edge.source.port} → ${edge.target.node}:${edge.target.port}`,
+      selectionDisabledReason,
       selected,
       readOnly: state.readOnly,
     };
@@ -1505,7 +1524,7 @@ export function flowView<M>(
             left: `${labelPosition.x}px`,
             top: `${labelPosition.y}px`,
             transform: 'translate(-50%, -50%)',
-            'pointer-events': state.readOnly ? 'none' : 'auto',
+            'pointer-events': labelEditable ? 'auto' : 'none',
             'z-index': draft ? '2' : 'auto',
           }),
         ],
@@ -1515,7 +1534,7 @@ export function flowView<M>(
               h,
               context,
               onEvent,
-              [h.Style({ ...chipStyle, cursor: state.readOnly ? 'inherit' : 'pointer' })],
+              [h.Style({ ...chipStyle, cursor: labelEditable ? 'pointer' : 'inherit' })],
               [edge.label || 'Add label'],
             ),
         ],
@@ -1629,7 +1648,7 @@ export function flowView<M>(
   const connections = () => {
     const nodeLabels = new Map(state.graph.nodes.map((node) => [node.id, node.label]));
     const compact = !diagnostics.connectionList;
-    const entries = visibleEdges.map((edge): FlowConnectionEntry => {
+    const entries = edgeGeometries.map(({ edge, selectionDisabledReason }): FlowConnectionEntry => {
       const sourceLabel = nodeLabels.get(edge.source.node) ?? 'Source';
       const targetLabel = nodeLabels.get(edge.target.node) ?? 'Target';
       const label =
@@ -1643,9 +1662,11 @@ export function flowView<M>(
         sourceLabel,
         targetLabel,
         selected: state.selectedEdges.includes(edge.id),
-        contextAction: contextEnabled
-          ? contextAction('edge', edge.id, label, { x: 12, y: 12 })
-          : undefined,
+        selectionDisabledReason,
+        contextAction:
+          contextEnabled && selectionDisabledReason === undefined
+            ? contextAction('edge', edge.id, label, { x: 12, y: 12 })
+            : undefined,
         toolbarId: toolbar && activeEdge?.edge.id === edge.id ? toolbarId : undefined,
       };
     });

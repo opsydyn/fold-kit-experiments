@@ -1,5 +1,5 @@
 import { boxBounds } from './geometry';
-import type { EditorState, FlowNode, Gesture } from './types';
+import type { EditorPolicy, EditorState, FlowNode, Gesture } from './types';
 
 export type BoxSelectionPreview = Readonly<{
   bounds: Readonly<ReturnType<typeof boxBounds>>;
@@ -11,6 +11,7 @@ export function resolveBoxSelection(
   state: EditorState,
   gesture: Extract<Gesture, { type: 'box-selection' }>,
   nodes: readonly FlowNode[],
+  canSelectNode?: EditorPolicy['canSelectNode'],
 ): BoxSelectionPreview {
   const bounds = boxBounds(gesture.origin, gesture.point);
   const collapsed = new Set(state.collapsedGroups);
@@ -31,9 +32,14 @@ export function resolveBoxSelection(
       );
     return x >= bounds.left && y >= bounds.top && right <= bounds.right && bottom <= bounds.bottom;
   });
-  const matchedIds = new Set(matched.map((node) => node.id));
   const byId = new Map(state.graph.nodes.map((node) => [node.id, node]));
-  const previewNodeIds = matched
+  const eligible = canSelectNode
+    ? matched.filter(
+        (node) => (canSelectNode(byId.get(node.id) ?? node, state.graph) ?? null) === null,
+      )
+    : matched;
+  const matchedIds = new Set(eligible.map((node) => node.id));
+  const previewNodeIds = eligible
     .filter((node) => {
       let parent = node.parentId;
       while (parent !== undefined) {

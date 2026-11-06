@@ -322,7 +322,11 @@ function selectedFragment(state: EditorState): FlowGraph {
   });
 }
 
-function insertFragment(state: EditorState, fragment: FlowGraph): EditorState {
+function insertFragment(
+  state: EditorState,
+  fragment: FlowGraph,
+  canSelectNode: EditorPolicy['canSelectNode'],
+): EditorState {
   if (fragment.nodes.length === 0) return state;
   const taken = new Set([...state.graph.nodes, ...state.graph.edges].map((item) => item.id));
   let sequence = 1;
@@ -364,12 +368,17 @@ function insertFragment(state: EditorState, fragment: FlowGraph): EditorState {
     source: { ...edge.source, node: remap(edge.source.node) },
     target: { ...edge.target, node: remap(edge.target.node) },
   }));
+  const graph = {
+    nodes: [...state.graph.nodes, ...nodes],
+    edges: [...state.graph.edges, ...edges],
+  };
   return {
-    ...commitGraph(state, {
-      nodes: [...state.graph.nodes, ...nodes],
-      edges: [...state.graph.edges, ...edges],
-    }),
-    selectedNodes: nodes.filter((node) => node.parentId === undefined).map((node) => node.id),
+    ...commitGraph(state, graph),
+    selectedNodes: nodes
+      .filter(
+        (node) => node.parentId === undefined && (canSelectNode?.(node, graph) ?? null) === null,
+      )
+      .map((node) => node.id),
     selectedEdges: [],
     notice: `${nodes.length} pasted`,
   };
@@ -608,8 +617,19 @@ export function updateEditor(
     case 'ContextOpened': {
       if (state.readOnly || state.gesture.type !== 'idle') return state;
       const context = event.context;
-      const items = context.kind === 'node' ? state.graph.nodes : state.graph.edges;
-      if (!items.some((item) => item.id === context.id)) return state;
+      const node =
+        context.kind === 'node'
+          ? state.graph.nodes.find((item) => item.id === context.id)
+          : undefined;
+      const edge =
+        context.kind === 'edge'
+          ? state.graph.edges.find((item) => item.id === context.id)
+          : undefined;
+      if (!node && !edge) return state;
+      const reason = node
+        ? policy.canSelectNode?.(node, state.graph)
+        : edge && policy.canSelectEdge?.(edge, state.graph);
+      if (reason !== null && reason !== undefined) return { ...state, notice: reason };
       finitePoint(context.point);
       return {
         ...state,
@@ -621,21 +641,43 @@ export function updateEditor(
       };
     }
     case 'NodeSelected':
-      if (!state.graph.nodes.some((node) => node.id === event.id)) return state;
-      return {
-        ...state,
-        edgeLabelDraft: null,
-        selectedNodes: selection(state.selectedNodes, event.id, event.additive),
-        selectedEdges: event.additive ? state.selectedEdges : [],
-      };
-    case 'EdgeSelected':
-      if (!state.graph.edges.some((edge) => edge.id === event.id)) return state;
+    case 'SelectionNudged': {
+      const { id } = event;
+      if (id !== undefined) {
+        const node = state.graph.nodes.find((item) => item.id === id);
+        if (!node) return state;
+        const reason = policy.canSelectNode?.(node, state.graph) ?? null;
+        if (reason !== null) return { ...state, notice: reason };
+        const additive = event.type === 'NodeSelected' && event.additive;
+        state = {
+          ...state,
+          edgeLabelDraft: null,
+          selectedNodes: selection(state.selectedNodes, id, additive),
+          selectedEdges: additive ? state.selectedEdges : [],
+        };
+      }
+      if (event.type === 'NodeSelected' || state.readOnly || state.gesture.type !== 'idle')
+        return state;
+      if (state.selectedNodes.length === 0 || (event.delta.x === 0 && event.delta.y === 0))
+        return state;
+      const moving = withDescendants(state.graph, state.selectedNodes);
+      const reason = movementReason(state.graph, moving, policy.canMoveNode);
+      if (reason !== undefined) return { ...state, notice: reason };
+      const graph = move(state.graph, moving, event.delta);
+      return graph === state.graph ? state : commitGraph(state, graph);
+    }
+    case 'EdgeSelected': {
+      const edge = state.graph.edges.find((item) => item.id === event.id);
+      if (!edge) return state;
+      const reason = policy.canSelectEdge?.(edge, state.graph) ?? null;
+      if (reason !== null) return { ...state, notice: reason };
       return {
         ...state,
         edgeLabelDraft: null,
         selectedEdges: selection(state.selectedEdges, event.id, event.additive),
         selectedNodes: event.additive ? state.selectedNodes : [],
       };
+    }
     case 'GroupCollapseToggled': {
       const group = state.graph.nodes.find((node) => node.id === event.id && node.kind === 'group');
       if (!group || state.gesture.type !== 'idle') return state;
@@ -1040,6 +1082,7 @@ export function updateEditor(
           state,
           gesture,
           presentGroups(state.graph, state.collapsedGroups).nodes,
+          policy.canSelectNode,
         );
         return {
           ...state,
@@ -1179,6 +1222,8 @@ export function updateEditor(
       const node = state.graph.nodes.find((item) => item.id === event.id);
       if (!node) return state;
       finitePoint(event.point);
+      const selectionReason = policy.canSelectNode?.(node, state.graph) ?? null;
+      if (selectionReason !== null) return { ...state, notice: selectionReason };
       const resizing = event.type === 'NodeResizeStarted';
       if (resizing) {
         if (state.collapsedGroups.includes(event.id)) return state;
@@ -1212,15 +1257,6 @@ export function updateEditor(
           ids: [event.id, ...ids.filter((id) => id !== event.id)],
         },
       };
-    }
-    case 'SelectionNudged': {
-      if (state.selectedNodes.length === 0 || (event.delta.x === 0 && event.delta.y === 0))
-        return state;
-      const moving = withDescendants(state.graph, state.selectedNodes);
-      const reason = movementReason(state.graph, moving, policy.canMoveNode);
-      if (reason !== undefined) return { ...state, notice: reason };
-      const graph = move(state.graph, moving, event.delta);
-      return graph === state.graph ? state : commitGraph(state, graph);
     }
     case 'NodeExpansionToggled': {
       const node = state.graph.nodes.find((node) => node.id === event.id);
@@ -1324,6 +1360,8 @@ export function updateEditor(
     case 'EdgeLabelEditingStarted': {
       const edge = state.graph.edges.find((edge) => edge.id === event.id);
       if (!edge || state.edgeLabelDraft?.id === edge.id) return state;
+      const reason = policy.canSelectEdge?.(edge, state.graph) ?? null;
+      if (reason !== null) return { ...state, notice: reason };
       return {
         ...state,
         selectedNodes: [],
@@ -1462,9 +1500,9 @@ export function updateEditor(
       );
     }
     case 'PastePressed':
-      return state.clipboard ? insertFragment(state, state.clipboard) : state;
+      return state.clipboard ? insertFragment(state, state.clipboard, policy.canSelectNode) : state;
     case 'DuplicatePressed': {
-      const duplicated = insertFragment(state, selectedFragment(state));
+      const duplicated = insertFragment(state, selectedFragment(state), policy.canSelectNode);
       return duplicated === state ? state : { ...duplicated, notice: 'Selection duplicated' };
     }
     case 'GroupAspectRatioToggled': {
@@ -1575,7 +1613,7 @@ export function updateEditor(
       };
       return {
         ...commitGraph(state, graph),
-        selectedNodes: [group.id],
+        selectedNodes: (policy.canSelectNode?.(group, graph) ?? null) === null ? [group.id] : [],
         selectedEdges: [],
         notice: 'Selection grouped',
       };

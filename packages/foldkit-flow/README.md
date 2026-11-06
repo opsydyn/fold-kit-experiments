@@ -713,6 +713,20 @@ Pass the same callback to `flowView` to hide locked resize handles and
 disable group dimension controls. Custom node shells receive
 `resizeDisabledReason`. Movement permissions apply separately.
 
+### Control which items can be selected
+
+Pass `canSelectNode(node, graph)` or `canSelectEdge(edge, graph)` in
+`EditorPolicy`. Return `null` to allow selection or a reason to exclude
+the item. Flow checks direct selection and interactions that select an item,
+such as opening its context menu. An excluded group can still contain
+individually selectable nodes.
+
+Pass the same callbacks to `flowView` so selection controls and the marquee
+preview agree with the reducer. Excluded items remain visible. Custom node
+shells, connection rows, and edge labels receive `selectionDisabledReason`.
+These callbacks govern new selection attempts. To clear a selection after
+changing the policy, send `SelectionCleared`.
+
 ### Protect nodes and edges from deletion
 
 Pass a pure `canDelete` callback in `EditorPolicy` to `updateEditor`. It

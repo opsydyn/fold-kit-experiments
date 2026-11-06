@@ -107,6 +107,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     SelectedReconnectLock: ({ reconnectLock }) => ({ model: { ...model, reconnectLock } }),
     ClickedLockNodeSizes: () => ({ model: { ...model, lockNodeSizes: !model.lockNodeSizes } }),
+    ClickedExcludeSelection: () => ({
+      model: {
+        ...model,
+        excludeSelection: !model.excludeSelection,
+        editor: updateEditor(model.editor, { type: 'SelectionCleared' }),
+      },
+    }),
     ClickedLockKeyNodes: () => ({ model: { ...model, lockKeyNodes: !model.lockKeyNodes } }),
     ClickedDeletionProtection: () => ({
       model: { ...model, protectDeletions: !model.protectDeletions },

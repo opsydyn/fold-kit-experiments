@@ -330,3 +330,8 @@ Enable **Lock Review and Application core dimensions** to disable their
 resize controls while leaving movement available. In Grouped onion, the
 Application core context menu shows the reason next to its dimension controls.
 [Workbench screenshot](evidence/node-resize-policy.png)
+
+Enable **Exclude Review and its incoming connection from selection** to keep
+both items visible while excluding them from selection. Drag a marquee across
+Draft and Review to preview and select Draft alone.
+[Workbench screenshot](evidence/selection-policy.png)

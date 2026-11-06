@@ -10,6 +10,7 @@ export type FlowEdgeLabelContext = Readonly<{
   description: string;
   selected: boolean;
   readOnly: boolean;
+  selectionDisabledReason?: string | undefined;
 }>;
 
 /** The current Model-owned draft for an editable label. */
@@ -27,8 +28,9 @@ export function flowEdgeLabelBadge<M>(
   attributes: Attributes<M>,
   children: Children<M>,
 ): Html {
-  const { edge, description, readOnly } = context;
-  if (readOnly) return h.div([...attributes, h.Title(edge.label ?? '')], children);
+  const { edge, description, readOnly, selectionDisabledReason } = context;
+  if (readOnly || selectionDisabledReason !== undefined)
+    return h.div([...attributes, h.Title(selectionDisabledReason ?? edge.label ?? '')], children);
   return h.button(
     [
       ...attributes,

@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in port anchor snap hysteresis with a screen-pixel release band
+  and switch margin for competing edges.
+
 - Add opt-in nearest-edge attraction for port anchor drags with a
   zoom-independent screen-pixel radius and composable snap feedback.
 

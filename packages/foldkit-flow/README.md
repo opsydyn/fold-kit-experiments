@@ -633,6 +633,24 @@ session preference is independent of connection snapping and node-grid
 snapping. Keyboard nudges and explicit numeric position edits remain exact
 even when pointer attraction is enabled. The resolver attracts one edge at a time.
 
+Set `portAnchorSnapHysteresis` in `EditorOptions` to stabilize an acquired
+edge. The default is zero. A positive CSS-pixel margin extends its release
+radius to `portAnchorSnapDistance + portAnchorSnapHysteresis`. A competing
+edge must be inside the normal acquisition radius and closer by more than
+the margin to take over. At the exact margin the current edge stays held.
+Once released, an edge must enter the normal radius to acquire again.
+Setting the snap distance to zero disables attraction entirely.
+
+`PortAnchorSnapHysteresisChanged` changes the margin while idle without
+editing graph data or history. Initial options and the pure resolver
+require finite non-negative values; invalid change events are ignored.
+The pure resolver's optional `hysteresis` and `previousSide` fields support
+the same behavior for headless consumers. Feed the previous result's side
+back during a gesture; `preferredSide` remains only a routing-hint tie
+breaker. The reducer carries retention in its existing gesture state.
+Policy vetoes, cancellation, no-motion behavior, keyboard/numeric precision
+and one-step Undo keep their existing semantics.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

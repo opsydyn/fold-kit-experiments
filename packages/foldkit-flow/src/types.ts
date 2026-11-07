@@ -19,6 +19,10 @@ export type PortAnchorSnapOptions = Readonly<{
   zoom: number;
   distance: number;
   preferredSide?: PortSide;
+  /** Extra release distance and required switch advantage in CSS pixels. Zero preserves nearest-edge behavior. */
+  hysteresis?: number;
+  /** Previously attracted edge from the current gesture; never an acquisition hint. */
+  previousSide?: PortSide | null;
 }>;
 export type PortAnchorSnapResult = Readonly<{ anchor: Point; side: PortSide | null }>;
 /** Choose either a cardinal side offset, or normalized box coordinates. Never both. */
@@ -173,6 +177,8 @@ export type EditorState = Readonly<{
   connectionSnapHysteresis?: number;
   /** Pointer anchor attraction radius in CSS pixels. Zero disables edge snapping. */
   portAnchorSnapDistance?: number;
+  /** Pointer edge retention margin in CSS pixels; zero disables hysteresis. */
+  portAnchorSnapHysteresis?: number;
   gesture: Gesture;
   past: readonly FlowGraph[];
   future: readonly FlowGraph[];
@@ -219,6 +225,8 @@ export type EditorOptions = Readonly<{
   connectionSnapHysteresis?: number;
   /** Pointer anchor attraction radius in CSS pixels; defaults to zero (free placement). */
   portAnchorSnapDistance?: number;
+  /** Pointer edge retention margin in CSS pixels; defaults to zero. */
+  portAnchorSnapHysteresis?: number;
 }>;
 /** Explicit targets before group descendants and incident edges are included. */
 export type DeletionTargets = Readonly<{ nodeIds: readonly string[]; edgeIds: readonly string[] }>;
@@ -372,6 +380,7 @@ export type EditorEvent =
   /** Normalized node-frame delta, independent of viewport zoom. */
   | Readonly<{ type: 'PortAnchorNudged'; endpoint: Endpoint; delta: Point }>
   | Readonly<{ type: 'PortAnchorSnapDistanceChanged'; distance: number }>
+  | Readonly<{ type: 'PortAnchorSnapHysteresisChanged'; distance: number }>
   /** Changes display text without changing endpoint identity; undefined restores the ID fallback. */
   | Readonly<{ type: 'PortLabelChanged'; endpoint: Endpoint; label: string | undefined }>
   | Readonly<{

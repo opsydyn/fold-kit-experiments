@@ -104,6 +104,12 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     throw new FlowError('invalid-edit', 'Fit view duration must be finite and non-negative');
   const connectionSnapHysteresis = options.connectionSnapHysteresis ?? 0;
   const portAnchorSnapDistance = options.portAnchorSnapDistance ?? 0;
+  const portAnchorSnapHysteresis = options.portAnchorSnapHysteresis ?? 0;
+  if (!Number.isFinite(portAnchorSnapHysteresis) || portAnchorSnapHysteresis < 0)
+    throw new FlowError(
+      'invalid-edit',
+      'Port anchor snap hysteresis must be finite and non-negative',
+    );
   if (!Number.isFinite(portAnchorSnapDistance) || portAnchorSnapDistance < 0)
     throw new FlowError(
       'invalid-edit',
@@ -137,6 +143,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     connection: null,
     connectionSnapHysteresis,
     portAnchorSnapDistance,
+    portAnchorSnapHysteresis,
     gesture: { type: 'idle' },
     past: [],
     future: [],
@@ -944,6 +951,15 @@ export function updateEditor(
       )
         return state;
       return { ...state, portAnchorSnapDistance: event.distance };
+    case 'PortAnchorSnapHysteresisChanged':
+      if (
+        state.gesture.type !== 'idle' ||
+        !Number.isFinite(event.distance) ||
+        event.distance < 0 ||
+        event.distance === (state.portAnchorSnapHysteresis ?? 0)
+      )
+        return state;
+      return { ...state, portAnchorSnapHysteresis: event.distance };
     case 'SelectionModeToggled':
       if (state.gesture.type !== 'idle') return state;
       return { ...state, selectionMode: !state.selectionMode };
@@ -1209,6 +1225,8 @@ export function updateEditor(
                 zoom: state.viewport.zoom,
                 distance: state.portAnchorSnapDistance ?? 0,
                 preferredSide: original.side,
+                hysteresis: state.portAnchorSnapHysteresis ?? 0,
+                previousSide: gesture.snappedSide ?? null,
               },
             )
           : { anchor: base, side: null };

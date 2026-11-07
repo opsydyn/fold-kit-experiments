@@ -343,6 +343,16 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Anchor hysteresis is an optional core preference. The resolver consumes
+the gesture's previous attracted side, retains it within an expanded
+release band, and requires a competing edge to win by more than the same
+screen-pixel margin. New acquisition still uses the original radius.
+This keeps the state and calculation replayable at any zoom level. A
+zero default preserves nearest-edge behavior; idle-only preference edits
+preserve the gesture's configuration. The existing preview, policy and
+history boundary stays authoritative, and no additional document fields
+or browser-owned retention state are introduced.
+
 Edge attraction is an optional core session preference, not a DOM-only
 heuristic. The pure resolver compares frame-edge distances in CSS pixels,
 using node dimensions and viewport zoom. Pointer previews use the nearest

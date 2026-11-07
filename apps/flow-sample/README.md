@@ -381,6 +381,14 @@ one Undo step; Escape and protection changes restore the original port.
 The preference survives example switches and graph imports in this visit.
 [Edge snapping screenshot](evidence/port-anchor-edge-snap.png)
 
+Enable **Stable port anchor snapping** with edge snapping to add a
+4-pixel hold-and-switch margin. After an edge attracts the anchor, move
+slightly outside the normal radius to feel it stay attached. Pull farther
+away to release, or move clearly closer to another edge to switch.
+Disable it to return to nearest-edge behavior. The preference survives
+example switches and imports alongside the snap radius.
+[Stable snapping screenshot](evidence/port-anchor-hysteresis.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

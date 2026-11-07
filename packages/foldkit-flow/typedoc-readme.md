@@ -115,6 +115,12 @@ idle. `resolvePortAnchorSnap`, `PortAnchorSnapOptions` and
 publish `snappedSide` for composable feedback. Numeric edits and keyboard
 nudges retain exact placement.
 
+`EditorOptions.portAnchorSnapHysteresis` adds an optional CSS-pixel release
+and edge-switch margin; zero preserves nearest-edge behavior.
+`PortAnchorSnapHysteresisChanged` updates it while idle. The resolver's
+`hysteresis` and `previousSide` options retain only an already acquired
+edge, while the ordinary snap radius still controls acquisition.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

@@ -1310,6 +1310,9 @@ export function updateEditor(
                 previousCorner: gesture.snappedCorner ?? null,
                 midpointDistance: bypassed ? 0 : settings.midpointDistance,
                 previousMidpoint: gesture.snappedMidpoint ?? null,
+                allowedEdges: settings.allowedEdges,
+                allowedCorners: settings.allowedCorners,
+                allowedMidpoints: settings.allowedMidpoints,
               },
             )
           : { anchor: base, side: null, corner: undefined, midpoint: undefined };

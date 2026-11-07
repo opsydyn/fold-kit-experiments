@@ -3,6 +3,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 import { attributesWithGeometry, flowWorldOverlayItem } from './composition';
 import { finitePoint, portAnchor } from './geometry';
 import type { FlowPortAnchorSnapBypassModifier } from './input-message';
+import { resolvePortAnchorSnapSettings } from './port-anchor-snap';
 import { portEditReason } from './port-edit';
 import type {
   EditorPolicy,
@@ -140,7 +141,10 @@ export function portAnchorHandleViews<M>(
           snappedMidpoint: active ? (drag?.snappedMidpoint ?? null) : null,
           snapBypassed: active && (drag?.snapBypassed ?? false),
           snapBypassModifier: active ? (drag?.snapBypassModifier ?? undefined) : bypassModifier,
-          snapSettings: active && drag?.snapSettings ? { ...drag.snapSettings } : undefined,
+          snapSettings:
+            active && drag?.snapSettings
+              ? resolvePortAnchorSnapSettings(drag.snapSettings)
+              : undefined,
           disabledReason: state.readOnly
             ? 'This diagram is read-only.'
             : portEditReason({ operation: 'position', node, port }, state.graph, canEditPort),

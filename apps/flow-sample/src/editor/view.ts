@@ -1557,6 +1557,28 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
         ),
         h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.restrictedSnapTargets),
+              h.Disabled(model.editor.gesture.type !== 'idle'),
+              h.OnClick(Message.ClickedRestrictedSnapTargets()),
+            ]),
+            'Restricted snap targets',
+          ],
+        ),
+        ...(model.restrictedSnapTargets
+          ? [
+              h.p(
+                [],
+                [
+                  'Review input: left/right midpoints only. Review output: top edge and upper corners. Other ports keep their current rules.',
+                ],
+              ),
+            ]
+          : []),
+        h.label(
           [h.Class('workbench-theme-picker')],
           [
             'Theme',

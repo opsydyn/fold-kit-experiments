@@ -19,6 +19,7 @@ export function workbenchPolicy({
   protectDeletions,
   protectPortEdits,
   perPortSnapping,
+  restrictedSnapTargets,
   reconnectLock,
   portLocks,
   lockKeyNodes,
@@ -29,6 +30,7 @@ export function workbenchPolicy({
   | 'protectDeletions'
   | 'protectPortEdits'
   | 'perPortSnapping'
+  | 'restrictedSnapTargets'
   | 'reconnectLock'
   | 'lockKeyNodes'
   | 'lockNodeSizes'
@@ -52,17 +54,38 @@ export function workbenchPolicy({
     protectPortEdits && node.id === 'review' && port.id === 'in'
       ? 'Review input is managed upstream.'
       : null;
-  const portAnchorSnap: EditorPolicy['portAnchorSnap'] = perPortSnapping
-    ? ({ node, port }) => {
-        if (node.id === 'review' && port.id === 'in')
-          return { distance: 0, cornerDistance: 0, midpointDistance: 18, hysteresis: 6 };
-        if (node.id === 'review' && port.id === 'out')
-          return { distance: 0, cornerDistance: 12, midpointDistance: 0 };
-        if (node.id === 'source' && port.id === 'out')
-          return { distance: 0, cornerDistance: 0, midpointDistance: 0 };
-        return undefined;
-      }
-    : undefined;
+  const portAnchorSnap: EditorPolicy['portAnchorSnap'] =
+    perPortSnapping || restrictedSnapTargets
+      ? ({ node, port }) => {
+          if (restrictedSnapTargets && node.id === 'review' && port.id === 'in')
+            return {
+              distance: 12,
+              cornerDistance: 12,
+              midpointDistance: 18,
+              hysteresis: 6,
+              allowedEdges: [],
+              allowedCorners: [],
+              allowedMidpoints: ['left', 'right'],
+            };
+          if (restrictedSnapTargets && node.id === 'review' && port.id === 'out')
+            return {
+              distance: 12,
+              cornerDistance: 12,
+              midpointDistance: 12,
+              allowedEdges: ['top'],
+              allowedCorners: ['top-left', 'top-right'],
+              allowedMidpoints: [],
+            };
+          if (!perPortSnapping) return undefined;
+          if (node.id === 'review' && port.id === 'in')
+            return { distance: 0, cornerDistance: 0, midpointDistance: 18, hysteresis: 6 };
+          if (node.id === 'review' && port.id === 'out')
+            return { distance: 0, cornerDistance: 12, midpointDistance: 0 };
+          if (node.id === 'source' && port.id === 'out')
+            return { distance: 0, cornerDistance: 0, midpointDistance: 0 };
+          return undefined;
+        }
+      : undefined;
   const connections = { canReconnect, canConnectPort, canEditPort, portAnchorSnap };
   const policy = protectDeletions ? { ...requiredItemPolicy, ...connections } : connections;
   const movementPolicy = lockKeyNodes

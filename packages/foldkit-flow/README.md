@@ -773,6 +773,36 @@ Modifier bypass temporarily disables all attraction while preserving the
 captured preferences. Keyboard/numeric edits stay exact. Policies and
 captured preferences are runtime/editor state, not serialized graph fields.
 
+`PortAnchorSnapTargets` adds optional `allowedEdges`, `allowedCorners` and
+`allowedMidpoints` lists to overrides, effective settings and the pure snap
+resolver's options. For left/right midpoints only, a policy can return:
+
+```ts
+{ distance: 12, cornerDistance: 12, midpointDistance: 18,
+  allowedEdges: [], allowedCorners: [], allowedMidpoints: ['left', 'right'] }
+```
+
+Missing/undefined lists allow all targets of that kind. Empty lists disable
+the kind even with a positive radius. The settings helper inherits lists
+from its defaults when supplied, and an explicit list replaces the default
+list. Supply all four names to restore all targets. Edges/midpoints accept
+`PortSide` names; corners accept `PortCorner` names. Invalid names or non-array
+values throw `FlowError` before starting a gesture, including when a radius
+is zero. Duplicate names are normalized into canonical order. Array order
+does not change established tie-breaking or corner/midpoint/edge priority.
+
+Only allowed candidates participate in nearest-target selection and
+hysteresis; a forbidden previous target cannot remain held. Bypass still
+disables all attraction. These lists govern attraction: free placement,
+frame clamping, keyboard nudges and numeric edits retain their behavior.
+They do not constrain the authored port position or routing direction.
+
+The settings helper and drag start detach every target list. Host list
+changes affect the next drag. Active handle `snapSettings` also receives
+detached lists for custom feedback, without evaluating the policy again.
+Serialization, edit protection, cancellation and the single Undo/Redo
+transaction keep the same contract.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

@@ -16,41 +16,50 @@ export type PortSide = 'left' | 'right' | 'top' | 'bottom';
 /** Geometric snap feedback, independent of the port's routing side. */
 export type PortCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FlowPortAnchorSnapBypassModifier = 'Alt' | 'Control' | 'Meta' | 'Shift';
+/** Optional attraction filters. Missing lists allow every target; empty lists disable that kind. */
+export type PortAnchorSnapTargets = Readonly<{
+  allowedEdges?: readonly PortSide[] | undefined;
+  allowedCorners?: readonly PortCorner[] | undefined;
+  allowedMidpoints?: readonly PortSide[] | undefined;
+}>;
 /** Effective CSS-pixel settings for one anchor drag. Zero disables each attraction or retention rule. */
-export type PortAnchorSnapSettings = Readonly<{
-  distance: number;
-  cornerDistance: number;
-  midpointDistance: number;
-  hysteresis: number;
-}>;
+export type PortAnchorSnapSettings = PortAnchorSnapTargets &
+  Readonly<{
+    distance: number;
+    cornerDistance: number;
+    midpointDistance: number;
+    hysteresis: number;
+  }>;
 /** Missing fields inherit editor preferences; explicit zero disables the corresponding rule. */
-export type PortAnchorSnapOverrides = Readonly<{
-  distance?: number | undefined;
-  cornerDistance?: number | undefined;
-  midpointDistance?: number | undefined;
-  hysteresis?: number | undefined;
-}>;
+export type PortAnchorSnapOverrides = PortAnchorSnapTargets &
+  Readonly<{
+    distance?: number | undefined;
+    cornerDistance?: number | undefined;
+    midpointDistance?: number | undefined;
+    hysteresis?: number | undefined;
+  }>;
 /** Current document endpoint, resolved before starting an anchor drag. */
 export type PortAnchorSnapContext = Readonly<{ node: FlowNode; port: Port }>;
 /** Radius is measured in CSS pixels, independent of node size and viewport zoom. */
-export type PortAnchorSnapOptions = Readonly<{
-  size: Size;
-  zoom: number;
-  distance: number;
-  preferredSide?: PortSide;
-  /** Extra release distance and required switch advantage within each target kind, in CSS pixels. */
-  hysteresis?: number;
-  /** Previously attracted edge from the current gesture; never an acquisition hint. */
-  previousSide?: PortSide | null;
-  /** Circular CSS-pixel acquisition radius; zero/absent disables corner attraction independently of edges. */
-  cornerDistance?: number;
-  /** Previously attracted corner, used only with a positive hysteresis margin. */
-  previousCorner?: PortCorner | null;
-  /** Circular CSS-pixel radius around edge centers; zero/absent disables it independently. */
-  midpointDistance?: number;
-  /** Previously attracted midpoint, used only with a positive hysteresis margin. */
-  previousMidpoint?: PortSide | null;
-}>;
+export type PortAnchorSnapOptions = PortAnchorSnapTargets &
+  Readonly<{
+    size: Size;
+    zoom: number;
+    distance: number;
+    preferredSide?: PortSide;
+    /** Extra release distance and required switch advantage within each target kind, in CSS pixels. */
+    hysteresis?: number;
+    /** Previously attracted edge from the current gesture; never an acquisition hint. */
+    previousSide?: PortSide | null;
+    /** Circular CSS-pixel acquisition radius; zero/absent disables corner attraction independently of edges. */
+    cornerDistance?: number;
+    /** Previously attracted corner, used only with a positive hysteresis margin. */
+    previousCorner?: PortCorner | null;
+    /** Circular CSS-pixel radius around edge centers; zero/absent disables it independently. */
+    midpointDistance?: number;
+    /** Previously attracted midpoint, used only with a positive hysteresis margin. */
+    previousMidpoint?: PortSide | null;
+  }>;
 export type PortAnchorSnapResult = Readonly<{
   anchor: Point;
   /** Null during a corner/midpoint snap; the authored routing side is never changed. */

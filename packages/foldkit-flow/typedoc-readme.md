@@ -1,5 +1,13 @@
 # FoldKit Flow public contract
 
+`PortAnchorSnapTargets` supplies `allowedEdges`, `allowedCorners` and
+`allowedMidpoints` on per-port overrides, captured settings and pure snap
+options. Absent lists allow all; empty lists disable one target kind.
+The resolver filters before acquisition and retention. Settings validation
+normalizes names and detaches arrays, including active renderer feedback.
+Lists affect attraction while free placement, bypass and exact edits remain
+available. No graph fields or input-resource state are added.
+
 Per-port rules use `EditorPolicy.portAnchorSnap`, returning partial
 `PortAnchorSnapOverrides`. Missing fields inherit editor preferences; zero
 disables an individual rule. `resolvePortAnchorSnapSettings` merges and

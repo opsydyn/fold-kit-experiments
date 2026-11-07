@@ -343,6 +343,31 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Allowed snap targets extend the existing per-port settings with optional
+edge, corner and midpoint lists. Missing lists preserve unrestricted
+attraction; empty lists disable one kind with no radius change. A supplied
+list replaces the inherited list in the settings helper. The core validates
+names and array shape, normalizes duplicates into canonical order, then
+filters candidates before nearest selection and hysteresis. This preserves
+existing target priority and tie-breaking and prevents a forbidden previous
+target from remaining retained. Empty candidate sets return free placement.
+
+Lists are copied at settings resolution, drag start and active renderer
+feedback. Host mutation cannot change a running drag. The existing gesture
+captures them without browser-owned state, a second callback evaluation or
+new document fields. They restrict attraction only; clamping, exact edits,
+free placement, bypass, current edit permission and history stay unchanged.
+
+This is preferred over separate booleans for each target, which duplicate
+the target vocabulary, and post-snap vetoes, which can discard a forbidden
+nearest target without considering another allowed candidate. The workbench
+adds an independent, idle-only demo toggle: Review input attracts left/right
+midpoints, while Review output attracts its top edge and upper corners.
+Other ports keep their current policy. Verification covers filtering and
+retention, empty/inherited lists, validation, canonical ties, zoom, detached
+capture/feedback, bypass, protection and Undo/Redo. Browser evidence checks
+permitted and forbidden targets on both ports plus normal free placement.
+
 Per-port snapping extends `EditorPolicy` with the pure `portAnchorSnap`
 callback. Its current node/port/graph context resolves partial edge,
 corner, midpoint and hysteresis values. Absent fields inherit editor

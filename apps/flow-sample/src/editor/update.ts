@@ -196,6 +196,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     ClickedPortLabels: () => ({ model: { ...model, portLabels: !model.portLabels } }),
+    ClickedRestrictedSnapTargets: () => ({
+      model:
+        model.editor.gesture.type === 'idle'
+          ? { ...model, restrictedSnapTargets: !model.restrictedSnapTargets }
+          : model,
+    }),
     ClickedPerPortSnapping: () => ({
       model:
         model.editor.gesture.type === 'idle'

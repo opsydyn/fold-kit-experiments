@@ -6,10 +6,56 @@ import type {
   PortAnchorSnapResult,
   PortAnchorSnapOverrides,
   PortAnchorSnapSettings,
+  PortAnchorSnapTargets,
   PortCorner,
   PortSide,
   Size,
 } from './types';
+
+const sides: readonly PortSide[] = ['left', 'right', 'top', 'bottom'];
+const corners: readonly PortCorner[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+function allowedTargets<T extends string>(
+  values: readonly T[] | undefined,
+  valid: readonly T[],
+  kind: string,
+): readonly T[] | undefined {
+  if (values === undefined) return undefined;
+  if (!Array.isArray(values) || values.some((value) => !valid.includes(value)))
+    throw new FlowError(
+      'invalid-edit',
+      `Port anchor allowed ${kind} must be an array of valid target names`,
+    );
+  return valid.filter((value) => values.includes(value));
+}
+
+function resolveTargetLists(
+  defaults: PortAnchorSnapTargets,
+  overrides: PortAnchorSnapTargets,
+): PortAnchorSnapTargets {
+  const allowedEdges = allowedTargets(
+    overrides.allowedEdges === undefined ? defaults.allowedEdges : overrides.allowedEdges,
+    sides,
+    'edges',
+  );
+  const allowedCorners = allowedTargets(
+    overrides.allowedCorners === undefined ? defaults.allowedCorners : overrides.allowedCorners,
+    corners,
+    'corners',
+  );
+  const allowedMidpoints = allowedTargets(
+    overrides.allowedMidpoints === undefined
+      ? defaults.allowedMidpoints
+      : overrides.allowedMidpoints,
+    sides,
+    'midpoints',
+  );
+  let targets: PortAnchorSnapTargets = {};
+  if (allowedEdges !== undefined) targets = { ...targets, allowedEdges };
+  if (allowedCorners !== undefined) targets = { ...targets, allowedCorners };
+  if (allowedMidpoints !== undefined) targets = { ...targets, allowedMidpoints };
+  return targets;
+}
 
 /** Merge per-port overrides without mutating inputs. Throws FlowError for invalid effective values. */
 export function resolvePortAnchorSnapSettings(
@@ -28,7 +74,7 @@ export function resolvePortAnchorSnapSettings(
         'invalid-edit',
         `Port anchor snap ${field} must be finite and non-negative`,
       );
-  return settings;
+  return { ...settings, ...resolveTargetLists(defaults, overrides) };
 }
 
 /** Shared circular attraction and retention for discrete frame points. */
@@ -42,11 +88,15 @@ function resolvePointAttraction<T extends string>(
     hysteresis: number;
     previous?: T | null;
     preferred?: T;
+    allowed?: readonly T[] | undefined;
   }>,
 ): Readonly<{ target: T; anchor: Point }> | undefined {
   const { size, zoom, distance, hysteresis, previous, preferred } = options;
-  if (distance === 0) return undefined;
-  const candidates = targets.map((target) => ({
+  const eligible = targets.filter(
+    ({ target }) => options.allowed === undefined || options.allowed.includes(target),
+  );
+  if (distance === 0 || eligible.length === 0) return undefined;
+  const candidates = eligible.map((target) => ({
     ...target,
     distance: Math.hypot(
       (anchor.x - target.anchor.x) * size.width * zoom,
@@ -77,6 +127,7 @@ export function resolvePortAnchorSnap(
   options: PortAnchorSnapOptions,
 ): PortAnchorSnapResult {
   finitePoint(candidate);
+  const { allowedEdges, allowedCorners, allowedMidpoints } = resolveTargetLists({}, options);
   const {
     size,
     zoom,
@@ -121,7 +172,14 @@ export function resolvePortAnchorSnap(
       { target: 'bottom-left', anchor: { x: 0, y: 1 } },
       { target: 'bottom-right', anchor: { x: 1, y: 1 } },
     ],
-    { size, zoom, distance: cornerDistance, hysteresis, previous: previousCorner },
+    {
+      size,
+      zoom,
+      distance: cornerDistance,
+      hysteresis,
+      previous: previousCorner,
+      allowed: allowedCorners,
+    },
   );
   if (corner) return { anchor: corner.anchor, side: null, corner: corner.target };
   const midpoint = resolvePointAttraction<PortSide>(
@@ -139,6 +197,7 @@ export function resolvePortAnchorSnap(
       hysteresis,
       previous: previousMidpoint,
       preferred: preferredSide,
+      allowed: allowedMidpoints,
     },
   );
   if (midpoint) return { anchor: midpoint.anchor, side: null, midpoint: midpoint.target };
@@ -153,13 +212,17 @@ export function resolvePortAnchorSnap(
       anchor: { x: anchor.x, y: 1 },
     },
   ];
-  const nearest = edges.reduce((best, edge) =>
+  const eligible = edges.filter(
+    ({ side }) => allowedEdges === undefined || allowedEdges.includes(side),
+  );
+  if (eligible.length === 0) return { anchor, side: null };
+  const nearest = eligible.reduce((best, edge) =>
     edge.distance < best.distance ||
     (edge.distance === best.distance && edge.side === preferredSide)
       ? edge
       : best,
   );
-  const previous = hysteresis > 0 ? edges.find((edge) => edge.side === previousSide) : undefined;
+  const previous = hysteresis > 0 ? eligible.find((edge) => edge.side === previousSide) : undefined;
   if (previous && previous.distance <= distance + hysteresis) {
     const switchEdge =
       nearest.side !== previous.side &&

@@ -430,6 +430,16 @@ and example changes without adding graph fields.
 
 [Per-port snapping screenshot](evidence/port-anchor-overrides.png)
 
+Enable **Restricted snap targets** independently of the other demo toggle.
+Review input attracts left/right midpoints only; Review output attracts its
+top edge and upper corners. Both use positive radii with per-kind allow-lists
+in `EditorPolicy.portAnchorSnap`. Empty lists disable attraction for a kind;
+other ports retain their current rules. The toggle is idle-only, with arrays
+captured for each drag. Free placement, Alt bypass, exact edits, protection
+and one-step Undo/Redo keep their package-owned behavior.
+
+[Allowed snap targets screenshot](evidence/port-anchor-targets.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

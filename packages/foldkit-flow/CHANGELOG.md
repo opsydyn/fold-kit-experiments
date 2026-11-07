@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add per-port allowed edge, corner and midpoint targets, including empty-list
+  disabling, captured list copies and composable feedback.
+
 - Add per-port anchor snapping overrides through a pure editor policy,
   with inherited fields, explicit zero values and captured drag settings
   available to custom handle renderers.

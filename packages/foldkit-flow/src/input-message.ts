@@ -19,6 +19,7 @@ const Handle = Schema.optionalKey(
   ]),
 );
 const Endpoint = Schema.Struct({ node: Schema.String, port: Schema.String });
+export type { FlowPortAnchorSnapBypassModifier } from './types';
 const NearbyTarget = Schema.Struct({
   node: Schema.String,
   port: Schema.String,
@@ -40,6 +41,13 @@ export const BrowserInput = Schema.Union([
     endpoint: Endpoint,
     ...Pointer,
     point: Point,
+    snapBypassed: Schema.optionalKey(Schema.Boolean),
+    snapBypassModifier: Schema.optionalKey(Schema.Literals(['Alt', 'Control', 'Meta', 'Shift'])),
+  }),
+  Schema.Struct({
+    type: Schema.Literal('PortAnchorSnapBypassChanged'),
+    ...Pointer,
+    bypassed: Schema.Boolean,
   }),
   Schema.Struct({ type: Schema.Literal('PortAnchorNudged'), endpoint: Endpoint, delta: Point }),
   Schema.Struct({
@@ -83,6 +91,7 @@ export const BrowserInput = Schema.Union([
     point: Point,
     target: Schema.optionalKey(Endpoint),
     nearbyTargets: Schema.optionalKey(Schema.Array(NearbyTarget)),
+    portAnchorSnapBypassed: Schema.optionalKey(Schema.Boolean),
   }),
   Schema.Struct({
     type: Schema.Literal('ReconnectionDragStarted'),

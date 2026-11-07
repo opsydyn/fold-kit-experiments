@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in modifier-key bypass for port anchor snapping, including
+  stationary key transitions, precise release and composable feedback.
+
 - Add opt-in port anchor snap hysteresis with a screen-pixel release band
   and switch margin for competing edges.
 

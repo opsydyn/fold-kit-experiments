@@ -1192,6 +1192,25 @@ export function updateEditor(
         policy,
       );
     }
+    case 'PortAnchorSnapBypassChanged': {
+      const gesture = state.gesture;
+      if (
+        gesture.type !== 'port-anchor-drag' ||
+        gesture.pointer !== event.pointer ||
+        (gesture.snapBypassed ?? false) === event.bypassed
+      )
+        return state;
+      return updateEditor(
+        { ...state, gesture: { ...gesture, snapBypassed: event.bypassed, snappedSide: null } },
+        {
+          type: 'PointerMoved',
+          pointer: event.pointer,
+          point: gesture.point ?? gesture.origin,
+          portAnchorSnapBypassed: event.bypassed,
+        },
+        policy,
+      );
+    }
     case 'PointerMoved': {
       const gesture = state.gesture;
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
@@ -1209,6 +1228,7 @@ export function updateEditor(
           ?.ports.find(({ id }) => id === gesture.endpoint.port);
         if (!node || !original || !current) return cancel(state);
         const base = portAnchor(original);
+        const bypassed = event.portAnchorSnapBypassed ?? gesture.snapBypassed ?? false;
         const moved = event.point.x !== gesture.origin.x || event.point.y !== gesture.origin.y;
         const snap = moved
           ? resolvePortAnchorSnap(
@@ -1223,7 +1243,7 @@ export function updateEditor(
               {
                 size: node.size,
                 zoom: state.viewport.zoom,
-                distance: state.portAnchorSnapDistance ?? 0,
+                distance: bypassed ? 0 : (state.portAnchorSnapDistance ?? 0),
                 preferredSide: original.side,
                 hysteresis: state.portAnchorSnapHysteresis ?? 0,
                 previousSide: gesture.snappedSide ?? null,
@@ -1231,13 +1251,21 @@ export function updateEditor(
             )
           : { anchor: base, side: null };
         const { anchor } = snap;
-        const nextGesture = { ...gesture, snappedSide: snap.side };
+        const nextGesture = {
+          ...gesture,
+          snappedSide: snap.side,
+          snapBypassed: bypassed,
+          point: { ...event.point },
+        };
         const port =
           anchor.x === base.x && anchor.y === base.y
             ? original
             : withPortPosition(original, { side: original.side, anchor });
         if (samePortPosition(current, port))
-          return (gesture.snappedSide ?? null) === snap.side
+          return (gesture.snappedSide ?? null) === snap.side &&
+            (gesture.snapBypassed ?? false) === bypassed &&
+            gesture.point?.x === event.point.x &&
+            gesture.point?.y === event.point.y
             ? state
             : { ...state, gesture: nextGesture };
         return {
@@ -1585,6 +1613,9 @@ export function updateEditor(
           pointer: event.pointer,
           origin: { ...event.point },
           before: state.graph,
+          point: { ...event.point },
+          snapBypassed: event.snapBypassed ?? false,
+          snapBypassModifier: event.snapBypassModifier ?? null,
         },
       };
     }

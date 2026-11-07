@@ -1491,6 +1491,18 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           [
             h.input([
               h.Type('checkbox'),
+              h.Checked(model.portAnchorSnapBypass),
+              h.Disabled(model.editor.gesture.type !== 'idle'),
+              h.OnClick(Message.ClickedPortAnchorSnapBypass()),
+            ]),
+            'Alt bypasses port snapping',
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
               h.Checked(model.customPorts),
               h.OnClick(Message.ClickedCustomPorts()),
             ]),
@@ -1717,6 +1729,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           renderPort: model.customPorts ? socketPort : undefined,
           portLabels: model.portLabels,
           portAnchorHandles: model.portAnchorHandles,
+          portAnchorSnapBypassModifier: model.portAnchorSnapBypass ? 'Alt' : undefined,
           canEditPort: policy.canEditPort,
           renderPortLabel: (context, builder) =>
             flowPortLabel(

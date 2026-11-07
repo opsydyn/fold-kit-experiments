@@ -2,6 +2,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import { attributesWithGeometry, flowWorldOverlayItem } from './composition';
 import { finitePoint, portAnchor } from './geometry';
+import type { FlowPortAnchorSnapBypassModifier } from './input-message';
 import { portEditReason } from './port-edit';
 import type { EditorPolicy, EditorState, FlowNode, Point, Port, PortSide } from './types';
 
@@ -18,6 +19,8 @@ export type FlowPortAnchorHandleContext = Readonly<{
   active: boolean;
   /** Active pointer attraction only; null/absent outside a snapped drag. */
   snappedSide?: PortSide | null;
+  snapBypassed?: boolean;
+  snapBypassModifier?: FlowPortAnchorSnapBypassModifier | undefined;
   disabledReason: string | null;
 }>;
 export type FlowPortAnchorHandleRenderer<M> = (
@@ -32,6 +35,9 @@ export function flowPortAnchorHandle<M>(
   attributes: Parameters<HtmlBuilder<M>['button']>[0],
   children: Parameters<HtmlBuilder<M>['button']>[1],
 ): Html {
+  const modifierHint = context.snapBypassModifier
+    ? ` Hold ${context.snapBypassModifier} to bypass snapping.`
+    : '';
   return flowWorldOverlayItem(
     h,
     { position: context.position },
@@ -45,9 +51,11 @@ export function flowPortAnchorHandle<M>(
           h.AriaLabel(`Position ${context.node.label}: ${context.port.label ?? context.port.id}`),
           h.Title(
             context.disabledReason ??
-              (context.snappedSide
-                ? `Snapped to ${context.snappedSide} edge. Escape cancels.`
-                : 'Drag to position. Arrow keys move 1%; Shift moves 10%. Escape cancels.'),
+              (context.snapBypassed
+                ? `Snapping bypassed. Release ${context.snapBypassModifier ?? 'the modifier'} to restore snapping. Escape cancels.`
+                : context.snappedSide
+                  ? `Snapped to ${context.snappedSide} edge.${modifierHint} Escape cancels.`
+                  : `Drag to position.${modifierHint} Arrow keys move 1%; Shift moves 10%. Escape cancels.`),
           ),
           ...attributesWithGeometry(h, attributes, {
             'pointer-events': 'auto',
@@ -58,6 +66,7 @@ export function flowPortAnchorHandle<M>(
           h.Disabled(context.disabledReason !== null),
           h.DataAttribute('flow-anchor-node', context.node.id),
           h.DataAttribute('flow-anchor-port', context.port.id),
+          ...(context.snapBypassed ? [h.DataAttribute('flow-anchor-bypassed', 'true')] : []),
           ...(context.snappedSide
             ? [h.DataAttribute('flow-anchor-snapped', context.snappedSide)]
             : []),
@@ -76,6 +85,7 @@ export function portAnchorHandleViews<M>(
   enabled: boolean | FlowPortAnchorHandleOptions | undefined,
   canEditPort: EditorPolicy['canEditPort'],
   render: FlowPortAnchorHandleRenderer<M> | undefined,
+  bypassModifier?: FlowPortAnchorSnapBypassModifier | undefined,
 ): readonly Html[] {
   if (!enabled) return [];
   const configured = enabled === true ? undefined : enabled.offset;
@@ -101,6 +111,8 @@ export function portAnchorHandleViews<M>(
           },
           active,
           snappedSide: active ? (drag?.snappedSide ?? null) : null,
+          snapBypassed: active && (drag?.snapBypassed ?? false),
+          snapBypassModifier: active ? (drag?.snapBypassModifier ?? undefined) : bypassModifier,
           disabledReason: state.readOnly
             ? 'This diagram is read-only.'
             : portEditReason({ operation: 'position', node, port }, state.graph, canEditPort),
@@ -119,9 +131,11 @@ export function portAnchorHandleViews<M>(
                   padding: '0',
                   'border-radius': '4px',
                   cursor: context.active ? 'grabbing' : 'grab',
-                  border: context.snappedSide
-                    ? '2px solid var(--flow-selection, #2563eb)'
-                    : '1px solid var(--flow-node-border, #64748b)',
+                  border: context.snapBypassed
+                    ? '2px dashed var(--flow-node-border, #64748b)'
+                    : context.snappedSide
+                      ? '2px solid var(--flow-selection, #2563eb)'
+                      : '1px solid var(--flow-node-border, #64748b)',
                   background: 'var(--flow-node-background, #fff)',
                   color: 'var(--flow-node-color, #172033)',
                 }),

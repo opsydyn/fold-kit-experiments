@@ -389,6 +389,14 @@ Disable it to return to nearest-edge behavior. The preference survives
 example switches and imports alongside the snap radius.
 [Stable snapping screenshot](evidence/port-anchor-hysteresis.png)
 
+Enable **Alt bypasses port snapping** to hold Alt for precise placement
+during an anchor drag. The dashed handle indicates bypass. Press or release
+Alt without moving the mouse to switch between free and snapped previews.
+Release the pointer while holding Alt to keep the precise position, or
+release Alt to resume fresh snapping. The snap radius and stability
+settings stay enabled. Escape still cancels the entire drag.
+[Snap bypass screenshot](evidence/port-anchor-bypass.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

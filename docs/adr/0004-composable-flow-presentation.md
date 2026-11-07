@@ -343,6 +343,16 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Temporary snap bypass is gesture state. The Model retains the last raw
+pointer sample so modifier-only facts can recompute preview geometry.
+Bypass disables attraction and clears retention while preserving clamping,
+policy checks and a single history boundary. Restoring snapping performs
+fresh acquisition. The optional native modifier mapping is captured at
+pointer-down; the input resource stores capture/configuration state, not
+document coordinates. Headless events expose the same behavior. This
+keeps temporary precision separate from the host's saved snap preferences
+and supplies renderer feedback without a second state store.
+
 Anchor hysteresis is an optional core preference. The resolver consumes
 the gesture's previous attracted side, retains it within an expanded
 release band, and requires a competing edge to win by more than the same

@@ -121,6 +121,13 @@ and edge-switch margin; zero preserves nearest-edge behavior.
 `hysteresis` and `previousSide` options retain only an already acquired
 edge, while the ordinary snap radius still controls acquisition.
 
+`FlowViewOptions.portAnchorSnapBypassModifier` opts into an `Alt`,
+`Control`, `Meta` or `Shift` mapping. `FlowPortAnchorSnapBypassModifier`
+describes those choices. `PortAnchorSnapBypassChanged` replays the Model's
+last raw point for stationary key transitions; pointer start/move facts
+can also carry bypass state. Handle contexts expose `snapBypassed` and
+the configured mapping. Preferences and one-step Undo remain unchanged.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

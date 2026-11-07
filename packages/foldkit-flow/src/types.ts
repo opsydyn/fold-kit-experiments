@@ -13,6 +13,7 @@ export type Viewport = Readonly<Point & { zoom: number }>;
 export type ZoomLimits = Readonly<{ minZoom: number; maxZoom: number }>;
 /** Outward routing and reconnection direction hint. */
 export type PortSide = 'left' | 'right' | 'top' | 'bottom';
+export type FlowPortAnchorSnapBypassModifier = 'Alt' | 'Control' | 'Meta' | 'Shift';
 /** Radius is measured in CSS pixels, independent of node size and viewport zoom. */
 export type PortAnchorSnapOptions = Readonly<{
   size: Size;
@@ -117,6 +118,11 @@ export type Gesture =
       before: FlowGraph;
       endpoint: Endpoint;
       snappedSide?: PortSide | null;
+      /** Last raw sample, retained for modifier-only preview updates. */
+      point?: Point;
+      snapBypassed?: boolean;
+      /** Mapping captured at pointer-down; null means no native modifier for this gesture. */
+      snapBypassModifier?: FlowPortAnchorSnapBypassModifier | null;
     }>
   | (NodeGesture &
       Readonly<{
@@ -319,6 +325,7 @@ export type EditorEvent =
       target?: Endpoint;
       /** Nearby rendered ports in ascending distance order, used only without an exact target. */
       nearbyTargets?: readonly NearbyTarget[];
+      portAnchorSnapBypassed?: boolean;
     }>
   | Readonly<{
       type: 'DragPanned';
@@ -376,7 +383,15 @@ export type EditorEvent =
   | Readonly<{ type: 'ConnectionCreated'; edge: FlowEdge }>
   | Readonly<{ type: 'PortAdded'; nodeId: string; port: Port }>
   | Readonly<{ type: 'PortRemoved'; endpoint: Endpoint }>
-  | Readonly<{ type: 'PortAnchorDragStarted'; endpoint: Endpoint; pointer: number; point: Point }>
+  | Readonly<{
+      type: 'PortAnchorDragStarted';
+      endpoint: Endpoint;
+      pointer: number;
+      point: Point;
+      snapBypassed?: boolean;
+      snapBypassModifier?: FlowPortAnchorSnapBypassModifier;
+    }>
+  | Readonly<{ type: 'PortAnchorSnapBypassChanged'; pointer: number; bypassed: boolean }>
   /** Normalized node-frame delta, independent of viewport zoom. */
   | Readonly<{ type: 'PortAnchorNudged'; endpoint: Endpoint; delta: Point }>
   | Readonly<{ type: 'PortAnchorSnapDistanceChanged'; distance: number }>

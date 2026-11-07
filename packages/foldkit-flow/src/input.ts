@@ -1,5 +1,5 @@
 import { gridSpacing } from './geometry';
-import type { BrowserInput } from './input-message';
+import type { BrowserInput, FlowPortAnchorSnapBypassModifier } from './input-message';
 import type { Endpoint, Point } from './types';
 
 function edgeVelocity(position: number, extent: number): number {
@@ -27,6 +27,21 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   let backgroundClickCount = 0;
   let spaceHeld = false;
   let middlePanning = false;
+  let anchorDragging = false;
+  let anchorModifier: FlowPortAnchorSnapBypassModifier | undefined;
+  const configuredAnchorModifier = (): FlowPortAnchorSnapBypassModifier | undefined => {
+    const key = element.dataset.flowPortAnchorSnapBypass;
+    return key === 'Alt' || key === 'Control' || key === 'Meta' || key === 'Shift'
+      ? key
+      : undefined;
+  };
+  const modifierHeld = (
+    event: Pick<KeyboardEvent, 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey'>,
+    key: FlowPortAnchorSnapBypassModifier,
+  ) =>
+    ({ Alt: event.altKey, Control: event.ctrlKey, Meta: event.metaKey, Shift: event.shiftKey })[
+      key
+    ];
   type WireStart = Extract<
     BrowserInput,
     { type: 'ConnectionDragStarted' | 'ReconnectionDragStarted' }
@@ -183,6 +198,8 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const pointer = captured;
     captured = null;
     middlePanning = false;
+    anchorDragging = false;
+    anchorModifier = undefined;
     wire = null;
     nodeDragOrigin = null;
     panPointer = null;
@@ -311,16 +328,27 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (captured !== null || pinching) return;
     const anchor = anchorEndpointAt(target);
     if (anchor && element.dataset.flowReadonly !== 'true') {
+      anchorDragging = true;
+      anchorModifier = configuredAnchorModifier();
       captured = event.pointerId;
       element.setPointerCapture(event.pointerId);
       if (target instanceof window.HTMLElement) target.focus({ preventScroll: true });
       event.preventDefault();
-      emit({
+      const input: Extract<BrowserInput, { type: 'PortAnchorDragStarted' }> = {
         type: 'PortAnchorDragStarted',
         endpoint: anchor,
         pointer: event.pointerId,
         point: point(event),
-      });
+      };
+      emit(
+        anchorModifier
+          ? {
+              ...input,
+              snapBypassed: modifierHeld(event, anchorModifier),
+              snapBypassModifier: anchorModifier,
+            }
+          : input,
+      );
       return;
     }
     const output = endpointAt(target, 'output');
@@ -401,12 +429,17 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       wire.dragging = true;
       emit({ ...wire.start, point: location });
     }
-    emit({
+    const input: Extract<BrowserInput, { type: 'PointerMoved' }> = {
       type: 'PointerMoved',
       pointer: event.pointerId,
       point: location,
       ...wireTargets(event),
-    });
+    };
+    emit(
+      anchorDragging && anchorModifier
+        ? { ...input, portAnchorSnapBypassed: modifierHeld(event, anchorModifier) }
+        : input,
+    );
   };
   listen('pointermove', (event) => {
     if (!(event instanceof window.PointerEvent)) return;
@@ -552,6 +585,16 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
   });
   listen('keydown', (event) => {
     if (!(event instanceof window.KeyboardEvent)) return;
+    if (anchorDragging && captured !== null && anchorModifier && event.key === anchorModifier) {
+      event.preventDefault();
+      if (!event.repeat)
+        emit({
+          type: 'PortAnchorSnapBypassChanged',
+          pointer: captured,
+          bypassed: modifierHeld(event, anchorModifier),
+        });
+      return;
+    }
     const target = targetOf(event);
     if (
       target === element &&
@@ -678,6 +721,20 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     emit(input);
   });
   listen('keyup', (event) => {
+    if (
+      event instanceof window.KeyboardEvent &&
+      anchorDragging &&
+      captured !== null &&
+      anchorModifier &&
+      event.key === anchorModifier
+    ) {
+      event.preventDefault();
+      emit({
+        type: 'PortAnchorSnapBypassChanged',
+        pointer: captured,
+        bypassed: modifierHeld(event, anchorModifier),
+      });
+    }
     if (event instanceof window.KeyboardEvent && event.key === ' ') spaceHeld = false;
   });
   const blur = () => {

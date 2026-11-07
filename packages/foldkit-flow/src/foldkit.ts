@@ -2,6 +2,8 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+import type { FlowPortAnchorSnapBypassModifier } from './input-message';
+export type { FlowPortAnchorSnapBypassModifier } from './input-message';
 export {
   portPositionDraft,
   updatePortPositionDraft,
@@ -348,6 +350,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     portLabels?: boolean | FlowPortLabelOptions;
     /** Opt in to separate anchor drag handles for selected visible ports. */
     portAnchorHandles?: boolean | FlowPortAnchorHandleOptions;
+    /** Opt-in temporary snap bypass; captured at pointer-down. Undefined keeps modifier keys unchanged. */
+    portAnchorSnapBypassModifier?: FlowPortAnchorSnapBypassModifier | undefined;
     renderPortAnchorHandle?: FlowPortAnchorHandleRenderer<M>;
     canEditPort?: EditorPolicy['canEditPort'];
     /** Replaces a complete label. Compose flowPortLabel to retain anchoring. Null hides it. */
@@ -2021,6 +2025,10 @@ export function flowView<M>(
           h.DataAttribute('flow-space-to-pan', String(options.spaceToPan === true)),
           h.DataAttribute('flow-middle-button-pan', String(options.middleButtonPan === true)),
           h.DataAttribute(
+            'flow-port-anchor-snap-bypass',
+            options.portAnchorSnapBypassModifier ?? '',
+          ),
+          h.DataAttribute(
             'flow-fit-animation',
             state.fitViewTransition.type === 'fitting' ? String(state.fitViewTransition.id) : '',
           ),
@@ -2107,6 +2115,7 @@ export function flowView<M>(
                 options.portAnchorHandles,
                 options.canEditPort,
                 options.renderPortAnchorHandle,
+                options.portAnchorSnapBypassModifier,
               ),
               ...portLabelViews(h, canvas.nodes, options.portLabels, options.renderPortLabel),
               ...edgeLabels,

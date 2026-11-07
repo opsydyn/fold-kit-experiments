@@ -651,6 +651,30 @@ breaker. The reducer carries retention in its existing gesture state.
 Policy vetoes, cancellation, no-motion behavior, keyboard/numeric precision
 and one-step Undo keep their existing semantics.
 
+Set `flowView`'s `portAnchorSnapBypassModifier: 'Alt'` to enable temporary
+free positioning during an anchor drag. The default has no mapping.
+`FlowPortAnchorSnapBypassModifier` also accepts `Control`, `Meta` and
+`Shift`, so hosts can choose their shortcut. The native resource captures
+that mapping at pointer-down; changes apply to the next gesture.
+
+Holding the mapped key bypasses edge attraction and hysteresis while
+retaining frame clamping and edit policies. Pressing or releasing it
+recomputes the last raw pointer sample in the Model, even without mouse
+movement. Releasing performs fresh acquisition; it clears the old retained
+edge. Releasing the pointer while holding the key commits the free position
+as the drag's single Undo entry. Snap preferences stay intact. Blur,
+Escape, capture loss and policy vetoes retain normal cancellation.
+
+Headless consumers can supply `snapBypassed` on `PortAnchorDragStarted`,
+`portAnchorSnapBypassed` on `PointerMoved`, or
+`PortAnchorSnapBypassChanged` with the active pointer and `bypassed` value.
+The gesture retains its raw `point` for key-only updates. These facts apply
+only to the matching anchor gesture. A start fact can include the captured
+`snapBypassModifier` for renderer hints. Handle contexts expose `snapBypassed`
+and `snapBypassModifier` for custom feedback; the default uses a dashed
+border and native description. Other gestures and idle keyboard nudges
+retain their existing modifier behavior.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

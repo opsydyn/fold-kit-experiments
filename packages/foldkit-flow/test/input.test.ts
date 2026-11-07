@@ -459,3 +459,71 @@ test('dedicated anchor controls capture pointer edits and emit normalized keyboa
   });
   cleanup();
 });
+
+test('anchor bypass modifiers are opt-in, captured per gesture and report key-only transitions', () => {
+  for (const key of ['Alt', 'Control', 'Meta', 'Shift'] as const) {
+    const window = new Window();
+    Object.defineProperty(globalThis, 'KeyboardEvent', {
+      value: window.KeyboardEvent,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'PointerEvent', {
+      value: window.PointerEvent,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+    const surface = document.createElement('div');
+    surface.dataset.flowSurface = '';
+    surface.dataset.flowPortAnchorSnapBypass = key;
+    surface.innerHTML =
+      '<button data-flow-anchor-node="a" data-flow-anchor-port="p">Position</button>';
+    surface.setPointerCapture = () => {};
+    surface.hasPointerCapture = () => false;
+    const events: EditorEvent[] = [];
+    const cleanup = bindInput(surface, (event) => events.push(event));
+    const handle = surface.querySelector('button');
+    handle?.dispatchEvent(
+      new PointerEvent('pointerdown', { pointerId: 7, button: 0, bubbles: true }),
+    );
+    expect(events.at(-1)).toMatchObject({ type: 'PortAnchorDragStarted', snapBypassed: false });
+    const flags = {
+      altKey: key === 'Alt',
+      ctrlKey: key === 'Control',
+      metaKey: key === 'Meta',
+      shiftKey: key === 'Shift',
+    };
+    surface.dataset.flowPortAnchorSnapBypass = '';
+    handle?.dispatchEvent(new KeyboardEvent('keydown', { key, ...flags, bubbles: true }));
+    expect(events.at(-1)).toEqual({
+      type: 'PortAnchorSnapBypassChanged',
+      pointer: 7,
+      bypassed: true,
+    });
+    surface.dispatchEvent(
+      new PointerEvent('pointermove', { pointerId: 7, ...flags, clientX: 15, bubbles: true }),
+    );
+    expect(events.at(-1)).toMatchObject({ type: 'PointerMoved', portAnchorSnapBypassed: true });
+    handle?.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true }));
+    expect(events.at(-1)).toEqual({
+      type: 'PortAnchorSnapBypassChanged',
+      pointer: 7,
+      bypassed: false,
+    });
+    surface.dispatchEvent(new PointerEvent('pointerup', { pointerId: 7, bubbles: true }));
+    const count = events.length;
+    handle?.dispatchEvent(new KeyboardEvent('keydown', { key, ...flags, bubbles: true }));
+    expect(events).toHaveLength(count);
+    cleanup();
+    const disabled: EditorEvent[] = [];
+    const close = bindInput(surface, (event) => disabled.push(event));
+    handle?.dispatchEvent(
+      new PointerEvent('pointerdown', { pointerId: 8, button: 0, altKey: true, bubbles: true }),
+    );
+    expect(disabled.at(-1)).not.toHaveProperty('snapBypassed');
+    handle?.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Alt', altKey: true, bubbles: true }),
+    );
+    expect(disabled.some((event) => event.type === 'PortAnchorSnapBypassChanged')).toBe(false);
+    close();
+  }
+});

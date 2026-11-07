@@ -48,6 +48,7 @@
   },
   "scripts": {
     "build": "tsdown",
+    "bench:choosers": "bun bench/choosers.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test ./test",
     "pack:check": "bun run build && publint && bun ../../tools/pack-flow.ts foldkit-flow",

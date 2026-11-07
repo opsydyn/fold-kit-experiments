@@ -2091,3 +2091,11 @@ anchor documents. Outside-box anchors and arbitrary routing normals are not
 supported in this slice. The sample's **Port anchors** selector demonstrates
 cardinal and diagonal circle-perimeter positions; it derives its value from the
 document so Undo, Redo and imports stay consistent.
+
+## Repository performance benchmarks
+
+From this monorepo, `bun run --filter @opsydyn/foldkit-flow bench:choosers`
+measures chooser resolution, projection and field construction. The
+[benchmark method, raw results and browser driver](../../apps/flow-sample/evidence/endpoint-chooser-benchmark.md)
+cover reproducible workbench typing measurements and the retained-node comparison.
+These are repo-only diagnostic tools with no machine-dependent CI timing gate.

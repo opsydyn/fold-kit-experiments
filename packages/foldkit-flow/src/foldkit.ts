@@ -2,6 +2,16 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+import { flowEdgeEndpointField } from './edge-endpoint';
+import { resolveEdgeReconnection, type FlowEdgeReconnectionOptions } from './edge-reconnection';
+import { edgeToolbarBand } from './edge-toolbar-placement';
+export {
+  flowEdgeEndpointField,
+  flowEdgeEndpointSelect,
+  flowEdgeEndpointReasons,
+} from './edge-endpoint';
+export type { FlowEdgeEndpointOptions } from './edge-endpoint';
+
 import type { FlowPortAnchorSnapBypassModifier } from './input-message';
 export type { FlowPortAnchorSnapBypassModifier } from './input-message';
 export {
@@ -418,6 +428,10 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     ) => Html | null | undefined;
     /** Show on-canvas controls for a single selected edge in editable views. */
     edgeToolbar?: boolean;
+    /** Opt-in endpoint choosers in the selected-edge toolbar. Requires edgeToolbar. */
+    edgeReconnection?: boolean | FlowEdgeReconnectionOptions;
+    /** Pass the same global connection policy used by updateEditor for candidate feedback. */
+    canConnect?: EditorPolicy['canConnect'];
     /** Use the same pure deletion policy passed to updateEditor to disable protected actions. */
     canDelete?: EditorPolicy['canDelete'];
     /** Use the reducer's reconnection policy to omit handles for locked endpoints. */
@@ -875,12 +889,28 @@ function defaultEdgeToolbar<M>(
       ]),
       action(context.actions.deleteEdge),
       ...deletionExplanation(h, context.actions.deleteEdge.disabledReason),
+      ...(context.reconnection
+        ? [
+            flowEdgeEndpointField(h, context.reconnection.source, onEvent, {
+              idPrefix: context.reconnection.idPrefix,
+            }),
+            flowEdgeEndpointField(h, context.reconnection.target, onEvent, {
+              idPrefix: context.reconnection.idPrefix,
+            }),
+          ]
+        : []),
     ],
   );
 }
 
-function edgeToolbarFrame<M>(h: HtmlBuilder<M>, anchor: Point, id: string, content: Html): Html {
-  const width = 256;
+function edgeToolbarFrame<M>(
+  h: HtmlBuilder<M>,
+  anchor: Point,
+  id: string,
+  content: Html,
+  band?: Readonly<{ top: number; height: number }>,
+): Html {
+  const width = band ? 320 : 256;
   return h.div(
     [
       h.Id(id),
@@ -891,7 +921,9 @@ function edgeToolbarFrame<M>(h: HtmlBuilder<M>, anchor: Point, id: string, conte
       h.Style({
         position: 'absolute',
         left: `clamp(6px, ${anchor.x - width / 2}px, max(6px, calc(100% - ${width + 6}px)))`,
-        top: `clamp(6px, ${anchor.y}px, max(6px, calc(100% - 82px)))`,
+        top: band ? `${band.top}px` : `clamp(6px, ${anchor.y}px, max(6px, calc(100% - 82px)))`,
+        'max-height': band ? `${band.height}px` : 'calc(100% - 12px)',
+        overflow: band ? 'auto' : 'visible',
         width: `min(${width}px, calc(100% - 12px))`,
         'z-index': '1',
       }),
@@ -1906,6 +1938,25 @@ export function flowView<M>(
       ? {
           edge: activeEdge.edge,
           labelPosition: activeEdge.labelPosition,
+          reconnection: options.edgeReconnection
+            ? {
+                idPrefix: `${encodeURIComponent(options.id)}-toolbar-endpoint`,
+                source: resolveEdgeReconnection(
+                  state,
+                  activeEdge.edge.id,
+                  'source',
+                  options,
+                  options.edgeReconnection === true ? {} : options.edgeReconnection,
+                )!,
+                target: resolveEdgeReconnection(
+                  state,
+                  activeEdge.edge.id,
+                  'target',
+                  options,
+                  options.edgeReconnection === true ? {} : options.edgeReconnection,
+                )!,
+              }
+            : undefined,
           actions: {
             rename: {
               label: 'Rename',
@@ -1941,6 +1992,13 @@ export function flowView<M>(
           ),
           toolbarId,
           toolbarContent ?? defaultEdgeToolbar(h, toolbarContext, options.onEvent),
+          toolbarContext.reconnection
+            ? edgeToolbarBand(
+                state.surface?.height ?? options.height ?? 440,
+                reconnectPoints.map((point) => state.viewport.y + point.y * state.viewport.zoom),
+                9 * state.viewport.zoom + 6,
+              )
+            : undefined,
         )
       : null;
   const connections = () => {

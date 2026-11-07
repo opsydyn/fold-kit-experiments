@@ -328,6 +328,26 @@ with `ViewportConstraintsChanged` or pass `ZoomLimits` to the geometry helpers
 FoldKit view, including the browser's reduced-motion preference. Direct
 navigation cancels the transition.
 
+## Endpoint chooser contracts
+
+`Core.resolveEdgeReconnection` derives `FlowEdgeReconnectionContext` for an edge
+and source/target end. `FlowEdgeEndpointChoice` supplies stable endpoint values,
+labels, current/hidden flags, eligibility reasons and typed reconnection events.
+`FlowEdgeReconnectionOptions.scope` chooses visible alternatives (default) or all
+authored ports; the current endpoint is retained. No graph or draft state is added.
+
+The FoldKit entry exports `flowEdgeEndpointField`, `flowEdgeEndpointSelect` and
+`flowEdgeEndpointReasons`, with `FlowEdgeEndpointOptions` for ID scoping and
+native option text. Pair select and reasons with the same prefix. Custom widgets
+can use the pure context directly. Recompute with the current Model and use the
+same policies in `updateEditor`; preflight does not authorize a later mutation.
+
+`FlowViewOptions.edgeReconnection` opts into endpoint controls when `edgeToolbar`
+is enabled. Pass `canConnect`, `canConnectPort` and `canReconnect` for consistent
+candidate feedback. `FlowEdgeToolbarContext.reconnection` exposes the same
+contexts to custom toolbars. Protection descriptions remain available in minimal
+mode. Ordinary native select keys and Tab exit remain available.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

@@ -26,6 +26,7 @@ import {
   flowContextDimensionInput,
   type FlowContextAction,
   type FlowContextMenuContext,
+  flowEdgeEndpointField,
   flowEdgePathStyleSelect,
   type FlowEdgeToolbarContext,
   type FlowNodeToolbarContext,
@@ -657,6 +658,16 @@ export function compactEdgeToolbar(context: FlowEdgeToolbarContext, h: HtmlBuild
       }),
     ],
     [
+      ...(context.reconnection
+        ? [
+            flowEdgeEndpointField(h, context.reconnection.source, flowEvent, {
+              idPrefix: context.reconnection.idPrefix,
+            }),
+            flowEdgeEndpointField(h, context.reconnection.target, flowEvent, {
+              idPrefix: context.reconnection.idPrefix,
+            }),
+          ]
+        : []),
       flowEdgePathStyleSelect(h, context, flowEvent, [
         h.Style({
           'min-height': '36px',

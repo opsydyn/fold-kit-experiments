@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add composable endpoint choosers with pure policy-aware candidates, stable
+  identities, visible protection reasons and opt-in selected-edge toolbar controls.
+
 - Add opt-in keyboard cycling through permitted point targets, first/last
   shortcuts, pure/headless actions and named feedback with atomic Undo.
 

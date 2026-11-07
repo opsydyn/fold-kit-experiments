@@ -769,3 +769,47 @@ Preview and release use one resolver against the current Model and visible
 node bounds. Shells receive a separate highlight flag and the marquee gets
 the pending node IDs. This keeps the committed selection, action targets
 and pressed states stable during the gesture.
+
+### Endpoint chooser extraction (2026-11-07)
+
+Accepted following approval of the
+[keyboard connection review](../assessments/2026-11-07-foldkit-flow-keyboard-connections.md).
+The core owns `resolveEdgeReconnection` and typed candidate contexts. Shared
+`connection-validation.ts` supplies candidate and commit checks. The FoldKit
+adapter owns unstyled native select, visible-reason and field primitives, plus
+an opt-in `edgeReconnection` toolbar configuration. Astro composes those APIs;
+it no longer enumerates or validates reconnection candidates.
+
+The alternative of extracting only the host select leaves eligibility rules
+duplicated. A new keyboard drag mode adds gesture state and cancellation rules
+without being necessary for endpoint selection. Reusing `EdgeReconnected` keeps
+history, metadata preservation and commit-time permission checks in one path.
+No dependency or persisted schema change is needed. The expanded toolbar uses
+`src/edge-toolbar-placement.ts` to reserve a scrollable vertical band clear of
+reconnect handles rather than allowing new controls to occlude pointer editing.
+
+Visible alternatives are the default; current hidden endpoints remain labeled
+and an explicit `scope: 'all'` permits broader host inspectors. This may exclude
+ports that the old Astro inspector displayed, so document that migration rather
+than silently broadening native canvas behavior. Native options accept text;
+rich custom widgets consume the same headless entries and own their widget
+semantics. Candidate evaluation invokes pure policies once per proposal and is
+not a permission token for future commits.
+
+Implementation and verification:
+
+- [x] Add the pure resolver in `src/edge-reconnection.ts`, export it from the core,
+      and share validation with `src/editor.ts` without importing view dependencies.
+- [x] Add `src/edge-endpoint.ts` and opt-in toolbar contexts/controls in
+      `src/foldkit.ts` and `src/edge-toolbar.ts`; preserve default toolbar behavior.
+- [x] Replace the local workbench selector with native package primitives and
+      custom markup in `apps/flow-sample/src/editor/view.ts`.
+- [x] Qualify fresh/stale policy rejection, hidden/absent/current endpoints,
+      identity stability, one-step Undo/Redo and preserved metadata in
+      `test/edge-endpoint.test.ts`; verify native keyboard/focus in Chromium and
+      compile a packed consumer. Run root check, typecheck and all tests.
+
+All `src/` and `test/` paths here are relative to `packages/foldkit-flow/`.
+Formal screen-reader/device qualification and new canvas keyboard gestures remain
+separate slices. This extension follows the existing four-layer boundary and
+does not replace it.

@@ -95,6 +95,7 @@ async function qualify() {
 
     await button('source:out → review:in').click();
     await page
+      .getByRole('group', { name: 'Selected connection', exact: true })
       .getByRole('combobox', { name: 'Target port' })
       .selectOption({ label: 'Publish: in' });
     await expect(button('source:out → publish:in')).toBeVisible();

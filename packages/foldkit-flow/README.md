@@ -231,6 +231,57 @@ edge and press Up Arrow to focus its actions. The toolbar uses native controls
 and stays the same size as the canvas zooms. Deleting from the toolbar removes
 only that edge and can be undone.
 
+Add `edgeReconnection: true` to opt into native Source port and Target port
+choosers in that toolbar. Pass the same `canReconnect`, `canConnectPort` and
+`canConnect` policies used by `updateEditor` to the view. The chooser is an editing
+control and remains available in minimal mode; protection explanations remain
+visible even when optional diagnostics are disabled. The expanded toolbar offers
+up to 320 px width and scrolls within the canvas.
+
+For a custom inspector, derive the choices from the core and compose the native
+field from `@opsydyn/foldkit-flow/foldkit`:
+
+```ts
+import { resolveEdgeReconnection } from '@opsydyn/foldkit-flow';
+import { flowEdgeEndpointField } from '@opsydyn/foldkit-flow/foldkit';
+
+const context = resolveEdgeReconnection(model.editor, edgeId, 'target', policy);
+const field = context
+  ? flowEdgeEndpointField(h, context, onEvent, { idPrefix: 'my-inspector' })
+  : h.div([], ['Connection no longer exists.']);
+```
+
+`resolveEdgeReconnection` returns `null` for an absent edge. It enumerates ports
+of the matching direction, excluding hidden/collapsed alternatives by default
+and always retaining the current endpoint. Pass `{ scope: 'all' }` to include
+hidden alternatives, including via `edgeReconnection: { scope: 'all' }` in the
+view. Hidden current endpoints are labeled; missing current ports remain visible
+as unavailable. The resolver does not change visibility, selection or the graph.
+
+Each entry contains a stable `value`, endpoint, label, current/hidden flags,
+nullable protection `reason`, and typed `EdgeReconnected` event. Values encode
+the node/port pair rather than its index, so reordering cannot retarget a choice.
+`context.reason` explains read-only, active-gesture or endpoint-lock states.
+`context.emptyReason` explains when no eligible alternatives remain; the unchanged
+current choice stays focusable so an accepted edit does not unexpectedly drop focus. Candidate reasons share the reducer's direction, port,
+duplicate and global connection checks. The replaced edge is excluded from the
+global policy's graph; only the changing port is checked for new-port permission.
+The unchanged endpoint is a no-op. Policy functions must be pure, since rendering
+evaluates them for multiple candidates. Recompute contexts each view; events are
+proposals and the reducer rechecks current policy when committing.
+
+Use `flowEdgeEndpointSelect` and `flowEdgeEndpointReasons` separately to build
+your own layout, passing the same `idPrefix` to both. Distinct simultaneous fields
+for the same edge end need distinct prefixes. The select supplies a stable key,
+ID, accessible name and description, disabled states and native change behavior.
+`optionLabel` customizes native option text; fully custom widgets can consume the
+headless entries. Required protection copy is available as data and through the
+reasons primitive, independently of optional diagnostic readouts. Preserve that
+association in custom designs. `renderEdgeToolbar` receives optional
+`context.reconnection` with both endpoint contexts and a scoped `idPrefix` when
+enabled. Native Tab/selection behavior is preserved; each accepted change is one
+Undo step, with edge metadata, selection and focused chooser retained.
+
 With `edgeToolbar: true`, supply `renderEdgeToolbar` to arrange, style, or
 omit individual actions. Its context contains the selected edge, the shared
 label anchor in world coordinates, and the typed actions `rename`,

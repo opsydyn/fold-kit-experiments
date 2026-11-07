@@ -26,8 +26,12 @@ async function qualify() {
     page.on('pageerror', (error) => errors.push(String(error)));
     const button = (name) => page.getByRole('button', { name, exact: true });
     const lock = page.getByRole('combobox', { name: 'Draft to Review reconnection' });
-    const source = page.getByRole('combobox', { name: 'Source port' });
-    const target = page.getByRole('combobox', { name: 'Target port' });
+    const source = page
+      .getByRole('group', { name: 'Selected connection', exact: true })
+      .getByRole('combobox', { name: 'Source port' });
+    const target = page
+      .getByRole('group', { name: 'Selected connection', exact: true })
+      .getByRole('combobox', { name: 'Target port' });
     const surface = page.locator('[data-flow-surface]');
     const handles = surface.locator('[data-flow-reconnect="draft-review"]');
     const sourceHandle = handles.and(surface.locator('[data-flow-edge-end="source"]'));
@@ -40,7 +44,7 @@ async function qualify() {
     await expect(sourceHandle).toHaveCount(0);
     await expect(targetHandle).toBeVisible();
     await expect(source).toBeDisabled();
-    await expect(source).toHaveAccessibleDescription('Source reconnection is locked.');
+    await expect(source).toHaveAccessibleDescription(/Source reconnection is locked\./);
     await expect(target).toBeEnabled();
 
     await button('Fit view').click();
@@ -58,6 +62,15 @@ async function qualify() {
     });
 
     const handle = await targetHandle.boundingBox();
+    expect(
+      await targetHandle.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return document
+          .elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+          ?.closest('[data-flow-reconnect]')
+          ?.getAttribute('data-flow-reconnect');
+      }),
+    ).toBe('draft-review');
     const port = await button('Connect to Publish: in').boundingBox();
     await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
     await page.mouse.down();
@@ -70,7 +83,7 @@ async function qualify() {
     await expect(targetHandle).toHaveCount(0);
     await expect(source).toBeEnabled();
     await expect(target).toBeDisabled();
-    await expect(target).toHaveAccessibleDescription('Target reconnection is locked.');
+    await expect(target).toHaveAccessibleDescription(/Target reconnection is locked\./);
     await source.selectOption({ label: 'Review: out' });
     await expect(button('review:out → publish:in')).toBeVisible();
     await button('Undo').click();

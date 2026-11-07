@@ -12,6 +12,12 @@ export {
   serializeSnapshot,
 } from './graph';
 export { createEditor, updateEditor } from './editor';
+export { resolveEdgeReconnection } from './edge-reconnection';
+export type {
+  FlowEdgeEndpointChoice,
+  FlowEdgeReconnectionContext,
+  FlowEdgeReconnectionOptions,
+} from './edge-reconnection';
 export { resolveDeletion } from './deletion';
 export { resolvePortRemoval } from './port-removal';
 export { portEditReason } from './port-edit';

@@ -1,5 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
+import type { FlowEdgeReconnectionContext } from './edge-reconnection';
 import type { EdgePathStyle, EditorEvent, FlowEdge, Point } from './types';
 
 export type FlowEdgeToolbarAction = Readonly<{
@@ -12,6 +13,12 @@ export type FlowEdgeToolbarContext = Readonly<{
   edge: FlowEdge;
   /** World position shared with the edge label. */
   labelPosition: Point;
+  /** Present only when the view opts into endpoint choosers. */
+  reconnection?: Readonly<{
+    idPrefix: string;
+    source: FlowEdgeReconnectionContext;
+    target: FlowEdgeReconnectionContext;
+  }>;
   actions: Readonly<{
     rename: FlowEdgeToolbarAction;
     deleteEdge: FlowEdgeToolbarAction;

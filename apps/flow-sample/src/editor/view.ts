@@ -1,15 +1,16 @@
 import {
+  resolveEdgeReconnection,
   defaultFitViewPadding,
   defaultZoomLimits,
-  type EdgeEnd,
   type EdgePathStyle,
-  type FlowEdge,
   type FlowNode,
   type EditorEvent,
 } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
   flowView,
+  flowEdgeEndpointSelect,
+  flowEdgeEndpointReasons,
   flowPortLabel,
   flowPortAnchorHandle,
   portInspectorContext,
@@ -296,71 +297,39 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     padding: '3px 9px',
     'font-size': '0.85rem',
   };
-  const endpointSelect = (edge: FlowEdge, end: EdgeEnd) => {
-    const reason = policy.canReconnect(edge, end, model.editor.graph);
-    const reasonId = `flow-reconnect-${end}-reason`;
-    const kind = end === 'source' ? 'output' : 'input';
-    const label = end === 'source' ? 'Source port' : 'Target port';
-    const ports = model.editor.graph.nodes.flatMap((node) =>
-      node.ports
-        .filter((port) => port.kind === kind)
-        .map((port) => ({
-          endpoint: { node: node.id, port: port.id },
-          label: `${node.label}: ${port.label ?? port.id}`,
-        })),
-    );
-    return h.label(
-      [],
-      [
-        label,
-        h.select(
-          [
-            h.AriaLabel(label),
-            h.Disabled(model.editor.readOnly || reason !== null),
-            ...(reason === null ? [] : [h.AriaDescribedBy(reasonId)]),
-            h.OnChange((value) =>
-              Message.ObservedFlowInput({
-                message: {
-                  type: 'EdgeReconnected',
-                  id: edge.id,
-                  end,
-                  endpoint: ports[Number(value)]?.endpoint ?? edge[end],
-                },
+  const endpointFields = selectedEdge
+    ? (['source', 'target'] as const).flatMap((end) => {
+        const context = resolveEdgeReconnection(model.editor, selectedEdge.id, end, policy);
+        if (!context) return [];
+        const options = { idPrefix: 'workbench-endpoint' };
+        return [
+          h.div(
+            [
+              h.Key(end),
+              h.Class('workbench-endpoint-field'),
+              h.Style({
+                padding: '10px',
+                margin: '6px 0',
+                border: '1px solid var(--flow-node-border, #cbd5e1)',
+                'border-radius': '10px',
+                background: 'var(--flow-node-background, #fff)',
               }),
-            ),
-          ],
-          ports.map(({ endpoint, label }, index) => {
-            const portReason = policy.canConnectPort?.(endpoint, model.editor.graph) ?? null;
-            return h.option(
-              [
-                h.Value(String(index)),
-                h.Disabled(
-                  portReason !== null ||
-                    model.editor.graph.edges.some(
-                      (other) =>
-                        other.id !== edge.id &&
-                        other[end].node === endpoint.node &&
-                        other[end].port === endpoint.port &&
-                        (end === 'source'
-                          ? other.target.node === edge.target.node &&
-                            other.target.port === edge.target.port
-                          : other.source.node === edge.source.node &&
-                            other.source.port === edge.source.port),
-                    ),
-                ),
-                h.Selected(edge[end].node === endpoint.node && edge[end].port === endpoint.port),
-                ...(portReason === null ? [] : [h.Title(portReason)]),
-              ],
-              [label],
-            );
-          }),
-        ),
-        ...(reason === null
-          ? []
-          : [h.small([h.Id(reasonId), h.Style({ margin: '0 6px' })], [reason])]),
-      ],
-    );
-  };
+            ],
+            [
+              h.strong([], [end === 'source' ? '↗ Source port' : '↘ Target port']),
+              flowEdgeEndpointSelect(
+                h,
+                context,
+                (message) => Message.ObservedFlowInput({ message }),
+                [h.Style({ width: '100%', 'min-height': '36px', margin: '6px 0' })],
+                options,
+              ),
+              flowEdgeEndpointReasons(h, context, [h.Style({ 'font-size': '0.85rem' })], options),
+            ],
+          ),
+        ];
+      })
+    : [];
   const edgeHooks: WorkbenchEdgeHooks = {};
   if (model.edgeDesign === 'raised') edgeHooks.edgeGeometry = raisedEdge;
   if (model.editor.graph.edges.some((edge) => edge.id === 'storage-application'))
@@ -760,8 +729,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               h.div(
                 [h.Role('group'), h.AriaLabel('Selected connection')],
                 [
-                  endpointSelect(selectedEdge, 'source'),
-                  endpointSelect(selectedEdge, 'target'),
+                  ...endpointFields,
                   h.label(
                     [],
                     [
@@ -2128,6 +2096,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ? compactNodeToolbar(context, builder)
               : undefined,
           edgeToolbar: true,
+          edgeReconnection: true,
+          canConnect: policy.canConnect,
           canDelete: policy.canDelete,
           canReconnect: policy.canReconnect,
           canConnectPort:

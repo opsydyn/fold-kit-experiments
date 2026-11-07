@@ -5,6 +5,7 @@ import {
   sameGuides,
   type ResizeAlignment,
 } from './alignment';
+import { connectionReason, portKind } from './connection-validation';
 import { resolveDeletion } from './deletion';
 import {
   boxBounds,
@@ -623,45 +624,11 @@ function cancel(state: EditorState): EditorState {
     notice: state.connection ? 'Connection cancelled' : null,
   };
 }
-function portKind(graph: FlowGraph, endpoint: Endpoint) {
-  return graph.nodes
-    .find((node) => node.id === endpoint.node)
-    ?.ports.find((port) => port.id === endpoint.port)?.kind;
-}
 
 function proposedEdge(graph: FlowGraph, source: Endpoint, target: Endpoint) {
   let index = 1;
   while (graph.edges.some((edge) => edge.id === `edge:${index}`)) index++;
   return { id: `edge:${index}`, source, target };
-}
-
-function connectionReason(
-  graph: FlowGraph,
-  edge: FlowEdge,
-  policy: EditorPolicy,
-  replaced?: Readonly<{ id: string; end: EdgeEnd }>,
-) {
-  if (portKind(graph, edge.source) !== 'output' || portKind(graph, edge.target) !== 'input')
-    return 'Choose a compatible port.';
-  const sourceReason =
-    replaced?.end === 'target' ? null : policy.canConnectPort?.(edge.source, graph);
-  const portReason =
-    sourceReason ??
-    (replaced?.end === 'source' ? null : policy.canConnectPort?.(edge.target, graph)) ??
-    null;
-  if (portReason !== null) return portReason;
-  const remaining = graph.edges.filter((item) => item.id !== replaced?.id);
-  if (
-    remaining.some(
-      (item) =>
-        item.source.node === edge.source.node &&
-        item.source.port === edge.source.port &&
-        item.target.node === edge.target.node &&
-        item.target.port === edge.target.port,
-    )
-  )
-    return 'These ports are already connected';
-  return policy.canConnect?.(edge, { ...graph, edges: remaining }) ?? null;
 }
 
 function sameGeometry(a: FlowGraph, b: FlowGraph): boolean {

@@ -62,8 +62,8 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       ],
       { ...options, cwd: directory },
     );
-    const source = `import { createEditor, updateEditor, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type FlowConnectionGeometryPolicy, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
-import { flowView, type FlowWheelNavigation, type FlowCanvasHelpContext, type FlowCanvasStatusContext, type FlowSelectionMarqueeContext, type FlowAlignmentGuideContext, type FlowResizeReadoutContext, flowConnectionButton, flowContextTrigger, type FlowConnectionsContext, flowContextAction, flowContextDimensionInput, type FlowContextMenuContext, flowEdgeToolbarButton, flowEdgePathStyleSelect, type FlowEdgeToolbarContext, flowEdgeLabelBadge, flowEdgeLabelForm, flowEdgeLabelInput, flowEdgeLabelCancel, flowViewportControl, flowMinimap, flowMinimapViewport, type FlowMinimapContext, type FlowViewportControlsContext, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, flowEdgeHitTarget, resolveFlowDiagnostics, type FlowViewOptions, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
+    const source = `import { createEditor, updateEditor, resolveEdgeReconnection, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type FlowConnectionGeometryPolicy, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
+import { flowEdgeEndpointField, flowEdgeEndpointSelect, flowEdgeEndpointReasons, flowView, type FlowWheelNavigation, type FlowCanvasHelpContext, type FlowCanvasStatusContext, type FlowSelectionMarqueeContext, type FlowAlignmentGuideContext, type FlowResizeReadoutContext, flowConnectionButton, flowContextTrigger, type FlowConnectionsContext, flowContextAction, flowContextDimensionInput, type FlowContextMenuContext, flowEdgeToolbarButton, flowEdgePathStyleSelect, type FlowEdgeToolbarContext, flowEdgeLabelBadge, flowEdgeLabelForm, flowEdgeLabelInput, flowEdgeLabelCancel, flowViewportControl, flowMinimap, flowMinimapViewport, type FlowMinimapContext, type FlowViewportControlsContext, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, flowEdgeHitTarget, resolveFlowDiagnostics, type FlowViewOptions, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-flow-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
@@ -103,10 +103,15 @@ const labelOptions:FlowViewOptions<EditorEvent>={
     flowEdgeLabelCancel(h,context,event=>event,[],['Discard']),
   ]),
 };
+const endpointContext=resolveEdgeReconnection(arranged,externalEdge.id,'target');
+if (!endpointContext) throw new Error('Missing packed endpoint context');
 const selected=updateEditor(arranged,{type:'EdgeSelected',id:externalEdge.id,additive:false});
 const toolbarOptions:FlowViewOptions<EditorEvent>={
-  id:'packed-toolbar',label:'Packed toolbar',onEvent:event=>event,edgeGeometry:policy,edgeToolbar:true,
+  id:'packed-toolbar',label:'Packed toolbar',onEvent:event=>event,edgeGeometry:policy,edgeToolbar:true,edgeReconnection:true,
   renderEdgeToolbar:(context:FlowEdgeToolbarContext,h)=>h.div([h.Class('packed-toolbar')],[
+    flowEdgeEndpointField(h,endpointContext,event=>event,{idPrefix:'packed-endpoint'}),
+    flowEdgeEndpointSelect(h,endpointContext,event=>event,[],{idPrefix:'packed-select'}),
+    flowEdgeEndpointReasons(h,endpointContext,[],{idPrefix:'packed-select'}),
     flowEdgePathStyleSelect(h,context,event=>event,[]),
     flowEdgeToolbarButton(h,context.actions.deleteEdge,event=>event,[],['Delete edge']),
   ]),

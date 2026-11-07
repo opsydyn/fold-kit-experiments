@@ -32,6 +32,7 @@ import {
 } from './group-presentation';
 import { movementReason } from './movement';
 import { expandParents } from './parent-expansion';
+import { resolvePortRemoval } from './port-removal';
 import { resolveBoxSelection } from './selection-preview';
 import type {
   EditorEvent,
@@ -1684,6 +1685,37 @@ export function updateEditor(
       const reason = connectionReason(state.graph, event.edge, policy);
       if (reason !== null) return { ...state, notice: reason, connection: null };
       return { ...commitGraph(state, copyGraph(graph)), notice: 'Connection created' };
+    }
+    case 'PortAdded': {
+      const node = state.graph.nodes.find(({ id }) => id === event.nodeId);
+      if (!node) throw new FlowError('invalid-edit', 'Port addition references an unknown node');
+      const port = withPortPosition(event.port, event.port);
+      return {
+        ...commitGraph(state, {
+          ...state.graph,
+          nodes: state.graph.nodes.map((item) =>
+            item.id === node.id ? { ...item, ports: [...item.ports, port] } : item,
+          ),
+        }),
+        notice: 'Port added',
+      };
+    }
+    case 'PortRemoved': {
+      const decision = resolvePortRemoval(state.graph, event.endpoint, policy.canDelete);
+      if (decision.type === 'empty') return state;
+      if (decision.type === 'blocked') return { ...state, notice: decision.reason };
+      const edges = new Set(decision.edges.map(({ id }) => id));
+      return {
+        ...commitGraph(state, {
+          nodes: state.graph.nodes.map((node) =>
+            node.id === decision.node.id
+              ? { ...node, ports: node.ports.filter(({ id }) => id !== decision.port.id) }
+              : node,
+          ),
+          edges: state.graph.edges.filter(({ id }) => !edges.has(id)),
+        }),
+        notice: 'Port removed',
+      };
     }
     case 'PortPositionsChanged': {
       if (event.positions.length === 0) return state;

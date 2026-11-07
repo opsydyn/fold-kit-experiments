@@ -1,6 +1,7 @@
 import {
   defaultFitViewPadding,
   defaultZoomLimits,
+  resolvePortRemoval,
   type EdgeEnd,
   type EdgePathStyle,
   type FlowEdge,
@@ -1897,6 +1898,79 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   )
               : renderDefaultNode,
         }),
+        ...(!model.minimalMode && selectedNode && selectedNode.kind !== 'group'
+          ? [
+              h.fieldset(
+                [],
+                [
+                  h.legend([], ['Ports for ' + selectedNode.label]),
+                  h.p(
+                    [],
+                    [
+                      'Removing a port also removes its attached connections. Undo restores them together.',
+                    ],
+                  ),
+                  button(
+                    'Add input port',
+                    Message.ClickedAddPort({ nodeId: selectedNode.id, kind: 'input' }),
+                    model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                  ),
+                  button(
+                    'Add output port',
+                    Message.ClickedAddPort({ nodeId: selectedNode.id, kind: 'output' }),
+                    model.editor.readOnly || model.editor.gesture.type !== 'idle',
+                  ),
+                  ...selectedNode.ports.map((port) => {
+                    const endpoint = { node: selectedNode.id, port: port.id };
+                    const decision = resolvePortRemoval(
+                      model.editor.graph,
+                      endpoint,
+                      policy.canDelete,
+                    );
+                    const reason = decision.type === 'blocked' ? decision.reason : null;
+                    const reasonId =
+                      'port-removal-' +
+                      encodeURIComponent(selectedNode.id) +
+                      '-' +
+                      encodeURIComponent(port.id);
+                    return h.div(
+                      [
+                        h.Style({
+                          display: 'flex',
+                          gap: '8px',
+                          'align-items': 'center',
+                          margin: '8px 0',
+                        }),
+                      ],
+                      [
+                        h.span([], [port.label ?? port.id]),
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.AriaLabel(
+                              'Remove ' +
+                                (port.label ?? port.id) +
+                                ' port from ' +
+                                selectedNode.label,
+                            ),
+                            h.Disabled(
+                              model.editor.readOnly ||
+                                model.editor.gesture.type !== 'idle' ||
+                                reason !== null,
+                            ),
+                            ...(reason ? [h.AriaDescribedBy(reasonId)] : []),
+                            h.OnClick(flowInput({ type: 'PortRemoved', endpoint })),
+                          ],
+                          ['Remove port'],
+                        ),
+                        ...(reason ? [h.span([h.Id(reasonId)], [reason])] : []),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+            ]
+          : []),
         h.p(
           [
             h.Role('status'),

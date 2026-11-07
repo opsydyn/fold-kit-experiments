@@ -211,6 +211,11 @@ export type DeletionDecision =
   | Readonly<{ type: 'empty' }>
   | Readonly<{ type: 'blocked'; reason: string }>
   | Readonly<{ type: 'allowed'; candidate: DeletionCandidate }>;
+/** A port removal either finds nothing, is vetoed, or removes the port and these attached edges. */
+export type PortRemovalDecision =
+  | Readonly<{ type: 'empty' }>
+  | Readonly<{ type: 'blocked'; reason: string }>
+  | Readonly<{ type: 'allowed'; node: FlowNode; port: Port; edges: readonly FlowEdge[] }>;
 
 /** Pure host rules evaluated by the editor. */
 export type EditorPolicy = Readonly<{
@@ -332,6 +337,8 @@ export type EditorEvent =
   | Readonly<{ type: 'SurfaceMeasured'; size: Size }>
   | Readonly<{ type: 'EdgeReconnected'; id: string; end: EdgeEnd; endpoint: Endpoint }>
   | Readonly<{ type: 'ConnectionCreated'; edge: FlowEdge }>
+  | Readonly<{ type: 'PortAdded'; nodeId: string; port: Port }>
+  | Readonly<{ type: 'PortRemoved'; endpoint: Endpoint }>
   | Readonly<{
       type: 'PortPositionsChanged';
       positions: readonly Readonly<{ endpoint: Endpoint; position: PortPosition }>[];

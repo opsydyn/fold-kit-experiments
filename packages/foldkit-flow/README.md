@@ -419,6 +419,21 @@ construct their own ports continue to own their presentation. Custom port
 rendering uses the normal node view path alongside the existing culling
 option. The built-in node-view cache applies to standard port rendering.
 
+Add a port with `{ type: 'PortAdded', nodeId, port }`. The host supplies
+its ID, direction, label and position. Invalid ports, duplicate IDs and
+unknown nodes fail before publication. Caller-owned anchors are detached.
+
+Remove a port with `{ type: 'PortRemoved', endpoint }`. Its attached
+connections are removed in the same transaction. `canDelete` evaluates
+the complete attached-edge set and can veto the whole operation.
+`resolvePortRemoval(graph, endpoint, canDelete)` provides the same
+decision for host controls. Removing a missing port is a no-op.
+
+Each accepted operation creates one Undo entry, invalidates stale layout
+routes, and respects read-only and active-gesture guards. Port removal
+does not call deletion policy when there are no attached edges. Existing
+graph documents and snapshots already support the resulting port data.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

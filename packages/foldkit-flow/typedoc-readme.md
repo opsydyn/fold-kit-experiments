@@ -64,6 +64,11 @@ Compose `flowPort` to retain native input and geometry. Custom shells can
 append the resolved `FlowNodeRenderContext.ports` collection as direct
 frame children. Undefined keeps the default and null omits the control.
 
+`PortAdded` and `PortRemoved` edit authored ports through the reducer's
+transaction boundary. `resolvePortRemoval` returns a
+`PortRemovalDecision` that includes all attached edges or a rejection
+reason from the existing deletion policy.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

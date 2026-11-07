@@ -341,6 +341,16 @@ consumes it. This keeps the action independent of graph undo and snapshot
 serialization. A full camera history would also require grouping
 continuous gestures, which this single-step return does not need.
 
+### Port editing
+
+Port add/remove events use the existing document transaction boundary.
+Addition validates and detaches the authored port. Removal resolves all
+attached edges against the existing deletion policy before publishing the
+port and edge changes together. An exported resolver gives host controls
+the same decision. The host supplies identities and placement. Existing
+graph serialization already represents these ports, so the operation
+requires no document format change.
+
 ### Port handles
 
 A port renderer receives the node context, canonical normalized anchor,

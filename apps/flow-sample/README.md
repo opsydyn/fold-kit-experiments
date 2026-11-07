@@ -331,6 +331,12 @@ target feedback. Combine them with **Port labels** in the snapping demo,
 then switch between card and circular nodes.
 [Workbench screenshot](evidence/port-sockets.png)
 
+Select a node to open its **Ports** inspector below the canvas. Add inputs
+or outputs, wire them normally, and remove them with their attached
+connections in one Undo transaction. **Protect required items** also
+protects a port whose removal would delete a required connection.
+[Workbench screenshot](evidence/port-editing.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

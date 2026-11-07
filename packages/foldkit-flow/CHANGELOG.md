@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add atomic port add/remove events with attached-edge deletion policy,
+  an inspectable removal decision and Undo.
+
 - Add composable port rendering with target feedback and resolved
   controls for custom node and group shells.
 

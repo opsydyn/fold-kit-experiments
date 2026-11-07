@@ -7,11 +7,14 @@ import {
   serializeGraph,
   serializeSnapshot,
   updateEditor,
+  portAnchor,
   type EditorEvent,
   type EditorState,
   type FlowGraph,
   type FlowSnapshot,
   type LayoutResult,
+  type FlowNode,
+  type Port,
 } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import type { Return } from 'foldkit/update';
@@ -36,6 +39,34 @@ import {
 } from './model';
 import { presetPosition } from './port-presets';
 import { searchDiagram } from './search';
+
+function nextPort(node: FlowNode, kind: Port['kind']): Port {
+  let sequence = 1;
+  while (node.ports.some(({ id }) => id === kind + '-' + sequence)) sequence++;
+  const side = kind === 'input' ? 'left' : 'right';
+  const positions = [
+    0,
+    ...node.ports.filter((port) => port.side === side).map((port) => portAnchor(port).y),
+    1,
+  ].sort((a, b) => a - b);
+  let largestGap = -1;
+  let offset = 0.5;
+  for (let index = 1; index < positions.length; index++) {
+    const start = positions[index - 1] ?? 0;
+    const end = positions[index] ?? 1;
+    if (end - start > largestGap) {
+      largestGap = end - start;
+      offset = (start + end) / 2;
+    }
+  }
+  return {
+    id: kind + '-' + sequence,
+    label: (kind === 'input' ? 'Input ' : 'Output ') + sequence,
+    kind,
+    side,
+    offset,
+  };
+}
 
 function frameGraph(graph: FlowGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
   const size = surface ?? { width: 800, height: 440 };
@@ -164,6 +195,24 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     ClickedPortLabels: () => ({ model: { ...model, portLabels: !model.portLabels } }),
     ClickedCustomPorts: () => ({ model: { ...model, customPorts: !model.customPorts } }),
+    ClickedAddPort: ({ nodeId, kind }) => {
+      const node = model.editor.graph.nodes.find(({ id }) => id === nodeId);
+      if (!node || node.kind === 'group') return { model };
+      return {
+        model: {
+          ...model,
+          editor: updateEditor(
+            model.editor,
+            {
+              type: 'PortAdded',
+              nodeId,
+              port: nextPort(node, kind),
+            },
+            workbenchPolicy(model),
+          ),
+        },
+      };
+    },
     SelectedReconnectionSnap: ({ reconnectionSnap }) => ({
       model: { ...model, reconnectionSnap },
     }),

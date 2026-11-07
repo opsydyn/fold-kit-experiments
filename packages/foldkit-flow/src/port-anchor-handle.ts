@@ -11,6 +11,7 @@ import type {
   Point,
   Port,
   PortCorner,
+  PortAnchorSnapSettings,
   PortSide,
 } from './types';
 
@@ -33,6 +34,8 @@ export type FlowPortAnchorHandleContext = Readonly<{
   snappedMidpoint?: PortSide | null;
   snapBypassed?: boolean;
   snapBypassModifier?: FlowPortAnchorSnapBypassModifier | undefined;
+  /** Captured effective preferences during a drag, even while temporarily bypassed. */
+  snapSettings?: PortAnchorSnapSettings;
   disabledReason: string | null;
 }>;
 export type FlowPortAnchorHandleRenderer<M> = (
@@ -137,6 +140,7 @@ export function portAnchorHandleViews<M>(
           snappedMidpoint: active ? (drag?.snappedMidpoint ?? null) : null,
           snapBypassed: active && (drag?.snapBypassed ?? false),
           snapBypassModifier: active ? (drag?.snapBypassModifier ?? undefined) : bypassModifier,
+          snapSettings: active && drag?.snapSettings ? { ...drag.snapSettings } : undefined,
           disabledReason: state.readOnly
             ? 'This diagram is read-only.'
             : portEditReason({ operation: 'position', node, port }, state.graph, canEditPort),

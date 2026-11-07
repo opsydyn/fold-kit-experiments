@@ -733,6 +733,46 @@ rollback, cancellation and single-step Undo/Redo retain the same drag
 transaction. Authored routing direction, keyboard nudges, explicit position
 edits and graph serialization retain their existing semantics.
 
+Use `EditorPolicy.portAnchorSnap` to override snapping for individual ports:
+
+```ts
+const policy: EditorPolicy = {
+  portAnchorSnap: ({ node, port }, graph) => {
+    if (node.id === 'review' && port.id === 'in')
+      return { distance: 0, cornerDistance: 0, midpointDistance: 18, hysteresis: 6 };
+    if (port.id === 'precise') return { distance: 0, cornerDistance: 0, midpointDistance: 0 };
+    return undefined;
+  },
+};
+const next = updateEditor(state, event, policy);
+```
+
+The callback receives the current node, port and full graph at an allowed
+anchor drag's start. `PortAnchorSnapOverrides` accepts `distance` (edges),
+`cornerDistance`, `midpointDistance` and `hysteresis`, in CSS pixels. Missing
+or undefined fields inherit editor settings; zero explicitly disables that
+rule. Returning `undefined` inherits every setting. Overrides can enable
+attraction even when editor defaults are zero. Corner/midpoint/edge priority
+is unchanged. The pure `resolvePortAnchorSnapSettings(defaults, overrides)`
+helper returns a detached `PortAnchorSnapSettings` record, filling absent
+defaults with zero and validating finite non-negative effective values.
+Invalid settings throw `FlowError` before any gesture, graph or history change.
+
+Effective settings are captured in `gesture.snapSettings`, including
+inherited values. Mutating a returned override or changing the host policy
+affects the next drag. The callback is not re-evaluated during previews,
+bypass transitions or rendering. Custom handle contexts expose a detached
+`snapSettings` record while that port is actively dragged; it is absent
+while idle. This supports custom rule feedback without repeating the policy.
+The view reads the Model; no additional `flowView` configuration is needed.
+
+Supply the current policy to `updateEditor` as usual: `canEditPort` remains
+authoritative at start, preview and release. Snap overrides cannot bypass
+protection, clamping, cancellation or the single Undo/Redo transaction.
+Modifier bypass temporarily disables all attraction while preserving the
+captured preferences. Keyboard/numeric edits stay exact. Policies and
+captured preferences are runtime/editor state, not serialized graph fields.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

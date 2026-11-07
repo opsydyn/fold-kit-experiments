@@ -2,6 +2,10 @@
 
 ## 0.1.0 (unreleased)
 
+- Add per-port anchor snapping overrides through a pure editor policy,
+  with inherited fields, explicit zero values and captured drag settings
+  available to custom handle renderers.
+
 - Add independent opt-in edge-midpoint snapping for port anchor drags,
   with circular attraction, shared hysteresis/bypass and composable feedback.
 

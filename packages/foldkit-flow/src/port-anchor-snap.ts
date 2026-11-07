@@ -4,10 +4,32 @@ import type {
   Point,
   PortAnchorSnapOptions,
   PortAnchorSnapResult,
+  PortAnchorSnapOverrides,
+  PortAnchorSnapSettings,
   PortCorner,
   PortSide,
   Size,
 } from './types';
+
+/** Merge per-port overrides without mutating inputs. Throws FlowError for invalid effective values. */
+export function resolvePortAnchorSnapSettings(
+  defaults: PortAnchorSnapOverrides,
+  overrides: PortAnchorSnapOverrides = {},
+): PortAnchorSnapSettings {
+  const settings = {
+    distance: overrides.distance ?? defaults.distance ?? 0,
+    cornerDistance: overrides.cornerDistance ?? defaults.cornerDistance ?? 0,
+    midpointDistance: overrides.midpointDistance ?? defaults.midpointDistance ?? 0,
+    hysteresis: overrides.hysteresis ?? defaults.hysteresis ?? 0,
+  };
+  for (const [field, value] of Object.entries(settings))
+    if (!Number.isFinite(value) || value < 0)
+      throw new FlowError(
+        'invalid-edit',
+        `Port anchor snap ${field} must be finite and non-negative`,
+      );
+  return settings;
+}
 
 /** Shared circular attraction and retention for discrete frame points. */
 function resolvePointAttraction<T extends string>(

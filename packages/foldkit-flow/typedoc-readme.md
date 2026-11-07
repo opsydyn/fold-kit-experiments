@@ -1,5 +1,13 @@
 # FoldKit Flow public contract
 
+Per-port rules use `EditorPolicy.portAnchorSnap`, returning partial
+`PortAnchorSnapOverrides`. Missing fields inherit editor preferences; zero
+disables an individual rule. `resolvePortAnchorSnapSettings` merges and
+validates the four effective CSS-pixel values. A drag captures the detached
+`PortAnchorSnapSettings` once; active handle contexts expose `snapSettings`
+without repeating the callback. Current edit protection, bypass and Undo
+remain authoritative. No graph format changes are introduced.
+
 Edge-midpoint attraction is opt-in through
 `EditorOptions.portAnchorMidpointSnapDistance` and the idle-only
 `PortAnchorMidpointSnapDistanceChanged` fact. `resolvePortAnchorSnap` accepts

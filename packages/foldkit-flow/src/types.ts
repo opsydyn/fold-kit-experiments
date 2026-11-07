@@ -16,6 +16,22 @@ export type PortSide = 'left' | 'right' | 'top' | 'bottom';
 /** Geometric snap feedback, independent of the port's routing side. */
 export type PortCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FlowPortAnchorSnapBypassModifier = 'Alt' | 'Control' | 'Meta' | 'Shift';
+/** Effective CSS-pixel settings for one anchor drag. Zero disables each attraction or retention rule. */
+export type PortAnchorSnapSettings = Readonly<{
+  distance: number;
+  cornerDistance: number;
+  midpointDistance: number;
+  hysteresis: number;
+}>;
+/** Missing fields inherit editor preferences; explicit zero disables the corresponding rule. */
+export type PortAnchorSnapOverrides = Readonly<{
+  distance?: number | undefined;
+  cornerDistance?: number | undefined;
+  midpointDistance?: number | undefined;
+  hysteresis?: number | undefined;
+}>;
+/** Current document endpoint, resolved before starting an anchor drag. */
+export type PortAnchorSnapContext = Readonly<{ node: FlowNode; port: Port }>;
 /** Radius is measured in CSS pixels, independent of node size and viewport zoom. */
 export type PortAnchorSnapOptions = Readonly<{
   size: Size;
@@ -143,6 +159,8 @@ export type Gesture =
       snapBypassed?: boolean;
       /** Mapping captured at pointer-down; null means no native modifier for this gesture. */
       snapBypassModifier?: FlowPortAnchorSnapBypassModifier | null;
+      /** Detached effective settings captured at pointer-down; legacy gestures inherit editor settings. */
+      snapSettings?: PortAnchorSnapSettings;
     }>
   | (NodeGesture &
       Readonly<{
@@ -288,6 +306,10 @@ export type PortEditCandidate = Readonly<{
 
 /** Pure host rules evaluated by the editor. */
 export type EditorPolicy = Readonly<{
+  /** Pure per-port overrides resolved once at drag start. Undefined and omitted fields inherit. */
+  portAnchorSnap?:
+    | ((context: PortAnchorSnapContext, graph: FlowGraph) => PortAnchorSnapOverrides | undefined)
+    | undefined;
   /** Return a reason to block a direct port edit, or null to allow it. Wiring uses separate connection policies. */
   canEditPort?: (candidate: PortEditCandidate, graph: FlowGraph) => string | null;
   /** Return a rejection reason, or null to accept. Reconnection excludes the replaced edge from graph. */

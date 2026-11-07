@@ -417,6 +417,19 @@ transaction. The preference survives example/import changes.
 
 [Midpoint snapping screenshot](evidence/port-anchor-midpoint.png)
 
+Enable **Per-port snapping rules** to apply the package's pure
+`EditorPolicy.portAnchorSnap` callback: Review input uses midpoints only
+(18px radius, 6px stability margin), Review output uses corners only
+(12px radius, inherited stability), and Draft output uses free placement.
+Publish and other ports inherit the editor controls. Missing fields inherit;
+zero disables a rule. Overrides work even with the global radii off.
+The toggle is idle-only; each drag captures its effective rules. Existing
+custom badges, Alt bypass, policy protection, cancellation and Undo/Redo
+use the same package-owned interaction. The demo flag survives imports
+and example changes without adding graph fields.
+
+[Per-port snapping screenshot](evidence/port-anchor-overrides.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

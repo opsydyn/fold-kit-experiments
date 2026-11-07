@@ -33,13 +33,15 @@ import {
 } from './group-presentation';
 import { movementReason } from './movement';
 import { expandParents } from './parent-expansion';
-import { resolvePortAnchorSnap } from './port-anchor-snap';
+import { resolvePortAnchorSnap, resolvePortAnchorSnapSettings } from './port-anchor-snap';
 import { portEditReason } from './port-edit';
 import { resolvePortRemoval } from './port-removal';
 import { resolveBoxSelection } from './selection-preview';
 import type {
   EditorEvent,
   PortEditCandidate,
+  PortAnchorSnapOverrides,
+  PortAnchorSnapSettings,
   EditorOptions,
   EditorPolicy,
   EditorState,
@@ -559,6 +561,21 @@ function replacePort(graph: FlowGraph, endpoint: Endpoint, port: Port): FlowGrap
     ),
   };
 }
+function anchorSnapSettings(
+  state: EditorState,
+  overrides?: PortAnchorSnapOverrides,
+): PortAnchorSnapSettings {
+  return resolvePortAnchorSnapSettings(
+    {
+      distance: state.portAnchorSnapDistance,
+      cornerDistance: state.portAnchorCornerSnapDistance,
+      midpointDistance: state.portAnchorMidpointSnapDistance,
+      hysteresis: state.portAnchorSnapHysteresis,
+    },
+    overrides,
+  );
+}
+
 function anchorEditReason(
   state: EditorState,
   endpoint: Endpoint,
@@ -1270,6 +1287,7 @@ export function updateEditor(
         if (!node || !original || !current) return cancel(state);
         const base = portAnchor(original);
         const bypassed = event.portAnchorSnapBypassed ?? gesture.snapBypassed ?? false;
+        const settings = gesture.snapSettings ?? anchorSnapSettings(state);
         const moved = event.point.x !== gesture.origin.x || event.point.y !== gesture.origin.y;
         const snap = moved
           ? resolvePortAnchorSnap(
@@ -1284,13 +1302,13 @@ export function updateEditor(
               {
                 size: node.size,
                 zoom: state.viewport.zoom,
-                distance: bypassed ? 0 : (state.portAnchorSnapDistance ?? 0),
+                distance: bypassed ? 0 : settings.distance,
                 preferredSide: original.side,
-                hysteresis: state.portAnchorSnapHysteresis ?? 0,
+                hysteresis: settings.hysteresis,
                 previousSide: gesture.snappedSide ?? null,
-                cornerDistance: bypassed ? 0 : (state.portAnchorCornerSnapDistance ?? 0),
+                cornerDistance: bypassed ? 0 : settings.cornerDistance,
                 previousCorner: gesture.snappedCorner ?? null,
-                midpointDistance: bypassed ? 0 : (state.portAnchorMidpointSnapDistance ?? 0),
+                midpointDistance: bypassed ? 0 : settings.midpointDistance,
                 previousMidpoint: gesture.snappedMidpoint ?? null,
               },
             )
@@ -1651,6 +1669,10 @@ export function updateEditor(
       const reason = anchorEditReason(state, event.endpoint, policy);
       if (reason !== null) return { ...state, notice: reason };
       finitePoint(event.point);
+      const snapSettings = anchorSnapSettings(
+        state,
+        policy.portAnchorSnap?.({ node, port }, state.graph),
+      );
       return {
         ...state,
         connection: null,
@@ -1665,6 +1687,7 @@ export function updateEditor(
           point: { ...event.point },
           snapBypassed: event.snapBypassed ?? false,
           snapBypassModifier: event.snapBypassModifier ?? null,
+          snapSettings,
         },
       };
     }

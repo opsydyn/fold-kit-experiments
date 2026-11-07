@@ -343,6 +343,34 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Per-port snapping extends `EditorPolicy` with the pure `portAnchorSnap`
+callback. Its current node/port/graph context resolves partial edge,
+corner, midpoint and hysteresis values. Absent fields inherit editor
+preferences; explicit zero disables one rule. The public settings resolver
+validates finite non-negative effective values and returns a detached
+record. Invalid settings throw `FlowError` before a gesture starts, matching
+the core's existing invalid-configuration behavior.
+
+The Model captures all effective values in `gesture.snapSettings` at an
+allowed pointer-down. This prevents mutable host profiles and policy
+changes from altering a running gesture, including stationary modifier
+transitions. Next-drag settings reflect the current policy. Edit permission
+still rechecks against the current policy on preview/release. Older gesture
+records without captured preferences fall back to global editor settings.
+Active handle contexts receive a detached settings copy; idle handles do
+not evaluate the callback. The view needs no parallel policy option.
+
+This is preferred over adding snap preferences to serialized port data,
+which would couple session behavior to graph migrations, and over resolving
+the callback on every preview, which would allow mid-drag rule changes.
+It adds a callback contract but reuses the existing snap resolver,
+priority, bypass and history boundary. The workbench owns only its opt-in
+demo flag and example callback. Tests cover inheritance/zero/validation,
+multiple ports and nodes, detached capture, changing policies, permission
+rollback, modifier transitions, exact edits, serialization and composable
+feedback. Browser evidence checks midpoint-only, corner-only, free and
+inherited ports, zoom, bypass, cancellation and one-step Undo/Redo.
+
 Edge-midpoint attraction adds an independent, zero-default
 `portAnchorMidpointSnapDistance`. The pure resolver measures circular CSS
 distance to the four exact edge centers using the same discrete-point

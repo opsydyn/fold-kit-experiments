@@ -34,3 +34,9 @@ export function connectionReason(
     return 'These ports are already connected';
   return policy.canConnect?.(edge, { ...graph, edges: remaining }) ?? null;
 }
+
+export function proposedEdge(graph: FlowGraph, source: Endpoint, target: Endpoint) {
+  let index = 1;
+  while (graph.edges.some((edge) => edge.id === `edge:${index}`)) index++;
+  return { id: `edge:${index}`, source, target };
+}

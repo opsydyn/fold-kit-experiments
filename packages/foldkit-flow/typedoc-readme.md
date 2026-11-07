@@ -348,6 +348,30 @@ candidate feedback. `FlowEdgeToolbarContext.reconnection` exposes the same
 contexts to custom toolbars. Protection descriptions remain available in minimal
 mode. Ordinary native select keys and Tab exit remain available.
 
+## Connection creation contracts
+
+`Core.resolveConnectionCreation` derives `FlowConnectionCreationContext` from the
+current editor and policy. Source/target fields expose stable candidate values,
+typed `PortActivated` events and protection reasons. Source selection stages the
+existing `EditorState.connection`; target selection uses the existing creation
+path and fresh ID allocation. Policy callbacks must be pure and supplied to the
+reducer as well as the resolver. `FlowConnectionCreationOptions.scope` defaults
+to visible alternatives, retains a hidden pending source and supports explicit
+all-authored-port scope.
+
+The FoldKit entry exports `flowConnectionCreation`, `flowConnectionCreationField`,
+`flowConnectionCreationSelect`, `flowConnectionCreationReasons` and
+`flowConnectionCreationCancel`. `FlowConnectionCreationViewOptions` controls ID
+scoping and native option labels. Pair the select and reasons with the same
+prefix. The target resets to a focusable placeholder after creation; Escape and
+the cancel action clear the pending source without adding history. State hints
+remain informational while explicit operation restrictions disable editing.
+
+`FlowViewOptions.connectionCreation` enables the default panel independently of
+diagnostics. `renderConnectionCreation` replaces it with custom FoldKit markup
+using the same context and primitives. No new persistence schema or browser
+dependency enters the core.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

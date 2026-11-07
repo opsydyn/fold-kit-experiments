@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add policy-aware connection creation choices and composable native fields,
+  cancellation, focus-preserving reset and an opt-in creation panel.
+
 - Add composable endpoint choosers with pure policy-aware candidates, stable
   identities, visible protection reasons and opt-in selected-edge toolbar controls.
 

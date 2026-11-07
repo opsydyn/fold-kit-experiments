@@ -2,6 +2,20 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+import {
+  resolveConnectionCreation,
+  type FlowConnectionCreationContext,
+  type FlowConnectionCreationOptions,
+} from './connection-creation';
+import { flowConnectionCreation } from './connection-creation-view';
+export {
+  flowConnectionCreation,
+  flowConnectionCreationField,
+  flowConnectionCreationSelect,
+  flowConnectionCreationReasons,
+  flowConnectionCreationCancel,
+} from './connection-creation-view';
+export type { FlowConnectionCreationViewOptions } from './connection-creation-view';
 import { flowEdgeEndpointField } from './edge-endpoint';
 import { resolveEdgeReconnection, type FlowEdgeReconnectionOptions } from './edge-reconnection';
 import { edgeToolbarBand } from './edge-toolbar-placement';
@@ -430,6 +444,13 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     edgeToolbar?: boolean;
     /** Opt-in endpoint choosers in the selected-edge toolbar. Requires edgeToolbar. */
     edgeReconnection?: boolean | FlowEdgeReconnectionOptions;
+    /** Opt-in source/target creation panel outside the canvas, independent of optional diagnostics. */
+    connectionCreation?: boolean | FlowConnectionCreationOptions;
+    /** Replace the creation panel. Undefined uses native defaults; null omits it. */
+    renderConnectionCreation?: (
+      context: FlowConnectionCreationContext,
+      h: HtmlBuilder<M>,
+    ) => Html | null | undefined;
     /** Pass the same global connection policy used by updateEditor for candidate feedback. */
     canConnect?: EditorPolicy['canConnect'];
     /** Use the same pure deletion policy passed to updateEditor to disable protected actions. */
@@ -2051,6 +2072,14 @@ export function flowView<M>(
           }),
     );
   };
+  const creationContext = options.connectionCreation
+    ? resolveConnectionCreation(
+        state,
+        options,
+        options.connectionCreation === true ? {} : options.connectionCreation,
+      )
+    : undefined;
+  const creationContent = creationContext && options.renderConnectionCreation?.(creationContext, h);
   return h.div(
     [
       h.Id(options.id),
@@ -2074,6 +2103,14 @@ export function flowView<M>(
               },
               h,
             ) ?? viewportControls(h, state, options, diagnostics),
+          ]
+        : []),
+      ...(creationContext && creationContent !== null
+        ? [
+            creationContent ??
+              flowConnectionCreation(h, creationContext, options.onEvent, {
+                idPrefix: `${encodeURIComponent(options.id)}-create`,
+              }),
           ]
         : []),
       h.div(

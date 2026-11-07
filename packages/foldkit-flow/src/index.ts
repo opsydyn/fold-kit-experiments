@@ -12,6 +12,14 @@ export {
   serializeSnapshot,
 } from './graph';
 export { createEditor, updateEditor } from './editor';
+export { resolveConnectionCreation } from './connection-creation';
+export type {
+  FlowConnectionCreationAction,
+  FlowConnectionCreationChoice,
+  FlowConnectionCreationFieldContext,
+  FlowConnectionCreationContext,
+  FlowConnectionCreationOptions,
+} from './connection-creation';
 export { resolveEdgeReconnection } from './edge-reconnection';
 export type {
   FlowEdgeEndpointChoice,

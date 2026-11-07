@@ -813,3 +813,44 @@ All `src/` and `test/` paths here are relative to `packages/foldkit-flow/`.
 Formal screen-reader/device qualification and new canvas keyboard gestures remain
 separate slices. This extension follows the existing four-layer boundary and
 does not replace it.
+
+### Policy-aware connection creation (2026-11-07)
+
+Accepted following user approval to extend the endpoint chooser to new
+connections. `src/connection-creation.ts` derives creation choices from the
+existing `EditorState.connection`; the native adapter in
+`src/connection-creation-view.ts` supplies select, reasons, field, cancel and panel
+primitives. `FlowViewOptions.connectionCreation` opts into a panel outside the
+canvas, avoiding interference with pointer hit targets. The workbench uses
+`renderConnectionCreation` to compose its own panel from those primitives.
+
+Reuse `PortActivated`, `GestureCancelled` and shared `proposedEdge`/connection
+validation. Do not snapshot an edge ID in a rendered target choice: allocation
+and policy checks must run against the current graph when the event commits.
+Adding a parallel creation draft would duplicate source selection, cancellation
+and Undo rules. Combining creation and reconnection behind a generic chooser
+state machine would also hide their different lifecycles; they share validation
+without requiring that abstraction.
+
+Visible alternatives are the default, with explicit all-authored-port scope and
+retention of a hidden staged source. Source selection is history-free; accepted
+creation adds one Undo step. Completion clears the pending source and resets the
+fields while leaving the target focusable. No-source/no-choice hints do not
+disable that field; explicit operation restrictions still do. Escape from an
+active chooser cancels without adding history. No new dependency, persisted
+state or effect outside FoldKit's runtime is introduced.
+
+Implementation and verification:
+
+- [x] Export the pure contexts/resolver and native primitives from the core and
+      FoldKit entry points, reusing shared validation and current-graph ID allocation.
+- [x] Compose a themed creation panel in
+      `apps/flow-sample/src/editor/presentation.ts` and enable it through the view.
+- [x] Qualify source staging, candidate/commit agreement, stale policy/graph
+      changes, cancellation, visibility, one-step Undo/Redo, native focus/reset,
+      minimal mode and custom composition in unit/browser tests. Compile the packed
+      consumer, generate TypeDoc and run all required workspace gates before commit.
+
+The `src/` paths above are relative to `packages/foldkit-flow/`. Search/filter UI,
+loose connection modes and native popup/assistive-technology qualification remain
+separate work.

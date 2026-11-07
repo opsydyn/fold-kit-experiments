@@ -238,6 +238,51 @@ control and remains available in minimal mode; protection explanations remain
 visible even when optional diagnostics are disabled. The expanded toolbar offers
 up to 320 px width and scrolls within the canvas.
 
+Enable `connectionCreation: true` for a native source/target chooser above the
+canvas. Pass the same `canConnectPort` and `canConnect` policies used by
+`updateEditor`. The panel is opt-in and independent of optional diagnostics, so
+it remains operable in minimal mode. `renderConnectionCreation(context, h)`
+replaces its layout; return `undefined` for native defaults or `null` to omit it.
+
+For a standalone inspector, use the pure resolver and the FoldKit panel:
+
+```ts
+import { resolveConnectionCreation } from '@opsydyn/foldkit-flow';
+import { flowConnectionCreation } from '@opsydyn/foldkit-flow/foldkit';
+
+const context = resolveConnectionCreation(model.editor, policy);
+const panel = flowConnectionCreation(h, context, onEvent, { idPrefix: 'my-create' });
+```
+
+The context exposes `source`, `target` and `cancel`. Source choices check output
+permissions and send `PortActivated` to stage `EditorState.connection`, without
+adding history. Target choices check both ports, direction, duplicates and the
+global connection policy. They send the same event through the reducer, which
+rechecks the current graph/policy, allocates a fresh ID and creates one Undo step.
+No second draft or preallocated edge ID is stored by the chooser. Canvas port
+activation and the chooser operate on the same pending source.
+
+Choices have stable endpoint values, labels, current/hidden flags, nullable
+reasons and typed activation events. Visible alternatives are the default, with
+the pending source retained even when hidden. Pass `{ scope: 'all' }` to the
+resolver, or `connectionCreation: { scope: 'all' }` to the view, to include all
+authored ports. Recompute contexts each view and keep policy callbacks pure.
+
+Use `flowConnectionCreationField`, or compose `flowConnectionCreationSelect`
+and `flowConnectionCreationReasons` with the same `idPrefix`, for custom layouts.
+`flowConnectionCreationCancel` supplies a native cancel button. Distinct widgets
+need distinct prefixes. `optionLabel` customizes native option text; richer
+widgets can consume the headless entries directly. Field `reason` blocks editing;
+`hint` explains an unselected source or an empty candidate set without removing
+the field from keyboard navigation. Preserve required descriptions in custom UI.
+
+Completing a connection resets both fields to their placeholders and retains
+focus on the target. Native type-ahead and Tab remain available. Escape from a
+chooser with an active pending source cancels it; the placeholder and Cancel
+button also cancel. Cancellation adds no history. Explicit read-only, gesture
+and source-port restrictions still disable the affected fields. Existing Undo
+and Redo retain their usual selection behavior.
+
 For a custom inspector, derive the choices from the core and compose the native
 field from `@opsydyn/foldkit-flow/foldkit`:
 

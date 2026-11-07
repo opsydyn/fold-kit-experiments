@@ -1,4 +1,5 @@
 import {
+  type FlowConnectionCreationContext,
   portBoundaryPosition,
   type Endpoint,
   type EditorEvent,
@@ -8,6 +9,9 @@ import {
   type Port,
 } from '@opsydyn/foldkit-flow';
 import {
+  flowConnectionCreationSelect,
+  flowConnectionCreationReasons,
+  flowConnectionCreationCancel,
   flowDragHandle,
   flowWorldOverlayItem,
   type FlowWorldOverlayContext,
@@ -991,5 +995,84 @@ export function canvasStatusCard(context: FlowCanvasStatusContext, h: HtmlBuilde
       }),
     ],
     [context.notice ?? summary],
+  );
+}
+
+/** A host-authored creation panel using the same public fields and model-owned workflow. */
+export function connectionCreationPanel(
+  context: FlowConnectionCreationContext,
+  h: HtmlBuilder<Message>,
+) {
+  const options = { idPrefix: 'workbench-create' };
+  return h.div(
+    [
+      h.Role('group'),
+      h.AriaLabel('Create a connection'),
+      h.Class('workbench-connection-creation'),
+      h.Style({
+        padding: '14px',
+        margin: '12px 0',
+        border: '1px solid var(--flow-node-border, #cbd5e1)',
+        'border-radius': '12px',
+        background: 'var(--flow-node-background, #fff)',
+        color: 'var(--flow-node-color, #172033)',
+      }),
+    ],
+    [
+      h.div(
+        [
+          h.Style({
+            display: 'flex',
+            gap: '12px',
+            'align-items': 'center',
+            'justify-content': 'space-between',
+          }),
+        ],
+        [
+          h.strong([], ['New connection']),
+          flowConnectionCreationCancel(
+            h,
+            context,
+            flowEvent,
+            [h.Style({ padding: '6px 12px', 'border-radius': '8px' })],
+            ['Cancel choice'],
+          ),
+        ],
+      ),
+      h.div(
+        [h.Style({ display: 'flex', gap: '16px', 'flex-wrap': 'wrap', margin: '10px 0 0' })],
+        [context.source, context.target].map((field) =>
+          h.div(
+            [h.Key(field.end), h.Style({ flex: '1 1 220px', 'min-width': '0' })],
+            [
+              h.span(
+                [h.Style({ display: 'block', 'font-weight': '600', 'margin-bottom': '6px' })],
+                [field.end === 'source' ? '↗ From' : '↘ To'],
+              ),
+              flowConnectionCreationSelect(
+                h,
+                field,
+                flowEvent,
+                [
+                  h.Style({
+                    width: '100%',
+                    'min-height': '36px',
+                    padding: '4px 8px',
+                    'border-radius': '8px',
+                  }),
+                ],
+                options,
+              ),
+              flowConnectionCreationReasons(
+                h,
+                field,
+                [h.Style({ 'font-size': '0.85rem' })],
+                options,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
   );
 }

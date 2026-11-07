@@ -5,7 +5,7 @@ import {
   sameGuides,
   type ResizeAlignment,
 } from './alignment';
-import { connectionReason, portKind } from './connection-validation';
+import { connectionReason, portKind, proposedEdge } from './connection-validation';
 import { resolveDeletion } from './deletion';
 import {
   boxBounds,
@@ -623,12 +623,6 @@ function cancel(state: EditorState): EditorState {
     connection: null,
     notice: state.connection ? 'Connection cancelled' : null,
   };
-}
-
-function proposedEdge(graph: FlowGraph, source: Endpoint, target: Endpoint) {
-  let index = 1;
-  while (graph.edges.some((edge) => edge.id === `edge:${index}`)) index++;
-  return { id: `edge:${index}`, source, target };
 }
 
 function sameGeometry(a: FlowGraph, b: FlowGraph): boolean {

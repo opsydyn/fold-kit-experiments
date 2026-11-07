@@ -96,6 +96,7 @@ export function portAnchorGuideViews<M>(
       cornerDistance: state.portAnchorCornerSnapDistance,
       midpointDistance: state.portAnchorMidpointSnapDistance,
       hysteresis: state.portAnchorSnapHysteresis,
+      priority: state.portAnchorSnapPriority,
     },
   );
   const world = (point: Point): Point => ({

@@ -411,7 +411,7 @@ Enable **Snap port anchors to midpoints** for a separate circular 12 CSS-pixel
 radius around each edge center. Edges and corners can remain off. The
 workbench uses `context.snappedMidpoint` and `flowPortAnchorHandle` to show
 a custom **Centered left** badge (or the other side names). Corners take
-priority, then midpoints, then edges. Stable snapping and Alt bypass also
+priority by default, then midpoints, then edges. Stable snapping and Alt bypass also
 apply to midpoints, preserving precise release, cancellation and one Undo
 transaction. The preference survives example/import changes.
 
@@ -450,6 +450,18 @@ editing. The overlay remains decorative and pointer-transparent; release,
 Escape and Undo/Redo retain the package's existing transactions.
 
 [Snap target guides screenshot](evidence/port-anchor-guides.png)
+
+Use **Port snap priority** to select corners-first or midpoints-first.
+Enable **Overlapping port snap zones** for two 60px point-target zones on
+each Review port: input inherits the selected editor priority, while output
+explicitly keeps corners-first. This demo takes precedence over the other
+Review snapping demos; other ports retain their current rules. The
+preference and demo toggle are idle-only, and effective rules are captured
+per drag. Guides show both permitted targets and highlight the winner.
+Alt bypass, exact edits, current protection and one Undo transaction remain
+available. Priority survives example/import changes without graph fields.
+
+[Snap priority screenshot](evidence/port-anchor-priority.png)
 
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System

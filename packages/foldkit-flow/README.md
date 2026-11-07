@@ -678,7 +678,7 @@ retain their existing modifier behavior.
 Set `portAnchorCornerSnapDistance: 12` in `EditorOptions` for corner
 attraction within a circular 12 CSS-pixel radius. It defaults to zero,
 independently of `portAnchorSnapDistance`, so corners can be enabled alone.
-The candidate is clamped to the node frame first. A corner in range takes
+The candidate is clamped to the node frame first. With the default priority, a corner in range takes
 priority over midpoint and edge attraction; outside the corner range, other
 enabled modes or free placement apply. The radius stays constant at any zoom.
 
@@ -709,7 +709,7 @@ port anchors to exact edge centers: left `(0, 0.5)`, right `(1, 0.5)`,
 top `(0.5, 0)` and bottom `(0.5, 1)`. The circular CSS-pixel radius defaults
 to zero and works independently of corner and edge attraction. The
 candidate is clamped before measuring distance, and zoom does not change
-the radius. Corners take priority over midpoints; midpoints take priority
+the radius. By default, corners take priority over midpoints; midpoints take priority
 over edges, including retained edges. Outside a retained midpoint's band,
 normal acquisition in the remaining enabled modes applies.
 
@@ -719,7 +719,7 @@ and non-negative; invalid change events are ignored. The shared
 `portAnchorSnapHysteresis` extends a midpoint's radial release band and
 requires a competing midpoint to win by more than the margin. The routing
 side breaks acquisition ties, followed by left, right, top, bottom.
-An eligible corner also takes priority over a retained midpoint.
+With corners-first priority, an eligible corner also takes priority over a retained midpoint.
 
 Headless consumers pass `midpointDistance` and `previousMidpoint` to
 `resolvePortAnchorSnap`. Its optional `midpoint` result is a `PortSide`;
@@ -752,8 +752,8 @@ anchor drag's start. `PortAnchorSnapOverrides` accepts `distance` (edges),
 `cornerDistance`, `midpointDistance` and `hysteresis`, in CSS pixels. Missing
 or undefined fields inherit editor settings; zero explicitly disables that
 rule. Returning `undefined` inherits every setting. Overrides can enable
-attraction even when editor defaults are zero. Corner/midpoint/edge priority
-is unchanged. The pure `resolvePortAnchorSnapSettings(defaults, overrides)`
+attraction even when editor defaults are zero. The optional `priority` field
+can change point-kind ordering; edges remain the final fallback. The pure `resolvePortAnchorSnapSettings(defaults, overrides)`
 helper returns a detached `PortAnchorSnapSettings` record, filling absent
 defaults with zero and validating finite non-negative effective values.
 Invalid settings throw `FlowError` before any gesture, graph or history change.
@@ -802,6 +802,33 @@ changes affect the next drag. Active handle `snapSettings` also receives
 detached lists for custom feedback, without evaluating the policy again.
 Serialization, edit protection, cancellation and the single Undo/Redo
 transaction keep the same contract.
+
+Set `EditorOptions.portAnchorSnapPriority: 'midpoints-first'` to prefer a
+midpoint when its zone overlaps a corner's. `PortAnchorSnapPriority` also
+accepts `'corners-first'`, the existing default. Priority changes only the
+order of these two target kinds; edges remain the final fallback. A
+preferred kind must still have a permitted, enabled target within its
+acquisition or retention band. Otherwise the other point kind is tried,
+then edges, then free placement.
+
+`PortAnchorSnapPriorityChanged` updates the editor preference while idle,
+without graph/history changes. Invalid preference events are ignored.
+The pure resolver accepts `priority`, as do `PortAnchorSnapOverrides`
+and captured `PortAnchorSnapSettings`. A per-port override wins over the
+editor preference; an omitted/undefined override inherits it. Omitted
+priority remains implicitly corners-first for existing settings records.
+Invalid initial, helper or resolver values throw `FlowError`.
+
+Priority is captured at drag start with the other settings, including
+through bypass and stationary modifier changes. A target in the preferred
+kind wins over a retained target in the lower kind. Hysteresis and routing
+tie-breaks within each kind retain their existing rules. Bypass clears
+retention and restores fresh acquisition in the captured order. Current
+permission checks, cancellation, exact edits and one-step Undo/Redo are
+unchanged. Guide enumeration retains canonical target order and includes
+all permitted kinds; active feedback reflects the resolved winner and
+custom renderers receive the captured priority. This preference is not a
+serialized graph field.
 
 Set `flowView`'s `portAnchorGuides: true` to show permitted targets during
 an anchor drag. Guides are off by default and include only target kinds

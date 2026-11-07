@@ -20,6 +20,7 @@ export function workbenchPolicy({
   protectPortEdits,
   perPortSnapping,
   restrictedSnapTargets,
+  overlappingPortSnaps,
   reconnectLock,
   portLocks,
   lockKeyNodes,
@@ -31,6 +32,7 @@ export function workbenchPolicy({
   | 'protectPortEdits'
   | 'perPortSnapping'
   | 'restrictedSnapTargets'
+  | 'overlappingPortSnaps'
   | 'reconnectLock'
   | 'lockKeyNodes'
   | 'lockNodeSizes'
@@ -55,8 +57,27 @@ export function workbenchPolicy({
       ? 'Review input is managed upstream.'
       : null;
   const portAnchorSnap: EditorPolicy['portAnchorSnap'] =
-    perPortSnapping || restrictedSnapTargets
+    perPortSnapping || restrictedSnapTargets || overlappingPortSnaps
       ? ({ node, port }) => {
+          if (overlappingPortSnaps && node.id === 'review' && port.id === 'in')
+            return {
+              distance: 0,
+              cornerDistance: 60,
+              midpointDistance: 60,
+              hysteresis: 4,
+              allowedCorners: ['top-left'],
+              allowedMidpoints: ['left'],
+            };
+          if (overlappingPortSnaps && node.id === 'review' && port.id === 'out')
+            return {
+              distance: 0,
+              cornerDistance: 60,
+              midpointDistance: 60,
+              hysteresis: 4,
+              allowedCorners: ['top-right'],
+              allowedMidpoints: ['right'],
+              priority: 'corners-first',
+            };
           if (restrictedSnapTargets && node.id === 'review' && port.id === 'in')
             return {
               distance: 12,

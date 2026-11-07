@@ -1,5 +1,12 @@
 # FoldKit Flow public contract
 
+`PortAnchorSnapPriority` selects `corners-first` (the default) or
+`midpoints-first`. Configure `EditorOptions.portAnchorSnapPriority`, the
+idle-only `PortAnchorSnapPriorityChanged` fact, or a per-port `priority`
+override. Captured settings preserve that order through previews/bypass;
+edges remain the final fallback. Pure resolver/helper validation, permitted
+target filtering, within-kind hysteresis, guides and Undo retain their contracts.
+
 Opt-in `FlowViewOptions.portAnchorGuides` presents permitted targets during
 anchor dragging. `renderPortAnchorGuide` receives resolved world endpoints,
 active feedback and detached captured settings. `flowPortAnchorGuide`
@@ -30,7 +37,7 @@ Edge-midpoint attraction is opt-in through
 `midpointDistance`/`previousMidpoint` and returns an optional `midpoint`
 (`PortSide`). Custom handles receive `snappedMidpoint`, sharing the native
 binding, description, hysteresis, bypass and Undo transaction. Priority is
-corners, then midpoints, then edges; all radii are independent.
+corners, then midpoints, then edges by default; all radii are independent.
 
 Port anchor corner attraction is opt-in through
 `EditorOptions.portAnchorCornerSnapDistance` and the idle-only

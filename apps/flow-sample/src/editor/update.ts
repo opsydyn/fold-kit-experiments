@@ -83,6 +83,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     portAnchorSnapHysteresis = 0,
     portAnchorCornerSnapDistance = 0,
     portAnchorMidpointSnapDistance = 0,
+    portAnchorSnapPriority,
   } = model.editor;
   const snapshotJson = () =>
     model.includeCamera ? serializeSnapshot(model.editor) : serializeGraph(model.editor.graph);
@@ -110,6 +111,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         portAnchorSnapHysteresis,
         portAnchorCornerSnapDistance,
         portAnchorMidpointSnapDistance,
+        portAnchorSnapPriority,
       }),
       surface: model.editor.surface,
       clipboard: model.editor.clipboard,
@@ -143,23 +145,11 @@ export function update(model: Model, message: Message): Return<Model, Message> {
               'grouped-onion': groupedOnionGraph,
               'port-snapping': portSnappingGraph,
             }[example];
-      const surface = model.editor.surface;
-      const editor = createEditor(graph, {
-        snapToGrid,
-        gridSpacing,
-        snapToAlignment,
-        selectionMode,
-        boxSelectionMatch,
-        fitViewDuration,
-        fitViewPadding,
-        zoomLimits,
-        viewport: frameGraph(graph, model.editor),
-        connectionSnapHysteresis,
-      });
+      const editor = restoreDocument({ graph }, true);
       return {
         model: {
           ...model,
-          editor: { ...editor, surface, clipboard: model.editor.clipboard },
+          editor,
           active: null,
           importing: null,
           notice: '',
@@ -196,6 +186,18 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     ClickedPortLabels: () => ({ model: { ...model, portLabels: !model.portLabels } }),
+    ClickedOverlappingPortSnaps: () => ({
+      model:
+        model.editor.gesture.type === 'idle'
+          ? { ...model, overlappingPortSnaps: !model.overlappingPortSnaps }
+          : model,
+    }),
+    SelectedPortAnchorSnapPriority: ({ priority }) => ({
+      model: {
+        ...model,
+        editor: updateEditor(model.editor, { type: 'PortAnchorSnapPriorityChanged', priority }),
+      },
+    }),
     ClickedPortAnchorGuides: () => ({
       model: { ...model, portAnchorGuides: !model.portAnchorGuides },
     }),

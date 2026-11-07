@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add configurable corner/midpoint snap priority through editor preferences
+  and per-port overrides, preserving captured rules, guides, bypass and Undo.
+
 - Add opt-in permitted port snap target guides, with composable SVG rendering,
   captured settings, active feedback and alignment diagnostic controls.
 

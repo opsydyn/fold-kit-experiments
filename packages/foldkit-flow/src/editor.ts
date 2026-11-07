@@ -109,6 +109,8 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
   const portAnchorSnapHysteresis = options.portAnchorSnapHysteresis ?? 0;
   const portAnchorCornerSnapDistance = options.portAnchorCornerSnapDistance ?? 0;
   const portAnchorMidpointSnapDistance = options.portAnchorMidpointSnapDistance ?? 0;
+  const portAnchorSnapPriority = options.portAnchorSnapPriority;
+  resolvePortAnchorSnapSettings({}, { priority: portAnchorSnapPriority });
   if (!Number.isFinite(portAnchorMidpointSnapDistance) || portAnchorMidpointSnapDistance < 0)
     throw new FlowError(
       'invalid-edit',
@@ -160,6 +162,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     portAnchorSnapHysteresis,
     portAnchorCornerSnapDistance,
     portAnchorMidpointSnapDistance,
+    portAnchorSnapPriority,
     gesture: { type: 'idle' },
     past: [],
     future: [],
@@ -571,6 +574,7 @@ function anchorSnapSettings(
       cornerDistance: state.portAnchorCornerSnapDistance,
       midpointDistance: state.portAnchorMidpointSnapDistance,
       hysteresis: state.portAnchorSnapHysteresis,
+      priority: state.portAnchorSnapPriority,
     },
     overrides,
   );
@@ -982,6 +986,14 @@ export function updateEditor(
       )
         return state;
       return { ...state, portAnchorSnapDistance: event.distance };
+    case 'PortAnchorSnapPriorityChanged':
+      if (
+        state.gesture.type !== 'idle' ||
+        (event.priority !== 'corners-first' && event.priority !== 'midpoints-first') ||
+        event.priority === (state.portAnchorSnapPriority ?? 'corners-first')
+      )
+        return state;
+      return { ...state, portAnchorSnapPriority: event.priority };
     case 'PortAnchorMidpointSnapDistanceChanged':
       if (
         state.gesture.type !== 'idle' ||
@@ -1313,6 +1325,7 @@ export function updateEditor(
                 allowedEdges: settings.allowedEdges,
                 allowedCorners: settings.allowedCorners,
                 allowedMidpoints: settings.allowedMidpoints,
+                priority: settings.priority,
               },
             )
           : { anchor: base, side: null, corner: undefined, midpoint: undefined };

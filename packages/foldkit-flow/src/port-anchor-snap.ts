@@ -8,6 +8,7 @@ import type {
   PortAnchorSnapSettings,
   PortAnchorSnapTargets,
   PortAnchorSnapGuide,
+  PortAnchorSnapPriority,
   PortCorner,
   PortSide,
   Size,
@@ -15,6 +16,15 @@ import type {
 
 const sides: readonly PortSide[] = ['left', 'right', 'top', 'bottom'];
 const corners: readonly PortCorner[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+function resolvePriority(priority: PortAnchorSnapPriority | undefined): PortAnchorSnapPriority {
+  if (priority === undefined) return 'corners-first';
+  if (priority === 'corners-first' || priority === 'midpoints-first') return priority;
+  throw new FlowError(
+    'invalid-edit',
+    'Port anchor snap priority must be corners-first or midpoints-first',
+  );
+}
 
 function cornerSnapTargets(): readonly Readonly<{ target: PortCorner; anchor: Point }>[] {
   return [
@@ -93,7 +103,10 @@ export function resolvePortAnchorSnapSettings(
         'invalid-edit',
         `Port anchor snap ${field} must be finite and non-negative`,
       );
-  return { ...settings, ...resolveTargetLists(defaults, overrides) };
+  const priority = overrides.priority === undefined ? defaults.priority : overrides.priority;
+  resolvePriority(priority);
+  const result = { ...settings, ...resolveTargetLists(defaults, overrides) };
+  return priority === undefined ? result : { ...result, priority };
 }
 
 /** Enumerate permitted targets with positive acquisition radii, independently of cursor distance. */
@@ -167,12 +180,13 @@ function resolvePointAttraction<T extends string>(
   return nearest.distance <= distance ? nearest : undefined;
 }
 
-/** Clamp a normalized candidate, resolve corners, then edge midpoints, then edges. */
+/** Clamp a normalized candidate, resolve the preferred point kind first, then fall back to edges. */
 export function resolvePortAnchorSnap(
   candidate: Point,
   options: PortAnchorSnapOptions,
 ): PortAnchorSnapResult {
   finitePoint(candidate);
+  const priority = resolvePriority(options.priority);
   const { allowedEdges, allowedCorners, allowedMidpoints } = resolveTargetLists({}, options);
   const {
     size,
@@ -218,7 +232,6 @@ export function resolvePortAnchorSnap(
     previous: previousCorner,
     allowed: allowedCorners,
   });
-  if (corner) return { anchor: corner.anchor, side: null, corner: corner.target };
   const midpoint = resolvePointAttraction<PortSide>(anchor, midpointSnapTargets(), {
     size,
     zoom,
@@ -228,6 +241,9 @@ export function resolvePortAnchorSnap(
     preferred: preferredSide,
     allowed: allowedMidpoints,
   });
+  if (priority === 'midpoints-first' && midpoint)
+    return { anchor: midpoint.anchor, side: null, midpoint: midpoint.target };
+  if (corner) return { anchor: corner.anchor, side: null, corner: corner.target };
   if (midpoint) return { anchor: midpoint.anchor, side: null, midpoint: midpoint.target };
   if (distance === 0) return { anchor, side: null };
   const edges: { side: PortSide; distance: number; anchor: Point }[] = [

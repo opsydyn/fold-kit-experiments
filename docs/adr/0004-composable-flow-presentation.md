@@ -343,6 +343,31 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Point-target priority is an optional core setting: corners first preserves
+the existing behavior, while midpoints first reverses only the two point
+kinds. Edges remain the final fallback. A preferred kind must pass its
+existing enabled/allowed/radius/retention rules; its eligible result wins
+over a lower kind, including a retained lower-kind target. Within-kind
+hysteresis and routing-hint ties are unchanged.
+
+The editor owns an idle-only preference, and the per-port policy can
+override it. Both flow through the existing detached settings capture.
+Omission inherits the editor preference, with implicit corners-first for
+older records. Constructor/helper/resolver inputs validate the two-value
+union; invalid preference facts are ignored. Bypass uses the captured order
+on fresh acquisition, and permission/history checks remain authoritative.
+Guide enumeration keeps canonical order; active feedback identifies the
+resolved winner, and renderers can read the captured priority.
+
+This is preferred over ranking target kinds by raw distance, which would
+change existing snap behavior, and over arbitrary priority arrays, which
+would allow edge attraction to eclipse point targets and require more
+policy validation. Verification covers both overlap winners, fallback and
+filtering, lower-kind retention, within-kind stability, zoom, invalid values,
+global/per-port capture, bypass, policy rollback, guides and Undo/Redo.
+The workbench's overlap example gives Review input the selected priority
+and fixes Review output to corners-first, exposing a per-port override.
+
 Permitted-target guides are an opt-in presentation layer for an active
 anchor gesture. The pure guide enumerator validates captured settings and
 shares canonical corner/midpoint coordinates with the snap resolver. It

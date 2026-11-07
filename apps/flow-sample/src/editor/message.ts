@@ -25,6 +25,7 @@ import {
   NodeDesign,
   BackgroundStyle,
   DiagnosticFlag,
+  PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
   ObservedFlowInput: { message: Schema.Unknown },
@@ -65,6 +66,8 @@ export const Message = defineMessageUnion({
   ClickedRestrictedSnapTargets: {},
   ClickedPortAnchorGuides: {},
   ClickedCustomPortAnchorGuides: {},
+  ClickedOverlappingPortSnaps: {},
+  SelectedPortAnchorSnapPriority: { priority: PortSnapPriority },
   ClickedCustomPorts: {},
   ClickedAddPort: { nodeId: Schema.String, kind: Schema.Literals(['input', 'output']) },
   ClickedEditPortLabel: { nodeId: Schema.String, portId: Schema.String },

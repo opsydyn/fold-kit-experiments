@@ -218,6 +218,7 @@ export const NodeDesign = Schema.Literals(['cards', 'orbits']);
 export type NodeDesign = typeof NodeDesign.Type;
 
 export const BackgroundStyle = Schema.Literals(['dots', 'squares', 'custom', 'none']);
+export const PortSnapPriority = Schema.Literals(['corners-first', 'midpoints-first']);
 export type BackgroundStyle = typeof BackgroundStyle.Type;
 
 export const DiagnosticFlag = Schema.Literals([
@@ -243,6 +244,7 @@ const PortLabelDraft = Schema.Struct({
 });
 
 export const Model = Schema.Struct({
+  overlappingPortSnaps: Schema.Boolean,
   portAnchorGuides: Schema.Boolean,
   customPortAnchorGuides: Schema.Boolean,
   restrictedSnapTargets: Schema.Boolean,
@@ -309,6 +311,7 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  overlappingPortSnaps: boolean;
   portAnchorGuides: boolean;
   customPortAnchorGuides: boolean;
   restrictedSnapTargets: boolean;
@@ -370,6 +373,7 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    overlappingPortSnaps: false,
     portAnchorGuides: false,
     customPortAnchorGuides: false,
     restrictedSnapTargets: false,

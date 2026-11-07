@@ -64,6 +64,7 @@ import {
   CanvasCopyDesign,
   NodeDesign,
   type Model,
+  PortSnapPriority,
 } from './model';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
@@ -1601,6 +1602,64 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             'Custom snap guides',
           ],
         ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            'Port snap priority',
+            h.select(
+              [
+                h.AriaLabel('Port snap priority'),
+                h.Value(model.editor.portAnchorSnapPriority ?? 'corners-first'),
+                h.Disabled(model.editor.gesture.type !== 'idle'),
+                h.OnChange((value) =>
+                  Message.SelectedPortAnchorSnapPriority({
+                    priority: Schema.decodeUnknownSync(PortSnapPriority)(value),
+                  }),
+                ),
+              ],
+              [
+                h.option(
+                  [
+                    h.Value('corners-first'),
+                    h.Selected(
+                      (model.editor.portAnchorSnapPriority ?? 'corners-first') === 'corners-first',
+                    ),
+                  ],
+                  ['Corners first'],
+                ),
+                h.option(
+                  [
+                    h.Value('midpoints-first'),
+                    h.Selected(model.editor.portAnchorSnapPriority === 'midpoints-first'),
+                  ],
+                  ['Midpoints first'],
+                ),
+              ],
+            ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.overlappingPortSnaps),
+              h.Disabled(model.editor.gesture.type !== 'idle'),
+              h.OnClick(Message.ClickedOverlappingPortSnaps()),
+            ]),
+            'Overlapping port snap zones',
+          ],
+        ),
+        ...(model.overlappingPortSnaps
+          ? [
+              h.p(
+                [],
+                [
+                  'Overlap demo takes precedence for Review ports: input inherits the selected priority; output keeps corners first. Other ports keep their current rules.',
+                ],
+              ),
+            ]
+          : []),
         h.label(
           [h.Class('workbench-theme-picker')],
           [

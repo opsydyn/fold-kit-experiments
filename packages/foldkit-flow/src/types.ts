@@ -16,6 +16,7 @@ export type PortSide = 'left' | 'right' | 'top' | 'bottom';
 /** Geometric snap feedback, independent of the port's routing side. */
 export type PortCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FlowPortAnchorSnapBypassModifier = 'Alt' | 'Control' | 'Meta' | 'Shift';
+export type PortAnchorSnapPriority = 'corners-first' | 'midpoints-first';
 /** Optional attraction filters. Missing lists allow every target; empty lists disable that kind. */
 export type PortAnchorSnapTargets = Readonly<{
   allowedEdges?: readonly PortSide[] | undefined;
@@ -34,6 +35,8 @@ export type PortAnchorSnapSettings = PortAnchorSnapTargets &
     cornerDistance: number;
     midpointDistance: number;
     hysteresis: number;
+    /** Omitted means corners first. Edges remain the final fallback. */
+    priority?: PortAnchorSnapPriority | undefined;
   }>;
 /** Missing fields inherit editor preferences; explicit zero disables the corresponding rule. */
 export type PortAnchorSnapOverrides = PortAnchorSnapTargets &
@@ -42,6 +45,7 @@ export type PortAnchorSnapOverrides = PortAnchorSnapTargets &
     cornerDistance?: number | undefined;
     midpointDistance?: number | undefined;
     hysteresis?: number | undefined;
+    priority?: PortAnchorSnapPriority | undefined;
   }>;
 /** Current document endpoint, resolved before starting an anchor drag. */
 export type PortAnchorSnapContext = Readonly<{ node: FlowNode; port: Port }>;
@@ -64,6 +68,7 @@ export type PortAnchorSnapOptions = PortAnchorSnapTargets &
     midpointDistance?: number;
     /** Previously attracted midpoint, used only with a positive hysteresis margin. */
     previousMidpoint?: PortSide | null;
+    priority?: PortAnchorSnapPriority | undefined;
   }>;
 export type PortAnchorSnapResult = Readonly<{
   anchor: Point;
@@ -241,6 +246,8 @@ export type EditorState = Readonly<{
   portAnchorCornerSnapDistance?: number;
   /** Circular pointer edge-midpoint attraction radius in CSS pixels; zero disables it. */
   portAnchorMidpointSnapDistance?: number;
+  /** Omitted means corners first. Captured at the start of each anchor drag. */
+  portAnchorSnapPriority?: PortAnchorSnapPriority | undefined;
   gesture: Gesture;
   past: readonly FlowGraph[];
   future: readonly FlowGraph[];
@@ -293,6 +300,8 @@ export type EditorOptions = Readonly<{
   portAnchorCornerSnapDistance?: number;
   /** Independent circular edge-midpoint attraction radius in CSS pixels; defaults to zero. */
   portAnchorMidpointSnapDistance?: number;
+  /** Point-target priority; defaults to corners first. Edges remain the fallback. */
+  portAnchorSnapPriority?: PortAnchorSnapPriority | undefined;
 }>;
 /** Explicit targets before group descendants and incident edges are included. */
 export type DeletionTargets = Readonly<{ nodeIds: readonly string[]; edgeIds: readonly string[] }>;
@@ -462,6 +471,7 @@ export type EditorEvent =
   | Readonly<{ type: 'PortAnchorSnapHysteresisChanged'; distance: number }>
   | Readonly<{ type: 'PortAnchorCornerSnapDistanceChanged'; distance: number }>
   | Readonly<{ type: 'PortAnchorMidpointSnapDistanceChanged'; distance: number }>
+  | Readonly<{ type: 'PortAnchorSnapPriorityChanged'; priority: PortAnchorSnapPriority }>
   /** Changes display text without changing endpoint identity; undefined restores the ID fallback. */
   | Readonly<{ type: 'PortLabelChanged'; endpoint: Endpoint; label: string | undefined }>
   | Readonly<{

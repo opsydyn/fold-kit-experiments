@@ -365,6 +365,14 @@ Box coordinates use the node frame; the side guides edge routing.
 draft and its visible reason. The workbench composes package controls.
 [Port position screenshot](evidence/port-position-inputs.png)
 
+Enable **Drag port anchors**, select a node, and drag a small handle next
+to a socket. Positions preview live; release creates one Undo step.
+Escape cancels. Focus a handle and use arrow keys for 1% movement or Shift
+for 10%. **Protect Review input** disables its handle with a reason while
+other handles and socket wiring remain available. Try it after zooming or
+with **Custom port sockets** enabled.
+[Anchor dragging screenshot](evidence/port-anchor-drag.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

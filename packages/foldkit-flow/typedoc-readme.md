@@ -98,6 +98,15 @@ Compose `flowPortPositionEditButton`, `flowPortPositionModeSelect`,
 Save uses the existing atomic `PortPositionsChanged` event; controls
 respect `positionControl` and retain native numeric validation.
 
+`portAnchorHandles` opts selected nodes into direct anchor dragging.
+`FlowPortAnchorHandleContext`, `FlowPortAnchorHandleOptions` and
+`FlowPortAnchorHandleRenderer` customize `flowPortAnchorHandle` through
+`renderPortAnchorHandle`. `PortAnchorDragStarted` starts a captured,
+normalized preview; release commits one Undo transaction and cancellation
+restores its graph. `PortAnchorNudged` supplies the keyboard equivalent.
+The view's `canEditPort` resolves control state while the reducer rechecks
+current policy throughout the gesture.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in composable anchor drag handles with live normalized previews,
+  cancellation, keyboard nudges, policy rechecks and one-step Undo.
+
 - Add composable port position drafts and native anchor inputs for edge
   offsets and normalized X/Y coordinates, with policy-aware Save/Cancel.
 

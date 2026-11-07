@@ -1455,6 +1455,18 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           [
             h.input([
               h.Type('checkbox'),
+              h.Checked(model.portAnchorHandles),
+              h.Disabled(model.editor.gesture.type !== 'idle'),
+              h.OnClick(Message.ClickedPortAnchorHandles()),
+            ]),
+            'Drag port anchors',
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
               h.Checked(model.customPorts),
               h.OnClick(Message.ClickedCustomPorts()),
             ]),
@@ -1680,6 +1692,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         flowView(h, model.editor, {
           renderPort: model.customPorts ? socketPort : undefined,
           portLabels: model.portLabels,
+          portAnchorHandles: model.portAnchorHandles,
+          canEditPort: policy.canEditPort,
           renderPortLabel: (context, builder) =>
             flowPortLabel(
               builder,

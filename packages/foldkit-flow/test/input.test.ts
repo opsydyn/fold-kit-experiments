@@ -397,3 +397,65 @@ test('node focus tracking follows the containing frame and ignores nested editor
   ]);
   release();
 });
+
+test('dedicated anchor controls capture pointer edits and emit normalized keyboard nudges', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'KeyboardEvent', {
+    value: window.KeyboardEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'PointerEvent', {
+    value: window.PointerEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  const surface = document.createElement('div');
+  surface.dataset.flowSurface = '';
+  surface.innerHTML =
+    '<button data-flow-anchor-node="a" data-flow-anchor-port="out">Position</button>';
+  surface.setPointerCapture = () => {};
+  surface.hasPointerCapture = () => false;
+  const events: EditorEvent[] = [];
+  const cleanup = bindInput(surface, (event) => events.push(event));
+  const handle = surface.querySelector('button');
+  handle?.dispatchEvent(
+    new PointerEvent('pointerdown', {
+      pointerId: 7,
+      button: 0,
+      clientX: 30,
+      clientY: 40,
+      bubbles: true,
+    }),
+  );
+  expect(events.at(-1)).toEqual({
+    type: 'PortAnchorDragStarted',
+    endpoint: { node: 'a', port: 'out' },
+    pointer: 7,
+    point: { x: 30, y: 40 },
+  });
+  surface.dispatchEvent(
+    new PointerEvent('pointerup', {
+      pointerId: 7,
+      button: 0,
+      clientX: 35,
+      clientY: 45,
+      bubbles: true,
+    }),
+  );
+  expect(events.at(-1)).toEqual({ type: 'PointerReleased', pointer: 7 });
+  handle?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+  expect(events.at(-1)).toEqual({
+    type: 'PortAnchorNudged',
+    endpoint: { node: 'a', port: 'out' },
+    delta: { x: -0.01, y: 0 },
+  });
+  handle?.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true, bubbles: true }),
+  );
+  expect(events.at(-1)).toEqual({
+    type: 'PortAnchorNudged',
+    endpoint: { node: 'a', port: 'out' },
+    delta: { x: 0, y: 0.1 },
+  });
+  cleanup();
+});

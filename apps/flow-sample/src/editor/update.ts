@@ -188,6 +188,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     ClickedPortLabels: () => ({ model: { ...model, portLabels: !model.portLabels } }),
+    ClickedPortAnchorHandles: () => ({
+      model:
+        model.editor.gesture.type === 'idle'
+          ? { ...model, portAnchorHandles: !model.portAnchorHandles }
+          : model,
+    }),
     ClickedCustomPorts: () => ({ model: { ...model, customPorts: !model.customPorts } }),
     ClickedEditPortLabel: ({ nodeId, portId }) => {
       if (model.editor.readOnly || model.editor.gesture.type !== 'idle') return { model };

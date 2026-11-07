@@ -45,6 +45,7 @@ export function viewportItems(
   if (state.context?.kind === 'node') pinned.add(state.context.id);
   if (state.connection) pinned.add(state.connection.node);
   const { gesture } = state;
+  if (gesture.type === 'port-anchor-drag') pinned.add(gesture.endpoint.node);
   if (gesture.type === 'node-drag' || gesture.type === 'node-resize')
     for (const id of gesture.ids) pinned.add(id);
   if (gesture.type === 'node-drag' && gesture.dropParent) pinned.add(gesture.dropParent);

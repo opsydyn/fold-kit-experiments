@@ -46,7 +46,7 @@ type Attributes<M> = Parameters<HtmlBuilder<M>['div']>[0];
 type Children<M> = Parameters<HtmlBuilder<M>['div']>[1];
 
 // Merge styles once; geometry remains owned by the Model, rather than a later CSS override.
-function attributesWithGeometry<M>(
+export function attributesWithGeometry<M>(
   h: HtmlBuilder<M>,
   attributes: Attributes<M>,
   geometry: Record<string, string>,

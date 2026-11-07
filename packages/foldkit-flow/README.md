@@ -569,6 +569,39 @@ direction hint. Switching to box coordinates starts at the same cardinal
 anchor. Switching back projects onto the chosen side using Y for left/right
 and X for top/bottom. It intentionally returns the anchor to that edge.
 
+Opt in to direct positioning with `flowView`'s `portAnchorHandles: true`.
+Selected visible nodes get separate anchor handles. Socket wiring keeps
+its normal controls and connection policy. Pass `canEditPort` to both
+the view and reducer so handles reflect the current position permission.
+Read-only handles are disabled and protected handles carry their reason
+as a native description. The selected-node inspector can render the same
+reason visibly through its existing context.
+
+Drag previews use normalized node-frame coordinates, clamp to 0–1, and
+preserve the port's routing side. Pointer capture keeps tracking outside
+the canvas. Release records one Undo entry; no-movement and out-and-back
+drags preserve the original representation without history. Escape,
+pointer cancellation, lost capture, or a policy/read-only veto restore
+the starting document. Policy is checked at start, during movement and
+again at release. Preview revisions invalidate stale routes; cancellation
+does not consume redo history. Arrow keys nudge by 1%, or 10% with Shift,
+using the same policy and normal Undo transactions.
+
+`PortAnchorDragStarted`, `PointerMoved`, `PointerReleased` and
+`GestureCancelled` are the headless gesture contract. `PortAnchorNudged`
+accepts a normalized frame delta for keyboard or host controls.
+
+Customize the native handle through `renderPortAnchorHandle` and
+`flowPortAnchorHandle`; null omits a handle and undefined uses the default.
+`FlowPortAnchorHandleContext` includes the node, port, normalized anchor,
+world position, active state and rejection reason. The primitive belongs
+in the world layer, so it works independently of custom node shells and
+socket renderers. Attributes and children control its shape, size, copy
+and contents. `portAnchorHandles: { offset: { x: 24, y: 0 } }` changes
+the world-unit displacement from the socket; the default follows its
+routing side and stays fixed throughout the drag. This bounded anchor gesture does not auto-pan
+or change the side hint; the position editor handles side changes.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

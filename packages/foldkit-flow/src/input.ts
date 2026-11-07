@@ -40,6 +40,13 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     const id = port.getAttribute('data-flow-port');
     return node && id ? { node, port: id } : undefined;
   };
+  const anchorEndpointAt = (target: Element | null): Endpoint | undefined => {
+    const handle = target?.closest('[data-flow-anchor-port]');
+    if (handle?.closest('[data-flow-surface]') !== element) return undefined;
+    const node = handle.getAttribute('data-flow-anchor-node');
+    const port = handle.getAttribute('data-flow-anchor-port');
+    return node && port ? { node, port } : undefined;
+  };
   const cornerOf = (handle: Element | null | undefined) => {
     const corner = handle?.getAttribute('data-flow-resize-corner');
     return corner === 'top-left' ||
@@ -279,7 +286,7 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     if (
       !target ||
       editable(target) ||
-      target.closest('[data-flow-port]:disabled') ||
+      target.closest('[data-flow-port]:disabled,[data-flow-anchor-port]:disabled') ||
       target.closest('[data-flow-minimap], [data-flow-minimap-frame]')
     )
       return;
@@ -302,6 +309,20 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       }
     }
     if (captured !== null || pinching) return;
+    const anchor = anchorEndpointAt(target);
+    if (anchor && element.dataset.flowReadonly !== 'true') {
+      captured = event.pointerId;
+      element.setPointerCapture(event.pointerId);
+      if (target instanceof window.HTMLElement) target.focus({ preventScroll: true });
+      event.preventDefault();
+      emit({
+        type: 'PortAnchorDragStarted',
+        endpoint: anchor,
+        pointer: event.pointerId,
+        point: point(event),
+      });
+      return;
+    }
     const output = endpointAt(target, 'output');
     const handleEdge = target.closest('[data-flow-reconnect]');
     const edgeId = handleEdge?.getAttribute('data-flow-reconnect');
@@ -556,6 +577,21 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
       return;
     }
     if (!target || editable(target)) return;
+    const anchor = anchorEndpointAt(target);
+    if (anchor && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+      if (target.closest('[data-flow-anchor-port]:disabled')) return;
+      event.preventDefault();
+      const step = event.shiftKey ? 0.1 : 0.01;
+      emit({
+        type: 'PortAnchorNudged',
+        endpoint: anchor,
+        delta: {
+          x: event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0,
+          y: event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0,
+        },
+      });
+      return;
+    }
     const id = target.closest('[data-flow-handle]')?.getAttribute('data-flow-handle');
     const step = event.shiftKey ? 20 : 5;
     const nodeResize = target

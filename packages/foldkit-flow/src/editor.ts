@@ -16,6 +16,7 @@ import {
   fittedGroupBounds,
   gridSpacing as defaultGridSpacing,
   minimapGeometry,
+  portAnchor,
   screenToWorld,
   validateZoomLimits,
   validViewport,
@@ -50,6 +51,7 @@ import type {
   Endpoint,
   EdgeEnd,
   Point,
+  Port,
   ResizeHandle,
   Viewport,
 } from './types';
@@ -507,8 +509,44 @@ function selection(ids: readonly string[], id: string, additive: boolean): reado
   if (!additive) return [id];
   return ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id];
 }
+function samePortPosition(a: Port, b: Port): boolean {
+  return (
+    a.side === b.side &&
+    a.offset === b.offset &&
+    a.anchor?.x === b.anchor?.x &&
+    a.anchor?.y === b.anchor?.y
+  );
+}
+function replacePort(graph: FlowGraph, endpoint: Endpoint, port: Port): FlowGraph {
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node) =>
+      node.id === endpoint.node
+        ? {
+            ...node,
+            ports: node.ports.map((current) => (current.id === endpoint.port ? port : current)),
+          }
+        : node,
+    ),
+  };
+}
+function anchorEditReason(
+  state: EditorState,
+  endpoint: Endpoint,
+  policy: EditorPolicy,
+): string | null {
+  const node = state.graph.nodes.find(({ id }) => id === endpoint.node);
+  const port = node?.ports.find(({ id }) => id === endpoint.port);
+  return node && port
+    ? portEditReason({ operation: 'position', node, port }, state.graph, policy.canEditPort)
+    : 'This port is unavailable.';
+}
 function cancel(state: EditorState): EditorState {
-  if (state.gesture.type === 'node-drag' || state.gesture.type === 'node-resize')
+  if (
+    state.gesture.type === 'node-drag' ||
+    state.gesture.type === 'node-resize' ||
+    state.gesture.type === 'port-anchor-drag'
+  )
     return {
       ...state,
       graph: state.gesture.before,
@@ -735,6 +773,7 @@ export function updateEditor(
     case 'PinchStarted':
     case 'NodeDragStarted':
     case 'NodeResizeStarted':
+    case 'PortAnchorDragStarted':
     case 'BoxSelectionStarted':
     case 'ConnectionDragStarted':
     case 'ReconnectionDragStarted':
@@ -1125,6 +1164,39 @@ export function updateEditor(
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
         return state;
       finitePoint(event.point);
+      if (gesture.type === 'port-anchor-drag') {
+        const reason = state.readOnly
+          ? 'This diagram is read-only.'
+          : anchorEditReason(state, gesture.endpoint, policy);
+        if (reason !== null) return { ...cancel(state), notice: reason };
+        const node = gesture.before.nodes.find(({ id }) => id === gesture.endpoint.node);
+        const original = node?.ports.find(({ id }) => id === gesture.endpoint.port);
+        const current = state.graph.nodes
+          .find(({ id }) => id === gesture.endpoint.node)
+          ?.ports.find(({ id }) => id === gesture.endpoint.port);
+        if (!node || !original || !current) return cancel(state);
+        const base = portAnchor(original);
+        const clamp = (value: number) => Math.max(0, Math.min(1, value));
+        const anchor = {
+          x: clamp(
+            base.x + (event.point.x - gesture.origin.x) / state.viewport.zoom / node.size.width,
+          ),
+          y: clamp(
+            base.y + (event.point.y - gesture.origin.y) / state.viewport.zoom / node.size.height,
+          ),
+        };
+        const port =
+          anchor.x === base.x && anchor.y === base.y
+            ? original
+            : withPortPosition(original, { side: original.side, anchor });
+        if (samePortPosition(current, port)) return state;
+        return {
+          ...state,
+          graph: replacePort(state.graph, gesture.endpoint, port),
+          revision: state.revision + 1,
+          routes: [],
+        };
+      }
       if (gesture.type === 'box-selection' || gesture.type === 'zoom-area')
         return {
           ...state,
@@ -1302,6 +1374,28 @@ export function updateEditor(
       const gesture = state.gesture;
       if (gesture.type === 'idle' || gesture.type === 'pinch' || gesture.pointer !== event.pointer)
         return state;
+      if (gesture.type === 'port-anchor-drag') {
+        const reason = state.readOnly
+          ? 'This diagram is read-only.'
+          : anchorEditReason(state, gesture.endpoint, policy);
+        if (reason !== null) return { ...cancel(state), notice: reason };
+        const original = gesture.before.nodes
+          .find(({ id }) => id === gesture.endpoint.node)
+          ?.ports.find(({ id }) => id === gesture.endpoint.port);
+        const current = state.graph.nodes
+          .find(({ id }) => id === gesture.endpoint.node)
+          ?.ports.find(({ id }) => id === gesture.endpoint.port);
+        if (!original || !current) return cancel(state);
+        if (samePortPosition(original, current))
+          return { ...state, graph: gesture.before, gesture: { type: 'idle' } };
+        return {
+          ...state,
+          gesture: { type: 'idle' },
+          past: history(state, gesture.before),
+          future: [],
+          notice: 'Port positioned',
+        };
+      }
       if (gesture.type === 'zoom-area') {
         const settled = { ...state, gesture: { type: 'idle' } as const, notice: null };
         const { left, top, right, bottom } = boxBounds(gesture.origin, gesture.point);
@@ -1404,7 +1498,9 @@ export function updateEditor(
           event.id,
         );
       const gesture =
-        state.gesture.type === 'node-drag' || state.gesture.type === 'node-resize'
+        state.gesture.type === 'node-drag' ||
+        state.gesture.type === 'node-resize' ||
+        state.gesture.type === 'port-anchor-drag'
           ? { ...state.gesture, before: measure(state.gesture.before) }
           : state.gesture;
       return {
@@ -1420,6 +1516,47 @@ export function updateEditor(
   }
   if (state.readOnly || state.gesture.type !== 'idle') return state;
   switch (event.type) {
+    case 'PortAnchorDragStarted': {
+      const node = state.graph.nodes.find(({ id }) => id === event.endpoint.node);
+      const port = node?.ports.find(({ id }) => id === event.endpoint.port);
+      if (!node || !port || !selectionIsVisible(state, 'node', node.id)) return state;
+      const reason = anchorEditReason(state, event.endpoint, policy);
+      if (reason !== null) return { ...state, notice: reason };
+      finitePoint(event.point);
+      return {
+        ...state,
+        connection: null,
+        edgeLabelDraft: null,
+        notice: null,
+        gesture: {
+          type: 'port-anchor-drag',
+          endpoint: { ...event.endpoint },
+          pointer: event.pointer,
+          origin: { ...event.point },
+          before: state.graph,
+        },
+      };
+    }
+    case 'PortAnchorNudged': {
+      const node = state.graph.nodes.find(({ id }) => id === event.endpoint.node);
+      const port = node?.ports.find(({ id }) => id === event.endpoint.port);
+      if (!node || !port || !selectionIsVisible(state, 'node', node.id)) return state;
+      finitePoint(event.delta);
+      const base = portAnchor(port);
+      const anchor = {
+        x: Math.max(0, Math.min(1, base.x + event.delta.x)),
+        y: Math.max(0, Math.min(1, base.y + event.delta.y)),
+      };
+      if (anchor.x === base.x && anchor.y === base.y) return state;
+      return updateEditor(
+        state,
+        {
+          type: 'PortPositionsChanged',
+          positions: [{ endpoint: event.endpoint, position: { side: port.side, anchor } }],
+        },
+        policy,
+      );
+    }
     case 'ReconnectionDragStarted': {
       const edge = state.graph.edges.find((item) => item.id === event.id);
       if (!edge) return state;

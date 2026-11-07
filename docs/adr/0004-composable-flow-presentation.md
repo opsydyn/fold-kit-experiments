@@ -343,6 +343,17 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Anchor dragging is a core gesture with its original graph and screen-space
+pointer origin in the Model. Moves preview normalized frame coordinates;
+release records one history entry. Cancellation and live policy vetoes
+restore the original port, including offset representation. Measurement
+updates also update the saved graph so rollback retains fresh dimensions.
+Separate opt-in handles live in the world layer, preserving socket wiring
+and custom node shells. A renderer and native primitive keep presentation
+composable. Keyboard nudges reuse the existing position transaction. This
+adds one bounded gesture rather than co-opting connection drag or storing
+document state in the browser input resource.
+
 Position authoring uses a discriminated text draft in the FoldKit adapter,
 with offset and anchor modes. Partial text stays outside the document;
 an Option-returning parser validates active fractions before a single

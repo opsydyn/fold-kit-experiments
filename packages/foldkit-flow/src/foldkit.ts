@@ -46,6 +46,18 @@ export type {
   FlowPortLabelFormMessages,
 } from './port-inspector';
 
+import {
+  portAnchorHandleViews,
+  type FlowPortAnchorHandleOptions,
+  type FlowPortAnchorHandleRenderer,
+} from './port-anchor-handle';
+export { flowPortAnchorHandle } from './port-anchor-handle';
+export type {
+  FlowPortAnchorHandleContext,
+  FlowPortAnchorHandleOptions,
+  FlowPortAnchorHandleRenderer,
+} from './port-anchor-handle';
+
 import { Mount } from 'foldkit';
 import { createLazy, type Html, type HtmlBuilder } from 'foldkit/html';
 
@@ -334,6 +346,10 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     renderPort?: FlowPortRenderer<M> | undefined;
     /** Opt in to decorative port labels at their canonical world anchors. */
     portLabels?: boolean | FlowPortLabelOptions;
+    /** Opt in to separate anchor drag handles for selected visible ports. */
+    portAnchorHandles?: boolean | FlowPortAnchorHandleOptions;
+    renderPortAnchorHandle?: FlowPortAnchorHandleRenderer<M>;
+    canEditPort?: EditorPolicy['canEditPort'];
     /** Replaces a complete label. Compose flowPortLabel to retain anchoring. Null hides it. */
     renderPortLabel?: FlowPortLabelRenderer<M>;
     /** Use a separate FoldKit lazy slot per canvas to retain the built-in node layer. */
@@ -2084,6 +2100,14 @@ export function flowView<M>(
                 ],
               ),
               ...nodeLayer,
+              ...portAnchorHandleViews(
+                h,
+                state,
+                canvas.nodes,
+                options.portAnchorHandles,
+                options.canEditPort,
+                options.renderPortAnchorHandle,
+              ),
               ...portLabelViews(h, canvas.nodes, options.portLabels, options.renderPortLabel),
               ...edgeLabels,
               ...(worldOverlay === null || worldOverlay === undefined

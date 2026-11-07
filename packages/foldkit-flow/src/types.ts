@@ -98,6 +98,13 @@ type NodeGesture = Readonly<{
 }>;
 export type Gesture =
   | Readonly<{ type: 'idle' }>
+  | Readonly<{
+      type: 'port-anchor-drag';
+      pointer: number;
+      origin: Point;
+      before: FlowGraph;
+      endpoint: Endpoint;
+    }>
   | (NodeGesture &
       Readonly<{
         type: 'node-drag';
@@ -348,6 +355,9 @@ export type EditorEvent =
   | Readonly<{ type: 'ConnectionCreated'; edge: FlowEdge }>
   | Readonly<{ type: 'PortAdded'; nodeId: string; port: Port }>
   | Readonly<{ type: 'PortRemoved'; endpoint: Endpoint }>
+  | Readonly<{ type: 'PortAnchorDragStarted'; endpoint: Endpoint; pointer: number; point: Point }>
+  /** Normalized node-frame delta, independent of viewport zoom. */
+  | Readonly<{ type: 'PortAnchorNudged'; endpoint: Endpoint; delta: Point }>
   /** Changes display text without changing endpoint identity; undefined restores the ID fallback. */
   | Readonly<{ type: 'PortLabelChanged'; endpoint: Endpoint; label: string | undefined }>
   | Readonly<{

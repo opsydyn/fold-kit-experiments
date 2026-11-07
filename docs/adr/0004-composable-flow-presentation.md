@@ -343,6 +343,32 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Corner attraction extends the existing pure anchor resolver and gesture,
+using an independent `portAnchorCornerSnapDistance` preference (zero by
+default). The circular radius uses clamped candidate coordinates and CSS
+pixels, preserving behavior at any zoom. Eligible corners take priority
+over edges. A positive shared hysteresis margin retains a corner through
+its release band and requires a competing corner to win by more than the
+margin. On release from the band, edges use normal acquisition. Stable
+corner ties follow top-left, top-right, bottom-left, bottom-right.
+
+The result and renderer context expose the corner separately from the
+edge; corner snaps have no attracted side and never change the authored
+routing hint. Bypass clears both retention kinds. The package retains the
+same policy rechecks, no-motion behavior and one-history-entry release.
+This is preferred over host-only snapping, which would duplicate geometry
+and history rules, and over implicit two-axis edge snapping, which would
+change existing behavior when corner attraction was not requested. An
+independent radius costs one preference but permits corner-only editors.
+
+Implementation extends core options/events, resolver and gesture feedback,
+then the native handle and workbench control using the existing public
+composition helper. No dependencies or graph format fields are added.
+Verification covers radial/zoom thresholds, independent defaults,
+retention/switching, edge fallback, modifier-only previews, Undo/Redo,
+policy rollback, cancellation and custom rendering. The workbench browser
+probe captures a custom corner badge and checks precise bypass release.
+
 Temporary snap bypass is gesture state. The Model retains the last raw
 pointer sample so modifier-only facts can recompute preview geometry.
 Bypass disables attraction and clears retention while preserving clamping,

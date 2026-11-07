@@ -57,6 +57,7 @@ export const Message = defineMessageUnion({
   ClickedPortLabels: {},
   ClickedPortAnchorHandles: {},
   ClickedPortAnchorSnap: {},
+  ClickedPortAnchorCornerSnap: {},
   ClickedPortAnchorSnapHysteresis: {},
   ClickedPortAnchorSnapBypass: {},
   ClickedCustomPorts: {},

@@ -13,6 +13,8 @@ export type Viewport = Readonly<Point & { zoom: number }>;
 export type ZoomLimits = Readonly<{ minZoom: number; maxZoom: number }>;
 /** Outward routing and reconnection direction hint. */
 export type PortSide = 'left' | 'right' | 'top' | 'bottom';
+/** Geometric snap feedback, independent of the port's routing side. */
+export type PortCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 export type FlowPortAnchorSnapBypassModifier = 'Alt' | 'Control' | 'Meta' | 'Shift';
 /** Radius is measured in CSS pixels, independent of node size and viewport zoom. */
 export type PortAnchorSnapOptions = Readonly<{
@@ -20,12 +22,22 @@ export type PortAnchorSnapOptions = Readonly<{
   zoom: number;
   distance: number;
   preferredSide?: PortSide;
-  /** Extra release distance and required switch advantage in CSS pixels. Zero preserves nearest-edge behavior. */
+  /** Extra release distance and required switch advantage within each target kind, in CSS pixels. */
   hysteresis?: number;
   /** Previously attracted edge from the current gesture; never an acquisition hint. */
   previousSide?: PortSide | null;
+  /** Circular CSS-pixel acquisition radius; zero/absent disables corner attraction independently of edges. */
+  cornerDistance?: number;
+  /** Previously attracted corner, used only with a positive hysteresis margin. */
+  previousCorner?: PortCorner | null;
 }>;
-export type PortAnchorSnapResult = Readonly<{ anchor: Point; side: PortSide | null }>;
+export type PortAnchorSnapResult = Readonly<{
+  anchor: Point;
+  /** Null during a corner snap; the authored routing side is never changed. */
+  side: PortSide | null;
+  /** Present only for an active corner snap. */
+  corner?: PortCorner;
+}>;
 /** Choose either a cardinal side offset, or normalized box coordinates. Never both. */
 export type PortPosition = Readonly<{ side: PortSide }> &
   (Readonly<{ offset: number; anchor?: never }> | Readonly<{ anchor: Point; offset?: never }>);
@@ -118,6 +130,7 @@ export type Gesture =
       before: FlowGraph;
       endpoint: Endpoint;
       snappedSide?: PortSide | null;
+      snappedCorner?: PortCorner | null;
       /** Last raw sample, retained for modifier-only preview updates. */
       point?: Point;
       snapBypassed?: boolean;
@@ -183,8 +196,10 @@ export type EditorState = Readonly<{
   connectionSnapHysteresis?: number;
   /** Pointer anchor attraction radius in CSS pixels. Zero disables edge snapping. */
   portAnchorSnapDistance?: number;
-  /** Pointer edge retention margin in CSS pixels; zero disables hysteresis. */
+  /** Pointer edge/corner retention margin in CSS pixels; zero disables hysteresis. */
   portAnchorSnapHysteresis?: number;
+  /** Circular pointer corner attraction radius in CSS pixels; zero disables it. */
+  portAnchorCornerSnapDistance?: number;
   gesture: Gesture;
   past: readonly FlowGraph[];
   future: readonly FlowGraph[];
@@ -231,8 +246,10 @@ export type EditorOptions = Readonly<{
   connectionSnapHysteresis?: number;
   /** Pointer anchor attraction radius in CSS pixels; defaults to zero (free placement). */
   portAnchorSnapDistance?: number;
-  /** Pointer edge retention margin in CSS pixels; defaults to zero. */
+  /** Pointer edge/corner retention margin in CSS pixels; defaults to zero. */
   portAnchorSnapHysteresis?: number;
+  /** Independent circular pointer corner attraction radius in CSS pixels; defaults to zero. */
+  portAnchorCornerSnapDistance?: number;
 }>;
 /** Explicit targets before group descendants and incident edges are included. */
 export type DeletionTargets = Readonly<{ nodeIds: readonly string[]; edgeIds: readonly string[] }>;
@@ -396,6 +413,7 @@ export type EditorEvent =
   | Readonly<{ type: 'PortAnchorNudged'; endpoint: Endpoint; delta: Point }>
   | Readonly<{ type: 'PortAnchorSnapDistanceChanged'; distance: number }>
   | Readonly<{ type: 'PortAnchorSnapHysteresisChanged'; distance: number }>
+  | Readonly<{ type: 'PortAnchorCornerSnapDistanceChanged'; distance: number }>
   /** Changes display text without changing endpoint identity; undefined restores the ID fallback. */
   | Readonly<{ type: 'PortLabelChanged'; endpoint: Endpoint; label: string | undefined }>
   | Readonly<{

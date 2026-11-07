@@ -397,6 +397,16 @@ release Alt to resume fresh snapping. The snap radius and stability
 settings stay enabled. Escape still cancels the entire drag.
 [Snap bypass screenshot](evidence/port-anchor-bypass.png)
 
+Enable **Snap port anchors to corners** for an independent circular 12 CSS-pixel
+corner radius. Edges can remain off. The workbench composes
+`flowPortAnchorHandle` into a custom **Pinned top-left** badge (and the other
+corner names) using `context.snappedCorner`. The package supplies geometry,
+input binding and descriptions. Stable snapping also retains corners within
+the shared 4px margin. Alt bypass clears both kinds of retention, with one
+Undo entry on release. The preference survives example/import changes.
+
+[Corner snapping screenshot](evidence/port-anchor-corner.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

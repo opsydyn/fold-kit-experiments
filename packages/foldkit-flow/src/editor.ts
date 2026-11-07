@@ -105,6 +105,12 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
   const connectionSnapHysteresis = options.connectionSnapHysteresis ?? 0;
   const portAnchorSnapDistance = options.portAnchorSnapDistance ?? 0;
   const portAnchorSnapHysteresis = options.portAnchorSnapHysteresis ?? 0;
+  const portAnchorCornerSnapDistance = options.portAnchorCornerSnapDistance ?? 0;
+  if (!Number.isFinite(portAnchorCornerSnapDistance) || portAnchorCornerSnapDistance < 0)
+    throw new FlowError(
+      'invalid-edit',
+      'Port anchor corner snap distance must be finite and non-negative',
+    );
   if (!Number.isFinite(portAnchorSnapHysteresis) || portAnchorSnapHysteresis < 0)
     throw new FlowError(
       'invalid-edit',
@@ -144,6 +150,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     connectionSnapHysteresis,
     portAnchorSnapDistance,
     portAnchorSnapHysteresis,
+    portAnchorCornerSnapDistance,
     gesture: { type: 'idle' },
     past: [],
     future: [],
@@ -951,6 +958,15 @@ export function updateEditor(
       )
         return state;
       return { ...state, portAnchorSnapDistance: event.distance };
+    case 'PortAnchorCornerSnapDistanceChanged':
+      if (
+        state.gesture.type !== 'idle' ||
+        !Number.isFinite(event.distance) ||
+        event.distance < 0 ||
+        event.distance === (state.portAnchorCornerSnapDistance ?? 0)
+      )
+        return state;
+      return { ...state, portAnchorCornerSnapDistance: event.distance };
     case 'PortAnchorSnapHysteresisChanged':
       if (
         state.gesture.type !== 'idle' ||
@@ -1201,7 +1217,15 @@ export function updateEditor(
       )
         return state;
       return updateEditor(
-        { ...state, gesture: { ...gesture, snapBypassed: event.bypassed, snappedSide: null } },
+        {
+          ...state,
+          gesture: {
+            ...gesture,
+            snapBypassed: event.bypassed,
+            snappedSide: null,
+            snappedCorner: null,
+          },
+        },
         {
           type: 'PointerMoved',
           pointer: event.pointer,
@@ -1247,13 +1271,16 @@ export function updateEditor(
                 preferredSide: original.side,
                 hysteresis: state.portAnchorSnapHysteresis ?? 0,
                 previousSide: gesture.snappedSide ?? null,
+                cornerDistance: bypassed ? 0 : (state.portAnchorCornerSnapDistance ?? 0),
+                previousCorner: gesture.snappedCorner ?? null,
               },
             )
-          : { anchor: base, side: null };
+          : { anchor: base, side: null, corner: undefined };
         const { anchor } = snap;
         const nextGesture = {
           ...gesture,
           snappedSide: snap.side,
+          snappedCorner: snap.corner ?? null,
           snapBypassed: bypassed,
           point: { ...event.point },
         };
@@ -1263,6 +1290,7 @@ export function updateEditor(
             : withPortPosition(original, { side: original.side, anchor });
         if (samePortPosition(current, port))
           return (gesture.snappedSide ?? null) === snap.side &&
+            (gesture.snappedCorner ?? null) === (snap.corner ?? null) &&
             (gesture.snapBypassed ?? false) === bypassed &&
             gesture.point?.x === event.point.x &&
             gesture.point?.y === event.point.y

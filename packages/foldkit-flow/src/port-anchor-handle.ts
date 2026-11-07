@@ -4,7 +4,15 @@ import { attributesWithGeometry, flowWorldOverlayItem } from './composition';
 import { finitePoint, portAnchor } from './geometry';
 import type { FlowPortAnchorSnapBypassModifier } from './input-message';
 import { portEditReason } from './port-edit';
-import type { EditorPolicy, EditorState, FlowNode, Point, Port, PortSide } from './types';
+import type {
+  EditorPolicy,
+  EditorState,
+  FlowNode,
+  Point,
+  Port,
+  PortCorner,
+  PortSide,
+} from './types';
 
 export type FlowPortAnchorHandleOptions = Readonly<{
   /** Handle displacement from the socket in world units; default follows its routing side. */
@@ -19,6 +27,8 @@ export type FlowPortAnchorHandleContext = Readonly<{
   active: boolean;
   /** Active pointer attraction only; null/absent outside a snapped drag. */
   snappedSide?: PortSide | null;
+  /** Active corner attraction; null/absent outside a corner snap. */
+  snappedCorner?: PortCorner | null;
   snapBypassed?: boolean;
   snapBypassModifier?: FlowPortAnchorSnapBypassModifier | undefined;
   disabledReason: string | null;
@@ -53,9 +63,11 @@ export function flowPortAnchorHandle<M>(
             context.disabledReason ??
               (context.snapBypassed
                 ? `Snapping bypassed. Release ${context.snapBypassModifier ?? 'the modifier'} to restore snapping. Escape cancels.`
-                : context.snappedSide
-                  ? `Snapped to ${context.snappedSide} edge.${modifierHint} Escape cancels.`
-                  : `Drag to position.${modifierHint} Arrow keys move 1%; Shift moves 10%. Escape cancels.`),
+                : context.snappedCorner
+                  ? `Snapped to ${context.snappedCorner} corner.${modifierHint} Escape cancels.`
+                  : context.snappedSide
+                    ? `Snapped to ${context.snappedSide} edge.${modifierHint} Escape cancels.`
+                    : `Drag to position.${modifierHint} Arrow keys move 1%; Shift moves 10%. Escape cancels.`),
           ),
           ...attributesWithGeometry(h, attributes, {
             'pointer-events': 'auto',
@@ -67,6 +79,9 @@ export function flowPortAnchorHandle<M>(
           h.DataAttribute('flow-anchor-node', context.node.id),
           h.DataAttribute('flow-anchor-port', context.port.id),
           ...(context.snapBypassed ? [h.DataAttribute('flow-anchor-bypassed', 'true')] : []),
+          ...(context.snappedCorner
+            ? [h.DataAttribute('flow-anchor-corner', context.snappedCorner)]
+            : []),
           ...(context.snappedSide
             ? [h.DataAttribute('flow-anchor-snapped', context.snappedSide)]
             : []),
@@ -111,6 +126,7 @@ export function portAnchorHandleViews<M>(
           },
           active,
           snappedSide: active ? (drag?.snappedSide ?? null) : null,
+          snappedCorner: active ? (drag?.snappedCorner ?? null) : null,
           snapBypassed: active && (drag?.snapBypassed ?? false),
           snapBypassModifier: active ? (drag?.snapBypassModifier ?? undefined) : bypassModifier,
           disabledReason: state.readOnly
@@ -133,14 +149,14 @@ export function portAnchorHandleViews<M>(
                   cursor: context.active ? 'grabbing' : 'grab',
                   border: context.snapBypassed
                     ? '2px dashed var(--flow-node-border, #64748b)'
-                    : context.snappedSide
+                    : context.snappedSide || context.snappedCorner
                       ? '2px solid var(--flow-selection, #2563eb)'
                       : '1px solid var(--flow-node-border, #64748b)',
                   background: 'var(--flow-node-background, #fff)',
                   color: 'var(--flow-node-color, #172033)',
                 }),
               ],
-              ['⋮'],
+              [context.snappedCorner ? '◆' : '⋮'],
             ),
         ];
       }),

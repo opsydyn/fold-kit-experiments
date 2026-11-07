@@ -11,6 +11,7 @@ import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
   flowView,
   flowPortLabel,
+  flowPortAnchorHandle,
   portInspectorContext,
   portAdditionContext,
   flowPortAddButton,
@@ -1479,6 +1480,18 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           [
             h.input([
               h.Type('checkbox'),
+              h.Checked((model.editor.portAnchorCornerSnapDistance ?? 0) > 0),
+              h.Disabled(model.editor.gesture.type !== 'idle'),
+              h.OnClick(Message.ClickedPortAnchorCornerSnap()),
+            ]),
+            'Snap port anchors to corners',
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
               h.Checked((model.editor.portAnchorSnapHysteresis ?? 0) > 0),
               h.Disabled(model.editor.gesture.type !== 'idle'),
               h.OnClick(Message.ClickedPortAnchorSnapHysteresis()),
@@ -1730,6 +1743,26 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           portLabels: model.portLabels,
           portAnchorHandles: model.portAnchorHandles,
           portAnchorSnapBypassModifier: model.portAnchorSnapBypass ? 'Alt' : undefined,
+          renderPortAnchorHandle: (context, builder) =>
+            context.snappedCorner
+              ? flowPortAnchorHandle(
+                  builder,
+                  context,
+                  [
+                    builder.Class('workbench-corner-handle'),
+                    builder.Style({
+                      background: 'var(--flow-node-background, #fff)',
+                      color: 'var(--flow-node-color, #172033)',
+                      border: '2px solid var(--flow-selection, #2563eb)',
+                      'border-radius': '6px',
+                      padding: '4px 8px',
+                      'white-space': 'nowrap',
+                      'font-size': '11px',
+                    }),
+                  ],
+                  [`◆ Pinned ${context.snappedCorner}`],
+                )
+              : undefined,
           canEditPort: policy.canEditPort,
           renderPortLabel: (context, builder) =>
             flowPortLabel(

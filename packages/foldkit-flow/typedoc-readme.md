@@ -1,5 +1,13 @@
 # FoldKit Flow public contract
 
+Port anchor corner attraction is opt-in through
+`EditorOptions.portAnchorCornerSnapDistance` and the idle-only
+`PortAnchorCornerSnapDistanceChanged` fact. `resolvePortAnchorSnap` accepts
+`cornerDistance`/`previousCorner` and returns an optional `PortCorner`.
+Custom handle renderers receive `snappedCorner`; `flowPortAnchorHandle`
+keeps native binding and corner descriptions. Corner attraction shares
+the gesture's hysteresis, modifier bypass, protection and one-step Undo.
+
 Generated from the package's public TypeScript entry points. Search for any type
 or function, or select a module to inspect signatures, fields and source links.
 This reference describes the current source revision. Version 0.1.0 remains a

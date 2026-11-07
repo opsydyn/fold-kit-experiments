@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add independent opt-in corner snapping for port anchor drags, with circular
+  screen-pixel attraction, shared hysteresis/bypass and composable corner feedback.
+
 - Add opt-in modifier-key bypass for port anchor snapping, including
   stationary key transitions, precise release and composable feedback.
 

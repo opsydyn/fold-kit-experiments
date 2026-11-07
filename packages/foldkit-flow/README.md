@@ -639,7 +639,7 @@ radius to `portAnchorSnapDistance + portAnchorSnapHysteresis`. A competing
 edge must be inside the normal acquisition radius and closer by more than
 the margin to take over. At the exact margin the current edge stays held.
 Once released, an edge must enter the normal radius to acquire again.
-Setting the snap distance to zero disables attraction entirely.
+Setting the edge snap distance to zero disables edge attraction.
 
 `PortAnchorSnapHysteresisChanged` changes the margin while idle without
 editing graph data or history. Initial options and the pure resolver
@@ -657,7 +657,7 @@ free positioning during an anchor drag. The default has no mapping.
 `Shift`, so hosts can choose their shortcut. The native resource captures
 that mapping at pointer-down; changes apply to the next gesture.
 
-Holding the mapped key bypasses edge attraction and hysteresis while
+Holding the mapped key bypasses edge/corner attraction and hysteresis while
 retaining frame clamping and edit policies. Pressing or releasing it
 recomputes the last raw pointer sample in the Model, even without mouse
 movement. Releasing performs fresh acquisition; it clears the old retained
@@ -674,6 +674,35 @@ only to the matching anchor gesture. A start fact can include the captured
 and `snapBypassModifier` for custom feedback; the default uses a dashed
 border and native description. Other gestures and idle keyboard nudges
 retain their existing modifier behavior.
+
+Set `portAnchorCornerSnapDistance: 12` in `EditorOptions` for corner
+attraction within a circular 12 CSS-pixel radius. It defaults to zero,
+independently of `portAnchorSnapDistance`, so corners can be enabled alone.
+The candidate is clamped to the node frame first. A corner in range takes
+priority over edge attraction; outside the corner range, normal edge
+snapping or free placement applies. The radius stays constant at any zoom.
+
+`PortAnchorCornerSnapDistanceChanged` changes the radius while idle without
+adding document history. Values must be finite and non-negative; invalid
+change events are ignored. Positive `portAnchorSnapHysteresis` also retains
+an acquired corner within radius plus margin. A competing corner must be
+in the acquisition radius and closer by more than the margin. Exact ties
+keep the retained corner; without retention the stable order is top-left,
+top-right, bottom-left, bottom-right. Corner acquisition takes priority over
+retained edges, and a released corner can fall back to ordinary edge acquisition.
+
+The pure `resolvePortAnchorSnap` accepts `cornerDistance` and
+`previousCorner`. Feed its optional `corner` result back during a gesture;
+`side` is null during a corner snap. `PortCorner` names the four corners.
+`FlowPortAnchorHandleContext.snappedCorner` exposes that feedback for custom
+renderers. `flowPortAnchorHandle` supplies a corner description and
+`data-flow-anchor-corner`; the default handle adds a diamond and selection
+border. Returning `undefined` uses the default, and `null` omits the handle.
+Bypass clears both edge and corner retention and resumes fresh acquisition
+on key release. The authored routing side and port identity stay intact;
+previews, cancellation, current edit protection and one-step Undo/Redo
+share the existing anchor-drag transaction. Keyboard nudges and numeric
+edits stay exact. These are session preferences, not serialized graph fields.
 
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.

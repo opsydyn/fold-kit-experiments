@@ -67,6 +67,7 @@ export const Message = defineMessageUnion({
   ClickedPortAnchorGuides: {},
   ClickedCustomPortAnchorGuides: {},
   ClickedOverlappingPortSnaps: {},
+  ClickedKeyboardPortTargets: {},
   SelectedPortAnchorSnapPriority: { priority: PortSnapPriority },
   ClickedCustomPorts: {},
   ClickedAddPort: { nodeId: Schema.String, kind: Schema.Literals(['input', 'output']) },

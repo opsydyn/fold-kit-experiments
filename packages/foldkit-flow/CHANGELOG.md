@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in keyboard cycling through permitted point targets, first/last
+  shortcuts, pure/headless actions and named feedback with atomic Undo.
+
 - Add configurable corner/midpoint snap priority through editor preferences
   and per-port overrides, preserving captured rules, guides, bypass and Undo.
 

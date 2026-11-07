@@ -355,6 +355,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     portAnchorHandles?: boolean | FlowPortAnchorHandleOptions;
     /** Opt-in temporary snap bypass; captured at pointer-down. Undefined keeps modifier keys unchanged. */
     portAnchorSnapBypassModifier?: FlowPortAnchorSnapBypassModifier | undefined;
+    /** Opt-in Page Down/Up target cycling and Home/End first/last on focused anchor handles. */
+    portAnchorKeyboardTargets?: boolean | undefined;
     renderPortAnchorHandle?: FlowPortAnchorHandleRenderer<M>;
     /** Opt-in permitted-target guides during anchor dragging. Follows alignment-guide diagnostics. */
     portAnchorGuides?: boolean | undefined;
@@ -2032,6 +2034,10 @@ export function flowView<M>(
           h.DataAttribute('flow-space-to-pan', String(options.spaceToPan === true)),
           h.DataAttribute('flow-middle-button-pan', String(options.middleButtonPan === true)),
           h.DataAttribute(
+            'flow-anchor-keyboard-targets',
+            String(options.portAnchorKeyboardTargets === true),
+          ),
+          h.DataAttribute(
             'flow-port-anchor-snap-bypass',
             options.portAnchorSnapBypassModifier ?? '',
           ),
@@ -2132,6 +2138,7 @@ export function flowView<M>(
                 options.canEditPort,
                 options.renderPortAnchorHandle,
                 options.portAnchorSnapBypassModifier,
+                options.portAnchorKeyboardTargets,
               ),
               ...portLabelViews(h, canvas.nodes, options.portLabels, options.renderPortLabel),
               ...edgeLabels,

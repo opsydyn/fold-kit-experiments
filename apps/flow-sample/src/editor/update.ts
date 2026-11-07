@@ -186,6 +186,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     ClickedPortLabels: () => ({ model: { ...model, portLabels: !model.portLabels } }),
+    ClickedKeyboardPortTargets: () => ({
+      model: { ...model, keyboardPortTargets: !model.keyboardPortTargets },
+    }),
     ClickedOverlappingPortSnaps: () => ({
       model:
         model.editor.gesture.type === 'idle'

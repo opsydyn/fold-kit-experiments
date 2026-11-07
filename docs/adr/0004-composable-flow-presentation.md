@@ -343,6 +343,35 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Keyboard target selection is an atomic core action, independent of pointer
+gestures. The pure selector reuses validated permitted guide targets,
+excludes continuous edges, and orders point kinds by current priority with
+canonical ordering within each. Next/previous wrap; off-target entry uses
+the first/last point. Explicit first/last actions make endpoints predictable.
+The result is an empty union case or a detached target with index/count.
+
+Each editor action resolves current per-port rules after checking edit
+permission, then reuses the existing position transaction. Matching anchors
+preserve representation/history; empty sets report a named notice without
+editing. Different positions commit once, retaining wiring and routing
+direction. Current permission, visibility, read-only and active-gesture
+guards remain authoritative. No keyboard cursor or external state is stored.
+
+Native Page Down/Up and Home/End mappings are opt-in on focused anchor
+handles. Modified keys, repeats, editable fields, disabled controls and
+pointer capture are guarded in the input resource. Arrows retain exact
+nudging; Tab remains native. Handle contexts expose the mapping for custom
+help and native primitives supply shortcut metadata. Named target feedback
+uses the existing status region and diagnostic behavior.
+
+This is preferred over remapping arrow nudges or simulating pointer drags,
+which would change precision and capture semantics. Related first/last,
+empty/singleton, focus and feedback work belongs in the same slice because
+it completes the keyboard interaction. Verification covers ordered/filtered
+selection, wrap, fresh policies, atomic Undo, no-op representation, guards,
+native scoping/repeats/modifiers/cleanup, focus retention and Tab exit in the
+workbench. Hosts retain the typed action and helper for their own controls.
+
 Point-target priority is an optional core setting: corners first preserves
 the existing behavior, while midpoints first reverses only the two point
 kinds. Edges remain the final fallback. A preferred kind must pass its

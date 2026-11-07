@@ -1661,6 +1661,27 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ]
           : []),
         h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.keyboardPortTargets),
+              h.OnClick(Message.ClickedKeyboardPortTargets()),
+            ]),
+            'Keyboard snap targets',
+          ],
+        ),
+        ...(model.keyboardPortTargets
+          ? [
+              h.p(
+                [],
+                [
+                  'Focus a port position handle. Page Down/Up cycle targets; Home/End choose first/last. Arrow keys keep precise nudging. Each position change is undoable.',
+                ],
+              ),
+            ]
+          : []),
+        h.label(
           [h.Class('workbench-theme-picker')],
           [
             'Theme',
@@ -1882,6 +1903,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           portAnchorHandles: model.portAnchorHandles,
           portAnchorSnapBypassModifier: model.portAnchorSnapBypass ? 'Alt' : undefined,
           portAnchorGuides: model.portAnchorGuides,
+          portAnchorKeyboardTargets: model.keyboardPortTargets,
           renderPortAnchorGuide: model.customPortAnchorGuides ? targetAnchorGuide : undefined,
           renderPortAnchorHandle: (context, builder) =>
             context.snappedCorner || context.snappedMidpoint

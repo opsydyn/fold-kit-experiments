@@ -28,6 +28,12 @@ export type PortAnchorSnapGuide =
   | Readonly<{ type: 'edge'; side: PortSide; start: Point; end: Point }>
   | Readonly<{ type: 'corner'; corner: PortCorner; point: Point }>
   | Readonly<{ type: 'midpoint'; side: PortSide; point: Point }>;
+export type PortAnchorPointTarget = Exclude<PortAnchorSnapGuide, { type: 'edge' }>;
+export type PortAnchorTargetStep = 'next' | 'previous' | 'first' | 'last';
+/** Zero-based index and total count are available for host-owned feedback. */
+export type PortAnchorTargetStepResult =
+  | Readonly<{ type: 'empty' }>
+  | Readonly<{ type: 'target'; target: PortAnchorPointTarget; index: number; count: number }>;
 /** Effective CSS-pixel settings for one anchor drag. Zero disables each attraction or retention rule. */
 export type PortAnchorSnapSettings = PortAnchorSnapTargets &
   Readonly<{
@@ -467,6 +473,7 @@ export type EditorEvent =
   | Readonly<{ type: 'PortAnchorSnapBypassChanged'; pointer: number; bypassed: boolean }>
   /** Normalized node-frame delta, independent of viewport zoom. */
   | Readonly<{ type: 'PortAnchorNudged'; endpoint: Endpoint; delta: Point }>
+  | Readonly<{ type: 'PortAnchorTargetStepped'; endpoint: Endpoint; step: PortAnchorTargetStep }>
   | Readonly<{ type: 'PortAnchorSnapDistanceChanged'; distance: number }>
   | Readonly<{ type: 'PortAnchorSnapHysteresisChanged'; distance: number }>
   | Readonly<{ type: 'PortAnchorCornerSnapDistanceChanged'; distance: number }>

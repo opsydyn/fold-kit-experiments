@@ -51,6 +51,11 @@ export const BrowserInput = Schema.Union([
   }),
   Schema.Struct({ type: Schema.Literal('PortAnchorNudged'), endpoint: Endpoint, delta: Point }),
   Schema.Struct({
+    type: Schema.Literal('PortAnchorTargetStepped'),
+    endpoint: Endpoint,
+    step: Schema.Literals(['next', 'previous', 'first', 'last']),
+  }),
+  Schema.Struct({
     type: Schema.Literal('NodeResizeNudged'),
     id: Schema.String,
     delta: Schema.Number,

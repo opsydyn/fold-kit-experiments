@@ -1,5 +1,14 @@
 # FoldKit Flow public contract
 
+Keyboard point selection uses `PortAnchorTargetStepped` and the pure
+`resolvePortAnchorTargetStep` helper. `PortAnchorTargetStep` supports
+next/previous with wraparound and first/last; `PortAnchorTargetStepResult`
+reports an empty set or a `PortAnchorPointTarget` with index/count. Current
+per-port rules and priority apply to each atomic action. The optional
+`portAnchorKeyboardTargets` view mapping supplies Page Down/Up and Home/End,
+native help, shortcut metadata and named status feedback. Exact nudging,
+protection, text editing and Undo retain their contracts.
+
 `PortAnchorSnapPriority` selects `corners-first` (the default) or
 `midpoints-first`. Configure `EditorOptions.portAnchorSnapPriority`, the
 idle-only `PortAnchorSnapPriorityChanged` fact, or a per-port `priority`

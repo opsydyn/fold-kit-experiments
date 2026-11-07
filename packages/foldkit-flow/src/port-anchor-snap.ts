@@ -9,6 +9,8 @@ import type {
   PortAnchorSnapTargets,
   PortAnchorSnapGuide,
   PortAnchorSnapPriority,
+  PortAnchorTargetStep,
+  PortAnchorTargetStepResult,
   PortCorner,
   PortSide,
   Size,
@@ -134,6 +136,43 @@ export function portAnchorSnapGuideTargets(
       if (settings.allowedEdges === undefined || settings.allowedEdges.includes(edge.side))
         guides.push({ type: 'edge', ...edge });
   return guides;
+}
+
+/** Choose an enabled point target in priority/canonical order without changing editor state. */
+export function resolvePortAnchorTargetStep(
+  anchor: Point,
+  options: PortAnchorSnapOverrides,
+  step: PortAnchorTargetStep,
+): PortAnchorTargetStepResult {
+  finitePoint(anchor);
+  if (step !== 'next' && step !== 'previous' && step !== 'first' && step !== 'last')
+    throw new FlowError(
+      'invalid-edit',
+      'Port anchor target step must be next, previous, first or last',
+    );
+  const settings = resolvePortAnchorSnapSettings(options);
+  const permitted = portAnchorSnapGuideTargets(settings).filter((target) => target.type !== 'edge');
+  const targets =
+    settings.priority === 'midpoints-first'
+      ? [
+          ...permitted.filter((target) => target.type === 'midpoint'),
+          ...permitted.filter((target) => target.type === 'corner'),
+        ]
+      : permitted;
+  if (targets.length === 0) return { type: 'empty' };
+  const current = targets.findIndex(({ point }) => point.x === anchor.x && point.y === anchor.y);
+  const index =
+    step === 'first'
+      ? 0
+      : step === 'last'
+        ? targets.length - 1
+        : current < 0
+          ? step === 'next'
+            ? 0
+            : targets.length - 1
+          : (current + (step === 'next' ? 1 : -1) + targets.length) % targets.length;
+  const target = targets[index];
+  return target ? { type: 'target', target, index, count: targets.length } : { type: 'empty' };
 }
 
 /** Shared circular attraction and retention for discrete frame points. */

@@ -621,6 +621,36 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     }
     if (!target || editable(target)) return;
     const anchor = anchorEndpointAt(target);
+    if (
+      anchor &&
+      element.dataset.flowAnchorKeyboardTargets === 'true' &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      ['PageDown', 'PageUp', 'Home', 'End'].includes(event.key)
+    ) {
+      if (
+        target.closest('[data-flow-anchor-port]:disabled') ||
+        element.dataset.flowReadonly === 'true'
+      )
+        return;
+      event.preventDefault();
+      if (!event.repeat && captured === null && !pinching)
+        emit({
+          type: 'PortAnchorTargetStepped',
+          endpoint: anchor,
+          step:
+            event.key === 'PageDown'
+              ? 'next'
+              : event.key === 'PageUp'
+                ? 'previous'
+                : event.key === 'Home'
+                  ? 'first'
+                  : 'last',
+        });
+      return;
+    }
     if (anchor && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
       if (target.closest('[data-flow-anchor-port]:disabled')) return;
       event.preventDefault();

@@ -859,6 +859,43 @@ helper validates settings and shares canonical corner/midpoint geometry
 with the snap resolver. It reports permitted targets regardless of cursor
 distance, without changing graph data, gestures or history.
 
+Set `flowView`'s `portAnchorKeyboardTargets: true` to enable plain Page Down
+(next), Page Up (previous), Home (first), and End (last) on focused port
+anchor handles. It defaults to off. Native handles expose shortcut metadata
+and help; custom handle contexts receive `keyboardTargets`. Text fields,
+disabled/read-only controls, modified keys and active pointer captures keep
+their existing behavior. Held-key repeats are consumed without producing
+repeated edits. Tab keeps its normal focus order. Arrows still nudge exactly
+1%, or 10% with Shift, independently of target cycling.
+
+`PortAnchorTargetStepped` is the headless editor fact, with an `endpoint`
+and `step: 'next' | 'previous' | 'first' | 'last'`. Each idle action resolves
+the current per-port settings and checks edit permission before selecting
+from enabled, permitted corner and midpoint targets. Edges are continuous
+and do not participate. Radii enable target kinds; keyboard selection can
+reach a permitted point from any current position. Priority orders the
+two point kinds, with canonical order within each: top-left, top-right,
+bottom-left, bottom-right for corners; left, right, top, bottom for midpoints.
+
+Next/previous wrap at the ends. From a position outside the target set,
+next chooses the first and previous chooses the last. Home/End choose those
+endpoints directly. Every different position is one Undo/Redo transaction,
+preserving routing direction, port identity and wiring. Already-at-target
+actions preserve the existing position representation and history. Empty
+sets leave the document alone and report a named no-target notice. Protected
+ports report their current reason; active gestures and read-only editors
+ignore the action. The standard status region announces the selected target
+even when diagnostic presentation is visually hidden. Keyboard actions are
+atomic and do not create a pointer gesture or keep pointer guides open.
+
+`resolvePortAnchorTargetStep(anchor, settings, step)` supports custom
+controls. It returns `PortAnchorTargetStepResult`: either `{ type: 'empty' }`
+or a detached `PortAnchorPointTarget`, zero-based `index`, and `count`.
+The helper validates settings/actions without changing editor state. Hosts
+can use the typed fact for their own buttons or bindings with the native
+mapping off. Target names, list normalization and priority reuse the same
+package rules as pointer snapping and guides.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

@@ -19,6 +19,7 @@ export {
   resolvePortAnchorSnap,
   resolvePortAnchorSnapSettings,
   portAnchorSnapGuideTargets,
+  resolvePortAnchorTargetStep,
 } from './port-anchor-snap';
 export { revealableNodes, revealableEdges } from './group-presentation';
 export {

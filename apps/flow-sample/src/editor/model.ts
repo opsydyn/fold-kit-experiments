@@ -244,6 +244,7 @@ const PortLabelDraft = Schema.Struct({
 });
 
 export const Model = Schema.Struct({
+  keyboardPortTargets: Schema.Boolean,
   overlappingPortSnaps: Schema.Boolean,
   portAnchorGuides: Schema.Boolean,
   customPortAnchorGuides: Schema.Boolean,
@@ -311,6 +312,7 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  keyboardPortTargets: boolean;
   overlappingPortSnaps: boolean;
   portAnchorGuides: boolean;
   customPortAnchorGuides: boolean;
@@ -373,6 +375,7 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    keyboardPortTargets: false,
     overlappingPortSnaps: false,
     portAnchorGuides: false,
     customPortAnchorGuides: false,

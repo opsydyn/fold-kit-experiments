@@ -463,6 +463,16 @@ available. Priority survives example/import changes without graph fields.
 
 [Snap priority screenshot](evidence/port-anchor-priority.png)
 
+Enable **Keyboard snap targets**, then focus a port position handle. Page
+Down/Up cycle enabled corner/midpoint targets; Home/End choose first/last.
+Use the existing per-port, restricted-target and priority demos to change
+the available set and order. Focus stays on the handle after a step; Tab
+exits normally. Status names the selected target, and each different
+position is undoable once. Empty sets and a repeated single target leave
+history unchanged. Arrows and Shift+arrows retain exact 1%/10% movement.
+
+[Keyboard snap targets screenshot](evidence/port-anchor-keyboard.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

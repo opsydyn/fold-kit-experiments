@@ -33,7 +33,11 @@ import {
 } from './group-presentation';
 import { movementReason } from './movement';
 import { expandParents } from './parent-expansion';
-import { resolvePortAnchorSnap, resolvePortAnchorSnapSettings } from './port-anchor-snap';
+import {
+  resolvePortAnchorSnap,
+  resolvePortAnchorSnapSettings,
+  resolvePortAnchorTargetStep,
+} from './port-anchor-snap';
 import { portEditReason } from './port-edit';
 import { resolvePortRemoval } from './port-removal';
 import { resolveBoxSelection } from './selection-preview';
@@ -1706,6 +1710,40 @@ export function updateEditor(
           snapSettings,
         },
       };
+    }
+    case 'PortAnchorTargetStepped': {
+      const node = state.graph.nodes.find(({ id }) => id === event.endpoint.node);
+      const port = node?.ports.find(({ id }) => id === event.endpoint.port);
+      if (!node || !port || !selectionIsVisible(state, 'node', node.id)) return state;
+      const reason = anchorEditReason(state, event.endpoint, policy);
+      if (reason !== null) return { ...state, notice: reason };
+      const settings = anchorSnapSettings(
+        state,
+        policy.portAnchorSnap?.({ node, port }, state.graph),
+      );
+      const selected = resolvePortAnchorTargetStep(portAnchor(port), settings, event.step);
+      const label = `${node.label}: ${port.label ?? port.id}`;
+      if (selected.type === 'empty') {
+        const notice = `No enabled corner or midpoint targets for ${label}.`;
+        return state.notice === notice ? state : { ...state, notice };
+      }
+      const { target } = selected;
+      const name = target.type === 'corner' ? `${target.corner} corner` : `${target.side} midpoint`;
+      const notice = `${label} positioned at ${name}.`;
+      const current = portAnchor(port);
+      if (current.x === target.point.x && current.y === target.point.y)
+        return state.notice === notice ? state : { ...state, notice };
+      const next = updateEditor(
+        state,
+        {
+          type: 'PortPositionsChanged',
+          positions: [
+            { endpoint: event.endpoint, position: { side: port.side, anchor: target.point } },
+          ],
+        },
+        policy,
+      );
+      return next.graph === state.graph ? next : { ...next, notice };
     }
     case 'PortAnchorNudged': {
       const node = state.graph.nodes.find(({ id }) => id === event.endpoint.node);

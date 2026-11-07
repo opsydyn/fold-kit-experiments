@@ -37,6 +37,8 @@ export type FlowPortAnchorHandleContext = Readonly<{
   snapBypassModifier?: FlowPortAnchorSnapBypassModifier | undefined;
   /** Captured effective preferences during a drag, even while temporarily bypassed. */
   snapSettings?: PortAnchorSnapSettings;
+  /** Native target-cycling shortcut mapping is enabled for this view. */
+  keyboardTargets?: boolean;
   disabledReason: string | null;
 }>;
 export type FlowPortAnchorHandleRenderer<M> = (
@@ -54,6 +56,10 @@ export function flowPortAnchorHandle<M>(
   const modifierHint = context.snapBypassModifier
     ? ` Hold ${context.snapBypassModifier} to bypass snapping.`
     : '';
+  const keyboardHint =
+    context.keyboardTargets && !context.active
+      ? ' Page Down/Up cycle snap targets. Home/End choose first/last.'
+      : '';
   return flowWorldOverlayItem(
     h,
     { position: context.position },
@@ -75,7 +81,7 @@ export function flowPortAnchorHandle<M>(
                     ? `Snapped to ${context.snappedMidpoint} midpoint.${modifierHint} Escape cancels.`
                     : context.snappedSide
                       ? `Snapped to ${context.snappedSide} edge.${modifierHint} Escape cancels.`
-                      : `Drag to position.${modifierHint} Arrow keys move 1%; Shift moves 10%. Escape cancels.`),
+                      : `Drag to position.${modifierHint} Arrow keys move 1%; Shift moves 10%.${keyboardHint} Escape cancels.`),
           ),
           ...attributesWithGeometry(h, attributes, {
             'pointer-events': 'auto',
@@ -83,6 +89,9 @@ export function flowPortAnchorHandle<M>(
             transform: 'translate(-50%, -50%)',
           }),
           h.Type('button'),
+          ...(context.keyboardTargets && !context.active
+            ? [h.Attribute('aria-keyshortcuts', 'PageDown PageUp Home End')]
+            : []),
           h.Disabled(context.disabledReason !== null),
           h.DataAttribute('flow-anchor-node', context.node.id),
           h.DataAttribute('flow-anchor-port', context.port.id),
@@ -112,6 +121,7 @@ export function portAnchorHandleViews<M>(
   canEditPort: EditorPolicy['canEditPort'],
   render: FlowPortAnchorHandleRenderer<M> | undefined,
   bypassModifier?: FlowPortAnchorSnapBypassModifier | undefined,
+  keyboardTargets?: boolean | undefined,
 ): readonly Html[] {
   if (!enabled) return [];
   const configured = enabled === true ? undefined : enabled.offset;
@@ -148,6 +158,7 @@ export function portAnchorHandleViews<M>(
           disabledReason: state.readOnly
             ? 'This diagram is read-only.'
             : portEditReason({ operation: 'position', node, port }, state.graph, canEditPort),
+          keyboardTargets: keyboardTargets === true,
         };
         const custom = render?.(context, h);
         if (custom === null) return [];

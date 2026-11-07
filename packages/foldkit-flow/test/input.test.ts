@@ -26,6 +26,88 @@ afterEach(() => {
   else Reflect.deleteProperty(globalThis, 'KeyboardEvent');
 });
 
+test('keyboard target navigation is opt-in, scoped, modifier-safe and ignores repeats and disabled controls', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'KeyboardEvent', {
+    value: window.KeyboardEvent,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  const surface = document.createElement('div');
+  surface.dataset.flowSurface = '';
+  surface.innerHTML =
+    '<button data-flow-anchor-node="a" data-flow-anchor-port="p">Position</button><input><button>Other</button>';
+  const handle = surface.querySelector('button');
+  const events: EditorEvent[] = [];
+  const release = bindInput(surface, (event) => events.push(event));
+  events.length = 0;
+  const key = (
+    value: string,
+    options: KeyboardEventInit = {},
+    target: EventTarget | null = handle,
+  ) => {
+    const event = new KeyboardEvent('keydown', {
+      key: value,
+      bubbles: true,
+      cancelable: true,
+      ...options,
+    });
+    target?.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  expect(key('PageDown')).toBe(false);
+  expect(events).toEqual([]);
+  surface.dataset.flowAnchorKeyboardTargets = 'true';
+  for (const [value, step] of [
+    ['PageDown', 'next'],
+    ['PageUp', 'previous'],
+    ['Home', 'first'],
+    ['End', 'last'],
+  ] as const) {
+    expect(key(value)).toBe(true);
+    expect(events.pop()).toEqual({
+      type: 'PortAnchorTargetStepped',
+      endpoint: { node: 'a', port: 'p' },
+      step,
+    });
+  }
+  expect(key('PageDown', { repeat: true })).toBe(true);
+  expect(events).toEqual([]);
+  for (const modifier of [
+    { altKey: true },
+    { ctrlKey: true },
+    { metaKey: true },
+    { shiftKey: true },
+  ])
+    expect(key('PageDown', modifier)).toBe(false);
+  const input = surface.querySelector('input');
+  expect(key('Home', {}, input)).toBe(false);
+  expect(key('PageDown', {}, surface.querySelector('button:last-child'))).toBe(false);
+  handle?.setAttribute('disabled', '');
+  expect(key('PageDown')).toBe(false);
+  handle?.removeAttribute('disabled');
+  surface.dataset.flowReadonly = 'true';
+  expect(key('PageDown')).toBe(false);
+  surface.dataset.flowReadonly = 'false';
+  expect(events).toEqual([]);
+  expect(key('ArrowRight')).toBe(true);
+  expect(events.pop()).toEqual({
+    type: 'PortAnchorNudged',
+    endpoint: { node: 'a', port: 'p' },
+    delta: { x: 0.01, y: 0 },
+  });
+  expect(key('ArrowRight', { shiftKey: true })).toBe(true);
+  expect(events.pop()).toEqual({
+    type: 'PortAnchorNudged',
+    endpoint: { node: 'a', port: 'p' },
+    delta: { x: 0.1, y: 0 },
+  });
+  release();
+  events.length = 0;
+  expect(key('PageDown')).toBe(false);
+  expect(events).toEqual([]);
+});
+
 test('input cleanup removes listeners and text fields retain their editing keys', () => {
   const window = new Window();
   Object.defineProperty(globalThis, 'KeyboardEvent', {

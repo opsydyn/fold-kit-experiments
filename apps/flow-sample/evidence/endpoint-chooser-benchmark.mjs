@@ -25,6 +25,7 @@ await new Promise((resolve, reject) =>
 
 const profilePath = process.env.FLOW_CHOOSER_CPU_PROFILE;
 const retained = process.env.FLOW_CHOOSER_BENCH_RETAINED === '1';
+const retainedCreation = process.env.FLOW_CHOOSER_BENCH_RETAINED_CREATION === '1';
 const viewport = { width: 1280, height: 1100 };
 const runs = profilePath ? 1 : 3;
 const warmup = 4;
@@ -48,7 +49,10 @@ if (retained)
   fixtures.splice(
     0,
     fixtures.length,
-    ...fixtures.filter((fixture) => fixture.large && fixture.kind === 'reconnection'),
+    ...fixtures.filter(
+      (fixture) =>
+        fixture.large && fixture.kind === (retainedCreation ? 'creation' : 'reconnection'),
+    ),
   );
 if (reverse) fixtures.reverse();
 

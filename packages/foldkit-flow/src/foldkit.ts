@@ -395,7 +395,7 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     canEditPort?: EditorPolicy['canEditPort'];
     /** Replaces a complete label. Compose flowPortLabel to retain anchoring. Null hides it. */
     renderPortLabel?: FlowPortLabelRenderer<M>;
-    /** Use a separate FoldKit lazy slot per canvas to retain the built-in node layer. */
+    /** Per-canvas FoldKit lazy slot for built-in nodes, including pending creation feedback. */
     nodeViewCache?: ReturnType<typeof createLazy> | undefined;
     /** Replaces the complete measured node shell. Compose the public frame and interaction primitives. */
     renderNodeShell?:
@@ -1432,6 +1432,7 @@ function retainedNodeLayer<M>(
   mountedMask: string | undefined,
   selectedNodes: readonly string[],
   readOnly: boolean,
+  connection: EditorState['connection'],
   descriptionId: string,
   resizeHandles: boolean,
   contextEnabled: boolean,
@@ -1464,7 +1465,7 @@ function retainedNodeLayer<M>(
       mountedMask === undefined
         ? graph.nodes
         : graph.nodes.filter((_, index) => mountedMask[index] === '1'),
-      { graph, selectedNodes, readOnly, connection: null },
+      { graph, selectedNodes, readOnly, connection },
       options,
       resolveFlowDiagnostics({}),
       descriptionId,
@@ -1729,7 +1730,6 @@ export function flowView<M>(
   const canRetainNodes =
     presentation.nodes === state.graph.nodes &&
     (state.gesture.type === 'idle' || state.gesture.type === 'pan') &&
-    !state.connection &&
     !state.context &&
     !options.renderNodeShell &&
     !options.renderPort &&
@@ -1747,6 +1747,7 @@ export function flowView<M>(
           mountedNodeMask(state.graph.nodes, canvas.nodes),
           state.selectedNodes,
           state.readOnly,
+          state.connection,
           descriptionId,
           Boolean(options.resizeHandles),
           Boolean(contextEnabled),

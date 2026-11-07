@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Extend opt-in built-in node retention to pending connection creation, refreshing
+  source/port feedback on changes and preserving policy/custom-renderer fallbacks.
+
 - Index port compatibility and duplicate connections once per chooser resolution,
   and allocate each creation proposal ID once, preserving fresh policy checks.
 

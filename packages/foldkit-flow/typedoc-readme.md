@@ -297,8 +297,11 @@ those hidden by the editor's visibility settings.
 camera to the version 1 graph document. Graph-only v1 files remain valid.
 
 `FlowViewOptions.nodeViewCache` accepts a per-canvas FoldKit lazy slot to
-retain built-in node and port views across eligible camera-only updates.
-With culling, the slot tracks the currently mounted node set.
+retain built-in node and port views across eligible camera and chooser updates,
+including pending connection creation. The staged source is a lazy input, so
+changing/cancelling it refreshes native port feedback; unrelated filtering can
+reuse the layer. With culling, the slot tracks the mounted set and pins the source.
+Custom ports, node policies and editing gestures still use the live path.
 
 `FlowViewOptions.viewportCulling` opts into mounting canvas items near the
 measured viewport. `FlowViewportCulling` accepts a CSS-pixel overscan value.

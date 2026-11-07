@@ -1,0 +1,14 @@
+{
+  "parentHead": "c7542d3c1b1af96a10f12d069237ab1e2c909f2b",
+  "sourceState": "working tree before commit; production edits included",
+  "baselineProduction": {
+    "packages/foldkit-flow/src/foldkit.ts": "ce4d142ff40af2c6bf28ddfe4f1312359da753a59b0c257e9387f9c1fa34c2e0"
+  },
+  "measuredFiles": {
+    "packages/foldkit-flow/src/foldkit.ts": "d35db246ab030c11112975274ecc730c036055e27b8b59837b225798b866f965",
+    "packages/foldkit-flow/test/node-retention.test.ts": "7f066b069ab3179026fb3a734e27f426a288949e38a66d04aa0964a8b9cd2894",
+    "packages/foldkit-flow/bench/choosers.ts": "4aff2f5e364cad4a00fb9bd3b86939d3a3e27b1cebec273ddfdbe443becb4e58",
+    "apps/flow-sample/evidence/endpoint-chooser-benchmark.mjs": "4776cfb880d9cdc8654d1b7d7f9957cd59b59713f4fa4cdbc4469f169e4e06dc",
+    "apps/flow-sample/evidence/endpoint-creation-retention-check.mjs": "cf947f89e1fe7e405058ac39ad3db4f851d4572215152887d3e585832b5240c0"
+  }
+}

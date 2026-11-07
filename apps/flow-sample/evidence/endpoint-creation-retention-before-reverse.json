@@ -1,0 +1,1285 @@
+{
+  "productionHead": "c7542d3c1b1af96a10f12d069237ab1e2c909f2b",
+  "browser": "151.0.7922.34",
+  "machine": {
+    "cpu": "Apple M4 Pro",
+    "arch": "arm64",
+    "os": "25.6.0"
+  },
+  "viewport": {
+    "width": 1280,
+    "height": 1100
+  },
+  "runs": 3,
+  "warmup": 4,
+  "samplesPerRun": 20,
+  "order": "reverse",
+  "cpuThrottling": "none",
+  "retainedNodeViews": true,
+  "profileOnly": false,
+  "method": "serial direct trusted keyboard z/Backspace inputs alternating broad/selective result sets with no results; DOM acknowledgement then next rAF; not INP or paint latency",
+  "results": [
+    {
+      "name": "large-creation-selective",
+      "nodes": 320,
+      "edges": 452,
+      "candidates": 320,
+      "expandedOptions": 17,
+      "narrowedOptions": 1,
+      "retainedLayerMounted": true,
+      "pageElements": 7952,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "summaries": {
+        "inputToDomMs": {
+          "p50Ms": 42.40000009536743,
+          "p95Ms": 44.700000047683716
+        },
+        "listenerToDomMs": {
+          "p50Ms": 42.300000071525574,
+          "p95Ms": 44.700000047683716
+        },
+        "inputToFrameMs": {
+          "p50Ms": 48.700000047683716,
+          "p95Ms": 51.800000071525574
+        },
+        "keydownToFrameMs": {
+          "p50Ms": 49.200000047683716,
+          "p95Ms": 52.200000047683716
+        }
+      },
+      "samples": [
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.199999928474426,
+          "listenerToDomMs": 41.09999990463257,
+          "inputToFrameMs": 48.299999952316284,
+          "keydownToFrameMs": 48.5
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 41.39999997615814,
+          "listenerToDomMs": 41.39999997615814,
+          "inputToFrameMs": 48.199999928474426,
+          "keydownToFrameMs": 48.699999928474426
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.800000071525574,
+          "listenerToDomMs": 41.700000047683716,
+          "inputToFrameMs": 47.90000009536743,
+          "keydownToFrameMs": 48.200000047683716
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.699999928474426,
+          "listenerToDomMs": 42.699999928474426,
+          "inputToFrameMs": 49.299999952316284,
+          "keydownToFrameMs": 49.699999928474426
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.09999990463257,
+          "listenerToDomMs": 42,
+          "inputToFrameMs": 48.299999952316284,
+          "keydownToFrameMs": 48.60000002384186
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 41.90000009536743,
+          "listenerToDomMs": 41.800000071525574,
+          "inputToFrameMs": 48.40000009536743,
+          "keydownToFrameMs": 48.60000002384186
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.799999952316284,
+          "listenerToDomMs": 42.799999952316284,
+          "inputToFrameMs": 49.10000002384186,
+          "keydownToFrameMs": 49.39999997615814
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 43.5,
+          "listenerToDomMs": 43.5,
+          "inputToFrameMs": 49.89999997615814,
+          "keydownToFrameMs": 50.199999928474426
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.40000009536743,
+          "listenerToDomMs": 42.200000047683716,
+          "inputToFrameMs": 48.300000071525574,
+          "keydownToFrameMs": 48.5
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 57.800000071525574,
+          "listenerToDomMs": 57.700000047683716,
+          "inputToFrameMs": 64.30000007152557,
+          "keydownToFrameMs": 64.70000004768372
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.89999997615814,
+          "listenerToDomMs": 42.89999997615814,
+          "inputToFrameMs": 48.89999997615814,
+          "keydownToFrameMs": 49.699999928474426
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.59999990463257,
+          "listenerToDomMs": 42.5,
+          "inputToFrameMs": 49.39999997615814,
+          "keydownToFrameMs": 49.700000047683716
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.700000047683716,
+          "listenerToDomMs": 41.700000047683716,
+          "inputToFrameMs": 48,
+          "keydownToFrameMs": 48.299999952316284
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 43.300000071525574,
+          "listenerToDomMs": 43.300000071525574,
+          "inputToFrameMs": 49.800000071525574,
+          "keydownToFrameMs": 50.200000047683716
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.699999928474426,
+          "listenerToDomMs": 42.60000002384186,
+          "inputToFrameMs": 48.799999952316284,
+          "keydownToFrameMs": 49.10000002384186
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.799999952316284,
+          "listenerToDomMs": 42.699999928474426,
+          "inputToFrameMs": 49.299999952316284,
+          "keydownToFrameMs": 49.59999990463257
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.59999990463257,
+          "listenerToDomMs": 41.5,
+          "inputToFrameMs": 47.5,
+          "keydownToFrameMs": 47.800000071525574
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.700000047683716,
+          "listenerToDomMs": 42.60000002384186,
+          "inputToFrameMs": 48.89999997615814,
+          "keydownToFrameMs": 49.5
+        },
+        {
+          "run": 0,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.5,
+          "listenerToDomMs": 42.5,
+          "inputToFrameMs": 48.5,
+          "keydownToFrameMs": 48.799999952316284
+        },
+        {
+          "run": 0,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 44.5,
+          "listenerToDomMs": 44.39999997615814,
+          "inputToFrameMs": 51,
+          "keydownToFrameMs": 51.300000071525574
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 44.700000047683716,
+          "listenerToDomMs": 44.700000047683716,
+          "inputToFrameMs": 51,
+          "keydownToFrameMs": 51.39999997615814
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 39.700000047683716,
+          "listenerToDomMs": 39.60000002384186,
+          "inputToFrameMs": 46.10000002384186,
+          "keydownToFrameMs": 46.299999952316284
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 62.90000009536743,
+          "listenerToDomMs": 62.800000071525574,
+          "inputToFrameMs": 69.40000009536743,
+          "keydownToFrameMs": 70.30000007152557
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 36.200000047683716,
+          "listenerToDomMs": 36.200000047683716,
+          "inputToFrameMs": 42.800000071525574,
+          "keydownToFrameMs": 46.40000009536743
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.200000047683716,
+          "listenerToDomMs": 42.200000047683716,
+          "inputToFrameMs": 48.10000002384186,
+          "keydownToFrameMs": 48.39999997615814
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 44.10000002384186,
+          "listenerToDomMs": 44,
+          "inputToFrameMs": 50.700000047683716,
+          "keydownToFrameMs": 51
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.39999997615814,
+          "listenerToDomMs": 41.299999952316284,
+          "inputToFrameMs": 47.39999997615814,
+          "keydownToFrameMs": 47.699999928474426
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.300000071525574,
+          "listenerToDomMs": 42.300000071525574,
+          "inputToFrameMs": 48.60000002384186,
+          "keydownToFrameMs": 49.200000047683716
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.699999928474426,
+          "listenerToDomMs": 41.5,
+          "inputToFrameMs": 47.799999952316284,
+          "keydownToFrameMs": 48.10000002384186
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.89999997615814,
+          "listenerToDomMs": 42.700000047683716,
+          "inputToFrameMs": 49.10000002384186,
+          "keydownToFrameMs": 49.700000047683716
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.299999952316284,
+          "listenerToDomMs": 42.299999952316284,
+          "inputToFrameMs": 48.299999952316284,
+          "keydownToFrameMs": 49
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 43.10000002384186,
+          "listenerToDomMs": 43,
+          "inputToFrameMs": 49.300000071525574,
+          "keydownToFrameMs": 50.10000002384186
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.5,
+          "listenerToDomMs": 41.5,
+          "inputToFrameMs": 47.40000009536743,
+          "keydownToFrameMs": 47.700000047683716
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.09999990463257,
+          "listenerToDomMs": 42.09999990463257,
+          "inputToFrameMs": 48.299999952316284,
+          "keydownToFrameMs": 48.700000047683716
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.5,
+          "listenerToDomMs": 41.5,
+          "inputToFrameMs": 47.5,
+          "keydownToFrameMs": 48.10000002384186
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.800000071525574,
+          "listenerToDomMs": 42.700000047683716,
+          "inputToFrameMs": 49.10000002384186,
+          "keydownToFrameMs": 49.39999997615814
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.700000047683716,
+          "listenerToDomMs": 41.60000002384186,
+          "inputToFrameMs": 47.700000047683716,
+          "keydownToFrameMs": 48.700000047683716
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.59999990463257,
+          "listenerToDomMs": 42.5,
+          "inputToFrameMs": 48.89999997615814,
+          "keydownToFrameMs": 49.5
+        },
+        {
+          "run": 1,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.10000002384186,
+          "listenerToDomMs": 41.10000002384186,
+          "inputToFrameMs": 46.89999997615814,
+          "keydownToFrameMs": 47.39999997615814
+        },
+        {
+          "run": 1,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 44.5,
+          "listenerToDomMs": 44.39999997615814,
+          "inputToFrameMs": 50.799999952316284,
+          "keydownToFrameMs": 51
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 64.30000007152557,
+          "listenerToDomMs": 64.30000007152557,
+          "inputToFrameMs": 70.89999997615814,
+          "keydownToFrameMs": 71.29999995231628
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 35.199999928474426,
+          "listenerToDomMs": 35.199999928474426,
+          "inputToFrameMs": 42.199999928474426,
+          "keydownToFrameMs": 45.5
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.199999928474426,
+          "listenerToDomMs": 41.10000002384186,
+          "inputToFrameMs": 47.199999928474426,
+          "keydownToFrameMs": 47.5
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.60000002384186,
+          "listenerToDomMs": 42.60000002384186,
+          "inputToFrameMs": 48.90000009536743,
+          "keydownToFrameMs": 49.300000071525574
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.89999997615814,
+          "listenerToDomMs": 42.89999997615814,
+          "inputToFrameMs": 48.89999997615814,
+          "keydownToFrameMs": 49.200000047683716
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.699999928474426,
+          "listenerToDomMs": 42.60000002384186,
+          "inputToFrameMs": 49.199999928474426,
+          "keydownToFrameMs": 49.39999997615814
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.10000002384186,
+          "listenerToDomMs": 42,
+          "inputToFrameMs": 48.10000002384186,
+          "keydownToFrameMs": 48.300000071525574
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 41.699999928474426,
+          "listenerToDomMs": 41.699999928474426,
+          "inputToFrameMs": 48.299999952316284,
+          "keydownToFrameMs": 48.700000047683716
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41,
+          "listenerToDomMs": 41,
+          "inputToFrameMs": 47.10000002384186,
+          "keydownToFrameMs": 47.39999997615814
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 44,
+          "listenerToDomMs": 44,
+          "inputToFrameMs": 51.800000071525574,
+          "keydownToFrameMs": 52.200000047683716
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.200000047683716,
+          "listenerToDomMs": 41.10000002384186,
+          "inputToFrameMs": 48.300000071525574,
+          "keydownToFrameMs": 48.5
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.10000002384186,
+          "listenerToDomMs": 42.10000002384186,
+          "inputToFrameMs": 48.89999997615814,
+          "keydownToFrameMs": 49.299999952316284
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.59999990463257,
+          "listenerToDomMs": 42.5,
+          "inputToFrameMs": 49.299999952316284,
+          "keydownToFrameMs": 49.5
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.5,
+          "listenerToDomMs": 42.5,
+          "inputToFrameMs": 49.299999952316284,
+          "keydownToFrameMs": 49.699999928474426
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.800000071525574,
+          "listenerToDomMs": 40.700000047683716,
+          "inputToFrameMs": 47.200000047683716,
+          "keydownToFrameMs": 47.5
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 42.200000047683716,
+          "listenerToDomMs": 42.10000002384186,
+          "inputToFrameMs": 48.700000047683716,
+          "keydownToFrameMs": 49.299999952316284
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.89999997615814,
+          "listenerToDomMs": 42.89999997615814,
+          "inputToFrameMs": 49,
+          "keydownToFrameMs": 49.299999952316284
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 41.699999928474426,
+          "listenerToDomMs": 41.60000002384186,
+          "inputToFrameMs": 48.199999928474426,
+          "keydownToFrameMs": 48.5
+        },
+        {
+          "run": 2,
+          "query": "load-20-z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 44.199999928474426,
+          "listenerToDomMs": 44,
+          "inputToFrameMs": 50.199999928474426,
+          "keydownToFrameMs": 50.39999997615814
+        },
+        {
+          "run": 2,
+          "query": "load-20-",
+          "direction": "expand",
+          "optionCount": 17,
+          "inputToDomMs": 43,
+          "listenerToDomMs": 42.89999997615814,
+          "inputToFrameMs": 49.39999997615814,
+          "keydownToFrameMs": 49.700000047683716
+        }
+      ]
+    },
+    {
+      "name": "large-creation-broad",
+      "nodes": 320,
+      "edges": 452,
+      "candidates": 320,
+      "expandedOptions": 321,
+      "narrowedOptions": 1,
+      "retainedLayerMounted": true,
+      "pageElements": 8562,
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "summaries": {
+        "inputToDomMs": {
+          "p50Ms": 40.89999997615814,
+          "p95Ms": 45.5
+        },
+        "listenerToDomMs": {
+          "p50Ms": 40.799999952316284,
+          "p95Ms": 45.300000071525574
+        },
+        "inputToFrameMs": {
+          "p50Ms": 48.10000002384186,
+          "p95Ms": 53.199999928474426
+        },
+        "keydownToFrameMs": {
+          "p50Ms": 48.800000071525574,
+          "p95Ms": 53.5
+        }
+      },
+      "samples": [
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.89999997615814,
+          "listenerToDomMs": 40.799999952316284,
+          "inputToFrameMs": 47.799999952316284,
+          "keydownToFrameMs": 48
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 42.09999990463257,
+          "listenerToDomMs": 42,
+          "inputToFrameMs": 50.199999928474426,
+          "keydownToFrameMs": 50.60000002384186
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39.89999997615814,
+          "listenerToDomMs": 39.800000071525574,
+          "inputToFrameMs": 46.5,
+          "keydownToFrameMs": 46.90000009536743
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.5,
+          "listenerToDomMs": 43.39999997615814,
+          "inputToFrameMs": 51.39999997615814,
+          "keydownToFrameMs": 51.699999928474426
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.799999952316284,
+          "listenerToDomMs": 40.700000047683716,
+          "inputToFrameMs": 47.39999997615814,
+          "keydownToFrameMs": 47.700000047683716
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44.5,
+          "listenerToDomMs": 44.299999952316284,
+          "inputToFrameMs": 52.10000002384186,
+          "keydownToFrameMs": 52.5
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 38.800000071525574,
+          "listenerToDomMs": 38.700000047683716,
+          "inputToFrameMs": 45.200000047683716,
+          "keydownToFrameMs": 45.700000047683716
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 45.89999997615814,
+          "listenerToDomMs": 45.800000071525574,
+          "inputToFrameMs": 53.39999997615814,
+          "keydownToFrameMs": 53.700000047683716
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39.39999997615814,
+          "listenerToDomMs": 39.299999952316284,
+          "inputToFrameMs": 45.89999997615814,
+          "keydownToFrameMs": 46.299999952316284
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 42.799999952316284,
+          "listenerToDomMs": 42.700000047683716,
+          "inputToFrameMs": 50.799999952316284,
+          "keydownToFrameMs": 51.200000047683716
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.800000071525574,
+          "listenerToDomMs": 40.60000002384186,
+          "inputToFrameMs": 47.39999997615814,
+          "keydownToFrameMs": 47.89999997615814
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44,
+          "listenerToDomMs": 44,
+          "inputToFrameMs": 52,
+          "keydownToFrameMs": 52.40000009536743
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39.699999928474426,
+          "listenerToDomMs": 39.60000002384186,
+          "inputToFrameMs": 46.39999997615814,
+          "keydownToFrameMs": 46.800000071525574
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44,
+          "listenerToDomMs": 43.799999952316284,
+          "inputToFrameMs": 51.89999997615814,
+          "keydownToFrameMs": 52.299999952316284
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.40000009536743,
+          "listenerToDomMs": 40.300000071525574,
+          "inputToFrameMs": 46.90000009536743,
+          "keydownToFrameMs": 47.40000009536743
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.699999928474426,
+          "listenerToDomMs": 43.5,
+          "inputToFrameMs": 51.699999928474426,
+          "keydownToFrameMs": 52.09999990463257
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.60000002384186,
+          "listenerToDomMs": 40.40000009536743,
+          "inputToFrameMs": 47.299999952316284,
+          "keydownToFrameMs": 47.699999928474426
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.09999990463257,
+          "listenerToDomMs": 42.89999997615814,
+          "inputToFrameMs": 50.799999952316284,
+          "keydownToFrameMs": 51.39999997615814
+        },
+        {
+          "run": 0,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39.89999997615814,
+          "listenerToDomMs": 39.89999997615814,
+          "inputToFrameMs": 46.60000002384186,
+          "keydownToFrameMs": 47.10000002384186
+        },
+        {
+          "run": 0,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.60000002384186,
+          "listenerToDomMs": 43.60000002384186,
+          "inputToFrameMs": 51.300000071525574,
+          "keydownToFrameMs": 52
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39,
+          "listenerToDomMs": 39,
+          "inputToFrameMs": 45.60000002384186,
+          "keydownToFrameMs": 46.10000002384186
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 64.10000002384186,
+          "listenerToDomMs": 63.89999997615814,
+          "inputToFrameMs": 72.10000002384186,
+          "keydownToFrameMs": 72.5
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 35.09999990463257,
+          "listenerToDomMs": 35,
+          "inputToFrameMs": 41.799999952316284,
+          "keydownToFrameMs": 42
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 40,
+          "listenerToDomMs": 39.89999997615814,
+          "inputToFrameMs": 47.800000071525574,
+          "keydownToFrameMs": 51.700000047683716
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39.200000047683716,
+          "listenerToDomMs": 39.10000002384186,
+          "inputToFrameMs": 45.799999952316284,
+          "keydownToFrameMs": 46.09999990463257
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.59999990463257,
+          "listenerToDomMs": 43.59999990463257,
+          "inputToFrameMs": 51.199999928474426,
+          "keydownToFrameMs": 51.60000002384186
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.5,
+          "listenerToDomMs": 40.40000009536743,
+          "inputToFrameMs": 46.89999997615814,
+          "keydownToFrameMs": 47.300000071525574
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44.200000047683716,
+          "listenerToDomMs": 44,
+          "inputToFrameMs": 51.800000071525574,
+          "keydownToFrameMs": 52
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.300000071525574,
+          "listenerToDomMs": 40.200000047683716,
+          "inputToFrameMs": 46.60000002384186,
+          "keydownToFrameMs": 47
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44,
+          "listenerToDomMs": 43.799999952316284,
+          "inputToFrameMs": 51.60000002384186,
+          "keydownToFrameMs": 51.89999997615814
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40,
+          "listenerToDomMs": 40,
+          "inputToFrameMs": 46.300000071525574,
+          "keydownToFrameMs": 46.700000047683716
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44.5,
+          "listenerToDomMs": 44.39999997615814,
+          "inputToFrameMs": 52.10000002384186,
+          "keydownToFrameMs": 52.5
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.59999990463257,
+          "listenerToDomMs": 40.39999997615814,
+          "inputToFrameMs": 46.89999997615814,
+          "keydownToFrameMs": 47.300000071525574
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.89999997615814,
+          "listenerToDomMs": 43.699999928474426,
+          "inputToFrameMs": 51.5,
+          "keydownToFrameMs": 51.799999952316284
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39.799999952316284,
+          "listenerToDomMs": 39.799999952316284,
+          "inputToFrameMs": 46.199999928474426,
+          "keydownToFrameMs": 46.699999928474426
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44.89999997615814,
+          "listenerToDomMs": 44.799999952316284,
+          "inputToFrameMs": 52.799999952316284,
+          "keydownToFrameMs": 53.199999928474426
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 42.60000002384186,
+          "listenerToDomMs": 42.39999997615814,
+          "inputToFrameMs": 49.300000071525574,
+          "keydownToFrameMs": 49.700000047683716
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 40.200000047683716,
+          "listenerToDomMs": 40.200000047683716,
+          "inputToFrameMs": 48.200000047683716,
+          "keydownToFrameMs": 49.10000002384186
+        },
+        {
+          "run": 1,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.200000047683716,
+          "listenerToDomMs": 40.10000002384186,
+          "inputToFrameMs": 47.10000002384186,
+          "keydownToFrameMs": 47.5
+        },
+        {
+          "run": 1,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.800000071525574,
+          "listenerToDomMs": 43.800000071525574,
+          "inputToFrameMs": 51.60000002384186,
+          "keydownToFrameMs": 52
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 62.5,
+          "listenerToDomMs": 62.39999997615814,
+          "inputToFrameMs": 69.39999997615814,
+          "keydownToFrameMs": 70
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 36,
+          "listenerToDomMs": 35.89999997615814,
+          "inputToFrameMs": 43.60000002384186,
+          "keydownToFrameMs": 47.200000047683716
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39.10000002384186,
+          "listenerToDomMs": 39,
+          "inputToFrameMs": 45.40000009536743,
+          "keydownToFrameMs": 45.60000002384186
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44,
+          "listenerToDomMs": 43.89999997615814,
+          "inputToFrameMs": 52,
+          "keydownToFrameMs": 52.39999997615814
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 38.89999997615814,
+          "listenerToDomMs": 38.799999952316284,
+          "inputToFrameMs": 45.39999997615814,
+          "keydownToFrameMs": 45.89999997615814
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 45.5,
+          "listenerToDomMs": 45.300000071525574,
+          "inputToFrameMs": 53.199999928474426,
+          "keydownToFrameMs": 53.5
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41,
+          "listenerToDomMs": 40.800000071525574,
+          "inputToFrameMs": 48.10000002384186,
+          "keydownToFrameMs": 48.40000009536743
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 40.799999952316284,
+          "listenerToDomMs": 40.699999928474426,
+          "inputToFrameMs": 48.5,
+          "keydownToFrameMs": 48.800000071525574
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.800000071525574,
+          "listenerToDomMs": 40.60000002384186,
+          "inputToFrameMs": 47.300000071525574,
+          "keydownToFrameMs": 47.60000002384186
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.60000002384186,
+          "listenerToDomMs": 43.39999997615814,
+          "inputToFrameMs": 51.200000047683716,
+          "keydownToFrameMs": 51.60000002384186
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 41.299999952316284,
+          "listenerToDomMs": 41,
+          "inputToFrameMs": 47.700000047683716,
+          "keydownToFrameMs": 48.10000002384186
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44.799999952316284,
+          "listenerToDomMs": 44.60000002384186,
+          "inputToFrameMs": 52.299999952316284,
+          "keydownToFrameMs": 52.699999928474426
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 39.300000071525574,
+          "listenerToDomMs": 39.300000071525574,
+          "inputToFrameMs": 45.800000071525574,
+          "keydownToFrameMs": 46.300000071525574
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.699999928474426,
+          "listenerToDomMs": 43.5,
+          "inputToFrameMs": 51.89999997615814,
+          "keydownToFrameMs": 52.299999952316284
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40,
+          "listenerToDomMs": 39.89999997615814,
+          "inputToFrameMs": 46.89999997615814,
+          "keydownToFrameMs": 47.39999997615814
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 43.89999997615814,
+          "listenerToDomMs": 43.800000071525574,
+          "inputToFrameMs": 52.09999990463257,
+          "keydownToFrameMs": 52.39999997615814
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 40.199999928474426,
+          "listenerToDomMs": 40.09999990463257,
+          "inputToFrameMs": 47.10000002384186,
+          "keydownToFrameMs": 47.40000009536743
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44.39999997615814,
+          "listenerToDomMs": 44.299999952316284,
+          "inputToFrameMs": 52.89999997615814,
+          "keydownToFrameMs": 53.299999952316284
+        },
+        {
+          "run": 2,
+          "query": "z",
+          "direction": "narrow",
+          "optionCount": 1,
+          "inputToDomMs": 38.200000047683716,
+          "listenerToDomMs": 38.10000002384186,
+          "inputToFrameMs": 44.800000071525574,
+          "keydownToFrameMs": 45.200000047683716
+        },
+        {
+          "run": 2,
+          "query": "",
+          "direction": "expand",
+          "optionCount": 321,
+          "inputToDomMs": 44.199999928474426,
+          "listenerToDomMs": 44.09999990463257,
+          "inputToFrameMs": 52.10000002384186,
+          "keydownToFrameMs": 52.60000002384186
+        }
+      ]
+    }
+  ]
+}

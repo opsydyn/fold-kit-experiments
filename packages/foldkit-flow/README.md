@@ -1518,7 +1518,7 @@ history, routes, and active gestures are session state. The viewport must
 have finite pan coordinates and a positive finite zoom. Hosts using custom
 zoom limits can bound the saved zoom before initializing the editor.
 
-### Retain built-in node views during camera updates
+### Retain built-in node views during camera and chooser updates
 
 Pass one FoldKit `createLazy()` slot per canvas as `nodeViewCache`.
 Keep `onEvent` and any `renderNode` callback stable to reuse the node and
@@ -1526,13 +1526,17 @@ port layer across camera-only renders. With viewport culling enabled, the
 layer is reused while the mounted node set stays the same. Entering or leaving
 the overscan area rebuilds the layer from the current graph. The slot holds
 one layer per canvas. Graph edits, selection changes, and changes to the
-other layer inputs also rebuild it.
+other layer inputs also rebuild it. Pending connection creation is eligible:
+the staged source is a layer input, so source changes, cancellation and creation
+refresh native port feedback while unrelated chooser filtering can reuse the layer.
+Read-only changes also rebuild the layer. With culling, a staged source remains
+pinned until cancellation or creation changes the mounted set.
 
 The prototype uses the live path for custom node shells, node policies,
 node filtering through visibility or group collapse, open context panels,
-and editing gestures. The
-retained context trigger resolves its anchor against the latest viewport
-when activated.
+custom ports and editing gestures. Port policies use the live path so changing
+protection reasons remain current. The retained context trigger resolves its
+anchor against the latest viewport when activated.
 
 ### Cull canvas items outside the viewport
 
@@ -2100,4 +2104,6 @@ measures chooser resolution, projection and field construction. The
 cover reproducible workbench typing measurements and the retained-node comparison.
 The [validation indexing follow-up](../../apps/flow-sample/evidence/endpoint-chooser-indexing.md)
 compares per-resolution indexes against that baseline with fresh policy checks.
+The [pending-creation retention follow-up](../../apps/flow-sample/evidence/endpoint-creation-retention.md)
+adds retained-creation comparisons and production feedback checks.
 These are repo-only diagnostic tools with no machine-dependent CI timing gate.

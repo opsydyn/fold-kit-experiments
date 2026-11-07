@@ -33,6 +33,7 @@ import {
 } from './group-presentation';
 import { movementReason } from './movement';
 import { expandParents } from './parent-expansion';
+import { resolvePortAnchorSnap } from './port-anchor-snap';
 import { portEditReason } from './port-edit';
 import { resolvePortRemoval } from './port-removal';
 import { resolveBoxSelection } from './selection-preview';
@@ -102,6 +103,12 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
   if (!Number.isFinite(fitViewDuration) || fitViewDuration < 0)
     throw new FlowError('invalid-edit', 'Fit view duration must be finite and non-negative');
   const connectionSnapHysteresis = options.connectionSnapHysteresis ?? 0;
+  const portAnchorSnapDistance = options.portAnchorSnapDistance ?? 0;
+  if (!Number.isFinite(portAnchorSnapDistance) || portAnchorSnapDistance < 0)
+    throw new FlowError(
+      'invalid-edit',
+      'Port anchor snap distance must be finite and non-negative',
+    );
   if (!Number.isFinite(connectionSnapHysteresis) || connectionSnapHysteresis < 0)
     throw new FlowError(
       'invalid-edit',
@@ -129,6 +136,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     selectedEdges: [],
     connection: null,
     connectionSnapHysteresis,
+    portAnchorSnapDistance,
     gesture: { type: 'idle' },
     past: [],
     future: [],
@@ -927,6 +935,15 @@ export function updateEditor(
       )
         return state;
       return { ...state, connectionSnapHysteresis: event.distance };
+    case 'PortAnchorSnapDistanceChanged':
+      if (
+        state.gesture.type !== 'idle' ||
+        !Number.isFinite(event.distance) ||
+        event.distance < 0 ||
+        event.distance === (state.portAnchorSnapDistance ?? 0)
+      )
+        return state;
+      return { ...state, portAnchorSnapDistance: event.distance };
     case 'SelectionModeToggled':
       if (state.gesture.type !== 'idle') return state;
       return { ...state, selectionMode: !state.selectionMode };
@@ -1176,23 +1193,39 @@ export function updateEditor(
           ?.ports.find(({ id }) => id === gesture.endpoint.port);
         if (!node || !original || !current) return cancel(state);
         const base = portAnchor(original);
-        const clamp = (value: number) => Math.max(0, Math.min(1, value));
-        const anchor = {
-          x: clamp(
-            base.x + (event.point.x - gesture.origin.x) / state.viewport.zoom / node.size.width,
-          ),
-          y: clamp(
-            base.y + (event.point.y - gesture.origin.y) / state.viewport.zoom / node.size.height,
-          ),
-        };
+        const moved = event.point.x !== gesture.origin.x || event.point.y !== gesture.origin.y;
+        const snap = moved
+          ? resolvePortAnchorSnap(
+              {
+                x:
+                  base.x +
+                  (event.point.x - gesture.origin.x) / state.viewport.zoom / node.size.width,
+                y:
+                  base.y +
+                  (event.point.y - gesture.origin.y) / state.viewport.zoom / node.size.height,
+              },
+              {
+                size: node.size,
+                zoom: state.viewport.zoom,
+                distance: state.portAnchorSnapDistance ?? 0,
+                preferredSide: original.side,
+              },
+            )
+          : { anchor: base, side: null };
+        const { anchor } = snap;
+        const nextGesture = { ...gesture, snappedSide: snap.side };
         const port =
           anchor.x === base.x && anchor.y === base.y
             ? original
             : withPortPosition(original, { side: original.side, anchor });
-        if (samePortPosition(current, port)) return state;
+        if (samePortPosition(current, port))
+          return (gesture.snappedSide ?? null) === snap.side
+            ? state
+            : { ...state, gesture: nextGesture };
         return {
           ...state,
           graph: replacePort(state.graph, gesture.endpoint, port),
+          gesture: nextGesture,
           revision: state.revision + 1,
           routes: [],
         };

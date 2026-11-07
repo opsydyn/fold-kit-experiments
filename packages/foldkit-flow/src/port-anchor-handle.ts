@@ -3,7 +3,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html';
 import { attributesWithGeometry, flowWorldOverlayItem } from './composition';
 import { finitePoint, portAnchor } from './geometry';
 import { portEditReason } from './port-edit';
-import type { EditorPolicy, EditorState, FlowNode, Point, Port } from './types';
+import type { EditorPolicy, EditorState, FlowNode, Point, Port, PortSide } from './types';
 
 export type FlowPortAnchorHandleOptions = Readonly<{
   /** Handle displacement from the socket in world units; default follows its routing side. */
@@ -16,6 +16,8 @@ export type FlowPortAnchorHandleContext = Readonly<{
   anchor: Point;
   position: Point;
   active: boolean;
+  /** Active pointer attraction only; null/absent outside a snapped drag. */
+  snappedSide?: PortSide | null;
   disabledReason: string | null;
 }>;
 export type FlowPortAnchorHandleRenderer<M> = (
@@ -43,7 +45,9 @@ export function flowPortAnchorHandle<M>(
           h.AriaLabel(`Position ${context.node.label}: ${context.port.label ?? context.port.id}`),
           h.Title(
             context.disabledReason ??
-              'Drag to position. Arrow keys move 1%; Shift moves 10%. Escape cancels.',
+              (context.snappedSide
+                ? `Snapped to ${context.snappedSide} edge. Escape cancels.`
+                : 'Drag to position. Arrow keys move 1%; Shift moves 10%. Escape cancels.'),
           ),
           ...attributesWithGeometry(h, attributes, {
             'pointer-events': 'auto',
@@ -54,6 +58,9 @@ export function flowPortAnchorHandle<M>(
           h.Disabled(context.disabledReason !== null),
           h.DataAttribute('flow-anchor-node', context.node.id),
           h.DataAttribute('flow-anchor-port', context.port.id),
+          ...(context.snappedSide
+            ? [h.DataAttribute('flow-anchor-snapped', context.snappedSide)]
+            : []),
         ],
         children,
       ),
@@ -82,6 +89,8 @@ export function portAnchorHandleViews<M>(
           x: port.side === 'left' ? -18 : 18,
           y: port.side === 'bottom' ? 18 : -18,
         };
+        const drag = state.gesture.type === 'port-anchor-drag' ? state.gesture : undefined;
+        const active = drag?.endpoint.node === node.id && drag.endpoint.port === port.id;
         const context: FlowPortAnchorHandleContext = {
           node,
           port,
@@ -90,10 +99,8 @@ export function portAnchorHandleViews<M>(
             x: node.position.x + anchor.x * node.size.width + offset.x,
             y: node.position.y + anchor.y * node.size.height + offset.y,
           },
-          active:
-            state.gesture.type === 'port-anchor-drag' &&
-            state.gesture.endpoint.node === node.id &&
-            state.gesture.endpoint.port === port.id,
+          active,
+          snappedSide: active ? (drag?.snappedSide ?? null) : null,
           disabledReason: state.readOnly
             ? 'This diagram is read-only.'
             : portEditReason({ operation: 'position', node, port }, state.graph, canEditPort),
@@ -111,8 +118,10 @@ export function portAnchorHandleViews<M>(
                   height: '18px',
                   padding: '0',
                   'border-radius': '4px',
-                  cursor: 'grab',
-                  border: '1px solid var(--flow-node-border, #64748b)',
+                  cursor: context.active ? 'grabbing' : 'grab',
+                  border: context.snappedSide
+                    ? '2px solid var(--flow-selection, #2563eb)'
+                    : '1px solid var(--flow-node-border, #64748b)',
                   background: 'var(--flow-node-background, #fff)',
                   color: 'var(--flow-node-color, #172033)',
                 }),

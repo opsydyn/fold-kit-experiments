@@ -602,6 +602,37 @@ the world-unit displacement from the socket; the default follows its
 routing side and stays fixed throughout the drag. This bounded anchor gesture does not auto-pan
 or change the side hint; the position editor handles side changes.
 
+Opt in to edge attraction through the core editor:
+
+```ts
+const editor = createEditor(graph, { portAnchorSnapDistance: 12 });
+```
+
+The distance is in CSS pixels. Its default is zero, preserving free
+placement. `PortAnchorSnapDistanceChanged` changes it while idle without
+editing the document or history; invalid distances are ignored. Initial
+options require a finite non-negative value. During an anchor drag, the
+nearest frame edge within that radius attracts the position. Distances
+account for node dimensions and viewport zoom. Exact ties prefer the
+port's routing side, then left/right/top/bottom order. Only position is
+snapped; the routing-side hint remains unchanged.
+
+`resolvePortAnchorSnap(candidate, { size, zoom, distance, preferredSide })`
+exposes the same pure calculation for headless consumers. It clamps raw
+normalized candidates to the frame, returns `{ anchor, side }`, and uses
+null side when attraction is disabled or no edge is close enough.
+`PortAnchorSnapOptions` and `PortAnchorSnapResult` describe that contract.
+Clicking without movement and out-and-back drags retain the starting
+representation. Moving away from an edge releases its attraction. Policy
+vetoes, cancellation and Undo retain the anchor drag's atomic behavior.
+
+Active `FlowPortAnchorHandleContext.snappedSide` identifies the attracted
+edge. The default handle highlights it and updates its native description;
+custom renderers can use the same context for their own feedback. This
+session preference is independent of connection snapping and node-grid
+snapping. Keyboard nudges and explicit numeric position edits remain exact
+even when pointer attraction is enabled. The resolver attracts one edge at a time.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

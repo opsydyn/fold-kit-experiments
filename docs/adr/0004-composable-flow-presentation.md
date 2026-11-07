@@ -343,6 +343,17 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Edge attraction is an optional core session preference, not a DOM-only
+heuristic. The pure resolver compares frame-edge distances in CSS pixels,
+using node dimensions and viewport zoom. Pointer previews use the nearest
+eligible edge and expose it on the gesture and renderer context. The
+routing hint stays stable, preserving wiring geometry intent and handle
+offsets. Exact ties prefer that hint, then a fixed edge order. A zero
+default and exact keyboard/numeric edits retain free authoring. Idle-only
+preference changes avoid altering gesture behavior mid-drag; existing
+policy, rollback and history boundaries remain authoritative. This bounded
+choice adds nearest-edge attraction without corner magnets or hysteresis.
+
 Anchor dragging is a core gesture with its original graph and screen-space
 pointer origin in the Model. Moves preview normalized frame coordinates;
 release records one history entry. Cancellation and live policy vetoes

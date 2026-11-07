@@ -107,6 +107,14 @@ restores its graph. `PortAnchorNudged` supplies the keyboard equivalent.
 The view's `canEditPort` resolves control state while the reducer rechecks
 current policy throughout the gesture.
 
+`EditorOptions.portAnchorSnapDistance` enables nearest-edge attraction in
+CSS pixels; zero defaults to free placement. Use
+`PortAnchorSnapDistanceChanged` to update the session preference while
+idle. `resolvePortAnchorSnap`, `PortAnchorSnapOptions` and
+`PortAnchorSnapResult` expose the core calculation. Active handle contexts
+publish `snappedSide` for composable feedback. Numeric edits and keyboard
+nudges retain exact placement.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

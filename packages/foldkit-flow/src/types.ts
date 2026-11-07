@@ -13,6 +13,14 @@ export type Viewport = Readonly<Point & { zoom: number }>;
 export type ZoomLimits = Readonly<{ minZoom: number; maxZoom: number }>;
 /** Outward routing and reconnection direction hint. */
 export type PortSide = 'left' | 'right' | 'top' | 'bottom';
+/** Radius is measured in CSS pixels, independent of node size and viewport zoom. */
+export type PortAnchorSnapOptions = Readonly<{
+  size: Size;
+  zoom: number;
+  distance: number;
+  preferredSide?: PortSide;
+}>;
+export type PortAnchorSnapResult = Readonly<{ anchor: Point; side: PortSide | null }>;
 /** Choose either a cardinal side offset, or normalized box coordinates. Never both. */
 export type PortPosition = Readonly<{ side: PortSide }> &
   (Readonly<{ offset: number; anchor?: never }> | Readonly<{ anchor: Point; offset?: never }>);
@@ -104,6 +112,7 @@ export type Gesture =
       origin: Point;
       before: FlowGraph;
       endpoint: Endpoint;
+      snappedSide?: PortSide | null;
     }>
   | (NodeGesture &
       Readonly<{
@@ -162,6 +171,8 @@ export type EditorState = Readonly<{
   connection: Endpoint | null;
   /** Required distance advantage in CSS pixels to switch a nearby snap target. Zero disables hysteresis. */
   connectionSnapHysteresis?: number;
+  /** Pointer anchor attraction radius in CSS pixels. Zero disables edge snapping. */
+  portAnchorSnapDistance?: number;
   gesture: Gesture;
   past: readonly FlowGraph[];
   future: readonly FlowGraph[];
@@ -206,6 +217,8 @@ export type EditorOptions = Readonly<{
   selectionMode?: boolean;
   boxSelectionMatch?: BoxSelectionMatch;
   connectionSnapHysteresis?: number;
+  /** Pointer anchor attraction radius in CSS pixels; defaults to zero (free placement). */
+  portAnchorSnapDistance?: number;
 }>;
 /** Explicit targets before group descendants and incident edges are included. */
 export type DeletionTargets = Readonly<{ nodeIds: readonly string[]; edgeIds: readonly string[] }>;
@@ -358,6 +371,7 @@ export type EditorEvent =
   | Readonly<{ type: 'PortAnchorDragStarted'; endpoint: Endpoint; pointer: number; point: Point }>
   /** Normalized node-frame delta, independent of viewport zoom. */
   | Readonly<{ type: 'PortAnchorNudged'; endpoint: Endpoint; delta: Point }>
+  | Readonly<{ type: 'PortAnchorSnapDistanceChanged'; distance: number }>
   /** Changes display text without changing endpoint identity; undefined restores the ID fallback. */
   | Readonly<{ type: 'PortLabelChanged'; endpoint: Endpoint; label: string | undefined }>
   | Readonly<{

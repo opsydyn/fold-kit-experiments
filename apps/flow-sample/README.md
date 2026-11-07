@@ -373,6 +373,14 @@ other handles and socket wiring remain available. Try it after zooming or
 with **Custom port sockets** enabled.
 [Anchor dragging screenshot](evidence/port-anchor-drag.png)
 
+Enable **Snap port anchors to edges** alongside **Drag port anchors**.
+Near a node edge, the active handle highlights its attraction and the
+anchor aligns with the frame. The example uses a 12-pixel radius at any
+zoom level. Move away to place freely, or disable the option. Release remains
+one Undo step; Escape and protection changes restore the original port.
+The preference survives example switches and graph imports in this visit.
+[Edge snapping screenshot](evidence/port-anchor-edge-snap.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

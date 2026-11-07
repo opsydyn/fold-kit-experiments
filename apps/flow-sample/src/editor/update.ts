@@ -79,6 +79,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     fitViewPadding,
     zoomLimits,
     connectionSnapHysteresis = 0,
+    portAnchorSnapDistance = 0,
   } = model.editor;
   const snapshotJson = () =>
     model.includeCamera ? serializeSnapshot(model.editor) : serializeGraph(model.editor.graph);
@@ -102,6 +103,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         zoomLimits,
         viewport: camera,
         connectionSnapHysteresis,
+        portAnchorSnapDistance,
       }),
       surface: model.editor.surface,
       clipboard: model.editor.clipboard,
@@ -188,6 +190,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     ClickedPortLabels: () => ({ model: { ...model, portLabels: !model.portLabels } }),
+    ClickedPortAnchorSnap: () => ({
+      model: {
+        ...model,
+        editor: updateEditor(model.editor, {
+          type: 'PortAnchorSnapDistanceChanged',
+          distance: (model.editor.portAnchorSnapDistance ?? 0) > 0 ? 0 : 12,
+        }),
+      },
+    }),
     ClickedPortAnchorHandles: () => ({
       model:
         model.editor.gesture.type === 'idle'

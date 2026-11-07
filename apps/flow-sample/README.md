@@ -440,6 +440,17 @@ and one-step Undo/Redo keep their package-owned behavior.
 
 [Allowed snap targets screenshot](evidence/port-anchor-targets.png)
 
+Enable **Port snap guides** with a positive snap radius or a per-port rule
+to preview permitted targets during a drag. **Custom snap guides** composes
+the package's native guide primitive with crosshairs and dashed styling.
+Restricted targets produce only the permitted guides, and the attracted
+target is highlighted. Alt bypass temporarily hides them. Minimal mode,
+Show diagnostics and Alignment guides control visibility independently of
+editing. The overlay remains decorative and pointer-transparent; release,
+Escape and Undo/Redo retain the package's existing transactions.
+
+[Snap target guides screenshot](evidence/port-anchor-guides.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

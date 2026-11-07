@@ -7,6 +7,7 @@ import type {
   PortAnchorSnapOverrides,
   PortAnchorSnapSettings,
   PortAnchorSnapTargets,
+  PortAnchorSnapGuide,
   PortCorner,
   PortSide,
   Size,
@@ -14,6 +15,24 @@ import type {
 
 const sides: readonly PortSide[] = ['left', 'right', 'top', 'bottom'];
 const corners: readonly PortCorner[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+function cornerSnapTargets(): readonly Readonly<{ target: PortCorner; anchor: Point }>[] {
+  return [
+    { target: 'top-left', anchor: { x: 0, y: 0 } },
+    { target: 'top-right', anchor: { x: 1, y: 0 } },
+    { target: 'bottom-left', anchor: { x: 0, y: 1 } },
+    { target: 'bottom-right', anchor: { x: 1, y: 1 } },
+  ];
+}
+
+function midpointSnapTargets(): readonly Readonly<{ target: PortSide; anchor: Point }>[] {
+  return [
+    { target: 'left', anchor: { x: 0, y: 0.5 } },
+    { target: 'right', anchor: { x: 1, y: 0.5 } },
+    { target: 'top', anchor: { x: 0.5, y: 0 } },
+    { target: 'bottom', anchor: { x: 0.5, y: 1 } },
+  ];
+}
 
 function allowedTargets<T extends string>(
   values: readonly T[] | undefined,
@@ -75,6 +94,33 @@ export function resolvePortAnchorSnapSettings(
         `Port anchor snap ${field} must be finite and non-negative`,
       );
   return { ...settings, ...resolveTargetLists(defaults, overrides) };
+}
+
+/** Enumerate permitted targets with positive acquisition radii, independently of cursor distance. */
+export function portAnchorSnapGuideTargets(
+  options: PortAnchorSnapOverrides,
+): readonly PortAnchorSnapGuide[] {
+  const settings = resolvePortAnchorSnapSettings(options);
+  const guides: PortAnchorSnapGuide[] = [];
+  if (settings.cornerDistance > 0)
+    for (const { target, anchor } of cornerSnapTargets())
+      if (settings.allowedCorners === undefined || settings.allowedCorners.includes(target))
+        guides.push({ type: 'corner', corner: target, point: anchor });
+  if (settings.midpointDistance > 0)
+    for (const { target, anchor } of midpointSnapTargets())
+      if (settings.allowedMidpoints === undefined || settings.allowedMidpoints.includes(target))
+        guides.push({ type: 'midpoint', side: target, point: anchor });
+  const edges: readonly Readonly<{ side: PortSide; start: Point; end: Point }>[] = [
+    { side: 'left', start: { x: 0, y: 0 }, end: { x: 0, y: 1 } },
+    { side: 'right', start: { x: 1, y: 0 }, end: { x: 1, y: 1 } },
+    { side: 'top', start: { x: 0, y: 0 }, end: { x: 1, y: 0 } },
+    { side: 'bottom', start: { x: 0, y: 1 }, end: { x: 1, y: 1 } },
+  ];
+  if (settings.distance > 0)
+    for (const edge of edges)
+      if (settings.allowedEdges === undefined || settings.allowedEdges.includes(edge.side))
+        guides.push({ type: 'edge', ...edge });
+  return guides;
 }
 
 /** Shared circular attraction and retention for discrete frame points. */
@@ -164,42 +210,24 @@ export function resolvePortAnchorSnap(
     x: Math.max(0, Math.min(1, candidate.x)),
     y: Math.max(0, Math.min(1, candidate.y)),
   };
-  const corner = resolvePointAttraction<PortCorner>(
-    anchor,
-    [
-      { target: 'top-left', anchor: { x: 0, y: 0 } },
-      { target: 'top-right', anchor: { x: 1, y: 0 } },
-      { target: 'bottom-left', anchor: { x: 0, y: 1 } },
-      { target: 'bottom-right', anchor: { x: 1, y: 1 } },
-    ],
-    {
-      size,
-      zoom,
-      distance: cornerDistance,
-      hysteresis,
-      previous: previousCorner,
-      allowed: allowedCorners,
-    },
-  );
+  const corner = resolvePointAttraction<PortCorner>(anchor, cornerSnapTargets(), {
+    size,
+    zoom,
+    distance: cornerDistance,
+    hysteresis,
+    previous: previousCorner,
+    allowed: allowedCorners,
+  });
   if (corner) return { anchor: corner.anchor, side: null, corner: corner.target };
-  const midpoint = resolvePointAttraction<PortSide>(
-    anchor,
-    [
-      { target: 'left', anchor: { x: 0, y: 0.5 } },
-      { target: 'right', anchor: { x: 1, y: 0.5 } },
-      { target: 'top', anchor: { x: 0.5, y: 0 } },
-      { target: 'bottom', anchor: { x: 0.5, y: 1 } },
-    ],
-    {
-      size,
-      zoom,
-      distance: midpointDistance,
-      hysteresis,
-      previous: previousMidpoint,
-      preferred: preferredSide,
-      allowed: allowedMidpoints,
-    },
-  );
+  const midpoint = resolvePointAttraction<PortSide>(anchor, midpointSnapTargets(), {
+    size,
+    zoom,
+    distance: midpointDistance,
+    hysteresis,
+    previous: previousMidpoint,
+    preferred: preferredSide,
+    allowed: allowedMidpoints,
+  });
   if (midpoint) return { anchor: midpoint.anchor, side: null, midpoint: midpoint.target };
   if (distance === 0) return { anchor, side: null };
   const edges: { side: PortSide; distance: number; anchor: Point }[] = [

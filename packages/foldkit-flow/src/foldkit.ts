@@ -54,6 +54,9 @@ import {
   type FlowPortAnchorHandleRenderer,
 } from './port-anchor-handle';
 export { flowPortAnchorHandle } from './port-anchor-handle';
+import { portAnchorGuideViews, type FlowPortAnchorGuideRenderer } from './port-anchor-guide';
+export { flowPortAnchorGuide } from './port-anchor-guide';
+export type { FlowPortAnchorGuideContext, FlowPortAnchorGuideRenderer } from './port-anchor-guide';
 export type {
   FlowPortAnchorHandleContext,
   FlowPortAnchorHandleOptions,
@@ -353,6 +356,10 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     /** Opt-in temporary snap bypass; captured at pointer-down. Undefined keeps modifier keys unchanged. */
     portAnchorSnapBypassModifier?: FlowPortAnchorSnapBypassModifier | undefined;
     renderPortAnchorHandle?: FlowPortAnchorHandleRenderer<M>;
+    /** Opt-in permitted-target guides during anchor dragging. Follows alignment-guide diagnostics. */
+    portAnchorGuides?: boolean | undefined;
+    /** Decorative SVG in world coordinates; undefined uses the native guide, null hides it. */
+    renderPortAnchorGuide?: FlowPortAnchorGuideRenderer<M> | undefined;
     canEditPort?: EditorPolicy['canEditPort'];
     /** Replaces a complete label. Compose flowPortLabel to retain anchoring. Null hides it. */
     renderPortLabel?: FlowPortLabelRenderer<M>;
@@ -2108,6 +2115,15 @@ export function flowView<M>(
                 ],
               ),
               ...nodeLayer,
+              ...(options.portAnchorGuides && diagnostics.alignmentGuides
+                ? portAnchorGuideViews(
+                    h,
+                    state,
+                    canvas.nodes,
+                    options.canEditPort,
+                    options.renderPortAnchorGuide,
+                  )
+                : []),
               ...portAnchorHandleViews(
                 h,
                 state,

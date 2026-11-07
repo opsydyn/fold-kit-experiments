@@ -22,6 +22,11 @@ export type PortAnchorSnapTargets = Readonly<{
   allowedCorners?: readonly PortCorner[] | undefined;
   allowedMidpoints?: readonly PortSide[] | undefined;
 }>;
+/** A permitted attraction target in normalized node-frame coordinates. */
+export type PortAnchorSnapGuide =
+  | Readonly<{ type: 'edge'; side: PortSide; start: Point; end: Point }>
+  | Readonly<{ type: 'corner'; corner: PortCorner; point: Point }>
+  | Readonly<{ type: 'midpoint'; side: PortSide; point: Point }>;
 /** Effective CSS-pixel settings for one anchor drag. Zero disables each attraction or retention rule. */
 export type PortAnchorSnapSettings = PortAnchorSnapTargets &
   Readonly<{

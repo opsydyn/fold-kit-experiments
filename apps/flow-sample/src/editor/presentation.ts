@@ -37,6 +37,8 @@ import {
   flowGroupFrame,
   flowNodeFrame,
   flowPort,
+  flowPortAnchorGuide,
+  type FlowPortAnchorGuideContext,
   flowResizeHandle,
   type FlowNodeRenderContext,
   type FlowPortRenderContext,
@@ -44,6 +46,47 @@ import {
 import type { HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
+
+export function targetAnchorGuide(context: FlowPortAnchorGuideContext, h: HtmlBuilder<Message>) {
+  const extent = 4 / context.viewport.zoom;
+  const points = context.target.type === 'edge' ? [context.start, context.end] : [context.start];
+  return h.g(
+    [h.Class('workbench-snap-guide')],
+    [
+      flowPortAnchorGuide(h, context, [
+        h.Stroke('var(--flow-node-color, #172033)'),
+        h.StrokeDasharray(context.active ? 'none' : '3 3'),
+        h.StrokeWidth(String((context.active ? 3 : 2) / context.viewport.zoom)),
+      ]),
+      ...points.flatMap((point) => [
+        h.line(
+          [
+            h.X1(String(point.x - extent)),
+            h.Y1(String(point.y)),
+            h.X2(String(point.x + extent)),
+            h.Y2(String(point.y)),
+            h.Stroke('var(--flow-node-color, #172033)'),
+            h.StrokeWidth(String(1 / context.viewport.zoom)),
+            h.Style({ 'vector-effect': 'non-scaling-stroke' }),
+          ],
+          [],
+        ),
+        h.line(
+          [
+            h.X1(String(point.x)),
+            h.Y1(String(point.y - extent)),
+            h.X2(String(point.x)),
+            h.Y2(String(point.y + extent)),
+            h.Stroke('var(--flow-node-color, #172033)'),
+            h.StrokeWidth(String(1 / context.viewport.zoom)),
+            h.Style({ 'vector-effect': 'non-scaling-stroke' }),
+          ],
+          [],
+        ),
+      ]),
+    ],
+  );
+}
 
 export function socketPort(context: FlowPortRenderContext, h: HtmlBuilder<Message>) {
   const disabled = context.state.readOnly || context.disabledReason !== null;

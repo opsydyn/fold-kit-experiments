@@ -70,6 +70,7 @@ import { currentPreset } from './port-presets';
 import {
   orbitNode,
   socketPort,
+  targetAnchorGuide,
   orbitGroup,
   raisedEdge,
   storageDependencyEdge,
@@ -1579,6 +1580,28 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ]
           : []),
         h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.portAnchorGuides),
+              h.OnClick(Message.ClickedPortAnchorGuides()),
+            ]),
+            'Port snap guides',
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.customPortAnchorGuides),
+              h.OnClick(Message.ClickedCustomPortAnchorGuides()),
+            ]),
+            'Custom snap guides',
+          ],
+        ),
+        h.label(
           [h.Class('workbench-theme-picker')],
           [
             'Theme',
@@ -1799,6 +1822,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           portLabels: model.portLabels,
           portAnchorHandles: model.portAnchorHandles,
           portAnchorSnapBypassModifier: model.portAnchorSnapBypass ? 'Alt' : undefined,
+          portAnchorGuides: model.portAnchorGuides,
+          renderPortAnchorGuide: model.customPortAnchorGuides ? targetAnchorGuide : undefined,
           renderPortAnchorHandle: (context, builder) =>
             context.snappedCorner || context.snappedMidpoint
               ? flowPortAnchorHandle(

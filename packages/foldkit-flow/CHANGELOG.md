@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in permitted port snap target guides, with composable SVG rendering,
+  captured settings, active feedback and alignment diagnostic controls.
+
 - Add per-port allowed edge, corner and midpoint targets, including empty-list
   disabling, captured list copies and composable feedback.
 

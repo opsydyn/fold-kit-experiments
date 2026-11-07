@@ -63,6 +63,8 @@ export const Message = defineMessageUnion({
   ClickedPortAnchorSnapBypass: {},
   ClickedPerPortSnapping: {},
   ClickedRestrictedSnapTargets: {},
+  ClickedPortAnchorGuides: {},
+  ClickedCustomPortAnchorGuides: {},
   ClickedCustomPorts: {},
   ClickedAddPort: { nodeId: Schema.String, kind: Schema.Literals(['input', 'output']) },
   ClickedEditPortLabel: { nodeId: Schema.String, portId: Schema.String },

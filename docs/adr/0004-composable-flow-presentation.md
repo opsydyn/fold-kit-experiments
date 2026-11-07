@@ -343,6 +343,31 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Permitted-target guides are an opt-in presentation layer for an active
+anchor gesture. The pure guide enumerator validates captured settings and
+shares canonical corner/midpoint coordinates with the snap resolver. It
+includes only positive-radius, permitted targets, independent of pointer
+distance. Views resolve these normalized targets into current world bounds
+and expose active attraction, viewport and detached settings to custom SVG
+renderers. A native primitive retains geometry while allowing custom paint.
+
+The package owns an aria-hidden, inert, pointer-transparent overlay above
+node paint and below anchor handles. Custom SVG cannot become an editing
+surface. Undefined uses native geometry; null omits one guide. Alignment
+diagnostics, global diagnostics, minimal mode, bypass, read-only state,
+current edit protection and visible-node membership gate hooks first.
+Release/cancellation removes the overlay. No policy callback is repeated
+and no state or history is introduced by viewing guides.
+
+This extends the existing alignment diagnostic category instead of adding
+another global flag; the independent view opt-in still controls port guides.
+It is preferred over workbench-only SVG and over reading the host policy
+again in view, which would duplicate target geometry and risk disagreement
+with captured rules. Verification covers normalized enumeration, world
+geometry, native/custom fallback and omission, constant screen sizing,
+diagnostic/bypass gates, inertness and unchanged graph/history. The sample
+offers native guides and a custom crosshair style through the public helper.
+
 Allowed snap targets extend the existing per-port settings with optional
 edge, corner and midpoint lists. Missing lists preserve unrestricted
 attraction; empty lists disable one kind with no radius change. A supplied

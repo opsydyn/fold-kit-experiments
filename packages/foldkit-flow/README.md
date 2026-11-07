@@ -803,6 +803,35 @@ detached lists for custom feedback, without evaluating the policy again.
 Serialization, edit protection, cancellation and the single Undo/Redo
 transaction keep the same contract.
 
+Set `flowView`'s `portAnchorGuides: true` to show permitted targets during
+an anchor drag. Guides are off by default and include only target kinds
+with positive acquisition radii and permitted names in the captured rules.
+The default uses edge lines and point markers, highlighting the attracted
+target. Markers and strokes retain their screen size at zoom. No radii or
+measurements are printed.
+
+Guides follow the existing `alignmentGuides` diagnostic flag. Minimal mode,
+`diagnostics: false`, or `diagnostics: { alignmentGuides: false }` hides
+them before custom rendering. They also disappear during bypass, after
+release/cancellation, for read-only or protected ports, and when the node
+is not in the visible canvas. Editing and snapping do not depend on guides.
+The overlay is decorative, aria-hidden, inert and pointer-transparent.
+
+`renderPortAnchorGuide(context, h)` replaces one guide with SVG in world
+coordinates. Returning `undefined` uses the native guide; `null` omits it.
+`FlowPortAnchorGuideContext` includes the node/port, normalized `target`,
+resolved world `start`/`end` (equal for points), `active`, `viewport` and
+detached captured `settings`. Compose `flowPortAnchorGuide(h, context,
+attributes)` to customize paint while keeping native geometry, or supply
+your own SVG using those coordinates. The package owns the inert overlay
+and target identity wrappers. The renderer does not run the policy callback.
+
+Headless consumers can use `portAnchorSnapGuideTargets(settings)` to enumerate
+normalized `PortAnchorSnapGuide` values for their own presentation. The
+helper validates settings and shares canonical corner/midpoint geometry
+with the snap resolver. It reports permitted targets regardless of cursor
+distance, without changing graph data, gestures or history.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

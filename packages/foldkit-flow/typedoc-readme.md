@@ -1,5 +1,13 @@
 # FoldKit Flow public contract
 
+Opt-in `FlowViewOptions.portAnchorGuides` presents permitted targets during
+anchor dragging. `renderPortAnchorGuide` receives resolved world endpoints,
+active feedback and detached captured settings. `flowPortAnchorGuide`
+supplies native geometry for custom paint. The package owns an inert
+decorative overlay, respecting alignment diagnostics, minimal mode,
+bypass and current edit protection. `portAnchorSnapGuideTargets` exposes
+normalized `PortAnchorSnapGuide` geometry to headless consumers.
+
 `PortAnchorSnapTargets` supplies `allowedEdges`, `allowedCorners` and
 `allowedMidpoints` on per-port overrides, captured settings and pure snap
 options. Absent lists allow all; empty lists disable one target kind.

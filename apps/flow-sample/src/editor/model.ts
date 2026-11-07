@@ -243,6 +243,8 @@ const PortLabelDraft = Schema.Struct({
 });
 
 export const Model = Schema.Struct({
+  portAnchorGuides: Schema.Boolean,
+  customPortAnchorGuides: Schema.Boolean,
   restrictedSnapTargets: Schema.Boolean,
   perPortSnapping: Schema.Boolean,
   portAnchorSnapBypass: Schema.Boolean,
@@ -307,6 +309,8 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  portAnchorGuides: boolean;
+  customPortAnchorGuides: boolean;
   restrictedSnapTargets: boolean;
   perPortSnapping: boolean;
   portAnchorSnapBypass: boolean;
@@ -366,6 +370,8 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    portAnchorGuides: false,
+    customPortAnchorGuides: false,
     restrictedSnapTargets: false,
     perPortSnapping: false,
     portAnchorSnapBypass: false,

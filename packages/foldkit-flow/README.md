@@ -423,6 +423,14 @@ Add a port with `{ type: 'PortAdded', nodeId, port }`. The host supplies
 its ID, direction, label and position. Invalid ports, duplicate IDs and
 unknown nodes fail before publication. Caller-owned anchors are detached.
 
+Change display text with `{ type: 'PortLabelChanged', endpoint, label }`.
+The endpoint ID, direction, position and attached connections stay unchanged.
+Pass `undefined` to remove the label and restore the port-ID fallback.
+Strings are preserved exactly, including empty strings. Identical labels
+and missing endpoints are no-ops; invalid labels fail graph validation.
+Each accepted change is one Undo transaction and respects read-only and
+active-gesture guards. Hosts own any draft UI and decide when to commit.
+
 Remove a port with `{ type: 'PortRemoved', endpoint }`. Its attached
 connections are removed in the same transaction. `canDelete` evaluates
 the complete attached-edge set and can veto the whole operation.

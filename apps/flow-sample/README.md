@@ -337,6 +337,12 @@ connections in one Undo transaction. **Protect required items** also
 protects a port whose removal would delete a required connection.
 [Workbench screenshot](evidence/port-editing.png)
 
+Use **Edit label** in the Ports inspector to rename a port without changing
+its ID or connections. Enter or **Save port label** commits one Undo step;
+Escape or **Cancel port label** discards the draft. Saving an empty field
+restores the port-ID fallback. Enable **Port labels** to see the result on
+the canvas. [Workbench screenshot](evidence/port-label-editing.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

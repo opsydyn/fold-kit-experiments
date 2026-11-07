@@ -343,6 +343,15 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Port display text changes through `PortLabelChanged`, within the same
+validated document transaction. Clearing a label removes the optional
+field; endpoint identity and wiring do not change. Draft interaction
+belongs to the host, which submits one event on Save. This reuses the
+existing transaction boundary without adding inspector state to the core
+or rewriting endpoint IDs to match display text. The cost is that hosts
+must manage their own draft lifecycle; the sample cancels drafts when
+the document changes or their node leaves the selection.
+
 Port add/remove events use the existing document transaction boundary.
 Addition validates and detaches the authored port. Removal resolves all
 attached edges against the existing deletion policy before publishing the

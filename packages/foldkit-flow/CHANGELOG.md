@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add undoable port label edits that preserve endpoint identity and wiring,
+  including explicit label clearing.
+
 - Add atomic port add/remove events with attached-edge deletion policy,
   an inspectable removal decision and Undo.
 

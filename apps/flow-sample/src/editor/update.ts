@@ -117,7 +117,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       clipboard: model.editor.clipboard,
     };
   };
-  return Message.match(message, {
+  const result: Return<Model, Message> = Message.match(message, {
     ObservedFlowInput: ({ message: input }) => {
       // SAFETY: flowView and the toolbar emit the package's typed EditorEvent contract.
       const event = input as EditorEvent;
@@ -195,6 +195,34 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     ClickedPortLabels: () => ({ model: { ...model, portLabels: !model.portLabels } }),
     ClickedCustomPorts: () => ({ model: { ...model, customPorts: !model.customPorts } }),
+    ClickedEditPortLabel: ({ nodeId, portId }) => {
+      if (model.editor.readOnly || model.editor.gesture.type !== 'idle') return { model };
+      const node = model.editor.graph.nodes.find(({ id }) => id === nodeId);
+      const port = node?.ports.find(({ id }) => id === portId);
+      if (!port || !model.editor.selectedNodes.includes(nodeId)) return { model };
+      return { model: { ...model, portLabelDraft: { nodeId, portId, text: port.label ?? '' } } };
+    },
+    ChangedPortLabelDraft: ({ text }) => ({
+      model: model.portLabelDraft
+        ? { ...model, portLabelDraft: { ...model.portLabelDraft, text } }
+        : model,
+    }),
+    ClickedCancelPortLabel: () => ({ model: { ...model, portLabelDraft: null } }),
+    SubmittedPortLabel: () => {
+      const draft = model.portLabelDraft;
+      if (!draft) return { model };
+      return {
+        model: {
+          ...model,
+          portLabelDraft: null,
+          editor: updateEditor(model.editor, {
+            type: 'PortLabelChanged',
+            endpoint: { node: draft.nodeId, port: draft.portId },
+            label: draft.text === '' ? undefined : draft.text,
+          }),
+        },
+      };
+    },
     ClickedAddPort: ({ nodeId, kind }) => {
       const node = model.editor.graph.nodes.find(({ id }) => id === nodeId);
       if (!node || node.kind === 'group') return { model };
@@ -457,4 +485,11 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       },
     }),
   });
+  const draft = result.model.portLabelDraft;
+  return draft &&
+    (result.model.editor.graph !== model.editor.graph ||
+      result.model.editor.readOnly ||
+      !result.model.editor.selectedNodes.includes(draft.nodeId))
+    ? { ...result, model: { ...result.model, portLabelDraft: null } }
+    : result;
 }

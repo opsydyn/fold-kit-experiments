@@ -69,6 +69,11 @@ transaction boundary. `resolvePortRemoval` returns a
 `PortRemovalDecision` that includes all attached edges or a rejection
 reason from the existing deletion policy.
 
+`PortLabelChanged` edits a port's display text while preserving its
+endpoint ID, anchor and connections. Pass `undefined` to clear the label.
+Hosts manage drafts and submit one event per saved edit; the reducer
+validates the graph and records one Undo transaction.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

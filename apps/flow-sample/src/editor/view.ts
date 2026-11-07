@@ -18,7 +18,7 @@ import {
   resolveFlowDiagnostics,
   type FlowBackground,
 } from '@opsydyn/foldkit-flow/foldkit';
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchPolicy } from './editor-policy';
@@ -1921,6 +1921,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     model.editor.readOnly || model.editor.gesture.type !== 'idle',
                   ),
                   ...selectedNode.ports.map((port) => {
+                    const draft = model.portLabelDraft;
+                    const editing = draft?.nodeId === selectedNode.id && draft.portId === port.id;
+                    const editDisabled =
+                      model.editor.readOnly || model.editor.gesture.type !== 'idle';
                     const endpoint = { node: selectedNode.id, port: port.id };
                     const decision = resolvePortRemoval(
                       model.editor.graph,
@@ -1940,10 +1944,61 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           gap: '8px',
                           'align-items': 'center',
                           margin: '8px 0',
+                          'flex-wrap': 'wrap',
                         }),
                       ],
                       [
                         h.span([], [port.label ?? port.id]),
+                        ...(editing
+                          ? [
+                              h.form(
+                                [
+                                  h.Style({ display: 'flex', gap: '4px', 'flex-wrap': 'wrap' }),
+                                  h.OnSubmit(Message.SubmittedPortLabel()),
+                                  h.OnKeyDownPreventDefault((key) =>
+                                    key === 'Escape'
+                                      ? Option.some(Message.ClickedCancelPortLabel())
+                                      : Option.none(),
+                                  ),
+                                ],
+                                [
+                                  h.input([
+                                    h.Type('text'),
+                                    h.AriaLabel(
+                                      'Label for ' + port.id + ' port on ' + selectedNode.label,
+                                    ),
+                                    h.Placeholder('Defaults to port ID'),
+                                    h.Autofocus(true),
+                                    h.Value(draft.text),
+                                    h.Disabled(editDisabled),
+                                    h.OnInput((text) => Message.ChangedPortLabelDraft({ text })),
+                                  ]),
+                                  h.button(
+                                    [h.Type('submit'), h.Disabled(editDisabled)],
+                                    ['Save port label'],
+                                  ),
+                                  button('Cancel port label', Message.ClickedCancelPortLabel()),
+                                ],
+                              ),
+                            ]
+                          : [
+                              h.button(
+                                [
+                                  h.Type('button'),
+                                  h.AriaLabel(
+                                    'Edit label for ' + port.id + ' port on ' + selectedNode.label,
+                                  ),
+                                  h.Disabled(editDisabled),
+                                  h.OnClick(
+                                    Message.ClickedEditPortLabel({
+                                      nodeId: selectedNode.id,
+                                      portId: port.id,
+                                    }),
+                                  ),
+                                ],
+                                ['Edit label'],
+                              ),
+                            ]),
                         h.button(
                           [
                             h.Type('button'),

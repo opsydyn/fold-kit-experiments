@@ -119,3 +119,46 @@ test('port removal authorizes all attached edges before one atomic publication',
   const readOnly = { ...state, readOnly: true };
   expect(updateEditor(readOnly, remove)).toBe(readOnly);
 });
+
+test('port label edits preserve wiring and identity, clear labels, and undo as one transaction', () => {
+  const initial = createEditor(graph);
+  const event = {
+    type: 'PortLabelChanged',
+    endpoint: { node: 'a', port: 'out' },
+    label: 'Ready for review',
+  } as const;
+  const edited = updateEditor(initial, event);
+  expect(edited.graph.nodes[0]?.ports).toEqual([
+    { id: 'out', kind: 'output', side: 'right', offset: 0.5, label: 'Ready for review' },
+  ]);
+  expect(edited.graph.edges).toBe(initial.graph.edges);
+  expect(edited.graph.nodes[1]).toBe(initial.graph.nodes[1]);
+  expect(edited.past).toHaveLength(1);
+  expect(edited.revision).toBe(initial.revision + 1);
+  expect(updateEditor(edited, event)).toBe(edited);
+  expect(parseGraph(serializeGraph(edited.graph))).toEqual(edited.graph);
+  const undone = updateEditor(edited, { type: 'UndoPressed' });
+  expect(undone.graph).toEqual(initial.graph);
+  expect(updateEditor(undone, { type: 'RedoPressed' }).graph).toEqual(edited.graph);
+  const empty = updateEditor(edited, { ...event, label: '' });
+  expect(empty.graph.nodes[0]?.ports[0]?.label).toBe('');
+  const cleared = updateEditor(edited, { ...event, label: undefined });
+  expect(cleared.graph.nodes[0]?.ports[0]).not.toHaveProperty('label');
+  expect(cleared.graph.edges).toBe(initial.graph.edges);
+  expect(updateEditor(cleared, { type: 'UndoPressed' }).graph).toEqual(edited.graph);
+  expect(updateEditor(initial, { ...event, endpoint: { node: 'a', port: 'missing' } })).toBe(
+    initial,
+  );
+  expect(updateEditor(initial, { ...event, endpoint: { node: 'missing', port: 'out' } })).toBe(
+    initial,
+  );
+  const readOnly = { ...initial, readOnly: true };
+  expect(updateEditor(readOnly, event)).toBe(readOnly);
+  const busy = updateEditor(initial, { type: 'PanStarted', pointer: 1, point: { x: 0, y: 0 } });
+  expect(updateEditor(busy, event)).toBe(busy);
+  const invalid = JSON.parse(
+    '{"type":"PortLabelChanged","endpoint":{"node":"a","port":"out"},"label":42}',
+  );
+  expect(() => updateEditor(initial, invalid)).toThrow();
+  expect(initial.graph).toEqual(graph);
+});

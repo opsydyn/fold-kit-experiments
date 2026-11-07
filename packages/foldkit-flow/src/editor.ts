@@ -1686,6 +1686,24 @@ export function updateEditor(
       if (reason !== null) return { ...state, notice: reason, connection: null };
       return { ...commitGraph(state, copyGraph(graph)), notice: 'Connection created' };
     }
+    case 'PortLabelChanged': {
+      const node = state.graph.nodes.find(({ id }) => id === event.endpoint.node);
+      const port = node?.ports.find(({ id }) => id === event.endpoint.port);
+      if (!port || port.label === event.label) return state;
+      const { label: _, ...unlabeled } = port;
+      const updated = event.label === undefined ? unlabeled : { ...port, label: event.label };
+      return {
+        ...commitGraph(state, {
+          ...state.graph,
+          nodes: state.graph.nodes.map((item) =>
+            item.id === event.endpoint.node
+              ? { ...item, ports: item.ports.map((item) => (item.id === port.id ? updated : item)) }
+              : item,
+          ),
+        }),
+        notice: 'Port label changed',
+      };
+    }
     case 'PortAdded': {
       const node = state.graph.nodes.find(({ id }) => id === event.nodeId);
       if (!node) throw new FlowError('invalid-edit', 'Port addition references an unknown node');

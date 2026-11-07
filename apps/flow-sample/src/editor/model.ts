@@ -235,7 +235,14 @@ export type ThemePreference = typeof ThemePreference.Type;
 export const SearchScope = Schema.Literals(['nodes', 'connections']);
 export type SearchScope = typeof SearchScope.Type;
 
+const PortLabelDraft = Schema.Struct({
+  nodeId: Schema.String,
+  portId: Schema.String,
+  text: Schema.String,
+});
+
 export const Model = Schema.Struct({
+  portLabelDraft: Schema.NullOr(PortLabelDraft),
   themePreference: Schema.NullOr(ThemePreference),
   systemColorScheme: Schema.NullOr(ColorScheme),
   minimalMode: Schema.Boolean,
@@ -291,6 +298,7 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  portLabelDraft: typeof PortLabelDraft.Type | null;
   themePreference: ThemePreference | null;
   systemColorScheme: FlowColorScheme | null;
   minimalMode: boolean;
@@ -339,6 +347,7 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    portLabelDraft: null,
     themePreference: null,
     systemColorScheme: null,
     minimalMode: false,

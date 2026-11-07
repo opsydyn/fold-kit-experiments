@@ -339,6 +339,8 @@ export type EditorEvent =
   | Readonly<{ type: 'ConnectionCreated'; edge: FlowEdge }>
   | Readonly<{ type: 'PortAdded'; nodeId: string; port: Port }>
   | Readonly<{ type: 'PortRemoved'; endpoint: Endpoint }>
+  /** Changes display text without changing endpoint identity; undefined restores the ID fallback. */
+  | Readonly<{ type: 'PortLabelChanged'; endpoint: Endpoint; label: string | undefined }>
   | Readonly<{
       type: 'PortPositionsChanged';
       positions: readonly Readonly<{ endpoint: Endpoint; position: PortPosition }>[];

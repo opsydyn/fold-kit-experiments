@@ -8,6 +8,7 @@ import {
   resolveFlowDiagnostics,
   type FlowColorScheme,
   type FlowDiagnostics,
+  type FlowPortPositionDraft,
 } from '@opsydyn/foldkit-flow/foldkit';
 import { Schema } from 'effect';
 
@@ -242,6 +243,9 @@ const PortLabelDraft = Schema.Struct({
 });
 
 export const Model = Schema.Struct({
+  portPositionDraft: Schema.NullOr(
+    Schema.Struct({ nodeId: Schema.String, portId: Schema.String, draft: Schema.Unknown }),
+  ),
   protectPortEdits: Schema.Boolean,
   portLabelDraft: Schema.NullOr(PortLabelDraft),
   themePreference: Schema.NullOr(ThemePreference),
@@ -299,6 +303,11 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  portPositionDraft: Readonly<{
+    nodeId: string;
+    portId: string;
+    draft: FlowPortPositionDraft;
+  }> | null;
   protectPortEdits: boolean;
   portLabelDraft: typeof PortLabelDraft.Type | null;
   themePreference: ThemePreference | null;
@@ -349,6 +358,7 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    portPositionDraft: null,
     protectPortEdits: false,
     portLabelDraft: null,
     themePreference: null,

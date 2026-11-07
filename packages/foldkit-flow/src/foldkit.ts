@@ -3,6 +3,29 @@
  * @module FoldKit
  */
 export {
+  portPositionDraft,
+  updatePortPositionDraft,
+  portPositionFromDraft,
+  portPositionEditorContext,
+  flowPortPositionEditButton,
+  flowPortPositionModeSelect,
+  flowPortPositionSideSelect,
+  flowPortPositionInput,
+  flowPortPositionSave,
+  flowPortPositionForm,
+  flowPortPositionCancel,
+} from './port-position-editor';
+export type {
+  FlowPortPositionDraft,
+  FlowPortPositionMode,
+  FlowPortPositionField,
+  FlowPortPositionDraftChange,
+  FlowPortPositionInputContext,
+  FlowPortPositionEditorContext,
+  FlowPortPositionFormMessages,
+} from './port-position-editor';
+
+export {
   portInspectorContext,
   portAdditionContext,
   flowPortAddButton,

@@ -537,6 +537,38 @@ Model in update, including rapid repeated clicks. All primitives are
 unstyled and may be arranged or omitted independently. Position controls
 can use the resolved `positionControl` and existing `PortPositionsChanged`.
 
+Compose per-port position editing with `portPositionDraft(port)`,
+`updatePortPositionDraft(draft, change)`, and `portPositionEditorContext`.
+`FlowPortPositionDraft` keeps unvalidated text in either `offset` or
+`anchor` mode, so empty fields never become document coordinates.
+`portPositionFromDraft` returns an Effect `Option<PortPosition>`: all
+active numbers must be finite fractions from 0 to 1. Save commits that
+complete position through `PortPositionsChanged` with the current policy,
+giving side and coordinate changes one Undo entry. Hosts own draft
+lifecycle and decide when to discard drafts after document changes.
+
+Use `flowPortPositionEditButton` to open a draft. Inside
+`flowPortPositionForm`, compose `flowPortPositionModeSelect`,
+`flowPortPositionSideSelect`, `flowPortPositionInput` for each item in
+`context.inputs`, `flowPortPositionSave`, and `flowPortPositionCancel`.
+The controls use `entry.positionControl`, native required/min/max
+validation, Enter to save and Escape to cancel. They retain disabled
+states and reason links while Cancel remains available. Attributes and
+children control presentation; both selects also accept an optional
+final record of custom option labels.
+
+```ts
+const context = portPositionEditorContext(entry, draft);
+const fields = context.inputs.map((input) => flowPortPositionInput(h, context, input, changed, []));
+// Render fields in a host-owned layout inside flowPortPositionForm.
+```
+
+Edge offset mode uses the side and an along-edge fraction. Box coordinates
+use normalized X/Y from the node frame's top-left; side remains a routing
+direction hint. Switching to box coordinates starts at the same cardinal
+anchor. Switching back projects onto the chosen side using Y for left/right
+and X for top/bottom. It intentionally returns the anchor to that edge.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

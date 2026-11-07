@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add composable port position drafts and native anchor inputs for edge
+  offsets and normalized X/Y coordinates, with policy-aware Save/Cancel.
+
 - Add composable FoldKit port inspector contexts and native control
   primitives with host-owned drafts, styling and shared protection reasons.
 

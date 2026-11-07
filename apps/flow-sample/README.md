@@ -357,6 +357,14 @@ custom reason badges. Try **Protect Review input** and **Minimal mode**;
 the controls retain the same Save/Cancel, keyboard and Undo behavior.
 [Composable inspector screenshot](evidence/port-inspector.png)
 
+Use **Edit position** on an individual port. Choose **Edge offset** or
+**Box coordinates**, set the side and fractions from 0 to 1, then
+**Save position** for one Undo step. Cancel or Escape discards the draft.
+Box coordinates use the node frame; the side guides edge routing.
+**Protect Review input** also locks these fields while preserving the
+draft and its visible reason. The workbench composes package controls.
+[Port position screenshot](evidence/port-position-inputs.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

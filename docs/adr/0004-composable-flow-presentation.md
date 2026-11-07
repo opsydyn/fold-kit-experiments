@@ -343,6 +343,16 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Position authoring uses a discriminated text draft in the FoldKit adapter,
+with offset and anchor modes. Partial text stays outside the document;
+an Option-returning parser validates active fractions before a single
+`PortPositionsChanged` transaction. Native input primitives project the
+existing position capability and share reason links. This reuses the core
+edit and Undo boundary without introducing field-by-field document events
+or per-keystroke history. Mode conversion preserves the along-edge value
+and projects to the selected edge when returning from X/Y coordinates.
+Hosts own draft lifecycle and retain full layout and copy control.
+
 Inspector presentation lives in the optional FoldKit adapter. Option-based
 context factories resolve operation capabilities, guard copy and scoped
 reason IDs; equal reasons share one rendered description per entry.

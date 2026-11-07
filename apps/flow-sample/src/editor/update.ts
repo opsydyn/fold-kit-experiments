@@ -15,6 +15,14 @@ import {
   type LayoutResult,
 } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
+import {
+  portInspectorContext,
+  portPositionDraft,
+  updatePortPositionDraft,
+  portPositionFromDraft,
+  type FlowPortPositionDraftChange,
+} from '@opsydyn/foldkit-flow/foldkit';
+import { Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
 import {
@@ -50,6 +58,17 @@ function frameGraph(graph: FlowGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
+  const changedPosition = (change: FlowPortPositionDraftChange): Return<Model, Message> => ({
+    model: model.portPositionDraft
+      ? {
+          ...model,
+          portPositionDraft: {
+            ...model.portPositionDraft,
+            draft: updatePortPositionDraft(model.portPositionDraft.draft, change),
+          },
+        }
+      : model,
+  });
   const {
     snapToGrid,
     gridSpacing,
@@ -182,7 +201,63 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       );
       if (reason !== null)
         return { model: { ...model, editor: { ...model.editor, notice: reason } } };
-      return { model: { ...model, portLabelDraft: { nodeId, portId, text: port.label ?? '' } } };
+      return {
+        model: {
+          ...model,
+          portPositionDraft: null,
+          portLabelDraft: { nodeId, portId, text: port.label ?? '' },
+        },
+      };
+    },
+    ClickedEditPortPosition: ({ nodeId, portId }) => {
+      const context = Option.getOrUndefined(
+        portInspectorContext(model.editor, nodeId, workbenchPolicy(model)),
+      );
+      const entry = context?.entries.find(({ port }) => port.id === portId);
+      if (!entry || !model.editor.selectedNodes.includes(nodeId)) return { model };
+      if (entry.positionControl.reason !== null)
+        return {
+          model: { ...model, editor: { ...model.editor, notice: entry.positionControl.reason } },
+        };
+      return {
+        model: {
+          ...model,
+          portLabelDraft: null,
+          portPositionDraft: { nodeId, portId, draft: portPositionDraft(entry.port) },
+        },
+      };
+    },
+    SelectedPortPositionMode: ({ mode }) => changedPosition({ type: 'mode', mode }),
+    SelectedPortPositionSide: ({ side }) => changedPosition({ type: 'side', side }),
+    ChangedPortPositionNumber: ({ field, text }) =>
+      changedPosition({ type: 'number', field, text }),
+    ClickedCancelPortPosition: () => ({ model: { ...model, portPositionDraft: null } }),
+    SubmittedPortPosition: () => {
+      const draft = model.portPositionDraft;
+      if (!draft) return { model };
+      const policy = workbenchPolicy(model);
+      const context = Option.getOrUndefined(
+        portInspectorContext(model.editor, draft.nodeId, policy),
+      );
+      const entry = context?.entries.find(({ port }) => port.id === draft.portId);
+      if (!entry) return { model: { ...model, portPositionDraft: null } };
+      const position = Option.getOrUndefined(portPositionFromDraft(draft.draft));
+      const reason =
+        entry.positionControl.reason ??
+        (position === undefined ? 'Enter a number from 0 to 1 for each position field.' : null);
+      if (reason !== null || position === undefined)
+        return { model: { ...model, editor: { ...model.editor, notice: reason } } };
+      return {
+        model: {
+          ...model,
+          portPositionDraft: null,
+          editor: updateEditor(
+            model.editor,
+            { type: 'PortPositionsChanged', positions: [{ endpoint: entry.endpoint, position }] },
+            policy,
+          ),
+        },
+      };
     },
     ChangedPortLabelDraft: ({ text }) => ({
       model: model.portLabelDraft
@@ -485,11 +560,22 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       },
     }),
   });
-  const draft = result.model.portLabelDraft;
-  return draft &&
-    (result.model.editor.graph !== model.editor.graph ||
-      result.model.editor.readOnly ||
-      !result.model.editor.selectedNodes.includes(draft.nodeId))
-    ? { ...result, model: { ...result.model, portLabelDraft: null } }
+  const next = result.model;
+  const changed = next.editor.graph !== model.editor.graph || next.editor.readOnly;
+  const invalidLabel =
+    next.portLabelDraft &&
+    (changed || !next.editor.selectedNodes.includes(next.portLabelDraft.nodeId));
+  const invalidPosition =
+    next.portPositionDraft &&
+    (changed || !next.editor.selectedNodes.includes(next.portPositionDraft.nodeId));
+  return invalidLabel || invalidPosition
+    ? {
+        ...result,
+        model: {
+          ...next,
+          portLabelDraft: invalidLabel ? null : next.portLabelDraft,
+          portPositionDraft: invalidPosition ? null : next.portPositionDraft,
+        },
+      }
     : result;
 }

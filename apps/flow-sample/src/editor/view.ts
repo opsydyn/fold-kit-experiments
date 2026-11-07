@@ -21,13 +21,22 @@ import {
   flowPortLabelSave,
   flowPortLabelCancel,
   flowPortProtectionReason,
+  portPositionEditorContext,
+  flowPortPositionEditButton,
+  flowPortPositionModeSelect,
+  flowPortPositionSideSelect,
+  flowPortPositionInput,
+  flowPortPositionForm,
+  flowPortPositionSave,
+  flowPortPositionCancel,
+  type FlowPortPositionDraftChange,
   flowViewportControl,
   flowMinimap,
   flowMinimapViewport,
   resolveFlowDiagnostics,
   type FlowBackground,
 } from '@opsydyn/foldkit-flow/foldkit';
-import { Option, Schema } from 'effect';
+import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchPolicy } from './editor-policy';
@@ -265,6 +274,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     saved: Message.SubmittedPortLabel(),
     cancelled: Message.ClickedCancelPortLabel(),
   };
+  const positionMessages = {
+    saved: Message.SubmittedPortPosition(),
+    cancelled: Message.ClickedCancelPortPosition(),
+  };
+  const positionChanged = (change: FlowPortPositionDraftChange): Message =>
+    Match.value(change).pipe(
+      Match.when({ type: 'mode' }, ({ mode }) => Message.SelectedPortPositionMode({ mode })),
+      Match.when({ type: 'side' }, ({ side }) => Message.SelectedPortPositionSide({ side })),
+      Match.when({ type: 'number' }, ({ field, text }) =>
+        Message.ChangedPortPositionNumber({ field, text }),
+      ),
+      Match.exhaustive,
+    );
   const reasonStyle = {
     border: '1px solid currentColor',
     'border-radius': '999px',
@@ -1983,6 +2005,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     const { node, port } = entry;
                     const draft = model.portLabelDraft;
                     const editing = draft?.nodeId === node.id && draft.portId === port.id;
+                    const positionDraft = model.portPositionDraft;
+                    const positionEditor =
+                      positionDraft?.nodeId === node.id && positionDraft.portId === port.id
+                        ? portPositionEditorContext(entry, positionDraft.draft)
+                        : null;
                     return h.div(
                       [
                         h.Style({
@@ -2026,6 +2053,83 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                 Message.ClickedEditPortLabel({ nodeId: node.id, portId: port.id }),
                                 [],
                                 ['Edit label'],
+                              ),
+                            ]),
+                        ...(positionEditor
+                          ? [
+                              flowPortPositionForm(
+                                h,
+                                positionMessages,
+                                [
+                                  h.Style({
+                                    display: 'flex',
+                                    gap: '8px',
+                                    'align-items': 'center',
+                                    'flex-wrap': 'wrap',
+                                  }),
+                                ],
+                                [
+                                  h.label(
+                                    [],
+                                    [
+                                      'Position ',
+                                      flowPortPositionModeSelect(
+                                        h,
+                                        positionEditor,
+                                        positionChanged,
+                                        [],
+                                      ),
+                                    ],
+                                  ),
+                                  h.label(
+                                    [],
+                                    [
+                                      'Side ',
+                                      flowPortPositionSideSelect(
+                                        h,
+                                        positionEditor,
+                                        positionChanged,
+                                        [],
+                                      ),
+                                    ],
+                                  ),
+                                  ...positionEditor.inputs.map((input) =>
+                                    h.label(
+                                      [],
+                                      [
+                                        input.field === 'offset'
+                                          ? 'Offset '
+                                          : input.field.toUpperCase() + ' ',
+                                        flowPortPositionInput(
+                                          h,
+                                          positionEditor,
+                                          input,
+                                          positionChanged,
+                                          [h.Style({ width: '88px' })],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  flowPortPositionSave(h, positionEditor, [], ['Save position']),
+                                  flowPortPositionCancel(
+                                    h,
+                                    positionMessages.cancelled,
+                                    [],
+                                    ['Cancel position'],
+                                  ),
+                                ],
+                              ),
+                            ]
+                          : [
+                              flowPortPositionEditButton(
+                                h,
+                                entry,
+                                Message.ClickedEditPortPosition({
+                                  nodeId: node.id,
+                                  portId: port.id,
+                                }),
+                                [],
+                                ['Edit position'],
                               ),
                             ]),
                         flowPortRemoveButton(h, entry, flowInput, [], ['Remove port']),

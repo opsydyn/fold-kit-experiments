@@ -89,6 +89,15 @@ Compose `flowPortAddButton`, `flowPortRemoveButton`,
 Hosts own drafts through `FlowPortLabelFormMessages`; the package retains
 native interaction and links each control to its resolved reason.
 
+`FlowPortPositionDraft` represents unvalidated offset or X/Y text.
+`portPositionDraft`, `updatePortPositionDraft`, `portPositionFromDraft`
+and `portPositionEditorContext` support host-owned position authoring.
+Compose `flowPortPositionEditButton`, `flowPortPositionModeSelect`,
+`flowPortPositionSideSelect`, `flowPortPositionInput`,
+`flowPortPositionForm`, `flowPortPositionSave`, and `flowPortPositionCancel`.
+Save uses the existing atomic `PortPositionsChanged` event; controls
+respect `positionControl` and retain native numeric validation.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

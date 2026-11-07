@@ -10,6 +10,7 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
   flowView,
+  flowPortLabel,
   flowViewportControl,
   flowMinimap,
   flowMinimapViewport,
@@ -1380,6 +1381,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
         ),
         h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.portLabels),
+              h.OnClick(Message.ClickedPortLabels()),
+            ]),
+            'Port labels',
+          ],
+        ),
+        h.label(
           [h.Class('workbench-theme-picker')],
           [
             'Theme',
@@ -1596,6 +1608,26 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
         ),
         flowView(h, model.editor, {
+          portLabels: model.portLabels,
+          renderPortLabel: (context, builder) =>
+            flowPortLabel(
+              builder,
+              { ...context, offset: 22 },
+              [
+                builder.Class('workbench-port-label'),
+                builder.Style({
+                  background: 'var(--flow-node-background, #fff)',
+                  color: 'var(--flow-node-color, #172033)',
+                  border: '1px solid var(--flow-canvas-border, #94a3b8)',
+                  'border-radius': '6px',
+                  padding: '3px 7px',
+                  'font-size': '11px',
+                  'font-weight': '600',
+                  'z-index': '4',
+                }),
+              ],
+              [context.label],
+            ),
           renderViewportControls: (context, builder) => {
             if (model.navigationDesign !== 'compact') return undefined;
             const control = (action: typeof context.actions.zoomIn, label: string) =>

@@ -53,6 +53,12 @@ provides visible node and camera geometry; use `flowMinimap` for input and
 `flowMinimapViewport` for an optional, separately styled camera outline. The
 `renderViewportControls` and `renderMinimap` hooks use these same contracts.
 
+`portLabels` enables labels for named ports, with ID fallback.
+`FlowPortLabelContext` supplies the port, node, canonical world position,
+resolved placement and gap. Compose `flowPortLabel` in `renderPortLabel`
+for custom content and placement. It keeps labels decorative and anchored
+independently of the node shell.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

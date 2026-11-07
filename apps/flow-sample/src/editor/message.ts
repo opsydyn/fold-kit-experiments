@@ -53,6 +53,7 @@ export const Message = defineMessageUnion({
     id: Schema.String,
   },
   ClickedConnectionSnap: {},
+  ClickedPortLabels: {},
   SelectedReconnectionSnap: { reconnectionSnap: ReconnectionSnap },
   ClickedPortLock: { port: PortLock },
   SelectedReconnectLock: { reconnectLock: ReconnectLock },

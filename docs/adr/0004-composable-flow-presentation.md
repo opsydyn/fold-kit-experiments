@@ -341,6 +341,16 @@ consumes it. This keeps the action independent of graph undo and snapshot
 serialization. A full camera history would also require grouping
 continuous gestures, which this single-step return does not need.
 
+### Port labels
+
+Port labels render in the existing world layer, using canonical anchors
+from the visible nodes. Keeping this layer outside measured shells
+preserves node sizing and custom shell composition. A public decorative
+frame owns positioning, pointer passthrough and accessible hiding. The
+renderer can compose that frame with its own content and per-port
+placement. Visibility and culling follow the node presentation.
+Labels are opt-in semantic content and remain available in minimal mode.
+
 ### Edge labels
 
 Label hooks render HTML inside Flow's existing positioned frame. The frame

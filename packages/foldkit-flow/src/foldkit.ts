@@ -110,6 +110,17 @@ export {
   flowWorldOverlayItem,
 } from './composition';
 export type { FlowNodeRenderContext, FlowWorldOverlayItemOptions } from './composition';
+import {
+  portLabelViews,
+  type FlowPortLabelOptions,
+  type FlowPortLabelRenderer,
+} from './port-label';
+export { flowPortLabel } from './port-label';
+export type {
+  FlowPortLabelOptions,
+  FlowPortLabelContext,
+  FlowPortLabelRenderer,
+} from './port-label';
 
 import { flowThemeStyle, type FlowTheme } from './theme';
 export { flowLightTheme, flowDarkTheme } from './theme';
@@ -274,6 +285,10 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     ) => Html | null | undefined;
     /** Uses the host's builder; arbitrary FoldKit controls retain their normal behaviour. */
     renderNode?: (node: FlowNode, h: HtmlBuilder<M>) => Html;
+    /** Opt in to decorative port labels at their canonical world anchors. */
+    portLabels?: boolean | FlowPortLabelOptions;
+    /** Replaces a complete label. Compose flowPortLabel to retain anchoring. Null hides it. */
+    renderPortLabel?: FlowPortLabelRenderer<M>;
     /** Use a separate FoldKit lazy slot per canvas to retain the built-in node layer. */
     nodeViewCache?: ReturnType<typeof createLazy> | undefined;
     /** Replaces the complete measured node shell. Compose the public frame and interaction primitives. */
@@ -2040,6 +2055,7 @@ export function flowView<M>(
                 ],
               ),
               ...nodeLayer,
+              ...portLabelViews(h, canvas.nodes, options.portLabels, options.renderPortLabel),
               ...edgeLabels,
               ...(worldOverlay === null || worldOverlay === undefined
                 ? []

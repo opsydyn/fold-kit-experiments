@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in composable port labels with world anchors, configurable
+  placement and a public label primitive.
+
 - Add opt-in connection snap hysteresis for stable nearby-port targeting
   during wire creation and reconnection.
 

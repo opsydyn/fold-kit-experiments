@@ -321,6 +321,11 @@ Primary and Fallback inputs to compare steady targeting with the toggle
 off. The setting also applies to reconnection.
 [Workbench screenshot](evidence/snap-hysteresis.png)
 
+Enable **Port labels** to show custom badges at port anchors. The
+**Port snapping demo** names Publish's Primary and Fallback inputs.
+Labels follow both card and circular node designs.
+[Workbench screenshot](evidence/port-labels.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

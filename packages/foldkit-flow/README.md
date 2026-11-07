@@ -390,6 +390,21 @@ See [Pleat's FoldKit and theme APIs](https://github.com/Manzanita-Research/pleat
 Select an edge to expose its available endpoint handles. Drag a handle to a
 compatible port to reconnect the edge. Escape or dropping elsewhere cancels.
 
+Set `portLabels: true` on `flowView` to show each port's `label`, falling
+back to its ID. Labels use the canonical world anchors and follow node
+visibility, collapse, and viewport culling. They stay visible in minimal
+mode while opted in. Set `portLabels: false` to hide them.
+
+Use `portLabels: { offset: 24, placement: 'right' }` to customize the
+default gap and side. Without a placement, each label follows its port's
+routing side. The offset is in world units and defaults to 18.
+`renderPortLabel(context, h)` replaces a complete label. Return
+`undefined` for the default or `null` to omit an individual label.
+Compose `flowPortLabel(h, context, attributes, children)` for custom badges
+and per-port placement. It owns the anchored frame and passes pointer input
+through. Labels render independently of custom node and group shells.
+Keep them decorative. The port button retains its accessible name.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

@@ -2,6 +2,27 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+export {
+  portInspectorContext,
+  portAdditionContext,
+  flowPortAddButton,
+  flowPortRemoveButton,
+  flowPortLabelEditButton,
+  flowPortLabelForm,
+  flowPortLabelInput,
+  flowPortLabelSave,
+  flowPortLabelCancel,
+  flowPortProtectionReason,
+} from './port-inspector';
+export type {
+  FlowPortControlContext,
+  FlowPortInspectorEntry,
+  FlowPortInspectorContext,
+  FlowPortInspectorOptions,
+  FlowPortAdditionContext,
+  FlowPortLabelFormMessages,
+} from './port-inspector';
+
 import { Mount } from 'foldkit';
 import { createLazy, type Html, type HtmlBuilder } from 'foldkit/html';
 

@@ -1,8 +1,6 @@
 import {
   defaultFitViewPadding,
   defaultZoomLimits,
-  resolvePortRemoval,
-  portEditReason,
   type EdgeEnd,
   type EdgePathStyle,
   type FlowEdge,
@@ -13,6 +11,16 @@ import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
   flowView,
   flowPortLabel,
+  portInspectorContext,
+  portAdditionContext,
+  flowPortAddButton,
+  flowPortRemoveButton,
+  flowPortLabelEditButton,
+  flowPortLabelForm,
+  flowPortLabelInput,
+  flowPortLabelSave,
+  flowPortLabelCancel,
+  flowPortProtectionReason,
   flowViewportControl,
   flowMinimap,
   flowMinimapViewport,
@@ -246,6 +254,23 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const searchItem = model.searchScope === 'nodes' ? 'node' : 'connection';
   const canReveal = model.editor.surface !== null && model.editor.gesture.type === 'idle';
   const policy = workbenchPolicy(model);
+  const inspector = Option.getOrUndefined(
+    !model.minimalMode && selectedNode
+      ? portInspectorContext(model.editor, selectedNode.id, policy, {
+          idPrefix: 'workbench-port-inspector',
+        })
+      : Option.none(),
+  );
+  const labelMessages = {
+    saved: Message.SubmittedPortLabel(),
+    cancelled: Message.ClickedCancelPortLabel(),
+  };
+  const reasonStyle = {
+    border: '1px solid currentColor',
+    'border-radius': '999px',
+    padding: '3px 9px',
+    'font-size': '0.85rem',
+  };
   const endpointSelect = (edge: FlowEdge, end: EdgeEnd) => {
     const reason = policy.canReconnect(edge, end, model.editor.graph);
     const reasonId = `flow-reconnect-${end}-reason`;
@@ -1908,12 +1933,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   )
               : renderDefaultNode,
         }),
-        ...(!model.minimalMode && selectedNode && selectedNode.kind !== 'group'
+        ...(inspector
           ? [
               h.fieldset(
-                [],
+                [h.DataAttribute('flow-port-inspector-demo', 'composable')],
                 [
-                  h.legend([], ['Ports for ' + selectedNode.label]),
+                  h.legend([], ['Ports for ' + inspector.node.label]),
                   h.p(
                     [],
                     [
@@ -1921,12 +1946,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     ],
                   ),
                   ...(['input', 'output'] as const).map((kind) => {
-                    const reason = portEditReason(
-                      { operation: 'add', node: selectedNode, port: nextPort(selectedNode, kind) },
-                      model.editor.graph,
-                      policy.canEditPort,
+                    const addition = Option.getOrUndefined(
+                      portAdditionContext(
+                        model.editor,
+                        inspector.node.id,
+                        nextPort(inspector.node, kind),
+                        policy,
+                        { idPrefix: 'workbench-port-inspector' },
+                      ),
                     );
-                    const reasonId = 'port-add-' + encodeURIComponent(selectedNode.id) + '-' + kind;
+                    if (!addition) return h.span([], []);
                     return h.div(
                       [
                         h.Style({
@@ -1937,50 +1966,23 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                         }),
                       ],
                       [
-                        h.button(
-                          [
-                            h.Type('button'),
-                            h.Disabled(
-                              model.editor.readOnly ||
-                                model.editor.gesture.type !== 'idle' ||
-                                reason !== null,
-                            ),
-                            ...(reason ? [h.AriaDescribedBy(reasonId)] : []),
-                            h.OnClick(Message.ClickedAddPort({ nodeId: selectedNode.id, kind })),
-                            h.Style({ padding: '10px 16px', cursor: 'pointer' }),
-                          ],
+                        flowPortAddButton(
+                          h,
+                          addition,
+                          Message.ClickedAddPort({ nodeId: inspector.node.id, kind }),
+                          [h.Style({ padding: '10px 16px', cursor: 'pointer' })],
                           ['Add ' + kind + ' port'],
                         ),
-                        ...(reason ? [h.span([h.Id(reasonId)], [reason])] : []),
+                        ...(addition.control.reason !== null
+                          ? [flowPortProtectionReason(h, addition.control, [h.Style(reasonStyle)])]
+                          : []),
                       ],
                     );
                   }),
-                  ...selectedNode.ports.map((port) => {
+                  ...inspector.entries.map((entry) => {
+                    const { node, port } = entry;
                     const draft = model.portLabelDraft;
-                    const editing = draft?.nodeId === selectedNode.id && draft.portId === port.id;
-                    const labelReason = portEditReason(
-                      { operation: 'label', node: selectedNode, port },
-                      model.editor.graph,
-                      policy.canEditPort,
-                    );
-                    const editDisabled =
-                      model.editor.readOnly ||
-                      model.editor.gesture.type !== 'idle' ||
-                      labelReason !== null;
-                    const endpoint = { node: selectedNode.id, port: port.id };
-                    const decision = resolvePortRemoval(
-                      model.editor.graph,
-                      endpoint,
-                      policy.canDelete,
-                      policy.canEditPort,
-                    );
-                    const reason = decision.type === 'blocked' ? decision.reason : null;
-                    const reasonId =
-                      'port-removal-' +
-                      encodeURIComponent(selectedNode.id) +
-                      '-' +
-                      encodeURIComponent(port.id);
-                    const labelReasonId = reasonId + '-label';
+                    const editing = draft?.nodeId === node.id && draft.portId === port.id;
                     return h.div(
                       [
                         h.Style({
@@ -1995,89 +1997,41 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                         h.span([], [port.label ?? port.id]),
                         ...(editing
                           ? [
-                              h.form(
+                              flowPortLabelForm(
+                                h,
+                                labelMessages,
+                                [h.Style({ display: 'flex', gap: '4px', 'flex-wrap': 'wrap' })],
                                 [
-                                  h.Style({ display: 'flex', gap: '4px', 'flex-wrap': 'wrap' }),
-                                  h.OnSubmit(Message.SubmittedPortLabel()),
-                                  h.OnKeyDownPreventDefault((key) =>
-                                    key === 'Escape'
-                                      ? Option.some(Message.ClickedCancelPortLabel())
-                                      : Option.none(),
+                                  flowPortLabelInput(
+                                    h,
+                                    entry,
+                                    draft.text,
+                                    (text) => Message.ChangedPortLabelDraft({ text }),
+                                    [h.Placeholder('Defaults to port ID')],
                                   ),
-                                ],
-                                [
-                                  h.input([
-                                    h.Type('text'),
-                                    h.AriaLabel(
-                                      'Label for ' + port.id + ' port on ' + selectedNode.label,
-                                    ),
-                                    h.Placeholder('Defaults to port ID'),
-                                    h.Autofocus(true),
-                                    h.Value(draft.text),
-                                    h.Disabled(editDisabled),
-                                    ...(labelReason ? [h.AriaDescribedBy(labelReasonId)] : []),
-                                    h.OnInput((text) => Message.ChangedPortLabelDraft({ text })),
-                                  ]),
-                                  h.button(
-                                    [
-                                      h.Type('submit'),
-                                      h.Disabled(editDisabled),
-                                      ...(labelReason ? [h.AriaDescribedBy(labelReasonId)] : []),
-                                    ],
-                                    ['Save port label'],
+                                  flowPortLabelSave(h, entry, [], ['Save port label']),
+                                  flowPortLabelCancel(
+                                    h,
+                                    labelMessages.cancelled,
+                                    [h.Style({ padding: '10px 16px', cursor: 'pointer' })],
+                                    ['Cancel port label'],
                                   ),
-                                  button('Cancel port label', Message.ClickedCancelPortLabel()),
                                 ],
                               ),
                             ]
                           : [
-                              h.button(
-                                [
-                                  h.Type('button'),
-                                  h.AriaLabel(
-                                    'Edit label for ' + port.id + ' port on ' + selectedNode.label,
-                                  ),
-                                  h.Disabled(editDisabled),
-                                  ...(labelReason ? [h.AriaDescribedBy(labelReasonId)] : []),
-                                  h.OnClick(
-                                    Message.ClickedEditPortLabel({
-                                      nodeId: selectedNode.id,
-                                      portId: port.id,
-                                    }),
-                                  ),
-                                ],
+                              flowPortLabelEditButton(
+                                h,
+                                entry,
+                                Message.ClickedEditPortLabel({ nodeId: node.id, portId: port.id }),
+                                [],
                                 ['Edit label'],
                               ),
                             ]),
-                        ...(labelReason ? [h.span([h.Id(labelReasonId)], [labelReason])] : []),
-                        h.button(
-                          [
-                            h.Type('button'),
-                            h.AriaLabel(
-                              'Remove ' +
-                                (port.label ?? port.id) +
-                                ' port from ' +
-                                selectedNode.label,
-                            ),
-                            h.Disabled(
-                              model.editor.readOnly ||
-                                model.editor.gesture.type !== 'idle' ||
-                                reason !== null,
-                            ),
-                            ...(reason
-                              ? [
-                                  h.AriaDescribedBy(
-                                    reason === labelReason ? labelReasonId : reasonId,
-                                  ),
-                                ]
-                              : []),
-                            h.OnClick(flowInput({ type: 'PortRemoved', endpoint })),
-                          ],
-                          ['Remove port'],
+                        flowPortRemoveButton(h, entry, flowInput, [], ['Remove port']),
+                        ...entry.reasons.map((reason) =>
+                          flowPortProtectionReason(h, reason, [h.Style(reasonStyle)]),
                         ),
-                        ...(reason && reason !== labelReason
-                          ? [h.span([h.Id(reasonId)], [reason])]
-                          : []),
                       ],
                     );
                   }),

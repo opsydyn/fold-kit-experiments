@@ -343,6 +343,18 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Inspector presentation lives in the optional FoldKit adapter. Option-based
+context factories resolve operation capabilities, guard copy and scoped
+reason IDs; equal reasons share one rendered description per entry.
+Native primitives bind host drafts, Save/Cancel, and atomic removal.
+The host composes layout and content rather than configuring a monolithic
+inspector widget. Addition deliberately emits a host message, allowing ID
+allocation against the latest Model during rapid input. Contexts are
+preflight views; the existing core reducer remains the commit authority.
+This adds reusable controls without moving draft state into the core or
+introducing an Astro dependency. Hosts still manage draft lifecycle and
+must pass their current policy when committing.
+
 `canEditPort` authorizes individual direct port operations using a
 `PortEditCandidate` (operation, node, and current port; proposed port for
 addition). This capability check stays independent of proposed display

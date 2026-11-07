@@ -351,6 +351,12 @@ change. Toggling protection while editing preserves the draft, disables
 Save, and explains why; unlock it to continue or Cancel to discard.
 [Workbench screenshot](evidence/port-edit-policy.png)
 
+The Ports inspector composes the package's native `/foldkit` inspector
+primitives. The workbench owns its rows, draft messages, visibility and
+custom reason badges. Try **Protect Review input** and **Minimal mode**;
+the controls retain the same Save/Cancel, keyboard and Undo behavior.
+[Composable inspector screenshot](evidence/port-inspector.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add composable FoldKit port inspector contexts and native control
+  primitives with host-owned drafts, styling and shared protection reasons.
+
 - Add operation-aware per-port edit policies, shared protection reasons,
   and atomic rejection of protected position batches.
 

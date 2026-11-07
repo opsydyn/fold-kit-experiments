@@ -473,6 +473,70 @@ by attached-edge deletion protection. Wire creation/reconnection continue
 to use the connection policies. Whole-node deletion, graph replacement,
 and Undo/Redo retain their existing policies and history semantics.
 
+The optional `/foldkit` entry point also exports composable port inspector
+primitives. `portInspectorContext(editor, nodeId, policy, options)` returns
+an Effect `Option` containing the node and its current entries, or `None`
+for a missing node or group. Each entry includes `labelControl`,
+`positionControl` and `removeControl`. Null `reason` enables a control;
+non-null reasons include policy, read-only and active-gesture protection.
+Render `entry.reasons` once: identical reasons share an ID across controls.
+`FlowPortInspectorOptions` accepts `idPrefix`, `readOnlyReason`, and
+`busyReason`; give simultaneous inspectors distinct prefixes.
+
+Hosts own their draft Model and messages. This standalone helper composes
+a label form without prescribing a layout or CSS:
+
+```ts
+import type { HtmlBuilder } from 'foldkit/html';
+import {
+  flowPortLabelForm,
+  flowPortLabelInput,
+  flowPortLabelSave,
+  flowPortLabelCancel,
+  flowPortProtectionReason,
+  type FlowPortInspectorEntry,
+  type FlowPortLabelFormMessages,
+} from '@opsydyn/foldkit-flow/foldkit';
+
+export function portLabelEditor<M>(
+  h: HtmlBuilder<M>,
+  entry: FlowPortInspectorEntry,
+  draft: string,
+  messages: FlowPortLabelFormMessages<M>,
+  changed: (text: string) => M,
+) {
+  return flowPortLabelForm(
+    h,
+    messages,
+    [],
+    [
+      flowPortLabelInput(h, entry, draft, changed, []),
+      flowPortLabelSave(h, entry, [], ['Save']),
+      flowPortLabelCancel(h, messages.cancelled, [], ['Cancel']),
+      ...(entry.labelControl.reason !== null
+        ? [flowPortProtectionReason(h, entry.labelControl, [])]
+        : []),
+    ],
+  );
+}
+```
+
+`flowPortLabelEditButton` opens the host draft. Enter submits the form,
+Escape cancels, and Cancel remains available when editing is protected.
+The host's saved message commits `PortLabelChanged` with the current
+policy; these view contexts are preflight information, not authorization
+tokens. Recompute them on each view. The primitives own native types,
+bindings, disabled state and description links. Attributes can customize
+names, autofocus and styling; children can supply badges or other content.
+
+`flowPortRemoveButton` emits the entry's atomic `PortRemoved` event.
+`portAdditionContext(editor, nodeId, proposedPort, policy, options)`
+preflights a host-supplied proposal. `flowPortAddButton` takes that context
+and a host message so identity allocation can occur against the latest
+Model in update, including rapid repeated clicks. All primitives are
+unstyled and may be arranged or omitted independently. Position controls
+can use the resolved `positionControl` and existing `PortPositionsChanged`.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

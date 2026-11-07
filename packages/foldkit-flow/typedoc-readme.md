@@ -80,6 +80,15 @@ protection reasons with host controls. Pass `canEditPort` as the fourth
 argument to `resolvePortRemoval` to combine port and attached-edge
 protection. Position batches are atomic when any changed port is locked.
 
+`portInspectorContext` and `portAdditionContext` resolve Option-wrapped
+`FlowPortInspectorContext` and `FlowPortAdditionContext` for host layouts.
+`FlowPortInspectorOptions` scopes reason IDs and customizes guard copy.
+Compose `flowPortAddButton`, `flowPortRemoveButton`,
+`flowPortLabelEditButton`, `flowPortLabelForm`, `flowPortLabelInput`,
+`flowPortLabelSave`, `flowPortLabelCancel`, and `flowPortProtectionReason`.
+Hosts own drafts through `FlowPortLabelFormMessages`; the package retains
+native interaction and links each control to its resolved reason.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

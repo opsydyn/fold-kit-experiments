@@ -74,6 +74,12 @@ endpoint ID, anchor and connections. Pass `undefined` to clear the label.
 Hosts manage drafts and submit one event per saved edit; the reducer
 validates the graph and records one Undo transaction.
 
+`EditorPolicy.canEditPort` receives a `PortEditCandidate` for add, label,
+position and removal operations. `portEditReason` shares normalized
+protection reasons with host controls. Pass `canEditPort` as the fourth
+argument to `resolvePortRemoval` to combine port and attached-edge
+protection. Position batches are atomic when any changed port is locked.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

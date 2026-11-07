@@ -242,6 +242,7 @@ const PortLabelDraft = Schema.Struct({
 });
 
 export const Model = Schema.Struct({
+  protectPortEdits: Schema.Boolean,
   portLabelDraft: Schema.NullOr(PortLabelDraft),
   themePreference: Schema.NullOr(ThemePreference),
   systemColorScheme: Schema.NullOr(ColorScheme),
@@ -298,6 +299,7 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  protectPortEdits: boolean;
   portLabelDraft: typeof PortLabelDraft.Type | null;
   themePreference: ThemePreference | null;
   systemColorScheme: FlowColorScheme | null;
@@ -347,6 +349,7 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    protectPortEdits: false,
     portLabelDraft: null,
     themePreference: null,
     systemColorScheme: null,

@@ -17,6 +17,7 @@ const requiredItemPolicy = {
 
 export function workbenchPolicy({
   protectDeletions,
+  protectPortEdits,
   reconnectLock,
   portLocks,
   lockKeyNodes,
@@ -25,6 +26,7 @@ export function workbenchPolicy({
 }: Pick<
   Model,
   | 'protectDeletions'
+  | 'protectPortEdits'
   | 'reconnectLock'
   | 'lockKeyNodes'
   | 'lockNodeSizes'
@@ -44,7 +46,11 @@ export function workbenchPolicy({
       ? 'Publish input is closed to new connections.'
       : null;
   };
-  const connections = { canReconnect, canConnectPort };
+  const canEditPort: NonNullable<EditorPolicy['canEditPort']> = ({ node, port }) =>
+    protectPortEdits && node.id === 'review' && port.id === 'in'
+      ? 'Review input is managed upstream.'
+      : null;
+  const connections = { canReconnect, canConnectPort, canEditPort };
   const policy = protectDeletions ? { ...requiredItemPolicy, ...connections } : connections;
   const movementPolicy = lockKeyNodes
     ? {

@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add operation-aware per-port edit policies, shared protection reasons,
+  and atomic rejection of protected position batches.
+
 - Add undoable port label edits that preserve endpoint identity and wiring,
   including explicit label clearing.
 

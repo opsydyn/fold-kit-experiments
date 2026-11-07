@@ -343,6 +343,14 @@ Escape or **Cancel port label** discards the draft. Saving an empty field
 restores the port-ID fallback. Enable **Port labels** to see the result on
 the canvas. [Workbench screenshot](evidence/port-label-editing.png)
 
+Toggle **Protect Review input** to keep that port's label, anchor and
+existence managed upstream. The Ports inspector disables its editing and
+removal controls with a visible reason. Other ports and wiring remain
+available. A protected port also vetoes the whole **Port anchors** preset
+change. Toggling protection while editing preserves the draft, disables
+Save, and explains why; unlock it to continue or Cancel to discard.
+[Workbench screenshot](evidence/port-edit-policy.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

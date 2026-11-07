@@ -14,6 +14,7 @@ export {
 export { createEditor, updateEditor } from './editor';
 export { resolveDeletion } from './deletion';
 export { resolvePortRemoval } from './port-removal';
+export { portEditReason } from './port-edit';
 export { revealableNodes, revealableEdges } from './group-presentation';
 export {
   defaultFitViewPadding,

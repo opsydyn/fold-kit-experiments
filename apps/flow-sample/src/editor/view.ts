@@ -2,6 +2,7 @@ import {
   defaultFitViewPadding,
   defaultZoomLimits,
   resolvePortRemoval,
+  portEditReason,
   type EdgeEnd,
   type EdgePathStyle,
   type FlowEdge,
@@ -46,6 +47,7 @@ import {
   NodeDesign,
   type Model,
 } from './model';
+import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import {
   orbitNode,
@@ -656,6 +658,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       h.OnClick(Message.ClickedDeletionProtection()),
                     ],
                     ['Protect required items'],
+                  ),
+                  h.button(
+                    [
+                      h.Type('button'),
+                      h.AriaPressed(String(model.protectPortEdits)),
+                      h.OnClick(Message.ClickedPortEditProtection()),
+                    ],
+                    ['Protect Review input'],
                   ),
                   button(
                     'Delete selected',
@@ -1910,26 +1920,59 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       'Removing a port also removes its attached connections. Undo restores them together.',
                     ],
                   ),
-                  button(
-                    'Add input port',
-                    Message.ClickedAddPort({ nodeId: selectedNode.id, kind: 'input' }),
-                    model.editor.readOnly || model.editor.gesture.type !== 'idle',
-                  ),
-                  button(
-                    'Add output port',
-                    Message.ClickedAddPort({ nodeId: selectedNode.id, kind: 'output' }),
-                    model.editor.readOnly || model.editor.gesture.type !== 'idle',
-                  ),
+                  ...(['input', 'output'] as const).map((kind) => {
+                    const reason = portEditReason(
+                      { operation: 'add', node: selectedNode, port: nextPort(selectedNode, kind) },
+                      model.editor.graph,
+                      policy.canEditPort,
+                    );
+                    const reasonId = 'port-add-' + encodeURIComponent(selectedNode.id) + '-' + kind;
+                    return h.div(
+                      [
+                        h.Style({
+                          display: 'inline-flex',
+                          gap: '8px',
+                          'align-items': 'center',
+                          'flex-wrap': 'wrap',
+                        }),
+                      ],
+                      [
+                        h.button(
+                          [
+                            h.Type('button'),
+                            h.Disabled(
+                              model.editor.readOnly ||
+                                model.editor.gesture.type !== 'idle' ||
+                                reason !== null,
+                            ),
+                            ...(reason ? [h.AriaDescribedBy(reasonId)] : []),
+                            h.OnClick(Message.ClickedAddPort({ nodeId: selectedNode.id, kind })),
+                            h.Style({ padding: '10px 16px', cursor: 'pointer' }),
+                          ],
+                          ['Add ' + kind + ' port'],
+                        ),
+                        ...(reason ? [h.span([h.Id(reasonId)], [reason])] : []),
+                      ],
+                    );
+                  }),
                   ...selectedNode.ports.map((port) => {
                     const draft = model.portLabelDraft;
                     const editing = draft?.nodeId === selectedNode.id && draft.portId === port.id;
+                    const labelReason = portEditReason(
+                      { operation: 'label', node: selectedNode, port },
+                      model.editor.graph,
+                      policy.canEditPort,
+                    );
                     const editDisabled =
-                      model.editor.readOnly || model.editor.gesture.type !== 'idle';
+                      model.editor.readOnly ||
+                      model.editor.gesture.type !== 'idle' ||
+                      labelReason !== null;
                     const endpoint = { node: selectedNode.id, port: port.id };
                     const decision = resolvePortRemoval(
                       model.editor.graph,
                       endpoint,
                       policy.canDelete,
+                      policy.canEditPort,
                     );
                     const reason = decision.type === 'blocked' ? decision.reason : null;
                     const reasonId =
@@ -1937,6 +1980,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       encodeURIComponent(selectedNode.id) +
                       '-' +
                       encodeURIComponent(port.id);
+                    const labelReasonId = reasonId + '-label';
                     return h.div(
                       [
                         h.Style({
@@ -1971,10 +2015,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                     h.Autofocus(true),
                                     h.Value(draft.text),
                                     h.Disabled(editDisabled),
+                                    ...(labelReason ? [h.AriaDescribedBy(labelReasonId)] : []),
                                     h.OnInput((text) => Message.ChangedPortLabelDraft({ text })),
                                   ]),
                                   h.button(
-                                    [h.Type('submit'), h.Disabled(editDisabled)],
+                                    [
+                                      h.Type('submit'),
+                                      h.Disabled(editDisabled),
+                                      ...(labelReason ? [h.AriaDescribedBy(labelReasonId)] : []),
+                                    ],
                                     ['Save port label'],
                                   ),
                                   button('Cancel port label', Message.ClickedCancelPortLabel()),
@@ -1989,6 +2038,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                     'Edit label for ' + port.id + ' port on ' + selectedNode.label,
                                   ),
                                   h.Disabled(editDisabled),
+                                  ...(labelReason ? [h.AriaDescribedBy(labelReasonId)] : []),
                                   h.OnClick(
                                     Message.ClickedEditPortLabel({
                                       nodeId: selectedNode.id,
@@ -1999,6 +2049,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                 ['Edit label'],
                               ),
                             ]),
+                        ...(labelReason ? [h.span([h.Id(labelReasonId)], [labelReason])] : []),
                         h.button(
                           [
                             h.Type('button'),
@@ -2013,12 +2064,20 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                                 model.editor.gesture.type !== 'idle' ||
                                 reason !== null,
                             ),
-                            ...(reason ? [h.AriaDescribedBy(reasonId)] : []),
+                            ...(reason
+                              ? [
+                                  h.AriaDescribedBy(
+                                    reason === labelReason ? labelReasonId : reasonId,
+                                  ),
+                                ]
+                              : []),
                             h.OnClick(flowInput({ type: 'PortRemoved', endpoint })),
                           ],
                           ['Remove port'],
                         ),
-                        ...(reason ? [h.span([h.Id(reasonId)], [reason])] : []),
+                        ...(reason && reason !== labelReason
+                          ? [h.span([h.Id(reasonId)], [reason])]
+                          : []),
                       ],
                     );
                   }),

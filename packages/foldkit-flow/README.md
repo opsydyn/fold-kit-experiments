@@ -442,6 +442,37 @@ routes, and respects read-only and active-gesture guards. Port removal
 does not call deletion policy when there are no attached edges. Existing
 graph documents and snapshots already support the resulting port data.
 
+Use `EditorPolicy.canEditPort` to protect direct port edits individually:
+
+```ts
+import type { EditorPolicy } from '@opsydyn/foldkit-flow';
+
+const policy: EditorPolicy = {
+  canEditPort: ({ operation, node, port }) =>
+    node.id === 'review' && port.id === 'in' && operation !== 'add'
+      ? 'Review input is managed upstream.'
+      : null,
+};
+```
+
+`PortEditCandidate` contains `operation` (`add`, `label`, `position`, or
+`remove`), the current node, and the current port. Addition supplies the
+proposed port instead. This is a capability check, independent of proposed
+label text or coordinates. The reducer evaluates it against the current
+full graph before publishing. A veto preserves graph, routes, revision,
+selection and history, and reports the reason in `notice`. One protected
+port vetoes an entire position batch; unchanged labels and positions are
+no-ops and skip policy checks.
+
+`portEditReason(candidate, graph, policy.canEditPort)` resolves the same
+trimmed reason for host controls; blank rejections use a default message.
+For removal controls pass both policies:
+`resolvePortRemoval(graph, endpoint, policy.canDelete, policy.canEditPort)`.
+Port edit protection is checked first, including unused ports, followed
+by attached-edge deletion protection. Wire creation/reconnection continue
+to use the connection policies. Whole-node deletion, graph replacement,
+and Undo/Redo retain their existing policies and history semantics.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

@@ -7,14 +7,12 @@ import {
   serializeGraph,
   serializeSnapshot,
   updateEditor,
-  portAnchor,
+  portEditReason,
   type EditorEvent,
   type EditorState,
   type FlowGraph,
   type FlowSnapshot,
   type LayoutResult,
-  type FlowNode,
-  type Port,
 } from '@opsydyn/foldkit-flow';
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import type { Return } from 'foldkit/update';
@@ -37,36 +35,9 @@ import {
   portSnappingGraph,
   type Model,
 } from './model';
+import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
 import { searchDiagram } from './search';
-
-function nextPort(node: FlowNode, kind: Port['kind']): Port {
-  let sequence = 1;
-  while (node.ports.some(({ id }) => id === kind + '-' + sequence)) sequence++;
-  const side = kind === 'input' ? 'left' : 'right';
-  const positions = [
-    0,
-    ...node.ports.filter((port) => port.side === side).map((port) => portAnchor(port).y),
-    1,
-  ].sort((a, b) => a - b);
-  let largestGap = -1;
-  let offset = 0.5;
-  for (let index = 1; index < positions.length; index++) {
-    const start = positions[index - 1] ?? 0;
-    const end = positions[index] ?? 1;
-    if (end - start > largestGap) {
-      largestGap = end - start;
-      offset = (start + end) / 2;
-    }
-  }
-  return {
-    id: kind + '-' + sequence,
-    label: (kind === 'input' ? 'Input ' : 'Output ') + sequence,
-    kind,
-    side,
-    offset,
-  };
-}
 
 function frameGraph(graph: FlowGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
   const size = surface ?? { width: 800, height: 440 };
@@ -171,15 +142,19 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedPortAnchors: ({ preset }) => ({
       model: {
         ...model,
-        editor: updateEditor(model.editor, {
-          type: 'PortPositionsChanged',
-          positions: model.editor.graph.nodes.flatMap((node) =>
-            node.ports.map((port) => ({
-              endpoint: { node: node.id, port: port.id },
-              position: presetPosition(port, preset),
-            })),
-          ),
-        }),
+        editor: updateEditor(
+          model.editor,
+          {
+            type: 'PortPositionsChanged',
+            positions: model.editor.graph.nodes.flatMap((node) =>
+              node.ports.map((port) => ({
+                endpoint: { node: node.id, port: port.id },
+                position: presetPosition(port, preset),
+              })),
+            ),
+          },
+          workbenchPolicy(model),
+        ),
       },
     }),
     SelectedWheelNavigation: ({ wheelNavigation }) => ({ model: { ...model, wheelNavigation } }),
@@ -199,7 +174,14 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       if (model.editor.readOnly || model.editor.gesture.type !== 'idle') return { model };
       const node = model.editor.graph.nodes.find(({ id }) => id === nodeId);
       const port = node?.ports.find(({ id }) => id === portId);
-      if (!port || !model.editor.selectedNodes.includes(nodeId)) return { model };
+      if (!node || !port || !model.editor.selectedNodes.includes(nodeId)) return { model };
+      const reason = portEditReason(
+        { operation: 'label', node, port },
+        model.editor.graph,
+        workbenchPolicy(model).canEditPort,
+      );
+      if (reason !== null)
+        return { model: { ...model, editor: { ...model.editor, notice: reason } } };
       return { model: { ...model, portLabelDraft: { nodeId, portId, text: port.label ?? '' } } };
     },
     ChangedPortLabelDraft: ({ text }) => ({
@@ -211,15 +193,30 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SubmittedPortLabel: () => {
       const draft = model.portLabelDraft;
       if (!draft) return { model };
+      const node = model.editor.graph.nodes.find(({ id }) => id === draft.nodeId);
+      const port = node?.ports.find(({ id }) => id === draft.portId);
+      const policy = workbenchPolicy(model);
+      const reason =
+        node && port
+          ? portEditReason(
+              { operation: 'label', node, port },
+              model.editor.graph,
+              policy.canEditPort,
+            )
+          : null;
       return {
         model: {
           ...model,
-          portLabelDraft: null,
-          editor: updateEditor(model.editor, {
-            type: 'PortLabelChanged',
-            endpoint: { node: draft.nodeId, port: draft.portId },
-            label: draft.text === '' ? undefined : draft.text,
-          }),
+          portLabelDraft: reason === null ? null : draft,
+          editor: updateEditor(
+            model.editor,
+            {
+              type: 'PortLabelChanged',
+              endpoint: { node: draft.nodeId, port: draft.portId },
+              label: draft.text === '' ? undefined : draft.text,
+            },
+            policy,
+          ),
         },
       };
     },
@@ -277,6 +274,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       },
     }),
     ClickedLockKeyNodes: () => ({ model: { ...model, lockKeyNodes: !model.lockKeyNodes } }),
+    ClickedPortEditProtection: () => ({
+      model: { ...model, protectPortEdits: !model.protectPortEdits },
+    }),
     ClickedDeletionProtection: () => ({
       model: { ...model, protectDeletions: !model.protectDeletions },
     }),

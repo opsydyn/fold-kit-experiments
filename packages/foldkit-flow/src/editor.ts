@@ -32,10 +32,12 @@ import {
 } from './group-presentation';
 import { movementReason } from './movement';
 import { expandParents } from './parent-expansion';
+import { portEditReason } from './port-edit';
 import { resolvePortRemoval } from './port-removal';
 import { resolveBoxSelection } from './selection-preview';
 import type {
   EditorEvent,
+  PortEditCandidate,
   EditorOptions,
   EditorPolicy,
   EditorState,
@@ -1689,7 +1691,13 @@ export function updateEditor(
     case 'PortLabelChanged': {
       const node = state.graph.nodes.find(({ id }) => id === event.endpoint.node);
       const port = node?.ports.find(({ id }) => id === event.endpoint.port);
-      if (!port || port.label === event.label) return state;
+      if (!node || !port || port.label === event.label) return state;
+      const reason = portEditReason(
+        { operation: 'label', node, port },
+        state.graph,
+        policy.canEditPort,
+      );
+      if (reason !== null) return { ...state, notice: reason };
       const { label: _, ...unlabeled } = port;
       const updated = event.label === undefined ? unlabeled : { ...port, label: event.label };
       return {
@@ -1708,6 +1716,12 @@ export function updateEditor(
       const node = state.graph.nodes.find(({ id }) => id === event.nodeId);
       if (!node) throw new FlowError('invalid-edit', 'Port addition references an unknown node');
       const port = withPortPosition(event.port, event.port);
+      const reason = portEditReason(
+        { operation: 'add', node, port },
+        state.graph,
+        policy.canEditPort,
+      );
+      if (reason !== null) return { ...state, notice: reason };
       return {
         ...commitGraph(state, {
           ...state.graph,
@@ -1719,7 +1733,12 @@ export function updateEditor(
       };
     }
     case 'PortRemoved': {
-      const decision = resolvePortRemoval(state.graph, event.endpoint, policy.canDelete);
+      const decision = resolvePortRemoval(
+        state.graph,
+        event.endpoint,
+        policy.canDelete,
+        policy.canEditPort,
+      );
       if (decision.type === 'empty') return state;
       if (decision.type === 'blocked') return { ...state, notice: decision.reason };
       const edges = new Set(decision.edges.map(({ id }) => id));
@@ -1749,6 +1768,7 @@ export function updateEditor(
         byNode.set(endpoint.node, positions);
       }
       let changed = false;
+      const edits: PortEditCandidate[] = [];
       const nodes = state.graph.nodes.map((node) => {
         const positions = byNode.get(node.id);
         if (!positions) return node;
@@ -1763,10 +1783,15 @@ export function updateEditor(
               : port.offset !== undefined && port.offset === position.offset);
           if (same) return port;
           changed = true;
+          edits.push({ operation: 'position', node, port });
           return updated;
         });
         return { ...node, ports };
       });
+      for (const edit of edits) {
+        const reason = portEditReason(edit, state.graph, policy.canEditPort);
+        if (reason !== null) return { ...state, notice: reason };
+      }
       return changed ? commitGraph(state, { ...state.graph, nodes }) : state;
     }
     case 'PortActivated': {

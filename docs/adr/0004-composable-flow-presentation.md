@@ -343,6 +343,18 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+`canEditPort` authorizes individual direct port operations using a
+`PortEditCandidate` (operation, node, and current port; proposed port for
+addition). This capability check stays independent of proposed display
+text or coordinates so a host can preflight an editor without guessing
+its future draft. The reducer rechecks current policy on submission.
+The public `portEditReason` normalizes the reason for host controls.
+Removal combines port protection with the existing complete edge-deletion
+check; position batches authorize every changed port before one commit.
+Keeping this separate from connection and aggregate deletion policies
+lets a port remain usable for wiring while its authored shape is managed.
+The additional callback is optional, preserving existing behavior.
+
 Port display text changes through `PortLabelChanged`, within the same
 validated document transaction. Clearing a label removes the optional
 field; endpoint identity and wiring do not change. Draft interaction

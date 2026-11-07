@@ -217,8 +217,17 @@ export type PortRemovalDecision =
   | Readonly<{ type: 'blocked'; reason: string }>
   | Readonly<{ type: 'allowed'; node: FlowNode; port: Port; edges: readonly FlowEdge[] }>;
 
+/** Authored port capability check. Add receives the proposed port; other operations receive the current port. */
+export type PortEditCandidate = Readonly<{
+  operation: 'add' | 'label' | 'position' | 'remove';
+  node: FlowNode;
+  port: Port;
+}>;
+
 /** Pure host rules evaluated by the editor. */
 export type EditorPolicy = Readonly<{
+  /** Return a reason to block a direct port edit, or null to allow it. Wiring uses separate connection policies. */
+  canEditPort?: (candidate: PortEditCandidate, graph: FlowGraph) => string | null;
   /** Return a rejection reason, or null to accept. Reconnection excludes the replaced edge from graph. */
   canConnect?: (edge: FlowEdge, graph: FlowGraph) => string | null;
   /** Return a reason to block new connections at this endpoint, or null to allow them. */

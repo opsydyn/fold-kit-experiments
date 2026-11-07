@@ -1,4 +1,4 @@
-import { connectionReason } from './connection-validation';
+import { connectionValidation } from './connection-validation';
 import { presentEditorGroups } from './group-presentation';
 import type { EdgeEnd, EditorEvent, EditorPolicy, EditorState, Endpoint, FlowEdge } from './types';
 
@@ -49,6 +49,7 @@ export function resolveEdgeReconnection(
 ): FlowEdgeReconnectionContext | null {
   const edge = state.graph.edges.find((edge) => edge.id === id);
   if (!edge) return null;
+  const validation = connectionValidation(state.graph, policy, { id, end });
   const value = endpointValue(edge[end]);
   const visible = new Set(presentEditorGroups(state).nodes.map(({ id }) => id));
   const guard = state.readOnly
@@ -76,11 +77,7 @@ export function resolveEdgeReconnection(
         hidden,
         nodeLabel: node.label,
         label: `${node.label}: ${port.label ?? port.id}`,
-        reason:
-          guard ??
-          (current
-            ? null
-            : connectionReason(state.graph, { ...edge, [end]: endpoint }, policy, { id, end })),
+        reason: guard ?? (current ? null : validation.reason({ ...edge, [end]: endpoint })),
         event: { type: 'EdgeReconnected', id, end, endpoint },
       });
     }

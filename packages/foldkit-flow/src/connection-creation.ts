@@ -1,4 +1,4 @@
-import { connectionReason, portKind, proposedEdge } from './connection-validation';
+import { connectionValidation } from './connection-validation';
 import { presentEditorGroups } from './group-presentation';
 import type { EdgeEnd, EditorEvent, EditorPolicy, EditorState, Endpoint } from './types';
 
@@ -56,6 +56,8 @@ export function resolveConnectionCreation(
   options: FlowConnectionCreationOptions = {},
 ): FlowConnectionCreationContext {
   const source = state.connection;
+  const validation = connectionValidation(state.graph, policy);
+  const proposal = source ? validation.proposedEdge(source, source) : null;
   const visible = new Set(presentEditorGroups(state).nodes.map(({ id }) => id));
   const guard = state.readOnly
     ? 'This diagram is read-only.'
@@ -64,7 +66,7 @@ export function resolveConnectionCreation(
       : null;
   const sourceReason = !source
     ? null
-    : portKind(state.graph, source) !== 'output'
+    : validation.portKind(source) !== 'output'
       ? 'Choose a compatible output port.'
       : (policy.canConnectPort?.(source, state.graph) ?? null);
   const cancel: FlowConnectionCreationAction = {
@@ -99,13 +101,9 @@ export function resolveConnectionCreation(
             reason ??
             (end === 'source'
               ? (policy.canConnectPort?.(endpoint, state.graph) ?? null)
-              : !source
+              : !proposal
                 ? 'Choose an output port first.'
-                : connectionReason(
-                    state.graph,
-                    proposedEdge(state.graph, source, endpoint),
-                    policy,
-                  )),
+                : validation.reason({ ...proposal, target: endpoint })),
           event: { type: 'PortActivated', endpoint },
         });
       }

@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Index port compatibility and duplicate connections once per chooser resolution,
+  and allocate each creation proposal ID once, preserving fresh policy checks.
+
 - Add shared endpoint search projections, opt-in native node grouping, custom
   group labels and controlled search/clear/feedback primitives for both choosers.
 

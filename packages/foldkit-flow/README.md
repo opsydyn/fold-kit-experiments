@@ -2098,4 +2098,6 @@ From this monorepo, `bun run --filter @opsydyn/foldkit-flow bench:choosers`
 measures chooser resolution, projection and field construction. The
 [benchmark method, raw results and browser driver](../../apps/flow-sample/evidence/endpoint-chooser-benchmark.md)
 cover reproducible workbench typing measurements and the retained-node comparison.
+The [validation indexing follow-up](../../apps/flow-sample/evidence/endpoint-chooser-indexing.md)
+compares per-resolution indexes against that baseline with fresh policy checks.
 These are repo-only diagnostic tools with no machine-dependent CI timing gate.

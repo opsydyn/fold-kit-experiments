@@ -1492,6 +1492,18 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           [
             h.input([
               h.Type('checkbox'),
+              h.Checked((model.editor.portAnchorMidpointSnapDistance ?? 0) > 0),
+              h.Disabled(model.editor.gesture.type !== 'idle'),
+              h.OnClick(Message.ClickedPortAnchorMidpointSnap()),
+            ]),
+            'Snap port anchors to midpoints',
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
               h.Checked((model.editor.portAnchorSnapHysteresis ?? 0) > 0),
               h.Disabled(model.editor.gesture.type !== 'idle'),
               h.OnClick(Message.ClickedPortAnchorSnapHysteresis()),
@@ -1744,12 +1756,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           portAnchorHandles: model.portAnchorHandles,
           portAnchorSnapBypassModifier: model.portAnchorSnapBypass ? 'Alt' : undefined,
           renderPortAnchorHandle: (context, builder) =>
-            context.snappedCorner
+            context.snappedCorner || context.snappedMidpoint
               ? flowPortAnchorHandle(
                   builder,
                   context,
                   [
-                    builder.Class('workbench-corner-handle'),
+                    builder.Class(
+                      context.snappedCorner
+                        ? 'workbench-corner-handle'
+                        : 'workbench-midpoint-handle',
+                    ),
                     builder.Style({
                       background: 'var(--flow-node-background, #fff)',
                       color: 'var(--flow-node-color, #172033)',
@@ -1760,7 +1776,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       'font-size': '11px',
                     }),
                   ],
-                  [`◆ Pinned ${context.snappedCorner}`],
+                  [
+                    context.snappedCorner
+                      ? `◆ Pinned ${context.snappedCorner}`
+                      : `⊙ Centered ${context.snappedMidpoint}`,
+                  ],
                 )
               : undefined,
           canEditPort: policy.canEditPort,

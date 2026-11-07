@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add independent opt-in edge-midpoint snapping for port anchor drags,
+  with circular attraction, shared hysteresis/bypass and composable feedback.
+
 - Add independent opt-in corner snapping for port anchor drags, with circular
   screen-pixel attraction, shared hysteresis/bypass and composable corner feedback.
 

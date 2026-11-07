@@ -82,6 +82,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     portAnchorSnapDistance = 0,
     portAnchorSnapHysteresis = 0,
     portAnchorCornerSnapDistance = 0,
+    portAnchorMidpointSnapDistance = 0,
   } = model.editor;
   const snapshotJson = () =>
     model.includeCamera ? serializeSnapshot(model.editor) : serializeGraph(model.editor.graph);
@@ -108,6 +109,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         portAnchorSnapDistance,
         portAnchorSnapHysteresis,
         portAnchorCornerSnapDistance,
+        portAnchorMidpointSnapDistance,
       }),
       surface: model.editor.surface,
       clipboard: model.editor.clipboard,
@@ -206,6 +208,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         editor: updateEditor(model.editor, {
           type: 'PortAnchorSnapHysteresisChanged',
           distance: (model.editor.portAnchorSnapHysteresis ?? 0) > 0 ? 0 : 4,
+        }),
+      },
+    }),
+    ClickedPortAnchorMidpointSnap: () => ({
+      model: {
+        ...model,
+        editor: updateEditor(model.editor, {
+          type: 'PortAnchorMidpointSnapDistanceChanged',
+          distance: (model.editor.portAnchorMidpointSnapDistance ?? 0) > 0 ? 0 : 12,
         }),
       },
     }),

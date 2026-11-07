@@ -407,6 +407,16 @@ Undo entry on release. The preference survives example/import changes.
 
 [Corner snapping screenshot](evidence/port-anchor-corner.png)
 
+Enable **Snap port anchors to midpoints** for a separate circular 12 CSS-pixel
+radius around each edge center. Edges and corners can remain off. The
+workbench uses `context.snappedMidpoint` and `flowPortAnchorHandle` to show
+a custom **Centered left** badge (or the other side names). Corners take
+priority, then midpoints, then edges. Stable snapping and Alt bypass also
+apply to midpoints, preserving precise release, cancellation and one Undo
+transaction. The preference survives example/import changes.
+
+[Midpoint snapping screenshot](evidence/port-anchor-midpoint.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

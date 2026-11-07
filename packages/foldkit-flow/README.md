@@ -657,7 +657,7 @@ free positioning during an anchor drag. The default has no mapping.
 `Shift`, so hosts can choose their shortcut. The native resource captures
 that mapping at pointer-down; changes apply to the next gesture.
 
-Holding the mapped key bypasses edge/corner attraction and hysteresis while
+Holding the mapped key bypasses edge/corner/midpoint attraction and hysteresis while
 retaining frame clamping and edit policies. Pressing or releasing it
 recomputes the last raw pointer sample in the Model, even without mouse
 movement. Releasing performs fresh acquisition; it clears the old retained
@@ -679,8 +679,8 @@ Set `portAnchorCornerSnapDistance: 12` in `EditorOptions` for corner
 attraction within a circular 12 CSS-pixel radius. It defaults to zero,
 independently of `portAnchorSnapDistance`, so corners can be enabled alone.
 The candidate is clamped to the node frame first. A corner in range takes
-priority over edge attraction; outside the corner range, normal edge
-snapping or free placement applies. The radius stays constant at any zoom.
+priority over midpoint and edge attraction; outside the corner range, other
+enabled modes or free placement apply. The radius stays constant at any zoom.
 
 `PortAnchorCornerSnapDistanceChanged` changes the radius while idle without
 adding document history. Values must be finite and non-negative; invalid
@@ -698,11 +698,40 @@ The pure `resolvePortAnchorSnap` accepts `cornerDistance` and
 renderers. `flowPortAnchorHandle` supplies a corner description and
 `data-flow-anchor-corner`; the default handle adds a diamond and selection
 border. Returning `undefined` uses the default, and `null` omits the handle.
-Bypass clears both edge and corner retention and resumes fresh acquisition
+Bypass clears all anchor snap retention and resumes fresh acquisition
 on key release. The authored routing side and port identity stay intact;
 previews, cancellation, current edit protection and one-step Undo/Redo
 share the existing anchor-drag transaction. Keyboard nudges and numeric
 edits stay exact. These are session preferences, not serialized graph fields.
+
+Set `portAnchorMidpointSnapDistance: 12` in `EditorOptions` to attract
+port anchors to exact edge centers: left `(0, 0.5)`, right `(1, 0.5)`,
+top `(0.5, 0)` and bottom `(0.5, 1)`. The circular CSS-pixel radius defaults
+to zero and works independently of corner and edge attraction. The
+candidate is clamped before measuring distance, and zoom does not change
+the radius. Corners take priority over midpoints; midpoints take priority
+over edges, including retained edges. Outside a retained midpoint's band,
+normal acquisition in the remaining enabled modes applies.
+
+`PortAnchorMidpointSnapDistanceChanged` changes the radius only while idle
+without changing graph/history. Initial/resolver values must be finite
+and non-negative; invalid change events are ignored. The shared
+`portAnchorSnapHysteresis` extends a midpoint's radial release band and
+requires a competing midpoint to win by more than the margin. The routing
+side breaks acquisition ties, followed by left, right, top, bottom.
+An eligible corner also takes priority over a retained midpoint.
+
+Headless consumers pass `midpointDistance` and `previousMidpoint` to
+`resolvePortAnchorSnap`. Its optional `midpoint` result is a `PortSide`;
+`side` is null during midpoint attraction. Feed the result back for
+retention. `FlowPortAnchorHandleContext.snappedMidpoint` supports custom
+badges via `flowPortAnchorHandle`; the helper supplies a midpoint
+description and `data-flow-anchor-midpoint`. The default handle shows a
+center marker. Bypass clears midpoint retention too, including stationary
+key transitions, and resumes fresh acquisition. Precise release, policy
+rollback, cancellation and single-step Undo/Redo retain the same drag
+transaction. Authored routing direction, keyboard nudges, explicit position
+edits and graph serialization retain their existing semantics.
 
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.

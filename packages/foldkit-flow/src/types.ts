@@ -30,13 +30,19 @@ export type PortAnchorSnapOptions = Readonly<{
   cornerDistance?: number;
   /** Previously attracted corner, used only with a positive hysteresis margin. */
   previousCorner?: PortCorner | null;
+  /** Circular CSS-pixel radius around edge centers; zero/absent disables it independently. */
+  midpointDistance?: number;
+  /** Previously attracted midpoint, used only with a positive hysteresis margin. */
+  previousMidpoint?: PortSide | null;
 }>;
 export type PortAnchorSnapResult = Readonly<{
   anchor: Point;
-  /** Null during a corner snap; the authored routing side is never changed. */
+  /** Null during a corner/midpoint snap; the authored routing side is never changed. */
   side: PortSide | null;
   /** Present only for an active corner snap. */
   corner?: PortCorner;
+  /** Present only for an active edge-midpoint snap. */
+  midpoint?: PortSide;
 }>;
 /** Choose either a cardinal side offset, or normalized box coordinates. Never both. */
 export type PortPosition = Readonly<{ side: PortSide }> &
@@ -131,6 +137,7 @@ export type Gesture =
       endpoint: Endpoint;
       snappedSide?: PortSide | null;
       snappedCorner?: PortCorner | null;
+      snappedMidpoint?: PortSide | null;
       /** Last raw sample, retained for modifier-only preview updates. */
       point?: Point;
       snapBypassed?: boolean;
@@ -196,10 +203,12 @@ export type EditorState = Readonly<{
   connectionSnapHysteresis?: number;
   /** Pointer anchor attraction radius in CSS pixels. Zero disables edge snapping. */
   portAnchorSnapDistance?: number;
-  /** Pointer edge/corner retention margin in CSS pixels; zero disables hysteresis. */
+  /** Pointer edge/corner/midpoint retention margin in CSS pixels; zero disables hysteresis. */
   portAnchorSnapHysteresis?: number;
   /** Circular pointer corner attraction radius in CSS pixels; zero disables it. */
   portAnchorCornerSnapDistance?: number;
+  /** Circular pointer edge-midpoint attraction radius in CSS pixels; zero disables it. */
+  portAnchorMidpointSnapDistance?: number;
   gesture: Gesture;
   past: readonly FlowGraph[];
   future: readonly FlowGraph[];
@@ -246,10 +255,12 @@ export type EditorOptions = Readonly<{
   connectionSnapHysteresis?: number;
   /** Pointer anchor attraction radius in CSS pixels; defaults to zero (free placement). */
   portAnchorSnapDistance?: number;
-  /** Pointer edge/corner retention margin in CSS pixels; defaults to zero. */
+  /** Pointer edge/corner/midpoint retention margin in CSS pixels; defaults to zero. */
   portAnchorSnapHysteresis?: number;
   /** Independent circular pointer corner attraction radius in CSS pixels; defaults to zero. */
   portAnchorCornerSnapDistance?: number;
+  /** Independent circular edge-midpoint attraction radius in CSS pixels; defaults to zero. */
+  portAnchorMidpointSnapDistance?: number;
 }>;
 /** Explicit targets before group descendants and incident edges are included. */
 export type DeletionTargets = Readonly<{ nodeIds: readonly string[]; edgeIds: readonly string[] }>;
@@ -414,6 +425,7 @@ export type EditorEvent =
   | Readonly<{ type: 'PortAnchorSnapDistanceChanged'; distance: number }>
   | Readonly<{ type: 'PortAnchorSnapHysteresisChanged'; distance: number }>
   | Readonly<{ type: 'PortAnchorCornerSnapDistanceChanged'; distance: number }>
+  | Readonly<{ type: 'PortAnchorMidpointSnapDistanceChanged'; distance: number }>
   /** Changes display text without changing endpoint identity; undefined restores the ID fallback. */
   | Readonly<{ type: 'PortLabelChanged'; endpoint: Endpoint; label: string | undefined }>
   | Readonly<{

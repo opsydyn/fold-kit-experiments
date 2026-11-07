@@ -6,9 +6,50 @@ import type {
   PortAnchorSnapResult,
   PortCorner,
   PortSide,
+  Size,
 } from './types';
 
-/** Clamp a normalized candidate, then resolve optional corner attraction before edge attraction. */
+/** Shared circular attraction and retention for discrete frame points. */
+function resolvePointAttraction<T extends string>(
+  anchor: Point,
+  targets: readonly Readonly<{ target: T; anchor: Point }>[],
+  options: Readonly<{
+    size: Size;
+    zoom: number;
+    distance: number;
+    hysteresis: number;
+    previous?: T | null;
+    preferred?: T;
+  }>,
+): Readonly<{ target: T; anchor: Point }> | undefined {
+  const { size, zoom, distance, hysteresis, previous, preferred } = options;
+  if (distance === 0) return undefined;
+  const candidates = targets.map((target) => ({
+    ...target,
+    distance: Math.hypot(
+      (anchor.x - target.anchor.x) * size.width * zoom,
+      (anchor.y - target.anchor.y) * size.height * zoom,
+    ),
+  }));
+  const nearest = candidates.reduce((best, target) =>
+    target.distance < best.distance ||
+    (target.distance === best.distance && target.target === preferred)
+      ? target
+      : best,
+  );
+  const retained =
+    hysteresis > 0 ? candidates.find(({ target }) => target === previous) : undefined;
+  if (retained && retained.distance <= distance + hysteresis) {
+    const switchTarget =
+      nearest.target !== retained.target &&
+      nearest.distance <= distance &&
+      retained.distance - nearest.distance > hysteresis;
+    if (!switchTarget) return retained;
+  }
+  return nearest.distance <= distance ? nearest : undefined;
+}
+
+/** Clamp a normalized candidate, resolve corners, then edge midpoints, then edges. */
 export function resolvePortAnchorSnap(
   candidate: Point,
   options: PortAnchorSnapOptions,
@@ -23,6 +64,8 @@ export function resolvePortAnchorSnap(
     previousSide,
     cornerDistance = 0,
     previousCorner,
+    midpointDistance = 0,
+    previousMidpoint,
   } = options;
   if (
     !Number.isFinite(size.width) ||
@@ -36,45 +79,47 @@ export function resolvePortAnchorSnap(
     !Number.isFinite(hysteresis) ||
     hysteresis < 0 ||
     !Number.isFinite(cornerDistance) ||
-    cornerDistance < 0
+    cornerDistance < 0 ||
+    !Number.isFinite(midpointDistance) ||
+    midpointDistance < 0
   )
     throw new FlowError(
       'invalid-edit',
-      'Anchor snapping requires positive frame dimensions and zoom, and finite non-negative edge/corner distance and hysteresis',
+      'Anchor snapping requires positive frame dimensions and zoom, and finite non-negative edge/corner/midpoint distance and hysteresis',
     );
   const anchor = {
     x: Math.max(0, Math.min(1, candidate.x)),
     y: Math.max(0, Math.min(1, candidate.y)),
   };
-  if (cornerDistance > 0) {
-    const corners: { corner: PortCorner; anchor: Point }[] = [
-      { corner: 'top-left', anchor: { x: 0, y: 0 } },
-      { corner: 'top-right', anchor: { x: 1, y: 0 } },
-      { corner: 'bottom-left', anchor: { x: 0, y: 1 } },
-      { corner: 'bottom-right', anchor: { x: 1, y: 1 } },
-    ];
-    const candidates = corners.map((corner) => ({
-      ...corner,
-      distance: Math.hypot(
-        (anchor.x - corner.anchor.x) * size.width * zoom,
-        (anchor.y - corner.anchor.y) * size.height * zoom,
-      ),
-    }));
-    const nearest = candidates.reduce((best, corner) =>
-      corner.distance < best.distance ? corner : best,
-    );
-    const previous =
-      hysteresis > 0 ? candidates.find(({ corner }) => corner === previousCorner) : undefined;
-    if (previous && previous.distance <= cornerDistance + hysteresis) {
-      const switchCorner =
-        nearest.corner !== previous.corner &&
-        nearest.distance <= cornerDistance &&
-        previous.distance - nearest.distance > hysteresis;
-      if (!switchCorner) return { anchor: previous.anchor, side: null, corner: previous.corner };
-    }
-    if (nearest.distance <= cornerDistance)
-      return { anchor: nearest.anchor, side: null, corner: nearest.corner };
-  }
+  const corner = resolvePointAttraction<PortCorner>(
+    anchor,
+    [
+      { target: 'top-left', anchor: { x: 0, y: 0 } },
+      { target: 'top-right', anchor: { x: 1, y: 0 } },
+      { target: 'bottom-left', anchor: { x: 0, y: 1 } },
+      { target: 'bottom-right', anchor: { x: 1, y: 1 } },
+    ],
+    { size, zoom, distance: cornerDistance, hysteresis, previous: previousCorner },
+  );
+  if (corner) return { anchor: corner.anchor, side: null, corner: corner.target };
+  const midpoint = resolvePointAttraction<PortSide>(
+    anchor,
+    [
+      { target: 'left', anchor: { x: 0, y: 0.5 } },
+      { target: 'right', anchor: { x: 1, y: 0.5 } },
+      { target: 'top', anchor: { x: 0.5, y: 0 } },
+      { target: 'bottom', anchor: { x: 0.5, y: 1 } },
+    ],
+    {
+      size,
+      zoom,
+      distance: midpointDistance,
+      hysteresis,
+      previous: previousMidpoint,
+      preferred: preferredSide,
+    },
+  );
+  if (midpoint) return { anchor: midpoint.anchor, side: null, midpoint: midpoint.target };
   if (distance === 0) return { anchor, side: null };
   const edges: { side: PortSide; distance: number; anchor: Point }[] = [
     { side: 'left', distance: anchor.x * size.width * zoom, anchor: { x: 0, y: anchor.y } },

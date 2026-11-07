@@ -29,6 +29,8 @@ export type FlowPortAnchorHandleContext = Readonly<{
   snappedSide?: PortSide | null;
   /** Active corner attraction; null/absent outside a corner snap. */
   snappedCorner?: PortCorner | null;
+  /** Active edge-midpoint attraction; null/absent outside a midpoint snap. */
+  snappedMidpoint?: PortSide | null;
   snapBypassed?: boolean;
   snapBypassModifier?: FlowPortAnchorSnapBypassModifier | undefined;
   disabledReason: string | null;
@@ -65,9 +67,11 @@ export function flowPortAnchorHandle<M>(
                 ? `Snapping bypassed. Release ${context.snapBypassModifier ?? 'the modifier'} to restore snapping. Escape cancels.`
                 : context.snappedCorner
                   ? `Snapped to ${context.snappedCorner} corner.${modifierHint} Escape cancels.`
-                  : context.snappedSide
-                    ? `Snapped to ${context.snappedSide} edge.${modifierHint} Escape cancels.`
-                    : `Drag to position.${modifierHint} Arrow keys move 1%; Shift moves 10%. Escape cancels.`),
+                  : context.snappedMidpoint
+                    ? `Snapped to ${context.snappedMidpoint} midpoint.${modifierHint} Escape cancels.`
+                    : context.snappedSide
+                      ? `Snapped to ${context.snappedSide} edge.${modifierHint} Escape cancels.`
+                      : `Drag to position.${modifierHint} Arrow keys move 1%; Shift moves 10%. Escape cancels.`),
           ),
           ...attributesWithGeometry(h, attributes, {
             'pointer-events': 'auto',
@@ -81,6 +85,9 @@ export function flowPortAnchorHandle<M>(
           ...(context.snapBypassed ? [h.DataAttribute('flow-anchor-bypassed', 'true')] : []),
           ...(context.snappedCorner
             ? [h.DataAttribute('flow-anchor-corner', context.snappedCorner)]
+            : []),
+          ...(context.snappedMidpoint
+            ? [h.DataAttribute('flow-anchor-midpoint', context.snappedMidpoint)]
             : []),
           ...(context.snappedSide
             ? [h.DataAttribute('flow-anchor-snapped', context.snappedSide)]
@@ -127,6 +134,7 @@ export function portAnchorHandleViews<M>(
           active,
           snappedSide: active ? (drag?.snappedSide ?? null) : null,
           snappedCorner: active ? (drag?.snappedCorner ?? null) : null,
+          snappedMidpoint: active ? (drag?.snappedMidpoint ?? null) : null,
           snapBypassed: active && (drag?.snapBypassed ?? false),
           snapBypassModifier: active ? (drag?.snapBypassModifier ?? undefined) : bypassModifier,
           disabledReason: state.readOnly
@@ -149,14 +157,14 @@ export function portAnchorHandleViews<M>(
                   cursor: context.active ? 'grabbing' : 'grab',
                   border: context.snapBypassed
                     ? '2px dashed var(--flow-node-border, #64748b)'
-                    : context.snappedSide || context.snappedCorner
+                    : context.snappedSide || context.snappedCorner || context.snappedMidpoint
                       ? '2px solid var(--flow-selection, #2563eb)'
                       : '1px solid var(--flow-node-border, #64748b)',
                   background: 'var(--flow-node-background, #fff)',
                   color: 'var(--flow-node-color, #172033)',
                 }),
               ],
-              [context.snappedCorner ? '◆' : '⋮'],
+              [context.snappedCorner ? '◆' : context.snappedMidpoint ? '⊙' : '⋮'],
             ),
         ];
       }),

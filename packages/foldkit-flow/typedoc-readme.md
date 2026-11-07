@@ -1,5 +1,13 @@
 # FoldKit Flow public contract
 
+Edge-midpoint attraction is opt-in through
+`EditorOptions.portAnchorMidpointSnapDistance` and the idle-only
+`PortAnchorMidpointSnapDistanceChanged` fact. `resolvePortAnchorSnap` accepts
+`midpointDistance`/`previousMidpoint` and returns an optional `midpoint`
+(`PortSide`). Custom handles receive `snappedMidpoint`, sharing the native
+binding, description, hysteresis, bypass and Undo transaction. Priority is
+corners, then midpoints, then edges; all radii are independent.
+
 Port anchor corner attraction is opt-in through
 `EditorOptions.portAnchorCornerSnapDistance` and the idle-only
 `PortAnchorCornerSnapDistanceChanged` fact. `resolvePortAnchorSnap` accepts

@@ -106,6 +106,12 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
   const portAnchorSnapDistance = options.portAnchorSnapDistance ?? 0;
   const portAnchorSnapHysteresis = options.portAnchorSnapHysteresis ?? 0;
   const portAnchorCornerSnapDistance = options.portAnchorCornerSnapDistance ?? 0;
+  const portAnchorMidpointSnapDistance = options.portAnchorMidpointSnapDistance ?? 0;
+  if (!Number.isFinite(portAnchorMidpointSnapDistance) || portAnchorMidpointSnapDistance < 0)
+    throw new FlowError(
+      'invalid-edit',
+      'Port anchor midpoint snap distance must be finite and non-negative',
+    );
   if (!Number.isFinite(portAnchorCornerSnapDistance) || portAnchorCornerSnapDistance < 0)
     throw new FlowError(
       'invalid-edit',
@@ -151,6 +157,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     portAnchorSnapDistance,
     portAnchorSnapHysteresis,
     portAnchorCornerSnapDistance,
+    portAnchorMidpointSnapDistance,
     gesture: { type: 'idle' },
     past: [],
     future: [],
@@ -958,6 +965,15 @@ export function updateEditor(
       )
         return state;
       return { ...state, portAnchorSnapDistance: event.distance };
+    case 'PortAnchorMidpointSnapDistanceChanged':
+      if (
+        state.gesture.type !== 'idle' ||
+        !Number.isFinite(event.distance) ||
+        event.distance < 0 ||
+        event.distance === (state.portAnchorMidpointSnapDistance ?? 0)
+      )
+        return state;
+      return { ...state, portAnchorMidpointSnapDistance: event.distance };
     case 'PortAnchorCornerSnapDistanceChanged':
       if (
         state.gesture.type !== 'idle' ||
@@ -1224,6 +1240,7 @@ export function updateEditor(
             snapBypassed: event.bypassed,
             snappedSide: null,
             snappedCorner: null,
+            snappedMidpoint: null,
           },
         },
         {
@@ -1273,14 +1290,17 @@ export function updateEditor(
                 previousSide: gesture.snappedSide ?? null,
                 cornerDistance: bypassed ? 0 : (state.portAnchorCornerSnapDistance ?? 0),
                 previousCorner: gesture.snappedCorner ?? null,
+                midpointDistance: bypassed ? 0 : (state.portAnchorMidpointSnapDistance ?? 0),
+                previousMidpoint: gesture.snappedMidpoint ?? null,
               },
             )
-          : { anchor: base, side: null, corner: undefined };
+          : { anchor: base, side: null, corner: undefined, midpoint: undefined };
         const { anchor } = snap;
         const nextGesture = {
           ...gesture,
           snappedSide: snap.side,
           snappedCorner: snap.corner ?? null,
+          snappedMidpoint: snap.midpoint ?? null,
           snapBypassed: bypassed,
           point: { ...event.point },
         };
@@ -1291,6 +1311,7 @@ export function updateEditor(
         if (samePortPosition(current, port))
           return (gesture.snappedSide ?? null) === snap.side &&
             (gesture.snappedCorner ?? null) === (snap.corner ?? null) &&
+            (gesture.snappedMidpoint ?? null) === (snap.midpoint ?? null) &&
             (gesture.snapBypassed ?? false) === bypassed &&
             gesture.point?.x === event.point.x &&
             gesture.point?.y === event.point.y

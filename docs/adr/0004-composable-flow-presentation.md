@@ -343,6 +343,33 @@ continuous gestures, which this single-step return does not need.
 
 ### Port editing
 
+Edge-midpoint attraction adds an independent, zero-default
+`portAnchorMidpointSnapDistance`. The pure resolver measures circular CSS
+distance to the four exact edge centers using the same discrete-point
+retention calculation as corners. Priority is corners, then midpoints,
+then edges. This preserves corner precedence even when radii overlap on
+small nodes, while midpoint attraction overrides retained edges. The
+routing hint breaks midpoint acquisition ties before left/right/top/bottom;
+corner tie order stays unchanged. Shared hysteresis governs retention and
+switching within a target kind. Leaving its band permits fresh acquisition
+in lower-priority modes.
+
+The optional midpoint result and `snappedMidpoint` context use `PortSide`
+for naming, with `side: null` during midpoint attraction. Identity and the
+authored routing hint remain unchanged. The existing Model gesture stores
+the retained midpoint; bypass clears all three target kinds. Native handle
+descriptions/markers and a workbench badge compose through the public
+helper. Options and idle-only preference facts stay out of graph snapshots.
+
+Reusing the resolver and transaction is preferred over workbench-only math
+or snapping along just one axis, which would fail exact centered placement.
+An independent radius permits midpoint-only editors and preserves existing
+defaults. Verification extends pure geometry, reducer and renderer tests
+for four midpoints, radial thresholds/zoom, ties, retention, precedence,
+bypass, policy rollback and history. Browser evidence covers the custom
+badge, precise release and normal cancellation. No new dependencies or
+input resource state are required.
+
 Corner attraction extends the existing pure anchor resolver and gesture,
 using an independent `portAnchorCornerSnapDistance` preference (zero by
 default). The circular radius uses clamped candidate coordinates and CSS

@@ -26,6 +26,7 @@ await new Promise((resolve, reject) =>
 const profilePath = process.env.FLOW_CHOOSER_CPU_PROFILE;
 const retained = process.env.FLOW_CHOOSER_BENCH_RETAINED === '1';
 const retainedCreation = process.env.FLOW_CHOOSER_BENCH_RETAINED_CREATION === '1';
+const portPolicy = process.env.FLOW_CHOOSER_BENCH_PORT_POLICY === '1';
 const viewport = { width: 1280, height: 1100 };
 const runs = profilePath ? 1 : 3;
 const warmup = 4;
@@ -51,7 +52,8 @@ if (retained)
     fixtures.length,
     ...fixtures.filter(
       (fixture) =>
-        fixture.large && fixture.kind === (retainedCreation ? 'creation' : 'reconnection'),
+        (fixture.large || portPolicy) &&
+        fixture.kind === (retainedCreation ? 'creation' : 'reconnection'),
     ),
   );
 if (reverse) fixtures.reverse();
@@ -256,6 +258,15 @@ async function qualify(browser, fixture) {
         await toggle.click();
         await expect(toggle).toHaveAttribute('aria-pressed', 'true');
       }
+      if (portPolicy) {
+        const lock = page.getByRole('checkbox', { name: 'Lock Publish input', exact: true });
+        await lock.check();
+        await expect(lock).toBeChecked();
+        if (!fixture.large)
+          await expect(
+            surface.locator('[data-flow-owner="publish"][data-flow-port="in"]'),
+          ).toBeDisabled();
+      }
       const creation = fixture.kind === 'creation';
       if (!creation)
         await page
@@ -280,7 +291,9 @@ async function qualify(browser, fixture) {
         await group
           .getByRole('combobox', { name: 'New connection source', exact: true })
           .selectOption(JSON.stringify([fixture.large ? 'load-1-1' : 'review', 'out']));
-        await expect(select.locator('option').last()).toBeEnabled();
+        if (portPolicy && !fixture.large)
+          await expect(select.locator('option').last()).toBeDisabled();
+        else await expect(select.locator('option').last()).toBeEnabled();
       }
       const full = await select.evaluate((element) =>
         [...element.options].map((option) => option.value),
@@ -299,6 +312,8 @@ async function qualify(browser, fixture) {
       await page.evaluate(() => document.fonts.ready);
       await input.focus();
       metadata = {
+        portPolicyEnabled: portPolicy,
+        mountedNodeBodies: await surface.locator('[data-flow-node-body]').count(),
         nodes: fixture.large ? 320 : 3,
         edges: fixture.large ? 452 : 1,
         candidates: full.length - (creation ? 1 : 0),
@@ -370,6 +385,7 @@ async function main() {
           order: reverse ? 'reverse' : 'forward',
           cpuThrottling: 'none',
           retainedNodeViews: retained,
+          portPolicyEnabled: portPolicy,
           profileOnly: Boolean(profilePath),
           method:
             'serial direct trusted keyboard z/Backspace inputs alternating broad/selective result sets with no results; DOM acknowledgement then next rAF; not INP or paint latency',

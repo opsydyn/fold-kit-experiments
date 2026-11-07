@@ -96,6 +96,10 @@ export type {
 import { Mount } from 'foldkit';
 import { createLazy, type Html, type HtmlBuilder } from 'foldkit/html';
 
+import type { FlowNodeBodyCache } from './node-body-cache';
+export { createFlowNodeBodyCache } from './node-body-cache';
+export type { FlowNodeBodyCache } from './node-body-cache';
+
 import {
   flowConnectionButton,
   type FlowConnectionEntry,
@@ -397,6 +401,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     renderPortLabel?: FlowPortLabelRenderer<M>;
     /** Per-canvas FoldKit lazy slot for built-in nodes, including pending creation feedback. */
     nodeViewCache?: ReturnType<typeof createLazy> | undefined;
+    /** Per-canvas built-in body slots; native/custom ports and port policies stay live. */
+    nodeBodyCache?: FlowNodeBodyCache | undefined;
     /** Replaces the complete measured node shell. Compose the public frame and interaction primitives. */
     renderNodeShell?:
       | ((context: FlowNodeRenderContext, h: HtmlBuilder<M>) => Html | undefined)
@@ -1283,6 +1289,7 @@ type NodeShellContext<S> = Omit<FlowNodeRenderContext, 'state'> & { state: S };
 type NodeViewOptions<M, S> = Pick<
   FlowViewOptions<M>,
   | 'resizeHandles'
+  | 'nodeBodyCache'
   | 'canMoveNode'
   | 'canResizeNode'
   | 'canSelectNode'
@@ -1295,6 +1302,150 @@ type NodeViewOptions<M, S> = Pick<
     | undefined;
 };
 
+function nativeResizeHandles<M>(
+  h: HtmlBuilder<M>,
+  context: Parameters<typeof flowResizeHandle>[1],
+  enabled: boolean,
+): readonly Html[] {
+  return enabled &&
+    !context.state.readOnly &&
+    context.selectionDisabledReason === undefined &&
+    context.resizeDisabledReason === undefined
+    ? [
+        flowResizeHandle(
+          h,
+          context,
+          'right',
+          [
+            h.Style({
+              position: 'absolute',
+              right: '-8px',
+              bottom: '-8px',
+              border: 'none',
+              padding: '0',
+              width: '24px',
+              height: '24px',
+              display: 'grid',
+              'place-items': 'center',
+              cursor: 'ew-resize',
+              'touch-action': 'none',
+              'user-select': 'none',
+              color: 'var(--flow-control-color, #fff)',
+              background: 'var(--flow-resize-background, #334155)',
+              'border-radius': '6px',
+            }),
+          ],
+          ['↔'],
+        ),
+      ]
+    : [];
+}
+
+type NativeBodyContext = Parameters<typeof flowDragHandle>[1] & { resizeHandles: readonly Html[] };
+
+function nativeNodeBody<M>(
+  h: HtmlBuilder<M>,
+  context: NativeBodyContext,
+  contextEnabled: boolean,
+  renderNode: FlowViewOptions<M>['renderNode'],
+): readonly Html[] {
+  return [
+    flowDragHandle(
+      h,
+      context,
+      [
+        h.Type('button'),
+        h.Style({
+          display: 'block',
+          width: contextEnabled ? 'calc(100% - 36px)' : '100%',
+          'min-height': '32px',
+          'text-align': 'left',
+          cursor: context.state.readOnly ? 'pointer' : 'grab',
+          'font-weight': '600',
+          color: 'inherit',
+          background: 'transparent',
+          border: 'none',
+        }),
+      ],
+      [context.node.label],
+    ),
+    ...(context.contextAction ? [context.contextAction] : []),
+    ...context.resizeHandles,
+    ...(renderNode ? [renderNode(context.node, h)] : []),
+  ];
+}
+
+function nodeBodyFrame<M>(h: HtmlBuilder<M>, node: FlowNode, children: readonly Html[]) {
+  return h.div(
+    [
+      h.Key('node-body'),
+      h.DataAttribute('flow-node-body', node.id),
+      h.Style({ display: 'contents' }),
+    ],
+    children,
+  );
+}
+
+function retainedNodeContextTrigger<M>(
+  h: HtmlBuilder<M>,
+  node: FlowNode,
+  idle: boolean,
+  onEvent: FlowViewOptions<M>['onEvent'],
+) {
+  return flowContextTrigger(
+    h,
+    {
+      label: `More actions for ${node.label}`,
+      expanded: false,
+      disabled: !idle,
+      event: {
+        type: 'ContextOpened',
+        context: { kind: 'node', id: node.id, point: { x: 0, y: 0 } },
+        anchorToNode: true,
+      },
+    },
+    onEvent,
+    nodeContextStyles(h, true),
+    ['⋯'],
+  );
+}
+
+// ADR 0004: body artifacts are retained independently of live port authorization.
+function retainedNodeBody<M>(
+  h: HtmlBuilder<M>,
+  node: FlowNode,
+  selectedNodes: readonly string[],
+  readOnly: boolean,
+  descriptionId: string,
+  resizeHandles: boolean,
+  contextEnabled: boolean,
+  idle: boolean,
+  onEvent: FlowViewOptions<M>['onEvent'],
+  renderNode: FlowViewOptions<M>['renderNode'],
+): Html {
+  const base = {
+    node,
+    state: { selectedNodes, readOnly },
+    descriptionId,
+    diagnostics: resolveFlowDiagnostics({}),
+    collapsed: false,
+    dropTarget: false,
+    selectionPreview: false,
+  };
+  const context = {
+    ...base,
+    contextAction: contextEnabled ? retainedNodeContextTrigger(h, node, idle, onEvent) : undefined,
+    resizeHandles: nativeResizeHandles(h, base, resizeHandles),
+  };
+  return nodeBodyFrame(h, node, nativeNodeBody(h, context, contextEnabled, renderNode));
+}
+
+type BodyRetention<M> = Readonly<{
+  cache: FlowNodeBodyCache;
+  idle: boolean;
+  onEvent: FlowViewOptions<M>['onEvent'];
+}>;
+
 function nodeViews<M, S extends NodeControlState>(
   h: HtmlBuilder<M>,
   nodes: readonly FlowNode[],
@@ -1306,6 +1457,8 @@ function nodeViews<M, S extends NodeControlState>(
   nodeContextTrigger: (node: FlowNode) => Html,
   target: EditorState['connection'],
   previewIds?: ReadonlySet<string>,
+  bodyCache?: BodyRetention<M>,
+  wrapBodies = Boolean(options.nodeBodyCache),
 ): readonly Html[] {
   return nodes
     .filter((node) => node.kind !== 'group')
@@ -1331,45 +1484,33 @@ function nodeViews<M, S extends NodeControlState>(
           ? portRenderViews(h, base, target, options.renderPort)
           : undefined,
         contextAction:
-          contextEnabled && selectionDisabledReason === undefined
+          !bodyCache && contextEnabled && selectionDisabledReason === undefined
             ? nodeContextTrigger(node)
             : undefined,
-        resizeHandles:
-          options.resizeHandles &&
-          !state.readOnly &&
-          selectionDisabledReason === undefined &&
-          resizeDisabledReason === undefined
-            ? [
-                flowResizeHandle(
-                  h,
-                  base,
-                  'right',
-                  [
-                    h.Style({
-                      position: 'absolute',
-                      right: '-8px',
-                      bottom: '-8px',
-                      border: 'none',
-                      padding: '0',
-                      width: '24px',
-                      height: '24px',
-                      display: 'grid',
-                      'place-items': 'center',
-                      cursor: 'ew-resize',
-                      'touch-action': 'none',
-                      'user-select': 'none',
-                      color: 'var(--flow-control-color, #fff)',
-                      background: 'var(--flow-resize-background, #334155)',
-                      'border-radius': '6px',
-                    }),
-                  ],
-                  ['↔'],
-                ),
-              ]
-            : [],
+        resizeHandles: bodyCache
+          ? []
+          : nativeResizeHandles(h, base, Boolean(options.resizeHandles)),
       };
       const custom = options.renderNodeShell?.(context, h);
       if (custom !== undefined) return custom;
+      const body = bodyCache
+        ? [
+            bodyCache.cache(node, retainedNodeBody, [
+              h,
+              node,
+              state.selectedNodes,
+              state.readOnly,
+              descriptionId,
+              Boolean(options.resizeHandles),
+              contextEnabled,
+              bodyCache.idle,
+              bodyCache.onEvent,
+              options.renderNode,
+            ]),
+          ]
+        : wrapBodies
+          ? [nodeBodyFrame(h, node, nativeNodeBody(h, context, contextEnabled, options.renderNode))]
+          : nativeNodeBody(h, context, contextEnabled, options.renderNode);
       return flowNodeFrame(
         h,
         context,
@@ -1390,33 +1531,13 @@ function nodeViews<M, S extends NodeControlState>(
             'pointer-events': 'auto',
           }),
         ],
-        [
-          flowDragHandle(
-            h,
-            context,
-            [
-              h.Type('button'),
-              h.Style({
-                display: 'block',
-                width: contextEnabled ? 'calc(100% - 36px)' : '100%',
-                'min-height': '32px',
-                'text-align': 'left',
-                cursor: state.readOnly ? 'pointer' : 'grab',
-                'font-weight': '600',
-                color: 'inherit',
-                background: 'transparent',
-                border: 'none',
-              }),
-            ],
-            [node.label],
-          ),
-          ...(context.contextAction ? [context.contextAction] : []),
-          ...context.resizeHandles,
-          ...(options.renderNode ? [options.renderNode(node, h)] : []),
-          ...(context.ports ?? portRenderViews(h, base, target, undefined)),
-        ],
+        [...body, ...(context.ports ?? portRenderViews(h, base, target, undefined))],
       );
     });
+}
+
+function nodeLayerFrame<M>(h: HtmlBuilder<M>, children: readonly Html[]) {
+  return h.div([h.Key('flow-node-layer'), h.Style({ display: 'contents' })], children);
 }
 
 function mountedNodeMask(authored: readonly FlowNode[], mounted: readonly FlowNode[]) {
@@ -1439,27 +1560,12 @@ function retainedNodeLayer<M>(
   idle: boolean,
   onEvent: FlowViewOptions<M>['onEvent'],
   renderNode: FlowViewOptions<M>['renderNode'],
+  bodyCache: FlowNodeBodyCache | undefined,
 ): Html {
-  const nodeContextTrigger = (node: FlowNode) =>
-    flowContextTrigger(
-      h,
-      {
-        label: `More actions for ${node.label}`,
-        expanded: false,
-        disabled: !idle,
-        event: {
-          type: 'ContextOpened',
-          context: { kind: 'node', id: node.id, point: { x: 0, y: 0 } },
-          anchorToNode: true,
-        },
-      },
-      onEvent,
-      nodeContextStyles(h, true),
-      ['⋯'],
-    );
+  const nodeContextTrigger = (node: FlowNode) => retainedNodeContextTrigger(h, node, idle, onEvent);
   const options = { resizeHandles, renderNode };
-  return h.div(
-    [h.Style({ display: 'contents' })],
+  return nodeLayerFrame(
+    h,
     nodeViews(
       h,
       mountedMask === undefined
@@ -1472,6 +1578,9 @@ function retainedNodeLayer<M>(
       contextEnabled,
       nodeContextTrigger,
       null,
+      undefined,
+      bodyCache ? { cache: bodyCache, idle, onEvent } : undefined,
+      Boolean(bodyCache),
     ),
   );
 }
@@ -1727,16 +1836,24 @@ export function flowView<M>(
       ],
     );
   });
-  const canRetainNodes =
+  const canRetainBodies =
     presentation.nodes === state.graph.nodes &&
     (state.gesture.type === 'idle' || state.gesture.type === 'pan') &&
     !state.context &&
     !options.renderNodeShell &&
-    !options.renderPort &&
     !options.canMoveNode &&
     !options.canResizeNode &&
-    !options.canSelectNode &&
-    !options.canConnectPort
+    !options.canSelectNode;
+  const bodyCache =
+    canRetainBodies && options.nodeBodyCache
+      ? {
+          cache: options.nodeBodyCache,
+          idle: state.gesture.type === 'idle',
+          onEvent: options.onEvent,
+        }
+      : undefined;
+  const canRetainNodes =
+    canRetainBodies && !options.renderPort && !options.canConnectPort
       ? options.nodeViewCache
       : undefined;
   const nodes = canRetainNodes
@@ -1754,6 +1871,7 @@ export function flowView<M>(
           state.gesture.type === 'idle',
           options.onEvent,
           options.renderNode,
+          options.nodeBodyCache,
         ]),
       ]
     : nodeViews(
@@ -1767,11 +1885,10 @@ export function flowView<M>(
         nodeContextTrigger,
         drag?.target ?? null,
         previewIds,
+        bodyCache,
+        Boolean(options.nodeBodyCache),
       );
-  const nodeLayer =
-    options.nodeViewCache && !canRetainNodes
-      ? [h.div([h.Style({ display: 'contents' })], nodes)]
-      : nodes;
+  const nodeLayer = options.nodeViewCache && !canRetainNodes ? [nodeLayerFrame(h, nodes)] : nodes;
   const markerId = `${options.id}-arrow`;
   const edgeGeometries = canvas.edges.map((edge) => ({
     edge,

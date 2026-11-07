@@ -9,6 +9,7 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
   flowView,
+  createFlowNodeBodyCache,
   flowEdgeEndpointSelect,
   flowEdgeEndpointReasons,
   flowPortLabel,
@@ -101,6 +102,7 @@ type WorkbenchEdgeHooks = {
 };
 
 const workbenchNodeCache = createLazy();
+const workbenchBodyCache = createFlowNodeBodyCache();
 const flowInput = (message: EditorEvent) => Message.ObservedFlowInput({ message });
 
 const reconnectionRadiusOptions = {
@@ -376,6 +378,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               [
                 h.Type('button'),
                 h.AriaPressed(String(model.retainNodeViews)),
+                h.Title('Retain built-in bodies; port protections and custom ports stay live.'),
                 h.OnClick(Message.ClickedRetainNodeViews()),
               ],
               ['Retain node views'],
@@ -2084,6 +2087,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ...edgeHooks,
           viewportCulling: model.viewportCulling,
           nodeViewCache: model.retainNodeViews ? workbenchNodeCache : undefined,
+          nodeBodyCache: model.retainNodeViews ? workbenchBodyCache : undefined,
           renderWorldOverlay: (context, builder) =>
             model.showWorldAnnotation ? releaseGateAnnotation(context, builder) : null,
           renderNodeShell: model.nodeDesign === 'orbits' ? orbitNode : undefined,

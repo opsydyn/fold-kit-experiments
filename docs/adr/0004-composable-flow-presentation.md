@@ -893,3 +893,51 @@ Implementation and verification:
 All `src/` paths here are relative to `packages/foldkit-flow/`. A measured
 large-graph performance slice can follow; no latency or assistive-technology
 qualification is implied by this extension.
+
+### Retain bodies independently of live ports (2026-11-07)
+
+Accepted following user approval to retain node bodies with policy-controlled
+ports kept live. This extends the retention implementation; it does not supersede
+the four-layer ownership boundary. The earlier Port handles note describes the
+whole-layer cache: that cache still excludes custom ports and port policies.
+
+Add `createFlowNodeBodyCache`, `FlowNodeBodyCache` and `FlowViewOptions.nodeBodyCache`
+only to the optional FoldKit entry. One factory instance belongs to one canvas.
+It uses FoldKit lazy slots keyed weakly by immutable node objects, avoiding an
+unbounded registry of deleted string IDs. Body keys include node identity,
+selection, read-only state, resize/context controls, idle state, description,
+message adapter and content renderer. They exclude graph snapshots, pending
+source and port callbacks. Narrow the native drag/resize primitive state inputs
+to the fields they actually consume rather than inventing a partial graph.
+
+Keep the node frame and native/custom ports live. A `display:contents` body wrapper
+preserves measured layout, direct-frame-child port geometry and native tab order.
+Use the same wrapper whenever the body option is configured, including whole-layer
+retention and live fallbacks, so policy changes do not remount body controls.
+Whole-layer retention remains preferred when eligible and invokes the same body
+slots. Its retained/live node-layer wrappers use one shared constructor and key:
+FoldKit compares callsite identity as well as VDOM keys. Custom shells, body
+policies, context panels, visibility/group filtering and editing gestures retain
+live fallback behavior. The pure reducer remains the permission/history authority.
+
+Alternatives: caching port-policy results risks stale permissions; a separate
+port overlay changes focus/DOM order and the direct-child geometry contract;
+string-keyed slots require an eviction lifecycle for arbitrary editor IDs.
+Weak node slots and live sibling ports reuse the existing primitives without
+those costs. Replaced node objects rebuild their body; cross-node graph edits do
+not need a retained graph snapshot in a body key. Runtime caches hold only view
+artifacts and remain separate from durable Model state. No dependency is added.
+
+Implementation and verification (paths relative to `packages/foldkit-flow/`):
+
+- [x] Add `src/node-body-cache.ts`, export it from `/foldkit`, and separate native
+      body construction from live ports in `src/foldkit.ts`/`src/composition.ts`.
+- [x] Test policy/source freshness, body-key stability, direct-child geometry,
+      native control order, read-only/selection updates and custom-port/fallback
+      behavior in `test/node-retention.test.ts`; compile/run the packed API.
+- [x] Enable both caches with the existing workbench retention switch; exercise
+      policy changes, source feedback, focused body inputs, creation and Undo.
+- [x] Build TypeDoc and the sample, run all workspace gates, and compare raw
+      policy-enabled before/after and existing benchmark modes without a CI
+      timing threshold. Keep local browser observations distinct from device,
+      assistive-technology and hosted qualification.

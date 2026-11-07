@@ -1,0 +1,20 @@
+{
+  "browser": "151.0.7922.34",
+  "result": "passed",
+  "checks": [
+    "body retention with live protected ports",
+    "focused body input identity across policy transitions",
+    "unchanged canvas-relative node bounds",
+    "body label editing and Undo under port policy",
+    "source switching",
+    "native port aria-pressed",
+    "filter focus and feedback",
+    "policy fallback and restored eligibility",
+    "cancellation",
+    "creation",
+    "Undo",
+    "native keyboard restaging"
+  ],
+  "screenshot": "node-body-policy.png",
+  "pageErrors": []
+}

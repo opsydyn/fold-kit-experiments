@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in per-node body retention with live native/custom ports and fresh port
+  policies, preserving frame geometry, control order and focused body inputs.
+
 - Extend opt-in built-in node retention to pending connection creation, refreshing
   source/port feedback on changes and preserving policy/custom-renderer fallbacks.
 

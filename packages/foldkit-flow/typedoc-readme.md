@@ -301,7 +301,15 @@ retain built-in node and port views across eligible camera and chooser updates,
 including pending connection creation. The staged source is a lazy input, so
 changing/cancelling it refreshes native port feedback; unrelated filtering can
 reuse the layer. With culling, the slot tracks the mounted set and pins the source.
-Custom ports, node policies and editing gestures still use the live path.
+The whole-layer slot still excludes custom ports and port policies.
+
+`createFlowNodeBodyCache()` creates a per-canvas `FlowNodeBodyCache` for
+`FlowViewOptions.nodeBodyCache`. Bodies retain their title, context/resize controls
+and content while native/custom ports and port policies evaluate live. Both cache
+options may be supplied; the whole layer is preferred where eligible. Weak node
+identities avoid an accumulating string-ID registry. Stable body wrappers retain
+native control order and focused inputs across eligibility changes. Custom shells,
+node-body policies, context panels and editing gestures keep live fallback behavior.
 
 `FlowViewOptions.viewportCulling` opts into mounting canvas items near the
 measured viewport. `FlowViewportCulling` accepts a CSS-pixel overscan value.

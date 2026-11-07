@@ -42,6 +42,9 @@ export type NodeControlState = Pick<
   'graph' | 'readOnly' | 'selectedNodes' | 'connection'
 >;
 type Context = Omit<FlowNodeRenderContext, 'resizeHandles' | 'state'> & { state: NodeControlState };
+type BodyContext = Omit<Context, 'state'> & {
+  state: Pick<NodeControlState, 'readOnly' | 'selectedNodes'>;
+};
 type Attributes<M> = Parameters<HtmlBuilder<M>['div']>[0];
 type Children<M> = Parameters<HtmlBuilder<M>['div']>[1];
 
@@ -175,7 +178,7 @@ export function flowGroupFrame<M>(
 /** Native focus, selection, keyboard movement and drag initiation travel with this button. */
 export function flowDragHandle<M>(
   h: HtmlBuilder<M>,
-  context: Context,
+  context: BodyContext,
   attributes: Attributes<M>,
   children: Children<M>,
 ): Html {
@@ -247,7 +250,7 @@ export function flowPort<M>(
 /** Groups support eight directions; ordinary nodes use width-only resizing. Appearance and placement belong to the caller. */
 export function flowResizeHandle<M>(
   h: HtmlBuilder<M>,
-  context: Context,
+  context: BodyContext,
   handle: ResizeHandle,
   attributes: Attributes<M>,
   children: Children<M>,

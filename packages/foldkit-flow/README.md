@@ -1532,11 +1532,54 @@ refresh native port feedback while unrelated chooser filtering can reuse the lay
 Read-only changes also rebuild the layer. With culling, a staged source remains
 pinned until cancellation or creation changes the mounted set.
 
-The prototype uses the live path for custom node shells, node policies,
+Whole-layer retention falls back to live views for custom node shells, node policies,
 node filtering through visibility or group collapse, open context panels,
-custom ports and editing gestures. Port policies use the live path so changing
+custom ports and editing gestures. Port policies stay live so changing
 protection reasons remain current. The retained context trigger resolves its
 anchor against the latest viewport when activated.
+
+### Retain bodies while ports stay live
+
+For policy-controlled or custom ports, supply a separate per-canvas body cache:
+
+```ts
+import { createLazy } from 'foldkit/html';
+import { createFlowNodeBodyCache, flowView } from '@opsydyn/foldkit-flow/foldkit';
+
+const nodeViewCache = createLazy();
+const nodeBodyCache = createFlowNodeBodyCache();
+
+// Inside the host view; keep these cache instances stable for this canvas.
+flowView(h, editor, {
+  id: 'workflow',
+  label: 'Workflow',
+  onEvent,
+  nodeViewCache,
+  nodeBodyCache,
+  canConnectPort: policy.canConnectPort,
+});
+```
+
+`nodeBodyCache` also works independently. When both are supplied, the whole-layer
+slot is preferred where eligible; otherwise the built-in frame and ports render
+live around retained bodies. Port callbacks and custom `renderPort` hooks run on
+every view. Native disabled states, protection reasons and pending-source feedback
+therefore follow the current Model without becoming cache permissions.
+
+The body contains the title/drag handle, context/resize controls and `renderNode`
+content. A layout-transparent wrapper preserves control order and leaves ports
+as direct frame children. That wrapper stays consistent across cache/fallback
+transitions while the body option is present, preserving focused body controls.
+Bodies track node identity, selection, read-only state and their rendering inputs,
+not the pending source or a graph snapshot. Keep `onEvent` and content callbacks
+stable; replace a callback when its captured display inputs change.
+
+The factory uses weak immutable node identities rather than retaining a permanent
+map of editor IDs. Use one instance per canvas; never share a slot between two
+simultaneously mounted canvases. Replacing a node object rebuilds that body.
+Custom shells, node-body policies, open context panels, visibility/group filtering
+and editing gestures keep their live path. This is view memoization only; graph
+edits, current permission checks, measurements and Undo remain Model-owned.
 
 ### Cull canvas items outside the viewport
 
@@ -2106,4 +2149,6 @@ The [validation indexing follow-up](../../apps/flow-sample/evidence/endpoint-cho
 compares per-resolution indexes against that baseline with fresh policy checks.
 The [pending-creation retention follow-up](../../apps/flow-sample/evidence/endpoint-creation-retention.md)
 adds retained-creation comparisons and production feedback checks.
+The [live-port body-retention report](../../apps/flow-sample/evidence/node-body-policy.md)
+adds policy-enabled comparisons and focused-control qualification.
 These are repo-only diagnostic tools with no machine-dependent CI timing gate.

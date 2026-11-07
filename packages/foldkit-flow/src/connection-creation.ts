@@ -12,6 +12,8 @@ export type FlowConnectionCreationChoice = Readonly<{
   value: string;
   endpoint: Endpoint;
   label: string;
+  /** Node label for native grouping; optional for custom/older constructed entries. */
+  nodeLabel?: string;
   current: boolean;
   hidden: boolean;
   reason: string | null;
@@ -91,6 +93,7 @@ export function resolveConnectionCreation(
           endpoint,
           current,
           hidden,
+          nodeLabel: node.label,
           label: `${node.label}: ${port.label ?? port.id}`,
           reason:
             reason ??
@@ -111,6 +114,7 @@ export function resolveConnectionCreation(
       entries.unshift({
         value,
         endpoint: source,
+        nodeLabel: source.node,
         label: `${source.node}: ${source.port} (unavailable)`,
         current: true,
         hidden: true,

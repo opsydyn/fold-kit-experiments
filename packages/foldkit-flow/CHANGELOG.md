@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add shared endpoint search projections, opt-in native node grouping, custom
+  group labels and controlled search/clear/feedback primitives for both choosers.
+
 - Add policy-aware connection creation choices and composable native fields,
   cancellation, focus-preserving reset and an opt-in creation panel.
 

@@ -42,6 +42,11 @@ async function qualify() {
     await expect(button('source:out → review:in')).toBeVisible();
     await source.focus();
     await source.press('Tab');
+    await expect(
+      page.getByRole('searchbox', { name: 'Search new connection targets', exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
     await expect(target).toBeFocused();
     await target.press('p');
     await expect(wire).toBeVisible();

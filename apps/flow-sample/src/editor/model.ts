@@ -234,6 +234,20 @@ export const ColorScheme = Schema.Literals(['light', 'dark']);
 export const ThemePreference = Schema.Literals(['system', 'light', 'dark']);
 export type ThemePreference = typeof ThemePreference.Type;
 
+export const PortChooserSearchField = Schema.Literals([
+  'creationSource',
+  'creationTarget',
+  'reconnectSource',
+  'reconnectTarget',
+]);
+export type PortChooserSearchField = typeof PortChooserSearchField.Type;
+const PortChooserQueries = Schema.Struct({
+  creationSource: Schema.String,
+  creationTarget: Schema.String,
+  reconnectSource: Schema.String,
+  reconnectTarget: Schema.String,
+});
+
 export const SearchScope = Schema.Literals(['nodes', 'connections']);
 export type SearchScope = typeof SearchScope.Type;
 
@@ -264,6 +278,7 @@ export const Model = Schema.Struct({
   retainNodeViews: Schema.Boolean,
   includeCamera: Schema.Boolean,
   searchQuery: Schema.String,
+  portChooserQueries: PortChooserQueries,
   searchScope: SearchScope,
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
@@ -334,6 +349,7 @@ export type Model = Readonly<{
   retainNodeViews: boolean;
   includeCamera: boolean;
   searchQuery: string;
+  portChooserQueries: typeof PortChooserQueries.Type;
   searchScope: SearchScope;
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
@@ -393,6 +409,12 @@ export const init = () => ({
     retainNodeViews: false,
     includeCamera: false,
     searchQuery: '',
+    portChooserQueries: {
+      creationSource: '',
+      creationTarget: '',
+      reconnectSource: '',
+      reconnectTarget: '',
+    },
     searchScope: 'nodes' as const,
     showWorldAnnotation: false,
     diagnosticsEnabled: true,

@@ -854,3 +854,42 @@ Implementation and verification:
 The `src/` paths above are relative to `packages/foldkit-flow/`. Search/filter UI,
 loose connection modes and native popup/assistive-technology qualification remain
 separate work.
+
+### Searchable grouped endpoint projections (2026-11-07)
+
+Accepted following approval of searchable/grouped candidates shared by creation
+and reconnection. `src/endpoint-search.ts` owns a pure presentation projection;
+query text belongs in the host Model, never in the graph or an external store.
+`src/endpoint-search-view.ts` provides controlled native search, clear and live
+feedback primitives. The operation-specific select/reasons primitives consume
+the same query and opt into native node grouping. Flat unfiltered behavior stays
+the default, and option values/events remain owned by their existing resolvers.
+
+Matching uses literal case-insensitive tokens against labels and IDs. Always
+retain current entries, including protected/nonmatching selections; do not hide
+operation-wide protection or automatically choose a replacement when the filter
+is empty. Group by node ID and carry optional node-label metadata, with an ID
+fallback for older/custom entries. Group/option labels remain customizable.
+
+The alternative of filtering in Astro duplicates discovery behavior for each
+consumer. A package-owned query store violates Model ownership, and a new custom
+combobox runtime would add keyboard/selection semantics before native controls
+have been exhausted. Preserve native selects and separate query changes from
+creation cancellation: Escape in a search clears its query; creation-select
+Escape still cancels the pending source. This adds no dependency or persisted
+schema. It is not virtualization and does not reduce policy preflight workload.
+
+Implementation and verification:
+
+- [x] Export the pure projection/types and native search primitives; share native
+      option grouping across creation and reconnection without merging their events.
+- [x] Add Model-owned workbench queries and demonstrate both workflows using
+      public package primitives, with no app-owned matching/grouping algorithm.
+- [x] Qualify matching, identity/order, duplicate node labels, current selection
+      retention, no results, protected/stale candidates, native groups/custom labels,
+      keyboard focus, query-only Escape/Clear, Undo/Redo and minimal mode. Compile the
+      packed consumer, generate TypeDoc and run all workspace gates before commit.
+
+All `src/` paths here are relative to `packages/foldkit-flow/`. A measured
+large-graph performance slice can follow; no latency or assistive-technology
+qualification is implied by this extension.

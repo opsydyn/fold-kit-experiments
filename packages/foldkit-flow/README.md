@@ -327,6 +327,60 @@ association in custom designs. `renderEdgeToolbar` receives optional
 enabled. Native Tab/selection behavior is preserved; each accepted change is one
 Undo step, with edge metadata, selection and focused chooser retained.
 
+### Searching and grouping endpoint choices
+
+Both creation and reconnection field/select/reasons options accept `query` and
+`groupByNode`. Filtering is a view projection: keep query text in the host Model
+and pass the same options to the select and reasons. Flat, unfiltered lists remain
+the default. Native groups use node identity, preserving separate groups for
+nodes that share a label. `groupLabel` customizes group text; `optionLabel` still
+customizes each option.
+
+`resolveEndpointChoices(entries, { query })` is exported from the pure core for
+custom widgets. It returns filtered `entries`, node `groups`, `matchCount` and
+nullable `emptyReason`. Matching uses literal, case-insensitive substrings for
+every whitespace-separated token across labels and endpoint IDs. It preserves
+entry/event references and input order, and always retains current selections,
+even when hidden, protected or nonmatching. `matchCount` excludes those retained
+nonmatches. Group order follows the first visible entry for each node. Entries
+from the built-in resolvers include optional `nodeLabel` metadata; older/custom
+entries fall back to the node ID.
+
+Compose the native query primitives from `@opsydyn/foldkit-flow/foldkit`:
+
+```ts
+const options = { query: model.portQuery, groupByNode: true, idPrefix: 'target' };
+const search = resolveEndpointChoices(context.entries, options);
+const searchOptions = { idPrefix: 'target-filter', label: 'Search target ports' };
+const changed = (query: string) => Message.ChangedPortQuery({ query });
+
+const controls = [
+  flowEndpointSearchInput(h, search, changed, [], searchOptions),
+  flowEndpointSearchClear(h, changed),
+  flowEndpointSearchFeedback(h, search, [], searchOptions),
+  flowEdgeEndpointField(h, context, onEvent, options),
+];
+```
+
+Use `flowConnectionCreationField` with the same options for creation. Supply
+distinct search prefixes for simultaneous widgets, pairing input and feedback
+with the same prefix. Escape in the search input clears only its query and keeps
+focus; Escape on a creation select retains its existing cancellation behavior.
+The Clear button remains focusable after clearing. Query changes do not stage a
+source, edit the graph or add Undo entries.
+
+No-match feedback is associated with the input and select. The feedback primitive
+accepts attributes so a custom layout can keep its live region available while
+showing a single visible explanation through the operation's reasons primitive.
+Global protection reasons remain visible regardless of filtering; matching denied
+choices stay disabled, and current selections remain recognizable. Empty creation
+results retain the placeholder, preventing implicit selection of another port.
+Filtering cannot widen the resolver's visibility scope or authorize an edit: the
+existing reducer rechecks the current graph and policies on every commit. Search
+and grouping do not virtualize the list or reduce the resolver's policy workload.
+
+### Custom edge toolbars
+
 With `edgeToolbar: true`, supply `renderEdgeToolbar` to arrange, style, or
 omit individual actions. Its context contains the selected edge, the shared
 label anchor in world coordinates, and the typed actions `rename`,

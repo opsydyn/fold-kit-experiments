@@ -83,6 +83,7 @@ import {
   compactNodeToolbar,
   compactEdgeToolbar,
   connectionCreationPanel,
+  portChooserSearch,
   customContextMenu,
   connectionRows,
   labeledResizeReadout,
@@ -302,7 +303,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     ? (['source', 'target'] as const).flatMap((end) => {
         const context = resolveEdgeReconnection(model.editor, selectedEdge.id, end, policy);
         if (!context) return [];
-        const options = { idPrefix: 'workbench-endpoint' };
+        const key = end === 'source' ? 'reconnectSource' : 'reconnectTarget';
+        const options = {
+          idPrefix: 'workbench-endpoint',
+          query: model.portChooserQueries[key],
+          groupByNode: true,
+        };
         return [
           h.div(
             [
@@ -318,6 +324,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ],
             [
               h.strong([], [end === 'source' ? '↗ Source port' : '↘ Target port']),
+              portChooserSearch(context.entries, model.portChooserQueries[key], key, h),
               flowEdgeEndpointSelect(
                 h,
                 context,
@@ -2099,7 +2106,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           edgeToolbar: true,
           edgeReconnection: true,
           connectionCreation: true,
-          renderConnectionCreation: connectionCreationPanel,
+          renderConnectionCreation: (context, builder) =>
+            connectionCreationPanel(context, builder, model.portChooserQueries),
           canConnect: policy.canConnect,
           canDelete: policy.canDelete,
           canReconnect: policy.canReconnect,

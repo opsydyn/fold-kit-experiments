@@ -12,6 +12,14 @@ export {
   serializeSnapshot,
 } from './graph';
 export { createEditor, updateEditor } from './editor';
+export { resolveEndpointChoices } from './endpoint-search';
+export type {
+  FlowSearchableEndpoint,
+  FlowEndpointSearchOptions,
+  FlowEndpointSearchContext,
+  FlowEndpointChoiceGroup,
+  FlowEndpointChoices,
+} from './endpoint-search';
 export { resolveConnectionCreation } from './connection-creation';
 export type {
   FlowConnectionCreationAction,

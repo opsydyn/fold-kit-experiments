@@ -62,12 +62,13 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       ],
       { ...options, cwd: directory },
     );
-    const source = `import { createEditor, updateEditor, resolveConnectionCreation, resolveEdgeReconnection, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type FlowConnectionGeometryPolicy, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
-import { flowConnectionCreation, flowConnectionCreationField, flowConnectionCreationSelect, flowConnectionCreationReasons, flowConnectionCreationCancel, flowEdgeEndpointField, flowEdgeEndpointSelect, flowEdgeEndpointReasons, flowView, type FlowWheelNavigation, type FlowCanvasHelpContext, type FlowCanvasStatusContext, type FlowSelectionMarqueeContext, type FlowAlignmentGuideContext, type FlowResizeReadoutContext, flowConnectionButton, flowContextTrigger, type FlowConnectionsContext, flowContextAction, flowContextDimensionInput, type FlowContextMenuContext, flowEdgeToolbarButton, flowEdgePathStyleSelect, type FlowEdgeToolbarContext, flowEdgeLabelBadge, flowEdgeLabelForm, flowEdgeLabelInput, flowEdgeLabelCancel, flowViewportControl, flowMinimap, flowMinimapViewport, type FlowMinimapContext, type FlowViewportControlsContext, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, flowEdgeHitTarget, resolveFlowDiagnostics, type FlowViewOptions, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
+    const source = `import { createEditor, updateEditor, resolveEndpointChoices, resolveConnectionCreation, resolveEdgeReconnection, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type FlowConnectionGeometryPolicy, resolveEdgeGeometry, type FlowEdgeGeometryPolicy, type FlowEdge, type FlowGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
+import { flowEndpointSearchInput, flowEndpointSearchClear, flowEndpointSearchFeedback, flowConnectionCreation, flowConnectionCreationField, flowConnectionCreationSelect, flowConnectionCreationReasons, flowConnectionCreationCancel, flowEdgeEndpointField, flowEdgeEndpointSelect, flowEdgeEndpointReasons, flowView, type FlowWheelNavigation, type FlowCanvasHelpContext, type FlowCanvasStatusContext, type FlowSelectionMarqueeContext, type FlowAlignmentGuideContext, type FlowResizeReadoutContext, flowConnectionButton, flowContextTrigger, type FlowConnectionsContext, flowContextAction, flowContextDimensionInput, type FlowContextMenuContext, flowEdgeToolbarButton, flowEdgePathStyleSelect, type FlowEdgeToolbarContext, flowEdgeLabelBadge, flowEdgeLabelForm, flowEdgeLabelInput, flowEdgeLabelCancel, flowViewportControl, flowMinimap, flowMinimapViewport, type FlowMinimapContext, type FlowViewportControlsContext, flowNodeFrame, flowGroupFrame, flowDragHandle, flowPort, flowResizeHandle, flowEdgeHitTarget, resolveFlowDiagnostics, type FlowViewOptions, type FlowBackground, type FlowDiagnostics } from '@opsydyn/foldkit-flow/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-flow-elk';
 import { Effect, Schema } from 'effect';
 import { renderToString } from 'foldkit/experimental/server';
 import type { HtmlBuilder } from 'foldkit/html';
+import { defineMessageUnion } from 'foldkit/message';
 const externalEdge:FlowEdge={id:'external-edge',source:{node:'a',port:'out'},target:{node:'b',port:'in'},label:'External relation'};
 const graph: FlowGraph = {nodes:[{id:'a',label:'External',position:{x:0,y:0},size:{width:100,height:80},ports:[{id:'out',kind:'output',side:'right',anchor:{x:0.75,y:0.25}}]},{id:'b',label:'Target',position:{x:300,y:0},size:{width:100,height:80},ports:[{id:'in',kind:'input',side:'left',anchor:{x:0.25,y:0.75}}]}],edges:[externalEdge]};
 const first=graph.nodes[0],firstPort=first?.ports[0];
@@ -104,6 +105,8 @@ const labelOptions:FlowViewOptions<EditorEvent>={
   ]),
 };
 const creationContext=resolveConnectionCreation(arranged);
+const searchChoices=resolveEndpointChoices(creationContext.target.entries,{query:'missing-port'});
+if (searchChoices.matchCount!==0 || searchChoices.entries.length!==0) throw new Error('Packed search did not filter');
 const endpointContext=resolveEdgeReconnection(arranged,externalEdge.id,'target');
 if (!endpointContext) throw new Error('Missing packed endpoint context');
 const selected=updateEditor(arranged,{type:'EdgeSelected',id:externalEdge.id,additive:false});
@@ -112,8 +115,8 @@ const toolbarOptions:FlowViewOptions<EditorEvent>={
   renderConnectionCreation:(context,h)=>h.div([h.Role('group'),h.AriaLabel('Packed creation')],[
     flowConnectionCreation(h,context,event=>event,{idPrefix:'packed-create'}),
     flowConnectionCreationField(h,context.source,event=>event,{idPrefix:'packed-create-field'}),
-    flowConnectionCreationSelect(h,creationContext.target,event=>event,[],{idPrefix:'packed-create-select'}),
-    flowConnectionCreationReasons(h,creationContext.target,[],{idPrefix:'packed-create-select'}),
+    flowConnectionCreationSelect(h,creationContext.target,event=>event,[],{idPrefix:'packed-create-select',groupByNode:true,groupLabel:group=>group.label+' ['+group.id+']'}),
+    flowConnectionCreationReasons(h,creationContext.target,[],{idPrefix:'packed-create-select',groupByNode:true,groupLabel:group=>group.label+' ['+group.id+']'}),
     flowConnectionCreationCancel(h,context,event=>event),
   ]),
   renderEdgeToolbar:(context:FlowEdgeToolbarContext,h)=>h.div([h.Class('packed-toolbar')],[
@@ -170,6 +173,14 @@ const deletion=resolveDeletion(arranged.graph,{nodeIds:['a'],edgeIds:[]},deletio
 const denied=updateEditor(selected,{type:'EdgeDeleted',id:externalEdge.id},deletionPolicy);
 if (deletion.type!=='blocked' || denied.graph!==selected.graph || denied.notice!=='Packed required link') throw new Error('Missing packed deletion policy');
 const wheelNavigation:FlowWheelNavigation='pan';
+const ConsumerSearchMessage=defineMessageUnion({ChangedQuery:{query:Schema.String}});
+type ConsumerSearchMessage=typeof ConsumerSearchMessage.Type;
+const searchResult=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:searchChoices}),view:(model,h:HtmlBuilder<ConsumerSearchMessage>)=>({title:'Search consumer',body:h.div([], [
+  flowEndpointSearchInput(h,model,query=>ConsumerSearchMessage.ChangedQuery({query}),[],{idPrefix:'packed-search'}),
+  flowEndpointSearchClear(h,query=>ConsumerSearchMessage.ChangedQuery({query})),
+  flowEndpointSearchFeedback(h,model,[],{idPrefix:'packed-search'}),
+])})},{flags:{},isHydratable:false}));
+if (!searchResult.html.includes('No ports match this search.')) throw new Error('Missing packed search feedback');
 const result=await Effect.runPromise(renderToString({Flags:Schema.Struct({}),init:()=>({model:arranged}),view:(model,h:HtmlBuilder<EditorEvent>)=>({title:'Consumer',body:h.div([],[flowView(h,selected,{...toolbarOptions,id:'packed-protected',renderEdgeToolbar:undefined,canDelete:deletionPolicy.canDelete}),flowView(h,{...measured,notice:'Packed status notice',selectionMode:true},copyOptions),flowView(h,marqueeState,marqueeOptions),flowView(h,guideState,guideOptions),flowView(h,selectedGroup,readoutOptions),flowView(h,selected,listOptions),flowView(h,quietList,{...listOptions,id:'packed-readonly-list',minimalMode:true}),flowView(h,groupContext,contextOptions),flowView(h,edgeContext,{...contextOptions,id:'packed-edge-context'}),flowView(h,selected,toolbarOptions),flowView(h,selected,{...toolbarOptions,id:'hidden-toolbar',renderEdgeToolbar:()=>null}),flowView(h,{...arranged,readOnly:true},labelOptions),flowView(h,editing,{...labelOptions,id:'packed-label-editing'}),flowView(h,measured,{...navigationOptions,wheelNavigation}),flowView(h,dragging,previewOptions),h.svg([], [flowEdgeHitTarget(h,{edge:externalEdge,path:geometry.path})]),flowView(h,model,{id:'external',label:'External graph',connectionGeometry:previewPolicy,renderConnection:(context,builder)=>builder.path([builder.D(context.path),builder.Stroke(context.stroke)],[]),edgeGeometry:policy,background,minimalMode:true,diagnostics:{status:true},resizeReadout:false,onEvent:event=>event,renderGroupShell:(context,builder)=>flowGroupFrame(builder,context,[],[flowDragHandle(builder,context,[],[context.node.label])]),renderNodeShell:(context,builder)=>flowNodeFrame(builder,context,[builder.Class('packed-shell')],[flowDragHandle(builder,context,[],[context.node.label]),...context.node.ports.map(port=>flowPort(builder,context,port,[],['→'])),flowResizeHandle(builder,context,'right',[],['Resize'])])})])})},{flags:{},isHydratable:false}));
 if (!result.html.includes('data-flow-wheel-navigation="pan"') || !result.html.includes('Scroll to pan. Hold Ctrl or Command')) throw new Error('Missing packed wheel navigation');
 if (!result.html.includes('title="Packed required link"') || !result.html.includes('Packed required link</small>')) throw new Error('Missing packed deletion action reason');

@@ -2,6 +2,12 @@
  * Optional native FoldKit views and interaction primitives using the host builder.
  * @module FoldKit
  */
+export {
+  flowEndpointSearchInput,
+  flowEndpointSearchClear,
+  flowEndpointSearchFeedback,
+} from './endpoint-search-view';
+export type { FlowEndpointSearchViewOptions } from './endpoint-search-view';
 import {
   resolveConnectionCreation,
   type FlowConnectionCreationContext,

@@ -372,6 +372,24 @@ diagnostics. `renderConnectionCreation` replaces it with custom FoldKit markup
 using the same context and primitives. No new persistence schema or browser
 dependency enters the core.
 
+## Searchable endpoint contracts
+
+`Core.resolveEndpointChoices` projects creation or reconnection entries through
+`FlowEndpointSearchOptions.query`. `FlowEndpointChoices` contains filtered entries,
+node groups, the original query, actual match count and no-results feedback.
+`FlowSearchableEndpoint` is the minimal structural input: endpoint, label,
+current flag and optional node label. Matching is literal, case-insensitive and
+token-based across labels/IDs. Current entries are retained; permissions/events
+are preserved and still validated by the reducer.
+
+Both native chooser option types accept `query`, `groupByNode` and `groupLabel`.
+Grouping defaults off and uses node identity rather than label identity. Pass the
+same query to select and reasons primitives. `flowEndpointSearchInput`,
+`flowEndpointSearchClear` and `flowEndpointSearchFeedback` compose Model-owned
+queries with native keyboard semantics. Pair input and feedback prefixes through
+`FlowEndpointSearchViewOptions`; Escape clears only the query and the Clear button
+keeps focus after clearing. No graph state or persisted document fields are added.
+
 ## Package boundaries
 
 The core has no runtime dependencies or browser requirement. FoldKit/Effect are

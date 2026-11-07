@@ -7,6 +7,8 @@ export type FlowEdgeEndpointChoice = Readonly<{
   value: string;
   endpoint: Endpoint;
   label: string;
+  /** Node label for native grouping; optional for custom/older constructed entries. */
+  nodeLabel?: string;
   current: boolean;
   hidden: boolean;
   reason: string | null;
@@ -72,6 +74,7 @@ export function resolveEdgeReconnection(
         endpoint,
         current,
         hidden,
+        nodeLabel: node.label,
         label: `${node.label}: ${port.label ?? port.id}`,
         reason:
           guard ??
@@ -87,6 +90,7 @@ export function resolveEdgeReconnection(
     entries.unshift({
       value,
       endpoint: edge[end],
+      nodeLabel: edge[end].node,
       label: `${edge[end].node}: ${edge[end].port} (unavailable)`,
       current: true,
       hidden: true,

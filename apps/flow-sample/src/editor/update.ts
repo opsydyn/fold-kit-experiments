@@ -128,6 +128,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
+    ChangedPortChooserSearch: ({ field, query }) => ({
+      model: { ...model, portChooserQueries: { ...model.portChooserQueries, [field]: query } },
+    }),
     ChangedDiagramSearch: ({ query }) => ({ model: { ...model, searchQuery: query } }),
     SelectedSearchScope: ({ scope }) => ({ model: { ...model, searchScope: scope } }),
     SubmittedDiagramSearch: () => {

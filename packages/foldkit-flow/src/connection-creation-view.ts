@@ -6,23 +6,38 @@ import type {
   FlowConnectionCreationContext,
   FlowConnectionCreationFieldContext,
 } from './connection-creation';
+import {
+  resolveEndpointChoices,
+  type FlowEndpointSearchOptions,
+  type FlowEndpointChoiceGroup,
+} from './endpoint-search';
+import { endpointChoiceOptions } from './endpoint-search-view';
 import type { EditorEvent } from './types';
 
-export type FlowConnectionCreationViewOptions = Readonly<{
-  /** Distinct prefixes are required for simultaneous creation widgets. */
-  idPrefix?: string;
-  optionLabel?: (choice: FlowConnectionCreationChoice) => string;
-}>;
+export type FlowConnectionCreationViewOptions = FlowEndpointSearchOptions &
+  Readonly<{
+    /** Distinct prefixes are required for simultaneous creation widgets. */
+    idPrefix?: string;
+    /** Native node groups; flat options remain the default. */
+    groupByNode?: boolean;
+    groupLabel?: (group: FlowEndpointChoiceGroup<FlowConnectionCreationChoice>) => string;
+    optionLabel?: (choice: FlowConnectionCreationChoice) => string;
+  }>;
 
 const identity = (
   context: FlowConnectionCreationFieldContext,
   options: FlowConnectionCreationViewOptions,
 ) => `${options.idPrefix ?? 'flow-create'}-${context.end}`;
-function reasons(context: FlowConnectionCreationFieldContext) {
+function reasons(
+  context: FlowConnectionCreationFieldContext,
+  options: FlowConnectionCreationViewOptions,
+) {
+  const choices = resolveEndpointChoices(context.entries, options);
   return [
     ...(context.reason ? [context.reason] : []),
     ...(context.hint ? [context.hint] : []),
-    ...context.entries
+    ...(choices.emptyReason ? [choices.emptyReason] : []),
+    ...choices.entries
       .filter(
         ({ reason }) => reason !== null && reason !== context.reason && reason !== context.hint,
       )
@@ -39,6 +54,7 @@ export function flowConnectionCreationSelect<M>(
   options: FlowConnectionCreationViewOptions = {},
 ): Html {
   const id = identity(context, options);
+  const choices = resolveEndpointChoices(context.entries, options);
   return h.select(
     [
       ...attributes,
@@ -46,7 +62,7 @@ export function flowConnectionCreationSelect<M>(
       h.Id(`${id}-select`),
       h.AriaLabel(context.label),
       h.Disabled(context.reason !== null),
-      ...(reasons(context).length ? [h.AriaDescribedBy(`${id}-reasons`)] : []),
+      ...(reasons(context, options).length ? [h.AriaDescribedBy(`${id}-reasons`)] : []),
       h.OnChange((value) =>
         onEvent(
           context.entries.find((choice) => choice.value === value)?.event ?? context.cancel.event,
@@ -63,19 +79,24 @@ export function flowConnectionCreationSelect<M>(
         [h.Key('placeholder'), h.Value(''), h.Selected(context.value === '')],
         [context.placeholder],
       ),
-      ...context.entries.map((choice) =>
-        h.option(
-          [
-            h.Key(choice.value),
-            h.Value(choice.value),
-            h.Selected(choice.current),
-            h.Disabled(choice.reason !== null),
-          ],
-          [
-            options.optionLabel?.(choice) ??
-              `${choice.label}${choice.hidden ? ' (hidden)' : ''}${choice.reason ? ' — unavailable' : ''}`,
-          ],
-        ),
+      ...endpointChoiceOptions(
+        h,
+        choices,
+        options.groupByNode,
+        (choice) =>
+          h.option(
+            [
+              h.Key(choice.value),
+              h.Value(choice.value),
+              h.Selected(choice.current),
+              h.Disabled(choice.reason !== null),
+            ],
+            [
+              options.optionLabel?.(choice) ??
+                `${choice.label}${choice.hidden ? ' (hidden)' : ''}${choice.reason ? ' — unavailable' : ''}`,
+            ],
+          ),
+        options.groupLabel,
       ),
     ],
   );
@@ -90,7 +111,7 @@ export function flowConnectionCreationReasons<M>(
 ): Html {
   return h.div(
     [...attributes, h.Id(`${identity(context, options)}-reasons`)],
-    reasons(context).map((reason) => h.p([], [reason])),
+    reasons(context, options).map((reason) => h.p([], [reason])),
   );
 }
 

@@ -59,6 +59,11 @@ resolved placement and gap. Compose `flowPortLabel` in `renderPortLabel`
 for custom content and placement. It keeps labels decorative and anchored
 independently of the node shell.
 
+`renderPort` receives `FlowPortRenderContext` for each socket.
+Compose `flowPort` to retain native input and geometry. Custom shells can
+append the resolved `FlowNodeRenderContext.ports` collection as direct
+frame children. Undefined keeps the default and null omits the control.
+
 `renderEdgeLabel` and `renderEdgeLabelEditor` replace the badge and active editor
 at the resolved edge anchor. Compose `flowEdgeLabelBadge`, `flowEdgeLabelForm`,
 `flowEdgeLabelInput` and `flowEdgeLabelCancel` to retain native interactions and

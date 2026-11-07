@@ -34,6 +34,8 @@ export type FlowNodeRenderContext = Readonly<{
   contextAction?: Html;
   collapseToggle?: Html;
   resizeHandles: readonly Html[];
+  /** Resolved controls when renderPort is supplied. Append them as direct frame children. */
+  ports?: readonly Html[] | undefined;
 }>;
 export type NodeControlState = Pick<
   EditorState,

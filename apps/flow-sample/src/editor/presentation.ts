@@ -39,10 +39,63 @@ import {
   flowPort,
   flowResizeHandle,
   type FlowNodeRenderContext,
+  type FlowPortRenderContext,
 } from '@opsydyn/foldkit-flow/foldkit';
 import type { HtmlBuilder } from 'foldkit/html';
 
 import { Message } from './message';
+
+export function socketPort(context: FlowPortRenderContext, h: HtmlBuilder<Message>) {
+  const disabled = context.state.readOnly || context.disabledReason !== null;
+  return flowPort(
+    h,
+    context,
+    context.port,
+    [
+      h.Class('workbench-socket'),
+      h.Title(context.disabledReason ?? context.label),
+      h.Style({
+        width: '30px',
+        height: '26px',
+        padding: '3px',
+        'border-radius': '7px',
+        border: `2px ${disabled ? 'dashed' : 'solid'} var(--flow-node-color, #172033)`,
+        background:
+          context.target || context.active
+            ? 'var(--flow-valid-target, #0f766e)'
+            : 'var(--flow-node-background, #fff)',
+        color:
+          context.target || context.active
+            ? 'var(--flow-control-color, #fff)'
+            : 'var(--flow-node-color, #172033)',
+        'box-shadow': context.target ? '0 0 0 3px var(--flow-valid-target, #0f766e)' : 'none',
+        opacity: disabled ? '0.5' : '1',
+        cursor: 'crosshair',
+        'z-index': '2',
+      }),
+    ],
+    [
+      h.svg(
+        [h.ViewBox('0 0 20 20'), h.Width('100%'), h.Height('100%'), h.AriaHidden(true)],
+        [
+          h.path(
+            [
+              h.D(
+                context.port.kind === 'output'
+                  ? 'M4,4 L12,10 L4,16 M12,10 H17'
+                  : 'M16,4 L8,10 L16,16 M8,10 H3',
+              ),
+              h.Fill('none'),
+              h.Stroke('currentColor'),
+              h.StrokeWidth('2'),
+            ],
+            [],
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
 export function storageDependencyEdge(
   { edge, path, stroke, dashArray, markerEnd }: FlowEdgeRenderContext,
@@ -181,27 +234,28 @@ export function orbitNode(context: FlowNodeRenderContext, h: HtmlBuilder<Message
             ),
           ]
         : []),
-      ...context.node.ports.map((port) =>
-        flowPort(
-          h,
-          context,
-          port,
-          [
-            h.Style({
-              width: '28px',
-              height: '28px',
-              padding: '0',
-              border: '2px solid #172554',
-              'border-radius': '6px',
-              background: port.kind === 'output' ? '#fb923c' : '#7dd3fc',
-              color: '#172554',
-              'font-weight': '700',
-              cursor: 'crosshair',
-            }),
-          ],
-          [port.kind === 'output' ? '→' : '←'],
-        ),
-      ),
+      ...(context.ports ??
+        context.node.ports.map((port) =>
+          flowPort(
+            h,
+            context,
+            port,
+            [
+              h.Style({
+                width: '28px',
+                height: '28px',
+                padding: '0',
+                border: '2px solid #172554',
+                'border-radius': '6px',
+                background: port.kind === 'output' ? '#fb923c' : '#7dd3fc',
+                color: '#172554',
+                'font-weight': '700',
+                cursor: 'crosshair',
+              }),
+            ],
+            [port.kind === 'output' ? '→' : '←'],
+          ),
+        )),
     ],
   );
 }
@@ -266,6 +320,7 @@ export function orbitGroup(context: FlowNodeRenderContext, h: HtmlBuilder<Messag
         [context.collapsed ? '+' : '−'],
       ),
       ...context.resizeHandles,
+      ...(context.ports ?? []),
     ],
   );
 }

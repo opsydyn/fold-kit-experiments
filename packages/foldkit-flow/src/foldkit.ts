@@ -94,7 +94,6 @@ import {
   flowNodeFrame,
   flowGroupFrame,
   flowDragHandle,
-  flowPort,
   flowResizeHandle,
   flowEdgeHitTarget,
   type FlowNodeRenderContext,
@@ -115,6 +114,8 @@ import {
   type FlowPortLabelOptions,
   type FlowPortLabelRenderer,
 } from './port-label';
+import { portRenderViews, type FlowPortRenderer } from './port-render';
+export type { FlowPortRenderContext, FlowPortRenderer } from './port-render';
 export { flowPortLabel } from './port-label';
 export type {
   FlowPortLabelOptions,
@@ -285,6 +286,8 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     ) => Html | null | undefined;
     /** Uses the host's builder; arbitrary FoldKit controls retain their normal behaviour. */
     renderNode?: (node: FlowNode, h: HtmlBuilder<M>) => Html;
+    /** Replaces a port control. Compose flowPort for native behavior; undefined keeps the default. */
+    renderPort?: FlowPortRenderer<M> | undefined;
     /** Opt in to decorative port labels at their canonical world anchors. */
     portLabels?: boolean | FlowPortLabelOptions;
     /** Replaces a complete label. Compose flowPortLabel to retain anchoring. Null hides it. */
@@ -1147,7 +1150,12 @@ function nodeContextStyles<M>(h: HtmlBuilder<M>, onNode: boolean) {
 type NodeShellContext<S> = Omit<FlowNodeRenderContext, 'state'> & { state: S };
 type NodeViewOptions<M, S> = Pick<
   FlowViewOptions<M>,
-  'resizeHandles' | 'canMoveNode' | 'canResizeNode' | 'canSelectNode' | 'canConnectPort'
+  | 'resizeHandles'
+  | 'canMoveNode'
+  | 'canResizeNode'
+  | 'canSelectNode'
+  | 'canConnectPort'
+  | 'renderPort'
 > & {
   renderNode?: FlowViewOptions<M>['renderNode'];
   renderNodeShell?:
@@ -1187,6 +1195,9 @@ function nodeViews<M, S extends NodeControlState>(
       };
       const context: NodeShellContext<S> = {
         ...base,
+        ports: options.renderPort
+          ? portRenderViews(h, base, target, options.renderPort)
+          : undefined,
         contextAction:
           contextEnabled && selectionDisabledReason === undefined
             ? nodeContextTrigger(node)
@@ -1270,38 +1281,7 @@ function nodeViews<M, S extends NodeControlState>(
           ...(context.contextAction ? [context.contextAction] : []),
           ...context.resizeHandles,
           ...(options.renderNode ? [options.renderNode(node, h)] : []),
-          ...node.ports.map((port) =>
-            flowPort(
-              h,
-              context,
-              port,
-              [
-                h.Style({
-                  position: 'absolute',
-                  'z-index': '1',
-                  width: '24px',
-                  height: '24px',
-                  padding: '0',
-                  'border-radius': '50%',
-                  border:
-                    target?.node === node.id && target.port === port.id
-                      ? '3px solid var(--flow-node-color, #172033)'
-                      : '2px solid var(--flow-port-border, #fff)',
-                  'box-shadow':
-                    target?.node === node.id && target.port === port.id
-                      ? '0 0 0 3px var(--flow-valid-target, #0f766e)'
-                      : 'none',
-                  background:
-                    port.kind === 'output'
-                      ? 'var(--flow-output-port, #2563eb)'
-                      : 'var(--flow-input-port, #0f766e)',
-                  color: 'var(--flow-control-color, #fff)',
-                  cursor: 'crosshair',
-                }),
-              ],
-              [port.kind === 'output' ? '+' : '−'],
-            ),
-          ),
+          ...(context.ports ?? portRenderViews(h, base, target, undefined)),
         ],
       );
     });
@@ -1478,6 +1458,9 @@ export function flowView<M>(
     };
     const context: FlowNodeRenderContext = {
       ...base,
+      ports: options.renderPort
+        ? portRenderViews(h, base, drag?.target ?? null, options.renderPort)
+        : undefined,
       contextAction:
         contextEnabled && selectionDisabledReason === undefined
           ? nodeContextTrigger(node)
@@ -1607,6 +1590,7 @@ export function flowView<M>(
         context.collapseToggle!,
         ...(context.contextAction ? [context.contextAction] : []),
         ...context.resizeHandles,
+        ...(context.ports ?? []),
       ],
     );
   });
@@ -1616,6 +1600,7 @@ export function flowView<M>(
     !state.connection &&
     !state.context &&
     !options.renderNodeShell &&
+    !options.renderPort &&
     !options.canMoveNode &&
     !options.canResizeNode &&
     !options.canSelectNode &&

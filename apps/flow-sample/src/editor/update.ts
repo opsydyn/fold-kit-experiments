@@ -163,6 +163,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedConnectionDesign: ({ connectionDesign }) => ({ model: { ...model, connectionDesign } }),
     ClickedConnectionSnap: () => ({ model: { ...model, snapConnections: !model.snapConnections } }),
     ClickedPortLabels: () => ({ model: { ...model, portLabels: !model.portLabels } }),
+    ClickedCustomPorts: () => ({ model: { ...model, customPorts: !model.customPorts } }),
     SelectedReconnectionSnap: ({ reconnectionSnap }) => ({
       model: { ...model, reconnectionSnap },
     }),

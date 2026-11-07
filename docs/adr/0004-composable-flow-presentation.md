@@ -341,6 +341,17 @@ consumes it. This keeps the action independent of graph undo and snapshot
 serialization. A full camera history would also require grouping
 continuous gestures, which this single-step return does not need.
 
+### Port handles
+
+A port renderer receives the node context, canonical normalized anchor,
+port label, active and target state, and the host policy's disabled reason.
+It composes the existing native port primitive. Resolved controls are
+available to custom node and group shells as direct frame children.
+Undefined retains the standard renderer and null omits an individual
+control. The reducer retains connection authorization. Custom port
+rendering uses the normal view path because the built-in retained-node
+slot has no custom renderer state in its cache contract.
+
 ### Port labels
 
 Port labels render in the existing world layer, using canonical anchors

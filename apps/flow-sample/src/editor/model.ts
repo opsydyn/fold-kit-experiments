@@ -265,6 +265,7 @@ export const Model = Schema.Struct({
   portLocks: PortLocks,
   snapConnections: Schema.Boolean,
   portLabels: Schema.Boolean,
+  customPorts: Schema.Boolean,
   reconnectionSnap: ReconnectionSnap,
   canvasCopyDesign: CanvasCopyDesign,
   selectionMarqueeDesign: SelectionMarqueeDesign,
@@ -311,6 +312,7 @@ export type Model = Readonly<{
   portLocks: typeof PortLocks.Type;
   snapConnections: boolean;
   portLabels: boolean;
+  customPorts: boolean;
   reconnectionSnap: ReconnectionSnap;
   canvasCopyDesign: CanvasCopyDesign;
   selectionMarqueeDesign: SelectionMarqueeDesign;
@@ -358,6 +360,7 @@ export const init = () => ({
     portLocks: { draftOutput: false, publishInput: false },
     snapConnections: false,
     portLabels: false,
+    customPorts: false,
     reconnectionSnap: 'match',
     canvasCopyDesign: 'standard',
     selectionMarqueeDesign: 'standard',

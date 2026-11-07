@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add composable port rendering with target feedback and resolved
+  controls for custom node and group shells.
+
 - Add opt-in composable port labels with world anchors, configurable
   placement and a public label primitive.
 

@@ -405,6 +405,20 @@ and per-port placement. It owns the anchored frame and passes pointer input
 through. Labels render independently of custom node and group shells.
 Keep them decorative. The port button retains its accessible name.
 
+Use `renderPort(context, h)` to replace the native port presentation.
+Compose `flowPort(h, context, context.port, attributes, children)` to
+keep its anchor, accessible name, keyboard activation and connection
+policy. The context supplies the label, normalized anchor, active state,
+accepted target state and disabled reason. Return `undefined` for the
+default control or `null` to omit one control. Use `canConnectPort` to
+govern whether a connection is allowed.
+
+Custom node and group shells can append `context.ports ?? []` as direct
+frame children to use the configured renderer. Existing shells that
+construct their own ports continue to own their presentation. Custom port
+rendering uses the normal node view path alongside the existing culling
+option. The built-in node-view cache applies to standard port rendering.
+
 Set `connectionDropRadius: 32` on the view to snap new connections within
 32 CSS pixels of a rendered port center. The default is zero.
 Set `reconnectionDropRadius` to give existing edge reconnections their

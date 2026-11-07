@@ -326,6 +326,11 @@ Enable **Port labels** to show custom badges at port anchors. The
 Labels follow both card and circular node designs.
 [Workbench screenshot](evidence/port-labels.png)
 
+Enable **Custom port sockets** for arrow sockets with native wiring and
+target feedback. Combine them with **Port labels** in the snapping demo,
+then switch between card and circular nodes.
+[Workbench screenshot](evidence/port-sockets.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

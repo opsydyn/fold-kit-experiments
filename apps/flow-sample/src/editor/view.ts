@@ -48,6 +48,7 @@ import {
 import { currentPreset } from './port-presets';
 import {
   orbitNode,
+  socketPort,
   orbitGroup,
   raisedEdge,
   storageDependencyEdge,
@@ -1392,6 +1393,17 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
         ),
         h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.customPorts),
+              h.OnClick(Message.ClickedCustomPorts()),
+            ]),
+            'Custom port sockets',
+          ],
+        ),
+        h.label(
           [h.Class('workbench-theme-picker')],
           [
             'Theme',
@@ -1608,6 +1620,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
         ),
         flowView(h, model.editor, {
+          renderPort: model.customPorts ? socketPort : undefined,
           portLabels: model.portLabels,
           renderPortLabel: (context, builder) =>
             flowPortLabel(

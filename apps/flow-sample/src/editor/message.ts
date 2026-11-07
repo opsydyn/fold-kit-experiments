@@ -54,6 +54,7 @@ export const Message = defineMessageUnion({
   },
   ClickedConnectionSnap: {},
   ClickedPortLabels: {},
+  ClickedCustomPorts: {},
   SelectedReconnectionSnap: { reconnectionSnap: ReconnectionSnap },
   ClickedPortLock: { port: PortLock },
   SelectedReconnectLock: { reconnectLock: ReconnectLock },

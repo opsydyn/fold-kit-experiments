@@ -399,6 +399,19 @@ The preview and release use the first eligible nearby port in distance order.
 An exact port hit takes priority and can show its normal rejection reason.
 The distance stays constant in screen space as the canvas zooms.
 
+Pass `connectionSnapHysteresis: 12` to `createEditor` to steady nearby
+target selection for both new wires and reconnections. Use it with a
+positive drop radius. The current eligible target stays selected until
+another eligible port is closer by more than 12 CSS pixels. Leaving the
+drop radius releases it immediately, and exact port hits take priority.
+The margin defaults to zero and must be finite and non-negative.
+Send `ConnectionSnapHysteresisChanged` with a `distance` while idle to
+change it. This preference stays outside graph undo and saved documents.
+
+Custom input adapters can include a finite, non-negative `distance` on
+each `nearbyTargets` endpoint. Keep the array sorted by distance.
+Endpoint-only messages retain their nearest-eligible behavior.
+
 Pass `canConnectPort(endpoint, graph)` to both `updateEditor` and `flowView`
 to lock individual ports. Return a reason to block the port or `null` to allow
 it. Locked outputs cannot start new wires, and locked inputs reject drops.

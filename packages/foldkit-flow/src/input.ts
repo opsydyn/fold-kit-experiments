@@ -135,7 +135,9 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     }
     if (nearby.length === 0) return {};
     nearby.sort((a, b) => a.distance - b.distance);
-    return { nearbyTargets: nearby.map(({ endpoint }) => endpoint) };
+    return {
+      nearbyTargets: nearby.map(({ endpoint, distance }) => ({ ...endpoint, distance })),
+    };
   };
   const pan = (time: number) => {
     panFrame = null;

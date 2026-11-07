@@ -417,6 +417,150 @@ test('nearby drop candidates skip denied ports while exact hits retain rejection
   expect(committed.past).toHaveLength(1);
 });
 
+test('snap hysteresis retains an eligible nearby target until the challenger wins by its margin', () => {
+  const initial = createEditor(
+    { ...graph, nodes: [...graph.nodes, { ...nodeB, id: 'c' }] },
+    { connectionSnapHysteresis: 8 },
+  );
+  const source = { node: 'a', port: 'out' };
+  const first = { node: 'b', port: 'in' };
+  const challenger = { node: 'c', port: 'in' };
+  const started = updateEditor(initial, {
+    type: 'ConnectionDragStarted',
+    endpoint: source,
+    pointer: 1,
+    point: { x: 0, y: 0 },
+  });
+  const move = {
+    type: 'PointerMoved',
+    pointer: 1,
+    point: { x: 150, y: 100 },
+    nearbyTargets: [
+      { ...first, distance: 20 },
+      { ...challenger, distance: 28 },
+    ],
+  } as const;
+  const acquired = updateEditor(started, move);
+  const jitter = {
+    ...move,
+    nearbyTargets: [
+      { ...challenger, distance: 19 },
+      { ...first, distance: 21 },
+    ],
+  };
+  const retained = updateEditor(acquired, jitter);
+  expect(retained.gesture).toMatchObject({ target: first });
+  expect(
+    updateEditor(acquired, {
+      ...move,
+      nearbyTargets: [
+        { ...challenger, distance: 13 },
+        { ...first, distance: 21 },
+      ],
+    }).gesture,
+  ).toMatchObject({ target: first });
+  expect(
+    updateEditor(acquired, {
+      ...jitter,
+      nearbyTargets: [{ ...source, distance: 1 }, ...jitter.nearbyTargets],
+    }).gesture,
+  ).toMatchObject({ target: first });
+  const committed = updateEditor(retained, { type: 'PointerReleased', pointer: 1 });
+  expect(committed.graph.edges[0]?.target).toEqual(first);
+  expect(Object.keys(committed.graph.edges[0]?.target ?? {})).toEqual(['node', 'port']);
+  expect(committed.past).toHaveLength(1);
+  expect(updateEditor(committed, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+
+  const won = updateEditor(retained, {
+    ...move,
+    nearbyTargets: [
+      { ...challenger, distance: 10 },
+      { ...first, distance: 21 },
+    ],
+  });
+  expect(won.gesture).toMatchObject({ target: challenger });
+  expect(updateEditor(retained, { ...jitter, target: challenger }).gesture).toMatchObject({
+    target: challenger,
+  });
+  expect(
+    updateEditor(retained, { ...move, nearbyTargets: [{ ...challenger, distance: 26 }] }).gesture,
+  ).toMatchObject({ target: challenger });
+  expect(updateEditor(retained, { ...move, nearbyTargets: [] }).gesture).toMatchObject({
+    target: null,
+  });
+  expect(
+    updateEditor(retained, { ...move, nearbyTargets: [challenger, first] }).gesture,
+  ).toMatchObject({ target: challenger });
+  expect(updateEditor({ ...acquired, connectionSnapHysteresis: 0 }, jitter).gesture).toMatchObject({
+    target: challenger,
+  });
+  const policy: EditorPolicy = {
+    canConnectPort: (endpoint) => (endpoint.node === 'b' ? 'Locked port' : null),
+  };
+  expect(updateEditor(retained, jitter, policy).gesture).toMatchObject({ target: challenger });
+  expect(updateEditor(retained, { ...jitter, target: first }, policy).gesture).toMatchObject({
+    target: null,
+    rejected: { endpoint: first, reason: 'Locked port' },
+  });
+  expect(retained.graph).toBe(initial.graph);
+  expect(retained.revision).toBe(initial.revision);
+});
+
+test('snap hysteresis applies to both reconnection ends and is an idle preference', () => {
+  for (const distance of [-1, NaN, Infinity])
+    expect(() => createEditor(graph, { connectionSnapHysteresis: distance })).toThrow();
+  const initial = createEditor({
+    nodes: [...graph.nodes, { ...nodeA, id: 'other-source' }, { ...nodeB, id: 'other-target' }],
+    edges: [{ id: 'ab', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } }],
+  });
+  const configured = updateEditor(initial, {
+    type: 'ConnectionSnapHysteresisChanged',
+    distance: 8,
+  });
+  expect(configured.connectionSnapHysteresis).toBe(8);
+  expect(configured.graph).toBe(initial.graph);
+  expect(configured.past).toBe(initial.past);
+  expect(updateEditor(configured, { type: 'ConnectionSnapHysteresisChanged', distance: -1 })).toBe(
+    configured,
+  );
+  for (const end of ['source', 'target'] as const) {
+    const retained =
+      end === 'source'
+        ? { node: 'other-source', port: 'out' }
+        : { node: 'other-target', port: 'in' };
+    const challenger = end === 'source' ? { node: 'a', port: 'out' } : { node: 'b', port: 'in' };
+    const started = updateEditor(configured, {
+      type: 'ReconnectionDragStarted',
+      id: 'ab',
+      end,
+      pointer: 1,
+      point: { x: 0, y: 0 },
+    });
+    expect(updateEditor(started, { type: 'ConnectionSnapHysteresisChanged', distance: 0 })).toBe(
+      started,
+    );
+    const move = { type: 'PointerMoved', pointer: 1, point: { x: 200, y: 100 } } as const;
+    const acquired = updateEditor(started, {
+      ...move,
+      nearbyTargets: [
+        { ...retained, distance: 20 },
+        { ...challenger, distance: 28 },
+      ],
+    });
+    const jitter = updateEditor(acquired, {
+      ...move,
+      nearbyTargets: [
+        { ...challenger, distance: 19 },
+        { ...retained, distance: 21 },
+      ],
+    });
+    expect(jitter.gesture).toMatchObject({ target: retained });
+    const committed = updateEditor(jitter, { type: 'PointerReleased', pointer: 1 });
+    expect(committed.graph.edges[0]?.[end]).toEqual(retained);
+    expect(updateEditor(committed, { type: 'UndoPressed' }).graph).toEqual(initial.graph);
+  }
+});
+
 test('port permissions guard wire starts, drops and direct edits without changing existing edges', () => {
   const initial = createEditor({ ...graph, nodes: [...graph.nodes, { ...nodeB, id: 'c' }] });
   const source = { node: 'a', port: 'out' };

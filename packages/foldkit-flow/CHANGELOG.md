@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add opt-in connection snap hysteresis for stable nearby-port targeting
+  during wire creation and reconnection.
+
 - Allow an independent reconnection drop radius while inheriting the
   connection radius by default.
 

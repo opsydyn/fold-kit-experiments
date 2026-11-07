@@ -27,7 +27,13 @@ import {
 import { workbenchPolicy } from './editor-policy';
 import { createLargeWorkflowGraph } from './large-workflow';
 import { Message } from './message';
-import { groupedOnionGraph, initialGraph, onionGraph, type Model } from './model';
+import {
+  groupedOnionGraph,
+  initialGraph,
+  onionGraph,
+  portSnappingGraph,
+  type Model,
+} from './model';
 import { presetPosition } from './port-presets';
 import { searchDiagram } from './search';
 
@@ -51,6 +57,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     fitViewDuration,
     fitViewPadding,
     zoomLimits,
+    connectionSnapHysteresis = 0,
   } = model.editor;
   const snapshotJson = () =>
     model.includeCamera ? serializeSnapshot(model.editor) : serializeGraph(model.editor.graph);
@@ -73,6 +80,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         fitViewPadding,
         zoomLimits,
         viewport: camera,
+        connectionSnapHysteresis,
       }),
       surface: model.editor.surface,
       clipboard: model.editor.clipboard,
@@ -100,9 +108,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const graph =
         example === 'large-workflow'
           ? createLargeWorkflowGraph()
-          : { release: initialGraph, onion: onionGraph, 'grouped-onion': groupedOnionGraph }[
-              example
-            ];
+          : {
+              release: initialGraph,
+              onion: onionGraph,
+              'grouped-onion': groupedOnionGraph,
+              'port-snapping': portSnappingGraph,
+            }[example];
       const surface = model.editor.surface;
       const editor = createEditor(graph, {
         snapToGrid,
@@ -114,6 +125,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         fitViewPadding,
         zoomLimits,
         viewport: frameGraph(graph, model.editor),
+        connectionSnapHysteresis,
       });
       return {
         model: {

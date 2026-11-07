@@ -47,6 +47,42 @@ export const initialGraph: FlowGraph = {
     },
   ],
 };
+export const portSnappingGraph: FlowGraph = {
+  nodes: [
+    {
+      id: 'source',
+      label: 'Draft',
+      position: { x: 40, y: 50 },
+      size: { width: 180, height: 135 },
+      ports: [{ id: 'out', kind: 'output', side: 'right', offset: 0.5 }],
+    },
+    {
+      id: 'review',
+      label: 'Review',
+      position: { x: 40, y: 240 },
+      size: { width: 180, height: 135 },
+      ports: [{ id: 'out', kind: 'output', side: 'right', offset: 0.5 }],
+    },
+    {
+      id: 'publish',
+      label: 'Publish',
+      position: { x: 480, y: 140 },
+      size: { width: 180, height: 135 },
+      ports: [
+        { id: 'primary', label: 'Primary', kind: 'input', side: 'left', offset: 0.35 },
+        { id: 'fallback', label: 'Fallback', kind: 'input', side: 'left', offset: 0.65 },
+      ],
+    },
+  ],
+  edges: [
+    {
+      id: 'review-publish',
+      source: { node: 'review', port: 'out' },
+      target: { node: 'publish', port: 'primary' },
+    },
+  ],
+};
+
 export const onionGraph: FlowGraph = {
   nodes: [
     { id: 'ui', label: 'UI adapter', position: { x: 20, y: 20 } },

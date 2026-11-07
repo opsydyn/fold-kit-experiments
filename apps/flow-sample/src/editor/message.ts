@@ -29,7 +29,13 @@ import {
 export const Message = defineMessageUnion({
   ObservedFlowInput: { message: Schema.Unknown },
   SelectedExample: {
-    example: Schema.Literals(['release', 'onion', 'grouped-onion', 'large-workflow']),
+    example: Schema.Literals([
+      'release',
+      'onion',
+      'grouped-onion',
+      'large-workflow',
+      'port-snapping',
+    ]),
   },
   SelectedWheelNavigation: { wheelNavigation: WheelNavigation },
   ClickedDoubleClickZoom: {},

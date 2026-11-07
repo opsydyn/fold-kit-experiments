@@ -39,6 +39,7 @@ import type {
   EditorPolicy,
   EditorState,
   ConnectionTarget,
+  NearbyTarget,
   FlowGraph,
   FlowVisibility,
   FlowNode,
@@ -95,6 +96,12 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
   const fitViewDuration = options.fitViewDuration ?? 0;
   if (!Number.isFinite(fitViewDuration) || fitViewDuration < 0)
     throw new FlowError('invalid-edit', 'Fit view duration must be finite and non-negative');
+  const connectionSnapHysteresis = options.connectionSnapHysteresis ?? 0;
+  if (!Number.isFinite(connectionSnapHysteresis) || connectionSnapHysteresis < 0)
+    throw new FlowError(
+      'invalid-edit',
+      'Connection snap hysteresis must be finite and non-negative',
+    );
   const historyLimit = options.historyLimit ?? 100;
   if (!Number.isInteger(historyLimit) || historyLimit < 0 || historyLimit > 1000)
     throw new FlowError('invalid-edit', 'History limit must be an integer from 0 to 1000');
@@ -116,6 +123,7 @@ export function createEditor(graph: FlowGraph, options: EditorOptions = {}): Edi
     selectedNodes: [],
     selectedEdges: [],
     connection: null,
+    connectionSnapHysteresis,
     gesture: { type: 'idle' },
     past: [],
     future: [],
@@ -868,6 +876,15 @@ export function updateEditor(
     case 'BoxSelectionMatchChanged':
       if (state.gesture.type !== 'idle' || event.match === state.boxSelectionMatch) return state;
       return { ...state, boxSelectionMatch: event.match };
+    case 'ConnectionSnapHysteresisChanged':
+      if (
+        state.gesture.type !== 'idle' ||
+        !Number.isFinite(event.distance) ||
+        event.distance < 0 ||
+        event.distance === (state.connectionSnapHysteresis ?? 0)
+      )
+        return state;
+      return { ...state, connectionSnapHysteresis: event.distance };
     case 'SelectionModeToggled':
       if (state.gesture.type !== 'idle') return state;
       return { ...state, selectionMode: !state.selectionMode };
@@ -1120,19 +1137,37 @@ export function updateEditor(
         }
         let feedback: ConnectionTarget = { target: null };
         if (state.connection) {
-          const candidates = event.target ? [event.target] : (event.nearbyTargets ?? []);
+          const candidates: readonly NearbyTarget[] = event.target
+            ? [event.target]
+            : (event.nearbyTargets ?? []);
+          const margin = state.connectionSnapHysteresis ?? 0;
+          const retainNearby = !event.target && gesture.target !== null && margin > 0;
+          let nearestDistance = Infinity;
           for (const candidate of candidates) {
+            const endpoint = { node: candidate.node, port: candidate.port };
             const edge =
               existing && gesture.reconnect
-                ? { ...existing, [gesture.reconnect.end]: candidate }
-                : proposedEdge(state.graph, state.connection, candidate);
+                ? { ...existing, [gesture.reconnect.end]: endpoint }
+                : proposedEdge(state.graph, state.connection, endpoint);
             const reason = connectionReason(state.graph, edge, policy, gesture.reconnect);
             if (reason === null) {
-              feedback = { target: candidate };
-              break;
-            }
-            if (event.target)
-              feedback = { target: null, rejected: { endpoint: candidate, reason } };
+              const distance = candidate.distance ?? Infinity;
+              if (feedback.target === null) {
+                feedback = { target: endpoint };
+                nearestDistance = distance;
+              }
+              if (!retainNearby || !Number.isFinite(nearestDistance) || nearestDistance < 0) break;
+              if (
+                candidate.node === gesture.target?.node &&
+                candidate.port === gesture.target.port &&
+                Number.isFinite(distance) &&
+                distance >= 0 &&
+                distance <= nearestDistance + margin
+              ) {
+                feedback = { target: endpoint };
+                break;
+              }
+            } else if (event.target) feedback = { target: null, rejected: { endpoint, reason } };
           }
         }
         const { target: _target, rejected: _rejected, ...previous } = gesture;

@@ -19,6 +19,11 @@ const Handle = Schema.optionalKey(
   ]),
 );
 const Endpoint = Schema.Struct({ node: Schema.String, port: Schema.String });
+const NearbyTarget = Schema.Struct({
+  node: Schema.String,
+  port: Schema.String,
+  distance: Schema.optionalKey(Schema.Number),
+});
 export const BrowserInput = Schema.Union([
   Schema.Struct({
     type: Schema.Literal('ContextOpened'),
@@ -70,7 +75,7 @@ export const BrowserInput = Schema.Union([
     ...Pointer,
     point: Point,
     target: Schema.optionalKey(Endpoint),
-    nearbyTargets: Schema.optionalKey(Schema.Array(Endpoint)),
+    nearbyTargets: Schema.optionalKey(Schema.Array(NearbyTarget)),
   }),
   Schema.Struct({
     type: Schema.Literal('ReconnectionDragStarted'),
@@ -85,7 +90,7 @@ export const BrowserInput = Schema.Union([
     point: Point,
     delta: Point,
     target: Schema.optionalKey(Endpoint),
-    nearbyTargets: Schema.optionalKey(Schema.Array(Endpoint)),
+    nearbyTargets: Schema.optionalKey(Schema.Array(NearbyTarget)),
   }),
   Schema.Struct({
     type: Schema.Literals(['PinchStarted', 'PinchMoved']),

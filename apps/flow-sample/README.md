@@ -315,6 +315,12 @@ or use 48 px. Hover near a compatible port to preview the drop before
 releasing.
 [Workbench screenshot](evidence/reconnection-drop-radius.png)
 
+Open **Port snapping demo**, enable **Snap new connections**, and turn on
+**Stable port snapping (12 px)**. Drag near the gap between Publish's
+Primary and Fallback inputs to compare steady targeting with the toggle
+off. The setting also applies to reconnection.
+[Workbench screenshot](evidence/snap-hysteresis.png)
+
 Choose **System**, **Light**, or **Dark** from the theme picker. System follows
 your browser's color preference as it changes. The workbench defaults to System
 and remembers your selection in the same browser. The page applies the saved

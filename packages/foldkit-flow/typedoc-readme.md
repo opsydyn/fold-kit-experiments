@@ -131,6 +131,13 @@ connections. `FlowViewOptions.reconnectionDropRadius` overrides it for
 reconnection drags. Both use CSS pixels. The browser adapter sends ordered
 candidates and the editor applies the normal connection policy.
 
+`EditorOptions.connectionSnapHysteresis` sets the distance advantage in
+CSS pixels needed to replace the current nearby target. Zero disables it.
+`ConnectionSnapHysteresisChanged` updates the preference while idle.
+`NearbyTarget` extends an endpoint with optional measured distance so
+existing endpoint-only input remains supported. The reducer owns retention
+and rechecks eligibility on every move.
+
 `EditorPolicy.canMoveNode` controls drag and keyboard movement. Flow checks
 all nodes in the move, including group descendants, before changing the graph.
 Use `FlowViewOptions.canMoveNode` to show locked handles.

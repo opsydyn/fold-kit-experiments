@@ -84,6 +84,8 @@ export type ResizeCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-ri
 export type ResizeHandle = ResizeCorner | 'top' | 'right' | 'bottom' | 'left';
 /** Rejected candidate details, kept only while hovering an incompatible or disallowed port. */
 export type ConnectionRejection = Readonly<{ endpoint: Endpoint; reason: string }>;
+/** A nearby endpoint with optional distance in CSS pixels. Legacy endpoint-only messages remain valid. */
+export type NearbyTarget = Readonly<Endpoint & { distance?: number }>;
 /** Accepted and rejected targets are mutually exclusive; an absent rejection with null target means free space. */
 export type ConnectionTarget =
   | Readonly<{ target: Endpoint; rejected?: never }>
@@ -151,6 +153,8 @@ export type EditorState = Readonly<{
   selectedNodes: readonly string[];
   selectedEdges: readonly string[];
   connection: Endpoint | null;
+  /** Required distance advantage in CSS pixels to switch a nearby snap target. Zero disables hysteresis. */
+  connectionSnapHysteresis?: number;
   gesture: Gesture;
   past: readonly FlowGraph[];
   future: readonly FlowGraph[];
@@ -194,6 +198,7 @@ export type EditorOptions = Readonly<{
   snapToAlignment?: boolean;
   selectionMode?: boolean;
   boxSelectionMatch?: BoxSelectionMatch;
+  connectionSnapHysteresis?: number;
 }>;
 /** Explicit targets before group descendants and incident edges are included. */
 export type DeletionTargets = Readonly<{ nodeIds: readonly string[]; edgeIds: readonly string[] }>;
@@ -271,7 +276,7 @@ export type EditorEvent =
       point: Point;
       target?: Endpoint;
       /** Nearby rendered ports in ascending distance order, used only without an exact target. */
-      nearbyTargets?: readonly Endpoint[];
+      nearbyTargets?: readonly NearbyTarget[];
     }>
   | Readonly<{
       type: 'DragPanned';
@@ -279,7 +284,7 @@ export type EditorEvent =
       point: Point;
       delta: Point;
       target?: Endpoint;
-      nearbyTargets?: readonly Endpoint[];
+      nearbyTargets?: readonly NearbyTarget[];
     }>
   | Readonly<{ type: 'PointerReleased'; pointer: number }>
   | Readonly<{ type: 'PinchStarted' | 'PinchMoved'; center: Point; distance: number }>
@@ -291,6 +296,7 @@ export type EditorEvent =
   | Readonly<{ type: 'SelectionModeToggled' }>
   | Readonly<{ type: 'ZoomAreaModeToggled' }>
   | Readonly<{ type: 'BoxSelectionMatchChanged'; match: BoxSelectionMatch }>
+  | Readonly<{ type: 'ConnectionSnapHysteresisChanged'; distance: number }>
   | Readonly<{ type: 'ViewportChanged'; viewport: Viewport }>
   | Readonly<{ type: 'ViewportConstraintsChanged'; zoomLimits: ZoomLimits; fitViewPadding: number }>
   | Readonly<{ type: 'ViewportNudged'; delta: Point }>

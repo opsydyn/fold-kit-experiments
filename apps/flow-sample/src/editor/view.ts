@@ -443,6 +443,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     'Open large workflow (320 nodes)',
                     Message.SelectedExample({ example: 'large-workflow' }),
                   ),
+                  button(
+                    'Open port snapping demo',
+                    Message.SelectedExample({ example: 'port-snapping' }),
+                  ),
                 ],
               ),
             ]),
@@ -1354,6 +1358,25 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.option([h.Value(value), h.Selected(model.reconnectionSnap === value)], [label]),
               ),
             ),
+          ],
+        ),
+        h.label(
+          [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked((model.editor.connectionSnapHysteresis ?? 0) > 0),
+              h.Disabled(model.editor.gesture.type !== 'idle'),
+              h.OnClick(
+                Message.ObservedFlowInput({
+                  message: {
+                    type: 'ConnectionSnapHysteresisChanged',
+                    distance: model.editor.connectionSnapHysteresis ? 0 : 12,
+                  },
+                }),
+              ),
+            ]),
+            'Stable port snapping (12 px)',
           ],
         ),
         h.label(

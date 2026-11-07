@@ -372,6 +372,14 @@ inherits the connection radius, and an explicit zero requires an exact
 hit. The binding selects the radius for the current gesture and uses the
 same candidate and policy path for both operations.
 
+Snap hysteresis is an editor preference in CSS pixels. Native input adds
+an optional measured distance to each nearby endpoint, preserving
+endpoint-only messages from custom adapters. The reducer keeps the
+current eligible target until an eligible challenger wins by more than
+the configured margin. It considers exact hits first and releases targets
+that leave the radius. Selection stays in the Model so rapid pointer
+events do not depend on a rendered DOM attribute or a second target store.
+
 ### Reconnection permission
 
 A host policy evaluates the existing edge and requested end. The native

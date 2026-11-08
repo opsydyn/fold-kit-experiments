@@ -136,6 +136,43 @@ with a **Mini map** toggle, rather than **Overview** under Diagnostics. Reuse th
 existing `overview` flag and respect global diagnostics/Minimal mode. This is a
 proposed follow-up prompted by the user's difficulty locating the control.
 
+## Zloz core: parity and domain modelling — 2026-11-08
+
+**Status:** review completed; proposed delivery order, not implemented features.
+The [current core assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
+records capability gaps, package ownership, compatibility constraints and the
+claim-to-evidence map. Full React Flow parity and competitive superiority are
+not established.
+
+Maintain two tracks: a reliable, customizable editor floor and a differentiated
+architecture modelling lifecycle. Package-owned functionality stays reusable;
+Astro is the demonstration shell. Prioritize the following bounded slices:
+
+1. **DDD preset renderers:** expose all eight existing semantic roles with
+   composable node/group presentation and a light/dark Order aggregate demo.
+2. **Atomic pattern insertion:** validated fragments, deterministic ID remapping,
+   policy checks, full rollback and one Undo per insertion.
+3. **DDD relationships/context maps:** typed tactical and strategic meaning,
+   serialization and conversion-loss handling; respect portless group boundaries.
+4. **EventStorming discovery:** explicit compatibility decision, configurable
+   semantic cards, optional links and valid uncertainty; then workshop patterns
+   and deliberate links to DDD/C4 concepts.
+5. **Editions and semantic comparison:** named immutable artifacts, meaningful
+   diffs and restore as a fresh transaction; distinct from session Undo.
+6. **Agent modelling operations:** build on the standalone CLI with validated
+   patches, dry runs and reviewable changes; no automatic writable-agent rollout.
+
+Alongside these, evaluate authored edge waypoints, palette/drop workflows and
+image export against architecture tasks. Coordinate collaboration with its
+separate proposal; no collaboration runtime is claimed here. Keep accessible
+interaction and unrestricted visual composition in each slice. Retain the later
+comprehensive a11y qualification gate and publication-last decision.
+
+**Recommended next:** DDD renderers using the current descriptor contract,
+without new persisted fields. Proposed positioning to validate: model a domain
+with people, evolve its architecture with agents, and review/communicate the same
+portable model. Shapes alone, Undo and layout examples do not establish a USP.
+
 ## Release: Keyed Chart Comparison
 
 **Outcome:** users can compare charts in a dynamic collection without losing

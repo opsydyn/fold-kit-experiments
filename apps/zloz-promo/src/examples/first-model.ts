@@ -1,4 +1,4 @@
-import { createArchitectureNode, serializeGraph } from '@opsydyn/foldkit-flow';
+import { createArchitectureNode, serializeGraph } from '@opsydyn/foldkit-zloz';
 
 const system = createArchitectureNode({
   id: 'orders',

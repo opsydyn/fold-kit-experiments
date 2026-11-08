@@ -29,27 +29,29 @@ Nested frame identity and light/dark styling follow the Viz and Three family.
 - **Explore:** [Zloz promo](https://opsydyn.github.io/fold-kit-experiments/zloz/)
   and [Zloz workbench](https://zloz.opsydyn.xyz/).
 - **Try locally:** `bun run dev:zloz-promo` (4329) and
-  `bun run dev:flow-sample` (4327). The promo includes a native Foldkit Compose
+  `bun run dev:zloz-demo` (4327). The promo includes a native Foldkit Compose
   example with selection, connection creation and Undo/Redo; the workbench adds
   C4, groups, layouts, policy controls and Mermaid review in a persistent canvas.
-- **Read:** [API/type contracts](https://opsydyn.github.io/fold-kit-experiments/flow/api/),
-  [workbench guide](apps/flow-sample/README.md),
+- **Read:** [API/type contracts](https://opsydyn.github.io/fold-kit-experiments/zloz/api/),
+  [workbench guide](apps/zloz-demo/README.md),
   [promo guide](apps/zloz-promo/README.md) and [hosting](infra/zloz/README.md).
 
-The technical package names remain `@opsydyn/foldkit-flow*` for compatibility.
+The package family is `@opsydyn/foldkit-zloz*`. Preferred public types and views use
+`Zloz*` and `zloz*`; deprecated aliases preserve existing code.
 These four packages are **0.1.0 workspace/release candidates, not npm releases**.
 Website publication does not publish packages to npm.
+See [naming and compatibility](docs/zloz-migration.md) for retained saved-data and integration contracts.
 
 | Package                                                           | Responsibility                                                                                       |
 | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [`@opsydyn/foldkit-flow`](packages/foldkit-flow/)                 | Pure graph/editor/geometry contracts, C4/DDD semantics, and optional native views through `/foldkit` |
-| [`@opsydyn/foldkit-flow-elk`](packages/foldkit-flow-elk/)         | Optional ELK layout adapter                                                                          |
-| [`@opsydyn/foldkit-flow-force`](packages/foldkit-flow-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                    |
-| [`@opsydyn/foldkit-flow-mermaid`](packages/foldkit-flow-mermaid/) | Pure Mermaid export, conversion-loss reporting and identity metadata                                 |
+| [`@opsydyn/foldkit-zloz`](packages/foldkit-zloz/)                 | Pure graph/editor/geometry contracts, C4/DDD semantics, and optional native views through `/foldkit` |
+| [`@opsydyn/foldkit-zloz-elk`](packages/foldkit-zloz-elk/)         | Optional ELK layout adapter                                                                          |
+| [`@opsydyn/foldkit-zloz-force`](packages/foldkit-zloz-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                    |
+| [`@opsydyn/foldkit-zloz-mermaid`](packages/foldkit-zloz-mermaid/) | Pure Mermaid export, conversion-loss reporting and identity metadata                                 |
 
 Canonical JSON preserves the editable model. Mermaid is a projection with explicit
 losses; general Mermaid import and npm publication remain separate work. See the
-[release preparation guide](docs/releases/foldkit-flow.md) for packed-consumer checks.
+[release preparation guide](docs/releases/foldkit-zloz.md) for packed-consumer checks.
 The name comes from Polish **Złóż**: fold, assemble, put together; use **Zloz** externally.
 
 ## effect-three
@@ -111,7 +113,7 @@ fold-kit-experiments/
 │   ├── promo/             — Foldkit Viz promo site: Astro, light/dark themes
 │   ├── three-promo/       — effect-three promo site: same layout and themes, live 3D examples
 │   ├── zloz-promo/        — Zloz promo: shared family identity, native Compose example, highlighted source
-│   ├── flow-sample/       — Zloz architecture workbench: persistent canvas and left controls
+│   ├── zloz-demo/       — Zloz architecture workbench: persistent canvas and left controls
 │   ├── tech-radar/        — standalone tech radar: the 3D radar and full pages, from markdown
 │   └── docs/              — docs/ as a Starlight site: decisions, spikes, releases, working notes
 ├── infra/
@@ -121,10 +123,10 @@ fold-kit-experiments/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     ├── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
     ├── dataset-explorer/ — private shared KeyedQuery example for both apps
-    ├── foldkit-flow/      — Zloz graph core and optional Foldkit views (unpublished)
-    ├── foldkit-flow-elk/  — Zloz ELK layout adapter (unpublished)
-    ├── foldkit-flow-force/ — Zloz force layout/routing adapter (unpublished)
-    ├── foldkit-flow-mermaid/ — Zloz loss-aware Mermaid export (unpublished)
+    ├── foldkit-zloz/      — Zloz graph core and optional Foldkit views (unpublished)
+    ├── foldkit-zloz-elk/  — Zloz ELK layout adapter (unpublished)
+    ├── foldkit-zloz-force/ — Zloz force layout/routing adapter (unpublished)
+    ├── foldkit-zloz-mermaid/ — Zloz loss-aware Mermaid export (unpublished)
     ├── effect-three/      — @opsydyn/effect-three   (for npm, 0.x; Effect-native declarative Three.js core)
     ├── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (for npm; Foldkit adapter)
     ├── effect-three-rapier/  — @opsydyn/effect-three-rapier  (for npm; Rapier physics engine)
@@ -144,7 +146,7 @@ bun install
 bun dev          # demo app at http://localhost:4321
 bun run dev:promo # promo site at http://localhost:4322
 bun run dev:zloz-promo # Zloz promo at http://localhost:4329
-bun run dev:flow-sample # Zloz workbench at http://localhost:4327
+bun run dev:zloz-demo # Zloz workbench at http://localhost:4327
 bun run dev:three-promo # effect-three promo site at http://localhost:4323
 bun run dev:tech-radar # tech radar at http://localhost:4326
 bun run dev:docs # docs site at http://localhost:4327

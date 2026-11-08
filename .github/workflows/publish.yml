@@ -10,9 +10,10 @@ on:
         options:
           - astro-foldkit
           - foldkit-viz
-          - foldkit-flow
-          - foldkit-flow-elk
-          - foldkit-flow-force
+          - foldkit-zloz
+          - foldkit-zloz-elk
+          - foldkit-zloz-force
+          - foldkit-zloz-mermaid
           # effect-three's four are released together: publish effect-three first, then
           # the others, which pin it as a peer at the same version.
           - effect-three
@@ -52,15 +53,24 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build Flow core dependency
-        if: ${{ startsWith(inputs.package, 'foldkit-flow') }}
-        run: bun run --filter @opsydyn/foldkit-flow build
+      - name: Reject obsolete package identities
+        env:
+          REQUESTED_PACKAGE: ${{ inputs.package }}
+        run: |
+          case "$REQUESTED_PACKAGE" in
+            foldkit-flow*) echo '::error::Flow publication is forbidden. Use Zloz.'; exit 1 ;;
+          esac
+          bun tools/check-package-identity.ts
+
+      - name: Build Zloz core dependency
+        if: ${{ startsWith(inputs.package, 'foldkit-zloz') }}
+        run: bun run --filter @opsydyn/foldkit-zloz build
 
       - name: Build and typecheck
         run: bun run --filter @opsydyn/${{ inputs.package }} build && bun run --filter @opsydyn/${{ inputs.package }} typecheck
 
       - name: Publish to npm
-        if: ${{ env.NPM_TOKEN != '' && !startsWith(inputs.package, 'effect-three') && !startsWith(inputs.package, 'foldkit-flow') }}
+        if: ${{ env.NPM_TOKEN != '' && !startsWith(inputs.package, 'effect-three') && !startsWith(inputs.package, 'foldkit-zloz') }}
         working-directory: packages/${{ inputs.package }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -77,15 +87,16 @@ jobs:
           bun run pack:check
           npm publish dist/pack/*.tgz --access public --provenance
 
-      - name: Qualify Flow packages and consumer
-        if: ${{ startsWith(inputs.package, 'foldkit-flow') }}
+      - name: Qualify Zloz packages and consumer
+        if: ${{ startsWith(inputs.package, 'foldkit-zloz') }}
         run: |
-          bun run --filter @opsydyn/foldkit-flow test
-          bun run --filter @opsydyn/foldkit-flow-elk test
-          bun run --filter @opsydyn/foldkit-flow-force test
+          bun run --filter @opsydyn/foldkit-zloz test
+          bun run --filter @opsydyn/foldkit-zloz-elk test
+          bun run --filter @opsydyn/foldkit-zloz-force test
+          bun run --filter @opsydyn/foldkit-zloz-mermaid test
 
-      - name: Pack and publish to npm (FoldKit Flow)
-        if: ${{ env.NPM_TOKEN != '' && startsWith(inputs.package, 'foldkit-flow') }}
+      - name: Pack and publish to npm (Foldkit Zloz)
+        if: ${{ env.NPM_TOKEN != '' && startsWith(inputs.package, 'foldkit-zloz') }}
         working-directory: packages/${{ inputs.package }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -3,8 +3,8 @@ import {
   updateEditor,
   type EditorEvent,
   type EditorState,
-  type FlowGraph,
-} from '@opsydyn/foldkit-flow';
+  type ZlozGraph,
+} from '@opsydyn/foldkit-zloz';
 import { Schema } from 'effect';
 import { defineMessageUnion } from 'foldkit/message';
 import type { Return } from 'foldkit/update';
@@ -13,7 +13,7 @@ const input = { id: 'in', label: 'Input', kind: 'input', side: 'top', offset: 0.
 const output = { id: 'out', label: 'Output', kind: 'output', side: 'bottom', offset: 0.5 } as const;
 
 /** Vertical workflow keeps node text legible at both desktop and narrow widths. */
-const initialGraph: FlowGraph = {
+const initialGraph: ZlozGraph = {
   nodes: [
     {
       id: 'draft',
@@ -50,10 +50,10 @@ const initialGraph: FlowGraph = {
 // Opaque package state is constructed only by createEditor/updateEditor, never decoded from props.
 export const Model = Schema.Struct({ editor: Schema.Unknown });
 export type Model = Readonly<{ editor: EditorState }>;
-export const Message = defineMessageUnion({ ObservedFlowInput: { event: Schema.Unknown } });
+export const Message = defineMessageUnion({ ObservedZlozInput: { event: Schema.Unknown } });
 export type Message = typeof Message.Type;
 
-export const observe = (event: EditorEvent): Message => Message.ObservedFlowInput({ event });
+export const observe = (event: EditorEvent): Message => Message.ObservedZlozInput({ event });
 
 export const init = (): Return<Model, Message> => ({
   model: {
@@ -66,8 +66,8 @@ export const init = (): Return<Model, Message> => ({
 
 export const update = (model: Model, message: Message): Return<Model, Message> =>
   Message.match(message, {
-    ObservedFlowInput: ({ event: raw }) => {
-      // SAFETY: flowView and the controls below emit the public, typed EditorEvent contract.
+    ObservedZlozInput: ({ event: raw }) => {
+      // SAFETY: zlozView and the controls below emit the public, typed EditorEvent contract.
       const event = raw as EditorEvent;
       const next = updateEditor(model.editor, event);
       const editor =

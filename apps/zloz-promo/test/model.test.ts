@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { parseGraph, serializeGraph, validateGraph } from '@opsydyn/foldkit-flow';
+import { parseGraph, serializeGraph, validateGraph } from '@opsydyn/foldkit-zloz';
 
 import { contextGraph, mermaidBundle } from '../src/lib/context-model';
 

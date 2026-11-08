@@ -342,7 +342,7 @@ test('normalization is isolated from publication and uses only trusted workflow 
 test('root tests include the hook while strict checks and workspace tests stay intact', async () => {
   const manifest = await Bun.file(join(root, 'package.json')).json();
   expect(manifest.scripts.test).toBe(
-    "bun test ./.github/scripts/format-release-changelogs.test.js && bun run --sequential --filter '*' test",
+    "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts && bun run --sequential --filter '*' test",
   );
   // The effect-three packages add their stricter package-local lint between the two, and
   // the catalog and skill checks follow the formatter.

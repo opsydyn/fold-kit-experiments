@@ -1,4 +1,4 @@
-import { serializeGraph } from '@opsydyn/foldkit-flow';
+import { serializeGraph } from '@opsydyn/foldkit-zloz';
 
 import { contextGraph } from '../../lib/context-model';
 

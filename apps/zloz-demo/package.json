@@ -1,0 +1,29 @@
+{
+  "name": "@opsydyn/zloz-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild-packages": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-zloz-elk build && bun run --filter @opsydyn/foldkit-zloz-force build && bun run --filter @opsydyn/foldkit-zloz-mermaid build",
+    "dev": "bun run prebuild-packages && astro dev",
+    "build": "bun run prebuild-packages && astro build",
+    "preview": "astro preview",
+    "typecheck": "bun run prebuild-packages && astro check",
+    "test": "tsc --noEmit -p tsconfig.test.json && bun test ./test"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
+    "@opsydyn/astro-foldkit": "workspace:*",
+    "@opsydyn/foldkit-zloz": "workspace:*",
+    "@opsydyn/foldkit-zloz-elk": "workspace:*",
+    "@opsydyn/foldkit-zloz-force": "workspace:*",
+    "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
+    "astro": "catalog:",
+    "effect": "catalog:",
+    "foldkit": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
+  }
+}

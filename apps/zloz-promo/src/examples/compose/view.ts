@@ -1,15 +1,15 @@
 import {
-  flowView,
-  flowConnectionCreationField,
-  flowConnectionCreationCancel,
-  type FlowTheme,
-} from '@opsydyn/foldkit-flow/foldkit';
+  zlozView,
+  zlozConnectionCreationField,
+  zlozConnectionCreationCancel,
+  type ZlozTheme,
+} from '@opsydyn/foldkit-zloz/foldkit';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 
 import { observe, type Message, type Model } from './state';
 
 /** Host CSS variables keep the island in the page theme without replacing its Model. */
-const theme: FlowTheme = {
+const theme: ZlozTheme = {
   tokens: {
     background: 'var(--page)',
     canvasBorder: 'var(--border)',
@@ -89,7 +89,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
-        flowView(h, editor, {
+        zlozView(h, editor, {
           id: 'promo-compose',
           label: 'Interactive Compose workflow',
           onEvent: observe,
@@ -118,13 +118,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     'Choose Review’s output, then Publish’s input. You can also drag between the ports or activate them in order.',
                   ],
                 ),
-                flowConnectionCreationField(builder, context.source, observe, {
+                zlozConnectionCreationField(builder, context.source, observe, {
                   idPrefix: 'promo-compose-chooser',
                 }),
-                flowConnectionCreationField(builder, context.target, observe, {
+                zlozConnectionCreationField(builder, context.target, observe, {
                   idPrefix: 'promo-compose-chooser',
                 }),
-                flowConnectionCreationCancel(builder, context, observe, [
+                zlozConnectionCreationCancel(builder, context, observe, [
                   builder.Class('compose-button'),
                 ]),
               ],

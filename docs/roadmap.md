@@ -89,19 +89,34 @@ modelling toolkit within that family.
    persistent-canvas left-sidebar workbench; expose graph composition, C4 models,
    Mermaid export, examples and API/type-contract documentation. Keep reusable
    functionality in packages and use the app to compose and demonstrate it.
-5. **Cloudflare hosting.** Deploy the full demo site on Cloudflare as a distinct
-   delivery slice, with its domain, deployment configuration and live acceptance
-   recorded when implemented. The Cloudflare service, domain and public URLs
-   remain to be selected.
+5. **Cloudflare hosting.** Published and qualified: [workbench](https://zloz.opsydyn.xyz/)
+   and [promo](https://opsydyn.github.io/fold-kit-experiments/zloz/).
+   Both website deployments are independent of npm publication.
 6. **Publication last.** Finish feature work and site qualification before the
    npm publication slice. Verify chosen ASCII package names, migration guidance,
    packed-consumer behavior and release automation at that boundary.
 
-The current implementation still uses `packages/foldkit-flow*` and
-`apps/flow-sample`. Its [nested Mermaid export](../apps/flow-sample/evidence/mermaid-subgraphs.md)
-and [persistent-canvas sidebar](../apps/flow-sample/evidence/sidebar.md) provide the
+The current implementation uses `packages/foldkit-zloz*` and
+`apps/zloz-demo`. Its [nested Mermaid export](../apps/zloz-demo/evidence/mermaid-subgraphs.md)
+and [persistent-canvas sidebar](../apps/zloz-demo/evidence/sidebar.md) provide the
 local baseline for the Zloz demo. Site delivery and registry publication are
 separate from that existing local evidence.
+
+**Naming cleanup:** all four package/release identities use Zloz; the API title
+is **Foldkit Zloz API**, with canonical `/zloz/api/` navigation. Deprecated source
+aliases and saved-data protocols are documented in the [migration guide](zloz-migration.md).
+No Flow-named package may be released; obsolete release PR #110 was closed.
+
+**Production CLI standard:** implement the standalone Zloz CLI with Effect CLI
+(`effect/cli` for the installed Effect 4 version), typed commands/flags/arguments,
+Schema decoding, typed errors and scoped FileSystem/Terminal services. Compose
+operations with `Effect.gen`, `pipe` and combinators; avoid manual argv parsing,
+Promise chains and direct process/file effects inside domain operations. Keep
+runtime execution and exit-code/output handling at the entry point. Keep the
+pure Mermaid exporter reusable without a CLI or Effect runtime. Qualify JSON
+output, invalid input, conversion losses, exit codes, stdin limits and cancellation.
+The existing imperative fidelity-spike driver is historical research; replace it
+with a separately qualified production CLI rather than presenting it as shipped.
 
 **Planning completed — 2026-11-08:** the [naming migration inventory](assessments/2026-11-08-zloz-naming-migration-inventory.md)
 and [shared logo/site brief](assessments/2026-11-08-zloz-logo-and-site-brief.md)

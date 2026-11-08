@@ -56,7 +56,7 @@ for variant in ["adaptive", "light", "dark", "mono"]:
 
 favicon = svg('<style>@media(prefers-color-scheme:dark){:root{--blue:#4485ff;--gold:#ffda66;--coral:#ff9485}}</style>\n' + geometry)
 (output / "favicon.svg").write_text(favicon)
-public = root / "apps/flow-sample/public"
+public = root / "apps/zloz-demo/public"
 public.mkdir(exist_ok=True)
 (public / "favicon.svg").write_text(favicon)
 (output / "Inter-OFL.txt").write_text((font_dir / "LICENSE").read_text())

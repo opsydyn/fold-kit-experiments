@@ -60,16 +60,16 @@
         }
       ]
     },
-    "packages/foldkit-flow": {
-      "package-name": "@opsydyn/foldkit-flow",
-      "component": "foldkit-flow",
+    "packages/foldkit-zloz": {
+      "package-name": "@opsydyn/foldkit-zloz",
+      "component": "foldkit-zloz",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "initial-version": "0.1.0"
     },
-    "packages/foldkit-flow-elk": {
-      "package-name": "@opsydyn/foldkit-flow-elk",
-      "component": "foldkit-flow-elk",
+    "packages/foldkit-zloz-elk": {
+      "package-name": "@opsydyn/foldkit-zloz-elk",
+      "component": "foldkit-zloz-elk",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "initial-version": "0.1.0",
@@ -77,13 +77,13 @@
         {
           "type": "json",
           "path": "package.json",
-          "jsonpath": "$.peerDependencies['@opsydyn/foldkit-flow']"
+          "jsonpath": "$.peerDependencies['@opsydyn/foldkit-zloz']"
         }
       ]
     },
-    "packages/foldkit-flow-force": {
-      "package-name": "@opsydyn/foldkit-flow-force",
-      "component": "foldkit-flow-force",
+    "packages/foldkit-zloz-force": {
+      "package-name": "@opsydyn/foldkit-zloz-force",
+      "component": "foldkit-zloz-force",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "initial-version": "0.1.0",
@@ -91,7 +91,21 @@
         {
           "type": "json",
           "path": "package.json",
-          "jsonpath": "$.peerDependencies['@opsydyn/foldkit-flow']"
+          "jsonpath": "$.peerDependencies['@opsydyn/foldkit-zloz']"
+        }
+      ]
+    },
+    "packages/foldkit-zloz-mermaid": {
+      "package-name": "@opsydyn/foldkit-zloz-mermaid",
+      "component": "foldkit-zloz-mermaid",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "initial-version": "0.1.0",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "package.json",
+          "jsonpath": "$.peerDependencies['@opsydyn/foldkit-zloz']"
         }
       ]
     }
@@ -109,8 +123,13 @@
     },
     {
       "type": "linked-versions",
-      "groupName": "foldkit-flow",
-      "components": ["foldkit-flow", "foldkit-flow-elk", "foldkit-flow-force"]
+      "groupName": "foldkit-zloz",
+      "components": [
+        "foldkit-zloz",
+        "foldkit-zloz-elk",
+        "foldkit-zloz-force",
+        "foldkit-zloz-mermaid"
+      ]
     }
   ]
 }

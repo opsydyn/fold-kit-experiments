@@ -10,7 +10,7 @@ From the repository root:
 
 ```sh
 bun install --frozen-lockfile
-bun run dev:flow-sample
+bun run dev:zloz-demo
 # Separate terminal; board dev uses 4327:
 ZLOZ_WORKBENCH_URL=http://127.0.0.1:4327/ bun run dev:zloz-promo
 ```
@@ -45,7 +45,7 @@ Set these at build/dev startup:
 No canonical production origin, hosting provider configuration or npm rename is
 assumed. The site is not added to the existing Pages deployment. Registry
 publication remains a separate, later slice. Current technical imports remain
-`@opsydyn/foldkit-flow*` while public product copy says Foldkit Zloz.
+`@opsydyn/foldkit-zloz*` while public product copy says Foldkit Zloz.
 
 The hero is explicitly a **static package-generated preview**, not an interactive
 editor. Astro prerenders it from `src/lib/context-model.ts`. Node outlines, port
@@ -68,7 +68,7 @@ continues scrolling the page. The vertical fixture keeps text readable on narrow
 screens. It is an ephemeral example: reloading starts fresh.
 
 The island uses `lazyApp`, `client:load` and `noMeta`; Astro retains document
-metadata. Public `flowView` and connection primitives handle the controls and
+metadata. Public `zlozView` and connection primitives handle the controls and
 scoped input mounts. `createEditor` / `updateEditor` own graph changes and history;
 no workbench logic is copied into the promo. CSS variables inherit the page theme
 without replacing the live Model. Its actual state/update source is shown with

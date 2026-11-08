@@ -1,6 +1,6 @@
 # Zloz workbench hosting
 
-Independent Alchemy stack deploying `apps/flow-sample` as a Cloudflare Worker
+Independent Alchemy stack deploying `apps/zloz-demo` as a Cloudflare Worker
 with static assets. Production hostname: **https://zloz.opsydyn.xyz/**. Promo:
 **https://opsydyn.github.io/fold-kit-experiments/zloz/** through existing Pages.
 

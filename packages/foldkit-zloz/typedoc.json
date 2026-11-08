@@ -1,0 +1,28 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/index.ts",
+    "src/foldkit.ts",
+    "../foldkit-zloz-elk/src/index.ts",
+    "../foldkit-zloz-force/src/index.ts",
+    "../foldkit-zloz-force/src/eligibility.ts",
+    "../foldkit-zloz-mermaid/src/index.ts"
+  ],
+  "entryPointStrategy": "resolve",
+  "tsconfig": "tsconfig.docs.json",
+  "out": "docs",
+  "name": "Foldkit Zloz API",
+  "includeVersion": true,
+  "readme": "typedoc-readme.md",
+  "navigationLinks": {
+    "Repository docs": "/fold-kit-experiments/docs/",
+    "Viz API": "/fold-kit-experiments/api/",
+    "GitHub": "https://github.com/opsydyn/fold-kit-experiments/tree/main/packages/foldkit-zloz"
+  },
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "sort": ["source-order"],
+  "disableSources": false,
+  "treatWarningsAsErrors": true,
+  "excludeReferences": true
+}

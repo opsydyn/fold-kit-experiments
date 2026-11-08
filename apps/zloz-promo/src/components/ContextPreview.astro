@@ -1,6 +1,6 @@
 ---
 // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Public geometry API; shape is an outline domain concept.
-import { nodeShapeGeometry, portBoundaryPosition, resolveEdgeGeometry } from '@opsydyn/foldkit-flow';
+import { nodeShapeGeometry, portBoundaryPosition, resolveEdgeGeometry } from '@opsydyn/foldkit-zloz';
 import { contextGraph } from '../lib/context-model';
 const edges = contextGraph.edges.map(edge => ({ edge, geometry: resolveEdgeGeometry(contextGraph, edge) }));
 ---

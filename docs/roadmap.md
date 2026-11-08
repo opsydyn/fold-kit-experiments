@@ -91,8 +91,16 @@ and [persistent-canvas sidebar](../apps/flow-sample/evidence/sidebar.md) provide
 local baseline for the Zloz demo. Site delivery and registry publication are
 separate from that existing local evidence.
 
-**Next bounded brand slice:** a naming/migration inventory and a shared brief for
-the Zloz logo, promo site and demo information architecture.
+**Planning completed — 2026-11-08:** the [naming migration inventory](assessments/2026-11-08-zloz-naming-migration-inventory.md)
+and [shared logo/site brief](assessments/2026-11-08-zloz-logo-and-site-brief.md)
+record candidate package mappings, compatibility boundaries, family styling,
+logo directions and promo/demo information architecture. Their technical names
+and preferred mark direction remain proposals for implementation review.
+
+**Next bounded brand slice:** 2–3 SVG logo concepts shown in the shared family
+header, followed by the selected-mark public-copy/site-shell slice. The separate
+feature recommendation for searchable sidebar settings remains on the workbench
+track.
 
 ## Release: Keyed Chart Comparison
 

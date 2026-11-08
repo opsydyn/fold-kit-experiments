@@ -1,0 +1,1508 @@
+{
+  "date": "2026-11-08",
+  "baseCommit": "5a310164d8191bbb6ef220134857560fd6d399d4",
+  "scope": "Tracked text snapshot before inventory documents; candidate references, not a global replacement list. No registry or hosted state checked.",
+  "pattern": "foldkit-flow|Fold[Kk]it Flow|flow-sample|/flow/api",
+  "candidateFiles": 199,
+  "categories": {
+    "tooling-and-release": 11,
+    "documentation": 5,
+    "applications": 24,
+    "historical-or-qualification": 117,
+    "tests": 13,
+    "isolated-spike": 9,
+    "packages": 20
+  },
+  "publicExportsMethod": "TypeScript checker getExportsOfModule on built declaration entry points; counts include types and values, aliases can repeat across subpaths.",
+  "api": [
+    {
+      "package": "@opsydyn/foldkit-flow",
+      "subpath": ".",
+      "file": "packages/foldkit-flow/dist/index.d.mts",
+      "exports": [
+        "AlignmentGuide",
+        "ArchitectureNodeInput",
+        "ArchitectureNodePreset",
+        "BoxSelectionMatch",
+        "C4NodeArchitecture",
+        "ConnectionRejection",
+        "ConnectionTarget",
+        "DddNodeArchitecture",
+        "DeletionCandidate",
+        "DeletionDecision",
+        "DeletionTargets",
+        "EdgeEnd",
+        "EdgePathStyle",
+        "EdgeRoute",
+        "EditorContext",
+        "EditorEvent",
+        "EditorOptions",
+        "EditorPolicy",
+        "EditorState",
+        "Endpoint",
+        "FitViewTransition",
+        "FlowConnectionCreationAction",
+        "FlowConnectionCreationChoice",
+        "FlowConnectionCreationContext",
+        "FlowConnectionCreationFieldContext",
+        "FlowConnectionCreationOptions",
+        "FlowConnectionFeedback",
+        "FlowConnectionGeometryPolicy",
+        "FlowConnectionPreview",
+        "FlowConnectionPreviewContext",
+        "FlowEdge",
+        "FlowEdgeEndpointChoice",
+        "FlowEdgeGeometry",
+        "FlowEdgeGeometryContext",
+        "FlowEdgeGeometryOptions",
+        "FlowEdgeGeometryPolicy",
+        "FlowEdgeReconnectionContext",
+        "FlowEdgeReconnectionOptions",
+        "FlowEndpointChoiceGroup",
+        "FlowEndpointChoices",
+        "FlowEndpointSearchContext",
+        "FlowEndpointSearchOptions",
+        "FlowError",
+        "FlowGraph",
+        "FlowMinimapGeometry",
+        "FlowNode",
+        "FlowNodeAppearance",
+        "FlowNodeArchitecture",
+        "FlowNodeShape",
+        "FlowNodeShapeGeometry",
+        "FlowPortAnchorSnapBypassModifier",
+        "FlowSearchableEndpoint",
+        "FlowSnapshot",
+        "FlowVisibility",
+        "Gesture",
+        "JsonObject",
+        "JsonValue",
+        "LayoutEngine",
+        "LayoutRequest",
+        "LayoutResult",
+        "NearbyTarget",
+        "NodeResizeLimits",
+        "Point",
+        "Port",
+        "PortAnchorPointTarget",
+        "PortAnchorSnapContext",
+        "PortAnchorSnapGuide",
+        "PortAnchorSnapOptions",
+        "PortAnchorSnapOverrides",
+        "PortAnchorSnapPriority",
+        "PortAnchorSnapResult",
+        "PortAnchorSnapSettings",
+        "PortAnchorSnapTargets",
+        "PortAnchorTargetStep",
+        "PortAnchorTargetStepResult",
+        "PortCorner",
+        "PortEditCandidate",
+        "PortPosition",
+        "PortRemovalDecision",
+        "PortSide",
+        "ResizeCorner",
+        "ResizeHandle",
+        "Size",
+        "Viewport",
+        "ZoomLimits",
+        "applyLayout",
+        "architectureNodePresets",
+        "createArchitectureNode",
+        "createEditor",
+        "defaultFitViewPadding",
+        "defaultZoomLimits",
+        "edgePath",
+        "fitViewport",
+        "isNodeAppearance",
+        "isNodeArchitecture",
+        "layoutRequest",
+        "minimapGeometry",
+        "nodeShapeBoundaryPoint",
+        "nodeShapeContainsPoint",
+        "nodeShapeGeometry",
+        "parseGraph",
+        "parseSnapshot",
+        "portAnchor",
+        "portAnchorSnapGuideTargets",
+        "portBoundaryPosition",
+        "portEditReason",
+        "portPosition",
+        "resolveConnectionCreation",
+        "resolveConnectionPreview",
+        "resolveDeletion",
+        "resolveEdgeGeometry",
+        "resolveEdgeReconnection",
+        "resolveEndpointChoices",
+        "resolvePortAnchorSnap",
+        "resolvePortAnchorSnapSettings",
+        "resolvePortAnchorTargetStep",
+        "resolvePortRemoval",
+        "revealableEdges",
+        "revealableNodes",
+        "screenToWorld",
+        "serializeGraph",
+        "serializeSnapshot",
+        "updateEditor",
+        "validNodeArchitectureFields",
+        "validateGraph",
+        "zoomAt"
+      ],
+      "brandPrefixed": [
+        "FlowConnectionCreationAction",
+        "FlowConnectionCreationChoice",
+        "FlowConnectionCreationContext",
+        "FlowConnectionCreationFieldContext",
+        "FlowConnectionCreationOptions",
+        "FlowConnectionFeedback",
+        "FlowConnectionGeometryPolicy",
+        "FlowConnectionPreview",
+        "FlowConnectionPreviewContext",
+        "FlowEdge",
+        "FlowEdgeEndpointChoice",
+        "FlowEdgeGeometry",
+        "FlowEdgeGeometryContext",
+        "FlowEdgeGeometryOptions",
+        "FlowEdgeGeometryPolicy",
+        "FlowEdgeReconnectionContext",
+        "FlowEdgeReconnectionOptions",
+        "FlowEndpointChoiceGroup",
+        "FlowEndpointChoices",
+        "FlowEndpointSearchContext",
+        "FlowEndpointSearchOptions",
+        "FlowError",
+        "FlowGraph",
+        "FlowMinimapGeometry",
+        "FlowNode",
+        "FlowNodeAppearance",
+        "FlowNodeArchitecture",
+        "FlowNodeShape",
+        "FlowNodeShapeGeometry",
+        "FlowPortAnchorSnapBypassModifier",
+        "FlowSearchableEndpoint",
+        "FlowSnapshot",
+        "FlowVisibility"
+      ]
+    },
+    {
+      "package": "@opsydyn/foldkit-flow",
+      "subpath": "./foldkit",
+      "file": "packages/foldkit-flow/dist/foldkit.d.mts",
+      "exports": [
+        "FlowAlignmentGuideContext",
+        "FlowBackground",
+        "FlowBackgroundRenderContext",
+        "FlowC4ContentContext",
+        "FlowC4ContentRenderer",
+        "FlowC4NodeOptions",
+        "FlowCanvasHelpContext",
+        "FlowCanvasStatusContext",
+        "FlowColorScheme",
+        "FlowConnectionCreationViewOptions",
+        "FlowConnectionEntry",
+        "FlowConnectionFeedback",
+        "FlowConnectionGeometryPolicy",
+        "FlowConnectionPreview",
+        "FlowConnectionPreviewContext",
+        "FlowConnectionRenderContext",
+        "FlowConnectionsContext",
+        "FlowContextAction",
+        "FlowContextMenuContext",
+        "FlowContextTrigger",
+        "FlowDiagnosticOptions",
+        "FlowDiagnostics",
+        "FlowEdgeEndpointOptions",
+        "FlowEdgeGeometry",
+        "FlowEdgeGeometryContext",
+        "FlowEdgeGeometryPolicy",
+        "FlowEdgeLabelContext",
+        "FlowEdgeLabelEditorContext",
+        "FlowEdgeRenderContext",
+        "FlowEdgeToolbarAction",
+        "FlowEdgeToolbarContext",
+        "FlowEndpointSearchViewOptions",
+        "FlowGroupContextActions",
+        "FlowMinimapContext",
+        "FlowNodeBodyCache",
+        "FlowNodeRenderContext",
+        "FlowNodeToolbarContext",
+        "FlowNodeToolbarOptions",
+        "FlowNodeToolbarPlacement",
+        "FlowPortAdditionContext",
+        "FlowPortAnchorGuideContext",
+        "FlowPortAnchorGuideRenderer",
+        "FlowPortAnchorHandleContext",
+        "FlowPortAnchorHandleOptions",
+        "FlowPortAnchorHandleRenderer",
+        "FlowPortAnchorSnapBypassModifier",
+        "FlowPortControlContext",
+        "FlowPortInspectorContext",
+        "FlowPortInspectorEntry",
+        "FlowPortInspectorOptions",
+        "FlowPortLabelContext",
+        "FlowPortLabelFormMessages",
+        "FlowPortLabelOptions",
+        "FlowPortLabelRenderer",
+        "FlowPortPositionDraft",
+        "FlowPortPositionDraftChange",
+        "FlowPortPositionEditorContext",
+        "FlowPortPositionField",
+        "FlowPortPositionFormMessages",
+        "FlowPortPositionInputContext",
+        "FlowPortPositionMode",
+        "FlowPortRenderContext",
+        "FlowPortRenderer",
+        "FlowResizeReadoutContext",
+        "FlowSelectionMarqueeContext",
+        "FlowTheme",
+        "FlowThemeToken",
+        "FlowThemeTokens",
+        "FlowViewLayoutParts",
+        "FlowViewOptions",
+        "FlowViewportActions",
+        "FlowViewportControl",
+        "FlowViewportControlsContext",
+        "FlowViewportCulling",
+        "FlowWheelNavigation",
+        "FlowWorldOverlayContext",
+        "FlowWorldOverlayItemOptions",
+        "FlowZoomAreaMarqueeContext",
+        "createFlowNodeBodyCache",
+        "flowC4Group",
+        "flowC4Node",
+        "flowConnectionButton",
+        "flowConnectionCreation",
+        "flowConnectionCreationCancel",
+        "flowConnectionCreationField",
+        "flowConnectionCreationReasons",
+        "flowConnectionCreationSelect",
+        "flowContextAction",
+        "flowContextDimensionInput",
+        "flowContextTrigger",
+        "flowDarkTheme",
+        "flowDragHandle",
+        "flowEdgeEndpointField",
+        "flowEdgeEndpointReasons",
+        "flowEdgeEndpointSelect",
+        "flowEdgeHitTarget",
+        "flowEdgeLabelBadge",
+        "flowEdgeLabelCancel",
+        "flowEdgeLabelForm",
+        "flowEdgeLabelInput",
+        "flowEdgePathStyleSelect",
+        "flowEdgeToolbarButton",
+        "flowEndpointSearchClear",
+        "flowEndpointSearchFeedback",
+        "flowEndpointSearchInput",
+        "flowGroupFrame",
+        "flowLightTheme",
+        "flowMinimap",
+        "flowMinimapViewport",
+        "flowNodeFrame",
+        "flowPort",
+        "flowPortAddButton",
+        "flowPortAnchorGuide",
+        "flowPortAnchorHandle",
+        "flowPortLabel",
+        "flowPortLabelCancel",
+        "flowPortLabelEditButton",
+        "flowPortLabelForm",
+        "flowPortLabelInput",
+        "flowPortLabelSave",
+        "flowPortPositionCancel",
+        "flowPortPositionEditButton",
+        "flowPortPositionForm",
+        "flowPortPositionInput",
+        "flowPortPositionModeSelect",
+        "flowPortPositionSave",
+        "flowPortPositionSideSelect",
+        "flowPortProtectionReason",
+        "flowPortRemoveButton",
+        "flowResizeHandle",
+        "flowView",
+        "flowViewportControl",
+        "flowWorldOverlayItem",
+        "minimapContext",
+        "portAdditionContext",
+        "portInspectorContext",
+        "portPositionDraft",
+        "portPositionEditorContext",
+        "portPositionFromDraft",
+        "resolveFlowDiagnostics",
+        "updatePortPositionDraft",
+        "viewportControlActions"
+      ],
+      "brandPrefixed": [
+        "FlowAlignmentGuideContext",
+        "FlowBackground",
+        "FlowBackgroundRenderContext",
+        "FlowC4ContentContext",
+        "FlowC4ContentRenderer",
+        "FlowC4NodeOptions",
+        "FlowCanvasHelpContext",
+        "FlowCanvasStatusContext",
+        "FlowColorScheme",
+        "FlowConnectionCreationViewOptions",
+        "FlowConnectionEntry",
+        "FlowConnectionFeedback",
+        "FlowConnectionGeometryPolicy",
+        "FlowConnectionPreview",
+        "FlowConnectionPreviewContext",
+        "FlowConnectionRenderContext",
+        "FlowConnectionsContext",
+        "FlowContextAction",
+        "FlowContextMenuContext",
+        "FlowContextTrigger",
+        "FlowDiagnosticOptions",
+        "FlowDiagnostics",
+        "FlowEdgeEndpointOptions",
+        "FlowEdgeGeometry",
+        "FlowEdgeGeometryContext",
+        "FlowEdgeGeometryPolicy",
+        "FlowEdgeLabelContext",
+        "FlowEdgeLabelEditorContext",
+        "FlowEdgeRenderContext",
+        "FlowEdgeToolbarAction",
+        "FlowEdgeToolbarContext",
+        "FlowEndpointSearchViewOptions",
+        "FlowGroupContextActions",
+        "FlowMinimapContext",
+        "FlowNodeBodyCache",
+        "FlowNodeRenderContext",
+        "FlowNodeToolbarContext",
+        "FlowNodeToolbarOptions",
+        "FlowNodeToolbarPlacement",
+        "FlowPortAdditionContext",
+        "FlowPortAnchorGuideContext",
+        "FlowPortAnchorGuideRenderer",
+        "FlowPortAnchorHandleContext",
+        "FlowPortAnchorHandleOptions",
+        "FlowPortAnchorHandleRenderer",
+        "FlowPortAnchorSnapBypassModifier",
+        "FlowPortControlContext",
+        "FlowPortInspectorContext",
+        "FlowPortInspectorEntry",
+        "FlowPortInspectorOptions",
+        "FlowPortLabelContext",
+        "FlowPortLabelFormMessages",
+        "FlowPortLabelOptions",
+        "FlowPortLabelRenderer",
+        "FlowPortPositionDraft",
+        "FlowPortPositionDraftChange",
+        "FlowPortPositionEditorContext",
+        "FlowPortPositionField",
+        "FlowPortPositionFormMessages",
+        "FlowPortPositionInputContext",
+        "FlowPortPositionMode",
+        "FlowPortRenderContext",
+        "FlowPortRenderer",
+        "FlowResizeReadoutContext",
+        "FlowSelectionMarqueeContext",
+        "FlowTheme",
+        "FlowThemeToken",
+        "FlowThemeTokens",
+        "FlowViewLayoutParts",
+        "FlowViewOptions",
+        "FlowViewportActions",
+        "FlowViewportControl",
+        "FlowViewportControlsContext",
+        "FlowViewportCulling",
+        "FlowWheelNavigation",
+        "FlowWorldOverlayContext",
+        "FlowWorldOverlayItemOptions",
+        "FlowZoomAreaMarqueeContext",
+        "createFlowNodeBodyCache",
+        "flowC4Group",
+        "flowC4Node",
+        "flowConnectionButton",
+        "flowConnectionCreation",
+        "flowConnectionCreationCancel",
+        "flowConnectionCreationField",
+        "flowConnectionCreationReasons",
+        "flowConnectionCreationSelect",
+        "flowContextAction",
+        "flowContextDimensionInput",
+        "flowContextTrigger",
+        "flowDarkTheme",
+        "flowDragHandle",
+        "flowEdgeEndpointField",
+        "flowEdgeEndpointReasons",
+        "flowEdgeEndpointSelect",
+        "flowEdgeHitTarget",
+        "flowEdgeLabelBadge",
+        "flowEdgeLabelCancel",
+        "flowEdgeLabelForm",
+        "flowEdgeLabelInput",
+        "flowEdgePathStyleSelect",
+        "flowEdgeToolbarButton",
+        "flowEndpointSearchClear",
+        "flowEndpointSearchFeedback",
+        "flowEndpointSearchInput",
+        "flowGroupFrame",
+        "flowLightTheme",
+        "flowMinimap",
+        "flowMinimapViewport",
+        "flowNodeFrame",
+        "flowPort",
+        "flowPortAddButton",
+        "flowPortAnchorGuide",
+        "flowPortAnchorHandle",
+        "flowPortLabel",
+        "flowPortLabelCancel",
+        "flowPortLabelEditButton",
+        "flowPortLabelForm",
+        "flowPortLabelInput",
+        "flowPortLabelSave",
+        "flowPortPositionCancel",
+        "flowPortPositionEditButton",
+        "flowPortPositionForm",
+        "flowPortPositionInput",
+        "flowPortPositionModeSelect",
+        "flowPortPositionSave",
+        "flowPortPositionSideSelect",
+        "flowPortProtectionReason",
+        "flowPortRemoveButton",
+        "flowResizeHandle",
+        "flowView",
+        "flowViewportControl",
+        "flowWorldOverlayItem"
+      ]
+    },
+    {
+      "package": "@opsydyn/foldkit-flow-elk",
+      "subpath": ".",
+      "file": "packages/foldkit-flow-elk/dist/index.d.mts",
+      "exports": ["ElkLayoutOptions", "createElkLayout"],
+      "brandPrefixed": []
+    },
+    {
+      "package": "@opsydyn/foldkit-flow-force",
+      "subpath": ".",
+      "file": "packages/foldkit-flow-force/dist/index.d.mts",
+      "exports": ["createForceLayout", "supportsForceLayout"],
+      "brandPrefixed": []
+    },
+    {
+      "package": "@opsydyn/foldkit-flow-force",
+      "subpath": "./eligibility",
+      "file": "packages/foldkit-flow-force/dist/eligibility.d.mts",
+      "exports": ["supportsForceLayout"],
+      "brandPrefixed": []
+    },
+    {
+      "package": "@opsydyn/foldkit-flow-mermaid",
+      "subpath": ".",
+      "file": "packages/foldkit-flow-mermaid/dist/index.d.mts",
+      "exports": [
+        "MermaidBundle",
+        "MermaidDiagnostic",
+        "MermaidDiagnosticCode",
+        "MermaidDirection",
+        "MermaidExportOptions",
+        "MermaidExportResult",
+        "MermaidIdentity",
+        "MermaidLossPolicy",
+        "exportMermaid",
+        "mermaidProtocol",
+        "mermaidSourceLimit"
+      ],
+      "brandPrefixed": []
+    }
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "category": "tooling-and-release",
+      "hits": 6
+    },
+    {
+      "path": ".github/workflows/pages.yml",
+      "category": "tooling-and-release",
+      "hits": 4
+    },
+    {
+      "path": ".github/workflows/publish.yml",
+      "category": "tooling-and-release",
+      "hits": 12
+    },
+    {
+      "path": ".gitignore",
+      "category": "tooling-and-release",
+      "hits": 1
+    },
+    {
+      "path": ".release-please-manifest.json",
+      "category": "tooling-and-release",
+      "hits": 3
+    },
+    {
+      "path": "README.md",
+      "category": "documentation",
+      "hits": 12
+    },
+    {
+      "path": "apps/flow-sample/README.md",
+      "category": "applications",
+      "hits": 7
+    },
+    {
+      "path": "apps/flow-sample/evidence/alignment-guide-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/c4-renderers-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/c4-renderers-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 12
+    },
+    {
+      "path": "apps/flow-sample/evidence/c4-renderers.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/camera-benchmark.md",
+      "category": "historical-or-qualification",
+      "hits": 15
+    },
+    {
+      "path": "apps/flow-sample/evidence/camera-benchmark.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/camera-snapshot-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/canvas-copy-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/composition-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/composition.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/connection-creation-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/connection-drop-radius-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/connection-list-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/connection-preview-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/connection-preview.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/context-menu-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 4
+    },
+    {
+      "path": "apps/flow-sample/evidence/deletion-protection-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/double-click-zoom-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/edge-endpoint-keyboard-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/edge-geometry-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/edge-geometry.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/edge-label-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/edge-toolbar-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-chooser-benchmark.md",
+      "category": "historical-or-qualification",
+      "hits": 11
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-chooser-benchmark.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-chooser-indexed-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 5
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-chooser-indexing.md",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-chooser-profile-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 17
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-chooser-profile.json",
+      "category": "historical-or-qualification",
+      "hits": 17
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-creation-retention-check.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-creation-retention-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 6
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-creation-retention.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/endpoint-search-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/fit-selection-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/fit-view-animation-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/item-visibility-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/mermaid-export-browser.json",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/mermaid-export-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/mermaid-export-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 36
+    },
+    {
+      "path": "apps/flow-sample/evidence/mermaid-export.md",
+      "category": "historical-or-qualification",
+      "hits": 4
+    },
+    {
+      "path": "apps/flow-sample/evidence/mermaid-subgraphs-browser.json",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/mermaid-subgraphs-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/mermaid-subgraphs-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 12
+    },
+    {
+      "path": "apps/flow-sample/evidence/mermaid-subgraphs.md",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/middle-button-pan-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/navigation-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/navigation.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/node-body-policy-check.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/node-body-policy-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 20
+    },
+    {
+      "path": "apps/flow-sample/evidence/node-body-policy.md",
+      "category": "historical-or-qualification",
+      "hits": 6
+    },
+    {
+      "path": "apps/flow-sample/evidence/node-movement-policy-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/node-resize-policy-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/node-toolbar-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/orbit-body-cache-check.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/orbit-body-cache-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 10
+    },
+    {
+      "path": "apps/flow-sample/evidence/orbit-body-cache.md",
+      "category": "historical-or-qualification",
+      "hits": 6
+    },
+    {
+      "path": "apps/flow-sample/evidence/partial-selection-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-bypass-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-corner-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-drag-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-edge-snap-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-guides-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-hysteresis-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-keyboard-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-midpoint-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-overrides-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-priority-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchor-targets-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchors-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-anchors.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-edit-policy-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-editing-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-inspector-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-label-editing-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-labels-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-permission-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-position-inputs-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/port-sockets-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/previous-view-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/protected-orbit-check.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/protected-orbit-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 11
+    },
+    {
+      "path": "apps/flow-sample/evidence/protected-orbit.md",
+      "category": "historical-or-qualification",
+      "hits": 6
+    },
+    {
+      "path": "apps/flow-sample/evidence/reconnect-permission-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/resize-readout-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/retained-node-views-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/reveal-node-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/selection-marquee-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/selection-policy-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/selection-preview-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/sidebar-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 40
+    },
+    {
+      "path": "apps/flow-sample/evidence/sidebar.md",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/snap-hysteresis-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/space-to-pan-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/evidence/theme-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/evidence/viewport-constraints-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/wheel-navigation-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/world-overlay-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/evidence/zoom-area-browser.mjs",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/package.json",
+      "category": "applications",
+      "hits": 8
+    },
+    {
+      "path": "apps/flow-sample/src/editor/c4-examples.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/editor/command.ts",
+      "category": "applications",
+      "hits": 7
+    },
+    {
+      "path": "apps/flow-sample/src/editor/editor-policy.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/editor/large-workflow.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/editor/mermaid-preview.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/editor/model.ts",
+      "category": "applications",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/src/editor/port-editing.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/editor/port-presets.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/editor/presentation.ts",
+      "category": "applications",
+      "hits": 6
+    },
+    {
+      "path": "apps/flow-sample/src/editor/search.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/editor/socket-policy.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/editor/theme.ts",
+      "category": "applications",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/src/editor/update.ts",
+      "category": "applications",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/src/editor/view.ts",
+      "category": "applications",
+      "hits": 4
+    },
+    {
+      "path": "apps/flow-sample/src/editor/workbench-layout.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/src/pages/index.astro",
+      "category": "applications",
+      "hits": 3
+    },
+    {
+      "path": "apps/flow-sample/test/c4-examples.test.ts",
+      "category": "tests",
+      "hits": 1
+    },
+    {
+      "path": "apps/flow-sample/test/orbit-cache.test.ts",
+      "category": "tests",
+      "hits": 2
+    },
+    {
+      "path": "apps/flow-sample/test/protected-orbit.test.ts",
+      "category": "tests",
+      "hits": 2
+    },
+    {
+      "path": "apps/web/e2e/flow.spec.ts",
+      "category": "tests",
+      "hits": 1
+    },
+    {
+      "path": "apps/web/package.json",
+      "category": "applications",
+      "hits": 8
+    },
+    {
+      "path": "apps/web/src/apps/flow/command.ts",
+      "category": "applications",
+      "hits": 4
+    },
+    {
+      "path": "apps/web/src/apps/flow/model.ts",
+      "category": "applications",
+      "hits": 2
+    },
+    {
+      "path": "apps/web/src/apps/flow/update.ts",
+      "category": "applications",
+      "hits": 1
+    },
+    {
+      "path": "apps/web/src/apps/flow/view.ts",
+      "category": "applications",
+      "hits": 2
+    },
+    {
+      "path": "apps/web/src/pages/flow.astro",
+      "category": "applications",
+      "hits": 2
+    },
+    {
+      "path": "bun.lock",
+      "category": "tooling-and-release",
+      "hits": 37
+    },
+    {
+      "path": "docs/adr/0003-foldkit-flow-and-optional-layout.md",
+      "category": "historical-or-qualification",
+      "hits": 4
+    },
+    {
+      "path": "docs/adr/0004-composable-flow-presentation.md",
+      "category": "historical-or-qualification",
+      "hits": 11
+    },
+    {
+      "path": "docs/adr/0006-composable-c4-preset-renderers.md",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "docs/adr/0008-export-mermaid-through-an-optional-package.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "docs/assessments/2026-11-05-foldkit-flow-react-flow-parity.md",
+      "category": "historical-or-qualification",
+      "hits": 6
+    },
+    {
+      "path": "docs/assessments/2026-11-07-flow-connection-creation-qualification.md",
+      "category": "historical-or-qualification",
+      "hits": 4
+    },
+    {
+      "path": "docs/assessments/2026-11-07-flow-endpoint-chooser-qualification.md",
+      "category": "historical-or-qualification",
+      "hits": 6
+    },
+    {
+      "path": "docs/assessments/2026-11-07-flow-endpoint-search-qualification.md",
+      "category": "historical-or-qualification",
+      "hits": 5
+    },
+    {
+      "path": "docs/assessments/2026-11-07-foldkit-flow-keyboard-connections.md",
+      "category": "historical-or-qualification",
+      "hits": 6
+    },
+    {
+      "path": "docs/assessments/2026-11-08-flow-architecture-shapes-plan.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "docs/assessments/2026-11-08-flow-headless-architecture-qualification.md",
+      "category": "historical-or-qualification",
+      "hits": 3
+    },
+    {
+      "path": "docs/assessments/2026-11-08-flow-mermaid-agents-and-editions.md",
+      "category": "historical-or-qualification",
+      "hits": 4
+    },
+    {
+      "path": "docs/assessments/2026-11-08-flow-mermaid-fidelity-spike.md",
+      "category": "historical-or-qualification",
+      "hits": 1
+    },
+    {
+      "path": "docs/flow-api.md",
+      "category": "documentation",
+      "hits": 10
+    },
+    {
+      "path": "docs/releases/evidence/foldkit-flow-0.1.0-local/browser.txt",
+      "category": "historical-or-qualification",
+      "hits": 75
+    },
+    {
+      "path": "docs/releases/evidence/foldkit-flow-0.1.0-local/pack.txt",
+      "category": "historical-or-qualification",
+      "hits": 216
+    },
+    {
+      "path": "docs/releases/evidence/foldkit-flow-0.1.0-local/typecheck.txt",
+      "category": "historical-or-qualification",
+      "hits": 114
+    },
+    {
+      "path": "docs/releases/evidence/foldkit-flow-0.1.0-local/web-build.txt",
+      "category": "historical-or-qualification",
+      "hits": 73
+    },
+    {
+      "path": "docs/releases/evidence/foldkit-flow-0.1.0-local/workspace-tests.txt",
+      "category": "historical-or-qualification",
+      "hits": 37
+    },
+    {
+      "path": "docs/releases/foldkit-flow-qualification.md",
+      "category": "documentation",
+      "hits": 15
+    },
+    {
+      "path": "docs/releases/foldkit-flow.md",
+      "category": "documentation",
+      "hits": 14
+    },
+    {
+      "path": "docs/roadmap.md",
+      "category": "documentation",
+      "hits": 4
+    },
+    {
+      "path": "experiments/mermaid-fidelity/README.md",
+      "category": "isolated-spike",
+      "hits": 1
+    },
+    {
+      "path": "experiments/mermaid-fidelity/cli.mjs",
+      "category": "isolated-spike",
+      "hits": 1
+    },
+    {
+      "path": "experiments/mermaid-fidelity/evidence-bun.json",
+      "category": "isolated-spike",
+      "hits": 3
+    },
+    {
+      "path": "experiments/mermaid-fidelity/evidence-node.json",
+      "category": "isolated-spike",
+      "hits": 3
+    },
+    {
+      "path": "experiments/mermaid-fidelity/package-lock.json",
+      "category": "isolated-spike",
+      "hits": 6
+    },
+    {
+      "path": "experiments/mermaid-fidelity/package.json",
+      "category": "isolated-spike",
+      "hits": 3
+    },
+    {
+      "path": "experiments/mermaid-fidelity/qualify.mjs",
+      "category": "isolated-spike",
+      "hits": 2
+    },
+    {
+      "path": "experiments/mermaid-fidelity/src/spike.ts",
+      "category": "isolated-spike",
+      "hits": 1
+    },
+    {
+      "path": "experiments/mermaid-fidelity/test/prototype.test.mjs",
+      "category": "isolated-spike",
+      "hits": 1
+    },
+    {
+      "path": "oxlint.config.ts",
+      "category": "tooling-and-release",
+      "hits": 7
+    },
+    {
+      "path": "package.json",
+      "category": "tooling-and-release",
+      "hits": 2
+    },
+    {
+      "path": "packages/foldkit-flow-elk/README.md",
+      "category": "packages",
+      "hits": 8
+    },
+    {
+      "path": "packages/foldkit-flow-elk/package.json",
+      "category": "packages",
+      "hits": 9
+    },
+    {
+      "path": "packages/foldkit-flow-elk/src/index.ts",
+      "category": "packages",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-elk/test/layout.test.ts",
+      "category": "tests",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-force/README.md",
+      "category": "packages",
+      "hits": 10
+    },
+    {
+      "path": "packages/foldkit-flow-force/package.json",
+      "category": "packages",
+      "hits": 9
+    },
+    {
+      "path": "packages/foldkit-flow-force/src/eligibility.ts",
+      "category": "packages",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-force/src/index.ts",
+      "category": "packages",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-force/src/layout.ts",
+      "category": "packages",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-force/src/routes.ts",
+      "category": "packages",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-force/test/layout.test.ts",
+      "category": "tests",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-force/test/package.test.ts",
+      "category": "tests",
+      "hits": 11
+    },
+    {
+      "path": "packages/foldkit-flow-force/test/routes.test.ts",
+      "category": "tests",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-mermaid/README.md",
+      "category": "packages",
+      "hits": 8
+    },
+    {
+      "path": "packages/foldkit-flow-mermaid/THIRD-PARTY-NOTICES.md",
+      "category": "packages",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-mermaid/package.json",
+      "category": "packages",
+      "hits": 9
+    },
+    {
+      "path": "packages/foldkit-flow-mermaid/src/index.ts",
+      "category": "packages",
+      "hits": 2
+    },
+    {
+      "path": "packages/foldkit-flow-mermaid/test/export.test.ts",
+      "category": "tests",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow-mermaid/test/package.test.ts",
+      "category": "tests",
+      "hits": 10
+    },
+    {
+      "path": "packages/foldkit-flow-mermaid/test/subgraphs.test.ts",
+      "category": "tests",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow/README.md",
+      "category": "packages",
+      "hits": 44
+    },
+    {
+      "path": "packages/foldkit-flow/evidence/architecture-sources.json",
+      "category": "historical-or-qualification",
+      "hits": 18
+    },
+    {
+      "path": "packages/foldkit-flow/package.json",
+      "category": "packages",
+      "hits": 5
+    },
+    {
+      "path": "packages/foldkit-flow/src/foldkit.ts",
+      "category": "packages",
+      "hits": 2
+    },
+    {
+      "path": "packages/foldkit-flow/test/layout.test.ts",
+      "category": "tests",
+      "hits": 1
+    },
+    {
+      "path": "packages/foldkit-flow/test/package.test.ts",
+      "category": "tests",
+      "hits": 17
+    },
+    {
+      "path": "packages/foldkit-flow/tsconfig.docs.json",
+      "category": "packages",
+      "hits": 3
+    },
+    {
+      "path": "packages/foldkit-flow/typedoc-readme.md",
+      "category": "packages",
+      "hits": 6
+    },
+    {
+      "path": "packages/foldkit-flow/typedoc.json",
+      "category": "packages",
+      "hits": 5
+    },
+    {
+      "path": "packages/foldkit-viz/typedoc.json",
+      "category": "packages",
+      "hits": 1
+    },
+    {
+      "path": "release-please-config.json",
+      "category": "tooling-and-release",
+      "hits": 15
+    },
+    {
+      "path": "tools/check-flow-architecture-compat.ts",
+      "category": "tooling-and-release",
+      "hits": 4
+    },
+    {
+      "path": "tools/pack-flow.ts",
+      "category": "tooling-and-release",
+      "hits": 13
+    }
+  ]
+}

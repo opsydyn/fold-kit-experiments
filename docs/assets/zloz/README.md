@@ -1,6 +1,7 @@
 # Zloz logo concepts
 
-Three authored SVG studies. **B — Nested frame is the user-selected direction**; final production asset refinement remains open. Review them at
+Three authored SVG studies. **B — Nested frame is the user-selected direction**;
+the [final asset set and usage rules](final/README.md) are now available. Review them at
 `http://127.0.0.1:4328/brand/zloz/` after building and previewing `@opsydyn/promo`
 with `--host 127.0.0.1 --port 4328`.
 
@@ -24,8 +25,8 @@ cube geometry, using the existing family typography and light/dark palette.
 - Standalone marks include a title and accessible name. Beside a visible product
   name, the review hides the decorative SVG from assistive technology.
 - The review includes 16, 24 and 32px proofs plus monochrome at 32px. The SVG grid
-  includes internal breathing room; final clear-space and minimum-size rules await
-  selection and optical refinement.
+  includes internal breathing room. See the final identity guide for minimum-size
+  and clear-space rules.
 - Use **Foldkit Zloz** publicly. **Złóż** appears only in the name's explanation.
 
 The reusable comparison component is

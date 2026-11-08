@@ -1,5 +1,8 @@
 # Zloz logo selection — 2026-11-08
 
+The selected direction now has a [final asset set and styled board](../../flow-sample/evidence/zloz-family.md).
+The receipt below preserves the selection-slice evidence.
+
 - **Result:** complete
 - **Claim:** The user selected **B — Nested frame** ("Nested frame wins"). The review page, canonical asset notes, shared brief and roadmap now record that decision, superseding the initial recommendation of A. Geometry is unchanged.
 - **Evidence:** User instruction in this session; the selected SVG is [nested-frame.svg](../../../docs/assets/zloz/nested-frame.svg). Local review: `http://127.0.0.1:4328/brand/zloz/`. Updated [light](zloz-selected-light.png) and [dark](zloz-selected-dark.png) captures were visually inspected. A Chromium probe verified HTTP 200, selected B copy, six family headers and theme switching. Promo build, `bun typecheck` and `bun run check` passed. The workspace test run passed all workspaces except one web suite with a transient generated Viz module resolution failure; Viz was rebuilt and the web suite rerun. The retry passed all 420 web tests (exit 0). No product-code change was needed to recover the generated module.

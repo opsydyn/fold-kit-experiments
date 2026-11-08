@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Foldkit Zloz">
+  <title>Foldkit Zloz — Nested frame</title>
+  <path d="M3 3h19l7 7v19H3Zm5 5v16h16V12l-4-4Z" fill="#4485ff" fill-rule="evenodd"/>
+  <path d="M22 3v7h7Z" fill="#ffda66"/>
+  <path d="M7 14h8v4H7Z" fill="#ffda66"/>
+  <path d="M12 12h8v8h-8Z" fill="#ff9485"/>
+</svg>

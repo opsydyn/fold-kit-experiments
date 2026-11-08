@@ -33,6 +33,7 @@
     "apps/flow-sample": {
       "name": "@opsydyn/flow-sample",
       "dependencies": {
+        "@fontsource-variable/inter": "catalog:",
         "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/foldkit-flow": "workspace:*",
         "@opsydyn/foldkit-flow-elk": "workspace:*",

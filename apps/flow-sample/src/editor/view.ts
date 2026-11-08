@@ -201,7 +201,7 @@ const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | nul
 ];
 
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
-  const title = 'Workflow patterns | FoldKit Flow';
+  const title = 'Architecture workbench | Foldkit Zloz';
   const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
   if (themePreference === null || colorScheme === null) return { title, body: h.div([], []) };

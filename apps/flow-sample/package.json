@@ -11,6 +11,7 @@
     "test": "tsc --noEmit -p tsconfig.test.json && bun test ./test"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
     "@opsydyn/astro-foldkit": "workspace:*",
     "@opsydyn/foldkit-flow": "workspace:*",
     "@opsydyn/foldkit-flow-elk": "workspace:*",

@@ -1,0 +1,15 @@
+{
+  "result": "pass",
+  "boardUrl": "http://127.0.0.1:4323/",
+  "promoUrl": "http://127.0.0.1:4328/brand/zloz/",
+  "palettes": "Viz / Three / Zloz neutral and blue",
+  "localInter": true,
+  "graphPreservedAcrossThemes": true,
+  "undo": "pass",
+  "systemAndPersistedTheme": "pass",
+  "firstPaintBlockedStorage": "pass",
+  "mobileWidth": 390,
+  "svgDownloads": 5,
+  "pageErrors": [],
+  "externalRequests": []
+}

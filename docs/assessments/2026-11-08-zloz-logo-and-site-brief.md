@@ -8,8 +8,11 @@ compatibility, source ownership and delivery gates.
 
 **Implementation follow-up:** The approved [three SVG concepts](../assets/zloz/README.md)
 now have shared family-header proofs in both themes, with
-[local visual evidence](../../apps/promo/evidence/zloz-logos.md). **The user selected B — Nested frame** after reviewing the concepts. Final asset
-refinement remains open; the original planning-slice status above is retained as history.
+[local visual evidence](../../apps/promo/evidence/zloz-logos.md). **The user selected B — Nested frame** after reviewing the concepts. Final
+assets now include [production variants and usage rules](../assets/zloz/final/README.md).
+The board uses Viz/Three neutral surfaces, blue accents and Inter. The dedicated
+Zloz promo must keep that same family style, not a separate dark-green identity.
+The original planning-slice status above is retained as history.
 
 ## Product and audience
 
@@ -103,7 +106,8 @@ accent to explain the name.
 
 The contact sheet compares all three directions beside the current Viz/Three
 marks at equal size in both themes. The user selected **B — Nested frame**,
-superseding the initial recommendation of A. Refine the selected mark next.
+superseding the initial recommendation of A. The final asset set preserves this
+geometry and adds outlined lettering, theme variants and usage rules.
 
 Asset requirements:
 
@@ -211,5 +215,5 @@ Accessibility is a design constraint in every slice; full accessibility
 qualification remains after functional parity, following the user's sequencing.
 A brief is not proof that those sites or assets already exist.
 
-**Recommended next:** refine the selected Nested frame mark and deliver its final
-asset set, then the selected-mark public-copy/shell slice.
+**Recommended next:** the selected-mark public-copy/shell slice for the dedicated
+Zloz promo, matching the Viz and Three family styles.

@@ -14,6 +14,12 @@ import connected from '../../../../../docs/assets/zloz/connected-planes.svg?raw'
 import connectedMono from '../../../../../docs/assets/zloz/connected-planes-mono.svg?raw';
 import connectedUrl from '../../../../../docs/assets/zloz/connected-planes.svg?url';
 import connectedMonoUrl from '../../../../../docs/assets/zloz/connected-planes-mono.svg?url';
+import finalWordmark from '../../../../../docs/assets/zloz/final/wordmark.svg?raw';
+import finalMarkUrl from '../../../../../docs/assets/zloz/final/mark.svg?url';
+import finalLightUrl from '../../../../../docs/assets/zloz/final/wordmark-light.svg?url';
+import finalDarkUrl from '../../../../../docs/assets/zloz/final/wordmark-dark.svg?url';
+import finalMonoUrl from '../../../../../docs/assets/zloz/final/wordmark-mono.svg?url';
+import finalFaviconUrl from '../../../../../docs/assets/zloz/final/favicon.svg?url';
 
 const concepts = [
   { id: 'a', letter: 'A', name: 'Assembly junction', color: assembly, mono: assemblyMono, url: assemblyUrl, monoUrl: assemblyMonoUrl, idea: 'Three parts. One intentional connection.', detail: 'Faceted pieces meet around an open port. The right-hand spine gives the assembled system a compact, distinct silhouette.', tradeoff: 'Strong assembly story; more abstract than a diagram boundary.' },
@@ -27,8 +33,25 @@ const concepts = [
       <p class="eyebrow">Family identity / Concept review</p>
       <h1 id="review-title">Three ways to Zloz.</h1>
       <p class="review-tagline">Compose systems. Connect ideas.</p>
-      <p class="review-context">Three distinct SVG studies in the Viz and Three visual family. B — Nested frame is the selected direction. The other studies remain here for comparison; final asset refinement comes next.</p>
+      <p class="review-context">B — Nested frame is the selected direction. The final SVG assets use the same neutral surfaces, blue accents and Inter typography as Viz and Three. The original studies remain below for comparison.</p>
       <nav class="concept-jump" aria-label="Logo concepts">{concepts.map(concept => <a href={`#concept-${concept.id}`}>{concept.letter} · {concept.name} <span aria-hidden="true">↓</span></a>)}</nav>
+    </section>
+    <section class="final-identity" aria-labelledby="final-title">
+      <p class="eyebrow">Selected identity</p><h2 id="final-title">Nested frame. Foldkit Zloz.</h2>
+      <div class="theme-pair">
+        {(['light', 'dark'] as const).map(mode => <figure class={`proof-theme proof-${mode}`} data-final-identity={mode}>
+          <figcaption>{mode === 'light' ? 'Light' : 'Dark'} identity</figcaption>
+          <div class="final-lockup"><Fragment set:html={decorativeLogo(finalWordmark)} /></div>
+        </figure>)}
+      </div>
+      <p class="identity-guidance">Keep the folded boundary, inner element and bridge together. Use the mark at 16px or larger, the wordmark at 40px high or larger, and leave at least one quarter of the mark’s width clear around it.</p>
+      <div class="asset-links final-downloads">
+        <a href={finalMarkUrl} download="zloz-mark.svg">Adaptive mark SVG</a>
+        <a href={finalLightUrl} download="zloz-wordmark-light.svg">Light wordmark SVG</a>
+        <a href={finalDarkUrl} download="zloz-wordmark-dark.svg">Dark wordmark SVG</a>
+        <a href={finalMonoUrl} download="zloz-wordmark-mono.svg">Mono wordmark SVG</a>
+        <a href={finalFaviconUrl} download="zloz-favicon.svg">Favicon SVG</a>
+      </div>
     </section>
     <section class="concept-overview" aria-label="Three Zloz silhouettes">
       {concepts.map(concept => <a class="overview-mark" href={`#concept-${concept.id}`} aria-label={`Review concept ${concept.letter}: ${concept.name}`}>
@@ -53,12 +76,18 @@ const concepts = [
         <div class="study-notes"><p>{concept.detail}</p><p><span>Consider:</span> {concept.tradeoff}</p><div class="asset-links"><a href={concept.url} download={`zloz-${concept.id}.svg`}>Color SVG <span aria-hidden="true">↗</span></a><a href={concept.monoUrl} download={`zloz-${concept.id}-mono.svg`}>Mono SVG <span aria-hidden="true">↗</span></a></div></div>
       </section>)}
     </div>
-    <section class="review-outcome" aria-labelledby="review-outcome-title"><p class="eyebrow">Selected direction · B</p><h2 id="review-outcome-title">Nested frame wins.</h2><p>A folded boundary, an inner element and a bridge: a system within a system. Nested frame is the user-selected direction for Foldkit Zloz. Next, refine this mark and produce the final wordmark, monochrome and favicon assets.</p><p class="origin-note">Zloz comes from <span lang="pl">Złóż</span>: fold, assemble, put together. The public name stays Zloz.</p></section>
+    <section class="review-outcome" aria-labelledby="review-outcome-title"><p class="eyebrow">Selected direction · B</p><h2 id="review-outcome-title">Nested frame wins.</h2><p>A folded boundary, an inner element and a bridge: a system within a system. The final assets carry this identity into the board. Next, build the dedicated Zloz promo shell in the Viz and Three family style.</p><p class="origin-note">Zloz comes from <span lang="pl">Złóż</span>: fold, assemble, put together. The public name stays Zloz.</p></section>
   </div>
 </Layout>
 
 <style>
   .zloz-review { padding-bottom: 64px; }
+  .final-identity { margin: 20px 0 64px; }
+  .final-identity h2 { font-size: 30px; letter-spacing: -1px; margin: 12px 0 24px; }
+  .final-lockup { padding: 32px; }
+  .final-lockup :global(svg) { display: block; width: auto; height: 48px; max-width: 100%; }
+  .identity-guidance { color: var(--muted); font-size: 13px; line-height: 1.65; max-width: 80ch; margin: 20px 0; }
+  .final-downloads { flex-wrap: wrap; }
   .review-intro { max-width: 760px; padding: 52px 0 28px; }
   .review-intro h1 { font-size: clamp(38px, 5vw, 68px); letter-spacing: -3px; line-height: 1.04; margin: 16px 0; font-weight: 760; }
   .review-tagline { font-size: 22px; letter-spacing: -0.7px; margin: 20px 0 12px; }

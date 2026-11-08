@@ -2,7 +2,10 @@
 
 **Status: approved roadmap, 2026-11-08.** Slice one is implemented and locally
 qualified in the [headless contract record](2026-11-08-flow-headless-architecture-qualification.md).
-Renderer/pattern slices remain future work. The protected Orbit follow-up is
+Opt-in C4 preset renderers and the themed system-context/container demos are
+implemented in [ADR 0006](../adr/0006-composable-c4-preset-renderers.md) and the
+[rendered qualification](../../apps/flow-sample/evidence/c4-renderers.md).
+Pattern insertion and DDD renderer slices remain future work. The protected Orbit follow-up is
 committed separately as `c7292fc`. The proposal below records the original scope;
 [ADR 0005](../adr/0005-headless-flow-architecture-contract.md) defines the implemented contract.
 
@@ -189,6 +192,6 @@ loss. A general multi-view architecture repository, deployment modelling,
 Structurizr interchange, automatic code discovery and publication are outside
 this appetite and need their own decisions.
 
-**Recommended next:** C4 preset renderers and a themed system-context workbench
-example, building on the qualified headless contract. Broader pattern insertion
-and DDD authoring follow through the same package APIs.
+**Recommended next:** the requested product assessment of Mermaid/agent
+interchange and editions. Broader pattern insertion and DDD authoring remain
+queued through the same package APIs; this assessment does not implement them.

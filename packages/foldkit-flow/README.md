@@ -68,9 +68,9 @@ documents. Applications own storage and migration beyond document version 1.
 ## Headless C4 and DDD nodes
 
 The package owns architecture semantics and outline geometry independently of the
-Astro example. **This slice does not add C4/DDD artwork to the default FoldKit
-view or pattern builders.** Consumers can use these contracts in custom shells;
-bundled preset renderers follow separately.
+Astro example. C4 artwork is opt-in through the public presets below; the generic
+FoldKit view keeps its existing defaults. DDD artwork and pattern builders remain
+subsequent slices.
 
 ```ts
 import {
@@ -175,6 +175,66 @@ export. Older code retains the fields but uses generic rendering and rectangular
 geometry. Other serializers are not covered by that qualification.
 Run `bun tools/check-flow-architecture-compat.ts` from this repository to repeat
 the pinned-core check. No migration or registry publication occurs here.
+
+## C4 preset renderers
+
+```ts
+import {
+  flowView,
+  flowC4Node,
+  flowC4Group,
+  flowLightTheme,
+  flowDarkTheme,
+} from '@opsydyn/foldkit-flow/foldkit';
+
+const canvas = flowView(h, model.editor, {
+  id: 'architecture',
+  label: 'Order platform · system context',
+  onEvent: (event) => Message.ObservedFlowInput({ message: event }),
+  renderNodeShell: flowC4Node,
+  renderGroupShell: flowC4Group,
+  theme: model.dark ? flowDarkTheme : flowLightTheme,
+});
+```
+
+The package draws C4 Person, Software System, Container and Component nodes, and
+system/container group boundaries. Other families return undefined and use the
+normal renderer. Use authored dimensions and `appearance` from the headless
+contract; a semantic role alone does not replace a document's outline. The Person
+glyph fits inside its card. Cylinders use the core's `outlinePath` and
+`decorationPaths`; no second shape calculation lives in the view.
+
+The presets retain native focus/selection, movement, ports, policy reasons,
+context actions, collapse and resize controls. Content uses safe core bounds
+inside the authored height; increase dimensions for long descriptions. External
+scope uses both text and dashes. Scoped Flow tokens control paint in light/dark
+or host/Pleat themes. Theme changes do not alter the document or history.
+
+`FlowC4NodeOptions<Message>` exposes `renderIcon`, `renderType`, `renderName`,
+`renderTechnology`, `renderDescription` and `renderBody`. Undefined keeps the
+default part; null omits it. These slots supply **inert** content inside the native
+drag button. Omitting visible names preserves native accessible selection names.
+`renderBody` replaces content inside the canonical outline. Use a complete shell
+and the public primitives when replacing the whole structure.
+
+`attributes` customizes frame classes and paint while Model bounds remain
+authoritative. `renderControls(context, h)` supplies live interactive content
+outside artwork; undefined keeps native chrome and `[]` omits it. Use the view's
+`renderPort` to customize or hide sockets independently. Semantic content remains
+visible in minimal mode; it is not a measurement diagnostic.
+
+Optional `bodyCache` accepts `createFlowNodeBodyCache()`. Create it once per canvas
+and keep the options object/slot functions stable for reuse. Artwork keys include
+the builder, node, selection/preview and options; they exclude full EditorState,
+source feedback and port authorization. Controls and ports evaluate current
+context even when artwork is retained. Changing a slot's captured inputs requires
+a new immutable options object; cache-hit counts or universal speedups are not
+claimed.
+
+The Astro workbench's **Open C4 system context** and **Open C4 container view**
+buttons demonstrate separate abstraction levels through these package exports.
+The container view includes a portless boundary and a curved data-store anchor.
+These are authored examples; atomic pattern insertion is not implemented yet.
 
 ## FoldKit view
 

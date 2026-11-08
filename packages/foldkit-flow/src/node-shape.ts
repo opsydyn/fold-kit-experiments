@@ -9,6 +9,8 @@ export type FlowNodeShapeGeometry = Readonly<{
   bounds: Readonly<Point & Size>;
   contentBounds: Readonly<Point & Size>;
   outlinePath: string;
+  /** Pointer-inert interior strokes, sharing the outline's local coordinate system. */
+  decorationPaths: readonly string[];
 }>;
 
 function metrics(node: FlowNode) {
@@ -39,7 +41,13 @@ export function nodeShapeGeometry(node: FlowNode): FlowNodeShapeGeometry {
   const bounds = { x: 0, y: 0, width: w, height: h };
   switch (shape) {
     case 'rectangle':
-      return { shape, bounds, contentBounds: bounds, outlinePath: `M0,0 H${w} V${h} H0 Z` };
+      return {
+        shape,
+        bounds,
+        contentBounds: bounds,
+        outlinePath: `M0,0 H${w} V${h} H0 Z`,
+        decorationPaths: [],
+      };
     case 'rounded-rectangle': {
       // A square inset by r(1 - 1/sqrt(2)) fits inside each circular corner.
       const inset = r * (1 - Math.SQRT1_2);
@@ -48,6 +56,7 @@ export function nodeShapeGeometry(node: FlowNode): FlowNodeShapeGeometry {
         bounds,
         contentBounds: { x: inset, y: inset, width: w - 2 * inset, height: h - 2 * inset },
         outlinePath: `M${r},0 H${w - r} A${r},${r} 0 0 1 ${w},${r} V${h - r} A${r},${r} 0 0 1 ${w - r},${h} H${r} A${r},${r} 0 0 1 0,${h - r} V${r} A${r},${r} 0 0 1 ${r},0 Z`,
+        decorationPaths: [],
       };
     }
     case 'cylinder':
@@ -56,6 +65,7 @@ export function nodeShapeGeometry(node: FlowNode): FlowNodeShapeGeometry {
         bounds,
         contentBounds: { x: 0, y: 2 * c, width: w, height: h - 4 * c },
         outlinePath: `M0,${c} A${w / 2},${c} 0 0 1 ${w},${c} L${w},${h - c} A${w / 2},${c} 0 0 1 0,${h - c} Z`,
+        decorationPaths: [`M0,${c} A${w / 2},${c} 0 0 0 ${w},${c}`],
       };
   }
 }

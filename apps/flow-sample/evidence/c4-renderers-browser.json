@@ -1,0 +1,39 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "contextNodes": 4,
+  "contextEdges": 3,
+  "containerNodes": 5,
+  "themeEvidence": [
+    {
+      "theme": "light",
+      "fill": "rgb(253, 254, 251)",
+      "stroke": "rgb(100, 123, 109)"
+    },
+    {
+      "theme": "dark",
+      "fill": "rgb(33, 52, 45)",
+      "stroke": "rgb(100, 130, 118)"
+    }
+  ],
+  "checks": [
+    "package presets in both C4 views",
+    "native handle focus/identity through retention",
+    "keyboard movement and Undo",
+    "width resize and Undo",
+    "native connection creation and Undo",
+    "pointer drag and Undo",
+    "theme changes preserve document",
+    "cylinder cap, curved anchor and portless C4 boundary",
+    "collapse/expand retain authored graph",
+    "group resize and Undo",
+    "artwork contains no interactive controls"
+  ],
+  "pageErrors": [],
+  "screenshots": [
+    "c4-context-light.png",
+    "c4-context-dark.png",
+    "c4-containers-light.png",
+    "c4-containers-dark.png"
+  ]
+}

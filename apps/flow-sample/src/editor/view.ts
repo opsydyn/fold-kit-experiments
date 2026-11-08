@@ -9,6 +9,9 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-flow-force/eligibility';
 import {
   flowView,
+  flowC4Node,
+  flowC4Group,
+  type FlowC4NodeOptions,
   createFlowNodeBodyCache,
   flowEdgeEndpointSelect,
   flowEdgeEndpointReasons,
@@ -106,6 +109,11 @@ type WorkbenchEdgeHooks = {
 const workbenchNodeCache = createLazy();
 const workbenchBodyCache = createFlowNodeBodyCache();
 const orbitBodyCache = createFlowNodeBodyCache();
+const c4Options: FlowC4NodeOptions<Message> = { bodyCache: createFlowNodeBodyCache() };
+const retainedC4Node = (context: FlowNodeRenderContext, h: HtmlBuilder<Message>) =>
+  flowC4Node(context, h, c4Options);
+const retainedC4Group = (context: FlowNodeRenderContext, h: HtmlBuilder<Message>) =>
+  flowC4Group(context, h, c4Options);
 const retainedOrbitNode = (context: FlowNodeRenderContext, h: HtmlBuilder<Message>) =>
   orbitNode(context, h, orbitBodyCache);
 const retainedOrbitGroup = (context: FlowNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -476,6 +484,14 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ],
                 [
                   button('Open release workflow', Message.SelectedExample({ example: 'release' })),
+                  button(
+                    'Open C4 system context',
+                    Message.SelectedExample({ example: 'c4-context' }),
+                  ),
+                  button(
+                    'Open C4 container view',
+                    Message.SelectedExample({ example: 'c4-containers' }),
+                  ),
                   button('Open Onion Architecture', Message.SelectedExample({ example: 'onion' })),
                   button(
                     'Open grouped Onion Architecture',
@@ -817,6 +833,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ],
               [
                 h.option([h.Value('cards'), h.Selected(model.nodeDesign === 'cards')], ['Cards']),
+                h.option(
+                  [h.Value('c4'), h.Selected(model.nodeDesign === 'c4')],
+                  ['C4 · package presets'],
+                ),
                 h.option(
                   [h.Value('orbits'), h.Selected(model.nodeDesign === 'orbits')],
                   ['Orbits · custom SVG shells'],
@@ -1911,6 +1931,29 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               : []),
           ],
         ),
+        ...(model.nodeDesign === 'c4'
+          ? [
+              h.div(
+                [h.Class('c4-diagram-caption')],
+                [
+                  h.h2(
+                    [],
+                    [
+                      model.editor.graph.nodes.some((node) => node.id === 'platform-boundary')
+                        ? 'Order platform · container view'
+                        : 'Order platform · system context',
+                    ],
+                  ),
+                  h.p(
+                    [],
+                    [
+                      'C4 package presets. People and systems are named explicitly; dashed nodes are external. Arrows describe directed relationships. Use the theme picker to compare light and dark.',
+                    ],
+                  ),
+                ],
+              ),
+            ]
+          : []),
         flowView(h, model.editor, {
           renderPort: model.customPorts
             ? model.socketReasonBadges
@@ -2126,9 +2169,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ...edgeHooks,
           viewportCulling: model.viewportCulling,
           nodeViewCache:
-            model.retainNodeViews && model.nodeDesign !== 'orbits' ? workbenchNodeCache : undefined,
+            model.retainNodeViews && model.nodeDesign === 'cards' ? workbenchNodeCache : undefined,
           nodeBodyCache:
-            model.retainNodeViews && model.nodeDesign !== 'orbits' ? workbenchBodyCache : undefined,
+            model.retainNodeViews && model.nodeDesign === 'cards' ? workbenchBodyCache : undefined,
           renderWorldOverlay: (context, builder) =>
             model.showWorldAnnotation ? releaseGateAnnotation(context, builder) : null,
           renderNodeShell:
@@ -2136,8 +2179,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               ? model.retainNodeViews
                 ? retainedOrbitNode
                 : orbitNode
-              : undefined,
+              : model.nodeDesign === 'c4'
+                ? model.retainNodeViews
+                  ? retainedC4Node
+                  : flowC4Node
+                : undefined,
           renderGroupShell: (context, builder) => {
+            if (model.nodeDesign === 'c4')
+              return model.retainNodeViews
+                ? retainedC4Group(context, builder)
+                : flowC4Group(context, builder);
             if (model.nodeDesign !== 'orbits') return undefined;
             return model.retainNodeViews
               ? retainedOrbitGroup(context, builder)

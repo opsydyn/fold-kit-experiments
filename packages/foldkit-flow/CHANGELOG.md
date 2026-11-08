@@ -2,6 +2,10 @@
 
 ## 0.1.0 (unreleased)
 
+- Add optional composable C4 node/boundary presets with scoped themes, replaceable
+  semantic content and live native controls; share cylinder cap geometry with
+  headless consumers.
+
 - Add dependency-free C4/DDD node descriptors, a validated standalone factory,
   shape geometry and policy-aware undoable semantic/appearance edits. Preserve
   v1 documents and authored anchors; preset renderers remain a follow-up.

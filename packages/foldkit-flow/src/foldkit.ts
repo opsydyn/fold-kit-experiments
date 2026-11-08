@@ -204,6 +204,8 @@ export {
   flowWorldOverlayItem,
 } from './composition';
 export type { FlowNodeRenderContext, FlowWorldOverlayItemOptions } from './composition';
+export { flowC4Node, flowC4Group } from './c4-renderer';
+export type { FlowC4ContentContext, FlowC4ContentRenderer, FlowC4NodeOptions } from './c4-renderer';
 import {
   portLabelViews,
   type FlowPortLabelOptions,

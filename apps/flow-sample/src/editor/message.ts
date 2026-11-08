@@ -38,6 +38,8 @@ export const Message = defineMessageUnion({
       'large-workflow',
       'protected-orbits',
       'port-snapping',
+      'c4-context',
+      'c4-containers',
     ]),
   },
   SelectedWheelNavigation: { wheelNavigation: WheelNavigation },

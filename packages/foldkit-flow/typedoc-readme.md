@@ -21,9 +21,16 @@ edit policies and Undo. Shape snapping still authors normalized envelope points.
 Group roles/appearances retain the portless rectangular-boundary invariant.
 Version 1 documents accept these optional validated descriptors. The qualified
 pre-change reader retains them through its existing edits but uses generic
-rendering and geometry. Default C4/DDD artwork, semantic relationships and pattern
-builders are not part of this headless slice. See the package README for an
-example and ADR 0005 for compatibility and geometry decisions.
+rendering and geometry. See ADR 0005 for compatibility and geometry decisions.
+
+The optional `/foldkit` entry now supplies `flowC4Node` and `flowC4Group` as
+explicit shell choices. `FlowC4NodeOptions` supports inert semantic-content slots,
+frame attributes, live controls and optional public body caching. Other families
+retain normal fallback rendering. Core `decorationPaths` supplies the cylinder cap
+alongside the canonical outline. Presets use scoped theme tokens and authored
+bounds; minimal mode retains semantic meaning. DDD artwork, semantic edge
+descriptors and atomic pattern builders remain follow-ups. See ADR 0006 and the
+package README for the renderer contract.
 
 ## Port anchor contracts
 

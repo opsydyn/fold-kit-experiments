@@ -37,6 +37,42 @@ const nodeA = graph.nodes[0];
 const nodeB = graph.nodes[1];
 if (!nodeA || !nodeB) throw new Error('Fixture requires two nodes');
 
+/* oxlint-disable anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts here, not structural placeholder names. */
+test('real ELK retains architecture envelopes and joins curved defaults and authored anchors', async () => {
+  const shaped: FlowGraph = {
+    ...graph,
+    nodes: [
+      {
+        ...nodeA,
+        architecture: { family: 'c4', role: 'container' },
+        appearance: { shape: 'cylinder' },
+        ports: [{ id: 'p:0:0', kind: 'output', side: 'top', offset: 0 }],
+      },
+      {
+        ...nodeB,
+        architecture: { family: 'ddd', role: 'repository' },
+        appearance: { shape: 'rounded-rectangle' },
+        ports: [{ id: 'in', kind: 'input', side: 'left', anchor: { x: 0.2, y: 0.8 } }],
+      },
+    ],
+  };
+  const before = createEditor(shaped);
+  const request = layoutRequest(before, 'architecture');
+  const result = await createElkLayout()(request);
+  const arranged = applyLayout(before, request, result);
+  const source = arranged.graph.nodes[0]!,
+    target = arranged.graph.nodes[1]!;
+  expect(source.size).toEqual(nodeA.size);
+  expect(target.size).toEqual(nodeB.size);
+  expect(source.architecture).toEqual(shaped.nodes[0]?.architecture);
+  expect(result.routes[0]?.points[0]).toEqual({ x: source.position.x, y: source.position.y + 16 });
+  expect(result.routes[0]?.points.at(-1)).toEqual({
+    x: target.position.x + 36,
+    y: target.position.y + 96,
+  });
+});
+/* oxlint-enable anti-slop/no-shape-in-symbol-names */
+
 test('real ELK lays out variable-size nodes, fixed ports and routes without mutating the input', async () => {
   const request = layoutRequest(createEditor(graph), 'arrange:1');
   const before = JSON.stringify(request);

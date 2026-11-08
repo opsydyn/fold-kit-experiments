@@ -3,6 +3,14 @@
  * @module Core
  */
 export type * from './types';
+export type * from './architecture';
+export type { ArchitectureNodeInput } from './architecture-node';
+export { architectureNodePresets, isNodeArchitecture, isNodeAppearance } from './architecture';
+export { createArchitectureNode } from './architecture-node';
+/* oxlint-disable anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts here, not structural placeholder names. */
+export { nodeShapeGeometry, nodeShapeBoundaryPoint, nodeShapeContainsPoint } from './node-shape';
+export type { FlowNodeShapeGeometry } from './node-shape';
+/* oxlint-enable anti-slop/no-shape-in-symbol-names */
 export {
   FlowError,
   validateGraph,

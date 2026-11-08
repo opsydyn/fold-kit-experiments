@@ -2,6 +2,10 @@
 
 ## 0.1.0 (unreleased)
 
+- Add dependency-free C4/DDD node descriptors, a validated standalone factory,
+  shape geometry and policy-aware undoable semantic/appearance edits. Preserve
+  v1 documents and authored anchors; preset renderers remain a follow-up.
+
 - Document explicit public body-cache composition for custom Orbit node/group
   artwork, with controls and policy-controlled sockets evaluated live.
 

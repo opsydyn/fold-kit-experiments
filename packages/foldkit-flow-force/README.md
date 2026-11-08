@@ -71,4 +71,6 @@ adapter through the repository's manual publish workflow.
 Custom normalized port anchors use the core's canonical points. Routing leads
 extend beyond the declared side of the node box before avoiding other cards;
 returned routes start/end at the authored anchors. This does not infer custom
-shape obstacles or arbitrary outward normals.
+shape obstacles or arbitrary outward normals. With the core's built-in curved
+outlines, endpoints stay on the outline and leads still clear the conservative
+rectangular envelope before corridor search.

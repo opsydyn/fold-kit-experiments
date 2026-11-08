@@ -11,6 +11,9 @@ The reference includes:
 
 - `@opsydyn/foldkit-flow`: graph/port types, editor state/events, serialization,
   history, layout publication, shared edge geometry, custom port anchors and connection-preview policies.
+  The root also exports C4/DDD node descriptors, architecture presets/factory,
+  shape geometry and undoable architecture/appearance events. These are headless
+  contracts; default architecture artwork and pattern builders are subsequent slices.
 - `@opsydyn/foldkit-flow/foldkit`: view options, node/group shells, public
   interaction primitives, diagnostics and background contracts.
 - `@opsydyn/foldkit-flow-elk`: ELK layout options and adapter factory.

@@ -65,6 +65,117 @@ history entries. Undo and measurements advance the revision used to reject stale
 layout results. Selection, viewport, gestures and history are excluded from saved
 documents. Applications own storage and migration beyond document version 1.
 
+## Headless C4 and DDD nodes
+
+The package owns architecture semantics and outline geometry independently of the
+Astro example. **This slice does not add C4/DDD artwork to the default FoldKit
+view or pattern builders.** Consumers can use these contracts in custom shells;
+bundled preset renderers follow separately.
+
+```ts
+import {
+  createArchitectureNode,
+  createEditor,
+  updateEditor,
+  nodeShapeGeometry,
+  nodeShapeContainsPoint,
+  portPosition,
+} from '@opsydyn/foldkit-flow';
+
+const store = createArchitectureNode({
+  id: 'orders-store',
+  label: 'Orders',
+  position: { x: 40, y: 40 },
+  size: { width: 200, height: 120 },
+  ports: [{ id: 'out', kind: 'output', side: 'right', offset: 0.5 }],
+  architecture: {
+    family: 'c4',
+    role: 'container',
+    technology: 'PostgreSQL',
+    description: 'Stores accepted orders',
+    scope: 'internal',
+  },
+  appearance: { shape: 'cylinder' },
+  data: { owner: 'sales' },
+});
+const geometry = nodeShapeGeometry(store); // local SVG outline and content bounds
+const endpoint = portPosition(store, 'out'); // canonical world coordinates
+const hit = nodeShapeContainsPoint(store, endpoint); // inclusive world-space hit test
+const editor = createEditor({ nodes: [store], edges: [] });
+const changed = updateEditor(editor, {
+  type: 'NodeArchitectureChanged',
+  id: store.id,
+  architecture: { family: 'ddd', role: 'repository' },
+});
+const restored = updateEditor(changed, { type: 'UndoPressed' });
+```
+
+`FlowNodeArchitecture` is a discriminated union. C4 roles are `person`,
+`software-system`, `container`, `component`; only containers/components carry
+`technology`. DDD roles are `entity`, `value-object`, `aggregate-root`, `aggregate`,
+`domain-event`, `domain-service`, `repository`, `bounded-context`. Bounded contexts
+may classify their `subdomain` as `core`, `supporting` or `generic`. These are
+diagram semantics, not domain identity or executable business invariants.
+`architectureNodePresets` is a frozen typed catalogue of names and default shapes.
+
+`createArchitectureNode` validates/detaches a standalone node and picks a catalogue
+shape when omitted. Supply IDs, dimensions, ports and `kind` yourself. An aggregate
+must be a portless group. Groups can represent C4 system/container and DDD
+aggregate/context boundaries; group shapes remain rectangular. A context-map
+bounded context can instead be a normal port-bearing node. Assemble parenting
+with a complete graph, rather than referencing missing parents in the factory.
+
+`architecture` and `appearance` are optional node fields; consumer `data` is
+untouched. A role alone does not alter geometry. `appearance.shape` explicitly
+chooses `rectangle`, `rounded-rectangle` or `cylinder`. A Person preset uses a
+rounded card; a person adornment is future renderer artwork. Semantic changes
+preserve the selected shape. `NodeAppearanceChanged` edits the outline, and null
+on either change event removes that descriptor. Both use read-only/gesture gates,
+one-step Undo, revision/route invalidation and independent host policies:
+
+```ts
+import type { EditorPolicy } from '@opsydyn/foldkit-flow';
+
+const policy: EditorPolicy = {
+  canChangeNodeArchitecture: (node, next, graph) => null,
+  canChangeNodeAppearance: (node, next, graph) => 'Keep the approved notation',
+};
+```
+
+Callbacks receive current and validated proposed nodes plus the current graph.
+Returning a reason vetoes the whole change. Exact no-ops do not publish a new
+revision/history; malformed descriptors throw `FlowError` before commit.
+
+`nodeShapeGeometry` returns local `bounds`, `contentBounds` and `outlinePath`;
+render the outline in that authored coordinate system. Rounded corner radius is
+`min(12, width/2, height/2)`; cylinder cap radius is `min(16, width/4, height/4)`.
+Its safe content sits between both cap interiors and can be empty at tiny sizes.
+`nodeShapeBoundaryPoint(node, side, offset)` projects onto the same outline in
+world space. Layout, marquee and grouping keep the rectangular authored envelope;
+`nodeShapeContainsPoint` is an optional precise outline hit test. No DOM state or
+renderer registry is persisted.
+
+`portAnchor(port, node)` resolves default side/offset ports onto the selected
+outline. Omit the node to retain legacy rectangular normalized coordinates.
+Explicit `port.anchor` always wins, including after a shape change or resize.
+`portBoundaryPosition` projects along the routing hint onto the selected outline;
+ELK rejoins authored anchors and force routing leaves the conservative envelope
+before corridor search. Native/custom port contexts and anchor controls use the
+same canonical coordinates. Snapping continues to author envelope coordinates;
+it does not automatically constrain explicit anchors to a curved outline.
+
+`PortAnchorReset` restores the same side at offset `0.5` through the existing
+`canEditPort` position policy and Undo. Hiding optional controls does not disable
+these package APIs or protection rules.
+
+Version 1 documents accept the new optional descriptors and validate their
+reserved fields strictly. Literal old/new fixtures and the pinned pre-contract
+core (`ce978a2`) qualify retention through legacy rename/move/copy/paste/Undo and
+export. Older code retains the fields but uses generic rendering and rectangular
+geometry. Other serializers are not covered by that qualification.
+Run `bun tools/check-flow-architecture-compat.ts` from this repository to repeat
+the pinned-core check. No migration or registry publication occurs here.
+
 ## FoldKit view
 
 ```ts

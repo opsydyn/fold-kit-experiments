@@ -1,4 +1,6 @@
 import { FlowError } from './graph';
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts here, not structural placeholder names.
+import { nodeShapeBoundaryPoint } from './node-shape';
 import type {
   FlowMinimapGeometry,
   EdgePathStyle,
@@ -66,9 +68,17 @@ export function boxBounds(origin: Point, point: Point) {
   };
 }
 
-/** Normalized position in the node's box; the side remains an independent routing hint. */
-export function portAnchor(port: Port): Point {
+/** Normalized position; supplying a node applies its outline to default offsets. Explicit anchors always win. */
+export function portAnchor(port: Port, node?: FlowNode): Point {
   if (port.anchor) return port.anchor;
+  if (node?.appearance) {
+    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts here, not structural placeholder names.
+    const point = nodeShapeBoundaryPoint(node, port.side, port.offset);
+    return {
+      x: (point.x - node.position.x) / node.size.width,
+      y: (point.y - node.position.y) / node.size.height,
+    };
+  }
   switch (port.side) {
     case 'left':
       return { x: 0, y: port.offset };
@@ -85,7 +95,7 @@ export function portAnchor(port: Port): Point {
 export function portPosition(node: FlowNode, id: string): Point {
   const port = node.ports.find((item) => item.id === id);
   if (!port) throw new FlowError('invalid-graph', `Unknown port ${id} on ${node.id}`);
-  const anchor = portAnchor(port);
+  const anchor = portAnchor(port, node);
   return {
     x: node.position.x + node.size.width * anchor.x,
     y: node.position.y + node.size.height * anchor.y,
@@ -97,6 +107,14 @@ export function portBoundaryPosition(node: FlowNode, id: string): Point {
   const port = node.ports.find((item) => item.id === id);
   if (!port) throw new FlowError('invalid-graph', `Unknown port ${id} on ${node.id}`);
   const point = portPosition(node, id);
+  if (node.appearance) {
+    const offset =
+      port.side === 'top' || port.side === 'bottom'
+        ? (point.x - node.position.x) / node.size.width
+        : (point.y - node.position.y) / node.size.height;
+    // oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts here, not structural placeholder names.
+    return nodeShapeBoundaryPoint(node, port.side, Math.max(0, Math.min(1, offset)));
+  }
   switch (port.side) {
     case 'left':
       return { x: node.position.x, y: point.y };

@@ -1,8 +1,10 @@
 # First-class architecture shapes and patterns for Flow
 
-**Status: proposed plan, 2026-11-08. No architecture API, schema change or renderer
-is implemented by this document.** The protected Orbit follow-up is committed
-separately as `c7292fc`.
+**Status: approved roadmap, 2026-11-08.** Slice one is implemented and locally
+qualified in the [headless contract record](2026-11-08-flow-headless-architecture-qualification.md).
+Renderer/pattern slices remain future work. The protected Orbit follow-up is
+committed separately as `c7292fc`. The proposal below records the original scope;
+[ADR 0005](../adr/0005-headless-flow-architecture-contract.md) defines the implemented contract.
 
 ## Recommendation and outcome
 
@@ -187,7 +189,6 @@ loss. A general multi-view architecture repository, deployment modelling,
 Structurizr interchange, automatic code discovery and publication are outside
 this appetite and need their own decisions.
 
-**Recommended next:** approve slice one, the headless semantic/shape contract and
-compatibility tests. It resolves the hardest persistence and geometry questions
-before investing in a larger visual catalogue. This document authorizes no
-architecture implementation by itself.
+**Recommended next:** C4 preset renderers and a themed system-context workbench
+example, building on the qualified headless contract. Broader pattern insertion
+and DDD authoring follow through the same package APIs.

@@ -44,7 +44,22 @@ function portLead(node: FlowNode, id: string) {
   const direction = directions[port.side];
   return {
     point,
-    outside: { x: boundary.x + direction.x * lead, y: boundary.y + direction.y * lead },
+    // Curved-outline intersections can sit inside the conservative rectangular obstacle.
+    // Leave that envelope before searching corridors, retaining the authored endpoint.
+    outside: {
+      x:
+        direction.x < 0
+          ? node.position.x - lead
+          : direction.x > 0
+            ? node.position.x + node.size.width + lead
+            : boundary.x,
+      y:
+        direction.y < 0
+          ? node.position.y - lead
+          : direction.y > 0
+            ? node.position.y + node.size.height + lead
+            : boundary.y,
+    },
   };
 }
 

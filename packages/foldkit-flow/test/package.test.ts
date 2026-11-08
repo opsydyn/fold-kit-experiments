@@ -47,6 +47,66 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
+    const architectureSource = `import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, type FlowNodeArchitecture } from '@opsydyn/foldkit-flow';
+const architecture:FlowNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
+// @ts-expect-error C4 and DDD roles cannot be mixed
+const invalid:FlowNodeArchitecture={family:'c4',role:'entity'};
+// @ts-expect-error Person has no container technology
+const invalidTechnology:FlowNodeArchitecture={family:'c4',role:'person',technology:'SQL'};
+const node=createArchitectureNode({id:'orders',label:'Orders',position:{x:0,y:0},size:{width:200,height:100},ports:[{id:'out',kind:'output',side:'top',offset:0}],architecture,appearance:{shape:'cylinder'},data:{host:true}});
+const initial=createEditor({nodes:[node],edges:[]});
+const edited=updateEditor(initial,{type:'NodeArchitectureChanged',id:node.id,architecture:{family:'ddd',role:'repository'}});
+if(portPosition(node,'out').y!==16) throw new Error('Missing shaped anchor');
+if(nodeShapeGeometry(node).shape!=='cylinder') throw new Error('Missing shape geometry');
+if(updateEditor(edited,{type:'UndoPressed'}).graph.nodes[0]?.architecture?.family!=='c4') throw new Error('Missing architecture Undo');
+console.log('headless-architecture-ok');
+`;
+    const architectureConsumer = path.join(directory, 'architecture.mts');
+    await writeFile(architectureConsumer, architectureSource);
+    const rootTsc = path.join(root, 'packages/foldkit-flow/node_modules/.bin/tsc');
+    for (const resolution of ['Bundler', 'NodeNext'])
+      await exec(
+        rootTsc,
+        [
+          '--noEmit',
+          '--strict',
+          '--exactOptionalPropertyTypes',
+          '--skipLibCheck',
+          '--target',
+          'ES2022',
+          '--module',
+          resolution === 'NodeNext' ? 'NodeNext' : 'ESNext',
+          '--moduleResolution',
+          resolution,
+          architectureConsumer,
+        ],
+        { ...options, cwd: directory },
+      );
+    await exec(
+      rootTsc,
+      [
+        '--strict',
+        '--exactOptionalPropertyTypes',
+        '--skipLibCheck',
+        '--target',
+        'ES2022',
+        '--module',
+        'NodeNext',
+        '--outDir',
+        'pure-compiled',
+        architectureConsumer,
+      ],
+      { ...options, cwd: directory },
+    );
+    for (const runtime of ['node', 'bun']) {
+      const result = await exec(runtime, ['pure-compiled/architecture.mjs'], {
+        ...options,
+        cwd: directory,
+      });
+      expect(result.stdout.trim()).toBe('headless-architecture-ok');
+    }
+    for (const unwanted of ['foldkit', 'effect', 'elkjs', 'react'])
+      expect(existsSync(path.join(directory, 'node_modules', unwanted))).toBe(false);
     await exec(
       'npm',
       [

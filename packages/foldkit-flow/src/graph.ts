@@ -1,3 +1,4 @@
+import { validNodeArchitectureFields } from './architecture';
 import type {
   Endpoint,
   FlowEdge,
@@ -151,7 +152,8 @@ function isNode(value: unknown): value is FlowNode {
     (!('parentId' in value) || typeof value.parentId === 'string') &&
     (!('extent' in value) || value.extent === 'parent') &&
     (!('expandParent' in value) || typeof value.expandParent === 'boolean') &&
-    (!('data' in value) || isJson(value.data))
+    (!('data' in value) || isJson(value.data)) &&
+    validNodeArchitectureFields(value)
   );
 }
 function isEdge(value: unknown): value is FlowEdge {

@@ -65,7 +65,7 @@ export function portRenderViews<M>(
       ...context,
       port,
       label: port.label ?? port.id,
-      anchor: portAnchor(port),
+      anchor: portAnchor(port, node),
       active: state.connection?.node === node.id && state.connection.port === port.id,
       target: target?.node === node.id && target.port === port.id,
       disabledReason: context.canConnectPort?.(endpoint, state.graph) ?? null,

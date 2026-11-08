@@ -1,3 +1,5 @@
+import type { FlowNodeArchitecture, FlowNodeAppearance } from './architecture';
+
 /** JSON payloads survive save/reload; views and runtime resources stay in the host. */
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | JsonObject;
 export interface JsonObject {
@@ -122,6 +124,10 @@ export type FlowNode = Readonly<{
   /** Grow the parent when this node grows beyond its bounds. */
   expandParent?: boolean;
   data?: JsonValue;
+  /** Optional semantic meaning, independent of the chosen outline and host data. */
+  architecture?: FlowNodeArchitecture;
+  /** Explicit opt-in outline geometry. Omission preserves legacy rectangular geometry. */
+  appearance?: FlowNodeAppearance;
 }>;
 export type Endpoint = Readonly<{ node: string; port: string }>;
 export type EdgePathStyle = 'straight' | 'stepped' | 'smooth';
@@ -335,6 +341,10 @@ export type PortEditCandidate = Readonly<{
 
 /** Pure host rules evaluated by the editor. */
 export type EditorPolicy = Readonly<{
+  /** Veto semantic changes; receives current node, validated proposed node and current graph. */
+  canChangeNodeArchitecture?: (node: FlowNode, next: FlowNode, graph: FlowGraph) => string | null;
+  /** Veto authored outline changes independently of semantic changes. */
+  canChangeNodeAppearance?: (node: FlowNode, next: FlowNode, graph: FlowGraph) => string | null;
   /** Pure per-port overrides resolved once at drag start. Undefined and omitted fields inherit. */
   portAnchorSnap?:
     | ((context: PortAnchorSnapContext, graph: FlowGraph) => PortAnchorSnapOverrides | undefined)
@@ -440,6 +450,17 @@ export type EditorEvent =
   | Readonly<{ type: 'SelectionNudged'; delta: Point; id?: string }>
   | Readonly<{ type: 'NodeAdded'; node: FlowNode }>
   | Readonly<{ type: 'NodeLabelChanged'; id: string; label: string }>
+  | Readonly<{
+      type: 'NodeArchitectureChanged';
+      id: string;
+      architecture: FlowNodeArchitecture | null;
+    }>
+  | Readonly<{
+      type: 'NodeAppearanceChanged';
+      id: string;
+      appearance: FlowNodeAppearance | null;
+    }>
+  | Readonly<{ type: 'PortAnchorReset'; endpoint: Endpoint }>
   | Readonly<{ type: 'NodeContainmentToggled'; id: string }>
   | Readonly<{ type: 'NodeExpansionToggled'; id: string }>
   | Readonly<{ type: 'NodeResizeNudged'; id: string; delta: number }>

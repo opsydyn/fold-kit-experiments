@@ -1262,7 +1262,7 @@ export function updateEditor(
           .find(({ id }) => id === gesture.endpoint.node)
           ?.ports.find(({ id }) => id === gesture.endpoint.port);
         if (!node || !original || !current) return cancel(state);
-        const base = portAnchor(original);
+        const base = portAnchor(original, node);
         const bypassed = event.portAnchorSnapBypassed ?? gesture.snapBypassed ?? false;
         const settings = gesture.snapSettings ?? anchorSnapSettings(state);
         const moved = event.point.x !== gesture.origin.x || event.point.y !== gesture.origin.y;
@@ -1682,7 +1682,7 @@ export function updateEditor(
         state,
         policy.portAnchorSnap?.({ node, port }, state.graph),
       );
-      const selected = resolvePortAnchorTargetStep(portAnchor(port), settings, event.step);
+      const selected = resolvePortAnchorTargetStep(portAnchor(port, node), settings, event.step);
       const label = `${node.label}: ${port.label ?? port.id}`;
       if (selected.type === 'empty') {
         const notice = `No enabled corner or midpoint targets for ${label}.`;
@@ -1691,7 +1691,7 @@ export function updateEditor(
       const { target } = selected;
       const name = target.type === 'corner' ? `${target.corner} corner` : `${target.side} midpoint`;
       const notice = `${label} positioned at ${name}.`;
-      const current = portAnchor(port);
+      const current = portAnchor(port, node);
       if (current.x === target.point.x && current.y === target.point.y)
         return state.notice === notice ? state : { ...state, notice };
       const next = updateEditor(
@@ -1711,7 +1711,7 @@ export function updateEditor(
       const port = node?.ports.find(({ id }) => id === event.endpoint.port);
       if (!node || !port || !selectionIsVisible(state, 'node', node.id)) return state;
       finitePoint(event.delta);
-      const base = portAnchor(port);
+      const base = portAnchor(port, node);
       const anchor = {
         x: Math.max(0, Math.min(1, base.x + event.delta.x)),
         y: Math.max(0, Math.min(1, base.y + event.delta.y)),
@@ -1843,6 +1843,57 @@ export function updateEditor(
           node.id === event.id ? { ...node, label: event.label } : node,
         ),
       });
+    case 'NodeArchitectureChanged':
+    case 'NodeAppearanceChanged': {
+      const node = state.graph.nodes.find((node) => node.id === event.id);
+      if (!node) return state;
+      const key = event.type === 'NodeArchitectureChanged' ? 'architecture' : 'appearance';
+      const { [key]: previous, ...without } = node;
+      const value =
+        event.type === 'NodeArchitectureChanged' ? event.architecture : event.appearance;
+      validateGraph({
+        ...state.graph,
+        nodes: state.graph.nodes.map((item) =>
+          item.id === node.id ? (value === null ? without : { ...node, [key]: value }) : item,
+        ),
+      });
+      if (
+        value === null
+          ? previous === undefined
+          : previous !== undefined &&
+            Object.keys(value).length === Object.keys(previous).length &&
+            Object.entries(value).every(([key, item]) =>
+              Object.entries(previous).some(
+                ([otherKey, other]) => otherKey === key && item === other,
+              ),
+            )
+      )
+        return state;
+      const next: FlowNode = value === null ? without : { ...node, [key]: { ...value } };
+      const graph = {
+        ...state.graph,
+        nodes: state.graph.nodes.map((item) => (item.id === node.id ? next : item)),
+      };
+      const veto =
+        event.type === 'NodeArchitectureChanged'
+          ? policy.canChangeNodeArchitecture
+          : policy.canChangeNodeAppearance;
+      const reason = veto?.(node, next, state.graph) ?? null;
+      return reason === null ? commitGraph(state, graph) : { ...state, notice: reason };
+    }
+    case 'PortAnchorReset': {
+      const node = state.graph.nodes.find(({ id }) => id === event.endpoint.node);
+      const port = node?.ports.find(({ id }) => id === event.endpoint.port);
+      if (!node || !port || !selectionIsVisible(state, 'node', node.id)) return state;
+      return updateEditor(
+        state,
+        {
+          type: 'PortPositionsChanged',
+          positions: [{ endpoint: event.endpoint, position: { side: port.side, offset: 0.5 } }],
+        },
+        policy,
+      );
+    }
     case 'GroupDimensionChanged': {
       if (!Number.isFinite(event.value) || event.value <= 0) return state;
       const group = state.graph.nodes.find((node) => node.id === event.id && node.kind === 'group');

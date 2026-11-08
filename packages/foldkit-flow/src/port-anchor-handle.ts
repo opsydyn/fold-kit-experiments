@@ -130,7 +130,7 @@ export function portAnchorHandleViews<M>(
     .filter((node) => node.kind !== 'group' && state.selectedNodes.includes(node.id))
     .flatMap((node) =>
       node.ports.flatMap((port) => {
-        const anchor = portAnchor(port);
+        const anchor = portAnchor(port, node);
         const offset = configured ?? {
           x: port.side === 'left' ? -18 : 18,
           y: port.side === 'bottom' ? 18 : -18,

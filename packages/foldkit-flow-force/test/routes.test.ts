@@ -4,6 +4,35 @@ import type { FlowGraph, Point } from '@opsydyn/foldkit-flow';
 
 import { routeForceEdges } from '../src/routes';
 
+/* oxlint-disable anti-slop/no-shape-in-symbol-names -- Geometric node shapes are domain concepts here, not structural placeholder names. */
+test('force routes preserve shaped defaults and authored endpoints inside their original envelopes', () => {
+  const nodes: FlowGraph['nodes'] = [
+    {
+      id: 'a',
+      label: 'A',
+      position: { x: 10, y: 20 },
+      size: { width: 200, height: 100 },
+      appearance: { shape: 'cylinder' },
+      architecture: { family: 'c4', role: 'container' },
+      ports: [{ id: 'out', kind: 'output', side: 'top', offset: 0 }],
+    },
+    {
+      id: 'b',
+      label: 'B',
+      position: { x: 400, y: 200 },
+      size: { width: 200, height: 100 },
+      appearance: { shape: 'rounded-rectangle' },
+      ports: [{ id: 'in', kind: 'input', side: 'left', anchor: { x: 0.2, y: 0.8 } }],
+    },
+  ];
+  const routes = routeForceEdges(nodes, [
+    { id: 'edge', source: { node: 'a', port: 'out' }, target: { node: 'b', port: 'in' } },
+  ]);
+  expect(routes[0]?.points[0]).toEqual({ x: 10, y: 36 });
+  expect(routes[0]?.points.at(-1)).toEqual({ x: 440, y: 280 });
+});
+/* oxlint-enable anti-slop/no-shape-in-symbol-names */
+
 test('separate connections use a free corridor instead of sharing a long segment', () => {
   const positions = [
     { x: 0, y: 160 },

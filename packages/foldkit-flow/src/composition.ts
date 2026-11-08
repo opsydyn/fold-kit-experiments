@@ -216,7 +216,7 @@ export function flowPort<M>(
   children: Children<M>,
 ): Html {
   const { node, state } = context;
-  const anchor = portAnchor(port);
+  const anchor = portAnchor(port, node);
   const reason = context.canConnectPort?.({ node: node.id, port: port.id }, state.graph) ?? null;
   return h.button(
     [

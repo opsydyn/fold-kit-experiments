@@ -1,5 +1,32 @@
 # FoldKit Flow public contract
 
+## Headless architecture nodes
+
+`FlowNodeArchitecture` separates C4 and DDD roles from `FlowNodeAppearance`.
+Use `architectureNodePresets` and `createArchitectureNode` to create detached,
+validated standalone nodes, preserving caller IDs, ports and host `data`.
+`NodeArchitectureChanged` and `NodeAppearanceChanged` commit one Undo step,
+respect read-only/gesture gates and the independent `canChangeNodeArchitecture`
+and `canChangeNodeAppearance` host policies. Pass null to remove a descriptor.
+Semantic changes preserve the authored appearance. No-ops preserve revision.
+
+`nodeShapeGeometry` supplies a local SVG outline and safe content bounds;
+`nodeShapeBoundaryPoint` and `nodeShapeContainsPoint` use world coordinates.
+Rectangle, rounded-rectangle and cylinder defaults drive canonical port geometry
+when explicitly selected. `portAnchor(port, node)` is node-aware;
+`portAnchor(port)` retains its legacy envelope meaning. Explicit anchors always
+win. `PortAnchorReset` restores the same side at offset 0.5, using existing port
+edit policies and Undo. Shape snapping still authors normalized envelope points.
+
+Group roles/appearances retain the portless rectangular-boundary invariant.
+Version 1 documents accept these optional validated descriptors. The qualified
+pre-change reader retains them through its existing edits but uses generic
+rendering and geometry. Default C4/DDD artwork, semantic relationships and pattern
+builders are not part of this headless slice. See the package README for an
+example and ADR 0005 for compatibility and geometry decisions.
+
+## Port anchor contracts
+
 Keyboard point selection uses `PortAnchorTargetStepped` and the pure
 `resolvePortAnchorTargetStep` helper. `PortAnchorTargetStep` supports
 next/previous with wraparound and first/last; `PortAnchorTargetStepResult`

@@ -125,7 +125,7 @@ export default defineConfig({
   overrides: [
     {
       // Mount acquisition wraps native listeners/observers and returns their scoped release.
-      files: ['packages/foldkit-flow/src/mount.ts'],
+      files: ['packages/foldkit-zloz/src/mount.ts'],
       rules: {
         'linteffect/no-return-in-arrow': 'off',
         'linteffect/warn-effect-sync-wrapper': 'off',
@@ -225,7 +225,7 @@ export default defineConfig({
       files: [
         'apps/promo/test/{live-line,line-project,example-template,standalone-chart-project}.test.ts',
         'packages/foldkit-viz/test/package-import-smoke.test.ts',
-        'packages/foldkit-flow/test/package.test.ts',
+        'packages/foldkit-zloz/test/package.test.ts',
       ],
       rules: { 'linteffect/no-try-catch': 'off' },
     },
@@ -290,10 +290,10 @@ export default defineConfig({
         'apps/web/src/stories/**',
         'apps/web/.storybook/**',
         'packages/foldkit-viz/src/**',
-        'packages/foldkit-flow/src/{editor,geometry,graph,layout,types,foldkit}.ts',
-        'packages/foldkit-flow/test/**',
-        'packages/foldkit-flow-elk/test/**',
-        'packages/foldkit-flow-elk/src/index.ts',
+        'packages/foldkit-zloz/src/{editor,geometry,graph,layout,types,foldkit}.ts',
+        'packages/foldkit-zloz/test/**',
+        'packages/foldkit-zloz-elk/test/**',
+        'packages/foldkit-zloz-elk/src/index.ts',
         'packages/foldkit-viz/test/**',
         'packages/astro-foldkit/test/**',
         'apps/promo/src/examples/{line,histogram,scatter,bars,wordcloud}/{chart,data,project,view}.ts',
@@ -350,7 +350,7 @@ export default defineConfig({
     },
     {
       // DOM listener callbacks execute at this Mount resource boundary, not in Model/update.
-      files: ['apps/promo/src/examples/signals/input.ts', 'packages/foldkit-flow/src/input.ts'],
+      files: ['apps/promo/src/examples/signals/input.ts', 'packages/foldkit-zloz/src/input.ts'],
       rules: {
         'linteffect/no-magic-domain-string': 'off',
         'linteffect/no-call-tower': 'off',

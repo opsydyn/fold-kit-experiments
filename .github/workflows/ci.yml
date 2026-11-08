@@ -87,7 +87,7 @@ jobs:
           path: packages/effect-three-foldkit/e2e/goldens/__diff__/
           if-no-files-found: ignore
 
-  foldkit-flow:
+  foldkit-zloz:
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -103,22 +103,22 @@ jobs:
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
       - name: Check package tarballs and clean npm consumer
-        run: bun run --filter @opsydyn/foldkit-flow test
+        run: bun run --filter @opsydyn/foldkit-zloz test
       - name: Check real ELK layout
-        run: bun run --filter @opsydyn/foldkit-flow-elk test
+        run: bun run --filter @opsydyn/foldkit-zloz-elk test
       - name: Check force adapter and packed consumer
-        run: bun run --filter @opsydyn/foldkit-flow-force test
+        run: bun run --filter @opsydyn/foldkit-zloz-force test
       - name: Check Mermaid exporter and packed consumer
-        run: bun run --filter @opsydyn/foldkit-flow-mermaid test
+        run: bun run --filter @opsydyn/foldkit-zloz-mermaid test
       - name: Install browser
         working-directory: apps/web
         run: bunx --no-install playwright install --with-deps chromium
       - name: Browser editing journey
-        run: bun run --filter @opsydyn/web test:e2e e2e/flow.spec.ts
+        run: bun run --filter @opsydyn/web test:e2e e2e/zloz.spec.ts
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: foldkit-flow-browser
+          name: foldkit-zloz-browser
           path: apps/web/test-results/
           if-no-files-found: ignore

@@ -1,9 +1,4 @@
 ---
-import Flow from '../apps/flow/app';
-import Layout from '../layouts/Layout.astro';
-import * as layoutStyles from '../layouts/layout.css';
+// Compatibility route; the canonical reference example is /zloz.
+return Astro.redirect('/zloz', 308);
 ---
-<Layout title="FoldKit Flow">
-  <h1 class={layoutStyles.heading}>FoldKit Flow</h1>
-  <Flow client:load />
-</Layout>

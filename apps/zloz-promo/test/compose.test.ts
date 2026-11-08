@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 
-import { serializeGraph, type EditorEvent } from '@opsydyn/foldkit-flow';
+import { serializeGraph, type EditorEvent } from '@opsydyn/foldkit-zloz';
 
 import { init, update, observe, type Model } from '../src/examples/compose/state';
 

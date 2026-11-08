@@ -1,5 +1,5 @@
 export const repository = 'https://github.com/opsydyn/fold-kit-experiments';
-export const api = 'https://opsydyn.github.io/fold-kit-experiments/flow/api/';
+export const api = 'https://opsydyn.github.io/fold-kit-experiments/zloz/api/';
 export const viz = 'https://opsydyn.github.io/fold-kit-experiments/viz/';
 export const three = 'https://opsydyn.github.io/fold-kit-experiments/three/';
 

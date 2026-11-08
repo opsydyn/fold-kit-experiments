@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/**/*.ts",
+    "../foldkit-zloz-elk/src/**/*.ts",
+    "../foldkit-zloz-force/src/**/*.ts",
+    "../foldkit-zloz-mermaid/src/**/*.ts"
+  ],
+  "compilerOptions": {
+    "paths": {
+      "@opsydyn/foldkit-zloz": ["./src/index.ts"]
+    }
+  }
+}

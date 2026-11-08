@@ -30,25 +30,6 @@
         "typescript": "catalog:",
       },
     },
-    "apps/flow-sample": {
-      "name": "@opsydyn/flow-sample",
-      "dependencies": {
-        "@fontsource-variable/inter": "catalog:",
-        "@opsydyn/astro-foldkit": "workspace:*",
-        "@opsydyn/foldkit-flow": "workspace:*",
-        "@opsydyn/foldkit-flow-elk": "workspace:*",
-        "@opsydyn/foldkit-flow-force": "workspace:*",
-        "@opsydyn/foldkit-flow-mermaid": "workspace:*",
-        "astro": "catalog:",
-        "effect": "catalog:",
-        "foldkit": "catalog:",
-      },
-      "devDependencies": {
-        "@astrojs/check": "catalog:",
-        "bun-types": "catalog:",
-        "typescript": "catalog:",
-      },
-    },
     "apps/promo": {
       "name": "@opsydyn/promo",
       "dependencies": {
@@ -143,9 +124,9 @@
         "@opsydyn/effect-three-rapier": "workspace:*",
         "@opsydyn/effect-three-samples": "workspace:*",
         "@opsydyn/effect-three-troika": "workspace:*",
-        "@opsydyn/foldkit-flow": "workspace:*",
-        "@opsydyn/foldkit-flow-elk": "workspace:*",
         "@opsydyn/foldkit-viz": "workspace:*",
+        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-zloz-elk": "workspace:*",
         "@types/topojson-client": "catalog:",
         "@vanilla-extract/css": "catalog:",
         "astro": "catalog:",
@@ -174,14 +155,33 @@
         "wrangler": "catalog:",
       },
     },
+    "apps/zloz-demo": {
+      "name": "@opsydyn/zloz-demo",
+      "dependencies": {
+        "@fontsource-variable/inter": "catalog:",
+        "@opsydyn/astro-foldkit": "workspace:*",
+        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-zloz-elk": "workspace:*",
+        "@opsydyn/foldkit-zloz-force": "workspace:*",
+        "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
+        "astro": "catalog:",
+        "effect": "catalog:",
+        "foldkit": "catalog:",
+      },
+      "devDependencies": {
+        "@astrojs/check": "catalog:",
+        "bun-types": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "apps/zloz-promo": {
       "name": "@opsydyn/zloz-promo",
       "dependencies": {
         "@fontsource-variable/inter": "catalog:",
         "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/dataset-explorer": "workspace:*",
-        "@opsydyn/foldkit-flow": "workspace:*",
-        "@opsydyn/foldkit-flow-mermaid": "workspace:*",
+        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
         "astro": "catalog:",
         "effect": "catalog:",
         "foldkit": "catalog:",
@@ -388,8 +388,30 @@
         "three": ">=0.186.0 <0.187.0",
       },
     },
-    "packages/foldkit-flow": {
-      "name": "@opsydyn/foldkit-flow",
+    "packages/foldkit-viz": {
+      "name": "@opsydyn/foldkit-viz",
+      "version": "0.15.0",
+      "devDependencies": {
+        "@types/node": "^22.0.0",
+        "bun-types": "^1.3.14",
+        "effect": "4.1.0",
+        "fast-check": "^4.8.0",
+        "foldkit": "0.170.0",
+        "tsdown": "^0.21.8",
+        "typedoc": "^0.28.19",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "effect": ">=4.0.0 <5.0.0",
+        "foldkit": ">=0.167.0 <0.171.0",
+      },
+      "optionalPeers": [
+        "effect",
+        "foldkit",
+      ],
+    },
+    "packages/foldkit-zloz": {
+      "name": "@opsydyn/foldkit-zloz",
       "version": "0.1.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
@@ -413,15 +435,15 @@
         "foldkit",
       ],
     },
-    "packages/foldkit-flow-elk": {
-      "name": "@opsydyn/foldkit-flow-elk",
+    "packages/foldkit-zloz-elk": {
+      "name": "@opsydyn/foldkit-zloz-elk",
       "version": "0.1.0",
       "dependencies": {
         "elkjs": "0.12.1",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
-        "@opsydyn/foldkit-flow": "workspace:*",
+        "@opsydyn/foldkit-zloz": "workspace:*",
         "@types/node": "^22.0.0",
         "bun-types": "^1.3.14",
         "publint": "0.3.25",
@@ -429,18 +451,18 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-flow": "0.1.0",
+        "@opsydyn/foldkit-zloz": "0.1.0",
       },
     },
-    "packages/foldkit-flow-force": {
-      "name": "@opsydyn/foldkit-flow-force",
+    "packages/foldkit-zloz-force": {
+      "name": "@opsydyn/foldkit-zloz-force",
       "version": "0.1.0",
       "dependencies": {
         "@opsydyn/foldkit-viz": "workspace:*",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
-        "@opsydyn/foldkit-flow": "workspace:*",
+        "@opsydyn/foldkit-zloz": "workspace:*",
         "@types/node": "^22.0.0",
         "bun-types": "^1.3.14",
         "publint": "0.3.25",
@@ -448,15 +470,15 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-flow": "0.1.0",
+        "@opsydyn/foldkit-zloz": "0.1.0",
       },
     },
-    "packages/foldkit-flow-mermaid": {
-      "name": "@opsydyn/foldkit-flow-mermaid",
+    "packages/foldkit-zloz-mermaid": {
+      "name": "@opsydyn/foldkit-zloz-mermaid",
       "version": "0.1.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
-        "@opsydyn/foldkit-flow": "workspace:*",
+        "@opsydyn/foldkit-zloz": "workspace:*",
         "@types/node": "^22.0.0",
         "bun-types": "^1.3.14",
         "publint": "0.3.25",
@@ -464,30 +486,8 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@opsydyn/foldkit-flow": "0.1.0",
+        "@opsydyn/foldkit-zloz": "0.1.0",
       },
-    },
-    "packages/foldkit-viz": {
-      "name": "@opsydyn/foldkit-viz",
-      "version": "0.15.0",
-      "devDependencies": {
-        "@types/node": "^22.0.0",
-        "bun-types": "^1.3.14",
-        "effect": "4.1.0",
-        "fast-check": "^4.8.0",
-        "foldkit": "0.170.0",
-        "tsdown": "^0.21.8",
-        "typedoc": "^0.28.19",
-        "typescript": "^6.0.3",
-      },
-      "peerDependencies": {
-        "effect": ">=4.0.0 <5.0.0",
-        "foldkit": ">=0.167.0 <0.171.0",
-      },
-      "optionalPeers": [
-        "effect",
-        "foldkit",
-      ],
     },
   },
   "catalog": {
@@ -998,17 +998,15 @@
 
     "@opsydyn/effect-three-troika": ["@opsydyn/effect-three-troika@workspace:packages/effect-three-troika"],
 
-    "@opsydyn/flow-sample": ["@opsydyn/flow-sample@workspace:apps/flow-sample"],
-
-    "@opsydyn/foldkit-flow": ["@opsydyn/foldkit-flow@workspace:packages/foldkit-flow"],
-
-    "@opsydyn/foldkit-flow-elk": ["@opsydyn/foldkit-flow-elk@workspace:packages/foldkit-flow-elk"],
-
-    "@opsydyn/foldkit-flow-force": ["@opsydyn/foldkit-flow-force@workspace:packages/foldkit-flow-force"],
-
-    "@opsydyn/foldkit-flow-mermaid": ["@opsydyn/foldkit-flow-mermaid@workspace:packages/foldkit-flow-mermaid"],
-
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
+
+    "@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@workspace:packages/foldkit-zloz"],
+
+    "@opsydyn/foldkit-zloz-elk": ["@opsydyn/foldkit-zloz-elk@workspace:packages/foldkit-zloz-elk"],
+
+    "@opsydyn/foldkit-zloz-force": ["@opsydyn/foldkit-zloz-force@workspace:packages/foldkit-zloz-force"],
+
+    "@opsydyn/foldkit-zloz-mermaid": ["@opsydyn/foldkit-zloz-mermaid@workspace:packages/foldkit-zloz-mermaid"],
 
     "@opsydyn/oxlint-effect": ["@opsydyn/oxlint-effect@2.0.1", "", { "dependencies": { "@oxlint/plugins": "^1.71.0" } }, "sha512-vY8DwhMSbNvtFiD5b6ekcXNHzLdCS+6rYLM70ajteJoStX0mdb+bf9M6OPyG5tkbYG7Oao5f+pIHxIHTd/rPGg=="],
 
@@ -1021,6 +1019,8 @@
     "@opsydyn/three-promo": ["@opsydyn/three-promo@workspace:apps/three-promo"],
 
     "@opsydyn/web": ["@opsydyn/web@workspace:apps/web"],
+
+    "@opsydyn/zloz-demo": ["@opsydyn/zloz-demo@workspace:apps/zloz-demo"],
 
     "@opsydyn/zloz-infra": ["@opsydyn/zloz-infra@workspace:infra/zloz"],
 

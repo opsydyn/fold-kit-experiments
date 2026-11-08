@@ -1,11 +1,11 @@
-import { createArchitectureNode, type FlowGraph } from '@opsydyn/foldkit-flow';
-import { exportMermaid } from '@opsydyn/foldkit-flow-mermaid';
+import { createArchitectureNode, type ZlozGraph } from '@opsydyn/foldkit-zloz';
+import { exportMermaid } from '@opsydyn/foldkit-zloz-mermaid';
 
 const input = { id: 'in', kind: 'input', side: 'left', offset: 0.5 } as const;
 const output = { id: 'out', kind: 'output', side: 'right', offset: 0.5 } as const;
 
 /** Authored system-context fixture; preview geometry and both exports share this model. */
-export const contextGraph: FlowGraph = {
+export const contextGraph: ZlozGraph = {
   nodes: [
     createArchitectureNode({
       id: 'customer',

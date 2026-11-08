@@ -12,7 +12,7 @@ export default Alchemy.Stack(
   Effect.gen(function* () {
     const stage = yield* Alchemy.Stage;
     const site = yield* Cloudflare.Website.StaticSite('ZlozWorkbench', {
-      cwd: '../../apps/flow-sample',
+      cwd: '../../apps/zloz-demo',
       command: 'bun run build',
       outdir: 'dist',
       domain: stage === 'prod' ? 'zloz.opsydyn.xyz' : null,
@@ -30,7 +30,7 @@ export default Alchemy.Stack(
           'astro.config.ts',
           'package.json',
           'tsconfig.json',
-          '../../packages/foldkit-flow*/**',
+          '../../packages/foldkit-zloz*/**',
           '../../packages/astro-foldkit/**',
           '../../packages/foldkit-viz/**',
           '../../docs/assets/zloz/final/*.svg',

@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-import { parseGraph } from '@opsydyn/foldkit-flow';
+import { parseGraph } from '@opsydyn/foldkit-zloz';
 
 const require = createRequire(new URL('../../web/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
@@ -68,7 +68,7 @@ await (async () => {
   );
   expect(bundleResponse.status()).toBe(200);
   const bundle = await bundleResponse.json();
-  expect(bundle.identity.nodes.map((node) => node.flowId)).toEqual(
+  expect(bundle.identity.nodes.map((node) => node.zlozId)).toEqual(
     graph.nodes.map((node) => node.id),
   );
   expect(bundle.identity.edges).toHaveLength(3);
@@ -88,7 +88,7 @@ await (async () => {
   await expect(
     page.getByRole('heading', { name: 'Start with the model.', exact: true }),
   ).toBeVisible();
-  await expect(page.locator('.code-panel')).toContainText("from '@opsydyn/foldkit-flow'");
+  await expect(page.locator('.code-panel')).toContainText("from '@opsydyn/foldkit-zloz'");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.setViewportSize({ width: 1440, height: 1000 });
   const keyword = page.locator('.code-panel .pl-k').first();

@@ -42,8 +42,8 @@ jobs:
       - name: Build TypeDoc
         run: bun run --filter @opsydyn/foldkit-viz docs
 
-      - name: Build Flow TypeDoc
-        run: bun run --filter @opsydyn/foldkit-flow docs
+      - name: Build Zloz TypeDoc
+        run: bun run --filter @opsydyn/foldkit-zloz docs
 
       - name: Build Viz promo
         run: bun run --filter @opsydyn/promo build
@@ -83,14 +83,17 @@ jobs:
 
       - name: Assemble site
         run: |
-          mkdir -p _site/api _site/flow/api _site/viz _site/three _site/zloz _site/docs
+          mkdir -p _site/api _site/zloz/api _site/viz _site/three _site/zloz _site/docs
           cp -r apps/web/storybook-static/. _site/
           cp -r packages/foldkit-viz/docs/. _site/api/
-          cp -r packages/foldkit-flow/docs/. _site/flow/api/
+          cp -r packages/foldkit-zloz/docs/. _site/zloz/api/
           cp -r apps/promo/dist/. _site/viz/
           cp -r apps/three-promo/dist/. _site/three/
           cp -r apps/zloz-promo/dist/. _site/zloz/
           cp -r apps/docs/dist/. _site/docs/
+          # Retain the old API entry URL for existing bookmarks.
+          mkdir -p _site/flow/api
+          cp -r packages/foldkit-zloz/docs/. _site/flow/api/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

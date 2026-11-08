@@ -257,7 +257,20 @@ const PortLabelDraft = Schema.Struct({
   text: Schema.String,
 });
 
+export const WorkbenchSection = Schema.Literals([
+  'diagram',
+  'appearance',
+  'navigation',
+  'ports',
+  'policies',
+  'inspect',
+  'diagnostics',
+  'export',
+]);
+export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
+  sidebarSection: WorkbenchSection,
+  sidebarCollapsed: Schema.Boolean,
   keyboardPortTargets: Schema.Boolean,
   overlappingPortSnaps: Schema.Boolean,
   portAnchorGuides: Schema.Boolean,
@@ -331,6 +344,8 @@ export const Model = Schema.Struct({
   notice: Schema.String,
 });
 export type Model = Readonly<{
+  sidebarSection: WorkbenchSection;
+  sidebarCollapsed: boolean;
   keyboardPortTargets: boolean;
   overlappingPortSnaps: boolean;
   portAnchorGuides: boolean;
@@ -399,6 +414,8 @@ export type Model = Readonly<{
 }>;
 export const init = () => ({
   model: {
+    sidebarSection: 'diagram',
+    sidebarCollapsed: false,
     keyboardPortTargets: false,
     overlappingPortSnaps: false,
     portAnchorGuides: false,

@@ -870,3 +870,37 @@ export function bindInput(element: HTMLElement, emit: (event: BrowserInput) => v
     releaseTouches();
   };
 }
+
+/** Scoped overview clicks are independent of the canvas's pointer/measurement resource. */
+export function bindMinimapInput(
+  element: Element,
+  emit: (event: BrowserInput) => void,
+): () => void {
+  const window = element.ownerDocument.defaultView;
+  const clicked = (event: Event) => {
+    if (
+      !window ||
+      !(event instanceof window.MouseEvent) ||
+      element.getAttribute('disabled') !== null
+    )
+      return;
+    const plane = element.querySelector('[data-flow-minimap]');
+    if (!plane) return;
+    event.stopPropagation();
+    if (event.detail === 0) {
+      emit({ type: 'MinimapClicked', point: { x: 0.5, y: 0.5 } });
+      return;
+    }
+    const bounds = plane.getBoundingClientRect();
+    if (bounds.width > 0 && bounds.height > 0)
+      emit({
+        type: 'MinimapClicked',
+        point: {
+          x: (event.clientX - bounds.left) / bounds.width,
+          y: (event.clientY - bounds.top) / bounds.height,
+        },
+      });
+  };
+  element.addEventListener('click', clicked);
+  return () => element.removeEventListener('click', clicked);
+}

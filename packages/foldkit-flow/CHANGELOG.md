@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Add public layout parts, fill-height sizing and a native canvas focus target;
+  support relocated minimaps with scoped Live input and listener cleanup.
+
 - Add optional composable C4 node/boundary presets with scoped themes, replaceable
   semantic content and live native controls; share cylinder cap geometry with
   headless consumers.

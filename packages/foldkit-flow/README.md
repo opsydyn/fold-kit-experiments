@@ -2364,3 +2364,55 @@ adds retained-creation comparisons and production feedback checks.
 The [live-port body-retention report](../../apps/flow-sample/evidence/node-body-policy.md)
 adds policy-enabled comparisons and focused-control qualification.
 These are repo-only diagnostic tools with no machine-dependent CI timing gate.
+
+### Host-owned sidebar and fill-height layouts
+
+`height: 'fill'` sizes the view inside a bounded flex/grid parent; omitting height
+retains the 440px default and numbers still mean pixels. `renderLayout` receives
+`FlowViewLayoutParts`: `canvas`, `canvasId`, `help`, `controls`, `creation`,
+`minimap`, `status` and `connections`. Controls, creation and minimap can be null
+when disabled. The same native parts implement the default presentation.
+
+```ts
+flowView(h, model.editor, {
+  id: 'workflow',
+  label: 'Workflow canvas',
+  onEvent: flowInput,
+  height: 'fill',
+  viewportControls: true,
+  minimap: true,
+  renderLayout: (parts, builder) =>
+    builder.div(
+      [
+        builder.Style({
+          display: 'grid',
+          'grid-template-columns': '20rem minmax(0, 1fr)',
+          height: '100%',
+          'min-height': '0',
+        }),
+      ],
+      [
+        builder.aside(
+          [builder.Style({ overflow: 'auto', 'min-height': '0' })],
+          [
+            builder.a([builder.Href('#' + encodeURIComponent(parts.canvasId))], ['Skip to canvas']),
+            parts.help,
+            ...(parts.controls ? [parts.controls] : []),
+            ...(parts.creation ? [parts.creation] : []),
+            ...(parts.minimap ? [parts.minimap] : []),
+            parts.connections,
+            parts.status,
+          ],
+        ),
+        builder.section([builder.Style({ 'min-width': '0', 'min-height': '0' })], [parts.canvas]),
+      ],
+    ),
+});
+```
+
+Give the host container a definite height. Keep each part at most once and retain
+the help/ID relationship. Theme variables scope the entire result, including
+relocated controls. Feature gates, diagnostics, policy reasons and typed events
+are already resolved. A relocated minimap retains native pointer/keyboard input
+through its own Live-scoped Mount; no canvas DOM protocol needs to be copied.
+The pure root export and numeric/default layout remain compatible.

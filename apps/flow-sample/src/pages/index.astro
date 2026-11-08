@@ -26,11 +26,8 @@ import { themePreferenceStorageKey } from '../editor/theme';
     </script>
   </head>
   <body>
-    <header><div>FoldKit Flow <span> / Sample app</span></div></header>
-    <main>
-      <h1>Workflow patterns</h1>
-      <p>Explore a release workflow or an architecture pattern.</p>
-      <p><a href="https://opsydyn.github.io/fold-kit-experiments/flow/api/">API and type contracts</a></p>
+    <header><div><strong>FoldKit Flow</strong><span>Architecture workbench</span></div><a href="https://opsydyn.github.io/fold-kit-experiments/flow/api/">API contracts ↗</a></header>
+    <main aria-label="Workflow workbench">
       <Editor client:load />
       <noscript>Enable JavaScript to edit the workflow.</noscript>
     </main>
@@ -38,8 +35,6 @@ import { themePreferenceStorageKey } from '../editor/theme';
 </html>
 
 <style is:global>
-/* Hallmark | shape: app screen | signature: release workflow canvas */
-/* Critique: keep the toolbar and canvas together on narrow screens. */
 :root {
   color-scheme: light;
   --paper: #f8f6f1;
@@ -60,86 +55,75 @@ import { themePreferenceStorageKey } from '../editor/theme';
   --accent: #8ee0b9;
   --panel: #21342d;
 }
-html,
-body {
-  overflow-x: clip;
-}
+html, body { height: 100%; }
 body {
   margin: 0;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr);
+  overflow: hidden;
   font-family: var(--ui-font);
   background: var(--paper);
   color: var(--ink);
 }
-header {
-  border-bottom: 1px solid var(--rule);
-}
-header > div,
-main {
-  max-width: 75rem;
-  margin-inline: auto;
-  padding-inline: clamp(1rem, 4%, 3rem);
-}
-header > div {
-  padding-block: 0.85rem;
-  font-weight: 650;
-}
-header span {
-  color: var(--muted);
-  font-weight: 400;
-}
-main {
-  padding-block: 1.5rem;
-}
-h1 {
-  margin: 0;
-  font-size: 1.75rem;
-  min-width: 0;
-  overflow-wrap: break-word;
-}
-p {
-  color: var(--muted);
-}
-button,
-input {
-  font: inherit;
-}
-[data-flow-port-locked] {
-  opacity: 0.5;
-}
-a {
-  color: var(--accent);
-}
-.workbench-theme-picker {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-inline-start: 0.5rem;
-}
-.workbench-theme-picker select {
-  font: inherit;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--rule);
-  border-radius: 0.35rem;
-  color: var(--ink);
-  background: var(--panel);
-}
-:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 3px;
-}
-[aria-label='Graph actions'] button {
-  border: 1px solid var(--rule);
-  border-radius: 0.35rem;
-  min-height: 44px;
-  color: var(--ink);
-  background: var(--panel);
-}
-[aria-label='Graph actions'] button[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--panel);
-}
+body > header { border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; padding-inline: 20px; gap: 12px; font-size: 14px; }
+header strong { font-weight: 700; }
+header span { color: var(--muted); margin-left: 8px; }
+main { position: relative; min-height: 0; min-width: 0; }
+.flow-workbench { position: absolute; inset: 0; height: 100%; min-height: 0; }
+a { color: var(--accent); }
+button, input, select { font: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.workbench-layout { height: 100%; min-height: 0; display: grid; grid-template-columns: clamp(19rem, 28vw, 24rem) minmax(0, 1fr); }
+.workbench-layout--collapsed { grid-template-columns: 52px minmax(0, 1fr); }
+.workbench-sidebar { min-height: 0; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--rule); background: var(--panel); }
+.workbench-sidebar-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 18px 16px 10px; }
+.workbench-eyebrow { color: var(--accent); font-size: 10px; letter-spacing: 0.14em; font-weight: 700; margin: 0 0 6px; }
+.workbench-sidebar h1 { font-size: 20px; line-height: 1.2; margin: 0; }
+.workbench-skip { position: fixed; top: 8px; left: 16px; transform: translateY(-200%); z-index: 100; padding: 8px 12px; background: var(--panel); border: 1px solid var(--accent); border-radius: 6px; }
+.workbench-skip:focus { transform: none; }
+.workbench-sidebar-toggle { width: 36px; min-height: 36px; flex: 0 0 auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); font-size: 22px; cursor: pointer; }
+.workbench-layout--collapsed .workbench-sidebar-heading { padding: 10px 8px; }
+.workbench-rail-fit { margin: 4px 8px; min-height: 36px; border: 1px solid var(--rule); border-radius: 6px; color: var(--ink); background: var(--paper); cursor: pointer; }
+.workbench-sidebar-content { flex: 1; flex-direction: column; min-height: 0; }
+.workbench-theme { padding: 4px 16px 14px; }
+.workbench-theme-picker { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.workbench-theme-picker select { padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; color: var(--ink); background: var(--paper); }
+.workbench-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 0 12px 12px; border-bottom: 1px solid var(--rule); }
+.workbench-sections button { padding: 9px 8px; min-height: 40px; border: 1px solid transparent; border-radius: 7px; text-align: left; color: var(--muted); background: transparent; cursor: pointer; font-size: 13px; }
+.workbench-sections button[aria-pressed='true'] { color: var(--accent); background: var(--paper); border-color: var(--rule); font-weight: 650; }
+.workbench-sidebar-scroll { position: relative; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 16px; font-size: 13px; line-height: 1.45; }
+.workbench-sidebar-scroll h2 { font-size: 16px; margin: 0 0 14px; }
+.workbench-sidebar-scroll p { color: var(--muted); }
+.workbench-sidebar-scroll button { border: 1px solid var(--rule); border-radius: 6px; min-height: 36px; color: var(--ink); background: var(--paper); cursor: pointer; max-width: 100%; white-space: normal; }
+.workbench-sidebar-scroll button:disabled { cursor: default; opacity: 0.55; }
+.workbench-sidebar-scroll input, .workbench-sidebar-scroll select { max-width: 100%; box-sizing: border-box; }
+.workbench-sidebar-scroll select { min-width: 0; width: 100%; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+.workbench-field { display: grid; gap: 6px; margin: 16px 0; }
+.workbench-field:has(input[type='checkbox']) { display: flex; align-items: flex-start; gap: 8px; }
+.workbench-field input[type='checkbox'] { margin-top: 3px; flex: 0 0 auto; }
+.workbench-sidebar label { overflow-wrap: anywhere; }
+.workbench-sidebar [aria-label='Examples'] > button { flex: 1 1 100%; text-align: left; }
+.workbench-sidebar [aria-label='Graph actions'] > button { flex: 1 1 120px; }
+.workbench-sidebar fieldset { min-width: 0; }
 
-button:active { filter: brightness(.92); }
-h1 { text-wrap: balance; }
+.workbench-sidebar pre { font-size: 11px; }
+.workbench-notice { position: relative; flex: 0 0 auto; border-top: 1px solid var(--rule); padding: 8px 16px; font-size: 12px; }
+.workbench-notice p { margin: 0; }
+.workbench-canvas { min-width: 0; min-height: 0; display: flex; padding: 12px; box-sizing: border-box; }
+.workbench-canvas > [data-flow-surface] { flex: 1; }
+[data-flow-port-locked] { opacity: 0.5; }
+@media (max-width: 760px) {
+  body > header { padding-inline: 12px; font-size: 12px; }
+  header span { display: none; }
+  .workbench-layout { grid-template-columns: min(46vw, 20rem) minmax(0, 1fr); }
+  .workbench-layout--collapsed { grid-template-columns: 52px minmax(0, 1fr); }
+  .workbench-sidebar-heading { padding: 12px 10px 8px; }
+  .workbench-sidebar h1 { font-size: 16px; }
+  .workbench-theme { padding-inline: 10px; }
+  .workbench-sections { padding-inline: 6px; }
+  .workbench-sections button { padding: 6px 4px; font-size: 11px; overflow-wrap: anywhere; }
+  .workbench-sidebar-scroll { padding: 10px; }
+  .workbench-canvas { padding: 6px; }
+}
 </style>

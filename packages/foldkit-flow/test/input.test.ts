@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 
 import { Window } from 'happy-dom';
 
-import { bindInput } from '../src/input';
+import { bindInput, bindMinimapInput } from '../src/input';
 import type { EditorEvent } from '../src/types';
 
 const previousEvent = Object.getOwnPropertyDescriptor(globalThis, 'KeyboardEvent');
@@ -608,4 +608,37 @@ test('anchor bypass modifiers are opt-in, captured per gesture and report key-on
     expect(disabled.some((event) => event.type === 'PortAnchorSnapBypassChanged')).toBe(false);
     close();
   }
+});
+
+test('relocated minimap normalizes its plane once, ignores disabled input and releases its listener', () => {
+  const window = new Window();
+  Object.defineProperty(globalThis, 'document', { value: window.document, configurable: true });
+  Object.defineProperty(globalThis, 'MouseEvent', { value: window.MouseEvent, configurable: true });
+  const host = document.createElement('div');
+  host.innerHTML = '<button><svg data-flow-minimap></svg></button>';
+  const button = host.querySelector('button')!;
+  const plane = button.querySelector('svg')!;
+  Object.defineProperty(plane, 'getBoundingClientRect', {
+    value: () => ({ left: 10, top: 20, width: 200, height: 100 }),
+  });
+  const events: EditorEvent[] = [];
+  let delegated = 0;
+  host.addEventListener('click', () => delegated++);
+  const release = bindMinimapInput(button, (event) => events.push(event));
+  plane.dispatchEvent(
+    new MouseEvent('click', { bubbles: true, detail: 1, clientX: 60, clientY: 95 }),
+  );
+  expect(events).toEqual([{ type: 'MinimapClicked', point: { x: 0.25, y: 0.75 } }]);
+  expect(delegated).toBe(0);
+  button.click();
+  expect(events.at(-1)).toEqual({ type: 'MinimapClicked', point: { x: 0.5, y: 0.5 } });
+  button.disabled = true;
+  plane.dispatchEvent(
+    new MouseEvent('click', { bubbles: true, detail: 1, clientX: 20, clientY: 30 }),
+  );
+  expect(events).toHaveLength(2);
+  release();
+  button.disabled = false;
+  button.click();
+  expect(events).toHaveLength(2);
 });

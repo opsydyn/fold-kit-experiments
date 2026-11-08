@@ -1,9 +1,11 @@
 import { Match, Option } from 'effect';
+import { Mount } from 'foldkit';
 import type { Html, HtmlBuilder } from 'foldkit/html';
 
 import type { FlowDiagnostics } from './diagnostics';
 import { minimapGeometry } from './geometry';
 import { groupsInPaintOrder, presentEditorGroups } from './group-presentation';
+import { FlowMinimapInput } from './mount';
 import type { EditorEvent, EditorState, FlowMinimapGeometry, FlowNode } from './types';
 
 /** Wheel behavior inside the canvas. Pan mode uses Ctrl/Command-wheel to zoom. */
@@ -152,6 +154,7 @@ export function flowMinimap<M>(
       ...attributes,
       h.Type('button'),
       h.DataAttribute('flow-minimap-frame', ''),
+      h.OnMount(Mount.mapMessage(FlowMinimapInput(), (message) => onEvent(message.event))),
       h.Disabled(state.gesture.type !== 'idle'),
       h.OnKeyDownPreventDefault((key, modifiers) => {
         if (state.gesture.type !== 'idle') return Option.none();

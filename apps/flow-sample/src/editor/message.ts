@@ -3,6 +3,7 @@ import { defineMessageUnion } from 'foldkit/message';
 
 import {
   ColorScheme,
+  WorkbenchSection,
   ThemePreference,
   SearchScope,
   PortChooserSearchField,
@@ -125,6 +126,8 @@ export const Message = defineMessageUnion({
   SubmittedDiagramSearch: {},
   ClickedExport: {},
   ClickedMermaidPreview: {},
+  SelectedWorkbenchSection: { section: WorkbenchSection },
+  ClickedWorkbenchSidebar: {},
   ClickedMermaidLossConsent: {},
   ClickedMermaidDownload: {},
   CompletedMermaidDownload: {},

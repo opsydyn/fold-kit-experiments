@@ -16,15 +16,10 @@ export function mermaidExportPanel(model: Model, h: HtmlBuilder<Message>) {
     [
       h.Id('flow-mermaid-preview'),
       h.AriaLabel('Mermaid export preview'),
-      h.Style({
-        border: '1px solid currentColor',
-        padding: '16px',
-        'border-radius': '12px',
-        'margin-bottom': '16px',
-      }),
+      h.Class('workbench-mermaid-preview'),
     ],
     [
-      h.h2([], ['Mermaid export preview']),
+      h.h3([], ['Source preview']),
       h.p(
         [],
         [

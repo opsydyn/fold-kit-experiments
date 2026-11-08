@@ -1,0 +1,31 @@
+{
+  "chromium": "151.0.7922.34",
+  "desktop": {
+    "x": 396,
+    "y": 60,
+    "width": 1032,
+    "height": 928
+  },
+  "narrowExpanded": {
+    "x": 185.390625,
+    "y": 54,
+    "width": 198.609375,
+    "height": 784
+  },
+  "narrow": {
+    "x": 58,
+    "y": 54,
+    "width": 326,
+    "height": 784
+  },
+  "independentSidebarScroll": true,
+  "persistentCanvasElement": true,
+  "externalMinimapPointerAndKeyboard": true,
+  "editUndoPreserved": true,
+  "portInspectorEditing": true,
+  "nativeSkipLink": true,
+  "diagnosticsAndNestedBundle": true,
+  "screenshots": ["sidebar-light.png", "sidebar-dark.png", "sidebar-narrow.png"],
+  "errors": [],
+  "externalRequests": []
+}

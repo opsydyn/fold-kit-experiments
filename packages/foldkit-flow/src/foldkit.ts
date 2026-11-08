@@ -370,6 +370,19 @@ export type FlowWorldOverlayContext = Readonly<{
 
 export type { FlowViewportCulling } from './viewport-culling';
 
+/** Native parts are already gated and themed. Place each at most once; retain the canvas's accessible help. */
+export type FlowViewLayoutParts = Readonly<{
+  canvas: Html;
+  /** Focus target for native skip links in host layouts. */
+  canvasId: string;
+  help: Html;
+  controls: Html | null;
+  creation: Html | null;
+  minimap: Html | null;
+  status: Html;
+  connections: Html;
+}>;
+
 export type FlowViewOptions<M> = FlowDiagnosticOptions &
   Readonly<{
     /** Unique within the document; prefixes accessible descriptions and SVG markers. */
@@ -548,7 +561,10 @@ export type FlowViewOptions<M> = FlowDiagnosticOptions &
     previousViewControl?: boolean;
     /** Include a box selection toggle in the viewport controls. */
     selectionModeControl?: boolean;
-    height?: number;
+    /** Numeric pixels (default 440), or fill a bounded host layout. */
+    height?: number | 'fill';
+    /** Arrange native parts inside the themed root without copying their interaction protocol. */
+    renderLayout?: (parts: FlowViewLayoutParts, h: HtmlBuilder<M>) => Html;
     /** Decorative background, independent of snapping. Defaults to dots. */
     background?: FlowBackground<M>;
   }>;
@@ -2126,6 +2142,7 @@ export function flowView<M>(
           },
         }
       : undefined;
+  const pixelHeight = options.height === 'fill' ? 440 : (options.height ?? 440);
   const toolbarContent = toolbarContext && options.renderEdgeToolbar?.(toolbarContext, h);
   const toolbar =
     toolbarContext && toolbarContent !== null
@@ -2135,13 +2152,13 @@ export function flowView<M>(
             toolbarContext.labelPosition,
             state.viewport,
             reconnectPoints,
-            state.surface?.height ?? options.height ?? 440,
+            state.surface?.height ?? pixelHeight,
           ),
           toolbarId,
           toolbarContent ?? defaultEdgeToolbar(h, toolbarContext, options.onEvent),
           toolbarContext.reconnection
             ? edgeToolbarBand(
-                state.surface?.height ?? options.height ?? 440,
+                state.surface?.height ?? pixelHeight,
                 reconnectPoints.map((point) => state.viewport.y + point.y * state.viewport.zoom),
                 9 * state.viewport.zoom + 6,
               )
@@ -2206,268 +2223,295 @@ export function flowView<M>(
       )
     : undefined;
   const creationContent = creationContext && options.renderConnectionCreation?.(creationContext, h);
+
+  const fillSize = { height: '100%', flex: '1 1 0', 'min-height': '0', 'box-sizing': 'border-box' };
+  const pixelSize = { height: `${pixelHeight}px` };
+  const surfaceSize = options.height === 'fill' ? fillSize : pixelSize;
+  const themeStyles = flowThemeStyle(options.theme ?? {});
+  const rootStyles =
+    options.height === 'fill'
+      ? {
+          ...themeStyles,
+          height: '100%',
+          'min-height': '0',
+          display: 'flex',
+          'flex-direction': 'column',
+        }
+      : themeStyles;
+  const help = canvasHelpView(
+    h,
+    options,
+    state,
+    descriptionId,
+    toolbarEnabled,
+    diagnostics.instructions,
+  );
+  const controlParts = options.viewportControls
+    ? [
+        options.renderViewportControls?.(
+          {
+            state,
+            diagnostics,
+            actions: viewportControlActions(state),
+            selectionModeControl: Boolean(options.selectionModeControl),
+            fitSelectionControl: Boolean(options.fitSelectionControl),
+            zoomAreaControl: Boolean(options.zoomAreaControl),
+            previousViewControl: Boolean(options.previousViewControl),
+          },
+          h,
+        ) ?? viewportControls(h, state, options, diagnostics),
+      ]
+    : [];
+  const creationParts =
+    creationContext && creationContent !== null
+      ? [
+          creationContent ??
+            flowConnectionCreation(h, creationContext, options.onEvent, {
+              idPrefix: `${encodeURIComponent(options.id)}-create`,
+            }),
+        ]
+      : [];
+  const minimapParts = minimap
+    ? [
+        options.renderMinimap?.(minimap, h) ??
+          flowMinimap(
+            h,
+            minimap,
+            options.onEvent,
+            [
+              h.Key('minimap'),
+              h.Style({
+                position: options.renderLayout ? 'relative' : 'absolute',
+                right: options.renderLayout ? 'auto' : '10px',
+                bottom: options.renderLayout ? 'auto' : '10px',
+                width: options.renderLayout ? '100%' : 'min(160px, 34%)',
+                height: options.renderLayout ? '150px' : 'auto',
+                'aspect-ratio': '8 / 5',
+                border: '0',
+                padding: '0',
+                background: 'var(--flow-node-background, #fff)',
+                'border-radius': '6px',
+                'box-shadow': '0 0 0 1px var(--flow-canvas-border, #94a3b8)',
+                cursor: 'crosshair',
+              }),
+            ],
+            [
+              ...minimap.nodes.map((node) =>
+                h.rect(
+                  [
+                    h.Key(`mini:${node.id}`),
+                    h.X(String(node.position.x)),
+                    h.Y(String(node.position.y)),
+                    h.Width(String(node.size.width)),
+                    h.Height(String(node.size.height)),
+                    h.Fill(
+                      node.kind === 'group'
+                        ? 'var(--flow-group-background, rgb(100 116 139 / 0.15))'
+                        : 'var(--flow-node-border, #64748b)',
+                    ),
+                  ],
+                  [],
+                ),
+              ),
+              flowMinimapViewport(h, minimap.geometry, [
+                h.Fill('none'),
+                h.Stroke('var(--flow-selection, #2563eb)'),
+                h.Style({ 'vector-effect': 'non-scaling-stroke' }),
+              ]),
+            ],
+          ),
+      ]
+    : [];
+  const canvasPart = h.div(
+    [
+      h.Key('surface'),
+      h.Id(`${options.id}-surface`),
+      h.DataAttribute('flow-surface', options.id),
+      h.DataAttribute('flow-readonly', String(state.readOnly)),
+      h.DataAttribute('flow-grid-snap', String(state.snapToGrid)),
+      h.DataAttribute('flow-grid-spacing', String(state.gridSpacing)),
+      h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
+      h.DataAttribute('flow-connection-drop-radius', String(connectionDropRadius)),
+      h.DataAttribute('flow-reconnection-drop-radius', String(reconnectionDropRadius)),
+      h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
+      h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
+      h.DataAttribute('flow-double-click-zoom', String(doubleClickZoomFactor || '')),
+      h.DataAttribute('flow-space-to-pan', String(options.spaceToPan === true)),
+      h.DataAttribute('flow-middle-button-pan', String(options.middleButtonPan === true)),
+      h.DataAttribute(
+        'flow-anchor-keyboard-targets',
+        String(options.portAnchorKeyboardTargets === true),
+      ),
+      h.DataAttribute('flow-port-anchor-snap-bypass', options.portAnchorSnapBypassModifier ?? ''),
+      h.DataAttribute(
+        'flow-fit-animation',
+        state.fitViewTransition.type === 'fitting' ? String(state.fitViewTransition.id) : '',
+      ),
+      h.DataAttribute('flow-selection-mode', String(state.selectionMode)),
+      h.DataAttribute('flow-zoom-area-mode', String(Boolean(state.zoomAreaMode))),
+      h.DataAttribute('flow-context-actions', String(Boolean(contextEnabled))),
+      h.Tabindex(0),
+      h.Role('group'),
+      h.AriaLabel(options.label),
+      h.AriaDescribedBy(descriptionId),
+      h.OnMount(Mount.mapMessage(FlowInput(), (message) => options.onEvent(message.event))),
+      h.Style({
+        position: 'relative',
+        overflow: 'hidden',
+        ...surfaceSize,
+        width: '100%',
+        'touch-action': 'none',
+        cursor:
+          (options.spaceToPan || options.middleButtonPan) && state.gesture.type === 'pan'
+            ? 'grabbing'
+            : state.selectionMode || state.zoomAreaMode || state.gesture.type === 'zoom-area'
+              ? 'crosshair'
+              : 'inherit',
+        'background-color': 'var(--flow-background, #eef2f6)',
+        border: '1px solid var(--flow-canvas-border, #94a3b8)',
+        'border-radius': '10px',
+      }),
+    ],
+    [
+      ...backgroundView(h, state, options.id, options.background),
+      h.div(
+        [
+          h.Style({
+            position: 'absolute',
+            inset: '0',
+            transform,
+            'transform-origin': '0 0',
+            'pointer-events': 'none',
+          }),
+        ],
+        [
+          ...boundaries,
+          h.svg(
+            [
+              h.Width('100%'),
+              h.Height('100%'),
+              h.AriaHidden(true),
+              h.Style({ position: 'absolute', overflow: 'visible', 'pointer-events': 'none' }),
+            ],
+            [
+              h.defs(
+                [],
+                [
+                  h.marker(
+                    [
+                      h.Id(markerId),
+                      h.ViewBox('0 0 10 10'),
+                      h.RefX('9'),
+                      h.RefY('5'),
+                      h.MarkerWidth('6'),
+                      h.MarkerHeight('6'),
+                      h.Orient('auto-start-reverse'),
+                    ],
+                    [h.path([h.D('M0,0 L10,5 L0,10 Z'), h.Fill('var(--flow-edge, #64748b)')], [])],
+                  ),
+                ],
+              ),
+              ...edges,
+              ...alignmentGuideViews(h, state, options, diagnostics),
+              ...handles,
+              ...(previewView ? [previewView] : []),
+            ],
+          ),
+          ...nodeLayer,
+          ...(options.portAnchorGuides && diagnostics.alignmentGuides
+            ? portAnchorGuideViews(
+                h,
+                state,
+                canvas.nodes,
+                options.canEditPort,
+                options.renderPortAnchorGuide,
+              )
+            : []),
+          ...portAnchorHandleViews(
+            h,
+            state,
+            canvas.nodes,
+            options.portAnchorHandles,
+            options.canEditPort,
+            options.renderPortAnchorHandle,
+            options.portAnchorSnapBypassModifier,
+            options.portAnchorKeyboardTargets,
+          ),
+          ...portLabelViews(h, canvas.nodes, options.portLabels, options.renderPortLabel),
+          ...edgeLabels,
+          ...(worldOverlay === null || worldOverlay === undefined
+            ? []
+            : [
+                h.div(
+                  [
+                    h.DataAttribute('flow-world-overlay', ''),
+                    h.Style({ position: 'absolute', inset: '0', 'pointer-events': 'none' }),
+                  ],
+                  [worldOverlay],
+                ),
+              ]),
+          ...selectionMarquee(h, state, options, selectionPreview),
+          ...zoomAreaMarquee(h, state, options),
+        ],
+      ),
+      ...(!options.renderLayout ? minimapParts : []),
+      ...resizeReadout(h, state, options, presentation.nodes, diagnostics),
+      ...(toolbar ? [toolbar] : []),
+      ...(selectedNodeToolbar && nodeToolbarContent !== null
+        ? [nodeToolbarView(h, selectedNodeToolbar, options.onEvent, nodeToolbarContent)]
+        : []),
+      ...contextPanel(h, state, options, diagnostics),
+    ],
+  );
+  const status = canvasStatusView(
+    h,
+    options,
+    state.notice,
+    presentation.nodes.length,
+    visibleEdges.length,
+    diagnostics.status,
+  );
+  const connectionParts = diagnostics.connectionList
+    ? [connections()]
+    : [
+        h.div(
+          [],
+          [
+            h.button(
+              [
+                h.Type('button'),
+                h.DataAttribute('flow-connections-toggle', ''),
+                h.AriaExpanded(state.connectionsExpanded),
+                ...(state.connectionsExpanded ? [h.AriaControls(`${options.id}-connections`)] : []),
+                h.OnClick(options.onEvent({ type: 'ConnectionListToggled' })),
+                h.Style({ 'min-height': '36px', padding: '6px 10px' }),
+              ],
+              ['Connections'],
+            ),
+            ...(state.connectionsExpanded ? [connections()] : []),
+          ],
+        ),
+      ];
+  const parts: FlowViewLayoutParts = {
+    canvas: canvasPart,
+    canvasId: `${options.id}-surface`,
+    help,
+    controls: controlParts[0] ?? null,
+    creation: creationParts[0] ?? null,
+    minimap: minimapParts[0] ?? null,
+    status,
+    connections: connectionParts[0]!,
+  };
+
   return h.div(
     [
       h.Id(options.id),
       h.DataAttribute('flow-minimal', String(options.minimalMode === true)),
       h.Class(options.themeClassName ? `foldkit-flow ${options.themeClassName}` : 'foldkit-flow'),
-      ...(options.theme ? [h.Style(flowThemeStyle(options.theme))] : []),
+      ...(options.theme || options.height === 'fill' ? [h.Style(rootStyles)] : []),
     ],
-    [
-      canvasHelpView(h, options, state, descriptionId, toolbarEnabled, diagnostics.instructions),
-      ...(options.viewportControls
-        ? [
-            options.renderViewportControls?.(
-              {
-                state,
-                diagnostics,
-                actions: viewportControlActions(state),
-                selectionModeControl: Boolean(options.selectionModeControl),
-                fitSelectionControl: Boolean(options.fitSelectionControl),
-                zoomAreaControl: Boolean(options.zoomAreaControl),
-                previousViewControl: Boolean(options.previousViewControl),
-              },
-              h,
-            ) ?? viewportControls(h, state, options, diagnostics),
-          ]
-        : []),
-      ...(creationContext && creationContent !== null
-        ? [
-            creationContent ??
-              flowConnectionCreation(h, creationContext, options.onEvent, {
-                idPrefix: `${encodeURIComponent(options.id)}-create`,
-              }),
-          ]
-        : []),
-      h.div(
-        [
-          h.Key('surface'),
-          h.DataAttribute('flow-surface', options.id),
-          h.DataAttribute('flow-readonly', String(state.readOnly)),
-          h.DataAttribute('flow-grid-snap', String(state.snapToGrid)),
-          h.DataAttribute('flow-grid-spacing', String(state.gridSpacing)),
-          h.DataAttribute('flow-auto-pan', String(options.autoPan ?? false)),
-          h.DataAttribute('flow-connection-drop-radius', String(connectionDropRadius)),
-          h.DataAttribute('flow-reconnection-drop-radius', String(reconnectionDropRadius)),
-          h.DataAttribute('flow-pinch-zoom', String(options.pinchZoom ?? false)),
-          h.DataAttribute('flow-wheel-navigation', options.wheelNavigation ?? 'zoom'),
-          h.DataAttribute('flow-double-click-zoom', String(doubleClickZoomFactor || '')),
-          h.DataAttribute('flow-space-to-pan', String(options.spaceToPan === true)),
-          h.DataAttribute('flow-middle-button-pan', String(options.middleButtonPan === true)),
-          h.DataAttribute(
-            'flow-anchor-keyboard-targets',
-            String(options.portAnchorKeyboardTargets === true),
-          ),
-          h.DataAttribute(
-            'flow-port-anchor-snap-bypass',
-            options.portAnchorSnapBypassModifier ?? '',
-          ),
-          h.DataAttribute(
-            'flow-fit-animation',
-            state.fitViewTransition.type === 'fitting' ? String(state.fitViewTransition.id) : '',
-          ),
-          h.DataAttribute('flow-selection-mode', String(state.selectionMode)),
-          h.DataAttribute('flow-zoom-area-mode', String(Boolean(state.zoomAreaMode))),
-          h.DataAttribute('flow-context-actions', String(Boolean(contextEnabled))),
-          h.Tabindex(0),
-          h.Role('group'),
-          h.AriaLabel(options.label),
-          h.AriaDescribedBy(descriptionId),
-          h.OnMount(Mount.mapMessage(FlowInput(), (message) => options.onEvent(message.event))),
-          h.Style({
-            position: 'relative',
-            overflow: 'hidden',
-            height: `${options.height ?? 440}px`,
-            width: '100%',
-            'touch-action': 'none',
-            cursor:
-              (options.spaceToPan || options.middleButtonPan) && state.gesture.type === 'pan'
-                ? 'grabbing'
-                : state.selectionMode || state.zoomAreaMode || state.gesture.type === 'zoom-area'
-                  ? 'crosshair'
-                  : 'inherit',
-            'background-color': 'var(--flow-background, #eef2f6)',
-            border: '1px solid var(--flow-canvas-border, #94a3b8)',
-            'border-radius': '10px',
-          }),
-        ],
-        [
-          ...backgroundView(h, state, options.id, options.background),
-          h.div(
-            [
-              h.Style({
-                position: 'absolute',
-                inset: '0',
-                transform,
-                'transform-origin': '0 0',
-                'pointer-events': 'none',
-              }),
-            ],
-            [
-              ...boundaries,
-              h.svg(
-                [
-                  h.Width('100%'),
-                  h.Height('100%'),
-                  h.AriaHidden(true),
-                  h.Style({ position: 'absolute', overflow: 'visible', 'pointer-events': 'none' }),
-                ],
-                [
-                  h.defs(
-                    [],
-                    [
-                      h.marker(
-                        [
-                          h.Id(markerId),
-                          h.ViewBox('0 0 10 10'),
-                          h.RefX('9'),
-                          h.RefY('5'),
-                          h.MarkerWidth('6'),
-                          h.MarkerHeight('6'),
-                          h.Orient('auto-start-reverse'),
-                        ],
-                        [
-                          h.path(
-                            [h.D('M0,0 L10,5 L0,10 Z'), h.Fill('var(--flow-edge, #64748b)')],
-                            [],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  ...edges,
-                  ...alignmentGuideViews(h, state, options, diagnostics),
-                  ...handles,
-                  ...(previewView ? [previewView] : []),
-                ],
-              ),
-              ...nodeLayer,
-              ...(options.portAnchorGuides && diagnostics.alignmentGuides
-                ? portAnchorGuideViews(
-                    h,
-                    state,
-                    canvas.nodes,
-                    options.canEditPort,
-                    options.renderPortAnchorGuide,
-                  )
-                : []),
-              ...portAnchorHandleViews(
-                h,
-                state,
-                canvas.nodes,
-                options.portAnchorHandles,
-                options.canEditPort,
-                options.renderPortAnchorHandle,
-                options.portAnchorSnapBypassModifier,
-                options.portAnchorKeyboardTargets,
-              ),
-              ...portLabelViews(h, canvas.nodes, options.portLabels, options.renderPortLabel),
-              ...edgeLabels,
-              ...(worldOverlay === null || worldOverlay === undefined
-                ? []
-                : [
-                    h.div(
-                      [
-                        h.DataAttribute('flow-world-overlay', ''),
-                        h.Style({ position: 'absolute', inset: '0', 'pointer-events': 'none' }),
-                      ],
-                      [worldOverlay],
-                    ),
-                  ]),
-              ...selectionMarquee(h, state, options, selectionPreview),
-              ...zoomAreaMarquee(h, state, options),
-            ],
-          ),
-          ...(minimap
-            ? [
-                options.renderMinimap?.(minimap, h) ??
-                  flowMinimap(
-                    h,
-                    minimap,
-                    options.onEvent,
-                    [
-                      h.Key('minimap'),
-                      h.Style({
-                        position: 'absolute',
-                        right: '10px',
-                        bottom: '10px',
-                        width: 'min(160px, 34%)',
-                        height: 'auto',
-                        'aspect-ratio': '8 / 5',
-                        border: '0',
-                        padding: '0',
-                        background: 'var(--flow-node-background, #fff)',
-                        'border-radius': '6px',
-                        'box-shadow': '0 0 0 1px var(--flow-canvas-border, #94a3b8)',
-                        cursor: 'crosshair',
-                      }),
-                    ],
-                    [
-                      ...minimap.nodes.map((node) =>
-                        h.rect(
-                          [
-                            h.Key(`mini:${node.id}`),
-                            h.X(String(node.position.x)),
-                            h.Y(String(node.position.y)),
-                            h.Width(String(node.size.width)),
-                            h.Height(String(node.size.height)),
-                            h.Fill(
-                              node.kind === 'group'
-                                ? 'var(--flow-group-background, rgb(100 116 139 / 0.15))'
-                                : 'var(--flow-node-border, #64748b)',
-                            ),
-                          ],
-                          [],
-                        ),
-                      ),
-                      flowMinimapViewport(h, minimap.geometry, [
-                        h.Fill('none'),
-                        h.Stroke('var(--flow-selection, #2563eb)'),
-                        h.Style({ 'vector-effect': 'non-scaling-stroke' }),
-                      ]),
-                    ],
-                  ),
-              ]
-            : []),
-          ...resizeReadout(h, state, options, presentation.nodes, diagnostics),
-          ...(toolbar ? [toolbar] : []),
-          ...(selectedNodeToolbar && nodeToolbarContent !== null
-            ? [nodeToolbarView(h, selectedNodeToolbar, options.onEvent, nodeToolbarContent)]
-            : []),
-          ...contextPanel(h, state, options, diagnostics),
-        ],
-      ),
-      canvasStatusView(
-        h,
-        options,
-        state.notice,
-        presentation.nodes.length,
-        visibleEdges.length,
-        diagnostics.status,
-      ),
-      ...(diagnostics.connectionList
-        ? [connections()]
-        : [
-            h.div(
-              [],
-              [
-                h.button(
-                  [
-                    h.Type('button'),
-                    h.DataAttribute('flow-connections-toggle', ''),
-                    h.AriaExpanded(state.connectionsExpanded),
-                    ...(state.connectionsExpanded
-                      ? [h.AriaControls(`${options.id}-connections`)]
-                      : []),
-                    h.OnClick(options.onEvent({ type: 'ConnectionListToggled' })),
-                    h.Style({ 'min-height': '36px', padding: '6px 10px' }),
-                  ],
-                  ['Connections'],
-                ),
-                ...(state.connectionsExpanded ? [connections()] : []),
-              ],
-            ),
-          ]),
-    ],
+    options.renderLayout
+      ? [options.renderLayout(parts, h)]
+      : [help, ...controlParts, ...creationParts, canvasPart, status, ...connectionParts],
   );
 }

@@ -582,3 +582,18 @@ Enable **Middle-drag to pan** to drag the canvas background with the
 middle mouse button. Try it with **Box select** active, then use a
 primary-button drag to draw the marquee.
 [Workbench screenshot](evidence/middle-button-pan.png)
+
+## Persistent canvas workbench
+
+The left sidebar groups Diagram, Appearance, Navigation, Ports, Policies,
+Inspect, Diagnostics and Mermaid export. Its settings scroll independently while
+the canvas fills the remaining viewport. Theme stays near the top. **Hide
+controls** collapses it to a narrow rail with **Fit view**; **Show controls**
+restores it. A keyboard-visible **Skip to canvas** link focuses the live canvas.
+Switching sections does not edit your graph or Undo history.
+
+Navigation contains the native zoom/fit controls and interactive overview.
+Inspect contains selected-item/port controls and the connection list. Diagnostics
+opens its options directly. The Mermaid section retains explicit loss consent
+and nested hierarchy metadata. Diagram handles, contextual editing and feedback
+remain on the canvas. See [layout evidence](evidence/sidebar.md).

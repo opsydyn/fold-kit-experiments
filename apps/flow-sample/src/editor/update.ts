@@ -601,13 +601,31 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ? { model: { ...model, active: null, notice: 'Layout failed. Your graph is preserved.' } }
         : { model },
     ClickedIncludeCamera: () => ({ model: { ...model, includeCamera: !model.includeCamera } }),
-    ClickedMermaidPreview: () => ({
+    SelectedWorkbenchSection: ({ section }) => ({
       model: {
         ...model,
-        mermaidPreviewOpen: !model.mermaidPreviewOpen,
-        mermaidLossConsentRevision: null,
+        sidebarSection: section,
+        diagnosticsPanelOpen: section === 'diagnostics' || model.diagnosticsPanelOpen,
+        sidebarCollapsed: false,
+        mermaidPreviewOpen: section === 'export' || model.mermaidPreviewOpen,
       },
     }),
+    ClickedWorkbenchSidebar: () => ({
+      model: { ...model, sidebarCollapsed: !model.sidebarCollapsed },
+    }),
+    ClickedMermaidPreview: (): Return<Model, Message> => {
+      const opening = !model.mermaidPreviewOpen || model.sidebarSection !== 'export';
+      return {
+        model: {
+          ...model,
+          sidebarSection: opening ? 'export' : 'diagram',
+          sidebarCollapsed: false,
+          mermaidPreviewOpen: opening,
+          mermaidLossConsentRevision:
+            opening && model.mermaidPreviewOpen ? model.mermaidLossConsentRevision : null,
+        },
+      };
+    },
     ClickedMermaidLossConsent: () => ({
       model: {
         ...model,

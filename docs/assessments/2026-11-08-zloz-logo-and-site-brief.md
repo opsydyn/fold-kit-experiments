@@ -20,6 +20,11 @@ Viz/Three syntax highlighting. The C4 preview and downloads use package APIs;
 [local browser/build evidence](../../apps/zloz-promo/evidence/promo.md) remains
 separate from hosting and registry publication.
 
+**Compose follow-up:** the promo now includes a native Foldkit example using
+public package selection, connection and history primitives. Its
+[local evidence](../../apps/zloz-promo/evidence/compose.md) covers chooser, keyboard
+and pointer creation, cancel, Undo/Redo, live themes and narrow layouts.
+
 ## Product and audience
 
 **Foldkit Zloz** is a functional, extensible graph toolkit for interactive node
@@ -221,5 +226,5 @@ Accessibility is a design constraint in every slice; full accessibility
 qualification remains after functional parity, following the user's sequencing.
 A brief is not proof that those sites or assets already exist.
 
-**Recommended next:** one native Foldkit Compose example in the promo, with
-selection, connection creation and Undo, matching the existing family styles.
+**Next promo example:** export the edited Compose graph as canonical JSON and
+Mermaid, reviewing conversion losses before download.

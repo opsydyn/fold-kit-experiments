@@ -178,10 +178,13 @@
       "name": "@opsydyn/zloz-promo",
       "dependencies": {
         "@fontsource-variable/inter": "catalog:",
+        "@opsydyn/astro-foldkit": "workspace:*",
         "@opsydyn/dataset-explorer": "workspace:*",
         "@opsydyn/foldkit-flow": "workspace:*",
         "@opsydyn/foldkit-flow-mermaid": "workspace:*",
         "astro": "catalog:",
+        "effect": "catalog:",
+        "foldkit": "catalog:",
         "hast-util-to-html": "catalog:",
         "vscode-oniguruma": "catalog:",
       },

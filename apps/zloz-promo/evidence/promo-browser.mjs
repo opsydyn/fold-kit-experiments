@@ -106,7 +106,7 @@ await (async () => {
   const noJs = await browser.newPage({ javaScriptEnabled: false });
   await noJs.goto(base.href);
   await expect(noJs.locator('[data-preview-node]')).toHaveCount(4);
-  await noJs.locator('summary').click();
+  await noJs.locator('.mermaid-source summary').click();
   await expect(noJs.locator('.conversion-notes')).toBeVisible();
   await noJs.close();
   const firstPaint = await browser.newPage({ colorScheme: 'dark' });

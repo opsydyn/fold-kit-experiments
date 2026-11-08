@@ -81,7 +81,9 @@ modelling toolkit within that family.
    locally: selected identity, family themes, core-generated C4 preview, model/
    Mermaid downloads and a developer guide with shared Viz/Three syntax
    highlighting. [Local evidence](../apps/zloz-promo/evidence/promo.md) records
-   browser and nested-base-path checks. Interactive examples remain next.
+   browser and nested-base-path checks. A [native Compose example](../apps/zloz-promo/evidence/compose.md)
+   now demonstrates selection, connection creation, cancel and Undo/Redo, with
+   readable narrow layouts and shared highlighted source.
 4. **Full demo site.** Develop an Astro-shell, native Foldkit demonstration site
    comparable in scope and navigation approach to Tech Radar. Build on the
    persistent-canvas left-sidebar workbench; expose graph composition, C4 models,
@@ -108,13 +110,18 @@ logo directions and promo/demo information architecture. Their technical names
 remain proposals for implementation review. The user selected **B — Nested frame**
 after reviewing the three SVG concepts.
 
-**Next bounded promo slice:** one native Foldkit Compose example with selection,
-connection creation and Undo, linked to the full workbench. The static shell and
-highlighted developer guide are implemented locally.
+**Next bounded promo slice:** export the edited Compose graph as canonical JSON
+and Mermaid, with explicit conversion-loss review. The static shell, highlighted
+developer guide and native Compose island are implemented locally.
 Both board and promo must keep the Viz/Three family styling, including light/dark
 themes; a separate dark-green identity is not intended. The separate
 feature recommendation for searchable sidebar settings remains on the workbench
 track.
+
+**Suggested workbench UX follow-up:** make the mini map discoverable in Navigation
+with a **Mini map** toggle, rather than **Overview** under Diagnostics. Reuse the
+existing `overview` flag and respect global diagnostics/Minimal mode. This is a
+proposed follow-up prompted by the user's difficulty locating the control.
 
 ## Release: Keyed Chart Comparison
 

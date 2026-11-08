@@ -1,0 +1,17 @@
+{
+  "result": "pass",
+  "url": "http://127.0.0.1:4329/",
+  "selectionWithoutHistory": true,
+  "keyboardConnectionSelection": true,
+  "nativeChooser": true,
+  "keyboardPorts": true,
+  "pointerConnection": true,
+  "cancelAndDuplicateRejection": true,
+  "undoRedoStableIdentity": true,
+  "themeRetainsMountedEditor": true,
+  "astroMetadataRetained": true,
+  "highlightedSource": true,
+  "mobile": "390px; all nodes visible; chooser and Undo pass",
+  "pageErrors": [],
+  "failedResponses": []
+}

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild-packages": "bun run --filter @opsydyn/foldkit-flow-mermaid build",
+    "prebuild-packages": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/foldkit-flow-mermaid build",
     "dev": "bun run prebuild-packages && astro dev",
     "build": "bun run prebuild-packages && astro build",
     "preview": "astro preview",
@@ -12,10 +12,13 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "catalog:",
+    "@opsydyn/astro-foldkit": "workspace:*",
     "@opsydyn/dataset-explorer": "workspace:*",
     "@opsydyn/foldkit-flow": "workspace:*",
     "@opsydyn/foldkit-flow-mermaid": "workspace:*",
     "astro": "catalog:",
+    "effect": "catalog:",
+    "foldkit": "catalog:",
     "hast-util-to-html": "catalog:",
     "vscode-oniguruma": "catalog:"
   },

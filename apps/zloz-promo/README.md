@@ -60,17 +60,42 @@ line anchors and light/dark stylesheet as Viz and Three. Highlighting is
 prerendered with one server engine; no highlighter/WASM is loaded in the browser.
 
 Astro owns the page chrome and its independent `foldkit-zloz-theme` preference.
-There is no graph editing state, copied workbench logic, or browser graph bundle.
-The page and downloads work without JavaScript; theme switching uses a small
-local script. Self-hosted Inter avoids external font requests. Browser tests cover
-saved/system/cross-tab themes and blocked storage.
+The separate **Compose** island uses native Foldkit, with package-owned editing
+state held in its Model. It demonstrates node/edge selection, native connection
+choosers, keyboard/pointer port connections, cancellation, Undo and Redo. Its
+camera fits on first measurement; Fit remains available afterward. Wheel input
+continues scrolling the page. The vertical fixture keeps text readable on narrow
+screens. It is an ephemeral example: reloading starts fresh.
+
+The island uses `lazyApp`, `client:load` and `noMeta`; Astro retains document
+metadata. Public `flowView` and connection primitives handle the controls and
+scoped input mounts. `createEditor` / `updateEditor` own graph changes and history;
+no workbench logic is copied into the promo. CSS variables inherit the page theme
+without replacing the live Model. Its actual state/update source is shown with
+the shared syntax highlighter.
+
+The static page, C4 preview and downloads still work without JavaScript; editing
+and theme switching require it. A noscript message links to the separate
+workbench. Self-hosted Inter avoids external font requests. Browser tests cover
+saved/system/cross-tab themes, blocked storage and the live Compose island.
 
 The mark/favicon come directly from `docs/assets/zloz/final`, without another
 authored logo copy. See [ADR 0012](../../docs/adr/0012-create-a-static-zloz-promo-shell.md)
-and [local evidence](evidence/promo.md).
+and [local evidence](evidence/promo.md). The interactive boundary is recorded in
+[ADR 0013](../../docs/adr/0013-demonstrate-compose-with-a-native-foldkit-island.md)
+and [Compose evidence](evidence/compose.md).
+
+Run `node apps/zloz-promo/evidence/compose-browser.mjs` against the built preview
+to exercise chooser, keyboard and pointer connection paths, selection, cancel,
+duplicate rejection, history, theme retention, narrow fit and Astro metadata.
+Then format `apps/zloz-promo/evidence/compose-browser.json` with oxfmt.
 
 For a nested-path check, build with `ZLOZ_PROMO_BASE_PATH=/preview/zloz/` and
 `ZLOZ_WORKBENCH_URL='http://127.0.0.1:4323/?from=zloz'`, using Astro's `--outDir`
 option to keep that output separate. Set `ZLOZ_PREFIX_DIST` to that directory and
 run `node apps/zloz-promo/evidence/basepath-browser.mjs`. Its temporary HTTP server
 serves only the prefix, so missing base paths cannot silently resolve at `/`.
+Use the workspace's `build --outDir ...` script for this check, so its package
+prebuild runs first. Run build/typecheck/workspace tests sequentially before the
+browser proofs; rebuilding shared package output concurrently can interrupt
+module resolution in other verification processes.

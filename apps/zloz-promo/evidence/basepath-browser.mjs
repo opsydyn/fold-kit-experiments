@@ -56,6 +56,17 @@ await (async () => {
   await page.evaluate(() => document.fonts.ready);
   expect(await page.evaluate(() => document.fonts.check('740 25px "Inter Variable"'))).toBe(true);
   await expect(page.locator('[data-preview-node]')).toHaveCount(4);
+  const compose = page.locator('.compose-example');
+  await expect(compose.locator('[data-flow-node]')).toHaveCount(3);
+  await compose
+    .getByRole('combobox', { name: 'New connection source' })
+    .selectOption({ label: 'Review: Output' });
+  await compose
+    .getByRole('combobox', { name: 'New connection target' })
+    .selectOption({ label: 'Publish: Input' });
+  await expect(compose.locator('[data-flow-edge]')).toHaveCount(2);
+  await compose.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(compose.locator('[data-flow-edge]')).toHaveCount(1);
   expect(await page.locator('.hero-actions a').first().getAttribute('href')).toBe(
     'http://127.0.0.1:4323/?from=zloz',
   );
@@ -89,6 +100,7 @@ await (async () => {
         localPageAssetsAndDownloads: 'HTTP 200 under prefix',
         font: 'local Inter loaded',
         navigation: 'home to docs with retained theme',
+        composeIsland: 'hydrated; connection creation and Undo pass under prefix',
         pageErrors: errors,
         failedResponses: failed,
       },

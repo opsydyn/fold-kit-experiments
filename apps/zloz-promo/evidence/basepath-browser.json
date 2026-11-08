@@ -5,6 +5,7 @@
   "localPageAssetsAndDownloads": "HTTP 200 under prefix",
   "font": "local Inter loaded",
   "navigation": "home to docs with retained theme",
+  "composeIsland": "hydrated; connection creation and Undo pass under prefix",
   "pageErrors": [],
   "failedResponses": []
 }

@@ -4,6 +4,9 @@ import ContextPreview from '../components/ContextPreview.astro';
 import { api, localWorkbench, workbench } from '../lib/links';
 import { sitePath } from '../lib/site-path';
 import { mermaidBundle } from '../lib/context-model';
+import Compose from '../examples/compose/app';
+import SourceCode from '../components/SourceCode.astro';
+import composeSource from '../examples/compose/state.ts?raw';
 ---
 <Layout>
   <section class="hero" aria-labelledby="hero-title">
@@ -18,10 +21,17 @@ import { mermaidBundle } from '../lib/context-model';
   <section class="capabilities" id="capabilities" aria-labelledby="capabilities-title">
     <div class="section-heading"><p class="eyebrow">Compose. Connect. Communicate.</p><h2 id="capabilities-title">More than a flow editor.<br />A system composition toolkit.</h2></div>
     <div class="capability-grid">
-      <article><span class="capability-number">01 / Compose</span><h3>Give ideas<br />a structure.</h3><p>Build interactive graphs with nodes, edges, ports and connections. Shape the experience through composable renderers, policies and themes.</p><a class="text-link" href={workbench}>Explore the workbench <span aria-hidden="true">↗</span></a></article>
+      <article><span class="capability-number">01 / Compose</span><h3>Give ideas<br />a structure.</h3><p>Build interactive graphs with nodes, edges, ports and connections. Shape the experience through composable renderers, policies and themes.</p><a class="text-link" href="#compose">Try Compose <span aria-hidden="true">↓</span></a></article>
       <article><span class="capability-number">02 / Model</span><h3>Make boundaries<br />visible.</h3><p>Describe people, software systems and containers with built-in C4 semantics. Keep architectural meaning in the model, independent of its visual form.</p><a class="text-link" href={sitePath('/downloads/order-context.json')} download>Download this C4 model <span aria-hidden="true">↓</span></a></article>
       <article><span class="capability-number">03 / Communicate</span><h3>Let your model<br />travel.</h3><p>Export Mermaid for documentation and collaboration. Review conversion losses and preserve identity metadata alongside the diagram source.</p><a class="text-link" href="#mermaid">Inspect the Mermaid export <span aria-hidden="true">↓</span></a></article>
     </div>
+  </section>
+  <section class="compose-section" id="compose" aria-labelledby="compose-title">
+    <div class="section-heading"><p class="eyebrow">Compose / Live Foldkit example</p><h2 id="compose-title">A small workflow.<br />Yours to connect.</h2><p class="compose-intro">Select a node, connect Review to Publish, and undo the change. The same package owns the graph, input handling and history.</p></div>
+    <Compose client:load noMeta />
+    <p class="small-note">This example resets on reload. <a class="text-link" href={workbench}>Explore the full workbench ↗</a></p>
+    <noscript><p class="small-note">Enable JavaScript for the interactive example, or <a class="text-link" href={workbench}>open the workbench</a>. The C4 preview and downloads above remain available.</p></noscript>
+    <details class="compose-source"><summary>Read the Model and update source</summary><div class="code-panel"><SourceCode code={composeSource} lang="ts" sourceId="compose-state.ts" /></div></details>
   </section>
   <section class="communication" id="mermaid" aria-labelledby="mermaid-title">
     <div><p class="eyebrow">Open by nature</p><h2 id="mermaid-title">From the canvas<br />to the conversation.</h2><p>This is the actual export of the context model above. Mermaid is a projection: canonical JSON retains the full editable model.</p><a class="text-link" href={sitePath('/downloads/order-context.mermaid.json')} download>Download source, identity and loss report <span aria-hidden="true">↓</span></a></div>

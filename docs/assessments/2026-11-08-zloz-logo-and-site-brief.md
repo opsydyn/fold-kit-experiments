@@ -8,8 +8,8 @@ compatibility, source ownership and delivery gates.
 
 **Implementation follow-up:** The approved [three SVG concepts](../assets/zloz/README.md)
 now have shared family-header proofs in both themes, with
-[local visual evidence](../../apps/promo/evidence/zloz-logos.md). No final mark is
-selected; the original planning-slice status above is retained as history.
+[local visual evidence](../../apps/promo/evidence/zloz-logos.md). **The user selected B — Nested frame** after reviewing the concepts. Final asset
+refinement remains open; the original planning-slice status above is retained as history.
 
 ## Product and audience
 
@@ -95,15 +95,15 @@ package at this stage. Keep logo/site assets out of the graph runtime.
 should suggest connection and folding without relying on an arrow or Polish
 accent to explain the name.
 
-| Direction                               | Description                                                                                                                       | Review concern                                                |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **A — Assembly junction (recommended)** | Two or three faceted pieces meet at an intentional junction; a small negative-space port or connection makes the assembly legible | Must remain distinct from Viz's folded strip and Three's cube |
-| **B — Nested frame**                    | An outer folded boundary encloses a smaller element, with one simple connection                                                   | Avoid tiny boxes/lines that disappear as a favicon            |
-| **C — Connected planes**                | Offset planes joined by one bridge, suggesting composed parts                                                                     | Avoid a generic node-network icon or a second cube            |
+| Direction                       | Description                                                                                                                       | Review concern                                                |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **A — Assembly junction**       | Two or three faceted pieces meet at an intentional junction; a small negative-space port or connection makes the assembly legible | Must remain distinct from Viz's folded strip and Three's cube |
+| **B — Nested frame (selected)** | An outer folded boundary encloses a smaller element, with one simple connection                                                   | Avoid tiny boxes/lines that disappear as a favicon            |
+| **C — Connected planes**        | Offset planes joined by one bridge, suggesting composed parts                                                                     | Avoid a generic node-network icon or a second cube            |
 
-Create a compact contact sheet before selecting a final mark. Direction A is the
-starting recommendation, not an approved finished drawing. Compare all concepts
-beside the current Viz/Three marks at equal size in both themes.
+The contact sheet compares all three directions beside the current Viz/Three
+marks at equal size in both themes. The user selected **B — Nested frame**,
+superseding the initial recommendation of A. Refine the selected mark next.
 
 Asset requirements:
 
@@ -211,6 +211,5 @@ Accessibility is a design constraint in every slice; full accessibility
 qualification remains after functional parity, following the user's sequencing.
 A brief is not proof that those sites or assets already exist.
 
-**Recommended next:** the logo contact sheet in the shared family header, then a
-selected-mark public-copy/shell slice. No asset or site implementation is part
-of this document commit.
+**Recommended next:** refine the selected Nested frame mark and deliver its final
+asset set, then the selected-mark public-copy/shell slice.

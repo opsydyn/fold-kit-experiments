@@ -1,6 +1,6 @@
 # Zloz logo concepts
 
-Three authored SVG studies, not a selected production identity. Review them at
+Three authored SVG studies. **B — Nested frame is the user-selected direction**; final production asset refinement remains open. Review them at
 `http://127.0.0.1:4328/brand/zloz/` after building and previewing `@opsydyn/promo`
 with `--host 127.0.0.1 --port 4328`.
 
@@ -10,8 +10,9 @@ with `--host 127.0.0.1 --port 4328`.
 | B — Nested frame      | A folded system boundary, inner element and bridge | Explicit containment; can read as a document |
 | C — Connected planes  | Independent pieces joined by a stepped connection  | Open silhouette; less detail at small sizes  |
 
-A is the recommended direction for refinement; the user has not selected a final
-mark. The review shows all concepts beside the actual Viz folded-strip and Three
+The user selected **B — Nested frame** on 2026-11-08, superseding the initial
+recommendation of A. Preserve the folded boundary, inner element and bridge
+during refinement. The review shows all concepts beside the actual Viz folded-strip and Three
 cube geometry, using the existing family typography and light/dark palette.
 
 ## Asset contract

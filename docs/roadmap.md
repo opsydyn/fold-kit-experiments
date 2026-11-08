@@ -70,7 +70,8 @@ modelling toolkit within that family.
    Zloz, while following the styling, typography and visual identity established
    by the Viz and Three promo sites. Define reusable assets and light/dark usage.
    Three [SVG concepts and family-header proofs](assets/zloz/README.md) are now
-   available in both themes. Selection and final asset refinement remain open.
+   available in both themes. **B — Nested frame is selected by the user**; final
+   asset refinement remains open.
 3. **Promo site.** Build a dedicated Zloz product site in the same family as Viz
    and Three, presenting the positioning, principles and Compose / Model /
    Communicate capabilities with real package-backed examples.
@@ -97,10 +98,12 @@ separate from that existing local evidence.
 and [shared logo/site brief](assessments/2026-11-08-zloz-logo-and-site-brief.md)
 record candidate package mappings, compatibility boundaries, family styling,
 logo directions and promo/demo information architecture. Their technical names
-and preferred mark direction remain proposals for implementation review.
+remain proposals for implementation review. The user selected **B — Nested frame**
+after reviewing the three SVG concepts.
 
-**Next bounded brand slice:** 2–3 SVG logo concepts shown in the shared family
-header, followed by the selected-mark public-copy/site-shell slice. The separate
+**Next bounded brand slice:** refine the selected Nested frame mark and deliver
+final light/dark, monochrome, favicon and wordmark assets, followed by the
+selected-mark public-copy/site-shell slice. The separate
 feature recommendation for searchable sidebar settings remains on the workbench
 track.
 

@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "baseline": "ce978a2d581501e61d276c530bb0454f4517d66e",
+  "measuredParent": "ce978a2d581501e61d276c530bb0454f4517d66e",
+  "oldBundleSha256": "bffe2456d2022c63ea9d62612b628d739bc04a90989cb806b9861cb1037ab7af",
+  "checks": [
+    "literal new v1 document read by pinned old core",
+    "legacy rename/move retain descriptors and host data",
+    "legacy copy/paste retains descriptors and host data",
+    "legacy Undo and export read by current core",
+    "legacy codec round trip"
+  ],
+  "limitation": "Old core retains descriptors as unknown fields; its renderer and geometry remain generic."
+}

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "store",
+        "label": "Orders",
+        "position": { "x": 10, "y": 20 },
+        "size": { "width": 200, "height": 100 },
+        "ports": [
+          { "id": "out", "kind": "output", "side": "right", "anchor": { "x": 0.8, "y": 0.3 } }
+        ],
+        "architecture": {
+          "family": "c4",
+          "role": "container",
+          "technology": "PostgreSQL",
+          "description": "Stores orders",
+          "scope": "internal"
+        },
+        "appearance": { "shape": "cylinder" },
+        "data": { "socketPolicies": [], "host": { "value": 42 } }
+      },
+      {
+        "id": "sales",
+        "label": "Sales",
+        "position": { "x": 300, "y": 20 },
+        "size": { "width": 200, "height": 100 },
+        "ports": [],
+        "kind": "group",
+        "architecture": { "family": "ddd", "role": "bounded-context", "subdomain": "core" },
+        "appearance": { "shape": "rectangle" }
+      }
+    ],
+    "edges": []
+  }
+}

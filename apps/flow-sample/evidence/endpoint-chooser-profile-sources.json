@@ -1,0 +1,163 @@
+{
+  "productionHead": "3be39f5294f47600cccb349ba46dcf316b1c6c6b",
+  "profile": "endpoint-chooser-large-reconnection.cpuprofile",
+  "cpu": {
+    "samples": 1648,
+    "idleMs": 216.44699999999992,
+    "gcMs": 104.84000000000005,
+    "unmappedMs": 293.36999999999955,
+    "attribution": "nearest source-mapped JavaScript ancestor, chaining Vite and package maps; sampled time, not exact function duration",
+    "sources": [
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/html/index.js",
+        "sampledMs": 380.85899999999924
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/domReflection.js",
+        "sampledMs": 359.33899999999954
+      },
+      {
+        "source": "packages/foldkit-flow/src/connection-validation.ts",
+        "sampledMs": 139.90000000000006
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/snabbdom/init.js",
+        "sampledMs": 112.25499999999997
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/brand/brand.js",
+        "sampledMs": 105.01900000000005
+      },
+      {
+        "source": "packages/foldkit-flow/src/composition.ts",
+        "sampledMs": 60.06399999999999
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/snabbdom/attributes.js",
+        "sampledMs": 37.479000000000006
+      },
+      {
+        "source": "packages/foldkit-flow/src/edge-reconnection.ts",
+        "sampledMs": 32.652
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/vdom.js",
+        "sampledMs": 32.432
+      },
+      {
+        "source": "packages/foldkit-flow/src/geometry.ts",
+        "sampledMs": 29.768
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/snabbdom/htmldomapi.js",
+        "sampledMs": 28.893
+      },
+      {
+        "source": "packages/foldkit-flow/src/foldkit.ts",
+        "sampledMs": 25.144000000000002
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/snabbdom/style.js",
+        "sampledMs": 25.108000000000004
+      },
+      {
+        "source": "node_modules/.bun/effect@4.1.0/node_modules/effect/src/Data.ts",
+        "sampledMs": 21.326999999999998
+      },
+      {
+        "source": "packages/foldkit-flow/src/endpoint-search.ts",
+        "sampledMs": 21.210999999999995
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/propsModule.js",
+        "sampledMs": 19.768
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/controlledDomState.js",
+        "sampledMs": 17.65
+      },
+      {
+        "source": "packages/foldkit-flow/src/context-menu.ts",
+        "sampledMs": 17.557999999999996
+      },
+      {
+        "source": "apps/flow-sample/src/editor/view.ts",
+        "sampledMs": 15.051000000000002
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/snabbdom/h.js",
+        "sampledMs": 8.793
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/schema/index.js",
+        "sampledMs": 5.018
+      },
+      {
+        "source": "packages/foldkit-flow/src/endpoint-search-view.ts",
+        "sampledMs": 4.622
+      },
+      {
+        "source": "packages/foldkit-flow/src/connections.ts",
+        "sampledMs": 3.768
+      },
+      {
+        "source": "packages/foldkit-flow/src/connection-creation.ts",
+        "sampledMs": 3.7640000000000002
+      },
+      {
+        "source": "packages/foldkit-flow/src/port-render.ts",
+        "sampledMs": 3.7640000000000002
+      },
+      {
+        "source": "packages/foldkit-flow/src/group-presentation.ts",
+        "sampledMs": 2.512
+      },
+      {
+        "source": "node_modules/.bun/foldkit@0.170.0+5a4f27d741b929d2/node_modules/foldkit/dist/snabbdom/eventlisteners.js",
+        "sampledMs": 2.51
+      },
+      {
+        "source": "node_modules/.bun/effect@4.1.0/node_modules/effect/src/PubSub.ts",
+        "sampledMs": 1.265
+      },
+      {
+        "source": "packages/foldkit-flow/src/edge-endpoint.ts",
+        "sampledMs": 1.26
+      },
+      {
+        "source": "packages/foldkit-flow/src/connection-creation-view.ts",
+        "sampledMs": 1.258
+      },
+      {
+        "source": "node_modules/.bun/effect@4.1.0/node_modules/effect/src/Deferred.ts",
+        "sampledMs": 1.255
+      },
+      {
+        "source": "apps/flow-sample/src/editor/presentation.ts",
+        "sampledMs": 1.254
+      },
+      {
+        "source": "apps/flow-sample/src/editor/port-presets.ts",
+        "sampledMs": 1.253
+      }
+    ],
+    "unmapped": [
+      {
+        "name": "(program)",
+        "sampledMs": 287.02599999999956
+      },
+      {
+        "name": "(anonymous/eval)",
+        "sampledMs": 2.5540000000000003
+      },
+      {
+        "name": "MutationObserver.observe.childList",
+        "sampledMs": 2.525
+      },
+      {
+        "name": "serialize",
+        "sampledMs": 1.265
+      }
+    ]
+  }
+}

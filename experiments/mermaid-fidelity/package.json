@@ -1,0 +1,22 @@
+{
+  "name": "@opsydyn/flow-mermaid-fidelity-spike",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "test:bun": "bun test test",
+    "qualify": "npm run build && node qualify.mjs"
+  },
+  "dependencies": {
+    "@opsydyn/foldkit-flow": "file:../../packages/foldkit-flow/dist/pack/opsydyn-foldkit-flow-0.1.0.tgz",
+    "effect": "4.1.0",
+    "mermaid-ast": "0.8.2"
+  },
+  "devDependencies": {
+    "@mermaid-js/parser": "2.0.1",
+    "mermaid": "12.3.0",
+    "typescript": "6.0.3"
+  }
+}

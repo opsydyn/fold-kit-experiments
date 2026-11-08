@@ -1,4 +1,4 @@
-name: Deploy Storybook + TypeDoc + Viz and effect-three promos + docs to GitHub Pages
+name: Deploy Storybook + TypeDoc + Viz, Three and Zloz promos + docs to GitHub Pages
 
 on:
   push:
@@ -42,6 +42,9 @@ jobs:
       - name: Build TypeDoc
         run: bun run --filter @opsydyn/foldkit-viz docs
 
+      - name: Build Flow TypeDoc
+        run: bun run --filter @opsydyn/foldkit-flow docs
+
       - name: Build Viz promo
         run: bun run --filter @opsydyn/promo build
         env:
@@ -61,18 +64,32 @@ jobs:
           DOCS_SITE_URL: https://opsydyn.github.io
           DOCS_BASE_PATH: /fold-kit-experiments/docs/
 
+      - name: Build Zloz promo
+        run: bun run --filter @opsydyn/zloz-promo build
+        env:
+          ZLOZ_PROMO_SITE_URL: https://opsydyn.github.io
+          ZLOZ_PROMO_BASE_PATH: /fold-kit-experiments/zloz/
+          ZLOZ_WORKBENCH_URL: https://zloz.opsydyn.xyz/
+
       - name: Verify promo deployment paths
         run: bun test apps/promo/test/pages-build.test.ts
         env:
           PROMO_BASE_PATH: /fold-kit-experiments/viz/
 
+      - name: Verify Zloz deployment paths
+        run: bun test apps/zloz-promo/test/pages-build.test.ts
+        env:
+          ZLOZ_PROMO_BASE_PATH: /fold-kit-experiments/zloz/
+
       - name: Assemble site
         run: |
-          mkdir -p _site/api _site/viz _site/three _site/docs
+          mkdir -p _site/api _site/flow/api _site/viz _site/three _site/zloz _site/docs
           cp -r apps/web/storybook-static/. _site/
           cp -r packages/foldkit-viz/docs/. _site/api/
+          cp -r packages/foldkit-flow/docs/. _site/flow/api/
           cp -r apps/promo/dist/. _site/viz/
           cp -r apps/three-promo/dist/. _site/three/
+          cp -r apps/zloz-promo/dist/. _site/zloz/
           cp -r apps/docs/dist/. _site/docs/
 
       - name: Upload Pages artifact

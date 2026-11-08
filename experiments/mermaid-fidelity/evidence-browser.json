@@ -1,0 +1,129 @@
+{
+  "mermaid": "12.3.0",
+  "chromium": "151.0.7922.34",
+  "operation": "public parse only; no rendering or callbacks",
+  "errors": [],
+  "externalRequests": [],
+  "cases": [
+    {
+      "id": "basic",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "quoted-unicode-ids",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "supported-outlines",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "named-parallel",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "cycle-and-self-loop",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "comments",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "presentation",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "interactions",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "subgraph",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "group-endpoint",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "unsupported-outlines-and-metadata",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "invalid-syntax",
+      "expected": false,
+      "valid": false,
+      "error": "Error: Parse error on line 3:\n...LRA[Unclosed --> B\n---------------------^\nExpecting 'SQE', 'DOUBLECIRCLEEND', 'PE', '-)', 'STADIUMEND', 'SUBROUTINEEND', 'PIPE', 'CYLINDEREND', 'DIAMOND_STOP', 'TAGEND', 'TRAPEND', 'INVTRAPEND', 'UNICODE_TEXT', 'TEXT', 'TAGSTART', got '1'"
+    },
+    {
+      "id": "generated:basic",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "generated:quoted-unicode-ids",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "generated:supported-outlines",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "generated:named-parallel",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "generated:cycle-and-self-loop",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "generated:presentation",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "generated:interactions",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    },
+    {
+      "id": "generated:empty",
+      "expected": true,
+      "valid": true,
+      "diagramType": "flowchart-v2"
+    }
+  ]
+}

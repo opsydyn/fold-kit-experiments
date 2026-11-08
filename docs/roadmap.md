@@ -19,6 +19,110 @@ Current package compatibility targets FoldKit `0.167.x` to `0.169.x`, stable Eff
 Viz `0.11.0` are published; registry and hosted deployment verification is
 recorded in the [release notes](releases/foldkit-0.167.md).
 
+## Zloz: brand and product direction — 2026-11-08
+
+**Status:** user-defined roadmap direction. Brand migration, new sites and hosting
+are planned delivery slices; this entry records their intended scope.
+
+### Name and positioning
+
+- **External product name:** **Foldkit Zloz**. Use **Zloz** in public-facing copy
+  and ASCII **zloz** for future slugs, URLs and command spelling.
+- **Origin:** **Złóż**, Polish for “fold, assemble, put together.” Preserve the
+  accented spelling in the name's explanation; use Zloz externally for ease of
+  typing and sharing.
+- **Rebrand:** Flow → Zloz.
+- **Identity:** “More than a flow editor. A system composition toolkit.” What
+  began as a node-and-edge editor now supports composing, exploring and
+  communicating complex systems.
+- **Primary tagline:** “Compose systems. Connect ideas.”
+- **Supporting strapline:** “Compose. Connect. Communicate.”
+- **One-line description:** “Foldkit Zloz is a functional, extensible graph toolkit
+  for interactive node editors, C4 architecture modelling, and Mermaid export.”
+
+**Brand architecture:** Foldkit is the UI toolkit; Zloz is the graph and system
+modelling toolkit within that family.
+
+### Three core capabilities
+
+| Capability      | Product promise                                                        |
+| --------------- | ---------------------------------------------------------------------- |
+| **Compose**     | Build interactive graphs with nodes, edges, ports and connections.     |
+| **Model**       | Describe software architecture with built-in C4 modelling.             |
+| **Communicate** | Export models as Mermaid diagrams for documentation and collaboration. |
+
+### Design principles
+
+- **Functional at heart:** pure functions, composition and immutable data.
+- **Headless by design:** separate the graph model from its visual form.
+- **Extensible by default:** let engineers build their own nodes, edges, layouts
+  and tools without hacks or overrides.
+- **Open by nature:** models should travel beyond the editor rather than remain
+  trapped inside it.
+
+### Planned delivery
+
+1. **Brand and naming migration.** Inventory public copy, documentation, package
+   names, imports, types, routes and examples before applying the Flow → Zloz
+   rename. Decide technical names and compatibility/migration handling explicitly;
+   external branding does not by itself rename existing APIs or saved formats.
+2. **Distinct Zloz logo and shared family identity.** Create a logo representing
+   Zloz, while following the styling, typography and visual identity established
+   by the Viz and Three promo sites. Define reusable assets and light/dark usage.
+   Three [SVG concepts and family-header proofs](assets/zloz/README.md) are now
+   available in both themes. **B — Nested frame is selected by the user**. The
+   [final identity assets](assets/zloz/final/README.md) include outlined wordmarks,
+   light/dark and monochrome marks, favicon and usage rules. The board uses the
+   Viz/Three neutral-and-blue palette and locally bundled Inter typography.
+3. **Promo site.** Build a dedicated Zloz product site in the same family as Viz
+   and Three, presenting the positioning, principles and Compose / Model /
+   Communicate capabilities with real package-backed examples.
+   The [dedicated static shell](../apps/zloz-promo/README.md) is now implemented
+   locally: selected identity, family themes, core-generated C4 preview, model/
+   Mermaid downloads and a developer guide with shared Viz/Three syntax
+   highlighting. [Local evidence](../apps/zloz-promo/evidence/promo.md) records
+   browser and nested-base-path checks. A [native Compose example](../apps/zloz-promo/evidence/compose.md)
+   now demonstrates selection, connection creation, cancel and Undo/Redo, with
+   readable narrow layouts and shared highlighted source.
+4. **Full demo site.** Develop an Astro-shell, native Foldkit demonstration site
+   comparable in scope and navigation approach to Tech Radar. Build on the
+   persistent-canvas left-sidebar workbench; expose graph composition, C4 models,
+   Mermaid export, examples and API/type-contract documentation. Keep reusable
+   functionality in packages and use the app to compose and demonstrate it.
+5. **Cloudflare hosting.** Deploy the full demo site on Cloudflare as a distinct
+   delivery slice, with its domain, deployment configuration and live acceptance
+   recorded when implemented. The Cloudflare service, domain and public URLs
+   remain to be selected.
+6. **Publication last.** Finish feature work and site qualification before the
+   npm publication slice. Verify chosen ASCII package names, migration guidance,
+   packed-consumer behavior and release automation at that boundary.
+
+The current implementation still uses `packages/foldkit-flow*` and
+`apps/flow-sample`. Its [nested Mermaid export](../apps/flow-sample/evidence/mermaid-subgraphs.md)
+and [persistent-canvas sidebar](../apps/flow-sample/evidence/sidebar.md) provide the
+local baseline for the Zloz demo. Site delivery and registry publication are
+separate from that existing local evidence.
+
+**Planning completed — 2026-11-08:** the [naming migration inventory](assessments/2026-11-08-zloz-naming-migration-inventory.md)
+and [shared logo/site brief](assessments/2026-11-08-zloz-logo-and-site-brief.md)
+record candidate package mappings, compatibility boundaries, family styling,
+logo directions and promo/demo information architecture. Their technical names
+remain proposals for implementation review. The user selected **B — Nested frame**
+after reviewing the three SVG concepts.
+
+**Next bounded promo slice:** export the edited Compose graph as canonical JSON
+and Mermaid, with explicit conversion-loss review. The static shell, highlighted
+developer guide and native Compose island are implemented locally.
+Both board and promo must keep the Viz/Three family styling, including light/dark
+themes; a separate dark-green identity is not intended. The separate
+feature recommendation for searchable sidebar settings remains on the workbench
+track.
+
+**Suggested workbench UX follow-up:** make the mini map discoverable in Navigation
+with a **Mini map** toggle, rather than **Overview** under Diagnostics. Reuse the
+existing `overview` flag and respect global diagnostics/Minimal mode. This is a
+proposed follow-up prompted by the user's difficulty locating the control.
+
 ## Release: Keyed Chart Comparison
 
 **Outcome:** users can compare charts in a dynamic collection without losing

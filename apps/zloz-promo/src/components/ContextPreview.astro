@@ -1,0 +1,31 @@
+---
+// oxlint-disable-next-line anti-slop/no-shape-in-symbol-names -- Public geometry API; shape is an outline domain concept.
+import { nodeShapeGeometry, portBoundaryPosition, resolveEdgeGeometry } from '@opsydyn/foldkit-flow';
+import { contextGraph } from '../lib/context-model';
+const edges = contextGraph.edges.map(edge => ({ edge, geometry: resolveEdgeGeometry(contextGraph, edge) }));
+---
+<figure class="context-preview">
+  <div class="preview-heading"><span class="eyebrow">Order platform / System context</span><span class="preview-kind">C4</span></div>
+  <svg viewBox="0 0 750 500" role="img" aria-labelledby="context-title context-description">
+    <title id="context-title">An order platform in context</title>
+    <desc id="context-description">A customer places an order. The order platform charges through an external payment system and dispatches through an external delivery system. Static preview of a real Zloz model.</desc>
+    <defs><marker id="context-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="var(--muted)" /></marker></defs>
+    {edges.map(({ geometry }) => <path d={geometry.path} fill="none" stroke="var(--muted)" stroke-width="2" marker-end="url(#context-arrow)" />)}
+    {contextGraph.nodes.map(node => <g transform={`translate(${node.position.x} ${node.position.y})`} data-preview-node={node.id}>
+      <path class:list={['context-node', { 'context-external': node.architecture?.family === 'c4' && node.architecture.scope === 'external' }]} d={nodeShapeGeometry(node).outlinePath} />
+      <text x={node.size.width / 2} y="31" class="context-role">{node.architecture?.family === 'c4' && node.architecture.role === 'person' ? 'Person' : 'Software system'}</text>
+      <text x={node.size.width / 2} y="62" class="context-label">{node.label}</text>
+      <text x={node.size.width / 2} y="86" class="context-description">{node.architecture?.description}</text>
+      {node.architecture?.family === 'c4' && node.architecture.scope === 'external' && <text x={node.size.width / 2} y="111" class="context-role">External</text>}
+    </g>)}
+    {contextGraph.nodes.flatMap(node => node.ports.map(port => {
+      const anchor = portBoundaryPosition(node, port.id);
+      return <circle cx={anchor.x} cy={anchor.y} r="4" fill={port.kind === 'output' ? 'var(--blue)' : 'var(--coral)'} stroke="var(--surface)" stroke-width="2" />;
+    }))}
+    {edges.map(({ edge, geometry }) => geometry.labelPosition && <g transform={`translate(${geometry.labelPosition.x} ${geometry.labelPosition.y})`}>
+      <rect x="-46" y="-13" width="92" height="26" rx="3" fill="var(--page)" />
+      <text y="4" class="context-edge-label">{edge.label}</text>
+    </g>)}
+  </svg>
+  <figcaption><span>One model. People, systems and relationships.</span><span>Static package-generated preview</span></figcaption>
+</figure>

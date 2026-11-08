@@ -1,0 +1,18 @@
+{
+  "parentHead": "67e5804f6f4a8449ca36a745d31d81cb963133ef",
+  "sourceState": "Working-tree implementation tested before commit; screenshots come from the final local production build.",
+  "measuredFiles": {
+    "apps/flow-sample/evidence/c4-renderers-browser.mjs": "4690665054dae8393b02c7dd8f86b307a17ce7737d50e497468d1f4960dcad6b",
+    "apps/flow-sample/src/editor/c4-examples.ts": "07d52b5dfd2dfd4ed024887844a67bfd7af38b960e19d79936046f8be96dbc12",
+    "apps/flow-sample/src/editor/message.ts": "ac92c695c53751a46b816afabdee8d33e7f2369d7ab0d91681f3fca656985680",
+    "apps/flow-sample/src/editor/model.ts": "51afee6364971cf718758fb1db49faaf8b103fe12325773a8c1ab2e8b5aa69c8",
+    "apps/flow-sample/src/editor/update.ts": "753a95676d29f8a20d645a09f51ad99f874db4642e5af61d0a0e04488d7a3497",
+    "apps/flow-sample/src/editor/view.ts": "be6e5d6f723828996720043be9ed7e4424445662f31b414bbe7796c6a4513625",
+    "apps/flow-sample/test/c4-examples.test.ts": "8e4c874a86666aadad2d4d9a94d95845842f1b25ababb2b69fbb0c7628354f08",
+    "packages/foldkit-flow/src/c4-renderer.ts": "ea28ddf38328f6d9feb7e83e8f4a43d34f9844c84832e71a8522e573ba8381d1",
+    "packages/foldkit-flow/src/foldkit.ts": "10ac21b9204d34b98a9ad0eea72c47e6f66005cd80a28b64f44bfe3ce917e312",
+    "packages/foldkit-flow/src/node-shape.ts": "c14a3095bc7f14df72779644d32edc0315c95cdc2f2bcfacb4564431b8228141",
+    "packages/foldkit-flow/test/c4-renderer.test.ts": "a278c66484196d56ef219685f2f84fe9e0b1fc208d443645e07dc4423583e81e",
+    "packages/foldkit-flow/test/package.test.ts": "ff1cbfaea8d9c02ce1e046d741edaf8697c42ebd99537672a7c72ffe0f600472"
+  }
+}

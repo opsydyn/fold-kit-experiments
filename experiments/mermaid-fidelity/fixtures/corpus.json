@@ -1,0 +1,104 @@
+[
+  {
+    "id": "basic",
+    "source": "flowchart LR\nA[Customer] create@-->|Places orders| B[Orders]",
+    "nodes": [
+      ["A", "Customer"],
+      ["B", "Orders"]
+    ],
+    "edges": [["create", "A", "B", "Places orders"]],
+    "expected": "converted",
+    "losses": []
+  },
+  {
+    "id": "quoted-unicode-ids",
+    "source": "flowchart LR\n__proto__[\"Café #amp; #quot;Tea#quot;\"] --> constructor[\"支付 🔁\"]\nnode-1[\"end\"] --> toString[\"Tagged #60;value#62;\"]",
+    "nodes": [
+      ["__proto__", "Café & \"Tea\""],
+      ["constructor", "支付 🔁"],
+      ["node-1", "end"],
+      ["toString", "Tagged <value>"]
+    ],
+    "expected": "converted",
+    "losses": []
+  },
+  {
+    "id": "supported-outlines",
+    "source": "graph TD\nA[Box] --> B(Round) --> C[(Store)]",
+    "nodes": [
+      ["A", "Box"],
+      ["B", "Round"],
+      ["C", "Store"]
+    ],
+    "expected": "converted",
+    "losses": []
+  },
+  {
+    "id": "named-parallel",
+    "source": "flowchart LR\nA e1@-->|one| B\nA e2@-->|two| B",
+    "nodes": [
+      ["A", "A"],
+      ["B", "B"]
+    ],
+    "edges": [
+      ["e1", "A", "B", "one"],
+      ["e2", "A", "B", "two"]
+    ],
+    "expected": "converted",
+    "losses": []
+  },
+  {
+    "id": "cycle-and-self-loop",
+    "source": "flowchart LR\nA --> B --> C --> A\nC --> C",
+    "nodes": [
+      ["A", "A"],
+      ["B", "B"],
+      ["C", "C"]
+    ],
+    "expected": "converted",
+    "losses": []
+  },
+  {
+    "id": "comments",
+    "source": "%% a comment containing style and click\nflowchart LR\nA[Start] --> B[Finish]\n%% Formatting is intentionally outside graph semantics",
+    "expected": "rejected",
+    "losses": ["comments-omitted"],
+    "errors": ["invalid-syntax"]
+  },
+  {
+    "id": "presentation",
+    "source": "flowchart LR\nA --> B; style B fill:blue\nclassDef hot fill:red\nclass A hot\nlinkStyle 0 stroke:red",
+    "expected": "converted",
+    "losses": ["presentation-omitted"]
+  },
+  {
+    "id": "interactions",
+    "source": "flowchart LR\nA --> B\nclick A spikeCallback \"tip\"\nclick B \"https://example.com\" \"tip\"",
+    "expected": "converted",
+    "losses": ["interactions-omitted"]
+  },
+  {
+    "id": "subgraph",
+    "source": "flowchart LR\nsubgraph g[Group]\nA --> B\nend",
+    "expected": "rejected",
+    "errors": ["unsupported-subgraph"]
+  },
+  {
+    "id": "group-endpoint",
+    "source": "flowchart LR\nsubgraph g[Group]\nA --> B\nend\ng --> C",
+    "expected": "rejected",
+    "errors": ["unsupported-subgraph", "unsupported-group-endpoint"]
+  },
+  {
+    "id": "unsupported-outlines-and-metadata",
+    "source": "flowchart LR\nA{Decision} --> B((Circle))\nC@{shape:cloud,label:\"Cloud\"} --> A",
+    "expected": "rejected",
+    "errors": ["unsupported-outline", "unsupported-node-metadata"]
+  },
+  {
+    "id": "invalid-syntax",
+    "source": "flowchart LR\nA[Unclosed --> B",
+    "expected": "rejected",
+    "errors": ["invalid-syntax"]
+  }
+]

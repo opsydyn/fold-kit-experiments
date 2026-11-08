@@ -45,7 +45,7 @@ export default defineConfig({
         },
       ],
       sidebar: [
-        { label: 'Start here', items: ['index', 'roadmap'] },
+        { label: 'Start here', items: ['index', 'roadmap', 'flow-api'] },
         folder('Decisions', 'adr'),
         folder('effect-three decisions', 'effect-three/adr', true),
         {

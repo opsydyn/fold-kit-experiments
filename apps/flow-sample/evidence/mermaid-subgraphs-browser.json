@@ -1,0 +1,77 @@
+{
+  "chromium": "151.0.7922.34",
+  "mermaid": "12.3.0",
+  "syntax": [
+    {
+      "id": "workbench-c4-nested",
+      "valid": true
+    },
+    {
+      "id": "escaped-group-title",
+      "valid": true
+    },
+    {
+      "id": "empty-graph",
+      "valid": true
+    },
+    {
+      "id": "escaped-literal",
+      "valid": true
+    },
+    {
+      "id": "outlines-LR",
+      "valid": true
+    },
+    {
+      "id": "outlines-RL",
+      "valid": true
+    },
+    {
+      "id": "outlines-TB",
+      "valid": true
+    },
+    {
+      "id": "outlines-BT",
+      "valid": true
+    }
+  ],
+  "rejected": ["empty-group", "empty-node-label"],
+  "downloaded": {
+    "protocol": "foldkit-flow-mermaid/v1",
+    "nodes": 6,
+    "edges": 3,
+    "diagnostics": [
+      "node-fields-omitted",
+      "port-details-omitted",
+      "group-presentation-omitted",
+      "layout-omitted",
+      "identity-map-required"
+    ]
+  },
+  "graphPreserved": true,
+  "consentResetOnReplacement": true,
+  "hierarchyPreserved": true,
+  "rendered": {
+    "clusters": 2,
+    "outer": {
+      "x": 359.87945556640625,
+      "y": 15.182038307189941,
+      "right": 910.3434448242188,
+      "bottom": 220.90138339996338,
+      "width": 550.4639892578125,
+      "height": 205.71934509277344
+    },
+    "inner": {
+      "x": 716.4284057617188,
+      "y": 58.274269104003906,
+      "right": 888.7973022460938,
+      "bottom": 199.35526275634766,
+      "width": 172.368896484375,
+      "height": 141.08099365234375
+    }
+  },
+  "minimalModeKeepsRequestedLossPreview": true,
+  "screenshots": ["mermaid-subgraphs-light.png", "mermaid-subgraphs-dark.png"],
+  "errors": [],
+  "externalRequests": []
+}

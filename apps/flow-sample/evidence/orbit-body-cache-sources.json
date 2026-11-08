@@ -1,0 +1,16 @@
+{
+  "parentHead": "c915f48e23e7ee3f24af3a6d22d85ddf8a016a03",
+  "sourceState": "working-tree sources measured before commit; on/off comparisons use the same production build",
+  "measuredFiles": {
+    "apps/flow-sample/src/editor/presentation.ts": "e6f99be208881a87f30aef134dc3aafa3dcf294a8dc2651f7f934de2d10853e0",
+    "apps/flow-sample/src/editor/view.ts": "aaf45c1b6d6243e346b97eab2a3ea02a4b505bc0ddc2b015000f000456264fc2",
+    "apps/flow-sample/package.json": "3fbe32902c76d36f91e1c9635d2578c19f0a03c426164afbd29ee7ec9d716ae1",
+    "apps/flow-sample/tsconfig.test.json": "027b70518c8db02b4f0781d27368e03c9d0b2942b742dc45d3410c361a0baf6b",
+    "apps/flow-sample/test/orbit-cache.test.ts": "5aba9935b5f66916e563826349e8bec71f6ec5ed8359e9a8294c68783fa312f6",
+    "packages/foldkit-flow/src/node-body-cache.ts": "cc88bf582ed5670e1f77834d42e631666c103331ae4a22ce52811a7614c2eebc",
+    "packages/foldkit-flow/test/package.test.ts": "593a923087cafafec33007a65944cea44cf5e23949fefa451f79a7d64de9ec8e",
+    "packages/foldkit-flow/bench/choosers.ts": "4aff2f5e364cad4a00fb9bd3b86939d3a3e27b1cebec273ddfdbe443becb4e58",
+    "apps/flow-sample/evidence/endpoint-chooser-benchmark.mjs": "4228a7b1c70d701066b83d7d32e0a463eff37faf946a74a3de0e4146b444feff",
+    "apps/flow-sample/evidence/orbit-body-cache-check.mjs": "f7f3cc0bcfb801bcbb469295e3a75901e4d614c450ec58b5e4c5c9d4ffc10ead"
+  }
+}

@@ -59,7 +59,9 @@
       "vitest": "^5.0.5",
       "vscode-oniguruma": "2.0.1",
       "world-atlas": "^2.0.2",
-      "wrangler": "^4.125.0"
+      "wrangler": "^4.125.0",
+      "elkjs": "0.12.1",
+      "typedoc": "^0.28.19"
     },
     "catalogs": {
       "strict": {
@@ -77,13 +79,15 @@
   "scripts": {
     "dev": "cd apps/web && bun run dev",
     "dev:promo": "bun run --filter @opsydyn/promo dev",
-    "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build",
+    "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build && bun run --filter @opsydyn/zloz-promo build",
     "test": "bun test ./.github/scripts/format-release-changelogs.test.js && bun run --sequential --filter '*' test",
     "typecheck": "bun run --sequential --filter '*' typecheck",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",
     "check:fix": "oxfmt . && NODE_OPTIONS=\"--experimental-strip-types\" oxlint --fix . && bun run --filter '@opsydyn/effect-three*' check",
     "dev:three-promo": "bun run --filter @opsydyn/three-promo dev",
+    "dev:flow-sample": "bun run --filter @opsydyn/flow-sample dev",
+    "dev:zloz-promo": "bun run --filter @opsydyn/zloz-promo dev",
     "dev:tech-radar": "bun run --filter @opsydyn/tech-radar dev",
     "dev:docs": "bun run --filter @opsydyn/docs dev",
     "relay": "bun packages/effect-three-samples/scripts/relay.ts"

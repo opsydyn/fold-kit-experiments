@@ -1,0 +1,25 @@
+{
+  "parentHead": "ce978a2d581501e61d276c530bb0454f4517d66e",
+  "sourceState": "Working-tree implementation qualified before commit; no runtime dependencies added.",
+  "measuredFiles": {
+    "packages/foldkit-flow-elk/test/layout.test.ts": "e5de049484495f0fcf5315370ed45733a33f9a7d9f874559c741d8ffb4c0a2e3",
+    "packages/foldkit-flow-force/src/routes.ts": "5f4eee198770fe4958f837136a1657967096d11bcfa73d19eeccf01b8e9020e2",
+    "packages/foldkit-flow-force/test/routes.test.ts": "862c79de180a25e873de126a17d0c997e51b0ae84c053edd97c86076b57233c0",
+    "packages/foldkit-flow/src/architecture-node.ts": "acc1e0bffb1618b71061c4925e5c03c2f630e88e9b7367a8908c020e0071c992",
+    "packages/foldkit-flow/src/architecture.ts": "905453677bfd29589c44c774c8eee0162c44c4537d0c034bffad08a06b2ebf44",
+    "packages/foldkit-flow/src/composition.ts": "f4302b0ec5d1e348e2631122eac30ed4adf2c743b5e959dcce7518355cc80f2e",
+    "packages/foldkit-flow/src/editor.ts": "1e90492d44fda71e30d7d7312fbb400cb63550cb708d9dcb62c0b96bdef5bd92",
+    "packages/foldkit-flow/src/geometry.ts": "e674fc306a465c8c275a4f9423c50730f28129a9e33746f88373e38afa9b9937",
+    "packages/foldkit-flow/src/graph.ts": "4a63da1877b002c0639990fcec23f10def62d8841a86762f09969a3a00229902",
+    "packages/foldkit-flow/src/index.ts": "1fc2447ffb6bb587148726a29c4f01716e24cef3537cedc8e4142ea0f1de2713",
+    "packages/foldkit-flow/src/node-shape.ts": "0fed9a27967797ccca265d3d2d2295d2c5ba163c602a112638cca39ccdbf4297",
+    "packages/foldkit-flow/src/port-anchor-handle.ts": "7c97b10013a3745c1d6aa8eff45fa2e972d6becde55a640e166366d157fecf7a",
+    "packages/foldkit-flow/src/port-render.ts": "4d986c65f10f3e6890f30e1eb5654d12c3af9d5aa4b44601a371fb8d577f42e0",
+    "packages/foldkit-flow/src/types.ts": "8223c29975c62dc42d4df1465b85ffa8e11cc119fb1869c4b045d3263aa3b245",
+    "packages/foldkit-flow/test/architecture-view-contract.test.ts": "9b4586b628e82a65eb23cfb470fdb6a220c97e2762e40f83a99994dc2ba255ea",
+    "packages/foldkit-flow/test/architecture.test.ts": "e1558c0f9a38c686a909ca73a54eac6beee94a6a8026c6417d53453e9e82c5f0",
+    "packages/foldkit-flow/test/fixtures/architecture-v1.json": "112bced14cb1ea70f20fddf00ff8d51fc01170e649e48e4d011050c29e4ca97c",
+    "packages/foldkit-flow/test/package.test.ts": "7384e2b6f36e16823a3bef4dd1507780262e6e66a572cf027c95251e1aa3d6e4",
+    "tools/check-flow-architecture-compat.ts": "d7fefa4de41a3d2356be594a5e26ce4240fea54feb4c9b3569a9b56714fea0a2"
+  }
+}

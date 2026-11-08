@@ -1,0 +1,20 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "nodes": 320,
+  "edges": 452,
+  "disabledSockets": 140,
+  "renderedReasons": 140,
+  "checks": [
+    "native descriptions for both guard types",
+    "disabled target choice",
+    "badge toggle preserves guards and source",
+    "cache toggle preserves live control focus/identity",
+    "allowed creation and Undo",
+    "policy toggle cancels pending source and updates live sockets",
+    "previously guarded creation after relaxation and Undo",
+    "minimal mode retains semantic reasons"
+  ],
+  "pageErrors": [],
+  "screenshot": "protected-orbit.png"
+}

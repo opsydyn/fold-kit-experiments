@@ -1,0 +1,16 @@
+{
+  "browser": "151.0.7922.34",
+  "result": "passed",
+  "checks": [
+    "source switching",
+    "native port aria-pressed",
+    "filter focus and feedback",
+    "policy fallback and restored eligibility",
+    "cancellation",
+    "creation",
+    "Undo",
+    "native keyboard restaging"
+  ],
+  "screenshot": "endpoint-creation-retention.png",
+  "pageErrors": []
+}

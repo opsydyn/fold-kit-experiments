@@ -1,0 +1,53 @@
+{
+  "chromium": "151.0.7922.34",
+  "mermaid": "12.3.0",
+  "syntax": [
+    {
+      "id": "workbench-c4",
+      "valid": true
+    },
+    {
+      "id": "empty-graph",
+      "valid": true
+    },
+    {
+      "id": "escaped-literal",
+      "valid": true
+    },
+    {
+      "id": "outlines-LR",
+      "valid": true
+    },
+    {
+      "id": "outlines-RL",
+      "valid": true
+    },
+    {
+      "id": "outlines-TB",
+      "valid": true
+    },
+    {
+      "id": "outlines-BT",
+      "valid": true
+    }
+  ],
+  "rejected": ["empty-node-label"],
+  "downloaded": {
+    "protocol": "foldkit-flow-mermaid/v1",
+    "nodes": 4,
+    "edges": 3,
+    "diagnostics": [
+      "node-fields-omitted",
+      "port-details-omitted",
+      "layout-omitted",
+      "identity-map-required"
+    ]
+  },
+  "graphPreserved": true,
+  "consentResetOnReplacement": true,
+  "groupsRejected": true,
+  "minimalModeKeepsRequestedLossPreview": true,
+  "screenshots": ["mermaid-export-light.png", "mermaid-export-dark.png"],
+  "errors": [],
+  "externalRequests": []
+}

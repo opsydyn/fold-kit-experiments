@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-08",
+  "parentCommit": "74f2343",
+  "scope": "Local host qualification; no publication or independent review",
+  "sha256": {
+    "packages/foldkit-flow-mermaid/src/index.ts": "938d1e922fe0bc82079c824701fb0ec4e99f8cd3c56d90cf81cbe646454e378c",
+    "packages/foldkit-flow-mermaid/test/subgraphs.test.ts": "9800b512fb53917855197ed389776be8e26469493982eb4d3b386780e50dd922",
+    "packages/foldkit-flow-mermaid/test/package.test.ts": "17af36c38a336efa4006daa9bf6314e53e37dd0aafa40c71669865028b650b08",
+    "apps/flow-sample/src/editor/c4-examples.ts": "108b94f93620c25c6a5acc3d7d17aa13bd34a514dd856dc363046eb48398d681",
+    "apps/flow-sample/src/editor/update.ts": "91ab455a5f6d847bf97a4f00a8fdee338e0a943c5d97b604f5a814387d5bed15",
+    "apps/flow-sample/src/editor/message.ts": "7c56903a686b1a0a118d1634c6942e6345a80a540a4b4cd5e3d99b6b1c494807",
+    "apps/flow-sample/src/editor/view.ts": "d29f7ac818f9e96b99192bdd7b79736995d3aca2c9e59863ea9a26e10c364b65",
+    "apps/flow-sample/test/mermaid-export.test.ts": "405ccaf50cebddfcf9c0d4f3820f6f8c42117e77cdf2862cccb0d277db6a543d",
+    "apps/flow-sample/evidence/mermaid-subgraphs-browser.mjs": "530d6da0a42e75463f51d73b0ceca27d9148ca51317ddfd738cb861e5639bee7",
+    "apps/flow-sample/evidence/mermaid-subgraphs-browser.json": "4d69f86654b77d0469918c1be5dcf9a189a15c1bf48059bb68d0d4d93f562b1d",
+    "apps/flow-sample/evidence/mermaid-subgraphs-dark.png": "4901e506799ca14c5c9e620d354145eef36978ee8106fadb5adbb246472ff6ec",
+    "apps/flow-sample/evidence/mermaid-subgraphs-light.png": "ddb7c2c4dcba200351ec8ca766e17a5072f5057d3b5002ded26ea4a0325f35bc"
+  }
+}

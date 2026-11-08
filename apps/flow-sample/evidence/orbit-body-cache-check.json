@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "cache toggling preserves live handle identity/focus",
+    "native port protections and source feedback",
+    "filter focus",
+    "creation and Undo",
+    "keyboard selection and artwork highlight",
+    "pointer drag and Undo",
+    "circle resize/measurement and Undo",
+    "group collapse/expand",
+    "group resize and Undo",
+    "no controls or sockets inside retained artwork"
+  ],
+  "pageErrors": [],
+  "screenshot": "orbit-body-cache.png"
+}

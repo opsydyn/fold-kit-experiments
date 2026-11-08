@@ -1,0 +1,24 @@
+---
+import vizSource from '../../public/favicon.svg?raw';
+import threeSource from '../../../three-promo/public/favicon.svg?raw';
+import { decorativeLogo, familyLogo } from '../lib/zloz-logo-review';
+
+interface Props { mark: string; concept: string; mode: 'light' | 'dark' }
+const { mark, concept, mode } = Astro.props;
+---
+<header class="proof-header" aria-label={`Concept ${concept} family header in ${mode} mode`}>
+  <span class="proof-brand"><Fragment set:html={familyLogo(vizSource)} /><span>Foldkit Viz</span></span>
+  <span class="proof-brand"><Fragment set:html={familyLogo(threeSource)} /><span>effect-three</span></span>
+  <span class="proof-brand proof-brand-zloz"><Fragment set:html={decorativeLogo(mark)} /><span>Foldkit Zloz</span></span>
+</header>
+
+<style>
+  .proof-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 96px; padding: 20px; border-block: 1px solid var(--proof-border); }
+  .proof-brand { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 16px; font-weight: 740; letter-spacing: -0.6px; color: var(--proof-text); }
+  .proof-brand :global(svg) { width: 32px; height: 32px; flex: 0 0 auto; }
+  @media (max-width: 720px) {
+    .proof-header { min-height: 72px; padding: 12px; gap: 8px; }
+    .proof-brand { font-size: 10px; letter-spacing: -0.3px; gap: 5px; }
+    .proof-brand :global(svg) { width: 24px; height: 24px; }
+  }
+</style>

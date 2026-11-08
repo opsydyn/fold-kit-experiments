@@ -1,0 +1,71 @@
+---
+import '@fontsource-variable/inter/wght.css';
+import '@opsydyn/dataset-explorer/highlighting.css';
+import '../styles/site.css';
+import Brand from '../components/Brand.astro';
+import { sitePath } from '../lib/site-path';
+import { repository, viz, three } from '../lib/links';
+interface Props { title?: string; description?: string }
+const {
+  title = 'Foldkit Zloz — Compose systems. Connect ideas.',
+  description = 'Foldkit Zloz is a functional, extensible graph toolkit for interactive node editors, C4 architecture modelling, and Mermaid export.',
+} = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} /><meta name="color-scheme" content="light dark" />
+    <meta property="og:title" content={title} /><meta property="og:description" content={description} /><meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href={sitePath('/favicon.svg')} /><title>{title}</title>
+    <script is:inline>
+      (() => {
+        let saved = null;
+        // oxlint-disable-next-line linteffect/no-try-catch -- First-paint browser chrome catches unavailable storage outside the graph runtime.
+        try { saved = localStorage.getItem('foldkit-zloz-theme'); } catch { /* Storage can be unavailable. */ }
+        document.documentElement.dataset.theme = saved === 'light' || saved === 'dark' ? saved : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-shell">
+      <header class="site-header"><Brand /><nav aria-label="Main navigation">
+        <a href={sitePath('/#capabilities')}>Capabilities</a>
+        <a href={sitePath('/docs/')} aria-current={Astro.url.pathname === sitePath('/docs/') ? 'page' : undefined}>Docs</a>
+        <a href={repository}>GitHub</a>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch colour theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M20.5 14A9 9 0 0 1 10 3.5 9 9 0 1 0 20.5 14Z" /></svg>
+        </button>
+      </nav></header>
+      <main id="main" tabindex="-1"><slot /></main>
+      <footer class="site-footer"><div class="footer-brand"><Brand footer /><span>Part of Foldkit.</span></div><nav aria-label="Family and source"><a href={viz}>Viz</a><a href={three}>Three</a><a href={repository}>GitHub</a><a href={`${repository}/blob/main/packages/foldkit-flow/LICENSE`}>MIT</a></nav></footer>
+    </div>
+    <script>
+      import { resolveTheme } from '../lib/theme';
+      const key = 'foldkit-zloz-theme';
+      const system = matchMedia('(prefers-color-scheme: dark)');
+      const toggle = document.querySelector<HTMLButtonElement>('#theme-toggle');
+      function savedTheme(): string | null {
+        // oxlint-disable-next-line linteffect/no-try-catch -- Browser chrome handles unavailable storage without a runtime dependency.
+        try { return localStorage.getItem(key); } catch { return null; }
+      }
+      function applyTheme(theme: 'light' | 'dark') {
+        document.documentElement.dataset.theme = theme;
+        toggle?.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`);
+      }
+      applyTheme(resolveTheme(savedTheme(), system.matches));
+      toggle?.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        // oxlint-disable-next-line linteffect/no-try-catch -- Theme selection remains usable when the browser rejects persistence.
+        try { localStorage.setItem(key, next); } catch { /* Session theme still works. */ }
+      });
+      system.addEventListener('change', () => applyTheme(resolveTheme(savedTheme(), system.matches)));
+      window.addEventListener('storage', event => {
+        if (event.key === key || event.key === null) applyTheme(resolveTheme(savedTheme(), system.matches));
+      });
+    </script>
+  </body>
+</html>

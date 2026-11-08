@@ -1,0 +1,47 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ContextPreview from '../components/ContextPreview.astro';
+import { api, localWorkbench, workbench } from '../lib/links';
+import { sitePath } from '../lib/site-path';
+import { mermaidBundle } from '../lib/context-model';
+import Compose from '../examples/compose/app';
+import SourceCode from '../components/SourceCode.astro';
+import composeSource from '../examples/compose/state.ts?raw';
+---
+<Layout>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy"><p class="eyebrow">The graph and system modelling toolkit</p>
+      <h1 id="hero-title">Compose<br />systems.<span>Connect ideas.</span></h1>
+      <p class="hero-description">Foldkit Zloz is a functional, extensible graph toolkit for interactive node editors, C4 architecture modelling, and Mermaid export.</p>
+      <div class="hero-actions"><a class="button button-primary" href={workbench}>Open the workbench <span aria-hidden="true">→</span></a><a class="button button-secondary" href={api}>Read the API</a></div>
+      {localWorkbench && <p class="small-note">Local preview: the workbench runs separately on {new URL(workbench).host}.</p>}
+    </div>
+    <ContextPreview />
+  </section>
+  <section class="capabilities" id="capabilities" aria-labelledby="capabilities-title">
+    <div class="section-heading"><p class="eyebrow">Compose. Connect. Communicate.</p><h2 id="capabilities-title">More than a flow editor.<br />A system composition toolkit.</h2></div>
+    <div class="capability-grid">
+      <article><span class="capability-number">01 / Compose</span><h3>Give ideas<br />a structure.</h3><p>Build interactive graphs with nodes, edges, ports and connections. Shape the experience through composable renderers, policies and themes.</p><a class="text-link" href="#compose">Try Compose <span aria-hidden="true">↓</span></a></article>
+      <article><span class="capability-number">02 / Model</span><h3>Make boundaries<br />visible.</h3><p>Describe people, software systems and containers with built-in C4 semantics. Keep architectural meaning in the model, independent of its visual form.</p><a class="text-link" href={sitePath('/downloads/order-context.json')} download>Download this C4 model <span aria-hidden="true">↓</span></a></article>
+      <article><span class="capability-number">03 / Communicate</span><h3>Let your model<br />travel.</h3><p>Export Mermaid for documentation and collaboration. Review conversion losses and preserve identity metadata alongside the diagram source.</p><a class="text-link" href="#mermaid">Inspect the Mermaid export <span aria-hidden="true">↓</span></a></article>
+    </div>
+  </section>
+  <section class="compose-section" id="compose" aria-labelledby="compose-title">
+    <div class="section-heading"><p class="eyebrow">Compose / Live Foldkit example</p><h2 id="compose-title">A small workflow.<br />Yours to connect.</h2><p class="compose-intro">Select a node, connect Review to Publish, and undo the change. The same package owns the graph, input handling and history.</p></div>
+    <Compose client:load noMeta />
+    <p class="small-note">This example resets on reload. <a class="text-link" href={workbench}>Explore the full workbench ↗</a></p>
+    <noscript><p class="small-note">Enable JavaScript for the interactive example, or <a class="text-link" href={workbench}>open the workbench</a>. The C4 preview and downloads above remain available.</p></noscript>
+    <details class="compose-source"><summary>Read the Model and update source</summary><div class="code-panel"><SourceCode code={composeSource} lang="ts" sourceId="compose-state.ts" /></div></details>
+  </section>
+  <section class="communication" id="mermaid" aria-labelledby="mermaid-title">
+    <div><p class="eyebrow">Open by nature</p><h2 id="mermaid-title">From the canvas<br />to the conversation.</h2><p>This is the actual export of the context model above. Mermaid is a projection: canonical JSON retains the full editable model.</p><a class="text-link" href={sitePath('/downloads/order-context.mermaid.json')} download>Download source, identity and loss report <span aria-hidden="true">↓</span></a></div>
+    <details class="mermaid-source"><summary>Read Mermaid source and conversion notes</summary><pre><code>{mermaidBundle.source}</code></pre><div class="conversion-notes"><h3>What changes in conversion</h3><ul>{mermaidBundle.diagnostics.map(item => <li>{item.message}</li>)}</ul></div></details>
+  </section>
+  <section class="principles" aria-label="Design principles">
+    <article><h2>Functional at heart</h2><p>Pure functions, composition and immutable data. State and changes stay explicit.</p></article>
+    <article><h2>Headless by design</h2><p>Separate the graph model from its visual form. Use the core on its own.</p></article>
+    <article><h2>Extensible by default</h2><p>Build your own nodes, edges, layouts and tools through public contracts.</p></article>
+    <article><h2>Open by nature</h2><p>Models should travel beyond the editor, not be trapped inside it.</p></article>
+  </section>
+  <section class="origin"><div><p class="eyebrow">A Foldkit family member</p><h2>Fold. Assemble.<br />Put together.</h2></div><div><p>Zloz comes from <span lang="pl">Złóż</span>: fold, assemble, put together. What began as a node-and-edge editor has grown into a toolkit for composing, exploring and communicating complex systems.</p><p>Foldkit is the UI toolkit. Zloz is its graph and system modelling toolkit.</p><a class="text-link" href={sitePath('/docs/')}>Start with the model <span aria-hidden="true">→</span></a></div></section>
+</Layout>

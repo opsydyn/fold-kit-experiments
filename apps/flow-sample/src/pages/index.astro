@@ -1,0 +1,144 @@
+---
+import Editor from '../editor/app';
+import { themePreferenceStorageKey } from '../editor/theme';
+import '@fontsource-variable/inter/wght.css';
+import zlozMark from '../../../../docs/assets/zloz/final/mark.svg?raw';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Architecture workbench | Foldkit Zloz</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script is:inline define:vars={{ themePreferenceStorageKey }}>
+      // Set the shell color before the FoldKit island starts.
+      function readStoredTheme() {
+        // oxlint-disable-next-line linteffect/no-try-catch -- This inline browser script runs before the Effect runtime loads.
+        try {
+          return localStorage.getItem(themePreferenceStorageKey);
+        } catch {
+          return null;
+        }
+      }
+      const saved = readStoredTheme();
+      const scheme = saved === 'light' || saved === 'dark'
+        ? saved
+        : window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.flowInitialColorScheme = scheme;
+    </script>
+  </head>
+  <body>
+    <header><div class="zloz-brand"><span class="zloz-mark" aria-hidden="true" set:html={zlozMark} /><strong>Foldkit Zloz</strong><span class="workbench-title">Architecture workbench</span></div><a href="https://opsydyn.github.io/fold-kit-experiments/flow/api/">API contracts ↗</a></header>
+    <main aria-label="Workflow workbench">
+      <Editor client:load />
+      <noscript>Enable JavaScript to edit the workflow.</noscript>
+    </main>
+  </body>
+</html>
+
+<style is:global>
+:root {
+  color-scheme: light;
+  --paper: #faf9f6;
+  --ink: #151619;
+  --muted: #5d6574;
+  --rule: #d9dce1;
+  --accent: #2458c7;
+  --panel: #fffefa;
+  --blue: #3d79fa;
+  --gold: #f5ce60;
+  --coral: #fa8b79;
+  --periwinkle: #b3c9fc;
+  --ui-font: 'Inter Variable', sans-serif;
+}
+:root[data-flow-initial-color-scheme='dark']:not(:has([data-flow-workbench-color-scheme])),
+:root:has([data-flow-workbench-color-scheme='dark']) {
+  color-scheme: dark;
+  --paper: #111319;
+  --ink: #f4f2ed;
+  --muted: #adb6c7;
+  --rule: #303641;
+  --accent: #4485ff;
+  --panel: #191c24;
+  --blue: #4485ff;
+  --gold: #ffda66;
+  --coral: #ff9485;
+  --periwinkle: #98b5ff;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr);
+  overflow: hidden;
+  font-family: var(--ui-font);
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+body > header { border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; padding-inline: 20px; gap: 12px; font-size: 14px; }
+header strong { font-weight: 700; }
+.zloz-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.zloz-brand strong { font-size: 18px; font-weight: 740; letter-spacing: -0.6px; white-space: nowrap; }
+.zloz-mark, .zloz-mark svg { display: block; width: 28px; height: 28px; flex: 0 0 auto; }
+.workbench-title { color: var(--muted); margin-left: 8px; }
+main { position: relative; min-height: 0; min-width: 0; }
+.flow-workbench { position: absolute; inset: 0; height: 100%; min-height: 0; }
+a { color: var(--accent); }
+button, input, select { font: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.workbench-layout { height: 100%; min-height: 0; display: grid; grid-template-columns: clamp(19rem, 28vw, 24rem) minmax(0, 1fr); }
+.workbench-layout--collapsed { grid-template-columns: 52px minmax(0, 1fr); }
+.workbench-sidebar { min-height: 0; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--rule); background: var(--panel); }
+.workbench-sidebar-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 18px 16px 10px; }
+.workbench-eyebrow { color: var(--accent); font-size: 10px; letter-spacing: 0.14em; font-weight: 700; margin: 0 0 6px; }
+.workbench-sidebar h1 { font-size: 20px; line-height: 1.2; margin: 0; }
+.workbench-skip { position: fixed; top: 8px; left: 16px; transform: translateY(-200%); z-index: 100; padding: 8px 12px; background: var(--panel); border: 1px solid var(--accent); border-radius: 6px; }
+.workbench-skip:focus { transform: none; }
+.workbench-sidebar-toggle { width: 36px; min-height: 36px; flex: 0 0 auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); font-size: 22px; cursor: pointer; }
+.workbench-layout--collapsed .workbench-sidebar-heading { padding: 10px 8px; }
+.workbench-rail-fit { margin: 4px 8px; min-height: 36px; border: 1px solid var(--rule); border-radius: 6px; color: var(--ink); background: var(--paper); cursor: pointer; }
+.workbench-sidebar-content { flex: 1; flex-direction: column; min-height: 0; }
+.workbench-theme { padding: 4px 16px 14px; }
+.workbench-theme-picker { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.workbench-theme-picker select { padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; color: var(--ink); background: var(--paper); }
+.workbench-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 0 12px 12px; border-bottom: 1px solid var(--rule); }
+.workbench-sections button { padding: 9px 8px; min-height: 40px; border: 1px solid transparent; border-radius: 7px; text-align: left; color: var(--muted); background: transparent; cursor: pointer; font-size: 13px; }
+.workbench-sections button[aria-pressed='true'] { color: var(--accent); background: var(--paper); border-color: var(--rule); font-weight: 650; }
+.workbench-sidebar-scroll { position: relative; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 16px; font-size: 13px; line-height: 1.45; }
+.workbench-sidebar-scroll h2 { font-size: 16px; margin: 0 0 14px; }
+.workbench-sidebar-scroll p { color: var(--muted); }
+.workbench-sidebar-scroll button { border: 1px solid var(--rule); border-radius: 6px; min-height: 36px; color: var(--ink); background: var(--paper); cursor: pointer; max-width: 100%; white-space: normal; }
+.workbench-sidebar-scroll button:disabled { cursor: default; opacity: 0.55; }
+.workbench-sidebar-scroll input, .workbench-sidebar-scroll select { max-width: 100%; box-sizing: border-box; }
+.workbench-sidebar-scroll select { min-width: 0; width: 100%; color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+.workbench-field { display: grid; gap: 6px; margin: 16px 0; }
+.workbench-field:has(input[type='checkbox']) { display: flex; align-items: flex-start; gap: 8px; }
+.workbench-field input[type='checkbox'] { margin-top: 3px; flex: 0 0 auto; }
+.workbench-sidebar label { overflow-wrap: anywhere; }
+.workbench-sidebar [aria-label='Examples'] > button { flex: 1 1 100%; text-align: left; }
+.workbench-sidebar [aria-label='Graph actions'] > button { flex: 1 1 120px; }
+.workbench-sidebar fieldset { min-width: 0; }
+
+.workbench-sidebar pre { font-size: 11px; }
+.workbench-notice { position: relative; flex: 0 0 auto; border-top: 1px solid var(--rule); padding: 8px 16px; font-size: 12px; }
+.workbench-notice p { margin: 0; }
+.workbench-canvas { min-width: 0; min-height: 0; display: flex; padding: 12px; box-sizing: border-box; }
+.workbench-canvas > [data-flow-surface] { flex: 1; }
+[data-flow-port-locked] { opacity: 0.5; }
+@media (max-width: 760px) {
+  body > header { padding-inline: 12px; font-size: 12px; }
+  .workbench-title { display: none; }
+  .workbench-layout { grid-template-columns: min(46vw, 20rem) minmax(0, 1fr); }
+  .workbench-layout--collapsed { grid-template-columns: 52px minmax(0, 1fr); }
+  .workbench-sidebar-heading { padding: 12px 10px 8px; }
+  .workbench-sidebar h1 { font-size: 16px; }
+  .workbench-theme { padding-inline: 10px; }
+  .workbench-sections { padding-inline: 6px; }
+  .workbench-sections button { padding: 6px 4px; font-size: 11px; overflow-wrap: anywhere; }
+  .workbench-sidebar-scroll { padding: 10px; }
+  .workbench-canvas { padding: 6px; }
+}
+</style>

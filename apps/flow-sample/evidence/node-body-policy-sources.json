@@ -1,0 +1,30 @@
+{
+  "parentHead": "906ad6c7f75b2f2f5ab7ba4ad130437f9c450b77",
+  "baselineProduction": {
+    "packages/foldkit-flow/src/foldkit.ts": "d35db246ab030c11112975274ecc730c036055e27b8b59837b225798b866f965",
+    "packages/foldkit-flow/src/composition.ts": "3992613028574ea8792d827bdaf4134f9338ed7ea380d54cb1dd1c4d9cb5d1cc",
+    "apps/flow-sample/src/editor/view.ts": "585cd1b0cef17f56c5c4b31213b2b3328b3b91960fc152133af68de1793ba8ce"
+  },
+  "baselineBuild": {
+    "apps/flow-sample/dist/_astro/client.EIvvCUia.js": "df24e09c4c2c01a7aee5599fb32c829f77fd77f95a8793920693d35aa19e8a6c",
+    "apps/flow-sample/dist/_astro/preload-helper.DHhhL8Zf.js": "616967e76046f7a294c7ad1643f1ab9993561d942fd47c439a02f58b0569e70c",
+    "apps/flow-sample/dist/_astro/dist.cP3DnQqL.js": "e1daed59248283a9eda0881794b8b49b87b54dcb51bcf92f684c7f3ee660c00d",
+    "apps/flow-sample/dist/_astro/app.kQ4hVZ8c.js": "5f1b9928c56d0cc197f6f6ac2bb0c75f6e61311233d49331b66df27ce6377345",
+    "apps/flow-sample/dist/_astro/main.Cd-btnfB.js": "82c4a1a0ca61fb5be31440d96db814c5b48718808e837a3ed0cf264d91373609",
+    "apps/flow-sample/dist/_astro/interruptible.B3AUiavQ.js": "90b33ca1680994696405b0309f047d54774aedcfac6e1e87727f5053658fc548",
+    "apps/flow-sample/dist/_astro/dist.Bax1iZ9G.js": "8faa234bcfebead1e0af84aa1ad14ce78d6f77ac7a86befd258cd046e1b6cca5",
+    "apps/flow-sample/dist/_astro/brand.uyjyPyjo.js": "b22524fb4e35ee5695f351b1086a6737aecc5c02db956eac783ad06de78241c8"
+  },
+  "measuredFiles": {
+    "packages/foldkit-flow/src/foldkit.ts": "4c448283b7886e1149a1cdf352a777862e844be17d38e62c082304b16cf41237",
+    "packages/foldkit-flow/src/composition.ts": "5b8a5d3f8f21279181ea1d6a38d5fa5161e0f25b6a4a28769558148769abc06e",
+    "packages/foldkit-flow/src/node-body-cache.ts": "36f1a39494a9aac25857f6e70d2fd11e88e50835c57252daf4bc204c39a608e8",
+    "packages/foldkit-flow/test/node-retention.test.ts": "1f4987b3aa11b3905b8d24753e8e189b96dc4268dda2f3745c1bf0d79c785dea",
+    "packages/foldkit-flow/test/package.test.ts": "e736055b4a18ee5d97e6d990ece383590577a6c01c974ff617fc50fb5c270323",
+    "packages/foldkit-flow/bench/choosers.ts": "4aff2f5e364cad4a00fb9bd3b86939d3a3e27b1cebec273ddfdbe443becb4e58",
+    "apps/flow-sample/src/editor/view.ts": "c14c20ecae42b716f5cd29e93c9cd3c81601b229a1e4fa8d8d9267506e9be1a2",
+    "apps/flow-sample/evidence/endpoint-chooser-benchmark.mjs": "16dc4b29df4b8fef9c28ca65d9c4483c94bb8cc0d885ade578cc233dcfe851f3",
+    "apps/flow-sample/evidence/node-body-policy-check.mjs": "0c74217bed927db6460df7515e24b50ae40ffff00e0e0b1fb60c2d329b977148"
+  },
+  "sourceState": "working tree before commit; production edits included"
+}

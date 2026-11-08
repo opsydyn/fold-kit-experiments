@@ -1,0 +1,11 @@
+{
+  "parentHead": "179f364f7c9249871d3f136fdb9cfac2dcb6a93a",
+  "sourceState": "working tree before commit; production edits included",
+  "files": {
+    "packages/foldkit-flow/src/connection-validation.ts": "3c6cb229ab82b9653f68894e15c02409a2d6491218c6bcd3fd440cf4bf0e3de7",
+    "packages/foldkit-flow/src/connection-creation.ts": "7bcd0c4a1f4783e4f66bd19001348b5a23f1c07ced85cd3e9ba977909d430359",
+    "packages/foldkit-flow/src/edge-reconnection.ts": "1d8c5f3cf19b36eb949d9d95d5d1db2aa4e9efd75f4b791b16fa4b20ba558f45",
+    "packages/foldkit-flow/bench/choosers.ts": "4aff2f5e364cad4a00fb9bd3b86939d3a3e27b1cebec273ddfdbe443becb4e58",
+    "apps/flow-sample/evidence/endpoint-chooser-benchmark.mjs": "d09c3c59e647be399c10103790707b0e3c624aeec622ad5c00743170a58c4503"
+  }
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Zloz concept A: Assembly junction">
+  <title>Zloz — Assembly junction</title>
+  <path d="M3 3h12l6 6v6H9L3 9Z" fill="var(--blue, #3d79fa)"/>
+  <path d="m3 23 6-6h12v6l-6 6H3Z" fill="var(--gold, #f5ce60)"/>
+  <path d="M23 3h6v26h-6l-6-6V9Zm-2 11v4h4v-4Z" fill="var(--coral, #fa8b79)" fill-rule="evenodd"/>
+</svg>

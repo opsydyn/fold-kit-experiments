@@ -1,0 +1,176 @@
+@opsydyn/foldkit-flow-elk pack:check: $ bun run --filter @opsydyn/foldkit-flow build && tsdown
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ tsdown v0.21.10 powered by rolldown v1.0.0-rc.17
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ config file: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow/tsdown.config.ts 
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ entry: src/index.ts, src/foldkit.ts
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ target: es2022
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ tsconfig: tsconfig.json
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ Build start
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ Cleaning 9 files
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/foldkit.mjs                15.61 kB │ gzip: 4.50 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/index.mjs                  12.42 kB │ gzip: 3.16 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/foldkit.mjs.map            31.13 kB │ gzip: 8.20 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/index.mjs.map              23.02 kB │ gzip: 5.53 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/geometry-DRziXKOo.mjs.map  15.86 kB │ gzip: 4.19 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/geometry-DRziXKOo.mjs       8.39 kB │ gzip: 2.36 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/index.d.mts                 2.75 kB │ gzip: 1.09 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/foldkit.d.mts               0.81 kB │ gzip: 0.48 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ dist/types-BFOQabZ3.d.mts        4.00 kB │ gzip: 1.21 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ℹ 9 files, total: 113.99 kB
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: ✔ Build complete in 770ms
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow build: Exited with code 0
+@opsydyn/foldkit-flow-elk pack:check: ℹ tsdown v0.21.10 powered by rolldown v1.0.0-rc.17
+@opsydyn/foldkit-flow-elk pack:check: ℹ config file: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow-elk/tsdown.config.ts 
+@opsydyn/foldkit-flow-elk pack:check: ℹ entry: src/index.ts
+@opsydyn/foldkit-flow-elk pack:check: ℹ target: es2022
+@opsydyn/foldkit-flow-elk pack:check: ℹ tsconfig: tsconfig.json
+@opsydyn/foldkit-flow-elk pack:check: ℹ Build start
+@opsydyn/foldkit-flow-elk pack:check: ℹ Cleaning 3 files
+@opsydyn/foldkit-flow-elk pack:check: ℹ dist/index.mjs      3.35 kB │ gzip: 1.30 kB
+@opsydyn/foldkit-flow-elk pack:check: ℹ dist/index.mjs.map  6.30 kB │ gzip: 2.22 kB
+@opsydyn/foldkit-flow-elk pack:check: ℹ dist/index.d.mts    0.60 kB │ gzip: 0.39 kB
+@opsydyn/foldkit-flow-elk pack:check: ℹ 3 files, total: 10.25 kB
+@opsydyn/foldkit-flow-elk pack:check: ✔ Build complete in 408ms
+@opsydyn/foldkit-flow-elk pack:check: Running publint v0.3.25 for @opsydyn/foldkit-flow-elk...
+@opsydyn/foldkit-flow-elk pack:check: Packing files with `bun pack`...
+@opsydyn/foldkit-flow-elk pack:check: Linting...
+@opsydyn/foldkit-flow-elk pack:check: All good!
+@opsydyn/foldkit-flow-elk pack:check: bun pack v1.4.4 (38afee6c8)
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: packed 1.75KB package.json
+@opsydyn/foldkit-flow-elk pack:check: packed 188B CHANGELOG.md
+@opsydyn/foldkit-flow-elk pack:check: packed 1.1KB LICENSE
+@opsydyn/foldkit-flow-elk pack:check: packed 3.34KB README.md
+@opsydyn/foldkit-flow-elk pack:check: packed 0.64KB THIRD-PARTY-NOTICES.md
+@opsydyn/foldkit-flow-elk pack:check: packed 0.60KB dist/index.d.mts
+@opsydyn/foldkit-flow-elk pack:check: packed 3.35KB dist/index.mjs
+@opsydyn/foldkit-flow-elk pack:check: packed 6.30KB dist/index.mjs.map
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow-elk/dist/pack/opsydyn-foldkit-flow-elk-0.1.0.tgz
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: Total files: 8
+@opsydyn/foldkit-flow-elk pack:check: Shasum: 685c37a03de896bbd737f60fbeecf2ab3ba21c86
+@opsydyn/foldkit-flow-elk pack:check: Integrity: sha512-DBOJnEe9siSFQ[...]bvZsR1+B2POAw==
+@opsydyn/foldkit-flow-elk pack:check: Unpacked size: 17.23KB
+@opsydyn/foldkit-flow-elk pack:check: Packed size: 6.23KB
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: @opsydyn/foldkit-flow-elk v0.1.0
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: Build tools:
+@opsydyn/foldkit-flow-elk pack:check: - @arethetypeswrong/cli@0.18.5
+@opsydyn/foldkit-flow-elk pack:check: - typescript@^6.0.3
+@opsydyn/foldkit-flow-elk pack:check: - tsdown@^0.21.8
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check:  (ignoring resolutions: 'node10', 'node16-cjs')
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: (ignored per resolution) ⚠️ A require call resolved to an ESM JavaScript file, which is an error in Node and some bundlers. CommonJS consumers will need to use a dynamic import. https://github.com/arethetypeswrong/arethetypeswrong.github.io/blob/main/docs/problems/CJSResolvesToESM.md
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: "@opsydyn/foldkit-flow-elk"
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: node16 (from ESM): 🟢 (ESM)
+@opsydyn/foldkit-flow-elk pack:check: bundler: 🟢 
+@opsydyn/foldkit-flow-elk pack:check: node10: (ignored) 🟢 
+@opsydyn/foldkit-flow-elk pack:check: node16 (from CJS): (ignored) ⚠️ ESM (dynamic import only)
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: ***********************************
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: "@opsydyn/foldkit-flow-elk/package.json"
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: node16 (from ESM): 🟢 (JSON)
+@opsydyn/foldkit-flow-elk pack:check: bundler: 🟢 (JSON)
+@opsydyn/foldkit-flow-elk pack:check: node10: (ignored) 🟢 (JSON)
+@opsydyn/foldkit-flow-elk pack:check: node16 (from CJS): (ignored) 🟢 (JSON)
+@opsydyn/foldkit-flow-elk pack:check: 
+@opsydyn/foldkit-flow-elk pack:check: ***********************************
+@opsydyn/foldkit-flow-elk pack:check: Checked tarball: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow-elk/dist/pack/opsydyn-foldkit-flow-elk-0.1.0.tgz
+@opsydyn/foldkit-flow-elk pack:check: Exited with code 0
+@opsydyn/foldkit-flow pack:check: $ tsdown
+@opsydyn/foldkit-flow pack:check: ℹ tsdown v0.21.10 powered by rolldown v1.0.0-rc.17
+@opsydyn/foldkit-flow pack:check: ℹ config file: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow/tsdown.config.ts 
+@opsydyn/foldkit-flow pack:check: ℹ entry: src/index.ts, src/foldkit.ts
+@opsydyn/foldkit-flow pack:check: ℹ target: es2022
+@opsydyn/foldkit-flow pack:check: ℹ tsconfig: tsconfig.json
+@opsydyn/foldkit-flow pack:check: ℹ Build start
+@opsydyn/foldkit-flow pack:check: ℹ Cleaning 9 files
+@opsydyn/foldkit-flow pack:check: ℹ dist/foldkit.mjs                15.61 kB │ gzip: 4.50 kB
+@opsydyn/foldkit-flow pack:check: ℹ dist/index.mjs                  12.42 kB │ gzip: 3.16 kB
+@opsydyn/foldkit-flow pack:check: ℹ dist/foldkit.mjs.map            31.13 kB │ gzip: 8.20 kB
+@opsydyn/foldkit-flow pack:check: ℹ dist/index.mjs.map              23.02 kB │ gzip: 5.53 kB
+@opsydyn/foldkit-flow pack:check: ℹ dist/geometry-DRziXKOo.mjs.map  15.86 kB │ gzip: 4.19 kB
+@opsydyn/foldkit-flow pack:check: ℹ dist/geometry-DRziXKOo.mjs       8.39 kB │ gzip: 2.36 kB
+@opsydyn/foldkit-flow pack:check: ℹ dist/index.d.mts                 2.75 kB │ gzip: 1.09 kB
+@opsydyn/foldkit-flow pack:check: ℹ dist/foldkit.d.mts               0.81 kB │ gzip: 0.48 kB
+@opsydyn/foldkit-flow pack:check: ℹ dist/types-BFOQabZ3.d.mts        4.00 kB │ gzip: 1.21 kB
+@opsydyn/foldkit-flow pack:check: ℹ 9 files, total: 113.99 kB
+@opsydyn/foldkit-flow pack:check: ✔ Build complete in 729ms
+@opsydyn/foldkit-flow pack:check: Running publint v0.3.25 for @opsydyn/foldkit-flow...
+@opsydyn/foldkit-flow pack:check: Packing files with `bun pack`...
+@opsydyn/foldkit-flow pack:check: Linting...
+@opsydyn/foldkit-flow pack:check: All good!
+@opsydyn/foldkit-flow pack:check: bun pack v1.4.4 (38afee6c8)
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: packed 1.93KB package.json
+@opsydyn/foldkit-flow pack:check: packed 322B CHANGELOG.md
+@opsydyn/foldkit-flow pack:check: packed 1.1KB LICENSE
+@opsydyn/foldkit-flow pack:check: packed 6.59KB README.md
+@opsydyn/foldkit-flow pack:check: packed 246B THIRD-PARTY-NOTICES.md
+@opsydyn/foldkit-flow pack:check: packed 0.81KB dist/foldkit.d.mts
+@opsydyn/foldkit-flow pack:check: packed 15.61KB dist/foldkit.mjs
+@opsydyn/foldkit-flow pack:check: packed 31.12KB dist/foldkit.mjs.map
+@opsydyn/foldkit-flow pack:check: packed 8.39KB dist/geometry-DRziXKOo.mjs
+@opsydyn/foldkit-flow pack:check: packed 15.86KB dist/geometry-DRziXKOo.mjs.map
+@opsydyn/foldkit-flow pack:check: packed 2.75KB dist/index.d.mts
+@opsydyn/foldkit-flow pack:check: packed 12.42KB dist/index.mjs
+@opsydyn/foldkit-flow pack:check: packed 23.0KB dist/index.mjs.map
+@opsydyn/foldkit-flow pack:check: packed 4.0KB dist/types-BFOQabZ3.d.mts
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow/dist/pack/opsydyn-foldkit-flow-0.1.0.tgz
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: Total files: 14
+@opsydyn/foldkit-flow pack:check: Shasum: 1e297ab3bed6d5ff86d47885d9a309d4c303191d
+@opsydyn/foldkit-flow pack:check: Integrity: sha512-xxIt2RFYtGRpQ[...]4+g/Qa8WJ7IGQ==
+@opsydyn/foldkit-flow pack:check: Unpacked size: 124.14KB
+@opsydyn/foldkit-flow pack:check: Packed size: 28.84KB
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: @opsydyn/foldkit-flow v0.1.0
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: Build tools:
+@opsydyn/foldkit-flow pack:check: - @arethetypeswrong/cli@0.18.5
+@opsydyn/foldkit-flow pack:check: - typescript@^6.0.3
+@opsydyn/foldkit-flow pack:check: - tsdown@^0.21.8
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check:  (ignoring resolutions: 'node10', 'node16-cjs')
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: (ignored per resolution) ⚠️ A require call resolved to an ESM JavaScript file, which is an error in Node and some bundlers. CommonJS consumers will need to use a dynamic import. https://github.com/arethetypeswrong/arethetypeswrong.github.io/blob/main/docs/problems/CJSResolvesToESM.md
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: (ignored per resolution) 💀 Import failed to resolve to type declarations or JavaScript files. https://github.com/arethetypeswrong/arethetypeswrong.github.io/blob/main/docs/problems/NoResolution.md
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: "@opsydyn/foldkit-flow"
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: node16 (from ESM): 🟢 (ESM)
+@opsydyn/foldkit-flow pack:check: bundler: 🟢 
+@opsydyn/foldkit-flow pack:check: node10: (ignored) 🟢 
+@opsydyn/foldkit-flow pack:check: node16 (from CJS): (ignored) ⚠️ ESM (dynamic import only)
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: ***********************************
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: "@opsydyn/foldkit-flow/foldkit"
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: node16 (from ESM): 🟢 (ESM)
+@opsydyn/foldkit-flow pack:check: bundler: 🟢 
+@opsydyn/foldkit-flow pack:check: node10: (ignored) 💀 Resolution failed
+@opsydyn/foldkit-flow pack:check: node16 (from CJS): (ignored) ⚠️ ESM (dynamic import only)
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: ***********************************
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: "@opsydyn/foldkit-flow/package.json"
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: node16 (from ESM): 🟢 (JSON)
+@opsydyn/foldkit-flow pack:check: bundler: 🟢 (JSON)
+@opsydyn/foldkit-flow pack:check: node10: (ignored) 🟢 (JSON)
+@opsydyn/foldkit-flow pack:check: node16 (from CJS): (ignored) 🟢 (JSON)
+@opsydyn/foldkit-flow pack:check: 
+@opsydyn/foldkit-flow pack:check: ***********************************
+@opsydyn/foldkit-flow pack:check: Checked tarball: /Users/alancurrie/Projects/fold-kit-experiments/packages/foldkit-flow/dist/pack/opsydyn-foldkit-flow-0.1.0.tgz
+@opsydyn/foldkit-flow pack:check: Exited with code 0

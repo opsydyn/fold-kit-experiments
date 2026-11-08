@@ -1,0 +1,18 @@
+{
+  "result": "pass",
+  "origin": "http://127.0.0.1:4329/",
+  "themes": ["light", "dark"],
+  "savedTheme": true,
+  "liveSystemTheme": true,
+  "crossTabTheme": true,
+  "blockedStorage": true,
+  "staticContentWithoutJavaScript": true,
+  "firstPaintWithoutModule": true,
+  "nativeMermaidDisclosure": true,
+  "syntaxHighlighting": "shared Viz/Three tokens; light and dark colors verified",
+  "downloads": "canonical graph plus Mermaid identity and loss report",
+  "mobileWidth": 390,
+  "internalLinks": "HTTP 200",
+  "pageErrors": [],
+  "externalRequests": []
+}

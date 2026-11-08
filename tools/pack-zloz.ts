@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import cli from '../packages/foldkit-zloz-cli/package.json';
 import elk from '../packages/foldkit-zloz-elk/package.json';
 import force from '../packages/foldkit-zloz-force/package.json';
 import mermaid from '../packages/foldkit-zloz-mermaid/package.json';
@@ -13,7 +14,8 @@ if (
   name !== 'foldkit-zloz' &&
   name !== 'foldkit-zloz-elk' &&
   name !== 'foldkit-zloz-force' &&
-  name !== 'foldkit-zloz-mermaid'
+  name !== 'foldkit-zloz-mermaid' &&
+  name !== 'foldkit-zloz-cli'
 )
   throw new Error('Expected a Foldkit Zloz package name');
 const manifests = {
@@ -21,6 +23,7 @@ const manifests = {
   'foldkit-zloz-elk': elk,
   'foldkit-zloz-force': force,
   'foldkit-zloz-mermaid': mermaid,
+  'foldkit-zloz-cli': cli,
 };
 const manifest = manifests[name];
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

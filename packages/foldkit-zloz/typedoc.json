@@ -6,7 +6,8 @@
     "../foldkit-zloz-elk/src/index.ts",
     "../foldkit-zloz-force/src/index.ts",
     "../foldkit-zloz-force/src/eligibility.ts",
-    "../foldkit-zloz-mermaid/src/index.ts"
+    "../foldkit-zloz-mermaid/src/index.ts",
+    "../foldkit-zloz-cli/src/index.ts"
   ],
   "entryPointStrategy": "resolve",
   "tsconfig": "tsconfig.docs.json",

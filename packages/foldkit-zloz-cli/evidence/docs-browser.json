@@ -1,0 +1,7 @@
+{
+  "result": "pass",
+  "base": "http://127.0.0.1:4331/",
+  "title": "CLI | Foldkit Zloz API",
+  "runnerContract": "run | Foldkit Zloz API",
+  "pageErrors": []
+}

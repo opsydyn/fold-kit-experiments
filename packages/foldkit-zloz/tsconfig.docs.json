@@ -4,11 +4,13 @@
     "src/**/*.ts",
     "../foldkit-zloz-elk/src/**/*.ts",
     "../foldkit-zloz-force/src/**/*.ts",
-    "../foldkit-zloz-mermaid/src/**/*.ts"
+    "../foldkit-zloz-mermaid/src/**/*.ts",
+    "../foldkit-zloz-cli/src/**/*.ts"
   ],
   "compilerOptions": {
     "paths": {
-      "@opsydyn/foldkit-zloz": ["./src/index.ts"]
+      "@opsydyn/foldkit-zloz": ["./src/index.ts"],
+      "@opsydyn/foldkit-zloz-mermaid": ["../foldkit-zloz-mermaid/src/index.ts"]
     }
   }
 }

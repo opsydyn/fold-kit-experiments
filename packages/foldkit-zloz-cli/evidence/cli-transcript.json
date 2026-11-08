@@ -1,0 +1,52 @@
+{
+  "result": "pass",
+  "checkedAt": "2026-11-08T20:34:09.946Z",
+  "node": "v24.15.0",
+  "bun": "1.4.4",
+  "measuredParent": "680d413637730b49c15bc2672b166393b32311bd",
+  "sourceHashes": {
+    "packages/foldkit-zloz-cli/src/index.ts": "5fb709d39b03883d8e2a1daad7b7102608fda41efd2ccbd32df8716097bda72a",
+    "packages/foldkit-zloz-cli/src/io.ts": "da8b05efe36d1dc3896b7afc1fa165027d916de5eb46723241654e30f53ee9ed",
+    "packages/foldkit-zloz-cli/src/protocol.ts": "e7186101669e6c2d3226606cc2f7f740f9579c5f58e342e8c2dc8c6261949835",
+    "packages/foldkit-zloz-cli/src/bin.ts": "194b538244c00983d83d12348692a251c01a4b86ca0eb2e548446d433d082d19",
+    "packages/foldkit-zloz-cli/package.json": "70a3b54887f991a4f66d739d4444c5cf1a2251d72635bb125b5da76d808df786",
+    "packages/foldkit-zloz-cli/evidence/example.json": "2770eac56587410751496a079c707f91cc883a44ac0230f2f9225ea73b74a068"
+  },
+  "fixtureUnchanged": true,
+  "generatedCliApi": "Foldkit Zloz API / CLI",
+  "commands": [
+    {
+      "args": ["validate", "--input", "packages/foldkit-zloz-cli/evidence/example.json"],
+      "exit": 0,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"validate\",\"status\":\"valid\",\"summary\":{\"nodes\":1,\"edges\":0},\"diagnostics\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "args": ["mermaid", "export", "--input", "packages/foldkit-zloz-cli/evidence/example.json"],
+      "exit": 1,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"mermaid-export\",\"status\":\"rejected\",\"diagnostics\":[{\"code\":\"node-fields-omitted\",\"severity\":\"loss\",\"dimension\":\"semantics\",\"message\":\"Not represented: architecture.\",\"subject\":\"orders\"},{\"code\":\"layout-omitted\",\"severity\":\"loss\",\"dimension\":\"layout\",\"message\":\"Authored positions and dimensions are not represented; Mermaid chooses layout.\",\"subject\":null},{\"code\":\"identity-map-required\",\"severity\":\"loss\",\"dimension\":\"identity\",\"message\":\"Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.\",\"subject\":null}]}\n",
+      "stderr": ""
+    },
+    {
+      "args": [
+        "mermaid",
+        "export",
+        "--input",
+        "packages/foldkit-zloz-cli/evidence/example.json",
+        "--loss-policy",
+        "report",
+        "--direction",
+        "TB"
+      ],
+      "exit": 0,
+      "stdout": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"mermaid-export\",\"status\":\"converted\",\"data\":{\"protocol\":\"foldkit-flow-mermaid/v1\",\"source\":\"flowchart TB\\n  n_6f_72_64_65_72_73(\\\"Order platform\\\")\\n\",\"direction\":\"TB\",\"identity\":{\"version\":1,\"nodes\":[{\"mermaidId\":\"n_6f_72_64_65_72_73\",\"flowId\":\"orders\",\"ports\":[]}],\"edges\":[]},\"diagnostics\":[{\"code\":\"node-fields-omitted\",\"severity\":\"loss\",\"dimension\":\"semantics\",\"message\":\"Not represented: architecture.\",\"subject\":\"orders\"},{\"code\":\"layout-omitted\",\"severity\":\"loss\",\"dimension\":\"layout\",\"message\":\"Authored positions and dimensions are not represented; Mermaid chooses layout.\",\"subject\":null},{\"code\":\"identity-map-required\",\"severity\":\"loss\",\"dimension\":\"identity\",\"message\":\"Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.\",\"subject\":null}]},\"diagnostics\":[{\"code\":\"node-fields-omitted\",\"severity\":\"loss\",\"dimension\":\"semantics\",\"message\":\"Not represented: architecture.\",\"subject\":\"orders\"},{\"code\":\"layout-omitted\",\"severity\":\"loss\",\"dimension\":\"layout\",\"message\":\"Authored positions and dimensions are not represented; Mermaid chooses layout.\",\"subject\":null},{\"code\":\"identity-map-required\",\"severity\":\"loss\",\"dimension\":\"identity\",\"message\":\"Source uses safe aliases. Keep the bundle identity metadata to retain original node, edge and port IDs.\",\"subject\":null}]}\n",
+      "stderr": ""
+    },
+    {
+      "args": ["mermaid", "export", "--direction", "TD"],
+      "exit": 2,
+      "stdout": "",
+      "stderr": "{\"protocol\":\"foldkit-zloz-cli/v1\",\"operation\":\"invocation\",\"status\":\"rejected\",\"diagnostics\":[{\"code\":\"invalid-arguments\",\"message\":\"\\nERROR\\n  Invalid value for flag --direction: \\\"TD\\\". Expected: \\\"LR\\\" | \\\"RL\\\" | \\\"TB\\\" | \\\"BT\\\"\",\"severity\":\"error\",\"dimension\":\"syntax\",\"subject\":null}]}\n"
+    }
+  ]
+}

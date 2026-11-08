@@ -292,6 +292,7 @@ export default defineConfig({
         'packages/foldkit-viz/src/**',
         'packages/foldkit-zloz/src/{editor,geometry,graph,layout,types,foldkit}.ts',
         'packages/foldkit-zloz/test/**',
+        'packages/foldkit-zloz-cli/test/**',
         'packages/foldkit-zloz-elk/test/**',
         'packages/foldkit-zloz-elk/src/index.ts',
         'packages/foldkit-viz/test/**',
@@ -316,11 +317,23 @@ export default defineConfig({
       },
     },
     {
+      // CLI fixtures inject constant platform service Effects, not domain branch placeholders.
+      files: ['packages/foldkit-zloz-cli/test/**'],
+      rules: { 'linteffect/no-effect-succeed-variable': 'off' },
+    },
+    {
+      // Named CLI adapter operations expose injectable Effects and scoped I/O as their contract.
+      // Keep sequencing/branching rules active; these are not aliases for domain state updates.
+      files: ['packages/foldkit-zloz-cli/src/{index,io}.ts'],
+      rules: { 'linteffect/no-effect-wrapper-alias': 'off' },
+    },
+    {
       // These modules are explicit application/runtime boundaries. Running an Effect here is
       // the boundary itself, rather than a local domain transition.
       files: [
         'apps/web/src/pages/api/**',
         'packages/astro-foldkit/src/server-render.ts',
+        'packages/foldkit-zloz-cli/src/bin.ts',
         'apps/promo/src/lib/{line,example,dataset}-project.ts',
         'apps/promo/src/pages/downloads/**',
         'apps/promo/src/pages/datasets/**',

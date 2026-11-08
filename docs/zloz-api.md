@@ -24,6 +24,9 @@ The reference includes:
 - `@opsydyn/foldkit-zloz-force/eligibility`: the lightweight eligibility entry.
 - `@opsydyn/foldkit-zloz-mermaid`: Mermaid export options, identity metadata,
   conversion diagnostics and nested subgraph projections.
+- `@opsydyn/foldkit-zloz-cli`: Effect CLI command tree, explicit-argv runner,
+  versioned JSON responses and typed exit/I/O errors. The runtime is started only
+  by the standalone executable. See the [CLI guide](../packages/foldkit-zloz-cli/README.md).
 
 Preferred contracts use `Zloz*` types and `zloz*` views. Deprecated source aliases
 remain available for existing integrations; see [migration notes](zloz-migration.md).

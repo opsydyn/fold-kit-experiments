@@ -107,16 +107,14 @@ is **Foldkit Zloz API**, with canonical `/zloz/api/` navigation. Deprecated sour
 aliases and saved-data protocols are documented in the [migration guide](zloz-migration.md).
 No Flow-named package may be released; obsolete release PR #110 was closed.
 
-**Production CLI standard:** implement the standalone Zloz CLI with Effect CLI
-(`effect/cli` for the installed Effect 4 version), typed commands/flags/arguments,
-Schema decoding, typed errors and scoped FileSystem/Terminal services. Compose
-operations with `Effect.gen`, `pipe` and combinators; avoid manual argv parsing,
-Promise chains and direct process/file effects inside domain operations. Keep
-runtime execution and exit-code/output handling at the entry point. Keep the
-pure Mermaid exporter reusable without a CLI or Effect runtime. Qualify JSON
-output, invalid input, conversion losses, exit codes, stdin limits and cancellation.
-The existing imperative fidelity-spike driver is historical research; replace it
-with a separately qualified production CLI rather than presenting it as shipped.
+**Standalone Effect CLI:** the unpublished [`@opsydyn/foldkit-zloz-cli`](../packages/foldkit-zloz-cli/README.md)
+now provides `zloz validate` and `zloz mermaid export`. Typed Effect CLI commands,
+Schema JSON decoding, the canonical core codec, scoped platform streams and
+structured errors produce versioned agent-readable output. Strict/report loss
+policies, a 1 MiB UTF-8 byte budget, Node/Bun installed binaries and 0/1/2/130 exit
+contracts are qualified locally; CI runs the same checks. Core/Mermaid stay pure; parser adoption
+and Mermaid import remain subsequent work. Release/publication activation remains
+separate. The historical imperative fidelity driver is not the production CLI.
 
 **Planning completed — 2026-11-08:** the [naming migration inventory](assessments/2026-11-08-zloz-naming-migration-inventory.md)
 and [shared logo/site brief](assessments/2026-11-08-zloz-logo-and-site-brief.md)

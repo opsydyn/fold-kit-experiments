@@ -38,7 +38,7 @@ Nested frame identity and light/dark styling follow the Viz and Three family.
 
 The package family is `@opsydyn/foldkit-zloz*`. Preferred public types and views use
 `Zloz*` and `zloz*`; deprecated aliases preserve existing code.
-These four packages are **0.1.0 workspace/release candidates, not npm releases**.
+These five packages are **0.1.0 workspace/release candidates, not npm releases**.
 Website publication does not publish packages to npm.
 See [naming and compatibility](docs/zloz-migration.md) for retained saved-data and integration contracts.
 
@@ -48,6 +48,7 @@ See [naming and compatibility](docs/zloz-migration.md) for retained saved-data a
 | [`@opsydyn/foldkit-zloz-elk`](packages/foldkit-zloz-elk/)         | Optional ELK layout adapter                                                                          |
 | [`@opsydyn/foldkit-zloz-force`](packages/foldkit-zloz-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                    |
 | [`@opsydyn/foldkit-zloz-mermaid`](packages/foldkit-zloz-mermaid/) | Pure Mermaid export, conversion-loss reporting and identity metadata                                 |
+| [`@opsydyn/foldkit-zloz-cli`](packages/foldkit-zloz-cli/)         | Standalone Effect CLI: model validation, Mermaid bundles and machine-readable diagnostics            |
 
 Canonical JSON preserves the editable model. Mermaid is a projection with explicit
 losses; general Mermaid import and npm publication remain separate work. See the
@@ -127,6 +128,7 @@ fold-kit-experiments/
     ├── foldkit-zloz-elk/  — Zloz ELK layout adapter (unpublished)
     ├── foldkit-zloz-force/ — Zloz force layout/routing adapter (unpublished)
     ├── foldkit-zloz-mermaid/ — Zloz loss-aware Mermaid export (unpublished)
+    ├── foldkit-zloz-cli/  — Standalone Effect CLI and agent JSON contracts (unpublished)
     ├── effect-three/      — @opsydyn/effect-three   (for npm, 0.x; Effect-native declarative Three.js core)
     ├── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (for npm; Foldkit adapter)
     ├── effect-three-rapier/  — @opsydyn/effect-three-rapier  (for npm; Rapier physics engine)

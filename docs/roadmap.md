@@ -150,15 +150,17 @@ Astro is the demonstration shell. Prioritize the following bounded slices:
 
 1. **DDD preset renderers:** expose all eight existing semantic roles with
    composable node/group presentation and a light/dark Order aggregate demo.
-2. **Atomic pattern insertion:** validated fragments, deterministic ID remapping,
+2. **History and time travel:** a first-class product pillar. Start with named
+   immutable editions, read-only rewind and return to the present; then semantic/
+   layout comparison and explicit restore or fork into a new working model.
+   Establish the contract before expanding persisted domain vocabulary.
+3. **Atomic pattern insertion:** validated fragments, deterministic ID remapping,
    policy checks, full rollback and one Undo per insertion.
-3. **DDD relationships/context maps:** typed tactical and strategic meaning,
+4. **DDD relationships/context maps:** typed tactical and strategic meaning,
    serialization and conversion-loss handling; respect portless group boundaries.
-4. **EventStorming discovery:** explicit compatibility decision, configurable
+5. **EventStorming discovery:** explicit compatibility decision, configurable
    semantic cards, optional links and valid uncertainty; then workshop patterns
    and deliberate links to DDD/C4 concepts.
-5. **Editions and semantic comparison:** named immutable artifacts, meaningful
-   diffs and restore as a fresh transaction; distinct from session Undo.
 6. **Agent modelling operations:** build on the standalone CLI with validated
    patches, dry runs and reviewable changes; no automatic writable-agent rollout.
 
@@ -170,8 +172,8 @@ comprehensive a11y qualification gate and publication-last decision.
 
 **Recommended next:** DDD renderers using the current descriptor contract,
 without new persisted fields. Proposed positioning to validate: model a domain
-with people, evolve its architecture with agents, and review/communicate the same
-portable model. Shapes alone, Undo and layout examples do not establish a USP.
+with people, explore how its architecture evolves, and review/communicate the
+same portable model with human and agent tooling. Shapes alone, Undo and layout examples do not establish a USP.
 
 ## Release: Keyed Chart Comparison
 

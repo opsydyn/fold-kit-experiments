@@ -92,17 +92,17 @@ for public semantic contracts.
 ## Ordered delivery track
 
 Each row is a proposed bounded slice, with its own implementation and commit.
-Orders 4–7 are directional and should be reconsidered after the preceding model
+Orders 3–7 are directional and should be reconsidered after the preceding model
 has been exercised. Publication remains last and is not part of this track.
 
 | Order | Slice                                           | Acceptance boundary                                                                                                                                                                          |
 | ----- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | DDD preset renderers                            | Package-level node/group views for all eight existing roles; Order aggregate demo in light/dark; no new persisted fields                                                                     |
-| 2     | Atomic pattern insertion                        | Pure fragment builder plus one undoable insertion: deterministic caller-owned IDs, collision remapping, parent/port remapping, policy checks, whole-graph validation and no partial mutation |
-| 3     | Typed DDD relationships and context maps        | Separate tactical relationships from strategic context-map relationships; direction/roles, validation, serialization, Undo and explicit Mermaid loss handling                                |
-| 4     | EventStorming discovery primitives              | Versioned descriptor decision, free placement, optional links, events/commands/actors/policies/aggregates/read models/external systems/hotspots; uncertainty remains valid                   |
-| 5     | Workshop patterns and architecture traceability | Optional lanes/order and process patterns; explicit references between workshop findings, DDD concepts and C4 elements, preserving human decisions                                           |
-| 6     | Named editions and semantic comparison          | Immutable revision artifacts, distinguish semantic/layout changes, read-only comparison, restore as a new transaction; coordinate with collaboration design                                  |
+| 2     | Named editions and semantic comparison          | Immutable revision artifacts, distinguish semantic/layout changes, read-only comparison, restore as a new transaction; coordinate with collaboration design                                  |
+| 3     | Atomic pattern insertion                        | Pure fragment builder plus one undoable insertion: deterministic caller-owned IDs, collision remapping, parent/port remapping, policy checks, whole-graph validation and no partial mutation |
+| 4     | Typed DDD relationships and context maps        | Separate tactical relationships from strategic context-map relationships; direction/roles, validation, serialization, Undo and explicit Mermaid loss handling                                |
+| 5     | EventStorming discovery primitives              | Versioned descriptor decision, free placement, optional links, events/commands/actors/policies/aggregates/read models/external systems/hotspots; uncertainty remains valid                   |
+| 6     | Workshop patterns and architecture traceability | Optional lanes/order and process patterns; explicit references between workshop findings, DDD concepts and C4 elements, preserving human decisions                                           |
 | 7     | Agent modelling operations                      | CLI capabilities and validated patch/dry-run contract, stable identities, expected revision checks and reviewable changes before any writable-agent integration                              |
 
 **Next slice detail:** add DDD node/group renderers analogous to `zlozC4Node` and
@@ -137,6 +137,33 @@ from incidental x coordinates and must not fabricate business timestamps.
 The [community glossary](https://github.com/ddd-crew/eventstorming-glossary-cheat-sheet)
 is a reference, not a requirement to adopt its artwork. A single-user demo cannot
 qualify a collaborative workshop product.
+
+## History and time travel as a first-class pillar
+
+User clarification: history/time travel is central to the product direction,
+alongside semantic modelling and portability. Bring its contract forward directly
+after DDD renderers, before adding more persisted domain vocabulary. Use Foldkit's
+history capabilities where appropriate, while explicitly designing durable model
+history; runtime replay alone does not establish this product contract.
+
+Deliver incrementally: first named immutable editions with a read-only historical
+view and safe return to the present; then semantic/layout comparison; then restore
+or fork an earlier edition into a new working model. Preserve the current model
+until the user chooses a transition. A fork initially means a separate model
+lineage; branch merging is separate scope. Add playback controls only after the
+revision/transition contract is clear, respecting reduced motion and diagnostics.
+
+Core owns revision artifacts, lineage, compatibility, pure comparison and restore
+operations. Foldkit owns composable timeline, edition picker and comparison views;
+Astro demonstrates them. Keep document revisions separate from the editor's
+monotonic freshness token and session Undo stack. Define what is captured, how
+editions persist and how source identity is retained before claiming deterministic
+replay. Coordinate retention and concurrent restore behavior with collaboration.
+
+The intended USP includes **exploring how a system evolved**, not merely editing
+its latest diagram. Demonstrate two architecture editions, rewind without edits,
+compare meaningful changes, return to the present, and restore/fork explicitly.
+This is planned capability, not evidence that durable time travel has shipped.
 
 ## Parity work alongside the domain track
 

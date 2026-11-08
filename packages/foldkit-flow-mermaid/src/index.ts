@@ -1,6 +1,6 @@
 /* oxlint-disable anti-slop/no-shape-in-symbol-names -- Built-in geometric outlines are public domain concepts. */
 // ADR 0008: Optional pure export; the headless parser spike is not a production import API.
-import { validateGraph, type FlowGraph } from '@opsydyn/foldkit-flow';
+import { validateGraph, type FlowGraph, type FlowNode } from '@opsydyn/foldkit-flow';
 
 export const mermaidProtocol = 'foldkit-flow-mermaid/v1';
 /** Maximum generated source size, in UTF-16 code units. */
@@ -11,6 +11,7 @@ export type MermaidDiagnosticCode =
   | 'invalid-graph'
   | 'invalid-options'
   | 'unsupported-subgraph'
+  | 'group-presentation-omitted'
   | 'unsupported-label-encoding'
   | 'source-limit'
   | 'node-fields-omitted'
@@ -30,6 +31,10 @@ export type MermaidIdentity = Readonly<{
   nodes: readonly Readonly<{
     mermaidId: string;
     flowId: string;
+    /** Present for group entries; flat v1 entries are unchanged. */
+    kind?: 'group';
+    /** Original Flow parent group ID, never a Mermaid alias. */
+    parentId?: string;
     ports: readonly Readonly<{ id: string; kind: 'input' | 'output' }>[];
   }>[];
   edges: readonly Readonly<{
@@ -149,23 +154,33 @@ export function exportMermaid(
     ]);
   const direction = options.direction ?? 'LR';
   const policy = options.lossPolicy ?? 'reject';
-  if (graph.nodes.some((node) => node.kind === 'group' || node.parentId !== undefined))
+  const children = new Map<string | undefined, FlowNode[]>();
+  for (const node of graph.nodes) {
+    const siblings = children.get(node.parentId) ?? [];
+    siblings.push(node);
+    children.set(node.parentId, siblings);
+  }
+  if (graph.nodes.some((node) => node.kind === 'group' && !children.has(node.id)))
     return rejected([
       diagnostic(
         'unsupported-subgraph',
         'error',
         'semantics',
-        'Groups and membership require a separate mapping; export does not flatten them.',
+        'Empty groups have no reliable visible Mermaid boundary; export does not invent placeholder nodes.',
       ),
     ]);
   const diagnostics: MermaidDiagnostic[] = [];
   const identity: MermaidIdentity = {
     version: 1,
-    nodes: graph.nodes.map((node) => ({
-      mermaidId: alias('n', node.id),
-      flowId: node.id,
-      ports: node.ports.map(({ id, kind }) => ({ id, kind })),
-    })),
+    nodes: graph.nodes.map((node): MermaidIdentity['nodes'][number] => {
+      const entry = {
+        mermaidId: alias('n', node.id),
+        flowId: node.id,
+        ports: node.ports.map(({ id, kind }) => ({ id, kind })),
+      };
+      const nested = node.parentId === undefined ? entry : { ...entry, parentId: node.parentId };
+      return node.kind === 'group' ? { ...nested, kind: 'group' } : nested;
+    }),
     edges: graph.edges.map((edge) => ({
       mermaidId: alias('e', edge.id),
       flowId: edge.id,
@@ -175,8 +190,17 @@ export function exportMermaid(
       targetPort: edge.target.port,
     })),
   };
-  const lines = [`flowchart ${direction}`];
-  const nodeFields = new Set(['id', 'label', 'position', 'size', 'ports', 'appearance']);
+  const declarations = new Map<string, string>();
+  const nodeFields = new Set([
+    'id',
+    'label',
+    'position',
+    'size',
+    'ports',
+    'appearance',
+    'kind',
+    'parentId',
+  ]);
   const edgeFields = new Set(['id', 'source', 'target', 'label']);
   for (const node of graph.nodes) {
     const omitted = Object.keys(node).filter((key) => !nodeFields.has(key));
@@ -212,9 +236,51 @@ export function exportMermaid(
       );
     const text = label(node.label),
       shape = node.appearance?.shape ?? 'rectangle';
-    lines.push(
-      `  ${alias('n', node.id)}${shape === 'cylinder' ? `[(${text})]` : shape === 'rounded-rectangle' ? `(${text})` : `[${text}]`}`,
-    );
+    if (node.kind === 'group') {
+      declarations.set(node.id, `subgraph ${alias('n', node.id)}[${text}]`);
+      if (node.appearance !== undefined)
+        diagnostics.push(
+          diagnostic(
+            'group-presentation-omitted',
+            'loss',
+            'layout',
+            'Subgraph boundaries do not retain authored node outline choice.',
+            node.id,
+          ),
+        );
+    } else
+      declarations.set(
+        node.id,
+        `${alias('n', node.id)}${shape === 'cylinder' ? `[(${text})]` : shape === 'rounded-rectangle' ? `(${text})` : `[${text}]`}`,
+      );
+  }
+  const lines = [`flowchart ${direction}`];
+  let length = lines[0]!.length + 1;
+  const stack: Array<{ node: FlowNode; depth: number } | { depth: number }> = [
+    ...(children.get(undefined) ?? []),
+  ]
+    .reverse()
+    .map((node) => ({ node, depth: 1 }));
+  while (stack.length) {
+    const entry = stack.pop()!;
+    const text = 'node' in entry ? declarations.get(entry.node.id)! : 'end';
+    length += entry.depth * 2 + text.length + 1;
+    if (length > mermaidSourceLimit)
+      return rejected([
+        ...diagnostics,
+        diagnostic(
+          'source-limit',
+          'error',
+          'syntax',
+          'Generated source exceeds 32768 UTF-16 code units.',
+        ),
+      ]);
+    lines.push('  '.repeat(entry.depth) + text);
+    if ('node' in entry && entry.node.kind === 'group') {
+      stack.push({ depth: entry.depth });
+      for (const node of [...(children.get(entry.node.id) ?? [])].reverse())
+        stack.push({ node, depth: entry.depth + 1 });
+    }
   }
   for (const edge of graph.edges) {
     const omitted = Object.keys(edge).filter((key) => !edgeFields.has(key));

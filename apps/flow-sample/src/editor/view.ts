@@ -503,6 +503,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     'Open C4 container view',
                     Message.SelectedExample({ example: 'c4-containers' }),
                   ),
+                  button(
+                    'Open nested C4 container view',
+                    Message.SelectedExample({ example: 'c4-nested-containers' }),
+                  ),
                   button('Open Onion Architecture', Message.SelectedExample({ example: 'onion' })),
                   button(
                     'Open grouped Onion Architecture',

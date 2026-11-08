@@ -116,7 +116,7 @@ test('strict policy returns typed losses with no partial download; architecture 
   );
 });
 
-test('groups and malformed graphs reject even with loss consent', () => {
+test('empty groups and malformed graphs reject even with loss consent', () => {
   const grouped: FlowGraph = {
     nodes: [
       {

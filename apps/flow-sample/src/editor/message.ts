@@ -40,6 +40,7 @@ export const Message = defineMessageUnion({
       'port-snapping',
       'c4-context',
       'c4-containers',
+      'c4-nested-containers',
     ]),
   },
   SelectedWheelNavigation: { wheelNavigation: WheelNavigation },

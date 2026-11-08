@@ -61,6 +61,12 @@ const editor = createEditor({ nodes: [{ id: 'end', label: 'Consumer', position: 
 const result: MermaidExportResult = exportMermaid(editor.graph, { lossPolicy: 'report' });
 if (result.status !== 'converted' || result.value.identity.nodes[0]?.flowId !== 'end' || !result.value.source.includes('n_65_6e_64["Consumer"]')) throw new Error('Export failed');
 if (exportMermaid(editor.graph).status !== 'rejected' || editor.past.length !== 0) throw new Error('Loss/history contract failed');
+const nested = exportMermaid({ nodes: [
+ { id: 'outer', kind: 'group', label: 'Outer', position: {x:0,y:0}, size: {width:400,height:300}, ports: [] },
+ { id: 'inner', kind: 'group', parentId: 'outer', label: 'Inner', position: {x:10,y:10}, size: {width:300,height:200}, ports: [] },
+ { id: 'leaf', parentId: 'inner', label: 'Leaf', position: {x:20,y:20}, size: {width:100,height:80}, ports: [] }
+], edges: [] }, { lossPolicy: 'report' });
+if (nested.status !== 'converted' || nested.value.identity.nodes[1]?.kind !== 'group' || nested.value.identity.nodes[1]?.parentId !== 'outer' || !nested.value.source.includes('subgraph')) throw new Error('Nested contract failed');
 console.log('mermaid-consumer-ok');
 `;
     const consumer = path.join(directory, 'consumer.ts');

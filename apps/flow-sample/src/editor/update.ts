@@ -25,7 +25,11 @@ import {
 import { Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
-import { createC4ContextGraph, createC4ContainerGraph } from './c4-examples';
+import {
+  createC4ContextGraph,
+  createC4ContainerGraph,
+  createC4NestedContainerGraph,
+} from './c4-examples';
 import {
   ArrangeFlow,
   ExportFlow,
@@ -149,14 +153,16 @@ export function update(model: Model, message: Message): Return<Model, Message> {
             ? createProtectedWorkflowGraph()
             : example === 'c4-context'
               ? createC4ContextGraph()
-              : example === 'c4-containers'
-                ? createC4ContainerGraph()
-                : {
-                    release: initialGraph,
-                    onion: onionGraph,
-                    'grouped-onion': groupedOnionGraph,
-                    'port-snapping': portSnappingGraph,
-                  }[example];
+              : example === 'c4-nested-containers'
+                ? createC4NestedContainerGraph()
+                : example === 'c4-containers'
+                  ? createC4ContainerGraph()
+                  : {
+                      release: initialGraph,
+                      onion: onionGraph,
+                      'grouped-onion': groupedOnionGraph,
+                      'port-snapping': portSnappingGraph,
+                    }[example];
       const editor = restoreDocument({ graph }, true);
       return {
         model: {
@@ -165,7 +171,9 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           nodeDesign:
             example === 'protected-orbits'
               ? 'orbits'
-              : example === 'c4-context' || example === 'c4-containers'
+              : example === 'c4-context' ||
+                  example === 'c4-containers' ||
+                  example === 'c4-nested-containers'
                 ? 'c4'
                 : model.nodeDesign,
           retainNodeViews: example === 'protected-orbits' || model.retainNodeViews,

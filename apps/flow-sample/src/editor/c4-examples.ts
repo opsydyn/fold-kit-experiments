@@ -173,3 +173,29 @@ export function createC4ContainerGraph(): FlowGraph {
     ],
   };
 }
+
+/** Nested deployment/storage boundary within the container view, with explicit child endpoints. */
+export function createC4NestedContainerGraph(): FlowGraph {
+  const graph = createC4ContainerGraph();
+  return {
+    ...graph,
+    nodes: [
+      ...graph.nodes.map((node) =>
+        node.id === 'platform-boundary'
+          ? { ...node, size: { width: 600, height: 560 } }
+          : node.id === 'orders-db'
+            ? { ...node, parentId: 'storage-boundary', position: { x: 680, y: 350 } }
+            : node,
+      ),
+      {
+        id: 'storage-boundary',
+        kind: 'group',
+        label: 'Persistence boundary',
+        parentId: 'platform-boundary',
+        position: { x: 650, y: 290 },
+        size: { width: 300, height: 280 },
+        ports: [],
+      },
+    ],
+  };
+}

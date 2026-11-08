@@ -32,14 +32,24 @@ test('preview is opt-in and consent is scoped to the current document without af
   expect(update(closed, Message.ClickedMermaidDownload()).commands).toBeUndefined();
 });
 
-test('grouped diagrams remain rejected after loss consent', () => {
-  const example = update(init().model, Message.SelectedExample({ example: 'c4-containers' })).model;
+test('nested C4 container export retains group identities and membership after loss consent', () => {
+  const example = update(
+    init().model,
+    Message.SelectedExample({ example: 'c4-nested-containers' }),
+  ).model;
   const opened = update(example, Message.ClickedMermaidPreview()).model;
   const consented = update(opened, Message.ClickedMermaidLossConsent()).model;
   const result = mermaidPreview(consented);
-  expect(result.status).toBe('rejected');
-  expect(result.diagnostics.some((item) => item.code === 'unsupported-subgraph')).toBe(true);
-  expect(update(consented, Message.ClickedMermaidDownload()).commands).toBeUndefined();
+  expect(result.status).toBe('converted');
+  if (result.status !== 'converted') throw new Error('Expected nested export');
+  expect(
+    result.value.identity.nodes.find((node) => node.flowId === 'storage-boundary'),
+  ).toMatchObject({ kind: 'group', parentId: 'platform-boundary' });
+  expect(result.value.identity.nodes.find((node) => node.flowId === 'orders-db')?.parentId).toBe(
+    'storage-boundary',
+  );
+  expect(update(consented, Message.ClickedMermaidDownload()).commands).toHaveLength(1);
+  expect(consented.editor).toBe(example.editor);
 });
 
 test('replacing a graph clears consent even when the new editor restarts at the same revision', () => {

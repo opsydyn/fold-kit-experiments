@@ -24,7 +24,9 @@ bun run --filter @opsydyn/flow-sample preview
 reported losses, then enable **Allow reported conversion losses for this revision**
 to download a bundle containing source, original identities and diagnostics.
 Graph changes clear that acknowledgement. C4 system context is supported as a
-flowchart projection; grouped container views are rejected without flattening.
+flowchart projection. **Open nested C4 container view** demonstrates subgraphs
+with a nested persistence boundary, preserved child endpoints and hierarchy
+metadata. Empty groups are rejected; authored layout remains a reported loss.
 Keep the normal Flow JSON export as your authoritative document.
 See the [qualification and screenshots](evidence/mermaid-export.md).
 

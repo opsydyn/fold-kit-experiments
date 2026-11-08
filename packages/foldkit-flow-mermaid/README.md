@@ -42,12 +42,15 @@ bundle. `report` permits losses, never errors. Every result and bundle carries
 - `MermaidBundle`: protocol, source, direction, identity and diagnostics. It is a
   JSON-compatible projection, not canonical Flow JSON.
 - `MermaidIdentity`: version 1 node aliases/original IDs/port IDs and kinds, plus
-  named edge aliases/original IDs/endpoints. Contains no hidden full graph.
+  named edge aliases/original IDs/endpoints. Optional `kind: 'group'` and `parentId`
+  preserve group role and original Flow parent IDs; flat v1 entries are unchanged.
+  Contains no hidden full graph.
 - `MermaidDiagnostic`: typed code, severity (`loss | error`), dimension
   (`syntax | semantics | identity | layout`), message and nullable subject ID.
 - `MermaidDiagnosticCode`: invalid-graph, invalid-options, unsupported-subgraph,
   unsupported-label-encoding, source-limit, node-fields-omitted,
-  edge-fields-omitted, port-details-omitted, layout-omitted, identity-map-required.
+  edge-fields-omitted, port-details-omitted, group-presentation-omitted,
+  layout-omitted, identity-map-required.
 
 Keep the complete bundle: source uses deterministic aliases and explicit named
 edges, so source alone cannot preserve arbitrary Flow/port identities. Identity
@@ -59,8 +62,9 @@ provide an importer, bundle decoder or a restore operation.
 Literal text/Unicode, rectangle/rounded-rectangle/cylinder outlines, directed
 named edges, parallel edges, cycles and self-loops are supported. Labels are
 quoted and special characters encoded as decimal entities. Icon-like `fa:` text,
-empty labels, unsupported control characters and malformed Unicode labels reject. Groups and membership reject rather
-than flattening. Mermaid 12.3.0 is the independently qualified syntax target.
+empty labels, unsupported control characters and malformed Unicode labels reject. Non-empty groups export as nested named subgraphs. Empty groups reject rather
+than disappearing or becoming invented nodes. Group outline presentation is a
+reported loss; cross-boundary edges retain their ordinary child endpoints. Mermaid 12.3.0 is the independently qualified syntax target.
 
 Layout/dimensions, port geometry/labels/order, architecture semantics, host data,
 edge presentation and other authored fields are reported as omitted. Port IDs

@@ -208,6 +208,18 @@
         "typescript": "catalog:",
       },
     },
+    "infra/zloz": {
+      "name": "@opsydyn/zloz-infra",
+      "devDependencies": {
+        "@alchemy.run/cloudflare": "catalog:infra",
+        "@effect/platform-bun": "catalog:",
+        "@effect/platform-node": "catalog:",
+        "alchemy": "catalog:infra",
+        "bun-types": "catalog:",
+        "effect": "catalog:",
+        "typescript": "catalog:",
+      },
+    },
     "packages/astro-foldkit": {
       "name": "@opsydyn/astro-foldkit",
       "version": "0.9.3",
@@ -1009,6 +1021,8 @@
     "@opsydyn/three-promo": ["@opsydyn/three-promo@workspace:apps/three-promo"],
 
     "@opsydyn/web": ["@opsydyn/web@workspace:apps/web"],
+
+    "@opsydyn/zloz-infra": ["@opsydyn/zloz-infra@workspace:infra/zloz"],
 
     "@opsydyn/zloz-promo": ["@opsydyn/zloz-promo@workspace:apps/zloz-promo"],
 

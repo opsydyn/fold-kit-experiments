@@ -1,0 +1,20 @@
+{
+  "name": "@opsydyn/zloz-infra",
+  "private": true,
+  "description": "Independent Alchemy stack for the Zloz workbench on Cloudflare Workers Static Assets.",
+  "type": "module",
+  "scripts": {
+    "plan": "alchemy plan",
+    "deploy": "alchemy deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@alchemy.run/cloudflare": "catalog:infra",
+    "@effect/platform-bun": "catalog:",
+    "@effect/platform-node": "catalog:",
+    "alchemy": "catalog:infra",
+    "bun-types": "catalog:",
+    "effect": "catalog:",
+    "typescript": "catalog:"
+  }
+}

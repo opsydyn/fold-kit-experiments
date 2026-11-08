@@ -1,12 +1,12 @@
 # fold-kit-experiments
 
-A monorepo for ongoing [FoldKit](https://foldkit.dev) experiments — packages, integrations, a growing library of data visualisation demos, and declarative 3D scenes.
+A monorepo for [Foldkit](https://foldkit.dev) packages and applications: Astro integration, Viz charts, Three scenes, and Zloz graph and system modelling.
 
 FoldKit is an Elm Architecture runtime for the browser built on [Effect](https://effect.website). This repo explores what it looks like to bring that model into Astro, build D3-quality charts without D3, render Three.js scenes as plain data derived from the Model, and ship the results as reusable primitives.
 
 ## Packages
 
-All six are published to npm. The four effect-three packages are released together at one version.
+The six packages below are the existing npm releases. The four effect-three packages are released together at one version. Zloz's release-candidate packages are listed separately and remain unpublished.
 
 | Package                                                           | npm                                                                                                                               | Description                                                                                    |
 | :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
@@ -17,24 +17,40 @@ All six are published to npm. The four effect-three packages are released togeth
 | [`@opsydyn/effect-three-rapier`](packages/effect-three-rapier/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-rapier)](https://www.npmjs.com/package/@opsydyn/effect-three-rapier)   | Rapier physics for effect-three: bodies, colliders, joints and motors described as data        |
 | [`@opsydyn/effect-three-troika`](packages/effect-three-troika/)   | [![npm](https://img.shields.io/npm/v/@opsydyn/effect-three-troika)](https://www.npmjs.com/package/@opsydyn/effect-three-troika)   | troika distance-field labels for effect-three: crisp text at any size, described as data       |
 
-## FoldKit Flow (local release candidate)
+## Foldkit Zloz
 
-[`@opsydyn/foldkit-flow`](packages/foldkit-flow/) adds application-owned graph
-editing and an optional native FoldKit view.
-[`@opsydyn/foldkit-flow-elk`](packages/foldkit-flow-elk/) supplies optional ELK
-layout. [`@opsydyn/foldkit-flow-force`](packages/foldkit-flow-force/) supplies
-optional force layout and card-avoiding routing using FoldKit Viz.
+**Compose systems. Connect ideas.**
 
-Optional [`@opsydyn/foldkit-flow-mermaid`](packages/foldkit-flow-mermaid/) provides
-pure Mermaid export with versioned conversion diagnostics and explicit identity
-metadata. The Flow workbench has an opt-in source preview and bundle download.
-It is a local release candidate; publication and general import remain separate.
+Zloz is Foldkit's functional, extensible graph toolkit for interactive node
+editors, C4 architecture modelling and Mermaid export. Compose graphs and ports,
+model system boundaries, and communicate through portable diagrams. The selected
+Nested frame identity and light/dark styling follow the Viz and Three family.
 
-The Flow packages are prepared locally at 0.1.0.
-Run the demo app and open `/flow`; see the
-[publication guide](docs/releases/foldkit-flow.md) for tarball and release checks.
-Run `bun run dev:flow-sample` to try the standalone Astro app. See the
-[sample README](apps/flow-sample/README.md).
+- **Explore:** [Zloz promo](https://opsydyn.github.io/fold-kit-experiments/zloz/)
+  and [Zloz workbench](https://zloz.opsydyn.xyz/).
+- **Try locally:** `bun run dev:zloz-promo` (4329) and
+  `bun run dev:flow-sample` (4327). The promo includes a native Foldkit Compose
+  example with selection, connection creation and Undo/Redo; the workbench adds
+  C4, groups, layouts, policy controls and Mermaid review in a persistent canvas.
+- **Read:** [API/type contracts](https://opsydyn.github.io/fold-kit-experiments/flow/api/),
+  [workbench guide](apps/flow-sample/README.md),
+  [promo guide](apps/zloz-promo/README.md) and [hosting](infra/zloz/README.md).
+
+The technical package names remain `@opsydyn/foldkit-flow*` for compatibility.
+These four packages are **0.1.0 workspace/release candidates, not npm releases**.
+Website publication does not publish packages to npm.
+
+| Package                                                           | Responsibility                                                                                       |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [`@opsydyn/foldkit-flow`](packages/foldkit-flow/)                 | Pure graph/editor/geometry contracts, C4/DDD semantics, and optional native views through `/foldkit` |
+| [`@opsydyn/foldkit-flow-elk`](packages/foldkit-flow-elk/)         | Optional ELK layout adapter                                                                          |
+| [`@opsydyn/foldkit-flow-force`](packages/foldkit-flow-force/)     | Optional force layout and card-avoiding routing using Foldkit Viz                                    |
+| [`@opsydyn/foldkit-flow-mermaid`](packages/foldkit-flow-mermaid/) | Pure Mermaid export, conversion-loss reporting and identity metadata                                 |
+
+Canonical JSON preserves the editable model. Mermaid is a projection with explicit
+losses; general Mermaid import and npm publication remain separate work. See the
+[release preparation guide](docs/releases/foldkit-flow.md) for packed-consumer checks.
+The name comes from Polish **Złóż**: fold, assemble, put together; use **Zloz** externally.
 
 ## effect-three
 
@@ -94,14 +110,21 @@ fold-kit-experiments/
 │   ├── web/               — demo Astro app, chart workbenches and interactive Storybook
 │   ├── promo/             — Foldkit Viz promo site: Astro, light/dark themes
 │   ├── three-promo/       — effect-three promo site: same layout and themes, live 3D examples
+│   ├── zloz-promo/        — Zloz promo: shared family identity, native Compose example, highlighted source
+│   ├── flow-sample/       — Zloz architecture workbench: persistent canvas and left controls
 │   ├── tech-radar/        — standalone tech radar: the 3D radar and full pages, from markdown
 │   └── docs/              — docs/ as a Starlight site: decisions, spikes, releases, working notes
 ├── infra/
-│   └── tech-radar/        — Alchemy stack deploying the tech radar to Cloudflare
+│   ├── tech-radar/        — Alchemy stack deploying the tech radar to Cloudflare
+│   └── zloz/              — independent Alchemy stack for zloz.opsydyn.xyz; no npm release
 └── packages/
     ├── astro-foldkit/     — @opsydyn/astro-foldkit  (published to npm; client islands + opt-in SSR/SSG)
     ├── foldkit-viz/       — @opsydyn/foldkit-viz    (published to npm)
     ├── dataset-explorer/ — private shared KeyedQuery example for both apps
+    ├── foldkit-flow/      — Zloz graph core and optional Foldkit views (unpublished)
+    ├── foldkit-flow-elk/  — Zloz ELK layout adapter (unpublished)
+    ├── foldkit-flow-force/ — Zloz force layout/routing adapter (unpublished)
+    ├── foldkit-flow-mermaid/ — Zloz loss-aware Mermaid export (unpublished)
     ├── effect-three/      — @opsydyn/effect-three   (for npm, 0.x; Effect-native declarative Three.js core)
     ├── effect-three-foldkit/ — @opsydyn/effect-three-foldkit (for npm; Foldkit adapter)
     ├── effect-three-rapier/  — @opsydyn/effect-three-rapier  (for npm; Rapier physics engine)
@@ -120,6 +143,8 @@ fold-kit-experiments/
 bun install
 bun dev          # demo app at http://localhost:4321
 bun run dev:promo # promo site at http://localhost:4322
+bun run dev:zloz-promo # Zloz promo at http://localhost:4329
+bun run dev:flow-sample # Zloz workbench at http://localhost:4327
 bun run dev:three-promo # effect-three promo site at http://localhost:4323
 bun run dev:tech-radar # tech radar at http://localhost:4326
 bun run dev:docs # docs site at http://localhost:4327

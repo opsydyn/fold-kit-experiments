@@ -49,7 +49,7 @@
   "scripts": {
     "build": "bun run --filter @opsydyn/foldkit-flow build && bun run --filter @opsydyn/foldkit-viz build && tsdown",
     "typecheck": "bun run --filter @opsydyn/foldkit-flow build && bun run --filter @opsydyn/foldkit-viz build && tsc --noEmit",
-    "test": "bun test ./test",
+    "test": "bun run build && bun test ./test",
     "pack:check": "bun run build && publint && bun ../../tools/pack-flow.ts foldkit-flow-force"
   },
   "dependencies": {

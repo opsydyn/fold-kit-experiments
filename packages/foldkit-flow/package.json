@@ -61,7 +61,7 @@
     "effect": "4.1.0",
     "fast-check": "^4.8.0",
     "foldkit": "0.170.0",
-    "happy-dom": "^20.10.6",
+    "happy-dom": "^21.0.4",
     "publint": "0.3.25",
     "tsdown": "^0.21.8",
     "typedoc": "^0.28.19",

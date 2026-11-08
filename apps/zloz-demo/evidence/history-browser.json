@@ -1,0 +1,31 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "editions": [
+    {
+      "id": "edition-1",
+      "name": "Working checkpoint"
+    },
+    {
+      "id": "order-start",
+      "name": "Ordering · original"
+    },
+    {
+      "id": "order-evolved",
+      "name": "Ordering · delivery introduced"
+    }
+  ],
+  "checks": [
+    "named capture and example append",
+    "read-only rewind with unchanged present document/camera/Undo",
+    "blocked Delete and keyboard movement",
+    "baseline comparison and opt-in ghosts",
+    "added/removed/moved nodes and changed edges",
+    "independent ghost switches and Minimal masking",
+    "noninteractive ghost SVG and textual legend",
+    "light/dark and narrow history notice",
+    "canonical archive download/reopen"
+  ],
+  "pageErrors": [],
+  "screenshots": ["history-light.png", "history-dark.png", "history-mobile.png"]
+}

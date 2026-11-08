@@ -149,3 +149,20 @@ export type { ZlozNodeShape as FlowNodeShape } from './architecture';
 /** @deprecated Use ZlozNodeAppearance. */
 export type { ZlozNodeAppearance as FlowNodeAppearance } from './architecture';
 /* oxlint-enable anti-slop/no-shape-in-symbol-names */
+
+export {
+  isHistoryNavigationEvent,
+  captureEdition,
+  appendEdition,
+  serializeEditions,
+  parseEditions,
+  createHistoryReview,
+  updateHistoryReview,
+  compareEditions,
+} from './history';
+export type {
+  ZlozEdition,
+  ZlozHistoryReview,
+  ZlozHistoryChange,
+  ZlozHistoryComparison,
+} from './history';

@@ -151,7 +151,11 @@ Astro is the demonstration shell. Prioritize the following bounded slices:
 1. **DDD preset renderers — implemented locally:** all eight existing semantic
    roles have composable node/group presentation and a light/dark Order aggregate
    demo. See the [qualification receipt](../apps/zloz-demo/evidence/ddd-renderers.md).
-2. **History and time travel:** a first-class product pillar. Start with named
+2. **History and time travel — first slice implemented locally:** a first-class
+   product pillar. Core owns named immutable editions, a separate versioned archive,
+   read-only review and semantic/layout comparison. The optional Foldkit ghost
+   layer composes with the History sidebar and Order editions demo. See the
+   [qualification receipt](../apps/zloz-demo/evidence/history.md). Start with named
    immutable editions, read-only rewind and return to the present; then semantic/
    layout comparison and explicit restore or fork into a new working model.
    Include opt-in ghost nodes/edges, previous positions and movement connectors
@@ -173,8 +177,9 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** the history contract and first named editions/read-only
-rewind slice, with opt-in comparison ghosts. DDD renderers retain the current
+**Recommended next:** archive import and explicit history restore as a fresh
+undoable transaction, preserving the working model until confirmed. Named editions,
+read-only rewind and opt-in comparison ghosts form the local baseline. DDD renderers retain the current
 descriptor contract without new persisted fields. Proposed positioning to validate: model a domain
 with people, explore how its architecture evolves, and review/communicate the
 same portable model with human and agent tooling. Shapes alone, Undo and layout examples do not establish a USP.

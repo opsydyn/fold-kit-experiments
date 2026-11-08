@@ -10,7 +10,10 @@ recommendations, not their evidence.
 **Delivery update:** the subsequent approved DDD renderer slice is implemented
 locally. See its [qualification receipt](../../apps/zloz-demo/evidence/ddd-renderers.md).
 The inventory below retains its original source baseline; DDD renderers are no
-longer an open gap. Typed relationships, patterns and durable history remain open.
+longer an open gap. Typed relationships and patterns remain open. The subsequent approved
+[history slice](../../apps/zloz-demo/evidence/history.md) adds portable named
+editions, read-only rewind and comparison ghosts; restore/fork, playback and
+automatic persistence remain open.
 
 ## Recommendation
 

@@ -1,0 +1,26 @@
+{
+  "format": "foldkit-zloz-editions",
+  "version": 1,
+  "editions": [
+    {
+      "id": "baseline",
+      "name": "Original order",
+      "snapshot": {
+        "graph": {
+          "nodes": [
+            {
+              "id": "order",
+              "label": "Order",
+              "position": { "x": 20, "y": 30 },
+              "size": { "width": 240, "height": 160 },
+              "ports": [],
+              "architecture": { "family": "ddd", "role": "aggregate-root" }
+            }
+          ],
+          "edges": []
+        },
+        "viewport": { "x": 0, "y": 0, "zoom": 1 }
+      }
+    }
+  ]
+}

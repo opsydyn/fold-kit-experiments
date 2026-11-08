@@ -1,5 +1,6 @@
 import {
   resolveEdgeReconnection,
+  compareEditions,
   defaultFitViewPadding,
   architectureNodePresets,
   defaultZoomLimits,
@@ -10,6 +11,9 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
   zlozView,
+  zlozHistoryGhosts,
+  zlozGroupFrame,
+  zlozDragHandle,
   zlozC4Node,
   zlozC4Group,
   zlozDddNode,
@@ -51,6 +55,7 @@ import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchPolicy } from './editor-policy';
+import { historyAllowsMessage } from './history';
 import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -213,6 +218,32 @@ function renderWorkbenchNode(
 const renderDefaultNode = (node: ZlozNode, builder: HtmlBuilder<Message>) =>
   renderWorkbenchNode(node, builder, false, true, false);
 
+const historyDddOptions: ZlozDddNodeOptions<Message> = { ...dddOptions, renderControls: () => [] };
+const historyC4Options: ZlozC4NodeOptions<Message> = { ...c4Options, renderControls: () => [] };
+const historyNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
+  zlozDddNode(context, h, historyDddOptions) ?? zlozC4Node(context, h, historyC4Options);
+const historyGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
+  zlozDddGroup(context, h, historyDddOptions) ??
+  zlozC4Group(context, h, historyC4Options) ??
+  zlozGroupFrame(
+    h,
+    context,
+    [
+      h.Style({
+        border: '2px dashed var(--flow-node-border, #64748b)',
+        background: 'var(--flow-group-background, transparent)',
+      }),
+    ],
+    [
+      zlozDragHandle(
+        h,
+        context,
+        [h.Style({ position: 'absolute', top: '8px', left: '12px', padding: '6px' })],
+        [context.node.label],
+      ),
+    ],
+  );
+
 const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | null }> = [
   { label: 'Automatic', style: null },
   { label: 'Straight', style: 'straight' },
@@ -221,6 +252,14 @@ const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | nul
 ];
 
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
+  const workingEditor = model.editor;
+  const selectedEdition = model.editions.find(
+    (edition) => edition.id === model.historyReview?.editionId,
+  );
+  const baselineEdition = model.editions.find((edition) => edition.id === model.historyBaselineId);
+  const comparison =
+    selectedEdition && baselineEdition ? compareEditions(baselineEdition, selectedEdition) : null;
+  if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
   const title = 'Architecture workbench | Foldkit Zloz';
   const { themePreference } = model;
   const colorScheme = themePreference === 'system' ? model.systemColorScheme : themePreference;
@@ -229,7 +268,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     h.button(
       [
         h.Type('button'),
-        h.Disabled(disabled),
+        h.Disabled(disabled || (model.historyReview !== null && !historyAllowsMessage(message))),
         h.OnClick(message),
         h.Style({ padding: '10px 16px', cursor: 'pointer' }),
       ],
@@ -381,6 +420,131 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   if (model.editor.graph.edges.some((edge) => edge.id === 'storage-application'))
     edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
+    history: [
+      h.p(
+        [h.Role('status'), h.AriaLabel('History mode')],
+        [
+          model.historyReview
+            ? `Read-only edition: ${selectedEdition?.name ?? ''}. Working model preserved.`
+            : 'Present · editable working model',
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Edition name',
+          h.input([
+            h.AriaLabel('Edition name'),
+            h.Value(model.editionName),
+            h.Disabled(model.historyReview !== null),
+            h.OnInput((name) => Message.ChangedEditionName({ name })),
+          ]),
+        ],
+      ),
+      button(
+        'Capture edition',
+        Message.ClickedCaptureEdition(),
+        !model.editionName.trim() ||
+          workingEditor.gesture.type !== 'idle' ||
+          model.active !== null ||
+          model.importing !== null,
+      ),
+      button('Load Order history example', Message.ClickedOrderHistory()),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Rewind to edition',
+          h.select(
+            [
+              h.AriaLabel('Rewind to edition'),
+              h.Value(model.historyReview?.editionId ?? ''),
+              h.Disabled(workingEditor.gesture.type !== 'idle'),
+              h.OnChange((id) =>
+                id ? Message.SelectedHistoryEdition({ id }) : Message.ClickedHistoryPresent(),
+              ),
+            ],
+            [
+              h.option([h.Value('')], ['Present']),
+              ...model.editions.map((edition) => h.option([h.Value(edition.id)], [edition.name])),
+            ],
+          ),
+        ],
+      ),
+      button('Return to present', Message.ClickedHistoryPresent(), model.historyReview === null),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Compare with',
+          h.select(
+            [
+              h.AriaLabel('History comparison baseline'),
+              h.Value(model.historyBaselineId ?? ''),
+              h.Disabled(model.historyReview === null),
+              h.OnChange((id) => Message.SelectedHistoryBaseline({ id })),
+            ],
+            [
+              h.option([h.Value('')], ['No comparison']),
+              ...model.editions
+                .filter((edition) => edition.id !== model.historyReview?.editionId)
+                .map((edition) => h.option([h.Value(edition.id)], [edition.name])),
+            ],
+          ),
+        ],
+      ),
+      ...(['enabled', 'nodes', 'edges', 'movements'] as const).map((part) =>
+        h.label(
+          [h.Class('workbench-field')],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.historyGhosts[part]),
+              h.OnClick(Message.ClickedHistoryGhost({ part })),
+            ]),
+            (
+              {
+                enabled: 'Show comparison ghosts',
+                nodes: 'Node ghosts',
+                edges: 'Edge ghosts',
+                movements: 'Movement connectors',
+              } as const
+            )[part],
+          ],
+        ),
+      ),
+      h.p(
+        [],
+        [
+          'Dashed marks show earlier geometry; dotted marks show removals. Labels identify Added, Removed and Previous states, and arrows show movement. Ghosts are read-only and never enter the model. Minimal mode hides this layer while retaining your choices.',
+        ],
+      ),
+      ...(comparison
+        ? [
+            h.ul(
+              [h.AriaLabel('History changes')],
+              [
+                ...comparison.nodes.map((change) =>
+                  h.li(
+                    [],
+                    [
+                      `${change.kind}: ${(change.after ?? change.before)?.label} · ${change.semanticChanged ? 'model' : ''}${change.semanticChanged && change.layoutChanged ? ' + ' : ''}${change.layoutChanged ? 'layout' : ''}`,
+                    ],
+                  ),
+                ),
+                ...comparison.edges.map((change) =>
+                  h.li([], [`${change.kind} connection: ${change.id}`]),
+                ),
+              ],
+            ),
+          ]
+        : []),
+      button('Export editions', Message.ClickedExportEditions(), model.editions.length === 0),
+      h.p(
+        [],
+        [
+          'Editions are session-owned until exported as a versioned archive. Core parsing supports reopening that archive; workbench archive import, restore/fork and playback are later slices.',
+        ],
+      ),
+    ],
     diagram: [
       h.p(diagnostics.instructions ? [] : [h.Style(hidden)], [
         'Open an example to replace the current diagram. Shift-drag the canvas background or Shift-click node titles to select several. Save keeps a copy in this browser.',
@@ -2411,9 +2575,23 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           nodeBodyCache:
             model.retainNodeViews && model.nodeDesign === 'cards' ? workbenchBodyCache : undefined,
           renderWorldOverlay: (context, builder) =>
-            model.showWorldAnnotation ? releaseGateAnnotation(context, builder) : null,
-          renderNodeShell:
-            model.nodeDesign === 'orbits'
+            builder.div(
+              [],
+              [
+                ...(model.showWorldAnnotation && !model.historyReview
+                  ? [releaseGateAnnotation(context, builder)]
+                  : []),
+                ...(comparison &&
+                model.historyReview &&
+                model.historyGhosts.enabled &&
+                !model.minimalMode
+                  ? [zlozHistoryGhosts(builder, comparison, model.historyGhosts)!]
+                  : []),
+              ],
+            ),
+          renderNodeShell: model.historyReview
+            ? historyNode
+            : model.nodeDesign === 'orbits'
               ? model.retainNodeViews
                 ? retainedOrbitNode
                 : orbitNode
@@ -2427,6 +2605,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     : unretainedDddNode
                   : undefined,
           renderGroupShell: (context, builder) => {
+            if (model.historyReview) return historyGroup(context, builder);
             if (model.nodeDesign === 'c4')
               return model.retainNodeViews
                 ? retainedC4Group(context, builder)
@@ -2523,11 +2702,12 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           onEvent: zlozInput,
           edgeAppearance: (edge) =>
             edge.data === 'dashed' ? { dashArray: '9 5', strokeWidth: 4 } : {},
-          renderNode:
-            model.minimalMode ||
-            !diagnostics.measurements ||
-            model.editor.readOnly ||
-            policy.canResizeNode
+          renderNode: model.historyReview
+            ? (_node, builder) => builder.span([], [])
+            : model.minimalMode ||
+                !diagnostics.measurements ||
+                model.editor.readOnly ||
+                policy.canResizeNode
               ? (node, builder) =>
                   renderWorkbenchNode(
                     node,

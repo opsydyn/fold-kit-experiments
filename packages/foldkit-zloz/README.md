@@ -2469,3 +2469,85 @@ relocated controls. Feature gates, diagnostics, policy reasons and typed events
 are already resolved. A relocated minimap retains native pointer/keyboard input
 through its own Live-scoped Mount; no canvas DOM protocol needs to be copied.
 The pure root export and numeric/default layout remain compatible.
+
+## Named editions and read-only history
+
+```ts
+import {
+  captureEdition,
+  appendEdition,
+  serializeEditions,
+  parseEditions,
+  createHistoryReview,
+  updateHistoryReview,
+  compareEditions,
+} from '@opsydyn/foldkit-zloz';
+import { zlozHistoryGhosts } from '@opsydyn/foldkit-zloz/foldkit';
+
+const edition = captureEdition({
+  id: 'ordering-v1',
+  name: 'Ordering · initial design',
+  snapshot: { graph: model.editor.graph, viewport: model.editor.viewport },
+});
+const editions = appendEdition(model.editions, edition);
+const archive = serializeEditions(editions);
+const reopened = parseEditions(archive);
+const review = createHistoryReview(reopened[0]!, model.editor);
+// Route historical canvas events here; retain model.editor as the working editor.
+const nextReview = updateHistoryReview(review, event);
+const comparison = compareEditions(baselineEdition, selectedEdition);
+// Optional world-overlay content; emit an accessible change list alongside it.
+const ghosts = zlozHistoryGhosts(h, comparison, {
+  enabled: model.showGhosts,
+  nodes: true,
+  edges: true,
+  movements: true,
+});
+```
+
+Editions are validated, detached and deeply frozen graph/optional-camera
+checkpoints. Supply stable IDs and names yourself; duplicate IDs reject append,
+and no clock or ID generator is hidden in core. The separate
+`foldkit-zloz-editions` version-1 archive contains captured editions, not an
+implicit working document or session Undo stack. Existing graph/snapshot wire
+version 1 is unchanged. Parse validates versions, reserved fields, all graphs,
+cameras and duplicate identities. Host Commands own file/storage/network I/O,
+retention and input budgets. Capturing, comparing and encoding use full snapshots;
+no compressed journal or large-history performance guarantee is claimed.
+
+`createHistoryReview` builds a separate read-only editor. Keep the complete working
+editor while inspecting it; returning means discarding the review. Selection,
+focus, pan, zoom, Fit and surface measurements go through `updateHistoryReview`.
+Its explicit navigation allowlist blocks graph edits, node measurements and Undo/
+Redo; `isHistoryNavigationEvent` lets hosts disable corresponding controls. New
+editor events are blocked unless explicitly qualified. Route host-specific import,
+layout, direct model replacement and other mutation actions separately; do not let
+them overwrite the working editor while a review is displayed. Cancel or reject
+stale pending work when entering review. After resizing during review, refresh
+only the present surface measurement on return; retain its camera, graph and Undo.
+
+`compareEditions` uses IDs, not labels or array positions. Node meaning includes
+label, architecture, host data, group ownership and port identity/kind/label.
+Layout includes position, dimensions, appearance, constraints and port locations.
+Edge endpoints, label and data are meaning; path style and core path geometry are
+layout. Camera-only and array paint-order changes do not create graph change entries. Object-key order does not create changes. Custom renderer output and
+external layout routes are not archived or compared. Use `semanticChanged` and
+`layoutChanged` flags independently; renaming an ID is an addition/removal, not a
+guessed identity match.
+
+`zlozHistoryGhosts` composes inside `renderWorldOverlay`. It creates inert SVG
+outlines, dashed baseline edges and movement connectors without editor nodes,
+ports, hit targets or Undo entries. Node, edge and movement switches are
+independent; `enabled: false` omits the layer. Optional `renderNode`, `renderEdge`
+and `renderMovement` callbacks replace marks with inert SVG; undefined keeps the
+default and null omits it. Keep custom content noninteractive. The visual-only SVG
+is aria-hidden; supply a textual change list/legend through the comparison model.
+Use the complete uncollapsed comparison in this slice; host filtering/collapse
+projections and custom route fidelity require explicit integration. Themes use
+scoped Zloz paint tokens. Minimal-mode masking is a host presentation choice.
+
+This is named snapshot review, separate from session Undo and the monotonic editor
+freshness revision. Playback, restore/fork/merge, collaborative history and agent
+history commands remain subsequent slices. The workbench demonstrates named
+capture, portable archive download, rewind, baseline comparison, ghost controls
+and return; it labels session ownership and does not automatically persist data.

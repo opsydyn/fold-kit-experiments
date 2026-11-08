@@ -2796,3 +2796,6 @@ export type { ZlozViewOptions as FlowViewOptions };
 
 /** @deprecated Use resolveZlozDiagnostics. */
 export { resolveZlozDiagnostics as resolveFlowDiagnostics } from './diagnostics';
+
+export { zlozHistoryGhosts } from './history-ghosts';
+export type { ZlozHistoryGhostOptions } from './history-ghosts';

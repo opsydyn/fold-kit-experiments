@@ -1,5 +1,10 @@
 import {
   applyLayout,
+  appendEdition,
+  captureEdition,
+  createHistoryReview,
+  updateHistoryReview,
+  serializeEditions,
   createEditor,
   fitViewport,
   layoutRequest,
@@ -32,6 +37,7 @@ import {
 } from './c4-examples';
 import {
   ArrangeFlow,
+  ExportZlozEditions,
   ExportFlow,
   ExportMermaidBundle,
   ImportZloz,
@@ -41,6 +47,7 @@ import {
 } from './command';
 import { createDddOrderGraph } from './ddd-examples';
 import { workbenchPolicy } from './editor-policy';
+import { historyAllowsMessage, orderEditions } from './history';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
 import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
@@ -66,6 +73,26 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
+  if (model.historyReview) {
+    if (!historyAllowsMessage(message))
+      return {
+        model: { ...model, notice: 'Return to the present to edit or replace the working model.' },
+      };
+    if (message._tag === 'ObservedZlozInput') {
+      // SAFETY: zlozView emits EditorEvent values through the Schema.Unknown input field.
+      const event = message.message as EditorEvent;
+      return {
+        model: {
+          ...model,
+          historyReview: updateHistoryReview(
+            model.historyReview,
+            event,
+            workbenchPolicy({ ...model, editor: model.historyReview.editor }),
+          ),
+        },
+      };
+    }
+  }
   const changedPosition = (change: ZlozPortPositionDraftChange): Return<Model, Message> => ({
     model: model.portPositionDraft
       ? {
@@ -126,6 +153,113 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const result: Return<Model, Message> = Message.match(message, {
+    ChangedEditionName: ({ name }) => ({ model: { ...model, editionName: name } }),
+    ClickedCaptureEdition: () => {
+      if (
+        !model.editionName.trim() ||
+        model.editor.gesture.type !== 'idle' ||
+        model.active ||
+        model.importing
+      )
+        return { model };
+      const sequence = model.sequence + 1;
+      const edition = captureEdition({
+        id: `edition-${sequence}`,
+        name: model.editionName.trim(),
+        snapshot: { graph: model.editor.graph, viewport: model.editor.viewport },
+      });
+      return {
+        model: {
+          ...model,
+          sequence,
+          editions: appendEdition(model.editions, edition),
+          editionName: '',
+          notice: 'Edition captured. Export editions to retain them outside this session.',
+        },
+      };
+    },
+    ClickedOrderHistory: () => ({
+      model: {
+        ...model,
+        editions: orderEditions().reduce(
+          (editions, edition) =>
+            editions.some((item) => item.id === edition.id)
+              ? editions
+              : appendEdition(editions, edition),
+          model.editions,
+        ),
+        sidebarSection: 'history' as const,
+        notice: 'Two example editions loaded. Your working model is preserved.',
+      },
+    }),
+    SelectedHistoryEdition: ({ id }) => {
+      const index = model.editions.findIndex((edition) => edition.id === id);
+      const edition = model.editions[index];
+      if (!edition || model.editor.gesture.type !== 'idle') return { model };
+      const source = model.historyReview
+        ? { ...model.editor, surface: model.historyReview.editor.surface }
+        : model.editor;
+      const review = createHistoryReview(edition, source);
+      return {
+        model: {
+          ...model,
+          historyReview: edition.snapshot.viewport
+            ? review
+            : updateHistoryReview(review, { type: 'FitViewClicked' }),
+          historyBaselineId: model.editions[index - 1]?.id ?? null,
+          active: null,
+          importing: null,
+          portPositionDraft: null,
+          portLabelDraft: null,
+          notice: 'Historical edition: read-only. Your working model is preserved.',
+        },
+      };
+    },
+    ClickedHistoryPresent: () => {
+      const surface = model.historyReview?.editor.surface ?? model.editor.surface;
+      const sameSurface =
+        surface?.width === model.editor.surface?.width &&
+        surface?.height === model.editor.surface?.height;
+      return {
+        model: {
+          ...model,
+          editor: sameSurface ? model.editor : { ...model.editor, surface },
+          historyReview: null,
+          historyBaselineId: null,
+          notice: 'Returned to the unchanged working model.',
+        },
+      };
+    },
+    SelectedHistoryBaseline: ({ id }) => ({
+      model: {
+        ...model,
+        historyBaselineId:
+          id &&
+          id !== model.historyReview?.editionId &&
+          model.editions.some((edition) => edition.id === id)
+            ? id
+            : null,
+      },
+    }),
+    ClickedHistoryGhost: ({ part }) => ({
+      model: {
+        ...model,
+        historyGhosts: { ...model.historyGhosts, [part]: !model.historyGhosts[part] },
+      },
+    }),
+    ClickedExportEditions: () => ({
+      model,
+      commands: [ExportZlozEditions({ json: serializeEditions(model.editions) })],
+    }),
+    CompletedExportEditions: () => ({
+      model: { ...model, notice: 'Edition archive download started.' },
+    }),
+    FailedExportEditions: () => ({
+      model: {
+        ...model,
+        notice: 'Could not download editions. They remain available in this session.',
+      },
+    }),
     ObservedZlozInput: ({ message: input }) => {
       // SAFETY: zlozView and the toolbar emit the package's typed EditorEvent contract.
       const event = input as EditorEvent;

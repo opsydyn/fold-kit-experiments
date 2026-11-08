@@ -30,6 +30,16 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ChangedEditionName: { name: Schema.String },
+  ClickedCaptureEdition: {},
+  ClickedOrderHistory: {},
+  SelectedHistoryEdition: { id: Schema.String },
+  SelectedHistoryBaseline: { id: Schema.String },
+  ClickedHistoryPresent: {},
+  ClickedHistoryGhost: { part: Schema.Literals(['enabled', 'nodes', 'edges', 'movements']) },
+  ClickedExportEditions: {},
+  CompletedExportEditions: {},
+  FailedExportEditions: {},
   ObservedZlozInput: { message: Schema.Unknown },
   SelectedExample: {
     example: Schema.Literals([

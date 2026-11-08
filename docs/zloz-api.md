@@ -54,3 +54,13 @@ The optional Foldkit entry exports `zlozDddNode`, `zlozDddGroup` and the public
 These views compose the eight existing semantic roles with core geometry and
 live native controls. See the [DDD renderer guide](../packages/foldkit-zloz/README.md#ddd-preset-renderers)
 for slots, caching, themes and portless boundary behavior.
+
+### Editions and history
+
+The pure core exports `captureEdition`, `appendEdition`, `serializeEditions`,
+`parseEditions`, `createHistoryReview`, `updateHistoryReview`,
+`isHistoryNavigationEvent`, `compareEditions` and their `ZlozEdition`,
+`ZlozHistoryReview`, `ZlozHistoryChange`, `ZlozHistoryComparison` contracts.
+The optional Foldkit entry exports `zlozHistoryGhosts` and
+`ZlozHistoryGhostOptions`. See the [history guide](../packages/foldkit-zloz/README.md#named-editions-and-read-only-history)
+for archive compatibility, navigation permissions and inert mark customization.

@@ -1,0 +1,12 @@
+---
+import { highlightedTree } from '@opsydyn/dataset-explorer/highlighting';
+import { linkedSourceTree } from '@opsydyn/dataset-explorer/source-lines';
+import { toHtml } from 'hast-util-to-html';
+import { highlighter as sharedHighlighter } from '../lib/highlighter';
+interface Props { code: string; lang: string; sourceId: string }
+const { code, lang, sourceId } = Astro.props;
+const highlighter = await sharedHighlighter;
+// Same escaped token tree and line anchors as Viz/Three; never raw source as HTML.
+const markup = toHtml(linkedSourceTree(highlightedTree(code, lang, highlighter), sourceId));
+---
+<pre class="syntax-highlight" tabindex="0"><code set:html={markup} /></pre>

@@ -14,6 +14,12 @@ The board uses Viz/Three neutral surfaces, blue accents and Inter. The dedicated
 Zloz promo must keep that same family style, not a separate dark-green identity.
 The original planning-slice status above is retained as history.
 
+**Promo-shell follow-up:** [apps/zloz-promo](../../apps/zloz-promo/README.md) now
+implements the dedicated static home and developer guide, including shared
+Viz/Three syntax highlighting. The C4 preview and downloads use package APIs;
+[local browser/build evidence](../../apps/zloz-promo/evidence/promo.md) remains
+separate from hosting and registry publication.
+
 ## Product and audience
 
 **Foldkit Zloz** is a functional, extensible graph toolkit for interactive node
@@ -215,5 +221,5 @@ Accessibility is a design constraint in every slice; full accessibility
 qualification remains after functional parity, following the user's sequencing.
 A brief is not proof that those sites or assets already exist.
 
-**Recommended next:** the selected-mark public-copy/shell slice for the dedicated
-Zloz promo, matching the Viz and Three family styles.
+**Recommended next:** one native Foldkit Compose example in the promo, with
+selection, connection creation and Undo, matching the existing family styles.

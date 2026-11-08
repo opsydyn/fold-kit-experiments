@@ -77,6 +77,11 @@ modelling toolkit within that family.
 3. **Promo site.** Build a dedicated Zloz product site in the same family as Viz
    and Three, presenting the positioning, principles and Compose / Model /
    Communicate capabilities with real package-backed examples.
+   The [dedicated static shell](../apps/zloz-promo/README.md) is now implemented
+   locally: selected identity, family themes, core-generated C4 preview, model/
+   Mermaid downloads and a developer guide with shared Viz/Three syntax
+   highlighting. [Local evidence](../apps/zloz-promo/evidence/promo.md) records
+   browser and nested-base-path checks. Interactive examples remain next.
 4. **Full demo site.** Develop an Astro-shell, native Foldkit demonstration site
    comparable in scope and navigation approach to Tech Radar. Build on the
    persistent-canvas left-sidebar workbench; expose graph composition, C4 models,
@@ -103,8 +108,9 @@ logo directions and promo/demo information architecture. Their technical names
 remain proposals for implementation review. The user selected **B — Nested frame**
 after reviewing the three SVG concepts.
 
-**Next bounded brand slice:** the dedicated Zloz promo shell with the selected
-Nested frame identity and approved Compose / Model / Communicate messaging.
+**Next bounded promo slice:** one native Foldkit Compose example with selection,
+connection creation and Undo, linked to the full workbench. The static shell and
+highlighted developer guide are implemented locally.
 Both board and promo must keep the Viz/Three family styling, including light/dark
 themes; a separate dark-green identity is not intended. The separate
 feature recommendation for searchable sidebar settings remains on the workbench

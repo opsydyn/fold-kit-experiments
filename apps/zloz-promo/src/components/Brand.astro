@@ -1,0 +1,9 @@
+---
+import mark from '../../../../docs/assets/zloz/final/mark.svg?raw';
+import { sitePath } from '../lib/site-path';
+interface Props { footer?: boolean }
+const { footer = false } = Astro.props;
+---
+<a class:list={['brand', { 'brand-footer': footer }]} href={sitePath('/')} aria-label="Foldkit Zloz home">
+  <span class="brand-symbol" aria-hidden="true" set:html={mark} /><span>Foldkit Zloz</span>
+</a>

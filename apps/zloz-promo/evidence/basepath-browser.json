@@ -1,0 +1,10 @@
+{
+  "result": "pass",
+  "basePath": "/preview/zloz/",
+  "configurableWorkbenchUrl": "pass",
+  "localPageAssetsAndDownloads": "HTTP 200 under prefix",
+  "font": "local Inter loaded",
+  "navigation": "home to docs with retained theme",
+  "pageErrors": [],
+  "failedResponses": []
+}

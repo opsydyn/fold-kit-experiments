@@ -1,0 +1,28 @@
+{
+  "name": "@opsydyn/zloz-promo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prebuild-packages": "bun run --filter @opsydyn/foldkit-flow-mermaid build",
+    "dev": "bun run prebuild-packages && astro dev",
+    "build": "bun run prebuild-packages && astro build",
+    "preview": "astro preview",
+    "typecheck": "bun run prebuild-packages && astro check",
+    "test": "bun test ./test"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
+    "@opsydyn/dataset-explorer": "workspace:*",
+    "@opsydyn/foldkit-flow": "workspace:*",
+    "@opsydyn/foldkit-flow-mermaid": "workspace:*",
+    "astro": "catalog:",
+    "hast-util-to-html": "catalog:",
+    "vscode-oniguruma": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "@types/hast": "catalog:",
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
+  }
+}

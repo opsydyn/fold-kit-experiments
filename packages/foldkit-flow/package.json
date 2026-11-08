@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-flow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Model-owned graph editing and optional native FoldKit views.",
   "keywords": [
     "diagram",

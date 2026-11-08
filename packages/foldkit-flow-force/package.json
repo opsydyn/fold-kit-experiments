@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-flow-force",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Optional force layout and card-avoiding routing for FoldKit Flow.",
   "keywords": [
     "diagram",
@@ -65,7 +65,7 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@opsydyn/foldkit-flow": "0.1.0"
+    "@opsydyn/foldkit-flow": "0.2.0"
   },
   "engines": {
     "node": ">=22.0.0"

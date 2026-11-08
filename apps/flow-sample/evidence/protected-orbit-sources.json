@@ -1,0 +1,17 @@
+{
+  "parentHead": "cada05c9809412907c916f221334d4212d6baf2f",
+  "sourceState": "working-tree sources measured before commit; cache on/off use the same production build",
+  "measuredFiles": {
+    "apps/flow-sample/evidence/endpoint-chooser-benchmark.mjs": "55b63b95192c82dbb49243eb722fd7241a3d1f9c767e6f132273f57d5becb217",
+    "apps/flow-sample/src/editor/editor-policy.ts": "d17a2764bb7911c0e4de4599cbf66a3e20c2b3c368492293c73ff499bfc48353",
+    "apps/flow-sample/src/editor/large-workflow.ts": "8f96fd09248aba10e93d303a97c27f0eebb2560265604512fbb3dd17adc495ce",
+    "apps/flow-sample/src/editor/message.ts": "b15ec321e77c51a025f5d9b8e1ee9a6a48aa53a5c0f77e8f66328280f801c1ce",
+    "apps/flow-sample/src/editor/model.ts": "9e1bd7129141d9ba7f845660058b4a9b7110a468d14189b0226422319e795244",
+    "apps/flow-sample/src/editor/presentation.ts": "085b346b0b9ac3d2a643eafeed1f849e9df51b11a5ad0fb3be7aaf02a46fc76a",
+    "apps/flow-sample/src/editor/update.ts": "d89dbeaf8e73309e2178373c402f7aabca74625732f52ff9a0be1b7c0bede8ca",
+    "apps/flow-sample/src/editor/view.ts": "a7b3390df760df8f0ed66a7c0266ecb054d70b7f1714e30a41897674253a754c",
+    "apps/flow-sample/src/editor/socket-policy.ts": "b34cc5297f99d33d2760489cdc7ae0cf630194fddbd2f81b9786d62f43f86249",
+    "apps/flow-sample/test/protected-orbit.test.ts": "5f208c0678b1e1d60736aa45c127a6492eddd01e780c714dafc39ce07b92e50d",
+    "apps/flow-sample/evidence/protected-orbit-check.mjs": "5776bdf90441aa66dced3a2dbec12eeb95208910b2970b59d0158f5867d2e6a5"
+  }
+}

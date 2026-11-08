@@ -74,6 +74,7 @@ import { currentPreset } from './port-presets';
 import {
   orbitNode,
   socketPort,
+  reasonSocketPort,
   targetAnchorGuide,
   orbitGroup,
   raisedEdge,
@@ -483,6 +484,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   button(
                     'Open large workflow (320 nodes)',
                     Message.SelectedExample({ example: 'large-workflow' }),
+                  ),
+                  button(
+                    'Open protected Orbit workflow (320 nodes)',
+                    Message.SelectedExample({ example: 'protected-orbits' }),
                   ),
                   button(
                     'Open port snapping demo',
@@ -1544,6 +1549,30 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
         ),
         h.label(
+          [],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.socketReasonBadges),
+              h.Disabled(!model.customPorts),
+              h.OnClick(Message.ClickedSocketReasonBadges()),
+            ]),
+            'Visible socket reasons',
+          ],
+        ),
+        h.label(
+          [],
+          [
+            h.input([
+              h.Type('checkbox'),
+              h.Checked(model.mixedPortProtection),
+              h.OnClick(Message.ClickedMixedPortProtection()),
+            ]),
+            'Apply fixture socket policies',
+          ],
+        ),
+
+        h.label(
           [h.Style({ display: 'flex', gap: '8px', 'align-items': 'center', margin: '12px 0' })],
           [
             h.input([
@@ -1883,7 +1912,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           ],
         ),
         flowView(h, model.editor, {
-          renderPort: model.customPorts ? socketPort : undefined,
+          renderPort: model.customPorts
+            ? model.socketReasonBadges
+              ? reasonSocketPort
+              : socketPort
+            : undefined,
           portLabels: model.portLabels,
           portAnchorHandles: model.portAnchorHandles,
           portAnchorSnapBypassModifier: model.portAnchorSnapBypass ? 'Alt' : undefined,
@@ -2131,7 +2164,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           canDelete: policy.canDelete,
           canReconnect: policy.canReconnect,
           canConnectPort:
-            model.portLocks.draftOutput || model.portLocks.publishInput
+            model.portLocks.draftOutput || model.portLocks.publishInput || model.mixedPortProtection
               ? policy.canConnectPort
               : undefined,
           canMoveNode: policy.canMoveNode,

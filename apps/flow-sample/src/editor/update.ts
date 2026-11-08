@@ -34,7 +34,7 @@ import {
   SaveFlow,
 } from './command';
 import { workbenchPolicy } from './editor-policy';
-import { createLargeWorkflowGraph } from './large-workflow';
+import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
 import { Message } from './message';
 import {
   groupedOnionGraph,
@@ -142,17 +142,24 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       const graph =
         example === 'large-workflow'
           ? createLargeWorkflowGraph()
-          : {
-              release: initialGraph,
-              onion: onionGraph,
-              'grouped-onion': groupedOnionGraph,
-              'port-snapping': portSnappingGraph,
-            }[example];
+          : example === 'protected-orbits'
+            ? createProtectedWorkflowGraph()
+            : {
+                release: initialGraph,
+                onion: onionGraph,
+                'grouped-onion': groupedOnionGraph,
+                'port-snapping': portSnappingGraph,
+              }[example];
       const editor = restoreDocument({ graph }, true);
       return {
         model: {
           ...model,
           editor,
+          nodeDesign: example === 'protected-orbits' ? 'orbits' : model.nodeDesign,
+          retainNodeViews: example === 'protected-orbits' || model.retainNodeViews,
+          customPorts: example === 'protected-orbits' || model.customPorts,
+          mixedPortProtection: example === 'protected-orbits' || model.mixedPortProtection,
+          socketReasonBadges: example === 'protected-orbits' || model.socketReasonBadges,
           active: null,
           importing: null,
           notice: '',
@@ -269,6 +276,18 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model.editor.gesture.type === 'idle'
           ? { ...model, portAnchorHandles: !model.portAnchorHandles }
           : model,
+    }),
+    ClickedSocketReasonBadges: () => ({
+      model: { ...model, socketReasonBadges: !model.socketReasonBadges },
+    }),
+    ClickedMixedPortProtection: () => ({
+      model: {
+        ...model,
+        mixedPortProtection: !model.mixedPortProtection,
+        editor: model.editor.connection
+          ? updateEditor(model.editor, { type: 'GestureCancelled' })
+          : model.editor,
+      },
     }),
     ClickedCustomPorts: () => ({ model: { ...model, customPorts: !model.customPorts } }),
     ClickedEditPortLabel: ({ nodeId, portId }) => {

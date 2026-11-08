@@ -100,18 +100,27 @@ export function targetAnchorGuide(context: FlowPortAnchorGuideContext, h: HtmlBu
   );
 }
 
-export function socketPort(context: FlowPortRenderContext, h: HtmlBuilder<Message>) {
+export function socketPort(
+  context: FlowPortRenderContext,
+  h: HtmlBuilder<Message>,
+  showReasons = false,
+) {
   const disabled = context.state.readOnly || context.disabledReason !== null;
+  const reason =
+    context.disabledReason ?? (context.state.readOnly ? 'This diagram is read-only.' : null);
+  const reasonId = `${context.descriptionId}-socket-${encodeURIComponent(JSON.stringify([context.node.id, context.port.id]))}`;
   return flowPort(
     h,
     context,
     context.port,
     [
       h.Class('workbench-socket'),
+      ...(showReasons && reason !== null ? [h.AriaDescribedBy(reasonId)] : []),
       h.Title(context.disabledReason ?? context.label),
       h.Style({
         width: '30px',
         height: '26px',
+        overflow: 'visible',
         padding: '3px',
         'border-radius': '7px',
         border: `2px ${disabled ? 'dashed' : 'solid'} var(--flow-node-color, #172033)`,
@@ -124,7 +133,7 @@ export function socketPort(context: FlowPortRenderContext, h: HtmlBuilder<Messag
             ? 'var(--flow-control-color, #fff)'
             : 'var(--flow-node-color, #172033)',
         'box-shadow': context.target ? '0 0 0 3px var(--flow-valid-target, #0f766e)' : 'none',
-        opacity: disabled ? '0.5' : '1',
+        opacity: disabled && !showReasons ? '0.5' : '1',
         cursor: 'crosshair',
         'z-index': '2',
       }),
@@ -148,9 +157,39 @@ export function socketPort(context: FlowPortRenderContext, h: HtmlBuilder<Messag
           ),
         ],
       ),
+      ...(showReasons && reason !== null
+        ? [
+            h.span(
+              [
+                h.Id(reasonId),
+                h.DataAttribute('socket-reason', ''),
+                h.Style({
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: context.port.kind === 'input' ? 'auto' : '0',
+                  right: context.port.kind === 'input' ? '0' : 'auto',
+                  width: '132px',
+                  padding: '4px 6px',
+                  border: '1px solid var(--flow-node-border, #64748b)',
+                  'border-radius': '5px',
+                  'font-size': '10px',
+                  'line-height': '1.25',
+                  'white-space': 'normal',
+                  background: 'var(--flow-node-background, #fff)',
+                  color: 'var(--flow-node-color, #172033)',
+                  'pointer-events': 'none',
+                }),
+              ],
+              [reason],
+            ),
+          ]
+        : []),
     ],
   );
 }
+
+export const reasonSocketPort = (context: FlowPortRenderContext, h: HtmlBuilder<Message>) =>
+  socketPort(context, h, true);
 
 export function storageDependencyEdge(
   { edge, path, stroke, dashArray, markerEnd }: FlowEdgeRenderContext,

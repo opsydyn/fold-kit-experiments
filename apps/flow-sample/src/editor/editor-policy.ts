@@ -2,6 +2,7 @@ import type { EditorPolicy, FlowNode } from '@opsydyn/foldkit-flow';
 import { Schema } from 'effect';
 
 import type { Model } from './model';
+import { fixtureSocketPolicy } from './socket-policy';
 
 const isProtected = Schema.is(Schema.Struct({ deletionProtected: Schema.Literal(true) }));
 
@@ -23,6 +24,8 @@ export function workbenchPolicy({
   overlappingPortSnaps,
   reconnectLock,
   portLocks,
+  mixedPortProtection,
+  editor,
   lockKeyNodes,
   lockNodeSizes,
   excludeSelection,
@@ -38,6 +41,8 @@ export function workbenchPolicy({
   | 'lockNodeSizes'
   | 'excludeSelection'
   | 'portLocks'
+  | 'mixedPortProtection'
+  | 'editor'
 >): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
   const canReconnect: NonNullable<EditorPolicy['canReconnect']> = (edge, end) =>
     edge.id === 'draft-review' && (reconnectLock === end || reconnectLock === 'both')
@@ -45,12 +50,13 @@ export function workbenchPolicy({
         ? 'Source reconnection is locked.'
         : 'Target reconnection is locked.'
       : null;
+  const fixtureReason = mixedPortProtection ? fixtureSocketPolicy(editor.graph) : () => null;
   const canConnectPort: NonNullable<EditorPolicy['canConnectPort']> = ({ node, port }) => {
     if (portLocks.draftOutput && node === 'source' && port === 'out')
       return 'Draft output is closed to new connections.';
     return portLocks.publishInput && node === 'publish' && port === 'in'
       ? 'Publish input is closed to new connections.'
-      : null;
+      : fixtureReason({ node, port });
   };
   const canEditPort: NonNullable<EditorPolicy['canEditPort']> = ({ node, port }) =>
     protectPortEdits && node.id === 'review' && port.id === 'in'

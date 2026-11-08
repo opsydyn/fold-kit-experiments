@@ -299,6 +299,8 @@ export const Model = Schema.Struct({
   excludeSelection: Schema.Boolean,
   reconnectLock: ReconnectLock,
   portLocks: PortLocks,
+  mixedPortProtection: Schema.Boolean,
+  socketReasonBadges: Schema.Boolean,
   snapConnections: Schema.Boolean,
   portLabels: Schema.Boolean,
   customPorts: Schema.Boolean,
@@ -362,6 +364,8 @@ export type Model = Readonly<{
   excludeSelection: boolean;
   reconnectLock: ReconnectLock;
   portLocks: typeof PortLocks.Type;
+  mixedPortProtection: boolean;
+  socketReasonBadges: boolean;
   snapConnections: boolean;
   portLabels: boolean;
   customPorts: boolean;
@@ -427,6 +431,8 @@ export const init = () => ({
     excludeSelection: false,
     reconnectLock: 'none',
     portLocks: { draftOutput: false, publishInput: false },
+    mixedPortProtection: false,
+    socketReasonBadges: false,
     snapConnections: false,
     portLabels: false,
     customPorts: false,

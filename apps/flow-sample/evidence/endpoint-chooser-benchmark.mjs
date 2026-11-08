@@ -27,7 +27,8 @@ const profilePath = process.env.FLOW_CHOOSER_CPU_PROFILE;
 const retained = process.env.FLOW_CHOOSER_BENCH_RETAINED === '1';
 const retainedCreation = process.env.FLOW_CHOOSER_BENCH_RETAINED_CREATION === '1';
 const portPolicy = process.env.FLOW_CHOOSER_BENCH_PORT_POLICY === '1';
-const orbitShells = process.env.FLOW_CHOOSER_BENCH_ORBITS === '1';
+const protectedOrbit = process.env.FLOW_CHOOSER_BENCH_PROTECTED_ORBITS === '1';
+const orbitShells = protectedOrbit || process.env.FLOW_CHOOSER_BENCH_ORBITS === '1';
 const viewport = { width: 1280, height: 1100 };
 const runs = profilePath ? 1 : 3;
 const warmup = 4;
@@ -41,6 +42,8 @@ const fixtures = [
   { name: 'large-reconnection-broad', large: true, kind: 'reconnection', base: '' },
   { name: 'large-reconnection-selective', large: true, kind: 'reconnection', base: 'load-20-' },
 ];
+if (protectedOrbit)
+  fixtures.splice(0, fixtures.length, ...fixtures.filter((fixture) => fixture.large));
 if (profilePath)
   fixtures.splice(
     0,
@@ -247,7 +250,11 @@ async function qualify(browser, fixture) {
     page.on('pageerror', (error) => errors.push(String(error)));
     const execute = async () => {
       await page.goto('http://127.0.0.1:' + server.address().port);
-      if (fixture.large)
+      if (protectedOrbit)
+        await page
+          .getByRole('button', { name: 'Open protected Orbit workflow (320 nodes)', exact: true })
+          .click();
+      else if (fixture.large)
         await page
           .getByRole('button', { name: 'Open large workflow (320 nodes)', exact: true })
           .click();
@@ -274,10 +281,15 @@ async function qualify(browser, fixture) {
           })
           .toBe(true);
       }
-      if (retained) {
+      if (retained || protectedOrbit) {
         const toggle = page.getByRole('button', { name: 'Retain node views', exact: true });
-        await toggle.click();
-        await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+        if (((await toggle.getAttribute('aria-pressed')) === 'true') !== retained)
+          await toggle.click();
+        await expect(toggle).toHaveAttribute('aria-pressed', String(retained));
+      }
+      if (protectedOrbit) {
+        await expect(surface.locator('[data-flow-port]:disabled')).toHaveCount(140);
+        await expect(surface.locator('[data-socket-reason]')).toHaveCount(140);
       }
       if (portPolicy) {
         const lock = page.getByRole('checkbox', { name: 'Lock Publish input', exact: true });
@@ -333,6 +345,9 @@ async function qualify(browser, fixture) {
       await page.evaluate(() => document.fonts.ready);
       await input.focus();
       metadata = {
+        protectedOrbit,
+        disabledSockets: await surface.locator('[data-flow-port]:disabled').count(),
+        renderedSocketReasons: await surface.locator('[data-socket-reason]').count(),
         orbitShells,
         mountedOrbitBodies: await surface.locator('[data-orbit-body]').count(),
         portPolicyEnabled: portPolicy,
@@ -410,6 +425,7 @@ async function main() {
           retainedNodeViews: retained,
           portPolicyEnabled: portPolicy,
           orbitShells,
+          protectedOrbit,
           profileOnly: Boolean(profilePath),
           method:
             'serial direct trusted keyboard z/Backspace inputs alternating broad/selective result sets with no results; DOM acknowledgement then next rAF; not INP or paint latency',

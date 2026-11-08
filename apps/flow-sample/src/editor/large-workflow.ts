@@ -37,3 +37,24 @@ export function createLargeWorkflowGraph(): FlowGraph {
   }
   return { nodes, edges };
 }
+
+/** Real guards on 80 inputs and 60 outputs; existing connections remain authored. */
+export function createProtectedWorkflowGraph(): FlowGraph {
+  const graph = createLargeWorkflowGraph();
+  return {
+    ...graph,
+    nodes: graph.nodes.map((node, index) => {
+      const column = index % columns;
+      const socketPolicies: Array<{ port: string; reason: string }> = [];
+      if (column % 4 === 1)
+        socketPolicies.push({ port: 'in', reason: 'Approval required for this input.' });
+      if (column % 5 === 3)
+        socketPolicies.push({ port: 'out', reason: 'Output reserved for automation.' });
+      const positioned = {
+        ...node,
+        position: { x: 80 + column * 320, y: 60 + Math.floor(index / columns) * 260 },
+      };
+      return socketPolicies.length ? { ...positioned, data: { socketPolicies } } : positioned;
+    }),
+  };
+}

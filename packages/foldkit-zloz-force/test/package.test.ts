@@ -39,7 +39,18 @@ test('packed adapter installs in a clean npm consumer and runs in Node and Bun',
     );
     await exec(
       'npm',
-      ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', core, viz, force],
+      [
+        'install',
+        '--offline',
+        '--cache',
+        path.join(directory, 'npm-cache'),
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        core,
+        viz,
+        force,
+      ],
       {
         ...options,
         cwd: directory,
@@ -112,6 +123,9 @@ console.log('force-consumer-ok');
       'utf8',
     );
     expect(packedManifest).not.toMatch(/workspace:|catalog:/);
+    expect(JSON.parse(packedManifest).dependencies['@opsydyn/foldkit-viz']).toBe(
+      vizManifest.version,
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

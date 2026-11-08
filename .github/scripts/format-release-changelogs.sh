@@ -20,7 +20,7 @@ trap 'rm -rf "$temporary"' EXIT
 
 # The packages release-please versions. A release PR may bring, for each, its package.json
 # and its CHANGELOG.md (added on a package's first release), plus the manifest: nothing else.
-packages=(astro-foldkit foldkit-viz effect-three effect-three-foldkit effect-three-rapier effect-three-troika)
+packages=(astro-foldkit foldkit-viz effect-three effect-three-foldkit effect-three-rapier effect-three-troika foldkit-zloz foldkit-zloz-elk foldkit-zloz-force foldkit-zloz-mermaid)
 packages_json=$(printf '%s\n' "${packages[@]}" | jq -R . | jq -s .)
 most_files=$((1 + 2 * ${#packages[@]}))
 

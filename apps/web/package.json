@@ -50,7 +50,7 @@
     "@astrojs/check": "catalog:",
     "@foldkit/devtools": "catalog:",
     "@foldkit/ui": "catalog:",
-    "@happy-dom/global-registrator": "^20.10.6",
+    "@happy-dom/global-registrator": "^21.0.4",
     "@playwright/test": "1.62.1",
     "@storybook/addon-a11y": "^10.4.6",
     "@storybook/html": "^10.4.6",

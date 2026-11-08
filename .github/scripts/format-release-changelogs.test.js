@@ -14,12 +14,16 @@ const { repository, raw, formatted } = {
 };
 const head = 'a'.repeat(40);
 const paths = ['packages/astro-foldkit/CHANGELOG.md', 'packages/foldkit-viz/CHANGELOG.md'];
-// The four effect-three packages, released together, whose first changelogs are added.
+// The linked families whose first releases add changelogs.
 const linked = [
   'effect-three',
   'effect-three-foldkit',
   'effect-three-rapier',
   'effect-three-troika',
+  'foldkit-zloz',
+  'foldkit-zloz-elk',
+  'foldkit-zloz-force',
+  'foldkit-zloz-mermaid',
 ];
 const firstRelease = [
   ...['astro-foldkit', 'foldkit-viz', ...linked].map((name) => `packages/${name}/package.json`),
@@ -226,8 +230,8 @@ test('a first release of the linked packages normalizes the changelogs it adds',
     'packages/foldkit-viz/CHANGELOG.md',
     ...linked.map((name) => `packages/${name}/CHANGELOG.md`),
   ]);
-  expect(result.state.requests[0].variables.p5File).toBe(
-    `${head}:packages/effect-three-troika/CHANGELOG.md`,
+  expect(result.state.requests[0].variables.p9File).toBe(
+    `${head}:packages/foldkit-zloz-mermaid/CHANGELOG.md`,
   );
 });
 
@@ -317,7 +321,7 @@ test('normalization is isolated from publication and uses only trusted workflow 
   expect(job['timeout-minutes']).toBe(5);
   expect(workflow.jobs.release.needs).toBeUndefined();
   expect(workflow.jobs.release.outputs.prs).toBe('${{ steps.release.outputs.prs }}');
-  const checkout = job.steps.find((step) => step.uses === 'actions/checkout@v4');
+  const checkout = job.steps.find((step) => step.uses?.startsWith('actions/checkout@'));
   expect(checkout.with).toEqual({ ref: '${{ github.sha }}', 'persist-credentials': false });
   expect(job.steps.find((step) => step.name === 'Install trusted formatter').run).toBe(
     'bun install --frozen-lockfile --ignore-scripts',
@@ -342,7 +346,7 @@ test('normalization is isolated from publication and uses only trusted workflow 
 test('root tests include the hook while strict checks and workspace tests stay intact', async () => {
   const manifest = await Bun.file(join(root, 'package.json')).json();
   expect(manifest.scripts.test).toBe(
-    "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts && bun run --sequential --filter '*' test",
+    "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts && bun run --sequential --filter '*' test",
   );
   // The effect-three packages add their stricter package-local lint between the two, and
   // the catalog and skill checks follow the formatter.
@@ -357,4 +361,16 @@ test('root tests include the hook while strict checks and workspace tests stay i
     'bun run test',
     'bun run build',
   ]);
+});
+
+test('trusted formatter allowlist matches all configured release components', async () => {
+  const config = await Bun.file(join(root, 'release-please-config.json')).json();
+  const source = await Bun.file(script).text();
+  const allowlist = source
+    .match(/^packages=\(([^)]+)\)$/m)[1]
+    .trim()
+    .split(/\s+/);
+  expect(allowlist.map((name) => `packages/${name}`).sort()).toEqual(
+    Object.keys(config.packages).sort(),
+  );
 });

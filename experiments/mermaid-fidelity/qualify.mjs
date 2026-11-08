@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 import { parse as officialParse } from '@mermaid-js/parser';
-import { createEditor, updateEditor } from '@opsydyn/foldkit-flow';
+import { createEditor, updateEditor } from '@opsydyn/foldkit-zloz';
 import mermaid from 'mermaid';
 import { parseFlowchart } from 'mermaid-ast/parser';
 import { renderFlowchart } from 'mermaid-ast/renderer';
@@ -49,7 +49,7 @@ for (const fixture of fixtures) {
 }
 const lock = JSON.parse(readFileSync(new URL('./package-lock.json', import.meta.url), 'utf8'));
 const dependencies = Object.fromEntries(
-  ['@mermaid-js/parser', 'mermaid-ast', 'mermaid', '@opsydyn/foldkit-flow'].map((name) => [
+  ['@mermaid-js/parser', 'mermaid-ast', 'mermaid', '@opsydyn/foldkit-zloz'].map((name) => [
     name,
     lock.packages[`node_modules/${name}`],
   ]),

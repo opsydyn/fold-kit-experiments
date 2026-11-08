@@ -1,5 +1,5 @@
 /** Read-only qualification driver. It emits JSON and never writes a diagram file. */
-import { parseGraph } from '@opsydyn/foldkit-flow';
+import { parseGraph } from '@opsydyn/foldkit-zloz';
 import { Schema } from 'effect';
 const Request = Schema.Union([
   Schema.Struct({

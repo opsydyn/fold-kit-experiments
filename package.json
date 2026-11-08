@@ -42,7 +42,7 @@
       "effect": "4.1.0",
       "fast-check": "^4.8.0",
       "foldkit": "0.170.0",
-      "happy-dom": "^20.10.6",
+      "happy-dom": "^21.0.4",
       "hast-util-to-html": "^9.0.5",
       "oxlint": "1.79.0",
       "oxlint-tsgolint": "7.0.2004",
@@ -80,7 +80,7 @@
     "dev": "cd apps/web && bun run dev",
     "dev:promo": "bun run --filter @opsydyn/promo dev",
     "build": "bun run --filter @opsydyn/astro-foldkit build && bun run --filter @opsydyn/web build && bun run --filter @opsydyn/promo build && bun run --filter @opsydyn/three-promo build && bun run --filter @opsydyn/zloz-promo build",
-    "test": "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts && bun run --sequential --filter '*' test",
+    "test": "bun test ./.github/scripts/format-release-changelogs.test.js ./tools/check-package-identity.test.ts ./tools/workspace-pack.test.ts && bun run --sequential --filter '*' test",
     "typecheck": "bun run --sequential --filter '*' typecheck",
     "check": "NODE_OPTIONS=\"--experimental-strip-types\" oxlint . && bun run --filter '@opsydyn/effect-three*' check && oxfmt --check . && bun tools/check-catalog.ts && bun tools/check-skills.ts",
     "storybook": "bun run --filter @opsydyn/web storybook",
@@ -107,5 +107,5 @@
   "engines": {
     "node": ">=22.22.0"
   },
-  "packageManager": "bun@1.4.3"
+  "packageManager": "bun@1.4.4"
 }

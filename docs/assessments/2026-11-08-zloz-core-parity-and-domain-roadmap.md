@@ -7,6 +7,11 @@ The earlier CLI implementation is committed separately. Historical parity
 receipts describe their captured revisions; this review supersedes their priority
 recommendations, not their evidence.
 
+**Delivery update:** the subsequent approved DDD renderer slice is implemented
+locally. See its [qualification receipt](../../apps/zloz-demo/evidence/ddd-renderers.md).
+The inventory below retains its original source baseline; DDD renderers are no
+longer an open gap. Typed relationships, patterns and durable history remain open.
+
 ## Recommendation
 
 **Reshape the ambition from feature-count parity to an architecture modelling
@@ -159,6 +164,13 @@ Astro demonstrates them. Keep document revisions separate from the editor's
 monotonic freshness token and session Undo stack. Define what is captured, how
 editions persist and how source identity is retained before claiming deterministic
 replay. Coordinate retention and concurrent restore behavior with collaboration.
+
+History comparison must include opt-in **ghost nodes and edges**, following the
+Tech Radar precedent: previous positions/outlines, movement connectors, and clear
+added/removed/changed states. Keep ghosts read-only and outside editable graph,
+ports, hit testing and Undo. Use text/legend and line treatments as well as color;
+allow global and individual visibility controls for a clean view. Ghosts represent
+a selected comparison baseline, not speculative intermediate business states.
 
 The intended USP includes **exploring how a system evolved**, not merely editing
 its latest diagram. Demonstrate two architecture editions, rewind without edits,

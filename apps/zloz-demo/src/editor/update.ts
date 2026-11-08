@@ -39,6 +39,7 @@ import {
   SaveThemePreference,
   SaveZloz,
 } from './command';
+import { createDddOrderGraph } from './ddd-examples';
 import { workbenchPolicy } from './editor-policy';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
 import { mermaidPreview } from './mermaid-preview';
@@ -151,18 +152,20 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           ? createLargeWorkflowGraph()
           : example === 'protected-orbits'
             ? createProtectedWorkflowGraph()
-            : example === 'c4-context'
-              ? createC4ContextGraph()
-              : example === 'c4-nested-containers'
-                ? createC4NestedContainerGraph()
-                : example === 'c4-containers'
-                  ? createC4ContainerGraph()
-                  : {
-                      release: initialGraph,
-                      onion: onionGraph,
-                      'grouped-onion': groupedOnionGraph,
-                      'port-snapping': portSnappingGraph,
-                    }[example];
+            : example === 'ddd-orders'
+              ? createDddOrderGraph()
+              : example === 'c4-context'
+                ? createC4ContextGraph()
+                : example === 'c4-nested-containers'
+                  ? createC4NestedContainerGraph()
+                  : example === 'c4-containers'
+                    ? createC4ContainerGraph()
+                    : {
+                        release: initialGraph,
+                        onion: onionGraph,
+                        'grouped-onion': groupedOnionGraph,
+                        'port-snapping': portSnappingGraph,
+                      }[example];
       const editor = restoreDocument({ graph }, true);
       return {
         model: {
@@ -171,11 +174,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           nodeDesign:
             example === 'protected-orbits'
               ? 'orbits'
-              : example === 'c4-context' ||
-                  example === 'c4-containers' ||
-                  example === 'c4-nested-containers'
-                ? 'c4'
-                : model.nodeDesign,
+              : example === 'ddd-orders'
+                ? 'ddd'
+                : example === 'c4-context' ||
+                    example === 'c4-containers' ||
+                    example === 'c4-nested-containers'
+                  ? 'c4'
+                  : model.nodeDesign,
           retainNodeViews: example === 'protected-orbits' || model.retainNodeViews,
           customPorts: example === 'protected-orbits' || model.customPorts,
           mixedPortProtection: example === 'protected-orbits' || model.mixedPortProtection,

@@ -176,6 +176,59 @@ geometry. Other serializers are not covered by that qualification.
 Run `bun tools/check-zloz-architecture-compat.ts` from this repository to repeat
 the pinned-core check. No migration or registry publication occurs here.
 
+## DDD preset renderers
+
+```ts
+import {
+  zlozView,
+  zlozDddNode,
+  zlozDddGroup,
+  createZlozNodeBodyCache,
+  type ZlozDddNodeOptions,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+// Keep options and cache stable per canvas. Call with or without a cache.
+const dddOptions: ZlozDddNodeOptions<Message> = {
+  bodyCache: createZlozNodeBodyCache(),
+  renderBadge: ({ architecture }, h) =>
+    architecture.role === 'aggregate-root' ? h.span([], ['Consistency owner']) : null,
+};
+const canvas = zlozView(h, model.editor, {
+  id: 'domain',
+  label: 'Ordering domain',
+  onEvent: (event) => Message.ObservedZlozInput({ message: event }),
+  renderNodeShell: (context, h) => zlozDddNode(context, h, dddOptions),
+  renderGroupShell: (context, h) => zlozDddGroup(context, h, dddOptions),
+});
+```
+
+The adapter renders all eight existing DDD roles: entity, value object, aggregate
+root, aggregate, domain event, domain service, repository and bounded context.
+Aggregates and explicit bounded-context groups are portless boundaries; ordinary
+context nodes can connect through their ports. Other families return undefined,
+allowing normal rendering or a composed C4 fallback. DDD meaning does not force
+an outline or color notation; authored appearance uses core geometry.
+
+`ZlozDddContentContext` provides the node, narrowed DDD architecture, selection
+and preview state. `renderBadge`, `renderType`, `renderName`, `renderSubdomain`,
+`renderDescription` and `renderBody` customize inert content: undefined keeps the
+default, null omits it. The badge is omitted by default. Bounded contexts display
+optional subdomain classification. Compact group headers omit descriptions by
+default; custom slots can display them with suitable authored space.
+
+Use `renderControls` for interactive content outside the native drag button and
+body cache; undefined keeps native context/collapse/resize controls and an empty
+array omits them. `attributes` owns classes and paint; Model geometry stays
+authoritative. Retain ports from the render context to preserve custom sockets
+and current policy reasons. Scoped theme tokens support light/dark and host
+themes. Minimal mode hides diagnostics, not the model's semantic role labels;
+slots can independently omit those labels while native selection names remain.
+Keep artwork callbacks inert and options stable when using `bodyCache`.
+
+These views introduce no saved fields or business-rule enforcement. Use the
+headless `architectureNodePresets` catalogue to compose a role legend or palette.
+Atomic pattern insertion and typed DDD relationships are separate roadmap slices.
+
 ## C4 preset renderers
 
 ```ts

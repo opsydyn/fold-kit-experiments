@@ -1,6 +1,7 @@
 import {
   resolveEdgeReconnection,
   defaultFitViewPadding,
+  architectureNodePresets,
   defaultZoomLimits,
   type EdgePathStyle,
   type ZlozNode,
@@ -11,6 +12,9 @@ import {
   zlozView,
   zlozC4Node,
   zlozC4Group,
+  zlozDddNode,
+  zlozDddGroup,
+  type ZlozDddNodeOptions,
   type ZlozC4NodeOptions,
   createZlozNodeBodyCache,
   zlozEdgeEndpointSelect,
@@ -116,6 +120,22 @@ const retainedC4Node = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>)
   zlozC4Node(context, h, c4Options);
 const retainedC4Group = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   zlozC4Group(context, h, c4Options);
+const dddOptionsWithoutCache: ZlozDddNodeOptions<Message> = {
+  renderBadge: ({ architecture }, h) =>
+    architecture.role === 'aggregate-root'
+      ? h.span([h.Style({ 'font-size': '10px', 'font-weight': '600' })], ['Consistency owner'])
+      : null,
+};
+const dddOptions: ZlozDddNodeOptions<Message> = {
+  ...dddOptionsWithoutCache,
+  bodyCache: createZlozNodeBodyCache(),
+};
+const unretainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
+  zlozDddNode(context, h, dddOptionsWithoutCache);
+const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
+  zlozDddNode(context, h, dddOptions);
+const retainedDddGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
+  zlozDddGroup(context, h, dddOptions);
 const retainedOrbitNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   orbitNode(context, h, orbitBodyCache);
 const retainedOrbitGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -387,6 +407,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 button(
                   'Open nested C4 container view',
                   Message.SelectedExample({ example: 'c4-nested-containers' }),
+                ),
+                button(
+                  'Open DDD Order aggregate',
+                  Message.SelectedExample({ example: 'ddd-orders' }),
                 ),
                 button('Open Onion Architecture', Message.SelectedExample({ example: 'onion' })),
                 button(
@@ -726,6 +750,28 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             : []),
         ],
       ),
+      ...(model.nodeDesign === 'ddd'
+        ? [
+            h.div(
+              [h.Class('ddd-diagram-caption')],
+              [
+                h.h2([], ['Ordering · domain model']),
+                h.p(
+                  [],
+                  [
+                    'Package-owned DDD presets. The aggregate is a portless boundary; connections belong to its nodes. Labels describe this example, not enforced business rules.',
+                  ],
+                ),
+                h.ul(
+                  [h.AriaLabel('DDD role legend')],
+                  architectureNodePresets
+                    .filter((preset) => preset.architecture.family === 'ddd')
+                    .map((preset) => h.li([], [preset.label])),
+                ),
+              ],
+            ),
+          ]
+        : []),
       ...(model.nodeDesign === 'c4'
         ? [
             h.div(
@@ -771,6 +817,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               h.option(
                 [h.Value('c4'), h.Selected(model.nodeDesign === 'c4')],
                 ['C4 · package presets'],
+              ),
+              h.option(
+                [h.Value('ddd'), h.Selected(model.nodeDesign === 'ddd')],
+                ['DDD · package presets'],
               ),
               h.option(
                 [h.Value('orbits'), h.Selected(model.nodeDesign === 'orbits')],
@@ -2371,12 +2421,20 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ? model.retainNodeViews
                   ? retainedC4Node
                   : zlozC4Node
-                : undefined,
+                : model.nodeDesign === 'ddd'
+                  ? model.retainNodeViews
+                    ? retainedDddNode
+                    : unretainedDddNode
+                  : undefined,
           renderGroupShell: (context, builder) => {
             if (model.nodeDesign === 'c4')
               return model.retainNodeViews
                 ? retainedC4Group(context, builder)
                 : zlozC4Group(context, builder);
+            if (model.nodeDesign === 'ddd')
+              return model.retainNodeViews
+                ? retainedDddGroup(context, builder)
+                : zlozDddGroup(context, builder, dddOptionsWithoutCache);
             if (model.nodeDesign !== 'orbits') return undefined;
             return model.retainNodeViews
               ? retainedOrbitGroup(context, builder)

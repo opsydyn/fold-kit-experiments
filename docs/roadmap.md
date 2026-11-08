@@ -148,11 +148,14 @@ Maintain two tracks: a reliable, customizable editor floor and a differentiated
 architecture modelling lifecycle. Package-owned functionality stays reusable;
 Astro is the demonstration shell. Prioritize the following bounded slices:
 
-1. **DDD preset renderers:** expose all eight existing semantic roles with
-   composable node/group presentation and a light/dark Order aggregate demo.
+1. **DDD preset renderers — implemented locally:** all eight existing semantic
+   roles have composable node/group presentation and a light/dark Order aggregate
+   demo. See the [qualification receipt](../apps/zloz-demo/evidence/ddd-renderers.md).
 2. **History and time travel:** a first-class product pillar. Start with named
    immutable editions, read-only rewind and return to the present; then semantic/
    layout comparison and explicit restore or fork into a new working model.
+   Include opt-in ghost nodes/edges, previous positions and movement connectors
+   like Tech Radar, with clear change states and independent visibility controls.
    Establish the contract before expanding persisted domain vocabulary.
 3. **Atomic pattern insertion:** validated fragments, deterministic ID remapping,
    policy checks, full rollback and one Undo per insertion.
@@ -170,8 +173,9 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** DDD renderers using the current descriptor contract,
-without new persisted fields. Proposed positioning to validate: model a domain
+**Recommended next:** the history contract and first named editions/read-only
+rewind slice, with opt-in comparison ghosts. DDD renderers retain the current
+descriptor contract without new persisted fields. Proposed positioning to validate: model a domain
 with people, explore how its architecture evolves, and review/communicate the
 same portable model with human and agent tooling. Shapes alone, Undo and layout examples do not establish a USP.
 

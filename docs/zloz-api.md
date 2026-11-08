@@ -46,3 +46,11 @@ The core stays independent of FoldKit, browser globals and layout engines. The
 application owns Model, commands and persistence; optional adapters remain
 separate dependencies. See [the composition decision](adr/0004-composable-flow-presentation.md)
 for the current extensibility boundaries.
+
+### DDD preset views
+
+The optional Foldkit entry exports `zlozDddNode`, `zlozDddGroup` and the public
+`ZlozDddContentContext`, `ZlozDddContentRenderer`, `ZlozDddNodeOptions` types.
+These views compose the eight existing semantic roles with core geometry and
+live native controls. See the [DDD renderer guide](../packages/foldkit-zloz/README.md#ddd-preset-renderers)
+for slots, caching, themes and portless boundary behavior.

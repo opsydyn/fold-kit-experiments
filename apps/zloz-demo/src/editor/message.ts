@@ -39,6 +39,7 @@ export const Message = defineMessageUnion({
       'large-workflow',
       'protected-orbits',
       'port-snapping',
+      'ddd-orders',
       'c4-context',
       'c4-containers',
       'c4-nested-containers',

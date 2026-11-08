@@ -205,6 +205,12 @@ export {
 } from './composition';
 export type { ZlozNodeRenderContext, ZlozWorldOverlayItemOptions } from './composition';
 export { zlozC4Node, zlozC4Group } from './c4-renderer';
+export { zlozDddNode, zlozDddGroup } from './ddd-renderer';
+export type {
+  ZlozDddContentContext,
+  ZlozDddContentRenderer,
+  ZlozDddNodeOptions,
+} from './ddd-renderer';
 export type { ZlozC4ContentContext, ZlozC4ContentRenderer, ZlozC4NodeOptions } from './c4-renderer';
 import {
   portLabelViews,

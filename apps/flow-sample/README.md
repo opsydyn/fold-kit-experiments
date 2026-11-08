@@ -67,8 +67,11 @@ You can also Shift-drag the canvas background around nodes, then choose
 **Group selection**. A box selects fully enclosed nodes. Press Escape to
 keep your previous selection.
 
-The minimap in the lower-right corner shows the full diagram and the current
-viewport. Click it to center the canvas on that point at the same zoom.
+Open **Navigation** in the sidebar to enable or disable **Mini map**. It shows
+the full diagram and the current viewport; click it to center the canvas at
+the same zoom. Minimal mode and the global diagnostics switch temporarily hide
+it and disable its checkbox with a visible explanation. **Open diagnostics**
+takes you to those settings, and the individual choice is preserved.
 
 Use **Zoom in**, **Zoom out**, or **Fit view** above the canvas to navigate
 without a scroll wheel. The percentage shows the current zoom.

@@ -236,7 +236,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     ['zoomLevel', 'Zoom percentage'],
     ['status', 'Visible status'],
     ['instructions', 'Instructions'],
-    ['overview', 'Overview'],
     ['connectionList', 'Connection list'],
   ] as const;
   const background: FlowBackground<Message> =

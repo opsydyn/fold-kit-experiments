@@ -1,0 +1,11 @@
+{
+  "result": "pass",
+  "url": "http://127.0.0.1:4323/",
+  "controlLocation": "Navigation / Mini map",
+  "localToggle": "show/hide",
+  "minimalAndGlobalMasks": "disabled control with visible reason and diagnostics link",
+  "storedChoiceRestored": true,
+  "graphCameraAndSelectionPreserved": true,
+  "oldOverviewCheckboxRemoved": true,
+  "pageErrors": []
+}

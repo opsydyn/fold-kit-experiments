@@ -20,6 +20,48 @@ const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['export', 'Mermaid export'],
 ];
 
+function miniMapControls(h: HtmlBuilder<Message>, model: Model): Html {
+  const masked = model.minimalMode || !model.diagnosticsEnabled;
+  const busy = model.editor.gesture.type !== 'idle';
+  const help = model.minimalMode
+    ? 'Hidden by Minimal mode. Turn Minimal mode off in Diagnostics to show the mini map.'
+    : !model.diagnosticsEnabled
+      ? 'Diagnostics are disabled. Turn Show diagnostics on to show the mini map.'
+      : busy
+        ? 'Finish the current gesture before changing the mini map.'
+        : 'Show the mini map here. Click it or use its arrow keys to navigate.';
+  return h.div(
+    [],
+    [
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.diagnostics.overview),
+            h.Disabled(masked || busy),
+            h.AriaDescribedBy('workbench-mini-map-help'),
+            h.OnClick(Message.ClickedDiagnostic({ diagnostic: 'overview' })),
+          ]),
+          'Mini map',
+        ],
+      ),
+      h.p([h.Id('workbench-mini-map-help')], [help]),
+      ...(masked
+        ? [
+            h.button(
+              [
+                h.Type('button'),
+                h.OnClick(Message.SelectedWorkbenchSection({ section: 'diagnostics' })),
+              ],
+              ['Open diagnostics'],
+            ),
+          ]
+        : []),
+    ],
+  );
+}
+
 export function workbenchLayout(
   h: HtmlBuilder<Message>,
   model: Model,
@@ -32,6 +74,7 @@ export function workbenchLayout(
     ...controls,
     navigation: [
       ...(parts.controls ? [parts.controls] : []),
+      miniMapControls(h, model),
       ...(parts.minimap ? [parts.minimap] : []),
       ...controls.navigation,
     ],

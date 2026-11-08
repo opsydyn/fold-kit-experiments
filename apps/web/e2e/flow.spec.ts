@@ -7,7 +7,9 @@ test('edit, connect, drag, cancel, arrange, undo, save and reload a graph', asyn
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/flow');
   const surface = page.getByRole('group', { name: 'Workflow editor', exact: true });
-  await expect(surface.locator('[data-flow-node]')).toHaveCount(2);
+  // A clean CI dev server compiles the lazy island on its first visit.
+  // Keep interaction assertions fast after this explicit readiness boundary.
+  await expect(surface.locator('[data-flow-node]')).toHaveCount(2, { timeout: 30_000 });
   await page.getByRole('button', { name: 'Fit view', exact: true }).click();
   await page.getByRole('button', { name: 'Connect from Source: out', exact: true }).focus();
   await page.keyboard.press('Enter');

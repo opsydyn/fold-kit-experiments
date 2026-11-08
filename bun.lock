@@ -37,6 +37,7 @@
         "@opsydyn/foldkit-flow": "workspace:*",
         "@opsydyn/foldkit-flow-elk": "workspace:*",
         "@opsydyn/foldkit-flow-force": "workspace:*",
+        "@opsydyn/foldkit-flow-mermaid": "workspace:*",
         "astro": "catalog:",
         "effect": "catalog:",
         "foldkit": "catalog:",
@@ -403,6 +404,22 @@
       "dependencies": {
         "@opsydyn/foldkit-viz": "workspace:*",
       },
+      "devDependencies": {
+        "@arethetypeswrong/cli": "0.18.5",
+        "@opsydyn/foldkit-flow": "workspace:*",
+        "@types/node": "^22.0.0",
+        "bun-types": "^1.3.14",
+        "publint": "0.3.25",
+        "tsdown": "^0.21.8",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@opsydyn/foldkit-flow": "0.1.0",
+      },
+    },
+    "packages/foldkit-flow-mermaid": {
+      "name": "@opsydyn/foldkit-flow-mermaid",
+      "version": "0.1.0",
       "devDependencies": {
         "@arethetypeswrong/cli": "0.18.5",
         "@opsydyn/foldkit-flow": "workspace:*",
@@ -950,6 +967,8 @@
     "@opsydyn/foldkit-flow-elk": ["@opsydyn/foldkit-flow-elk@workspace:packages/foldkit-flow-elk"],
 
     "@opsydyn/foldkit-flow-force": ["@opsydyn/foldkit-flow-force@workspace:packages/foldkit-flow-force"],
+
+    "@opsydyn/foldkit-flow-mermaid": ["@opsydyn/foldkit-flow-mermaid@workspace:packages/foldkit-flow-mermaid"],
 
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
 

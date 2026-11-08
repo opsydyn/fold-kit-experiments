@@ -127,3 +127,23 @@ export const ExportFlow = Command.define('ExportFlow', {
       }),
     ),
 });
+
+export const ExportMermaidBundle = Command.define('ExportMermaidBundle', {
+  args: { json: Schema.String },
+  messages: [Message.CompletedMermaidDownload, Message.FailedMermaidDownload],
+  execute: ({ json }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download: 'foldkit-flow.mermaid.json',
+      });
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedMermaidDownload(),
+        onFailure: () => Message.FailedMermaidDownload(),
+      }),
+    ),
+});

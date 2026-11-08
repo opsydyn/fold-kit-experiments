@@ -47,6 +47,7 @@ import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchPolicy } from './editor-policy';
+import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
   ThemePreference,
@@ -409,6 +410,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.button(
               [
                 h.Type('button'),
+                h.AriaExpanded(model.mermaidPreviewOpen),
+                h.AriaControls('flow-mermaid-preview'),
+                h.OnClick(Message.ClickedMermaidPreview()),
+              ],
+              ['Mermaid export'],
+            ),
+            h.button(
+              [
+                h.Type('button'),
                 h.AriaExpanded(model.diagnosticsPanelOpen),
                 h.OnClick(Message.ClickedDiagnosticsPanel()),
               ],
@@ -416,6 +426,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ],
         ),
+        ...(model.mermaidPreviewOpen ? [mermaidExportPanel(model, h)] : []),
         ...(model.diagnosticsPanelOpen
           ? [
               h.div(

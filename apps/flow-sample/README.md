@@ -20,6 +20,14 @@ bun run --filter @opsydyn/flow-sample build
 bun run --filter @opsydyn/flow-sample preview
 ```
 
+**Mermaid export** opens a source preview with conversion feedback. Review the
+reported losses, then enable **Allow reported conversion losses for this revision**
+to download a bundle containing source, original identities and diagnostics.
+Graph changes clear that acknowledgement. C4 system context is supported as a
+flowchart projection; grouped container views are rejected without flattening.
+Keep the normal Flow JSON export as your authoritative document.
+See the [qualification and screenshots](evidence/mermaid-export.md).
+
 **Open Onion Architecture** replaces the editor graph with an editable example.
 The UI adapter uses application use cases. The storage adapter implements an
 interface owned by the application. Application code depends on the domain

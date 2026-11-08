@@ -24,6 +24,12 @@ editing and an optional native FoldKit view.
 [`@opsydyn/foldkit-flow-elk`](packages/foldkit-flow-elk/) supplies optional ELK
 layout. [`@opsydyn/foldkit-flow-force`](packages/foldkit-flow-force/) supplies
 optional force layout and card-avoiding routing using FoldKit Viz.
+
+Optional [`@opsydyn/foldkit-flow-mermaid`](packages/foldkit-flow-mermaid/) provides
+pure Mermaid export with versioned conversion diagnostics and explicit identity
+metadata. The Flow workbench has an opt-in source preview and bundle download.
+It is a local release candidate; publication and general import remain separate.
+
 The Flow packages are prepared locally at 0.1.0.
 Run the demo app and open `/flow`; see the
 [publication guide](docs/releases/foldkit-flow.md) for tarball and release checks.

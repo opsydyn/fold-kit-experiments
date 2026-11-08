@@ -9,14 +9,16 @@ behaviour, exact runtime versions and remaining acceptance limits.
 ## Package contract
 
 - Scoped names include `@opsydyn/foldkit-flow`, `@opsydyn/foldkit-flow-elk`,
-  and `@opsydyn/foldkit-flow-force`.
+  `@opsydyn/foldkit-flow-force`, and `@opsydyn/foldkit-flow-mermaid`.
 - ESM `.mjs` and `.d.mts`, explicit export maps and Node 22+ tooling.
 - No source-only runtime export condition. Consumers use built files.
 - Explicit package files: distribution, README, changelog, licence and notices.
   Tests, nested tarballs, workspace links and catalog specifiers must not ship.
 - Core runtime imports work without FoldKit, Effect, ELK or browser globals.
   FoldKit and Effect are optional peers used by `/foldkit` only.
-- Layout adapters pin the Flow core peer at the same version.
+- Optional adapters pin the Flow core peer at the same version.
+- The Mermaid exporter has no runtime dependencies other than its core peer. Its
+  source/identity/loss bundle is versioned separately from canonical Flow JSON.
 - The force adapter depends on FoldKit Viz. Its eligibility subpath is separate
   from the engine entry for hosts that load layout on demand.
 - Existing catalogue policy, release-please changelogs and linked versions apply.
@@ -31,6 +33,7 @@ bun install --frozen-lockfile
 bun run check
 bun typecheck
 bun run test
+bun run --filter @opsydyn/foldkit-flow-mermaid pack:check
 bun run --filter @opsydyn/foldkit-flow-force pack:check
 bun run --filter @opsydyn/foldkit-flow-elk pack:check
 bun run --filter @opsydyn/foldkit-flow pack:check
@@ -77,3 +80,8 @@ Physical touch, assistive-technology review, large-graph performance and worker
 bundling require their own qualification. No performance capacity claim is made.
 The default ELK fallback leaves standalone Bun 1.4.4 processes alive after layout;
 use Node for CLI layout jobs. See the adapter README for the observed upstream cause.
+
+The Mermaid candidate is locally qualified with its own packed-consumer test and
+workbench evidence. It is not yet enabled in the publication workflow or linked
+release automation; add those deliberately during the publication-readiness slice.
+No registry publication is implied by its local 0.1.0 package metadata.

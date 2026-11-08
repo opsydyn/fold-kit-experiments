@@ -283,6 +283,8 @@ export const Model = Schema.Struct({
   showWorldAnnotation: Schema.Boolean,
   diagnosticsEnabled: Schema.Boolean,
   diagnosticsPanelOpen: Schema.Boolean,
+  mermaidPreviewOpen: Schema.Boolean,
+  mermaidLossConsentRevision: Schema.NullOr(Schema.Number),
   diagnostics: Schema.Struct({
     measurements: Schema.Boolean,
     alignmentGuides: Schema.Boolean,
@@ -356,6 +358,8 @@ export type Model = Readonly<{
   showWorldAnnotation: boolean;
   diagnosticsEnabled: boolean;
   diagnosticsPanelOpen: boolean;
+  mermaidPreviewOpen: boolean;
+  mermaidLossConsentRevision: number | null;
   diagnostics: FlowDiagnostics;
   connectionDesign: ConnectionDesign;
   protectDeletions: boolean;
@@ -423,6 +427,8 @@ export const init = () => ({
     showWorldAnnotation: false,
     diagnosticsEnabled: true,
     diagnosticsPanelOpen: false,
+    mermaidPreviewOpen: false,
+    mermaidLossConsentRevision: null,
     diagnostics: resolveFlowDiagnostics({}),
     connectionDesign: 'dashed',
     protectDeletions: false,

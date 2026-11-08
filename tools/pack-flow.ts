@@ -5,12 +5,23 @@ import { fileURLToPath } from 'node:url';
 
 import elk from '../packages/foldkit-flow-elk/package.json';
 import force from '../packages/foldkit-flow-force/package.json';
+import mermaid from '../packages/foldkit-flow-mermaid/package.json';
 import core from '../packages/foldkit-flow/package.json';
 
 const name = process.argv[2];
-if (name !== 'foldkit-flow' && name !== 'foldkit-flow-elk' && name !== 'foldkit-flow-force')
+if (
+  name !== 'foldkit-flow' &&
+  name !== 'foldkit-flow-elk' &&
+  name !== 'foldkit-flow-force' &&
+  name !== 'foldkit-flow-mermaid'
+)
   throw new Error('Expected a FoldKit Flow package name');
-const manifests = { 'foldkit-flow': core, 'foldkit-flow-elk': elk, 'foldkit-flow-force': force };
+const manifests = {
+  'foldkit-flow': core,
+  'foldkit-flow-elk': elk,
+  'foldkit-flow-force': force,
+  'foldkit-flow-mermaid': mermaid,
+};
 const manifest = manifests[name];
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const directory = path.join(root, 'packages', name);

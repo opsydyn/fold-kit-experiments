@@ -29,6 +29,7 @@ import { createC4ContextGraph, createC4ContainerGraph } from './c4-examples';
 import {
   ArrangeFlow,
   ExportFlow,
+  ExportMermaidBundle,
   ImportFlow,
   LoadFlow,
   SaveThemePreference,
@@ -36,6 +37,7 @@ import {
 } from './command';
 import { workbenchPolicy } from './editor-policy';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
+import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
 import {
   groupedOnionGraph,
@@ -591,6 +593,43 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         ? { model: { ...model, active: null, notice: 'Layout failed. Your graph is preserved.' } }
         : { model },
     ClickedIncludeCamera: () => ({ model: { ...model, includeCamera: !model.includeCamera } }),
+    ClickedMermaidPreview: () => ({
+      model: {
+        ...model,
+        mermaidPreviewOpen: !model.mermaidPreviewOpen,
+        mermaidLossConsentRevision: null,
+      },
+    }),
+    ClickedMermaidLossConsent: () => ({
+      model: {
+        ...model,
+        mermaidLossConsentRevision:
+          model.mermaidPreviewOpen && model.mermaidLossConsentRevision !== model.editor.revision
+            ? model.editor.revision
+            : null,
+      },
+    }),
+    ClickedMermaidDownload: () => {
+      if (!model.mermaidPreviewOpen) return { model };
+      const result = mermaidPreview(model);
+      if (result.status !== 'converted') return { model };
+      return {
+        model,
+        commands: [ExportMermaidBundle({ json: JSON.stringify(result.value, null, 2) })],
+      };
+    },
+    CompletedMermaidDownload: () => ({
+      model: {
+        ...model,
+        notice: 'Mermaid bundle download started. Keep Flow JSON as the authoritative document.',
+      },
+    }),
+    FailedMermaidDownload: () => ({
+      model: {
+        ...model,
+        notice: 'Could not start the Mermaid bundle download. Your graph is preserved.',
+      },
+    }),
     ClickedExport: () => ({
       model,
       commands: [ExportFlow({ json: snapshotJson() })],
@@ -679,11 +718,16 @@ export function update(model: Model, message: Message): Return<Model, Message> {
   const invalidPosition =
     next.portPositionDraft &&
     (changed || !next.editor.selectedNodes.includes(next.portPositionDraft.nodeId));
-  return invalidLabel || invalidPosition
+  const invalidMermaidConsent =
+    next.editor.graph !== model.editor.graph && next.mermaidLossConsentRevision !== null;
+  return invalidLabel || invalidPosition || invalidMermaidConsent
     ? {
         ...result,
         model: {
           ...next,
+          mermaidLossConsentRevision: invalidMermaidConsent
+            ? null
+            : next.mermaidLossConsentRevision,
           portLabelDraft: invalidLabel ? null : next.portLabelDraft,
           portPositionDraft: invalidPosition ? null : next.portPositionDraft,
         },

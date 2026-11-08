@@ -1,0 +1,531 @@
+{
+  "runtime": {
+    "node": "v24.15.0",
+    "bun": null
+  },
+  "corpusSha256": "9f650a6a600d73047859b82156bcbe60df17731bb45063b1aabb04549360e603",
+  "dependencies": {
+    "@mermaid-js/parser": {
+      "version": "2.0.1",
+      "resolved": "https://registry.npmjs.org/@mermaid-js/parser/-/parser-2.0.1.tgz",
+      "integrity": "sha512-j37dj/h6p6pots1L7pLPPNuABEEu9WP4OYg9pW1g+nYG331j0+3canE9OagtYdytYvdSAMG+2fKU5cxep6LgjA==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@chevrotain/types": "~13.2.0"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      }
+    },
+    "mermaid-ast": {
+      "version": "0.8.2",
+      "resolved": "https://registry.npmjs.org/mermaid-ast/-/mermaid-ast-0.8.2.tgz",
+      "integrity": "sha512-uh2jEGW2IXwJZ8+BZM3cLBYy52xvopESvaiGPqE9tCoYlnroYzMmt8tjZu8bs7YkG5JOGtxqBT1fh88bbE8wVg==",
+      "license": "MIT",
+      "dependencies": {
+        "@mermaid-js/parser": "^0.6.3"
+      },
+      "engines": {
+        "node": ">=18.0.0"
+      }
+    },
+    "mermaid": {
+      "version": "12.3.0",
+      "resolved": "https://registry.npmjs.org/mermaid/-/mermaid-12.3.0.tgz",
+      "integrity": "sha512-4113TdXeLAsMruJ79OpFL5O8+LTFXhQqZ260rF3tgUmiNAtRm4Uume04I+65PRN6yZ69J4f8rVYWW8zRk65UYw==",
+      "dev": true,
+      "license": "MIT",
+      "dependencies": {
+        "@braintree/sanitize-url": "^7.1.2",
+        "@iconify/utils": "^3.0.2",
+        "@mermaid-js/parser": "^2.0.1",
+        "@types/d3": "^7.4.3",
+        "@upsetjs/venn.js": "^2.0.0",
+        "chevrotain": "~13.2.0",
+        "cytoscape": "^3.34.0",
+        "cytoscape-cose-bilkent": "^4.1.0",
+        "cytoscape-fcose": "^2.2.0",
+        "d3": "^7.9.0",
+        "d3-sankey": "^0.12.3",
+        "dagre-d3-es": "7.0.14",
+        "dayjs": "^1.11.21",
+        "dompurify": "^3.4.17",
+        "elkjs": "^0.12.0",
+        "es-toolkit": "^1.45.1",
+        "katex": "^0.18.0",
+        "khroma": "^2.1.0",
+        "marked": "^16.3.0",
+        "roughjs": "^4.6.6",
+        "stylis": "^4.3.6",
+        "ts-dedent": "^2.2.0"
+      },
+      "engines": {
+        "node": ">=22.12.0"
+      }
+    },
+    "@opsydyn/foldkit-flow": {
+      "version": "0.1.0",
+      "resolved": "file:../../packages/foldkit-flow/dist/pack/opsydyn-foldkit-flow-0.1.0.tgz",
+      "integrity": "sha512-lKMfQRTGjHttu1NGFcHscB0RQCId1zAvNjIdDdIUCezpxkPCteOz9R2Z1gBIENFj+Fim7+mc+nZ2oy01urcDYg==",
+      "license": "MIT",
+      "engines": {
+        "node": ">=22.0.0"
+      },
+      "peerDependencies": {
+        "effect": ">=4.1.0 <5.0.0",
+        "foldkit": ">=0.170.0 <0.171.0"
+      },
+      "peerDependenciesMeta": {
+        "effect": {
+          "optional": true
+        },
+        "foldkit": {
+          "optional": true
+        }
+      }
+    }
+  },
+  "probes": {
+    "officialParser": "Error: Unknown diagram type: flowchart",
+    "headlessMermaid": "accepted",
+    "namedEdge": "e1@",
+    "nodeStyle": null,
+    "upstreamRendererPreservesNamedEdge": false
+  },
+  "cases": [
+    {
+      "id": "basic",
+      "status": "converted",
+      "diagnostics": [
+        {
+          "code": "edge-delimiter-normalized",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Pinned parser includes @ in named IDs; exactly one delimiter is removed.",
+          "subject": "create",
+          "location": null
+        },
+        {
+          "code": "layout-generated",
+          "severity": "info",
+          "dimension": "layout",
+          "message": "Prototype dimensions/grid positions and cardinal default ports are generated; this is not Mermaid layout.",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": "flowchart LR\n  n_41[\"Edited #34;quote#34; #38; #35;quot; / 支付\"]\n  n_42[\"Orders\"]\n  n_41 e_63_72_65_61_74_65@-->|\"Places orders\"| n_42\n"
+    },
+    {
+      "id": "quoted-unicode-ids",
+      "status": "converted",
+      "diagnostics": [
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:9:__proto__:11:constructor:0",
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:6:node-1:8:toString:0",
+          "location": null
+        },
+        {
+          "code": "layout-generated",
+          "severity": "info",
+          "dimension": "layout",
+          "message": "Prototype dimensions/grid positions and cardinal default ports are generated; this is not Mermaid layout.",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": "flowchart LR\n  n_5f_5f_70_72_6f_74_6f_5f_5f[\"Edited #34;quote#34; #38; #35;quot; / 支付\"]\n  n_63_6f_6e_73_74_72_75_63_74_6f_72[\"支付 🔁\"]\n  n_6e_6f_64_65_2d_31[\"end\"]\n  n_74_6f_53_74_72_69_6e_67[\"Tagged #60;value#62;\"]\n  n_5f_5f_70_72_6f_74_6f_5f_5f e_65_64_67_65_3a_39_3a_5f_5f_70_72_6f_74_6f_5f_5f_3a_31_31_3a_63_6f_6e_73_74_72_75_63_74_6f_72_3a_30@--> n_63_6f_6e_73_74_72_75_63_74_6f_72\n  n_6e_6f_64_65_2d_31 e_65_64_67_65_3a_36_3a_6e_6f_64_65_2d_31_3a_38_3a_74_6f_53_74_72_69_6e_67_3a_30@--> n_74_6f_53_74_72_69_6e_67\n"
+    },
+    {
+      "id": "supported-outlines",
+      "status": "converted",
+      "diagnostics": [
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:A:1:B:0",
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:B:1:C:0",
+          "location": null
+        },
+        {
+          "code": "layout-generated",
+          "severity": "info",
+          "dimension": "layout",
+          "message": "Prototype dimensions/grid positions and cardinal default ports are generated; this is not Mermaid layout.",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": "flowchart TB\n  n_41[\"Edited #34;quote#34; #38; #35;quot; / 支付\"]\n  n_42(\"Round\")\n  n_43[(\"Store\")]\n  n_41 e_65_64_67_65_3a_31_3a_41_3a_31_3a_42_3a_30@--> n_42\n  n_42 e_65_64_67_65_3a_31_3a_42_3a_31_3a_43_3a_30@--> n_43\n"
+    },
+    {
+      "id": "named-parallel",
+      "status": "converted",
+      "diagnostics": [
+        {
+          "code": "edge-delimiter-normalized",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Pinned parser includes @ in named IDs; exactly one delimiter is removed.",
+          "subject": "e1",
+          "location": null
+        },
+        {
+          "code": "edge-delimiter-normalized",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Pinned parser includes @ in named IDs; exactly one delimiter is removed.",
+          "subject": "e2",
+          "location": null
+        },
+        {
+          "code": "layout-generated",
+          "severity": "info",
+          "dimension": "layout",
+          "message": "Prototype dimensions/grid positions and cardinal default ports are generated; this is not Mermaid layout.",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": "flowchart LR\n  n_41[\"Edited #34;quote#34; #38; #35;quot; / 支付\"]\n  n_42[\"B\"]\n  n_41 e_65_31@-->|\"one\"| n_42\n  n_41 e_65_32@-->|\"two\"| n_42\n"
+    },
+    {
+      "id": "cycle-and-self-loop",
+      "status": "converted",
+      "diagnostics": [
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:A:1:B:0",
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:B:1:C:0",
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:C:1:A:0",
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:C:1:C:0",
+          "location": null
+        },
+        {
+          "code": "layout-generated",
+          "severity": "info",
+          "dimension": "layout",
+          "message": "Prototype dimensions/grid positions and cardinal default ports are generated; this is not Mermaid layout.",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": "flowchart LR\n  n_41[\"Edited #34;quote#34; #38; #35;quot; / 支付\"]\n  n_42[\"B\"]\n  n_43[\"C\"]\n  n_41 e_65_64_67_65_3a_31_3a_41_3a_31_3a_42_3a_30@--> n_42\n  n_42 e_65_64_67_65_3a_31_3a_42_3a_31_3a_43_3a_30@--> n_43\n  n_43 e_65_64_67_65_3a_31_3a_43_3a_31_3a_41_3a_30@--> n_41\n  n_43 e_65_64_67_65_3a_31_3a_43_3a_31_3a_43_3a_30@--> n_43\n"
+    },
+    {
+      "id": "comments",
+      "status": "rejected",
+      "diagnostics": [
+        {
+          "code": "comments-omitted",
+          "severity": "loss",
+          "dimension": "presentation",
+          "message": "Comments are not represented in the converted graph.",
+          "subject": null,
+          "location": null
+        },
+        {
+          "code": "invalid-syntax",
+          "severity": "error",
+          "dimension": "syntax",
+          "message": "Failed to parse flowchart: Parse error on line 1:\n%% a comment contain\n^\nExpecting 'NEWLINE', 'SPACE', 'GRAPH', got 'NODE_STRING'",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": null
+    },
+    {
+      "id": "presentation",
+      "status": "converted",
+      "diagnostics": [
+        {
+          "code": "presentation-omitted",
+          "severity": "loss",
+          "dimension": "presentation",
+          "message": "Style/class declarations are not transferred; the candidate drops some node styles.",
+          "subject": null,
+          "location": {
+            "line": 2,
+            "column": 10
+          }
+        },
+        {
+          "code": "presentation-omitted",
+          "severity": "loss",
+          "dimension": "presentation",
+          "message": "Style/class declarations are not transferred; the candidate drops some node styles.",
+          "subject": null,
+          "location": {
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "code": "presentation-omitted",
+          "severity": "loss",
+          "dimension": "presentation",
+          "message": "Style/class declarations are not transferred; the candidate drops some node styles.",
+          "subject": null,
+          "location": {
+            "line": 4,
+            "column": 1
+          }
+        },
+        {
+          "code": "presentation-omitted",
+          "severity": "loss",
+          "dimension": "presentation",
+          "message": "Style/class declarations are not transferred; the candidate drops some node styles.",
+          "subject": null,
+          "location": {
+            "line": 5,
+            "column": 1
+          }
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:A:1:B:0",
+          "location": null
+        },
+        {
+          "code": "layout-generated",
+          "severity": "info",
+          "dimension": "layout",
+          "message": "Prototype dimensions/grid positions and cardinal default ports are generated; this is not Mermaid layout.",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": "flowchart LR\n  n_41[\"Edited #34;quote#34; #38; #35;quot; / 支付\"]\n  n_42[\"B\"]\n  n_41 e_65_64_67_65_3a_31_3a_41_3a_31_3a_42_3a_30@--> n_42\n"
+    },
+    {
+      "id": "interactions",
+      "status": "converted",
+      "diagnostics": [
+        {
+          "code": "interactions-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Click callbacks/links are data only and are never transferred or executed.",
+          "subject": null,
+          "location": {
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "code": "interactions-omitted",
+          "severity": "loss",
+          "dimension": "semantics",
+          "message": "Click callbacks/links are data only and are never transferred or executed.",
+          "subject": null,
+          "location": {
+            "line": 4,
+            "column": 1
+          }
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:A:1:B:0",
+          "location": null
+        },
+        {
+          "code": "layout-generated",
+          "severity": "info",
+          "dimension": "layout",
+          "message": "Prototype dimensions/grid positions and cardinal default ports are generated; this is not Mermaid layout.",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": "flowchart LR\n  n_41[\"Edited #34;quote#34; #38; #35;quot; / 支付\"]\n  n_42[\"B\"]\n  n_41 e_65_64_67_65_3a_31_3a_41_3a_31_3a_42_3a_30@--> n_42\n"
+    },
+    {
+      "id": "subgraph",
+      "status": "rejected",
+      "diagnostics": [
+        {
+          "code": "unsupported-subgraph",
+          "severity": "error",
+          "dimension": "semantics",
+          "message": "Subgraphs require an explicit group/membership contract and are not flattened.",
+          "subject": null,
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:A:1:B:0",
+          "location": null
+        }
+      ],
+      "generated": null
+    },
+    {
+      "id": "group-endpoint",
+      "status": "rejected",
+      "diagnostics": [
+        {
+          "code": "unsupported-subgraph",
+          "severity": "error",
+          "dimension": "semantics",
+          "message": "Subgraphs require an explicit group/membership contract and are not flattened.",
+          "subject": null,
+          "location": null
+        },
+        {
+          "code": "unsupported-group-endpoint",
+          "severity": "error",
+          "dimension": "semantics",
+          "message": "Flow groups are portless; boundary links require a separate mapping.",
+          "subject": null,
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:A:1:B:0",
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:g:1:C:0",
+          "location": null
+        }
+      ],
+      "generated": null
+    },
+    {
+      "id": "unsupported-outlines-and-metadata",
+      "status": "rejected",
+      "diagnostics": [
+        {
+          "code": "unsupported-node-metadata",
+          "severity": "error",
+          "dimension": "semantics",
+          "message": "Modern node/edge metadata is outside the qualified subset.",
+          "subject": null,
+          "location": {
+            "line": 3,
+            "column": 1
+          }
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:A:1:B:0",
+          "location": null
+        },
+        {
+          "code": "edge-identity-generated",
+          "severity": "info",
+          "dimension": "identity",
+          "message": "Implicit IDs depend on endpoint-pair occurrence order; edge reordering can change these identities.",
+          "subject": "edge:1:C:1:A:0",
+          "location": null
+        },
+        {
+          "code": "unsupported-outline",
+          "severity": "error",
+          "dimension": "semantics",
+          "message": "Outline diamond has no qualified Flow geometry/presentation mapping.",
+          "subject": "A",
+          "location": null
+        },
+        {
+          "code": "unsupported-outline",
+          "severity": "error",
+          "dimension": "semantics",
+          "message": "Outline circle has no qualified Flow geometry/presentation mapping.",
+          "subject": "B",
+          "location": null
+        },
+        {
+          "code": "unsupported-node-metadata",
+          "severity": "error",
+          "dimension": "semantics",
+          "message": "Node metadata is not interpreted as rectangle fallback.",
+          "subject": "C",
+          "location": null
+        }
+      ],
+      "generated": null
+    },
+    {
+      "id": "invalid-syntax",
+      "status": "rejected",
+      "diagnostics": [
+        {
+          "code": "invalid-syntax",
+          "severity": "error",
+          "dimension": "syntax",
+          "message": "Failed to parse flowchart: Parse error on line 2:\n... LRA[Unclosed --> B\n----------------------^\nExpecting 'SQE', 'DOUBLECIRCLEEND', 'PE', '-)', 'STADIUMEND', 'SUBROUTINEEND', 'PIPE', 'CYLINDEREND', 'DIAMOND_STOP', 'TAGEND', 'TRAPEND', 'INVTRAPEND', 'UNICODE_TEXT', 'TEXT', 'TAGSTART', got '1'",
+          "subject": null,
+          "location": null
+        }
+      ],
+      "generated": null
+    }
+  ]
+}

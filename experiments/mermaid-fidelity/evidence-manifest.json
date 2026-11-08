@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-08",
+  "coreSourceCommit": "1bfeeaf",
+  "scope": "Local isolated spike; not CI, independent review or publication",
+  "sha256": {
+    "src/spike.ts": "f5e6d1575817c818a9abb9a28912001a9e5e2a318a98f1f2c18be18f949816ab",
+    "cli.mjs": "dfb33968a771c2e434369ea9082023341d09bbaf0dd2befdc659a23780bd423b",
+    "test/prototype.test.mjs": "39b6009628575f386de2b09737e7d8039cd7107108a8be18da0d0da3bfedc86d",
+    "qualify.mjs": "900ce620f5a8bac44fc0b03904a921950c9e60e62575e63388e6dc9de01e61bc",
+    "oracle.mjs": "287a48491b732d2a14cec90148fb99baf5bdce739f6c0736b0e430a960be1d4f",
+    "fixtures/corpus.json": "9f650a6a600d73047859b82156bcbe60df17731bb45063b1aabb04549360e603",
+    "package.json": "93a030f5055878b7913353d70326809a156b83f506345a39672bfa44f21298af",
+    "package-lock.json": "1bb4b1a4530337ba2aad6b6ba753784b40aa15692626619ad570353149e0368f",
+    "tsconfig.json": "cd70c3f061954786cb7e162c65287680dd2632e5c7f3ed50ab3c0d85e87cdcc7",
+    "evidence-node.json": "9e3a08d2924a4b661cbb7b34622050c114f50c2d5c2eaf7423b1e957eddf49b2",
+    "evidence-bun.json": "280f7f5dad582fb2414748d5a4af53197fec12fef6db7c6d7d464f5ca735da3b",
+    "evidence-browser.json": "bd64ec16ee905c62ed1cc627d39f31dfa35bee56822c5a27dae09f960b7d9a27"
+  }
+}

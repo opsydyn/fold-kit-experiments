@@ -273,3 +273,11 @@ part of every canvas. Durable editions align well with the requested review
 workflow, while FoldKit already owns runtime replay. The unproven part is useful,
 faithful interoperability and customer benefit, so that is what the next slice
 must test. Final recommendation: **needs review** before implementation.
+
+## Follow-up qualification — 2026-11-08
+
+The user subsequently approved the bounded spike. Its [qualification report](./2026-11-08-flow-mermaid-fidelity-spike.md)
+records restricted identity preservation and explicit losses, alongside parser
+failures that prevent a general import endorsement. The recommended shipping
+slice is now an optional export-first adapter; broader import remains experimental.
+This does not authorize production integration, writable agent tools or editions.

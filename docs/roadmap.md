@@ -19,6 +19,81 @@ Current package compatibility targets FoldKit `0.167.x` to `0.169.x`, stable Eff
 Viz `0.11.0` are published; registry and hosted deployment verification is
 recorded in the [release notes](releases/foldkit-0.167.md).
 
+## Zloz: brand and product direction — 2026-11-08
+
+**Status:** user-defined roadmap direction. Brand migration, new sites and hosting
+are planned delivery slices; this entry records their intended scope.
+
+### Name and positioning
+
+- **External product name:** **Foldkit Zloz**. Use **Zloz** in public-facing copy
+  and ASCII **zloz** for future slugs, URLs and command spelling.
+- **Origin:** **Złóż**, Polish for “fold, assemble, put together.” Preserve the
+  accented spelling in the name's explanation; use Zloz externally for ease of
+  typing and sharing.
+- **Rebrand:** Flow → Zloz.
+- **Identity:** “More than a flow editor. A system composition toolkit.” What
+  began as a node-and-edge editor now supports composing, exploring and
+  communicating complex systems.
+- **Primary tagline:** “Compose systems. Connect ideas.”
+- **Supporting strapline:** “Compose. Connect. Communicate.”
+- **One-line description:** “Foldkit Zloz is a functional, extensible graph toolkit
+  for interactive node editors, C4 architecture modelling, and Mermaid export.”
+
+**Brand architecture:** Foldkit is the UI toolkit; Zloz is the graph and system
+modelling toolkit within that family.
+
+### Three core capabilities
+
+| Capability      | Product promise                                                        |
+| --------------- | ---------------------------------------------------------------------- |
+| **Compose**     | Build interactive graphs with nodes, edges, ports and connections.     |
+| **Model**       | Describe software architecture with built-in C4 modelling.             |
+| **Communicate** | Export models as Mermaid diagrams for documentation and collaboration. |
+
+### Design principles
+
+- **Functional at heart:** pure functions, composition and immutable data.
+- **Headless by design:** separate the graph model from its visual form.
+- **Extensible by default:** let engineers build their own nodes, edges, layouts
+  and tools without hacks or overrides.
+- **Open by nature:** models should travel beyond the editor rather than remain
+  trapped inside it.
+
+### Planned delivery
+
+1. **Brand and naming migration.** Inventory public copy, documentation, package
+   names, imports, types, routes and examples before applying the Flow → Zloz
+   rename. Decide technical names and compatibility/migration handling explicitly;
+   external branding does not by itself rename existing APIs or saved formats.
+2. **Distinct Zloz logo and shared family identity.** Create a logo representing
+   Zloz, while following the styling, typography and visual identity established
+   by the Viz and Three promo sites. Define reusable assets and light/dark usage.
+3. **Promo site.** Build a dedicated Zloz product site in the same family as Viz
+   and Three, presenting the positioning, principles and Compose / Model /
+   Communicate capabilities with real package-backed examples.
+4. **Full demo site.** Develop an Astro-shell, native Foldkit demonstration site
+   comparable in scope and navigation approach to Tech Radar. Build on the
+   persistent-canvas left-sidebar workbench; expose graph composition, C4 models,
+   Mermaid export, examples and API/type-contract documentation. Keep reusable
+   functionality in packages and use the app to compose and demonstrate it.
+5. **Cloudflare hosting.** Deploy the full demo site on Cloudflare as a distinct
+   delivery slice, with its domain, deployment configuration and live acceptance
+   recorded when implemented. The Cloudflare service, domain and public URLs
+   remain to be selected.
+6. **Publication last.** Finish feature work and site qualification before the
+   npm publication slice. Verify chosen ASCII package names, migration guidance,
+   packed-consumer behavior and release automation at that boundary.
+
+The current implementation still uses `packages/foldkit-flow*` and
+`apps/flow-sample`. Its [nested Mermaid export](../apps/flow-sample/evidence/mermaid-subgraphs.md)
+and [persistent-canvas sidebar](../apps/flow-sample/evidence/sidebar.md) provide the
+local baseline for the Zloz demo. Site delivery and registry publication are
+separate from that existing local evidence.
+
+**Next bounded brand slice:** a naming/migration inventory and a shared brief for
+the Zloz logo, promo site and demo information architecture.
+
 ## Release: Keyed Chart Comparison
 
 **Outcome:** users can compare charts in a dynamic collection without losing

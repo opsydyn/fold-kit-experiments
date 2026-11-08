@@ -33,7 +33,10 @@ Package consumer guidance lives in independent skills:
 `skills/astro-foldkit/SKILL.md`, `skills/foldkit-viz/SKILL.md` and
 `skills/effect-three/SKILL.md` (3D scenes: core, FoldKit adapter, Rapier, troika).
 Read the one relevant to the task; none requires another or an upstream checkout.
-Combine them only for tasks that span those packages.
+Combine them only for tasks that span those packages. Their examples pin the catalog's
+versions (`tools/check-skills.ts`, part of `bun run check`): upgrading FoldKit, Effect or
+Astro means re-qualifying them (`docs/examples/package-skills.md`).
+`skills/tech-radar/SKILL.md` covers the tech radar's content, editions and deploys.
 
 ```sh
 bun dev                               # demo app → localhost:4321
@@ -67,7 +70,10 @@ Shared dependency versions live once, in the root `package.json` catalogs
 TypeScript 7 and oxlint). In private workspaces write `"catalog:"` (or
 `"catalog:strict"`), never a version. The npm-published packages (`astro-foldkit`,
 `foldkit-viz`, and the four effect-three packages) keep literal versions equal to the
-catalog's (`npm publish` cannot resolve `catalog:`). `bun run check` enforces both via `tools/check-catalog.ts`.
+catalog's (`npm publish` cannot resolve `catalog:`). Effect and FoldKit packages
+(`effect`, `@effect/*`, `foldkit`, `@foldkit/*`) always come from a catalog, even when one
+workspace uses them, so they upgrade together. `bun run check` enforces all of this via
+`tools/check-catalog.ts`.
 
 `infra/*` workspaces are separate programs (Alchemy CLIs) on the apps' Effect 4.1 from the
 main catalog, with the Alchemy packages from `workspaces.catalogs.infra` (`"catalog:infra"`).

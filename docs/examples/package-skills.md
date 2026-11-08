@@ -6,10 +6,17 @@ Three independent skills are maintained in this repository:
 - [foldkit-viz](../../skills/foldkit-viz/SKILL.md)
 - [effect-three](../../skills/effect-three/SKILL.md)
 
+A fourth, [tech-radar](../../skills/tech-radar/SKILL.md), is for this repository's own
+app rather than a package. It was checked by following it: moving an entry's ring in the
+markdown and the fixture passes the tech radar's tests, and adding one fails on the
+eight-per-category limit it now documents.
+
 Each folder is self-contained: its entrypoint, agent UI metadata, references and
-assets travel together. Neither is globally installed by this change, bundled
-in an npm package, or dependent on the other skill. Root agent instructions and
-package READMEs provide discovery links.
+assets travel together. None is bundled in an npm package or depends on another skill.
+Root agent instructions and package READMEs provide discovery links, and
+`.claude-plugin/marketplace.json` publishes them to Claude Code as two plugins:
+`foldkit-packages` (the three package skills) and `tech-radar`. `claude plugin validate .`
+checks the manifest, and `claude plugin validate skills` the skills.
 
 ## Standalone Examples
 
@@ -18,15 +25,18 @@ installing. This avoids workspace links masking missing dependencies. Each
 manifest pins direct dependencies; generate a lockfile in the consumer and
 retain it there. These starter assets intentionally carry no monorepo lockfile.
 
-| Example                                       | Commands in copied directory                                                                                                       | Qualification                                                                                                                            |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `skills/astro-foldkit/assets/counter`         | `bun install`, `bun run check`, `bun run test`, `bun run build`                                                                    | Published integration 0.8.1, Astro 7.2.8, FoldKit 0.167.0, Effect 4.0.0; three tests and two static routes                               |
-| `skills/foldkit-viz/assets/scatter`           | `bun install`, `bun run check`, `bun run test`                                                                                     | Published Viz 0.11.0; four geometry tests; no Astro, FoldKit or Effect installed                                                         |
-| `skills/foldkit-viz/assets/foldkit-view.ts`   | Typecheck in a separate Viz 0.11.0 / FoldKit 0.167.0 / Effect 4.0.0 consumer; render using the parent builder                      | Compiled and rendered via FoldKit server rendering; SVG title/path present and no non-finite geometry                                    |
-| `skills/effect-three/assets/headless`         | `npm install`, `npm run check`, `npm test`                                                                                         | Published effect-three 0.1.0, three 0.186.1, Effect 4.0.0; three Node tests (identity, release, atomic rejection); no browser or FoldKit |
-| `skills/effect-three/assets/foldkit-scene.ts` | Typecheck beside `headless/src/scene.ts` in a consumer with the four effect-three 0.1.0 packages, FoldKit 0.167.0 and Effect 4.0.0 | Compiled against the published packages; not rendered (it needs a WebGL2 browser)                                                        |
+| Example                                       | Commands in copied directory                                                                                                                                                            | Qualification                                                                                                                                      |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `skills/astro-foldkit/assets/counter`         | `bun install`, `bun run check`, `bun run test`, `bun run build`                                                                                                                         | Published integration 0.9.3, Astro 7.4.0, FoldKit 0.170.0, Effect 4.1.0 (with `@effect/platform-browser` 4.1.0); three tests and two static routes |
+| `skills/foldkit-viz/assets/scatter`           | `bun install`, `bun run check`, `bun run test`                                                                                                                                          | Published Viz 0.15.0; four geometry tests; no Astro, FoldKit or Effect installed                                                                   |
+| `skills/foldkit-viz/assets/foldkit-view.ts`   | Typecheck in a separate Viz 0.15.0 / FoldKit 0.170.0 / Effect 4.1.0 consumer; render using the parent builder                                                                           | Compiled against the published packages; rendering last checked on Viz 0.11.0 via FoldKit server rendering                                         |
+| `skills/effect-three/assets/headless`         | `npm install`, `npm run check`, `npm test`                                                                                                                                              | Published effect-three 0.6.4, three 0.186.1, Effect 4.1.0; three Node tests (identity, release, atomic rejection); no browser or FoldKit           |
+| `skills/effect-three/assets/foldkit-scene.ts` | Typecheck beside `headless/src/scene.ts` (with the DOM lib) in a consumer with the four effect-three 0.6.4 packages, FoldKit 0.170.0, Effect 4.1.0 and `@effect/platform-browser` 4.1.0 | Compiled against the published packages; not rendered (it needs a WebGL2 browser)                                                                  |
 
-These checks were executed when authoring the skills. They are not part of the
+These checks were last run on 2026-11-05. `bun run check` runs `tools/check-skills.ts`,
+which fails when an example pins a third-party version other than the root catalog's,
+or a SKILL.md names a version its examples don't install, and warns when an `@opsydyn/*`
+pin is behind the package. It reads versions only: re-run the examples when they change. They are not part of the
 root workspace test script: skill assets are outside the workspace globs, and
 the repository's normal lint/format configuration excludes `skills/**`.
 Re-run them when changing assets or supported package versions; explicitly

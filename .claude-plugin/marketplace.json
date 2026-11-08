@@ -1,0 +1,28 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "opsydyn",
+  "description": "Agent skills for the opsydyn FoldKit packages and this repository's tech radar",
+  "owner": { "name": "Alan P Currie" },
+  "plugins": [
+    {
+      "name": "foldkit-packages",
+      "description": "Skills for building with @opsydyn/astro-foldkit, @opsydyn/foldkit-viz and the effect-three packages: Astro islands and pages, chart geometry, and 3D scenes kept in a FoldKit Model.",
+      "author": { "name": "Alan P Currie" },
+      "category": "development",
+      "homepage": "https://github.com/opsydyn/fold-kit-experiments/tree/main/skills",
+      "source": "./skills",
+      "strict": false,
+      "skills": ["./astro-foldkit", "./foldkit-viz", "./effect-three"]
+    },
+    {
+      "name": "tech-radar",
+      "description": "A skill for the tech radar in opsydyn/fold-kit-experiments: adding and moving entries, editions, previews and deploys.",
+      "author": { "name": "Alan P Currie" },
+      "category": "productivity",
+      "homepage": "https://github.com/opsydyn/fold-kit-experiments/tree/main/skills/tech-radar",
+      "source": "./skills",
+      "strict": false,
+      "skills": ["./tech-radar"]
+    }
+  ]
+}

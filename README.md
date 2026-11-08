@@ -63,6 +63,23 @@ Three independent consumer skills are maintained alongside the packages:
   the FoldKit adapter, Rapier physics and troika labels, Model-owned cameras and XR,
   WebGL or WebGPU, and headless tests; no Astro dependency.
 
+One skill is for this repository's own app:
+
+- [tech-radar](skills/tech-radar/SKILL.md): adding and moving entries on the tech radar,
+  editions, keeping its test fixture in step, previews and deploys.
+
+In Claude Code, this repository is a plugin marketplace: the package skills install as
+one plugin, wherever you build with the packages.
+
+```sh
+/plugin marketplace add opsydyn/fold-kit-experiments
+/plugin install foldkit-packages@opsydyn
+```
+
+`tech-radar@opsydyn` is the tech radar's skill, for working in this repository. Other
+agents can copy a skill's folder: each is self-contained (`agents/openai.yaml` is Codex's
+metadata).
+
 Install any complete skill folder through your agent host's skill installer,
 preserving its `SKILL.md`, `agents`, `references` and `assets`. They are not
 installed by the npm packages and do not require each other. Each includes a

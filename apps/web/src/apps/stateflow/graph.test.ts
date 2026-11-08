@@ -27,4 +27,21 @@ describe('stateflow graph adapter', () => {
     expect(cleared.every((edge) => edge.transitionCount === 0)).toBe(true);
     expect(graph.nodes.find((node) => node.id === 'Selecting')?.role).toBe('active');
   });
+
+  it('marks each state by its role: where the machine is, failures, passing and the start', () => {
+    const roles = (cursor: number) =>
+      Object.fromEntries(
+        graphFor({ ...initModel, cursor }).nodes.map(({ id, role }) => [id, role]),
+      );
+
+    // At the start the machine is in Loading, so the initial state shows as active.
+    expect(roles(0)).toMatchObject({
+      Loading: 'active',
+      Failed: 'error',
+      Cancelling: 'transient',
+      Ready: 'normal',
+    });
+    // Once it has moved on, Loading is a passing state again.
+    expect(roles(1)).toMatchObject({ Ready: 'active', Loading: 'transient', Idle: 'normal' });
+  });
 });

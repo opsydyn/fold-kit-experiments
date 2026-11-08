@@ -69,6 +69,8 @@ modelling toolkit within that family.
 2. **Distinct Zloz logo and shared family identity.** Create a logo representing
    Zloz, while following the styling, typography and visual identity established
    by the Viz and Three promo sites. Define reusable assets and light/dark usage.
+   Three [SVG concepts and family-header proofs](assets/zloz/README.md) are now
+   available in both themes. Selection and final asset refinement remain open.
 3. **Promo site.** Build a dedicated Zloz product site in the same family as Viz
    and Three, presenting the positioning, principles and Compose / Model /
    Communicate capabilities with real package-backed examples.

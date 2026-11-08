@@ -1,0 +1,118 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ZlozFamilyHeader from '../../components/ZlozFamilyHeader.astro';
+import { decorativeLogo } from '../../lib/zloz-logo-review';
+import assembly from '../../../../../docs/assets/zloz/assembly-junction.svg?raw';
+import assemblyMono from '../../../../../docs/assets/zloz/assembly-junction-mono.svg?raw';
+import assemblyUrl from '../../../../../docs/assets/zloz/assembly-junction.svg?url';
+import assemblyMonoUrl from '../../../../../docs/assets/zloz/assembly-junction-mono.svg?url';
+import nested from '../../../../../docs/assets/zloz/nested-frame.svg?raw';
+import nestedMono from '../../../../../docs/assets/zloz/nested-frame-mono.svg?raw';
+import nestedUrl from '../../../../../docs/assets/zloz/nested-frame.svg?url';
+import nestedMonoUrl from '../../../../../docs/assets/zloz/nested-frame-mono.svg?url';
+import connected from '../../../../../docs/assets/zloz/connected-planes.svg?raw';
+import connectedMono from '../../../../../docs/assets/zloz/connected-planes-mono.svg?raw';
+import connectedUrl from '../../../../../docs/assets/zloz/connected-planes.svg?url';
+import connectedMonoUrl from '../../../../../docs/assets/zloz/connected-planes-mono.svg?url';
+
+const concepts = [
+  { id: 'a', letter: 'A', name: 'Assembly junction', color: assembly, mono: assemblyMono, url: assemblyUrl, monoUrl: assemblyMonoUrl, idea: 'Three parts. One intentional connection.', detail: 'Faceted pieces meet around an open port. The right-hand spine gives the assembled system a compact, distinct silhouette.', tradeoff: 'Strong assembly story; more abstract than a diagram boundary.' },
+  { id: 'b', letter: 'B', name: 'Nested frame', color: nested, mono: nestedMono, url: nestedUrl, monoUrl: nestedMonoUrl, idea: 'A system within a system.', detail: 'A folded boundary contains a smaller element and a bridge. The mark makes architectural containment explicit.', tradeoff: 'Clear modelling cue; the folded corner can also read as a document.' },
+  { id: 'c', letter: 'C', name: 'Connected planes', color: connected, mono: connectedMono, url: connectedUrl, monoUrl: connectedMonoUrl, idea: 'Independent pieces, composed together.', detail: 'Two offset planes meet through a stepped connection. A lighter, more open silhouette emphasizes extensibility.', tradeoff: 'Direct connection story; less compact at favicon scale.' },
+];
+---
+<Layout title="Foldkit Zloz — Three logo concepts" description="Three SVG logo concepts, compared with Foldkit Viz and effect-three in light, dark and monochrome.">
+  <div class="zloz-review">
+    <section class="review-intro" aria-labelledby="review-title">
+      <p class="eyebrow">Family identity / Concept review</p>
+      <h1 id="review-title">Three ways to Zloz.</h1>
+      <p class="review-tagline">Compose systems. Connect ideas.</p>
+      <p class="review-context">Three distinct SVG studies in the Viz and Three visual family. These are concepts for comparison; no final mark has been selected.</p>
+      <nav class="concept-jump" aria-label="Logo concepts">{concepts.map(concept => <a href={`#concept-${concept.id}`}>{concept.letter} · {concept.name} <span aria-hidden="true">↓</span></a>)}</nav>
+    </section>
+    <section class="concept-overview" aria-label="Three Zloz silhouettes">
+      {concepts.map(concept => <a class="overview-mark" href={`#concept-${concept.id}`} aria-label={`Review concept ${concept.letter}: ${concept.name}`}>
+        <span class="overview-symbol"><Fragment set:html={decorativeLogo(concept.color)} /></span>
+        <span class="overview-label"><span>{concept.letter}</span><strong>{concept.name}</strong></span>
+      </a>)}
+    </section>
+    <div class="concept-studies">
+      {concepts.map(concept => <section class="concept-study" id={`concept-${concept.id}`} aria-labelledby={`title-${concept.id}`}>
+        <div class="study-heading"><div><p class="eyebrow">Concept {concept.letter}</p><h2 id={`title-${concept.id}`}>{concept.name}</h2></div><p>{concept.idea}</p></div>
+        <div class="theme-pair">
+          {(['light', 'dark'] as const).map(mode => <figure class={`proof-theme proof-${mode}`} data-logo-concept={concept.id} data-logo-mode={mode}>
+            <figcaption><span>{mode === 'light' ? 'Light' : 'Dark'} family header</span><span>Equal-size marks</span></figcaption>
+            <ZlozFamilyHeader mark={concept.color} concept={concept.letter} mode={mode} />
+            <div class="proof-scale-row">
+              <span class="proof-scale-title">Small-size proof</span>
+              {[16, 24, 32].map(size => <span class="size-proof"><span class="size-mark" style={`--mark-size: ${size}px`} data-logo-size={size}><Fragment set:html={decorativeLogo(concept.color)} /></span><span>{size}px</span></span>)}
+              <span class="size-proof mono-proof"><span class="size-mark" style="--mark-size: 32px" data-logo-mono><Fragment set:html={decorativeLogo(concept.mono)} /></span><span>Mono</span></span>
+            </div>
+          </figure>)}
+        </div>
+        <div class="study-notes"><p>{concept.detail}</p><p><span>Consider:</span> {concept.tradeoff}</p><div class="asset-links"><a href={concept.url} download={`zloz-${concept.id}.svg`}>Color SVG <span aria-hidden="true">↗</span></a><a href={concept.monoUrl} download={`zloz-${concept.id}-mono.svg`}>Mono SVG <span aria-hidden="true">↗</span></a></div></div>
+      </section>)}
+    </div>
+    <section class="review-outcome" aria-labelledby="review-outcome-title"><p class="eyebrow">Direction for discussion</p><h2 id="review-outcome-title">Start with the junction.</h2><p>A is the recommended starting direction: assembly and connection in one compact mark. B gives architecture a more literal voice; C gives composition more space. Choose the silhouette before refining the final lockup and assets.</p><p class="origin-note">Zloz comes from <span lang="pl">Złóż</span>: fold, assemble, put together. The public name stays Zloz.</p></section>
+  </div>
+</Layout>
+
+<style>
+  .zloz-review { padding-bottom: 64px; }
+  .review-intro { max-width: 760px; padding: 52px 0 28px; }
+  .review-intro h1 { font-size: clamp(38px, 5vw, 68px); letter-spacing: -3px; line-height: 1.04; margin: 16px 0; font-weight: 760; }
+  .review-tagline { font-size: 22px; letter-spacing: -0.7px; margin: 20px 0 12px; }
+  .review-context { color: var(--muted); font-size: 15px; line-height: 1.65; max-width: 66ch; }
+  .concept-jump { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 28px; font-size: 13px; }
+  .concept-jump a { border-bottom: 1px solid var(--rule); padding-bottom: 6px; }
+  .concept-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--border); margin: 16px 0 72px; }
+  .overview-mark { min-width: 0; padding: 36px 20px 24px; }
+  .overview-mark + .overview-mark { border-left: 1px solid var(--border); }
+  .overview-symbol { display: flex; min-height: 144px; align-items: center; justify-content: center; }
+  .overview-symbol :global(svg) { width: 128px; height: 128px; }
+  .overview-label { display: flex; align-items: baseline; gap: 14px; margin-top: 28px; font-size: 15px; }
+  .overview-label > span { color: var(--muted); font-size: 12px; }
+  .overview-label strong { font-weight: 600; }
+  .concept-study { margin: 0 0 72px; scroll-margin-top: 24px; }
+  .study-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 24px; }
+  .study-heading h2 { margin: 8px 0 0; font-size: clamp(26px, 3vw, 38px); letter-spacing: -1.3px; font-weight: 650; }
+  .study-heading > p { color: var(--muted); font-size: 14px; }
+  .theme-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  /* Pinned family colors permit simultaneous light/dark proofs, independent of outer chrome. */
+  .proof-theme { margin: 0; min-width: 0; border: 1px solid var(--proof-border); background: var(--proof-surface); color: var(--proof-text); }
+  .proof-light { color-scheme: light; --proof-surface: #fffefa; --proof-text: #151619; --proof-muted: #5d6574; --proof-border: #d9dce1; --blue: #3d79fa; --gold: #f5ce60; --coral: #fa8b79; --periwinkle: #b3c9fc; }
+  .proof-dark { color-scheme: dark; --proof-surface: #191c24; --proof-text: #f4f2ed; --proof-muted: #adb6c7; --proof-border: #303641; --blue: #4485ff; --gold: #ffda66; --coral: #ff9485; --periwinkle: #98b5ff; }
+  .proof-theme figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 12px 20px; font-size: 11px; color: var(--proof-muted); }
+  .proof-scale-row { display: flex; align-items: center; gap: 24px; padding: 20px; }
+  .proof-scale-title { margin-right: auto; color: var(--proof-muted); font-size: 11px; }
+  .size-proof { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 10px; color: var(--proof-muted); }
+  .size-mark { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; color: var(--proof-text); }
+  .size-mark :global(svg) { width: var(--mark-size); height: var(--mark-size); }
+  .study-notes { display: grid; grid-template-columns: 1.3fr 1fr auto; gap: 28px; align-items: start; margin-top: 18px; }
+  .study-notes p { margin: 0; font-size: 13px; line-height: 1.65; color: var(--muted); }
+  .study-notes p span { color: var(--text); }
+  .asset-links { display: flex; gap: 18px; white-space: nowrap; font-size: 12px; }
+  .asset-links a { padding-bottom: 4px; border-bottom: 1px solid var(--rule); }
+  .review-outcome { border-top: 1px solid var(--border); padding-top: 36px; max-width: 800px; }
+  .review-outcome h2 { font-size: 38px; letter-spacing: -1.4px; margin: 12px 0 20px; }
+  .review-outcome > p:not(.eyebrow) { color: var(--muted); font-size: 15px; line-height: 1.7; }
+  .origin-note { padding-top: 16px; }
+  @media (max-width: 1100px) { .theme-pair { grid-template-columns: 1fr; } .study-notes { grid-template-columns: 1fr 1fr; } .asset-links { grid-column: 1 / -1; } }
+  @media (max-width: 720px) {
+    .review-intro { padding-top: 28px; }
+    .review-intro h1 { letter-spacing: -1.7px; }
+    .review-tagline { font-size: 19px; }
+    .concept-overview { margin-bottom: 48px; }
+    .overview-mark { padding: 20px 8px 16px; }
+    .overview-symbol { min-height: 80px; }
+    .overview-symbol :global(svg) { width: 64px; height: 64px; }
+    .overview-label { flex-direction: column; gap: 6px; font-size: 11px; margin-top: 16px; }
+    .study-heading { display: block; }
+    .study-heading > p { margin-top: 12px; }
+    .proof-theme figcaption { padding: 12px; font-size: 10px; }
+    .proof-scale-row { gap: 16px; padding: 16px 12px; }
+    .proof-scale-title { font-size: 10px; }
+    .study-notes { grid-template-columns: 1fr; gap: 12px; }
+    .review-outcome h2 { font-size: 30px; }
+  }
+</style>

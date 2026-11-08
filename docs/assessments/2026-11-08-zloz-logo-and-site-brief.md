@@ -6,6 +6,11 @@ fixed below; the recommended mark direction and technical names are proposals.
 See the [migration inventory](2026-11-08-zloz-naming-migration-inventory.md) for
 compatibility, source ownership and delivery gates.
 
+**Implementation follow-up:** The approved [three SVG concepts](../assets/zloz/README.md)
+now have shared family-header proofs in both themes, with
+[local visual evidence](../../apps/promo/evidence/zloz-logos.md). No final mark is
+selected; the original planning-slice status above is retained as history.
+
 ## Product and audience
 
 **Foldkit Zloz** is a functional, extensible graph toolkit for interactive node

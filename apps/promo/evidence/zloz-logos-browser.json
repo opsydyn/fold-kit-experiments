@@ -1,0 +1,13 @@
+{
+  "result": "pass",
+  "url": "http://127.0.0.1:4328/brand/zloz/",
+  "headers": 6,
+  "familyMarks": 18,
+  "downloads": 6,
+  "desktop": "1600px; 32px family marks",
+  "mobile": "390px; 24px family marks",
+  "smallSizes": [16, 24, 32],
+  "themeToggle": "pass",
+  "overflow": "none at tested widths",
+  "pageErrors": []
+}

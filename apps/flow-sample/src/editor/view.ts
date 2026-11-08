@@ -38,6 +38,7 @@ import {
   flowMinimapViewport,
   resolveFlowDiagnostics,
   type FlowBackground,
+  type FlowNodeRenderContext,
 } from '@opsydyn/foldkit-flow/foldkit';
 import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
@@ -103,6 +104,11 @@ type WorkbenchEdgeHooks = {
 
 const workbenchNodeCache = createLazy();
 const workbenchBodyCache = createFlowNodeBodyCache();
+const orbitBodyCache = createFlowNodeBodyCache();
+const retainedOrbitNode = (context: FlowNodeRenderContext, h: HtmlBuilder<Message>) =>
+  orbitNode(context, h, orbitBodyCache);
+const retainedOrbitGroup = (context: FlowNodeRenderContext, h: HtmlBuilder<Message>) =>
+  orbitGroup(context, h, orbitBodyCache);
 const flowInput = (message: EditorEvent) => Message.ObservedFlowInput({ message });
 
 const reconnectionRadiusOptions = {
@@ -2086,14 +2092,23 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           },
           ...edgeHooks,
           viewportCulling: model.viewportCulling,
-          nodeViewCache: model.retainNodeViews ? workbenchNodeCache : undefined,
-          nodeBodyCache: model.retainNodeViews ? workbenchBodyCache : undefined,
+          nodeViewCache:
+            model.retainNodeViews && model.nodeDesign !== 'orbits' ? workbenchNodeCache : undefined,
+          nodeBodyCache:
+            model.retainNodeViews && model.nodeDesign !== 'orbits' ? workbenchBodyCache : undefined,
           renderWorldOverlay: (context, builder) =>
             model.showWorldAnnotation ? releaseGateAnnotation(context, builder) : null,
-          renderNodeShell: model.nodeDesign === 'orbits' ? orbitNode : undefined,
+          renderNodeShell:
+            model.nodeDesign === 'orbits'
+              ? model.retainNodeViews
+                ? retainedOrbitNode
+                : orbitNode
+              : undefined,
           renderGroupShell: (context, builder) => {
-            if (model.nodeDesign === 'orbits') return orbitGroup(context, builder);
-            return undefined;
+            if (model.nodeDesign !== 'orbits') return undefined;
+            return model.retainNodeViews
+              ? retainedOrbitGroup(context, builder)
+              : orbitGroup(context, builder);
           },
           minimalMode: model.minimalMode,
           diagnostics: model.diagnosticsEnabled ? model.diagnostics : false,

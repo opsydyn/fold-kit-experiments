@@ -51,6 +51,7 @@ import {
   type FlowPortAnchorGuideContext,
   flowResizeHandle,
   type FlowNodeRenderContext,
+  type FlowNodeBodyCache,
   type FlowPortRenderContext,
 } from '@opsydyn/foldkit-flow/foldkit';
 import type { HtmlBuilder } from 'foldkit/html';
@@ -185,9 +186,90 @@ export function storageDependencyEdge(
     : undefined;
 }
 
+function orbitNodeBody(
+  h: HtmlBuilder<Message>,
+  node: FlowNode,
+  selected: boolean,
+  preview: boolean,
+) {
+  return h.span(
+    [
+      h.Class('orbit-node-body'),
+      h.DataAttribute('orbit-body', node.id),
+      h.Style({ display: 'contents' }),
+    ],
+    [
+      h.svg(
+        [
+          h.ViewBox('0 0 100 100'),
+          h.Width('100%'),
+          h.Height('100%'),
+          h.AriaHidden(true),
+          h.Style({ display: 'block', 'pointer-events': 'none' }),
+        ],
+        [
+          h.circle(
+            [
+              h.Cx('50'),
+              h.Cy('50'),
+              h.R('48'),
+              h.Fill('#172554'),
+              h.Stroke(preview ? '#5eead4' : selected ? '#f97316' : '#38bdf8'),
+              h.StrokeDasharray(preview ? '5 3' : 'none'),
+              h.StrokeWidth(selected || preview ? '3' : '1'),
+            ],
+            [],
+          ),
+          h.circle(
+            [
+              h.Cx('50'),
+              h.Cy('50'),
+              h.R('41'),
+              h.Fill('none'),
+              h.Stroke('#38bdf8'),
+              h.StrokeWidth('0.4'),
+              h.StrokeDasharray('2 3'),
+            ],
+            [],
+          ),
+        ],
+      ),
+      h.span(
+        [
+          h.Style({
+            position: 'absolute',
+            inset: '28px',
+            display: 'grid',
+            'place-items': 'center',
+            'font-size': '16px',
+            'font-weight': '700',
+            'line-height': '1.3',
+            'pointer-events': 'none',
+          }),
+        ],
+        [node.label],
+      ),
+    ],
+  );
+}
+
+function orbitGroupBody(h: HtmlBuilder<Message>, node: FlowNode) {
+  return h.span(
+    [h.Class('orbit-group-body'), h.DataAttribute('orbit-body', node.id)],
+    [node.label],
+  );
+}
+
 /** A complete shell composed exclusively from supported package primitives. */
-export function orbitNode(context: FlowNodeRenderContext, h: HtmlBuilder<Message>) {
+export function orbitNode(
+  context: FlowNodeRenderContext,
+  h: HtmlBuilder<Message>,
+  cache?: FlowNodeBodyCache,
+) {
   const selected = context.state.selectedNodes.includes(context.node.id);
+  const artwork = cache
+    ? cache(context.node, orbitNodeBody, [h, context.node, selected, context.selectionPreview])
+    : orbitNodeBody(h, context.node, selected, context.selectionPreview);
   return flowNodeFrame(
     h,
     context,
@@ -210,58 +292,7 @@ export function orbitNode(context: FlowNodeRenderContext, h: HtmlBuilder<Message
             cursor: context.state.readOnly ? 'pointer' : 'grab',
           }),
         ],
-        [
-          h.svg(
-            [
-              h.ViewBox('0 0 100 100'),
-              h.Width('100%'),
-              h.Height('100%'),
-              h.AriaHidden(true),
-              h.Style({ display: 'block', 'pointer-events': 'none' }),
-            ],
-            [
-              h.circle(
-                [
-                  h.Cx('50'),
-                  h.Cy('50'),
-                  h.R('48'),
-                  h.Fill('#172554'),
-                  h.Stroke(context.selectionPreview ? '#5eead4' : selected ? '#f97316' : '#38bdf8'),
-                  h.StrokeDasharray(context.selectionPreview ? '5 3' : 'none'),
-                  h.StrokeWidth(selected || context.selectionPreview ? '3' : '1'),
-                ],
-                [],
-              ),
-              h.circle(
-                [
-                  h.Cx('50'),
-                  h.Cy('50'),
-                  h.R('41'),
-                  h.Fill('none'),
-                  h.Stroke('#38bdf8'),
-                  h.StrokeWidth('0.4'),
-                  h.StrokeDasharray('2 3'),
-                ],
-                [],
-              ),
-            ],
-          ),
-          h.span(
-            [
-              h.Style({
-                position: 'absolute',
-                inset: '28px',
-                display: 'grid',
-                'place-items': 'center',
-                'font-size': '16px',
-                'font-weight': '700',
-                'line-height': '1.3',
-                'pointer-events': 'none',
-              }),
-            ],
-            [context.node.label],
-          ),
-        ],
+        [artwork],
       ),
       ...(context.resizeHandles.length
         ? [
@@ -314,8 +345,15 @@ export function orbitNode(context: FlowNodeRenderContext, h: HtmlBuilder<Message
   );
 }
 
-export function orbitGroup(context: FlowNodeRenderContext, h: HtmlBuilder<Message>) {
+export function orbitGroup(
+  context: FlowNodeRenderContext,
+  h: HtmlBuilder<Message>,
+  cache?: FlowNodeBodyCache,
+) {
   const selected = context.state.selectedNodes.includes(context.node.id);
+  const label = cache
+    ? cache(context.node, orbitGroupBody, [h, context.node])
+    : orbitGroupBody(h, context.node);
   return flowGroupFrame(
     h,
     context,
@@ -348,7 +386,7 @@ export function orbitGroup(context: FlowNodeRenderContext, h: HtmlBuilder<Messag
             cursor: 'grab',
           }),
         ],
-        [context.node.label],
+        [label],
       ),
       h.button(
         [

@@ -27,6 +27,7 @@ const profilePath = process.env.FLOW_CHOOSER_CPU_PROFILE;
 const retained = process.env.FLOW_CHOOSER_BENCH_RETAINED === '1';
 const retainedCreation = process.env.FLOW_CHOOSER_BENCH_RETAINED_CREATION === '1';
 const portPolicy = process.env.FLOW_CHOOSER_BENCH_PORT_POLICY === '1';
+const orbitShells = process.env.FLOW_CHOOSER_BENCH_ORBITS === '1';
 const viewport = { width: 1280, height: 1100 };
 const runs = profilePath ? 1 : 3;
 const warmup = 4;
@@ -250,9 +251,29 @@ async function qualify(browser, fixture) {
         await page
           .getByRole('button', { name: 'Open large workflow (320 nodes)', exact: true })
           .click();
+      if (orbitShells)
+        await page
+          .getByRole('combobox', { name: 'Node design', exact: true })
+          .selectOption('orbits');
       const surface = page.locator('[data-flow-surface]');
       await expect(surface.locator('[data-flow-node]')).toHaveCount(fixture.large ? 320 : 3);
       await expect(surface.locator('[data-flow-edge]')).toHaveCount(fixture.large ? 452 : 1);
+      if (orbitShells) {
+        await expect(surface.locator('.orbit-node')).toHaveCount(fixture.large ? 320 : 3);
+        // Settle Model-owned circle measurements before the timed query inputs.
+        await expect
+          .poll(async () => {
+            const [download] = await Promise.all([
+              page.waitForEvent('download'),
+              page.getByRole('button', { name: 'Export JSON', exact: true }).click(),
+            ]);
+            const graph = JSON.parse(await readFile(await download.path(), 'utf8')).graph;
+            return graph.nodes.every(
+              (node) => node.kind === 'group' || node.size.height === node.size.width,
+            );
+          })
+          .toBe(true);
+      }
       if (retained) {
         const toggle = page.getByRole('button', { name: 'Retain node views', exact: true });
         await toggle.click();
@@ -312,6 +333,8 @@ async function qualify(browser, fixture) {
       await page.evaluate(() => document.fonts.ready);
       await input.focus();
       metadata = {
+        orbitShells,
+        mountedOrbitBodies: await surface.locator('[data-orbit-body]').count(),
         portPolicyEnabled: portPolicy,
         mountedNodeBodies: await surface.locator('[data-flow-node-body]').count(),
         nodes: fixture.large ? 320 : 3,
@@ -386,6 +409,7 @@ async function main() {
           cpuThrottling: 'none',
           retainedNodeViews: retained,
           portPolicyEnabled: portPolicy,
+          orbitShells,
           profileOnly: Boolean(profilePath),
           method:
             'serial direct trusted keyboard z/Backspace inputs alternating broad/selective result sets with no results; DOM acknowledgement then next rAF; not INP or paint latency',

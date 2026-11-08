@@ -2,7 +2,8 @@ import { createLazy, type Html } from 'foldkit/html';
 
 import type { FlowNode } from './types';
 
-/** Per-canvas memoization of built-in bodies; ports are evaluated outside the slot. */
+/** Per-canvas body memoization for built-in or explicitly composed custom shells.
+ * Keep controls and port authorization outside retained artwork. */
 export type FlowNodeBodyCache = <Args extends readonly unknown[]>(
   node: FlowNode,
   view: (...args: Args) => Html,

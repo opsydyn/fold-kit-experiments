@@ -1581,6 +1581,47 @@ Custom shells, node-body policies, open context panels, visibility/group filteri
 and editing gestures keep their live path. This is view memoization only; graph
 edits, current permission checks, measurements and Undo remain Model-owned.
 
+### Compose the cache inside a custom shell
+
+Custom shells can call the same public cache explicitly. The workbench Orbit
+node caches its SVG/label using `[h, node, selected, selectionPreview]`; the Orbit
+group caches only its label using `[h, node]`. Handles, resize/collapse buttons,
+frames and sockets stay live. Do not pass the complete context, graph or a port
+policy into an artwork-only key.
+
+```ts
+const shellCache = createFlowNodeBodyCache(); // one cache per canvas/body position
+
+// Inside a custom shell; drawArtwork accepts exactly these immutable inputs.
+const artwork = shellCache(context.node, drawArtwork, [
+  h,
+  context.node,
+  selected,
+  context.selectionPreview,
+]);
+return flowNodeFrame(
+  h,
+  context,
+  [],
+  [
+    flowDragHandle(h, context, [], [artwork]),
+    ...context.resizeHandles,
+    ...(context.ports ??
+      context.node.ports.map((port) =>
+        flowPort(h, context, port, [], [port.kind === 'output' ? '→' : '←']),
+      )),
+  ],
+);
+```
+
+Use the same artwork constructor and root shape with caching on or off so an
+optional optimization does not replace live controls. Include every value the
+artwork actually reads in its arguments. The automatic `nodeBodyCache` option
+still falls back for complete custom shells; this is explicit composition using
+public frames, controls and cache functions, without private input attributes or
+an alternate permission path. See the
+[Orbit composition evidence](../../apps/flow-sample/evidence/orbit-body-cache.md).
+
 ### Cull canvas items outside the viewport
 
 Set `viewportCulling: true` on `flowView` to mount canvas items near the

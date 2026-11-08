@@ -408,3 +408,9 @@ optional view peers; ELK and force layout are separately installed adapters.
 Policies and view configuration are functions outside serialized documents.
 Outside-box anchors and arbitrary routing normals are not part of the
 current contract.
+
+Custom shells may compose `createFlowNodeBodyCache()` directly around decorative
+artwork/labels with explicit immutable arguments. The workbench Orbit example
+keeps drag/resize/collapse controls, frames and native/custom sockets outside the
+slot. Automatic retention still excludes whole custom-shell contexts. Reuse the
+same body constructor across cached/live modes to preserve element identity.

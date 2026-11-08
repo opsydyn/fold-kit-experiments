@@ -2,6 +2,9 @@
 
 ## 0.1.0 (unreleased)
 
+- Document explicit public body-cache composition for custom Orbit node/group
+  artwork, with controls and policy-controlled sockets evaluated live.
+
 - Add opt-in per-node body retention with live native/custom ports and fresh port
   policies, preserving frame geometry, control order and focused body inputs.
 

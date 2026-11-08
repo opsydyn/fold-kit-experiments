@@ -192,6 +192,8 @@ loss. A general multi-view architecture repository, deployment modelling,
 Structurizr interchange, automatic code discovery and publication are outside
 this appetite and need their own decisions.
 
-**Recommended next:** the requested product assessment of Mermaid/agent
-interchange and editions. Broader pattern insertion and DDD authoring remain
-queued through the same package APIs; this assessment does not implement them.
+**Recommended next:** review the
+[Mermaid/agent/edition assessment](2026-11-08-flow-mermaid-agents-and-editions.md)
+and its bounded interoperability spike. Broader pattern insertion and DDD
+authoring remain queued through the same package APIs; the assessment implements
+neither capability.

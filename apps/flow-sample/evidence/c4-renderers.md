@@ -117,3 +117,6 @@ of runtime, tests and driver files used before commit.
 
 Final recommendation: **needs follow-up** for the planned interchange/edition
 product decisions and subsequent DDD/pattern authoring work.
+
+The subsequent [product assessment](../../../docs/assessments/2026-11-08-flow-mermaid-agents-and-editions.md)
+records those recommendations separately from this implementation.

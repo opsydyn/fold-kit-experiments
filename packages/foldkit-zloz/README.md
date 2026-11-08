@@ -2547,7 +2547,72 @@ projections and custom route fidelity require explicit integration. Themes use
 scoped Zloz paint tokens. Minimal-mode masking is a host presentation choice.
 
 This is named snapshot review, separate from session Undo and the monotonic editor
-freshness revision. Playback, restore/fork/merge, collaborative history and agent
-history commands remain subsequent slices. The workbench demonstrates named
+freshness revision. Playback, fork/merge, collaborative history and agent history commands remain
+subsequent slices. Archive import and undoable restore are described below. The workbench demonstrates named
 capture, portable archive download, rewind, baseline comparison, ghost controls
 and return; it labels session ownership and does not automatically persist data.
+
+## Import and restore editions
+
+```ts
+import {
+  parseEditions,
+  mergeEditions,
+  resolveEditionRestore,
+  restoreEdition,
+} from '@opsydyn/foldkit-zloz';
+
+const incoming = parseEditions(archiveText);
+const merged = mergeEditions(model.editions, incoming);
+// merged.type is merged / unchanged / blocked. Never discard the working editor.
+const options = { expectedRevision: model.editor.revision, policy: hostRestorePolicy };
+const preview = resolveEditionRestore(model.editor, selectedEdition, options);
+// Keep the target and expectedRevision in your Model. On explicit confirmation:
+const result =
+  preview.type === 'ready'
+    ? restoreEdition(model.editor, preview.edition, {
+        expectedRevision: preview.expectedRevision,
+        policy: currentRestorePolicy,
+      })
+    : null;
+// Only result?.type === 'restored' publishes a new graph transaction.
+```
+
+`mergeEditions` is additive and atomic. Identical IDs with identical names and
+snapshots are skipped, ignoring JSON object-key order. Conflicting IDs or duplicate
+incoming IDs reject the entire batch. No edition is overwritten; an unchanged
+merge retains the existing collection reference. Parse errors throw through the
+canonical codec, and merge conflicts return `ZlozEditionMergeDecision`.
+
+`ZlozEditionRestoreOptions.expectedRevision` is required. Store it with the exact
+target when presenting a preview and retain it at confirmation; passing the latest
+revision instead would defeat stale-intent protection. Both resolve and commit
+check freshness, read-only state, idle gestures, canonical target validity and
+current policy. Restore requires enabled Undo history. Exact graph no-ops return
+unchanged without a new revision or Undo entry. Invalid editions fail before
+mutation; expected denials return a blocked reason and the original editor.
+
+Restore uses the existing graph transaction: one Undo entry, a new monotonic
+freshness revision, invalidated routes and cleared connection/draft state. The
+working camera is preserved; the edition's saved camera is for inspection.
+Undo/Redo recover the previous/restored graphs. The edition collection is not part
+of graph Undo and is never modified by restore.
+
+`ZlozEditionRestorePolicy` extends `EditorPolicy` with `canRestoreEdition` for whole
+replacement rules, including fields without granular hooks. Existing deletion,
+movement/reparenting, resize, architecture, appearance and retained-node port-edit
+hooks are enforced. Port kind changes check remove/add. Node deletion and initial
+ports on added nodes follow the existing node operation semantics. New/rewired
+connections recheck connection policies against the complete candidate graph
+without that edge; reconnect hooks use the original edge/current graph, and an
+unchanged endpoint is not a new port connection. Policy vetoes, including blank
+strings, never silently become permission. Keep policies pure and pass current
+policy at confirmation rather than caching a ready result.
+
+The workbench reads a single archive up to 5 MiB with strict UTF-8 decoding,
+validates before merging, and rejects cancelled, superseded or collection-stale
+results. Import preserves the working graph/camera/Undo. A preview, cancel action,
+live protection reason and explicit **Restore as new change** action demonstrate
+the package contract. Editions remain session-owned until exported; import does
+not enable automatic persistence. Forks, merging branches and playback remain
+separate slices.

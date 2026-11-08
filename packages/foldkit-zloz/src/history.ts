@@ -262,3 +262,32 @@ export function compareEditions(
     ),
   };
 }
+
+export type ZlozEditionMergeDecision =
+  | Readonly<{ type: 'merged' | 'unchanged'; editions: readonly ZlozEdition[] }>
+  | Readonly<{ type: 'blocked'; reason: string }>;
+/** Atomic additive import. Identical identities are idempotent; conflicts never overwrite existing editions. */
+export function mergeEditions(
+  current: readonly ZlozEdition[],
+  incoming: readonly ZlozEdition[],
+): ZlozEditionMergeDecision {
+  const existing = new Map(current.map((item) => [item.id, item]));
+  if (existing.size !== current.length)
+    return { type: 'blocked', reason: 'Current edition IDs are not unique.' };
+  const checked = incoming.map(captureEdition);
+  if (new Set(checked.map((item) => item.id)).size !== checked.length)
+    return { type: 'blocked', reason: 'Imported edition IDs are not unique.' };
+  for (const item of checked) {
+    const previous = existing.get(item.id);
+    if (previous && !historyValueEqual(previous, item))
+      return { type: 'blocked', reason: `Conflicting edition ID: ${item.id}` };
+  }
+  const additions = checked.filter((item) => !existing.has(item.id));
+  return additions.length === 0
+    ? { type: 'unchanged', editions: current }
+    : { type: 'merged', editions: Object.freeze([...current, ...additions]) };
+}
+/** @internal Shared JSON-value comparison at the edition transaction boundary. */
+export function historyValueEqual<T>(a: T, b: T): boolean {
+  return canonical(a) === canonical(b);
+}

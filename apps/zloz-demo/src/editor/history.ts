@@ -3,10 +3,13 @@ import {
   isHistoryNavigationEvent,
   type EditorEvent,
   type ZlozEdition,
+  type ZlozEditionRestorePolicy,
 } from '@opsydyn/foldkit-zloz';
 
 import { createDddOrderGraph } from './ddd-examples';
+import { workbenchPolicy } from './editor-policy';
 import type { Message } from './message';
+import type { Model } from './model';
 
 /** All other app actions fail closed while a historical editor is displayed. */
 export function historyAllowsMessage(message: Message): boolean {
@@ -16,6 +19,15 @@ export function historyAllowsMessage(message: Message): boolean {
     return isHistoryNavigationEvent(event);
   }
   return new Set<string>([
+    'ChoseEditionArchiveFiles',
+    'SucceededEditionArchiveImport',
+    'FailedEditionArchiveImport',
+    'ClickedCancelEditionImport',
+    'CompletedCancelEditionImport',
+    'ClickedPreviewEditionRestore',
+    'ClickedConfirmEditionRestore',
+    'ClickedCancelEditionRestore',
+    'ClickedEditionRestoreProtection',
     'SelectedHistoryEdition',
     'ClickedHistoryPresent',
     'SelectedHistoryBaseline',
@@ -28,6 +40,8 @@ export function historyAllowsMessage(message: Message): boolean {
     'SelectedThemePreference',
     'ChangedSystemColorScheme',
     'LoadedThemePreference',
+    'CompletedColorSchemeSave',
+    'FailedColorSchemeSave',
     'ClickedMinimalMode',
     'ClickedDiagnosticsPanel',
     'ClickedDiagnosticsEnabled',
@@ -91,4 +105,13 @@ export function orderEditions(): readonly ZlozEdition[] {
       snapshot: { graph: evolved },
     }),
   ];
+}
+
+export const editionArchiveByteLimit = 5 * 1024 * 1024;
+export function editionRestorePolicy(model: Model): ZlozEditionRestorePolicy {
+  return {
+    ...workbenchPolicy(model),
+    canRestoreEdition: () =>
+      model.protectEditionRestore ? 'Edition restore is protected in this workspace.' : null,
+  };
 }

@@ -12,8 +12,10 @@ locally. See its [qualification receipt](../../apps/zloz-demo/evidence/ddd-rende
 The inventory below retains its original source baseline; DDD renderers are no
 longer an open gap. Typed relationships and patterns remain open. The subsequent approved
 [history slice](../../apps/zloz-demo/evidence/history.md) adds portable named
-editions, read-only rewind and comparison ghosts; restore/fork, playback and
-automatic persistence remain open.
+editions, read-only rewind and comparison ghosts. The
+[import/restore slice](../../apps/zloz-demo/evidence/edition-restore.md) adds archive
+merge and explicit undoable restore. Forks, playback and automatic persistence
+remain open.
 
 ## Recommendation
 

@@ -1,0 +1,23 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "fresh archive import preserves working graph/camera/Undo",
+    "identical import is idempotent",
+    "conflict rejects whole batch",
+    "invalid UTF-8 and oversized archive preserve state",
+    "preview cancellation preserves working graph",
+    "live restore veto disables confirmation with a reason",
+    "explicit restore preserves camera and enables editing",
+    "one Undo recovers working graph and second Undo retains earlier history",
+    "Redo recovers restored graph",
+    "edition archive remains unchanged",
+    "light/dark/protection evidence"
+  ],
+  "pageErrors": [],
+  "screenshots": [
+    "edition-restore-light.png",
+    "edition-restore-dark.png",
+    "edition-restore-protected.png"
+  ]
+}

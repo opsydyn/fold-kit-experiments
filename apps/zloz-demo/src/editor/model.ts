@@ -340,6 +340,9 @@ export const Model = Schema.Struct({
   navigationDesign: NavigationDesign,
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
+  editionImport: Schema.NullOr(Schema.Unknown),
+  editionRestore: Schema.NullOr(Schema.Unknown),
+  protectEditionRestore: Schema.Boolean,
   editions: Schema.Unknown,
   historyReview: Schema.NullOr(Schema.Unknown),
   historyBaselineId: Schema.NullOr(Schema.String),
@@ -419,6 +422,9 @@ export type Model = Readonly<{
   navigationDesign: NavigationDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
+  editionImport: Readonly<{ id: number; editions: readonly ZlozEdition[] }> | null;
+  editionRestore: Readonly<{ edition: ZlozEdition; expectedRevision: number }> | null;
+  protectEditionRestore: boolean;
   editions: readonly ZlozEdition[];
   historyReview: ZlozHistoryReview | null;
   historyBaselineId: string | null;
@@ -495,6 +501,9 @@ export const init = () => ({
     navigationDesign: 'standard',
     nodeDesign: 'cards',
     background: 'dots',
+    editionImport: null,
+    editionRestore: null,
+    protectEditionRestore: false,
     editions: [],
     historyReview: null,
     historyBaselineId: null,

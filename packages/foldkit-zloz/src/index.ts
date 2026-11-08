@@ -166,3 +166,13 @@ export type {
   ZlozHistoryChange,
   ZlozHistoryComparison,
 } from './history';
+
+export { mergeEditions } from './history';
+export type { ZlozEditionMergeDecision } from './history';
+export { resolveEditionRestore, restoreEdition } from './edition-restore';
+export type {
+  ZlozEditionRestorePolicy,
+  ZlozEditionRestoreOptions,
+  ZlozEditionRestoreDecision,
+  ZlozEditionRestoreResult,
+} from './edition-restore';

@@ -1,6 +1,8 @@
 import {
   resolveEdgeReconnection,
   compareEditions,
+  captureEdition,
+  resolveEditionRestore,
   defaultFitViewPadding,
   architectureNodePresets,
   defaultZoomLimits,
@@ -55,7 +57,7 @@ import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchPolicy } from './editor-policy';
-import { historyAllowsMessage } from './history';
+import { historyAllowsMessage, editionRestorePolicy } from './history';
 import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -253,6 +255,22 @@ const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | nul
 
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const workingEditor = model.editor;
+  const restoreDecision = model.editionRestore
+    ? resolveEditionRestore(workingEditor, model.editionRestore.edition, {
+        expectedRevision: model.editionRestore.expectedRevision,
+        policy: editionRestorePolicy(model),
+      })
+    : null;
+  const restoreComparison = model.editionRestore
+    ? compareEditions(
+        captureEdition({
+          id: 'working-preview',
+          name: 'Working graph',
+          snapshot: { graph: workingEditor.graph },
+        }),
+        model.editionRestore.edition,
+      )
+    : null;
   const selectedEdition = model.editions.find(
     (edition) => edition.id === model.historyReview?.editionId,
   );
@@ -537,11 +555,96 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             ),
           ]
         : []),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Import edition archive (up to 5 MiB)',
+          h.input([
+            h.Key(`edition-import-${model.editionImport?.id ?? 'ready'}`),
+            h.Type('file'),
+            h.Accept('.json,application/json'),
+            h.AriaLabel('Import edition archive'),
+            h.OnFileChange((files) => Message.ChoseEditionArchiveFiles({ files })),
+          ]),
+        ],
+      ),
+      ...(model.editionImport
+        ? [
+            h.p([h.Role('status')], ['Reading edition archive…']),
+            button('Cancel archive import', Message.ClickedCancelEditionImport()),
+          ]
+        : []),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.protectEditionRestore),
+            h.OnClick(Message.ClickedEditionRestoreProtection()),
+          ]),
+          'Protect edition restore',
+        ],
+      ),
+      button(
+        'Preview edition restore',
+        Message.ClickedPreviewEditionRestore(),
+        !selectedEdition || model.editionImport !== null,
+      ),
+      ...(model.editionRestore && restoreDecision
+        ? [
+            h.section(
+              [h.AriaLabel('Edition restore preview')],
+              [
+                h.h3([], [`Restore ${model.editionRestore.edition.name}`]),
+                h.p(
+                  [],
+                  [
+                    'The canvas shows this edition. Restoring replaces the working graph as one undoable change. Your camera stays unchanged.',
+                  ],
+                ),
+                ...(restoreComparison
+                  ? [
+                      h.ul(
+                        [h.AriaLabel('Restore changes')],
+                        [
+                          ...restoreComparison.nodes.map((change) =>
+                            h.li([], [`${change.kind}: ${(change.after ?? change.before).label}`]),
+                          ),
+                          ...restoreComparison.edges.map((change) =>
+                            h.li(
+                              [],
+                              [
+                                `${change.kind} connection: ${(change.after ?? change.before).label ?? change.id}`,
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ]
+                  : []),
+                ...(restoreDecision.type === 'blocked'
+                  ? [
+                      h.p(
+                        [h.Role('status'), h.AriaLabel('Restore protection reason')],
+                        [restoreDecision.reason],
+                      ),
+                    ]
+                  : []),
+                button(
+                  'Restore as new change',
+                  Message.ClickedConfirmEditionRestore(),
+                  restoreDecision.type !== 'ready' || model.editionImport !== null,
+                ),
+                button('Cancel restore', Message.ClickedCancelEditionRestore()),
+              ],
+            ),
+          ]
+        : []),
       button('Export editions', Message.ClickedExportEditions(), model.editions.length === 0),
       h.p(
         [],
         [
-          'Editions are session-owned until exported as a versioned archive. Core parsing supports reopening that archive; workbench archive import, restore/fork and playback are later slices.',
+          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks and playback are later slices.',
         ],
       ),
     ],

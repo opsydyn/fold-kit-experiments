@@ -64,3 +64,13 @@ The pure core exports `captureEdition`, `appendEdition`, `serializeEditions`,
 The optional Foldkit entry exports `zlozHistoryGhosts` and
 `ZlozHistoryGhostOptions`. See the [history guide](../packages/foldkit-zloz/README.md#named-editions-and-read-only-history)
 for archive compatibility, navigation permissions and inert mark customization.
+
+### Edition import and restore
+
+`mergeEditions` adds parsed archives atomically with idempotent exact identities.
+`resolveEditionRestore` and `restoreEdition` expose preview and one-step Undo
+restoration with required freshness and current policy checks. Public contracts:
+`ZlozEditionMergeDecision`, `ZlozEditionRestorePolicy`, `ZlozEditionRestoreOptions`,
+`ZlozEditionRestoreDecision`, `ZlozEditionRestoreResult`. See the
+[import/restore guide](../packages/foldkit-zloz/README.md#import-and-restore-editions)
+for policy scope, graph-only semantics and conflict handling.

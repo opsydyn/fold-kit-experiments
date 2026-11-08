@@ -30,6 +30,15 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ChoseEditionArchiveFiles: { files: Schema.Array(Schema.instanceOf(File)) },
+  SucceededEditionArchiveImport: { id: Schema.Number, editions: Schema.Unknown },
+  FailedEditionArchiveImport: { id: Schema.Number },
+  ClickedCancelEditionImport: {},
+  CompletedCancelEditionImport: {},
+  ClickedPreviewEditionRestore: {},
+  ClickedConfirmEditionRestore: {},
+  ClickedCancelEditionRestore: {},
+  ClickedEditionRestoreProtection: {},
   ChangedEditionName: { name: Schema.String },
   ClickedCaptureEdition: {},
   ClickedOrderHistory: {},

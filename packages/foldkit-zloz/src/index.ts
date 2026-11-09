@@ -228,3 +228,21 @@ export type {
   ZlozEditionScrubberOptions,
   ZlozEditionScrubberContext,
 } from './edition-scrubber';
+
+export {
+  resolveHistoryComparisonControls,
+  resolveHistoryComparisonRequest,
+} from './history-comparison-controls';
+export type {
+  ZlozHistoryGhostPart,
+  ZlozHistoryGhostVisibility,
+  ZlozComparisonEdition,
+  ZlozHistoryComparisonControlsState,
+  ZlozHistoryComparisonRequest,
+  ZlozHistoryComparisonControlsOptions,
+  ZlozHistoryComparisonDecision,
+  ZlozComparisonChoice,
+  ZlozHistoryBaselineControl,
+  ZlozHistoryGhostControl,
+  ZlozHistoryComparisonControlsContext,
+} from './history-comparison-controls';

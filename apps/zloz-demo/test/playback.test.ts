@@ -186,3 +186,15 @@ test('the named scrubber sample is additive/idempotent and direct seeking reache
   expect(selected.historyBaselineId).toBe('scrubber-order-6');
   expect(selected.editor).toBe(base.editor);
 });
+
+test('ghost controls stay live while baseline selection pauses playback and rejects prior ticks', () => {
+  const started = send(ready(), Message.ClickedPlaybackPlay());
+  const toggled = send(started, Message.ClickedHistoryGhost({ part: 'nodes' }));
+  expect(toggled.historyPlayback?.cursor.status).toBe('playing');
+  expect(toggled.historyGhosts.nodes).toBe(!started.historyGhosts.nodes);
+  const baseline = send(toggled, Message.SelectedHistoryBaseline({ id: 'order-evolved' }));
+  expect(baseline.historyPlayback?.cursor.status).toBe('paused');
+  expect(baseline.historyBaselineId).toBe('order-evolved');
+  expect(send(baseline, tick(started)).historyReview).toBe(baseline.historyReview);
+  expect(baseline.editor).toBe(started.editor);
+});

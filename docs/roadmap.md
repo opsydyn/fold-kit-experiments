@@ -181,8 +181,14 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** package-owned comparison controls for baseline selection
-and ghost visibility, so consumers can compose the complete review workflow.
+**Recommended next:** a package-owned comparison change navigator with composable
+Added/Removed/Changed filters and explicit focus requests. This would connect the
+accessible change list to canvas exploration without editing the working model.
+
+Package-owned comparison controls are implemented locally: identity-safe baseline
+selection, independently retained ghost preferences, minimal-mode visibility,
+visible host restrictions and native composable Foldkit controls. The workbench
+uses the public contract for controls and effective canvas visibility.
 The edition scrubber is implemented locally with identity-based seeking, custom
 labels/value text, native range/Open helpers, renderer slots and host session
 guards. An eight-checkpoint workbench sample demonstrates direct navigation. Composable package playback controls, status,

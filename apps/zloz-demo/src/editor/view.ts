@@ -3,6 +3,7 @@ import {
   playbackEditionId,
   resolveEditionPlaybackControls,
   resolveEditionScrubber,
+  resolveHistoryComparisonControls,
   type ZlozEditionSeekRequest,
   type ZlozPlaybackControlEvent,
   compareEditions,
@@ -18,6 +19,9 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
   zlozView,
+  zlozHistoryComparisonControls,
+  zlozHistoryBaselineSelect,
+  zlozHistoryGhostToggle,
   zlozEditionScrubber,
   zlozEditionScrubberInput,
   zlozEditionScrubberReadout,
@@ -339,7 +343,18 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const selectedEdition = model.editions.find(
     (edition) => edition.id === model.historyReview?.editionId,
   );
-  const baselineEdition = model.editions.find((edition) => edition.id === model.historyBaselineId);
+  const comparisonControls = resolveHistoryComparisonControls(
+    model.editions,
+    model.historyReview?.editionId ?? null,
+    {
+      baselineId: model.historyBaselineId,
+      ghosts: model.historyGhosts,
+    },
+    { minimalMode: model.minimalMode },
+  );
+  const baselineEdition = model.editions.find(
+    (edition) => edition.id === comparisonControls.baseline.value,
+  );
   const comparison =
     selectedEdition && baselineEdition ? compareEditions(baselineEdition, selectedEdition) : null;
   const busyModelSession = modelSessionBusy(model);
@@ -823,45 +838,39 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         ],
       ),
       button('Return to present', Message.ClickedHistoryPresent(), model.historyReview === null),
-      h.label(
-        [h.Class('workbench-field')],
-        [
-          'Compare with',
-          h.select(
-            [
-              h.AriaLabel('History comparison baseline'),
-              h.Value(model.historyBaselineId ?? ''),
-              h.Disabled(model.historyReview === null),
-              h.OnChange((id) => Message.SelectedHistoryBaseline({ id })),
-            ],
-            [
-              h.option([h.Value('')], ['No comparison']),
-              ...model.editions
-                .filter((edition) => edition.id !== model.historyReview?.editionId)
-                .map((edition) => h.option([h.Value(edition.id)], [edition.name])),
-            ],
-          ),
-        ],
-      ),
-      ...(['enabled', 'nodes', 'edges', 'movements'] as const).map((part) =>
-        h.label(
-          [h.Class('workbench-field')],
-          [
-            h.input([
-              h.Type('checkbox'),
-              h.Checked(model.historyGhosts[part]),
-              h.OnClick(Message.ClickedHistoryGhost({ part })),
-            ]),
-            (
-              {
-                enabled: 'Show comparison ghosts',
-                nodes: 'Node ghosts',
-                edges: 'Edge ghosts',
-                movements: 'Movement connectors',
-              } as const
-            )[part],
+      zlozHistoryComparisonControls(
+        h,
+        comparisonControls,
+        (request) =>
+          request.type === 'BaselineSelected'
+            ? Message.SelectedHistoryBaseline({ id: request.editionId ?? '' })
+            : request.type === 'GhostVisibilityChanged'
+              ? Message.ChangedHistoryGhostVisibility({ part: request.part, value: request.value })
+              : Message.ClickedHistoryGhost({ part: request.part }),
+        {
+          attributes: [
+            h.Style({
+              display: 'grid',
+              gap: '8px',
+              padding: '12px',
+              border: '1px solid var(--rule)',
+              borderRadius: '8px',
+            }),
           ],
-        ),
+          renderBaseline: (control, builder, onRequest) =>
+            builder.label(
+              [builder.Class('workbench-field')],
+              ['Compare with', zlozHistoryBaselineSelect(builder, control, onRequest)],
+            ),
+          renderGhost: (control, builder, onRequest) =>
+            builder.label(
+              [
+                builder.Key(control.part),
+                builder.Style({ display: 'flex', gap: '8px', alignItems: 'center' }),
+              ],
+              [zlozHistoryGhostToggle(builder, control, onRequest), control.label],
+            ),
+        },
       ),
       h.p(
         [],
@@ -3083,11 +3092,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ...(model.showWorldAnnotation && !model.historyReview
                   ? [releaseGateAnnotation(context, builder)]
                   : []),
-                ...(comparison &&
-                model.historyReview &&
-                model.historyGhosts.enabled &&
-                !model.minimalMode
-                  ? [zlozHistoryGhosts(builder, comparison, model.historyGhosts)!]
+                ...(comparison && model.historyReview && comparisonControls.effectiveGhosts.enabled
+                  ? [zlozHistoryGhosts(builder, comparison, comparisonControls.effectiveGhosts)!]
                   : []),
               ],
             ),

@@ -2879,3 +2879,66 @@ callback lifetime in update; the workbench uses a dedicated seek-session token
 that survives continuous seeking but expires on leaving history, returning to
 present, collection/model changes or disable/re-enable. Its eight-checkpoint
 sample is synthetic demonstration data, not a business change log.
+
+## Composable history comparison controls
+
+Core owns baseline choices and ghost preferences without a renderer or timer:
+
+```ts
+import {
+  resolveHistoryComparisonControls,
+  resolveHistoryComparisonRequest,
+  type ZlozHistoryComparisonControlsState,
+} from '@opsydyn/foldkit-zloz';
+
+let settings: ZlozHistoryComparisonControlsState = {
+  baselineId: 'original',
+  ghosts: { enabled: true, nodes: true, edges: true, movements: true },
+};
+const policy = {
+  minimalMode,
+  ghostReasons: { edges: 'Edge overlays are managed by this workspace.' },
+};
+const context = resolveHistoryComparisonControls(editions, viewedEditionId, settings, policy);
+// In update, resolve again against current metadata, settings and policy:
+const decision = resolveHistoryComparisonRequest(editions, viewedEditionId, settings, {
+  type: 'GhostVisibilityToggled',
+  part: 'nodes',
+});
+if (decision.type === 'ready') settings = decision.state;
+```
+
+Pass the **same current policy** to both resolvers. `BaselineSelected` carries an
+edition ID or explicit null clear. Unknown/self IDs are ignored; stale stored IDs
+produce no active baseline without rewriting preferences. Duplicate/blank IDs
+and blank names reject with `ZlozError`. `GhostVisibilityChanged` sets an absolute
+value; native controls emit `GhostVisibilityToggled` for fresh-state updates.
+No-op requests return unchanged; denied requests return blocked with a reason.
+
+Use `context.effectiveGhosts` with `zlozHistoryGhosts`. Minimal mode and the master
+switch retain each layer choice. Preferences can be configured before reviewing.
+Global `blockedReason`, `baselineReason` and per-part `ghostReasons` protect
+controls independently, with visible reasons. Labels and edition names can be
+localized through context options.
+
+```ts
+import {
+  zlozHistoryComparisonControls,
+  zlozHistoryGhostToggle,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+const controls = zlozHistoryComparisonControls(h, context, toMessage, {
+  renderGhost: (control, builder, onRequest) =>
+    builder.label([], [zlozHistoryGhostToggle(builder, control, onRequest), control.label]),
+});
+```
+
+The optional entry also exports `zlozHistoryBaselineSelect`,
+`zlozHistoryComparisonStatus` and `zlozHistoryComparisonReason`. Helpers are
+unstyled native controls. Compose individually or customize `renderBaseline`,
+`renderGhost`, `renderStatus`, `renderReason` and `renderLayout`. Undefined keeps
+defaults; null omits a part. `ghosts` selects/reorders visible layers (duplicates
+are removed; [] hides all). Attributes style controls without replacing native
+checked/disabled/selection semantics. Custom renderers own any replacement
+semantics. Hosts own request lifetimes, comparison data, accessible change lists
+and playback interruption; these helpers never edit the graph or Undo.

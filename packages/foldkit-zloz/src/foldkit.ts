@@ -2827,3 +2827,16 @@ export type {
   ZlozEditionScrubberParts,
   ZlozEditionScrubberViewOptions,
 } from './edition-scrubber-view';
+
+export {
+  zlozHistoryComparisonControls,
+  zlozHistoryBaselineSelect,
+  zlozHistoryGhostToggle,
+  zlozHistoryComparisonStatus,
+  zlozHistoryComparisonReason,
+} from './history-comparison-controls-view';
+export type {
+  ZlozHistoryComparisonTextOptions,
+  ZlozHistoryComparisonControlsParts,
+  ZlozHistoryComparisonControlsViewOptions,
+} from './history-comparison-controls-view';

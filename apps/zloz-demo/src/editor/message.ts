@@ -81,6 +81,10 @@ export const Message = defineMessageUnion({
   SelectedHistoryBaseline: { id: Schema.String },
   ClickedHistoryPresent: {},
   ClickedHistoryGhost: { part: Schema.Literals(['enabled', 'nodes', 'edges', 'movements']) },
+  ChangedHistoryGhostVisibility: {
+    part: Schema.Literals(['enabled', 'nodes', 'edges', 'movements']),
+    value: Schema.Boolean,
+  },
   ClickedExportEditions: {},
   CompletedExportEditions: {},
   FailedExportEditions: {},

@@ -1,5 +1,6 @@
 import {
   applyLayout,
+  resolveHistoryComparisonRequest,
   updateEditionPlayback,
   createArchitecturePattern,
   appendEdition,
@@ -591,23 +592,44 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
-    SelectedHistoryBaseline: ({ id }) => ({
-      model: {
-        ...model,
-        historyBaselineId:
-          id &&
-          id !== model.historyReview?.editionId &&
-          model.editions.some((edition) => edition.id === id)
-            ? id
-            : null,
-      },
-    }),
-    ClickedHistoryGhost: ({ part }) => ({
-      model: {
-        ...model,
-        historyGhosts: { ...model.historyGhosts, [part]: !model.historyGhosts[part] },
-      },
-    }),
+    SelectedHistoryBaseline: ({ id }) => {
+      const decision = resolveHistoryComparisonRequest(
+        model.editions,
+        model.historyReview?.editionId ?? null,
+        { baselineId: model.historyBaselineId, ghosts: model.historyGhosts },
+        { type: 'BaselineSelected', editionId: id || null },
+      );
+      return {
+        model:
+          decision.type === 'ready'
+            ? { ...model, historyBaselineId: decision.state.baselineId }
+            : model,
+      };
+    },
+    ClickedHistoryGhost: ({ part }) => {
+      const decision = resolveHistoryComparisonRequest(
+        model.editions,
+        model.historyReview?.editionId ?? null,
+        { baselineId: model.historyBaselineId, ghosts: model.historyGhosts },
+        { type: 'GhostVisibilityToggled', part },
+      );
+      return {
+        model:
+          decision.type === 'ready' ? { ...model, historyGhosts: decision.state.ghosts } : model,
+      };
+    },
+    ChangedHistoryGhostVisibility: ({ part, value }) => {
+      const decision = resolveHistoryComparisonRequest(
+        model.editions,
+        model.historyReview?.editionId ?? null,
+        { baselineId: model.historyBaselineId, ghosts: model.historyGhosts },
+        { type: 'GhostVisibilityChanged', part, value },
+      );
+      return {
+        model:
+          decision.type === 'ready' ? { ...model, historyGhosts: decision.state.ghosts } : model,
+      };
+    },
     ClickedExportEditions: () => ({
       model,
       commands: [ExportZlozEditions({ json: serializeEditions(model.editions) })],

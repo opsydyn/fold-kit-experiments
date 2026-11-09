@@ -152,3 +152,22 @@ The `/foldkit` entry exports `zlozEditionScrubber`, `zlozEditionScrubberInput`,
 `ZlozEditionScrubberParts` and `ZlozEditionScrubberViewOptions`. See the
 [package example](../packages/foldkit-zloz/README.md#edition-scrubber-and-explicit-seeking)
 and [ADR 0027](adr/0027-seek-editions-with-a-composable-scrubber.md).
+
+### History comparison controls
+
+Core exports `resolveHistoryComparisonControls`, `resolveHistoryComparisonRequest`
+and the `ZlozHistoryComparisonControlsState`, `ZlozHistoryComparisonRequest`,
+`ZlozHistoryComparisonDecision`, `ZlozHistoryComparisonControlsContext`,
+`ZlozHistoryComparisonControlsOptions`, `ZlozHistoryGhostVisibility`,
+`ZlozHistoryGhostPart`, `ZlozHistoryGhostControl`, `ZlozHistoryBaselineControl`,
+`ZlozComparisonEdition` and `ZlozComparisonChoice` types. Pure contexts separate
+stored preferences from effective visibility; fresh requests validate identity
+and current host policy without editing history or Undo.
+
+The `/foldkit` entry exports `zlozHistoryComparisonControls`,
+`zlozHistoryBaselineSelect`, `zlozHistoryGhostToggle`,
+`zlozHistoryComparisonStatus`, `zlozHistoryComparisonReason`,
+`ZlozHistoryComparisonControlsParts`, `ZlozHistoryComparisonTextOptions` and
+`ZlozHistoryComparisonControlsViewOptions`.
+See the [package example](../packages/foldkit-zloz/README.md#composable-history-comparison-controls)
+and [ADR 0028](adr/0028-compose-history-comparison-controls.md).

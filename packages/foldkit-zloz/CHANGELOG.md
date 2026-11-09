@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.1.0...foldkit-zloz-v0.1.1) (2026-11-09)
+
+### Bug Fixes
+
+- **ci:** modernize actions and correct release workspace packing ([538c4ab](https://github.com/opsydyn/fold-kit-experiments/commit/538c4abe57213ebdfec8b9dc676422b3f61983a8))
+- **ci:** update Node 24 actions and repair release packing ([337af66](https://github.com/opsydyn/fold-kit-experiments/commit/337af66382435266a6ce86cc9c2c60adbb6ca21f))
+
 ## 0.1.0 (unreleased)
 
 - Add public layout parts, fill-height sizing and a native canvas focus target;

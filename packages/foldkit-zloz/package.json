@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-zloz",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model-owned graph editing and optional native FoldKit views.",
   "keywords": [
     "diagram",

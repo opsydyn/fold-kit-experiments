@@ -176,6 +176,59 @@ geometry. Other serializers are not covered by that qualification.
 Run `bun tools/check-zloz-architecture-compat.ts` from this repository to repeat
 the pinned-core check. No migration or registry publication occurs here.
 
+## DDD preset renderers
+
+```ts
+import {
+  zlozView,
+  zlozDddNode,
+  zlozDddGroup,
+  createZlozNodeBodyCache,
+  type ZlozDddNodeOptions,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+// Keep options and cache stable per canvas. Call with or without a cache.
+const dddOptions: ZlozDddNodeOptions<Message> = {
+  bodyCache: createZlozNodeBodyCache(),
+  renderBadge: ({ architecture }, h) =>
+    architecture.role === 'aggregate-root' ? h.span([], ['Consistency owner']) : null,
+};
+const canvas = zlozView(h, model.editor, {
+  id: 'domain',
+  label: 'Ordering domain',
+  onEvent: (event) => Message.ObservedZlozInput({ message: event }),
+  renderNodeShell: (context, h) => zlozDddNode(context, h, dddOptions),
+  renderGroupShell: (context, h) => zlozDddGroup(context, h, dddOptions),
+});
+```
+
+The adapter renders all eight existing DDD roles: entity, value object, aggregate
+root, aggregate, domain event, domain service, repository and bounded context.
+Aggregates and explicit bounded-context groups are portless boundaries; ordinary
+context nodes can connect through their ports. Other families return undefined,
+allowing normal rendering or a composed C4 fallback. DDD meaning does not force
+an outline or color notation; authored appearance uses core geometry.
+
+`ZlozDddContentContext` provides the node, narrowed DDD architecture, selection
+and preview state. `renderBadge`, `renderType`, `renderName`, `renderSubdomain`,
+`renderDescription` and `renderBody` customize inert content: undefined keeps the
+default, null omits it. The badge is omitted by default. Bounded contexts display
+optional subdomain classification. Compact group headers omit descriptions by
+default; custom slots can display them with suitable authored space.
+
+Use `renderControls` for interactive content outside the native drag button and
+body cache; undefined keeps native context/collapse/resize controls and an empty
+array omits them. `attributes` owns classes and paint; Model geometry stays
+authoritative. Retain ports from the render context to preserve custom sockets
+and current policy reasons. Scoped theme tokens support light/dark and host
+themes. Minimal mode hides diagnostics, not the model's semantic role labels;
+slots can independently omit those labels while native selection names remain.
+Keep artwork callbacks inert and options stable when using `bodyCache`.
+
+These views introduce no saved fields or business-rule enforcement. Use the
+headless `architectureNodePresets` catalogue to compose a role legend or palette.
+Atomic pattern insertion and typed DDD relationships are separate roadmap slices.
+
 ## C4 preset renderers
 
 ```ts
@@ -2416,3 +2469,150 @@ relocated controls. Feature gates, diagnostics, policy reasons and typed events
 are already resolved. A relocated minimap retains native pointer/keyboard input
 through its own Live-scoped Mount; no canvas DOM protocol needs to be copied.
 The pure root export and numeric/default layout remain compatible.
+
+## Named editions and read-only history
+
+```ts
+import {
+  captureEdition,
+  appendEdition,
+  serializeEditions,
+  parseEditions,
+  createHistoryReview,
+  updateHistoryReview,
+  compareEditions,
+} from '@opsydyn/foldkit-zloz';
+import { zlozHistoryGhosts } from '@opsydyn/foldkit-zloz/foldkit';
+
+const edition = captureEdition({
+  id: 'ordering-v1',
+  name: 'Ordering · initial design',
+  snapshot: { graph: model.editor.graph, viewport: model.editor.viewport },
+});
+const editions = appendEdition(model.editions, edition);
+const archive = serializeEditions(editions);
+const reopened = parseEditions(archive);
+const review = createHistoryReview(reopened[0]!, model.editor);
+// Route historical canvas events here; retain model.editor as the working editor.
+const nextReview = updateHistoryReview(review, event);
+const comparison = compareEditions(baselineEdition, selectedEdition);
+// Optional world-overlay content; emit an accessible change list alongside it.
+const ghosts = zlozHistoryGhosts(h, comparison, {
+  enabled: model.showGhosts,
+  nodes: true,
+  edges: true,
+  movements: true,
+});
+```
+
+Editions are validated, detached and deeply frozen graph/optional-camera
+checkpoints. Supply stable IDs and names yourself; duplicate IDs reject append,
+and no clock or ID generator is hidden in core. The separate
+`foldkit-zloz-editions` version-1 archive contains captured editions, not an
+implicit working document or session Undo stack. Existing graph/snapshot wire
+version 1 is unchanged. Parse validates versions, reserved fields, all graphs,
+cameras and duplicate identities. Host Commands own file/storage/network I/O,
+retention and input budgets. Capturing, comparing and encoding use full snapshots;
+no compressed journal or large-history performance guarantee is claimed.
+
+`createHistoryReview` builds a separate read-only editor. Keep the complete working
+editor while inspecting it; returning means discarding the review. Selection,
+focus, pan, zoom, Fit and surface measurements go through `updateHistoryReview`.
+Its explicit navigation allowlist blocks graph edits, node measurements and Undo/
+Redo; `isHistoryNavigationEvent` lets hosts disable corresponding controls. New
+editor events are blocked unless explicitly qualified. Route host-specific import,
+layout, direct model replacement and other mutation actions separately; do not let
+them overwrite the working editor while a review is displayed. Cancel or reject
+stale pending work when entering review. After resizing during review, refresh
+only the present surface measurement on return; retain its camera, graph and Undo.
+
+`compareEditions` uses IDs, not labels or array positions. Node meaning includes
+label, architecture, host data, group ownership and port identity/kind/label.
+Layout includes position, dimensions, appearance, constraints and port locations.
+Edge endpoints, label and data are meaning; path style and core path geometry are
+layout. Camera-only and array paint-order changes do not create graph change entries. Object-key order does not create changes. Custom renderer output and
+external layout routes are not archived or compared. Use `semanticChanged` and
+`layoutChanged` flags independently; renaming an ID is an addition/removal, not a
+guessed identity match.
+
+`zlozHistoryGhosts` composes inside `renderWorldOverlay`. It creates inert SVG
+outlines, dashed baseline edges and movement connectors without editor nodes,
+ports, hit targets or Undo entries. Node, edge and movement switches are
+independent; `enabled: false` omits the layer. Optional `renderNode`, `renderEdge`
+and `renderMovement` callbacks replace marks with inert SVG; undefined keeps the
+default and null omits it. Keep custom content noninteractive. The visual-only SVG
+is aria-hidden; supply a textual change list/legend through the comparison model.
+Use the complete uncollapsed comparison in this slice; host filtering/collapse
+projections and custom route fidelity require explicit integration. Themes use
+scoped Zloz paint tokens. Minimal-mode masking is a host presentation choice.
+
+This is named snapshot review, separate from session Undo and the monotonic editor
+freshness revision. Playback, fork/merge, collaborative history and agent history commands remain
+subsequent slices. Archive import and undoable restore are described below. The workbench demonstrates named
+capture, portable archive download, rewind, baseline comparison, ghost controls
+and return; it labels session ownership and does not automatically persist data.
+
+## Import and restore editions
+
+```ts
+import {
+  parseEditions,
+  mergeEditions,
+  resolveEditionRestore,
+  restoreEdition,
+} from '@opsydyn/foldkit-zloz';
+
+const incoming = parseEditions(archiveText);
+const merged = mergeEditions(model.editions, incoming);
+// merged.type is merged / unchanged / blocked. Never discard the working editor.
+const options = { expectedRevision: model.editor.revision, policy: hostRestorePolicy };
+const preview = resolveEditionRestore(model.editor, selectedEdition, options);
+// Keep the target and expectedRevision in your Model. On explicit confirmation:
+const result =
+  preview.type === 'ready'
+    ? restoreEdition(model.editor, preview.edition, {
+        expectedRevision: preview.expectedRevision,
+        policy: currentRestorePolicy,
+      })
+    : null;
+// Only result?.type === 'restored' publishes a new graph transaction.
+```
+
+`mergeEditions` is additive and atomic. Identical IDs with identical names and
+snapshots are skipped, ignoring JSON object-key order. Conflicting IDs or duplicate
+incoming IDs reject the entire batch. No edition is overwritten; an unchanged
+merge retains the existing collection reference. Parse errors throw through the
+canonical codec, and merge conflicts return `ZlozEditionMergeDecision`.
+
+`ZlozEditionRestoreOptions.expectedRevision` is required. Store it with the exact
+target when presenting a preview and retain it at confirmation; passing the latest
+revision instead would defeat stale-intent protection. Both resolve and commit
+check freshness, read-only state, idle gestures, canonical target validity and
+current policy. Restore requires enabled Undo history. Exact graph no-ops return
+unchanged without a new revision or Undo entry. Invalid editions fail before
+mutation; expected denials return a blocked reason and the original editor.
+
+Restore uses the existing graph transaction: one Undo entry, a new monotonic
+freshness revision, invalidated routes and cleared connection/draft state. The
+working camera is preserved; the edition's saved camera is for inspection.
+Undo/Redo recover the previous/restored graphs. The edition collection is not part
+of graph Undo and is never modified by restore.
+
+`ZlozEditionRestorePolicy` extends `EditorPolicy` with `canRestoreEdition` for whole
+replacement rules, including fields without granular hooks. Existing deletion,
+movement/reparenting, resize, architecture, appearance and retained-node port-edit
+hooks are enforced. Port kind changes check remove/add. Node deletion and initial
+ports on added nodes follow the existing node operation semantics. New/rewired
+connections recheck connection policies against the complete candidate graph
+without that edge; reconnect hooks use the original edge/current graph, and an
+unchanged endpoint is not a new port connection. Policy vetoes, including blank
+strings, never silently become permission. Keep policies pure and pass current
+policy at confirmation rather than caching a ready result.
+
+The workbench reads a single archive up to 5 MiB with strict UTF-8 decoding,
+validates before merging, and rejects cancelled, superseded or collection-stale
+results. Import preserves the working graph/camera/Undo. A preview, cancel action,
+live protection reason and explicit **Restore as new change** action demonstrate
+the package contract. Editions remain session-owned until exported; import does
+not enable automatic persistence. Forks, merging branches and playback remain
+separate slices.

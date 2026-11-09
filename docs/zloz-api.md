@@ -24,6 +24,9 @@ The reference includes:
 - `@opsydyn/foldkit-zloz-force/eligibility`: the lightweight eligibility entry.
 - `@opsydyn/foldkit-zloz-mermaid`: Mermaid export options, identity metadata,
   conversion diagnostics and nested subgraph projections.
+- `@opsydyn/foldkit-zloz-cli`: Effect CLI command tree, explicit-argv runner,
+  versioned JSON responses and typed exit/I/O errors. The runtime is started only
+  by the standalone executable. See the [CLI guide](../packages/foldkit-zloz-cli/README.md).
 
 Preferred contracts use `Zloz*` types and `zloz*` views. Deprecated source aliases
 remain available for existing integrations; see [migration notes](zloz-migration.md).
@@ -43,3 +46,31 @@ The core stays independent of FoldKit, browser globals and layout engines. The
 application owns Model, commands and persistence; optional adapters remain
 separate dependencies. See [the composition decision](adr/0004-composable-flow-presentation.md)
 for the current extensibility boundaries.
+
+### DDD preset views
+
+The optional Foldkit entry exports `zlozDddNode`, `zlozDddGroup` and the public
+`ZlozDddContentContext`, `ZlozDddContentRenderer`, `ZlozDddNodeOptions` types.
+These views compose the eight existing semantic roles with core geometry and
+live native controls. See the [DDD renderer guide](../packages/foldkit-zloz/README.md#ddd-preset-renderers)
+for slots, caching, themes and portless boundary behavior.
+
+### Editions and history
+
+The pure core exports `captureEdition`, `appendEdition`, `serializeEditions`,
+`parseEditions`, `createHistoryReview`, `updateHistoryReview`,
+`isHistoryNavigationEvent`, `compareEditions` and their `ZlozEdition`,
+`ZlozHistoryReview`, `ZlozHistoryChange`, `ZlozHistoryComparison` contracts.
+The optional Foldkit entry exports `zlozHistoryGhosts` and
+`ZlozHistoryGhostOptions`. See the [history guide](../packages/foldkit-zloz/README.md#named-editions-and-read-only-history)
+for archive compatibility, navigation permissions and inert mark customization.
+
+### Edition import and restore
+
+`mergeEditions` adds parsed archives atomically with idempotent exact identities.
+`resolveEditionRestore` and `restoreEdition` expose preview and one-step Undo
+restoration with required freshness and current policy checks. Public contracts:
+`ZlozEditionMergeDecision`, `ZlozEditionRestorePolicy`, `ZlozEditionRestoreOptions`,
+`ZlozEditionRestoreDecision`, `ZlozEditionRestoreResult`. See the
+[import/restore guide](../packages/foldkit-zloz/README.md#import-and-restore-editions)
+for policy scope, graph-only semantics and conflict handling.

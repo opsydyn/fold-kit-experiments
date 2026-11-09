@@ -1,5 +1,14 @@
 import {
   applyLayout,
+  appendEdition,
+  mergeEditions,
+  resolveEditionRestore,
+  restoreEdition,
+  type ZlozEdition,
+  captureEdition,
+  createHistoryReview,
+  updateHistoryReview,
+  serializeEditions,
   createEditor,
   fitViewport,
   layoutRequest,
@@ -32,6 +41,8 @@ import {
 } from './c4-examples';
 import {
   ArrangeFlow,
+  ExportZlozEditions,
+  ImportZlozEditions,
   ExportFlow,
   ExportMermaidBundle,
   ImportZloz,
@@ -39,7 +50,14 @@ import {
   SaveThemePreference,
   SaveZloz,
 } from './command';
+import { createDddOrderGraph } from './ddd-examples';
 import { workbenchPolicy } from './editor-policy';
+import {
+  historyAllowsMessage,
+  orderEditions,
+  editionArchiveByteLimit,
+  editionRestorePolicy,
+} from './history';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
 import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
@@ -65,6 +83,29 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
+  const cancelEditionImport = () =>
+    model.editionImport
+      ? [
+          ImportZlozEditions.Interrupt({ id: model.editionImport.id }, () =>
+            Message.CompletedCancelEditionImport(),
+          ),
+        ]
+      : [];
+  if (model.historyReview) {
+    if (message._tag === 'ObservedZlozInput') {
+      // SAFETY: zlozView emits EditorEvent values through the Schema.Unknown input field.
+      const event = message.message as EditorEvent;
+      const historyReview = updateHistoryReview(
+        model.historyReview,
+        event,
+        workbenchPolicy({ ...model, editor: model.historyReview.editor }),
+      );
+      return historyReview === model.historyReview
+        ? { model }
+        : { model: { ...model, historyReview } };
+    }
+    if (!historyAllowsMessage(message)) return { model };
+  }
   const changedPosition = (change: ZlozPortPositionDraftChange): Return<Model, Message> => ({
     model: model.portPositionDraft
       ? {
@@ -125,6 +166,260 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const result: Return<Model, Message> = Message.match(message, {
+    ChoseEditionArchiveFiles: ({ files }) => {
+      if (files.length === 0)
+        return {
+          model: { ...model, editionImport: null, notice: 'Edition import cancelled.' },
+          commands: cancelEditionImport(),
+        };
+      const file = files[0]!;
+      if (files.length !== 1 || file.size > editionArchiveByteLimit)
+        return {
+          model: {
+            ...model,
+            editionImport: null,
+            notice:
+              'Choose one edition archive up to 5 MiB. Your editions and working model are preserved.',
+          },
+          commands: cancelEditionImport(),
+        };
+      const id = model.sequence + 1;
+      return {
+        model: {
+          ...model,
+          sequence: id,
+          editionImport: { id, editions: model.editions },
+          editionRestore: null,
+          notice: 'Reading edition archive…',
+        },
+        commands: [...cancelEditionImport(), ImportZlozEditions({ id, file })],
+      };
+    },
+    SucceededEditionArchiveImport: ({ id, editions: raw }) => {
+      if (model.editionImport?.id !== id) return { model };
+      if (model.editionImport.editions !== model.editions)
+        return {
+          model: {
+            ...model,
+            editionImport: null,
+            notice: 'Editions changed during import. Choose the archive again.',
+          },
+        };
+      // SAFETY: ImportZlozEditions decodes these edition records with the canonical parser before emitting this message.
+      const incoming = raw as readonly ZlozEdition[];
+      const decision = mergeEditions(model.editions, incoming);
+      return decision.type === 'blocked'
+        ? { model: { ...model, editionImport: null, notice: decision.reason } }
+        : {
+            model: {
+              ...model,
+              editionImport: null,
+              editionRestore: null,
+              editions: decision.editions,
+              notice:
+                decision.type === 'unchanged'
+                  ? 'These editions are already available. Your working model is preserved.'
+                  : 'Edition archive imported. Your working model is preserved.',
+            },
+          };
+    },
+    FailedEditionArchiveImport: ({ id }) =>
+      model.editionImport?.id === id
+        ? {
+            model: {
+              ...model,
+              editionImport: null,
+              notice:
+                'Invalid or unreadable edition archive. Your editions and working model are preserved.',
+            },
+          }
+        : { model },
+    CompletedCancelEditionImport: () => ({ model }),
+    ClickedCancelEditionImport: () => ({
+      model: { ...model, editionImport: null, notice: 'Edition import cancelled.' },
+      commands: cancelEditionImport(),
+    }),
+    ClickedPreviewEditionRestore: () => {
+      const edition = model.editions.find((item) => item.id === model.historyReview?.editionId);
+      if (!edition || model.editionImport) return { model };
+      const decision = resolveEditionRestore(model.editor, edition, {
+        expectedRevision: model.editor.revision,
+        policy: editionRestorePolicy(model),
+      });
+      return decision.type === 'ready'
+        ? {
+            model: {
+              ...model,
+              editionRestore: {
+                edition: decision.edition,
+                expectedRevision: decision.expectedRevision,
+              },
+              notice:
+                'Review the graph replacement before restoring. The camera will stay unchanged.',
+            },
+          }
+        : {
+            model: {
+              ...model,
+              editionRestore: null,
+              notice:
+                decision.type === 'blocked'
+                  ? decision.reason
+                  : 'This edition already matches the working graph.',
+            },
+          };
+    },
+    ClickedConfirmEditionRestore: () => {
+      const preview = model.editionRestore;
+      if (!preview || model.editionImport) return { model };
+      const result = restoreEdition(model.editor, preview.edition, {
+        expectedRevision: preview.expectedRevision,
+        policy: editionRestorePolicy(model),
+      });
+      if (result.type === 'blocked') return { model: { ...model, notice: result.reason } };
+      const surface = model.historyReview?.editor.surface ?? result.editor.surface;
+      const editor =
+        surface?.width === result.editor.surface?.width &&
+        surface?.height === result.editor.surface?.height
+          ? result.editor
+          : { ...result.editor, surface };
+      return {
+        model: {
+          ...model,
+          editor,
+          editionRestore: null,
+          historyReview: null,
+          historyBaselineId: null,
+          active: null,
+          importing: null,
+          notice:
+            result.type === 'restored'
+              ? 'Edition restored as one new change. Undo returns to your previous working graph; the camera is unchanged.'
+              : 'The working graph already matches this edition.',
+        },
+      };
+    },
+    ClickedCancelEditionRestore: () => ({
+      model: {
+        ...model,
+        editionRestore: null,
+        notice: 'Restore cancelled. Your working model is preserved.',
+      },
+    }),
+    ClickedEditionRestoreProtection: () => ({
+      model: { ...model, protectEditionRestore: !model.protectEditionRestore },
+    }),
+    ChangedEditionName: ({ name }) => ({ model: { ...model, editionName: name } }),
+    ClickedCaptureEdition: () => {
+      if (
+        !model.editionName.trim() ||
+        model.editor.gesture.type !== 'idle' ||
+        model.active ||
+        model.importing
+      )
+        return { model };
+      let sequence = model.sequence + 1;
+      const existing = new Set(model.editions.map((item) => item.id));
+      while (existing.has(`edition-${sequence}`)) sequence++;
+      const edition = captureEdition({
+        id: `edition-${sequence}`,
+        name: model.editionName.trim(),
+        snapshot: { graph: model.editor.graph, viewport: model.editor.viewport },
+      });
+      return {
+        model: {
+          ...model,
+          sequence,
+          editions: appendEdition(model.editions, edition),
+          editionName: '',
+          notice: 'Edition captured. Export editions to retain them outside this session.',
+        },
+      };
+    },
+    ClickedOrderHistory: () => ({
+      model: {
+        ...model,
+        editions: orderEditions().reduce(
+          (editions, edition) =>
+            editions.some((item) => item.id === edition.id)
+              ? editions
+              : appendEdition(editions, edition),
+          model.editions,
+        ),
+        sidebarSection: 'history' as const,
+        notice: 'Two example editions loaded. Your working model is preserved.',
+      },
+    }),
+    SelectedHistoryEdition: ({ id }) => {
+      const index = model.editions.findIndex((edition) => edition.id === id);
+      const edition = model.editions[index];
+      if (!edition || model.editor.gesture.type !== 'idle') return { model };
+      const source = model.historyReview
+        ? { ...model.editor, surface: model.historyReview.editor.surface }
+        : model.editor;
+      const review = createHistoryReview(edition, source);
+      return {
+        model: {
+          ...model,
+          historyReview: edition.snapshot.viewport
+            ? review
+            : updateHistoryReview(review, { type: 'FitViewClicked' }),
+          historyBaselineId: model.editions[index - 1]?.id ?? null,
+          editionRestore: null,
+          active: null,
+          importing: null,
+          portPositionDraft: null,
+          portLabelDraft: null,
+          notice: 'Historical edition: read-only. Your working model is preserved.',
+        },
+      };
+    },
+    ClickedHistoryPresent: () => {
+      const surface = model.historyReview?.editor.surface ?? model.editor.surface;
+      const sameSurface =
+        surface?.width === model.editor.surface?.width &&
+        surface?.height === model.editor.surface?.height;
+      return {
+        model: {
+          ...model,
+          editor: sameSurface ? model.editor : { ...model.editor, surface },
+          historyReview: null,
+          editionRestore: null,
+          historyBaselineId: null,
+          notice: 'Returned to the unchanged working model.',
+        },
+      };
+    },
+    SelectedHistoryBaseline: ({ id }) => ({
+      model: {
+        ...model,
+        historyBaselineId:
+          id &&
+          id !== model.historyReview?.editionId &&
+          model.editions.some((edition) => edition.id === id)
+            ? id
+            : null,
+      },
+    }),
+    ClickedHistoryGhost: ({ part }) => ({
+      model: {
+        ...model,
+        historyGhosts: { ...model.historyGhosts, [part]: !model.historyGhosts[part] },
+      },
+    }),
+    ClickedExportEditions: () => ({
+      model,
+      commands: [ExportZlozEditions({ json: serializeEditions(model.editions) })],
+    }),
+    CompletedExportEditions: () => ({
+      model: { ...model, notice: 'Edition archive download started.' },
+    }),
+    FailedExportEditions: () => ({
+      model: {
+        ...model,
+        notice: 'Could not download editions. They remain available in this session.',
+      },
+    }),
     ObservedZlozInput: ({ message: input }) => {
       // SAFETY: zlozView and the toolbar emit the package's typed EditorEvent contract.
       const event = input as EditorEvent;
@@ -151,18 +446,20 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           ? createLargeWorkflowGraph()
           : example === 'protected-orbits'
             ? createProtectedWorkflowGraph()
-            : example === 'c4-context'
-              ? createC4ContextGraph()
-              : example === 'c4-nested-containers'
-                ? createC4NestedContainerGraph()
-                : example === 'c4-containers'
-                  ? createC4ContainerGraph()
-                  : {
-                      release: initialGraph,
-                      onion: onionGraph,
-                      'grouped-onion': groupedOnionGraph,
-                      'port-snapping': portSnappingGraph,
-                    }[example];
+            : example === 'ddd-orders'
+              ? createDddOrderGraph()
+              : example === 'c4-context'
+                ? createC4ContextGraph()
+                : example === 'c4-nested-containers'
+                  ? createC4NestedContainerGraph()
+                  : example === 'c4-containers'
+                    ? createC4ContainerGraph()
+                    : {
+                        release: initialGraph,
+                        onion: onionGraph,
+                        'grouped-onion': groupedOnionGraph,
+                        'port-snapping': portSnappingGraph,
+                      }[example];
       const editor = restoreDocument({ graph }, true);
       return {
         model: {
@@ -171,11 +468,13 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           nodeDesign:
             example === 'protected-orbits'
               ? 'orbits'
-              : example === 'c4-context' ||
-                  example === 'c4-containers' ||
-                  example === 'c4-nested-containers'
-                ? 'c4'
-                : model.nodeDesign,
+              : example === 'ddd-orders'
+                ? 'ddd'
+                : example === 'c4-context' ||
+                    example === 'c4-containers' ||
+                    example === 'c4-nested-containers'
+                  ? 'c4'
+                  : model.nodeDesign,
           retainNodeViews: example === 'protected-orbits' || model.retainNodeViews,
           customPorts: example === 'protected-orbits' || model.customPorts,
           mixedPortProtection: example === 'protected-orbits' || model.mixedPortProtection,

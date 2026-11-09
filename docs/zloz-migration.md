@@ -6,6 +6,7 @@
 - `@opsydyn/foldkit-zloz-elk` — ELK layout.
 - `@opsydyn/foldkit-zloz-force` — force layout and `/eligibility` checks.
 - `@opsydyn/foldkit-zloz-mermaid` — portable Mermaid projections.
+- `@opsydyn/foldkit-zloz-cli` — standalone Effect CLI adapter for validation and export.
 
 These remain unpublished workspace candidates. The old `0.2.0` release proposal
 was closed; it is not a registry release. No package will be released using a

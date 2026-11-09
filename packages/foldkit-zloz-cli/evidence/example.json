@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "graph": {
+    "nodes": [
+      {
+        "id": "orders",
+        "label": "Order platform",
+        "position": { "x": 0, "y": 0 },
+        "size": { "width": 240, "height": 160 },
+        "ports": [],
+        "architecture": { "family": "c4", "role": "software-system" },
+        "appearance": { "shape": "rounded-rectangle" }
+      }
+    ],
+    "edges": []
+  }
+}

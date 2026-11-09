@@ -1,6 +1,8 @@
 import {
   createEditor,
   type EditorState,
+  type ZlozEdition,
+  type ZlozHistoryReview,
   type ZlozGraph,
   type LayoutRequest,
 } from '@opsydyn/foldkit-zloz';
@@ -214,7 +216,7 @@ export type WheelNavigation = typeof WheelNavigation.Type;
 export const NavigationDesign = Schema.Literals(['standard', 'compact']);
 export type NavigationDesign = typeof NavigationDesign.Type;
 
-export const NodeDesign = Schema.Literals(['cards', 'orbits', 'c4']);
+export const NodeDesign = Schema.Literals(['cards', 'orbits', 'c4', 'ddd']);
 export type NodeDesign = typeof NodeDesign.Type;
 
 export const BackgroundStyle = Schema.Literals(['dots', 'squares', 'custom', 'none']);
@@ -266,6 +268,7 @@ export const WorkbenchSection = Schema.Literals([
   'inspect',
   'diagnostics',
   'export',
+  'history',
 ]);
 export type WorkbenchSection = typeof WorkbenchSection.Type;
 export const Model = Schema.Struct({
@@ -337,6 +340,19 @@ export const Model = Schema.Struct({
   navigationDesign: NavigationDesign,
   nodeDesign: NodeDesign,
   background: BackgroundStyle,
+  editionImport: Schema.NullOr(Schema.Unknown),
+  editionRestore: Schema.NullOr(Schema.Unknown),
+  protectEditionRestore: Schema.Boolean,
+  editions: Schema.Unknown,
+  historyReview: Schema.NullOr(Schema.Unknown),
+  historyBaselineId: Schema.NullOr(Schema.String),
+  editionName: Schema.String,
+  historyGhosts: Schema.Struct({
+    enabled: Schema.Boolean,
+    nodes: Schema.Boolean,
+    edges: Schema.Boolean,
+    movements: Schema.Boolean,
+  }),
   editor: Schema.Unknown,
   active: Schema.NullOr(Schema.Unknown),
   importing: Schema.NullOr(Schema.Struct({ id: Schema.Number, revision: Schema.Number })),
@@ -406,6 +422,14 @@ export type Model = Readonly<{
   navigationDesign: NavigationDesign;
   nodeDesign: NodeDesign;
   background: BackgroundStyle;
+  editionImport: Readonly<{ id: number; editions: readonly ZlozEdition[] }> | null;
+  editionRestore: Readonly<{ edition: ZlozEdition; expectedRevision: number }> | null;
+  protectEditionRestore: boolean;
+  editions: readonly ZlozEdition[];
+  historyReview: ZlozHistoryReview | null;
+  historyBaselineId: string | null;
+  editionName: string;
+  historyGhosts: Readonly<{ enabled: boolean; nodes: boolean; edges: boolean; movements: boolean }>;
   editor: EditorState;
   active: LayoutRequest | null;
   importing: Readonly<{ id: number; revision: number }> | null;
@@ -477,6 +501,14 @@ export const init = () => ({
     navigationDesign: 'standard',
     nodeDesign: 'cards',
     background: 'dots',
+    editionImport: null,
+    editionRestore: null,
+    protectEditionRestore: false,
+    editions: [],
+    historyReview: null,
+    historyBaselineId: null,
+    editionName: '',
+    historyGhosts: { enabled: false, nodes: true, edges: true, movements: true },
     editor: createEditor(initialGraph, { snapToAlignment: true }),
     active: null,
     importing: null,

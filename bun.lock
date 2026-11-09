@@ -435,6 +435,27 @@
         "foldkit",
       ],
     },
+    "packages/foldkit-zloz-cli": {
+      "name": "@opsydyn/foldkit-zloz-cli",
+      "version": "0.1.0",
+      "bin": {
+        "zloz": "./dist/bin.mjs",
+      },
+      "dependencies": {
+        "@effect/platform-node": "4.1.0",
+        "@opsydyn/foldkit-zloz": "workspace:*",
+        "@opsydyn/foldkit-zloz-mermaid": "workspace:*",
+        "effect": "4.1.0",
+      },
+      "devDependencies": {
+        "@arethetypeswrong/cli": "0.18.5",
+        "@types/node": "^22.0.0",
+        "bun-types": "^1.3.14",
+        "publint": "0.3.25",
+        "tsdown": "^0.21.8",
+        "typescript": "^6.0.3",
+      },
+    },
     "packages/foldkit-zloz-elk": {
       "name": "@opsydyn/foldkit-zloz-elk",
       "version": "0.1.0",
@@ -1001,6 +1022,8 @@
     "@opsydyn/foldkit-viz": ["@opsydyn/foldkit-viz@workspace:packages/foldkit-viz"],
 
     "@opsydyn/foldkit-zloz": ["@opsydyn/foldkit-zloz@workspace:packages/foldkit-zloz"],
+
+    "@opsydyn/foldkit-zloz-cli": ["@opsydyn/foldkit-zloz-cli@workspace:packages/foldkit-zloz-cli"],
 
     "@opsydyn/foldkit-zloz-elk": ["@opsydyn/foldkit-zloz-elk@workspace:packages/foldkit-zloz-elk"],
 

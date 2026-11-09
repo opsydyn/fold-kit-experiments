@@ -120,6 +120,8 @@ jobs:
         run: bun run --filter @opsydyn/foldkit-zloz-force test
       - name: Check Mermaid exporter and packed consumer
         run: bun run --filter @opsydyn/foldkit-zloz-mermaid test
+      - name: Check standalone Effect CLI and packed executable
+        run: bun run --filter @opsydyn/foldkit-zloz-cli test
       - name: Install browser
         working-directory: apps/web
         run: bunx --no-install playwright install --with-deps chromium

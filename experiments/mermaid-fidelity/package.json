@@ -10,7 +10,7 @@
     "qualify": "npm run build && node qualify.mjs"
   },
   "dependencies": {
-    "@opsydyn/foldkit-zloz": "file:../../packages/foldkit-zloz/dist/pack/opsydyn-foldkit-zloz-0.1.0.tgz",
+    "@opsydyn/foldkit-zloz": "file:../../packages/foldkit-zloz/dist/pack/opsydyn-foldkit-zloz-0.1.1.tgz",
     "effect": "4.1.0",
     "mermaid-ast": "0.8.2"
   },

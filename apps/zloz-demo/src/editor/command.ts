@@ -1,7 +1,9 @@
+import { parseEditions } from '@opsydyn/foldkit-zloz';
 import { parseGraph, parseSnapshot } from '@opsydyn/foldkit-zloz';
-import { Effect, Schema } from 'effect';
+import { Data, Effect, Schema } from 'effect';
 import { Command } from 'foldkit';
 
+import { editionArchiveByteLimit } from './history';
 import { Message } from './message';
 import { ThemePreference } from './model';
 import { themePreferenceStorageKey } from './theme';
@@ -144,6 +146,50 @@ export const ExportMermaidBundle = Command.define('ExportMermaidBundle', {
       Effect.match({
         onSuccess: () => Message.CompletedMermaidDownload(),
         onFailure: () => Message.FailedMermaidDownload(),
+      }),
+    ),
+});
+
+export const ExportZlozEditions = Command.define('ExportZlozEditions', {
+  args: { json: Schema.String },
+  messages: [Message.CompletedExportEditions, Message.FailedExportEditions],
+  execute: ({ json }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download: 'foldkit-zloz.editions.json',
+      });
+      // Release after the browser has had time to start consuming the URL.
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedExportEditions(),
+        onFailure: () => Message.FailedExportEditions(),
+      }),
+    ),
+});
+
+class EditionArchiveTooLarge extends Data.TaggedError('EditionArchiveTooLarge')<{
+  readonly byteLimit: number;
+}> {}
+export const ImportZlozEditions = Command.define('ImportZlozEditions', {
+  args: { id: Schema.Number, file: Schema.instanceOf(File) },
+  interrupt: { keyFields: ['id'], toKey: ({ id }) => String(id) },
+  messages: [Message.SucceededEditionArchiveImport, Message.FailedEditionArchiveImport],
+  execute: ({ id, file }) =>
+    Effect.tryPromise(() => file.arrayBuffer()).pipe(
+      Effect.filterOrFail(
+        (buffer) => buffer.byteLength <= editionArchiveByteLimit,
+        () => new EditionArchiveTooLarge({ byteLimit: editionArchiveByteLimit }),
+      ),
+      Effect.flatMap((buffer) =>
+        Effect.try(() => parseEditions(new TextDecoder('utf-8', { fatal: true }).decode(buffer))),
+      ),
+      Effect.match({
+        onSuccess: (editions) => Message.SucceededEditionArchiveImport({ id, editions }),
+        onFailure: () => Message.FailedEditionArchiveImport({ id }),
       }),
     ),
 });

@@ -107,16 +107,14 @@ is **Foldkit Zloz API**, with canonical `/zloz/api/` navigation. Deprecated sour
 aliases and saved-data protocols are documented in the [migration guide](zloz-migration.md).
 No Flow-named package may be released; obsolete release PR #110 was closed.
 
-**Production CLI standard:** implement the standalone Zloz CLI with Effect CLI
-(`effect/cli` for the installed Effect 4 version), typed commands/flags/arguments,
-Schema decoding, typed errors and scoped FileSystem/Terminal services. Compose
-operations with `Effect.gen`, `pipe` and combinators; avoid manual argv parsing,
-Promise chains and direct process/file effects inside domain operations. Keep
-runtime execution and exit-code/output handling at the entry point. Keep the
-pure Mermaid exporter reusable without a CLI or Effect runtime. Qualify JSON
-output, invalid input, conversion losses, exit codes, stdin limits and cancellation.
-The existing imperative fidelity-spike driver is historical research; replace it
-with a separately qualified production CLI rather than presenting it as shipped.
+**Standalone Effect CLI:** the unpublished [`@opsydyn/foldkit-zloz-cli`](../packages/foldkit-zloz-cli/README.md)
+now provides `zloz validate` and `zloz mermaid export`. Typed Effect CLI commands,
+Schema JSON decoding, the canonical core codec, scoped platform streams and
+structured errors produce versioned agent-readable output. Strict/report loss
+policies, a 1 MiB UTF-8 byte budget, Node/Bun installed binaries and 0/1/2/130 exit
+contracts are qualified locally; CI runs the same checks. Core/Mermaid stay pure; parser adoption
+and Mermaid import remain subsequent work. Release/publication activation remains
+separate. The historical imperative fidelity driver is not the production CLI.
 
 **Planning completed — 2026-11-08:** the [naming migration inventory](assessments/2026-11-08-zloz-naming-migration-inventory.md)
 and [shared logo/site brief](assessments/2026-11-08-zloz-logo-and-site-brief.md)
@@ -137,6 +135,58 @@ track.
 with a **Mini map** toggle, rather than **Overview** under Diagnostics. Reuse the
 existing `overview` flag and respect global diagnostics/Minimal mode. This is a
 proposed follow-up prompted by the user's difficulty locating the control.
+
+## Zloz core: parity and domain modelling — 2026-11-08
+
+**Status:** review completed; proposed delivery order, not implemented features.
+The [current core assessment](assessments/2026-11-08-zloz-core-parity-and-domain-roadmap.md)
+records capability gaps, package ownership, compatibility constraints and the
+claim-to-evidence map. Full React Flow parity and competitive superiority are
+not established.
+
+Maintain two tracks: a reliable, customizable editor floor and a differentiated
+architecture modelling lifecycle. Package-owned functionality stays reusable;
+Astro is the demonstration shell. Prioritize the following bounded slices:
+
+1. **DDD preset renderers — implemented locally:** all eight existing semantic
+   roles have composable node/group presentation and a light/dark Order aggregate
+   demo. See the [qualification receipt](../apps/zloz-demo/evidence/ddd-renderers.md).
+2. **History and time travel — first slice implemented locally:** a first-class
+   product pillar. Core owns named immutable editions, a separate versioned archive,
+   read-only review and semantic/layout comparison. The optional Foldkit ghost
+   layer composes with the History sidebar and Order editions demo. See the
+   [qualification receipt](../apps/zloz-demo/evidence/history.md). The subsequent
+   [import/restore slice](../apps/zloz-demo/evidence/edition-restore.md) adds atomic
+   archive merge and explicit graph-only restore with one Undo, required freshness
+   and live policy checks. Forks, playback and automatic persistence remain open.
+   Start with named
+   immutable editions, read-only rewind and return to the present; then semantic/
+   layout comparison and explicit restore or fork into a new working model.
+   Include opt-in ghost nodes/edges, previous positions and movement connectors
+   like Tech Radar, with clear change states and independent visibility controls.
+   Establish the contract before expanding persisted domain vocabulary.
+3. **Atomic pattern insertion:** validated fragments, deterministic ID remapping,
+   policy checks, full rollback and one Undo per insertion.
+4. **DDD relationships/context maps:** typed tactical and strategic meaning,
+   serialization and conversion-loss handling; respect portless group boundaries.
+5. **EventStorming discovery:** explicit compatibility decision, configurable
+   semantic cards, optional links and valid uncertainty; then workshop patterns
+   and deliberate links to DDD/C4 concepts.
+6. **Agent modelling operations:** build on the standalone CLI with validated
+   patches, dry runs and reviewable changes; no automatic writable-agent rollout.
+
+Alongside these, evaluate authored edge waypoints, palette/drop workflows and
+image export against architecture tasks. Coordinate collaboration with its
+separate proposal; no collaboration runtime is claimed here. Keep accessible
+interaction and unrestricted visual composition in each slice. Retain the later
+comprehensive a11y qualification gate and publication-last decision.
+
+**Recommended next:** fork an edition into a separate working model with explicit
+lineage, keeping this distinct from restoring the current graph. Archive import,
+read-only rewind, comparison ghosts and undoable restore provide the local baseline. DDD renderers retain the current
+descriptor contract without new persisted fields. Proposed positioning to validate: model a domain
+with people, explore how its architecture evolves, and review/communicate the
+same portable model with human and agent tooling. Shapes alone, Undo and layout examples do not establish a USP.
 
 ## Release: Keyed Chart Comparison
 

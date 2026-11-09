@@ -1,0 +1,38 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "nodes": 8,
+  "edges": 4,
+  "themes": [
+    {
+      "theme": "light",
+      "fill": "rgb(255, 254, 250)",
+      "stroke": "rgb(93, 101, 116)"
+    },
+    {
+      "theme": "dark",
+      "fill": "rgb(25, 28, 36)",
+      "stroke": "rgb(173, 182, 199)"
+    }
+  ],
+  "checks": [
+    "eight DDD roles and legend",
+    "custom package badge",
+    "retention preserves focus and handle identity",
+    "keyboard movement and Undo",
+    "node/group resize and Undo",
+    "native connection creation and Undo",
+    "portless collapse/expand",
+    "minimal mode retains semantic text",
+    "Minimal mode omits optional graph-action controls",
+    "theme switches preserve graph",
+    "no interactive content in artwork"
+  ],
+  "pageErrors": [],
+  "screenshots": [
+    "ddd-order-light.png",
+    "ddd-order-dark.png",
+    "ddd-workbench-light.png",
+    "ddd-workbench-dark.png"
+  ]
+}

@@ -11,6 +11,7 @@ import type { Model, WorkbenchSection } from './model';
 export type WorkbenchControls = Readonly<Record<WorkbenchSection, readonly Html[]>>;
 const sections: readonly (readonly [WorkbenchSection, string])[] = [
   ['diagram', 'Diagram'],
+  ['history', 'History'],
   ['appearance', 'Appearance'],
   ['navigation', 'Navigation'],
   ['ports', 'Ports'],
@@ -182,7 +183,44 @@ export function workbenchLayout(
           ),
         ],
       ),
-      h.section([h.Class('workbench-canvas'), h.AriaLabel('Diagram canvas')], [parts.canvas]),
+      h.section(
+        [
+          h.Class('workbench-canvas'),
+          h.AriaLabel('Diagram canvas'),
+          h.Style({ position: 'relative' }),
+        ],
+        [
+          parts.canvas,
+          ...(model.historyReview
+            ? [
+                h.div(
+                  [
+                    h.Role('status'),
+                    h.AriaLabel('Historical edition notice'),
+                    h.Style({
+                      position: 'absolute',
+                      top: '12px',
+                      left: '16px',
+                      'z-index': '5',
+                      padding: '8px 12px',
+                      background: 'light-dark(#fffefa, #191c24)',
+                      color: 'light-dark(#172033, #eef0f5)',
+                      border: '1px solid #64748b',
+                      'border-radius': '6px',
+                    }),
+                  ],
+                  [
+                    'Read-only history · working model preserved ',
+                    h.button(
+                      [h.Type('button'), h.OnClick(Message.ClickedHistoryPresent())],
+                      ['Back to present'],
+                    ),
+                  ],
+                ),
+              ]
+            : []),
+        ],
+      ),
     ],
   );
 }

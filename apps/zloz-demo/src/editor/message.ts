@@ -30,6 +30,25 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ChoseEditionArchiveFiles: { files: Schema.Array(Schema.instanceOf(File)) },
+  SucceededEditionArchiveImport: { id: Schema.Number, editions: Schema.Unknown },
+  FailedEditionArchiveImport: { id: Schema.Number },
+  ClickedCancelEditionImport: {},
+  CompletedCancelEditionImport: {},
+  ClickedPreviewEditionRestore: {},
+  ClickedConfirmEditionRestore: {},
+  ClickedCancelEditionRestore: {},
+  ClickedEditionRestoreProtection: {},
+  ChangedEditionName: { name: Schema.String },
+  ClickedCaptureEdition: {},
+  ClickedOrderHistory: {},
+  SelectedHistoryEdition: { id: Schema.String },
+  SelectedHistoryBaseline: { id: Schema.String },
+  ClickedHistoryPresent: {},
+  ClickedHistoryGhost: { part: Schema.Literals(['enabled', 'nodes', 'edges', 'movements']) },
+  ClickedExportEditions: {},
+  CompletedExportEditions: {},
+  FailedExportEditions: {},
   ObservedZlozInput: { message: Schema.Unknown },
   SelectedExample: {
     example: Schema.Literals([
@@ -39,6 +58,7 @@ export const Message = defineMessageUnion({
       'large-workflow',
       'protected-orbits',
       'port-snapping',
+      'ddd-orders',
       'c4-context',
       'c4-containers',
       'c4-nested-containers',

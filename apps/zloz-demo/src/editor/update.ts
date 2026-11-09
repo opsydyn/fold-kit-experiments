@@ -2,7 +2,7 @@ import {
   applyLayout,
   resolveHistoryComparisonRequest,
   updateEditionPlayback,
-  createArchitecturePattern,
+  createEventStormingPattern,
   appendEdition,
   mergeEditions,
   resolveEditionRestore,
@@ -59,6 +59,7 @@ import {
 } from './command';
 import { createDddOrderGraph } from './ddd-examples';
 import { workbenchPolicy } from './editor-policy';
+import { delegatedRelationship } from './event-storming-relationships';
 import {
   historyAllowsMessage,
   orderEditions,
@@ -677,7 +678,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedExample: ({ example }) => {
       const graph =
         example === 'event-storming'
-          ? createArchitecturePattern('event-storming')
+          ? createEventStormingPattern({ includeAggregate: true })
           : example === 'large-workflow'
             ? createLargeWorkflowGraph()
             : example === 'protected-orbits'
@@ -701,6 +702,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: {
           ...model,
           editor,
+          semanticRelationships: example === 'event-storming' ? true : model.semanticRelationships,
           nodeDesign:
             example === 'event-storming'
               ? 'event-storming'
@@ -1035,6 +1037,34 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedEdgeToolbarDesign: ({ edgeToolbarDesign }) => ({
       model: { ...model, edgeToolbarDesign },
     }),
+    ClickedSemanticRelationships: () => ({
+      model: { ...model, semanticRelationships: !model.semanticRelationships },
+    }),
+    ClickedCustomStormingRelationships: () => ({
+      model: { ...model, customStormingRelationships: !model.customStormingRelationships },
+    }),
+    ClickedDelegatedRelationship: ({ modelId, epoch }) => {
+      if (
+        modelId !== model.modelIdentity.id ||
+        epoch !== model.modelEpoch ||
+        modelSessionBusy(model) ||
+        model.editor.readOnly
+      )
+        return { model };
+      const edge = delegatedRelationship(model);
+      return {
+        model: edge
+          ? {
+              ...model,
+              editor: updateEditor(
+                model.editor,
+                { type: 'ConnectionCreated', edge },
+                workbenchPolicy(model),
+              ),
+            }
+          : model,
+      };
+    },
     SelectedEdgeLabelDesign: ({ edgeLabelDesign }) => ({ model: { ...model, edgeLabelDesign } }),
     SelectedEdgeDesign: ({ edgeDesign }) => ({ model: { ...model, edgeDesign } }),
     SelectedNodeDesign: ({ nodeDesign }) => ({ model: { ...model, nodeDesign } }),

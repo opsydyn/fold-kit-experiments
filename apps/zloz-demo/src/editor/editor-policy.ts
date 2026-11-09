@@ -1,6 +1,11 @@
-import type { EditorPolicy, ZlozNode } from '@opsydyn/foldkit-zloz';
+import {
+  eventStormingRelationshipPolicy,
+  type EditorPolicy,
+  type ZlozNode,
+} from '@opsydyn/foldkit-zloz';
 import { Schema } from 'effect';
 
+import { workbenchRelationshipOptions } from './event-storming-relationships';
 import type { Model } from './model';
 import { fixtureSocketPolicy } from './socket-policy';
 
@@ -16,7 +21,7 @@ const requiredItemPolicy = {
   },
 } satisfies EditorPolicy;
 
-export function workbenchPolicy({
+function baseWorkbenchPolicy({
   protectDeletions,
   protectPortEdits,
   perPortSnapping,
@@ -140,4 +145,17 @@ export function workbenchPolicy({
           edge.id === 'draft-review' ? 'Draft → Review is excluded from selection.' : null,
       }
     : resizePolicy;
+}
+
+export function workbenchPolicy(
+  model: Parameters<typeof baseWorkbenchPolicy>[0] &
+    Pick<Model, 'semanticRelationships' | 'customStormingRelationships'>,
+): EditorPolicy & Required<Pick<EditorPolicy, 'canReconnect'>> {
+  const base = baseWorkbenchPolicy(model);
+  return model.semanticRelationships
+    ? {
+        ...eventStormingRelationshipPolicy(workbenchRelationshipOptions(model), base),
+        canReconnect: base.canReconnect,
+      }
+    : base;
 }

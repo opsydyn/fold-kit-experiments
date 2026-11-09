@@ -190,3 +190,19 @@ The `/foldkit` entry exports `zlozHistoryChangeNavigator`,
 `ZlozHistoryChangeNavigatorParts` and `ZlozHistoryChangeNavigatorViewOptions`.
 See the [package example](../packages/foldkit-zloz/README.md#composable-history-change-navigation)
 and [ADR 0029](adr/0029-navigate-history-comparison-changes.md).
+
+### Event-storming causal relationships
+
+`ZlozEdge.architecture` accepts `ZlozEdgeArchitecture` / `EventStormingEdgeArchitecture`.
+Core exports `isEdgeArchitecture`, `eventStormingRelationshipRules`,
+`eventStormingParticipantRole`, `eventStormingRelationshipKey`,
+`resolveEventStormingRelationship`, `eventStormingRelationshipPolicy` and
+`createEventStormingPattern`. Configuration and result types are
+`EventStormingParticipantRole`, `ZlozEventStormingRelationshipRule`,
+`ZlozEventStormingRelationshipOptions` and `ZlozEventStormingRelationshipDecision`.
+
+`EdgeArchitectureChanged` and `EditorPolicy.canChangeEdgeArchitecture` support
+undoable, protected descriptor edits. Opt-in conventions compose with connection
+and node-role policies; graph syntax validation remains separate from workshop
+compatibility. See the [package example](../packages/foldkit-zloz/README.md#typed-event-storming-relationships)
+and [ADR 0030](adr/0030-type-event-storming-causal-relationships.md).

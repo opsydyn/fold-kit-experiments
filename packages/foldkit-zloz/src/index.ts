@@ -264,3 +264,19 @@ export type {
   ZlozHistoryChangeFocusTarget,
   ZlozHistoryChangeFocusDecision,
 } from './history-change-navigator';
+
+export { isEdgeArchitecture } from './architecture';
+export {
+  eventStormingRelationshipRules,
+  eventStormingRelationshipKey,
+  eventStormingParticipantRole,
+  resolveEventStormingRelationship,
+  eventStormingRelationshipPolicy,
+} from './event-storming-relationships';
+export type {
+  EventStormingParticipantRole,
+  ZlozEventStormingRelationshipRule,
+  ZlozEventStormingRelationshipOptions,
+  ZlozEventStormingRelationshipDecision,
+} from './event-storming-relationships';
+export { createEventStormingPattern } from './patterns';

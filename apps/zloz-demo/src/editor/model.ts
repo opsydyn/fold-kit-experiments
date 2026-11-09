@@ -334,6 +334,8 @@ export const Model = Schema.Struct({
   contextMenuDesign: ContextMenuDesign,
   nodeToolbarDesign: NodeToolbarDesign,
   edgeToolbarDesign: EdgeToolbarDesign,
+  semanticRelationships: Schema.Boolean,
+  customStormingRelationships: Schema.Boolean,
   edgeLabelDesign: EdgeLabelDesign,
   edgeDesign: EdgeDesign,
   wheelNavigation: WheelNavigation,
@@ -434,6 +436,8 @@ export type Model = Readonly<{
   contextMenuDesign: ContextMenuDesign;
   nodeToolbarDesign: NodeToolbarDesign;
   edgeToolbarDesign: EdgeToolbarDesign;
+  semanticRelationships: boolean;
+  customStormingRelationships: boolean;
   edgeLabelDesign: EdgeLabelDesign;
   edgeDesign: EdgeDesign;
   wheelNavigation: WheelNavigation;
@@ -531,6 +535,8 @@ export const init = (namespace = 'test-workbench') => ({
     contextMenuDesign: 'standard',
     nodeToolbarDesign: 'off',
     edgeToolbarDesign: 'standard',
+    semanticRelationships: false,
+    customStormingRelationships: false,
     edgeLabelDesign: 'standard',
     edgeDesign: 'default',
     wheelNavigation: 'zoom',

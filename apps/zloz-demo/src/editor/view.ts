@@ -1,5 +1,8 @@
 import {
   resolveEdgeReconnection,
+  resolveEventStormingRelationship,
+  eventStormingRelationshipRules,
+  eventStormingRelationshipKey,
   playbackEditionId,
   resolveEditionPlaybackControls,
   resolveEditionScrubber,
@@ -79,6 +82,11 @@ import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchPolicy } from './editor-policy';
+import {
+  delegatedRelationship,
+  inferredRelationship,
+  workbenchRelationshipOptions,
+} from './event-storming-relationships';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
 import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
 import { mermaidExportPanel } from './mermaid-preview';
@@ -446,6 +454,28 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const searchItem = model.searchScope === 'nodes' ? 'node' : 'connection';
   const canReveal = model.editor.surface !== null && model.editor.gesture.type === 'idle';
   const policy = workbenchPolicy(model);
+  const causalRules = workbenchRelationshipOptions(model).rules ?? eventStormingRelationshipRules;
+  const relationshipEditingBlocked =
+    busyModelSession ||
+    model.editor.readOnly ||
+    model.historyReview !== null ||
+    model.editor.gesture.type !== 'idle';
+  const inferredArchitecture = selectedEdge ? inferredRelationship(model, selectedEdge) : null;
+  const canApplyInferred =
+    inferredArchitecture !== null &&
+    (!selectedEdge?.architecture ||
+      eventStormingRelationshipKey(selectedEdge.architecture) !==
+        eventStormingRelationshipKey(inferredArchitecture));
+  const incompatibleRelationship = selectedEdge
+    ? causalRules.find(
+        (rule) =>
+          resolveEventStormingRelationship(
+            model.editor.graph,
+            { ...selectedEdge, architecture: rule.architecture },
+            workbenchRelationshipOptions(model),
+          ).type === 'blocked',
+      )?.architecture
+    : undefined;
   const insertionReason = patternInsertionReason(model);
   const inspector = Option.getOrUndefined(
     !model.minimalMode && selectedNode
@@ -1450,10 +1480,206 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ),
       ...(model.nodeDesign === 'event-storming'
         ? [
-            h.p(
-              [h.AriaLabel('Event-storming role legend')],
+            h.div(
+              [h.Role('group'), h.AriaLabel('Event-storming relationships')],
               [
-                'Actor · Command · Domain Event · Policy. Notes describe a workshop process; relationships do not execute business rules. Role labels remain visible independently of color.',
+                h.h2([], ['Causal relationships']),
+                h.label(
+                  [h.Class('workbench-field')],
+                  [
+                    'Inspect relationship',
+                    h.select(
+                      [
+                        h.AriaLabel('Inspect relationship'),
+                        h.Value(selectedEdge?.id ?? ''),
+                        h.OnChange((id) =>
+                          zlozInput(
+                            id
+                              ? { type: 'EdgeSelected', id, additive: false }
+                              : { type: 'SelectionCleared' },
+                          ),
+                        ),
+                      ],
+                      [
+                        h.option([h.Value('')], ['Choose a connection']),
+                        ...model.editor.graph.edges.map((edge) =>
+                          h.option([h.Value(edge.id)], [edge.label || edge.id]),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                h.p(
+                  [h.Role('status'), h.AriaLabel('Relationship edit feedback')],
+                  [model.editor.notice],
+                ),
+                h.p(
+                  [h.AriaLabel('Event-storming role legend')],
+                  [
+                    'Actor · Command · Aggregate · Domain Event · Policy. These are editable modelling conventions, not executable business rules.',
+                  ],
+                ),
+                h.label(
+                  [h.Class('workbench-field')],
+                  [
+                    h.input([
+                      h.Type('checkbox'),
+                      h.Checked(model.semanticRelationships),
+                      h.Disabled(model.historyReview !== null),
+                      h.OnClick(Message.ClickedSemanticRelationships()),
+                    ]),
+                    'Validate causal relationships',
+                  ],
+                ),
+                h.label(
+                  [h.Class('workbench-field')],
+                  [
+                    h.input([
+                      h.Type('checkbox'),
+                      h.Checked(model.customStormingRelationships),
+                      h.Disabled(model.historyReview !== null),
+                      h.OnClick(Message.ClickedCustomStormingRelationships()),
+                    ]),
+                    'Enable custom Delegates convention',
+                  ],
+                ),
+                h.p(
+                  [],
+                  [
+                    'The custom convention permits command → command links. Changing conventions never rewrites existing models.',
+                  ],
+                ),
+                button(
+                  'Add delegated command connection',
+                  Message.ClickedDelegatedRelationship({
+                    modelId: model.modelIdentity.id,
+                    epoch: model.modelEpoch,
+                  }),
+                  !delegatedRelationship(model),
+                ),
+                h.ul(
+                  [h.AriaLabel('Causal relationship report')],
+                  model.editor.graph.edges.map((edge) => {
+                    const decision = resolveEventStormingRelationship(
+                      model.editor.graph,
+                      edge,
+                      workbenchRelationshipOptions(model),
+                    );
+                    return h.li(
+                      [h.Key(edge.id)],
+                      [
+                        h.strong([], [edge.label || edge.id]),
+                        ' · ',
+                        decision.type === 'allowed'
+                          ? `${decision.rule.label} (${decision.inferred ? 'inferred' : 'typed'})`
+                          : decision.type === 'blocked'
+                            ? decision.reason
+                            : 'Unrelated connection',
+                      ],
+                    );
+                  }),
+                ),
+                ...(selectedEdge
+                  ? [
+                      h.label(
+                        [h.Class('workbench-field')],
+                        [
+                          'Causal relationship type',
+                          h.select(
+                            [
+                              h.AriaLabel('Causal relationship type'),
+                              h.Value(
+                                selectedEdge.architecture
+                                  ? eventStormingRelationshipKey(selectedEdge.architecture)
+                                  : '',
+                              ),
+                              h.Disabled(relationshipEditingBlocked),
+                              h.OnChange((role) =>
+                                zlozInput({
+                                  type: 'EdgeArchitectureChanged',
+                                  id: selectedEdge.id,
+                                  architecture:
+                                    role === ''
+                                      ? null
+                                      : (causalRules.find(
+                                          (rule) =>
+                                            eventStormingRelationshipKey(rule.architecture) ===
+                                            role,
+                                        )?.architecture ??
+                                        selectedEdge.architecture ??
+                                        null),
+                                }),
+                              ),
+                            ],
+                            [
+                              h.option([h.Value('')], ['Untyped / inferred']),
+                              ...causalRules.map((rule) => {
+                                const reason =
+                                  policy.canChangeEdgeArchitecture?.(
+                                    selectedEdge,
+                                    { ...selectedEdge, architecture: rule.architecture },
+                                    model.editor.graph,
+                                  ) ?? null;
+                                return h.option(
+                                  [
+                                    h.Value(eventStormingRelationshipKey(rule.architecture)),
+                                    h.Disabled(reason !== null),
+                                    ...(reason ? [h.Title(reason)] : []),
+                                  ],
+                                  [rule.label],
+                                );
+                              }),
+                            ],
+                          ),
+                        ],
+                      ),
+                      button(
+                        'Apply inferred relationship',
+                        zlozInput({
+                          type: 'EdgeArchitectureChanged',
+                          id: selectedEdge.id,
+                          architecture: inferredArchitecture,
+                        }),
+                        relationshipEditingBlocked || !canApplyInferred,
+                      ),
+                      ...(incompatibleRelationship
+                        ? [
+                            button(
+                              'Try incompatible relationship',
+                              zlozInput({
+                                type: 'EdgeArchitectureChanged',
+                                id: selectedEdge.id,
+                                architecture: incompatibleRelationship,
+                              }),
+                              relationshipEditingBlocked,
+                            ),
+                          ]
+                        : []),
+                      h.ul(
+                        [h.AriaLabel('Relationship compatibility')],
+                        causalRules.map((rule) => {
+                          const result = resolveEventStormingRelationship(
+                            model.editor.graph,
+                            { ...selectedEdge, architecture: rule.architecture },
+                            workbenchRelationshipOptions(model),
+                          );
+                          return h.li(
+                            [h.Key(eventStormingRelationshipKey(rule.architecture))],
+                            [
+                              `${rule.label}: ${result.type === 'blocked' ? result.reason : 'compatible'}`,
+                            ],
+                          );
+                        }),
+                      ),
+                    ]
+                  : [
+                      h.p(
+                        [],
+                        [
+                          'Select a connection on the canvas to edit its semantic type. Incompatible choices show a protection reason when validation is enabled.',
+                        ],
+                      ),
+                    ]),
               ],
             ),
           ]
@@ -2442,6 +2668,36 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ),
     ],
     policies: [
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.semanticRelationships),
+            h.Disabled(model.historyReview !== null),
+            h.OnClick(Message.ClickedSemanticRelationships()),
+          ]),
+          'Validate causal relationships',
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.customStormingRelationships),
+            h.Disabled(model.historyReview !== null),
+            h.OnClick(Message.ClickedCustomStormingRelationships()),
+          ]),
+          'Enable custom Delegates convention',
+        ],
+      ),
+      h.p(
+        [],
+        [
+          'Causal conventions are opt-in and independent of node artwork. Disable validation here to keep unresolved workshop drafts.',
+        ],
+      ),
       h.label(
         [
           h.Style({

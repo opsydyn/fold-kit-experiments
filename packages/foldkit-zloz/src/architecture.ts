@@ -199,3 +199,38 @@ export function validNodeArchitectureFields(value: object & { kind?: unknown }):
       (value.kind !== 'group' || value.appearance.shape === 'rectangle'))
   );
 }
+
+/** Authored causal meaning, separate from labels and host-owned edge data. */
+export type EventStormingEdgeArchitecture = Readonly<
+  { family: 'event-storming'; description?: string } & (
+    | { role: 'issues' | 'handles' | 'emits' | 'produces' | 'activates' | 'triggers' }
+    | { role: 'custom'; name: string }
+  )
+>;
+export type ZlozEdgeArchitecture = EventStormingEdgeArchitecture;
+/** Strict reserved descriptor syntax. Compatibility remains an opt-in modelling convention. */
+export function isEdgeArchitecture(value: unknown): value is ZlozEdgeArchitecture {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null) ||
+    !('family' in value) ||
+    value.family !== 'event-storming' ||
+    !('role' in value)
+  )
+    return false;
+  if ('description' in value && typeof value.description !== 'string') return false;
+  const custom = value.role === 'custom';
+  return (
+    Object.keys(value).every((key) =>
+      (custom
+        ? ['family', 'role', 'name', 'description']
+        : ['family', 'role', 'description']
+      ).includes(key),
+    ) &&
+    (custom
+      ? 'name' in value && typeof value.name === 'string' && value.name.trim().length > 0
+      : typeof value.role === 'string' &&
+        ['issues', 'handles', 'emits', 'produces', 'activates', 'triggers'].includes(value.role))
+  );
+}

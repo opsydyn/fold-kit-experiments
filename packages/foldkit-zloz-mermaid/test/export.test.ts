@@ -219,3 +219,15 @@ test('event-storming metadata loss is explicit and rejected by default', () => {
   ).toHaveLength(5);
   if (result.status === 'converted') expect(result.value.source).toContain('Order placed');
 });
+
+test('typed causal relationships are explicitly reported as semantic conversion loss', () => {
+  const source = createArchitecturePattern('event-storming');
+  const result = exportMermaid(source, { lossPolicy: 'report' });
+  expect(result.status).toBe('converted');
+  expect(
+    result.diagnostics.filter(
+      (value) => value.code === 'edge-fields-omitted' && value.message.includes('architecture'),
+    ),
+  ).toHaveLength(4);
+  expect(exportMermaid(source, { lossPolicy: 'reject' }).status).not.toBe('converted');
+});

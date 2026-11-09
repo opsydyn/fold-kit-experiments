@@ -2996,3 +2996,102 @@ options selects/reorders filter **controls**, while core options decide which
 changes appear. Custom entries own their list-item semantics. Labels, attributes,
 status/reason content and frame/list names are configurable. No generated IDs,
 selection cursor, timer, graph edits or persistence format are introduced.
+
+## Typed event-storming relationships
+
+Edges can carry `architecture: EventStormingEdgeArchitecture` independently of
+their visible `label` and host-owned `data`. Zloz's default process conventions
+are:
+
+| Role        | Source       | Target       |
+| ----------- | ------------ | ------------ |
+| `issues`    | actor        | command      |
+| `handles`   | command      | aggregate    |
+| `emits`     | aggregate    | domain event |
+| `produces`  | command      | domain event |
+| `activates` | domain event | policy       |
+| `triggers`  | policy       | command      |
+
+DDD aggregate/aggregate-root and domain-event nodes participate alongside
+EventStorming notes. An aggregate boundary still needs ordinary ports; an
+aggregate root is usually the useful connection endpoint. These are adaptable
+modelling conventions, not executable business rules or a universal grammar.
+
+```ts
+import {
+  createEventStormingPattern,
+  createEditor,
+  updateEditor,
+  resolveEventStormingRelationship,
+  eventStormingRelationshipPolicy,
+} from '@opsydyn/foldkit-zloz';
+
+const graph = createEventStormingPattern({ includeAggregate: true });
+const policy = eventStormingRelationshipPolicy({}, existingHostPolicy);
+const decision = resolveEventStormingRelationship(graph, candidateEdge);
+// A candidate without architecture can be inferred without changing the graph.
+if (decision.type === 'allowed') {
+  const typed = { ...candidateEdge, architecture: decision.architecture };
+  const next = updateEditor(
+    createEditor(graph),
+    { type: 'ConnectionCreated', edge: typed },
+    policy,
+  );
+}
+```
+
+The resolver returns `allowed` (descriptor, matched rule, inferred flag),
+`unrelated` for ordinary untyped connections, or `blocked` with a stable code and
+readable reason. It checks semantic roles only. The editor continues to enforce
+port direction, duplicates, read-only/gesture state and host policies. Pass the
+same live conventions to the resolver, native creation/reconnection chooser and
+update path. `eventStormingRelationshipPolicy(options, basePolicy)` preserves
+host veto precedence and checks incident links when a node changes role.
+
+Custom rules are first-class and replace the complete default catalogue:
+
+```ts
+import {
+  eventStormingRelationshipRules,
+  eventStormingRelationshipPolicy,
+} from '@opsydyn/foldkit-zloz';
+
+const options = {
+  rules: [
+    ...eventStormingRelationshipRules,
+    {
+      architecture: { family: 'event-storming', role: 'custom', name: 'delegates' },
+      sources: ['command'],
+      targets: ['command'],
+      label: 'Delegates',
+    },
+  ],
+} satisfies import('@opsydyn/foldkit-zloz').ZlozEventStormingRelationshipOptions;
+const policy = eventStormingRelationshipPolicy(options, existingHostPolicy);
+```
+
+`roleOf` can interpret custom host nodes; use `eventStormingParticipantRole` as the
+default fallback. `eventStormingRelationshipKey` identifies built-in or named
+custom descriptors for native controls; descriptions are authored meaning rather
+than identity. Rule descriptors must have unique keys, supported nonempty role
+sets and nonempty labels. Multiple compatible inference rules produce a blocked
+ambiguity reason until the author chooses an explicit descriptor. Empty catalogues
+are valid. Structural port and policy checks remain active with custom rules.
+
+Edit an existing relation with `EdgeArchitectureChanged` (`architecture: null`
+clears the descriptor). `canChangeEdgeArchitecture` receives previous edge, next
+edge and full graph. Edits are undoable, preserve layout routes and do not create
+Undo entries for identical descriptors or rejected changes. Legacy untyped edges
+need no migration. `isEdgeArchitecture` validates strict reserved syntax; custom
+roles require a nonempty name. Graph/snapshot/model version 1 serializes optional
+descriptors, while history distinguishes these semantic changes from layout.
+Imports and Undo/Redo preserve unresolved drafts; compatibility enforcement is
+opt-in and never rewrites a model when conventions change. Older readers may not
+understand or enforce the new meaning, so qualify mixed-version roundtrips.
+
+Mermaid reports `edge-fields-omitted` semantic loss for descriptors. Strict loss
+policy rejects; report mode projects labels/identity without pretending it can
+roundtrip architecture. No executable process, automatic metadata stamping,
+semantic side effects or dependency is introduced. The compact
+`createArchitecturePattern('event-storming')` remains five notes with typed links;
+the detailed factory adds an aggregate root.

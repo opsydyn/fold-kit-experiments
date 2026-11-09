@@ -173,40 +173,84 @@ export function insertPattern(
   };
 }
 
-function createEventStormingPattern(): ZlozGraph {
+/** Process notes with optional DDD aggregate-root detail; ordinary insertion and Undo remain unchanged. */
+export function createEventStormingPattern(
+  options: Readonly<{ includeAggregate?: boolean }> = {},
+): ZlozGraph {
   const notes = [
     { role: 'actor', label: 'Customer' },
     { role: 'command', label: 'Place order' },
+    ...(options.includeAggregate
+      ? [{ role: 'aggregate-root' as const, label: 'Order aggregate' }]
+      : []),
     { role: 'domain-event', label: 'Order placed' },
     { role: 'policy', label: 'When order placed, request payment' },
     { role: 'command', label: 'Request payment' },
   ] as const;
-  const nodes = notes.map(({ role, label }, index) =>
-    createArchitectureNode({
+  const nodes = notes.map(({ role, label }, index) => {
+    const detailed = options.includeAggregate === true;
+    const bottom = detailed && index >= 3;
+    return createArchitectureNode({
       id: `note:${index}`,
       label,
-      architecture: { family: 'event-storming', role },
-      position: { x: index * 340, y: 40 },
+      architecture:
+        role === 'aggregate-root' ? { family: 'ddd', role } : { family: 'event-storming', role },
+      position: detailed
+        ? { x: 40 + (bottom ? 5 - index : index) * 340, y: bottom ? 350 : 40 }
+        : { x: index * 340, y: 40 },
       size: { width: 220, height: 160 },
       ports: [
         ...(index > 0
-          ? [{ id: 'in', kind: 'input' as const, side: 'left' as const, offset: 0.5 }]
+          ? [
+              {
+                id: 'in',
+                kind: 'input' as const,
+                side:
+                  detailed && index === 3
+                    ? ('top' as const)
+                    : bottom
+                      ? ('right' as const)
+                      : ('left' as const),
+                offset: 0.5,
+              },
+            ]
           : []),
         ...(index < notes.length - 1
-          ? [{ id: 'out', kind: 'output' as const, side: 'right' as const, offset: 0.5 }]
+          ? [
+              {
+                id: 'out',
+                kind: 'output' as const,
+                side:
+                  detailed && index === 2
+                    ? ('bottom' as const)
+                    : bottom
+                      ? ('left' as const)
+                      : ('right' as const),
+                offset: 0.5,
+              },
+            ]
           : []),
       ],
-    }),
-  );
-  const graph = {
-    nodes,
-    edges: ['Decides', 'Produces', 'Whenever', 'Then'].map((label, index) => ({
-      id: `step:${index}`,
-      label,
-      source: { node: nodes[index]!.id, port: 'out' },
-      target: { node: nodes[index + 1]!.id, port: 'in' },
-    })),
-  };
+    });
+  });
+  const roles = options.includeAggregate
+    ? (['issues', 'handles', 'emits', 'activates', 'triggers'] as const)
+    : (['issues', 'produces', 'activates', 'triggers'] as const);
+  const edges = roles.map((role, index) => ({
+    id: `step:${index}`,
+    label: {
+      issues: 'Issues',
+      handles: 'Handled by',
+      emits: 'Emits',
+      produces: 'Produces',
+      activates: 'Whenever',
+      triggers: 'Then',
+    }[role],
+    architecture: { family: 'event-storming' as const, role },
+    source: { node: nodes[index]!.id, port: 'out' },
+    target: { node: nodes[index + 1]!.id, port: 'in' },
+  }));
+  const graph = { nodes, edges };
   validateGraph(graph);
   return graph;
 }

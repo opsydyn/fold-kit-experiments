@@ -1,4 +1,8 @@
-import type { ZlozNodeArchitecture, ZlozNodeAppearance } from './architecture';
+import type {
+  ZlozNodeArchitecture,
+  ZlozNodeAppearance,
+  ZlozEdgeArchitecture,
+} from './architecture';
 
 /** JSON payloads survive save/reload; views and runtime resources stay in the host. */
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | JsonObject;
@@ -141,6 +145,7 @@ export type ZlozEdge = Readonly<{
   target: Endpoint;
   /** Omit to use the layout route, with a straight fallback. */
   pathStyle?: EdgePathStyle;
+  architecture?: ZlozEdgeArchitecture;
   label?: string;
   data?: JsonValue;
 }>;
@@ -343,6 +348,8 @@ export type PortEditCandidate = Readonly<{
 export type EditorPolicy = Readonly<{
   /** Veto semantic changes; receives current node, validated proposed node and current graph. */
   canChangeNodeArchitecture?: (node: ZlozNode, next: ZlozNode, graph: ZlozGraph) => string | null;
+  /** Veto semantic metadata edits independently of wiring and route changes. */
+  canChangeEdgeArchitecture?: (edge: ZlozEdge, next: ZlozEdge, graph: ZlozGraph) => string | null;
   /** Veto authored outline changes independently of semantic changes. */
   canChangeNodeAppearance?: (node: ZlozNode, next: ZlozNode, graph: ZlozGraph) => string | null;
   /** Pure per-port overrides resolved once at drag start. Undefined and omitted fields inherit. */
@@ -476,6 +483,11 @@ export type EditorEvent =
   | Readonly<{ type: 'EdgeLabelSaved'; id: string }>
   | Readonly<{ type: 'EdgeLabelCancelled'; id: string }>
   | Readonly<{ type: 'EdgePathStyleChanged'; id: string; pathStyle: EdgePathStyle | null }>
+  | Readonly<{
+      type: 'EdgeArchitectureChanged';
+      id: string;
+      architecture: ZlozEdgeArchitecture | null;
+    }>
   | Readonly<{ type: 'EdgeDataChanged'; id: string; data: JsonValue }>
   | Readonly<{ type: 'NodeMeasured'; id: string; size: Size }>
   | Readonly<{ type: 'SurfaceMeasured'; size: Size }>

@@ -181,9 +181,16 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** typed event-storming causal relationships with explainable
-validation between commands, events, policies and aggregates. This extends the
-existing notes and process starter into a richer modelling contract.
+**Recommended next:** composable event-storming relationship controls at package
+level, with a typed chooser and explicit inference action. This will let consumers
+reuse the workbench's semantic editing workflow while keeping rendering flexible.
+
+Typed causal relationships are implemented locally with six default conventions,
+named custom rules, extensible role interpretation, strict descriptor syntax,
+opt-in composed policies and undoable semantic edits. The detailed workbench
+process adds an aggregate root and demonstrates unresolved drafts, readable
+protection reasons and custom Delegates relationships. Mermaid discloses semantic
+loss instead of silently claiming descriptor fidelity.
 
 Package-owned change navigation is implemented locally with composable kind
 filters, accessible entries, explicit scoped focus requests and live protection

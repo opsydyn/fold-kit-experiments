@@ -79,6 +79,7 @@ import {
   openModelDocument,
   modelSessionBusy,
 } from './model-sessions';
+import { insertWorkbenchPattern } from './pattern-insertion';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
 import { searchDiagram } from './search';
@@ -205,6 +206,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const result: Return<Model, Message> = Message.match(message, {
+    ClickedPatternInsertionProtection: () => ({
+      model: { ...model, protectPatternInsertion: !model.protectPatternInsertion },
+    }),
+    ClickedInsertPattern: ({ pattern }) => ({ model: insertWorkbenchPattern(model, pattern) }),
     ClickedModelImportProtection: () => ({
       model: { ...model, protectModelImport: !model.protectModelImport },
     }),

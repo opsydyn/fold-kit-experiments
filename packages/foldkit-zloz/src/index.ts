@@ -190,3 +190,10 @@ export type {
   ZlozEditionForkPolicy,
   ZlozEditionForkResult,
 } from './model-document';
+export { createArchitecturePattern, insertPattern } from './patterns';
+export type {
+  ArchitecturePattern,
+  ZlozPatternInsertionPolicy,
+  ZlozPatternInsertionOptions,
+  ZlozPatternInsertionResult,
+} from './patterns';

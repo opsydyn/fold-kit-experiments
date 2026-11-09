@@ -85,6 +85,7 @@ import {
   PortSnapPriority,
 } from './model';
 import { modelSessionBusy } from './model-sessions';
+import { patternInsertionReason } from './pattern-insertion';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import {
@@ -125,9 +126,9 @@ const workbenchBodyCache = createZlozNodeBodyCache();
 const orbitBodyCache = createZlozNodeBodyCache();
 const c4Options: ZlozC4NodeOptions<Message> = { bodyCache: createZlozNodeBodyCache() };
 const retainedC4Node = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozC4Node(context, h, c4Options);
+  zlozC4Node(context, h, c4Options) ?? zlozDddNode(context, h, dddOptions);
 const retainedC4Group = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozC4Group(context, h, c4Options);
+  zlozC4Group(context, h, c4Options) ?? zlozDddGroup(context, h, dddOptions);
 const dddOptionsWithoutCache: ZlozDddNodeOptions<Message> = {
   renderBadge: ({ architecture }, h) =>
     architecture.role === 'aggregate-root'
@@ -139,11 +140,11 @@ const dddOptions: ZlozDddNodeOptions<Message> = {
   bodyCache: createZlozNodeBodyCache(),
 };
 const unretainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddNode(context, h, dddOptionsWithoutCache);
+  zlozDddNode(context, h, dddOptionsWithoutCache) ?? zlozC4Node(context, h);
 const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddNode(context, h, dddOptions);
+  zlozDddNode(context, h, dddOptions) ?? zlozC4Node(context, h, c4Options);
 const retainedDddGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddGroup(context, h, dddOptions);
+  zlozDddGroup(context, h, dddOptions) ?? zlozC4Group(context, h, c4Options);
 const retainedOrbitNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   orbitNode(context, h, orbitBodyCache);
 const retainedOrbitGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -364,6 +365,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const searchItem = model.searchScope === 'nodes' ? 'node' : 'connection';
   const canReveal = model.editor.surface !== null && model.editor.gesture.type === 'idle';
   const policy = workbenchPolicy(model);
+  const insertionReason = patternInsertionReason(model);
   const inspector = Option.getOrUndefined(
     !model.minimalMode && selectedNode
       ? portInspectorContext(model.editor, selectedNode.id, policy, {
@@ -760,6 +762,46 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ),
     ],
     diagram: [
+      h.div(
+        [h.Role('group'), h.AriaLabel('Insert architecture patterns')],
+        [
+          h.p(
+            [],
+            [
+              'Add a pattern beside your diagram. Existing content stays; each insertion is one Undo step.',
+            ],
+          ),
+          h.label(
+            [],
+            [
+              h.input([
+                h.Type('checkbox'),
+                h.Checked(model.protectPatternInsertion),
+                h.OnClick(Message.ClickedPatternInsertionProtection()),
+              ]),
+              'Protect pattern insertion',
+            ],
+          ),
+          button(
+            'Insert C4 context pattern',
+            Message.ClickedInsertPattern({ pattern: 'c4-context' }),
+            insertionReason !== null,
+          ),
+          button(
+            'Insert DDD aggregate pattern',
+            Message.ClickedInsertPattern({ pattern: 'ddd-aggregate' }),
+            insertionReason !== null,
+          ),
+          ...(insertionReason === null
+            ? []
+            : [
+                h.p(
+                  [h.Role('status'), h.AriaLabel('Pattern insertion protection reason')],
+                  [insertionReason!],
+                ),
+              ]),
+        ],
+      ),
       h.p(diagnostics.instructions ? [] : [h.Style(hidden)], [
         'Open an example to replace the current diagram. Shift-drag the canvas background or Shift-click node titles to select several. Save keeps a copy in this browser.',
       ]),
@@ -2814,7 +2856,9 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               : model.nodeDesign === 'c4'
                 ? model.retainNodeViews
                   ? retainedC4Node
-                  : zlozC4Node
+                  : (context, builder) =>
+                      zlozC4Node(context, builder) ??
+                      zlozDddNode(context, builder, dddOptionsWithoutCache)
                 : model.nodeDesign === 'ddd'
                   ? model.retainNodeViews
                     ? retainedDddNode
@@ -2825,11 +2869,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             if (model.nodeDesign === 'c4')
               return model.retainNodeViews
                 ? retainedC4Group(context, builder)
-                : zlozC4Group(context, builder);
+                : (zlozC4Group(context, builder) ??
+                    zlozDddGroup(context, builder, dddOptionsWithoutCache));
             if (model.nodeDesign === 'ddd')
               return model.retainNodeViews
                 ? retainedDddGroup(context, builder)
-                : zlozDddGroup(context, builder, dddOptionsWithoutCache);
+                : (zlozDddGroup(context, builder, dddOptionsWithoutCache) ??
+                    zlozC4Group(context, builder));
             if (model.nodeDesign !== 'orbits') return undefined;
             return model.retainNodeViews
               ? retainedOrbitGroup(context, builder)

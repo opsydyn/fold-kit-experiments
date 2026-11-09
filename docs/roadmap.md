@@ -181,8 +181,11 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** atomic pattern insertion with validated fragments, explicit
-ID remapping, live policy checks and one Undo per insertion. Model-document
+**Recommended next:** an event-storming semantic contract and starter pattern
+(commands, domain events, policies and actors), retaining the same headless
+geometry, serialization and atomic insertion APIs. Atomic pattern insertion is
+implemented locally with validated self-contained fragments, explicit ID maps,
+live policies, C4/DDD starters and one Undo per insertion. Model-document
 workbench import and CLI validation are now implemented locally with explicit
 identity conflicts and conversion-loss reporting. Forking is implemented locally with package-owned
 model identity, pinned source edition, independent editing/Undo, policy checks,

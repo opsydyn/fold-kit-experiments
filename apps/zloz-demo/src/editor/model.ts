@@ -345,6 +345,7 @@ export const Model = Schema.Struct({
   editionImport: Schema.NullOr(Schema.Unknown),
   modelImport: Schema.NullOr(Schema.Unknown),
   protectModelImport: Schema.Boolean,
+  protectPatternInsertion: Schema.Boolean,
   editionRestore: Schema.NullOr(Schema.Unknown),
   modelIdentity: Schema.Unknown,
   modelEpoch: Schema.Number,
@@ -434,6 +435,7 @@ export type Model = Readonly<{
   background: BackgroundStyle;
   modelImport: Readonly<{ id: number; epoch: number; revision: number; graph: ZlozGraph }> | null;
   protectModelImport: boolean;
+  protectPatternInsertion: boolean;
   editionImport: Readonly<{ id: number; editions: readonly ZlozEdition[] }> | null;
   editionRestore: Readonly<{ edition: ZlozEdition; expectedRevision: number }> | null;
   protectEditionRestore: boolean;
@@ -522,6 +524,7 @@ export const init = (namespace = 'test-workbench') => ({
     editionImport: null,
     modelImport: null,
     protectModelImport: false,
+    protectPatternInsertion: false,
     editionRestore: null,
     protectEditionRestore: false,
     modelIdentity: { id: `root:${namespace}`, name: 'Working model', origin: null },

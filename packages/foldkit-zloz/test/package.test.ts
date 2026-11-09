@@ -39,7 +39,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
     for (const unwanted of ['foldkit', 'effect', 'elkjs', 'react'])
       expect(existsSync(path.join(directory, 'node_modules', unwanted))).toBe(false);
     const pure =
-      "import { createEditor, serializeGraph, parseGraph } from '@opsydyn/foldkit-zloz'; const s=createEditor({nodes:[],edges:[]}); console.log(JSON.stringify(parseGraph(serializeGraph(s.graph))));";
+      "import { createEditor, serializeGraph, parseGraph, insertPattern, createArchitecturePattern } from '@opsydyn/foldkit-zloz'; const s=createEditor({nodes:[],edges:[]}); const inserted=insertPattern(s,createArchitecturePattern('ddd-aggregate')); if(inserted.type!=='inserted'||inserted.editor.past.length!==1||inserted.nodeIds.size!==3)throw new Error('Missing pattern contract'); console.log(JSON.stringify(parseGraph(serializeGraph(s.graph))));";
     for (const runtime of ['node', 'bun']) {
       const result = await exec(runtime, ['--input-type=module', '-e', pure], {
         ...options,
@@ -47,7 +47,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
 const architecture:ZlozNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
 // @ts-expect-error C4 and DDD roles cannot be mixed
 const invalid:ZlozNodeArchitecture={family:'c4',role:'entity'};
@@ -59,6 +59,8 @@ const edited=updateEditor(initial,{type:'NodeArchitectureChanged',id:node.id,arc
 if(portPosition(node,'out').y!==16) throw new Error('Missing shaped anchor');
 if(nodeShapeGeometry(node).shape!=='cylinder') throw new Error('Missing shape geometry');
 if(updateEditor(edited,{type:'UndoPressed'}).graph.nodes[0]?.architecture?.family!=='c4') throw new Error('Missing architecture Undo');
+const patternResult:ZlozPatternInsertionResult=insertPattern(initial,createArchitecturePattern('c4-context'),{offset:{x:400,y:0},policy:{canInsertPattern:()=>null}});
+if(patternResult.type!=='inserted'||patternResult.nodeIds.size!==2)throw new Error('Missing typed pattern contract');
 console.log('headless-architecture-ok');
 `;
     const architectureConsumer = path.join(directory, 'architecture.mts');

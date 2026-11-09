@@ -30,6 +30,8 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ClickedPatternInsertionProtection: {},
+  ClickedInsertPattern: { pattern: Schema.Literals(['c4-context', 'ddd-aggregate']) },
   ChoseModelDocumentFiles: { files: Schema.Array(Schema.instanceOf(File)) },
   SucceededModelDocumentImport: { id: Schema.Number, document: Schema.Unknown },
   FailedModelDocumentImport: { id: Schema.Number },

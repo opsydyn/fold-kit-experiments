@@ -90,3 +90,13 @@ CLI exposes `readDocument` and `CliDocument` for metadata-preserving model or
 snapshot input. `readGraph` deliberately rejects model envelopes. CLI validation
 adds model identity/origin summary only for this new input kind. Mermaid
 projections report model metadata and camera omissions and reject them by default.
+
+### Atomic pattern insertion
+
+Core exports `createArchitecturePattern`, `ArchitecturePattern`, `insertPattern`,
+`ZlozPatternInsertionOptions`, `ZlozPatternInsertionPolicy` and
+`ZlozPatternInsertionResult`. Supply a self-contained `ZlozGraph`, optional world
+offset and current policies. The discriminated result is `inserted` (editor plus
+node/edge ID maps), `unchanged`, or `blocked` (original editor and reason).
+Invalid graph/offset data throws the canonical error. See the [package example](../packages/foldkit-zloz/README.md#atomic-architecture-patterns)
+and [ADR 0023](adr/0023-insert-self-contained-patterns-atomically.md).

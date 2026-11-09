@@ -2666,3 +2666,40 @@ when projecting them to Mermaid. The workbench Open model JSON action opens a
 separate session and rejects already-open IDs without overwrite or renaming. Its
 existing diagram importer remains graph/snapshot-only. Use the explicit model
 codec when identity, editions and origin must survive a round trip.
+
+## Atomic architecture patterns
+
+`insertPattern` adds any self-contained graph fragment without replacing existing
+content. `createArchitecturePattern('c4-context' | 'ddd-aggregate')` supplies fresh,
+customizable starters; use your own graph for other patterns.
+
+```ts
+import { createArchitecturePattern, insertPattern } from '@opsydyn/foldkit-zloz';
+
+const result = insertPattern(editor, createArchitecturePattern('ddd-aggregate'), {
+  offset: { x: 800, y: 40 },
+  policy: {
+    canInsertPattern: (fragment, current) => null,
+    canConnectPort: (endpoint, proposed) => null,
+  },
+});
+if (result.type === 'inserted') {
+  editor = result.editor;
+  const newRootId = result.nodeIds.get('source');
+}
+```
+
+Every node and edge gets a fresh ID, returned in separate `ReadonlyMap`s. Parent
+and endpoint references are remapped; node-local port IDs, geometry, semantics
+and JSON data survive. JSON strings are opaque and are never rewritten as IDs.
+Offsets translate all world positions equally, including nested groups. Placement
+and overlap handling belong to the host.
+
+The complete fragment is validated and detached. Invalid input throws `ZlozError`;
+expected vetoes return `blocked` with the original editor and a nonempty reason.
+Empty fragments return `unchanged`. Read-only/busy editors and disabled Undo
+block insertion. Whole-pattern and existing connection policies run on every
+call; each edge policy sees the complete proposed graph excluding that edge.
+Selection policies filter the new root selection independently of insertion.
+One successful insertion records one Undo step and clears Redo/routes, preserving
+the camera, clipboard, model identity and editions. Persistence stays version one.

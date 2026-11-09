@@ -17,6 +17,7 @@ import {
   type EdgePathStyle,
   type ZlozNode,
   type EditorEvent,
+  type ZlozAuditComparisonRequest,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
@@ -28,6 +29,10 @@ import {
   zlozHistoryChangeNavigator,
   zlozHistoryChangeButton,
   zlozHistoryChangeFilter,
+  zlozAuditComparisonControls,
+  zlozAuditEditionSelect,
+  zlozAuditFindingButton,
+  zlozAuditFindingFilter,
   zlozHistoryComparisonControls,
   zlozHistoryBaselineSelect,
   zlozHistoryGhostToggle,
@@ -84,6 +89,7 @@ import {
 import { Match, Option, Schema } from 'effect';
 import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
+import { workbenchAuditContext } from './audit-comparison';
 import { workbenchPolicy } from './editor-policy';
 import {
   delegatedRelationship,
@@ -369,6 +375,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   );
   const comparison = workbenchHistoryComparison(model);
   const changeNavigator = historyChangeNavigatorContext(model, comparison);
+  const auditControls = model.sidebarSection === 'history' ? workbenchAuditContext(model) : null;
+  const auditRequest = (request: ZlozAuditComparisonRequest) =>
+    Message.ObservedAuditComparisonInput({
+      request,
+      modelId: model.modelIdentity.id,
+      epoch: model.modelEpoch,
+    });
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
   const title = 'Architecture workbench | Foldkit Zloz';
@@ -841,6 +854,96 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       ),
       button('Load Order history example', Message.ClickedOrderHistory()),
       button('Load scrubber history example', Message.ClickedScrubberHistory()),
+      button('Load causal audit example', Message.ClickedAuditExample()),
+      h.h3([], ['Causal findings']),
+      h.p(
+        [],
+        [
+          'Compare semantic findings independently of the visible edition. Resolved findings open the baseline; introduced and persisting findings open the target.',
+        ],
+      ),
+      ...(auditControls
+        ? [
+            zlozAuditComparisonControls(h, auditControls, auditRequest, {
+              attributes: [
+                h.Style({
+                  display: 'grid',
+                  gap: '8px',
+                  padding: '12px',
+                  border: '1px solid var(--rule)',
+                  borderRadius: '8px',
+                }),
+              ],
+              showCounts: !model.minimalMode && model.diagnosticsEnabled,
+              renderStatus: () =>
+                model.minimalMode || !model.diagnosticsEnabled ? null : undefined,
+              renderBaseline: (control, builder, onRequest) =>
+                builder.label(
+                  [builder.Class('workbench-field')],
+                  [control.label, zlozAuditEditionSelect(builder, control, onRequest)],
+                ),
+              renderTarget: (control, builder, onRequest) =>
+                builder.label(
+                  [builder.Class('workbench-field')],
+                  [control.label, zlozAuditEditionSelect(builder, control, onRequest)],
+                ),
+              renderFilter: (control, builder, onRequest) =>
+                builder.label(
+                  [
+                    builder.Key(control.kind),
+                    builder.Style({ display: 'flex', gap: '8px', alignItems: 'center' }),
+                  ],
+                  [
+                    zlozAuditFindingFilter(builder, control, onRequest),
+                    control.label,
+                    ...(!model.minimalMode && model.diagnosticsEnabled
+                      ? [` · ${control.count}`]
+                      : []),
+                  ],
+                ),
+              renderEntry: (entry, builder, onRequest) =>
+                builder.li(
+                  [
+                    builder.Key(`${entry.kind}:${entry.finding.edgeId}:${entry.finding.code}`),
+                    builder.Style({ listStyle: 'none', marginBottom: '8px' }),
+                  ],
+                  [
+                    zlozAuditFindingButton(
+                      builder,
+                      entry,
+                      onRequest,
+                      [
+                        builder.Style({
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '10px',
+                          border: '1px solid var(--rule)',
+                          borderRadius: '6px',
+                          background: 'var(--panel)',
+                        }),
+                      ],
+                      [
+                        builder.strong(
+                          [builder.Style({ display: 'block', textTransform: 'capitalize' })],
+                          [entry.kind],
+                        ),
+                        builder.span([], [entry.label]),
+                        builder.small(
+                          [builder.Style({ display: 'block' })],
+                          [entry.source.kind === 'current' ? 'Current graph' : entry.source.name],
+                        ),
+                      ],
+                    ),
+                    builder.small(
+                      [builder.Style({ display: 'block', padding: '4px 0' })],
+                      [entry.finding.message],
+                    ),
+                    ...(entry.reason ? [builder.p([], [entry.reason])] : []),
+                  ],
+                ),
+            }),
+          ]
+        : []),
       h.label(
         [h.Class('workbench-field')],
         [

@@ -26,6 +26,7 @@ import {
   type EditorState,
   type ZlozGraph,
   type ZlozSnapshot,
+  type ZlozAuditComparisonRequest,
   type LayoutResult,
 } from '@opsydyn/foldkit-zloz';
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
@@ -39,6 +40,7 @@ import {
 import { Option } from 'effect';
 import type { Return } from 'foldkit/update';
 
+import { loadAuditExample, updateWorkbenchAudit } from './audit-comparison';
 import {
   createC4ContextGraph,
   createC4ContainerGraph,
@@ -543,6 +545,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         notice: 'Two example editions loaded. Your working model is preserved.',
       },
     }),
+    ClickedAuditExample: () => ({ model: loadAuditExample(model) }),
+    ObservedAuditComparisonInput: ({ modelId, epoch, request: raw }) => {
+      // SAFETY: the public comparison view emits typed requests through this Schema.Unknown field; the resolver rechecks current identity and policy.
+      const request = raw as ZlozAuditComparisonRequest;
+      return { model: updateWorkbenchAudit(model, request, modelId, epoch) };
+    },
     SelectedHistoryEdition: ({ id }) => {
       const index = model.editions.findIndex((edition) => edition.id === id);
       const edition = model.editions[index];

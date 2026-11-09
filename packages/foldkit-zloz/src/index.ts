@@ -308,3 +308,20 @@ export type {
   ZlozRelationshipAuditComparison,
   ZlozRelationshipAuditComparisonDecision,
 } from './relationship-audit-comparison';
+export {
+  resolveAuditComparisonControls,
+  resolveAuditComparisonRequest,
+} from './audit-comparison-controls';
+export type {
+  ZlozAuditFindingKind,
+  ZlozAuditComparisonState,
+  ZlozAuditFindingFocusRequest,
+  ZlozAuditComparisonRequest,
+  ZlozAuditFindingItem,
+  ZlozAuditFindingEntry,
+  ZlozAuditEditionControl,
+  ZlozAuditFindingFilter,
+  ZlozAuditComparisonControlsOptions,
+  ZlozAuditComparisonControlsContext,
+  ZlozAuditComparisonDecision,
+} from './audit-comparison-controls';

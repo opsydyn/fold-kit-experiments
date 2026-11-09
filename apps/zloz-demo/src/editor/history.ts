@@ -20,6 +20,8 @@ export function historyAllowsMessage(message: Message): boolean {
   }
   return new Set<string>([
     'ClickedScrubberHistory',
+    'ClickedAuditExample',
+    'ObservedAuditComparisonInput',
     'SelectedPlaybackEdition',
     'AdvancedEditionPlayback',
     'ClickedPlaybackEnabled',

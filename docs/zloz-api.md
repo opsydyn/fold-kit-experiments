@@ -257,3 +257,22 @@ findings (exit 1); no new findings exits 0 even when existing findings persist.
 Selector/input errors exit 2. See the
 [CLI contract](../packages/foldkit-zloz-cli/README.md#edition-aware-audit-comparison)
 and [ADR 0033](adr/0033-compare-edition-relationship-audits.md).
+
+### Composable audit comparison controls
+
+Core exports `resolveAuditComparisonControls`, `resolveAuditComparisonRequest`,
+`ZlozAuditFindingKind`, `ZlozAuditComparisonState`, `ZlozAuditFindingFocusRequest`,
+`ZlozAuditComparisonRequest`, `ZlozAuditFindingItem`, `ZlozAuditFindingEntry`,
+`ZlozAuditEditionControl`, `ZlozAuditFindingFilter`,
+`ZlozAuditComparisonControlsOptions`, `ZlozAuditComparisonControlsContext` and
+`ZlozAuditComparisonDecision`. The pure request resolver rechecks current scope,
+filters and policy before returning a source-aware camera navigation event.
+
+The `/foldkit` entry exports `zlozAuditComparisonControls`,
+`zlozAuditEditionSelect`, `zlozAuditFindingFilter`, `zlozAuditFindingButton`,
+`zlozAuditComparisonStatus`, `zlozAuditComparisonReason`,
+`ZlozAuditComparisonParts` and `ZlozAuditComparisonViewOptions`. Nullable slots,
+custom text/attributes/layout and numeric readout control support host styling
+and diagnostics. See the
+[package example](../packages/foldkit-zloz/README.md#composable-audit-comparison-controls)
+and [ADR 0034](adr/0034-compose-audit-comparison-controls.md).

@@ -181,10 +181,11 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** composable audit comparison controls in the workbench:
-choose a baseline/target, inspect introduced/resolved/persisting findings and
-reveal the corresponding edge on the appropriate history side. Build on the
-package comparison and existing history navigation without editing snapshots.
+**Recommended next:** portable review packets: package/CLI export of an explicit
+baseline/target, convention provenance, audit delta and loss-aware Mermaid
+projections so architecture reviews can travel into documentation and agent
+workflows without depending on a workbench session. Keep imports and executable
+agent changes outside the first read-only packet slice.
 
 A package-level read-only causal audit and Effect CLI command are implemented
 locally. Reports classify every edge in deterministic identity order, preserve
@@ -198,6 +199,14 @@ one convention and report introduced, resolved and persisting findings with both
 full audits. Comparison exit 1 gates new findings; existing incompatibilities stay
 visible even when there is no regression. Missing IDs fail closed. No UI,
 serialization migration or publication is claimed for this slice.
+
+Composable audit comparison controls are implemented locally in the package and
+demonstrated in the workbench sidebar. Baseline/target selection stays independent
+of the displayed camera. Category filters, custom finding cards and source-aware
+reveal keep resolved edges on the baseline and other findings on the target.
+Requests recheck model/comparison/finding identity, filters and host protection;
+the host also checks epochs, pauses playback for navigation and preserves working
+graph/Undo. Numeric status/counts follow minimal mode and global diagnostics.
 
 Composable causal controls are implemented locally: a pure current-edge context,
 identity-safe request resolver, native select/inference/status/reason helpers and

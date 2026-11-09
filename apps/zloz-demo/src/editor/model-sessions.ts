@@ -65,6 +65,7 @@ function activate(
     historyPlayback: null,
     playbackRun: model.playbackRun + 1,
     historyBaselineId: null,
+    auditComparison: { ...model.auditComparison, baselineId: null, selectedId: null },
     editionRestore: null,
     editionName: '',
     forkName: '',

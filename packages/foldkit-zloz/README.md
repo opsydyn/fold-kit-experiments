@@ -3246,3 +3246,84 @@ The report includes model ID, explicit edition/current source references,
 `no-new-findings`. **No new findings does not mean compatible**: existing blocked
 relationships may persist. Comparing an edition to itself is valid and retains
 its existing findings as persisting. No serialization format is changed.
+
+## Composable audit comparison controls
+
+The package also supplies a pure control context and request resolver. Keep this
+small state in your host model, independently of its visible history camera:
+
+```ts
+import {
+  resolveAuditComparisonControls,
+  resolveAuditComparisonRequest,
+  type ZlozAuditComparisonState,
+  type ZlozAuditComparisonControlsOptions,
+} from '@opsydyn/foldkit-zloz';
+
+const state: ZlozAuditComparisonState = {
+  baselineId: 'before',
+  selectedId: null, // Current graph; an edition ID explicitly selects that snapshot.
+  filters: { introduced: true, resolved: true, persisting: true },
+};
+const options: ZlozAuditComparisonControlsOptions = {
+  ...conventions,
+  blockedReason: busyReason,
+  focusReason: (item) => (canInspect(item) ? null : 'Inspection is protected.'),
+};
+const context = resolveAuditComparisonControls(document, state, options);
+const decision = resolveAuditComparisonRequest(document, state, request, options);
+// ready: store decision.state
+// focus: apply decision.event to the editor for decision.source
+// blocked: show decision.reason; ignored: retain the current model
+```
+
+`context.comparison` retains the full audit delta even when filters hide entries.
+No baseline gives an explicit unavailable reason; missing stored choices remain
+visible in the native selectors. Sources are model-owned editions or the current
+graph. Resolved findings reveal the baseline. Introduced and persisting findings
+reveal the target; persisting entries also carry `previous` for custom displays.
+Same-edition comparisons are allowed. Control state is transient and does not
+change document serialization.
+
+Focus requests carry model, comparison, category, edge and diagnostic identity.
+The resolver recomputes findings and rechecks filters and protection before
+returning a source plus an ordinary `EdgeRevealRequested` event. It never changes
+the graph, camera, selection, playback or Undo itself. Hosts should add an epoch
+check across model replacements/async operations, pause playback for explicit
+navigation, and apply the event to the selected source editor. A historical source
+should be opened read-only rather than copied into the working graph. Filters
+remain usable while other controls are protected.
+
+The optional Foldkit composition is unstyled and supports custom cards/badges:
+
+```ts
+import { zlozAuditComparisonControls, zlozAuditFindingButton } from '@opsydyn/foldkit-zloz/foldkit';
+
+const controls = zlozAuditComparisonControls(h, context, toMessage, {
+  showCounts: false,
+  renderStatus: () => null,
+  renderEntry: (entry, builder, onRequest) =>
+    builder.li(
+      [],
+      [
+        zlozAuditFindingButton(
+          builder,
+          entry,
+          onRequest,
+          [],
+          [builder.strong([], [entry.kind]), ` ${entry.label}`],
+        ),
+      ],
+    ),
+});
+```
+
+Individual helpers are `zlozAuditEditionSelect`, `zlozAuditFindingFilter`,
+`zlozAuditFindingButton`, `zlozAuditComparisonStatus` and
+`zlozAuditComparisonReason`. Attributes, text, control names, filter order/subsets,
+selectors, entries, status, reason and layout are customizable. Undefined keeps
+default parts; null omits them. Custom entries own list-item semantics. The native
+helpers retain model-derived selection, protection and descriptions. `showCounts`
+hides numeric filter and status readouts without changing preferences. Hosts can
+bind it to diagnostics or minimal mode and omit status through its render slot.
+Rendering preferences do not replace functional protection policies.

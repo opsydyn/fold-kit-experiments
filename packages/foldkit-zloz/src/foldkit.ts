@@ -2861,6 +2861,18 @@ export {
   zlozEventStormingRelationshipStatus,
   zlozEventStormingRelationshipReasons,
 } from './relationship-controls-view';
+export {
+  zlozAuditComparisonControls,
+  zlozAuditEditionSelect,
+  zlozAuditFindingFilter,
+  zlozAuditFindingButton,
+  zlozAuditComparisonStatus,
+  zlozAuditComparisonReason,
+} from './audit-comparison-controls-view';
+export type {
+  ZlozAuditComparisonParts,
+  ZlozAuditComparisonViewOptions,
+} from './audit-comparison-controls-view';
 export type {
   ZlozRelationshipTextOptions,
   ZlozEventStormingRelationshipControlsParts,

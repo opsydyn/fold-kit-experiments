@@ -6,6 +6,7 @@ import {
   type ZlozHistoryReview,
   type ZlozGraph,
   type LayoutRequest,
+  type ZlozAuditComparisonState,
 } from '@opsydyn/foldkit-zloz';
 import {
   resolveZlozDiagnostics,
@@ -364,6 +365,7 @@ export const Model = Schema.Struct({
   playbackReducedMotion: Schema.NullOr(Schema.Boolean),
   playbackVisible: Schema.Boolean,
   historyBaselineId: Schema.NullOr(Schema.String),
+  auditComparison: Schema.Unknown,
   historyChangeFilters: Schema.Struct({
     added: Schema.Boolean,
     removed: Schema.Boolean,
@@ -470,6 +472,7 @@ export type Model = Readonly<{
   playbackReducedMotion: boolean | null;
   playbackVisible: boolean;
   historyBaselineId: string | null;
+  auditComparison: ZlozAuditComparisonState;
   historyChangeFilters: Readonly<{ added: boolean; removed: boolean; changed: boolean }>;
   editionName: string;
   historyGhosts: Readonly<{ enabled: boolean; nodes: boolean; edges: boolean; movements: boolean }>;
@@ -565,6 +568,11 @@ export const init = (namespace = 'test-workbench') => ({
     playbackReducedMotion: null,
     playbackVisible: false,
     historyBaselineId: null,
+    auditComparison: {
+      baselineId: null,
+      selectedId: null,
+      filters: { introduced: true, resolved: true, persisting: true },
+    },
     historyChangeFilters: { added: true, removed: true, changed: true },
     editionName: '',
     historyGhosts: { enabled: false, nodes: true, edges: true, movements: true },

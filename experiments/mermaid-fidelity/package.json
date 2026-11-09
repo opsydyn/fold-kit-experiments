@@ -1,5 +1,5 @@
 {
-  "name": "@opsydyn/flow-mermaid-fidelity-spike",
+  "name": "@opsydyn/zloz-mermaid-fidelity-spike",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "qualify": "npm run build && node qualify.mjs"
   },
   "dependencies": {
-    "@opsydyn/foldkit-flow": "file:../../packages/foldkit-flow/dist/pack/opsydyn-foldkit-flow-0.1.0.tgz",
+    "@opsydyn/foldkit-zloz": "file:../../packages/foldkit-zloz/dist/pack/opsydyn-foldkit-zloz-0.1.0.tgz",
     "effect": "4.1.0",
     "mermaid-ast": "0.8.2"
   },
@@ -18,5 +18,8 @@
     "@mermaid-js/parser": "2.0.1",
     "mermaid": "12.3.0",
     "typescript": "6.0.3"
+  },
+  "overrides": {
+    "lodash-es": "4.18.1"
   }
 }

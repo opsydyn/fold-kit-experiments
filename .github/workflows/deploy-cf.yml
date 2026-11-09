@@ -16,6 +16,8 @@ on:
       - 'packages/effect-three-samples/**'
       - 'packages/effect-three-troika/**'
       - 'packages/foldkit-viz/**'
+      - 'packages/foldkit-zloz*/**'
+      - 'package.json'
       - 'bun.lock'
       - '.github/workflows/deploy-cf.yml'
   workflow_dispatch:
@@ -32,10 +34,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
 
       - name: Install workspace dependencies
         run: bun install --frozen-lockfile
@@ -47,7 +57,7 @@ jobs:
         run: bun run --filter @opsydyn/web build
 
       - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

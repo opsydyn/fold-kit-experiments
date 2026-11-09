@@ -5,7 +5,7 @@ import {
   type FlowNode,
   type FlowNodeShape,
   type Port,
-} from '@opsydyn/foldkit-flow';
+} from '@opsydyn/foldkit-zloz';
 import { Schema } from 'effect';
 import { parseFlowchart } from 'mermaid-ast/parser';
 import type { FlowchartAST, FlowchartDirection } from 'mermaid-ast/types';

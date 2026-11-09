@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Run release-please
         id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN != '' && secrets.RELEASE_PLEASE_TOKEN || github.token }}
           config-file: release-please-config.json
@@ -35,19 +35,22 @@ jobs:
 
       - name: Check out astro-foldkit release commit
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.release.outputs['packages/astro-foldkit--sha'] }}
 
       - name: Set up Bun (astro-foldkit)
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
 
       - name: Set up Node.js (astro-foldkit)
         if: ${{ steps.release.outputs['packages/astro-foldkit--release_created'] == 'true' && env.NPM_TOKEN != '' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 24
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Install workspace dependencies (astro-foldkit)
@@ -79,19 +82,22 @@ jobs:
 
       - name: Check out foldkit-viz release commit
         if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.release.outputs['packages/foldkit-viz--sha'] }}
 
       - name: Set up Bun (foldkit-viz)
         if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
 
       - name: Set up Node.js (foldkit-viz)
         if: ${{ steps.release.outputs['packages/foldkit-viz--release_created'] == 'true' && env.NPM_TOKEN != '' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22
+          node-version: 24
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Install workspace dependencies (foldkit-viz)
@@ -129,16 +135,19 @@ jobs:
       pull-requests: read
     steps:
       - name: Check out trusted formatter code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: 22
+          bun-version-file: package.json
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
       - name: Install trusted formatter
         run: bun install --frozen-lockfile --ignore-scripts
       - name: Normalize generated changelogs

@@ -6,7 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { parse as officialParse } from '@mermaid-js/parser';
-import { createEditor, updateEditor, serializeGraph } from '@opsydyn/foldkit-flow';
+import { createEditor, updateEditor, serializeGraph } from '@opsydyn/foldkit-zloz';
 import { parseFlowchart } from 'mermaid-ast/parser';
 import { renderFlowchart } from 'mermaid-ast/renderer';
 

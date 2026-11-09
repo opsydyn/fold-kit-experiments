@@ -1,20 +1,20 @@
 # Mermaid fidelity spike
 
-> Historical research, not the production Zloz CLI. The commands and independent
-> lock below describe the original Flow-named qualification revision; they are
-> not current installation instructions. See the [Zloz migration guide](../../docs/zloz-migration.md).
-> The production CLI must use Effect CLI (`effect/cli`), typed errors, Schema
-> decoding and scoped platform I/O; its implementation and qualification remain
-> a separate roadmap slice. No Flow-named package is approved for release.
+> Historical research, not the production Zloz CLI. Original evidence files
+> describe the original qualification revision and remain unchanged. The runnable
+> harness now uses the renamed Zloz core and patched lodash-es; see the
+> [CI repair assessment](../../docs/assessments/2026-11-08-ci-and-actions-audit.md).
+> Production CLI code lives in `packages/foldkit-zloz-cli` and uses Effect CLI.
+> No Flow-named package is approved for release.
 
 Private qualification code, outside the Bun workspace. Nothing here is published
-or loaded by Flow core or the Astro demo. See [ADR 0007](../../docs/adr/0007-isolate-mermaid-fidelity-qualification.md)
+or loaded by Zloz core or the Astro demo. See [ADR 0007](../../docs/adr/0007-isolate-mermaid-fidelity-qualification.md)
 and the [qualification report](../../docs/assessments/2026-11-08-flow-mermaid-fidelity-spike.md).
 
 From the repository root:
 
 ```sh
-bun run --filter @opsydyn/foldkit-flow pack:check
+bun run --filter @opsydyn/foldkit-zloz pack:check
 cd experiments/mermaid-fidelity
 npm ci --ignore-scripts --no-audit --no-fund --workspaces=false
 npm test

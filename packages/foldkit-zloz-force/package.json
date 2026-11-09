@@ -1,6 +1,6 @@
 {
   "name": "@opsydyn/foldkit-zloz-force",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Optional force layout and card-avoiding routing for Foldkit Zloz.",
   "keywords": [
     "diagram",
@@ -65,7 +65,7 @@
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
-    "@opsydyn/foldkit-zloz": "0.1.1"
+    "@opsydyn/foldkit-zloz": "0.2.0"
   },
   "engines": {
     "node": ">=22.0.0"

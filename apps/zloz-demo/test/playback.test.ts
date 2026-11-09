@@ -94,3 +94,95 @@ test('fork/switch round trips disable transport and busy document operations can
   );
   expect(send(pending, Message.ClickedPlaybackPlay()).historyReview).toBeNull();
 });
+
+test('successive scrubber requests keep their seek session, pause the clock and preserve working data', () => {
+  const base = ready();
+  const started = send(base, Message.ClickedPlaybackPlay());
+  const scope = { modelId: started.modelIdentity.id, session: started.historyPlayback!.session };
+  const selected = send(
+    started,
+    Message.SelectedPlaybackEdition({ ...scope, editionId: 'order-evolved' }),
+  );
+  expect(selected.historyReview?.editionId).toBe('order-evolved');
+  expect(selected.historyPlayback?.cursor.status).toBe('paused');
+  expect(selected.historyPlayback?.session).toBe(scope.session);
+  const first = send(
+    selected,
+    Message.SelectedPlaybackEdition({ ...scope, editionId: 'order-start' }),
+  );
+  expect(first.historyReview?.editionId).toBe('order-start');
+  expect(first.editor).toBe(base.editor);
+  expect(send(first, tick(started)).historyReview).toBe(first.historyReview);
+  expect(send(first, Message.SelectedPlaybackEdition({ ...scope, editionId: null }))).toBe(first);
+  expect(send(first, Message.SelectedPlaybackEdition({ ...scope, editionId: 'missing' }))).toBe(
+    first,
+  );
+});
+test('seek intents cannot survive present/sidebar return trips, collection changes or re-enabling', () => {
+  const started = send(ready(), Message.ClickedPlaybackPlay());
+  const request = Message.SelectedPlaybackEdition({
+    modelId: started.modelIdentity.id,
+    session: started.historyPlayback!.session,
+    editionId: 'order-evolved',
+  });
+  const present = send(started, Message.ClickedHistoryPresent());
+  expect(send(present, request)).toBe(present);
+  const left = send(started, Message.SelectedWorkbenchSection({ section: 'diagram' }));
+  const back = send(left, Message.SelectedWorkbenchSection({ section: 'history' }));
+  expect(send(back, request)).toBe(back);
+  const hidden = send(started, Message.ChangedPlaybackVisibility({ visible: false }));
+  const visible = send(hidden, Message.ChangedPlaybackVisibility({ visible: true }));
+  expect(send(visible, request)).toBe(visible);
+  const enabledAgain = send(
+    send(started, Message.ClickedPlaybackEnabled()),
+    Message.ClickedPlaybackEnabled(),
+  );
+  expect(send(enabledAgain, request)).toBe(enabledAgain);
+  const reordered = send(
+    { ...started, editions: started.editions.slice().reverse() },
+    Message.ClickedPlaybackPause(),
+  );
+  expect(send(reordered, request)).toBe(reordered);
+  const named = send(started, Message.ChangedForkName({ name: 'Seek alternative' }));
+  const forked = send(named, Message.ClickedForkEdition());
+  const returned = send(forked, Message.SelectedWorkingModel({ id: started.modelIdentity.id }));
+  const reenabled = send(returned, Message.ClickedPlaybackEnabled());
+  expect(reenabled.modelIdentity.id).toBe(started.modelIdentity.id);
+  expect(reenabled.historyPlayback).not.toBeNull();
+  expect(send(reenabled, request)).toBe(reenabled);
+  const pending = send(
+    ready(),
+    Message.ChoseModelDocumentFiles({ files: [new File(['{}'], 'model.json')] }),
+  );
+  const blocked = send(
+    pending,
+    Message.SelectedPlaybackEdition({
+      modelId: pending.modelIdentity.id,
+      session: pending.historyPlayback!.session,
+      editionId: 'order-evolved',
+    }),
+  );
+  expect(blocked.historyReview).toBeNull();
+  expect(blocked.editor).toBe(pending.editor);
+  expect(blocked.notice).toContain('Finish active');
+});
+
+test('the named scrubber sample is additive/idempotent and direct seeking reaches its final checkpoint', () => {
+  const base = send(init().model, Message.ClickedScrubberHistory());
+  expect(base.editions).toHaveLength(8);
+  expect(send(base, Message.ClickedScrubberHistory()).editions).toHaveLength(8);
+  let model = send(base, Message.SelectedWorkbenchSection({ section: 'history' }));
+  model = send(model, Message.ChangedPlaybackVisibility({ visible: true }));
+  model = send(model, Message.ClickedPlaybackEnabled());
+  const selected = send(
+    model,
+    Message.SelectedPlaybackEdition({
+      modelId: model.modelIdentity.id,
+      session: model.historyPlayback!.session,
+      editionId: 'scrubber-order-7',
+    }),
+  );
+  expect(selected.historyReview?.editionId).toBe('scrubber-order-7');
+  expect(selected.historyBaselineId).toBe('scrubber-order-6');
+  expect(selected.editor).toBe(base.editor);
+});

@@ -2816,3 +2816,14 @@ export type {
   ZlozPlaybackControlsParts,
   ZlozPlaybackControlsViewOptions,
 } from './playback-controls-view';
+export {
+  zlozEditionScrubber,
+  zlozEditionScrubberInput,
+  zlozEditionScrubberReadout,
+  zlozEditionScrubberReason,
+  zlozEditionSeekButton,
+} from './edition-scrubber-view';
+export type {
+  ZlozEditionScrubberParts,
+  ZlozEditionScrubberViewOptions,
+} from './edition-scrubber-view';

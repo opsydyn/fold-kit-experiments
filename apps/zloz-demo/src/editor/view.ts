@@ -2,6 +2,8 @@ import {
   resolveEdgeReconnection,
   playbackEditionId,
   resolveEditionPlaybackControls,
+  resolveEditionScrubber,
+  type ZlozEditionSeekRequest,
   type ZlozPlaybackControlEvent,
   compareEditions,
   captureEdition,
@@ -16,6 +18,10 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
   zlozView,
+  zlozEditionScrubber,
+  zlozEditionScrubberInput,
+  zlozEditionScrubberReadout,
+  zlozEditionSeekButton,
   zlozPlaybackControls,
   zlozPlaybackControl,
   zlozPlaybackStatus,
@@ -301,6 +307,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
         editionLabel: playbackName,
       })
     : null;
+  const editionNames = new Map(model.editions.map((edition) => [edition.id, edition.name]));
+  const scrubberContext = playback
+    ? resolveEditionScrubber(playback, {
+        blockedReason: playbackInspectionReason(model),
+        labelEdition: (id) => editionNames.get(id) ?? id,
+      })
+    : null;
+  const seekInput = (request: ZlozEditionSeekRequest) =>
+    Message.SelectedPlaybackEdition({
+      modelId,
+      session: model.historyPlayback?.session ?? -1,
+      editionId: request.editionId,
+    });
   const restoreDecision = model.editionRestore
     ? resolveEditionRestore(workingEditor, model.editionRestore.edition, {
         expectedRevision: model.editionRestore.expectedRevision,
@@ -574,6 +593,44 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     ...(parts.reason ? [parts.reason] : []),
                   ],
                 }),
+                ...(scrubberContext
+                  ? [
+                      zlozEditionScrubber(h, scrubberContext, seekInput, {
+                        attributes: [
+                          h.Class('workbench-edition-scrubber'),
+                          h.Style({ padding: '12px 0', display: 'grid', gap: '8px' }),
+                        ],
+                        renderInput: (context, builder, onSeek) =>
+                          zlozEditionScrubberInput(builder, context, onSeek, [
+                            builder.Style({ width: '100%', 'accent-color': 'var(--blue)' }),
+                          ]),
+                        renderReadout: (context, builder) =>
+                          zlozEditionScrubberReadout(
+                            builder,
+                            context,
+                            [
+                              builder.Style({
+                                display: 'block',
+                                'font-weight': '600',
+                                'font-size': '12px',
+                              }),
+                            ],
+                            [builder.span([builder.AriaHidden(true)], ['◇ ']), context.valueText],
+                          ),
+                        renderOpen: (context, builder, onSeek) =>
+                          zlozEditionSeekButton(builder, context, onSeek, [
+                            builder.Style({
+                              'justify-self': 'start',
+                              padding: '7px 12px',
+                              'border-radius': '999px',
+                              border: '1px solid var(--rule)',
+                              background: 'var(--panel)',
+                              color: 'var(--ink)',
+                            }),
+                          ]),
+                      }),
+                    ]
+                  : []),
                 h.label(
                   [h.Class('workbench-field')],
                   [
@@ -739,6 +796,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           model.importing !== null,
       ),
       button('Load Order history example', Message.ClickedOrderHistory()),
+      button('Load scrubber history example', Message.ClickedScrubberHistory()),
       h.label(
         [h.Class('workbench-field')],
         [

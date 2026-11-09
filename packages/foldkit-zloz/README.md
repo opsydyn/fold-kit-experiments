@@ -2829,3 +2829,53 @@ permission grants: keep live update guards and host timer/lifecycle handling.
 No state, generated DOM IDs, subscription or persistence format is introduced.
 The workbench demonstrates custom icon pills, a timeline badge and reason layout
 using these same public APIs.
+
+## Edition scrubber and explicit seeking
+
+Core `resolveEditionScrubber` derives ordered entries, current value text and
+manual-seek restrictions from the existing playback cursor. Customize names with
+`labelEdition`, `formatValueText`, `label` and `emptyLabel`. No ordinal counters
+are required in the visible readout. Manual seeking remains available with
+reduced motion.
+
+```ts
+import {
+  resolveEditionScrubber,
+  editionScrubberRequest,
+  resolveEditionSeek,
+  updateEditionPlayback,
+} from '@opsydyn/foldkit-zloz';
+
+const context = resolveEditionScrubber(playback, {
+  labelEdition: (id) => names.get(id) ?? id,
+  blockedReason: editingReason,
+});
+const request = editionScrubberRequest(context, '3');
+// In update: recheck the host session and resolve against current state/policy.
+const decision = resolveEditionSeek(playback, request, { blockedReason: editingReason });
+if (decision.type === 'ready') playback = updateEditionPlayback(playback, decision.event);
+```
+
+Requests carry an edition ID, not a saved array index. Reordering cannot redirect
+the request to a different edition. Missing IDs and malformed/out-of-bounds native
+values are ignored; no clamping or implicit substitute is chosen. Host vetoes
+return a nonempty blocked reason. Applying the ready EditionSelected event pauses
+playback and clears elapsed timing. The host projects a read-only review while
+preserving the working editor and Undo.
+
+The `/foldkit` entry exposes `zlozEditionScrubber` and individual input, readout,
+reason and Open-button helpers. The controlled native range supports browser
+keyboard navigation and uses `aria-valuetext` for human labels. Its readout is
+non-live to avoid another announcement of each range value. A single edition
+locks the range but remains explicitly openable; Open also handles an unchanged
+first position while present.
+
+Use `renderInput`, `renderReadout`, `renderReason`, `renderOpen` and `renderLayout`
+to replace, omit or rearrange parts. Undefined retains defaults and null omits a
+part. Helpers are unstyled, generate no DOM IDs and allow attributes/custom
+children/labels. They create no draft selection, timer or persistence format.
+Custom HTML owns its own semantics. Hosts must check current identity, policy and
+callback lifetime in update; the workbench uses a dedicated seek-session token
+that survives continuous seeking but expires on leaving history, returning to
+present, collection/model changes or disable/re-enable. Its eight-checkpoint
+sample is synthetic demonstration data, not a business change log.

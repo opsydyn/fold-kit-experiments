@@ -181,9 +181,11 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** a package-owned edition picker/scrubber with composable
-labels and explicit seeking, so users can navigate long histories without
-stepping through every edition. Composable package playback controls, status,
+**Recommended next:** package-owned comparison controls for baseline selection
+and ghost visibility, so consumers can compose the complete review workflow.
+The edition scrubber is implemented locally with identity-based seeking, custom
+labels/value text, native range/Open helpers, renderer slots and host session
+guards. An eight-checkpoint workbench sample demonstrates direct navigation. Composable package playback controls, status,
 availability reasons, ordered subsets and renderer/layout slots are implemented
 locally; the workbench uses the public helpers with a custom visual composition. Opt-in deterministic edition playback, pause,
 rewind and reduced-motion handling are implemented locally, using existing

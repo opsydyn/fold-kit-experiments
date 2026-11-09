@@ -30,6 +30,12 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ClickedScrubberHistory: {},
+  SelectedPlaybackEdition: {
+    modelId: Schema.String,
+    session: Schema.Number,
+    editionId: Schema.NullOr(Schema.String),
+  },
   ClickedPlaybackEnabled: {},
   ClickedPlaybackPlay: {},
   ClickedPlaybackPause: {},

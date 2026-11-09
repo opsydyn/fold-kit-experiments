@@ -216,3 +216,15 @@ export type {
   ZlozPlaybackControlsContext,
   ZlozPlaybackControlsOptions,
 } from './playback-controls';
+export {
+  resolveEditionScrubber,
+  editionScrubberRequest,
+  resolveEditionSeek,
+} from './edition-scrubber';
+export type {
+  ZlozEditionSeekRequest,
+  ZlozEditionSeekDecision,
+  ZlozEditionScrubberEntry,
+  ZlozEditionScrubberOptions,
+  ZlozEditionScrubberContext,
+} from './edition-scrubber';

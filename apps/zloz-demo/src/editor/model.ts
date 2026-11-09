@@ -455,6 +455,7 @@ export type Model = Readonly<{
   historyPlayback: Readonly<{
     cursor: ZlozEditionPlayback;
     editions: readonly ZlozEdition[];
+    session: number;
   }> | null;
   playbackRun: number;
   playbackReducedMotion: boolean | null;

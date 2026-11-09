@@ -1,5 +1,6 @@
 import {
   createEditionPlayback,
+  resolveEditionSeek,
   updateEditionPlayback,
   playbackEditionId,
   editionPlaybackReason,
@@ -48,6 +49,7 @@ export function toggleHistoryPlayback(model: Model): Model {
       : {
           editions: model.editions,
           cursor: initialCursor(model),
+          session: model.playbackRun + 1,
         },
   };
 }
@@ -130,12 +132,52 @@ export function reconcileHistoryPlayback(before: Model, after: Model): Model {
     return {
       ...after,
       playbackRun: after.playbackRun + 1,
-      historyPlayback: { editions: after.editions, cursor: initialCursor(after) },
+      historyPlayback: {
+        editions: after.editions,
+        cursor: initialCursor(after),
+        session: after.playbackRun + 1,
+      },
     };
   return before.editor.graph !== after.editor.graph ||
-    (before.historyReview !== null && after.historyReview === null)
-    ? pauseHistoryPlayback(after)
+    (before.historyReview !== null && after.historyReview === null) ||
+    (before.sidebarSection === 'history' && after.sidebarSection !== 'history') ||
+    (before.playbackVisible && !after.playbackVisible)
+    ? invalidateSeekSession(after)
     : after;
+}
+function invalidateSeekSession(model: Model): Model {
+  const paused = pauseHistoryPlayback(model);
+  return paused.historyPlayback
+    ? {
+        ...paused,
+        playbackRun: paused.playbackRun + 1,
+        historyPlayback: { ...paused.historyPlayback, session: paused.playbackRun + 1 },
+      }
+    : paused;
+}
+/** Seek-session scope survives successive inputs but not return trips, collection changes or leaving History. */
+export function seekHistoryPlayback(
+  model: Model,
+  input: Readonly<{ modelId: string; session: number; editionId: string | null }>,
+): Model {
+  const playback = model.historyPlayback;
+  if (
+    !playback ||
+    input.modelId !== model.modelIdentity.id ||
+    input.session !== playback.session ||
+    playback.editions !== model.editions ||
+    model.sidebarSection !== 'history' ||
+    !model.playbackVisible
+  )
+    return model;
+  const decision = resolveEditionSeek(
+    playback.cursor,
+    { editionId: input.editionId },
+    { blockedReason: playbackInspectionReason(model) },
+  );
+  if (decision.type === 'ignored') return model;
+  if (decision.type === 'blocked') return { ...model, notice: decision.reason };
+  return controlHistoryPlayback(model, decision.event);
 }
 /** Passive measurements cannot interrupt playback; direct inspection always can. */
 export function playbackInterruptedBy(message: Message): boolean {
@@ -146,6 +188,7 @@ export function playbackInterruptedBy(message: Message): boolean {
   }
   if (message._tag === 'SelectedWorkbenchSection') return message.section !== 'history';
   return new Set<string>([
+    'ClickedScrubberHistory',
     'ChangedForkName',
     'SelectedHistoryEdition',
     'ClickedHistoryPresent',

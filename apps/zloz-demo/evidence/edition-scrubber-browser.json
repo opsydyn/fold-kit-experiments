@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "eight named checkpoints",
+    "explicit current-point opening with Enter",
+    "native End/Home/Arrow seeking retains focus",
+    "native pointer drag across checkpoints",
+    "custom labels and aria-valuetext",
+    "manual seek remains usable with reduced motion",
+    "seek pauses timed playback and rejects old ticks",
+    "existing ghosts compare selected checkpoint",
+    "working model and prior Undo preserved",
+    "light/dark screenshots"
+  ],
+  "pageErrors": []
+}

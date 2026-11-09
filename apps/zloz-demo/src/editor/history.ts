@@ -19,6 +19,8 @@ export function historyAllowsMessage(message: Message): boolean {
     return isHistoryNavigationEvent(event);
   }
   return new Set<string>([
+    'ClickedScrubberHistory',
+    'SelectedPlaybackEdition',
     'AdvancedEditionPlayback',
     'ClickedPlaybackEnabled',
     'ClickedPlaybackPlay',
@@ -137,4 +139,39 @@ export function editionRestorePolicy(model: Model): ZlozEditionRestorePolicy {
     canRestoreEdition: () =>
       model.protectEditionRestore ? 'Edition restore is protected in this workspace.' : null,
   };
+}
+
+/** Synthetic named checkpoints for exercising direct seeking; not a business change log. */
+export function scrubberEditions(): readonly ZlozEdition[] {
+  const [original, evolved] = orderEditions();
+  const names = [
+    'Sketch',
+    'Language review',
+    'Aggregate review',
+    'Policy review',
+    'Delivery introduced',
+    'Delivery review',
+    'Boundary review',
+    'Final review',
+  ];
+  return names.map((name, index) => {
+    const source = index < 4 ? original! : evolved!;
+    const graph = {
+      ...source.snapshot.graph,
+      nodes: source.snapshot.graph.nodes.map((node) =>
+        node.id === 'order'
+          ? {
+              ...node,
+              label: index < 2 ? 'Order' : 'Sales order',
+              position: { ...node.position, x: node.position.x + index * 14 },
+            }
+          : node,
+      ),
+    };
+    return captureEdition({
+      id: `scrubber-order-${index}`,
+      name: `Ordering · ${name}`,
+      snapshot: { graph },
+    });
+  });
 }

@@ -137,3 +137,18 @@ The `/foldkit` entry exports `zlozPlaybackControls`, `zlozPlaybackControl`,
 ordered subsets, nullable slots and a layout hook separate behavior from visual
 composition. See the [package example](../packages/foldkit-zloz/README.md#composable-playback-controls)
 and [ADR 0026](adr/0026-compose-package-playback-controls.md).
+
+### Edition scrubber
+
+Core exports `resolveEditionScrubber`, `editionScrubberRequest` and
+`resolveEditionSeek`, with `ZlozEditionSeekRequest`, `ZlozEditionSeekDecision`,
+`ZlozEditionScrubberEntry`, `ZlozEditionScrubberOptions` and
+`ZlozEditionScrubberContext`. Native ordinals become identity requests before
+dispatch; fresh host state/policy determines whether an EditionSelected event is
+ready, blocked or ignored.
+
+The `/foldkit` entry exports `zlozEditionScrubber`, `zlozEditionScrubberInput`,
+`zlozEditionScrubberReadout`, `zlozEditionScrubberReason`, `zlozEditionSeekButton`,
+`ZlozEditionScrubberParts` and `ZlozEditionScrubberViewOptions`. See the
+[package example](../packages/foldkit-zloz/README.md#edition-scrubber-and-explicit-seeking)
+and [ADR 0027](adr/0027-seek-editions-with-a-composable-scrubber.md).

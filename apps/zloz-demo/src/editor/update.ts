@@ -61,6 +61,7 @@ import { workbenchPolicy } from './editor-policy';
 import {
   historyAllowsMessage,
   orderEditions,
+  scrubberEditions,
   editionArchiveByteLimit,
   editionRestorePolicy,
 } from './history';
@@ -85,6 +86,7 @@ import { insertWorkbenchPattern } from './pattern-insertion';
 import {
   toggleHistoryPlayback,
   controlHistoryPlayback,
+  seekHistoryPlayback,
   tickHistoryPlayback,
   pauseHistoryPlayback,
   playbackInterruptedBy,
@@ -220,6 +222,20 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const outcome: Return<Model, Message> = Message.match(message, {
+    ClickedScrubberHistory: () => {
+      const decision = mergeEditions(model.editions, scrubberEditions());
+      return {
+        model:
+          decision.type === 'blocked'
+            ? { ...model, notice: decision.reason }
+            : {
+                ...model,
+                editions: decision.editions,
+                notice: 'Named sample history is available. Your working model is preserved.',
+              },
+      };
+    },
+    SelectedPlaybackEdition: (input) => ({ model: seekHistoryPlayback(model, input) }),
     AdvancedEditionPlayback: (message) => ({ model: tickHistoryPlayback(model, message) }),
     ClickedPlaybackEnabled: () => ({ model: toggleHistoryPlayback(model) }),
     ClickedPlaybackPlay: () => ({ model: controlHistoryPlayback(model, { type: 'PlayClicked' }) }),

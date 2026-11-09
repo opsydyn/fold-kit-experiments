@@ -181,9 +181,14 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** composable event-storming relationship controls at package
-level, with a typed chooser and explicit inference action. This will let consumers
-reuse the workbench's semantic editing workflow while keeping rendering flexible.
+**Recommended next:** a package-level causal relationship audit with Effect CLI
+JSON diagnostics, so agents can inspect whole models without opening the workbench.
+
+Composable causal controls are implemented locally: a pure current-edge context,
+identity-safe request resolver, native select/inference/status/reason helpers and
+nullable rendering/layout slots. The workbench consumes the public controls with
+custom wrappers and rechecks target/model scope, current conventions and policy.
+Unknown stored meanings remain visible, and inference is explicitly undoable.
 
 Typed causal relationships are implemented locally with six default conventions,
 named custom rules, extensible role interpretation, strict descriptor syntax,

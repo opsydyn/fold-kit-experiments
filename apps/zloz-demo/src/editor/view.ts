@@ -2,7 +2,6 @@ import {
   resolveEdgeReconnection,
   resolveEventStormingRelationship,
   eventStormingRelationshipRules,
-  eventStormingRelationshipKey,
   playbackEditionId,
   resolveEditionPlaybackControls,
   resolveEditionScrubber,
@@ -22,6 +21,10 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
   zlozView,
+  zlozEventStormingRelationshipControls,
+  zlozEventStormingRelationshipSelect,
+  zlozEventStormingRelationshipInference,
+  zlozEventStormingRelationshipStatus,
   zlozHistoryChangeNavigator,
   zlozHistoryChangeButton,
   zlozHistoryChangeFilter,
@@ -84,7 +87,6 @@ import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 import { workbenchPolicy } from './editor-policy';
 import {
   delegatedRelationship,
-  inferredRelationship,
   workbenchRelationshipOptions,
 } from './event-storming-relationships';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
@@ -144,6 +146,7 @@ import {
   canvasHelpCard,
   canvasStatusCard,
 } from './presentation';
+import { relationshipControlsContext } from './relationship-controls';
 import { searchDiagram } from './search';
 import { workbenchThemes } from './theme';
 import { workbenchLayout, type WorkbenchControls } from './workbench-layout';
@@ -460,12 +463,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     model.editor.readOnly ||
     model.historyReview !== null ||
     model.editor.gesture.type !== 'idle';
-  const inferredArchitecture = selectedEdge ? inferredRelationship(model, selectedEdge) : null;
-  const canApplyInferred =
-    inferredArchitecture !== null &&
-    (!selectedEdge?.architecture ||
-      eventStormingRelationshipKey(selectedEdge.architecture) !==
-        eventStormingRelationshipKey(inferredArchitecture));
+  const relationshipControls = relationshipControlsContext(model);
   const incompatibleRelationship = selectedEdge
     ? causalRules.find(
         (rule) =>
@@ -1579,107 +1577,74 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     );
                   }),
                 ),
-                ...(selectedEdge
-                  ? [
-                      h.label(
-                        [h.Class('workbench-field')],
+                zlozEventStormingRelationshipControls(
+                  h,
+                  relationshipControls,
+                  (request) =>
+                    request.type === 'RelationshipSelected'
+                      ? Message.SelectedCausalRelationship({
+                          edgeId: request.edgeId,
+                          key: request.key,
+                          modelId: model.modelIdentity.id,
+                          epoch: model.modelEpoch,
+                        })
+                      : Message.ClickedRelationshipInference({
+                          edgeId: request.edgeId,
+                          modelId: model.modelIdentity.id,
+                          epoch: model.modelEpoch,
+                        }),
+                  {
+                    attributes: [
+                      h.Style({
+                        padding: '12px',
+                        border: '1px solid var(--rule)',
+                        borderRadius: '8px',
+                        display: 'grid',
+                        gap: '8px',
+                      }),
+                    ],
+                    renderSelect: (context, builder, onRequest) =>
+                      builder.label(
+                        [builder.Class('workbench-field')],
                         [
-                          'Causal relationship type',
-                          h.select(
-                            [
-                              h.AriaLabel('Causal relationship type'),
-                              h.Value(
-                                selectedEdge.architecture
-                                  ? eventStormingRelationshipKey(selectedEdge.architecture)
-                                  : '',
-                              ),
-                              h.Disabled(relationshipEditingBlocked),
-                              h.OnChange((role) =>
-                                zlozInput({
-                                  type: 'EdgeArchitectureChanged',
-                                  id: selectedEdge.id,
-                                  architecture:
-                                    role === ''
-                                      ? null
-                                      : (causalRules.find(
-                                          (rule) =>
-                                            eventStormingRelationshipKey(rule.architecture) ===
-                                            role,
-                                        )?.architecture ??
-                                        selectedEdge.architecture ??
-                                        null),
-                                }),
-                              ),
-                            ],
-                            [
-                              h.option([h.Value('')], ['Untyped / inferred']),
-                              ...causalRules.map((rule) => {
-                                const reason =
-                                  policy.canChangeEdgeArchitecture?.(
-                                    selectedEdge,
-                                    { ...selectedEdge, architecture: rule.architecture },
-                                    model.editor.graph,
-                                  ) ?? null;
-                                return h.option(
-                                  [
-                                    h.Value(eventStormingRelationshipKey(rule.architecture)),
-                                    h.Disabled(reason !== null),
-                                    ...(reason ? [h.Title(reason)] : []),
-                                  ],
-                                  [rule.label],
-                                );
-                              }),
-                            ],
-                          ),
+                          context.label,
+                          zlozEventStormingRelationshipSelect(builder, context, onRequest),
                         ],
                       ),
+                    renderInference: (action, builder, onRequest) =>
+                      zlozEventStormingRelationshipInference(
+                        builder,
+                        action,
+                        onRequest,
+                        [builder.Style({ padding: '8px' })],
+                        [action.label],
+                      ),
+                    renderStatus: (context, builder) =>
+                      zlozEventStormingRelationshipStatus(
+                        builder,
+                        context,
+                        [],
+                        [builder.strong([], ['Semantic contract · ']), context.statusText],
+                      ),
+                  },
+                ),
+                button(
+                  'Open connection tools',
+                  Message.SelectedWorkbenchSection({ section: 'ports' }),
+                ),
+                ...(selectedEdge && incompatibleRelationship
+                  ? [
                       button(
-                        'Apply inferred relationship',
+                        'Try incompatible relationship',
                         zlozInput({
                           type: 'EdgeArchitectureChanged',
                           id: selectedEdge.id,
-                          architecture: inferredArchitecture,
+                          architecture: incompatibleRelationship,
                         }),
-                        relationshipEditingBlocked || !canApplyInferred,
-                      ),
-                      ...(incompatibleRelationship
-                        ? [
-                            button(
-                              'Try incompatible relationship',
-                              zlozInput({
-                                type: 'EdgeArchitectureChanged',
-                                id: selectedEdge.id,
-                                architecture: incompatibleRelationship,
-                              }),
-                              relationshipEditingBlocked,
-                            ),
-                          ]
-                        : []),
-                      h.ul(
-                        [h.AriaLabel('Relationship compatibility')],
-                        causalRules.map((rule) => {
-                          const result = resolveEventStormingRelationship(
-                            model.editor.graph,
-                            { ...selectedEdge, architecture: rule.architecture },
-                            workbenchRelationshipOptions(model),
-                          );
-                          return h.li(
-                            [h.Key(eventStormingRelationshipKey(rule.architecture))],
-                            [
-                              `${rule.label}: ${result.type === 'blocked' ? result.reason : 'compatible'}`,
-                            ],
-                          );
-                        }),
+                        relationshipEditingBlocked,
                       ),
                     ]
-                  : [
-                      h.p(
-                        [],
-                        [
-                          'Select a connection on the canvas to edit its semantic type. Incompatible choices show a protection reason when validation is enabled.',
-                        ],
-                      ),
-                    ]),
+                  : []),
               ],
             ),
           ]
@@ -3437,7 +3402,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             model.nodeToolbarDesign === 'compact'
               ? compactNodeToolbar(context, builder)
               : undefined,
-          edgeToolbar: true,
+          edgeToolbar: !(
+            model.nodeDesign === 'event-storming' &&
+            model.sidebarSection === 'diagram' &&
+            !model.sidebarCollapsed
+          ),
           edgeReconnection: true,
           connectionCreation: true,
           renderConnectionCreation: (context, builder) =>

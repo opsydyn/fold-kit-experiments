@@ -1,6 +1,5 @@
 import {
   eventStormingRelationshipRules,
-  resolveEventStormingRelationship,
   type ZlozEventStormingRelationshipOptions,
   type ZlozEdge,
 } from '@opsydyn/foldkit-zloz';
@@ -43,14 +42,4 @@ export function delegatedRelationship(model: Model): ZlozEdge | null {
     source: { node: source.id, port: output.id },
     target: { node: target.id, port: input.id },
   };
-}
-
-export function inferredRelationship(model: Model, edge: ZlozEdge) {
-  const { architecture: _architecture, ...untyped } = edge;
-  const result = resolveEventStormingRelationship(
-    model.editor.graph,
-    untyped,
-    workbenchRelationshipOptions(model),
-  );
-  return result.type === 'allowed' ? result.architecture : null;
 }

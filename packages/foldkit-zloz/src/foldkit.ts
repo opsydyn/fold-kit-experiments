@@ -2853,3 +2853,16 @@ export type {
   ZlozHistoryChangeNavigatorParts,
   ZlozHistoryChangeNavigatorViewOptions,
 } from './history-change-navigator-view';
+
+export {
+  zlozEventStormingRelationshipControls,
+  zlozEventStormingRelationshipSelect,
+  zlozEventStormingRelationshipInference,
+  zlozEventStormingRelationshipStatus,
+  zlozEventStormingRelationshipReasons,
+} from './relationship-controls-view';
+export type {
+  ZlozRelationshipTextOptions,
+  ZlozEventStormingRelationshipControlsParts,
+  ZlozEventStormingRelationshipControlsViewOptions,
+} from './relationship-controls-view';

@@ -72,7 +72,10 @@ export function eventStormingParticipantRole(node: ZlozNode): EventStormingParti
 export function eventStormingRelationshipKey(value: EventStormingEdgeArchitecture): string {
   return value.role === 'custom' ? `custom:${value.name}` : value.role;
 }
-function checkedRules(options: ZlozEventStormingRelationshipOptions) {
+/** @internal Shared catalogue validation for core contexts and policy composition. */
+export function checkedEventStormingRelationshipRules(
+  options: ZlozEventStormingRelationshipOptions,
+) {
   const rules = options.rules ?? eventStormingRelationshipRules;
   const ids = new Set<string>();
   for (const item of rules) {
@@ -100,7 +103,7 @@ export function resolveEventStormingRelationship(
   edge: ZlozEdge,
   options: ZlozEventStormingRelationshipOptions = {},
 ): ZlozEventStormingRelationshipDecision {
-  const rules = checkedRules(options);
+  const rules = checkedEventStormingRelationshipRules(options);
   const source = graph.nodes.find((node) => node.id === edge.source.node),
     target = graph.nodes.find((node) => node.id === edge.target.node);
   if (!source || !target)
@@ -172,7 +175,7 @@ export function eventStormingRelationshipPolicy(
   options: ZlozEventStormingRelationshipOptions = {},
   base: EditorPolicy = {},
 ): EditorPolicy {
-  checkedRules(options);
+  checkedEventStormingRelationshipRules(options);
   return {
     ...base,
     canConnect: (edge, graph) =>

@@ -206,3 +206,21 @@ undoable, protected descriptor edits. Opt-in conventions compose with connection
 and node-role policies; graph syntax validation remains separate from workshop
 compatibility. See the [package example](../packages/foldkit-zloz/README.md#typed-event-storming-relationships)
 and [ADR 0030](adr/0030-type-event-storming-causal-relationships.md).
+
+### Causal relationship controls
+
+Core exports `resolveEventStormingRelationshipControls` and
+`resolveEventStormingRelationshipRequest`, with
+`ZlozEventStormingRelationshipRequest`, `ZlozEventStormingRelationshipControlsOptions`,
+`ZlozEventStormingRelationshipChoice`, `ZlozEventStormingRelationshipInference`,
+`ZlozEventStormingRelationshipControlsContext` and
+`ZlozEventStormingRelationshipEditDecision`. Requests recheck current inspector
+identity, conventions, lifecycle and policy before producing an ordinary editor event.
+
+The `/foldkit` entry exports `zlozEventStormingRelationshipControls`,
+`zlozEventStormingRelationshipSelect`, `zlozEventStormingRelationshipInference`,
+`zlozEventStormingRelationshipStatus`, `zlozEventStormingRelationshipReasons`,
+`ZlozRelationshipTextOptions`, `ZlozEventStormingRelationshipControlsParts` and
+`ZlozEventStormingRelationshipControlsViewOptions`. See the
+[package example](../packages/foldkit-zloz/README.md#composable-causal-relationship-controls)
+and [ADR 0031](adr/0031-compose-causal-relationship-controls.md).

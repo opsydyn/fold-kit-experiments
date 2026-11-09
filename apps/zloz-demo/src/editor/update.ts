@@ -97,6 +97,7 @@ import {
 } from './playback';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
+import { editWorkbenchRelationship } from './relationship-controls';
 import { searchDiagram } from './search';
 
 function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: EditorState) {
@@ -1036,6 +1037,12 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     }),
     SelectedEdgeToolbarDesign: ({ edgeToolbarDesign }) => ({
       model: { ...model, edgeToolbarDesign },
+    }),
+    SelectedCausalRelationship: (input) => ({
+      model: editWorkbenchRelationship(model, { ...input, type: 'RelationshipSelected' }),
+    }),
+    ClickedRelationshipInference: (input) => ({
+      model: editWorkbenchRelationship(model, { ...input, type: 'InferenceApplied' }),
     }),
     ClickedSemanticRelationships: () => ({
       model: { ...model, semanticRelationships: !model.semanticRelationships },

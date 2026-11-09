@@ -280,3 +280,16 @@ export type {
   ZlozEventStormingRelationshipDecision,
 } from './event-storming-relationships';
 export { createEventStormingPattern } from './patterns';
+
+export {
+  resolveEventStormingRelationshipControls,
+  resolveEventStormingRelationshipRequest,
+} from './relationship-controls';
+export type {
+  ZlozEventStormingRelationshipRequest,
+  ZlozEventStormingRelationshipControlsOptions,
+  ZlozEventStormingRelationshipChoice,
+  ZlozEventStormingRelationshipInference,
+  ZlozEventStormingRelationshipControlsContext,
+  ZlozEventStormingRelationshipEditDecision,
+} from './relationship-controls';

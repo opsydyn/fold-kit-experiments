@@ -3095,3 +3095,79 @@ roundtrip architecture. No executable process, automatic metadata stamping,
 semantic side effects or dependency is introduced. The compact
 `createArchitecturePattern('event-storming')` remains five notes with typed links;
 the detailed factory adds an aggregate root.
+
+## Composable causal relationship controls
+
+Core derives a chooser and explicit inference action from the current editor and
+inspector target. Pass current conventions and the same policy used by the editor:
+
+```ts
+import {
+  resolveEventStormingRelationshipControls,
+  resolveEventStormingRelationshipRequest,
+  eventStormingRelationshipPolicy,
+  updateEditor,
+} from '@opsydyn/foldkit-zloz';
+
+const options = {
+  conventions,
+  policy: eventStormingRelationshipPolicy(conventions, hostPolicy),
+  blockedReason: operationReason,
+  inferenceLabel: 'Use inferred meaning',
+};
+const context = resolveEventStormingRelationshipControls(editor, inspectedEdgeId, options);
+// In update, use the current target, graph, conventions and policy:
+const decision = resolveEventStormingRelationshipRequest(editor, inspectedEdgeId, request, options);
+if (decision.type === 'ready') editor = updateEditor(editor, decision.event, options.policy);
+```
+
+Requests are `RelationshipSelected` with edge ID and nullable semantic key (null
+is an explicit clear), or `InferenceApplied` with edge ID. The resolver rejects
+changed inspector targets and unknown keys as ignored; it never converts a stale
+choice into a clear. It returns blocked with a reason for current restrictions,
+unchanged for an existing key, or a ready `EdgeArchitectureChanged` event. Ready
+is not a lasting permission grant: apply through the editor with current policy.
+Hosts own model/session callback scope and asynchronous operation restrictions.
+
+Compatibility reasons remain visible independently of enforcement. Omitting the
+policy allows unresolved drafts; rendering a chooser never enables convention
+validation. Read-only and gesture guards still apply. `blockedReason` adds a host
+restriction. `label`, `clearLabel`, `inferenceLabel` and `labelRule` customize
+control text. Unfamiliar stored descriptors remain selected as unavailable
+current-only options until the host restores their convention or the author
+explicitly chooses another meaning. Ambiguous inference requires an explicit
+choice. Inference cannot replace authored descriptions for the same semantic key.
+
+```ts
+import {
+  zlozEventStormingRelationshipControls,
+  zlozEventStormingRelationshipSelect,
+  zlozEventStormingRelationshipInference,
+} from '@opsydyn/foldkit-zloz/foldkit';
+
+const controls = zlozEventStormingRelationshipControls(h, context, toMessage, {
+  renderSelect: (context, builder, onRequest) =>
+    builder.label(
+      [],
+      [context.label, zlozEventStormingRelationshipSelect(builder, context, onRequest)],
+    ),
+  renderInference: (action, builder, onRequest) =>
+    zlozEventStormingRelationshipInference(
+      builder,
+      action,
+      onRequest,
+      [],
+      ['Use inferred meaning'],
+    ),
+});
+```
+
+Individual native helpers also include `zlozEventStormingRelationshipStatus` and
+`zlozEventStormingRelationshipReasons`. Composition supports `renderSelect`,
+`renderInference`, `renderStatus`, `renderReasons` and `renderLayout`. Undefined
+keeps defaults; null omits a part. Frame/status/reasons names, native attributes,
+button/status content and wrappers are customizable. Default reasons show both
+availability and compatibility; a custom renderer can choose the desired level
+of detail. Native disabled/description/value semantics stay model-derived.
+Server-rendered options explicitly retain selection, including unavailable stored
+values. No generated IDs, new cursor/draft, timer or persistence format is added.

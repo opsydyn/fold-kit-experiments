@@ -170,6 +170,17 @@ export const Message = defineMessageUnion({
   SelectedContextMenuDesign: { contextMenuDesign: ContextMenuDesign },
   SelectedNodeToolbarDesign: { nodeToolbarDesign: NodeToolbarDesign },
   SelectedEdgeToolbarDesign: { edgeToolbarDesign: EdgeToolbarDesign },
+  SelectedCausalRelationship: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    edgeId: Schema.String,
+    key: Schema.NullOr(Schema.String),
+  },
+  ClickedRelationshipInference: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    edgeId: Schema.String,
+  },
   ClickedSemanticRelationships: {},
   ClickedCustomStormingRelationships: {},
   ClickedDelegatedRelationship: { modelId: Schema.String, epoch: Schema.Number },

@@ -181,9 +181,11 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** a composable package-owned playback toolbar, so consumers
-can reuse accessible transport controls, status and availability reasons while
-retaining full visual control. Opt-in deterministic edition playback, pause,
+**Recommended next:** a package-owned edition picker/scrubber with composable
+labels and explicit seeking, so users can navigate long histories without
+stepping through every edition. Composable package playback controls, status,
+availability reasons, ordered subsets and renderer/layout slots are implemented
+locally; the workbench uses the public helpers with a custom visual composition. Opt-in deterministic edition playback, pause,
 rewind and reduced-motion handling are implemented locally, using existing
 read-only projections and optional ghost comparisons.
 Event-storming command, domain-event, policy and actor notes, a composable package

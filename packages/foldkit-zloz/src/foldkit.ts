@@ -2805,3 +2805,14 @@ export type {
   ZlozEventStormingContentRenderer,
   ZlozEventStormingNodeOptions,
 } from './event-storming-renderer';
+export {
+  zlozPlaybackControls,
+  zlozPlaybackControl,
+  zlozPlaybackStatus,
+  zlozPlaybackReason,
+} from './playback-controls-view';
+export type {
+  ZlozPlaybackTextOptions,
+  ZlozPlaybackControlsParts,
+  ZlozPlaybackControlsViewOptions,
+} from './playback-controls-view';

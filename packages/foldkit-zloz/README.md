@@ -2787,3 +2787,45 @@ model/collection changes, leaving history or lifecycle changes. The workbench
 uses a scoped Effect Stream timer with model/run identity, pauses for hidden
 pages and live reduced-motion changes, and lets manual inspection take priority.
 Playback is session-only and never changes portable document formats.
+
+## Composable playback controls
+
+Core `resolveEditionPlaybackControls` projects the cursor into named actions,
+status text and availability reasons. `blockedReason` adds a host restriction on
+play/manual navigation; `automaticReason` adds a restriction on automatic play
+only. Core reduced-motion and boundary guards remain in force. Pause stays
+available while running. Blank reasons retain a nonempty fallback, and labels can
+be localized with the `labels` record. `editionLabel` resolves your store's name
+without putting edition data inside the cursor.
+
+```ts
+import { resolveEditionPlaybackControls } from '@opsydyn/foldkit-zloz';
+import { zlozPlaybackControls, zlozPlaybackControl } from '@opsydyn/foldkit-zloz/foldkit';
+
+const context = resolveEditionPlaybackControls(playback, {
+  editionLabel: currentEditionName,
+  blockedReason: editingReason,
+  automaticReason: visibilityReason,
+});
+const controls = zlozPlaybackControls(h, context, toMessage, {
+  renderControl: (action, builder, onEvent) =>
+    zlozPlaybackControl(builder, action, onEvent, [builder.Class('my-pill')], [action.label]),
+});
+```
+
+The Foldkit entry exposes the group composition and individual native helpers
+`zlozPlaybackControl`, `zlozPlaybackStatus` and `zlozPlaybackReason`. The component
+is unstyled. Customize `renderControl`, `renderStatus`, `renderReason` and
+`renderLayout`, or use the helpers independently inside your own frame. Slot
+undefined retains a default; null omits a part. `controls` sets an ordered subset
+(duplicates are removed); `[]` omits all controls. Frame/status/reason labels are
+configurable, and status/reason helpers accept custom children and label options.
+
+Native helpers preserve button types, accessible names, disabled state, reason
+descriptions and polite status semantics. Supply a Key through attributes when
+composing repeated actions in one parent. Custom HTML can replace them entirely;
+its semantics then belong to the consumer. Contexts are view projections, not
+permission grants: keep live update guards and host timer/lifecycle handling.
+No state, generated DOM IDs, subscription or persistence format is introduced.
+The workbench demonstrates custom icon pills, a timeline badge and reason layout
+using these same public APIs.

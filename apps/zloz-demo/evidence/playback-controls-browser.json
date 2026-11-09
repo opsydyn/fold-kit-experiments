@@ -1,0 +1,18 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "public package control group with custom layout and badge",
+    "native Enter activation and disabled reason descriptions",
+    "playback disabled by default",
+    "first edition receives full interval",
+    "pause cancels timed advancement",
+    "end pauses with existing ghost comparison",
+    "working model export stays exact",
+    "rewind and manual step",
+    "live reduced-motion change pauses without auto-resume",
+    "return to present rejects old ticks and retains Undo",
+    "light/dark/reduced-motion screenshots"
+  ],
+  "pageErrors": []
+}

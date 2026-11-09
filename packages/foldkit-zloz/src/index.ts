@@ -208,3 +208,11 @@ export type {
   ZlozEditionPlaybackOptions,
   ZlozEditionPlaybackEvent,
 } from './edition-playback';
+export { resolveEditionPlaybackControls } from './playback-controls';
+export type {
+  ZlozPlaybackControlName,
+  ZlozPlaybackControlEvent,
+  ZlozPlaybackControl,
+  ZlozPlaybackControlsContext,
+  ZlozPlaybackControlsOptions,
+} from './playback-controls';

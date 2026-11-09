@@ -123,3 +123,17 @@ clock, read-only projection and subscription lifecycle. Reduced motion pauses
 automatic play while manual stepping remains available. See the
 [package example](../packages/foldkit-zloz/README.md#opt-in-edition-playback) and
 [ADR 0025](adr/0025-add-opt-in-edition-playback.md).
+
+### Playback controls
+
+Core exports `resolveEditionPlaybackControls` and its `ZlozPlaybackControlName`,
+`ZlozPlaybackControlEvent`, `ZlozPlaybackControl`, `ZlozPlaybackControlsContext`
+and `ZlozPlaybackControlsOptions` contracts. Host restrictions add vetoes without
+removing core playback guards or blocking an active Pause.
+
+The `/foldkit` entry exports `zlozPlaybackControls`, `zlozPlaybackControl`,
+`zlozPlaybackStatus`, `zlozPlaybackReason`, `ZlozPlaybackControlsParts`,
+`ZlozPlaybackControlsViewOptions` and `ZlozPlaybackTextOptions`. Native helpers,
+ordered subsets, nullable slots and a layout hook separate behavior from visual
+composition. See the [package example](../packages/foldkit-zloz/README.md#composable-playback-controls)
+and [ADR 0026](adr/0026-compose-package-playback-controls.md).

@@ -13,17 +13,18 @@ import type { Message } from './message';
 import type { Model } from './model';
 import { modelSessionBusy } from './model-sessions';
 
+export function playbackInspectionReason(model: Model): string | null {
+  return modelSessionBusy(model) ||
+    model.editionRestore !== null ||
+    (model.historyReview !== null && model.historyReview.editor.gesture.type !== 'idle')
+    ? 'Finish active edits, imports or layout before playback.'
+    : null;
+}
 export function playbackReason(model: Model): string | null {
   if (!model.historyPlayback) return 'Enable edition playback to use the transport.';
   if (model.playbackReducedMotion === null) return 'Waiting for the reduced-motion preference.';
   if (!model.playbackVisible) return 'Playback is paused while this page is hidden.';
-  if (
-    modelSessionBusy(model) ||
-    model.editionRestore ||
-    (model.historyReview !== null && model.historyReview.editor.gesture.type !== 'idle')
-  )
-    return 'Finish active edits, imports or layout before playback.';
-  return editionPlaybackReason(model.historyPlayback.cursor);
+  return playbackInspectionReason(model) ?? editionPlaybackReason(model.historyPlayback.cursor);
 }
 export function pauseHistoryPlayback(model: Model): Model {
   const playback = model.historyPlayback;
@@ -70,15 +71,8 @@ export function controlHistoryPlayback(model: Model, event: ZlozEditionPlaybackE
     event.type !== 'ReducedMotionChanged' &&
     event.type !== 'IntervalChanged'
   ) {
-    const busy =
-      modelSessionBusy(model) ||
-      model.editionRestore !== null ||
-      (model.historyReview !== null && model.historyReview.editor.gesture.type !== 'idle');
-    if (busy)
-      return {
-        ...pauseHistoryPlayback(model),
-        notice: 'Finish active edits, imports or layout before playback.',
-      };
+    const reason = playbackInspectionReason(model);
+    if (reason !== null) return { ...pauseHistoryPlayback(model), notice: reason };
   }
   if (event.type === 'PlayClicked') {
     const reason = playbackReason(model);

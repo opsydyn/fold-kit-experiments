@@ -1,6 +1,8 @@
 import {
   resolveEdgeReconnection,
   playbackEditionId,
+  resolveEditionPlaybackControls,
+  type ZlozPlaybackControlEvent,
   compareEditions,
   captureEdition,
   resolveEditionRestore,
@@ -14,6 +16,10 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
   zlozView,
+  zlozPlaybackControls,
+  zlozPlaybackControl,
+  zlozPlaybackStatus,
+  zlozPlaybackReason,
   zlozEventStormingNode,
   type ZlozEventStormingNodeOptions,
   zlozHistoryGhosts,
@@ -89,7 +95,7 @@ import {
 } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { patternInsertionReason } from './pattern-insertion';
-import { playbackReason } from './playback';
+import { playbackReason, playbackInspectionReason } from './playback';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import {
@@ -265,6 +271,16 @@ const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | nul
   { label: 'Smooth', style: 'smooth' },
 ];
 
+const playbackIcons = { play: '▶', pause: 'Ⅱ', rewind: '↶', previous: '←', next: '→' };
+const playbackMessages = {
+  PlayClicked: Message.ClickedPlaybackPlay,
+  PauseClicked: Message.ClickedPlaybackPause,
+  RewindClicked: Message.ClickedPlaybackRewind,
+  PreviousClicked: Message.ClickedPlaybackPrevious,
+  NextClicked: Message.ClickedPlaybackNext,
+} satisfies Record<ZlozPlaybackControlEvent['type'], () => Message>;
+const playbackInput = (event: ZlozPlaybackControlEvent): Message => playbackMessages[event.type]();
+
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const modelId = model.modelIdentity.id;
   const epoch = model.modelEpoch;
@@ -278,11 +294,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const playbackId = playback ? playbackEditionId(playback) : null;
   const playbackName =
     model.editions.find((edition) => edition.id === playbackId)?.name ?? 'No editions';
-  const playbackBusy =
-    modelSessionBusy(model) ||
-    model.editionRestore !== null ||
-    (model.historyReview !== null && model.historyReview.editor.gesture.type !== 'idle');
-  const playbackAvailability = playbackReason(model);
+  const playbackContext = playback
+    ? resolveEditionPlaybackControls(playback, {
+        blockedReason: playbackInspectionReason(model),
+        automaticReason: playbackReason(model),
+        editionLabel: playbackName,
+      })
+    : null;
   const restoreDecision = model.editionRestore
     ? resolveEditionRestore(workingEditor, model.editionRestore.edition, {
         expectedRevision: model.editionRestore.expectedRevision,
@@ -483,39 +501,79 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               'Enable edition playback',
             ],
           ),
-          ...(playback
+          ...(playback && playbackContext
             ? [
-                h.p(
-                  [h.Role('status'), h.AriaLabel('Edition playback status')],
-                  [`${playback.status === 'playing' ? 'Playing' : 'Paused'} · ${playbackName}`],
-                ),
-                button(
-                  'Play editions',
-                  Message.ClickedPlaybackPlay(),
-                  playbackAvailability !== null || playback.status === 'playing',
-                ),
-                button(
-                  'Pause editions',
-                  Message.ClickedPlaybackPause(),
-                  playback.status !== 'playing',
-                ),
-                button(
-                  'Rewind editions',
-                  Message.ClickedPlaybackRewind(),
-                  playbackBusy || playback.status === 'empty',
-                ),
-                button(
-                  'Previous edition',
-                  Message.ClickedPlaybackPrevious(),
-                  playbackBusy || playback.status === 'empty' || playback.index === 0,
-                ),
-                button(
-                  'Next edition',
-                  Message.ClickedPlaybackNext(),
-                  playbackBusy ||
-                    playback.status === 'empty' ||
-                    playback.index >= playback.editionIds.length - 1,
-                ),
+                zlozPlaybackControls(h, playbackContext, playbackInput, {
+                  attributes: [h.Class('workbench-playback-transport')],
+                  renderControl: (action, builder, onEvent) =>
+                    zlozPlaybackControl(
+                      builder,
+                      action,
+                      onEvent,
+                      [
+                        builder.Style({
+                          display: 'inline-flex',
+                          gap: '6px',
+                          'align-items': 'center',
+                          padding: '8px 12px',
+                          'border-radius': '999px',
+                          border: '1px solid var(--rule)',
+                          background: 'var(--panel)',
+                          color: 'var(--ink)',
+                        }),
+                      ],
+                      [
+                        builder.span([builder.AriaHidden(true)], [playbackIcons[action.name]]),
+                        action.label,
+                      ],
+                    ),
+                  renderStatus: (context, builder) =>
+                    zlozPlaybackStatus(
+                      builder,
+                      context,
+                      [
+                        builder.Style({
+                          display: 'flex',
+                          gap: '8px',
+                          'align-items': 'center',
+                          'flex-wrap': 'wrap',
+                        }),
+                      ],
+                      [
+                        builder.span(
+                          [
+                            builder.AriaHidden(true),
+                            builder.Style({
+                              background: 'var(--blue)',
+                              color: 'white',
+                              padding: '3px 7px',
+                              'border-radius': '4px',
+                              'font-size': '10px',
+                              'letter-spacing': '0.06em',
+                            }),
+                          ],
+                          ['TIMELINE'],
+                        ),
+                        context.statusText,
+                      ],
+                    ),
+                  renderReason: (context, builder) =>
+                    zlozPlaybackReason(builder, context, [
+                      builder.Style({
+                        'border-left': '2px solid var(--blue)',
+                        'padding-left': '10px',
+                        color: 'var(--muted)',
+                      }),
+                    ]),
+                  renderLayout: (parts, _context, builder) => [
+                    ...(parts.status ? [parts.status] : []),
+                    builder.div(
+                      [builder.Style({ display: 'flex', gap: '6px', 'flex-wrap': 'wrap' })],
+                      parts.controls,
+                    ),
+                    ...(parts.reason ? [parts.reason] : []),
+                  ],
+                }),
                 h.label(
                   [h.Class('workbench-field')],
                   [
@@ -536,14 +594,6 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     ),
                   ],
                 ),
-                ...(playbackAvailability
-                  ? [
-                      h.p(
-                        [h.Role('status'), h.AriaLabel('Playback availability')],
-                        [playbackAvailability],
-                      ),
-                    ]
-                  : []),
                 h.p(
                   [],
                   [

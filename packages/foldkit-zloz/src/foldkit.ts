@@ -2799,3 +2799,9 @@ export { resolveZlozDiagnostics as resolveFlowDiagnostics } from './diagnostics'
 
 export { zlozHistoryGhosts } from './history-ghosts';
 export type { ZlozHistoryGhostOptions } from './history-ghosts';
+export { zlozEventStormingNode } from './event-storming-renderer';
+export type {
+  ZlozEventStormingContentContext,
+  ZlozEventStormingContentRenderer,
+  ZlozEventStormingNodeOptions,
+} from './event-storming-renderer';

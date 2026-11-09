@@ -31,7 +31,9 @@ import {
 } from './model';
 export const Message = defineMessageUnion({
   ClickedPatternInsertionProtection: {},
-  ClickedInsertPattern: { pattern: Schema.Literals(['c4-context', 'ddd-aggregate']) },
+  ClickedInsertPattern: {
+    pattern: Schema.Literals(['c4-context', 'ddd-aggregate', 'event-storming']),
+  },
   ChoseModelDocumentFiles: { files: Schema.Array(Schema.instanceOf(File)) },
   SucceededModelDocumentImport: { id: Schema.Number, document: Schema.Unknown },
   FailedModelDocumentImport: { id: Schema.Number },
@@ -73,6 +75,7 @@ export const Message = defineMessageUnion({
       'protected-orbits',
       'port-snapping',
       'ddd-orders',
+      'event-storming',
       'c4-context',
       'c4-containers',
       'c4-nested-containers',

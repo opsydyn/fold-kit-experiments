@@ -5,7 +5,7 @@ import { copyGraph, validateGraph, ZlozError } from './graph';
 import type { EditorPolicy, EditorState, Point, ZlozGraph } from './types';
 
 /** Built-in starter diagrams. These describe notation, not enforced business invariants. */
-export type ArchitecturePattern = 'c4-context' | 'ddd-aggregate';
+export type ArchitecturePattern = 'c4-context' | 'ddd-aggregate' | 'event-storming';
 export type ZlozPatternInsertionPolicy = EditorPolicy &
   Readonly<{
     /** Complete remapped fragment and current graph, before any publication. */
@@ -28,6 +28,7 @@ export type ZlozPatternInsertionResult =
 
 /** Fresh, detached graph; customize it or pass any self-contained graph to insertPattern. */
 export function createArchitecturePattern(pattern: ArchitecturePattern): ZlozGraph {
+  if (pattern === 'event-storming') return createEventStormingPattern();
   const ddd = pattern === 'ddd-aggregate';
   if (pattern !== 'ddd-aggregate' && pattern !== 'c4-context')
     throw new ZlozError('invalid-edit', 'Unknown architecture pattern.');
@@ -170,4 +171,42 @@ export function insertPattern(
     nodeIds,
     edgeIds,
   };
+}
+
+function createEventStormingPattern(): ZlozGraph {
+  const notes = [
+    { role: 'actor', label: 'Customer' },
+    { role: 'command', label: 'Place order' },
+    { role: 'domain-event', label: 'Order placed' },
+    { role: 'policy', label: 'When order placed, request payment' },
+    { role: 'command', label: 'Request payment' },
+  ] as const;
+  const nodes = notes.map(({ role, label }, index) =>
+    createArchitectureNode({
+      id: `note:${index}`,
+      label,
+      architecture: { family: 'event-storming', role },
+      position: { x: index * 340, y: 40 },
+      size: { width: 220, height: 160 },
+      ports: [
+        ...(index > 0
+          ? [{ id: 'in', kind: 'input' as const, side: 'left' as const, offset: 0.5 }]
+          : []),
+        ...(index < notes.length - 1
+          ? [{ id: 'out', kind: 'output' as const, side: 'right' as const, offset: 0.5 }]
+          : []),
+      ],
+    }),
+  );
+  const graph = {
+    nodes,
+    edges: ['Decides', 'Produces', 'Whenever', 'Then'].map((label, index) => ({
+      id: `step:${index}`,
+      label,
+      source: { node: nodes[index]!.id, port: 'out' },
+      target: { node: nodes[index + 1]!.id, port: 'in' },
+    })),
+  };
+  validateGraph(graph);
+  return graph;
 }

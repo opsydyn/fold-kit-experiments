@@ -218,7 +218,7 @@ export type WheelNavigation = typeof WheelNavigation.Type;
 export const NavigationDesign = Schema.Literals(['standard', 'compact']);
 export type NavigationDesign = typeof NavigationDesign.Type;
 
-export const NodeDesign = Schema.Literals(['cards', 'orbits', 'c4', 'ddd']);
+export const NodeDesign = Schema.Literals(['cards', 'orbits', 'c4', 'ddd', 'event-storming']);
 export type NodeDesign = typeof NodeDesign.Type;
 
 export const BackgroundStyle = Schema.Literals(['dots', 'squares', 'custom', 'none']);

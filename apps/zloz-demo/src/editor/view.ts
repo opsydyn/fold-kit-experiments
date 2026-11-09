@@ -13,6 +13,8 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
   zlozView,
+  zlozEventStormingNode,
+  type ZlozEventStormingNodeOptions,
   zlozHistoryGhosts,
   zlozGroupFrame,
   zlozDragHandle,
@@ -124,9 +126,14 @@ type WorkbenchEdgeHooks = {
 const workbenchNodeCache = createLazy();
 const workbenchBodyCache = createZlozNodeBodyCache();
 const orbitBodyCache = createZlozNodeBodyCache();
+const stormOptions: ZlozEventStormingNodeOptions<Message> = {
+  bodyCache: createZlozNodeBodyCache(),
+};
 const c4Options: ZlozC4NodeOptions<Message> = { bodyCache: createZlozNodeBodyCache() };
 const retainedC4Node = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozC4Node(context, h, c4Options) ?? zlozDddNode(context, h, dddOptions);
+  zlozEventStormingNode(context, h, stormOptions) ??
+  zlozC4Node(context, h, c4Options) ??
+  zlozDddNode(context, h, dddOptions);
 const retainedC4Group = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   zlozC4Group(context, h, c4Options) ?? zlozDddGroup(context, h, dddOptions);
 const dddOptionsWithoutCache: ZlozDddNodeOptions<Message> = {
@@ -140,9 +147,13 @@ const dddOptions: ZlozDddNodeOptions<Message> = {
   bodyCache: createZlozNodeBodyCache(),
 };
 const unretainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddNode(context, h, dddOptionsWithoutCache) ?? zlozC4Node(context, h);
+  zlozEventStormingNode(context, h) ??
+  zlozDddNode(context, h, dddOptionsWithoutCache) ??
+  zlozC4Node(context, h);
 const retainedDddNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddNode(context, h, dddOptions) ?? zlozC4Node(context, h, c4Options);
+  zlozEventStormingNode(context, h, stormOptions) ??
+  zlozDddNode(context, h, dddOptions) ??
+  zlozC4Node(context, h, c4Options);
 const retainedDddGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   zlozDddGroup(context, h, dddOptions) ?? zlozC4Group(context, h, c4Options);
 const retainedOrbitNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -213,10 +224,16 @@ function renderWorkbenchNode(
     ],
   );
 }
+const historyStormOptions: ZlozEventStormingNodeOptions<Message> = {
+  ...stormOptions,
+  renderControls: () => [],
+};
 const historyDddOptions: ZlozDddNodeOptions<Message> = { ...dddOptions, renderControls: () => [] };
 const historyC4Options: ZlozC4NodeOptions<Message> = { ...c4Options, renderControls: () => [] };
 const historyNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
-  zlozDddNode(context, h, historyDddOptions) ?? zlozC4Node(context, h, historyC4Options);
+  zlozEventStormingNode(context, h, historyStormOptions) ??
+  zlozDddNode(context, h, historyDddOptions) ??
+  zlozC4Node(context, h, historyC4Options);
 const historyGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   zlozDddGroup(context, h, historyDddOptions) ??
   zlozC4Group(context, h, historyC4Options) ??
@@ -792,6 +809,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             Message.ClickedInsertPattern({ pattern: 'ddd-aggregate' }),
             insertionReason !== null,
           ),
+          button(
+            'Insert event-storming pattern',
+            Message.ClickedInsertPattern({ pattern: 'event-storming' }),
+            insertionReason !== null,
+          ),
           ...(insertionReason === null
             ? []
             : [
@@ -815,6 +837,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 h.Style({ display: 'flex', gap: '8px', 'flex-wrap': 'wrap' }),
               ],
               [
+                button(
+                  'Open event-storming example',
+                  Message.SelectedExample({ example: 'event-storming' }),
+                ),
                 button('Open release workflow', Message.SelectedExample({ example: 'release' })),
                 button(
                   'Open C4 system context',
@@ -1172,6 +1198,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             : []),
         ],
       ),
+      ...(model.nodeDesign === 'event-storming'
+        ? [
+            h.p(
+              [h.AriaLabel('Event-storming role legend')],
+              [
+                'Actor · Command · Domain Event · Policy. Notes describe a workshop process; relationships do not execute business rules. Role labels remain visible independently of color.',
+              ],
+            ),
+          ]
+        : []),
       ...(model.nodeDesign === 'ddd'
         ? [
             h.div(
@@ -1239,6 +1275,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               h.option(
                 [h.Value('c4'), h.Selected(model.nodeDesign === 'c4')],
                 ['C4 · package presets'],
+              ),
+              h.option(
+                [h.Value('event-storming'), h.Selected(model.nodeDesign === 'event-storming')],
+                ['Event-storming · package notes'],
               ),
               h.option(
                 [h.Value('ddd'), h.Selected(model.nodeDesign === 'ddd')],
@@ -2857,9 +2897,10 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ? model.retainNodeViews
                   ? retainedC4Node
                   : (context, builder) =>
+                      zlozEventStormingNode(context, builder) ??
                       zlozC4Node(context, builder) ??
                       zlozDddNode(context, builder, dddOptionsWithoutCache)
-                : model.nodeDesign === 'ddd'
+                : model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming'
                   ? model.retainNodeViews
                     ? retainedDddNode
                     : unretainedDddNode
@@ -2871,7 +2912,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ? retainedC4Group(context, builder)
                 : (zlozC4Group(context, builder) ??
                     zlozDddGroup(context, builder, dddOptionsWithoutCache));
-            if (model.nodeDesign === 'ddd')
+            if (model.nodeDesign === 'ddd' || model.nodeDesign === 'event-storming')
               return model.retainNodeViews
                 ? retainedDddGroup(context, builder)
                 : (zlozDddGroup(context, builder, dddOptionsWithoutCache) ??

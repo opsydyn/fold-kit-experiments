@@ -100,3 +100,15 @@ offset and current policies. The discriminated result is `inserted` (editor plus
 node/edge ID maps), `unchanged`, or `blocked` (original editor and reason).
 Invalid graph/offset data throws the canonical error. See the [package example](../packages/foldkit-zloz/README.md#atomic-architecture-patterns)
 and [ADR 0023](adr/0023-insert-self-contained-patterns-atomically.md).
+
+### Event-storming
+
+Core's `EventStormingNodeArchitecture` adds command, domain-event, policy and actor
+notes to the architecture union. `createArchitecturePattern('event-storming')`
+uses the same atomic insertion API. The `/foldkit` entry exports
+`zlozEventStormingNode`, `ZlozEventStormingNodeOptions`,
+`ZlozEventStormingContentContext` and `ZlozEventStormingContentRenderer`.
+Four scoped `eventStorming*` theme tokens customize role accents; content/control
+slots and artwork caching follow the existing semantic renderer contracts. See
+[the package example](../packages/foldkit-zloz/README.md#event-storming-notes)
+and [ADR 0024](adr/0024-add-event-storming-process-notes.md).

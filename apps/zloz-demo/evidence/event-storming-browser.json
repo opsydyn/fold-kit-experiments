@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "all four roles render with explicit text",
+    "live insertion protection",
+    "additive insertion preserves original nodes",
+    "one Undo/Redo per process insertion",
+    "edition capture and portable model reopen preserve semantic notes",
+    "import selects package note renderer",
+    "visible role legend and light/dark screenshots"
+  ],
+  "pageErrors": []
+}

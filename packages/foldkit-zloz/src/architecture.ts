@@ -27,7 +27,16 @@ export type DddNodeArchitecture = Readonly<
     | { role: 'bounded-context'; subdomain?: 'core' | 'supporting' | 'generic' }
   )
 >;
-export type ZlozNodeArchitecture = C4NodeArchitecture | DddNodeArchitecture;
+/** Workshop process notes; descriptions and relationships are authored, not executable rules. */
+export type EventStormingNodeArchitecture = Readonly<{
+  family: 'event-storming';
+  role: 'command' | 'domain-event' | 'policy' | 'actor';
+  description?: string;
+}>;
+export type ZlozNodeArchitecture =
+  | C4NodeArchitecture
+  | DddNodeArchitecture
+  | EventStormingNodeArchitecture;
 /** Qualified built-in outlines. Person artwork is an adornment inside a card. */
 export type ZlozNodeShape = 'rectangle' | 'rounded-rectangle' | 'cylinder';
 /** Serializable outline choice; renderer functions and themes remain view configuration. */
@@ -40,6 +49,13 @@ export type ArchitectureNodePreset = Readonly<{
 }>;
 
 const presets: readonly ArchitectureNodePreset[] = [
+  ...(['command', 'domain-event', 'policy', 'actor'] as const).map((role) => ({
+    architecture: { family: 'event-storming' as const, role },
+    label: { command: 'Command', 'domain-event': 'Domain Event', policy: 'Policy', actor: 'Actor' }[
+      role
+    ],
+    shape: 'rectangle' as const,
+  })),
   { architecture: { family: 'c4', role: 'person' }, label: 'Person', shape: 'rounded-rectangle' },
   {
     architecture: { family: 'c4', role: 'software-system' },
@@ -131,6 +147,13 @@ export function isNodeArchitecture(value: unknown): value is ZlozNodeArchitectur
       (!('technology' in value) || typeof value.technology === 'string')
     );
   }
+  if (value.family === 'event-storming')
+    return (
+      architectureNodePresets.some(
+        ({ architecture }) =>
+          architecture.family === 'event-storming' && architecture.role === value.role,
+      ) && fields(value, ['family', 'role', 'description'])
+    );
   if (value.family !== 'ddd') return false;
   const context = value.role === 'bounded-context';
   return (

@@ -111,13 +111,7 @@ export function forkWorkingEdition(model: Model): Model {
       { ...model, sequence },
       {
         identity: { id: document.id, name: document.name, origin: document.origin },
-        nodeDesign: document.snapshot.graph.nodes.some(
-          (node) => node.architecture?.family === 'ddd',
-        )
-          ? 'ddd'
-          : document.snapshot.graph.nodes.some((node) => node.architecture?.family === 'c4')
-            ? 'c4'
-            : model.nodeDesign,
+        nodeDesign: documentDesign(document, model.nodeDesign),
         editor,
         editions: document.editions,
       },
@@ -169,13 +163,7 @@ export function openModelDocument(model: Model, input: ZlozModelDocument): Model
       model,
       {
         identity: { id: document.id, name: document.name, origin: document.origin },
-        nodeDesign: document.snapshot.graph.nodes.some(
-          (node) => node.architecture?.family === 'ddd',
-        )
-          ? 'ddd'
-          : document.snapshot.graph.nodes.some((node) => node.architecture?.family === 'c4')
-            ? 'c4'
-            : model.nodeDesign,
+        nodeDesign: documentDesign(document, model.nodeDesign),
         editor,
         editions: document.editions,
       },
@@ -183,4 +171,14 @@ export function openModelDocument(model: Model, input: ZlozModelDocument): Model
     ),
     notice: `Opened model: ${document.name}. Existing models and Undo histories are preserved.`,
   };
+}
+
+function documentDesign(
+  document: ZlozModelDocument,
+  fallback: Model['nodeDesign'],
+): Model['nodeDesign'] {
+  const nodes = document.snapshot.graph.nodes;
+  if (nodes.some((node) => node.architecture?.family === 'event-storming')) return 'event-storming';
+  if (nodes.some((node) => node.architecture?.family === 'ddd')) return 'ddd';
+  return nodes.some((node) => node.architecture?.family === 'c4') ? 'c4' : fallback;
 }

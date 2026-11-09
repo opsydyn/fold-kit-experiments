@@ -2670,7 +2670,7 @@ codec when identity, editions and origin must survive a round trip.
 ## Atomic architecture patterns
 
 `insertPattern` adds any self-contained graph fragment without replacing existing
-content. `createArchitecturePattern('c4-context' | 'ddd-aggregate')` supplies fresh,
+content. `createArchitecturePattern('c4-context' | 'ddd-aggregate' | 'event-storming')` supplies fresh,
 customizable starters; use your own graph for other patterns.
 
 ```ts
@@ -2703,3 +2703,40 @@ call; each edge policy sees the complete proposed graph excluding that edge.
 Selection policies filter the new root selection independently of insertion.
 One successful insertion records one Undo step and clears Redo/routes, preserving
 the camera, clipboard, model identity and editions. Persistence stays version one.
+
+## Event-storming notes
+
+The `EventStormingNodeArchitecture` family models workshop process notes:
+`{ family: 'event-storming', role: 'command' | 'domain-event' | 'policy' | 'actor', description?: string }`.
+These are ordinary nodes using existing geometry, ports, grouping membership,
+serialization and semantic-edit Undo. They cannot themselves be group boundaries.
+The separate DDD `domain-event` role keeps its existing structural meaning.
+
+```ts
+import { createArchitecturePattern, insertPattern } from '@opsydyn/foldkit-zloz';
+import { zlozEventStormingNode } from '@opsydyn/foldkit-zloz/foldkit';
+
+const result = insertPattern(editor, createArchitecturePattern('event-storming'));
+// In zlozView options:
+const renderNodeShell = (context, h) => zlozEventStormingNode(context, h);
+```
+
+The starter shows Customer → Place order → Order placed → a policy → Request
+payment. Edges describe an illustrative process; notes do not execute policies or
+enforce causality. Adapt labels, ports, outlines and relationships to your model.
+
+`ZlozEventStormingNodeOptions` offers `renderType`, `renderName`,
+`renderDescription`, `renderBody`, `renderControls`, `attributes` and `bodyCache`.
+Undefined slot results retain defaults, null omits content, and an empty controls
+array hides chrome. Keep interactive UI in `renderControls`; sockets and control
+feedback stay outside cached inert artwork. Compose this renderer with C4/DDD
+renderers using their undefined fallback.
+
+Scoped theme tokens `eventStormingCommand`, `eventStormingEvent`,
+`eventStormingPolicy` and `eventStormingActor` override role accents, including
+with host/Pleat variables. Light/dark defaults retain visible type labels so color
+is supplemental. Outlines and geometry remain independent of semantic roles.
+Graph/model envelopes remain version one; older readers can reject this new
+semantic family. Mermaid strict export rejects omitted architecture metadata;
+report mode explicitly discloses that loss. This is a bounded vocabulary, not a
+complete workshop methodology or process engine.

@@ -4,10 +4,9 @@ All notable changes to `@opsydyn/foldkit-viz` are documented here.
 
 ## [0.16.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.15.0...foldkit-viz-v0.16.0) (2026-11-09)
 
-
 ### Features
 
-* **zloz:** graph toolkit, architecture workbench and public websites ([04d44b1](https://github.com/opsydyn/fold-kit-experiments/commit/04d44b1367d9a70109daffeacefe5b298f6ab997))
+- **zloz:** graph toolkit, architecture workbench and public websites ([04d44b1](https://github.com/opsydyn/fold-kit-experiments/commit/04d44b1367d9a70109daffeacefe5b298f6ab997))
 
 ## [0.15.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-viz-v0.14.1...foldkit-viz-v0.15.0) (2026-10-30)
 

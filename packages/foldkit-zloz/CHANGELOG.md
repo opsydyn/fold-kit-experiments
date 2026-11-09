@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.0](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.1.1...foldkit-zloz-v0.2.0) (2026-11-09)
+
+
+### Features
+
+* **zloz-cli:** add standalone Effect commands and JSON protocol ([ec58578](https://github.com/opsydyn/fold-kit-experiments/commit/ec585785e70f64ce0726919a717616576cae7e6c))
+* **zloz:** add composable DDD preset renderers ([7cc5f23](https://github.com/opsydyn/fold-kit-experiments/commit/7cc5f2319036910e735cfa5399326046f1a94212))
+* **zloz:** add Effect CLI, DDD renderers and edition history ([b71a349](https://github.com/opsydyn/fold-kit-experiments/commit/b71a349884267fad8fa5c9bb5f332d62a1e4f1ef))
+* **zloz:** add named editions and read-only history ghosts ([3a41ea2](https://github.com/opsydyn/fold-kit-experiments/commit/3a41ea2e6992ede222f8a4fd260001d0986185dd))
+* **zloz:** import editions and restore as undoable changes ([c582ef0](https://github.com/opsydyn/fold-kit-experiments/commit/c582ef03a2ea8b529349b10cd67d908db2f8053c))
+
 ## [0.1.1](https://github.com/opsydyn/fold-kit-experiments/compare/foldkit-zloz-v0.1.0...foldkit-zloz-v0.1.1) (2026-11-09)
 
 ### Bug Fixes

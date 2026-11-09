@@ -1,5 +1,6 @@
 import {
   resolveEdgeReconnection,
+  playbackEditionId,
   compareEditions,
   captureEdition,
   resolveEditionRestore,
@@ -88,6 +89,7 @@ import {
 } from './model';
 import { modelSessionBusy } from './model-sessions';
 import { patternInsertionReason } from './pattern-insertion';
+import { playbackReason } from './playback';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import {
@@ -272,6 +274,15 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const renderDefaultNode = (node: ZlozNode, builder: HtmlBuilder<Message>) =>
     renderWorkbenchNode(node, builder, false, true, false, zlozInput);
   const workingEditor = model.editor;
+  const playback = model.historyPlayback?.cursor;
+  const playbackId = playback ? playbackEditionId(playback) : null;
+  const playbackName =
+    model.editions.find((edition) => edition.id === playbackId)?.name ?? 'No editions';
+  const playbackBusy =
+    modelSessionBusy(model) ||
+    model.editionRestore !== null ||
+    (model.historyReview !== null && model.historyReview.editor.gesture.type !== 'idle');
+  const playbackAvailability = playbackReason(model);
   const restoreDecision = model.editionRestore
     ? resolveEditionRestore(workingEditor, model.editionRestore.edition, {
         expectedRevision: model.editionRestore.expectedRevision,
@@ -458,6 +469,91 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
     history: [
+      h.div(
+        [h.Role('group'), h.AriaLabel('Edition playback')],
+        [
+          h.label(
+            [h.Class('workbench-field')],
+            [
+              h.input([
+                h.Type('checkbox'),
+                h.Checked(model.historyPlayback !== null),
+                h.OnClick(Message.ClickedPlaybackEnabled()),
+              ]),
+              'Enable edition playback',
+            ],
+          ),
+          ...(playback
+            ? [
+                h.p(
+                  [h.Role('status'), h.AriaLabel('Edition playback status')],
+                  [`${playback.status === 'playing' ? 'Playing' : 'Paused'} · ${playbackName}`],
+                ),
+                button(
+                  'Play editions',
+                  Message.ClickedPlaybackPlay(),
+                  playbackAvailability !== null || playback.status === 'playing',
+                ),
+                button(
+                  'Pause editions',
+                  Message.ClickedPlaybackPause(),
+                  playback.status !== 'playing',
+                ),
+                button(
+                  'Rewind editions',
+                  Message.ClickedPlaybackRewind(),
+                  playbackBusy || playback.status === 'empty',
+                ),
+                button(
+                  'Previous edition',
+                  Message.ClickedPlaybackPrevious(),
+                  playbackBusy || playback.status === 'empty' || playback.index === 0,
+                ),
+                button(
+                  'Next edition',
+                  Message.ClickedPlaybackNext(),
+                  playbackBusy ||
+                    playback.status === 'empty' ||
+                    playback.index >= playback.editionIds.length - 1,
+                ),
+                h.label(
+                  [h.Class('workbench-field')],
+                  [
+                    'Edition interval',
+                    h.select(
+                      [
+                        h.AriaLabel('Edition interval'),
+                        h.Value(String(playback.intervalMs)),
+                        h.OnChange((value) =>
+                          Message.SelectedPlaybackInterval({ intervalMs: Number(value) }),
+                        ),
+                      ],
+                      [
+                        h.option([h.Value('1000')], ['1 second']),
+                        h.option([h.Value('2000')], ['2 seconds']),
+                        h.option([h.Value('4000')], ['4 seconds']),
+                      ],
+                    ),
+                  ],
+                ),
+                ...(playbackAvailability
+                  ? [
+                      h.p(
+                        [h.Role('status'), h.AriaLabel('Playback availability')],
+                        [playbackAvailability],
+                      ),
+                    ]
+                  : []),
+                h.p(
+                  [],
+                  [
+                    'Automatic playback pauses for reduced motion, hidden pages and manual inspection. Previous, Next and Rewind remain available. Ghost controls below remain yours.',
+                  ],
+                ),
+              ]
+            : []),
+        ],
+      ),
       h.p([h.AriaLabel('Active model')], [`Model: ${model.modelIdentity.name}`]),
       ...(model.modelIdentity.origin
         ? [

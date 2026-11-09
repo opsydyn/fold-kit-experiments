@@ -181,8 +181,11 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** opt-in deterministic edition playback with pause, rewind
-and reduced-motion handling, building on the existing ghost comparisons.
+**Recommended next:** a composable package-owned playback toolbar, so consumers
+can reuse accessible transport controls, status and availability reasons while
+retaining full visual control. Opt-in deterministic edition playback, pause,
+rewind and reduced-motion handling are implemented locally, using existing
+read-only projections and optional ghost comparisons.
 Event-storming command, domain-event, policy and actor notes, a composable package
 renderer and process starter are now implemented locally with existing geometry,
 serialization and atomic insertion APIs. Atomic pattern insertion is

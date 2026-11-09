@@ -62,6 +62,8 @@ function activate(
     editions: next.editions,
     savedModels,
     historyReview: null,
+    historyPlayback: null,
+    playbackRun: model.playbackRun + 1,
     historyBaselineId: null,
     editionRestore: null,
     editionName: '',

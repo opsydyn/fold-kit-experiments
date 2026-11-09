@@ -19,6 +19,16 @@ export function historyAllowsMessage(message: Message): boolean {
     return isHistoryNavigationEvent(event);
   }
   return new Set<string>([
+    'AdvancedEditionPlayback',
+    'ClickedPlaybackEnabled',
+    'ClickedPlaybackPlay',
+    'ClickedPlaybackPause',
+    'ClickedPlaybackRewind',
+    'ClickedPlaybackPrevious',
+    'ClickedPlaybackNext',
+    'SelectedPlaybackInterval',
+    'ChangedPlaybackReducedMotion',
+    'ChangedPlaybackVisibility',
     'ChoseModelDocumentFiles',
     'SucceededModelDocumentImport',
     'FailedModelDocumentImport',

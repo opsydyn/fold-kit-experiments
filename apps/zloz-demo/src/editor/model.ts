@@ -2,6 +2,7 @@ import {
   createEditor,
   type EditorState,
   type ZlozEdition,
+  type ZlozEditionPlayback,
   type ZlozHistoryReview,
   type ZlozGraph,
   type LayoutRequest,
@@ -356,6 +357,10 @@ export const Model = Schema.Struct({
   protectEditionRestore: Schema.Boolean,
   editions: Schema.Unknown,
   historyReview: Schema.NullOr(Schema.Unknown),
+  historyPlayback: Schema.NullOr(Schema.Unknown),
+  playbackRun: Schema.Number,
+  playbackReducedMotion: Schema.NullOr(Schema.Boolean),
+  playbackVisible: Schema.Boolean,
   historyBaselineId: Schema.NullOr(Schema.String),
   editionName: Schema.String,
   historyGhosts: Schema.Struct({
@@ -447,6 +452,13 @@ export type Model = Readonly<{
   protectEditionFork: boolean;
   editions: readonly ZlozEdition[];
   historyReview: ZlozHistoryReview | null;
+  historyPlayback: Readonly<{
+    cursor: ZlozEditionPlayback;
+    editions: readonly ZlozEdition[];
+  }> | null;
+  playbackRun: number;
+  playbackReducedMotion: boolean | null;
+  playbackVisible: boolean;
   historyBaselineId: string | null;
   editionName: string;
   historyGhosts: Readonly<{ enabled: boolean; nodes: boolean; edges: boolean; movements: boolean }>;
@@ -535,6 +547,10 @@ export const init = (namespace = 'test-workbench') => ({
     protectEditionFork: false,
     editions: [],
     historyReview: null,
+    historyPlayback: null,
+    playbackRun: 0,
+    playbackReducedMotion: null,
+    playbackVisible: false,
     historyBaselineId: null,
     editionName: '',
     historyGhosts: { enabled: false, nodes: true, edges: true, movements: true },

@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from 'effect';
+import { Effect, Option, Schema, Stream } from 'effect';
 import { Command, Dom, Subscription, Submodel } from 'foldkit';
 import type { Document, HtmlBuilder } from 'foldkit/html';
 import { defineMessageUnion } from 'foldkit/message';
@@ -108,7 +108,58 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     }),
   };
 }
-const childSubscriptions = Subscription.make<WorkbenchModel, Workbench.Message>()(() => ({
+const childSubscriptions = Subscription.make<WorkbenchModel, Workbench.Message>()((entry) => ({
+  playback: entry(
+    {
+      playing: Schema.Boolean,
+      modelId: Schema.String,
+      run: Schema.Number,
+      intervalMs: Schema.Number,
+    },
+    {
+      modelToDependencies: (model) => ({
+        playing: model.historyPlayback?.cursor.status === 'playing',
+        modelId: model.modelIdentity.id,
+        run: model.playbackRun,
+        intervalMs: model.historyPlayback?.cursor.intervalMs ?? 2000,
+      }),
+      dependenciesToStream: ({ playing, modelId, run, intervalMs }) =>
+        Stream.tick(intervalMs).pipe(
+          Stream.drop(1),
+          Stream.map(() =>
+            Workbench.Message.AdvancedEditionPlayback({ modelId, run, milliseconds: intervalMs }),
+          ),
+          Stream.when(Effect.sync(() => playing)),
+        ),
+    },
+  ),
+  reducedMotion: Subscription.persistentEntry(
+    Dom.streamFromMediaQuery({
+      query: '(prefers-reduced-motion: reduce)',
+      mapMatches: (reducedMotion) =>
+        Workbench.Message.ChangedPlaybackReducedMotion({ reducedMotion }),
+    }),
+  ),
+  visibility: Subscription.persistentEntry(
+    Stream.fromEffect(
+      Effect.sync(() =>
+        Workbench.Message.ChangedPlaybackVisibility({
+          visible: document.visibilityState === 'visible',
+        }),
+      ),
+    ).pipe(
+      Stream.concat(
+        Dom.streamFromEvent({
+          target: () => document,
+          type: 'visibilitychange',
+          mapEvent: () =>
+            Workbench.Message.ChangedPlaybackVisibility({
+              visible: document.visibilityState === 'visible',
+            }),
+        }),
+      ),
+    ),
+  ),
   systemColorScheme: Subscription.persistentEntry(
     Dom.streamFromMediaQuery({
       query: '(prefers-color-scheme: dark)',

@@ -2740,3 +2740,50 @@ Graph/model envelopes remain version one; older readers can reject this new
 semantic family. Mermaid strict export rejects omitted architecture metadata;
 report mode explicitly discloses that loss. This is a bounded vocabulary, not a
 complete workshop methodology or process engine.
+
+## Opt-in edition playback
+
+`createEditionPlayback` creates a session cursor over an ordered collection of
+unique edition IDs. It stores no graphs, browser resources or working editor.
+Hosts own the clock and resolve the selected ID against their own edition store.
+
+```ts
+import {
+  createEditionPlayback,
+  updateEditionPlayback,
+  playbackEditionId,
+} from '@opsydyn/foldkit-zloz';
+
+let playback = createEditionPlayback(
+  editions.map((edition) => edition.id),
+  {
+    intervalMs: 2000,
+    reducedMotion: prefersReducedMotion,
+  },
+);
+playback = updateEditionPlayback(playback, { type: 'PlayClicked' });
+// From a host-owned subscription, only while status is 'playing':
+playback = updateEditionPlayback(playback, { type: 'Elapsed', milliseconds: 2000 });
+const selectedId = playbackEditionId(playback);
+```
+
+Playback starts paused. Reduced motion defaults true until explicitly supplied;
+`editionPlaybackReason` gives a visible reason when automatic play is unavailable.
+Events include PlayClicked, PauseClicked, RewindClicked, PreviousClicked,
+NextClicked, EditionSelected, IntervalChanged and ReducedMotionChanged. Rewind,
+manual steps, seeking, speed changes and enabling reduced motion pause/reset timing.
+Removing reduced motion never resumes automatically. Empty/single collections
+cannot play automatically; manual steps remain available with reduced motion.
+
+At most one edition advances per elapsed event; overshoot is discarded to avoid
+catch-up bursts. Playback pauses at the end. Play at the last edition restarts at
+the first without looping. Invalid identities, intervals or active elapsed values
+throw `ZlozError`. Replace the controller when the edition collection changes.
+
+Use `createHistoryReview` for the selected edition and `compareEditions` plus
+`zlozHistoryGhosts` for optional comparison. Preserve the working editor and its
+Undo. Hosts must cancel subscriptions and reject stale scoped ticks after pause,
+model/collection changes, leaving history or lifecycle changes. The workbench
+uses a scoped Effect Stream timer with model/run identity, pauses for hidden
+pages and live reduced-motion changes, and lets manual inspection take priority.
+Playback is session-only and never changes portable document formats.

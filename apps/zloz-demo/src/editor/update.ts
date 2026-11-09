@@ -1,5 +1,6 @@
 import {
   applyLayout,
+  updateEditionPlayback,
   createArchitecturePattern,
   appendEdition,
   mergeEditions,
@@ -81,6 +82,14 @@ import {
   modelSessionBusy,
 } from './model-sessions';
 import { insertWorkbenchPattern } from './pattern-insertion';
+import {
+  toggleHistoryPlayback,
+  controlHistoryPlayback,
+  tickHistoryPlayback,
+  pauseHistoryPlayback,
+  playbackInterruptedBy,
+  reconcileHistoryPlayback,
+} from './playback';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
 import { searchDiagram } from './search';
@@ -101,6 +110,10 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     (message.modelId !== model.modelIdentity.id || message.epoch !== model.modelEpoch)
   )
     return { model };
+  if (playbackInterruptedBy(message)) {
+    const paused = pauseHistoryPlayback(model);
+    if (paused !== model) return update(paused, message);
+  }
   const cancelModelImport = () =>
     model.modelImport
       ? [
@@ -206,7 +219,34 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       clipboard: model.editor.clipboard,
     };
   };
-  const result: Return<Model, Message> = Message.match(message, {
+  const outcome: Return<Model, Message> = Message.match(message, {
+    AdvancedEditionPlayback: (message) => ({ model: tickHistoryPlayback(model, message) }),
+    ClickedPlaybackEnabled: () => ({ model: toggleHistoryPlayback(model) }),
+    ClickedPlaybackPlay: () => ({ model: controlHistoryPlayback(model, { type: 'PlayClicked' }) }),
+    ClickedPlaybackPause: () => ({
+      model: controlHistoryPlayback(model, { type: 'PauseClicked' }),
+    }),
+    ClickedPlaybackRewind: () => ({
+      model: controlHistoryPlayback(model, { type: 'RewindClicked' }),
+    }),
+    ClickedPlaybackPrevious: () => ({
+      model: controlHistoryPlayback(model, { type: 'PreviousClicked' }),
+    }),
+    ClickedPlaybackNext: () => ({ model: controlHistoryPlayback(model, { type: 'NextClicked' }) }),
+    SelectedPlaybackInterval: ({ intervalMs }) => ({
+      model: controlHistoryPlayback(model, { type: 'IntervalChanged', intervalMs }),
+    }),
+    ChangedPlaybackReducedMotion: ({ reducedMotion }) => ({
+      model: controlHistoryPlayback(
+        { ...model, playbackReducedMotion: reducedMotion },
+        { type: 'ReducedMotionChanged', reducedMotion },
+      ),
+    }),
+    ChangedPlaybackVisibility: ({ visible }) => ({
+      model: visible
+        ? { ...model, playbackVisible: true }
+        : pauseHistoryPlayback({ ...model, playbackVisible: false }),
+    }),
     ClickedPatternInsertionProtection: () => ({
       model: { ...model, protectPatternInsertion: !model.protectPatternInsertion },
     }),
@@ -499,6 +539,15 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           historyReview: edition.snapshot.viewport
             ? review
             : updateHistoryReview(review, { type: 'FitViewClicked' }),
+          historyPlayback: model.historyPlayback
+            ? {
+                ...model.historyPlayback,
+                cursor: updateEditionPlayback(model.historyPlayback.cursor, {
+                  type: 'EditionSelected',
+                  id,
+                }),
+              }
+            : null,
           historyBaselineId: model.editions[index - 1]?.id ?? null,
           editionRestore: null,
           active: null,
@@ -1178,6 +1227,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       },
     }),
   });
+  const result = { ...outcome, model: reconcileHistoryPlayback(model, outcome.model) };
   const next = result.model;
   const changed = next.editor.graph !== model.editor.graph || next.editor.readOnly;
   const invalidLabel =

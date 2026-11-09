@@ -39,7 +39,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
     for (const unwanted of ['foldkit', 'effect', 'elkjs', 'react'])
       expect(existsSync(path.join(directory, 'node_modules', unwanted))).toBe(false);
     const pure =
-      "import { createEditor, serializeGraph, parseGraph, insertPattern, createArchitecturePattern } from '@opsydyn/foldkit-zloz'; const s=createEditor({nodes:[],edges:[]}); const inserted=insertPattern(s,createArchitecturePattern('ddd-aggregate')); if(inserted.type!=='inserted'||inserted.editor.past.length!==1||inserted.nodeIds.size!==3)throw new Error('Missing pattern contract'); const storm=insertPattern(s,createArchitecturePattern('event-storming')); if(storm.type!=='inserted'||storm.editor.graph.nodes[2]?.architecture?.role!=='domain-event')throw new Error('Missing event-storming contract'); console.log(JSON.stringify(parseGraph(serializeGraph(s.graph))));";
+      "import { createEditor, serializeGraph, parseGraph, insertPattern, createArchitecturePattern, createEditionPlayback, updateEditionPlayback, playbackEditionId } from '@opsydyn/foldkit-zloz'; const s=createEditor({nodes:[],edges:[]}); const inserted=insertPattern(s,createArchitecturePattern('ddd-aggregate')); if(inserted.type!=='inserted'||inserted.editor.past.length!==1||inserted.nodeIds.size!==3)throw new Error('Missing pattern contract'); const storm=insertPattern(s,createArchitecturePattern('event-storming')); if(storm.type!=='inserted'||storm.editor.graph.nodes[2]?.architecture?.role!=='domain-event')throw new Error('Missing event-storming contract'); const play=updateEditionPlayback(createEditionPlayback(['a','b'],{intervalMs:1000,reducedMotion:false}),{type:'PlayClicked'}); if(playbackEditionId(updateEditionPlayback(play,{type:'Elapsed',milliseconds:1000}))!=='b')throw new Error('Missing pure playback'); console.log(JSON.stringify(parseGraph(serializeGraph(s.graph))));";
     for (const runtime of ['node', 'bun']) {
       const result = await exec(runtime, ['--input-type=module', '-e', pure], {
         ...options,
@@ -47,7 +47,7 @@ test('npm tarballs install without workspace links and expose runtime and TypeSc
       });
       expect(result.stdout.trim()).toBe('{"nodes":[],"edges":[]}');
     }
-    const architectureSource = `import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
+    const architectureSource = `import { createArchitectureNode, createEditor, updateEditor, nodeShapeGeometry, portPosition, insertPattern, createArchitecturePattern, type ZlozPatternInsertionResult, type EventStormingNodeArchitecture, createEditionPlayback, updateEditionPlayback, playbackEditionId, type ZlozEditionPlayback, type ZlozNodeArchitecture } from '@opsydyn/foldkit-zloz';
 const architecture:ZlozNodeArchitecture={family:'c4',role:'container',technology:'PostgreSQL'};
 // @ts-expect-error C4 and DDD roles cannot be mixed
 const invalid:ZlozNodeArchitecture={family:'c4',role:'entity'};
@@ -64,6 +64,8 @@ if(patternResult.type!=='inserted'||patternResult.nodeIds.size!==2)throw new Err
 const processNote:EventStormingNodeArchitecture={family:'event-storming',role:'policy'};
 const storm=insertPattern(initial,createArchitecturePattern('event-storming'));
 if(storm.type!=='inserted'||storm.nodeIds.size!==5||processNote.role!=='policy')throw new Error('Missing event-storming type contract');
+const playback:ZlozEditionPlayback=createEditionPlayback(['a','b'],{reducedMotion:false});
+if(playbackEditionId(updateEditionPlayback(playback,{type:'NextClicked'}))!=='b')throw new Error('Missing typed playback');
 console.log('headless-architecture-ok');
 `;
     const architectureConsumer = path.join(directory, 'architecture.mts');

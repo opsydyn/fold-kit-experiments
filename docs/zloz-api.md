@@ -112,3 +112,14 @@ Four scoped `eventStorming*` theme tokens customize role accents; content/contro
 slots and artwork caching follow the existing semantic renderer contracts. See
 [the package example](../packages/foldkit-zloz/README.md#event-storming-notes)
 and [ADR 0024](adr/0024-add-event-storming-process-notes.md).
+
+### Edition playback
+
+Core exports `createEditionPlayback`, `updateEditionPlayback`, `playbackEditionId`
+and `editionPlaybackReason`, with `ZlozEditionPlayback`,
+`ZlozEditionPlaybackOptions` and `ZlozEditionPlaybackEvent`. The pure cursor is
+empty, paused or playing over a pinned ordered ID list; the host owns editions,
+clock, read-only projection and subscription lifecycle. Reduced motion pauses
+automatic play while manual stepping remains available. See the
+[package example](../packages/foldkit-zloz/README.md#opt-in-edition-playback) and
+[ADR 0025](adr/0025-add-opt-in-edition-playback.md).

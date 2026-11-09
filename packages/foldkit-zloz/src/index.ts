@@ -197,3 +197,14 @@ export type {
   ZlozPatternInsertionOptions,
   ZlozPatternInsertionResult,
 } from './patterns';
+export {
+  createEditionPlayback,
+  updateEditionPlayback,
+  playbackEditionId,
+  editionPlaybackReason,
+} from './edition-playback';
+export type {
+  ZlozEditionPlayback,
+  ZlozEditionPlaybackOptions,
+  ZlozEditionPlaybackEvent,
+} from './edition-playback';

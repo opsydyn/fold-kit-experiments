@@ -30,6 +30,20 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ClickedPlaybackEnabled: {},
+  ClickedPlaybackPlay: {},
+  ClickedPlaybackPause: {},
+  ClickedPlaybackRewind: {},
+  ClickedPlaybackPrevious: {},
+  ClickedPlaybackNext: {},
+  SelectedPlaybackInterval: { intervalMs: Schema.Number },
+  ChangedPlaybackReducedMotion: { reducedMotion: Schema.Boolean },
+  ChangedPlaybackVisibility: { visible: Schema.Boolean },
+  AdvancedEditionPlayback: {
+    modelId: Schema.String,
+    run: Schema.Number,
+    milliseconds: Schema.Number,
+  },
   ClickedPatternInsertionProtection: {},
   ClickedInsertPattern: {
     pattern: Schema.Literals(['c4-context', 'ddd-aggregate', 'event-storming']),

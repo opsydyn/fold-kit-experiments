@@ -2840,3 +2840,16 @@ export type {
   ZlozHistoryComparisonControlsParts,
   ZlozHistoryComparisonControlsViewOptions,
 } from './history-comparison-controls-view';
+
+export {
+  zlozHistoryChangeNavigator,
+  zlozHistoryChangeFilter,
+  zlozHistoryChangeButton,
+  zlozHistoryChangeStatus,
+  zlozHistoryChangeReason,
+} from './history-change-navigator-view';
+export type {
+  ZlozHistoryChangeNavigatorHandlers,
+  ZlozHistoryChangeNavigatorParts,
+  ZlozHistoryChangeNavigatorViewOptions,
+} from './history-change-navigator-view';

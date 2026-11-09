@@ -66,6 +66,7 @@ import {
   editionArchiveByteLimit,
   editionRestorePolicy,
 } from './history';
+import { focusWorkbenchHistoryChange } from './history-navigation';
 import { createLargeWorkflowGraph, createProtectedWorkflowGraph } from './large-workflow';
 import { mermaidPreview } from './mermaid-preview';
 import { Message } from './message';
@@ -592,6 +593,16 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         },
       };
     },
+    ClickedHistoryChangeFilter: ({ kind }) => ({
+      model: {
+        ...model,
+        historyChangeFilters: {
+          ...model.historyChangeFilters,
+          [kind]: !model.historyChangeFilters[kind],
+        },
+      },
+    }),
+    ClickedHistoryChange: (input) => ({ model: focusWorkbenchHistoryChange(model, input) }),
     SelectedHistoryBaseline: ({ id }) => {
       const decision = resolveHistoryComparisonRequest(
         model.editions,

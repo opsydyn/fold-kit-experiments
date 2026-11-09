@@ -56,6 +56,7 @@ export {
   defaultFitViewPadding,
   defaultZoomLimits,
   fitViewport,
+  fitNodes,
   minimapGeometry,
   portAnchor,
   portPosition,
@@ -246,3 +247,20 @@ export type {
   ZlozHistoryGhostControl,
   ZlozHistoryComparisonControlsContext,
 } from './history-comparison-controls';
+
+export {
+  resolveHistoryChangeNavigator,
+  resolveHistoryChangeFocus,
+} from './history-change-navigator';
+export type {
+  ZlozHistoryChangeKind,
+  ZlozHistoryChangeFilters,
+  ZlozHistoryChangeItem,
+  ZlozHistoryChangeFocusRequest,
+  ZlozHistoryChangeEntry,
+  ZlozHistoryChangeFilter,
+  ZlozHistoryChangeNavigatorOptions,
+  ZlozHistoryChangeNavigatorContext,
+  ZlozHistoryChangeFocusTarget,
+  ZlozHistoryChangeFocusDecision,
+} from './history-change-navigator';

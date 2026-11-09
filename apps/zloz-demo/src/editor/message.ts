@@ -80,6 +80,15 @@ export const Message = defineMessageUnion({
   SelectedHistoryEdition: { id: Schema.String },
   SelectedHistoryBaseline: { id: Schema.String },
   ClickedHistoryPresent: {},
+  ClickedHistoryChangeFilter: { kind: Schema.Literals(['added', 'removed', 'changed']) },
+  ClickedHistoryChange: {
+    modelId: Schema.String,
+    epoch: Schema.Number,
+    baselineId: Schema.String,
+    selectedId: Schema.String,
+    entity: Schema.Literals(['node', 'edge']),
+    id: Schema.String,
+  },
   ClickedHistoryGhost: { part: Schema.Literals(['enabled', 'nodes', 'edges', 'movements']) },
   ChangedHistoryGhostVisibility: {
     part: Schema.Literals(['enabled', 'nodes', 'edges', 'movements']),

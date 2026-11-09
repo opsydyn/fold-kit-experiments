@@ -362,6 +362,11 @@ export const Model = Schema.Struct({
   playbackReducedMotion: Schema.NullOr(Schema.Boolean),
   playbackVisible: Schema.Boolean,
   historyBaselineId: Schema.NullOr(Schema.String),
+  historyChangeFilters: Schema.Struct({
+    added: Schema.Boolean,
+    removed: Schema.Boolean,
+    changed: Schema.Boolean,
+  }),
   editionName: Schema.String,
   historyGhosts: Schema.Struct({
     enabled: Schema.Boolean,
@@ -461,6 +466,7 @@ export type Model = Readonly<{
   playbackReducedMotion: boolean | null;
   playbackVisible: boolean;
   historyBaselineId: string | null;
+  historyChangeFilters: Readonly<{ added: boolean; removed: boolean; changed: boolean }>;
   editionName: string;
   historyGhosts: Readonly<{ enabled: boolean; nodes: boolean; edges: boolean; movements: boolean }>;
   editor: EditorState;
@@ -553,6 +559,7 @@ export const init = (namespace = 'test-workbench') => ({
     playbackReducedMotion: null,
     playbackVisible: false,
     historyBaselineId: null,
+    historyChangeFilters: { added: true, removed: true, changed: true },
     editionName: '',
     historyGhosts: { enabled: false, nodes: true, edges: true, movements: true },
     editor: createEditor(initialGraph, { snapToAlignment: true }),

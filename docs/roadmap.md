@@ -181,10 +181,14 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** a package-owned comparison change navigator with composable
-Added/Removed/Changed filters and explicit focus requests. This would connect the
-accessible change list to canvas exploration without editing the working model.
+**Recommended next:** typed event-storming causal relationships with explainable
+validation between commands, events, policies and aggregates. This extends the
+existing notes and process starter into a richer modelling contract.
 
+Package-owned change navigation is implemented locally with composable kind
+filters, accessible entries, explicit scoped focus requests and live protection
+reasons. The workbench demonstrates custom badges, current/removed geometry
+focus and playback pause while preserving the working model and Undo.
 Package-owned comparison controls are implemented locally: identity-safe baseline
 selection, independently retained ghost preferences, minimal-mode visibility,
 visible host restrictions and native composable Foldkit controls. The workbench

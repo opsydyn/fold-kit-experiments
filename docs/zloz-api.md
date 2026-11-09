@@ -171,3 +171,22 @@ The `/foldkit` entry exports `zlozHistoryComparisonControls`,
 `ZlozHistoryComparisonControlsViewOptions`.
 See the [package example](../packages/foldkit-zloz/README.md#composable-history-comparison-controls)
 and [ADR 0028](adr/0028-compose-history-comparison-controls.md).
+
+### History change navigation
+
+Core exports `resolveHistoryChangeNavigator` and `resolveHistoryChangeFocus`,
+with `ZlozHistoryChangeKind`, `ZlozHistoryChangeFilters`, `ZlozHistoryChangeItem`,
+`ZlozHistoryChangeFilter`, `ZlozHistoryChangeEntry`,
+`ZlozHistoryChangeFocusRequest`, `ZlozHistoryChangeFocusTarget`,
+`ZlozHistoryChangeFocusDecision`, `ZlozHistoryChangeNavigatorOptions` and
+`ZlozHistoryChangeNavigatorContext`. Explicit requests revalidate the comparison
+pair, visible entity and current host policy before returning camera-only targets.
+Core also exports the existing `fitNodes` geometry primitive so earlier node bounds
+can frame a camera directly without constructing an editor graph.
+
+The `/foldkit` entry exports `zlozHistoryChangeNavigator`,
+`zlozHistoryChangeFilter`, `zlozHistoryChangeButton`, `zlozHistoryChangeStatus`,
+`zlozHistoryChangeReason`, `ZlozHistoryChangeNavigatorHandlers`,
+`ZlozHistoryChangeNavigatorParts` and `ZlozHistoryChangeNavigatorViewOptions`.
+See the [package example](../packages/foldkit-zloz/README.md#composable-history-change-navigation)
+and [ADR 0029](adr/0029-navigate-history-comparison-changes.md).

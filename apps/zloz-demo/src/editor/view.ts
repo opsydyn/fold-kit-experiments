@@ -6,8 +6,8 @@ import {
   resolveHistoryComparisonControls,
   type ZlozEditionSeekRequest,
   type ZlozPlaybackControlEvent,
-  compareEditions,
   captureEdition,
+  compareEditions,
   resolveEditionRestore,
   defaultFitViewPadding,
   architectureNodePresets,
@@ -19,6 +19,9 @@ import {
 import { supportsForceLayout } from '@opsydyn/foldkit-zloz-force/eligibility';
 import {
   zlozView,
+  zlozHistoryChangeNavigator,
+  zlozHistoryChangeButton,
+  zlozHistoryChangeFilter,
   zlozHistoryComparisonControls,
   zlozHistoryBaselineSelect,
   zlozHistoryGhostToggle,
@@ -77,6 +80,7 @@ import { createLazy, type Document, type HtmlBuilder } from 'foldkit/html';
 
 import { workbenchPolicy } from './editor-policy';
 import { historyAllowsMessage, editionRestorePolicy } from './history';
+import { workbenchHistoryComparison, historyChangeNavigatorContext } from './history-navigation';
 import { mermaidExportPanel } from './mermaid-preview';
 import { Message } from './message';
 import {
@@ -352,11 +356,8 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     },
     { minimalMode: model.minimalMode },
   );
-  const baselineEdition = model.editions.find(
-    (edition) => edition.id === comparisonControls.baseline.value,
-  );
-  const comparison =
-    selectedEdition && baselineEdition ? compareEditions(baselineEdition, selectedEdition) : null;
+  const comparison = workbenchHistoryComparison(model);
+  const changeNavigator = historyChangeNavigatorContext(model, comparison);
   const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
   const title = 'Architecture workbench | Foldkit Zloz';
@@ -878,26 +879,62 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           'Dashed marks show earlier geometry; dotted marks show removals. Labels identify Added, Removed and Previous states, and arrows show movement. Ghosts are read-only and never enter the model. Minimal mode hides this layer while retaining your choices.',
         ],
       ),
-      ...(comparison
-        ? [
-            h.ul(
-              [h.AriaLabel('History changes')],
+      zlozHistoryChangeNavigator(
+        h,
+        changeNavigator,
+        {
+          onFilter: (kind) => Message.ClickedHistoryChangeFilter({ kind }),
+          onFocus: (request) =>
+            Message.ClickedHistoryChange({
+              ...request,
+              modelId: model.modelIdentity.id,
+              epoch: model.modelEpoch,
+            }),
+        },
+        {
+          attributes: [h.Style({ display: 'grid', gap: '8px' })],
+          renderStatus: () => (model.minimalMode ? null : undefined),
+          renderFilter: (control, builder, onFilter) =>
+            builder.label(
+              [builder.Key(control.kind), builder.Style({ display: 'flex', gap: '8px' })],
+              [zlozHistoryChangeFilter(builder, control, onFilter), control.label],
+            ),
+          renderEntry: (entry, builder, onFocus) =>
+            builder.li(
+              [builder.Key(`${entry.entity}:${entry.id}`)],
               [
-                ...comparison.nodes.map((change) =>
-                  h.li(
-                    [],
-                    [
-                      `${change.kind}: ${(change.after ?? change.before)?.label} · ${change.semanticChanged ? 'model' : ''}${change.semanticChanged && change.layoutChanged ? ' + ' : ''}${change.layoutChanged ? 'layout' : ''}`,
-                    ],
-                  ),
-                ),
-                ...comparison.edges.map((change) =>
-                  h.li([], [`${change.kind} connection: ${change.id}`]),
+                zlozHistoryChangeButton(
+                  builder,
+                  entry,
+                  onFocus,
+                  [
+                    builder.Style({
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '8px',
+                      marginBottom: '4px',
+                    }),
+                  ],
+                  [
+                    builder.span([builder.Style({ fontWeight: '650' })], [entry.kind]),
+                    ` ${entry.entity}: ${entry.label}`,
+                    builder.small(
+                      [builder.Style({ display: 'block' })],
+                      [
+                        entry.semanticChanged && entry.layoutChanged
+                          ? 'Model + layout'
+                          : entry.semanticChanged
+                            ? 'Model'
+                            : 'Layout',
+                      ],
+                    ),
+                    ...(entry.reason ? [builder.span([], [` · ${entry.reason}`])] : []),
+                  ],
                 ),
               ],
             ),
-          ]
-        : []),
+        },
+      ),
       h.label(
         [h.Class('workbench-field')],
         [

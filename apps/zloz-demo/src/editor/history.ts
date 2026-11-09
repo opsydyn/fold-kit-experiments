@@ -55,6 +55,8 @@ export function historyAllowsMessage(message: Message): boolean {
     'ClickedEditionRestoreProtection',
     'SelectedHistoryEdition',
     'ClickedHistoryPresent',
+    'ClickedHistoryChangeFilter',
+    'ClickedHistoryChange',
     'SelectedHistoryBaseline',
     'ClickedHistoryGhost',
     'ChangedHistoryGhostVisibility',

@@ -2942,3 +2942,57 @@ are removed; [] hides all). Attributes style controls without replacing native
 checked/disabled/selection semantics. Custom renderers own any replacement
 semantics. Hosts own request lifetimes, comparison data, accessible change lists
 and playback interruption; these helpers never edit the graph or Undo.
+
+## Composable history change navigation
+
+`resolveHistoryChangeNavigator(comparison, options)` derives native-control
+contexts and a filtered list from `compareEditions`. Options include independent
+`filters` for `added`, `removed` and `changed` (all default true), `filterLabels`,
+`labelChange`, global `blockedReason` and per-item `focusReason`. Node/edge IDs
+have separate namespaces. Counts describe the unfiltered comparison; filtering
+never changes the comparison or ghost preferences.
+
+```ts
+import { resolveHistoryChangeNavigator, resolveHistoryChangeFocus } from '@opsydyn/foldkit-zloz';
+import { zlozHistoryChangeNavigator, zlozHistoryChangeButton } from '@opsydyn/foldkit-zloz/foldkit';
+
+const options = { filters, blockedReason: busyReason };
+const context = resolveHistoryChangeNavigator(comparison, options);
+const view = zlozHistoryChangeNavigator(
+  h,
+  context,
+  { onFilter, onFocus },
+  {
+    renderEntry: (entry, builder, focus) =>
+      builder.li([], [zlozHistoryChangeButton(builder, entry, focus, [], [entry.summary])]),
+  },
+);
+// In update, recheck current comparison, preferences and policy:
+const decision = resolveHistoryChangeFocus(comparison, request, options);
+```
+
+Requests carry both edition IDs and entity type/ID. Unknown, stale or filtered-out
+requests return ignored; current restrictions return blocked with a visible
+reason. A ready decision carries an entry and target. For `side: 'selected'`,
+apply `target.event` through `updateHistoryReview` to reveal the current node or
+edge, including collapsed ancestors. For `side: 'baseline'`, `target.nodes` are
+earlier node/endpoint geometry: fit a camera with
+`fitNodes(target.nodes, surface, padding, zoomLimits)`
+and apply a `ViewportChanged` navigation event. Never insert these nodes into the
+working or review graph. Removed-edge framing uses baseline endpoint nodes;
+computed layout routes are outside the portable edition contract.
+
+Hosts own camera measurement, operation policies, callback freshness, optional
+playback pause and review projection. Compare requests against the current pair
+and host/model scope. Camera focus leaves keyboard focus on the native button;
+no DOM focus is performed. Ghost visibility remains independent, including when
+focusing a removed item with its ghost hidden.
+
+The optional entry also exports `zlozHistoryChangeFilter`,
+`zlozHistoryChangeStatus` and `zlozHistoryChangeReason`. Composition supports
+nullable `renderFilter`, `renderEntry`, `renderStatus`, `renderReason`, and a
+`renderLayout` hook. Undefined keeps defaults; null omits parts. `filters` in view
+options selects/reorders filter **controls**, while core options decide which
+changes appear. Custom entries own their list-item semantics. Labels, attributes,
+status/reason content and frame/list names are configurable. No generated IDs,
+selection cursor, timer, graph edits or persistence format are introduced.

@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "package change list with custom badges",
+    "Added/Removed/Changed filters and empty-state summary",
+    "removed focus keeps earlier ghost geometry within the canvas",
+    "native Enter activation retains keyboard focus",
+    "explicit change focus pauses playback and rejects old ticks",
+    "current and removed focus preserve working model and prior Undo",
+    "composable comparison group and named baseline",
+    "all ghost layers independently switchable",
+    "master and minimal mode retain layer preferences",
+    "ghost preferences remain live during playback",
+    "baseline selection pauses playback",
+    "current edition excluded from baselines",
+    "eight named checkpoints",
+    "explicit current-point opening with Enter",
+    "native End/Home/Arrow seeking retains focus",
+    "native pointer drag across checkpoints",
+    "custom labels and aria-valuetext",
+    "manual seek remains usable with reduced motion",
+    "seek pauses timed playback and rejects old ticks",
+    "existing ghosts compare selected checkpoint",
+    "working model and prior Undo preserved",
+    "light/dark screenshots"
+  ],
+  "pageErrors": []
+}

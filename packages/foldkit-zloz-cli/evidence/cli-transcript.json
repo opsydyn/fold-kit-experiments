@@ -1,9 +1,9 @@
 {
   "result": "pass",
-  "checkedAt": "2026-11-08T20:34:09.946Z",
+  "checkedAt": "2026-11-09T09:05:32.085Z",
   "node": "v24.15.0",
   "bun": "1.4.4",
-  "measuredParent": "680d413637730b49c15bc2672b166393b32311bd",
+  "measuredParent": "c582ef03a2ea8b529349b10cd67d908db2f8053c",
   "sourceHashes": {
     "packages/foldkit-zloz-cli/src/index.ts": "5fb709d39b03883d8e2a1daad7b7102608fda41efd2ccbd32df8716097bda72a",
     "packages/foldkit-zloz-cli/src/io.ts": "da8b05efe36d1dc3896b7afc1fa165027d916de5eb46723241654e30f53ee9ed",

@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "browser": "151.0.7922.34",
+  "checks": [
+    "policy-controlled fork",
+    "portable pinned immediate origin",
+    "local diagram IDs preserved",
+    "fresh independent Undo",
+    "fork Undo/Redo",
+    "source graph/editions preserved",
+    "source Undo/Redo preserved",
+    "switching preserves fork edits",
+    "light/dark screenshots"
+  ],
+  "pageErrors": []
+}

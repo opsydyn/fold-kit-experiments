@@ -158,7 +158,7 @@ Astro is the demonstration shell. Prioritize the following bounded slices:
    [qualification receipt](../apps/zloz-demo/evidence/history.md). The subsequent
    [import/restore slice](../apps/zloz-demo/evidence/edition-restore.md) adds atomic
    archive merge and explicit graph-only restore with one Undo, required freshness
-   and live policy checks. Forks, playback and automatic persistence remain open.
+   and live policy checks. The fork slice adds separate model identity, pinned immediate origin, an independent editor/Undo and model JSON; playback and automatic persistence remain open.
    Start with named
    immutable editions, read-only rewind and return to the present; then semantic/
    layout comparison and explicit restore or fork into a new working model.
@@ -181,9 +181,15 @@ separate proposal; no collaboration runtime is claimed here. Keep accessible
 interaction and unrestricted visual composition in each slice. Retain the later
 comprehensive a11y qualification gate and publication-last decision.
 
-**Recommended next:** fork an edition into a separate working model with explicit
-lineage, keeping this distinct from restoring the current graph. Archive import,
-read-only rewind, comparison ghosts and undoable restore provide the local baseline. DDD renderers retain the current
+**Recommended next:** integrate the new model-document envelope with workbench import
+and CLI validation, preserving identity and lineage end to end, then continue with
+atomic pattern insertion. Forking is implemented locally with package-owned
+model identity, pinned source edition, independent editing/Undo, policy checks,
+session switching and an explicit model codec. Graph/snapshot/edition v1 remain
+unchanged. The existing diagram importer and CLI still read their original
+formats; they must not silently strip new model metadata. See
+[the fork qualification receipt](../apps/zloz-demo/evidence/model-forks.md).
+DDD renderers retain the current
 descriptor contract without new persisted fields. Proposed positioning to validate: model a domain
 with people, explore how its architecture evolves, and review/communicate the
 same portable model with human and agent tooling. Shapes alone, Undo and layout examples do not establish a USP.

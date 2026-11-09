@@ -77,18 +77,20 @@ export const SaveZloz = Command.define('SaveZloz', {
     ),
 });
 export const LoadZloz = Command.define('LoadZloz', {
-  messages: [Message.SucceededLoad, Message.FailedStorage],
-  execute: Effect.try(() => {
-    const json =
-      globalThis.localStorage.getItem('opsydyn.foldkit-flow.release-sample.v1') ?? 'null';
-    parseSnapshot(json);
-    return json;
-  }).pipe(
-    Effect.match({
-      onSuccess: (json) => Message.SucceededLoad({ json }),
-      onFailure: () => Message.FailedStorage(),
-    }),
-  ),
+  args: { id: Schema.Number },
+  messages: [Message.SucceededImport, Message.FailedImport],
+  execute: ({ id }) =>
+    Effect.try(() => {
+      const json =
+        globalThis.localStorage.getItem('opsydyn.foldkit-flow.release-sample.v1') ?? 'null';
+      parseSnapshot(json);
+      return json;
+    }).pipe(
+      Effect.match({
+        onSuccess: (json) => Message.SucceededImport({ id, json }),
+        onFailure: () => Message.FailedImport({ id }),
+      }),
+    ),
 });
 
 export const ImportZloz = Command.define('ImportZloz', {
@@ -118,6 +120,27 @@ export const ExportFlow = Command.define('ExportFlow', {
       const link = Object.assign(document.createElement('a'), {
         href: url,
         download: 'foldkit-zloz.json',
+      });
+      // Release after the browser has had time to start consuming the URL.
+      globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      link.click();
+    }).pipe(
+      Effect.match({
+        onSuccess: () => Message.CompletedExport(),
+        onFailure: () => Message.FailedExport(),
+      }),
+    ),
+});
+
+export const ExportZlozModel = Command.define('ExportZlozModel', {
+  args: { json: Schema.String },
+  messages: [Message.CompletedExport, Message.FailedExport],
+  execute: ({ json }) =>
+    Effect.try(() => {
+      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download: 'foldkit-zloz.model.json',
       });
       // Release after the browser has had time to start consuming the URL.
       globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000);

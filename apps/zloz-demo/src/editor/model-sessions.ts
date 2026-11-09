@@ -1,0 +1,140 @@
+import {
+  captureModelDocument,
+  createModelEditor,
+  forkEdition,
+  type EditorState,
+  type ZlozEdition,
+  type ZlozModelDocument,
+} from '@opsydyn/foldkit-zloz';
+
+import type { Model } from './model';
+
+export type WorkbenchModelIdentity = Pick<ZlozModelDocument, 'id' | 'name' | 'origin'>;
+export type WorkbenchModelSession = Readonly<{
+  identity: WorkbenchModelIdentity;
+  nodeDesign: Model['nodeDesign'];
+  editor: EditorState;
+  editions: readonly ZlozEdition[];
+}>;
+export function workbenchDocument(model: Model): ZlozModelDocument {
+  return captureModelDocument({
+    ...model.modelIdentity,
+    snapshot: { graph: model.editor.graph, viewport: model.editor.viewport },
+    editions: model.editions,
+  });
+}
+export function modelSessionBusy(model: Model): boolean {
+  return (
+    model.editor.gesture.type !== 'idle' ||
+    model.active !== null ||
+    model.importing !== null ||
+    model.editionImport !== null ||
+    model.editor.edgeLabelDraft !== null ||
+    model.portLabelDraft !== null ||
+    model.portPositionDraft !== null
+  );
+}
+function session(model: Model): WorkbenchModelSession {
+  return {
+    identity: model.modelIdentity,
+    nodeDesign: model.nodeDesign,
+    editor: model.editor,
+    editions: model.editions,
+  };
+}
+function activate(
+  model: Model,
+  next: WorkbenchModelSession,
+  savedModels: readonly WorkbenchModelSession[],
+): Model {
+  const surface = model.historyReview?.editor.surface ?? model.editor.surface;
+  const editor =
+    surface?.width === next.editor.surface?.width && surface?.height === next.editor.surface?.height
+      ? next.editor
+      : { ...next.editor, surface };
+  return {
+    ...model,
+    modelIdentity: next.identity,
+    modelEpoch: model.modelEpoch + 1,
+    nodeDesign: next.nodeDesign,
+    editor,
+    editions: next.editions,
+    savedModels,
+    historyReview: null,
+    historyBaselineId: null,
+    editionRestore: null,
+    editionName: '',
+    forkName: '',
+    active: null,
+    importing: null,
+    editionImport: null,
+    portLabelDraft: null,
+    portPositionDraft: null,
+    mermaidLossConsentRevision: null,
+    searchQuery: '',
+    sequence: model.sequence + 1,
+  };
+}
+export function forkWorkingEdition(model: Model): Model {
+  if (modelSessionBusy(model))
+    return { ...model, notice: 'Finish active edits, imports or layout before creating a model.' };
+  const editionId = model.historyReview?.editionId;
+  if (!editionId) return model;
+  let sequence = model.sequence + 1;
+  const ids = new Set([
+    model.modelIdentity.id,
+    ...model.savedModels.map((item) => item.identity.id),
+  ]);
+  while (ids.has(`model-${sequence}`)) sequence++;
+  const result = forkEdition(
+    workbenchDocument(model),
+    editionId,
+    { id: `model-${sequence}`, name: model.forkName },
+    {
+      canForkEdition: () =>
+        model.protectEditionFork ? 'Edition forking is protected in this workspace.' : null,
+    },
+  );
+  if (result.type === 'blocked') return { ...model, notice: result.reason };
+  const document = result.document;
+  // The public initializer copies only EditorOptions preferences; no transient state or Undo is inherited.
+  const { visibility: _visibility, ...preferences } = model.editor;
+  const editor = createModelEditor(document, {
+    ...preferences,
+    readOnly: false,
+    viewport: model.historyReview!.editor.viewport,
+  });
+  return {
+    ...activate(
+      { ...model, sequence },
+      {
+        identity: { id: document.id, name: document.name, origin: document.origin },
+        nodeDesign: document.snapshot.graph.nodes.some(
+          (node) => node.architecture?.family === 'ddd',
+        )
+          ? 'ddd'
+          : document.snapshot.graph.nodes.some((node) => node.architecture?.family === 'c4')
+            ? 'c4'
+            : model.nodeDesign,
+        editor,
+        editions: document.editions,
+      },
+      [...model.savedModels, session(model)],
+    ),
+    notice: `Fork created: ${document.name}. The source model and its Undo history are preserved.`,
+  };
+}
+export function selectWorkingModel(model: Model, id: string): Model {
+  if (id === model.modelIdentity.id) return model;
+  const target = model.savedModels.find((item) => item.identity.id === id);
+  if (!target) return model;
+  if (modelSessionBusy(model))
+    return { ...model, notice: 'Finish active edits, imports or layout before switching models.' };
+  return {
+    ...activate(model, target, [
+      ...model.savedModels.filter((item) => item.identity.id !== id),
+      session(model),
+    ]),
+    notice: `Working model: ${target.identity.name}. Its own Undo history is preserved.`,
+  };
+}

@@ -122,7 +122,7 @@ console.log('headless-architecture-ok');
       ],
       { ...options, cwd: directory },
     );
-    const source = `import { mergeEditions, resolveEditionRestore, restoreEdition, type ZlozEditionRestoreOptions, type ZlozHistoryChange, captureEdition, appendEdition, serializeEditions, parseEditions, createHistoryReview, updateHistoryReview, compareEditions } from '@opsydyn/foldkit-zloz';
+    const source = `import { captureModelDocument, serializeModelDocument, parseModelDocument, forkEdition, createModelEditor, type ZlozModelDocument, mergeEditions, resolveEditionRestore, restoreEdition, type ZlozEditionRestoreOptions, type ZlozHistoryChange, captureEdition, appendEdition, serializeEditions, parseEditions, createHistoryReview, updateHistoryReview, compareEditions } from '@opsydyn/foldkit-zloz';
 import { createArchitectureNode, createEditor, updateEditor, resolveEndpointChoices, resolveConnectionCreation, resolveEdgeReconnection, resolveDeletion, type BoxSelectionMatch, type EditorPolicy, layoutRequest, applyLayout, portAnchor, portPosition, portBoundaryPosition, resolveConnectionPreview, type ZlozConnectionGeometryPolicy, resolveEdgeGeometry, type ZlozEdgeGeometryPolicy, type ZlozEdge, type ZlozGraph, type ZlozNode, type EditorEvent } from '@opsydyn/foldkit-zloz';
 import { zlozHistoryGhosts, type ZlozHistoryGhostOptions, zlozDddNode, zlozDddGroup, type ZlozDddNodeOptions, zlozC4Node, zlozC4Group, type ZlozC4NodeOptions, createZlozNodeBodyCache, type ZlozNodeBodyCache, zlozEndpointSearchInput, zlozEndpointSearchClear, zlozEndpointSearchFeedback, zlozConnectionCreation, zlozConnectionCreationField, zlozConnectionCreationSelect, zlozConnectionCreationReasons, zlozConnectionCreationCancel, zlozEdgeEndpointField, zlozEdgeEndpointSelect, zlozEdgeEndpointReasons, zlozView, type ZlozWheelNavigation, type ZlozCanvasHelpContext, type ZlozCanvasStatusContext, type ZlozSelectionMarqueeContext, type ZlozAlignmentGuideContext, type ZlozResizeReadoutContext, zlozConnectionButton, zlozContextTrigger, type ZlozConnectionsContext, zlozContextAction, zlozContextDimensionInput, type ZlozContextMenuContext, zlozEdgeToolbarButton, zlozEdgePathStyleSelect, type ZlozEdgeToolbarContext, zlozEdgeLabelBadge, zlozEdgeLabelForm, zlozEdgeLabelInput, zlozEdgeLabelCancel, zlozViewportControl, zlozMinimap, zlozMinimapViewport, type ZlozMinimapContext, type ZlozViewportControlsContext, zlozNodeFrame, zlozGroupFrame, zlozDragHandle, zlozPort, zlozResizeHandle, zlozEdgeHitTarget, resolveZlozDiagnostics, type ZlozViewOptions, type ZlozViewLayoutParts, type ZlozBackground, type ZlozDiagnostics } from '@opsydyn/foldkit-zloz/foldkit';
 import { createElkLayout } from '@opsydyn/foldkit-zloz-elk';
@@ -292,6 +292,12 @@ if(resolveEditionRestore(emptyWorking,edition,{expectedRevision:0}).type!=='read
 const restoredEdition=restoreEdition(emptyWorking,edition,{expectedRevision:0});
 if(restoredEdition.type!=='restored' || restoredEdition.editor.past.length!==1 || updateEditor(restoredEdition.editor,{type:'UndoPressed'}).graph.nodes.length!==0) throw new Error('Missing packed undoable restore');
 if(mergeEditions([edition],[edition,nextEdition]).type!=='merged') throw new Error('Missing packed additive edition import');
+const modelDocument:ZlozModelDocument=captureModelDocument({id:'source-model',name:'Source',snapshot:edition.snapshot,editions:[edition],origin:null});
+const forked=forkEdition(modelDocument,'first',{id:'fork-model',name:'Alternative'});
+if(forked.type!=='forked') throw new Error('Missing packed edition fork');
+const decodedFork=parseModelDocument(serializeModelDocument(forked.document));
+const forkEditor=createModelEditor(decodedFork);
+if(decodedFork.origin?.modelId!=='source-model' || forkEditor.past.length || forkEditor.readOnly || decodedFork.editions.length) throw new Error('Missing independent model lineage/session');
 const rewind=createHistoryReview(edition,createEditor({nodes:[dddNode],edges:[]}));
 if(updateHistoryReview(rewind,{type:'DeletePressed'})!==rewind || !rewind.editor.readOnly) throw new Error('Historical editing escaped');
 const comparison=compareEditions(edition,nextEdition);

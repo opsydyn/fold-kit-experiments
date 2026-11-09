@@ -30,6 +30,11 @@ import {
   PortSnapPriority,
 } from './model';
 export const Message = defineMessageUnion({
+  ChangedForkName: { name: Schema.String },
+  ClickedForkEdition: {},
+  SelectedWorkingModel: { id: Schema.String },
+  ClickedEditionForkProtection: {},
+  ClickedExportModel: {},
   ChoseEditionArchiveFiles: { files: Schema.Array(Schema.instanceOf(File)) },
   SucceededEditionArchiveImport: { id: Schema.Number, editions: Schema.Unknown },
   FailedEditionArchiveImport: { id: Schema.Number },
@@ -50,6 +55,7 @@ export const Message = defineMessageUnion({
   CompletedExportEditions: {},
   FailedExportEditions: {},
   ObservedZlozInput: { message: Schema.Unknown },
+  ObservedModelInput: { modelId: Schema.String, epoch: Schema.Number, message: Schema.Unknown },
   SelectedExample: {
     example: Schema.Literals([
       'release',
@@ -163,6 +169,5 @@ export const Message = defineMessageUnion({
   FailedLayout: { requestId: Schema.String },
   SucceededSave: {},
   FailedStorage: {},
-  SucceededLoad: { json: Schema.String },
 });
 export type Message = typeof Message.Type;

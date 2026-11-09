@@ -84,6 +84,7 @@ import {
   type Model,
   PortSnapPriority,
 } from './model';
+import { modelSessionBusy } from './model-sessions';
 import { nextPort } from './port-editing';
 import { currentPreset } from './port-presets';
 import {
@@ -147,7 +148,6 @@ const retainedOrbitNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Messag
   orbitNode(context, h, orbitBodyCache);
 const retainedOrbitGroup = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
   orbitGroup(context, h, orbitBodyCache);
-const zlozInput = (message: EditorEvent) => Message.ObservedZlozInput({ message });
 
 const reconnectionRadiusOptions = {
   match: {},
@@ -160,6 +160,7 @@ function renderWorkbenchNode(
   minimalMode: boolean,
   measurements: boolean,
   resizeDisabled: boolean,
+  onEvent: (event: EditorEvent) => Message,
 ) {
   return builder.div(
     [builder.Style({ visibility: minimalMode ? 'hidden' : 'visible' })],
@@ -167,11 +168,7 @@ function renderWorkbenchNode(
       builder.input([
         builder.AriaLabel(`Label for ${node.id}`),
         builder.Value(node.label),
-        builder.OnInput((label) =>
-          Message.ObservedZlozInput({
-            message: { type: 'NodeLabelChanged', id: node.id, label },
-          }),
-        ),
+        builder.OnInput((label) => onEvent({ type: 'NodeLabelChanged', id: node.id, label })),
         builder.Style({
           width: '100%',
           'box-sizing': 'border-box',
@@ -207,9 +204,7 @@ function renderWorkbenchNode(
             builder.Value(String(node.size.width)),
             builder.Style({ width: '100%', 'touch-action': 'pan-x' }),
             builder.OnChange((value) =>
-              Message.ObservedZlozInput({
-                message: { type: 'NodeWidthChanged', id: node.id, width: Number(value) },
-              }),
+              onEvent({ type: 'NodeWidthChanged', id: node.id, width: Number(value) }),
             ),
           ]),
         ],
@@ -217,9 +212,6 @@ function renderWorkbenchNode(
     ],
   );
 }
-const renderDefaultNode = (node: ZlozNode, builder: HtmlBuilder<Message>) =>
-  renderWorkbenchNode(node, builder, false, true, false);
-
 const historyDddOptions: ZlozDddNodeOptions<Message> = { ...dddOptions, renderControls: () => [] };
 const historyC4Options: ZlozC4NodeOptions<Message> = { ...c4Options, renderControls: () => [] };
 const historyNode = (context: ZlozNodeRenderContext, h: HtmlBuilder<Message>) =>
@@ -254,6 +246,13 @@ const edgePathOptions: ReadonlyArray<{ label: string; style: EdgePathStyle | nul
 ];
 
 export function view(model: Model, h: HtmlBuilder<Message>): Document {
+  const modelId = model.modelIdentity.id;
+  const epoch = model.modelEpoch;
+  const observedInput = ({ message }: { message: EditorEvent }) =>
+    Message.ObservedModelInput({ modelId, epoch, message });
+  const zlozInput = (message: EditorEvent) => observedInput({ message });
+  const renderDefaultNode = (node: ZlozNode, builder: HtmlBuilder<Message>) =>
+    renderWorkbenchNode(node, builder, false, true, false, zlozInput);
   const workingEditor = model.editor;
   const restoreDecision = model.editionRestore
     ? resolveEditionRestore(workingEditor, model.editionRestore.edition, {
@@ -277,6 +276,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
   const baselineEdition = model.editions.find((edition) => edition.id === model.historyBaselineId);
   const comparison =
     selectedEdition && baselineEdition ? compareEditions(baselineEdition, selectedEdition) : null;
+  const busyModelSession = modelSessionBusy(model);
   if (model.historyReview) model = { ...model, editor: model.historyReview.editor };
   const title = 'Architecture workbench | Foldkit Zloz';
   const { themePreference } = model;
@@ -423,7 +423,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               zlozEdgeEndpointSelect(
                 h,
                 context,
-                (message) => Message.ObservedZlozInput({ message }),
+                (message) => observedInput({ message }),
                 [h.Style({ width: '100%', 'min-height': '36px', margin: '6px 0' })],
                 options,
               ),
@@ -439,6 +439,80 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
     edgeHooks.renderEdge = storageDependencyEdge;
   const controls: WorkbenchControls = {
     history: [
+      h.p([h.AriaLabel('Active model')], [`Model: ${model.modelIdentity.name}`]),
+      ...(model.modelIdentity.origin
+        ? [
+            h.p(
+              [h.AriaLabel('Model lineage')],
+              [
+                `Forked from ${model.modelIdentity.origin.modelName} · ${model.modelIdentity.origin.edition.name}`,
+              ],
+            ),
+          ]
+        : []),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'Working model',
+          h.select(
+            [
+              h.AriaLabel('Working model'),
+              h.Value(model.modelIdentity.id),
+              h.Disabled(busyModelSession),
+              h.OnChange((id) => Message.SelectedWorkingModel({ id })),
+            ],
+            [
+              h.option([h.Value(model.modelIdentity.id)], [model.modelIdentity.name]),
+              ...model.savedModels.map((item) =>
+                h.option([h.Value(item.identity.id)], [item.identity.name]),
+              ),
+            ],
+          ),
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          'New model name',
+          h.input([
+            h.AriaLabel('New model name'),
+            h.Value(model.forkName),
+            h.OnInput((name) => Message.ChangedForkName({ name })),
+          ]),
+        ],
+      ),
+      h.label(
+        [h.Class('workbench-field')],
+        [
+          h.input([
+            h.Type('checkbox'),
+            h.Checked(model.protectEditionFork),
+            h.OnClick(Message.ClickedEditionForkProtection()),
+          ]),
+          'Protect edition forking',
+        ],
+      ),
+      ...(model.protectEditionFork
+        ? [h.p([h.Role('status')], ['Edition forking is protected in this workspace.'])]
+        : []),
+      button(
+        'Fork edition',
+        Message.ClickedForkEdition(),
+        !selectedEdition || !model.forkName.trim() || busyModelSession || model.protectEditionFork,
+      ),
+      h.p(
+        [],
+        [
+          'Creates a separate editable model with its own Undo. The source stays available in Working model.',
+        ],
+      ),
+      button('Export model with lineage', Message.ClickedExportModel()),
+      h.p(
+        [],
+        [
+          'Models are kept in this tab. Export the working model with lineage before leaving; diagram-only exports omit identity and origin.',
+        ],
+      ),
       h.p(
         [h.Role('status'), h.AriaLabel('History mode')],
         [
@@ -475,6 +549,11 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
           h.select(
             [
               h.AriaLabel('Rewind to edition'),
+              h.Disabled(
+                model.active !== null ||
+                  model.importing !== null ||
+                  workingEditor.gesture.type !== 'idle',
+              ),
               h.Value(model.historyReview?.editionId ?? ''),
               h.Disabled(workingEditor.gesture.type !== 'idle'),
               h.OnChange((id) =>
@@ -644,7 +723,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
       h.p(
         [],
         [
-          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks and playback are later slices.',
+          'Import adds editions without replacing your working graph. Identical editions are skipped; conflicting identities reject the whole import. Editions remain session-owned until exported. Restore requires an explicit preview and confirmation; forks preserve the original model and playback is a later slice.',
         ],
       ),
     ],
@@ -707,8 +786,16 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.div(
               [h.Role('group'), h.AriaLabel('Graph actions')],
               [
-                button('Undo', Message.ObservedZlozInput({ message: { type: 'UndoPressed' } })),
-                button('Redo', Message.ObservedZlozInput({ message: { type: 'RedoPressed' } })),
+                button(
+                  'Undo',
+                  observedInput({ message: { type: 'UndoPressed' } }),
+                  model.editor.past.length === 0,
+                ),
+                button(
+                  'Redo',
+                  observedInput({ message: { type: 'RedoPressed' } }),
+                  model.editor.future.length === 0,
+                ),
               ],
             ),
           ]
@@ -731,7 +818,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     h.Type('button'),
                     h.AriaPressed(String(model.editor.snapToGrid)),
                     h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                    h.OnClick(Message.ObservedZlozInput({ message: { type: 'GridSnapToggled' } })),
+                    h.OnClick(observedInput({ message: { type: 'GridSnapToggled' } })),
                   ],
                   ['Snap to grid'],
                 ),
@@ -740,9 +827,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     h.Type('button'),
                     h.AriaPressed(String(model.editor.snapToAlignment)),
                     h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
-                    h.OnClick(
-                      Message.ObservedZlozInput({ message: { type: 'AlignmentSnapToggled' } }),
-                    ),
+                    h.OnClick(observedInput({ message: { type: 'AlignmentSnapToggled' } })),
                   ],
                   ['Snap to nodes'],
                 ),
@@ -796,7 +881,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                             ),
                             h.Style({ width: '72px', 'min-height': '32px' }),
                             h.OnChange((value) =>
-                              Message.ObservedZlozInput({
+                              observedInput({
                                 message: { type: 'GridSpacingChanged', spacing: Number(value) },
                               }),
                             ),
@@ -811,19 +896,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   Message.ClickedArrange({ engine: 'force' }),
                   !supportsForceLayout(model.editor.graph),
                 ),
-                button(
-                  'Group selection',
-                  Message.ObservedZlozInput({ message: { type: 'SelectionGrouped' } }),
-                ),
-                button(
-                  'Ungroup',
-                  Message.ObservedZlozInput({ message: { type: 'SelectionUngrouped' } }),
-                ),
+                button('Group selection', observedInput({ message: { type: 'SelectionGrouped' } })),
+                button('Ungroup', observedInput({ message: { type: 'SelectionUngrouped' } })),
                 ...(selectedNode?.kind === 'group'
                   ? [
                       button(
                         'Fit group to contents',
-                        Message.ObservedZlozInput({
+                        observedInput({
                           message: { type: 'GroupFitClicked', id: selectedNode.id },
                         }),
                         model.editor.readOnly ||
@@ -837,7 +916,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           h.AriaPressed(String(selectedNode.keepAspectRatio ?? false)),
                           h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
                           h.OnClick(
-                            Message.ObservedZlozInput({
+                            observedInput({
                               message: { type: 'GroupAspectRatioToggled', id: selectedNode.id },
                             }),
                           ),
@@ -854,7 +933,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           h.AriaPressed(String(selectedNode.extent === 'parent')),
                           h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
                           h.OnClick(
-                            Message.ObservedZlozInput({
+                            observedInput({
                               message: { type: 'NodeContainmentToggled', id: selectedNode.id },
                             }),
                           ),
@@ -867,7 +946,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                           h.AriaPressed(String(selectedNode.expandParent ?? false)),
                           h.Disabled(model.editor.readOnly || model.editor.gesture.type !== 'idle'),
                           h.OnClick(
-                            Message.ObservedZlozInput({
+                            observedInput({
                               message: { type: 'NodeExpansionToggled', id: selectedNode.id },
                             }),
                           ),
@@ -876,14 +955,19 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                       ),
                     ]
                   : []),
-                button('Copy', Message.ObservedZlozInput({ message: { type: 'CopyPressed' } })),
-                button('Paste', Message.ObservedZlozInput({ message: { type: 'PastePressed' } })),
+                button('Copy', observedInput({ message: { type: 'CopyPressed' } })),
+                button('Paste', observedInput({ message: { type: 'PastePressed' } })),
+                button('Duplicate', observedInput({ message: { type: 'DuplicatePressed' } })),
                 button(
-                  'Duplicate',
-                  Message.ObservedZlozInput({ message: { type: 'DuplicatePressed' } }),
+                  'Undo',
+                  observedInput({ message: { type: 'UndoPressed' } }),
+                  model.editor.past.length === 0,
                 ),
-                button('Undo', Message.ObservedZlozInput({ message: { type: 'UndoPressed' } })),
-                button('Redo', Message.ObservedZlozInput({ message: { type: 'RedoPressed' } })),
+                button(
+                  'Redo',
+                  observedInput({ message: { type: 'RedoPressed' } }),
+                  model.editor.future.length === 0,
+                ),
                 h.button(
                   [
                     h.Type('button'),
@@ -900,10 +984,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                   ],
                   ['Protect Review input'],
                 ),
-                button(
-                  'Delete selected',
-                  Message.ObservedZlozInput({ message: { type: 'DeletePressed' } }),
-                ),
+                button('Delete selected', observedInput({ message: { type: 'DeletePressed' } })),
                 h.label(
                   [],
                   [
@@ -1422,7 +1503,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               h.Value(model.editor.boxSelectionMatch),
               h.Disabled(model.editor.gesture.type !== 'idle'),
               h.OnChange((value) =>
-                Message.ObservedZlozInput({
+                observedInput({
                   message: {
                     type: 'BoxSelectionMatchChanged',
                     match: Schema.decodeUnknownSync(Schema.Literals(['full', 'partial']))(value),
@@ -1545,7 +1626,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Checked(model.editor.fitViewPadding === 96),
             h.Disabled(model.editor.gesture.type !== 'idle'),
             h.OnClick(
-              Message.ObservedZlozInput({
+              observedInput({
                 message: {
                   type: 'ViewportConstraintsChanged',
                   zoomLimits:
@@ -1567,7 +1648,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Type('checkbox'),
             h.Checked(model.editor.fitViewDuration > 0),
             h.OnClick(
-              Message.ObservedZlozInput({
+              observedInput({
                 message: {
                   type: 'FitViewDurationChanged',
                   duration: model.editor.fitViewDuration === 0 ? 400 : 0,
@@ -1650,7 +1731,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             h.Checked((model.editor.connectionSnapHysteresis ?? 0) > 0),
             h.Disabled(model.editor.gesture.type !== 'idle'),
             h.OnClick(
-              Message.ObservedZlozInput({
+              observedInput({
                 message: {
                   type: 'ConnectionSnapHysteresisChanged',
                   distance: model.editor.connectionSnapHysteresis ? 0 : 12,
@@ -2099,7 +2180,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                         h.AriaLabel('Edge path'),
                         h.Disabled(model.editor.readOnly),
                         h.OnChange((value) =>
-                          Message.ObservedZlozInput({
+                          observedInput({
                             message: {
                               type: 'EdgePathStyleChanged',
                               id: selectedEdge.id,
@@ -2123,13 +2204,13 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                 ),
                 button(
                   'Solid edge',
-                  Message.ObservedZlozInput({
+                  observedInput({
                     message: { type: 'EdgeDataChanged', id: selectedEdge.id, data: 'solid' },
                   }),
                 ),
                 button(
                   'Dashed edge',
-                  Message.ObservedZlozInput({
+                  observedInput({
                     message: { type: 'EdgeDataChanged', id: selectedEdge.id, data: 'dashed' },
                   }),
                 ),
@@ -2524,7 +2605,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
               zlozViewportControl(
                 builder,
                 action,
-                (event) => Message.ObservedZlozInput({ message: event }),
+                (event) => observedInput({ message: event }),
                 [
                   builder.Style({
                     'min-width': '44px',
@@ -2577,7 +2658,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
             return zlozMinimap(
               builder,
               context,
-              (event) => Message.ObservedZlozInput({ message: event }),
+              (event) => observedInput({ message: event }),
               [
                 builder.Style({
                   position: 'relative',
@@ -2819,6 +2900,7 @@ export function view(model: Model, h: HtmlBuilder<Message>): Document {
                     !model.minimalMode && diagnostics.measurements,
                     model.editor.readOnly ||
                       (policy.canResizeNode?.(node, model.editor.graph) ?? null) !== null,
+                    zlozInput,
                   )
               : renderDefaultNode,
         }),

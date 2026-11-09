@@ -37,9 +37,9 @@ test('rewind and navigation reject workbench mutations and return to the exact w
   expect(historical.historyBaselineId).toBe('order-start');
   const blocked = update(historical, Message.SelectedExample({ example: 'c4-context' })).model;
   expect(blocked.editor).toBe(editor);
-  expect(update(blocked, Message.SucceededLoad({ json: 'invalid stale load' })).model.editor).toBe(
-    editor,
-  );
+  expect(
+    update(blocked, Message.SucceededImport({ id: -1, json: 'invalid stale load' })).model.editor,
+  ).toBe(editor);
   expect(
     update(blocked, Message.ObservedZlozInput({ message: { type: 'DeletePressed' } })).model.editor,
   ).toBe(editor);

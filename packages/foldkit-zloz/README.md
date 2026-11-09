@@ -2616,3 +2616,52 @@ live protection reason and explicit **Restore as new change** action demonstrate
 the package contract. Editions remain session-owned until exported; import does
 not enable automatic persistence. Forks, merging branches and playback remain
 separate slices.
+
+### Fork an edition into another model
+
+`captureModelDocument` owns portable document identity separately from local
+node/edge/port IDs. `forkEdition` selects an edition in that model's collection,
+checks distinct identity and an optional `canForkEdition` veto, and returns a new
+immutable document. The source is untouched. Each document owns its own edition
+IDs; the fork starts without captured editions. `origin` pins the immediate
+parent's ID/name and exact edition. It is not a complete ancestry DAG or an
+attestation of ownership. Hosts allocate model IDs unique within their registry.
+
+```ts
+import {
+  captureModelDocument,
+  forkEdition,
+  createModelEditor,
+  serializeModelDocument,
+  parseModelDocument,
+} from '@opsydyn/foldkit-zloz';
+
+const source = captureModelDocument({
+  id: 'ordering',
+  name: 'Ordering',
+  snapshot: { graph },
+  editions: [edition],
+  origin: null,
+});
+const fork = forkEdition(source, edition.id, {
+  id: 'ordering-alternative',
+  name: 'Alternative ordering',
+});
+if (fork.type === 'forked') {
+  const portable = parseModelDocument(serializeModelDocument(fork.document));
+  const editor = createModelEditor(portable); // fresh editable session; empty Undo/Redo
+}
+```
+
+The independent `foldkit-zloz-model` version-1 JSON envelope preserves snapshot,
+editions and pinned origin. Existing graph/snapshot and edition-archive version-1
+formats remain unchanged and do not carry model identity. Old strict snapshot
+readers reject model envelopes; use `parseModelDocument`, then `createModelEditor`.
+Editor options remain host-owned; the snapshot camera is used unless explicitly
+overridden. Undo, selection, gestures, routes and clipboard are never persisted.
+Forking is distinct from undoable restore and does not merge model branches.
+
+The existing CLI and workbench diagram importer still accept graph/snapshot JSON.
+They do not silently discard model metadata: use the explicit model codec to read
+this new envelope, and deliberately export its snapshot for diagram-only tools.
+Model-document CLI/import UI integration is a separate adapter slice.

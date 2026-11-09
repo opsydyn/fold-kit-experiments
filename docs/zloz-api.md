@@ -74,3 +74,14 @@ restoration with required freshness and current policy checks. Public contracts:
 `ZlozEditionRestoreDecision`, `ZlozEditionRestoreResult`. See the
 [import/restore guide](../packages/foldkit-zloz/README.md#import-and-restore-editions)
 for policy scope, graph-only semantics and conflict handling.
+
+## Model documents and edition forks
+
+Core exports `captureModelDocument`, `serializeModelDocument`, `parseModelDocument`,
+`forkEdition` and `createModelEditor`, with `ZlozModelDocument`, `ZlozModelIdentity`,
+`ZlozModelOrigin`, `ZlozEditionForkPolicy` and `ZlozEditionForkResult`.
+The model envelope is independent of graph/snapshot/edition v1. Local diagram IDs
+are preserved within a distinct host-allocated model identity. Immediate origin
+pins the exact source edition; no mutable lookup or host-owned node-data keys are
+used. A fork gets its own edition collection and fresh editor/Undo. See
+[the package example](../packages/foldkit-zloz/README.md#fork-an-edition-into-another-model).

@@ -13,12 +13,19 @@ import type { Model } from './model';
 
 /** All other app actions fail closed while a historical editor is displayed. */
 export function historyAllowsMessage(message: Message): boolean {
-  if (message._tag === 'ObservedZlozInput') {
+  if (message._tag === 'ObservedZlozInput' || message._tag === 'ObservedModelInput') {
     // SAFETY: the view emits EditorEvent values through this Schema.Unknown message field.
     const event = message.message as EditorEvent;
     return isHistoryNavigationEvent(event);
   }
   return new Set<string>([
+    'ChangedForkName',
+    'ClickedForkEdition',
+    'SelectedWorkingModel',
+    'ClickedEditionForkProtection',
+    'ClickedExportModel',
+    'CompletedExport',
+    'FailedExport',
     'ChoseEditionArchiveFiles',
     'SucceededEditionArchiveImport',
     'FailedEditionArchiveImport',

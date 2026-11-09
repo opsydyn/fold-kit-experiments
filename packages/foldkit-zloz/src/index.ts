@@ -176,3 +176,17 @@ export type {
   ZlozEditionRestoreDecision,
   ZlozEditionRestoreResult,
 } from './edition-restore';
+export {
+  captureModelDocument,
+  parseModelDocument,
+  serializeModelDocument,
+  forkEdition,
+  createModelEditor,
+} from './model-document';
+export type {
+  ZlozModelDocument,
+  ZlozModelIdentity,
+  ZlozModelOrigin,
+  ZlozEditionForkPolicy,
+  ZlozEditionForkResult,
+} from './model-document';

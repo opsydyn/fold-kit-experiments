@@ -14,6 +14,8 @@ import {
 } from '@opsydyn/foldkit-zloz/foldkit';
 import { Schema } from 'effect';
 
+import type { WorkbenchModelIdentity, WorkbenchModelSession } from './model-sessions';
+
 export const initialGraph: ZlozGraph = {
   nodes: [
     {
@@ -342,6 +344,11 @@ export const Model = Schema.Struct({
   background: BackgroundStyle,
   editionImport: Schema.NullOr(Schema.Unknown),
   editionRestore: Schema.NullOr(Schema.Unknown),
+  modelIdentity: Schema.Unknown,
+  modelEpoch: Schema.Number,
+  savedModels: Schema.Unknown,
+  forkName: Schema.String,
+  protectEditionFork: Schema.Boolean,
   protectEditionRestore: Schema.Boolean,
   editions: Schema.Unknown,
   historyReview: Schema.NullOr(Schema.Unknown),
@@ -425,6 +432,11 @@ export type Model = Readonly<{
   editionImport: Readonly<{ id: number; editions: readonly ZlozEdition[] }> | null;
   editionRestore: Readonly<{ edition: ZlozEdition; expectedRevision: number }> | null;
   protectEditionRestore: boolean;
+  modelIdentity: WorkbenchModelIdentity;
+  modelEpoch: number;
+  savedModels: readonly WorkbenchModelSession[];
+  forkName: string;
+  protectEditionFork: boolean;
   editions: readonly ZlozEdition[];
   historyReview: ZlozHistoryReview | null;
   historyBaselineId: string | null;
@@ -504,6 +516,11 @@ export const init = () => ({
     editionImport: null,
     editionRestore: null,
     protectEditionRestore: false,
+    modelIdentity: { id: 'workbench-root', name: 'Working model', origin: null },
+    modelEpoch: 0,
+    savedModels: [],
+    forkName: '',
+    protectEditionFork: false,
     editions: [],
     historyReview: null,
     historyBaselineId: null,

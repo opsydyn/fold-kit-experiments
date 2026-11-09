@@ -9,6 +9,7 @@ import {
   createHistoryReview,
   updateHistoryReview,
   serializeEditions,
+  serializeModelDocument,
   createEditor,
   fitViewport,
   layoutRequest,
@@ -44,6 +45,7 @@ import {
   ExportZlozEditions,
   ImportZlozEditions,
   ExportFlow,
+  ExportZlozModel,
   ExportMermaidBundle,
   ImportZloz,
   LoadZloz,
@@ -68,6 +70,7 @@ import {
   portSnappingGraph,
   type Model,
 } from './model';
+import { forkWorkingEdition, selectWorkingModel, workbenchDocument } from './model-sessions';
 import { nextPort } from './port-editing';
 import { presetPosition } from './port-presets';
 import { searchDiagram } from './search';
@@ -83,6 +86,11 @@ function frameGraph(graph: ZlozGraph, { surface, fitViewPadding, zoomLimits }: E
 }
 
 export function update(model: Model, message: Message): Return<Model, Message> {
+  if (
+    message._tag === 'ObservedModelInput' &&
+    (message.modelId !== model.modelIdentity.id || message.epoch !== model.modelEpoch)
+  )
+    return { model };
   const cancelEditionImport = () =>
     model.editionImport
       ? [
@@ -166,6 +174,17 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     };
   };
   const result: Return<Model, Message> = Message.match(message, {
+    ObservedModelInput: ({ message }) => update(model, Message.ObservedZlozInput({ message })),
+    ChangedForkName: ({ name }) => ({ model: { ...model, forkName: name } }),
+    ClickedEditionForkProtection: () => ({
+      model: { ...model, protectEditionFork: !model.protectEditionFork },
+    }),
+    ClickedForkEdition: () => ({ model: forkWorkingEdition(model) }),
+    SelectedWorkingModel: ({ id }) => ({ model: selectWorkingModel(model, id) }),
+    ClickedExportModel: () => ({
+      model,
+      commands: [ExportZlozModel({ json: serializeModelDocument(workbenchDocument(model)) })],
+    }),
     ChoseEditionArchiveFiles: ({ files }) => {
       if (files.length === 0)
         return {
@@ -287,6 +306,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
         model: {
           ...model,
           editor,
+          modelEpoch: model.modelEpoch + 1,
           editionRestore: null,
           historyReview: null,
           historyBaselineId: null,
@@ -353,7 +373,8 @@ export function update(model: Model, message: Message): Return<Model, Message> {
     SelectedHistoryEdition: ({ id }) => {
       const index = model.editions.findIndex((edition) => edition.id === id);
       const edition = model.editions[index];
-      if (!edition || model.editor.gesture.type !== 'idle') return { model };
+      if (!edition || model.editor.gesture.type !== 'idle' || model.active || model.importing)
+        return { model };
       const source = model.historyReview
         ? { ...model.editor, surface: model.historyReview.editor.surface }
         : model.editor;
@@ -361,6 +382,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return {
         model: {
           ...model,
+          modelEpoch: model.modelEpoch + 1,
           historyReview: edition.snapshot.viewport
             ? review
             : updateHistoryReview(review, { type: 'FitViewClicked' }),
@@ -382,6 +404,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       return {
         model: {
           ...model,
+          modelEpoch: model.modelEpoch + 1,
           editor: sameSurface ? model.editor : { ...model.editor, surface },
           historyReview: null,
           editionRestore: null,
@@ -1009,6 +1032,7 @@ export function update(model: Model, message: Message): Return<Model, Message> {
           editor,
           active: null,
           importing: null,
+          modelEpoch: model.modelEpoch + 1,
           notice: 'JSON diagram imported.',
         },
       };
@@ -1017,21 +1041,23 @@ export function update(model: Model, message: Message): Return<Model, Message> {
       model,
       commands: [SaveZloz({ json: snapshotJson() })],
     }),
-    ClickedLoad: () => ({ model, commands: [LoadZloz()] }),
+    ClickedLoad: () => {
+      const id = model.sequence + 1;
+      return {
+        model: {
+          ...model,
+          sequence: id,
+          importing: { id, revision: model.editor.revision },
+          notice: 'Reading saved diagram…',
+        },
+        commands: [LoadZloz({ id })],
+      };
+    },
     SucceededSave: () => ({ model: { ...model, notice: 'Saved on this browser.' } }),
     FailedStorage: () => ({
       model: {
         ...model,
         notice: 'Saved graph unavailable or invalid. Your current graph is preserved.',
-      },
-    }),
-    SucceededLoad: ({ json }) => ({
-      model: {
-        ...model,
-        editor: restoreDocument(parseSnapshot(json), false),
-        active: null,
-        importing: null,
-        notice: 'Saved graph loaded.',
       },
     }),
   });
